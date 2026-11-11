@@ -65,6 +65,16 @@
                     <div v-if="currentTabValue === 'models'" class="models-tab-host">
                         <ModelsPage embedded />
                     </div>
+                    <!--
+                      渠道管理同理：ChannelManagementPage 是「左渠道栏 + 右详情」的双栏
+                      工作台，左右各自滚动、靠 height:100% 撑满。放进 ScrollContainer 后
+                      父级高度由内容决定，height:100% 退化成内容高 —— 表现为两栏只有内容
+                      那么高、下面一大片空白，窗口拉高也不跟着长（也不随窗口自适应）。
+                      所以这里直接拿整块高度，滚动交给页面自己的两栏。
+                    -->
+                    <div v-else-if="currentTabValue === 'channels'" class="channels-tab-host">
+                        <ChannelManagementPage />
+                    </div>
                     <ScrollContainer v-else class="h-full p-4">
                         <!--
                           管理员专属 tab 的统一守卫。
@@ -96,11 +106,10 @@
                             <DefaultModelSettings :groups="['face']" />
                         </template>
                         <template v-else-if="currentTabValue === 'reid-config'">
-                            <!-- 人脸重识别：只渲染 ReID 专属的 7 项（分流阈值 / 低阈值检测 /
-                                 同人判定 / 时间窗 / 轨迹容量 / 保留时长 / 默认摄像头）。
-                                 检测模型、特征模型、活体、质量、超分、属性等属于「人脸识别配置」，
-                                 那一页已有全量入口，这里再渲染一遍就是同一批字段两个入口。 -->
-                            <DefaultModelSettings :groups="['face']" :fields="REID_FIELDS" />
+                            <!-- 人脸重识别 = 人脸识别管线 + ReID 两条管线，靠「检测置信度」三档分流。
+                                 面板按管线段落展示（三档分流 / 人脸识别管线 / ReID 管线），
+                                 而不是把 face 分组 38 项平铺 —— 平铺看不出哪几项属于哪条管线。 -->
+                            <ReidConfigSettings />
                         </template>
                         <template v-else-if="currentTabValue === 'image-search-config'">
                             <DefaultModelSettings :groups="['image_search']" />
@@ -198,14 +207,9 @@
                             <ServiceTokensPage />
                         </template>
                         <!--
-                          渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定、
-                          轮询、刷新、签到、模型拉取与单模型开关。
-                          账号连接按 userId 隔离（sys_ai_provider_connection_user_id），
-                          每个用户管理自己的绑定，与其它菜单口径一致；免费渠道另走管理员配置。
+                          渠道管理（channels）已提到 ScrollContainer 之外，
+                          见上方 channels-tab-host：它是双栏工作台，需要确定高度。
                         -->
-                        <template v-else-if="currentTabValue === 'channels'">
-                            <ChannelManagementPage />
-                        </template>
                         <!--
                           菜单管理：把侧栏菜单全部列出，逐项「显示 / 隐藏」。
                           与侧栏同源清单（config/sidebarMenu.ts），改完立即生效。
@@ -307,6 +311,7 @@ import {
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
 
 import SessionConfigSettings from './SessionConfigSettings.vue'
+import ReidConfigSettings from './ReidConfigSettings.vue'
 import ProtocolServerSettings from './ProtocolServerSettings.vue'
 import DisplaySettings from './DisplaySettings.vue'
 import { useAuthStore } from '../../stores/auth'
@@ -380,34 +385,10 @@ const groupMap = computed<Record<string, string>>(() => ({
 }))
 
 /**
- * 人脸重识别的专属配置字段（face 分组尾部的 7 项）。
- *
- * <p>「人脸识别配置」页渲染 face 全量（检测/特征模型、活体、质量、超分、属性…）；
- * 「人脸重识别配置」只该包含 ReID 自己的东西：ReID 特征模型与维度、分流/检索阈值、
- * 轨迹归并参数、默认摄像头。两个页签渲染同一批 38 项，就是
- * 「重识别配置 = 人脸识别配置」，用户改哪边都分不清。</p>
- *
- * <p>字段名与后端 FaceGlobalSettingProvider 逐字一致；后端新增 ReID 字段时在这里补一项。
- * 检测模型仍复用 face.detector_model（重识别与人脸识别共用同一批检测框）。</p>
+ * 人脸重识别的专属配置已改由 {@link ReidConfigSettings} 按「管线」分段渲染，
+ * 不再用 {@code REID_FIELDS} 在通用表单里挑字段 —— 通用表单只能挑「哪些行出现」，
+ * 挑不出「哪些行属于人脸识别管线、哪些属于 ReID」这个语义。
  */
-const REID_FIELDS = [
-    // 模型（参考人脸识别管线的「检测模型 / 特征模型 / 特征维度」）
-    // 检测仍复用 face.detector_model，这里只暴露重识别自己的特征侧
-    'reid_feature_model',
-    'reid_feature_dimension',
-    // 分流与检索
-    'face_threshold',
-    'reid_threshold',
-    'reid_detector_threshold',
-    'reid_match_threshold',
-    // 轨迹归并
-    'track_threshold',
-    'track_gap_seconds',
-    'track_max_tracks',
-    'track_ttl_seconds',
-    // 采集
-    'default_camera_id',
-]
 
 // 设置项菜单
 const sidebarItems = computed(() => [
@@ -880,6 +861,19 @@ onMounted(() => {
 .models-tab-host {
     height: 100%;
     min-height: 0;
+}
+
+/*
+ * 渠道管理 tab：同上。ChannelManagementPage 自身是「左渠道栏 + 右详情」的双栏
+ * 工作台（内部各自滚动，靠 height:100% 撑满）；这里必须给出确定高度，
+ * 否则 height:100% 退化成内容高，页面长不到窗口底部、也不再随窗口自适应。
+ * 左右留白对齐其它页签的 p-4，只把竖直方向的留白留给页面自己。
+ */
+.channels-tab-host {
+    height: 100%;
+    min-height: 0;
+    padding: 0 16px 16px;
+    box-sizing: border-box;
 }
 
 /* 管理员专属 tab 对非管理员展示的拒绝态：占满可用高度，居中说明 */

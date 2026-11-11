@@ -5135,6 +5135,9 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   gap: 6px;
   width: 100%;
   padding: 10px;
+  /* 作为「空槽位」吸收剩余高度（见 .chm-panel__binds），文字始终居中 */
+  flex: 1 1 auto;
+  min-height: 44px;
   font-size: 13px;
   color: var(--text-regular, #475569);
   background: transparent;
@@ -5157,6 +5160,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /*
+   * 内容比面板矮时，把剩下的高度交给「新增入口」：虚线槽拉满到面板底部，
+   * 页面就吃满了高度，而不是内容顶在上半截、下面一片白。
+   * 内容本身超出一屏时（flex 基线是内容高）它退回普通高度，由 tabbody 滚。
+   */
+  flex: 1 1 auto;
+  min-height: 0;
 }
 /* 网关管理的次级入口：不抢「新增账号」的位置 */
 .chm-panel__bindlink {

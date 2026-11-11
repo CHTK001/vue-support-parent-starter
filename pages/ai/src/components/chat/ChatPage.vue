@@ -892,6 +892,14 @@ onUnmounted(() => {
      两层都铺会让 color-mix 的半透明叠两次，壁纸透明度设置就不准了。 */
 }
 
+/* 消息区最小可用宽度：与 .session-status-panel 的 min-width:150px 配套。
+   1024 视口 + 会话工作状态面板打开时，两列合计仍装得下（240 + 177），
+   模型 chip（150px）不再被 .chat-panel-container 的 overflow:hidden 裁掉；
+   宽视口下消息区本来就更宽，这条 min-width 不会生效，无回归。 */
+.chat-panel-container {
+  min-width: 240px;
+}
+
 /* 对话区底色（默认主题 + 浅色时为白）：标题栏、消息列、输入框都落在这块面上。
    1. 用 --color-chat-bg 而不是 --color-bg —— 后者同时被 html 背景与壁纸透明层使用，
       改它会把整页外壳一起刷白，侧边栏与内容区的层次就没了；

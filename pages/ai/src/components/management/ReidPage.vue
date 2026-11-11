@@ -105,7 +105,7 @@
             </div>
 
             <!-- 未检出人脸 -->
-            <div v-else-if="done && !faces.length && !searchHits.length" class="reid-noface">
+            <div v-else-if="done && !faces.length && !faceResults.length && !searchHits.length" class="reid-noface">
               <el-icon :size="20"><Warning /></el-icon>
               <span>未检测到人脸，请换一张正面清晰的画面</span>
             </div>
@@ -171,11 +171,13 @@
         <div v-if="cards.length" class="reid-grid">
           <article
             v-for="c in cards"
-            :key="c.id"
+            :key="`${c.faceIndex ?? 0}-${c.id}`"
             class="reid-card"
-            :class="{ 'is-cross': c.crossCamera }"
+            :class="{ 'is-cross': c.crossCamera, 'is-invalid': c.matchType === 'INVALID' }"
           >
             <div class="reid-card-head">
+              <!-- 逐脸检索的结果标出「属于第几张脸」：一张脸一行，多脸不会混成一条 -->
+              <span v-if="c.faceIndex" class="reid-card-face">第 {{ c.faceIndex }} 张脸</span>
               <span class="reid-card-id">{{ c.id }}</span>
               <!-- 分流类型标注：清晰脸走人脸识别（给出姓名），模糊脸走重识别（给出轨迹） -->
               <el-tag
@@ -190,6 +192,8 @@
               <!-- 分组标注：卡片列表是按分组拉回来的，标出来用户才知道「这条属于哪一组」 -->
               <el-tag v-if="c.group" size="small" effect="plain" class="reid-card-group">{{ c.group }}</el-tag>
             </div>
+            <!-- 不合规 / 未命中：明确交代这张脸为什么没有结果，而不是让它凭空消失 -->
+            <p v-if="c.reason" class="reid-card-reason">{{ c.reason }}</p>
             <!-- 名字：人脸识别命中的姓名，否则是底库这条观测的记录名 -->
             <p v-if="c.faceName || c.name" class="reid-card-name">
               <el-icon><User /></el-icon>
@@ -262,7 +266,7 @@ import ReLoader from "@repo/ui/re-loader";
 import { ElMessageBox } from "element-plus";
 import { apiService } from "@/services/ApiService";
 import { DEFAULT_GROUP, useLibraryGroups } from "@/composables/useLibraryGroups";
-import type { ReidFaceBox, ReidHit, ReidLibraryItem, ReidObserveResult } from "@/services/modules/reid.api";
+import type { ReidFaceBox, ReidFaceResult, ReidHit, ReidLibraryItem, ReidObserveResult } from "@/services/modules/reid.api";
 
 /**
  * 人脸重识别页面。
@@ -317,6 +321,9 @@ const faces = ref<ReidFaceBox[]>([]);
 /** 以图搜人命中。 */
 const searchHits = ref<ReidHit[]>([]);
 
+/** 以图搜人的逐脸结果（一张脸一行，多脸即多行；含不合规的提示）。 */
+const faceResults = ref<ReidFaceResult[]>([]);
+
 /** 底库观测记录（人员）列表。 */
 const observations = ref<ReidLibraryItem[]>([]);
 
@@ -328,10 +335,15 @@ const observations = ref<ReidLibraryItem[]>([]);
  */
 const { group, groups, groupOptions, loadGroups, rememberGroups, setGroups, joinGroups } = useLibraryGroups("reid");
 
-/** 当前检索范围（多选分组）的展示名 */
+/**
+ * 当前检索范围（多选分组）的展示名。
+ *
+ * <p>必须在这里就拼成字符串：直接渲染数组，插值会把数组原样 JSON 化，
+ * 页面上出现的是 {@code [ "default", "reid-ui" ]} 而不是「default、reid-ui」。</p>
+ */
 const groupTags = computed(() => {
   const list = groups.value.filter((g) => String(g ?? '').trim() !== '');
-  return list.length ? list : [DEFAULT_GROUP];
+  return (list.length ? list : [DEFAULT_GROUP]).join('、');
 });
 
 /** 摄像头 / 来源帧 / 经纬度。 */
@@ -379,14 +391,85 @@ type ReidCard = {
   /** 相似度（人员行没有）。 */
   similarity: number | null;
   /** 分流类型（人员行没有）。 */
-  matchType: "FACE" | "REID" | null;
+  matchType: "FACE" | "REID" | "INVALID" | null;
+  /** 该结果属于第几张脸（逐脸检索时；人员行没有）。 */
+  faceIndex?: number | null;
+  /** 不合规的提示文案（其余为空）。 */
+  reason?: string | null;
   /** 所属分组 */
   group: string;
 };
 
-/** 右侧卡片数据：检索命中时用命中项，否则用底库观测记录。 */
-const cards = computed(() => {
+/** 右侧卡片数据：检索命中时用逐脸结果，否则用底库观测记录。 */
+const cards = computed<ReidCard[]>(() => {
   if (activeTab.value === "hit") {
+    // 逐脸结果：每张脸都要有一行交代去路 —— 命中就给命中项，
+    // 不合规就给提示，认不出人也给出「该脸未命中」，不把没有结果的脸藏掉。
+    const out: ReidCard[] = [];
+    for (const face of faceResults.value) {
+      const faceLabel = `第 ${face.index} 张脸`;
+      if (face.decision === "INVALID") {
+        out.push({
+          id: faceLabel,
+          name: null,
+          faceName: null,
+          cameraIds: [],
+          observations: 0,
+          crossCamera: false,
+          lastSeen: 0,
+          lat: null,
+          lng: null,
+          similarity: null,
+          matchType: "INVALID",
+          faceIndex: face.index,
+          reason: face.reason ?? "图片不合规：人脸质量低于 ReID 阈值",
+          group: group.value,
+        });
+        continue;
+      }
+      if (!face.hits.length) {
+        out.push({
+          id: faceLabel,
+          name: null,
+          faceName: null,
+          cameraIds: [],
+          observations: 0,
+          crossCamera: false,
+          lastSeen: 0,
+          lat: null,
+          lng: null,
+          similarity: null,
+          matchType: face.decision,
+          faceIndex: face.index,
+          reason: "该脸未命中底库记录",
+          group: group.value,
+        });
+        continue;
+      }
+      for (const h of face.hits) {
+        out.push({
+          id: h.trackId,
+          name: null,
+          faceName: h.faceName ?? h.track?.faceName ?? null,
+          cameraIds: h.track?.cameraIds ?? [],
+          observations: h.track?.observations ?? 0,
+          crossCamera: h.track?.crossCamera ?? false,
+          lastSeen: h.track?.lastSeen ?? 0,
+          lat: h.track?.lat ?? null,
+          lng: h.track?.lng ?? null,
+          similarity: h.similarity,
+          // 分流类型与姓名：FACE = 人脸识别认出了是谁，REID = 模糊脸只知轨迹
+          matchType: h.matchType ?? face.decision,
+          faceIndex: face.index,
+          reason: null,
+          group: h.track?.group ?? group.value,
+        });
+      }
+    }
+    if (out.length) {
+      return out;
+    }
+    // 逐脸结果为空时（旧后端或接口回落）仍按铺平的命中项展示
     return searchHits.value.map((h) => ({
       id: h.trackId,
       name: null as string | null,
@@ -398,9 +481,7 @@ const cards = computed(() => {
       lat: h.track?.lat ?? null,
       lng: h.track?.lng ?? null,
       similarity: h.similarity as number | null,
-      // 分流类型与姓名：FACE = 人脸识别认出了是谁，REID = 模糊脸只知轨迹
       matchType: h.matchType ?? null,
-      // 命中项可能不回传 group（跨分组检索时），回落到当前分组
       group: h.track?.group ?? group.value,
     }));
   }
@@ -416,7 +497,7 @@ const cards = computed(() => {
     lat: o.lat ?? null,
     lng: o.lng ?? null,
     similarity: null as number | null,
-    matchType: null as "FACE" | "REID" | null,
+    matchType: null,
     group: o.group ?? group.value,
   }));
 });
@@ -496,6 +577,7 @@ function onFilePicked(e: Event) {
   if (!file) return;
   lastFile.value = file;
   faces.value = [];
+  faceResults.value = [];
   observeResult.value = null;
   searchHits.value = [];
   done.value = false;
@@ -543,6 +625,7 @@ async function onGroupChange(selected?: string | string[]) {
   rememberGroups(current);
   // 换组 = 换了一整套记录库
   searchHits.value = [];
+  faceResults.value = [];
   observeResult.value = null;
   faces.value = [];
   await loadObservations();
@@ -593,11 +676,26 @@ async function runSearchFromButton() {
   busy.value = true;
   done.value = true;
   try {
-    // 多选检索范围：后端收逗号分隔，这边直接把选中的分组集合扔过去
-    searchHits.value = await apiService.searchReid(lastFile.value, undefined, undefined, groups.value);
+    // 逐脸检索：一张脸一行结果，多脸就是多行（不合并、不取最大脸）。
+    // 后端收逗号分隔的多分组，这边直接把选中的分组集合扔过去。
+    const results = await apiService.searchReidFaces(lastFile.value, undefined, undefined, groups.value);
+    faceResults.value = results;
+    // 左侧叠加层按每张脸的检测框与分流结论画框（不合规也要能看到是哪张脸）
+    faces.value = results.map((f) => ({
+      ...f.box,
+      trackId: f.box?.trackId ?? null,
+      confidence: f.confidence,
+      matchType: f.decision,
+      reason: f.reason ?? null,
+    }));
+    // 旧结果视图（命中条数/卡片）由逐脸结果铺平，避免两套口径并存
+    searchHits.value = results.flatMap((f) => f.hits);
     activeTab.value = "hit";
+    const invalid = results.filter((f) => f.decision === "INVALID").length;
     if (searchHits.value.length) {
-      message.success(`命中 ${searchHits.value.length} 条记录`);
+      message.success(`检出 ${results.length} 张脸，命中 ${searchHits.value.length} 条记录${invalid ? `，${invalid} 张不合规` : ""}`);
+    } else if (invalid) {
+      message.warning(`检出 ${results.length} 张脸，其中 ${invalid} 张不合规：人脸质量低于 ReID 阈值`);
     } else {
       message.info("没有命中任何记录（可能还没有观测记录，或相似度未达阈值）");
     }
@@ -651,6 +749,7 @@ async function clearObservations() {
     const total = results.reduce((n, c) => n + (c ?? 0), 0)
     message.success(`已清空 ${label} 共 ${total} 条记录`)
     searchHits.value = [];
+    faceResults.value = [];
     observeResult.value = null;
     faces.value = [];
     await loadObservations();
@@ -1174,6 +1273,30 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 600;
   color: var(--reid-muted);
+}
+
+/* 「第 N 张脸」：逐脸结果的归属标记，与记录 ID 区分开 */
+.reid-card-face {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--reid-brand-soft, rgba(255, 122, 0, 0.12));
+  color: var(--reid-brand);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 不合规 / 未命中：整张卡片降权，并把原因写清楚 */
+.reid-card.is-invalid {
+  border-style: dashed;
+  border-color: var(--reid-warning, #e6a23c);
+}
+
+.reid-card-reason {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--reid-warning, #e6a23c);
 }
 
 /* 分流类型标签：人脸识别（绿）/ 重识别（灰蓝） */

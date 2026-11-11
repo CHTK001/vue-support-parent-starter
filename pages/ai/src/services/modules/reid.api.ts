@@ -74,6 +74,24 @@ export interface ReidFaceBox {
   reason?: string | null;
 }
 
+/**
+ * 登记入库（底库入口）的结果。
+ *
+ * <p>底库只收单人图：多脸时后端拒绝并回「请裁剪」，本接口不会返回成功。</p>
+ */
+export interface ReidEnrollResult {
+  /** 后端提示文案（成功时固定「已登记」） */
+  message?: string;
+  /** 底库行标识（两套特征共用） */
+  id?: string;
+  /** 登记时的分流结论：FACE / REID */
+  decision?: "FACE" | "REID" | null;
+  /** 检出人脸数（成功时必为 1） */
+  faceCount?: number;
+  /** 是否两套特征都提取到了 */
+  extracted?: boolean;
+}
+
 /** 观测一帧的结果。 */
 export interface ReidObserveResult {
   /** 实际使用的摄像头标识 */
@@ -166,6 +184,25 @@ export interface ReidLibraryItem {
   createTime?: string | null;
 }
 
+/** 一张脸的检索结果（识别入口逐脸返回：一张脸一行，多脸即多行）。 */
+export interface ReidFaceResult {
+  /** 第几张脸（从 1 开始，按检测框在图中出现顺序） */
+  index: number;
+  /** 该脸的检测框 */
+  box: ReidFaceBox;
+  /** 检测置信度（三档分流的判据） */
+  confidence: number;
+  /**
+   * 分流结论：`FACE` = 人脸识别管线，`REID` = 重识别管线，
+   * `INVALID` = 不合规（低于 ReID 阈值，只提示、不出结果）。
+   */
+  decision: "FACE" | "REID" | "INVALID";
+  /** 不合规时的提示文案（其余为空） */
+  reason?: string | null;
+  /** 该脸命中的记录（不合规或未命中时为空数组） */
+  hits: ReidHit[];
+}
+
 /** 底库观测记录列表查询参数。 */
 export interface ReidLibraryParams {
   /** 只看某个分组的观测记录（不传 = 当前分组下的全部观测） */
@@ -185,11 +222,37 @@ export interface ReidApi {
     group?: string,
   ): Promise<ReidObserveResult>;
   /**
+   * 登记入库（底库入口）：只接受单人图。
+   *
+   * <p>多脸由后端拒绝并返回「请裁剪到只含目标人脸后重试」，
+   * 不会悄悄挑一张脸入库 —— 底库一行对应一个人。</p>
+   *
+   * @param id       人员标识（底库行的向量标识，两套特征共用）
+   * @param metadata 附加元数据（可含 name / cameraId / lat / lng）
+   * @param group    落库分组，缺省 = default
+   */
+  enrollReid(
+    file: File | Blob,
+    id: string,
+    metadata?: Record<string, unknown>,
+    filename?: string,
+    group?: string,
+  ): Promise<ReidEnrollResult>;
+  /**
    * 以图搜人：在已有轨迹中检索最相似的人。
    *
    * @param groups 检索范围（多分组一起搜），缺省 = default；单组传 `[g]` 即可
    */
   searchReid(file: File | Blob, topK?: number, filename?: string, groups?: string[]): Promise<ReidHit[]>;
+  /**
+   * 以图搜人（逐脸）：一张脸一行结果，多脸就是多行，不合并。
+   *
+   * <p>每张脸按自己的检测置信度走三档：≥ 人脸阈值 → 人脸识别；
+   * 低于人脸阈值但 ≥ ReID 阈值 → 重识别；都不到 → 不合规（只回提示）。</p>
+   *
+   * @param groups 检索范围（多分组一起搜），缺省 = default；单组传 `[g]` 即可
+   */
+  searchReidFaces(file: File | Blob, topK?: number, filename?: string, groups?: string[]): Promise<ReidFaceResult[]>;
   /** 列出轨迹 */
   listReidTracks(params?: ReidTracksParams): Promise<ReidTrack[]>;
   /** 列出底库观测记录（人员，不做跨帧轨迹汇聚） */
@@ -323,6 +386,29 @@ export const reidApi: ReidApi = {
     };
   },
 
+  async enrollReid(
+    this: ApiContext,
+    file: File | Blob,
+    id: string,
+    metadata?: Record<string, unknown>,
+    filename = "reid-enroll.png",
+    group?: string,
+  ): Promise<ReidEnrollResult> {
+    const form = new FormData();
+    form.append("id", id);
+    form.append("file", file, filename);
+    if (metadata) {
+      form.append("metadata", JSON.stringify(metadata));
+    }
+    // 「没选分组」就不带：空串会被后端当成一个空分组名，而不是 default
+    const g = normalizeGroup(group);
+    if (g) {
+      form.append("group", g);
+    }
+    const res = await this.client.post("/reid/enroll", form, MULTIPART);
+    return unwrap<ReidEnrollResult>(res);
+  },
+
   async searchReid(
     this: ApiContext,
     file: File | Blob,
@@ -348,6 +434,42 @@ export const reidApi: ReidApi = {
           faceName: hit?.faceName ?? hit?.track?.faceName ?? null,
         }))
       : [];
+  },
+
+  async searchReidFaces(
+    this: ApiContext,
+    file: File | Blob,
+    topK?: number,
+    filename = "reid.png",
+    groups?: string[],
+  ): Promise<ReidFaceResult[]> {
+    const form = toForm(file, filename);
+    if (typeof topK === "number" && topK > 0) {
+      form.append("topK", String(topK));
+    }
+    const joined = joinGroups(groups);
+    if (joined) {
+      form.append("group", joined);
+    }
+    const res = await this.client.post("/reid/search", form, MULTIPART);
+    const data = unwrap<{ faces?: ReidFaceResult[] }>(res);
+    if (!Array.isArray(data?.faces)) {
+      return [];
+    }
+    return data.faces.map((face, i) => ({
+      index: Number(face?.index ?? i + 1),
+      box: face?.box ?? { x: 0, y: 0, width: 0, height: 0, score: 0, matched: false },
+      confidence: Number(face?.confidence ?? face?.box?.confidence ?? 0),
+      decision: (face?.decision ?? "INVALID") as ReidFaceResult["decision"],
+      reason: face?.reason ?? null,
+      hits: Array.isArray(face?.hits)
+        ? face.hits.map((hit) => ({
+            ...hit,
+            matchType: hit?.matchType ?? null,
+            faceName: hit?.faceName ?? hit?.track?.faceName ?? null,
+          }))
+        : [],
+    }));
   },
 
   async listReidTracks(this: ApiContext, params?: ReidTracksParams): Promise<ReidTrack[]> {

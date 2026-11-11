@@ -41,7 +41,6 @@ import {
   Delete,
   DeleteFilled,
   Document,
-  DocumentCopy,
   Download,
   EditPen,
   Files,
@@ -2046,10 +2045,16 @@ async function onCreateFile(path?: string | null): Promise<void> {
   }
 }
 
-/** 新建模板文件（text/docx/xlsx，带默认文件名与扩展名）。path 为空时创建在当前目录 */
-async function onCreateTemplateFile(kind: "text" | "docx" | "xlsx", path?: string | null): Promise<void> {
-  const def = kind === "text" ? "未命名.txt" : kind === "docx" ? "未命名.docx" : "未命名.xlsx";
-  const name = await promptInput("请输入新文件名称", def);
+/**
+ * 新建文本文件（右键「新建 text」专用，默认名带 .txt 后缀）
+ *
+ * <p>原先还承担 docx/xlsx 两个模板入口，现已从资产页移除（协同管理页负责
+ * excel/word 的新建），只留 text 一条分支，避免留下不可达的 kind 参数。</p>
+ *
+ * @param path 目标目录；为空时创建在当前目录
+ */
+async function onCreateTemplateFile(path?: string | null): Promise<void> {
+  const name = await promptInput("请输入新文件名称", "未命名.txt");
   if (!name) return;
   actionRunning.value = true;
   try {
@@ -3663,13 +3668,7 @@ function ctxAction(action: string) {
       void onCreateFile(ctxPath);
       break;
     case "mktext":
-      void onCreateTemplateFile("text", ctxPath);
-      break;
-    case "mkdocx":
-      void onCreateTemplateFile("docx", ctxPath);
-      break;
-    case "mkxlsx":
-      void onCreateTemplateFile("xlsx", ctxPath);
+      void onCreateTemplateFile(ctxPath);
       break;
     case "refresh":
       void loadObjects();
@@ -5978,14 +5977,11 @@ onUnmounted(() => {
             <el-icon class="fs-ctx__icon" aria-hidden="true"><Document /></el-icon>
             新建 text
           </button>
-          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('mkdocx')">
-            <el-icon class="fs-ctx__icon" aria-hidden="true"><DocumentCopy /></el-icon>
-            新建 docx
-          </button>
-          <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('mkxlsx')">
-            <el-icon class="fs-ctx__icon" aria-hidden="true"><Tickets /></el-icon>
-            新建 xlsx
-          </button>
+          <!--
+            需求：文件资产的空白处右键**只保留「新建 text」**。
+            「新建 docx / 新建 xlsx」已从本页移除（协同管理页自己仍有 excel/word 新建入口，
+            那里才是产出 xlsx/docx 的地方），避免在资产目录里出现与协同重复的入口。
+          -->
           <div class="fs-ctx__sep" aria-hidden="true" />
           <button type="button" class="fs-ctx__item" role="menuitem" @click="ctxAction('refresh')">
             <el-icon class="fs-ctx__icon" aria-hidden="true"><Refresh /></el-icon>

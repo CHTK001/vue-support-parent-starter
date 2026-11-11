@@ -8,7 +8,7 @@
       @after-leave="onAfterLeave"
       @leave-cancelled="onAfterLeave"
     >
-      <div v-if="modelValue" class="rmd-mask" @click.self="onMaskClick">
+      <div v-if="modelValue" class="rmd-mask" :style="{ zIndex: zIndex ?? 2000 }" @click.self="onMaskClick">
         <div class="rmd-dialog" :style="{ width: width }">
           <div class="rmd-header">
             <span class="rmd-title">{{ title }}</span>
@@ -36,6 +36,8 @@ const props = defineProps<{
   width?: string;
   closable?: boolean;
   closeOnClickMask?: boolean;
+  /** 遮罩层级；在其它弹窗之上再开本弹窗时传入更大的值，默认 2000 */
+  zIndex?: number;
 }>();
 
 const emit = defineEmits<{

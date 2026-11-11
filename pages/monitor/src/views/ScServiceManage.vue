@@ -952,7 +952,6 @@ watch(
             <RoomView
               v-if="kindOf(tab) === 'room'"
               :key="`${tab.name}:${reloadSeqOf(tab.name)}`"
-              embedded
               :room-id="roomIdOf(tab)"
               :server-url="serverUrlOf(tab)"
               @leave="closeTab(tab.name)"

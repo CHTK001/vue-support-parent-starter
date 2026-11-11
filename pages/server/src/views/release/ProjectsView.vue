@@ -744,7 +744,8 @@
           <div class="apm-pane">
             <div class="apm-tip">
               APM JavaAgent 高级选项：选择后在项目启动脚本（java -jar）中挂载 agent，重启项目即开始上报
-              调用链与监控信息。jar 路径为<b>目标主机上</b>的绝对路径，保存前请确认 agent 已就位。
+              调用链与监控信息。jar 路径为<b>目标主机上</b>的绝对路径；若主机上还没有 agent 包，
+              点路径右侧的「获取」由平台下载/选取后自动投放。
             </div>
             <ReForm label-position="top" class="apm-form">
               <ReFormItem label="APM 类型">
@@ -758,7 +759,10 @@
 
               <template v-if="form.apmType === 'platform'">
                 <ReFormItem label="Agent jar 路径（目标主机绝对路径）">
-                  <ReInput v-model="form.apmJarPath" placeholder="如 /opt/agent/apm-agent.jar" style="width:100%" />
+                  <div class="jar-pick">
+                    <ReInput v-model="form.apmJarPath" placeholder="如 /opt/agent/apm-agent.jar" style="width:100%" />
+                    <ReButton size="small" :disabled="editingId == null" @click="openAgentDialog('platform')">获取</ReButton>
+                  </div>
                 </ReFormItem>
                 <ReFormItem label="agent 参数（逗号分隔，不含前缀）">
                   <ReInput v-model="form.apmOptions" placeholder="如 port=4567" style="width:100%" />
@@ -767,8 +771,15 @@
 
               <template v-if="form.apmType === 'skywalking'">
                 <ReFormItem label="SkyWalking agent jar 路径（目标主机绝对路径）">
-                  <ReInput v-model="form.swJarPath" placeholder="如 /opt/skywalking/skywalking-agent.jar" style="width:100%" />
+                  <div class="jar-pick">
+                    <ReInput v-model="form.swJarPath" placeholder="如 /opt/skywalking/skywalking-agent.jar" style="width:100%" />
+                    <ReButton size="small" :disabled="editingId == null" @click="openAgentDialog('skywalking')">获取</ReButton>
+                  </div>
                 </ReFormItem>
+                <div class="apm-tip apm-tip-sub">
+                  「获取」由平台下载或选取 agent 包，经 SFTP 投放到目标主机后自动回填路径；
+                  SkyWalking 建议给整个 agent 目录（config/plugins 一并投放）。项目需先保存。
+                </div>
                 <ReFormItem label="service_name（服务名，上报到 OAP 后按此聚合）">
                   <ReInput v-model="form.swServiceName" :placeholder="`默认 ${form.projectName || '项目名'}`" style="width:100%" />
                 </ReFormItem>
@@ -782,7 +793,10 @@
 
               <template v-if="form.apmType === 'arthas'">
                 <ReFormItem label="Arthas agent jar 路径（目标主机绝对路径）">
-                  <ReInput v-model="form.arthasJarPath" placeholder="如 /opt/arthas/arthas-agent.jar" style="width:100%" />
+                  <div class="jar-pick">
+                    <ReInput v-model="form.arthasJarPath" placeholder="如 /opt/arthas/arthas-agent.jar" style="width:100%" />
+                    <ReButton size="small" :disabled="editingId == null" @click="openAgentDialog('arthas')">获取</ReButton>
+                  </div>
                 </ReFormItem>
                 <ReFormItem label="Telnet 端口（Arthas 交互端口）">
                   <ReInput v-model.number="form.arthasTelnetPort" type="number" style="width:100%" />
@@ -1331,6 +1345,12 @@
     <!-- Arthas 诊断对话框 -->
     <ReDialog v-model="arthasDialogVisible" :title="`Arthas 诊断 - ${arthasProject?.projectName || ''}`" width="860px" :close-on-click-modal="false" :footer-hidden="true">
       <div class="arthas-wrap">
+        <!-- arthas-boot.jar：目标主机上可能还没包，先由平台下载/选取并投放 -->
+        <div class="arthas-jar">
+          <span class="arthas-jar-label">arthas-boot.jar</span>
+          <ReInput v-model="arthasJarPath" placeholder="目标主机上的绝对路径" style="width:100%" />
+          <ReButton size="small" @click="openAgentDialog('arthas', arthasProject?.id)">获取构件</ReButton>
+        </div>
         <!-- 状态栏 -->
         <div class="arthas-status-bar">
           <span class="arthas-badge" :class="{ 'arthas-badge-on': arthasRunning }">
@@ -1365,6 +1385,14 @@
         </div>
       </div>
     </ReDialog>
+
+    <!-- Agent 构件获取：远程下载 / 平台本机路径 → SFTP 投放到目标主机 -->
+    <AgentArtifactDialog
+      v-model="agentDlgVisible"
+      :project-id="agentDlgProjectId"
+      :kind="agentDlgKind"
+      @done="onAgentDone"
+    />
 
     <!-- 项目右键菜单：与「更多」下拉同一套命令 -->
     <Teleport to="body">
@@ -1445,6 +1473,7 @@ import ProjectInfoPanel from '../../components/ProjectInfoPanel.vue';
 import ProjectLogColumn from '../../components/ProjectLogColumn.vue';
 import ProjectOpLogPanel from '../../components/ProjectOpLogPanel.vue';
 import GitRepositoryDialog from '../../components/GitRepositoryDialog.vue';
+import AgentArtifactDialog from '../../components/AgentArtifactDialog.vue';
 
 const BASE = '/ms/server/release';
 
@@ -4639,6 +4668,7 @@ const arthasAttaching = ref(false);
 const arthasDetaching = ref(false);
 const arthasExecLoading = ref(false);
 const arthasCommand = ref('');
+const arthasJarPath = ref('');
 const arthasTerminalEl = ref<HTMLElement>();
 const arthasQuickCommands = ['dashboard', 'thread', 'jvm', 'sysprop', 'sc *Service*', 'jad --source-only', 'trace', 'watch'];
 let arthasPollTimer: number | null = null;
@@ -4649,6 +4679,36 @@ watch(arthasDialogVisible, (visible) => {
 
 function isJavaProject(item: Project): boolean {
   return JAVA_APM_TYPES.includes(item.projectType);
+}
+
+// ---- Agent 构件获取（远程下载 / 平台本机路径 → SFTP 投放） ----
+const agentDlgVisible = ref(false);
+const agentDlgKind = ref<'arthas' | 'skywalking' | 'platform'>('arthas');
+const agentDlgProjectId = ref<number | null>(null);
+
+function openAgentDialog(kind: 'arthas' | 'skywalking' | 'platform', projectId?: number) {
+  const pid = projectId ?? editingId.value;
+  if (pid == null) {
+    message.warning('请先保存项目，再获取 Agent 构件');
+    return;
+  }
+  agentDlgKind.value = kind;
+  agentDlgProjectId.value = pid;
+  agentDlgVisible.value = true;
+}
+
+function onAgentDone(remotePath: string, kind: string) {
+  // 只有「当前编辑的项目」才回填表单；从项目行打开 Arthas 诊断时只影响本次 attach
+  const editing = editingId.value != null && agentDlgProjectId.value === editingId.value;
+  if (kind === 'arthas') {
+    if (editing) form.value.arthasJarPath = remotePath;
+    arthasJarPath.value = remotePath;
+  } else if (kind === 'skywalking') {
+    if (editing) form.value.swJarPath = remotePath;
+  } else if (editing) {
+    form.value.apmJarPath = remotePath;
+  }
+  message.success(`已回填路径：${remotePath}`);
 }
 
 async function openArthasDialog(item: Project) {
@@ -4674,6 +4734,7 @@ async function loadArthasStatus() {
     if (data) {
       arthasRunning.value = !!data.arthasRunning;
       arthasPid.value = data.jvmPid || '';
+      if (data.arthasJarPath) arthasJarPath.value = data.arthasJarPath;
     }
   } catch (e) {
     // 静默失败
@@ -4686,6 +4747,7 @@ async function doArthasAttach() {
   try {
     const res = await http().post(`/ms/server/arthas/project/${arthasProject.value.id}/attach`).query({
       telnetPort: 3658,
+      arthasJarPath: arthasJarPath.value || undefined,
     });
     message.success(unwrapResult<string>(res));
     await loadArthasStatus();
@@ -6581,6 +6643,8 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-md, 8px);
 }
 .apm-tip b { color: var(--text-primary, #1f2430); }
+.apm-tip-sub { font-size: 12px; padding: 8px 12px; }
+.jar-pick { display: flex; align-items: center; gap: 8px; width: 100%; }
 .apm-form { display: flex; flex-direction: column; gap: 4px; }
 .apm-preview {
   margin: 0; padding: 10px 12px; width: 100%; box-sizing: border-box;
@@ -6643,6 +6707,19 @@ onBeforeUnmount(() => {
 
 /* Arthas 诊断 */
 .arthas-wrap { display: flex; flex-direction: column; gap: 12px; }
+.arthas-jar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-fill, #f7f8fa);
+  border: 1px solid var(--border-subtle, #eef0f6);
+  border-radius: var(--radius-md, 8px);
+}
+.arthas-jar-label {
+  flex-shrink: 0;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
 .arthas-status-bar { display: flex; align-items: center; gap: 12px; }
 .arthas-badge {
   font-size: 12px;

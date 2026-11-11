@@ -6,25 +6,20 @@
  * （聊天 / 文件 / 视频 / 语音 / 观看 / 协作 / 画板 / 状态）+ 工作区面板。
  * 连接与信令状态机由 {@code @pages/room/stores} 承载，各空间只读写自己的状态。</p>
  *
- * <p>进入页面时先连 Socket，再发 hello 加入房间（路由 query 的
- * {@code roomId} 直接进房，没有则创建空房间）；离开时 leave 并断开连接，
- * 保证 WebSocket 与 WebRTC 连接不泄漏到下一页。</p>
+ * <p>进入页面时先连 Socket，再发 hello 加入房间（{@code roomId} prop 直接进房，
+ * 没有则创建空房间）；离开时 leave 并断开连接，保证 WebSocket 与 WebRTC 连接
+ * 不泄漏到下一个页签。</p>
  *
- * <p><b>两种挂载方式</b>：</p>
- * <ul>
- *   <li>独立路由（{@code /room}）：读路由 query 的 roomId，离开时跳回首页；</li>
- *   <li>{@code embedded}（嵌进「服务管理」页的工作区页签）：房间是服务侧能力，
- *       不单独占菜单。此时房间号由父级 {@code roomId} prop 传入，离开只发
- *       {@code leave} 事件，不操纵路由。</li>
- * </ul>
+ * <p><b>挂载方式只有一种</b>：嵌进「服务管理」页的工作区页签。房间是服务侧的
+ * 能力（Server 接口的 ROOM 协议子类），不单独占菜单、也不单独占路由；房间号由
+ * 父级 {@code roomId} prop 传入，离开只发 {@code leave} 事件，不操纵路由。</p>
  *
  * @author CH
  * @since 4.0.0.46
  */
 import { computed, onBeforeUnmount, onMounted, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/core";
-// 自带样式：路由工厂可能被宿主直接深导入（不经过包根 index.ts），
+// 自带样式：本包被宿主按路径深导入（不经过包根 index.ts），
 // 因此把 CSS 挂在页面组件上，保证任何挂载方式都有一份样式。
 import "../styles/room.css";
 import { useRoomStore } from "../stores/room";
@@ -41,23 +36,19 @@ import StatusWorkspace from "./StatusWorkspace.vue";
 
 const props = withDefaults(
   defineProps<{
-    /** 嵌入模式：房间号由父级传入，离开时不操纵路由 */
-    embedded?: boolean;
-    /** 嵌入模式下要加入的房间号（空则停在「创建房间」） */
+    /** 要加入的房间号（空则停在「创建房间」） */
     roomId?: string;
     /** 信令服务基地址（服务管理里的 ROOM 节点地址；空则用当前站点同端口） */
     serverUrl?: string;
   }>(),
-  { embedded: false, roomId: "", serverUrl: "" },
+  { roomId: "", serverUrl: "" },
 );
 
 const emit = defineEmits<{
-  /** 嵌入模式下用户点了「离开」：由父级决定是否关闭工作区页签 */
+  /** 用户点了「离开」：由父级决定是否关闭工作区页签 */
   (e: "leave"): void;
 }>();
 
-const route = useRoute();
-const router = useRouter();
 const store = useRoomStore();
 
 /** 当前选中的工作空间 */
@@ -136,19 +127,18 @@ async function copyRoomId(): Promise<void> {
   }
 }
 
-/** 离开房间：独立路由下回首页，嵌入时交给父级收页签 */
+/** 离开房间：通知父级关闭工作区页签 */
 function doLeave(): void {
   store.leaveRoom("user");
-  if (props.embedded) emit("leave");
-  else router.push("/");
+  emit("leave");
 }
 
-/** 要加入的房间号：嵌入看 prop，独立路由看 query */
+/** 要加入的房间号（由父级传入） */
 function targetRoomId(): string {
-  return props.embedded ? String(props.roomId ?? "") : String(route.query.roomId ?? "");
+  return String(props.roomId ?? "");
 }
 
-/** 房间号变化时重新加入（独立路由看 query，嵌入看 prop） */
+/** 房间号变化时重新加入 */
 watch(targetRoomId, (id) => {
   if (!id) return;
   store.joinRoom(id);
@@ -209,7 +199,7 @@ let unmounted: (() => void) | undefined;
 </script>
 
 <template>
-  <div class="rm-page" :class="{ 'rm-page--embedded': props.embedded }">
+  <div class="rm-page">
     <!-- 顶部工具条 -->
     <header class="rm-head">
       <span class="rm-title">

@@ -244,6 +244,29 @@ const props = defineProps({
  */
 const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'compose', 'session', 'marking', 'global', 'channel_probe', 'protocol-server']
 
+/**
+ * 人脸分组里属于「人脸重识别」的字段。
+ *
+ * <p>这些项的消费方全是 ReID 侧（{@code ReidClientManager} / {@code ReidController}），
+ * 与「人脸识别管线」的检测/特征模型没有关系。它们由独立的「人脸重识别配置」页
+ * （{@code ReidConfigSettings}）按管线分段渲染 —— 在本页再摆一遍就是同一批字段两个入口：
+ * 用户在「人脸识别配置」里把 reid_threshold 从 0.3 改成 0.4，页面上没有任何信息告诉他
+ * 这一改同时挪动了重识别的分流线。</p>
+ */
+const REID_ONLY_FACE_FIELDS = [
+    'face_threshold',
+    'reid_threshold',
+    'reid_detector_threshold',
+    'reid_feature_model',
+    'reid_feature_dimension',
+    'reid_match_threshold',
+    'track_threshold',
+    'track_gap_seconds',
+    'track_max_tracks',
+    'track_ttl_seconds',
+    'default_camera_id',
+]
+
 /** 传入 groups 时只渲染指定分组（设置中心拆出的独立菜单复用同一套交互与保存逻辑） */
 /**
  * 字段白名单模式下，后端定义还没跟上时的兜底声明。
@@ -1234,6 +1257,10 @@ const shouldShowField = (group, field) => {
     // RAG 向量库选择：由「向量库配置」动态表单接管（保存到全局层而非个人覆盖），
     // 这里隐藏通用行，避免出现双入口（下拉值与动态表单各自保存会互相打架）
     if (group === 'rag' && field === 'rag_vector_storage') {
+        return false
+    }
+    // 人脸重识别专属项：由「人脸重识别配置」页按管线分段渲染（见 REID_ONLY_FACE_FIELDS 注释）。
+    if (group === 'face' && REID_ONLY_FACE_FIELDS.includes(field)) {
         return false
     }
     return true

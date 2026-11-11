@@ -637,11 +637,19 @@ onMounted(() => {
    3. 圆角、过渡时长统一取 --el-radius-* / --el-transition-duration 令牌。
    ============================================================================ */
 
-/* 面板容器：靠左侧 1px 分割线与消息区区分层次，不用投影 */
+/* 面板容器：靠左侧 1px 分割线与消息区区分层次，不用投影。
+   宽度策略（缺陷：窄视口下模型 chip 被裁）：
+   1. 常态 280px（basis），宽视口下与消息区平分剩余空间，视觉不变；
+   2. 但允许收缩到 150px：本面板是唯一固定宽侧栏，若死守 280px，
+      1024 视口下会把 flex:1 的消息区压到 137px，输入卡的模型 chip（150px）
+      右溢 46px 被 .chat-panel-container{overflow:hidden} 裁掉；
+   3. 收缩下限 150px 与消息区下限 240px（.chat-panel-container）配套，
+      保证两者在 1024 下都还可用，而不是让消息区单方面被挤死。 */
 .session-status-panel {
-  width: 280px;
+  flex: 0 1 280px;
+  width: auto;
+  min-width: 150px;
   height: 100%;
-  flex-shrink: 0;
   background: var(--el-bg-color-overlay);
   border-left: 1px solid var(--el-border-color-lighter);
   display: flex;

@@ -219,9 +219,9 @@
                   <div v-if="cueScene.cast && cueScene.cast !== '-'" class="ws-cue-in">在场：{{ cueScene.cast }}</div>
                   <div v-for="(l, li) in visibleLines(cueScene, cueIndex)" :key="li" class="ws-cue-line"
                     :class="li % 2 ? 'right' : 'left'">
-                    <CardAvatar class="ws-cue-ava" :src="npcAvatar(l.speaker)" :name="l.speaker || 'AI'" size="sm" />
+                    <CardAvatar class="ws-cue-ava" :src="npcAvatar(cueSpeaker(l))" :name="cueSpeaker(l)" size="sm" />
                     <div class="ws-cue-bubble">
-                      <span class="ws-cue-who">{{ l.speaker }}</span>
+                      <span class="ws-cue-who">{{ cueSpeaker(l) }}</span>
                       <span class="ws-cue-say">{{ l.text }}</span>
                     </div>
                   </div>
@@ -1035,6 +1035,20 @@ function isLongNarr(text: string) {
 }
 
 /**
+ * 台词的显示名：优先用剧本里的 speaker。
+ *
+ * <p>部分真实模型会把说话人塞进 text 开头写成「刘备：……」而把 speaker 留空，
+ * 这时舞台上的姓名字牌会是空白（实测 Agnes）。从 text 前缀（中文/英文冒号，
+ * 名字不超过 12 字）兜底取一次，取不到才显示「AI」。</p>
+ */
+function cueSpeaker(l: { speaker?: string; text?: string }) {
+  const name = String(l?.speaker || '').trim()
+  if (name) return name
+  const m = String(l?.text || '').match(/^\s*([^：:]{1,12})[：:]/)
+  return m ? m[1].trim() : 'AI'
+}
+
+/**
  * 台词说话人 → 角色头像。
  *
  * <p>台词里的 speaker 是 AI 写出来的名字，可能带称谓（如「沈砚」对「沈砚大人」），
@@ -1674,6 +1688,10 @@ function scheduleEvolve() {
     evolveTimer = null
     if (!autoEvolve.value || !currentWorldId.value) return
     try {
+      // 每拍先把幕次列表拉新：上一拍把幕推到 replay 后，本地 acts 还是旧阶段，
+      // 用旧阶段判断会再发一次 advance，接口直接回 400「幕次阶段为 replay，无法推进」，
+      // 浏览器控制台就留下一条假的网络错误。以服务端返回的列表为准。
+      await loadActs()
       // 「待演」幕：上一幕演完时 AI 已把下一幕建出来停在 writing，
       // 此时焦点通常还在刚演完的 replay 幕上。若不主动把待演幕接上，
       // 自动演化就只会空推世界时间，剧本永远停在第一幕。
@@ -1684,7 +1702,8 @@ function scheduleEvolve() {
       if (waiting && waiting.actNo !== currentAct.value?.actNo) {
         await selectAct(waiting)
       }
-      const stage = actStage.value
+      const fresh = acts.value.find((a) => a.actNo === currentAct.value?.actNo)
+      const stage = String(fresh?.stage ?? actStage.value ?? '')
       if (currentAct.value && stage && stage !== 'replay' && stage !== 'finished') {
         // 形参是 { stage, label, action } 对象：传字符串会让 btn.action 恒为 undefined，
         // 函数里所有分支都不命中，等于空转（自动演化会一直停在写作阶段）。
@@ -2054,6 +2073,19 @@ async function actPipelineAction(btn: { stage?: string; label?: string; action?:
   try {
     const no = currentAct.value!.actNo as number
     if (btn.action === 'advance') {
+      // 发请求前用服务端的详情复核一次阶段：列表/详情可能比库里旧
+      // （上一拍刚把这一幕推到 replay），直接发 advance 会拿到 400
+      // 「幕次阶段为 replay，无法推进」，浏览器控制台就多一条假网络错误。
+      try {
+        const fresh = await apiService.fetchWorldActDetail(currentWorldId.value, no) as WorldActDetail
+        const freshStage = String(fresh?.act?.stage ?? '')
+        if (freshStage && !['writing', 'props_ok', 'playing'].includes(freshStage)) {
+          actDetail.value = fresh
+          return
+        }
+      } catch {
+        /* 复核失败就按原流程走，由 advance 自己兜底 */
+      }
       // 幕次自动接续：从当前阶段一路推到「可重播」，中途不停下来等观众点。
       // 演出已改成分场增量：一次 advance 只演一场，演完就把稿子落盘。
       // 所以每一轮结束都要刷新「演出稿 + 幕次详情」，已演的场次立刻上舞台，

@@ -9,19 +9,16 @@
  */
 
 /* ==================== 页面骨架 ==================== */
+/* 房间工作台只作为「服务管理」的工作区页签存在：铺满父容器 */
 .rm-page {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: calc(100vh - 150px);
-  min-height: 460px;
+  height: 100%;
+  min-height: 420px;
   padding: 8px 10px 10px;
   box-sizing: border-box;
   background: var(--el-bg-color, #f8f9fb);
-}
-.rm-page--embedded {
-  height: 100%;
-  min-height: 420px;
 }
 
 .rm-head {
