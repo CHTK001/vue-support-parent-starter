@@ -6,7 +6,7 @@
  * 全部使用 ReXxx modern 组件渲染，风格对齐 UserManage.vue。
  */
 import { getGlobalSocketService, message } from "@repo/core";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions } from "../api/systemApi";
 import type { SysTenant, TenantDatasourceOption, TenantEndpointInfo } from "../api/types";
@@ -272,7 +272,7 @@ async function handleSubmit() {
   // 新增租户改走「带进度的创建」：保存记录 → 建库 → 建账号授权 → 建业务表 →
   // 同步租户库管理员 → 推送菜单，这几步动辄数十秒。原先是同步 save，界面上只有
   // 一个转圈按钮，失败也不知道卡在哪一步；现在每一步都推给进度弹窗。
-  dialogVisible.value = false;
+  // 表单要等拿到 taskId 后再关：启动失败时用户还能直接改参数重试。
   await startProvision({ ...form.value });
 }
 
@@ -280,8 +280,10 @@ async function handleSubmit() {
 
 /** 轮询间隔：套接字正常时只当兜底，1.5s 足够且不至于打爆后端 */
 const PROVISION_POLL_INTERVAL = 1500;
-/** 轮询上限：约 10 分钟，超过就停（避免页面开着无限请求） */
+/** 轮询上限：约 10 分钟；实时通道仍活跃时继续兜底，不能把弹窗锁死 */
 const PROVISION_POLL_MAX = 400;
+/** 认为套接字仍有进度心跳的时间窗：超过这个时间没有帧就不再信任 isConnected */
+const PROVISION_SOCKET_ALIVE_MS = 120_000;
 
 const provisionVisible = ref(false);
 const provisionSnapshot = ref<ProgressSnapshot | null>(null);
@@ -303,6 +305,9 @@ let provisionUnsubscribe: (() => void) | null = null;
 let provisionPollTimer: number | null = null;
 let provisionPollCount = 0;
 let provisionPollFailures = 0;
+let provisionLastFrameAt = 0;
+/** 组件已卸载：在途的启动/轮询回调不能再改状态或重新起定时器 */
+let provisionDisposed = false;
 
 /** 停掉状态轮询 */
 function stopProvisionPolling() {
@@ -334,7 +339,12 @@ function applyProvisionSnapshot(raw: Record<string, unknown> | null | undefined)
   }
   const next = raw as unknown as ProgressSnapshot;
   const prev = provisionSnapshot.value;
-  if (prev?.finished && !next.finished) {
+  if (prev?.finished) {
+    // 已结束就不再回退；重复的终态帧只合并最终文案，不重复触发 finishProvision
+    if (next.finished) {
+      provisionSnapshot.value = { ...prev, ...next };
+      provisionLastFrameAt = Date.now();
+    }
     return;
   }
   if (
@@ -347,6 +357,7 @@ function applyProvisionSnapshot(raw: Record<string, unknown> | null | undefined)
     return;
   }
   provisionSnapshot.value = { ...next };
+  provisionLastFrameAt = Date.now();
   if (next.finished) {
     finishProvision();
   }
@@ -358,7 +369,11 @@ function applyProvisionSnapshot(raw: Record<string, unknown> | null | undefined)
  * <p>ReProgressDialog 只有 finished 才允许关闭；若这里不兜底，
  * 一次网络故障就会把用户永久锁在“正在创建”里。</p>
  */
-function failProvisionLocally(error: string, title = "创建未完成") {
+function failProvisionLocally(
+  error: string,
+  title = "创建未完成",
+  status: "FAILED" | "UNKNOWN" = "FAILED",
+) {
   provisionError.value = error;
   stopProvisionPolling();
   stopProvisionSubscription();
@@ -366,7 +381,7 @@ function failProvisionLocally(error: string, title = "创建未完成") {
   provisionSnapshot.value = {
     ...(prev ?? {}),
     taskId: prev?.taskId ?? provisionTaskId.value,
-    status: "FAILED",
+    status,
     finished: true,
     percentage: prev?.percentage ?? 0,
     currentTitle: title,
@@ -382,6 +397,7 @@ function failProvisionLocally(error: string, title = "创建未完成") {
 function finishProvision() {
   stopProvisionPolling();
   stopProvisionSubscription();
+  provisionPendingFrames.clear();
   const snap = provisionSnapshot.value;
   if (!snap) {
     return;
@@ -394,6 +410,8 @@ function finishProvision() {
     message.success(snap.message || "租户创建完成");
   } else if (snap.status === "CANCELLED") {
     message.warning(snap.message || "租户创建已取消");
+  } else if (snap.status === "UNKNOWN") {
+    message.warning(snap.message || "任务状态未知，请刷新列表确认结果");
   } else {
     message.error(snap.message || "租户创建失败");
   }
@@ -411,6 +429,9 @@ function startProvisionPolling() {
 
 /** 拉一次状态快照 */
 async function pollProvisionStatus() {
+  if (provisionDisposed) {
+    return;
+  }
   const taskId = provisionTaskId.value;
   if (!taskId) {
     stopProvisionPolling();
@@ -418,7 +439,15 @@ async function pollProvisionStatus() {
   }
   provisionPollCount += 1;
   if (provisionPollCount > PROVISION_POLL_MAX) {
-    stopProvisionPolling();
+    const socket = getGlobalSocketService();
+    const socketAlive =
+      socket?.isConnected === true && Date.now() - provisionLastFrameAt < PROVISION_SOCKET_ALIVE_MS;
+    if (socketAlive) {
+      // 实时通道还在推：轮询继续当兜底，不因为计数到顶就把弹窗判死
+      provisionPollCount = 0;
+      return;
+    }
+    failProvisionLocally("进度查询超时，请关闭后刷新列表确认结果", "进度获取超时", "UNKNOWN");
     return;
   }
   try {
@@ -427,12 +456,21 @@ async function pollProvisionStatus() {
     provisionPollFailures = 0;
     applyProvisionSnapshot(data);
   } catch {
-    // 单次失败可能只是抖动：套接字还在推就继续轮询；连续失败才认为通道断了
+    // 单次失败可能只是抖动：套接字还在就连轮询都不急着停，避免误判任务失败
     provisionPollFailures += 1;
     if (provisionPollFailures < 3) {
       return;
     }
-    failProvisionLocally("连续获取创建进度失败，请关闭后刷新列表确认结果");
+    const socket = getGlobalSocketService();
+    if (socket?.isConnected === true) {
+      provisionPollFailures = 0;
+      return;
+    }
+    failProvisionLocally(
+      "连续获取创建进度失败，且实时通道已断开，请关闭后刷新列表确认结果",
+      "进度获取中断",
+      "UNKNOWN",
+    );
   }
 }
 
@@ -442,6 +480,9 @@ async function pollProvisionStatus() {
  * @param payload 新增租户表单
  */
 async function startProvision(payload: SysTenant) {
+  if (provisionDisposed) {
+    return;
+  }
   provisionSnapshot.value = null;
   provisionSteps.value = [];
   provisionError.value = "";
@@ -451,6 +492,7 @@ async function startProvision(payload: SysTenant) {
   provisionPendingFrames.clear();
   provisionPollCount = 0;
   provisionPollFailures = 0;
+  provisionLastFrameAt = 0;
   stopProvisionPolling();
   stopProvisionSubscription();
   provisionVisible.value = true;
@@ -491,8 +533,15 @@ async function startProvision(payload: SysTenant) {
     // 能力接口不可用：只保留轮询
   }
 
+  if (provisionDisposed) {
+    return;
+  }
+
   try {
     const res = await startTenantProvision(payload);
+    if (provisionDisposed) {
+      return;
+    }
     const data = (res?.data ?? {}) as Record<string, unknown>;
     provisionTaskId.value = data.taskId === undefined || data.taskId === null ? "" : String(data.taskId);
     if (!provisionTaskId.value) {
@@ -504,10 +553,16 @@ async function startProvision(payload: SysTenant) {
       applyProvisionSnapshot(pendingFrame);
     }
     provisionPendingFrames.clear();
-    startProvisionPolling();
+    dialogVisible.value = false;
+    if (!provisionSnapshot.value?.finished) {
+      startProvisionPolling();
+    }
   } catch (e) {
+    if (provisionDisposed) {
+      return;
+    }
     const error = (e as Error)?.message ?? "启动租户创建失败";
-    failProvisionLocally(error, "创建未启动");
+    failProvisionLocally(error, "创建启动失败");
   }
 }
 
@@ -682,6 +737,14 @@ const columns: ReTableColumn[] = [
 onMounted(() => {
   loadSelectOptions();
   tableRef.value?.reload();
+});
+
+onUnmounted(() => {
+  // 开通中切路由时不能让轮询/订阅继续跑：组件已销毁，回调只会泄漏
+  provisionDisposed = true;
+  stopProvisionPolling();
+  stopProvisionSubscription();
+  provisionPendingFrames.clear();
 });
 </script>
 

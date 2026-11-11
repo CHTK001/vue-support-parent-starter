@@ -139,6 +139,8 @@ const progressStatus = computed<"" | "success" | "warning" | "exception">(() => 
       return "exception";
     case "CANCELLED":
       return "warning";
+    case "UNKNOWN":
+      return "warning";
     default:
       return "";
   }
@@ -153,6 +155,8 @@ const statusLabel = computed(() => {
       return "失败";
     case "CANCELLED":
       return "已取消";
+    case "UNKNOWN":
+      return "状态未知";
     default:
       return "进行中";
   }

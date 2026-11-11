@@ -38,7 +38,7 @@ export interface ProgressSnapshot {
   tenantName?: string;
   /** 租户账号（弹窗副标题用） */
   tenantUsername?: string;
-  /** 任务状态：RUNNING / SUCCESS / FAILED / CANCELLED */
+  /** 任务状态：RUNNING / SUCCESS / FAILED / CANCELLED / UNKNOWN（通道中断，结果未知） */
   status?: string;
   /** 进度百分比 0-100 */
   percentage?: number;
