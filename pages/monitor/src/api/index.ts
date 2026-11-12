@@ -584,6 +584,19 @@ export const importTsharkPcap = (file: File, name = '') => {
   if (name) form.append('name', name);
   return http().post(`${B}/tshark/pcap/import`).data(form).then(r => unwrap<any>(r));
 };
+
+/**
+ * 给某个会话上传 TLS keylog，并让后端立刻重跑协议还原。
+ *
+ * <p>只影响这一个会话：不同 pcap 可能来自不同环境，密钥文件不能混用。
+ * 返回 `{entries, labels, restored, keylog}`，页面据此告诉用户
+ * 「这份 keylog 覆盖了几条会话密钥、重解出了几条报文」。</p>
+ */
+export const uploadTsharkTlsKeylog = (sessionId: number, file: File) => {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  return http().post(`${B}/tshark/sessions/${sessionId}/tls-keylog`).data(form).then(r => unwrap<any>(r));
+};
 export const getTsharkPackets = (sessionId: number, page = 1, size = 20, keyword = '',
   startTime = '', endTime = '') =>
   http().get(`${B}/tshark/sessions/${sessionId}/packets?page=${page}&size=${size}` +
