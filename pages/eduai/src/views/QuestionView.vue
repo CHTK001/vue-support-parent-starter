@@ -1411,7 +1411,7 @@ const batchAudit = async (passed: boolean) => {
 
 const remove = async (row: Question) => {
   try {
-    await ElMessageBox.confirm(`确认删除题目 ${row.questionId} 吗？`, "删除题目", {
+    await ElMessageBox.confirm(`确认删除题目「${plainText(row.questionStem || "").slice(0, 30) || row.questionId}」吗？`, "删除题目", {
       type: "warning",
       confirmButtonText: "删除",
       cancelButtonText: "取消",
