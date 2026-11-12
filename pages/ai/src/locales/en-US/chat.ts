@@ -111,6 +111,12 @@ export default {
     hintSelect: 'Enter to select',
     hintClose: 'Esc to close',
 
+    // PromptHistoryPopover.vue (history list opened with ↑ in the composer)
+    historyTitle: 'Prompt history',
+    historyEmpty: 'No prompts yet',
+    historyLoadMore: 'Load more prompts',
+    historyLoading: 'Loading…',
+
     // WorkspaceSelectorPopover.vue
     recent: 'Recent',
     usePublicDir: 'Use Public Directory',

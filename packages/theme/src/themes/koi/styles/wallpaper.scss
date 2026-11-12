@@ -41,7 +41,7 @@ html.koi-wallpaper-ready .koi-wallpaper {
   background-size: var(--koi-wallpaper-size, cover);
   background-repeat: var(--koi-wallpaper-repeat, no-repeat);
   background-position: center center;
-  filter: blur(var(--koi-wallpaper-blur, 0px));
+  filter: blur(var(--koi-wallpaper-blur, 0px)) saturate(1.12);
 }
 
 /* 暗色专用底图：预设没有提供时回落到亮色那张（由 store 决定写不写这个变量） */
@@ -81,7 +81,7 @@ html.koi-wallpaper-on .el-menu--popup {
  * 后者是全局底色，表格、下拉、弹窗都在用，动它会一起变透。
  */
 html.koi-wallpaper-on .el-card {
-  --el-card-bg-color: color-mix(in srgb, var(--el-bg-color-overlay) 84%, transparent);
+  --el-card-bg-color: color-mix(in srgb, var(--el-bg-color-overlay) 72%, transparent);
 }
 
 /* 弱视模式对整页做 invert(80%)，壁纸会反成一张底片，直接不显示 */

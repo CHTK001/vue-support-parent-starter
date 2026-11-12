@@ -66,8 +66,8 @@
   --koi-surface-main: var(--el-bg-color);
   --koi-surface-aside: var(--el-menu-bg-color);
   --koi-surface-header: var(--el-header-bg-color);
-  /** 顶栏/侧栏在壁纸模式下的不透明度，低于 80% 文字对比度开始吃力 */
-  --koi-chrome-alpha: 60%;
+  /** 顶栏/侧栏在壁纸模式下的不透明度；太高会把壁纸压成纯白，45% 仍能看清菜单文字 */
+  --koi-chrome-alpha: 45%;
 }
 
 /* ========== 头部反转（亮色模式下用户开启「头部反转色」）========== */

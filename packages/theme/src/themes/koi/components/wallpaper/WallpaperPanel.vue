@@ -39,7 +39,7 @@
         <span class="wallpaper-tune__value">{{ dimPercent }}%</span>
       </div>
       <div class="wallpaper-tune__hint">
-        模糊与压暗会一起作用于整层壁纸，用来把正文对比度拉回来；卡片自身保留 84% 底，不随这里变。
+        模糊与压暗会一起作用于整层壁纸，用来把正文对比度拉回来；卡片自身保留 72% 底，不随这里变。
       </div>
     </div>
 

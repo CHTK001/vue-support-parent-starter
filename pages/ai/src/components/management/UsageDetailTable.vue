@@ -33,10 +33,11 @@
         class="ud-table"
         row-key="sysAiUsageId"
         :pagination="true"
-        :layout-table="{ minHeight: 0 }"
+        :page-size="20"
+        :layout-table="{ minHeight: 0, maxHeight: 560 }"
         :loader="board.loadDetailPage"
         :params="board.detailQueryParams"
-        :page-sizes="[10, 20, 50, 100, 200, 500]"
+        :page-sizes="[10, 20, 50]"
       >
         <template #col-time="{ row }"><span class="ud-cell-time">{{ board.formatTime(row.sysAiUsageCallTime) }}</span></template>
         <template #col-model="{ row }">
@@ -240,7 +241,7 @@ defineProps<{ board: any }>();
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px 12px;
+  padding: 16px 20px 12px;
 }
 .ud-title-wrap { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .ud-title { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--el-text-color-primary); white-space: nowrap; }
@@ -248,7 +249,7 @@ defineProps<{ board: any }>();
 .ud-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .ud-filter { width: 180px; }
 .ud-cost-toggle { margin-left: 8px; }
-.ud-body { padding: 0 6px 8px; min-width: 0; }
+.ud-body { padding: 0 0 10px; min-width: 0; }
 
 .ud-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .ud-table :deep(.re-table-wrapper) { border-radius: 0; }
@@ -269,6 +270,11 @@ defineProps<{ board: any }>();
 .ud-table :deep(.vxe-header--column) { padding-top: 2px !important; padding-bottom: 2px !important; }
 .ud-table :deep(.vxe-body--row.row--hover),
 .ud-table :deep(.vxe-body--row:hover) { background: color-mix(in srgb, var(--u-primary) 5%, transparent); }
+/* 空态别把整块撑到上千像素：给占位图与空态块一个上限 */
+.ud-table :deep(.vxe-table--empty-block),
+.ud-table :deep(.vxe-table--empty-content) { min-height: 160px; }
+.ud-table :deep(.vxe-table--empty-content img),
+.ud-table :deep(.vxe-table--empty-content svg) { max-height: 96px; width: auto; }
 
 .ud-cell-time { font-variant-numeric: tabular-nums; }
 .ud-cell-model { display: flex; flex-direction: column; gap: 1px; min-width: 0; }

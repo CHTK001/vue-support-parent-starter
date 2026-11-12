@@ -67,10 +67,14 @@
       </div>
     </div>
 
-    <!-- 已绑定：按学段渲染对应首页 -->
+    <!-- 已绑定：按学段渲染对应首页；入口被后台全部停用时给出明确空态，不摆一个空网格 -->
     <template v-else-if="overview?.bound">
+      <div v-if="!modules.length" class="portal-nomod">
+        <div class="portal-nomod__t">老师还没有开放学习内容</div>
+        <div class="portal-nomod__s">稍后再来看看，或联系老师开启功能入口。</div>
+      </div>
       <PrimaryHome
-        v-if="stage === 'PRIMARY'"
+        v-else-if="stage === 'PRIMARY'"
         :overview="overview"
         :modules="modules"
         @open="openModule"
@@ -430,11 +434,12 @@ const allModules = computed<PortalModule[]>(() => {
 });
 
 /**
- * 学生端固定能力：无论后台「模块配置」怎么配，这两个入口都必须存在。
+ * 学生端固定能力：只作为「后台从未配置过」时的兜底。
  *
- * <p>它们依赖的是学生本人的数据（我的答题/阅卷记录、我的错题本），
- * 漏配就相当于学生看不到自己的批改与错题；因此在前端兜底追加，而不是只写在
- * {@code modules.ts} 的默认目录里（后台一旦配置了模块，默认目录就不会被采用）。</p>
+ * <p>它们依赖学生本人的数据（我的试卷/我的答题/我的错题本）。新环境没有菜单配置时
+ * 必须保证这三个入口在，否则学生看不到自己的批改与错题。但一旦后台配置了菜单
+ * （哪怕是把某一项停用），就完全以配置为准 —— 否则「已停用」会被这里补回来，
+ * 启停就形同虚设。</p>
  */
 const STUDENT_FIXED_MODULES: PortalModule[] = [
   { moduleCode: "my-papers", title: "我的试卷", subtitle: "老师布置·班级共享", icon: "📄", color: "#6366f1", colorTo: "#818cf8" },
@@ -443,7 +448,12 @@ const STUDENT_FIXED_MODULES: PortalModule[] = [
 ];
 
 const modules = computed<PortalModule[]>(() => {
-  const base = remoteModules.value ?? modulesOf(stage.value);
+  // 配过就以配置为准（remoteModules 为空数组 = 后台把该学段的入口全停用了）
+  if (remoteModules.value !== null) {
+    return [...remoteModules.value];
+  }
+  // 完全没配过：内置目录 + 固定能力兜底，保证新环境不空
+  const base = modulesOf(stage.value);
   const have = new Set(base.map((m) => m.moduleCode));
   return [...base, ...STUDENT_FIXED_MODULES.filter((m) => !have.has(m.moduleCode))];
 });
@@ -860,6 +870,26 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 20px;
+}
+/* 后台把该学段入口全部停用时的空态：与加载失败态区分，不报错、不带重试 */
+.portal-nomod {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  text-align: center;
+}
+.portal-nomod__t {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+.portal-nomod__s {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 .portal-error__card {
   width: min(420px, 100%);

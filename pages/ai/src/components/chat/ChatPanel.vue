@@ -148,11 +148,12 @@
             <ChatInput ref="chatInputRef" v-model:value="inputMessage.content" v-model:files="inputMessage.files"
               :session-id="effectiveSessionId" :editing="!!editMode" :character-id="props.session?.characterId != null ? String(props.session.characterId) : ''"
               :config="chatInputConfig" :streaming="isStreaming" :readonly="readonly" mode="chat"
-              :backdrop="hasWallpaper"
-              @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse">
-              <!-- 会话页的工作目录：2026-11-12 用户要求放到输入卡最底部常驻一行，
-                    并把「本地 / 远端」一并显示出来。放在底栏而不是工具条里，
-                    是因为它不是「本轮输入的一部分」，而是这一整个会话的落点。
+              :backdrop="hasWallpaper" :history="promptHistory" :history-has-more="hasMoreMessages && !!currentSessionId"
+              :history-loading-more="isLoadingMore"
+              @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse"
+              @history-load-more="handleHistoryLoadMore">
+              <!-- 会话页的工作目录（2026-11-12 口径修正）：放进输入卡底栏那一行，
+                    与 + / 检索 / 优化同排，只显示目录名与「本地 / 远端」，不显示真实路径。
                     弹层复用 WorkspaceSelectorPopover（含「添加项目」与 GitHub 克隆）。 -->
               <template #workspace>
                 <SessionWorkspaceButton variant="bar" :workspace-path="currentSession?.workspacePath || null"
@@ -1113,6 +1114,39 @@ async function loadMessages(
  */
 async function loadMoreMessages(sessionId: string, beforeMessageId: string) {
   await loadMessages(sessionId, { isInitial: false, beforeMessageId });
+}
+
+/**
+ * 历史提示条目（输入框按 ↑ 打开）：当前会话<b>已加载</b>的用户提问，最新在前。
+ *
+ * <p>数据源就是消息列表本身，不另存一份：用户删消息、切分支、加载上一页，
+ * 历史提示要跟着一起变，否则会拿回已经不存在的提问。</p>
+ */
+const promptHistory = computed(() => {
+  const items: Array<{ id: string; text: string }> = []
+  for (const msg of activeMessages.value) {
+    if (msg.role !== 'user') continue
+    const text = String(msg.contents?.[0]?.content ?? '').trim()
+    if (!text) continue
+    items.push({ id: String(msg.id), text })
+  }
+  // 最新在前：↑ 打开后第一眼看到刚问过的那句
+  return items.reverse()
+})
+
+/**
+ * 历史浮层的「加载更多提示」：复用消息列表的上一页加载。
+ *
+ * <p>加载完的条目会经 activeMessages 自动出现在历史里，这里不必再合并一次。
+ * 立即置 isLoadingMore 与滚动加载同口径，防止连点重复请求。</p>
+ */
+function handleHistoryLoadMore(): void {
+  const sessionId = currentSessionId.value
+  if (!sessionId || isLoadingMore.value || !hasMoreMessages.value) return
+  const earliestId = sessionStore.getEarliestMessageId(sessionId)
+  if (!earliestId) return
+  isLoadingMore.value = true
+  void loadMoreMessages(sessionId, earliestId)
 }
 /**
  * 处理会话切换

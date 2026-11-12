@@ -480,6 +480,8 @@ async function loadTabs(): Promise<void> {
     }
   } catch {
     tabs.value = DEFAULT_TABS;
+    // 不静默：配置没读到还按默认三项显示，管理员会以为后台配置已经生效
+    message.warning("教师端页签配置读取失败，已按默认三项显示");
   }
   if (tabs.value.length && !tabs.value.some((t) => t.key === tab.value)) {
     tab.value = tabs.value[0].key;

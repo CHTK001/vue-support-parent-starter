@@ -181,6 +181,11 @@
           hide-on-single-page
         />
       </div>
+
+      <!-- 空态文案必须画在定高容器内部：原来放在 shell 后面会被 overflow:hidden 裁掉 -->
+      <div v-if="!loading && !sortedCards.length" class="grid-empty">
+        暂无知识卡片，点击「新增卡片」创建
+      </div>
       </div>
 
       <!-- 列表视图 -->
@@ -224,8 +229,8 @@
       </ReTable>
 
       <el-empty
-        v-if="!loading && !sortedCards.length"
-        :description="viewMode === 'grid' ? '暂无知识卡片，点击「新增卡片」创建' : '暂无知识卡片'"
+        v-if="viewMode === 'list' && !loading && !sortedCards.length"
+        description="暂无知识卡片"
       />
     </div>
     </el-card>
@@ -1293,6 +1298,14 @@ onMounted(() => {
   padding-top: 12px;
 }
 .grid-footer__total {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+/* 网格空态：必须在定高容器内部，放外面会被 overflow:hidden 裁掉 */
+.grid-empty {
+  flex: none;
+  padding: 14px 0 2px;
+  text-align: center;
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }

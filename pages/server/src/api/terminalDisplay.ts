@@ -21,6 +21,8 @@ export interface RdpDisplay {
   height: number;
   /** 色深：8 / 16 / 24 / 32 */
   colorDepth: number;
+  /** 界面缩放 DPI（后端已校验，60..480） */
+  dpi: number;
   /** 画质优先：true 表示关闭有损压缩 */
   forceLossless: boolean;
 }

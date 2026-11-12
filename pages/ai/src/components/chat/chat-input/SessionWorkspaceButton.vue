@@ -10,18 +10,17 @@
   避免组件自己再存一份 workspacePath 与父级分叉。</p>
 -->
 <template>
-  <!-- 底栏变体（用户需求 2026-11-12）：输入卡最底部常驻一行，
-       左边目录名，中间完整路径，右边「本地 / 远端」徽标。
-       它是「这一整个会话的落点」，不是本轮输入的一部分，所以不占工具条位置。 -->
-  <button v-if="variant === 'bar'" ref="buttonRef" class="swb-bar" :class="{ 'is-active': !!currentPath }"
-    :aria-label="tooltip" :aria-expanded="visible" @click.stop="visible = !visible">
-    <el-icon size="14" class="swb-bar__icon">
+  <!-- 底栏胶囊变体（用户口径 2026-11-12 修正版）：塞进输入卡底栏那一行，
+        只显示目录名 + 「本地 / 远端」徽标，<b>不显示完整路径</b>
+        （真实路径往往是一长串绝对路径，常驻显示会把工具条挤满、也不该长期暴露）。 -->
+  <button v-if="variant === 'bar'" ref="buttonRef" class="swb-chip" :class="{ 'is-active': !!currentPath }"
+    :aria-label="tooltip" :title="tooltip" :aria-expanded="visible" @click.stop="visible = !visible">
+    <el-icon :size="14" class="swb-chip__icon">
       <FolderOpen24Regular />
     </el-icon>
-    <span class="swb-bar__label">{{ displayName }}</span>
-    <span v-if="currentPath" class="swb-bar__path" :title="currentPath">{{ currentPath }}</span>
-    <span v-if="currentPath" class="swb-badge" :class="isRemote ? 'is-remote' : 'is-local'">{{ locationLabel }}</span>
-    <el-icon size="12" class="swb-bar__chev">
+    <span class="swb-chip__label">{{ displayName }}</span>
+    <span v-if="currentPath" class="swb-chip__badge" :class="isRemote ? 'is-remote' : 'is-local'">{{ locationLabel }}</span>
+    <el-icon :size="10" class="swb-chip__chev">
       <ChevronDown16Regular />
     </el-icon>
   </button>
@@ -54,7 +53,7 @@ const props = defineProps<{
   /**
    * 形态：
    * - {@code icon}（默认）工具条里的一枚图标按钮
-   * - {@code bar} 输入卡最底部的一整行，带路径与本地/远端徽标
+   * - {@code bar} 底栏工具条里的紧凑胶囊：目录名 + 本地/远端徽标（不显示完整路径）
    */
   variant?: 'icon' | 'bar'
 }>()
@@ -153,19 +152,18 @@ function handleSelect(workspacePath: string | null) {
   color: var(--el-color-primary);
 }
 
-/* ── 底栏一行 ──
-   与输入工具条同一套字号（11.5px）与灰阶：它是元信息，不与输入内容抢注意力。
-   整行可点，右侧 chevron 说明「点了会展开一个选择器」。 */
-.swb-bar {
-  display: flex;
+/* ── 底栏胶囊 ──
+   与 .tool-btn 同高（28px）同排，但带文字：目录名 + 本地/远端徽标。
+   不显示完整路径（用户口径 2026-11-12）：路径只留在 title / 弹层里。 */
+.swb-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  width: 100%;
-  min-width: 0;
-  height: 24px;
+  gap: 5px;
+  max-width: 220px;
+  height: 28px;
   padding: 0 6px;
   border: none;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-md, 8px);
   background: transparent;
   color: var(--text-tertiary, var(--color-text-gray));
   cursor: pointer;
@@ -174,75 +172,62 @@ function handleSelect(workspacePath: string | null) {
   transition: background-color 0.16s ease, color 0.16s ease;
 }
 
-.swb-bar:hover {
+.swb-chip:hover {
   background: color-mix(in srgb, var(--text-primary, #0f172a) 5%, transparent);
   color: var(--text-secondary, var(--color-text));
 }
 
-.swb-bar:focus-visible {
+.swb-chip:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-.swb-bar.is-active .swb-bar__icon {
+/* 已设置工作间：图标走主色，说明「这一轮的执行目录不是默认的 agent 目录」 */
+.swb-chip.is-active .swb-chip__icon {
   color: var(--el-color-primary);
 }
 
-.swb-bar__icon {
+.swb-chip__icon {
   flex: none;
   color: inherit;
 }
 
-/* 目录名是这一行的主标识：给足宽度，但不许把路径挤没 */
-.swb-bar__label {
-  flex: none;
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-secondary, var(--color-text));
-}
-
-/* 完整路径：占满剩余空间，从尾部截断（尾部才是「当前在哪一级」） */
-.swb-bar__path {
-  flex: 1;
+.swb-chip__label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
-  font-size: 10.5px;
-  color: var(--text-tertiary, var(--color-text-gray));
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary, var(--color-text));
 }
 
 /* 本地 / 远端徽标：本地中性灰，远端用信息色，扫一眼就能分辨 */
-.swb-badge {
+.swb-chip__badge {
   flex: none;
-  padding: 0 6px;
+  padding: 0 5px;
   border-radius: var(--el-radius-full, 999px);
   font-size: 10px;
   line-height: 15px;
   white-space: nowrap;
 }
 
-.swb-badge.is-local {
+.swb-chip__badge.is-local {
   background: var(--el-fill-color);
   color: var(--el-text-color-secondary);
 }
 
-.swb-badge.is-remote {
+.swb-chip__badge.is-remote {
   background: var(--el-color-info-light-9, var(--el-fill-color));
   color: var(--el-color-info, var(--el-text-color-secondary));
 }
 
-.swb-bar__chev {
+.swb-chip__chev {
   flex: none;
   opacity: 0.7;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .swb-bar {
+  .swb-chip {
     transition: none;
   }
 }

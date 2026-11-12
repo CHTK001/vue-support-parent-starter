@@ -23,7 +23,17 @@ const APPEARANCE_GROUP = 'appearance'
 const ASK_WIDTH_FIELD = 'kbAskPanelWidth'
 const LOCAL_KEY = 'kb.askWidth'
 
-const askWidth = ref<KbAskWidth>('full')
+/**
+ * 初始值同步取本地缓存，避免「先满屏、再变窄」的闪动。
+ *
+ * <p>原先这里写死 {@code 'full'}，而 {@link initKbDisplay} 是挂载后才异步拉后端设置的
+ * —— 用户看到的首帧永远是满屏，设置回来后才收窄成 46.5rem（2026-11-12 报障
+ * 「初始化页面显示满屏然后变窄屏」）。</p>
+ *
+ * <p>本地没有缓存时按窄屏起步：窄屏是各页面的设计宽度，满屏是可选偏好，
+ * 先按窄屏画、需要时再放大，比先铺满再收窄温和得多。</p>
+ */
+const askWidth = ref<KbAskWidth>(readStored() ?? 'narrow')
 let initialized = false
 
 function readStored(): KbAskWidth | null {

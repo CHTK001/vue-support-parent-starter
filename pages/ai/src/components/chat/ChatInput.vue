@@ -94,6 +94,10 @@
         :accept="getFileExtensionsFromType('IMAGE').join(',')" @change="handleImageSelect">
       <div class="input-actions w-full flex justify-between">
         <div class="tools left-tools flex gap-0.5 items-center">
+          <!-- 工作间入口（用户需求 2026-11-12 修正版）：放在输入卡底栏这一行里，
+               不再单独占一行 DOM。它和 + / 检索 / 优化同属「这一轮的上下文」，
+               同一个动作条里横向排列，输入卡高度不会因为多一行而变高。 -->
+          <slot name="workspace"></slot>
           <slot name="buttons"></slot>
           <!-- 左侧工具按钮组 -->
           <template v-if="!props.readonly">
@@ -120,10 +124,12 @@
               </button>
             </LTooltip>
 
-            <!-- 输入优化（图标+tip）：与左组同为纯图标按钮，不再单独挂在右组 -->
-            <LTooltip :content="optimizing ? t('chat.input.optimizing') : t('chat.input.optimizeInput')" placement="top">
+            <!-- 输入优化（图标+tip）：与左组同为纯图标按钮，不再单独挂在右组。
+                 只在有草稿文本时出现（用户口径 2026-11-12），空输入框不占位。 -->
+            <LTooltip v-if="hasDraftText" :content="optimizing ? t('chat.input.optimizing') : t('chat.input.optimizeInput')"
+              placement="top">
               <button class="tool-btn" :aria-label="optimizing ? t('chat.input.optimizing') : t('chat.input.optimizeInput')"
-                :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
+                :disabled="optimizing" @click.stop="handleOptimize">
                 <el-icon size="16" v-if="!optimizing"><Wand20Regular /></el-icon>
                 <el-icon size="16" v-else class="is-loading"><SpinnerIos20Filled /></el-icon>
               </button>
@@ -224,12 +230,11 @@
         </div>
       </div>
 
-      <!-- 工作间行（用户需求 2026-11-12）：输入卡最底部常驻显示当前工作间。
-           入口与选择器由父级通过 #workspace 插槽传入（ChatPanel 持会话状态），
-           这里只提供位置与分隔线，不再复制一份工作间状态。 -->
-      <div v-if="$slots.workspace" class="input-workspace">
-        <slot name="workspace"></slot>
-      </div>
+      <!-- 历史提示浮层（↑ 打开）：条目来自本会话已加载的用户消息，
+           分页由 ChatPanel 的消息列表负责，这里只负责显示与选中。 -->
+      <PromptHistoryPopover v-model:visible="historyVisible" :anchor-el="inputAreaRef" :items="props.history"
+        :active-index="historyIndex" :has-more="props.historyHasMore" :loading="props.historyLoadingMore"
+        @update:active-index="historyIndex = $event" @pick="pickHistory" @load-more="emit('history-load-more')" />
 
       <!-- 输入区统一弹层：指令 / 附件 / MCP 收进同一个面板，宽度跟随输入卡整宽。
            数据在挂载时预取，点开即见（旧实现在点击后才 await 拉列表，表现为「弹出来很慢」）。 -->
@@ -287,6 +292,7 @@ import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
 import GoalBar from './GoalBar.vue';
 import AiNextTaskPanel from './AiNextTaskPanel.vue';
 import InputMenuPanel from './chat-input/InputMenuPanel.vue';
+import PromptHistoryPopover from './chat-input/PromptHistoryPopover.vue';
 import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
 import { getModelThinkingEfforts, getThinkingEffortLabel, getModelDisplayName, getModelContextWindow } from '@/utils/modelUtils';
@@ -410,6 +416,69 @@ const commandsLoading = ref(false);
 const loadingTriggers = new Set<'slash' | 'mention'>();
 const editorContent = ref('');
 
+/**
+ * 输入框里是否已有实际文本。
+ *
+ * <p>底栏的「优化输入」只在有内容时出现（用户口径 2026-11-12「优化输入得输入文本
+ * 才会显示」）：空输入框里它永远是禁用态，占着一格却不提供任何动作，
+ * 有草稿才浮出来，工具条也更清爽。</p>
+ */
+const hasDraftText = computed(() => editorContent.value.trim().length > 0);
+
+/* ===== 历史提示（2026-11-12）=====
+   输入框为空时按 ↑ 打开：列出本会话问过的消息，↑↓ 在已加载范围内切换，
+   Enter 填回草稿。7.2 口径：方向键只在已加载的这一页里走，到顶不要自动翻页。 */
+const historyVisible = ref(false);
+/** 键盘高亮行（只影响浮层里的高亮，Enter 才真正填进输入框） */
+const historyIndex = ref(0);
+
+/** 收起历史浮层 */
+const closeHistory = () => {
+  historyVisible.value = false;
+};
+
+/** 打开历史浮层：停在最新一条（列表已按最新在前排序） */
+const openHistory = () => {
+  if (!props.history.length) return;
+  historyIndex.value = 0;
+  historyVisible.value = true;
+  // 灰字预测与历史列表互斥：一句是模型猜的、一句是自己真问过的，并排会看错
+  clearPrediction();
+};
+
+/** 在已加载的条目里上下一格（两端不循环，也不触发翻页） */
+const moveHistory = (delta: number) => {
+  const len = props.history.length;
+  if (!len) return;
+  historyIndex.value = Math.min(len - 1, Math.max(0, historyIndex.value + delta));
+};
+
+/**
+ * 把一段纯文本写成编辑器草稿。
+ *
+ * <p>按行拆成段落再插入：直接 insertContent 一段带 \n 的字符串会被当 HTML 解析，
+ * 换行被吞成空格，用户拿回来的是「压平」的历史。</p>
+ *
+ * @param text 纯文本（可含换行）
+ */
+const setDraftText = (text: string) => {
+  if (!editor.value) return;
+  const paragraphs = text.split(/\r?\n/).map((line) =>
+    line ? { type: 'paragraph', content: [{ type: 'text', text: line }] } : { type: 'paragraph' },
+  );
+  editor.value.chain().focus().clearContent().insertContent(paragraphs).run();
+  editor.value.commands.focus('end');
+  editorContent.value = editor.value.getText();
+};
+
+/** 选中某条历史：填回草稿（不发送），焦点交还编辑器末尾 */
+const pickHistory = (index: number) => {
+  const item = props.history[index];
+  historyVisible.value = false;
+  if (!item) return;
+  setDraftText(item.text);
+};
+
 // 命令选择弹窗 ref
 const commandPickerRef = ref<any>();
 
@@ -495,6 +564,17 @@ const props = defineProps({
       knowledgeBaseIds: [],
     })
   },
+  /**
+   * 历史提示条目（本会话已发过的用户消息，最新在前）。
+   *
+   * <p>由 ChatPanel 从已加载的消息里派生：分页由消息列表自己负责，
+   * 输入框只消费「当前这一页能看到的提问」。</p>
+   */
+  history: { type: Array as PropType<Array<{ id: string; text: string }>>, default: () => [] },
+  /** 还有更早的消息可加载：历史浮层据此显示「加载更多提示」 */
+  historyHasMore: { type: Boolean, default: false },
+  /** 正在加载更早一页消息 */
+  historyLoadingMore: { type: Boolean, default: false },
 });
 
 // 计算属性
@@ -978,7 +1058,9 @@ const emit = defineEmits([
   'update:files',
   'send', 'abort', 'files-change',
   'focus', 'blur',
-  'update:modelId', 'config-change', 'update:knowledgeBaseIds'
+  'update:modelId', 'config-change', 'update:knowledgeBaseIds',
+  /** 历史浮层里的「加载更多提示」：由 ChatPanel 去拉更早一页消息 */
+  'history-load-more',
 ]);
 
 // 工具函数
@@ -1391,15 +1473,31 @@ const handleImageSelect = (event: Event) => {
   target.value = '';
 };
 
-const handlePaste = async (event: ClipboardEvent) => {
-  // 只有输入框被聚焦时才处理粘贴事件
-  if (!focused.value) return;
+/**
+ * 把一段纯文本插入编辑器光标处（按行拆段落，保留换行）。
+ *
+ * @param text 纯文本
+ */
+const insertMultilineText = (text: string) => {
+  if (!editor.value || !text) return;
+  const paragraphs = text.split(/\r?\n/).map((line) =>
+    line ? { type: 'paragraph', content: [{ type: 'text', text: line }] } : { type: 'paragraph' },
+  );
+  editor.value.chain().focus().insertContent(paragraphs).run();
+  editorContent.value = editor.value.getText();
+};
 
+/**
+ * 粘贴：图片 / 文件走上传，文本按「短文本进编辑器、超长文本转附件」处理。
+ *
+ * <p>本函数只负责处理，<b>不再自己 preventDefault</b>：谁处理、谁阻止默认行为由
+ * editorProps.handlePaste 的同步判定决定（见那里的注释）。</p>
+ *
+ * @param event 粘贴事件
+ */
+const handlePaste = async (event: ClipboardEvent) => {
   const clipboardData = event.clipboardData;
   if (!clipboardData?.items) return;
-
-  // 立即阻止默认粘贴行为，避免浏览器自动插入内容
-  event.preventDefault();
 
   const items = Array.from(clipboardData.items);
   let pastedText = '';
@@ -1431,9 +1529,12 @@ const handlePaste = async (event: ClipboardEvent) => {
     file._originalContent = pastedText;
     filesToProcess.push(file);
   } else if (pastedText) {
-    // 短文本 → 插入到 Tiptap 编辑器
-    if (editor.value) {
-      editor.value.chain().focus().insertContent(pastedText).scrollIntoView().run();
+    // 短文本 → 进编辑器。空输入框直接写成草稿（按行拆段落），
+    // 有草稿时插到光标处；旧实现把整段当 HTML 插，多行代码的换行会被吞成空格。
+    if (!editorContent.value.trim()) {
+      setDraftText(pastedText);
+    } else {
+      insertMultilineText(pastedText);
     }
   }
 
@@ -2227,6 +2328,13 @@ const handleMenuCommand = (item: any) => {
  */
 const BUILTIN_COMMANDS = [
   {
+    name: 'builtin-explore',
+    label: '探索与梳理',
+    description: '让 AI 通读当前工作间，输出结构与要点梳理',
+    builtin: 'explore',
+    providerId: 'builtin',
+  },
+  {
     name: 'builtin-compress',
     label: '压缩上下文',
     description: '把当前会话历史压缩为摘要，释放上下文窗口',
@@ -2250,15 +2358,33 @@ const BUILTIN_COMMANDS = [
 ];
 
 /**
+ * `/explore` 的草稿模板。
+ *
+ * <p>它不是一个「执行动作」的内置命令，而是一段预填提示：选完插进输入框，
+ * 用户可以改完再发（用户口径 2026-11-12「添加 /explore 快捷方式让 ai 总结和梳理」）。
+ * 因此不直接发送，也不插命令节点——命令节点发出去是不可编辑的徽标，
+ * 反而挡住了用户微调措辞。</p>
+ */
+const EXPLORE_DRAFT =
+  '请通读当前工作间，梳理并总结这个项目：①项目定位与整体架构 ②目录与模块职责 '
+  + '③核心链路与关键依赖 ④值得注意的问题与改进建议。用中文分节输出，读不到的部分不要臆测。';
+
+/**
  * 执行内置命令。
  *
  * <p>附件（图片 / 文件 / 知识库 / 附加连接）不再是「内置命令」的分支：
  * 它们在输入区统一弹层的「附件」分区里直接触发，见 InputMenuPanel 的
  * select-image / select-file / toggle-attachment 事件。</p>
  *
- * @param kind 内置命令类型（compress / create-skill / new-session）
+ * @param kind 内置命令类型（compress / create-skill / new-session / explore）
  */
 async function runBuiltinCommand(kind: string): Promise<void> {
+  if (kind === 'explore') {
+    if (!editor.value) return;
+    editor.value.chain().focus().insertContent(EXPLORE_DRAFT).run();
+    editorContent.value = editor.value.getText();
+    return;
+  }
   if (kind === 'compress') {
     const sessionId = props.sessionId == null ? '' : String(props.sessionId);
     if (!sessionId) {
@@ -2419,6 +2545,33 @@ onMounted(() => {
               return true;
             }
           }
+          // 历史提示浮层打开时，方向键只在高亮行上移动（不循环、不翻页），
+          // Enter / Tab 把选中那条填成草稿，Esc 收起。
+          if (historyVisible.value) {
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+              event.preventDefault();
+              moveHistory(event.key === 'ArrowUp' ? -1 : 1);
+              return true;
+            }
+            if (event.key === 'Enter' || event.key === 'Tab') {
+              event.preventDefault();
+              pickHistory(historyIndex.value);
+              return true;
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              closeHistory();
+              return true;
+            }
+          }
+          // 空输入框按 ↑ = 打开历史提示（有草稿时 ↑ 仍然是正常的光标移动）
+          if (event.key === 'ArrowUp' && !editorContent.value.trim()
+            && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey
+            && props.history.length > 0) {
+            event.preventDefault();
+            openHistory();
+            return true;
+          }
           // 输入预测：Tab 采纳成可编辑草稿，Escape 收起。
           // 放在「/ 弹层」之后：弹层可见时它的 Esc 是关弹层，不能先被这里吃掉。
           if (predictionText.value && !event.altKey && !event.ctrlKey && !event.metaKey) {
@@ -2451,13 +2604,42 @@ onMounted(() => {
           return false;
         },
         handlePaste: (_view, event) => {
-          // 调用自定义粘贴处理，阻止 Tiptap 默认行为
-          handlePaste(event);
+          // 同步判定「这次粘贴归谁处理」：有文件或文本才由我们自己接管。
+          // 旧实现无条件 return true，把 ProseMirror 的默认粘贴整个挡掉——
+          // 剪贴板里既没有 file 也没有 text/（例如从部分应用复制的富文本）时，
+          // 粘贴就完全没反应。现在无内容可处理时交回默认行为。
+          const data = event.clipboardData;
+          if (!data?.items) return false;
+          const items = Array.from(data.items);
+          const hasFile = items.some((it) => it.kind === 'file');
+          const hasText = items.some((it) => it.kind === 'string' && it.type.startsWith('text/'));
+          if (!hasFile && !hasText) return false;
+          event.preventDefault();
+          void handlePaste(event);
+          return true;
+        },
+        /**
+         * 拖拽文件到输入框。
+         *
+         * <p>ProseMirror 默认会吃掉编辑器上的 drop（它只关心文档内的拖放），
+         * 事件到不了外层输入卡的 @drop，表现就是「拖文件进来没反应」。
+         * 这里把外部文件转交给输入卡的上传逻辑；编辑器内部拖动文字（moved）仍走默认。</p>
+         */
+        handleDrop: (_view, event, _slice, moved) => {
+          if (moved) return false;
+          const files = event.dataTransfer?.files;
+          if (!files || files.length === 0) return false;
+          event.preventDefault();
+          void handleDrop(event);
           return true;
         },
       },
       onUpdate: ({ editor: ed }) => {
         editorContent.value = ed.getText();
+        // 一有草稿就收起历史浮层：它是「把旧提问捞回来」的入口，不是常驻列表
+        if (historyVisible.value && editorContent.value.trim()) {
+          closeHistory();
+        }
         // 用户一开始打字，预测就作废：灰字与草稿并排会让人分不清哪句是自己写的
         if (editorContent.value.trim() && predictionText.value) {
           clearPrediction();
@@ -2911,17 +3093,9 @@ html.dark .input-area--continues-banner {
   transform: rotate(45deg);
 }
 
-/* ===== 工作间行（输入卡最底部）=====
-   常驻一行，左边是当前工作间按钮（ChatPanel 通过 #workspace 插槽传入），
-   上面一条极淡分隔线与输入工具条分层。 */
-.input-workspace {
-  display: flex;
-  align-items: center;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid color-mix(in srgb, var(--border-default, var(--el-border-color-lighter)) 70%, transparent);
-  min-width: 0;
-}
+/* ===== 工作间入口（在输入卡底栏这一行里）=====
+   不再单独占一行：ChatPanel 通过 #workspace 插槽塞进 .left-tools，
+   与 + / 检索 / 优化同一行横向排列（用户口径 2026-11-12）。 */
 
 @media (prefers-reduced-motion: reduce) {
   .plus-glyph {

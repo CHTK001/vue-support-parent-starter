@@ -111,6 +111,12 @@ export default {
     hintSelect: 'Enter 选择',
     hintClose: 'Esc 关闭',
 
+    // PromptHistoryPopover.vue（输入框按 ↑ 打开的历史提示）
+    historyTitle: '历史提示',
+    historyEmpty: '还没有历史提问',
+    historyLoadMore: '加载更多提示',
+    historyLoading: '加载中…',
+
     // WorkspaceSelectorPopover.vue
     recent: '最近选择',
     usePublicDir: '使用公共目录',

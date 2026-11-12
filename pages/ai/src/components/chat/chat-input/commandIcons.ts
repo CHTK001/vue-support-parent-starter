@@ -33,6 +33,7 @@ export function resolveCommandIconKind(item: any): CommandIconKind {
   if (builtin === 'knowledge-base') return 'knowledge';
   if (builtin === 'model') return 'model';
   if (builtin === 'compress') return 'compress';
+  if (builtin === 'explore') return 'knowledge';
   if (builtin === 'new-session') return 'session';
   if (builtin === 'create-skill') return 'skill';
   const name = `${item?.name || ''} ${item?.label || ''}`.toLowerCase();

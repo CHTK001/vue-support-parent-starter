@@ -99,27 +99,52 @@ function commit(effort: string): void {
 }
 
 /**
- * 键盘导航：↑↓ 移动、Enter/Space 选中、Esc 关闭。
+ * 在档位列表上移动一格。
  *
- * @param e 键盘事件
+ * <p>两端不循环（用户口径 2026-11-12「不循环」）：到「不思考」再按 ↑/← 不动，
+ * 到最高档再按 ↓/→ 也不动。循环会让人在按住方向键时莫名其妙跳回另一端。</p>
+ *
+ * @param delta 方向：+1 向下一档，-1 向上一档
+ * @param apply 是否立刻切到该档（左右键用；上下键只移动高亮，Enter 才落库）
  */
-function onKeydown(e: KeyboardEvent): void {
+function step(delta: number, apply: boolean): void {
   const len = props.options.length
   if (!len) {
     return
   }
+  const next = Math.min(len - 1, Math.max(0, activeIndex.value + delta))
+  if (next === activeIndex.value) {
+    return
+  }
+  activeIndex.value = next
+  if (apply) {
+    // 面板保持打开：用户按住 ←/→ 时可以连续比较几个档位
+    emit('select', props.options[next])
+  }
+}
+
+/**
+ * 键盘导航：↑↓ 直接切换档位（用户口径 2026-11-12：effort 用上下键切）、
+ * Enter/Space 选中当前高亮、Esc 关闭。左右键不在这里换档。
+ *
+ * @param e 键盘事件
+ */
+function onKeydown(e: KeyboardEvent): void {
+  if (!props.options.length) {
+    return
+  }
   if (e.key === 'ArrowDown') {
     e.preventDefault()
-    activeIndex.value = (activeIndex.value + 1) % len
+    step(1, true)
   } else if (e.key === 'ArrowUp') {
     e.preventDefault()
-    activeIndex.value = (activeIndex.value - 1 + len) % len
+    step(-1, true)
   } else if (e.key === 'Home') {
     e.preventDefault()
     activeIndex.value = 0
   } else if (e.key === 'End') {
     e.preventDefault()
-    activeIndex.value = len - 1
+    activeIndex.value = props.options.length - 1
   } else if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault()
     const opt = props.options[activeIndex.value]
