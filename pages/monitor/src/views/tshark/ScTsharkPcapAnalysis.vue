@@ -121,6 +121,23 @@
           <span>{{ detailDuration }}</span>
         </div>
 
+        <input
+          ref="keylogInput"
+          class="pcap-file-input"
+          type="file"
+          accept=".log,.txt"
+          @change="onPickKeylog"
+        />
+        <ReButton
+          icon="Key"
+          show-text
+          :loading="uploadingKeylog"
+          tip="上传 TLS keylog（NSS 格式），用它重新解这个会话的 TLS"
+          @click="chooseKeylog"
+        >
+          TLS keylog
+        </ReButton>
+
         <ReButton
           icon="Download"
           show-text
@@ -227,6 +244,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { message } from '@repo/core'
+import { uploadTsharkTlsKeylog } from '../../api'
 import { useTshark } from './useTshark'
 import TsharkSessionStage from './TsharkSessionStage.vue'
 import ScTsharkFilterBar from './ScTsharkFilterBar.vue'
@@ -304,6 +322,10 @@ const activeTab = ref<TsharkTabKey>('packet')
 const fileInput = ref<HTMLInputElement | null>(null)
 const file = ref<File | null>(null)
 
+/** TLS keylog 上传：按会话生效，上传后后端立刻重跑协议还原 */
+const keylogInput = ref<HTMLInputElement | null>(null)
+const uploadingKeylog = ref(false)
+
 /**
  * 目录列表的搜索词。
  *
@@ -368,6 +390,44 @@ const importTip = computed(() => {
   if (!file.value) return '请先选择 pcap 文件'
   return '上传后在后台整份解析，报文数会陆续增长'
 })
+
+function chooseKeylog() {
+  if (activeSessionId.value == null) {
+    return
+  }
+  keylogInput.value?.click()
+}
+
+/**
+ * 上传 keylog 后立刻重跑还原。
+ *
+ * <p>结果里 `restored` 是这次真正重解出的报文数；-1 表示后端没能跑到那一步
+ * （例如 tshark 不可用），此时仍然提示「已保存」，不假装解开了。</p>
+ */
+async function onPickKeylog(event: Event) {
+  const input = event.target as HTMLInputElement
+  const picked = input.files?.[0]
+  input.value = ''
+  if (!picked || activeSessionId.value == null) {
+    return
+  }
+  uploadingKeylog.value = true
+  try {
+    const result = await uploadTsharkTlsKeylog(activeSessionId.value, picked)
+    const entries = Number(result?.entries ?? 0)
+    const restored = Number(result?.restored ?? -1)
+    if (restored >= 0) {
+      message.success(`keylog ${entries} 条，重新还原 ${restored} 条报文`)
+    } else {
+      message.warning(`keylog ${entries} 条已保存，但这次没有跑完重新还原`)
+    }
+    await loadPackets(packetPage.value)
+  } catch (e: any) {
+    message.error('上传 keylog 失败：' + (e?.message || '未知错误'))
+  } finally {
+    uploadingKeylog.value = false
+  }
+}
 
 function chooseFile() {
   fileInput.value?.click()
