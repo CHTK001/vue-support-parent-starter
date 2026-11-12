@@ -199,6 +199,9 @@ export function createClient(getHttp: () => Http, options: { unwrap?: boolean } 
           };
           const status = (e as { response?: { status?: number } }).response?.status;
           if (status !== undefined) wrapped.status = status;
+          // 保留原始响应体：调用方需要读结构化字段（如 knowledge-base 问答失败下发的
+          // detail：生效模型/脱敏地址/失败节点）。只带 message 会让这些排查信息丢失。
+          if (respData !== undefined) wrapped.response = err.response;
           wrapped.cause = e;
           throw wrapped;
         }
