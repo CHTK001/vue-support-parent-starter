@@ -913,7 +913,7 @@ export const runDbImport = (
  *
  * <p>源与目标是两组独立的「数据源 + 库 + 表」：同库换名、同数据源跨库、
  * 跨数据源复制都走同一个结构，不另开接口。{@code copyData} 缺省 true，
- * {@code overwrite} 缺省 false（同名表直接失败，避免一次手滑把已有表 DROP 掉）。</p>
+ * {@code overwrite} 缺省 false（同名表直接失败，避免一次手滑把已有表覆盖掉）。</p>
  */
 export type DbTableCopyPayload = {
   /** 源数据源 ID，0 / 省略表示应用默认主数据源 */
@@ -928,7 +928,7 @@ export type DbTableCopyPayload = {
   targetTable: string;
   /** 是否连同数据一起复制，缺省 true */
   copyData?: boolean;
-  /** 目标同名表是否覆盖（先 DROP 再建），缺省 false */
+  /** 目标同名表是否覆盖（写临时表后原子换名，换完才删旧表），缺省 false */
   overwrite?: boolean;
 };
 

@@ -8629,6 +8629,10 @@ function onTableContextMenu(e: MouseEvent, tableName: string, database: string, 
   contextMenu.isView = isView;
   contextMenu.root = false;
   activeDatabase.value = database;
+  // 右键也是「指向这张表」：Ctrl+C 读的是 active 组合，不同步的话复制的是
+  // 上一次左键选中的那张表。视图不能按表复制，清空后 Ctrl+C 会提示先选表，
+  // 比拿一张视图去当源表、建出一张同名空表安全
+  activeTable.value = isView ? "" : tableName;
   treeMenuRef.value?.open(e.clientX, e.clientY);
 }
 
@@ -8645,6 +8649,10 @@ function onDatabaseContextMenu(e: MouseEvent, database: string) {
   contextMenu.isView = false;
   contextMenu.root = false;
   activeDatabase.value = database;
+  // 右键库节点意味着「当前指向这个库，不是任何一张表」：不清 activeTable 的话，
+  // 之前左键选过的表名会留着，Ctrl+C 会拼出「这个库 + 上个库的表名」这种
+  // 根本不存在的源表，提示还照样报成功
+  activeTable.value = "";
   treeMenuRef.value?.open(e.clientX, e.clientY);
 }
 
@@ -9902,30 +9910,21 @@ async function pasteTableInto(database: string): Promise<void> {
   // 同库粘贴沿用源表名会和源表撞名，默认加 _copy；跨库沿用源表名
   const sameDb = targetDatasourceId === clip.sourceDatasourceId && database === clip.database;
   const targetTable = sameDb ? `${clip.table}_copy` : clip.table;
-  // 判重名要靠目标库真实的表清单：缓存里没有就先拉一次（不能只看缓存，
-  // 没展开过的库缓存是空的，会把「已存在的同名表」误判成「可以建」）
-  if (!tablesByDb[database]) {
-    try {
-      tablesByDb[database] = await fetchDbTables(targetDatasourceId, database);
-    } catch {
-      // 拉不到就按空清单走：后端还有一道「目标表已存在」的兜底校验
-      tablesByDb[database] = [];
-    }
+  // 判重名要用目标库**此刻**的真实表清单：缓存可能是别的数据源的、也可能是一小时前的。
+  // 拉取失败时退回缓存，但绝不把空数组写回缓存 —— 那会让左栏这个库显示成没有表，
+  // 之后每次粘贴都以为「目标不存在」，一直撞后端的「已存在」校验
+  let existing = tablesByDb[database] ?? [];
+  try {
+    existing = await fetchDbTables(targetDatasourceId, database);
+    tablesByDb[database] = existing;
+  } catch {
+    // 拉不到就按缓存走：后端还有一道「目标表已存在」的兜底，下面 catch 里会再问一次
   }
   // 目标库里已经有这个名字：先问，再决定是否覆盖（不静默 DROP 别人的表）
-  const exists = tablesByDb[database].some(t => (t.name || "").toLowerCase() === targetTable.toLowerCase());
-  let overwrite = false;
-  if (exists) {
-    try {
-      await ElMessageBox.confirm(
-        `${database}.${targetTable} 已存在，继续将先删除它再复制。`,
-        "目标表已存在",
-        { type: "warning", confirmButtonText: "覆盖", cancelButtonText: "取消" },
-      );
-      overwrite = true;
-    } catch {
-      return;
-    }
+  const exists = existing.some(t => (t.name || "").toLowerCase() === targetTable.toLowerCase());
+  const overwrite = exists && (await confirmOverwrite(database, targetTable));
+  if (exists && !overwrite) {
+    return;
   }
 
   copyTaskId.value = "";
@@ -9936,32 +9935,85 @@ async function pasteTableInto(database: string): Promise<void> {
   copyTarget.value = { datasourceId: targetDatasourceId, database };
   copyDialogVisible.value = true;
   try {
-    const { taskId } = await copyDbTable({
-      sourceDatasourceId: clip.sourceDatasourceId,
-      sourceDatabase: clip.database,
-      sourceTable: clip.table,
-      targetDatasourceId,
-      targetDatabase: database,
-      targetTable,
-      copyData: clip.withData,
-      overwrite,
-    });
-    copyTaskId.value = taskId;
-    // 任务已经建好再连流：先立 taskId 才能过滤出「自己这一条」，
-    // 否则建连瞬间推来的 ready 帧会因为还没有 taskId 被整帧丢掉。
-    startCopyStream();
-    // 建流与建任务之间差的那几帧由这里补拉：拉到的就是当前完整快照，
-    // 不会出现「进度停在 0% 等下一次状态变化」。
-    try {
-      const tasks = await fetchDbCopyTasks();
-      const mine = tasks.find(t => t.taskId === taskId);
-      if (mine) applyCopySnapshot(mine);
-    } catch {
-      // 进度流会补齐，不打断主流程
-    }
+    await submitCopyTask(targetDatasourceId, database, clip, targetTable, overwrite);
   } catch (e) {
+    const reason = String((e as Error)?.message ?? e);
+    // 缓存清单过期（表是刚在别处建的）时后端会拒绝：这里补一次「确认覆盖 → 重发」，
+    // 否则用户只能看到一句「已存在」，而弹窗里并没有覆盖勾选项
+    if (!overwrite && reason.includes("已存在") && (await confirmOverwrite(database, targetTable))) {
+      try {
+        await submitCopyTask(targetDatasourceId, database, clip, targetTable, true);
+        return;
+      } catch (retryError) {
+        copyDialogVisible.value = false;
+        const retryReason = String((retryError as Error)?.message ?? retryError);
+        message.error(`启动复制失败: ${retryReason}`);
+        return;
+      }
+    }
     copyDialogVisible.value = false;
-    message.error(`启动复制失败: ${String((e as Error)?.message ?? e)}`);
+    message.error(`启动复制失败: ${reason}`);
+  }
+}
+
+/**
+ * 覆盖同名表的二次确认。
+ *
+ * @param database    目标库
+ * @param targetTable 目标表
+ * @returns 用户是否同意覆盖
+ */
+async function confirmOverwrite(database: string, targetTable: string): Promise<boolean> {
+  try {
+    await ElMessageBox.confirm(
+      `${database}.${targetTable} 已存在。继续会用新表替换它（复制失败时原表保持不动）。`,
+      "目标表已存在",
+      { type: "warning", confirmButtonText: "覆盖", cancelButtonText: "取消" },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 提交复制任务并接上进度流（首次提交与「确认覆盖」后的重发共用）。
+ *
+ * @param targetDatasourceId 目标数据源
+ * @param database           目标库
+ * @param clip               剪贴板里的源表信息
+ * @param targetTable        目标表名
+ * @param overwrite          是否覆盖同名表
+ */
+async function submitCopyTask(
+  targetDatasourceId: number,
+  database: string,
+  clip: DbTableClipboard,
+  targetTable: string,
+  overwrite: boolean,
+): Promise<void> {
+  const { taskId } = await copyDbTable({
+    sourceDatasourceId: clip.sourceDatasourceId,
+    sourceDatabase: clip.database,
+    sourceTable: clip.table,
+    targetDatasourceId,
+    targetDatabase: database,
+    targetTable,
+    copyData: clip.withData,
+    overwrite,
+  });
+  copyTaskId.value = taskId;
+  // 任务已经建好再连流：先立 taskId 才能过滤出「自己这一条」，
+  // 否则建连瞬间推来的 ready 帧会因为还没有 taskId 被整帧丢掉。
+  startCopyStream();
+  // 建流与建任务之间差的那几帧由这里补拉：拉到的就是当前完整快照，
+  // 不会出现「进度停在 0% 等下一次状态变化」。
+  try {
+    const tasks = await fetchDbCopyTasks();
+    const mine = tasks.find(t => t.taskId === taskId);
+    if (mine) applyCopySnapshot(mine);
+  } catch {
+    // 进度流会补齐，不打断主流程
   }
 }
 
@@ -10026,7 +10078,12 @@ function stopCopyStream(): void {
 
 /** 请求取消当前复制任务（后端在批次边界停下） */
 async function requestCancelCopy(): Promise<void> {
-  if (!copyTaskId.value || copyCancelling.value) return;
+  if (copyCancelling.value) return;
+  if (!copyTaskId.value) {
+    // 提交请求还在路上：此时点取消既没有 taskId 可发，也不能吞掉点击装作已受理
+    message.info("任务正在启动，请稍候再取消");
+    return;
+  }
   copyCancelling.value = true;
   try {
     await cancelDbCopy(copyTaskId.value);
@@ -10077,7 +10134,11 @@ function onCopyPasteShortcut(e: KeyboardEvent): void {
   if (key === "c") {
     const tableName = activeTable.value;
     const database = activeDatabase.value;
-    if (!tableName || !database) return;
+    if (!tableName || !database) {
+      // 不做任何事的静默返回等于「按了没反应」，用户会以为是快捷键坏了
+      message.warning("请先在左栏选中要复制的表");
+      return;
+    }
     e.preventDefault();
     // 快捷键是「复制整张表」的语义：结构和数据一起带走。
     // 只想搬结构时走右键二级菜单的「只复制表结构」，那里有明确文案。
@@ -10085,8 +10146,12 @@ function onCopyPasteShortcut(e: KeyboardEvent): void {
     return;
   }
   const targetDatabase = activeDatabase.value;
-  if (!targetDatabase || !tableClipboard.value) return;
+  if (!targetDatabase) {
+    message.warning("请先选择目标库");
+    return;
+  }
   e.preventDefault();
+  // 剪贴板为空时的提示由 pasteTableInto 统一给（一条路径一套文案）
   void pasteTableInto(targetDatabase);
 }
 
