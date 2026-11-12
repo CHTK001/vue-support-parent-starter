@@ -512,6 +512,11 @@ export const defaultAppConfig: AppConfig = {
     avatarFrame: {
       enable: false,
     },
+    // 壁纸：默认关闭。关闭时不渲染壁纸层、个人中心不出现「壁纸」页签，
+    // 与没有这段配置时逐字一致；写 enable: true 即开放给用户自选。
+    wallpaper: {
+      enable: false,
+    },
     // 加载动画部署侧接管：默认关闭 —— 不接管时行为与没有这段配置完全一致，
     // 用户在主题配置抽屉里自选，选择保存在 localStorage。
     // 写 enable: true 即锁定（选择器置灰），动画 / 尺寸 / 速度 / 主色由这里决定。

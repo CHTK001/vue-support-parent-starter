@@ -31,6 +31,8 @@ export interface SocketIOConfig {
   reconnection?: boolean;
   reconnectionAttempts?: number;
   reconnectionDelay?: number;
+  /** 是否携带同源/跨源 Cookie（用于服务端 Cookie 鉴权），默认 true */
+  withCredentials?: boolean;
   /** 失败地址黑名单缓存时长（毫秒），默认 60_000 */
   blacklistTtlMs?: number;
 }
@@ -95,7 +97,17 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       return;
     }
 
+    // 未登录时不要创建连接：此时 token 为空，服务端会拒绝握手，
+    // 并产生持续 xhr poll error。登录后 token provider 已有值，
+    // 看门狗会再次调用 connect()，用新 token 建立连接。
+    startWatchdog();
     const token = getSocketToken();
+    if (!token) {
+      if (!downSince) {
+        downSince = Date.now();
+      }
+      return;
+    }
     const url = selector.next();
     if (!url) {
       log.warn("[Socket.IO] 无可用的连接地址");
@@ -121,12 +133,13 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       //
       // 传输限制（务必知情）：extraHeaders 只在 **polling** 传输的 HTTP 握手里以
       // x-oauth-token 头发送；纯 websocket 传输下浏览器 WebSocket 握手不允许自定义头，
-      // 该头不发送。服务端现已启用 SocketAuthFactory 握手鉴权，因此必须保留 polling
+      // 该头不发送。服务端现已启用 SocketAuthFactory 握手鉴权，因此优先保留 polling
       // 作为初始传输（代码默认 ["polling","websocket"] 正是为此）；若部署强制
-      // websocket-only，需要改用查询参数携带令牌，否则连接会被拒绝。
+      // websocket-only，可依赖同源 Cookie（withCredentials）鉴权，查询参数仅作兜底。
       extraHeaders: {
-        "x-oauth-token": token || "",
+        "x-oauth-token": token,
       },
+      withCredentials: config.withCredentials ?? true,
       query: {
         ...config.query,
       },

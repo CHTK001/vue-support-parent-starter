@@ -672,6 +672,13 @@ async function executeUpload(
             failCount++
             continue
         }
+        // 空文件没有可索引内容：不建上传任务，直接提示并跳过。
+        // 放它进去只会入库失败并显示「失败 · 提取文本为空」，用户会误以为解析器/embedding 坏了。
+        if (file.size === 0) {
+            message.warning(`「${relativePath}」是空文件（0 字节），没有内容可索引，已跳过`)
+            failCount++
+            continue
+        }
 
         // 目标目录（relativePath 去掉文件名部分），用于当前文件夹 / 文件夹上传
         const dirPart = relativePath.includes('/')

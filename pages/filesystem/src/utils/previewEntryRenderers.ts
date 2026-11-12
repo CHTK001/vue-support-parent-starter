@@ -49,14 +49,14 @@ export interface RendererSpec {
 export const TEXT_EXTENSIONS: ReadonlySet<string> = new Set([
   "md", "markdown", "txt", "json", "js", "mjs", "cjs", "css", "java", "py",
   "html", "htm", "jsx", "ts", "tsx", "xml", "log", "vue", "yaml", "yml",
-  "ini", "conf", "cfg", "cnf", "sh", "bash", "sql", "go", "rs", "php",
+  "ini", "sh", "bash", "sql", "go", "rs", "php",
   "c", "cpp", "cc", "h", "hpp", "cs", "jsonc", "json5", "ipynb", "toml",
   "proto", "hcl", "tex",
   "gv", "http", "react", "rb", "swift", "kt",
-  // 行式 JSON（每行一个独立 JSON 文档）：renderer-text 白名单里没有这两个后缀，
-  // 不加会被 dispatch 改名成 .txt（文本可读，但会丢掉「这是 jsonl」的语义，
-  // 也让注册表查不到对应格式）。按纯文本渲染即可，不引入新依赖。
-  "jsonl", "ndjson",
+  // 注意：本集合必须与 @file-viewer/renderer-text 的 capability.json.formats
+  // 逐项一致。不在里头的后缀（jsonl / ndjson / conf / cfg / cnf …）交给
+  // renderer-text 会被判「不支持该格式」并显示提示卡，因此必须改名 .txt
+  // ——改名只发生在交给渲染器的那份 File 上，列表与弹框标题仍显示原文件名。
 ]);
 
 const TEXT_SPEC: RendererSpec = {

@@ -74,6 +74,13 @@ const props = withDefaults(
     /** 节点能否被拖动，缺省 true；`readonly` 仍然一票否决 */
     nodeDraggable?: boolean;
     /**
+     * 当前正在推进的连线 id 集合；命中的连线显示流动虚线。
+     *
+     * 传空数组即清除动画；图数据重新灌入后会自动重新套用，
+     * 宿主不需要自己碰 X6 view / class。
+     */
+    activeEdgeIds?: string[];
+    /**
      * 右键菜单项，缺省为内置的「重命名 / 定位 / 复制 / 删除」四项。
      *
      * 传空数组即彻底关掉右键菜单。每项给 `action` 走内置实现，或给 `onClick` 自己处理。
@@ -105,6 +112,7 @@ const props = withDefaults(
     panning: true,
     zoom: true,
     nodeDraggable: true,
+    activeEdgeIds: () => [],
   },
 );
 
@@ -326,6 +334,40 @@ function syncStat(eng: FlowGraphEngine | null = engine.value) {
   ui.edges = d.edges.length;
 }
 
+/** 当前动画补帧定时器：只补一次，避免 activeEdgeIds watcher 自激排队 */
+let activeEdgeTimer: number | null = null;
+
+/**
+ * 把「当前推进的边」同步到画布：只切容器动画类，不改 flowKind / flowTransfer。
+ *
+ * @param eng 目标引擎；缺省用外壳持有的实例
+ */
+function applyActiveEdges(eng: FlowGraphEngine | null = engine.value): void {
+  if (!eng) return;
+  const active = new Set(props.activeEdgeIds ?? []);
+  eng.getData().edges.forEach((edge) => {
+    eng.setEdgeActive(edge.id, active.has(edge.id));
+  });
+}
+
+/**
+ * 先同步一次，再补一帧。X6 在 setData 后异步创建 edge view，
+ * onReady / 数据回灌的同一 tick 里 view 还不存在；只补一次，不循环。
+ *
+ * @param eng 目标引擎；缺省用外壳持有的实例
+ */
+function scheduleActiveEdges(eng: FlowGraphEngine | null = engine.value): void {
+  applyActiveEdges(eng);
+  if (!eng || !(props.activeEdgeIds?.length)) return;
+  if (activeEdgeTimer != null) {
+    window.clearTimeout(activeEdgeTimer);
+  }
+  activeEdgeTimer = window.setTimeout(() => {
+    activeEdgeTimer = null;
+    applyActiveEdges(engine.value);
+  }, 0);
+}
+
 onMounted(async () => {
   await nextTick();
   if (!canvasRef.value) return;
@@ -350,6 +392,8 @@ onMounted(async () => {
         // 于是「节点/连线」计数会停在灌图前的旧值（实测：画布 4 个节点、计数 0）。
         // emit 是同步的，这里显式传 eng 再统计一次就能拿到灌图后的真实数量。
         syncStat(eng);
+        // ready 监听方可能刚灌完图，等边 view 建好后再套一次动画。
+        scheduleActiveEdges(eng);
       },
       onSelect: (sel) => {
         selection.value = sel;
@@ -401,6 +445,10 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  if (activeEdgeTimer != null) {
+    window.clearTimeout(activeEdgeTimer);
+    activeEdgeTimer = null;
+  }
   engine.value?.dispose();
   engine.value = null;
 });
@@ -420,7 +468,15 @@ watch(
     applied = next;
     engine.value.setData(props.data ?? { nodes: [], edges: [] });
     syncStat();
+    scheduleActiveEdges();
   },
+  { deep: true },
+);
+
+// 当前推进边变化：重放动画类；空数组即清除。
+watch(
+  () => props.activeEdgeIds,
+  () => scheduleActiveEdges(),
   { deep: true },
 );
 

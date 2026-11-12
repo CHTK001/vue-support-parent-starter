@@ -38,6 +38,7 @@ import sleepForm from "./nodes/sleepForm.vue";
 import sqlForm from "./nodes/sqlForm.vue";
 import startForm from "./nodes/startForm.vue";
 import aiForm from "./nodes/aiForm.vue";
+import agentForm from "./nodes/agentForm.vue";
 import SectionHead from "./nodes/SectionHead.vue";
 import NodeFormTabs from "./NodeFormTabs.vue";
 import {
@@ -103,7 +104,7 @@ const props = defineProps<{
   readonly?: boolean;
   /** 最近一次任务的逐节点执行状态，用来给画布节点描边 */
   states?: Record<string, CollectTaskLog>;
-  /** 已执行轨迹的连线 id 集合；这些边显示流动虚线动画（重播 / 追踪） */
+  /** 当前推进的连线 id 集合；透传给 ReFlowGraph，由通用组件负责流动虚线动画 */
   activeEdgeIds?: string[];
   /** 当前正在执行/循环的节点 id；该节点显示蓝色虚线动画边框 */
   loopingNodeId?: string | null;
@@ -171,6 +172,7 @@ const GROUP_COLORS: Record<string, string> = {
   解析: "#8e4ec6",
   控制: "#f59a23",
   输出: "#00b96b",
+  AI: "#8e4ec6",
 };
 
 /** 执行状态描边色 */
@@ -842,6 +844,7 @@ const FORM_BY_SHAPE: Record<string, Component> = {
   sleep: sleepForm,
   script: scriptForm,
   ai: aiForm,
+  agent: agentForm,
   process: processForm,
   comment: commentForm,
   condition: conditionForm,
@@ -1423,22 +1426,6 @@ function applyStates(): void {
   }
 }
 
-/** 推进线：执行轨迹上的边全部点亮（虚线动画），其余恢复常规样式 */
-function applyActiveEdge(): void {
-  const eng = engine.value;
-  if (!eng) return;
-  const active = new Set(props.activeEdgeIds ?? []);
-  eng.getData().edges.forEach(edge => {
-    eng.setEdgeActive(edge.id, active.has(edge.id));
-  });
-  // X6 在 setData 后异步建 view；刚灌完图就传 activeEdgeIds 时补一次，
-  // 否则新图上的“执行轨迹虚线”要到下一次 cursor 变化才出现动画
-  if (active.size) {
-    window.setTimeout(applyActiveEdge, 0);
-  }
-}
-
-watch(() => props.activeEdgeIds, applyActiveEdge, { deep: true });
 // 当前执行/循环节点变化时重描边（蓝色虚线边框）
 watch(() => props.loopingNodeId, applyStates);
 // 后端执行器注册表变化（如重启后启用了 script）时重描边，未注册红标跟着刷新
@@ -1473,7 +1460,6 @@ function load(dsl: CollectDsl | null | undefined): void {
     // 同时直灌内核：重复加载同一张图时结构签名没变，prop 那条路会被拦下
     engine.value.setData(data);
     applyStates();
-    applyActiveEdge();
   }
   refreshStartPresence();
   // 载入即记录签名：随后引擎回抛的 change 会与它一致，onGraphChange 据此判定为程序行为
@@ -1550,6 +1536,7 @@ defineExpose({ load, getGraph, addNode, startWith, shapeIssues, autoOptimize, fo
       :properties-title="panelTitle"
       :editable="!readonly"
       :readonly="readonly"
+      :active-edge-ids="activeEdgeIds"
       start-type="start"
       end-type="end"
       @ready="onReady"

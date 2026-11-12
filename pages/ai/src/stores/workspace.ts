@@ -72,6 +72,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     lastChoice.value = { mode, path }
   }
 
+  /**
+   * 工作区根版本号。
+   *
+   * <p>会话的执行目录（项目）可以在会话页中途切换，而后端的文件树、SSE 监听与
+   * 文件预览都跟着它走。侧栏只在「会话 ID 变化」时重载树，切换项目不会触发，
+   * 于是树还指着旧目录。这里用一个自增版本号当进程内信号：谁改了工作目录就 bump，
+   * 侧栏 watch 到就清空并按新根重载。</p>
+   */
+  const rootRevision = ref(0)
+
+  function bumpRootRevision() {
+    rootRevision.value += 1
+  }
+
   function getLastChoice(): WorkspaceChoice | null {
     return lastChoice.value
   }
@@ -86,5 +100,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     getPublicPath,
     setLastChoice,
     getLastChoice,
+    rootRevision,
+    bumpRootRevision,
   }
 })

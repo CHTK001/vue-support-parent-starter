@@ -208,6 +208,14 @@ export interface ChannelSummary {
    * 不再靠 {@code channel === 'magpie'} 硬编码。</p>
    */
   supportsUpstream?: boolean
+  /**
+   * 网关自报了哪些业务渠道、各对应哪些上游 provider id（按优先级）。
+   *
+   * <p>只有网关型渠道（{@code supportsUpstream}）会带这份表，它也是「谁承载谁」的
+   * 唯一真值：前端不再自己维护一份对照表，网关改 provider 命名时两边不会静默错位。
+   * 缺省（老后端 / 未绑定网关）按空表处理。</p>
+   */
+  ownedChannels?: Record<string, string[]>
   /** 上游插件管理（网关型渠道，如 magpie） */
   supportsPlugins?: boolean
   /** 上游登录（打开授权页 + 轮询会话） */

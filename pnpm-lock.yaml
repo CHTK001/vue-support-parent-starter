@@ -662,6 +662,9 @@ importers:
       '@pages/job':
         specifier: workspace:*
         version: link:../../pages/job
+      '@pages/osgi':
+        specifier: workspace:*
+        version: link:../../pages/osgi
       '@repo/app':
         specifier: workspace:*
         version: link:../../turbo/app
@@ -1218,6 +1221,9 @@ importers:
       '@pages/system':
         specifier: workspace:*
         version: link:../../pages/system
+      '@pages/tenant':
+        specifier: workspace:*
+        version: link:../../pages/tenant
       '@pages/task':
         specifier: workspace:*
         version: link:../../pages/task
@@ -3333,6 +3339,21 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+
+  pages/tenant:
+    dependencies:
+      '@pages/system':
+        specifier: workspace:*
+        version: link:../system
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/pinia':
+        specifier: workspace:*
+        version: link:../../packages/pinia
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.45(typescript@5.9.3)
 
   pages/system:
     dependencies:

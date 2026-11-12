@@ -20,6 +20,7 @@ import ReTag from "@repo/ui/re-tag";
 import { formatDuration } from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import CategoryDialog from "../components/CategoryDialog.vue";
+import FlowVersionDrawer from "../components/FlowVersionDrawer.vue";
 import FlowDesigner from "../components/FlowDesigner.vue";
 import PairsEditor from "../components/PairsEditor.vue";
 import {
@@ -34,6 +35,7 @@ import {
     fetchDatasourceTables,
     fetchDatasourceTableInfos,
     fetchMetas,
+  fetchInflight,
   fetchNodeStates,
   fetchRuntime,
   getFlow,
@@ -95,6 +97,8 @@ const placeholderGroups = ref<PlaceholderGroup[]>([]);
 const metas = ref<CollectShapeMeta[]>([]);
 const flows = ref<CollectFlow[]>([]);
 const runtime = ref<CollectRuntime | null>(null);
+/** 当前流程的在途任务数：来自 /execution/inflight，和全局 runningTasks 不是一回事 */
+const inflight = ref(0);
 const categoryOptions = ref<CollectOption[]>([]);
 
 const currentId = ref<number | null>(null);
@@ -108,6 +112,9 @@ const activeTask = ref<CollectTask | null>(null);
 
 const propsVisible = ref(false);
 const categoryVisible = ref(false);
+
+/** 版本历史抽屉：只在已保存且无未保存改动时可用 */
+const versionVisible = ref(false);
 
 /** AI 生成流程：弹窗开关 / 输入 / 生成中 */
 const aiVisible = ref(false);
@@ -179,6 +186,20 @@ onActivated(() => {
 });
 
 const taskRunning = computed(() => Boolean(activeTask.value?.running) || activeTask.value?.collectTaskStatus === "RUNNING");
+
+/** 在途数只统计已保存流程的并发任务，试运行不落流程账，失败时保持上次数值 */
+async function refreshInflight(): Promise<void> {
+  const id = currentId.value;
+  if (!id) {
+    inflight.value = 0;
+    return;
+  }
+  try {
+    inflight.value = await fetchInflight(id);
+  } catch {
+    // 在途数是辅助信息，读不到不能反过来打断设计器主流程
+  }
+}
 
 /** 工具条上的流程下拉，label 带编码便于同名区分 */
 const flowOptions = computed<ReOption[]>(() => flows.value.map(flow => ({
@@ -307,6 +328,7 @@ async function refreshTask(): Promise<void> {
       stopPolling();
       // 运行条是全局统计，只在进页时取过一次；任务结束不重拉就会一直停在旧值
       void fetchRuntime().then(info => (runtime.value = info));
+      void refreshInflight();
       // 耗时用 ReTime 的 formatDuration 格式化（与表格列同源），空值不编造 0
       const parts = [
         `节点 ${task.collectTaskNodeCount ?? 0}`,
@@ -378,6 +400,25 @@ function applyFlow(flow: CollectFlow): void {
   applyGlobalPairs(flow.dsl);
   states.value = {};
   dirty.value = false;
+  void refreshInflight();
+}
+
+/**
+ * 版本回滚后重新拉流程详情，把画布刷成回滚后的内容。
+ *
+ * 入口只在 dirty=false 时可达（版本按钮对未保存改动禁用），所以这里直接 applyFlow，
+ * 不需要再走一次「丢弃未保存改动」的确认。
+ */
+async function refreshAfterRollback(): Promise<void> {
+  if (!currentId.value) {
+    return;
+  }
+  try {
+    applyFlow(await getFlow(currentId.value));
+    msgSuccess("已回滚，画布已刷新");
+  } catch (error) {
+    msgError(errText(error));
+  }
 }
 
 /** 丢弃未保存改动前的统一确认；返回 false 表示用户取消 */
@@ -419,6 +460,7 @@ function resetToNewFlow(): void {
   activeTask.value = null;
   currentId.value = null;
   currentFlow.value = null;
+  inflight.value = 0;
   form.name = "未命名流程";
   form.code = "";
   form.categoryId = 0;
@@ -602,6 +644,7 @@ async function doDryRun(): Promise<void> {
     const task = await dryRun(dsl);
     msgInfo(`试运行已提交：${task.collectTaskNo}`);
     startPolling(task.collectTaskId);
+    void refreshInflight();
   } catch (error) {
     msgError(errText(error));
   }
@@ -617,6 +660,7 @@ async function doRun(): Promise<void> {
     const task = await runFlow({ collectFlowId: currentId.value, persist: true });
     msgInfo(`运行已提交：${task.collectTaskNo}`);
     startPolling(task.collectTaskId);
+    void refreshInflight();
   } catch (error) {
     msgError(errText(error));
   }
@@ -629,6 +673,7 @@ async function doStop(): Promise<void> {
   try {
     const stopped = await stopTask(activeTaskId.value);
     msgInfo(stopped ? "已发送停止信号" : "该任务已不在本机执行队列中");
+    void refreshInflight();
   } catch (error) {
     msgError(errText(error));
   }
@@ -733,6 +778,7 @@ function autoOptimize(): void {
       <span v-else class="tb-label">流程设计</span>
       <ReTag v-if="dirty"  type="warning">未保存</ReTag>
       <ReTag v-else-if="currentId"  type="success">已保存</ReTag>
+      <ReTag v-if="currentId" type="info">在途 {{ inflight }}</ReTag>
       <span class="tb-sep"/>
       <ReButton layout="square" type="primary" icon="Check" tip="保存流程" :loading="saving" @click="save" />
       <ReButton layout="square" icon="CircleCheck" tip="结构校验" @click="validate" />
@@ -754,6 +800,13 @@ function autoOptimize(): void {
       <ReButton layout="square" icon="CopyDocument" tip="复制流程" :disabled="!currentId" @click="doCopy" />
       <ReButton layout="square" type="danger" icon="Delete" tip="删除流程" :disabled="!currentId" @click="doDelete" />
       <ReButton layout="square" icon="Files" tip="分类管理" @click="categoryVisible = true" />
+      <ReButton
+        layout="square"
+        icon="Clock"
+        tip="版本历史：对比与回滚（有未保存改动时不可用）"
+        :disabled="!currentId || dirty"
+        @click="versionVisible = true"
+      />
       <span class="spacer"/>
       <span class="tb-label">调度</span>
       <ReSwitch
@@ -780,6 +833,8 @@ function autoOptimize(): void {
         <span>结果 {{ runtime.recordCount }}</span>
         <span class="tb-dot">·</span>
         <span>运行中 {{ runtime.runningTasks }}</span>
+        <span class="tb-dot">·</span>
+        <span>当前流程在途 {{ inflight }}</span>
         <span class="tb-dot">·</span>
         <span>调度台账 {{ runtime.schedulerGroup }} · 已登记 {{ runtime.scheduledJobCount }}</span>
         <span class="tb-dot">·</span>
@@ -815,6 +870,12 @@ function autoOptimize(): void {
       />
 
     <CategoryDialog v-model="categoryVisible"/>
+
+    <FlowVersionDrawer
+      v-model="versionVisible"
+      :flow-id="currentId"
+      @rolledback="refreshAfterRollback"
+    />
 
     <ReDialog
       v-model="aiVisible"

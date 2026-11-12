@@ -148,6 +148,15 @@ const activeMenu = computed(
     background: radial-gradient(ellipse 560px 420px at 85% 18%, rgba(255, 255, 255, 0.34), transparent 70%),
       radial-gradient(460px circle at 20% 80%, rgba(255, 255, 255, 0.3), transparent 65%), #03020c;
   }
+
+  /*
+   * 壁纸模式：本布局自带一块实色底（上面那组径向渐变 + #f8f8f8 / #03020c），
+   * 不透明就会把壁纸整块盖住。这里让出底层，顶栏卡片本身是半透明玻璃，不必再改。
+   * 必须写在 html.dark & 之后：两者选择器权重相同，靠顺序覆盖暗色那条。
+   */
+  html.koi-wallpaper-on & {
+    background: transparent;
+  }
 }
 
 .layout-horizontal-body {
@@ -186,7 +195,7 @@ const activeMenu = computed(
   .layout-horizontal-host--header-inverted & {
     --grad-panel-bg: var(--grad-panel-bg-dark);
     --grad-glass-blur: 30px;
-    background: var(--el-header-bg-color);
+    background: var(--koi-surface-header);
     backdrop-filter: blur(30px) saturate(var(--grad-glass-saturate));
     -webkit-backdrop-filter: blur(30px) saturate(var(--grad-glass-saturate));
     box-shadow: 0 14px 36px rgb(0 0 0 / 38%);

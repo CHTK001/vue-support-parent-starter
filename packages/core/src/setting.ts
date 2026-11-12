@@ -14,7 +14,8 @@
  * 并执行已注册的 onConfigHotReload 回调。
  */
 import { getConfig, applyConfig, CONFIG_VERSION_CHANGE_EVENT, getRemoteSettingList, hasRemoteSettingFetched, normalizeTopKey, REMOTE_INJECTABLE_TOP_KEYS, REMOTE_INJECTABLE_PATH_PREFIXES, safeSetDotted } from "@repo/config";
-import { getDefaultSetting, type SettingItem } from "./api";
+import { getApiHttp, getDefaultSetting, type SettingItem } from "./api";
+import { applyHttpCodecSettings } from "./httpCodecRuntime";
 import { log, getAccessToken } from "@repo/utils";
 
 function shouldFetchRemoteSetting(): boolean {
@@ -196,8 +197,41 @@ export async function refreshDefaultSetting(): Promise<boolean> {
     return false;
   }
   const ok = await fetchAndMergeDefaultSetting();
+  // 默认设置接口只返回 default/sso 分组，codec 开关在 config 分组，需要单独拉。
+  // 失败不阻塞登录页/首页，保持上一次运行时状态。
+  await refreshHttpCodecSetting();
   notifyHotReload();
   return ok;
+}
+
+/**
+ * 拉取系统配置里的 codec 开关并写入前端运行时。
+ *
+ * <p>成功登录后调用；系统配置页保存后也会调用，使 UI 开关无需刷新整页即可生效。</p>
+ */
+export async function refreshHttpCodecSetting(): Promise<boolean> {
+  if (!isLoggedIn()) {
+    return false;
+  }
+  try {
+    const response = await getApiHttp()
+      .get("/v2/setting/list")
+      .query({ sysSettingGroup: "config" })
+      .then((r) => r.data as { data?: unknown } | unknown[]);
+    const payload = Array.isArray(response)
+      ? response
+      : (response as { data?: unknown })?.data;
+    const rows = Array.isArray(payload)
+      ? payload
+      : Array.isArray((payload as { data?: unknown })?.data)
+        ? ((payload as { data: unknown[] }).data)
+        : [];
+    applyHttpCodecSettings(rows as SettingItem[]);
+    return rows.length > 0;
+  } catch (error) {
+    log.warn("[setting] codec 开关拉取失败，保持当前运行时配置", error);
+    return false;
+  }
 }
 
 /** 真实请求 + 合并（失败静默，返回是否成功） */

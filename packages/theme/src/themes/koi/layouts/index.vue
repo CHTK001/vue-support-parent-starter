@@ -1,6 +1,8 @@
 <!-- 这里是一次性加载 LayoutComponents -->
 <template>
   <div>
+    <!-- 壁纸层：z-index:-1，落在所有布局组件的背景之下（见 styles/wallpaper.scss） -->
+    <WallpaperLayer />
     <AnnouncementBar position="fixed-top" />
     <component :is="LayoutComponent[layout]" v-if="!isMobile" />
     <component :is="LayoutMobile" v-if="isMobile" />
@@ -27,6 +29,7 @@ onMounted(() => {
 import ThemeConfig from "@repo/theme/koi/layouts/components/ThemeConfig/index.vue";
 import KoiLockScreen from "@repo/theme/koi/layouts/components/LockScreen/index.vue";
 import AnnouncementBar from "@repo/theme/koi/layouts/components/AnnouncementBar/index.vue";
+import WallpaperLayer from "@repo/theme/koi/components/wallpaper/WallpaperLayer.vue";
 import LayoutVertical from "@repo/theme/koi/layouts/LayoutVertical/index.vue";
 import LayoutColumns from "@repo/theme/koi/layouts/LayoutColumns/index.vue";
 import LayoutDouble from "@repo/theme/koi/layouts/LayoutDouble/index.vue";

@@ -104,11 +104,22 @@ import {
   loadFileServerConfig,
   isFileServerConfigDiscovered,
   getFileServerConfigError,
+  clearRuntimeFileServerConfig,
   listOneTimeLinks,
   revokeOneTimeLink,
 } from "../api/filestorageApi";
 import type { BucketConfig, CapabilitiesResponse, OneTimeLinkItem, StorageObject, TreeItem } from "../api/filestorageApi";
 import { createFileCollab } from "../api/filestorageApi";
+import {
+  apiOrigin,
+  clearConnectionOverride,
+  getApiBase,
+  getServerOverride,
+  probeConnection,
+  setApiBase,
+  setServerOverride,
+  type ConnectionProbeResult,
+} from "../api/connection";
 import PreviewIframePanel from "../components/PreviewIframePanel.vue";
 import PreviewImagePanel from "../components/PreviewImagePanel.vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
@@ -223,6 +234,9 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   bdl: FvBinaryPanel,
   jsonc: FvTextPanel,
   json5: FvTextPanel,
+  // 行分隔 JSON：一条一行，按纯文本高亮展示（renderer-text 无此格式，故走 txt 通道）
+  jsonl: FvTextPanel,
+  ndjson: FvTextPanel,
   ipynb: FvTextPanel,
   toml: FvTextPanel,
   proto: FvTextPanel,
@@ -617,6 +631,145 @@ function resolveBucket(): string {
 
 const server = ref(getServerBase() || DEFAULT_SERVER);
 const bucket = ref(resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET);
+
+/* ================== 连接设置：前端可配置后端地址 ================== */
+
+/**
+ * 连接设置入口的可见状态。
+ *
+ * <p>解决的真实场景：前端在本机 `pnpm dev`、后端部署在远端时，同源代理是唯一
+ * 通道，换后端就得改 vite 配置重启。这个弹框把「后端接口 / 文件服务 / 存储桶」
+ * 三件事做成页面级配置，保存后所有请求（含协同 SSE）立即改道。</p>
+ */
+const connVisible = ref(false);
+/** 待保存的应用接口基址（空 = 同源） */
+const connApiBase = ref("");
+/** 待保存的文件服务基址（空 = 后端下发） */
+const connServer = ref("");
+/** 待保存的存储桶名 */
+const connBucket = ref("");
+/** 连接测试进行中 */
+const connTesting = ref(false);
+/** 保存并重连进行中 */
+const connSaving = ref(false);
+/** 最近一次连接测试结果 */
+const connProbe = ref<ConnectionProbeResult | null>(null);
+
+/**
+ * 当前生效的后端主机（工具栏/弹框展示用）。
+ *
+ * <p>刻意用 {@code ref} + 显式刷新，而不是 {@code computed}：{@code apiOrigin()}
+ * 读的是 localStorage，不是响应式数据。computed 没有依赖会在首次求值后永久缓存，
+ * 保存新地址后弹框仍显示旧主机——这种「设置生效了但界面说没生效」最难解释。</p>
+ */
+const connHost = ref("同源");
+
+/** 重新计算当前生效的后端主机 */
+function refreshConnHost(): void {
+  try {
+    connHost.value = new URL(apiOrigin()).host || "同源";
+  } catch {
+    connHost.value = "同源";
+  }
+}
+
+/** 打开连接设置：以「当前显式配置」回填，而不是回填解析结果 */
+function openConnectionSettings(): void {
+  connApiBase.value = getApiBase();
+  connServer.value = getServerOverride();
+  connBucket.value = bucket.value;
+  connProbe.value = null;
+  refreshConnHost();
+  connVisible.value = true;
+}
+
+/** 测试当前填写的后端接口是否可达 */
+async function testConnection(): Promise<void> {
+  const api = connApiBase.value.trim();
+  if (api && !/^https?:\/\//i.test(api)) {
+    connProbe.value = { ok: false, message: "接口地址必须以 http:// 或 https:// 开头" };
+    return;
+  }
+  connTesting.value = true;
+  try {
+    connProbe.value = await probeConnection(api);
+  } finally {
+    connTesting.value = false;
+  }
+}
+
+/**
+ * 保存连接设置并立即重连。
+ *
+ * <p>不整页刷新：所有请求实例都是「每次调用现建」（storageHttp / uploadTaskHttp /
+ * collabHubTransport），保存后下一跳就会走新地址。已打开的预览弹层会被
+ * {@link applyConnectionAndReload} 关掉，避免旧后端的票据继续生效。</p>
+ */
+async function saveConnection(): Promise<void> {
+  const api = connApiBase.value.trim();
+  if (api && !/^https?:\/\//i.test(api)) {
+    message.error("应用接口地址必须以 http:// 或 https:// 开头");
+    return;
+  }
+  const srv = connServer.value.trim();
+  if (srv && !/^https?:\/\//i.test(srv)) {
+    message.error("文件服务地址必须以 http:// 或 https:// 开头");
+    return;
+  }
+  connSaving.value = true;
+  try {
+    setApiBase(api);
+    setServerOverride(srv);
+    setDefaultBucket(connBucket.value.trim() || getAppDefaultBucket());
+    await applyConnectionAndReload();
+    refreshConnHost();
+    connVisible.value = false;
+    message.success(`已连接 ${connHost.value} · 桶 ${bucket.value}`);
+  } catch (e) {
+    message.error((e as Error)?.message ?? "连接失败，请检查地址与登录状态");
+  } finally {
+    connSaving.value = false;
+  }
+}
+
+/** 恢复默认：清除页面级覆盖，回到「同源 + 后端下发」 */
+async function resetConnection(): Promise<void> {
+  connSaving.value = true;
+  try {
+    clearConnectionOverride();
+    setDefaultBucket(getAppDefaultBucket());
+    connApiBase.value = "";
+    connServer.value = "";
+    connProbe.value = null;
+    await applyConnectionAndReload();
+    refreshConnHost();
+    connVisible.value = false;
+    message.success("已恢复默认连接");
+  } catch (e) {
+    message.error((e as Error)?.message ?? "恢复默认失败");
+  } finally {
+    connSaving.value = false;
+  }
+}
+
+/**
+ * 按当前连接设置重新发现配置并重载页面数据。
+ *
+ * <p>顺序不能反：先清运行时配置再 {@link loadFileServerConfig}，
+ * 否则会拿旧实例下发的 server 覆盖新地址。桶与目录一并归零，
+ * 因为路径在不同后端上没有任何可比性。</p>
+ */
+async function applyConnectionAndReload(): Promise<void> {
+  clearRuntimeFileServerConfig();
+  await loadFileServerConfig();
+  server.value = getServerBase() || DEFAULT_SERVER;
+  bucket.value = resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET;
+  currentPath.value = "";
+  page.value = 1;
+  recordHistory("");
+  await Promise.all([loadObjects(), loadCapabilities(), loadBucketConfig()]);
+  loadRecycle();
+}
 const currentPath = ref("");
 const objects = ref<StorageObject[]>([]);
 const loading = ref(false);
@@ -5147,6 +5300,7 @@ onMounted(async () => {
   }
   server.value = getServerBase() || DEFAULT_SERVER;
   bucket.value = resolveBucket() || getDefaultBucket() || DEFAULT_BUCKET;
+  refreshConnHost();
   // 「预览（新窗口）」标记：先读并剥掉（一次性，两处地址都剥），否则刷新后又会自动打开
   const autoPreviewKey = takePreviewFlag();
   // 必须排在最前：视图/目录/排序都从这里恢复，后面所有播种都基于恢复后的值
@@ -5355,6 +5509,16 @@ onUnmounted(() => {
             <el-icon :size="15"><Delete /></el-icon>
             <span>回收站</span>
             <b v-if="recycleCount > 0" class="fs-nav__badge">{{ recycleCount }}</b>
+          </button>
+          <button
+            type="button"
+            class="fs-nav__foot-btn fs-nav__foot-btn--icon"
+            title="连接设置"
+            aria-label="连接设置"
+            data-testid="fs-conn-open"
+            @click="openConnectionSettings"
+          >
+            <el-icon :size="16"><Connection /></el-icon>
           </button>
           <button
             type="button"
@@ -6402,6 +6566,98 @@ onUnmounted(() => {
             <el-button @click="adminVisible = false">取消</el-button>
             <el-button type="primary" :loading="adminSaving" @click="saveAdminConfig">保存并生效</el-button>
           </span>
+        </div>
+      </template>
+    </ReDialog>
+
+    <!-- ===== 连接设置（后端地址可配置） =====
+         场景：前端本机 8899 / 后端远端。三件事一次配好——
+         应用接口（/v2）、文件服务（对象存储端口）、存储桶。
+         保存后不动整页，只清运行时配置再按新地址重载。 -->
+    <ReDialog
+      v-model="connVisible"
+      class="fs-conn-dialog"
+      width="560px"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+      destroy-on-close
+    >
+      <template #header>
+        <div class="fs-conn__head">
+          <span class="fs-conn__logo" aria-hidden="true">
+            <el-icon :size="18"><Connection /></el-icon>
+          </span>
+          <div>
+            <h3 class="fs-conn__title">连接设置</h3>
+            <p class="fs-conn__subtitle">前端可在本机运行，后端部署在远端</p>
+          </div>
+        </div>
+      </template>
+
+      <div class="fs-conn" data-testid="fs-conn-dialog">
+        <p class="fs-conn__tip">
+          文件列表、上传下载、访问链接与协同推送共用这里的地址。留空表示跟随默认行为（同源代理 / 后端下发）。
+        </p>
+        <el-form label-width="88px" @submit.prevent>
+          <el-form-item label="后端接口">
+            <el-input
+              v-model="connApiBase"
+              data-testid="fs-conn-api"
+              placeholder="如 http://cancon.hpccube.com:8082，留空 = 同源"
+              clearable
+              @keyup.enter="testConnection"
+            />
+          </el-form-item>
+          <el-form-item label="文件服务">
+            <el-input
+              v-model="connServer"
+              data-testid="fs-conn-server"
+              placeholder="留空 = 使用后端下发地址"
+              clearable
+              @keyup.enter="testConnection"
+            />
+          </el-form-item>
+          <el-form-item label="存储桶">
+            <el-input
+              v-model="connBucket"
+              data-testid="fs-conn-bucket"
+              placeholder="如 local"
+              clearable
+            />
+          </el-form-item>
+        </el-form>
+
+        <el-alert
+          v-if="connProbe"
+          :type="connProbe.ok ? 'success' : 'error'"
+          :title="connProbe.message"
+          :closable="false"
+          show-icon
+          data-testid="fs-conn-result"
+        />
+        <p class="fs-conn__current">
+          当前生效：<b>{{ connHost }}</b>
+          <span class="fs-conn__sep">·</span>
+          文件服务 <code>{{ server }}</code>
+          <span class="fs-conn__sep">·</span>
+          桶 <code>{{ bucket }}</code>
+        </p>
+      </div>
+
+      <template #footer>
+        <div class="fs-conn__acts">
+          <el-button
+            :loading="connTesting"
+            data-testid="fs-conn-test"
+            @click="testConnection"
+          >测试连接</el-button>
+          <el-button data-testid="fs-conn-reset" @click="resetConnection">恢复默认</el-button>
+          <el-button
+            type="primary"
+            :loading="connSaving"
+            data-testid="fs-conn-save"
+            @click="saveConnection"
+          >保存并重连</el-button>
         </div>
       </template>
     </ReDialog>
@@ -8623,6 +8879,65 @@ onUnmounted(() => {
 }
 .fs-link-manage__bar .fs-admin__tip {
   margin: 0;
+}
+
+/* ===== 连接设置弹框（前端本机 + 后端远端） ===== */
+.fs-conn__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fs-conn__logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.fs-conn__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.fs-conn__subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.fs-conn__tip {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.fs-conn__current {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--el-text-color-secondary);
+  word-break: break-all;
+}
+.fs-conn__current b {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
+.fs-conn__current code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-regular);
+}
+.fs-conn__sep {
+  margin: 0 4px;
+  opacity: 0.6;
+}
+.fs-conn__acts {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 900px) {

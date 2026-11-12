@@ -15,6 +15,8 @@ export interface Model {
     modelName: string
     /** 模型编码：后端部分接口返回 model 而非 modelName，两者并存时以 model 为准 */
     model?: string
+    /** 模型别名：模型管理里「业务展示用名称」，输入框 chip 与悬停信息优先显示它 */
+    alias?: string
     modelType: string
     providerId: string
     providerName?: string

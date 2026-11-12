@@ -15,6 +15,8 @@ import type {
   CollectFieldSave,
   CollectFlow,
   CollectFlowQuery,
+  CollectFlowVersion,
+  CollectFlowVersionDiff,
   CollectFlowSave,
   CollectFunction,
   CollectFunctionTest,
@@ -29,8 +31,11 @@ import type {
   CollectTask,
   CollectTaskLog,
   CollectTaskQuery,
+  CollectTaskQuality,
+  CollectTaskStats,
   CollectRun,
   CollectRuntime,
+  CollectSettingItem,
   CollectShapeMeta,
   CollectVariable,
 } from "../types/collect";
@@ -53,8 +58,24 @@ function toPage<T>(value: unknown): CollectPage<T> {
 /** 全部节点类型元数据 */
 export const fetchMetas = () => get<CollectShapeMeta[]>(`${API}/designer/metas`);
 
+/** 已注册 Agent 目录（来自运行期 AgentRegistry，供 Agent 节点刷新下拉） */
+export const fetchAgentOptions = () => get<CollectOption[]>(`${API}/designer/agents`);
+
 /** 运行时概览（执行器、统计、线程与超时配置） */
 export const fetchRuntime = () => get<CollectRuntime>(`${API}/designer/runtime`);
+
+/* -------------------------------- 运行参数 ------------------------------- */
+
+/** 采集平台运行参数（类型、范围、缺省值与是否重启生效） */
+export const listCollectSettings = () => get<CollectSettingItem[]>(`${API}/settings/list`);
+
+/** 保存运行参数，只传要改的键；后端校验通过后立即生效并返回全量 */
+export const saveCollectSettings = (values: Record<string, string>) =>
+  put<CollectSettingItem[]>(`${API}/settings`, values);
+
+/** 恢复缺省：传键只恢复这些键，不传或传空数组恢复全部 */
+export const resetCollectSettings = (keys?: string[]) =>
+  post<CollectSettingItem[]>(`${API}/settings/reset`, keys ?? []);
 
 /** AI 生成流程：把自然语言描述生成流程 DSL（服务端经图校验后返回）。 */
 export const aiGenerateFlow = (input: string) => post<CollectDsl>(`${API}/designer/ai-generate`, { input });
@@ -175,6 +196,28 @@ export const deleteTask = (taskId: number) => del<boolean>(`${API}/task/delete`,
 /** 清理历史任务，返回删除条数 */
 export const cleanTasks = (flowId?: number, days = 7) =>
   post<number>(`${API}/task/clean`, undefined, { flowId, days });
+
+/** 任务质量报告：从节点日志聚合评分、入库率与节点明细 */
+export const fetchTaskQuality = (taskId: number) =>
+  get<CollectTaskQuality>(`${API}/task/quality`, { taskId });
+
+/** 流程执行统计：按天数聚合趋势与节点耗时 TopN */
+export const fetchTaskStats = (flowId: number, days = 30) =>
+  get<CollectTaskStats>(`${API}/task/stats`, { flowId, days });
+
+/* -------------------------------- 流程版本 -------------------------------- */
+
+/** 版本快照列表，按版本号倒序 */
+export const listFlowVersions = (flowId: number) =>
+  get<CollectFlowVersion[]>(`${API}/flow-version/list`, { flowId });
+
+/** 回滚到指定版本（后端会再存一版回滚记录） */
+export const rollbackFlowVersion = (flowId: number, versionNo: number) =>
+  post<boolean>(`${API}/flow-version/rollback`, undefined, { flowId, versionNo });
+
+/** 对比两个版本：后端只回两段原始 DSL */
+export const diffFlowVersions = (flowId: number, v1: number, v2: number) =>
+  get<CollectFlowVersionDiff>(`${API}/flow-version/diff`, { flowId, v1, v2 });
 
 /* --------------------------------- 采集结果 -------------------------------- */
 

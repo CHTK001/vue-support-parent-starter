@@ -2,9 +2,9 @@
   <div class="protocol-server-page">
     <SettingsCard
       title="聚合协议服务"
-      subtitle="对外提供 OpenAI / Claude / Gemini 三协议端点；这里是唯一的配置入口，改完需重启服务生效"
+      subtitle="对外提供 OpenAI / Claude / Gemini 三协议端点；这里是唯一的配置入口，保存后立即生效"
     >
-      <SettingsRow label="启用" description="关闭时协议服务不监听端口，已对接的外部软件会连接失败">
+      <SettingsRow label="启用" description="关闭时三个对外协议入口（Claude Messages / Responses / Gemini）统一回「服务未启用」，已对接的外部软件会调用失败">
         <el-switch
           v-model="enabled"
           :loading="saving"
@@ -13,27 +13,14 @@
           @change="onSave"
         />
       </SettingsRow>
-
-      <SettingsRow label="端口" description="三种协议共用同一个端口；改端口后需要重启服务才会换监听">
-        <el-input-number
-          v-model="port"
-          :min="1"
-          :max="65535"
-          :disabled="loading"
-          controls-position="right"
-          aria-label="聚合协议服务端口"
-          @change="onSave"
-        />
-      </SettingsRow>
     </SettingsCard>
 
     <p class="protocol-server-note">
       <span class="protocol-server-note__icon"><el-icon><InfoFilled /></el-icon></span>
       <span class="protocol-server-note__text">
-        字段来自 <b>runtime</b> 分组的 <code>protocol_server_enabled</code> /
-        <code>protocol_server_port</code> —— 后端协议服务（AiGlobalSettingServiceImpl
-        的字段映射）只读这两项。原先「默认模型」页里的同名重复分组
-        （protocol-server：enabled/port/host）没有任何消费方，已删除。
+        字段来自 <b>runtime</b> 分组的 <code>protocol_server_enabled</code>：
+        后端 <code>AiProtocolController</code> 在每个协议入口前读它，关闭即不对外服务；
+        协议端点挂在应用主端口上，没有独立监听端口（原「端口」项从未被任何代码读取，已删除）。
       </span>
     </p>
   </div>
@@ -43,13 +30,12 @@
 /**
  * 聚合协议服务设置页（管理员）。
  *
- * <p>只暴露后端真正读取的两个字段：{@code runtime.protocol_server_enabled} /
- * {@code runtime.protocol_server_port}。</p>
+ * <p>只暴露后端真正读取的字段：{@code runtime.protocol_server_enabled}。</p>
  *
  * <p>为什么不用通用 DefaultModelSettings 渲染 protocol-server 分组：
  * 那个分组是「无人读取」的重复定义（host 也没有消费方），已从后端删除；
  * 真实字段挂在 runtime 分组里，而 runtime 的其余 20+ 项属于会话模型，不该出现在本页。
- * 所以这里只做 2 行，读写都走 runtime 分组的全局层。</p>
+ * 所以这里只做 1 行，读写都走 runtime 分组的全局层。</p>
  */
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
@@ -58,18 +44,15 @@ import { apiService } from '../../services/ApiService'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
 
-/** 后端读取的字段名（见 AiGlobalSettingServiceImpl 的 fieldMapping） */
+/** 后端读取的字段名（见 AiProtocolController#protocolServerEnabled） */
 const FIELD_ENABLED = 'protocol_server_enabled'
-const FIELD_PORT = 'protocol_server_port'
-/** runtime 分组：协议服务只读这两个键 */
+/** runtime 分组：协议服务只读这一个键 */
 const GROUP = 'runtime'
-/** 端口默认值：与后端定义 defaultValue 对齐 */
-const DEFAULT_PORT = 8090
 
 const loading = ref(false)
 const saving = ref(false)
-const enabled = ref(false)
-const port = ref(DEFAULT_PORT)
+// 缺省启用：后端读取时的默认值也是 true（该开关此前未被读取，协议入口一直可用）
+const enabled = ref(true)
 
 /**
  * 从 merged 响应里取某个字段的合并结果。
@@ -100,10 +83,11 @@ const load = async () => {
   try {
     const response = await apiService.fetchMergedGroupSettings(GROUP)
     const enabledItem = pickField(response, FIELD_ENABLED)
-    enabled.value = String(enabledItem?.value ?? enabledItem?.defaultValue ?? '').toLowerCase() === 'true'
-    const portItem = pickField(response, FIELD_PORT)
-    const parsed = Number(portItem?.value ?? portItem?.defaultValue)
-    port.value = Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : DEFAULT_PORT
+    // 取不到值视为「启用」：与后端 getBoolean(..., true) 的缺省一致
+    const raw = enabledItem?.value ?? enabledItem?.defaultValue
+    enabled.value = raw === undefined || raw === null || raw === ''
+      ? true
+      : String(raw).toLowerCase() === 'true'
   } catch (error: any) {
     console.error('读取聚合协议服务配置失败:', error)
     ElMessage.error('读取聚合协议服务配置失败：' + (error?.message || '请稍后重试'))
@@ -118,9 +102,8 @@ const onSave = async () => {
   try {
     await apiService.updateGroupSettings(GROUP, {
       [FIELD_ENABLED]: enabled.value ? 'true' : 'false',
-      [FIELD_PORT]: String(port.value),
     })
-    ElMessage.success('已保存，重启服务后生效')
+    ElMessage.success('已保存，立即生效')
   } catch (error: any) {
     console.error('保存聚合协议服务配置失败:', error)
     ElMessage.error('保存失败：' + (error?.message || '请稍后重试'))

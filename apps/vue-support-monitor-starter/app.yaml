@@ -77,6 +77,11 @@ otherConfig:
   # 开着只会在每次启动留一条 404（同 hotspot 应用的处理）
   avatarFrame:
     enable: false
+  # 壁纸：内置渐变/图案是纯 CSS，不依赖后端，打开即可在个人中心试用；
+  # 自己上传的图片走 /v2/file/upload（bucket=wallpaper），后端未实现时只有上传会失败，
+  # 内置壁纸与参数调节照常可用。
+  wallpaper:
+    enable: true
   toolbar:
     # 平台公告接口属 system 服务，监控后端未实现（同 collect 应用）
     announcement:
@@ -152,9 +157,9 @@ messageConfig:
 # 且本机系统代理(127.0.0.1:7897)对局域网地址不 bypass。同源走 vite 代理两者都规避，
 # token 头也干净生效。
 socketConfig:
-  # 见上方说明：本实例无可用 socket 后端，关闭以消除 502 噪音。
-  # 后端补上 plugin.socket.room[0].port=29612 后改回 true 即可恢复实时推送。
-  enable: false
+  # 验收后端已启用 plugin.socket.room（18086 使用 29624），恢复实时推送；
+  # dev 代理需同步设置 MS_SOCKET_TARGET 指向该端口。
+  enable: true
   protocol: socketio
   context: "/socket.io"
   # 仅 polling：经 vite 代理时 WS 升级会被 netty(SO_LINGER=0 硬关)重置、拖垮 polling 长连接，

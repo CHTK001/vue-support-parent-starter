@@ -5,8 +5,9 @@
             v-if="show"
             ref="buttonRef"
             class="scroll-to-bottom-btn"
-            :class="{ streaming: isStreaming, 'has-status': !!status, 'is-inline': inline }"
+            :class="{ streaming: isStreaming, 'has-status': !!status && !inline, 'is-inline': inline }"
             @click="handleClick"
+            :title="status || undefined"
             type="button"
         >
             <span class="scroll-to-bottom-btn__icon">
@@ -25,8 +26,13 @@
                 当前在做什么（正在运行命令 / 正在压缩 …）。
                 由 ChatPanel 计算后传入：这里只负责展示，判据集中在会话状态一侧，
                 避免同一个「当前步骤」在按钮和别处各算一遍而分叉。
+
+                内联形态不渲染这段文字（2026-11-12）：输入行里它会把按钮撑成一枚
+                带底色的胶囊，和紧邻的「模型名 / 档位」拼成一条长条，看起来像一个控件；
+                而这段文案本来就和输入框上方的模型动作条重复。内联时只保留箭头，
+                文案降级为 title（hover 可见），既让两个控件分开，也不丢信息。
             -->
-            <span v-if="status" class="scroll-to-bottom-btn__status">{{ status }}</span>
+            <span v-if="status && !inline" class="scroll-to-bottom-btn__status">{{ status }}</span>
         </button>
     </Transition>
 </template>
@@ -278,21 +284,8 @@ defineExpose({
     50% { opacity: 1; }
 }
 
-/* 内联态带状态文案：收成一枚小胶囊，文案用文字色，主色只留在图标上 */
-.scroll-to-bottom-btn.is-inline.has-status {
-    width: auto;
-    max-width: min(46vw, 280px);
-    height: 24px;
-    gap: 5px;
-    padding: 0 9px 0 6px;
-    border-radius: var(--el-radius-full, 9999px);
-    background: var(--el-fill-color-light);
-}
-
-.scroll-to-bottom-btn.is-inline.has-status .scroll-to-bottom-btn__status {
-    color: var(--el-text-color-regular);
-    font-size: 11.5px;
-}
+/* 内联态永远不带状态文案（见模板注释）：文案降级为 title，
+   因此这里不再有 .is-inline.has-status 的胶囊样式。 */
 
 /* 淡入淡出动画 - 使用 !important 确保优先于呼吸动画 */
 .fade-enter-active,
@@ -331,11 +324,6 @@ defineExpose({
     .scroll-to-bottom-btn.is-inline {
         width: 28px;
         height: 28px;
-    }
-
-    .scroll-to-bottom-btn.is-inline.has-status {
-        width: auto;
-        height: 24px;
     }
 
     .scroll-icon {

@@ -387,12 +387,12 @@ function onApply() {
 .sdb {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 .sdb.is-embedded {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 12px 2px 12px 1px;
+  padding: 14px 14px 18px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -508,15 +508,18 @@ function onApply() {
 }
 
 /* ---------- 流水线 ---------- */
+/* 环多时横向滚动，不把每一环压成读不出名字的细条：环宽有下限，宽度不够就滚 */
 .sdb-flow {
   display: flex;
   align-items: stretch;
   gap: 0;
-  padding-bottom: 2px;
+  padding-bottom: 6px;
+  overflow-x: auto;
 }
 .sdb-node {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 1 132px;
+  min-width: 118px;
+  max-width: 300px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   padding: 8px 9px;
@@ -677,24 +680,24 @@ function onApply() {
 }
 
 /* ---------- 规格带 ---------- */
+/* 用 1px 缝拼成一张小规格表：字段再多也只是换行，不会把每格挤成两行字 */
 .sdb-spec {
-  display: flex;
-  flex-wrap: wrap;
-  padding: 8px 4px;
-  background: var(--el-bg-color);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  background: var(--el-border-color-lighter);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
 }
 .sdb-spec-item {
-  flex: 1 1 auto;
-  min-width: 118px;
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 12px;
-  border-right: 1px solid var(--el-border-color-lighter);
-  font-size: 12px;
   min-width: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  background: var(--el-bg-color);
   > span {
     font-size: 11px;
     color: var(--el-text-color-secondary);
@@ -707,13 +710,13 @@ function onApply() {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  &:last-child {
-    border-right: 0;
-  }
 }
 .sdb-spec-item.is-wide {
-  flex: 1 1 100%;
-  margin-top: 2px;
+  grid-column: 1 / -1;
+  align-items: flex-start;
+  > b {
+    white-space: normal;
+  }
 }
 .sdb-url {
   color: var(--el-color-primary) !important;

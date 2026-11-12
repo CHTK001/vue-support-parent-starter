@@ -19,15 +19,14 @@
 </template>
 
 <script setup>
-import { ref, provide, onMounted, watch, computed } from 'vue'
-import { useRouter, RouterView } from 'vue-router'
+import { ref, onMounted, watch, computed } from 'vue'
+import { RouterView } from 'vue-router'
 import { ElConfigProvider } from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import en from 'element-plus/es/locale/lang/en'
-import { useTitle } from './composables/useTitle'
 import { useTheme } from './composables/useTheme'
 import { useTrayStats } from './composables/useTrayStats'
-import { i18n, getLocale } from './locales'
+import { getLocale } from './locales'
 import { useLanguage } from './composables/useLanguage'
 import ContextMenuManager from './utils/ContextMenuManager'
 // 模板里用了 <ContextMenu>，此前**漏了 import** —— Vue 解析不到该组件会抛
@@ -35,8 +34,6 @@ import ContextMenuManager from './utils/ContextMenuManager'
 // 连带整个 App 子树变空白（表现为路由能跳转但页面全白、无任何报错）。
 import ContextMenu from './components/ui/ContextMenu.vue'
 
-const router = useRouter()
-const title = useTitle()
 const theme = useTheme() //不要删除，这里会执行dark模式设置
 useTrayStats() // 托盘悬浮窗统计推送（仅 Electron 生效）
 const { initLanguage } = useLanguage()
@@ -91,19 +88,6 @@ onMounted(() => {
 })
 
 // 新手引导已下线（原 SetupGuide 全局挂载已移除），不再提供 openGuide
-
-router.beforeEach((to, from, next) => {
-    if (to.meta.titleKey) {
-        title.value = i18n.global.t(to.meta.titleKey);
-    } else if (to.meta.title) {
-        if (typeof to.meta.title === 'function') {
-            title.value = to.meta.title(to);
-        } else {
-            title.value = to.meta.title;
-        }
-    }
-    next();
-});
 </script>
 
 <style scoped>

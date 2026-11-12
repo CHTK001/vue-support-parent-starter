@@ -50,11 +50,15 @@
           <span class="tshark-status__dot" />
           <span>{{ statusText }}</span>
         </button>
+        <ReButton text @click="restoreMatrixVisible = true">还原能力</ReButton>
         <ReButton type="primary" icon="Plus" :disabled="!tsharkOk" @click="createVisible = true">
           新增会话
         </ReButton>
       </template>
     </TsharkSessionStage>
+
+    <!-- 还原能力：与「PCAP 分析」页共用同一个组件 -->
+    <ScTsharkRestoreMatrix v-model="restoreMatrixVisible" />
 
     <!-- 安装进度：服务端自动补齐时自动弹出，失败可重试 -->
     <ScTsharkInstallDialog
@@ -194,6 +198,7 @@ import ScTsharkInsightsPanel from './ScTsharkInsightsPanel.vue'
 import ScTsharkPacketDetail from './ScTsharkPacketDetail.vue'
 import ScTsharkLifecycleDialog from './ScTsharkLifecycleDialog.vue'
 import ScTsharkInstallDialog from './ScTsharkInstallDialog.vue'
+import ScTsharkRestoreMatrix from './ScTsharkRestoreMatrix.vue'
 import type { TsharkFlow, TsharkPacket, TsharkTabKey } from './types'
 import './tshark.css'
 
@@ -229,6 +234,8 @@ const detailDialog = ref<InstanceType<typeof ScTsharkSessionDetailDialog> | null
 
 /** 安装进度框；服务端自动补齐时由 watch 打开 */
 const installVisible = ref(false)
+/** 还原能力弹层：静态清单，打开才请求 */
+const restoreMatrixVisible = ref(false)
 /** 用户主动关过就不再自动弹，避免一进页面就被反复弹窗打扰 */
 const installDismissed = ref(false)
 

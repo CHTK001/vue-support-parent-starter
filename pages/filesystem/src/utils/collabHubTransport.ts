@@ -6,6 +6,7 @@ import type {
   TransportStatus,
 } from "@p10node/office-engine/collab";
 import { authHeaders, collabCurrentUserId } from "../api/filestorageApi";
+import { apiOrigin } from "../api/connection";
 
 /** 保存快照时回传的上下文条目（与引擎 {@code session.context()} 同形状） */
 export interface CollabContextEntry {
@@ -504,9 +505,12 @@ export class CollabHubTransport implements Transport {
   /**
    * 协同接口基址。
    *
-   * @returns 绝对地址前缀（同源，经 dev 代理或网关转发到 8082）
+   * <p>跟随连接设置（{@code filestorage.apiBase}）：本机前端连远端后端时，
+   * 下行流与上行 POST 必须与普通接口同一个源，否则协同永远停在「连接中」。</p>
+   *
+   * @returns 绝对地址前缀
    */
   private baseUrl(): string {
-    return `${window.location.origin}/v2/file/collab`;
+    return `${apiOrigin()}/v2/file/collab`;
   }
 }

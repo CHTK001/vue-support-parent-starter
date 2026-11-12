@@ -58,6 +58,8 @@
             <span>{{ statusText }}</span>
           </button>
 
+          <ReButton text @click="restoreMatrixVisible = true">还原能力</ReButton>
+
           <input
             ref="fileInput"
             class="pcap-file-input"
@@ -66,7 +68,6 @@
             @change="onPickFile"
           />
           <ReButton icon="FolderOpened" show-text @click="chooseFile">选择文件</ReButton>
-
           <!-- 已选文件：只在选了之后出现（空态不占位），点 × 取消选择 -->
           <span v-if="file" class="pcap-file-chip" :title="`${file.name}（${fmtSize(file.size)}）`">
             <span class="pcap-file-chip__name">{{ file.name }}</span>
@@ -217,6 +218,9 @@
       :status="runtime"
       @retry="installNow"
     />
+
+    <!-- 还原能力：告诉用户哪些协议能看内容、哪些只能看到结构 -->
+    <ScTsharkRestoreMatrix v-model="restoreMatrixVisible" />
   </div>
 </template>
 
@@ -233,6 +237,7 @@ import ScTsharkInsightsPanel from './ScTsharkInsightsPanel.vue'
 import ScTsharkPacketDetail from './ScTsharkPacketDetail.vue'
 import ScTsharkLifecycleDialog from './ScTsharkLifecycleDialog.vue'
 import ScTsharkInstallDialog from './ScTsharkInstallDialog.vue'
+import ScTsharkRestoreMatrix from './ScTsharkRestoreMatrix.vue'
 import { sessionName, statusOf, timeRange, fmtDuration, fmtSize } from './tsharkFormat'
 import type { TsharkFlow, TsharkPacket, TsharkTabKey } from './types'
 import './tshark.css'
@@ -244,6 +249,9 @@ import './tshark.css'
  * MaxUploadSizeExceededException，前端只看到 500，看不出是文件太大了。</p>
  */
 const MAX_UPLOAD_BYTES = 2048 * 1024 * 1024
+
+/** 还原能力弹层：静态清单，打开才请求，close 不影响别的状态 */
+const restoreMatrixVisible = ref(false)
 
 /**
  * source=import 只列导入的会话（实时抓包的历史留在「抓包分析」页，两边各看各的）；

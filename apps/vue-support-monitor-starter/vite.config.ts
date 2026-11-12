@@ -8,6 +8,7 @@ import type { PluginOption } from "vite";
 import { fileViewerRenderers } from "@file-viewer/vite-plugin";
 
 import { createVite } from "../../turbo/vite/createVite.ts";
+import { servePagePublic } from "../../turbo/vite/servePagePublic.ts";
 
 /**
  * 在 {@code node_modules/.pnpm} 里定位某个 {@code @file-viewer} 渲染器
@@ -205,8 +206,22 @@ function servePreviewShellAssets(): PluginOption {
 // 同一台机器的 8082 才是真正在跑的后端（/v2/user/login 200、/ms/server/host 返回真实主机）。
 // 所以这里默认指向 8082；等那台机器的 18082 起了服务（前端/网关），
 // 用 MS_API_TARGET=https://18082-agqwy3tplnv4xakvlmllio7goq.instabox.tech 覆盖即可。
-const INSTABOX_BACKEND = "https://8082-agqwy3tplnv4xakvlmllio7goq.instabox.tech";
-const apiTarget = process.env.MS_API_TARGET ?? INSTABOX_BACKEND;
+// 历史上的缺省是 instabox sandbox 的 8082（https://8082-<machineId>.instabox.tech）；
+// 本机开发现在默认指向本地那一套后端，沙箱改成显式覆盖（见下方 LOCAL_BACKEND）。
+
+/**
+ * 本机开发默认后端：本地**只跑一套**后端（8082）。
+ *
+ * <p>口径（2026-11-11）：后端「停重复实例、只维护一套」，本机 8082 就是那一套
+ * （网关已绑定、42 个上游、渠道管理数据完整）。此前的缺省值是 instabox 沙箱域名，
+ * 沙箱在本机常常不可达；与此同时本机还会有别的会话起的 18082（**另一套库**，
+ * 网关未绑定），谁在跑就被代理到谁 —— 两套数据不一致，页面「13 行全是待接入」
+ * 就是这么来的，且不会报任何错（见上文「合法 JSON 但数据为空」）。</p>
+ *
+ * <p>要验别的实例，照旧用 {@code MS_API_TARGET} 显式覆盖。</p>
+ */
+const LOCAL_BACKEND = "http://127.0.0.1:8082";
+const apiTarget = process.env.MS_API_TARGET ?? LOCAL_BACKEND;
 // 模板后端：spring-support-template-starter（被 message/eduai 两个后台承载）
 const templateApiTarget = process.env.TEMPLATE_API_TARGET ?? "http://192.168.50.198:18170";
 
@@ -243,8 +258,8 @@ const socketTarget = process.env.MS_SOCKET_TARGET ?? deriveSocketTarget(apiTarge
  *  只有把 ACME 单独部署时才用 ACME_API_TARGET 覆盖。 */
 const acmeTarget = process.env.ACME_API_TARGET ?? apiTarget;
 
-/** APM 观测后端地址；实测 8582 无监听，故不预置远端缺省，详见下方注释 */
-const apmTarget = process.env.APM_TARGET ?? INSTABOX_BACKEND;
+/** APM 观测后端地址：跟着 API 走（APM 就在同一套后端进程里，8582 无监听） */
+const apmTarget = process.env.APM_TARGET ?? apiTarget;
 
 // 文件存储服务器（FileStorageServerFilter）。
 //
@@ -253,13 +268,12 @@ const apmTarget = process.env.APM_TARGET ?? INSTABOX_BACKEND;
 // 前端只发同源请求，不依赖后端 CORS 白名单，也不受本机无进程影响。
 //   显式覆盖：FS_API_TARGET=http://<host>:<port> pnpm dev
 //
-// 默认指向 198:18080（system-api 内置的独立文件存储服务，实测 /local?config=true=200、
-// /local?format=json=200，存储 Bean 名 = local）。原先默认 18082 指向监控后端内嵌的
-// FileStorageServerFilter（Bean 名 localFileStorage），该实例已按「停重复实例」下线，
-// 保留 18082 默认会让 /localFileStorage 探测直接 502。桶名需与目标服务的 Bean 名一致：
-//   18080（system-api）→ local ；18082（监控内嵌）→ localFileStorage
-// 桶名由 app.yaml otherConfig.filestorage.bucket 决定，两者要配套改。
-const fileStorageTarget = process.env.FS_API_TARGET ?? INSTABOX_BACKEND;
+// 默认跟着 API 走同一套后端（本机 8082）。该后端内嵌 FileStorageServerFilter，
+// 存储 Bean 名 = localFileStorage，与 app.yaml 的 otherConfig.filestorage.bucket 一致，
+// 所以两者必须指向同一套服务，否则 /localFileStorage 探测直接 502。
+// 要用独立文件服务器（例如 198:18080 的 system-api，Bean 名 = local）时，
+// 显式给 FS_API_TARGET 并把 bucket 一起改。
+const fileStorageTarget = process.env.FS_API_TARGET ?? apiTarget;
 
 /**
  * 启动自检：把「代理指错后端」从静默变成可见。
@@ -441,6 +455,11 @@ export default createVite({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
   plugins: [
+    // 远控终端的两个整页文档与 xterm 资源归 @pages/server 所有：
+    //   pages/server/public/** 挂到 URL 根，dev 零拷贝直读、build 才拷进 dist。
+    //   页面里写的 /ssh-direct.html、/term/xterm.js 因此不用改，其它 app 想用
+    //   这两个页面时加同一行即可，不需要复制文件。
+    servePagePublic({ "/": "pages/server/public" }),
     debugProxyLogger(),
     apiTargetSelfCheck(),
     dropProxyOrigin(),

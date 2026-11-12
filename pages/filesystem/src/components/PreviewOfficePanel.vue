@@ -47,6 +47,7 @@ import {
   installEVirtTableSelectionBridge,
 } from "../utils/eVirtTableSelectionBridge";
 import { previewAssetBase } from "../utils/previewAssetBase";
+import { rawBytesUrl } from "../api/filestorageApi";
 
 /**
  * 可做选区统计的表格扩展名。
@@ -58,6 +59,9 @@ import { previewAssetBase } from "../utils/previewAssetBase";
 const STATS_EXTS: ReadonlySet<string> = new Set([
   "xlsx", "xlsm", "xltx", "xltm", "xls", "xlt",
   "csv", "tsv", "ods", "fods",
+  // WPS 表格家族：客户端渲染前会被改名成 .xlsx / .xls，统计解析按容器
+  // 类型分支（ZIP → parseXlsxWorkbook，OLE2 → WASM 转 xlsx），与 xlsx/xls 同路。
+  "et", "ett",
 ]);
 
 /** 去掉扩展名，作为 CSV / TSV 的工作表名 */
@@ -215,7 +219,7 @@ const failReason = ref("");
  * 显示「PDF 视图」切换入口。</p>
  */
 const WORD_PDF_EXTS: ReadonlySet<string> = new Set([
-  "doc", "docx", "docm", "dot", "dotx", "dotm", "wps", "rtf", "odt",
+  "doc", "docx", "docm", "dot", "dotx", "dotm", "wps", "wpt", "rtf", "odt",
 ]);
 
 /** 当前文件是否为 Word 家族（决定是否显示「PDF 视图」切换） */
@@ -551,7 +555,7 @@ async function copyExcelStats(): Promise<void> {
 }
 
 /**
- * 取原始字节用于嗅探（不带 preview/render 参数）
+ * 取原始字节用于嗅探（地址经 {@link rawBytesUrl} 改写为 {@code raw=true}）
  *
  * <p>拿不到时返回 undefined：嗅探失败不应阻断原有的兜底流程。</p>
  *
@@ -562,7 +566,11 @@ async function sniffRawBytes(): Promise<Uint8Array | undefined> {
     return undefined;
   }
   try {
-    const r = await fetch(props.rawSrc);
+    // rawSrc 默认就是预览票据地址（?preview=true），服务端会先走**渲染**通道：
+    // WPS 这类它自己渲染不了的文种回来的是预览页 HTML，按原始字节去嗅探魔数
+    // 只会读到 "<!DOCTYPE html>"，于是永远判不出 OOXML/OLE2。
+    // 必须加 raw=true 才是对象字节。
+    const r = await fetch(rawBytesUrl(props.rawSrc));
     if (!r.ok) {
       return undefined;
     }
@@ -587,7 +595,9 @@ async function fetchFullRawBytes(): Promise<Uint8Array | undefined> {
     return undefined;
   }
   try {
-    const r = await fetch(props.rawSrc);
+    // 同 {@link sniffRawBytes}：rawSrc 带 preview=true 时服务端只回渲染页，
+    // 必须显式 raw=true 才拿到完整对象字节（WPS / Arrow 这类自己解码的文种）。
+    const r = await fetch(rawBytesUrl(props.rawSrc));
     if (!r.ok) {
       return undefined;
     }
@@ -595,6 +605,28 @@ async function fetchFullRawBytes(): Promise<Uint8Array | undefined> {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * 响应体是否像服务端「预览页」HTML
+ *
+ * <p>有的部署不回 {@code X-FileStorage-Preview} 头，直接把渲染好的 HTML 当
+ * body 给回来。Office 宿主只处理文档字节，HTML 一定是渲染页——喂给解析器只
+ * 会抛出「不是有效压缩包」这类无意义错误。</p>
+ *
+ * @param bytes 响应体（取前 256 字节足够判定）
+ * @returns true = 像 HTML 页面
+ */
+function looksLikeHtmlPage(bytes: Uint8Array): boolean {
+  if (!bytes || bytes.length === 0) {
+    return false;
+  }
+  const head = new TextDecoder("utf-8")
+    .decode(bytes.subarray(0, 256))
+    .replace(/^\uFEFF/, "")
+    .trimStart()
+    .toLowerCase();
+  return head.startsWith("<!doctype html") || head.startsWith("<html");
 }
 
 /**
@@ -683,13 +715,25 @@ async function load(): Promise<void> {
     if (bytes.length === 0) {
       // 部署差异兜底：有的实例（198:18080 实测）对 client 通道只回通道头、
       // 不回响应体（200 + 空 body）——空字节会绕过长度守卫下的密文/损坏校验，
-      // 直接喂给解析器抛「不是有效压缩包」。此时改拉票据直链
-      // （rawSrc 不带 preview 参数，实测返回完整原始字节）。
+      // 直接喂给解析器抛「不是有效压缩包」。此时改拉对象原始字节
+      // （{@link fetchFullRawBytes} 已加 raw=true，实测返回完整对象字节）。
       const fullRaw = await fetchFullRawBytes();
       if (!fullRaw || fullRaw.length === 0) {
         throw new Error("预览通道返回空响应体且票据直链不可用");
       }
       bytes = fullRaw;
+    }
+    if (looksLikeHtmlPage(bytes)) {
+      // 没有通道头的部署会把「渲染页」当 body 直接回：那不是文档字节。
+      // 改拉对象原始字节（raw=true），拉不到就按服务端兜底处理，不再硬解析。
+      const fullRaw = await fetchFullRawBytes();
+      if (fullRaw && fullRaw.length > 0 && !looksLikeHtmlPage(fullRaw)) {
+        bytes = fullRaw;
+      } else {
+        const fallback = await probeFallback();
+        emitFallback(fallback);
+        return;
+      }
     }
     if (isEncryptedDoc(bytes)) {
       failReason.value = `该文件已被文档防泄密软件透明加密（${props.fileName}）：`

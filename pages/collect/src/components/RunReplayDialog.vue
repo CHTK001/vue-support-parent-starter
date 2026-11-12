@@ -88,28 +88,21 @@ const ownLogs = computed(() => {
 const replayedOwnLogs = computed(() => ownLogs.value.slice(0, cursor.value));
 
 /**
- * 已执行轨迹点亮的连线集合：按日志执行顺序，把相邻两个不同节点的 DSL 连线全部点亮。
- * 多步骤就有多条连线（虚线动画），同一节点多次迭代只算一条。
+ * 当前这一步刚走过的连线：只点亮“上一个节点 → 当前节点”这一条。
+ *
+ * <p>回放是逐条日志推进的，之前把所有历史走过的边都塞进集合，
+ * 结果整张图的历史轨迹同时流动，看不出当前执行到哪。这里只保留
+ * 最近一次节点切换对应的边；同一节点连续迭代/重试不产生新边。</p>
  */
 const activeEdgeIds = computed<string[]>(() => {
   const source = flow.value?.dsl;
-  if (!source) return [];
-  const edgeOf = new Map<string, string>();
-  source.edges.forEach(edge => edgeOf.set(`${edge.from}->${edge.to}`, edge.id));
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (let i = 1; i < replayedOwnLogs.value.length; i += 1) {
-    const prevId = replayedOwnLogs.value[i - 1]?.collectTaskLogNodeId;
-    const curId = replayedOwnLogs.value[i]?.collectTaskLogNodeId;
-    if (!prevId || !curId || prevId === curId) continue;
-    const key = `${prevId}->${curId}`;
-    const id = edgeOf.get(key);
-    if (id && !seen.has(id)) {
-      seen.add(id);
-      out.push(id);
-    }
-  }
-  return out;
+  const logs = replayedOwnLogs.value;
+  if (!source || logs.length < 2) return [];
+  const prevId = logs[logs.length - 2]?.collectTaskLogNodeId;
+  const curId = logs[logs.length - 1]?.collectTaskLogNodeId;
+  if (!prevId || !curId || prevId === curId) return [];
+  const edge = source.edges.find(item => item.from === prevId && item.to === curId);
+  return edge ? [edge.id] : [];
 });
 
 /** 当前正在执行/循环的节点 id；画布上它显示蓝色虚线动画边框，并自动居中 */

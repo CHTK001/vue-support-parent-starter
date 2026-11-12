@@ -460,10 +460,11 @@ function runMore(command: string, flow: CollectFlow): void {
             新建采集器
           </ReButton>
           <ElDropdown trigger="click" placement="bottom-start" @command="(cmd: string) => openConfig(cmd)">
-            <ReButton icon="Setting" size="small" tip="平台级配置：变量 / 函数 / 通知" />
+            <ReButton icon="Setting" size="small" tip="平台级配置：运行参数 / 变量 / 函数 / 通知" />
             <template #dropdown>
               <ElDropdownMenu>
                 <ElDropdownItem command="global">全局配置总览</ElDropdownItem>
+                <ElDropdownItem command="settings">运行参数</ElDropdownItem>
                 <ElDropdownItem command="variable" divided>变量管理</ElDropdownItem>
                 <ElDropdownItem command="function">函数库</ElDropdownItem>
                 <ElDropdownItem command="notice">执行通知</ElDropdownItem>

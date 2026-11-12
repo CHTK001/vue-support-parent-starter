@@ -21,6 +21,7 @@ import { getAccessToken } from "@repo/utils";
 import { useAuthStore } from "@repo/pinia";
 import { collectRoutes, collectWidgets, registerCollectKeepAlive } from "@pages/collect";
 import { jobRoutes } from "@pages/job";
+import { osgiRoutes } from "@pages/osgi";
 import { defineWidgetContribution } from "@repo/theme/koi/views/home/registry";
 import { hostRoutes } from "./routes";
 
@@ -34,7 +35,7 @@ const APP_TITLE = "采集调度一体化平台";
  * 拼装路由树：宿主层（平台总览等跨系统视图）+ 采集侧 + 调度侧。
  * 三个来源各自维护自己的路由，这里只做合并。
  */
-const routes = [...hostRoutes, ...collectRoutes, ...jobRoutes];
+const routes = [...hostRoutes, ...collectRoutes, ...jobRoutes, ...osgiRoutes];
 
 /**
  * 启动流程整体包在 async IIFE 里，刻意**不用顶层 await**。

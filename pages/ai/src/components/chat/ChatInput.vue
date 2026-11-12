@@ -21,6 +21,7 @@
       这些值一律写进 <style scoped> 的 .input-area 里，模板只留结构类。
     -->
     <div
+      ref="inputAreaRef"
       class="input-area min-h-15 w-full"
       :class="[styleClass, { 'drag-over': isDragOver }, { 'is-backdrop': backdrop }, { 'input-area--continues-banner': props.editing }]"
       @dragover.prevent @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave"
@@ -60,7 +61,7 @@
       </div>
 
       <!-- Tiptap 编辑器（替换 textarea） -->
-      <div class="editor-container">
+      <div class="editor-container" :class="{ 'has-prediction': showPrediction }">
         <template v-if="props.readonly">
           <div class="readonly-placeholder"
             style="min-height: 58px; padding: 0 8px; font-size: var(--size-text-base, 14px); line-height: 1.8; color: var(--el-text-color-placeholder, #a8abb2); display: flex; align-items: center;">
@@ -69,9 +70,18 @@
         </template>
         <template v-else>
           <component :is="EditorContent" :editor="editor" class="message-editor" />
+          <!-- 输入框预测（2026-11-12）：模型根据最近对话预测用户下一条消息，以灰字提示。
+               它只是一个提示：按 Tab 才填进编辑器，填入后是普通可编辑草稿，发不发由用户决定。
+               只在输入框为空且没有正在生成时出现，用户一打字就收起。
+               之所以用覆盖层而不是 Placeholder：Placeholder 的文案是静态的，改它要动扩展实例。 -->
+          <div v-if="showPrediction" class="input-prediction" :aria-label="t('chat.input.suggestAria')">
+            <span class="input-prediction__text" aria-hidden="true">{{ predictionText }}</span>
+            <button type="button" class="input-prediction__kbd" :title="predictionTitle"
+              @mousedown.prevent="acceptPrediction">Tab</button>
+          </div>
           <!-- 命令选择弹窗 -->
           <CommandPicker v-if="commandPickerVisible" ref="commandPickerRef" :visible="commandPickerVisible"
-            :items="pickerItems" :query="pickerQuery" :selected-index="selectedIndex"
+            :items="pickerItems" :query="pickerQuery" :selected-index="selectedIndex" :loading="commandsLoading"
             :trigger="commandTrigger" @select="selectCommand" @close="closeCommandPicker"
             @update:selected-index="selectedIndex = $event" />
         </template>
@@ -87,55 +97,32 @@
           <slot name="buttons"></slot>
           <!-- 左侧工具按钮组 -->
           <template v-if="!props.readonly">
-            <!-- 「+」= 指令栏入口：附件/图片/知识库与「压缩上下文 / 切换模型」等指令同栏。
-                 沿用既有的 CommandPicker（与 / 、@ 同一套 UI 与执行通道），
-                 所以这里只是换一份候选集，不另造第三种弹层。 -->
-            <LTooltip content="指令与附件" placement="top">
-              <button v-if="showButtons.attachmentButton" ref="attachButtonRef" class="tool-btn" aria-label="指令栏：附件与指令" @click.stop="openCommandPickerByButton('plus')">
-                <el-icon size="16">
+            <!-- 「+」= 输入区唯一的入口（用户口径 2026-11-12：指令、附件、MCP 全收进一个面板）。
+                 面板宽度与输入卡整宽对齐；数据在挂载时预取，点开即见，不再 await 网络
+                 （旧实现先拉一次命令列表才显示弹层，这就是「弹出来很慢」的主因）。 -->
+            <LTooltip :content="t('chat.input.plusTooltip')" placement="top">
+              <button ref="plusButtonRef" class="tool-btn" :class="{ 'tool-btn-active': inputMenuVisible }"
+                :aria-label="t('chat.input.plusAria')" :aria-expanded="inputMenuVisible"
+                @click.stop="toggleInputMenu">
+                <el-icon size="16" class="plus-glyph" :class="{ 'is-open': inputMenuVisible }">
                   <Add24Regular />
                 </el-icon>
               </button>
             </LTooltip>
-            <AttachmentPopover v-if="showButtons.attachmentButton" v-model:visible="attachPopoverVisible" :anchor-el="attachButtonRef"
-              :knowledge-bases="knowledgeBases" :selected-kb-ids="props.config?.knowledgeBaseIds || []"
-              :selected-attachments="props.config?.attachments || {}" @select-image="triggerImageInput"
-              @select-file="triggerFileInput" @toggle-kb="toggleKnowledgeBaseSelection"
-              @toggle-attachment="toggleAttachmentSelection" />
 
-            <!-- 技能按钮（图标+tip）。
-                 .skill-btn 只作为「点击外部关闭命令弹层」的判定锚点与窄窗隐藏该入口的钩子保留，
-                 视觉一律由 .tool-btn 提供（原先那份 .skill-btn 规则与 .tool-btn 完全重复，已删） -->
-            <LTooltip v-if="showButtons.skillButton" content="技能" placement="top">
-              <button class="tool-btn skill-btn" aria-label="技能" @click.stop="openCommandPickerByButton('slash')">
-                <el-icon size="16">
-                  <Wrench24Regular />
-                </el-icon>
-              </button>
-            </LTooltip>
-
-            <!-- MCP 选择按钮（仅管理员；图标+tip） -->
-            <LTooltip v-if="admin" content="MCP 工具" placement="top">
-              <button ref="mcpButtonRef" class="tool-btn" aria-label="MCP 工具"
-                :class="{ 'tool-btn-active': mcpSelectedIds.length }"
-                :aria-pressed="!!mcpSelectedIds.length" @click.stop="toggleMcpPopover">
-                <el-icon size="16"><PlugConnected20Regular /></el-icon>
-              </button>
-            </LTooltip>
-            <McpSelectorPopover v-if="admin" v-model:visible="mcpPopoverVisible"
-              :anchor-el="mcpButtonRef" :selected-ids="mcpSelectedIds" @change="handleMcpChange" />
+            <!-- 技能入口不再单列：后端下发的技能挂在同一个面板的「指令」分区里。 -->
           </template>
             <!-- 网页搜索开关（图标+tip） -->
-            <LTooltip content="在线检索" placement="top">
-              <button class="tool-btn" aria-label="在线检索" :class="{ 'tool-btn-active': webSearchEnabled }"
+            <LTooltip :content="t('chat.input.webSearchTooltip')" placement="top">
+              <button class="tool-btn" :aria-label="t('chat.input.webSearchTooltip')" :class="{ 'tool-btn-active': webSearchEnabled }"
                 :aria-pressed="webSearchEnabled" @click.stop="webSearchEnabled = !webSearchEnabled">
                 <el-icon size="16"><GlobeShield20Regular /></el-icon>
               </button>
             </LTooltip>
 
             <!-- 输入优化（图标+tip）：与左组同为纯图标按钮，不再单独挂在右组 -->
-            <LTooltip :content="optimizing ? '优化中…' : '优化输入'" placement="top">
-              <button class="tool-btn" :aria-label="optimizing ? '优化中…' : '优化输入'"
+            <LTooltip :content="optimizing ? t('chat.input.optimizing') : t('chat.input.optimizeInput')" placement="top">
+              <button class="tool-btn" :aria-label="optimizing ? t('chat.input.optimizing') : t('chat.input.optimizeInput')"
                 :disabled="optimizing || !editor?.getText().trim()" @click.stop="handleOptimize">
                 <el-icon size="16" v-if="!optimizing"><Wand20Regular /></el-icon>
                 <el-icon size="16" v-else class="is-loading"><SpinnerIos20Filled /></el-icon>
@@ -171,7 +158,11 @@
               <button ref="modelButtonRef" @click.stop="openModelPanel" class="model-chip__name"
                 :class="{ 'is-open': modelButtonExpanded }" :style="{ width: modelButtonWidth }"
                 :aria-label="t('chat.input.selectModel')">
-                <svg class="model-chip__glyph" viewBox="0 0 16 16" aria-hidden="true">
+                <!-- 模型图标：按「模型自身 → 上游通道 → 聚合供应商」取品牌，
+                     与模型选择器/模型管理卡同一口径；取不到品牌时才落回四角星字形。 -->
+                <ProviderLogo v-if="currentModelBrand" class="model-chip__logo" :pid="currentModelBrand"
+                  :name="currentModelNameOnly" :size="13" />
+                <svg v-else class="model-chip__glyph" viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M8 1c.52 3.36 2.12 4.96 5.48 5.48C10.12 7 8.52 8.6 8 11.96 7.48 8.6 5.88 7 2.52 6.48 5.88 5.96 7.48 4.36 8 1Z"
                     fill="currentColor" />
                 </svg>
@@ -209,15 +200,19 @@
           <RunModePopover v-if="admin" v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
             :current-value="currentRunMode" :options="runModeOptions" @select="handleRunModeChange" />
 
-          <!-- 发送/停止按钮（流式时：无输入=停止，有输入=入队） -->
-          <LTooltip v-if="streaming && !inputContent.trim()" :content="t('chat.input.stopGenerating')" placement="top">
+          <!-- 发送 / 入队 / 停止（2026-11-12）
+               流式中「停止」常驻：动作条与时间线的停止已按需求去掉，若这里只在
+               输入框为空时换成停止，用户一旦往输入框里打了字就没有任何终止入口了。
+               顺序是 [停止][入队/发送]：发送位永远在最右，不会因为停止出现而跳动。 -->
+          <LTooltip v-if="streaming" :content="t('chat.input.stopGenerating')" placement="top">
             <button class="send-btn stop-btn" :aria-label="t('chat.input.stopGenerating')" @click="abortResponse">
               <el-icon size="16">
                 <Stop24Filled />
               </el-icon>
             </button>
           </LTooltip>
-          <LTooltip v-else :content="streaming ? t('chat.input.enqueue') : t('chat.input.send')" placement="top">
+          <LTooltip v-if="!streaming || inputContent.trim()"
+            :content="streaming ? t('chat.input.enqueue') : t('chat.input.send')" placement="top">
             <button class="send-btn" :class="{ 'queue-btn': streaming }"
               :aria-label="streaming ? t('chat.input.enqueue') : t('chat.input.send')" @click="sendMessage"
               :disabled="props.readonly || !inputContent.trim() || !props.config?.modelId">
@@ -228,6 +223,23 @@
           </LTooltip>
         </div>
       </div>
+
+      <!-- 工作间行（用户需求 2026-11-12）：输入卡最底部常驻显示当前工作间。
+           入口与选择器由父级通过 #workspace 插槽传入（ChatPanel 持会话状态），
+           这里只提供位置与分隔线，不再复制一份工作间状态。 -->
+      <div v-if="$slots.workspace" class="input-workspace">
+        <slot name="workspace"></slot>
+      </div>
+
+      <!-- 输入区统一弹层：指令 / 附件 / MCP 收进同一个面板，宽度跟随输入卡整宽。
+           数据在挂载时预取，点开即见（旧实现在点击后才 await 拉列表，表现为「弹出来很慢」）。 -->
+      <InputMenuPanel v-model:visible="inputMenuVisible" :anchor-el="inputAreaRef" :commands="commandsCache.slash"
+        :loading="commandsLoading" :knowledge-bases="knowledgeBases"
+        :selected-kb-ids="props.config?.knowledgeBaseIds || []" :attachment-types="attachmentTypes"
+        :selected-attachments="props.config?.attachments || {}" :show-mcp="admin" :mcp-servers="mcpServers"
+        :mcp-loading="mcpLoading" :mcp-selected-ids="mcpSelectedIds" @select-command="handleMenuCommand"
+        @select-image="triggerImageInput" @select-file="triggerFileInput" @toggle-kb="toggleKnowledgeBaseSelection"
+        @toggle-attachment="toggleAttachmentSelection" @toggle-mcp="toggleMcp" @clear-mcp="handleMcpChange([])" />
 
       <!-- 模型选择器弹窗 -->
       <ModelSelectorPanel v-model:visible="modelPanelVisible" :anchor-el="modelButtonRef" :models="models"
@@ -263,7 +275,6 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import FileItem from '../ui/FileItem.vue';
 import LTooltip from '../ui/LTooltip.vue';
-import AttachmentPopover from './chat-input/AttachmentPopover.vue';
 import MaxTokensPopover from './chat-input/MaxTokensPopover.vue';
 import RunModePopover from './chat-input/RunModePopover.vue';
 import type { PromptForm } from '@/services/modules/character.api';
@@ -275,15 +286,17 @@ import ThinkingEffortPopover from './chat-input/ThinkingEffortPopover.vue';
 import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
 import GoalBar from './GoalBar.vue';
 import AiNextTaskPanel from './AiNextTaskPanel.vue';
-import McpSelectorPopover from './chat-input/McpSelectorPopover.vue';
+import InputMenuPanel from './chat-input/InputMenuPanel.vue';
 import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
 import { getModelThinkingEfforts, getThinkingEffortLabel, getModelDisplayName, getModelContextWindow } from '@/utils/modelUtils';
 import { detectModelProvider } from '@/utils/modelUtils';
+import ProviderLogo from '../models/ProviderLogo.vue';
+import { PROVIDER_ICONS, resolveModelChannelBrand, resolveProviderBrand } from '../models/providerIcons';
 import {
 
   Stop24Filled, BookSearch24Regular, Cloud24Regular,
-  Add24Regular, Wrench24Regular, GlobeShield20Regular, Wand20Regular, PlugConnected20Regular,
+  Add24Regular, GlobeShield20Regular, Wand20Regular,
   // 「优化输入」按钮的加载态：原先写的是 <Loading />，@vicons/fluent 并没有这个导出，
   // 控制台一直报 "Failed to resolve component: Loading"，加载时按钮里是空的。
   SpinnerIos20Filled
@@ -294,6 +307,7 @@ import { useSessionStore } from '@/stores/session';
 import { useGoalStore, formatTokenCounter, DEFAULT_GOAL_TOKEN_BUDGET } from '@/stores/goal';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
+import { mcpApi } from '@/services/javaApi';
 import {isAdmin, message} from '@repo/core';
 import ReDialog from '@repo/ui/re-dialog';
 
@@ -385,20 +399,15 @@ const editor = ref<Editor>();
 const commandPickerVisible = ref(false);
 const pickerQuery = ref('');
 const selectedIndex = ref(0);
-const commandsCache = reactive<{ slash: any[]; mention: any[]; plus: any[] }>({
+const commandsCache = reactive<{ slash: any[]; mention: any[] }>({
   slash: [],
   mention: [],
-  // 「+」指令栏的候选集（附件类入口 + 会话级内置指令 + 后端命令），与 slash 分开存，
-  // 因为它的语义是「这一个按钮能做什么」，而不是「斜杠命令有哪些」
-  plus: [],
 });
 const commandTrigger = ref<'slash' | 'mention'>('slash');
-// 弹层里显示的候选集。plus 是「+」的候选集（附件入口 + 指令 + 同一批后端命令），
-// 与 slash / mention 分开存：它的语义是「这个按钮能做什么」，而不是「斜杠命令有哪些」。
-const pickerItemSet = ref<'slash' | 'mention' | 'plus'>('slash');
-// 弹层是不是由工具条按钮（+ / 技能）打开的。
-// 按钮唤起与在编辑器里敲 / 、@ 有两点行为差异，见 selectCommand 与 onBlur 处的注释。
-const pickerOpenedByButton = ref(false);
+/** 指令候选是否在加载：只用于弹层的「加载中」占位，绝不阻塞弹层打开 */
+const commandsLoading = ref(false);
+/** 在途的触发方式（slash / mention），用于避免同一份列表并发重复请求 */
+const loadingTriggers = new Set<'slash' | 'mention'>();
 const editorContent = ref('');
 
 // 命令选择弹窗 ref
@@ -408,8 +417,14 @@ const commandPickerRef = ref<any>();
 const modelPanelVisible = ref(false)
 const modelButtonExpanded = ref(false)
 const modelButtonWidth = ref<string | undefined>()
-const attachPopoverVisible = ref(false)
-const attachButtonRef = ref<any>(null)
+// 输入区统一弹层（指令 / 附件 / MCP）：锚点是输入卡本身，宽度与卡片对齐
+const inputAreaRef = ref<HTMLElement | null>(null)
+const plusButtonRef = ref<any>(null)
+const inputMenuVisible = ref(false)
+// MCP 数据在挂载时预取；打开面板时只读缓存，不再等接口
+const mcpServers = ref<any[]>([])
+const mcpLoading = ref(false)
+const mcpLoaded = ref(false)
 
 // 常量定义
 const FILE_TYPES: Record<string, { extensions: string[]; type: string }> = {
@@ -451,8 +466,6 @@ const showButtons = reactive({
   tokensButton: true,
   /** 附件/指令栏入口（模型 attachment 能力，缺省显） */
   attachmentButton: true,
-  /** 技能入口（模型 tool_call 能力，缺省显） */
-  skillButton: true,
 });
 
 // 图片预览 URL 字典（与 file 对象解耦）
@@ -716,7 +729,6 @@ watch(() => currentModel.value, (model) => {
   // 必须双向赋值：旧写法只在能力位为 false 时把开关拨到 false、之后再也不拨回来，
   // 于是用户切到某个 attachment=false 的模型后，底部左侧「+」会永久消失（报障 1.1）。
   showButtons.attachmentButton = model?.['attachment'] !== false;
-  showButtons.skillButton = model?.['tool_call'] !== false;
 }, { immediate: true });
 
 /** 「模型 / 思考档位」两段常驻：用户要求底部始终显示 `xxx / yy`，且两段各自可点。
@@ -822,6 +834,40 @@ const currentModelNameOnly = computed(() => {
   // 用户给模型起了别名就优先显示别名（模型管理的别名就是给业务展示用的），
   // 没有别名再回落到去掉命名空间的模型 ID。
   return model.alias || getModelDisplayName(model.modelName);
+});
+
+/**
+ * 模型 chip 的图标品牌 id。
+ *
+ * <p>口径与模型选择器、模型管理卡片一致：先按模型自身的上游通道认（{@link resolveModelChannelBrand}），
+ * 认不出再回落到聚合供应商 —— 用 {@link resolveProviderBrand} 按 base_url 域名 / 名称 / platform 解析
+ * （Agnes 这类渠道 provider 字段为 null，platform 才是 brand）。只有图板里真有该品牌的图标文件时才返回，
+ * 否则留空让模板落回四角星字形 —— 13px 的首字兜底头像在这个尺寸下不可读。</p>
+ */
+const currentModelBrand = computed(() => {
+  const model = currentModel.value;
+  if (!model) return '';
+  // ① 模型自身的上游通道：聚合渠道（FreeChannel / Router Group）下每个模型走不同上游，
+  //    必须按模型行上的 baseUrl / 描述里的地址认，不能一律显示聚合商的 logo。
+  let brand = resolveModelChannelBrand(model);
+  // ② 聚合供应商：按 provider_id 找供应商行，再走模型管理页同一套 resolveProviderBrand
+  //    （域名 → 名称 → platform）解析。
+  //    ⚠ 这里不能写 `p.id === pid`：/api/providers 的行只有 provider_id / providerId，
+  //    没有 id 字段（实测 2026-11-12），恒不命中 → 品牌恒空 → chip 永远落回四角星。
+  //    也不能只取 provider.provider：Agnes 这类渠道 provider 为 null、platform 才是 agnes。
+  if (!brand) {
+    const pid = String(model.providerId || (model as any).provider_id || '');
+    const provider = pid
+      ? providers.value.find((p: any) =>
+        String(p.provider_id || p.providerId || p.id || '') === pid)
+      : undefined;
+    if (provider) {
+      brand = resolveProviderBrand(provider);
+      if (brand === 'custom') brand = '';
+    }
+  }
+  const key = String(brand || '').toLowerCase();
+  return key && PROVIDER_ICONS[key] ? key : '';
 });
 
 const currentThinkingLabel = computed(() => {
@@ -1136,20 +1182,6 @@ const handleFavoriteChanged = (modelId: string, isFavorite: boolean) => {
   if (model) {
     model.isFavorite = isFavorite;
   }
-};
-
-// 附件弹窗切换
-const toggleAttachPopover = async () => {
-  if (attachPopoverVisible.value) {
-    attachPopoverVisible.value = false;
-    return;
-  }
-  try {
-    await loadKnowledgeBases();
-  } catch (error) {
-    console.error('加载附件列表失败:', error);
-  }
-  attachPopoverVisible.value = true;
 };
 
 // 切换知识库选中状态 - 立即同步到父组件
@@ -1483,8 +1515,15 @@ const removeFile = (fileId: number) => {
 };
 
 // UI 交互函数
-const triggerFileInput = () => fileInputRef.value?.click();
-const triggerImageInput = () => imageInputRef.value?.click();
+const triggerFileInput = () => {
+  // 先从面板里收起再打开系统文件框：浮层压在选择框上会挡住「能否多选」的提示
+  inputMenuVisible.value = false;
+  fileInputRef.value?.click();
+};
+const triggerImageInput = () => {
+  inputMenuVisible.value = false;
+  imageInputRef.value?.click();
+};
 
 // 思考等级（合并「深度思考开关」与「推理强度档位」后的单一状态，用户需求 4.2）：
 // thinkingEnabled = 是否思考；localThinkingEffort = 具体档位。两者由同一个「思考等级」入口维护。
@@ -1501,12 +1540,14 @@ const toggleThinkingLevelPopover = () => {
 };
 /** 档位选项：首位固定「不思考」(none)，其后为模型声明的档位；
  *  模型未声明档位但当前会话/角色支持思考时，给整套通用档位（约定俗成的
- *  default + low/medium/high/max），让滑块始终是多档形态，不会只剩两档。 */
+ *  default + low/medium/high/max），让滑块始终是多档形态，不会只剩两档。
+ *  模型声明的档位里可能本来就含 none（后端白名单常见形态），必须去重：
+ *  否则弹层里会出现两行「不思考」（2026-11-12 用户截图实测）。 */
 const thinkingLevelOptions = computed(() => {
   const levels = thinkingEffortOptions.value.length
     ? thinkingEffortOptions.value
     : ['default', 'low', 'medium', 'high', 'max'];
-  return ['none', ...levels];
+  return [...new Set(['none', ...levels])];
 });
 /** 当前值：关闭思考时统一显示为「不思考」 */
 const currentThinkingValue = computed(() => (thinkingEnabled.value ? localThinkingEffort.value : 'none'));
@@ -1535,18 +1576,61 @@ watch([currentModelNameOnly, currentThinkingLabel], () => {
 // 响应式管理员标记：组件可能在角色写入前挂载，挂载时再校正一次，避免登录后按钮缺失
 const admin = ref(isAdmin());
 onMounted(() => { admin.value = isAdmin(); });
-const mcpButtonRef = ref<any>(null);
-const mcpPopoverVisible = ref(false);
 const mcpSelectedIds = computed(() => {
   const v = props.config?.mcpServerIds;
   if (!v) return [];
   return String(v).split(',').map((s) => s.trim()).filter(Boolean);
 });
-function toggleMcpPopover() {
-  mcpPopoverVisible.value = !mcpPopoverVisible.value;
+
+/**
+ * 拉取 MCP 列表（仅管理员）。
+ *
+ * <p>改为挂载时预取后，面板打开只读缓存。失败不弹错误：MCP 是可选能力，
+ * 列表空时面板内已有「暂无可用 MCP」的说明，弹一次错误只会打断输入。</p>
+ */
+async function loadMcpServers() {
+  if (mcpLoading.value) return;
+  mcpLoading.value = true;
+  try {
+    const res = await mcpApi.list();
+    mcpServers.value = Array.isArray(res?.data) ? res.data : [];
+    mcpLoaded.value = true;
+  } catch (error) {
+    console.error('加载 MCP 列表失败:', error);
+    mcpServers.value = [];
+  } finally {
+    mcpLoading.value = false;
+  }
 }
+
+/** 勾选 / 取消一个 MCP：勾一下即写回会话配置，与弹层旧行为一致 */
+function toggleMcp(serverId: string) {
+  const next = new Set(mcpSelectedIds.value);
+  if (next.has(serverId)) next.delete(serverId);
+  else next.add(serverId);
+  handleMcpChange(Array.from(next));
+}
+
 function handleMcpChange(ids: string[]) {
   emit('config-change', { mcpServerIds: ids.join(',') });
+}
+
+/**
+ * 打开 / 关闭输入区统一弹层（指令 / 附件 / MCP）。
+ *
+ * <p>这里同步开面板，不在打开前 await 任何接口：三个分区的数据在 onMounted
+ * 已经预取，面板只读缓存。旧实现先 `await loadPlusCommands()` 再显示，
+ * 冷启动时要等一整个接口往返，用户感知就是「点 + 很久才弹出来」。</p>
+ *
+ * <p>预取失败或还没回来时，缓存为空，面板内部显示「加载中」占位，
+ * 而不是一张空面板。</p>
+ */
+function toggleInputMenu() {
+  inputMenuVisible.value = !inputMenuVisible.value;
+  // 预取失败过（比如登录后角色才写入）时补一次：打开面板是最后一次机会
+  if (inputMenuVisible.value && admin.value && !mcpLoaded.value && !mcpLoading.value) {
+    void loadMcpServers();
+  }
 }
 
 // ========== 选中模型后自动补齐模型参数 ==========
@@ -1712,6 +1796,137 @@ const handleOptimize = async () => {
   }
 };
 
+// ===== 输入框预测（用户需求 2026-11-12）=====
+/**
+ * 模型根据最近对话预测出的「用户下一条消息」。
+ *
+ * <p>它只是一条灰字提示：按 Tab 才填进编辑器（填入后仍是普通草稿），
+ * 绝不自动发送。空字符串表示当前没有可用预测。</p>
+ */
+const predictionText = ref('');
+/** 产出该预测的模型（悬停提示里显示，便于用户知道用的是哪个模型） */
+const predictionModel = ref('');
+
+/**
+ * 每次预测请求的序号。
+ *
+ * <p>切会话、开始生成、用户打字都会让旧响应作废；没有序号时，
+ * 上一次会话的迟到响应会贴到新的输入框里 —— 那是「答非所问」级的事故。</p>
+ */
+let predictionSeq = 0;
+/** 延迟请求的定时器（流式收尾后避让一下再取，避免读到还没落库的消息） */
+let predictionTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** 是否展示预测：输入框为空、不在生成、不在只读/编辑态、有会话 */
+const showPrediction = computed(() =>
+  !!predictionText.value
+  && !props.readonly
+  && !props.editing
+  && !props.streaming
+  && !inputContent.value.trim(),
+);
+
+/** 悬停提示：操作说明 + 实际使用的模型 */
+const predictionTitle = computed(() => {
+  const hint = t('chat.input.suggestHint');
+  return predictionModel.value ? `${hint}（${predictionModel.value}）` : hint;
+});
+
+/**
+ * 当前是否值得请求预测。
+ *
+ * @returns true 表示会话已就绪、输入框为空且没有正在生成
+ */
+const canPredict = () => {
+  const sid = props.sessionId == null ? '' : String(props.sessionId);
+  return !!sid
+    && !props.readonly
+    && !props.editing
+    && !props.streaming
+    && !inputContent.value.trim();
+};
+
+/** 收起预测，并让所有在途请求作废 */
+const clearPrediction = () => {
+  predictionSeq += 1;
+  predictionText.value = '';
+  predictionModel.value = '';
+  if (predictionTimer) {
+    clearTimeout(predictionTimer);
+    predictionTimer = null;
+  }
+};
+
+/**
+ * 请求一次预测。
+ *
+ * <p>失败、未开启、会话没消息时后端给空建议，这里一律按「没有建议」处理：
+ * 预测是辅助能力，不能因为它弹错误或打断输入。</p>
+ */
+const requestPrediction = async () => {
+  if (!canPredict()) {
+    clearPrediction();
+    return;
+  }
+  const sid = String(props.sessionId);
+  const seq = ++predictionSeq;
+  try {
+    const res = await apiService.suggestSessionInput(sid, props.config?.modelId || '');
+    // 迟到响应：会话已切走、用户已开始打字或已经在生成 → 直接丢弃
+    if (seq !== predictionSeq || !canPredict()) return;
+    const text = (res?.suggestion || '').trim();
+    predictionText.value = text;
+    predictionModel.value = text ? (res?.model || '') : '';
+  } catch (error) {
+    if (seq !== predictionSeq) return;
+    predictionText.value = '';
+    predictionModel.value = '';
+    console.debug('[ChatInput] 输入预测不可用:', error);
+  }
+};
+
+/**
+ * 延后请求预测（默认 600ms）。
+ *
+ * @param delay 延迟毫秒数；流式刚结束时给大一点，等消息落库
+ */
+const schedulePrediction = (delay = 600) => {
+  if (predictionTimer) clearTimeout(predictionTimer);
+  predictionTimer = setTimeout(() => {
+    predictionTimer = null;
+    void requestPrediction();
+  }, delay);
+};
+
+/**
+ * 采纳预测：把灰字填进编辑器成为可编辑草稿（不发消息）。
+ *
+ * <p>焦点交还编辑器，光标落在文本末尾，用户可以接着改或按 Enter 发送。</p>
+ */
+const acceptPrediction = () => {
+  const text = predictionText.value;
+  if (!text || !editor.value) return;
+  clearPrediction();
+  editor.value.chain().focus().insertContent(text).run();
+};
+
+// 切会话：旧建议立刻作废，新会话静一会儿再取（避免加载期抢跑）
+watch(() => props.sessionId, () => {
+  clearPrediction();
+  schedulePrediction(400);
+}, { immediate: true });
+
+// 一轮生成结束：消息落库后再预测下一句；开始生成则立刻收起旧建议
+watch(() => props.streaming, (value) => {
+  if (value) {
+    clearPrediction();
+    return;
+  }
+  schedulePrediction(800);
+});
+
+onUnmounted(clearPrediction);
+
 // 从编辑器文档提取发送内容：纯文本（跳过技能徽标，避免 [/skill:...] 序列化文本污染消息）
 // 同时收集显式选中的技能名
 const extractSendContent = (): { text: string; skillNames: string[] } => {
@@ -1786,6 +2001,8 @@ const sendMessage = async () => {
   // 的分支（内容为空、用户选择继续等上传），那些情况下面板该继续留着。
   // 点击建议那条路已由面板自己在 onPick 里销毁，这里多一次信号是无害的。
   suggestionDismissSignal.value += 1;
+  // 已明确发出这一轮：灰字预测跟着作废（下一次生成结束会重新预测）
+  clearPrediction();
 
   // 发送消息(仅包含已上传完成的文件)；content 已剥离技能徽标，skillNames 单独透传
   emit('send', {
@@ -1841,50 +2058,23 @@ const abortResponse = () => {
 
 
 // ==================== 命令选择弹窗（斜杠/艾特） ====================
-const openCommandPicker = async (query: string = '', trigger: 'slash' | 'mention' = 'slash') => {
+/**
+ * 在编辑器里敲 / 、@ 时打开候选弹层。
+ *
+ * <p>不再 await 网络：旧实现先拉完命令列表才把弹层显示出来，冷缓存时
+ * 敲下 / 要等一个接口往返，表现为「弹出来很慢」。现在先用缓存立即显示，
+ * 缓存为空时在后台加载，弹层里显示「加载中」。</p>
+ */
+const openCommandPicker = (query: string = '', trigger: 'slash' | 'mention' = 'slash') => {
   pickerQuery.value = query;
   selectedIndex.value = 0;
   commandTrigger.value = trigger;
-  pickerItemSet.value = trigger;
-  pickerOpenedByButton.value = false;
-  // 按需加载对应触发方式的命令
-  await loadCommands(trigger);
   commandPickerVisible.value = true;
+  if (!commandsCache[trigger].length) void loadCommands(trigger);
 };
 
-/**
- * 由工具条按钮唤起弹层：「+」= 附件入口 + 指令，技能 = 斜杠命令。
- *
- * <p>为什么不另写一套弹层：`/` 已经有带搜索、键盘上下选中的浮层，
- * 再写一个「+ 菜单」就是同一功能的第三种视觉，用户要学两遍。
- *
- * <p>它与在编辑器里敲 / 、@ 只有两点差异，都记在 pickerOpenedByButton 上：
- * 1. 选中条目后不能删「最后一个 / 或 @ 之后的文本」——那是编辑器触发的产物（见 selectCommand）；
- * 2. 编辑器失焦不该关掉它——失焦正是「点了按钮」的副作用（见 onBlur）。
- */
-const openCommandPickerByButton = async (set: 'slash' | 'plus') => {
-  if (commandPickerVisible.value) {
-    closeCommandPicker();
-    return;
-  }
-  pickerQuery.value = '';
-  selectedIndex.value = 0;
-  // CommandPicker 的 trigger 只影响空状态与图标口径，按 slash 走（与技能按钮原行为一致）
-  commandTrigger.value = 'slash';
-  pickerItemSet.value = set;
-  pickerOpenedByButton.value = true;
-  if (set === 'plus') {
-    await loadPlusCommands();
-  } else {
-    await loadCommands('slash');
-  }
-  commandPickerVisible.value = true;
-};
-
-// 弹层渲染的候选集由 pickerItemSet 决定，其余逻辑（过滤、键盘、选中）完全共用
-const pickerItems = computed(() =>
-  pickerItemSet.value === 'plus' ? commandsCache.plus : commandsCache[pickerItemSet.value]
-);
+// 候选集按触发方式取，过滤 / 键盘 / 选中逻辑完全共用
+const pickerItems = computed(() => commandsCache[commandTrigger.value]);
 
 const closeCommandPicker = () => {
   commandPickerVisible.value = false;
@@ -1953,42 +2143,19 @@ const handlePickerKeydown = (e: KeyboardEvent) => {
   }
 };
 
-const selectCommand = (item: any) => {
+/**
+ * 把一条技能 / 工具命令插入编辑器，成为不可编辑的徽标节点。
+ *
+ * <p>只做插入，不关弹层：斜杠弹层与 + 面板的关闭时机不同（前者选中即关，
+ * 后者由调用处决定），关弹层的责任留给调用方。</p>
+ *
+ * @param item 候选条目（providerId / name / label）
+ */
+const insertCommandNode = (item: any) => {
   if (!editor.value) return;
-
-  // 只有 / 、@ 触发的场景才清理「触发字符及其后的查询文本」。
-  // 「+」/技能按钮不是靠编辑器里的触发字符打开的：此时若照删「最后一个 / 或 @ 之后的文本」，
-  // 会把用户正在写的内容误删。
-  if (!pickerOpenedByButton.value) {
-    const { state } = editor.value;
-    const { selection } = state;
-    const { $from } = selection;
-
-    const textBefore = $from.parent.textBetween(0, $from.parentOffset, '\n', '\n');
-    const slashIndex = textBefore.lastIndexOf('/');
-
-    // 删除触发字符（/ 或 @）及其后的查询文本
-    const triggerIndex = textBefore.lastIndexOf('/');
-    const atIndex = textBefore.lastIndexOf('@');
-    const delIndex = Math.max(triggerIndex, atIndex);
-
-    if (delIndex >= 0) {
-      const from = $from.start() + delIndex;
-      const to = $from.pos;
-      editor.value.chain().focus().deleteRange({ from, to }).run();
-    }
-  }
-
-  // 内置命令：执行会话级动作（压缩上下文 / 创建技能 / 新建会话），不插入命令节点
-  if (item && item.builtin) {
-    closeCommandPicker();
-    void runBuiltinCommand(item.builtin);
-    return;
-  }
-
-  const providerId = item.providerId || 'skill';
-  const name = item.name;
-  const label = item.label || item.name;
+  const providerId = item?.providerId || 'skill';
+  const name = item?.name;
+  const label = item?.label || item?.name;
   const trigger = commandTrigger.value === 'mention' ? '@' : '/';
 
   editor.value
@@ -2000,8 +2167,54 @@ const selectCommand = (item: any) => {
     })
     .run();
 
-  closeCommandPicker();
   editorContent.value = editor.value.getText();
+};
+
+/** 斜杠 / 艾特弹层选中：先删掉「触发字符 + 查询串」，再执行内置动作或插入命令节点 */
+const selectCommand = (item: any) => {
+  if (!editor.value) return;
+
+  const { state } = editor.value;
+  const { selection } = state;
+  const { $from } = selection;
+
+  const textBefore = $from.parent.textBetween(0, $from.parentOffset, '\n', '\n');
+
+  // 删除触发字符（/ 或 @）及其后的查询文本
+  const triggerIndex = textBefore.lastIndexOf('/');
+  const atIndex = textBefore.lastIndexOf('@');
+  const delIndex = Math.max(triggerIndex, atIndex);
+
+  if (delIndex >= 0) {
+    const from = $from.start() + delIndex;
+    const to = $from.pos;
+    editor.value.chain().focus().deleteRange({ from, to }).run();
+  }
+
+  // 内置命令：执行会话级动作（压缩上下文 / 创建技能 / 新建会话），不插入命令节点
+  if (item && item.builtin) {
+    closeCommandPicker();
+    void runBuiltinCommand(item.builtin);
+    return;
+  }
+
+  insertCommandNode(item);
+  closeCommandPicker();
+};
+
+/**
+ * 输入区统一弹层里选中一条指令。
+ *
+ * <p>面板不是由编辑器里的 / 或 @ 打开的，因此不能走 selectCommand 的
+ * 「删除触发字符」分支（会误删用户已经写好的内容）。</p>
+ */
+const handleMenuCommand = (item: any) => {
+  inputMenuVisible.value = false;
+  if (item?.builtin) {
+    void runBuiltinCommand(item.builtin);
+    return;
+  }
+  insertCommandNode(item);
 };
 
 // ==================== 命令数据加载（按需 + 缓存） ====================
@@ -2037,86 +2250,15 @@ const BUILTIN_COMMANDS = [
 ];
 
 /**
- * 「+」指令栏里的附件类入口。
- *
- * <p>它们只是把原先散在 AttachmentPopover 里的三个入口提到指令栏里，
- * 具体面板仍然复用 AttachmentPopover / 原生文件选择框，没有第二套实现。
- */
-const ATTACH_COMMANDS = [
-  {
-    name: 'plus-attach-image',
-    label: '上传图片',
-    description: '从本机选择图片添加到本轮消息',
-    builtin: 'attach-image',
-    providerId: 'builtin',
-  },
-  {
-    name: 'plus-attach-file',
-    label: '上传文件',
-    description: '从本机选择文件添加到本轮消息',
-    builtin: 'attach-file',
-    providerId: 'builtin',
-  },
-  {
-    name: 'plus-knowledge-base',
-    label: '知识库 / 附加连接',
-    description: '选择知识库或已接入的附加数据源',
-    builtin: 'knowledge-base',
-    providerId: 'builtin',
-  },
-];
-
-/**
- * 「+」指令栏里不属于 `/` 列表的入口：附件三项 + 切换模型。
- *
- * <p>它们都**不下沉**到 `/` 里 —— `/` 的语义是「技能 / 工具命令」，
- * 混进「上传图片」「切换模型」会让用户以为存在这样一条斜杠命令。
- */
-const PLUS_ONLY_COMMANDS = [
-  ...ATTACH_COMMANDS,
-  {
-    name: 'plus-switch-model',
-    label: '切换模型',
-    description: '打开模型选择面板，为当前会话换一个模型',
-    builtin: 'model',
-    providerId: 'builtin',
-  },
-];
-
-/**
- * 「+」指令栏的固定部分：附件入口在前（用户对「+」的既有预期就是加东西），
- * 会话级指令在后。
- *
- * <p>附件三项与 BUILTIN_COMMANDS 都**不是**复制出来的第二份定义：
- * 后者直接引用同一批对象，所以「压缩上下文」这类指令只维护一处。
- */
-const PLUS_COMMANDS = [...PLUS_ONLY_COMMANDS, ...BUILTIN_COMMANDS];
-
-/**
  * 执行内置命令。
  *
- * @param kind 内置命令类型（compress / create-skill / new-session / attach-image / attach-file / knowledge-base / model）
+ * <p>附件（图片 / 文件 / 知识库 / 附加连接）不再是「内置命令」的分支：
+ * 它们在输入区统一弹层的「附件」分区里直接触发，见 InputMenuPanel 的
+ * select-image / select-file / toggle-attachment 事件。</p>
+ *
+ * @param kind 内置命令类型（compress / create-skill / new-session）
  */
 async function runBuiltinCommand(kind: string): Promise<void> {
-  if (kind === 'attach-image') {
-    triggerImageInput();
-    return;
-  }
-  if (kind === 'attach-file') {
-    triggerFileInput();
-    return;
-  }
-  if (kind === 'knowledge-base') {
-    // 「+」已经不再直接开附件面板，知识库 / 附加连接的入口挪到这里。
-    // 面板锚点仍是「+」本身，视觉位置与改动前一致。
-    if (!attachPopoverVisible.value) await toggleAttachPopover();
-    return;
-  }
-  if (kind === 'model') {
-    // 复用既有的模型选择面板；它自带「没有可用模型」的引导与失败提示
-    await openModelPanel();
-    return;
-  }
   if (kind === 'compress') {
     const sessionId = props.sessionId == null ? '' : String(props.sessionId);
     if (!sessionId) {
@@ -2152,6 +2294,11 @@ async function runBuiltinCommand(kind: string): Promise<void> {
 }
 
 const loadCommands = async (trigger: 'slash' | 'mention') => {
+  // 按触发方式各自记在途状态：挂载预取 slash 时用户立刻敲 @，
+  // 不能因为「有请求在飞」就把 mention 的一次加载整个吞掉（列表会永远空着）。
+  if (loadingTriggers.has(trigger)) return;
+  loadingTriggers.add(trigger);
+  commandsLoading.value = true;
   try {
     const res = await apiService.fetchCommands(trigger, props.characterId || undefined);
     const remote = res.items || [];
@@ -2163,19 +2310,10 @@ const loadCommands = async (trigger: 'slash' | 'mention') => {
     if (trigger === 'slash') {
       commandsCache[trigger] = [...BUILTIN_COMMANDS];
     }
+  } finally {
+    loadingTriggers.delete(trigger);
+    commandsLoading.value = loadingTriggers.size > 0;
   }
-};
-
-/**
- * 「+」指令栏的候选集。
- *
- * <p>后端的技能 / MCP 工具从 `/` 的缓存里取（同一份数据不重复请求），
- * 但要先剥掉内置段再拼，否则「压缩上下文」会在栏里出现两次。
- */
-const loadPlusCommands = async () => {
-  await loadCommands('slash');
-  const remoteOnly = (commandsCache.slash || []).filter((item: any) => !item.builtin);
-  commandsCache.plus = [...PLUS_COMMANDS, ...remoteOnly];
 };
 
 
@@ -2227,17 +2365,12 @@ watch(() => props.buttons, (value) => {
   });
 }, { immediate: true });
 
-// 全局点击事件：点击外部关闭命令弹层
+// 全局点击事件：点击外部关闭斜杠 / 艾特候选弹层。
+// 「+」面板由 CustomPopover 自己处理外部点击与 Esc，不在这里管。
 const handleClickOutside = (e: MouseEvent) => {
   if (commandPickerVisible.value) {
     const pickerEl = commandPickerRef.value?.$el as HTMLElement;
-    const skillBtn = document.querySelector('.skill-btn') as HTMLElement;
-    // 「+」和技能按钮都能唤起弹层：点它们不算「点外部」，
-    // 否则弹层会在按钮的 click 处理之前被关掉（表现为点一下没反应）
-    const attachBtn = attachButtonRef.value as HTMLElement | null;
-    if (pickerEl && !pickerEl.contains(e.target as Node) &&
-        skillBtn && !skillBtn.contains(e.target as Node) &&
-        attachBtn && !attachBtn.contains(e.target as Node)) {
+    if (pickerEl && !pickerEl.contains(e.target as Node)) {
       closeCommandPicker();
     }
   }
@@ -2253,6 +2386,14 @@ onMounted(() => {
   loadPromptForms(); // 形态列表来自角色配置，决定徽标文案/图标与切换浮层的选项
   initThinkingEffort(); // 初始化思考强度
   document.addEventListener('click', handleClickOutside);
+
+  // 输入区统一弹层的数据预取（用户需求 2026-11-12「弹出来很慢」）：
+  // 指令 / 知识库 / 附加连接 / MCP 四个列表都在挂载后异步拉一次，打开面板时直接读缓存。
+  // 用 void 而不是 await：预取失败不能影响编辑器初始化。
+  void loadCommands('slash');
+  void loadKnowledgeBases();
+  void loadAttachmentTypes();
+  if (admin.value) void loadMcpServers();
 
   // 初始化 Tiptap 编辑器
   try {
@@ -2275,6 +2416,20 @@ onMounted(() => {
           if (commandPickerVisible.value) {
             if (['ArrowUp', 'ArrowDown', 'Enter', 'Escape'].includes(event.key)) {
               handlePickerKeydown(event);
+              return true;
+            }
+          }
+          // 输入预测：Tab 采纳成可编辑草稿，Escape 收起。
+          // 放在「/ 弹层」之后：弹层可见时它的 Esc 是关弹层，不能先被这里吃掉。
+          if (predictionText.value && !event.altKey && !event.ctrlKey && !event.metaKey) {
+            if (event.key === 'Tab' && !event.shiftKey) {
+              event.preventDefault();
+              acceptPrediction();
+              return true;
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              clearPrediction();
               return true;
             }
           }
@@ -2303,6 +2458,10 @@ onMounted(() => {
       },
       onUpdate: ({ editor: ed }) => {
         editorContent.value = ed.getText();
+        // 用户一开始打字，预测就作废：灰字与草稿并排会让人分不清哪句是自己写的
+        if (editorContent.value.trim() && predictionText.value) {
+          clearPrediction();
+        }
         checkCommandTrigger();
         nextTick(() => {
           const pmEl = document.querySelector('.message-editor .ProseMirror') as HTMLElement | null;
@@ -2319,16 +2478,16 @@ onMounted(() => {
       onFocus: () => {
         focused.value = true;
         emit('focus');
+        // 焦点回到编辑区 = 用户开始写东西了，统一弹层应当收起
+        inputMenuVisible.value = false;
       },
       onBlur: () => {
         focused.value = false;
         emit('blur');
         // 编辑器失焦后要收起 `/` 弹层，否则它会一直挂在输入框上方。
-        // 但按钮唤起的弹层不能在这里收：点「+」/技能本身就会让编辑器失焦，
-        // 200ms 后这次「失焦」会把刚打开的弹层关掉，表现为「点一下闪一下就没了」。
-        // 按钮唤起的弹层统一交给 handleClickOutside 关。
+        // 统一弹层（+）不在这里收：点「+」本身就会让编辑器失焦，
+        // 交给 CustomPopover 的点击外部关闭与 Esc。
         setTimeout(() => {
-          if (pickerOpenedByButton.value) return;
           if (!document.querySelector('.command-picker:hover')) {
             closeCommandPicker();
           }
@@ -2544,6 +2703,57 @@ html.dark .input-area--continues-banner {
   height: 0;
 }
 
+/* 输入框预测：灰字提示盖在空编辑器的第一行上。
+   与正文同字号/行高，位置对齐 ProseMirror 的 4px 内边距；
+   此时 Placeholder 文案必须让位，否则两段灰字会叠在一起。 */
+.editor-container.has-prediction :deep(.message-editor .ProseMirror p.is-editor-empty:first-child::before) {
+  content: none;
+}
+
+.input-prediction {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--size-text-base, 14px);
+  line-height: 1.55;
+  /* 整块不接管指针：点空白处仍是要把光标放进编辑器，只有 Tab 小键可点 */
+  pointer-events: none;
+}
+
+.input-prediction__text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--el-text-color-secondary);
+}
+
+.input-prediction__kbd {
+  flex: none;
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 1px 6px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.6;
+  transition: color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.input-prediction__kbd:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
 /* 编辑器容器 */
 .editor-container {
   position: relative;
@@ -2603,7 +2813,11 @@ html.dark .input-area--continues-banner {
   display: flex;
   align-items: center;
   gap: 4px;
-  /* 极窄窗兜底：组内按钮也允许换行（正常宽度下不会触发） */
+  /* 2026-11-12：左组不参与收缩。它全是 28px 图标按钮，收缩只会让按钮在本行内部
+     折行、把整行撑高；空间不足时应当由右组的模型名/档位文案先截断（见 .right-actions）。
+     极端窄窗（左组 + 右组 min-content 仍放不下）由 .input-actions 整组换行兜底。 */
+  flex-shrink: 0;
+  /* 保留组内换行：若将来某条规则重新放开收缩，按钮在这里折行而不是溢出容器 */
   flex-wrap: wrap;
   row-gap: 4px;
 }
@@ -2619,6 +2833,13 @@ html.dark .input-area--continues-banner {
   /* 配合 .input-actions 的换行：单行时贴右，窄窗换行后仍贴右（space-between
      在换行后的单子项行会退化为靠左） */
   margin-left: auto;
+  /* 2026-11-12：右组整体可压缩。之前它是不收缩项，宽度不够时只能整组换行，
+     于是「发送」孤零零掉到第二行。现在先让组内的模型名截断、档位文案截断，
+     直到组内 min-content 才换行（见 .model-chip__name / .model-chip__effort）。
+     这里**不能**加 min-width: 0：那会把 flex 的自动最小尺寸（min-content）也抹掉，
+     组被压到比内容还窄时，发送按钮会溢出到输入行右边界之外。 */
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
 }
 
 .right-tools {
@@ -2680,6 +2901,34 @@ html.dark .input-area--continues-banner {
   color: var(--el-color-primary) !important;
 }
 
+/* 「+」展开态：图标转 45° 变成「×」，给一个「再点一下收起」的视觉暗示。
+   只转图标不转按钮：按钮底是圆角方块，转起来会跟着歪。 */
+.plus-glyph {
+  transition: transform 0.18s ease;
+}
+
+.plus-glyph.is-open {
+  transform: rotate(45deg);
+}
+
+/* ===== 工作间行（输入卡最底部）=====
+   常驻一行，左边是当前工作间按钮（ChatPanel 通过 #workspace 插槽传入），
+   上面一条极淡分隔线与输入工具条分层。 */
+.input-workspace {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--border-default, var(--el-border-color-lighter)) 70%, transparent);
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plus-glyph {
+    transition: none;
+  }
+}
+
 /* ===== 目标按钮（靶心 + 已用/预算）=====
    颜色与目标条同源：进行中主色、已暂停警示色、已完成成功色；
    计数器始终是低对比灰，只有数字本身要读。 */
@@ -2723,9 +2972,19 @@ html.dark .input-area--continues-banner {
 .model-chip {
   display: flex;
   align-items: center;
-  min-width: 0;
+  /* 可压缩：宽度不够时先让模型名截断，而不是把整组挤到第二行。
+     最小尺寸保留 flex 的默认值（min-content ≈ 图标 + padding），不要写成 0，
+     否则 chip 被压到比图标还窄时，按钮会溢出到形态徽标上。 */
+  flex: 0 1 auto;
   border-radius: var(--radius-md, 8px);
   transition: background-color 0.16s ease;
+}
+
+/* LTooltip 的触发容器是模型名/档位按钮的 flex 父级。它默认 min-width: auto
+   （= min-content），会把按钮的固定宽度「撑住」，上面设定的收缩就传不进去。 */
+.model-chip > .l-tooltip__trigger {
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .model-chip:hover {
@@ -2742,6 +3001,8 @@ html.dark .input-area--continues-banner {
   gap: 6px;
   height: 28px;
   min-width: 0;
+  /* 有空间时不抢宽（不 grow），没空间时先于整组换行收缩 */
+  flex: 0 1 auto;
   max-width: 260px;
   padding: 0 3px 0 8px;
   border: none;
@@ -2767,6 +3028,17 @@ html.dark .input-area--continues-banner {
   color: var(--text-secondary, var(--color-text-gray));
 }
 
+/* 模型 chip 左侧品牌图标：与四角星字形同尺寸，不参与压缩 */
+.model-chip__logo {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
 .model-chip__text {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2785,6 +3057,8 @@ html.dark .input-area--continues-banner {
 .model-chip__effort {
   height: 28px;
   max-width: 120px;
+  min-width: 0;
+  flex: 0 1 auto;
   padding: 0 8px 0 3px;
   border: none;
   background: transparent;
@@ -2814,6 +3088,8 @@ html.dark .input-area--continues-banner {
   align-items: center;
   gap: 6px;
   height: 28px;
+  /* 形态是右组的语义锚点，不参与收缩：窄窗时先收模型名与档位文案 */
+  flex-shrink: 0;
   padding: 0 8px;
   border: none;
   border-radius: var(--radius-md, 8px);
@@ -2949,13 +3225,6 @@ html.dark .input-area--continues-banner {
   color: var(--el-text-color-primary);
 }
 
-/* 响应式：更窄窗口把技能入口收敛回「+」菜单（沿用原有窄窗策略） */
-@media (max-width: 900px) {
-  .skill-btn {
-    display: none !important;
-  }
-}
-
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
   :deep(.message-editor .ProseMirror),
@@ -2965,4 +3234,14 @@ html.dark .input-area--continues-banner {
     transition: none;
   }
 }
+
+/* 窄宽度下的收缩顺序（2026-11-12）
+   目标：发送按钮永远留在第一行。链路上的可收缩项只有模型名与思考档位文案
+   （.model-chip__name / .model-chip__effort，均 min-width: 0 且文本 ellipsis），
+   形态徽标与发送按钮 flex-shrink: 0 不参与。空间仍然不够时，.right-actions 收缩到
+   自己的 min-content 后由 .input-actions 的 flex-wrap 整组换行（极端宽度兜底）。
+
+   这里刻意不用容器查询：.input-actions 一旦设 container-type，就会给它加上 layout
+   containment，成为 fixed 后代的包含块，而 McpSelectorPopover / WorkspaceSelectorPopover
+   等是就地渲染（无 Teleport）并按 getBoundingClientRect 算视口坐标的，弹层会整体错位。 */
 </style>

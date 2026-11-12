@@ -198,6 +198,27 @@
     minimum: 'Minimum',
   },
 
+  /**
+   * Primary (canonical English) thinking effort labels.
+   *
+   * <p>Effort names are the parameter values of every vendor SDK, so the level
+   * popover shows them in English as the main label and the localized name as
+   * the subtitle. When the interface language is English the subtitle is
+   * identical and is not rendered at all.</p>
+   */
+  thinkingEffortLabel: {
+    default: 'Default',
+    none: 'None',
+    on: 'On',
+    low: 'Low',
+    medium: 'Medium',
+    high: 'High',
+    max: 'Max',
+    xhigh: 'Max',
+    minimal: 'Minimal',
+    minimum: 'Minimum',
+  },
+
   // ── Context size filter (shared tags for the model selector card & model management) ──
   contextSize: {
     title: 'Context',

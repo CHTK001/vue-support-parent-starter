@@ -3,3 +3,5 @@
  */
 export { createVite } from "./createVite.ts";
 export type { CreateViteOptions } from "./createVite.ts";
+export { servePagePublic } from "./servePagePublic.ts";
+export type { PagePublicMounts } from "./servePagePublic.ts";

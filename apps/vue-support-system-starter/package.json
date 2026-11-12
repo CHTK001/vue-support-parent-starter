@@ -20,6 +20,7 @@
     "@pages/hotsport": "workspace:*",
     "@pages/job": "workspace:*",
     "@pages/system": "workspace:*",
+    "@pages/tenant": "workspace:*",
     "@pages/task": "workspace:*",
     "@repo/app": "workspace:*",
     "@repo/assets": "workspace:*",

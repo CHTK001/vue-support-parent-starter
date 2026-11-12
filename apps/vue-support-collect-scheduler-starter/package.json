@@ -24,7 +24,8 @@
     "@repo/pinia": "workspace:*",
     "@pages/collect": "workspace:*",
     "@pages/datasource": "workspace:*",
-    "@pages/job": "workspace:*"
+    "@pages/job": "workspace:*",
+    "@pages/osgi": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

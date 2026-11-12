@@ -14,7 +14,6 @@ import "./styles/system-page.css";
 // 后端菜单 component → 本地页面（懒加载，仅访问时 import）
 registerMenuViewModules({
   "views/system/user/index.vue": () => import("./views/UserManage.vue"),
-  "views/system/tenant/index.vue": () => import("./views/TenantManage.vue"),
   "views/system/role/index.vue": () => import("./views/RoleManage.vue"),
   "views/system/menu/index.vue": () => import("./views/MenuManage.vue"),
   "views/system/dept/index.vue": () => import("./views/DeptManage.vue"),

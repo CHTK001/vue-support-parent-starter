@@ -4222,9 +4222,29 @@ function onDragOver(event: DragEvent): void {
 
 function onDrop(index: number): void {
   if (dragIndex.value === -1 || dragIndex.value === index) return;
+  const visible = filteredColumnsForSettings.value;
+  const from = visible[dragIndex.value];
+  const to = visible[index];
+  // 与箭头移动共用同一套边界规则：过滤列表下标不能直接当完整 order 下标，
+  // 且固定列不能被拖到另一侧（渲染时仍会贴边，看起来像拖拽无效）。
+  if (!from?.prop || !to?.prop || columnFixedSide(from) !== columnFixedSide(to)) {
+    dragIndex.value = -1;
+    return;
+  }
   const list = [...columnState.value.order];
-  const [moved] = list.splice(dragIndex.value, 1);
-  list.splice(index, 0, moved);
+  const fromIndex = list.indexOf(from.prop);
+  if (fromIndex < 0) {
+    dragIndex.value = -1;
+    return;
+  }
+  const [moved] = list.splice(fromIndex, 1);
+  const targetIndex = list.indexOf(to.prop);
+  if (targetIndex < 0) {
+    dragIndex.value = -1;
+    return;
+  }
+  // 向下拖放到目标之后，向上拖放到目标之前，符合列表拖拽的直观结果。
+  list.splice(dragIndex.value < index ? targetIndex + 1 : targetIndex, 0, moved);
   columnState.value = { ...columnState.value, order: list };
   dragIndex.value = -1;
   saveColumnState();
@@ -4234,11 +4254,42 @@ function onDragEnd(): void {
   dragIndex.value = -1;
 }
 
-function moveColumn(index: number, delta: number): void {
-  const list = [...columnState.value.order];
+function columnFixedSide(col: ReTableColumn | undefined): "left" | "right" | "" {
+  if (!col) return "";
+  if (col.fixed === true || col.fixed === "left") return "left";
+  return col.fixed === "right" ? "right" : "";
+}
+
+/**
+ * 解析一次列设置箭头移动：按当前可见列表定位，再映射回完整列顺序。
+ *
+ * <p>搜索过滤时 idx 属于 filteredColumnsForSettings，不能直接当 columnState.order
+ * 的下标；同时固定列在渲染时始终贴边，跨固定侧移动会让箭头可点但表头不变。
+ * 这里统一返回 null 表示不可移动，模板据此禁用箭头。</p>
+ */
+function resolveColumnMove(index: number, delta: number): { fromProp: string; toProp: string; fromIndex: number; toIndex: number } | null {
+  const visible = filteredColumnsForSettings.value;
   const target = index + delta;
-  if (target < 0 || target >= list.length) return;
-  [list[index], list[target]] = [list[target], list[index]];
+  if (target < 0 || target >= visible.length) return null;
+  const from = visible[index];
+  const to = visible[target];
+  if (!from?.prop || !to?.prop || columnFixedSide(from) !== columnFixedSide(to)) return null;
+  const order = columnState.value.order;
+  const fromIndex = order.indexOf(from.prop);
+  const toIndex = order.indexOf(to.prop);
+  if (fromIndex < 0 || toIndex < 0) return null;
+  return { fromProp: from.prop, toProp: to.prop, fromIndex, toIndex };
+}
+
+function canMoveColumn(index: number, delta: number): boolean {
+  return resolveColumnMove(index, delta) !== null;
+}
+
+function moveColumn(index: number, delta: number): void {
+  const move = resolveColumnMove(index, delta);
+  if (!move) return;
+  const list = [...columnState.value.order];
+  [list[move.fromIndex], list[move.toIndex]] = [list[move.toIndex], list[move.fromIndex]];
   columnState.value = { ...columnState.value, order: list };
   saveColumnState();
 }
@@ -7471,8 +7522,8 @@ const iconSelect = Select;
                         {{ col.label }}
                       </ElCheckbox>
                       <span class="re-table__columns-actions">
-                        <ElButton link :size="elementTableSize" :disabled="idx === 0" @click="moveColumn(idx, -1)">↑</ElButton>
-                        <ElButton link :size="elementTableSize" :disabled="idx === filteredColumnsForSettings.length - 1" @click="moveColumn(idx, 1)">↓</ElButton>
+                        <ElButton link :size="elementTableSize" :disabled="!canMoveColumn(idx, -1)" @click="moveColumn(idx, -1)">↑</ElButton>
+                        <ElButton link :size="elementTableSize" :disabled="!canMoveColumn(idx, 1)" @click="moveColumn(idx, 1)">↓</ElButton>
                       </span>
                     </li>
                   </ul>
@@ -7654,6 +7705,22 @@ const iconSelect = Select;
 </template>
 
 <style>
+/* ============ vxe-pc-ui 主题变量补齐 ============
+   本组件只 import 了 `vxe-table/lib/style.css` 和 tooltip 单模块样式
+   （`vxe-pc-ui/es/tooltip/style.css`）。tooltip 的深色主题用的是
+   --vxe-ui-tooltip-dark-background-color / --vxe-ui-tooltip-dark-color，
+   而这两个变量只在 `vxe-pc-ui/es/style.css` 里定义 —— 没引整包时
+   `background: var(...)` 变成无效值，面板就退化成「透明底 + 继承黑字」，
+   暗色主题下基本读不出内容（定位是对的，只是看不见）。
+
+   这里只补 tooltip 实际用到的三个变量，取值与 vxe-pc-ui 默认主题一致；
+   不引整包 429KB 的样式，也不改 vxe 的其它视觉。 */
+:root {
+  --vxe-ui-tooltip-dark-background-color: #303133;
+  --vxe-ui-tooltip-dark-color: #fff;
+  --vxe-ui-base-border-radius: 4px;
+}
+
 /* 根容器：圆角 + 内边距（组件与容器边缘的边距，可用 --rt-padding 调整）
    1px 描边是卡片边界的兜底表达：暗色下投影几乎不可见，靠这条线维持边界。
    overflow: hidden 收口表格内部的浮层（vxe 固定列、空态）溢出；

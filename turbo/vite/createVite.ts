@@ -68,6 +68,7 @@ const REPO_ALIAS: Record<string, string> = {
   "@pages/job": "pages/job/src",
   "@pages/hotsport": "pages/hotsport/src",
   "@pages/system": "pages/system/src",
+  "@pages/tenant": "pages/tenant/src",
   "@pages/actuator": "pages/actuator/src",
   "@pages/message": "pages/message/src",
   "@pages/tunnel": "pages/tunnel/src",

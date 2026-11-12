@@ -2,9 +2,9 @@
   <!--
     用量管理 —— 构成优先的总览页
 
-    <p>首屏回答的是「钱和 Token 到底堆在哪些模型上」：左侧是一块模型构成
-    treemap（面积即用量），右侧是四张核心读数格；实时状态与今日/区间增量
-    收进构成卡的页脚，不再单独占一块首屏版面。</p>
+    <p>首屏只有一件事：钱和 Token 堆在哪些模型上。模型构成 treemap 通栏铺满
+    （面积即用量），读数压成一条五格横带跟在下面；实时状态与今日/区间增量
+    收进构成卡的页脚。</p>
 
     <p>往下依次是模型/分组分布、Token 趋势、每日模型用量、模型延迟、
     模型与应用 Top5、完整用量明细，导出与刷新在顶栏。</p>
@@ -129,12 +129,24 @@
         </header>
 
         <div class="usage-compo__chart">
-          <ReEcharts v-if="treemapData.length" :option="treemapOption" height="320px" notMerge />
+          <ReEcharts
+            v-if="board.treemapBlocks.blocks.length"
+            :option="treemapOption"
+            height="420px"
+            notMerge
+            @click="board.onTreemapClick"
+            @mouseover="board.onTreemapHover"
+            @mouseout="board.onTreemapOut"
+            @globalout="board.onTreemapOut"
+          />
           <div v-else class="usage-empty"><el-empty description="暂无模型用量" :image-size="56" /></div>
         </div>
 
         <footer class="usage-compo__foot">
-          <span>共 {{ treemapData.length }} 个模型 · {{ board.modelChartType === 'token' ? '按 Token 面积' : '按费用面积' }}</span>
+          <span>共 {{ board.treemapBlocks.total }} 个模型 · {{ board.modelChartType === 'token' ? '按 Token 面积' : '按费用面积' }}</span>
+          <span v-if="board.treemapBlocks.blocks.length > 10" class="usage-compo__more">
+            · <a class="usage-link usage-link--more" @click="board.onTreemapMore">查看所有模型</a>
+          </span>
           <span class="usage-compo__live">
             <i class="usage-compo__dot" :class="`is-${board.liveState}`" />
             今日 {{ board.fmtToken(board.liveTodayTokens) }}
@@ -368,7 +380,7 @@
         </div>
       </header>
       <div class="usage-panel__chart">
-        <ReEcharts v-if="board.trendData.length" :option="board.trendOption" height="288px" notMerge />
+        <ReEcharts v-if="board.trendData.length" :option="board.trendOption" height="340px" notMerge />
         <div v-else class="usage-empty"><el-empty description="暂无趋势数据" :image-size="56" /></div>
       </div>
     </article>
@@ -406,7 +418,7 @@
         <header class="usage-panel__head">
           <div>
             <h2 class="usage-panel__title">模型延迟</h2>
-            <p class="usage-panel__desc">首字延迟，跨模型可比</p>
+            <p class="usage-panel__desc">首字延迟 + 平均 tok/s，跨模型可比</p>
           </div>
         </header>
         <div class="usage-panel__chart">
@@ -502,6 +514,106 @@
     <div class="usage-detail">
       <UsageDetailTable :board="board" />
     </div>
+
+    <!-- treemap click detail dialog: node level for natural blocks, member list for aggregate blocks (6.1) -->
+    <ReDialog
+      v-model="board.treemapDetailVisible"
+      :title="board.treemapSelected?.name"
+      :width="420"
+      :close-on-click-modal="false"
+      @closed="board.closeTreemapDialog()"
+    >
+      <div v-if="board.treemapSelected" class="usage-treemap-detail">
+        <div class="usage-treemap-detail__head">
+          <span class="usage-treemap-detail__name" :title="board.treemapSelected.name">
+            {{ board.treemapSelected.name }}
+          </span>
+          <span class="usage-treemap-detail__pct">{{ board.treemapSelected.pct.toFixed(1) }}%</span>
+        </div>
+        <div class="usage-treemap-detail__metrics">
+          <div class="usage-treemap-detail__metric">
+            <div class="usage-treemap-detail__metric-label">请求</div>
+            <div class="usage-treemap-detail__metric-value">{{ board.formatNumber(board.treemapSelected.requests) }}</div>
+          </div>
+          <div class="usage-treemap-detail__metric">
+            <div class="usage-treemap-detail__metric-label">输入词数</div>
+            <div class="usage-treemap-detail__metric-value">{{ board.fmtToken(board.treemapSelected.promptTokens) }}</div>
+          </div>
+          <div class="usage-treemap-detail__metric">
+            <div class="usage-treemap-detail__metric-label">输出词数</div>
+            <div class="usage-treemap-detail__metric-value">{{ board.fmtToken(board.treemapSelected.completionTokens) }}</div>
+          </div>
+          <div class="usage-treemap-detail__metric">
+            <div class="usage-treemap-detail__metric-label">词数总计</div>
+            <div class="usage-treemap-detail__metric-value">{{ board.fmtToken(board.treemapSelected.totalTokens) }}</div>
+          </div>
+        </div>
+        <div class="usage-treemap-detail__cost">
+          <span class="usage-treemap-detail__cost-label">当前口径费用</span>
+          <span class="usage-treemap-detail__cost-value">{{ board.money(board.treemapSelected.cost) }}</span>
+        </div>
+        <div v-if="board.treemapSelected.members" class="usage-treemap-detail__members">
+          <div class="usage-treemap-detail__members-title">
+            该块由其包的 {{ board.treemapSelected.members.length }} 个模型组成
+          </div>
+          <div v-for="m in board.treemapSelected.members" :key="m.name" class="usage-treemap-detail__member">
+            <span class="usage-treemap-detail__member-name" :title="m.name">{{ m.name }}</span>
+            <div class="usage-treemap-detail__member-stats">
+              <span>{{ board.modelChartType === 'token' ? board.fmtToken(m.value) : `${board.currencySymbol}${board.money(m.value)}` }}</span>
+              <span>{{ m.pct.toFixed(1) }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="board.closeTreemapDialog()">关</el-button>
+      </template>
+    </ReDialog>
+
+    <!-- all-models list dialog (6.3 expand) -->
+    <ReDialog
+      v-model="board.treemapMoreVisible"
+      title="全部模型"
+      :width="760"
+      :close-on-click-modal="false"
+      @closed="board.treemapMoreVisible = false"
+    >
+      <div v-if="board.modelBoard.items.length" class="usage-treemap-all">
+        <table class="usage-treemap-all__table">
+          <thead>
+            <tr>
+              <th class="usage-treemap-all__name">模型</th>
+              <th class="usage-treemap-all__num">当前口径</th>
+              <th class="usage-treemap-all__num">占比</th>
+              <th class="usage-treemap-all__num">请求</th>
+              <th class="usage-treemap-all__num">词数</th>
+              <th class="usage-treemap-all__num">费用</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in board.modelBoard.items" :key="r.name">
+              <td class="usage-treemap-all__name">
+                <i class="usage-treemap-all__dot" :style="{ background: board.boardColorOf(board.modelBoard, r.name) }" />
+                <span class="usage-treemap-all__name-text" :title="r.name">{{ r.name }}</span>
+              </td>
+              <td class="usage-treemap-all__num">
+                {{ board.modelChartType === 'token' ? board.fmtToken(r.row.totalTokens) : `${board.currencySymbol}${board.money(r.row.cost)}` }}
+              </td>
+              <td class="usage-treemap-all__num">
+                <i class="usage-pct__track"><i class="usage-pct__fill" :style="pctStyle(r.row)" /></i>{{ board.percent(r.row, board.modelDist, board.modelChartType) }}
+              </td>
+              <td class="usage-treemap-all__num">{{ board.formatNumber(r.row.requests) }}</td>
+              <td class="usage-treemap-all__num">{{ board.fmtToken(r.row.totalTokens) }}</td>
+              <td class="usage-treemap-all__num">{{ board.money(r.row.cost) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-else class="usage-treemap-all--empty"><el-empty description="暂无模型数据" :image-size="56" /></div>
+      <template #footer>
+        <el-button @click="board.treemapMoreVisible = false">关</el-button>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -519,32 +631,25 @@
 import { computed, reactive } from 'vue'
 import type { EChartsOption } from 'echarts'
 import ReEcharts from '@repo/ui/re-echarts'
+import ReDialog from '@repo/ui/re-dialog'
 import ReTable from '@/components/ui/ReTable.vue'
 import { useUsageBoard } from '@/composables/useUsageBoard'
 import UsageDetailTable from './UsageDetailTable.vue'
 
 const board = reactive(useUsageBoard())
 
-/** 有效面积切片：0 值模型不进入 treemap（否则会生成不可见的碎块） */
-const treemapData = computed(() =>
-  board.modelBoard.items
-    .filter((it) => Number(it.value) > 0)
-    .map((it) => ({
-      name: it.name,
-      value: Number(it.value),
-      pct: Number(it.pct),
-      color: it.color,
-    })),
-)
-
 /**
  * 模型构成面积图。
  *
  * <p>只画一层：模型 = 面积。标签只在占比 ≥ 3% 的块上出现；切换口径时颜色沿用
- * 看板调色板，和下方表格的色点一致，不会跳色。</p>
+ * 看板调色板，和下方表格的色点一致，不会跳色。
+ *
+ * <p>§6.5 悬停压暗：echarts 5.6 的 `focus: 'dim'` 对 treemap 不存在，所以手动把
+ * 非悬停的块压到 0.4 半透明，悬停块全亮；鼠标离开整张图后恢复（§6.1 重点击弹窗）。</p>
  */
 const treemapOption = computed<EChartsOption>(() => {
-  const total = treemapData.value.reduce((s, it) => s + it.value, 0)
+  const blocks = board.treemapBlocks.blocks
+  const hovered = board.treemapHover
   const metricText = (v: number) =>
     board.modelChartType === 'token' ? board.fmtToken(v) : `${board.currencySymbol}${board.money(v)}`
   return {
@@ -557,8 +662,9 @@ const treemapOption = computed<EChartsOption>(() => {
       textStyle: { color: '#1D2129', fontSize: 12 },
       extraCssText: 'box-shadow:0 6px 20px rgba(15,23,42,.12);border-radius:8px;padding:8px 10px;',
       formatter: (p: any) => {
+        const total = blocks.reduce((s, b) => s + Number(b.value), 0)
         const pct = total > 0 ? (Number(p.value) / total) * 100 : 0
-        return `<span style="font-weight:600">${p.name}</span><br/><b>${metricText(Number(p.value))}</b>&nbsp;&nbsp;<span style="color:#86909C">${pct.toFixed(1)}%</span>`
+        return `<span style="font-weight:600">${p.name}</span><br/><b>${metricText(p.value)}</b>&nbsp;&nbsp;<span style="color:#86909C">${pct.toFixed(1)}%</span>`
       },
     },
     series: [
@@ -573,7 +679,7 @@ const treemapOption = computed<EChartsOption>(() => {
         bottom: 0,
         width: '100%',
         height: '100%',
-        // 只画 Top 8 + 其余聚成的「其他」：块少了名字才看得清，不和空块挤在一起
+        // 只画前 10 个：模型多了名字挤在一起看不清，最多的那块灰区聚剩余全部模型
         itemStyle: {
           borderColor: 'rgba(255,255,255,0.22)',
           borderWidth: 1,
@@ -608,10 +714,14 @@ const treemapOption = computed<EChartsOption>(() => {
           },
         },
         upperLabel: { show: false },
-        data: board.modelBoard.slices.map((it) => ({
-          name: it.name,
-          value: Number(it.value.toFixed(4)),
-          itemStyle: { color: it.color },
+        data: blocks.map((b) => ({
+          name: b.name,
+          value: b.value,
+          // 手动压暗：悬停的块全亮，其余块降透明（§6.5）
+          itemStyle: {
+            color: b.color,
+            opacity: hovered == null || hovered === b.name ? 1 : 0.4,
+          },
         })),
       },
     ],
@@ -709,13 +819,21 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
     },
   ]
 })
+
+/** 占比条：宽度 + 颜色的单一 style 对象（供「全部模型」列表里的占比格复用） */
+function pctStyle(r: any) {
+  return {
+    width: board.barWidth(board.percentNum(r, board.modelBoard.items, board.modelChartType)),
+    background: board.boardColorOf(board.modelBoard, r.name),
+  }
+}
 </script>
 
 <style scoped>
 /* ============================================================================
    用量管理 —— 视觉体系
    基调：沿用控制台既有的令牌与字号，只重排信息主次：
-   首屏左侧是模型构成 treemap（面积 = 用量），右侧 2×2 读数格，
+   首屏是通栏的模型构成 treemap（面积 = 用量），读数压成一条五格横带，
    其余图表退为支撑；实时读数收进构成卡页脚。
    记忆点：模型构成的面积图。
    ============================================================================ */
@@ -727,8 +845,8 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
   scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px 20px 28px;
+  gap: 18px;
+  padding: 20px 24px 34px;
   background: var(--el-bg-color-page, var(--u-page));
 }
 
@@ -753,12 +871,22 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
 .usage-head__lead { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
 .usage-title {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 17px;
+  font-weight: 650;
   line-height: 1.4;
   letter-spacing: -0.01em;
   color: var(--el-text-color-primary);
   white-space: nowrap;
+}
+.usage-title::before {
+  content: '';
+  width: 3px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--u-primary, #165dff);
 }
 .usage-range { font-size: 12px; color: var(--el-text-color-placeholder); white-space: nowrap; }
 .usage-head__tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -856,11 +984,11 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
 .usage-icon :deep(.el-icon) { font-size: 16px; }
 .usage-icon svg { width: 16px; height: 16px; }
 
-/* ── 首屏：模型构成图 + 读数格 ── */
+/* ── 首屏：构成图通栏，读数压成一条五格横带 ── */
 .usage-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
   align-items: stretch;
 }
 
@@ -877,11 +1005,11 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  padding: 14px 16px 8px;
+  padding: 18px 20px 10px;
 }
 .usage-compo__title {
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 650;
   letter-spacing: -0.01em;
   color: var(--el-text-color-primary);
@@ -895,7 +1023,7 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
 .usage-compo__chart {
   flex: 1 1 auto;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 16px;
 }
 .usage-compo__foot {
   display: flex;
@@ -903,7 +1031,7 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 6px 12px;
-  padding: 8px 16px 12px;
+  padding: 10px 20px 16px;
   font-size: 11.5px;
   color: var(--el-text-color-placeholder);
 }
@@ -934,27 +1062,26 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 右侧读数区：2×2 KPI + 一行派生效率读数 */
+/* 右侧读数区改成横带：五行 KPI 并排 + 一行派生效率读数 */
 .usage-readouts {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
 }
 .usage-kpis {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  /* 前两行是四张核心卡（等高撑满），第三行是横跨两列的派生卡（按内容高） */
-  grid-template-rows: repeat(2, minmax(0, 1fr)) auto;
-  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: auto;
+  gap: 12px;
 }
 .usage-kpi {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 14px 15px;
+  padding: 15px 16px;
   overflow: hidden;
   animation: usage-rise 0.45s var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1)) both;
 }
@@ -991,28 +1118,24 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
 }
 .usage-kpi__ring { position: absolute; right: 10px; bottom: 8px; pointer-events: none; opacity: 0.9; }
 
-/* 第 5 张派生卡：横跨两列，标签左、读数右、注解整行，不占一整格高度 */
+/* 第 5 张派生卡：和其余四张同列同高，标签在上、读数在下 */
 .usage-kpi--wide {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  column-gap: 12px;
-  row-gap: 3px;
-  padding: 11px 15px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 15px 16px;
 }
-.usage-kpi--wide .usage-kpi__value { justify-self: end; font-size: 22px; }
+.usage-kpi--wide .usage-kpi__value { justify-self: auto; font-size: 26px; }
 .usage-kpi--wide .usage-kpi__sub {
-  grid-column: 1 / -1;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 2px 10px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 2px;
 }
 
 /* 派生读数：一行三条，安静的一体条带，不抢 KPI 的主次 */
 .usage-deriv {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px 14px;
   margin: 0;
   padding: 11px 15px 12px;
@@ -1064,7 +1187,7 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  padding: 14px 16px 10px;
+  padding: 16px 20px 10px;
 }
 .usage-panel__title {
   margin: 0;
@@ -1235,10 +1358,159 @@ const derivedReadouts = computed<DerivedReadout[]>(() => {
 .usage-full { min-width: 0; }
 .usage-detail { min-width: 0; }
 
+/* ── 色块详情弹窗：模型级指标或汇总块的成员名单 ── */
+.usage-treemap-detail {
+  padding: 4px 0 0;
+}
+.usage-treemap-detail__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 12px;
+  margin-bottom: 14px;
+  padding: 0 2px;
+}
+.usage-treemap-detail__name {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.usage-treemap-detail__pct {
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+}
+.usage-treemap-detail__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.usage-treemap-detail__metric-label {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--el-text-color-placeholder);
+  margin-bottom: 3px;
+}
+.usage-treemap-detail__metric-value {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.usage-treemap-detail__cost {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 2px;
+  margin-bottom: 10px;
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+}
+.usage-treemap-detail__cost-label {
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
+}
+.usage-treemap-detail__cost-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #cf3a2a;
+  font-variant-numeric: tabular-nums;
+}
+.usage-treemap-detail__members-title {
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+.usage-treemap-detail__member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 10px;
+  padding: 5px 2px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.usage-treemap-detail__member-name {
+  flex: 0 0 38%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--el-text-color-primary);
+}
+.usage-treemap-detail__member-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+}
+
+/* ── 全部模型弹窗：环形图 Top8 外的完整名单 ── */
+.usage-treemap-all {
+  max-height: 460px;
+  overflow: auto;
+}
+.usage-treemap-all__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.usage-treemap-all th,
+.usage-treemap-all td {
+  padding: 9px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  white-space: nowrap;
+}
+.usage-treemap-all th {
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-lighter);
+}
+.usage-treemap-all__name { width: 24%; }
+.usage-treemap-all__name-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--el-text-color-primary);
+}
+.usage-treemap-all__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+.usage-treemap-all__num {
+  width: 13%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
+}
+.usage-treemap-all--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
 /* ── 响应式 ── */
 @media (max-width: 1180px) {
-  .usage-hero { grid-template-columns: minmax(0, 1fr); }
   .usage-split--7-5 { grid-template-columns: minmax(0, 1fr); }
+  /* 五格横带在窄屏退成 2×2 + 一张通栏，避免末行只坐一张卡留出空位 */
+  .usage-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .usage-kpi--wide { grid-column: 1 / -1; }
 }
 @media (max-width: 900px) {
   .usage-split,

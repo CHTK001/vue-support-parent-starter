@@ -59,6 +59,19 @@ const CARDS: ConfigCard[] = [
     ],
   },
   {
+    key: "rdp",
+    title: "RDP 显示",
+    desc: "远控桌面的分辨率 / 色深 / 画质",
+    icon: "Monitor",
+    consumer: "GuacdConnectionFactory 与直连 RDP 读同一套值 · 越界或非法回落默认",
+    items: [
+      { key: "rdp.width", label: "分辨率宽", type: "number", placeholder: "1280", hint: "640-3840，越界回落 1280" },
+      { key: "rdp.height", label: "分辨率高", type: "number", placeholder: "768", hint: "480-2160，越界回落 768" },
+      { key: "rdp.color-depth", label: "色深", type: "number", placeholder: "24", hint: "只支持 8 / 16 / 24 / 32，其它回落 24" },
+      { key: "rdp.force-lossless", label: "画质优先", type: "text", placeholder: "false", hint: "true = 关闭有损压缩，更清晰但更占带宽" },
+    ],
+  },
+  {
     key: "agent",
     title: "Agent 包",
     desc: "监控 Agent 部署包路径与下载",
@@ -80,6 +93,10 @@ const FALLBACK: Record<string, string> = {
   "ssh.connect.timeout": "15",
   "ssh.session.timeout": "30",
   "ssh.read.timeout": "60",
+  "rdp.width": "1280",
+  "rdp.height": "768",
+  "rdp.color-depth": "24",
+  "rdp.force-lossless": "false",
   "agent.package.path": "monitor-agent/monitor-agent.tar.gz",
   "prometheus.package.path": "prometheus/prometheus.tar.gz",
 };

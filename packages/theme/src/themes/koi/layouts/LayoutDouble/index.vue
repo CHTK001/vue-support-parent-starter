@@ -415,7 +415,7 @@ watch(
 
   .layout-header {
     height: $aside-header-height;
-    background-color: var(--el-header-bg-color);
+    background-color: var(--koi-surface-header);
   }
 }
 
@@ -439,7 +439,7 @@ watch(
   padding-left: $aside-menu-padding-left;
   padding-right: 0;
   box-sizing: border-box;
-  background-color: var(--el-menu-bg-color);
+  background-color: var(--koi-surface-aside);
   border-right: 1px solid var(--el-aside-border-right-color);
 }
 
@@ -510,7 +510,7 @@ watch(
   padding-right: 0;
   box-sizing: border-box;
   user-select: none;
-  background-color: var(--el-menu-bg-color);
+  background-color: var(--koi-surface-aside);
   border-right: 1px solid var(--el-aside-border-right-color);
   box-shadow: 8px 0 24px rgba(0, 0, 0, 0.08);
 
@@ -637,7 +637,7 @@ watch(
   box-sizing: border-box;
   padding: 0;
   overflow-x: hidden;
-  background-color: var(--el-bg-color);
+  background-color: var(--koi-surface-main);
 }
 
 /** 第二列出现/消失过渡 */

@@ -2,8 +2,9 @@
  * vue-support-ai-starter 壳入口。
  *
  * <p><b>业务归 @pages/ai，本应用只做 Vite 启动壳</b>：AI 控制台的视图、路由、
- * 启动装配、App 壳组件由独立技术栈承载（非 koi 框架，见 pages/ai/src/main.js），
- * 物理上住在 @pages/ai 包内，本文件只负责按 Vite 约定触发挂载。</p>
+ * 启动装配、App 壳组件由独立技术栈承载（首页布局自持，登录页 / 路由守卫 /
+ * token 存储复用 vue 框架，见 pages/ai/src/main.js），物理上住在 @pages/ai
+ * 包内，本文件只负责按 Vite 约定触发挂载。</p>
  *
  * <p><strong>为什么深导入 {@code @pages/ai/main.js} 而不是 {@code @pages/ai}</strong>：
  * 包根 {@code index.ts} 是共享业务包的公共出口，只应暴露可复用的页面/组件/API

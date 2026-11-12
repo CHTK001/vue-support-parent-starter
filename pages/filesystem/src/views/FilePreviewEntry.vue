@@ -368,12 +368,16 @@ async function startClientRenderer(fileName: string, spec: RendererSpec, bytes: 
     activeSpec.value = spec;
     renderers.value = plugins;
     // file-viewer 按文件名扩展名自动选渲染器：File 名必须保留真实扩展名；
-    // 文本渲染器只认白名单扩展名（TEXT_EXTENSIONS），白名单外（如 MANIFEST.MF）
-    // 改名 .txt 按纯文本渲染，否则找不到渲染器而落空。
+    // 文本渲染器只认白名单扩展名（TEXT_EXTENSIONS），白名单外（如 MANIFEST.MF、.jsonl）
+    // 改名 .txt 按纯文本渲染，否则找不到渲染器而落空。改名只作用在喂给渲染器的
+    // File 上，换扩展名而不是追加（否则 a.jsonl 会变成 a.jsonl.txt）。
     const viewerName = (() => {
       if (spec.presetId === "text") {
         const ext = extensionOf(fileName).toLowerCase();
-        if (ext && !TEXT_EXTENSIONS.has(ext)) return `${fileName}.txt`;
+        if (ext && !TEXT_EXTENSIONS.has(ext)) {
+          const dot = fileName.lastIndexOf(".");
+          return dot > 0 ? `${fileName.slice(0, dot)}.txt` : `${fileName}.txt`;
+        }
       }
       return fileName;
     })();

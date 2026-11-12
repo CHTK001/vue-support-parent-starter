@@ -24,7 +24,7 @@
             <!-- 品牌徽章 -->
             <div class="brand-badge flex flex-items-center gap-10px animate-fade-in-up" style="animation-delay: 0s">
               <div class="brand-logo-wrap">
-                <img class="brand-logo" :src="fallbackLogoUrl" :alt="loginConfig.brandName" />
+                <img class="brand-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
               </div>
               <span class="brand-text">{{ translateConfigText(loginConfig.title) }}</span>
             </div>

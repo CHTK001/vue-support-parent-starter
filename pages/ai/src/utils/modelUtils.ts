@@ -22,6 +22,10 @@ const PROVIDER_LOGOS: Record<string, string> = {
   // OpenAI
   openai: "OpenAI.svg",
   gpt: "OpenAI.svg",
+  // OpenAI 生图 / 生视频：gpt-image-1、dall-e-3、sora
+  "dall-e": "OpenAI.svg",
+  dalle: "OpenAI.svg",
+  sora: "OpenAI.svg",
 
   // Anthropic
   anthropic: "Anthropic.svg",
@@ -30,6 +34,9 @@ const PROVIDER_LOGOS: Record<string, string> = {
   // Google
   google: "Google.svg",
   gemini: "gemini.svg",
+  // Google 生图 / 生视频：imagen-* / veo-*
+  imagen: "Google.svg",
+  veo: "Google.svg",
 
   // 百度文心一言
   baidu: "baidu.svg",
@@ -40,6 +47,9 @@ const PROVIDER_LOGOS: Record<string, string> = {
   tongyi: "Tongyi.svg",
   qwen: "Tongyi.svg",
   aliyun: "Tongyi.svg",
+  // 通义万相（Wan / Wanx 系列生图、生视频）：模型名多为 wanx2.1-t2i / wan2.1-i2v
+  wanx: "Tongyi.svg",
+  wan2: "Tongyi.svg",
 
   // 腾讯混元
   hunyuan: "hunyuan.svg",
@@ -48,6 +58,9 @@ const PROVIDER_LOGOS: Record<string, string> = {
   // 智谱 AI
   zhipu: "zhipu.svg",
   glm: "zhipu.svg",
+  // 智谱生图 / 生视频：cogview-* / cogvideo-*
+  cogview: "zhipu.svg",
+  cogvideo: "zhipu.svg",
 
   // 月之暗面 Kimi
   kimi: "kimi.png",
@@ -76,6 +89,11 @@ const PROVIDER_LOGOS: Record<string, string> = {
   // 字节跳动
   bytedance: "ByteDance.svg",
   doubao: "ByteDance.svg",
+  // 字节系生图 / 生视频模型：Seedream（即梦）、Seedance、即梦
+  seedream: "ByteDance.svg",
+  seedance: "ByteDance.svg",
+  jimeng: "ByteDance.svg",
+  "即梦": "ByteDance.svg",
 
   // 书生·浦语
   internlm: "internlm.svg",

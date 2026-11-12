@@ -243,6 +243,7 @@ import BrowserPreviewPlaceholder from './BrowserPreviewPlaceholder.vue';
 import { useBrowserWebviewStore } from '@/stores/browserWebview';
 import { useLayoutStore } from '@/stores/layout';
 import { useTabStore } from '@/stores/tab';
+import { useWorkspaceStore } from '@/stores/workspace';
 import { usePreviewTabCache, type UnifiedTab } from '@/composables/usePreviewTabCache';
 import type { WorkspaceNode } from './WorkspaceTree.vue';
 import WindowControls from '@/components/WindowControls.vue';
@@ -339,6 +340,7 @@ const isElectron = typeof window !== 'undefined' && window.electronAPI !== undef
 const browserStore = useBrowserWebviewStore();
 const layoutStore = useLayoutStore();
 const tabStore = useTabStore();
+const workspaceStore = useWorkspaceStore();
 const previewTabCache = usePreviewTabCache();
 
 // ── 原生 HTML5 拖拽排序 ──
@@ -1390,6 +1392,36 @@ watch(() => props.sessionId, async (newSessionId, oldSessionId) => {
         }
     }
 }, { immediate: true });
+
+/**
+ * 会话的工作目录被换掉（会话页中途切项目）。
+ *
+ * <p>树的根、预览标签、展开状态全部属于旧目录，必须整体丢弃后按新根重载；
+ * 只 loadTree 会把旧目录的节点与新目录合并成一棵不存在的树。
+ * SSE 监听必须重连：后端在订阅时用当时的会话根建 watch（/workspace/events 里
+ * {@code resolveSessionRoot} 只算一次），不重连就还在盯旧目录，新目录的文件改动收不到。</p>
+ */
+watch(() => workspaceStore.rootRevision, async () => {
+    const sessionId = props.sessionId;
+    if (!sessionId) return;
+    treeLoadGeneration++;
+    isLoading.value = false;
+    tabStore.exitPreviewMode();
+    tabStore.clearAll();
+    fileChangeVersions.value = {};
+    watchedWorkspacePath = null;
+    resetExpandedPaths();
+    treeData.value = [];
+    currentWorkspacePath.value = null;
+
+    // 按新根重建监听（onWorkspaceChange 的订阅是全局的，保留一份即可）
+    apiService.disconnectWorkspaceWatcher();
+    apiService.connectWorkspaceWatcher(sessionId, () => {
+        void handleWorkspaceWatcherConnected(sessionId);
+    });
+
+    await loadTree(true);
+});
 
 onUnmounted(() => {
     watchedWorkspacePath = null;

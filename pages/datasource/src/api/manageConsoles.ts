@@ -761,10 +761,14 @@ export async function downloadDbDocument(params: {
 }
 
 /**
- * 在线查看数据库设计文档（markdown → HTML，用于弹窗内预览）。
+ * 在线查看数据库设计文档（模板渲染出的 HTML，用于弹窗内预览）。
  *
- * <p>与导出走同一套结构采集路径，但端点返回可直接渲染的 HTML。
- * word / pdf 为二进制格式，在线预览端点会返回 501 并给出下载提示。</p>
+ * <p>与导出走同一套结构采集与渲染路径，只是不落盘。这里刻意取
+ * {@code format=html}：markdown 分支渲染的是各模板的「纯文本变体」，
+ * 任何模板在预览里都长得一样；html 分支才是模板真正的版式
+ * （SCREW 的装配图、Aurora 的玻璃拟态、Stripe 的开发者文档）。</p>
+ *
+ * <p>word / pdf 为二进制格式，在线预览端点会返回 501 并给出下载提示。</p>
  *
  * @param params 数据源、库名与可选的模板样式
  * @returns 渲染后的 HTML 文本
@@ -779,7 +783,7 @@ export async function previewDbDocument(params: {
   const query = new URLSearchParams();
   query.set("datasourceId", String(params.datasourceId));
   if (params.database) query.set("database", params.database);
-  query.set("format", "markdown");
+  query.set("format", "html");
   if (params.template) query.set("template", params.template);
 
   const token = getAccessToken();

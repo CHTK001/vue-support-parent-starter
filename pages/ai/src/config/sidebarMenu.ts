@@ -4,6 +4,7 @@ import {
   Apps20Regular, Image20Regular, Person20Regular, ImageSearch20Regular,
   DocumentText20Regular, DesktopSpeaker24Regular, Headphones24Regular, BrainCircuit20Regular,
   DataBarVertical20Regular, PlugConnected20Regular, Fingerprint24Regular,
+  ArrowRouting20Regular,
   Earth24Regular,
 } from '@vicons/fluent'
 
@@ -242,6 +243,13 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       // 看不到自己有哪些模型、也进不去「配置中心 → 模型管理」。
       // 越权由服务端 @Permission("admin") 逐条拦住（增删改供应商/模型），
       // 前端不再用「看不见」代替「没权限」。
+    },
+    {
+      key: 'route',
+      label: '路由',
+      icon: ArrowRouting20Regular,
+      section: 'AI 配置',
+      showKey: 'showRouteMenu',
     },
     {
       key: 'usage',

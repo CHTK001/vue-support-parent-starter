@@ -11,6 +11,15 @@ import { fileViewerRenderers } from '@file-viewer/vite-plugin'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import UnoCSS from 'unocss/vite'
+import {
+  presetWind3,
+  presetAttributify,
+  presetIcons,
+  presetTypography,
+  transformerDirectives,
+  transformerVariantGroup,
+} from 'unocss'
 import type { PluginOption } from 'vite'
 
 const APP_NAME = 'vue-support-ai-starter'
@@ -182,6 +191,41 @@ function uiComponentAliases(): Record<string, string> {
   return alias
 }
 
+/**
+ * UnoCSS 配置（与 turbo/vite/createVite.ts 的基线同源）。
+ *
+ * 本应用主体用 Tailwind v4，唯一需要 UnoCSS 的是「koi 登录页」——
+ * packages/theme 的 koi 登录模板用 flex-items-center / pos-absolute /
+ * m-b-32px 这类 Uno 原子类，Tailwind 不认。只补原子类、不引入 Uno 的
+ * preflight：虚拟样式在 tailwind.css 之前引入，基础重置与同名工具类
+ * 仍由 Tailwind 决定，避免两套 reset 互相覆盖。
+ */
+function unoConfig() {
+  return {
+    presets: [
+      presetWind3(),
+      presetAttributify(),
+      presetIcons({ scale: 1.2, warn: true }),
+      presetTypography(),
+    ],
+    transformers: [
+      // 与仓库根 unocss.config.ts 同口径：分隔符收敛成 ":"，
+      // 避免把 Tailwind 的 `bg-(--color-x)` 当成 "-" 变体组拆坏。
+      transformerVariantGroup({ separators: [':'] }),
+      transformerDirectives(),
+    ],
+    content: {
+      // 只扫框架包：登录页模板与它依赖的 Re* 组件都在 packages 下。
+      // 不扫 apps/pages，避免把 AI 自己的 Tailwind 类再生成一份 Uno 工具类。
+      filesystem: [
+        path.resolve(WORKSPACE_ROOT, 'packages/**/*.{vue,ts,tsx,js,jsx,html}'),
+      ],
+    },
+    // 与 koi 一致：暗色挂在 html.dark（AI 的 useTheme 就是这么切的）
+    dark: 'class',
+  }
+}
+
 function contentType(file: string): string {
   if (file.endsWith('.yaml')) return 'text/yaml; charset=utf-8'
   if (file.endsWith('.js')) return 'text/javascript'
@@ -350,6 +394,8 @@ export default defineConfig({
     frameworkSharedAssets(),
     // dev 代理补第一方豁免头 + 剥 Origin/Referer（仅 serve 生效，见 aiProxyHeaders 注释）
     aiProxyHeaders(),
+    // koi 登录页依赖 Uno 原子类；配置与 createVite 基线一致（见 unoConfig 注释）
+    UnoCSS(unoConfig()) as PluginOption,
     vue({
       template: {
         compilerOptions: {
@@ -404,7 +450,7 @@ export default defineConfig({
      * dev 不炸只因 optimizeDeps 预打包把两份合并了，属构建态独有缺陷。
      * dedupe 强制全仓解析到同一份，token 恢复单例。
      */
-    dedupe: ['element-plus'],
+    dedupe: ['element-plus', 'pinia'],
     // 用数组而非对象：echarts 必须用锚定正则 /^echarts$/（与 createVite 一致）。
     // 若写成字符串别名，Vite 的前缀匹配会把兼容层内部的 `echarts/index.js`
     // 也一起改写成兼容层自身，形成 self-alias，导致它的具名导出（init 等）全部丢失，

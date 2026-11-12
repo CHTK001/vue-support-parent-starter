@@ -9,6 +9,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { getAccessToken } from '@repo/utils';
+import { getRdpDisplay, type RdpDisplay } from '../api/terminalDisplay';
 
 const props = defineProps<{
   connection: {
@@ -62,6 +63,15 @@ const iframeRef = ref<HTMLIFrameElement>();
 const metrics = ref<ViewerMetrics>(emptyMetrics());
 
 /**
+ * 平台级 RDP 显示参数（分辨率等）。
+ *
+ * <p>读回来之前不渲染 iframe：`iframeSrc` 一变浏览器就重载页面，等于重连一次 RDP。
+ * 一次请求的等待成本，远低于「先按默认尺寸连上、再被重连一次」。</p>
+ */
+const display = ref<RdpDisplay | null>(null);
+const displayReady = ref(false);
+
+/**
  * 接收 iframe 回传的指标：只认本 iframe 的来源，避免同页其它消息串台。
  *
  * @param ev window message 事件
@@ -74,6 +84,17 @@ function onMetricsMessage(ev: MessageEvent): void {
 }
 onMounted(() => window.addEventListener('message', onMetricsMessage));
 onBeforeUnmount(() => window.removeEventListener('message', onMetricsMessage));
+
+// 显示参数：失败也置 ready（退回组件内默认值），不能因为一个配置把桌面挡在门外
+onMounted(async () => {
+  try {
+    display.value = await getRdpDisplay();
+  } catch {
+    display.value = null;
+  } finally {
+    displayReady.value = true;
+  }
+});
 watch(() => props.connection, () => { metrics.value = emptyMetrics(); });
 
 /**
@@ -88,10 +109,14 @@ defineExpose({ getMetrics });
 const iframeSrc = computed(() => {
   const c = props.connection;
   if (!c) return '';
+  // 优先级：调用方显式给的分辨率 > 平台配置（后端已校验）> 组件内默认值。
+  // 直连桥每帧还会收到 width/height 消息自适应，这里只决定"首帧申请多大"。
+  const width = c.width && c.width > 0 ? c.width : (display.value?.width ?? 1280);
+  const height = c.height && c.height > 0 ? c.height : (display.value?.height ?? 800);
   const params = new URLSearchParams({
     hostId: String(c.hostId),
-    width: String(c.width && c.width > 0 ? c.width : 1280),
-    height: String(c.height && c.height > 0 ? c.height : 800),
+    width: String(width),
+    height: String(height),
   });
   if (c.identityId != null) params.set('identityId', String(c.identityId));
   const token = getAccessToken();
@@ -110,7 +135,7 @@ const iframeSrc = computed(() => {
       </div>
     </div>
     <iframe
-      v-if="connection"
+      v-if="connection && displayReady"
       ref="iframeRef"
       :src="iframeSrc"
       class="rdp-iframe"

@@ -80,7 +80,7 @@
                     @contextmenu.prevent.stop="openContextMenu(item, $event)"
                   >
                     <span class="rail-host__os" :class="[statusKey(item), mediaTone(item)]">
-                      <ReIcon :name="displayIcon(item)" :size="15" />
+                      <ProjectTypeIcon :name="displayIcon(item)" :size="15" />
                     </span>
                     <span class="rail-host__meta">
                       <b class="rail-host__name">{{ item.projectName }}</b>
@@ -257,6 +257,13 @@
                   :can-log="!!infoProjectOf(tab.name)!.logPath"
                   @action="(c: string) => onInfoAction(infoProjectOf(tab.name)!, c)"
                 />
+                <ApmWorkbench
+                  v-else-if="apmProjectOf(tab.name)"
+                  :key="`${tab.name}:${apmReloadSeq[Number(tab.name.slice(4))] ?? 0}`"
+                  embedded
+                  :initial-tab="apmInitialTabs[Number(tab.name.slice(4))] || 'services'"
+                  :service="apmServiceOf(apmProjectOf(tab.name)!)"
+                />
                 <HostFileManager
                   v-else-if="filesTabOf(tab.name)"
                   :key="`${tab.name}:${filesReloadSeq[Number(tab.name.slice(6))] ?? 0}`"
@@ -294,6 +301,19 @@
                 <span class="pj-metrics-sep"></span>
               </template>
               <span v-else class="pj-metrics-note">{{ statusSub(metricsProject) }}</span>
+              <!-- Swagger / Actuator 状态：由全局 SSE 的端点推送写入 endpointCache，无需重新打开面板 -->
+              <template v-if="metricsEndpoint">
+                <span class="pj-metrics-sep"></span>
+                <span
+                  v-for="ep in endpointChips"
+                  :key="ep.key"
+                  class="pj-metrics-ep"
+                  :class="ep.tone"
+                  :title="ep.title"
+                >
+                  <i class="pj-metrics-ep-dot"></i>{{ ep.label }}
+                </span>
+              </template>
               <!-- Actuator 可用时补一行运行态：健康状态 + 指标数（悬停看指标名） -->
               <template v-if="metricsEndpoint?.actuator && statusKey(metricsProject) === 'running'">
                 <span class="pj-metrics-seg">
@@ -1485,7 +1505,9 @@ import { errorText, toastError } from '../../utils/errors';
 import { downloadHostFile } from '../../api';
 import { releaseSse } from '../../services/releaseRealtime';
 import HostFileManager from '../../components/HostFileManager.vue';
+import ProjectTypeIcon from '../../components/ProjectTypeIcon.vue';
 import ProjectInfoPanel from '../../components/ProjectInfoPanel.vue';
+import ApmWorkbench from '@pages/apm/src/views/Workbench.vue';
 import ProjectLogColumn from '../../components/ProjectLogColumn.vue';
 import ProjectOpLogPanel from '../../components/ProjectOpLogPanel.vue';
 import GitRepositoryDialog from '../../components/GitRepositoryDialog.vue';
@@ -1901,21 +1923,35 @@ function deployTypeLabel(t?: string): string {
   } as Record<string, string>)[t || ''] || '未设置';
 }
 
+/**
+ * 项目类型对应的默认图标。
+ *
+ * <p>图标按部署语义区分，避免所有 Java 项目都显示 CPU：SpringBoot 用咖啡杯
+ * 表示 Java 运行时，FatJar 用包裹表示独立产物，分离式用多文件表示主包+依赖，
+ * 模型用魔法棒表示 AI 模型，Docker 用集装箱船表示容器。用户显式选择的
+ * `project.icon` 仍优先于这里的默认值。</p>
+ *
+ * @param t 项目类型
+ * @returns Element Plus 图标名；SpringBoot 返回内置 Java 标识
+ */
 function defaultIconByType(t: string) {
   switch (t) {
     case 'springboot':
+      return 'Java';
     case 'fatjar':
-      return 'Cpu';
+      return 'Box';
     case 'git':
       return 'GitBranch';
     case 'separated':
-      return 'Box';
-    case 'model':
       return 'Files';
+    case 'model':
+      return 'MagicStick';
     case 'static':
       return 'Picture';
     case 'nginx':
       return 'Connection';
+    case 'docker':
+      return 'Ship';
     default:
       return 'Folder';
   }
@@ -2762,20 +2798,9 @@ async function handleSave() {
     .replace(/[^a-z0-9_-]+/g, '-')
     .replace(/(^-|-$)/g, '');
   try {
-    // 脚本：自动模式下未手改则按当前配置重算；手改过就保留用户命令（仅补空项）
-    if (scriptMode.value === 'auto') {
-      if (scriptAutoDirty.value) {
-        fillScriptsFromTemplate(true);
-        materializeVars();
-      } else if (!regenerateScripts(false)) {
-        message.error('自动生成脚本失败：当前项目类型暂无内置模板');
-        return;
-      }
-    } else {
-      fillScriptsFromTemplate(true);
-      materializeVars();
-    }
-    // APM 高级选项合入 jvmArgs（javaagent 参数随启动脚本生效；APM 字段本身不落库）
+    // 先算 APM，再生成/刷新脚本。脚本里的 VARS 块由 materializeVars() 从当前 jvmArgs 重建；
+    // 若顺序反过来，关闭 APM 时只会清掉 jvmArgs，自定义脚本仍保留旧的 -javaagent，
+    // 表现为「界面显示不启用、启动命令还在挂 agent」。
     form.value.jvmArgs = materializeApmArgs(
       {
         apmType: form.value.apmType,
@@ -2791,6 +2816,20 @@ async function handleSave() {
       },
       form.value.jvmArgs,
     );
+    // 脚本：自动模式下未手改则按当前配置重算；手改过就保留用户命令（仅补空项）
+    if (scriptMode.value === 'auto') {
+      if (scriptAutoDirty.value) {
+        fillScriptsFromTemplate(true);
+        materializeVars();
+      } else if (!regenerateScripts(false)) {
+        message.error('自动生成脚本失败：当前项目类型暂无内置模板');
+        return;
+      }
+    } else {
+      // 自定义脚本保留命令正文，但必须同步受管的 VARS 块，否则 APM/变量变更不生效
+      fillScriptsFromTemplate(true);
+      materializeVars();
+    }
     const { apmType, apmJarPath, apmOptions, swJarPath, swServiceName, swBackendService, swExtraArgs, arthasJarPath, arthasTelnetPort, arthasHttpPort, gitLastCommit, scheduleStatus, docker, ...projectForm } = form.value;
     const payload = {
       ...projectForm,
@@ -3544,6 +3583,8 @@ async function handleUninstallService() {
 const filesTabs = ref<{ projectId: number; projectName: string; initPath: string }[]>([]);
 /** 已打开的系统信息页签（项目 id） */
 const infoTabs = ref<number[]>([]);
+/** 已打开的 APM 观测页签（项目 id） */
+const apmTabs = ref<number[]>([]);
 
 /** 单项目操作日志弹框 */
 const projOpLogVisible = ref(false);
@@ -3646,20 +3687,13 @@ function onRowClick(item: Project) {
 /**
  * 打开 APM 链路追踪页签，并按该项目的服务名筛选。
  *
+ * <p>与 APM 观测共用项目工作区页签，只切换工作台内部的子页签；
+ * 不再离开项目管理页。</p>
+ *
  * @param item 项目
  */
 function openApmTraces(item: Project) {
-  const cfg = parseApmConfig(parseJson<string>(item.jvmArgs, []));
-  const service = String(cfg.swServiceName || item.projectName || '').trim();
-  const target = router.resolve({
-    path: '/apm',
-    query: { tab: 'traces', ...(service ? { service } : {}) },
-  });
-  if (!target.matched.length) {
-    message.warning('当前宿主未挂载 APM 观测台，无法打开链路追踪');
-    return;
-  }
-  router.push(target.fullPath);
+  openApmWorkbench(item, 'traces');
 }
 
 /**
@@ -3756,28 +3790,27 @@ function onGitRepoEdit(p: { id: number; projectName: string }) {
 }
 
 /**
- * 打开 APM 观测台并定位到该项目的服务。
+ * 在项目工作区打开 APM 观测页签，并定位到该项目的服务。
  *
- * <p>只做一次跨页跳转，不在这里直接查 APM 接口：观测台是页签式单页，
- * 服务名通过 URL query 带过去，由工作台在 setup 阶段暂存成
- * {@code ApmTabContext}。这样落地页的「服务」页签会直接按该服务筛选，
- * 而不是让用户在下拉里再选一次（APM 跨页下钻的既有口径）。</p>
+ * <p>APM 是项目观测的一部分，不应把用户从项目管理页带到独立路由；
+ * 这里复用工作区的多页签机制，服务名通过属性传给嵌入的 APM 工作台。</p>
  *
  * @param item 项目
  */
-function openApmWorkbench(item: Project) {
-  const cfg = parseApmConfig(parseJson<string>(item.jvmArgs, []));
-  // SkyWalking 有显式 service_name；平台自有 APM 按项目名注册
-  const service = String(cfg.swServiceName || item.projectName || '').trim();
-  const target = router.resolve({
-    path: '/apm',
-    query: service ? { tab: 'services', service } : { tab: 'services' },
-  });
-  if (!target.matched.length) {
-    message.warning('当前宿主未挂载 APM 观测台，无法打开');
-    return;
+function openApmWorkbench(item: Project, initialTab = 'services') {
+  selectedProject.value = item;
+  const existing = apmTabs.value.includes(item.id);
+  if (!existing) {
+    apmTabs.value.push(item.id);
   }
-  router.push(target.fullPath);
+  const changed = apmInitialTabs[item.id] !== initialTab;
+  apmInitialTabs[item.id] = initialTab;
+  // 首次打开，或从「服务」切到「链路」等不同入口时重新初始化；
+  // 重复点同一个入口不重挂工作台，保留用户已经切到的内部页签。
+  if (!existing || changed) {
+    apmReloadSeq[item.id] = (apmReloadSeq[item.id] ?? 0) + 1;
+  }
+  activeWorkspaceTab.value = `apm:${item.id}`;
 }
 
 // ---- 主机路径选择器（项目地址 / 日志地址 / Nginx 目录 / 升级产物） ----
@@ -4336,6 +4369,19 @@ const workspaceTabs = computed<ReTabsItem[]>(() => {
       status: statusKeyOfLog({ projectId: id }),
     });
   }
+  // APM 观测（右键 / 系统信息面板）：作为项目工作区页签，不再跳转 /apm
+  for (const id of apmTabs.value) {
+    const item = list.value.find((p) => p.id === id);
+    if (!item) continue;
+    tabs.push({
+      name: `apm:${id}`,
+      label: item.projectName,
+      hint: 'APM 观测',
+      icon: 'DataLine',
+      closable: true,
+      status: statusKeyOfLog({ projectId: id }),
+    });
+  }
   // 文件管理（右键）
   for (const f of filesTabs.value) {
     tabs.push({
@@ -4367,6 +4413,24 @@ function infoProjectOf(name: string): Project | null {
   const id = Number(name.slice(5));
   return list.value.find((p) => p.id === id) ?? null;
 }
+
+/** `apm:` 页签对应的项目 */
+function apmProjectOf(name: string): Project | null {
+  if (!name.startsWith('apm:')) return null;
+  const id = Number(name.slice(4));
+  return list.value.find((p) => p.id === id) ?? null;
+}
+
+/** APM 页签预选的服务名：SkyWalking 用显式服务名，平台 APM 按项目名注册 */
+function apmServiceOf(item: Project): string {
+  const cfg = parseApmConfig(parseJson<string>(item.jvmArgs, []));
+  return String(cfg.swServiceName || item.projectName || '').trim();
+}
+
+/** APM 页签首次展示的子页签（服务 / 链路）：从不同入口打开时定位到不同视图 */
+const apmInitialTabs = reactive<Record<number, string>>({});
+/** APM 页签刷新代次：右键刷新时换 key 重新挂载工作台 */
+const apmReloadSeq = reactive<Record<number, number>>({});
 
 /** `files:` 页签对应的项目与初始目录 */
 function filesTabOf(name: string): { initPath: string } | null {
@@ -4402,6 +4466,11 @@ function closeWorkspaceTab(name: string) {
   } else if (name.startsWith('files:')) {
     const id = Number(name.slice(6));
     filesTabs.value = filesTabs.value.filter((x) => x.projectId !== id);
+  } else if (name.startsWith('apm:')) {
+    const id = Number(name.slice(4));
+    apmTabs.value = apmTabs.value.filter((x) => x !== id);
+    delete apmReloadSeq[id];
+    delete apmInitialTabs[id];
   }
   const rest = workspaceTabs.value.filter((t) => t.name !== name);
   if (activeWorkspaceTab.value === name) {
@@ -4414,6 +4483,9 @@ function closeAllWorkspaceTabs() {
   logSessions.value.slice().forEach((session) => closeLogSession(session));
   infoTabs.value = [];
   filesTabs.value = [];
+  apmTabs.value = [];
+  Object.keys(apmReloadSeq).forEach((key) => delete apmReloadSeq[Number(key)]);
+  Object.keys(apmInitialTabs).forEach((key) => delete apmInitialTabs[Number(key)]);
   activeWorkspaceTab.value = '';
 }
 
@@ -4458,6 +4530,10 @@ function refreshWorkspaceTab(name: string) {
   }
   if (name.startsWith('files:')) {
     filesReloadSeq[id] = (filesReloadSeq[id] ?? 0) + 1;
+    return;
+  }
+  if (name.startsWith('apm:')) {
+    apmReloadSeq[id] = (apmReloadSeq[id] ?? 0) + 1;
   }
 }
 
@@ -4505,7 +4581,7 @@ watch(workspaceTabs, (tabs) => {
 const metricsProject = computed<Project | null>(() => {
   const active = workspaceTabs.value.find((t) => t.name === activeWorkspaceTab.value);
   if (active) {
-    const pid = Number(active.name.replace(/^(info|files|log):/, ''));
+    const pid = Number(active.name.replace(/^(info|files|log|apm):/, ''));
     return list.value.find((p) => p.id === pid) ?? null;
   }
   return selectedProject.value;
@@ -4516,6 +4592,26 @@ const metricsEndpoint = computed<EndpointProbe | null>(() => {
   const item = metricsProject.value;
   if (!item) return null;
   return endpointCache[item.id] ?? null;
+});
+
+/** 底部指标条的 Swagger / Actuator 状态灯：数据来自端点探测与全局 SSE 推送 */
+const endpointChips = computed(() => {
+  const ep = metricsEndpoint.value;
+  if (!ep) return [];
+  return [
+    {
+      key: 'swagger',
+      label: 'Swagger',
+      tone: ep.swagger ? 'is-ok' : 'is-off',
+      title: ep.swagger ? 'Swagger 可用（由全局 SSE 自动更新）' : 'Swagger 未探测到',
+    },
+    {
+      key: 'actuator',
+      label: 'Actuator',
+      tone: ep.actuator ? 'is-ok' : 'is-off',
+      title: ep.actuator ? 'Actuator 可用（由全局 SSE 自动更新）' : 'Actuator 未探测到',
+    },
+  ];
 });
 
 // 激活项目变化时做一次静默探测（watch 定义在 selectedProject 之后，避免 setup 阶段 TDZ）
@@ -5560,6 +5656,7 @@ onBeforeUnmount(() => {
 .rail-host__os.tone-model { background: linear-gradient(150deg, #0ea5e9, #0284c7); }
 .rail-host__os.tone-static { background: linear-gradient(150deg, #10b981, #059669); }
 .rail-host__os.tone-nginx { background: linear-gradient(150deg, #14b8a6, #0d9488); }
+.rail-host__os.tone-docker { background: linear-gradient(150deg, #2496ed, #1d4ed8); }
 .rail-host__os:is(.stopped, .disabled, .ready) {
   filter: grayscale(0.55) brightness(0.98);
 }
@@ -5877,6 +5974,30 @@ onBeforeUnmount(() => {
   width: 1px;
   height: 10px;
   background: var(--border-secondary);
+}
+
+.pj-metrics-ep {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.pj-metrics-ep-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pj-metrics-ep.is-ok {
+  color: var(--el-color-success);
+}
+
+.pj-metrics-ep.is-off {
+  color: var(--el-color-warning);
 }
 
 .pj-metrics-note {

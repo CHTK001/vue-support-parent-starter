@@ -43,6 +43,8 @@ const props = withDefaults(
     zoom?: boolean;
     /** 节点可拖动，缺省 true */
     nodeDraggable?: boolean;
+    /** 当前推进的连线 id；命中的连线显示流动虚线 */
+    activeEdgeIds?: string[];
     /** 右键菜单项，缺省为内置四项 */
     menuItems?: FlowMenuItem[];
     /** 自定义节点体组件 */
@@ -62,6 +64,7 @@ const props = withDefaults(
     panning: true,
     zoom: true,
     nodeDraggable: true,
+    activeEdgeIds: () => [],
   },
 );
 
@@ -117,6 +120,7 @@ defineExpose({
     :panning="panning"
     :zoom="zoom"
     :node-draggable="nodeDraggable"
+    :active-edge-ids="activeEdgeIds"
     :menu-items="menuItems"
     :node-component="nodeComponent"
     @ready="(e: FlowGraphEngine) => emit('ready', e)"

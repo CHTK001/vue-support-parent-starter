@@ -480,7 +480,7 @@ watch(
   flex-shrink: 0;
   transition: width 0.25s ease;
   user-select: none;
-  background-color: var(--el-menu-bg-color);
+  background-color: var(--koi-surface-aside);
   border-right: 1px solid var(--el-aside-border-right-color);
   position: relative;
   padding-bottom: 98px;
@@ -637,7 +637,7 @@ watch(
     min-height: 0;
     padding-left: $column-menu-padding-left;
     padding-right: 0;
-    background-color: var(--el-menu-bg-color);
+    background-color: var(--koi-surface-aside);
     border-right: 1px solid var(--el-aside-border-right-color);
     box-sizing: border-box;
     user-select: none;
@@ -659,14 +659,14 @@ watch(
 
   .layout-header {
     height: $aside-header-height;
-    background-color: var(--el-header-bg-color);
+    background-color: var(--koi-surface-header);
   }
 
   .layout-main {
     box-sizing: border-box;
     padding: 0;
     overflow-x: hidden;
-    background-color: var(--el-bg-color);
+    background-color: var(--koi-surface-main);
   }
 }
 

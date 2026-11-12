@@ -2,10 +2,14 @@
  * AI 控制台独立应用启动装配（物理上归档在 @pages/ai，但**不是包级公共 API**）。
  *
  * <p><strong>归属约定</strong>：本文件是 vue-support-ai-starter 的应用入口装配
- * （createApp / 自研路由 / i18n / branding / Electron 后端状态），由
+ * （createApp / 框架路由与守卫 / i18n / branding / Electron 后端状态），由
  * apps/vue-support-ai-starter/src/main.js 深导入 {@code @pages/ai/main.js} 触发。
  * 包根 {@code index.ts} 不 re-export 本文件（避免共享包 @pages/ai 被误用时
  * 整壳 + element-plus/tailwind/refactor 样式污染宿主）。</p>
+ *
+ * <p><strong>框架边界</strong>：登录页（koi ReLoginForm）、路由守卫、白名单、
+ * token 存储与 401 跳转全部来自 vue 框架（@repo/core / @repo/theme / @repo/pinia）；
+ * 本应用只提供首页布局与业务路由，不再自写第二套登录与守卫。</p>
  *
  * <p>宿主（system / eduai）要复用 AI 业务页，应走 /menu、/embed 或具体组件路径。</p>
  */
@@ -17,17 +21,24 @@ import { createApp } from "vue";
 import ElementPlus from "element-plus";
 
 import App from "./App.vue";
-import {
-  createRouter,
-  createWebHistory,
-  createWebHashHistory,
-} from "vue-router";
+// 路由与守卫统一由 vue 框架提供（@repo/core 的 createAppRouter /
+// setupRouterGuard）。本应用不再自建 createRouter + beforeEach：
+// 登录拦截、白名单、document.title、401 后的跳转都走框架同一套实现。
+import { createAppRouter, isAdmin, setRouter } from "@repo/core";
+// 框架登录页（ReLoginForm）登录成功后会走 initAuthRouter → authStore.listRouters，
+// 其中的「菜单 → 路由」解析器由主题注册。本应用使用静态路由、不消费框架菜单，
+// 这里注册一个空解析器即可；否则会抛「菜单解析器未注册」，
+// 把一次成功的登录误判成「登录后初始化路由失败」而停回登录页。
+import { registerMenuResolver } from "@repo/pinia";
 import { createPinia } from "pinia";
 import { useAuthStore } from "./stores/auth";
 import NProgress from "nprogress";
 
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
+// koi 登录页（packages/theme）用 Uno 原子类；虚拟样式必须早于 tailwind.css，
+// 让同名工具类与 reset 由 Tailwind 决定（本应用主体仍是 Tailwind v4）。
+import "virtual:uno.css";
 import "./tailwind.css";
 // 设计令牌（体系真源）：--brand-* / --bg-* / --text-* / --border-* / --radius-* /
 // --shadow-* / --status-*，与 monitor / hotspot / collect 同源。
@@ -50,8 +61,7 @@ import "nprogress/nprogress.css";
 import "@repo/ui/surface";
 
 import { apiService } from "@/services/ApiService";
-import { bootstrapFramework, hasToken } from "@/framework/context";
-import { isAdmin } from "@repo/core";
+import { bootstrapFramework, currentToken } from "@/framework/context";
 import { applyBranding, watchBranding } from "@/utils/branding";
 import { initGlobalErrorHandler } from "@/utils/globalErrorHandler";
 import { useLayoutStore } from "./stores/layout";
@@ -63,6 +73,13 @@ import {
 import { i18n } from "./locales";
 // 路由级加载态清理：切页时收掉跨页请求遗留的遮罩（见 afterEach 注释）
 import { closeRouterScoped } from "@repo/ui/re-loader";
+
+// 本应用不使用框架侧边栏/远程菜单：注册空解析器，满足框架登录流程
+// （initAuthRouter → authStore.listRouters）对菜单解析器的最小依赖。
+registerMenuResolver({
+  generateRoutes: () => [],
+  generateFlattenRoutes: () => [],
+});
 
 // 页面刷新标志：首次导航时强制服务端验证 token，后续路由切换不再重复验证
 let isInitialPageLoad = true;
@@ -98,6 +115,10 @@ NProgress.configure({
 const routes = [
   {
     path: "/",
+    // 框架路由桥接（core/router/themeBridge 的 hasBaseRoutes）按 name 识别
+    // 「布局 / 登录页」是否已由业务提供；这里显式声明 layout，避免框架再补一套
+    // koi 的首页/布局路由（那会把 AI 控制台的主页换成 koi 工作台）。
+    name: "layout",
     component: () => import("./components/MainLayout.vue"),
     children: [
       {
@@ -165,6 +186,14 @@ const routes = [
         name: "Models",
         meta: { title: "模型管理", requiresAuth: true },
         component: () => import("./components/models/ModelsPage.vue"),
+      },
+      {
+        // 路由实时拓扑：入站 AppKey → 路由组 → 上游成员，
+        // 数据来自 /api/providers/{id}/router-group/topology 单次聚合。
+        path: "route",
+        name: "RouterTopology",
+        meta: { title: "路由", requiresAuth: true },
+        component: () => import("./components/management/RouterTopologyPage.vue"),
       },
       {
         path: "image-generate",
@@ -304,54 +333,76 @@ const routes = [
     component: () => import("./components/PasswordPage.vue"),
   },
   {
+    // 框架登录表单（ReLoginForm）成功后固定跳 HOME_URL="/home"，
+    // 本应用首页是 /chat/new-session，这里做一次静默改道，避免落到 404。
+    path: "/home",
+    name: "home",
+    redirect: "/chat/new-session",
+    meta: { title: "首页" },
+  },
+  {
     path: "/empty",
     name: "Empty",
     component: () => import("./components/BackendWaitingOverlay.vue"),
   },
 ];
 
-// 根据环境动态选择路由模式
-// Electron 环境使用 Hash 模式（file:// 协议不支持 History 模式）
-// Web 环境使用 History 模式（URL 更美观）
-const router = createRouter({
-  history: isElectron ? createWebHashHistory() : createWebHistory(),
-  routes,
-});
+/**
+ * 创建应用路由（必须在 bootstrapFramework() 之后调用）。
+ *
+ * <p>守卫、白名单、标题、401 后的登录跳转全部由框架
+ * {@code @repo/core} 的 createAppRouter / setupRouterGuard 统一提供；
+ * 本应用只声明「布局路由 + 登录页 + 业务路由 + fallback」，不再自写
+ * beforeEach/afterEach 两套守卫。</p>
+ */
+function createAiRouter() {
+  return createAppRouter({
+    // Electron 环境使用 Hash 模式（file:// 协议不支持 History 模式），
+    // Web 环境使用 History 模式（URL 更美观）
+    mode: isElectron ? "hash" : "history",
+    // 本应用的布局/登录/密码页/独立嵌入页全部由自己提供，
+    // 框架不会再补一套 koi 布局与首页。
+    layoutRoutes: routes,
+    // 框架默认 fallback 是 /404；本应用没有 404 页，收敛到首页避免重定向环
+    fallback: [{ path: "/:pathMatch(.*)*", name: "NotFound", redirect: "/" }],
+    getAccessToken: currentToken,
+    hooks: {
+      // 页面标题也交给框架守卫：App.vue 里的第二条 beforeEach 删除，
+      // 避免「业务 shell 自维护一套路由钩子」的旧形态。
+      resolveTitle: (to) => {
+        const meta = to.meta || {};
+        if (meta.titleKey) return i18n.global.t(meta.titleKey);
+        if (typeof meta.title === "function") return meta.title(to);
+        return typeof meta.title === "string" ? meta.title : undefined;
+      },
+      onBeforeEach: () => {
+        if (!isElectron) NProgress.start();
+      },
+      onAfterEach: () => {
+        if (!isElectron) NProgress.done();
+        // 切换页面后收掉「路由级」加载态：用户可能在请求未返回时就点了别的菜单，
+        // 那个请求的 finally 迟迟不执行（后端挂住 / 断网无超时），遮罩会一直盖在
+        // 新页面上导致全站不可用。只关 routerScoped 的实例，页面内局部加载态不受影响。
+        closeRouterScoped("auto");
+        // 登录页已交给框架 ReLoginForm：令牌与用户信息由框架写入 storage，
+        // 这里把业务 store 的镜像同步回来（isAuthenticated / user 才会立即更新）。
+        useAuthStore().syncFromFramework();
+      },
+      onError: () => {
+        if (!isElectron) NProgress.done();
+      },
+      beforeEach: (to) => {
+        // 管理员专属路由：非管理员直接回到首页，不暴露管理面
+        if (to.matched.some((record) => record.meta?.adminOnly) && !isAdmin()) {
+          return { path: "/" };
+        }
+      },
+    },
+  });
+}
 
-router.beforeEach(async (to, from, next) => {
-  // 仅在非 Electron 环境下显示进度条
-  if (!isElectron) {
-    NProgress.start();
-  }
-  // 真登录守卫：业务路由必须持有框架令牌（@repo/utils token 模块）
-  const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth);
-  if (requiresAuth && !hasToken()) {
-    return next({ path: "/login", query: { redirect: to.fullPath } });
-  }
-  // 管理员专属路由：非管理员直接回到首页，不暴露管理面
-  const adminOnly = to.matched.some((record) => record.meta?.adminOnly);
-  if (adminOnly && !isAdmin()) {
-    return next({ path: "/" });
-  }
-  if (to.path === "/login" && hasToken()) {
-    const redirect = to.query?.redirect;
-    return next(typeof redirect === "string" && redirect ? redirect : "/");
-  }
-  next();
-});
-
-// 全局后置守卫
-router.afterEach(() => {
-  // 仅在非 Electron 环境下结束进度条
-  if (!isElectron) {
-    NProgress.done();
-  }
-  // 切换页面后收掉"路由级"加载态：
-  // 用户可能在请求未返回时就点了别的菜单，那个请求的 finally 迟迟不执行
-  // （后端挂住 / 断网无超时），遮罩会一直盖在新页面上导致全站不可用。
-  // 只关 routerScoped 的实例，页面内局部加载态不受影响。
-  closeRouterScoped("auto");
-});
+/** 路由实例在 bootstrapFramework() 之后创建（配置就绪后才读得到白名单等） */
+let router = null;
 
 /**
  * 启动流程：先装配框架上下文（统一配置 / 框架 storage / token 管理器 /
@@ -360,6 +411,11 @@ router.afterEach(() => {
  */
 async function bootstrapAndMount() {
   await bootstrapFramework();
+  // 路由必须在 app.yaml 加载之后创建：白名单 / loginPath / homePath 均来自配置
+  router = createAiRouter();
+  // 覆盖 core 内部 createApp 创建的占位 router：http 拦截器 401/403 跳登录、
+  // resetRouter 等全局能力必须作用在本应用真正安装的路由实例上。
+  setRouter(router);
   // app.yaml 已加载：将标题 / favicon 从 getConfig('app') 同步到浏览器，
   // 并订阅后续配置变更（远程设置 / 环境级 yaml 覆盖）保持品牌同步。
   applyBranding();

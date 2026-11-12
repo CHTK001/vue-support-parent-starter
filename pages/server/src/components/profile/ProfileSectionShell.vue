@@ -56,6 +56,21 @@ const props = withDefaults(defineProps<Props>(), {
   unit: "条",
 });
 
+/**
+ * 错误呈现分三档。
+ *
+ * <p>「读不到」不等于「失败了」：没有 root 权限读不了 iptables、目标机没装 ss，
+ * 这些都是可以照做的动作建议，弹一片红色「加载失败」只会让人以为是程序坏了。
+ * 后端按约定用「没有权限 / 缺少命令」开头，这里据此换标题与配色；其它情况仍按错误呈现。</p>
+ */
+const errorInfo = computed(() => {
+  const text = String(props.error ?? "").trim();
+  if (!text) return null;
+  if (text.startsWith("没有权限")) return { tone: "warn" as const, title: "权限不足", text };
+  if (text.startsWith("缺少命令")) return { tone: "warn" as const, title: "缺少系统命令", text };
+  return { tone: "error" as const, title: "加载失败", text };
+});
+
 const emit = defineEmits<{
   /** 输入过程中的实时关键字（本地过滤用，不触发请求） */
   (e: "search", keyword: string): void;
@@ -137,10 +152,14 @@ const canNext = computed(() => props.paged && !props.loading && props.page * pro
     </div>
 
     <!-- 内容 -->
-    <div v-if="error" class="pf-error">{{ error }}</div>
-    <div v-else-if="loading && !hasRows" class="pf-loading">正在拉取…</div>
-    <div v-else-if="!hasRows" class="pf-empty">{{ keyword.trim() ? "关键字未命中任何一行" : emptyText }}</div>
-    <div v-else class="pfs-body">
+    <div v-if="errorInfo" :class="['pf-error', errorInfo.tone === 'warn' ? 'is-warn' : '']">
+      <b class="pf-error-title">{{ errorInfo.title }}</b>
+      <span class="pf-error-text">{{ errorInfo.text }}</span>
+    </div>
+    <div v-if="loading && !hasRows" class="pf-loading">正在拉取…</div>
+    <div v-else-if="!hasRows && !errorInfo" class="pf-empty">{{ keyword.trim() ? "关键字未命中任何一行" : emptyText }}</div>
+    <!-- 刷新失败但之前已拉到行时继续显示旧数据，错误块挂在上方（见 loadSection 的注释） -->
+    <div v-if="hasRows" class="pfs-body">
       <slot />
     </div>
   </div>

@@ -176,6 +176,8 @@
       "@pages/monitor/*": ["pages/monitor/*"],
       "@pages/system": ["pages/system/src"],
       "@pages/system/*": ["pages/system/src/*"],
+      "@pages/tenant": ["pages/tenant/src"],
+      "@pages/tenant/*": ["pages/tenant/src/*"],
       "@pages/actuator": ["pages/actuator/src"],
       "@pages/actuator/*": ["pages/actuator/src/*"],
       "@pages/server": ["pages/server/src"],

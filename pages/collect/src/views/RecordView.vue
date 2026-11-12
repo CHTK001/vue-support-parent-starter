@@ -18,6 +18,7 @@ import { clearRecords, deleteRecord, deleteRecords, fetchFields, getFlow, listFl
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
 import { loadStrokeData } from "../utils/strokeData";
+import FieldDefDialog from "../components/FieldDefDialog.vue";
 import HanziStrokeDialog from "../components/HanziStrokeDialog.vue";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
 import type { CollectFieldDef, CollectFlow, CollectRecord } from "../types/collect";
@@ -38,6 +39,8 @@ const emptyHint = ref("暂无采集结果");
 const selected = ref<CollectRecord[]>([]);
 const detailVisible = ref(false);
 const detail = ref<CollectRecord | null>(null);
+/** 结果字段定义弹窗：只对最近一次真正筛选过的流程可用 */
+const fieldDefVisible = ref(false);
 const strokeVisible = ref(false);
 const strokeChar = ref("");
 const tableRef = ref<{ reload: () => void; goto: (page?: number) => void; clearAllSelection: () => void } | null>(null);
@@ -290,6 +293,11 @@ function showDetail(input: Record<string, unknown>): void {
   detail.value = input as unknown as CollectRecord;
   detailVisible.value = true;
 }
+
+/** 字段定义保存后立刻重查：列标题、顺序、显隐都以新定义为准 */
+function reloadAfterFieldSave(): void {
+  tableRef.value?.reload();
+}
 </script>
 
 <template>
@@ -327,6 +335,13 @@ function showDetail(input: Record<string, unknown>): void {
           <template v-else>按流程筛选后展开字段列</template>
         </span>
         <ReButton
+          icon="SetUp"
+          layout="square"
+          size="small"
+          :disabled="!activeFlowId"
+          :tip="activeFlowId ? '维护当前流程的字段定义' : '先按流程筛选，再维护字段定义'"
+          @click="fieldDefVisible = true"/>
+        <ReButton
           icon="Delete"
           layout="square"
           size="small"
@@ -354,6 +369,12 @@ function showDetail(input: Record<string, unknown>): void {
         <ReEmpty class="record-empty" :description="description" :image-size="72" />
       </template>
     </ReTable>
+
+    <FieldDefDialog
+      v-model="fieldDefVisible"
+      :flow-id="Number(activeFlowId) || null"
+      @saved="reloadAfterFieldSave"
+    />
 
     <HanziStrokeDialog v-model="strokeVisible" :character="strokeChar" :loadStrokeData="loadStrokeData" />
 

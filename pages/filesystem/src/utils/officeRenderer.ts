@@ -53,13 +53,13 @@ const CLIENT_RENDERABLE_EXTS: ReadonlySet<string> = new Set([
   "pages", "numbers", "key",
   // WordPerfect（renderer-wordperfect README：wpd/wp/wp5/wp6）+ Hangul（hwp/hwpx）
   "wpd", "wp", "wp5", "wp6", "hwp", "hwpx",
-  // WPS Office 家族（wps 文字 / wpt 文字模板 / et、ett 表格 / dps 演示）。
+  // WPS Office 家族（wps 文字 / wpt 文字模板 / et、ett 表格 / dps、dpt 演示）。
   // 这些后缀名本身没有对应的 renderer，**必须靠内容魔数改名**才能直渲：
   // 新版 WPS 存的是 OOXML ZIP 容器（改名为 .docx/.xlsx/.pptx 后 preset-office
   // 原生可读），老版本是 OLE2 CFB（改名为 .doc/.xls/.ppt 后走传统二进制解析器）。
   // 改名规则见 {@link resolveViewerFileName}；两者都不像则保持原名交给
   // PreviewOfficePanel 的兜底探测（服务端 ?format=pdf）。
-  "wps", "wpt", "et", "ett", "dps",
+  "wps", "wpt", "et", "ett", "dps", "dpt",
 ]);
 
 /**
@@ -81,8 +81,8 @@ const LEGACY_BINARY_EXTS: ReadonlySet<string> = new Set(["doc", "xls", "ppt"]);
  * 的解析器都只按扩展名选，所以必须先按魔数把它改名到对应家族，preset-office
  * 才认得。</p>
  *
- * <p>{@code dps} 是 WPS 演示，{@code et}/{@code ett} 是 WPS 表格，
- * {@code wps}/{@code wpt} 是 WPS 文字。</p>
+ * <p>{@code dps} 是 WPS 演示，{@code dpt} 是 WPS 演示模板，
+ * {@code et}/{@code ett} 是 WPS 表格，{@code wps}/{@code wpt} 是 WPS 文字。</p>
  */
 const WPS_FAMILY_EXTS: ReadonlyMap<string, "doc" | "excel" | "pptx"> = new Map([
   ["wps", "doc"],
@@ -90,6 +90,7 @@ const WPS_FAMILY_EXTS: ReadonlyMap<string, "doc" | "excel" | "pptx"> = new Map([
   ["et", "excel"],
   ["ett", "excel"],
   ["dps", "pptx"],
+  ["dpt", "pptx"],
 ]);
 
 /** OLE2 / CFB 复合文档文件头（传统 .doc / .xls / .ppt） */

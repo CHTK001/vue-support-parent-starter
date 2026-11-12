@@ -1,0 +1,11 @@
+# REQ6 模型构成 treemap 交互
+
+`pages/ai/src/components/management/UsagePage.vue` + `useUsageBoard.ts`。
+
+- `treemapOption` 数据源 = `board.treemapBlocks.blocks`（前 10 自然块 + 其他 N 项聚合块），禁止再引用已废弃的 `treemapData`。
+- 悬停压暗 §6.5 = 0.4 opacity（所有非悬停块）, 悬停 = 1；由 `board.treemapHover` 驱动；`mouseout`/`globalout` 回到 null 恢复。
+- 点击 §6.1: `@click="board.onTreemapClick"` → `ReDialog` 详情弹窗 (`v-model="board.treemapDetailVisible"`)，自然块展示自身指标，汇总块展开 `board.treemapSelected.members`。
+- 查看更多 §6.3: `@click="board.onTreemapMore"` → `ReDialog` 全部模型列表弹窗 (`v-model="board.treemapMoreVisible"`)，列表行数据必须用 `r.row.*`（`board.modelBoard.items` 是 BoardItem，`DistRow` 在 `.row` 下）。
+- 分组隔离 §6.4: 聚合块不在自然块里，两不混。
+- 所有 `percentNum/percent/barWidth/boardColorOf/formatNumber/money/fmtToken` 只传 `r.row`（DistRow）和 `board.modelDist`，不传 BoardItem 数组，否则类型/值错误。**`.usage-pct__fill` 双 `:style` 要合并到一个 PCT style 对象**（代码见 pctStyle helper）。
+- 无法在本地 `vue-tsc`（页面/ workspace 无 node_modules）；用 read/edit/write 逐段对齐接口。

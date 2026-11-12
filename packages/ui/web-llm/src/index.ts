@@ -194,8 +194,15 @@ export function useWebLLM(options: UseWebLLMOptions = {}): UseWebLLMReturn {
    */
   function onProgress(handler: (p: UseWebLLMProgress) => void): () => void {
     progressHandlers.add(handler);
-    // 触发 worker 创建（提前加载，不阻塞后续 loadModel）
-    if (!workerInitialized) getWorker(workerUrl);
+    // 预热 worker；未注入 workerUrl 时不能让订阅本身抛错，否则仅打开设置面板就会崩。
+    // 真正加载模型时 loadModel 仍会返回明确错误。
+    if (!workerInitialized) {
+      try {
+        getWorker(workerUrl);
+      } catch {
+        /* worker 可按需在 loadModel 时再创建；此处只做可选预热 */
+      }
+    }
     return () => progressHandlers.delete(handler);
   }
 

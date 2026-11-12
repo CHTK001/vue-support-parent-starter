@@ -87,6 +87,17 @@ export interface AuthImageLoader {
    * @returns 已就绪时为 true
    */
   isReady: (url: string | null | undefined) => boolean
+  /**
+   * 该地址是否已确定加载失败（HTTP 非 2xx 或网络异常）。
+   *
+   * <p>失败时 {@link AuthImageLoader.resolve} 会一直返回占位图 —— 那是 1×1 透明 GIF，
+   * 放进卡片里就是「一片空白」，用户无从判断是没图还是取图失败。
+   * 调用方据此渲染明确的「原图已丢失」态，而不是留白。</p>
+   *
+   * @param url 后端返回的地址
+   * @returns 已失败时为 true
+   */
+  failed: (url: string | null | undefined) => boolean
   /** 立即释放所有 object URL（组件卸载 / 列表整体重建时调用） */
   dispose: () => void
   /**
@@ -130,6 +141,8 @@ export function createAuthImageLoader(options: AuthImageLoaderOptions = {}): Aut
   const { withBaseUrl = true, headerName = TOKEN_HEADER } = options
   /** 已就绪的「原始地址 → blob 地址」响应式映射 */
   const blobUrls = reactive<Record<string, string>>({})
+  /** 已确定失败的地址（响应式：失败后要让页面换成明确的「已丢失」态） */
+  const failedUrls = reactive<Record<string, true>>({})
   /** 已在途 / 已失败（失败不再重试，避免 401 时反复打后端） */
   const settled = new Set<string>()
   /** 全部创建过的 object URL，供 dispose 统一 revoke */
@@ -164,6 +177,7 @@ export function createAuthImageLoader(options: AuthImageLoaderOptions = {}): Aut
       })
       if (!res.ok) {
         // 401/403 不重试：此刻多半是会话失效，再打只是徒增 401 计数并触发限流
+        failedUrls[raw] = true
         settled.add(raw)
         return
       }
@@ -173,6 +187,7 @@ export function createAuthImageLoader(options: AuthImageLoaderOptions = {}): Aut
       blobUrls[raw] = objectUrl
     } catch {
       // 网络异常：标记为已处理，避免渲染期疯狂重试
+      failedUrls[raw] = true
       settled.add(raw)
     } finally {
       settled.add(raw)
@@ -220,6 +235,9 @@ export function createAuthImageLoader(options: AuthImageLoaderOptions = {}): Aut
     for (const key of Object.keys(blobUrls)) {
       delete blobUrls[key]
     }
+    for (const key of Object.keys(failedUrls)) {
+      delete failedUrls[key]
+    }
   }
 
   /**
@@ -238,6 +256,9 @@ export function createAuthImageLoader(options: AuthImageLoaderOptions = {}): Aut
       delete blobUrls[key]
       settled.delete(key)
     }
+    for (const key of Object.keys(failedUrls)) {
+      delete failedUrls[key]
+    }
   }
 
   // 组件卸载 / effectScope 销毁时自动释放；脱离 scope 调用时 dispose 仍可手动调
@@ -246,6 +267,7 @@ export function createAuthImageLoader(options: AuthImageLoaderOptions = {}): Aut
   return {
     resolve,
     isReady: (url) => (url ? Boolean(blobUrls[url]) : true),
+    failed: (url) => (url ? Boolean(failedUrls[url]) : false),
     dispose,
     revokeAll,
     get requested() {

@@ -54,6 +54,20 @@
   --el-header-optimum-nav-btn-hover-border-color: var(--el-color-primary);
   --el-header-optimum-nav-btn-bg-color: transparent;
   --el-header-optimum-nav-btn-hover-bg-color: var(--el-color-primary-light-9);
+
+  /*
+   * ===== 壁纸层语义底色 =====
+   * 布局只引用这四个变量，不直接写 --el-*-bg-color：
+   * 壁纸开启时由 html.koi-wallpaper-on 统一改成透明 / 半透明，
+   * 既不用在 7 个布局里各写一遍判断，也不会因为改全局 --el-bg-color-page
+   * 把表格、下拉、弹窗一起变透（那是全局变量，动它会连累所有浮层）。
+   */
+  --koi-surface-page: var(--el-bg-color-page);
+  --koi-surface-main: var(--el-bg-color);
+  --koi-surface-aside: var(--el-menu-bg-color);
+  --koi-surface-header: var(--el-header-bg-color);
+  /** 顶栏/侧栏在壁纸模式下的不透明度，低于 80% 文字对比度开始吃力 */
+  --koi-chrome-alpha: 60%;
 }
 
 /* ========== 头部反转（亮色模式下用户开启「头部反转色」）========== */
@@ -138,4 +152,34 @@ html.grey-mode body {
 
 html.weak-mode body {
   filter: invert(80%);
+}
+
+/* ========== 壁纸层（html.koi-wallpaper-on）==========
+ * 只在这里改语义底色，布局组件无需感知壁纸是否存在。
+ * 顶栏 / 侧栏保留 86% 不透明度（--koi-chrome-alpha）并叠毛玻璃，
+ * 保证菜单与标题的对比度；页面底色全透明，把壁纸让出来。
+ * 卡片自身的半透明见 styles/wallpaper.scss。
+ */
+html.koi-wallpaper-on {
+  --koi-surface-page: transparent;
+  --koi-surface-main: transparent;
+  --koi-surface-aside: color-mix(
+    in srgb,
+    var(--el-menu-bg-color) var(--koi-chrome-alpha),
+    transparent
+  );
+  --koi-surface-header: color-mix(
+    in srgb,
+    var(--el-header-bg-color) var(--koi-chrome-alpha),
+    transparent
+  );
+}
+
+/* 弱视模式会对整页做 invert(80%)，壁纸会跟着反成一张底片；
+   该模式下直接停用壁纸，底色恢复实色（否则页面会变成全透明） */
+html.weak-mode.koi-wallpaper-on {
+  --koi-surface-page: var(--el-bg-color-page);
+  --koi-surface-main: var(--el-bg-color);
+  --koi-surface-aside: var(--el-menu-bg-color);
+  --koi-surface-header: var(--el-header-bg-color);
 }

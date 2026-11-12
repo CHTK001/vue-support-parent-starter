@@ -140,6 +140,9 @@ export default createVite({
       "/system/api": stripSecureCookie({
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
+        // 当前 monitor 后端 context-path 为根，前端统一前缀需要剥掉，
+        // 登录等接口才会落到 /v2/**（而不是 /system/api/v2/**）。
+        rewrite: (path) => path.replace(/^\/system\/api/, ""),
       }),
       // Spring Actuator：`/actuator/**` 监控大屏卡片直接读端点。
       // 后端 context-path 是 `/system/api`（见 system-starter 的 application.yml），

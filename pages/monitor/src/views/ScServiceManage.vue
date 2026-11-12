@@ -24,11 +24,9 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { message } from '@repo/core';
 import { useRoute } from 'vue-router';
-import ReTabs, { type ReTabsContextItem, type ReTabsItem } from '@repo/ui/re-tabs';
-import { RoomView } from '@pages/room';
+import type { ReTabsContextItem, ReTabsItem } from '@repo/ui/re-tabs';
 import ReDialog from '@repo/ui/re-dialog';
 import ScServerFormDrawer from '../components/ScServerFormDrawer.vue';
-import ScServerDetailDrawer from '../components/ScServerDetailDrawer.vue';
 import ScServerOperLogPanel from '../components/ScServerOperLogPanel.vue';
 import { useServiceNodes } from './service/useServiceNodes';
 import {
@@ -38,6 +36,18 @@ import {
 } from './service/serviceView';
 import type { ServerNodeView } from '../api';
 import { copyText } from '../utils/clipboard';
+import ShellLedger from './service/shell/ShellLedger.vue';
+import ShellRack from './service/shell/ShellRack.vue';
+import ShellConsole from './service/shell/ShellConsole.vue';
+import SvcShellSwitch from './service/shell/SvcShellSwitch.vue';
+import type {
+  ActivityItem,
+  SvcShellContext,
+  SvcShellName,
+  StatusTab,
+  WorkKind,
+  WorkTab,
+} from './service/shell/context';
 import './service/service-kit.css';
 
 const vm = useServiceNodes();
@@ -49,9 +59,7 @@ const distTitle = computed(
 );
 
 /** 左轨的状态分组 */
-const statusTabs = computed<
-  Array<{ label: string; value: '' | 'RUNNING' | 'ERROR' | 'STOPPED'; count: number; dot: string }>
->(() => [
+const statusTabs = computed<StatusTab[]>(() => [
   { label: '全部', value: '', count: vm.statusCounts.all, dot: '' },
   { label: '运行中', value: 'RUNNING', count: vm.statusCounts.running, dot: 'is-run' },
   { label: '异常', value: 'ERROR', count: vm.statusCounts.error, dot: 'is-err' },
@@ -60,24 +68,8 @@ const statusTabs = computed<
 
 /* ==================== 工作区页签 ==================== */
 
-/** 工作区页签类型：节点详情 / 过滤器链 / P2P 房间 */
-type WorkKind = 'detail' | 'filter' | 'room';
-
 /** 房间页签固定 name（同一时刻只保留一个房间工作台） */
 const ROOM_TAB = 'room';
-
-/** 工作区页签（比 ReTabsItem 多带上下文，便于渲染内容） */
-interface WorkTab extends ReTabsItem {
-  /** 所属节点 id；房间页签没有节点 */
-  nodeId?: number;
-  kind: WorkKind;
-  /** 房间页签要加入的房间号（来自 ?roomId=，空则停在「创建房间」） */
-  roomId?: string;
-  /** 房间页签指向的信令节点地址（ROOM 节点的 serverUrl；空则用宿主同端口） */
-  serverUrl?: string;
-  /** 房间页签来源节点名（展示用，空表示宿主同端口房间） */
-  nodeName?: string;
-}
 
 /** 已打开的页签 */
 const openTabs = ref<WorkTab[]>([]);
@@ -642,15 +634,6 @@ function toggleRail(): void {
   localStorage.setItem('assets-rail-collapsed', railCollapsed.value ? '1' : '0');
 }
 
-/** 最近活动记录 */
-interface ActivityItem {
-  id: number;
-  text: string;
-  icon: string;
-  nodeId?: number;
-  at: number;
-}
-
 /** 最近活动（最新的在前，最多 12 条） */
 const activities = ref<ActivityItem[]>([]);
 let activitySeq = 0;
@@ -685,6 +668,82 @@ function gotoActivity(item: ActivityItem): void {
 
 /** 当前页签数（Dock 统计用） */
 const tabCount = computed(() => openTabs.value.length);
+
+/* ==================== 外壳：三个方向共用一份状态 ==================== */
+
+/** 已保存的方向；只认三个代号，脏值回落机架 */
+function readShell(): SvcShellName {
+  const saved = localStorage.getItem('svc-shell');
+  return saved === 'ledger' || saved === 'console' || saved === 'rack' ? saved : 'rack';
+}
+
+/**
+ * 当前外壳方向（方向对比阶段可切换，选定后固定为常量）。
+ *
+ * <p>写 localStorage 是为了「切到详情页再回来仍是同一个方向」——对比时最怕
+ * 每次刷新都跳回默认值，误以为是排版不稳。</p>
+ */
+const shell = ref<SvcShellName>(readShell());
+watch(shell, value => localStorage.setItem('svc-shell', value));
+
+/** 方向 → 外壳组件 */
+const shellComponent = computed(() =>
+  shell.value === 'ledger' ? ShellLedger : shell.value === 'console' ? ShellConsole : ShellRack,
+);
+
+/** 页签切换：ReTabs 只回传 name，写回页面状态 */
+function setActiveTab(name: string): void {
+  activeTab.value = name;
+}
+
+/**
+ * 交给外壳的上下文：ref 原样传进去，由 {@code reactive()} 解包。
+ * 这样外壳读写的就是页面同一份状态，不存在「外壳里改了、页面没变」的两份。
+ */
+const shellCtx = reactive({
+  vm,
+  statusTabs,
+  distTitle,
+  protocolGroups,
+  collapsedGroups,
+  toggleGroup,
+  selectedNodeId,
+  activeNodeId,
+  activeCard,
+  onRowClick,
+  onRowDblClick,
+  runPrimary,
+  primaryLabel,
+  primaryIcon,
+  stateClassOf,
+  openCtxMenuFromButton,
+  openOperLog,
+  openTabs,
+  activeTab,
+  setActiveTab,
+  tabContextMenu,
+  onTabCommand,
+  closeTab,
+  kindOf,
+  nodeIdOf,
+  roomIdOf,
+  serverUrlOf,
+  reloadSeqOf,
+  openTab,
+  openRoomTab,
+  openRoomEntrance,
+  openRoomFromCard,
+  isRoomCard,
+  railCollapsed,
+  toggleRail,
+  dockOpen,
+  toggleDock,
+  activities,
+  clearActivities,
+  timeAgo,
+  gotoActivity,
+  tabCount,
+}) as unknown as SvcShellContext;
 
 /* ==================== 自动刷新后同步页签 ==================== */
 
@@ -782,309 +841,8 @@ watch(
       class="load-notice"
     />
 
-    <!-- ============ 控制条：一行装下计数、分布、搜索、新增 ============ -->
-    <div class="rack__bar">
-      <div class="rack__counts">
-        <span class="rack__big sv-mono">{{ vm.statusCounts.running }}</span>
-        <span class="rack__of sv-mono">/ {{ vm.stats.total }}</span>
-        <span class="rack__cap">运行中</span>
-      </div>
-
-      <!-- 三段分布：宽度就是占比，为 0 的一段不要渲染，避免留下一条 2px 细线 -->
-      <div class="rack__dist" :title="distTitle">
-        <span v-if="vm.statusCounts.running" class="rack__seg is-run" :style="{ flex: vm.statusCounts.running }" />
-        <span v-if="vm.statusCounts.error" class="rack__seg is-err" :style="{ flex: vm.statusCounts.error }" />
-        <span v-if="vm.statusCounts.stopped" class="rack__seg is-stop" :style="{ flex: vm.statusCounts.stopped }" />
-        <span v-if="!vm.stats.total" class="rack__seg is-none" />
-      </div>
-
-      <!-- 宽度写在包一层的 div 上：ReInput / ReSelect 根节点自带 width:100% -->
-      <div class="rack__search">
-        <ReInput
-          v-model="vm.keyword"
-          aria-label="搜索服务"
-          placeholder="名称 / 端口 / 报错关键字"
-          clearable
-          prefix-icon="Search"
-        />
-      </div>
-      <div class="rack__proto">
-        <ReSelect
-          v-model="vm.protocol"
-          aria-label="按协议筛选"
-          :data="vm.protocolOptions"
-          placeholder="全部协议"
-          clearable
-        />
-      </div>
-      <ReButton icon="Connection" show-text tip="打开 P2P 房间工作台" @click="openRoomEntrance">P2P 房间</ReButton>
-      <ReButton icon="Plus" layout="square" type="primary" tip="新增服务" @click="vm.openCreate()" />
-      <ReButton icon="Refresh" layout="square" tip="刷新" :loading="vm.loading" @click="vm.refresh()" />
-    </div>
-
-    <!-- ============ 三栏主体 ============ -->
-    <div class="sv-body">
-      <!-- ==================== 左侧：服务节点栏 ==================== -->
-      <aside class="sv-rail" :class="{ 'is-collapsed': railCollapsed }">
-        <!-- 折叠态：只留一条竖条，展开按钮压在底部 -->
-        <div v-if="railCollapsed" class="sv-rail-strip">
-          <button type="button" class="sv-rail-strip__count" title="展开服务列表" @click="toggleRail">
-            <b>{{ vm.visibleCards.length }}</b>
-            <span>/{{ vm.cards.length }}</span>
-          </button>
-          <span class="sv-rail-strip__dots">
-            <i class="is-run" :title="`运行中 ${vm.statusCounts.running}`" />
-            <i class="is-err" :title="`异常 ${vm.statusCounts.error}`" />
-          </span>
-          <span class="sv-rail-strip__gap" />
-          <button type="button" class="sv-rail-strip__toggle" title="展开服务列表" @click="toggleRail">
-            <ReIcon name="ArrowRight" :size="13" />
-          </button>
-        </div>
-
-        <!-- 展开态：状态页签 -->
-        <div v-show="!railCollapsed" class="sv-rail__head">
-          <button
-            v-for="tab in statusTabs"
-            :key="tab.value"
-            type="button"
-            class="sv-rail__tab"
-            :class="{ 'is-active': vm.status === tab.value }"
-            :aria-pressed="vm.status === tab.value"
-            @click="vm.status = tab.value"
-          >
-            <i class="sv-dot" :class="tab.dot" />
-            <span class="sv-rail__tab-label">{{ tab.label }}</span>
-            <span class="sv-rail__tab-n sv-mono">{{ tab.count }}</span>
-          </button>
-        </div>
-
-        <!-- 展开态：协议分组列表 -->
-        <div v-show="!railCollapsed" class="sv-rail__groups">
-          <template v-for="group in protocolGroups" :key="group.key">
-            <button
-              type="button"
-              class="sv-group__head"
-              :aria-expanded="!collapsedGroups.has(group.key)"
-              @click="toggleGroup(group.key)"
-            >
-              <ReIcon
-                name="ArrowDown"
-                :size="12"
-                class="sv-group__caret"
-                :class="{ 'is-folded': collapsedGroups.has(group.key) }"
-              />
-              <span class="sv-group__name sv-ellipsis">{{ group.protocolText }}</span>
-              <span v-if="group.running" class="sv-group__run" :title="`运行中 ${group.running}`">
-                <i class="sv-dot is-run" />{{ group.running }}
-              </span>
-              <span class="sv-group__n sv-mono">{{ group.cards.length }}</span>
-            </button>
-
-            <div v-show="!collapsedGroups.has(group.key)" class="sv-group__list">
-              <div
-                v-for="card in group.cards"
-                :key="card.id"
-                class="sv-node"
-                :class="{ 'is-active': activeNodeId === card.id, 'is-selected': selectedNodeId === card.id && activeNodeId !== card.id }"
-                :title="card.listenText"
-                @click="onRowClick(card)"
-                @dblclick="onRowDblClick(card)"
-                @contextmenu="openCtxMenu($event, card)"
-              >
-                <i class="sv-dot" :class="stateClassOf(card)" />
-                <span class="sv-node__name sv-ellipsis">{{ card.name }}</span>
-                <span class="sv-node__port sv-mono">{{ card.portText }}</span>
-                <!-- 行内操作：悬停浮出，不占常态宽度 -->
-                <span class="sv-node__ops">
-                  <button
-                    v-if="isRoomCard(card)"
-                    type="button"
-                    title="打开房间工作台"
-                    @click.stop="openRoomFromCard(card)"
-                  >
-                    <ReIcon name="Connection" :size="13" />
-                  </button>
-                  <button
-                    type="button"
-                    :title="primaryLabel(card)"
-                    :disabled="vm.actingId === card.id"
-                    @click.stop="runPrimary(card)"
-                  >
-                    <ReIcon :name="primaryIcon(card)" :size="13" />
-                  </button>
-                  <button type="button" title="查看详情" @click.stop="openTab(card, 'detail')">
-                    <ReIcon name="View" :size="13" />
-                  </button>
-                  <button type="button" title="更多操作" @click.stop="openCtxMenuFromButton($event, card)">
-                    <ReIcon name="MoreFilled" :size="13" />
-                  </button>
-                </span>
-              </div>
-            </div>
-          </template>
-
-          <div v-if="!vm.visibleCards.length" class="sv-rail__empty">
-            <ReIcon name="Files" :size="20" />
-            <span>{{ vm.filtered ? '没有匹配的服务' : '还没有服务节点' }}</span>
-          </div>
-        </div>
-
-        <!-- 展开态：底部折叠按钮 -->
-        <button v-show="!railCollapsed" type="button" class="sv-rail__foot" title="收起服务列表" @click="toggleRail">
-          <ReIcon name="ArrowLeft" :size="12" />
-          <span>收起</span>
-        </button>
-      </aside>
-
-      <!-- ==================== 中间：ReTabs 工作区 ==================== -->
-      <section class="sv-work">
-        <ReTabs
-          v-model="activeTab"
-          :tabs="openTabs"
-          :context-menu="tabContextMenu"
-          empty-text="从左侧选择服务：单击选中，双击或右键打开详情；P2P 房间在 ROOM 节点行点连接图标打开"
-          @close="closeTab"
-          @context-command="onTabCommand"
-        >
-          <template #default="{ tab }">
-            <!-- 房间工作台：关闭页签即卸载，RoomView 自己 leave + 断开 WebSocket -->
-            <RoomView
-              v-if="kindOf(tab) === 'room'"
-              :key="`${tab.name}:${reloadSeqOf(tab.name)}`"
-              :room-id="roomIdOf(tab)"
-              :server-url="serverUrlOf(tab)"
-              @leave="closeTab(tab.name)"
-            />
-            <!-- 每个页签独立实例 + key 代次：刷新/重开页签时重建内容 -->
-            <ScServerDetailDrawer
-              v-else
-              :key="`${tab.name}:${reloadSeqOf(tab.name)}`"
-              embedded
-              :initial-view="kindOf(tab) === 'filter' ? 'filter' : 'detail'"
-              :node-id="nodeIdOf(tab)"
-              :filter-types="vm.filterTypes"
-              @changed="vm.refresh()"
-              @open-detail-page="vm.openDetailPage"
-            />
-          </template>
-        </ReTabs>
-      </section>
-
-      <!-- ==================== 右侧：快捷面板 ==================== -->
-      <aside v-if="dockOpen" class="sv-dock">
-        <div class="sv-dock__head">
-          <span class="sv-dock__title">快捷面板</span>
-          <button type="button" class="sv-dock__fold" title="收起快捷面板" @click="toggleDock">
-            <ReIcon name="ArrowRight" :size="12" />
-          </button>
-        </div>
-
-        <div class="sv-dock__body">
-          <!-- 快捷操作 -->
-          <div class="sv-dock__sec">
-            <div class="sv-dock__sec-title">快捷操作</div>
-            <div class="sv-dock__quick">
-              <button v-if="activeCard" type="button" class="sv-dock__item" @click="openTab(activeCard, 'detail')">
-                <ReIcon name="View" :size="13" />
-                <span>查看详情</span>
-              </button>
-              <button v-if="activeCard" type="button" class="sv-dock__item" @click="openTab(activeCard, 'filter')">
-                <ReIcon name="Filter" :size="13" />
-                <span>过滤器链</span>
-              </button>
-              <button
-                v-if="activeCard"
-                type="button"
-                class="sv-dock__item"
-                :class="{ 'is-running': primaryActionOf(activeCard) === 'stop' }"
-                :disabled="vm.actingId === activeCard.id"
-                @click="runPrimary(activeCard)"
-              >
-                <ReIcon :name="primaryIcon(activeCard)" :size="13" />
-                <span>{{ primaryLabel(activeCard) }}</span>
-              </button>
-              <button type="button" class="sv-dock__item" :disabled="vm.loading" @click="vm.refresh()">
-                <ReIcon name="RefreshRight" :size="13" />
-                <span>刷新列表</span>
-              </button>
-              <button type="button" class="sv-dock__item" @click="toggleRail">
-                <ReIcon name="DArrowLeft" :size="13" />
-                <span>{{ railCollapsed ? '展开服务栏' : '收起服务栏' }}</span>
-              </button>
-              <button type="button" class="sv-dock__item" @click="vm.openCreate()">
-                <ReIcon name="Plus" :size="13" />
-                <span>新增服务</span>
-              </button>
-              <button type="button" class="sv-dock__item" @click="openRoomEntrance">
-                <ReIcon name="Connection" :size="13" />
-                <span>P2P 房间</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 最近活动 -->
-          <div class="sv-dock__sec">
-            <div class="sv-dock__sec-title">
-              最近活动
-              <button v-if="activities.length" type="button" class="sv-dock__more" @click="clearActivities">清空</button>
-            </div>
-            <div v-if="activities.length" class="sv-dock__act">
-              <button
-                v-for="it in activities"
-                :key="it.id"
-                type="button"
-                class="sv-dock__act-item"
-                :class="{ 'is-link': it.nodeId != null }"
-                :title="it.text"
-                @click="gotoActivity(it)"
-              >
-                <ReIcon :name="it.icon" :size="13" />
-                <span class="sv-dock__act-text sv-ellipsis">{{ it.text }}</span>
-                <span class="sv-dock__act-time">{{ timeAgo(it.at) }}</span>
-              </button>
-            </div>
-            <div v-else class="sv-dock__empty">操作记录会显示在这里</div>
-          </div>
-
-          <!-- 统计 -->
-          <div class="sv-dock__sec">
-            <div class="sv-dock__sec-title">节点统计</div>
-            <div class="sv-dock__stats">
-              <div class="sv-dock__stat">
-                <span>服务总数</span>
-                <b class="sv-mono">{{ vm.stats.total }}</b>
-              </div>
-              <div class="sv-dock__stat">
-                <span>运行中</span>
-                <b class="sv-mono is-run">{{ vm.stats.running }}</b>
-              </div>
-              <div class="sv-dock__stat">
-                <span>异常</span>
-                <b class="sv-mono is-err">{{ vm.stats.error }}</b>
-              </div>
-              <div class="sv-dock__stat">
-                <span>已停止</span>
-                <b class="sv-mono">{{ vm.stats.stopped }}</b>
-              </div>
-              <div class="sv-dock__stat">
-                <span>已挂插件</span>
-                <b class="sv-mono">{{ vm.stats.plugins }}</b>
-              </div>
-              <div class="sv-dock__stat">
-                <span>工作区页签</span>
-                <b class="sv-mono">{{ tabCount }}</b>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Dock 收起态：右缘一条竖条 -->
-      <button v-else type="button" class="sv-dock-fold" title="展开快捷面板" @click="toggleDock">
-        <ReIcon name="ArrowLeft" :size="13" />
-      </button>
-    </div>
+    <!-- 三栏主体已抽成外壳：A 台账 / B 机架 / C 控制台共用同一份状态与动作 -->
+    <component :is="shellComponent" :ctx="shellCtx" />
 
     <!-- 新增 / 编辑 / 克隆：表单抽屉（与旧页契约一致） -->
     <ScServerFormDrawer
@@ -1190,6 +948,9 @@ watch(
         </div>
       </div>
     </Teleport>
+
+    <!-- 方向对比开关：只在探索阶段存在，选定方向后删除 -->
+    <SvcShellSwitch v-model="shell" />
   </div>
 </template>
 
@@ -1215,677 +976,15 @@ watch(
   min-height: 0;
 }
 
-/* ============ 控制条 ============ */
-.rack__bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: none;
-  padding: 8px 12px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-}
-
-.rack__counts {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  flex: none;
-}
-
-.rack__big {
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--el-text-color-primary);
-}
-
-.rack__of {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-.rack__cap {
-  margin-left: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.rack__dist {
-  display: flex;
-  gap: 2px;
-  flex: 1 1 120px;
-  max-width: 260px;
-  min-width: 80px;
-  height: 6px;
-}
-
-.rack__seg {
-  min-width: 2px;
-  border-radius: 3px;
-  transition: flex 240ms ease-out;
-}
-
-.rack__seg.is-run {
-  background: var(--status-success, var(--el-color-success));
-}
-
-.rack__seg.is-err {
-  background: var(--status-error, var(--el-color-danger));
-}
-
-.rack__seg.is-stop {
-  background: var(--el-border-color);
-}
-
-.rack__seg.is-none {
-  flex: 1;
-  background: var(--el-fill-color);
-}
-
-.rack__search {
-  flex: none;
-  width: 240px;
-  margin-left: auto;
-}
-
-.rack__proto {
-  flex: none;
-  width: 190px;
-}
-
-/* ============ 三栏主体 ============ */
-.sv-body {
-  display: flex;
-  flex: 1 1 auto;
-  gap: 12px;
+/* ============ 外壳外框 ============ */
+.service-manage :deep(> *) {
   min-height: 0;
-}
-
-/* ==================== 左轨 ==================== */
-.sv-rail {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  width: 264px;
-  min-height: 0;
-  overflow: hidden;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-  transition: width 0.18s ease;
-}
-
-/* 折叠态：264px → 44px，中间工作区净增 220px */
-.sv-rail.is-collapsed {
-  width: 44px;
-}
-
-.sv-rail-strip {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 0 10px;
-}
-
-.sv-rail-strip__count {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-}
-
-.sv-rail-strip__count b {
-  font-size: 16px;
-  line-height: 1;
-  color: var(--el-text-color-primary);
-}
-
-.sv-rail-strip__dots {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sv-rail-strip__dots i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--el-text-color-placeholder);
-}
-
-.sv-rail-strip__dots i.is-run {
-  background: var(--status-success, var(--el-color-success));
-}
-
-.sv-rail-strip__dots i.is-err {
-  background: var(--status-error, var(--el-color-danger));
-}
-
-.sv-rail-strip__gap {
-  flex: 1 1 auto;
-}
-
-.sv-rail-strip__toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: var(--el-radius-sm, 6px);
-  color: var(--el-text-color-placeholder);
-  cursor: pointer;
-}
-
-.sv-rail-strip__toggle:hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-color-primary);
-}
-
-/* 状态页签 */
-.sv-rail__head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 6px 2px;
-  flex: none;
-}
-
-.sv-rail__tab {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 8px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  background: transparent;
-  border: 0;
-  border-radius: var(--el-radius-sm, 6px);
-  cursor: pointer;
-  text-align: left;
-}
-
-.sv-rail__tab:hover {
-  background: var(--el-fill-color-light);
-}
-
-.sv-rail__tab.is-active {
-  color: var(--el-color-primary);
-  background: color-mix(in srgb, var(--el-color-primary) 9%, transparent);
-}
-
-.sv-rail__tab:focus-visible {
-  outline: 2px solid var(--el-color-primary);
-  outline-offset: -1px;
-}
-
-.sv-rail__tab-label {
-  flex: 1 1 auto;
-}
-
-.sv-rail__tab-n {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-.sv-rail__tab.is-active .sv-rail__tab-n {
-  color: var(--el-color-primary);
-}
-
-/* 协议分组列表 */
-.sv-rail__groups {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 2px 6px 6px;
-}
-
-.sv-group__head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 6px 8px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: var(--el-radius-sm, 6px);
-  cursor: pointer;
-}
-
-.sv-group__head:hover {
-  background: var(--el-fill-color-light);
-}
-
-.sv-group__caret {
-  flex: none;
-  color: var(--el-text-color-placeholder);
-  transition: transform 0.15s ease;
-}
-
-.sv-group__caret.is-folded {
-  transform: rotate(-90deg);
-}
-
-.sv-group__name {
-  flex: 1 1 auto;
-  font-weight: 600;
-}
-
-.sv-group__run {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex: none;
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-
-.sv-group__n {
-  flex: none;
-  min-width: 16px;
-  text-align: right;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-}
-
-.sv-group__list {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding-left: 14px;
-  margin-left: 6px;
-  border-left: 1px solid var(--el-border-color-lighter);
-}
-
-/* 服务行 */
-.sv-node {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: var(--el-radius-md, 8px);
-  border: 1px solid transparent;
-  transition: background 0.12s ease, border-color 0.12s ease;
-}
-
-.sv-node:hover {
-  background: var(--el-fill-color-light);
-}
-
-.sv-node.is-active {
-  background: var(--el-color-primary-light-9);
-  border-color: var(--el-color-primary-light-7);
-}
-
-.sv-node.is-selected {
-  background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
-}
-
-.sv-node__name {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.sv-node__port {
-  flex: none;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-}
-
-/* 行内操作：常态不占位，悬停时覆盖在行右端 */
-.sv-node__ops {
-  position: absolute;
-  top: 50%;
-  right: 6px;
-  display: flex;
-  gap: 2px;
-  padding: 2px;
-  opacity: 0;
-  pointer-events: none;
-  background: color-mix(in srgb, var(--el-bg-color) 92%, transparent);
-  border-radius: var(--el-radius-sm, 4px);
-  transform: translateY(-50%);
-  transition: opacity 0.12s ease;
-}
-
-.sv-node:hover .sv-node__ops,
-.sv-node:focus-within .sv-node__ops {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.sv-node__ops button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-radius: var(--el-radius-sm, 4px);
-}
-
-.sv-node__ops button:hover {
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-}
-
-.sv-node__ops button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.sv-rail__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 24px 12px;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-/* 左轨底部折叠按钮 */
-.sv-rail__foot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  flex: none;
-  margin: auto 6px 6px;
-  padding: 7px 8px;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-  background: transparent;
-  border: none;
-  border-top: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm, 6px);
-  cursor: pointer;
-}
-
-.sv-rail__foot:hover {
-  color: var(--el-color-primary);
-  background: var(--el-fill-color-light);
-}
-
-/* ==================== 中间：ReTabs 工作区 ==================== */
-.sv-work {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-}
-
-/* ==================== 右 Dock ==================== */
-.sv-dock {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  width: 212px;
-  min-height: 0;
-  overflow-y: auto;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-}
-
-.sv-dock__head {
-  display: flex;
-  flex: none;
-  align-items: center;
-  padding: 10px 10px 8px 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.sv-dock__title {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--el-text-color-secondary);
-}
-
-.sv-dock__fold {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: var(--el-radius-sm, 6px);
-  color: var(--el-text-color-placeholder);
-  cursor: pointer;
-}
-
-.sv-dock__fold:hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-color-primary);
-}
-
-.sv-dock__body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 10px 10px 12px;
-}
-
-.sv-dock__sec {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sv-dock__sec-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--el-text-color-placeholder);
-}
-
-.sv-dock__more {
-  padding: 0;
-  border: none;
-  background: transparent;
-  font-size: 11px;
-  color: var(--el-color-primary);
-  cursor: pointer;
-}
-
-.sv-dock__more:hover {
-  opacity: 0.8;
-}
-
-/* 快捷操作：两列小格，窄屏回退单列 */
-.sv-dock__quick {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3px;
-}
-
-.sv-dock__item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 6px 8px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  text-align: left;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--el-radius-md, 8px);
-  cursor: pointer;
-}
-
-.sv-dock__item:hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-color-primary);
-}
-
-.sv-dock__item:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* 最近活动 */
-.sv-dock__act {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.sv-dock__act-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 4px 6px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: var(--el-radius-sm, 6px);
-  cursor: default;
-}
-
-.sv-dock__act-item.is-link {
-  cursor: pointer;
-}
-
-.sv-dock__act-item.is-link:hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-color-primary);
-}
-
-.sv-dock__act-text {
-  flex: 1 1 auto;
-}
-
-.sv-dock__act-time {
-  flex: none;
-  font-size: 10.5px;
-  color: var(--el-text-color-placeholder);
-}
-
-.sv-dock__empty {
-  padding: 4px 6px;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-}
-
-/* 节点统计 */
-.sv-dock__stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 10px;
-}
-
-.sv-dock__stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-
-.sv-dock__stat b {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.sv-dock__stat b.is-run {
-  color: var(--status-success, var(--el-color-success));
-}
-
-.sv-dock__stat b.is-err {
-  color: var(--status-error, var(--el-color-danger));
-}
-
-/* Dock 收起态：右缘一条竖条 */
-.sv-dock-fold {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-  width: 36px;
-  color: var(--el-text-color-placeholder);
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-  cursor: pointer;
-}
-
-.sv-dock-fold:hover {
-  color: var(--el-color-primary);
-  background: var(--el-fill-color-light);
 }
 
 /* ============ 窄屏 ============ */
 @media (max-width: 1180px) {
-  .sv-dock {
-    width: 172px;
-  }
-
-  .sv-dock__quick {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 960px) {
-  .sv-rail {
-    width: 220px;
-  }
-}
-
-@media (max-width: 860px) {
-  .rack__dist {
-    display: none;
-  }
-
-  .sv-dock,
-  .sv-dock-fold {
-    display: none;
+  .service-manage {
+    gap: 8px;
   }
 }
 </style>

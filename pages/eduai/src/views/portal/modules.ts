@@ -99,19 +99,22 @@ export function normalizeStage(v?: string | null): Stage {
 /**
  * 按学段取模块目录
  *
+ * <p>返回**副本**：调用方（学生端「全部功能」）会往里追加后台配置的模块，
+ * 直接返回常量数组会把追加结果留在模块级常量上，跨调用污染内置目录。</p>
+ *
  * @param stage 学段
- * @returns 该学段的模块列表
+ * @returns 该学段的模块列表（新数组）
  */
 export function modulesOf(stage?: string | null): PortalModule[] {
   switch (stage) {
     case "PRIMARY":
-      return PRIMARY_MODULES;
+      return [...PRIMARY_MODULES];
     case "SENIOR":
-      return SENIOR_MODULES;
+      return [...SENIOR_MODULES];
     case "JUNIOR":
-      return JUNIOR_MODULES;
+      return [...JUNIOR_MODULES];
     default:
-      return PRIMARY_MODULES;
+      return [...PRIMARY_MODULES];
   }
 }
 

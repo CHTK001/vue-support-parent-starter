@@ -588,6 +588,8 @@ export interface OtherConfig {
   home: HomeConfig;
   /** 头像框配置 */
   avatarFrame: AvatarFrameConfig;
+  /** 壁纸配置（个人中心自定义背景） */
+  wallpaper: WallpaperConfig;
   /** 加载动画配置（部署侧接管，默认关闭） */
   loaderConfig: LoaderDeployConfig;
   /** 空状态（ReEmpty）默认样式（主题配置里仅 admin 可改） */
@@ -702,6 +704,18 @@ export interface LoaderDeploySizeConfig {
 
 export interface AvatarFrameConfig {
   /** 是否启用头像框功能（默认 false） */
+  enable: boolean;
+}
+
+/**
+ * 壁纸配置（app.yaml `other.wallpaper`）
+ *
+ * <p>关闭时不渲染壁纸层、不请求任何接口，个人中心的「壁纸」页签一并隐藏。</p>
+ * <p>壁纸是「设备级偏好」而非账号级设置：配置存在 localStorage，
+ * 与主题色、布局等其它外观偏好同一口径；上传的图片本身才落到服务端文件存储。</p>
+ */
+export interface WallpaperConfig {
+  /** 是否启用壁纸功能（默认 false） */
   enable: boolean;
 }
 

@@ -686,6 +686,28 @@ export const openTsharkPacketStream = (sessionId: number, options: Record<string
 export const getTsharkProtocolStats = (sessionId: number, displayFilter = '') =>
   http().get(`${B}/tshark/sessions/${sessionId}/stats/protocol` +
     (displayFilter ? `?displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));
+
+/**
+ * 可还原协议清单（能力矩阵）。
+ *
+ * <p>能还原什么由后端 SPI 决定：新增一个 `ProtocolRestorer` 就会出现在这里，
+ * 页面不写死协议表，避免「代码支持了、页面还说没有」。`level` 是展示口径：
+ * FULL 正文可读 / STRUCTURE 结构可读（载荷加密）/ CONNECTION 仅连接识别。</p>
+ */
+export const getTsharkRestoreCapabilities = () =>
+  http().get(`${B}/tshark/restore/capabilities`)
+    .then(r => unwrap<Array<{ protocol: string, priority: number, level: string }>>(r));
+
+/**
+ * TLS keylog 状态。
+ *
+ * <p>配了 `plugin.monitor.tshark.tls-keylog-file` 且文件可读时，解析会带
+ * `-o tls.keylog_file:<path>`，TLS 里的 HTTP/2、MSRP、SMPP 才能解出来。
+ * 页面据此说明「为什么抓到了却只有握手」。</p>
+ */
+export const getTsharkTlsKeylog = () =>
+  http().get(`${B}/tshark/tls/keylog`)
+    .then(r => unwrap<{ configured: boolean, enabled: boolean, path: string }>(r));
 export const getTsharkTopFlows = (sessionId: number, limit = 10, displayFilter = '') =>
   http().get(`${B}/tshark/sessions/${sessionId}/stats/top?limit=${limit}` +
     (displayFilter ? `&displayFilter=${encodeURIComponent(displayFilter)}` : '')).then(r => unwrap<any[]>(r));

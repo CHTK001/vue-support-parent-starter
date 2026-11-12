@@ -167,6 +167,7 @@ export default createVite({
     "@pages/collect": "pages/collect",
     "@pages/job": "pages/job",
     "@pages/datasource": "pages/datasource",
+    "@pages/osgi": "pages/osgi",
   },
   server: {
     port: 19096,

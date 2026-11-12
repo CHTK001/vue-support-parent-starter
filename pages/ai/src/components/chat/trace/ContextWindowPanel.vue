@@ -949,7 +949,7 @@ watch(
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.2;
-  text-shadow: 0 1px 2px color-mix(in srgb, #000 28%, transparent);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--el-color-black) 28%, transparent);
 }
 .cw-cell__label {
   font-size: 11px;
@@ -963,17 +963,22 @@ watch(
 
 .cw-grid {
   display: grid;
+  /* 24 列 × 12 行 = 288 格，行高与容器同分，不用 aspect-ratio：
+     等格阵在窄栏里如果用 1:1 方格，行高会撑破 132px 的固定高度并溢出到图例上。 */
   grid-template-columns: repeat(24, 1fr);
+  grid-template-rows: repeat(12, 1fr);
   gap: 2px;
+  box-sizing: border-box;
   width: 100%;
   height: 132px;
-  align-content: start;
   padding: 1px;
+  overflow: hidden;
 }
 
 .cw-grid__dot {
   width: 100%;
-  aspect-ratio: 1;
+  height: 100%;
+  min-width: 0;
   border-radius: 1.5px;
   background: var(--el-color-primary);
 }
@@ -1136,7 +1141,7 @@ watch(
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: color-mix(in srgb, #000 42%, transparent);
+  background: color-mix(in srgb, var(--el-color-black) 42%, transparent);
 }
 
 .cw-modal {
@@ -1149,7 +1154,7 @@ watch(
   border-radius: var(--el-radius-lg, 10px);
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-light);
-  box-shadow: 0 18px 48px color-mix(in srgb, #000 30%, transparent);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--el-color-black) 30%, transparent);
   color: var(--el-text-color-primary);
 }
 
@@ -1202,6 +1207,24 @@ watch(
 .cw-modal-close:hover {
   background: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
+}
+
+/* 浮层里的正文沿用行内卡片的排版，但去掉行内卡的内缩（那是给 280px 宽栏留的边），
+   正文区吃满浮层宽度并自己滚动；底色改用填充色，与浮层白底分层。 */
+.cw-modal .cw-card-note,
+.cw-modal .cw-card-sub,
+.cw-modal .cw-card-foot {
+  padding-left: 0;
+  padding-right: 0;
+}
+.cw-modal .cw-code {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-base, 6px);
+  background: var(--el-fill-color-lighter);
 }
 
 .cw-detail-head {

@@ -90,6 +90,24 @@
             </div>
           </Transition>
 
+          <!-- 上一轮未完成的确认条（2026-11-12）：
+               刷新/重启后如果最后一轮只有提问没有回答，说明后端那轮被打断了。
+               这时刻意不自动发「继续」，也不自动放队列——同一条命令被重跑一次
+               可能是破坏性的（删除、推送、提交）。由用户明确点「继续」才发。 -->
+          <Transition name="queue-drawer">
+            <div v-if="resumeInterrupted && !editMode"
+              class="resume-banner w-[calc(100%-48px)] mx-auto mb-2 px-3 py-2 flex items-center gap-2 rounded-(--size-dialog-rounded-radius) bg-(--el-color-warning-light-9)">
+              <svg class="resume-banner__icon shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.6" stroke="currentColor" stroke-width="1.4" />
+                <path d="M8 4.8v4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                <circle cx="8" cy="11.1" r="0.85" fill="currentColor" />
+              </svg>
+              <span class="resume-banner__text flex-1 min-w-0">{{ t('chat.panel.resumeInterrupted') }}</span>
+              <el-button size="small" text @click="handleResumeDismiss">{{ t('chat.panel.resumeDismiss') }}</el-button>
+              <el-button size="small" type="primary" plain @click="handleResumeContinue">{{ t('chat.panel.resumeContinue') }}</el-button>
+            </div>
+          </Transition>
+
           <!-- 编辑模式提示条：与下方输入框拼成**同一张卡**（同一宽度、只圆上两角、共享底色），
                中间不再插入任何独立块。
                底色不在这里另写一份，而是复用与输入卡完全相同的两组工具类：
@@ -116,15 +134,14 @@
             @switch="emit('switch-agent', $event)" />
 
           <!-- 模型动作条：输入框上方的「模型此刻在干什么」
-               （执行中命令卡可展开/停止；等待用户/思考/生成三种轻量态）。
+               （执行中命令卡可展开；等待用户/思考/生成三种轻量态）。
+               答完即整条消失，没有空闲态。
                编辑消息时隐藏，避免与编辑条叠在一起（与 AiNextTaskPanel 同口径）。 -->
           <ModelActionBar v-if="!editMode" :kind="actionBarKind"
             :model-name="actionBarModelName" :card="actionBarCard" :progress="actionBarProgressText"
-            :pending="actionBarPending" :retry="actionBarRetry" :suggestions="actionBarSuggestions"
-            :suggestions-enabled="actionBarSuggestEnabled" :session-id="effectiveSessionId"
-            @stop="abortResponse" @locate="handleActionBarLocate"
-            @approve="handleActionBarApproveAll" @suggestion="handleActionBarSuggestion"
-            @suggested="loadNextTaskState" />
+            :pending="actionBarPending" :retry="actionBarRetry"
+            @locate="handleActionBarLocate"
+            @approve="handleActionBarApproveAll" />
 
           <div class="w-full flex items-center relative">
 
@@ -133,6 +150,14 @@
               :config="chatInputConfig" :streaming="isStreaming" :readonly="readonly" mode="chat"
               :backdrop="hasWallpaper"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse">
+              <!-- 会话页的工作目录：2026-11-12 用户要求放到输入卡最底部常驻一行，
+                    并把「本地 / 远端」一并显示出来。放在底栏而不是工具条里，
+                    是因为它不是「本轮输入的一部分」，而是这一整个会话的落点。
+                    弹层复用 WorkspaceSelectorPopover（含「添加项目」与 GitHub 克隆）。 -->
+              <template #workspace>
+                <SessionWorkspaceButton variant="bar" :workspace-path="currentSession?.workspacePath || null"
+                  @change="handleWorkspaceChange" />
+              </template>
               <!-- 回到底部（2026-11-11 用户要求）：不再浮在消息区左上方，
                    融进输入行，落在「模型名 / 档位」chip 的左侧。
                    right-actions-before 正是右组第一个位置，与模型 chip 同一基线；
@@ -180,12 +205,12 @@ import { useSessionStore } from "../../stores/session";
 import { useGoalStore } from "../../stores/goal";
 import { useAuthStore } from "../../stores/auth"
 import { useLayoutStore } from "@/stores/layout"
+import { useWorkspaceStore } from "@/stores/workspace"
 import { getCurrentTurns, flattenContentsForTimeline } from "@/utils/messageUtils"
 import { getToolActionLabel, getToolIcon, getArgsText } from "@/utils/toolDisplay"
 import { useStreamResponse } from "@/composables/useStreamResponse"
 import type { InputMessageState, Session, QueuedMessage } from '@/types/session';
 import type { Character } from '@/types/character';
-import type { SessionNextTaskState } from '@/services/modules/session-next-task.api';
 
 // 导入新创建的 composables
 import { useSessionChat } from '@/composables/useSessionChat'
@@ -207,6 +232,7 @@ import { Close } from '@element-plus/icons-vue'
 import AgentPanel from './AgentPanel.vue';
 import LTooltip from '../ui/LTooltip.vue';
 import ModelActionBar, { type ModelActionCard, type ModelActionPending } from './ModelActionBar.vue';
+import SessionWorkspaceButton from './chat-input/SessionWorkspaceButton.vue';
 import ReDialog from '@repo/ui/re-dialog'
 
 
@@ -223,6 +249,7 @@ const { confirm, editText, toast, notify } = usePopup();
 const authStore = useAuthStore()
 const sessionStore = useSessionStore();
 const layoutStore = useLayoutStore();
+const workspaceStore = useWorkspaceStore();
 
 // 有壁纸时隐藏底部渐变遮罩（壁纸已有视觉层次，不透明遮罩会像补丁）
 const hasWallpaper = computed(() => !!layoutStore.wallpaperUrl);
@@ -341,6 +368,17 @@ const messageQueue = computed(() => {
   return currentSessionId.value ? sessionStore.getMessageQueue(currentSessionId.value) : [];
 });
 const queueLength = computed(() => messageQueue.value.length);
+
+/**
+ * 已做过「重启后恢复队列」判定的会话集合。
+ *
+ * <p>每次页面加载每个会话只判定一次：来回切会话不会重复发送，
+ * 也不会把用户手动留在队列里的消息反复自动发出。</p>
+ */
+const resumeCheckedSessions = new Set<string>()
+
+/** 上一轮未完成：输入框上方挂确认条，由用户决定是否发「继续」 */
+const resumeInterrupted = ref(false)
 
 // 滚动管理相关状态和方法
 const showScrollToBottomBtn = ref(false)
@@ -566,25 +604,6 @@ function activeAssistantOf(turn: any): any | null {
 }
 
 /**
- * 空闲等待：最后一轮已经答完，轮到你了。
- *
- * 需求 5 的「AI 等待」不止「等工具返回」和「等你确认」，最常见的其实是这一种：
- * AI 说完了、没有下一步动作，就在等你的下一句话。它只在
- * 「输入框为空 + 最后一轮已有正文」时出现——一打字就消失，避免常驻噪音。
- */
-const actionBarIdle = computed(() => {
-  if (isStreaming.value) return false;
-  if (inputMessage.value?.content?.trim()) return false;
-  const list = visibleTurns.value || [];
-  const lastTurn = list[list.length - 1];
-  if (!lastTurn?.user) return false;
-  const active = activeAssistantOf(lastTurn);
-  if (!active) return false;
-  // 有正文才算「答完」：刚创建、还在等首字的空壳不算
-  return (active.contents || []).some((c: any) => String(c?.content || '').trim().length > 0);
-});
-
-/**
  * 网络重试：流式过程中后端回报 retry（连接抖动 / 限流），此时 AI 没有在思考，
  * 只是在等网络。useStreamResponse 把 retryInfo 写进内容 metadata，内容恢复后清除，
  * 所以「存在 retryInfo」就是当时的等待信号，不需要额外状态机。
@@ -666,7 +685,7 @@ const actionBarProgressText = computed(() => {
 
 /**
  * 动作条形态：executing（跑工具，带命令卡）/ retrying（等网络重试）/
- * thinking / streaming / waiting（等你确认）/ idle（等你的输入）/ null。
+ * thinking / streaming / waiting（等你确认）/ null。
  *
  * waiting 的来源是**未决**的 plan_exit 人工确认：确认后 confirmationRequest
  * 仍留在 metadata 里，只是多了 status: 'approved' | 'rejected'（持久化终态）。
@@ -674,15 +693,17 @@ const actionBarProgressText = computed(() => {
  *
  * waiting 优先于 executing：挂起时轮次不再推进，最后一个「过程项」会永远停在
  * 工具行上（该工具其实早已返回），不先看确认请求就会误报「正在执行命令」。
+ *
+ * 没有 idle：答完就是 null，整条不渲染（用户 2026-11-12：已作答就不要显示了）。
  */
-const actionBarKind = computed<'executing' | 'retrying' | 'thinking' | 'streaming' | 'waiting' | 'idle' | null>(() => {
+const actionBarKind = computed<'executing' | 'retrying' | 'thinking' | 'streaming' | 'waiting' | null>(() => {
   if (actionBarPending.value) return 'waiting';
   const current = currentProcessItem.value;  if (current?.kind === 'tool') return 'executing';
   // 网络重试期间同样「什么都没在做」，必须在 thinking 之前拦下
   if (actionBarRetrying.value) return 'retrying';
   if (current?.kind === 'think') return 'thinking';
   if (isStreaming.value) return 'streaming';
-  return actionBarIdle.value ? 'idle' : null;
+  return null;
 });
 
 /**
@@ -765,47 +786,6 @@ const actionBarCard = computed<ModelActionCard | null>(() => {
   };
 });
 
-/**
- * 空闲态的下一步建议：复用会话已有的「AI 联想下一个任务」接口。
- *
- * 不新造接口——后端 GET /sessions/{id}/ai-next-task 已把开关、建议与生成时间
- * 一起返回（AiNextTaskPanel 也在用）。这里只取「已开启 + 有建议」两种信息，
- * 在 idle 时把建议摆到输入框正上方，点一条即发送。
- */
-const nextTaskState = ref<SessionNextTaskState | null>(null);
-
-async function loadNextTaskState() {
-  const sid = effectiveSessionId.value;
-  if (!sid) { nextTaskState.value = null; return }
-  try {
-    nextTaskState.value = await apiService.fetchSessionNextTaskState(String(sid))
-  } catch {
-    // 端点未上线/无权限：动作条退化成纯状态提示，不显示「联想下一步」
-    nextTaskState.value = null
-  }
-}
-
-// 会话切换、每轮答完（idle 出现）各读一次；只读，不写库
-watch([effectiveSessionId, () => actionBarIdle.value], ([sid, idle], [oldSid]) => {
-  if (!sid) { nextTaskState.value = null; return }
-  if (sid !== oldSid || idle) void loadNextTaskState()
-});
-
-const actionBarSuggestions = computed(() => {
-  const st = nextTaskState.value
-  if (!st?.enabled) return []
-  return st.tasks || []
-})
-
-const actionBarSuggestEnabled = computed(() => !!nextTaskState.value?.enabled)
-
-/** 点了一条建议：按用户已明确的口径「点击即作为用户消息发出」 */
-function handleActionBarSuggestion(item: any) {
-  const text = [item?.title, item?.detail].filter(Boolean).join('\n')
-  if (!text.trim()) return
-  handleSendMessage({ content: text, files: [] } as any)
-}
-
 /** 动作条上「全部批准」：与计划卡片同一条恢复链路（resumeConfirmation） */
 function handleActionBarApproveAll(replyId: string) {
   const items = actionBarPending.value?.items || []
@@ -883,10 +863,13 @@ const chatInputConfig = computed(() => ({
 
 onMounted(() => {
   // 附加连接类型由 ChatInput 内部自行加载渲染标签,此处不再维护
+  // 后台标签页不自动发排队消息：回到前台时补一次判定（见 onPageVisible）
+  document.addEventListener('visibilitychange', onPageVisible)
 });
 
 onUnmounted(() => {
   clearSkeletonTimers();
+  document.removeEventListener('visibilitychange', onPageVisible)
 });
 
 /**
@@ -927,8 +910,31 @@ const handleConfigChange = (config: any) => {
 
   // 处理工作目录路径
   if (typeof config.workspacePath !== 'undefined') {
-    currentSession.value.workspacePath = config.workspacePath;
-    console.log('保存 workspacePath 到会话:', config.workspacePath);
+    const session = currentSession.value;
+    const nextPath = config.workspacePath || null;
+    const previousPath = session.workspacePath || null;
+    if (nextPath !== previousPath) {
+      // 先改内存让按钮/提示立刻回显，再落库；失败时回滚，避免「显示项目 A、实际跑在 B」
+      session.workspacePath = nextPath;
+      const sessionId = session.id ? String(session.id) : null;
+      if (!sessionId) {
+        workspaceStore.bumpRootRevision();
+      } else {
+        apiService.updateSession(sessionId, { workspacePath: nextPath })
+          .then(() => {
+            // 服务端已接受：侧栏按新根重载（文件树、预览、SSE 根都跟着它走）
+            workspaceStore.bumpRootRevision();
+          })
+          .catch((err: any) => {
+            const target = currentSession.value;
+            if (target && String(target.id) === sessionId) {
+              target.workspacePath = previousPath;
+              workspaceStore.bumpRootRevision();
+            }
+            notify.error(t('chat.panel.workspaceSaveFailed'), err?.message);
+          });
+      }
+    }
   }
 
   // 处理运行模式
@@ -952,6 +958,18 @@ const handleConfigChange = (config: any) => {
   }
 
   debouncedSaveSession();
+};
+
+/**
+ * 会话页切换工作目录。
+ *
+ * <p>入口是输入行左组的 SessionWorkspaceButton；这里只做转发，内存同步、落库与
+ * 失败回滚都收在 {@link handleConfigChange} 里，避免两条路径各写一份。</p>
+ *
+ * @param workspacePath 新目录；null 表示回到「自动创建」（账号 agent 目录）
+ */
+const handleWorkspaceChange = (workspacePath: string | null) => {
+  handleConfigChange({ workspacePath });
 };
 
 // 防抖函数
@@ -1160,6 +1178,8 @@ async function handleSessionChange(newSessionId: string | null, oldSessionId: st
   const token = ++sessionChangeToken;
   isLoading.value = true;
   startSkeletonDelay();
+  // 切换会话时先收掉上一个会话的「上一轮未完成」确认条
+  resumeInterrupted.value = false;
   try {
     lastScrollTop = 0;
     currentSessionId.value = newSessionId;
@@ -1168,6 +1188,13 @@ async function handleSessionChange(newSessionId: string | null, oldSessionId: st
     // 页面加载时一次性检查活跃流（用于刷新后的初始状态同步）
     await checkActiveStreamOnLoad(newSessionId);
     if (token !== sessionChangeToken) return;
+
+    // 刷新/重启后恢复排队消息（每个会话每次页面加载只判定一次）。
+    // 有待发的首条输入时不抢跑：那一轮结束后队列会按原有逻辑自动消费。
+    if (!inputMessage.value?.isWaiting) {
+      await resumeQueuedMessagesOnLoad(newSessionId);
+      if (token !== sessionChangeToken) return;
+    }
 
     nextTick(() => {
       if (token !== sessionChangeToken) return;
@@ -1203,6 +1230,107 @@ async function checkActiveStreamOnLoad(sessionId: string) {
     console.error('初始流状态检查失败:', error);
   }
 }
+
+/**
+ * 判断会话最后一轮是否没有收尾（提问在、回答不在）。
+ *
+ * <p>判据用消息顺序而不是 parentId：历史消息序列化后 parentId 不一定回传，
+ * 而「最后一条 user 之后是否还有 assistant」在任何数据源下都成立。</p>
+ *
+ * @param sessionId 会话 ID
+ * @returns 最后一轮只有用户提问、没有助手回复时为 true
+ */
+function isLastTurnUnfinished(sessionId: string): boolean {
+  const messages = sessionStore.getMessages(sessionId) || []
+  let lastUserIdx = -1
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === 'user') { lastUserIdx = i; break }
+  }
+  if (lastUserIdx === -1) return false
+  return !messages.slice(lastUserIdx + 1).some((m: any) => m?.role === 'assistant')
+}
+
+/**
+ * 重启/刷新后恢复排队消息（用户需求 2026-11-12）。
+ *
+ * <p>三条规则：</p>
+ * <ol>
+ *   <li>后端那轮还在跑（isRunning）→ 什么都不发，挂回流等它自己结束；</li>
+ *   <li>上一轮被打断（只有提问没有回答）→ 不自动发，挂确认条让用户选「继续」/「忽略」；</li>
+ *   <li>上一轮正常结束且队列非空 → 发出队列第一条。</li>
+ * </ol>
+ *
+ * <p>只在前台标签页自动发：后台标签页替用户扣一轮 token 不可接受。</p>
+ *
+ * @param sessionId 会话 ID
+ */
+async function resumeQueuedMessagesOnLoad(sessionId: string) {
+  if (resumeCheckedSessions.has(sessionId)) return
+  if (sessionStore.getMessageQueue(sessionId).length === 0) return
+  // 后台标签页不判定、也不标记已判定：等用户回到前台再走一次（见 onPageVisible），
+  // 否则「后台打开 → 永远不消费」会变成无声的死队列。
+  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+  resumeCheckedSessions.add(sessionId)
+  resumeInterrupted.value = false
+
+  let running = false
+  try {
+    const status = await apiService.getStreamStatus(sessionId)
+    running = !!status?.isRunning
+  } catch (error) {
+    // 状态判不出来就不动队列：自动发错一轮的代价，远高于晚发
+    console.error('恢复排队消息时查询流状态失败:', error)
+    return
+  }
+  // 后端还在跑：等 stream_finished，现有的流式监听会消费队列
+  if (running) return
+
+  // 会话 ID 可能在 await 期间被切走
+  if (currentSessionId.value !== sessionId) return
+
+  if (isLastTurnUnfinished(sessionId)) {
+    resumeInterrupted.value = true
+    return
+  }
+
+  const first = sessionStore.claimFirstQueuedMessage(sessionId)
+  if (!first) return
+  await handleSendMessage({
+    content: first.content,
+    files: first.files || [],
+    knowledgeBaseIds: first.knowledgeBaseIds || [],
+    skillNames: first.skillNames || [],
+  })
+}
+
+/** 确认条「继续」：把「继续」作为一条真实用户消息发出去 */
+async function handleResumeContinue() {
+  if (!currentSessionId.value) return
+  resumeInterrupted.value = false
+  await handleSendMessage({
+    content: t('chat.panel.resumeContinueMessage'),
+    files: [],
+    knowledgeBaseIds: [],
+  })
+}
+
+/** 确认条「忽略」：本次不自动发，队列原样保留，用户可在抽屉里手动发 */
+function handleResumeDismiss() {
+  resumeInterrupted.value = false
+}
+
+/**
+ * 页面回到前台：补一次队列恢复判定。
+ *
+ * <p>被判定跳过的情况只有一种——加载时页面在后台（浏览器切走了标签页）。
+ * 用户回来后立刻补上，避免队列静默卡住。</p>
+ */
+function onPageVisible() {
+  if (typeof document === 'undefined' || document.visibilityState !== 'visible') return
+  const sid = currentSessionId.value
+  if (sid) void resumeQueuedMessagesOnLoad(sid)
+}
+
 
 // 流式响应处理（委托给 composable 处理，用于 regenerate / continue）
 async function handleStreamResponse(
@@ -1874,6 +2002,25 @@ function scrollToMessage(messageId: string) {
 
 .queue-drawer {
   border: 1px solid var(--color-surface-border);
+}
+
+/* ===== 「上一轮未完成」确认条 =====
+   与输入框同宽、浅警示底；文字走正文色而不是警示色，避免整条看起来像报错。
+   文字允许换行（窄窗下按钮会把文字挤成两行，截断会丢掉「排队消息已暂停」这层意思）。 */
+.resume-banner {
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 28%, transparent);
+}
+
+.resume-banner__icon {
+  width: 14px;
+  height: 14px;
+  color: var(--el-color-warning);
+}
+
+.resume-banner__text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-text, var(--el-text-color-primary));
 }
 
 /* ===== 编辑模式提示条 =====

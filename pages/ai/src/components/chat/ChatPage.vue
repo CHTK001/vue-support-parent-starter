@@ -75,7 +75,7 @@
                 <!-- 会话面板容器 -->
                 <div class="chat-panel-container" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
                   <!-- 执行轨迹：与对话互斥，占满主区域 -->
-                  <TracePanel v-if="showTracePanel && mainSession" :session-id="mainSession.id"
+                  <TracePanel v-if="showTracePanel && mainSession" :key="tracePanelKey" :session-id="mainSession.id"
                     @close="showTracePanel = false" />
 
                   <template v-else>
@@ -186,6 +186,13 @@ const TracePanel = defineAsyncComponent(() => import("./trace/TracePanel.vue"));
 const showTracePanel = ref(false);
 
 /**
+ * 轨迹面板的"重开"计数：面板内部页签是私有状态（默认「上下文窗口」）。
+ * 从底部「上下文窗口」入口进来时，如果面板已经开在「执行轨迹」页签上，
+ * 只把显隐置 true 是没有任何变化的——所以递增 key 让它按默认页签重新挂载。
+ */
+const tracePanelKey = ref(0);
+
+/**
  * 会话执行轨迹面板显隐
  */
 function toggleTracePanel() {
@@ -201,6 +208,7 @@ function toggleTracePanel() {
  */
 function openContextPanel() {
   showStatusPanel.value = false;
+  tracePanelKey.value += 1;
   showTracePanel.value = true;
 }
 

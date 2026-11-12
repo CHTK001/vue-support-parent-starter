@@ -198,6 +198,26 @@ export default {
     minimum: '最小',
   },
 
+  /**
+   * 思考档位的主标签（英文规范名）。
+   *
+   * <p>思考强度是各大厂商 SDK 的通用概念，档位名（none / minimal / low / medium /
+   * high / max）就是模型参数值本身，所以弹层里以英文为主标签、中文作为副标题：
+   * 用户在文档和 API 里看到的是这些英文词，中文只用来解释强弱。</p>
+   */
+  thinkingEffortLabel: {
+    default: 'Default',
+    none: 'None',
+    on: 'On',
+    low: 'Low',
+    medium: 'Medium',
+    high: 'High',
+    max: 'Max',
+    xhigh: 'Max',
+    minimal: 'Minimal',
+    minimum: 'Minimal',
+  },
+
   // ── 上下文大小过滤（模型选择卡片 / 模型管理通用标签） ──
   contextSize: {
     title: '上下文',

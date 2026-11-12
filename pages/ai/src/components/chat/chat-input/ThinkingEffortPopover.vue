@@ -8,7 +8,12 @@
       <div class="te-list" role="listbox" :aria-label="t('chat.input.thinkingLevelTitle')">
         <div v-for="(opt, i) in options" :key="opt" class="te-item" :class="{ 'is-active': i === activeIndex }"
           role="option" :aria-selected="opt === currentValue" @click="commit(opt)" @mouseenter="activeIndex = i">
-          <span class="te-item__label">{{ getLabel(opt) }}</span>
+          <!-- 主标签是英文档位名（none / minimal / low / medium / high / max），
+               副标题是当前语言的解释。英文界面下两者相同，副标题自动不渲染。 -->
+          <span class="te-item__body">
+            <span class="te-item__label">{{ getPrimaryLabel(opt) }}</span>
+            <span v-if="getSubLabel(opt)" class="te-item__sub">{{ getSubLabel(opt) }}</span>
+          </span>
           <el-icon v-if="opt === currentValue" :size="14" class="te-item__check">
             <Checkmark24Regular />
           </el-icon>
@@ -61,6 +66,31 @@ const activeIndex = ref(0)
 
 function getLabel(effort: string): string {
   return getThinkingEffortLabel(effort)
+}
+
+/**
+ * 主标签：英文档位规范名（none / low / medium / high / max …）。
+ *
+ * <p>取不到翻译时退回原始值，保证任何后端白名单值都有可读文字。</p>
+ *
+ * @param effort 档位键
+ * @returns 英文规范名
+ */
+function getPrimaryLabel(effort: string): string {
+  const key = `common.thinkingEffortLabel.${effort}`
+  const label = t(key)
+  return label !== key ? label : effort
+}
+
+/**
+ * 副标题：当前语言的解释（中文界面就是「不思考 / 低强度」）。
+ *
+ * @param effort 档位键
+ * @returns 副标题；与主标签相同时返回空串，界面不渲染第二行
+ */
+function getSubLabel(effort: string): string {
+  const localized = getLabel(effort)
+  return localized === getPrimaryLabel(effort) ? '' : localized
 }
 
 function commit(effort: string): void {
@@ -136,14 +166,15 @@ watch(() => props.visible, (visible) => {
   flex-direction: column;
 }
 
-/* 行高 30px：与模型 / 智能体下拉的行高一致，三个面板切换时不会跳 */
+/* 行高：单行档位 30px，带副标题的两行档位约 40px。
+   同一行内右侧勾选始终垂直居中，列表不会因为有无副标题而错位。 */
 .te-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  height: 30px;
-  padding: 0 8px;
+  min-height: 30px;
+  padding: 5px 8px;
   border-radius: 6px;
   color: var(--text-primary, var(--el-text-color-primary));
   font-size: 13px;
@@ -157,11 +188,30 @@ watch(() => props.visible, (visible) => {
   background: color-mix(in srgb, var(--text-primary, #0f172a) 6%, transparent);
 }
 
+/* 主标签 + 副标题：主标签是英文档位名，副标题是当前语言的解释 */
+.te-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 .te-item__label {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
+}
+
+.te-item__sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
 }
 
 .te-item__check {

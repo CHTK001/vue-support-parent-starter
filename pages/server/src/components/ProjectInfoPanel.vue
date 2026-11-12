@@ -15,6 +15,7 @@
  */
 import { computed } from 'vue';
 import ReIcon from '@repo/ui/re-icon';
+import ProjectTypeIcon from './ProjectTypeIcon.vue';
 
 defineOptions({ name: 'ProjectInfoPanel' });
 
@@ -129,15 +130,16 @@ const TYPE_LABELS: Record<string, string> = {
   docker: 'Docker 容器',
 };
 
+/** 项目类型默认图标，需与 ProjectsView 的 defaultIconByType 保持一致；`Java` 由 ProjectTypeIcon 绘制。 */
 const TYPE_ICONS: Record<string, string> = {
-  springboot: 'Cpu',
-  fatjar: 'Cpu',
+  springboot: 'Java',
+  fatjar: 'Box',
   git: 'GitBranch',
-  separated: 'Box',
-  model: 'Files',
+  separated: 'Files',
+  model: 'MagicStick',
   static: 'Picture',
   nginx: 'Connection',
-  docker: 'Box',
+  docker: 'Ship',
 };
 
 const typeLabel = computed(() => TYPE_LABELS[props.project.projectType] || props.project.projectType || '未知');
@@ -305,7 +307,7 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
     <div :class="bodyClass">
       <!-- 抬头：身份 + 状态 + 操作 -->
       <header class="pip-hero">
-        <span class="pip-ic"><ReIcon :name="typeIcon" :size="20" /></span>
+        <span class="pip-ic"><ProjectTypeIcon :name="typeIcon" :size="20" /></span>
         <div class="pip-id">
           <h2 class="pip-name" :title="project.projectName">{{ project.projectName }}</h2>
           <div class="pip-meta">

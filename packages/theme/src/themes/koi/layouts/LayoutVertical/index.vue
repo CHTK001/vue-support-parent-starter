@@ -127,7 +127,7 @@ const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu
     min-height: 0;
     padding-left: $aside-menu-padding-left;
     padding-right: 0;
-    background-color: var(--el-menu-bg-color);
+    background-color: var(--koi-surface-aside);
     border-right: 1px solid var(--el-aside-border-right-color);
     box-sizing: border-box;
     user-select: none;
@@ -135,7 +135,7 @@ const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu
 
   .layout-header {
     height: $aside-header-height;
-    background-color: var(--el-header-bg-color);
+    background-color: var(--koi-surface-header);
   }
 
   .layout-vertical-aside :deep(.el-menu) {

@@ -45,17 +45,6 @@ export const systemRoutes: RouteConfigsTable[] = [
     },
   },
   {
-    path: "/manage/tenant",
-    name: "SystemTenant",
-    component: () => import("../views/TenantManage.vue"),
-    meta: {
-      title: "租户管理",
-      icon: "OfficeBuilding",
-      showLink: true,
-      keepAlive: true,
-    },
-  },
-  {
     path: "/manage/role",
     name: "SystemRole",
     component: () => import("../views/RoleManage.vue"),
@@ -286,7 +275,8 @@ export const systemMenus: StaticMenuItem[] = [
     meta: { title: "系统管理", icon: "Setting", isVisible: "1", isRemoteFallback: true },
     children: [
       { path: "/manage/user", name: "SystemUser", meta: { title: "用户管理", icon: "User", isVisible: "1" } },
-      { path: "/manage/tenant", name: "SystemTenant", meta: { title: "租户管理", icon: "OfficeBuilding", isVisible: "1" } },
+      // 租户管理已迁到 pages/tenant 的独立菜单根节点（tenantMenus），
+      // 这里不再重复挂载，避免出现两个「租户管理」。
       // 在线用户：会话/账号相关，归「系统管理」并紧跟在「用户管理」后面。
       // path 仍是 /monitor/online（地址标识与界面归属解耦），不改它以免老链接/书签失效。
       { path: "/monitor/online", name: "MonitorOnline", meta: { title: "在线用户", icon: "User", isVisible: "1" } },

@@ -9,9 +9,20 @@
  *   <li>{@code telnet} → `/telnet-direct.html`，对接 /ws/ms/server/terminal/telnet（WS ↔ TCP 透传）</li>
  * </ul>
  * Telnet 没有身份/口令与共享房间概念，这些参数只对 SSH 生效。
+ *
+ * <p>配色由后台持久化（{@code /ms/server/terminal/theme}），打开终端时以 iframe 参数
+ * 一次性下发；运行中改配色走 postMessage 热更新，绝不改 iframe 的 src ——
+ * 改 src 等于重载页面，SSH 会话会当场断掉。</p>
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { getAccessToken } from "@repo/utils";
+import ScTerminalThemeDialog from "./ScTerminalThemeDialog.vue";
+import {
+  DEFAULT_TERMINAL_THEME,
+  encodeThemeParam,
+  getTerminalTheme,
+  type TerminalTheme,
+} from "../api/terminalTheme";
 
 const props = defineProps<{
   connection: {
@@ -53,8 +64,107 @@ function onIframeMessage(e: MessageEvent): void {
     emit('cwd', data.cwd.trim());
   }
 }
-onMounted(() => window.addEventListener('message', onIframeMessage));
-onBeforeUnmount(() => window.removeEventListener('message', onIframeMessage));
+
+/* ===== 终端配色 ===== */
+
+/** 当前生效配色（保存过的那份；弹窗里的临时改动不进这里） */
+const theme = ref<TerminalTheme>({ ...DEFAULT_TERMINAL_THEME });
+
+/**
+ * 参与 iframe src 的配色串。
+ *
+ * <p>只在首次渲染前写一次：iframe 的 src 一变浏览器就重载页面，SSH 会话会当场断开，
+ * 所以「后读回来的配色」不能改它，只能走 {@link postTheme} 热更新。</p>
+ */
+const srcTheme = ref('');
+
+/** 配色已定（读回来，或超时兜底）：定下来才渲染 iframe，避免先闪一下默认深色 */
+const themeReady = ref(false);
+
+/** 配色设置面板是否打开 */
+const themeDialogVisible = ref(false);
+
+/** 等待后台配色的兜底定时器 */
+let themeTimer: number | undefined;
+
+/**
+ * 把配色推给正在运行的终端（iframe 里改 {@code term.options.theme} 并同步页面底色）。
+ *
+ * @param value 配色
+ */
+function postTheme(value: TerminalTheme): void {
+  const frame = iframeEl.value;
+  if (!frame?.contentWindow) return;
+  try {
+    // 必须给一份普通对象快照：传进来的常是 ref/computed 包出来的响应式代理，
+    // 结构化克隆跨窗口时不该指望对方能读代理内部（也避免把响应式对象泄漏到 iframe）
+    const snapshot = { ...value };
+    frame.contentWindow.postMessage({ type: 'TERMINAL_THEME', theme: snapshot } as Record<string, unknown>, '*');
+  } catch {
+    // 后端静态页未实现该通道时不可见，颜色退回打开时的配色
+  }
+}
+
+/**
+ * 读取后台配色；接口失败/超时都退回默认配色，不能因为一个配色把终端挡在门外。
+ */
+async function loadTheme(): Promise<void> {
+  let loaded: TerminalTheme | null = null;
+  try {
+    loaded = await getTerminalTheme();
+  } catch {
+    loaded = null;
+  }
+  if (loaded) theme.value = loaded;
+  if (!themeReady.value) {
+    srcTheme.value = encodeThemeParam(theme.value);
+    themeReady.value = true;
+    return;
+  }
+  // 超时兜底已经渲染了 iframe：用消息补一次（底色会跳一下，但连接不断）
+  if (loaded) postTheme(loaded);
+}
+
+onMounted(() => {
+  window.addEventListener('message', onIframeMessage);
+  // 接口慢不能卡住终端：1.5s 内没读回来就先按默认配色渲染
+  themeTimer = window.setTimeout(() => {
+    if (themeReady.value) return;
+    srcTheme.value = encodeThemeParam(theme.value);
+    themeReady.value = true;
+  }, 1500);
+  void loadTheme();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('message', onIframeMessage);
+  if (themeTimer) window.clearTimeout(themeTimer);
+});
+
+/** 弹窗里改色：实时下发，调到满意再保存 */
+function onThemePreview(value: TerminalTheme): void {
+  postTheme(value);
+}
+
+/** 保存/恢复默认后：记住新配色并下发 */
+function onThemeSaved(value: TerminalTheme): void {
+  theme.value = value;
+  postTheme(value);
+}
+
+// 弹窗关闭（取消或保存后关闭）时回到「已保存」的配色，撤掉临时预览
+watch(themeDialogVisible, v => {
+  if (!v) postTheme(theme.value);
+});
+
+// 换连接（重连/切主机）时 iframe 的 src 本来就要变，顺手把当前配色也写进去，
+// 新终端首帧就是对的颜色，不必等 @load 再补
+watch(
+  () => props.connection,
+  () => {
+    srcTheme.value = encodeThemeParam(theme.value);
+  },
+);
 
 /**
  * 向 iframe 中渲染的终端写入一行命令文本（终端在 iframe 里，只能跨窗口发消息）
@@ -105,6 +215,9 @@ const iframeSrc = computed(() => {
   const c = props.connection;
   if (!c) return '';
   const params = new URLSearchParams({ hostId: String(c.hostId) });
+  // 配色随 src 一次性下发：iframe 首次渲染就得是对的颜色（晚一步会闪一下深色底）。
+  // 值是 URL-safe base64，不含需要转义的字符。
+  if (srcTheme.value) params.set('theme', srcTheme.value);
   if (isTelnet.value) {
     // Telnet 不带 identity/room/pwd 语义，只把目标端口透给后端解析
     if (c.targetPort != null) params.set('targetPort', String(c.targetPort));
@@ -140,16 +253,25 @@ const readonly = computed(() => !!props.connection?.roomId && props.connection?.
         {{ readonly ? '只读（无协同权限）' : '共享协同中' }}
       </span>
       <div class="ssh-actions">
+        <!-- 配色是平台级设置：任何一条终端都能就地打开调整，改完对已开的终端实时生效 -->
+        <button class="ssh-btn" type="button" title="调整终端配色" @click="themeDialogVisible = true">主题</button>
         <button v-if="!hideClose" class="ssh-btn" type="button" @click="emit('close')">断开</button>
       </div>
     </div>
     <iframe
-      v-if="connection"
+      v-if="connection && themeReady"
       ref="iframeEl"
       :src="iframeSrc"
       class="ssh-iframe"
+      :style="{ background: theme.background }"
       frameborder="0"
       allow="clipboard-read; clipboard-write; keyboard"
+      @load="postTheme(theme)"
+    />
+    <ScTerminalThemeDialog
+      v-model="themeDialogVisible"
+      @preview="onThemePreview"
+      @saved="onThemeSaved"
     />
   </div>
 </template>
@@ -217,8 +339,8 @@ const readonly = computed(() => !!props.connection?.roomId && props.connection?.
   width: 100%;
   border: none;
   border-radius: var(--el-radius-md, 8px);
-  /* 刻意保留 #111：iframe 里跑的是 xterm 终端，固定深底才能保证终端配色对比度，
-     不能跟随主题切成浅底 */
+  /* iframe 加载前看到的底色；真正显示的是 xterm 的 theme.background：
+     跟着用户在设置面板里选的配色走（行内 style 会覆盖这里的 #111） */
   background: #111;
   min-height: 300px;
 }

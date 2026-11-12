@@ -101,9 +101,6 @@
           <div v-if="isToolExecuting(tool, toolIndex)" class="tool-inline__running">
             <span class="tool-inline__running-dot" aria-hidden="true"></span>
             <span class="tool-inline__running-text">{{ t('chat.toolCalls.executing') }}</span>
-            <button type="button" class="tool-inline__stop" @click.stop="$emit('abort')">
-              {{ t('chat.panel.actionBarStop') }}
-            </button>
           </div>
           <!--
             详情直读消息自带的 toolCalls / toolCallsResponse 轨迹（历史消息接口随消息返回，
@@ -286,7 +283,13 @@ const props = defineProps<{
 }>();
 
 defineEmits<{
-  /** 终止本轮执行：运行中工具行展开后的「停止」按钮（需求 7/8） */
+  /**
+   * 终止整轮执行。
+   *
+   * <p>本组件的「停止」按钮已移除（2026-11-12）：它与输入行发送位、动作条头部
+   * 指向同一个 abortResponse，三处并列等于把同一件事说了三遍。
+   * 事件保留为空声明，供旧调用方继续传监听而不会报未知事件。</p>
+   */
   abort: [];
 }>();
 
@@ -640,21 +643,6 @@ const closeDialog = () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.tool-inline__stop {
-  border: none;
-  background: transparent;
-  color: var(--el-color-danger);
-  font-size: 12.5px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.tool-inline__stop:hover {
-  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

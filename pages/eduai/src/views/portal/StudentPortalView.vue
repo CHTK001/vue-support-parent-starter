@@ -84,6 +84,28 @@
       <SeniorHome v-else :overview="overview" :modules="modules" @open="openModule" />
     </template>
 
+    <!--
+      加载失败态：原实现 catch 里只弹一条几秒后就消失的 message，overview 仍是 null，
+      模板一路落到下面的「加载中…」——于是**请求失败时页面永久停在「加载中…」**，
+      学生看不出出了什么事，也没有任何重试入口，只能整页刷新。
+      这里给一个持久化的错误态 + 重试按钮；「退出登录」仍走右下角那颗胶囊。
+    -->
+    <div v-else-if="loadError" class="portal-error">
+      <div class="portal-error__card" role="alert">
+        <div class="portal-error__icon">
+          <ReIcon name="WarningFilled" :size="42" aria-hidden="true" />
+        </div>
+        <h2 class="portal-error__title">学生端数据没能加载出来</h2>
+        <p class="portal-error__msg">{{ loadError }}</p>
+        <p class="portal-error__hint">
+          可能是网络或服务暂时不可用，稍后重试即可；反复失败请联系老师。
+        </p>
+        <button type="button" class="portal-error__btn" :disabled="loading" @click="load()">
+          {{ loading ? "正在重试…" : "重新加载" }}
+        </button>
+      </div>
+    </div>
+
     <div v-else class="portal-loading">加载中…</div>
 
     <!--
@@ -130,7 +152,7 @@
       学生会看到不该看的后台导航。这里改为就地挂载模块组件。
     -->
     <div v-if="activeModule" class="portal-embed">
-      <button type="button" class="portal-embed__back" @click="activeModule = null">
+      <button type="button" class="portal-embed__back" @click="closeModule">
         ← 返回{{ activeModule.title }}
       </button>
       <div class="portal-embed__body">
@@ -210,7 +232,7 @@ import {
   setImpersonateToken,
 } from "@repo/utils";
 import { eduaiApi } from "../../api/eduaiApi";
-import type { StudentOverview } from "../../api/types";
+import type { FunConfig, StudentOverview } from "../../api/types";
 import { modulesOf, normalizeStage, type PortalModule, type Stage } from "./modules";
 import { providePortalModuleHost } from "./portalHost";
 import PrimaryHome from "./PrimaryHome.vue";
@@ -260,23 +282,31 @@ const activeModule = ref<{
 const showAllModules = ref(false);
 
 /**
- * 把当前内嵌模块同步到地址栏 `?m=<moduleCode>`。
+ * 收起当前内嵌模块，回到学生端首页。
  *
- * <p>原实现把打开的模块只放在 ref 里，地址栏永远是 /edu/student。两个后果：</p>
- * <ul>
- *   <li>浏览器**后退键会直接退出学生端**（回到登录页/上一个站点），而不是退回模块列表
- *       —— 内嵌层看着像「打开了一个页面」，但历史里根本没有这一层；</li>
- *   <li>模块链接没法分享、刷新就丢。</li>
- * </ul>
- * <p>提到 query 后后退键正常、链接可分享，回归脚本也能直接深链到某个模块。</p>
+ * <p>模块打开时 push 了一条 `?m=` 历史（见 {@link openModule}），关闭时把这条历史一起回退；
+ * 否则地址栏会留下一条「还在模块里」的记录，后退一次又弹回模块。深链 / 刷新进来时
+ * 上一页不是学生端首页，就只 replace 掉参数，避免把学生退出学生端。</p>
+ *
+ * <p>不能用「本次是否 push 过」的变量：布局把 {@code route.fullPath} 当 key，
+ * query 一变整页重挂，标记活不过一次打开。改看 vue-router 写在 history.state 里的上一页。</p>
  */
-watch(activeModule, (m) => {
-  const code = m?.code;
+function closeModule(): void {
+  activeModule.value = null;
+  showAllModules.value = false;
+  if (typeof route.query.m !== "string" || !route.query.m) {
+    return;
+  }
+  const prev = typeof window.history.state?.back === "string" ? window.history.state.back : "";
+  if (prev.split("?")[0] === "/edu/student") {
+    router.back();
+    return;
+  }
   void router.replace({
     path: "/edu/student",
-    query: code ? { ...route.query, m: code } : { ...route.query, m: undefined },
+    query: { ...route.query, m: undefined },
   });
-});
+}
 
 /**
  * 向内嵌模块提供宿主能力。
@@ -286,10 +316,7 @@ watch(activeModule, (m) => {
  * 提供 close 后，模块优先就地收起，只有脱离宿主时才走自己的退路。</p>
  */
 providePortalModuleHost({
-  close: () => {
-    activeModule.value = null;
-    showAllModules.value = false;
-  },
+  close: closeModule,
 });
 
 const GRADES: Record<string, string[]> = {
@@ -303,6 +330,14 @@ const binding = ref(false);
 const bindError = ref("");
 const needBind = ref(false);
 const overview = ref<StudentOverview | null>(null);
+
+/**
+ * 首页数据加载失败的文案；非空时渲染「可重试」的错误态。
+ *
+ * <p>没有它的时候失败分支只弹一条 message：toast 几秒后消失、overview 仍为 null、
+ * needBind 仍为 false，模板一路落到最后的「加载中…」——页面从此永久假加载。</p>
+ */
+const loadError = ref("");
 
 /**
  * 当前是否处于「管理员代入」状态。
@@ -341,12 +376,41 @@ const stage = computed<Stage>(() => normalizeStage(overview.value?.stage ?? form
 const remoteModules = ref<PortalModule[] | null>(null);
 
 /**
+ * 含停用项的全量菜单配置。
+ *
+ * <p>门户接口 `/fun/modules` 只返回启用项，空结果分不清「从没配过」和「全被停用」；
+ * 这里补一份含停用项的清单，用于两件事：判断空结果的真实含义、把停用项从
+ * 「全部功能」里也拿掉（否则启停形同虚设）。失败时记为空数组，不影响门户渲染。</p>
+ */
+const configRows = ref<FunConfig[] | null>(null);
+
+/**
+ * 取全量菜单配置（只请求一次）。
+ *
+ * @returns 全量配置；接口失败时为空数组
+ */
+async function loadAllConfigs(): Promise<FunConfig[]> {
+  if (configRows.value) {
+    return configRows.value;
+  }
+  try {
+    configRows.value = (await eduaiApi.listAllFunConfigs()) ?? [];
+  } catch {
+    configRows.value = [];
+  }
+  return configRows.value;
+}
+
+/**
  * 「查看更多功能」要展示的模块全集。
  *
  * <p>后台「模块管理」按学段配了哪些卡，首页就只显示哪些；但学生点
  * 「查看更多功能」是期待看到**这个学段能玩的所有东西**，而不是被甩到管理后台
  * （原实现 `router.push("/edu/fun")`，那里是后台外壳且无返回出口）。
  * 这里就地列出内置目录的全集，与后台配置取并集，后台没配的也可见。</p>
+ *
+ * <p>但被管理员停用的入口要从这里排除：停用意味着学生端不该再出现，
+ * 否则首页藏了、「全部功能」还留着，启停就形同虚设。</p>
  */
 const allModules = computed<PortalModule[]>(() => {
   const builtin = modulesOf(stage.value);
@@ -357,7 +421,12 @@ const allModules = computed<PortalModule[]>(() => {
       seen.add(m.moduleCode);
     }
   }
-  return builtin;
+  const off = new Set(
+    (configRows.value ?? [])
+      .filter((r) => (r.funConfigGradeLevel ?? "") === stage.value && Number(r.enabled ?? 1) !== 1)
+      .map((r) => r.moduleCode),
+  );
+  return off.size ? builtin.filter((m) => !off.has(m.moduleCode)) : builtin;
 });
 
 /**
@@ -394,10 +463,13 @@ watch(
   (code) => {
     const want = typeof code === "string" ? code : "";
     if (!EMBEDDED[want]) {
-      if (want) {
-        // 深链到没有页面的模块：回首页而不是留一个空层
+      if (!want) {
+        // 后退回到不带 ?m 的门户地址：收起内嵌层（模块打开时 push 的那一层已随之弹出）
         activeModule.value = null;
+        return;
       }
+      // 深链到没有页面的模块：回首页而不是留一个空层
+      activeModule.value = null;
       return;
     }
     if (activeModule.value?.code === want) return;
@@ -416,22 +488,28 @@ watch(
  * @param level 学段
  */
 async function loadModules(level: string) {
+  // 全量清单（含停用项）用来识别「全部停用」并过滤「全部功能」，与按学段取启用项并行
+  void loadAllConfigs();
   try {
     const rows = await eduaiApi.funModules(level);
-    if (!rows?.length) {
-      remoteModules.value = null;
+    if (rows?.length) {
+      remoteModules.value = rows.map((r) => ({
+        moduleCode: r.moduleCode,
+        title: r.moduleName,
+        subtitle: r.funConfigSubtitle || r.moduleDesc || "",
+        icon: r.moduleIcon || "📘",
+        color: r.funConfigColor || "#3b82f6",
+        colorTo: r.funConfigColorTo || r.funConfigColor || "#60a5fa",
+        badgeFromIncomplete: r.funConfigShowBadge === 1,
+        route: r.modulePath || undefined,
+      }));
       return;
     }
-    remoteModules.value = rows.map((r) => ({
-      moduleCode: r.moduleCode,
-      title: r.moduleName,
-      subtitle: r.funConfigSubtitle || r.moduleDesc || "",
-      icon: r.moduleIcon || "📘",
-      color: r.funConfigColor || "#3b82f6",
-      colorTo: r.funConfigColorTo || r.funConfigColor || "#60a5fa",
-      badgeFromIncomplete: r.funConfigShowBadge === 1,
-      route: r.modulePath || undefined,
-    }));
+    // 空结果有两种：后台从没配过（回落内置目录，保证新环境不白屏）
+    // 或配过但全部停用（就该一个都不显示）。靠含停用项的全量清单区分。
+    const all = await loadAllConfigs();
+    const configured = all.some((r) => (r.funConfigGradeLevel ?? "") === level);
+    remoteModules.value = configured ? [] : null;
   } catch {
     // 配置拉不到不该让学生端白屏：回落到内置目录
     remoteModules.value = null;
@@ -445,6 +523,8 @@ async function loadModules(level: string) {
  */
 async function load() {
   loading.value = true;
+  // 重试时先清掉上一次的错误：模板据此在「错误态 / 加载中」之间切换
+  loadError.value = "";
   try {
     const me = await eduaiApi.studentMe();
     if (!me?.bound) {
@@ -475,7 +555,10 @@ async function load() {
       await loadModules(stage.value);
     }
   } catch (e) {
-    message.error(`学生端数据加载失败：${e instanceof Error ? e.message : String(e)}`);
+    // 不只弹 toast：toast 几秒后消失，而 overview 仍为 null、needBind 仍为 false，
+    // 模板会落到「加载中…」变成永久假加载。改为落一个持久化错误态（见模板 error 分支），
+    // 底层原因原样显示出来，学生截图就能把信息带给老师。
+    loadError.value = e instanceof Error ? e.message : String(e);
   } finally {
     loading.value = false;
   }
@@ -549,6 +632,12 @@ function openModule(moduleCode: string) {
   if (view) {
     showAllModules.value = false;
     activeModule.value = { code: moduleCode, title: configured?.title ?? "", component: view };
+    // 模块单独占一条历史：浏览器后退先回到不带 ?m 的门户首页，而不是一步退出学生端
+    // （回到登录页/后台）。关闭时由 closeModule 把这条历史一起回退。
+    void router.push({
+      path: "/edu/student",
+      query: { ...route.query, m: moduleCode },
+    });
     return;
   }
   // 学生端首页卡片来自「模块管理」（edu_fun_config）。后台配了 module_path 的模块
@@ -704,6 +793,7 @@ onMounted(() => {
 }
 .portal--imp .pp,
 .portal--imp .portal-bind,
+.portal--imp .portal-error,
 .portal--imp .portal-loading {
   position: static;
   inset: auto;
@@ -757,6 +847,77 @@ onMounted(() => {
   justify-content: center;
   font-size: 15px;
   color: var(--el-text-color-secondary);
+}
+
+/*
+ * 加载失败态：与「加载中…」同样整屏居中，但必须看得见、点得动。
+ * 卡片面/边框/圆角/文字层级全部走 Element Plus 令牌，暗色模式自动跟随；
+ * 卡片类容器不加投影（koi 规约只留浮起与焦点环）。
+ */
+.portal-error {
+  height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.portal-error__card {
+  width: min(420px, 100%);
+  padding: 26px 28px 24px;
+  text-align: center;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-color-danger-light-7);
+  border-radius: var(--el-radius-xl, 16px);
+}
+.portal-error__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-color-danger);
+}
+.portal-error__title {
+  margin: 10px 0 8px;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--el-text-color-primary);
+}
+.portal-error__msg {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--el-text-color-regular);
+  /* 底层错误文案可能带长路径/长 URL，别让它把卡片撑破 */
+  word-break: break-word;
+}
+.portal-error__hint {
+  margin: 8px 0 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.portal-error__btn {
+  /* 触摸目标不小于 44px（与右下角胶囊同口径） */
+  min-height: 44px;
+  padding: 8px 26px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--el-color-white);
+  cursor: pointer;
+  background: var(--el-color-primary);
+  border: 0;
+  border-radius: var(--el-radius-full, 9999px);
+  transition: background-color var(--el-transition-duration, 0.2s) ease;
+}
+.portal-error__btn:hover:not(:disabled) {
+  background: var(--el-color-primary-light-3);
+}
+.portal-error__btn:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+.portal-error__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /*

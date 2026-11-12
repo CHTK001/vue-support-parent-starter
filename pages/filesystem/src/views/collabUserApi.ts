@@ -12,10 +12,14 @@
 
 import { createHttp, getAccessToken } from "@repo/utils";
 import type { Http } from "@repo/utils";
+import { apiHttpBase } from "../api/connection";
 
-/** 应用通道 HTTP（与上传任务同一登录态通道） */
+/** 应用通道 HTTP（与上传任务同一登录态通道，跟随连接设置的应用接口源） */
 function collabHttp(): Http {
-  return createHttp({ headers: { "x-oauth-token": getAccessToken() ?? "" } });
+  return createHttp({
+    baseUrl: apiHttpBase(),
+    headers: { "x-oauth-token": getAccessToken() ?? "" },
+  });
 }
 
 /** 用户分页返回结构（与系统模块 SysUser/PageResult 对齐的最小切片） */

@@ -201,11 +201,13 @@
   import {
     createControlSession,
     destroyControlSession,
+    getControlConfig,
     listControlSessions,
     listControlScreens,
     keyboardEventJson,
     mouseEventJson,
     signalingUrl,
+    withSignalingToken,
   } from '../api/controlApi'
   import type { ControlScreen, ControlSession, KeyboardEventPayload, MouseEventPayload } from '../api/controlApi'
 
@@ -239,6 +241,9 @@
   const sessions = ref<ControlSession[]>([])
   const screens = ref<ControlScreen[]>([])
 
+  /** 信令令牌（/control/config 下发；连接时拼到 ws 地址上，不展示在输入框里） */
+  const signalingToken = ref('')
+
   /** 面板状态：日志抽屉、右侧页签、加载中、后端可用性 */
   const logOpen = ref(true)
   const activeTab = ref<'video' | 'screens'>('video')
@@ -255,6 +260,10 @@
   let pendingCandidates: { sdpMid: string | null; sdpMLineIndex: number | null; sdp: string }[] = []
   /** offer 是否已发送 */
   let offerSent = false
+
+  /** 鼠标移动合并：每帧最多发一次，避免高频 mousemove 刷爆 DataChannel */
+  let pendingMove: { x: number; y: number } | null = null
+  let moveFrame = 0
 
   /** 键盘模式 */
   const keyboardMode = ref(false)
@@ -429,7 +438,7 @@
   /** 建立 WS 长连接（等待 onopen 完成） */
   function connectWs(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      ws = new WebSocket(form.wsUrl)
+      ws = new WebSocket(withSignalingToken(form.wsUrl, signalingToken.value))
       ws.binaryType = 'arraybuffer'
       ws.onopen = () => {
         addLog('ok', '[ws] connected')
@@ -509,18 +518,25 @@
     }
   }
 
-  /** 映射鼠标坐标到远端视频流像素空间 */
+  /** 映射鼠标坐标到远端视频流像素空间（扣掉 object-fit: contain 的黑边） */
   function mapPixel(e: MouseEvent): { x: number; y: number } {
     const el = videoRef.value
     if (!el) return { x: 0, y: 0 }
     const rect = el.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
     const streamW = el.videoWidth || rect.width
     const streamH = el.videoHeight || rect.height
+    if (!rect.width || !rect.height || !streamW || !streamH) {
+      return { x: 0, y: 0 }
+    }
+    // video 是 object-fit: contain：先算出实际画面区域（居中），再按缩放比换算
+    const scale = Math.min(rect.width / streamW, rect.height / streamH)
+    const offsetX = (rect.width - streamW * scale) / 2
+    const offsetY = (rect.height - streamH * scale) / 2
+    const x = (e.clientX - rect.left - offsetX) / scale
+    const y = (e.clientY - rect.top - offsetY) / scale
     return {
-      x: Math.floor((x * streamW) / rect.width),
-      y: Math.floor((y * streamH) / rect.height),
+      x: Math.max(0, Math.min(streamW - 1, Math.floor(x))),
+      y: Math.max(0, Math.min(streamH - 1, Math.floor(y))),
     }
   }
 
@@ -568,6 +584,11 @@
     controlChannel = null
     pendingCandidates = []
     offerSent = false
+    if (moveFrame) {
+      cancelAnimationFrame(moveFrame)
+      moveFrame = 0
+    }
+    pendingMove = null
     controls.connected = false
     controls.online = false
     keyboardMode.value = false
@@ -696,6 +717,25 @@
     await refreshSessions()
   }
 
+  /**
+   * 读取后端信令配置。
+   *
+   * <p>wsUrl 的 host 由后端按当前请求的 Host 拼好，令牌也只从这个已鉴权接口取；
+   * 页面不再依赖写死的 127.0.0.1。</p>
+   */
+  async function loadConfig(): Promise<void> {
+    try {
+      const cfg = await getControlConfig()
+      if (cfg?.wsUrl) {
+        form.wsUrl = cfg.wsUrl
+      }
+      signalingToken.value = cfg?.token || ''
+      addLog('ok', `[config] signaling ${form.wsUrl}`)
+    } catch (e) {
+      addLog('warn', `[config] load fail: ${String(e)}`)
+    }
+  }
+
   /** 点会话行：填进目标设备 */
   function onPickSession(sessionId: string): void {
     if (controls.connected) return
@@ -761,12 +801,24 @@
     sendMouse({ type: 'mouse', path: 'control', timestamp: Date.now(), x, y, button, action: 'release', delta: 0 })
   }
 
+  /** 把本帧攒下的最后一个鼠标位置发出去 */
+  function flushMove(): void {
+    moveFrame = 0
+    const point = pendingMove
+    pendingMove = null
+    if (!point || !controls.connected) return
+    sendMouse({ type: 'mouse', path: 'control', timestamp: Date.now(), x: point.x, y: point.y, button: 'left', action: 'move', delta: 0 })
+  }
+
   function onMouseMove(e: MouseEvent): void {
     if (!videoRef.value) return
     const { x, y } = mapPixel(e)
     coords.value = `${x}, ${y}`
     if (!controls.connected) return
-    sendMouse({ type: 'mouse', path: 'control', timestamp: Date.now(), x, y, button: 'left', action: 'move', delta: 0 })
+    pendingMove = { x, y }
+    if (!moveFrame) {
+      moveFrame = requestAnimationFrame(flushMove)
+    }
   }
 
   function onWheel(e: WheelEvent): void {
@@ -779,6 +831,7 @@
   onMounted(async () => {
     addLog('ok', '[control] loaded')
     setStatus('warning', '准备连接')
+    await loadConfig()
     await refreshSessions()
   })
 

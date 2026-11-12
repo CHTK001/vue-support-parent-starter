@@ -55,6 +55,44 @@ export interface BoardData {
 /** 当前悬停的环形图扇区（null = 没悬停） */
 export interface HoverSlice { name: string; pct: number }
 
+/** treemap 色块的点击详情：自然块（模型级）或「其他 N 项」汇总块（见 {@link TreeMapDetail.members}） */
+export interface TreeMapDetail {
+  /** 模型名或「其他 N 项」 */
+  name: string;
+  /** 当前口径占比 */
+  pct: number;
+  /** 当前口径用量（Token 或费用） */
+  value: number;
+  requests: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  /** 当前口径费用 */
+  cost: number;
+  /** 仅「其他 N 项」汇总块：目录幕过完整模型列表 */
+  members?: Array<{ name: string; pct: number; value: number; cost: number }>;
+}
+
+/**
+ * treemap 里的一个色块：自然块是模型级（拿着自己的行），汇总块（「其他 N 项」）
+ * 则带着目录幕过的那一批模型成员。
+ *
+ * <p>注意这里不能直接复用 {@link BoardItem}：treemap 的汇总块是它自己包的那
+ * 一批模型，不是 `board.modelBoard.items` 逻辑上的一行。</p>
+ */
+export interface TreeMapBlockItem {
+  /** 模型名或「其他 N 项」 */
+  name: string;
+  /** 当前口径用量（Token 或费用） */
+  value: number;
+  /** 当前口径占比 */
+  pct: number;
+  /** 看板调色板色（汇总块用中性灰） */
+  color: string;
+  /** 汇总块的内部列表：点击时展开的名单 */
+  members?: Array<TreeMapDetail["members"][number]>;
+}
+
 export function useUsageBoard() {
   const stats = reactive({
     totalCalls: 0,
@@ -301,12 +339,7 @@ export function useUsageBoard() {
     // 此处再调 reloadDetails 会打两次接口。
   }
 
-  /** 是否正在拉数（驱动顶栏底边的 2px 流光条）。只覆盖 loadData（KPI/图表/分布）；明细表有自己的表格内 loading。 */
-  const refreshing = ref(false);
-
   /**
-   * 导出当前区间的用量明细（顶部操作栏最右侧图标）。
-   *
    * <p>走 `/usage/export` 拿 blob，再触发一次 `<a download>`。为什么不用
    * `window.open(url)`：该接口要带鉴权头，直接开新窗口拿不到 token，只会下回一个
    * 401 的 JSON。这里复用已装配的请求管线（含鉴权拦截器），拿到二进制后本地存盘。</p>
@@ -370,43 +403,108 @@ export function useUsageBoard() {
     return providerNameMap.value[p] || FALLBACK_PROVIDERS[p] || p;
   }
 
-  async function loadData() {
-    refreshing.value = true;
+  /** 各路由拉数状态（独立开关）：任意路由有请求在飞，`refreshing` 都按路由聚合 */
+  const routeLoading = reactive<Record<string, boolean>>({
+    providers: false,
+    statistics: false,
+    list: false,
+    trend: false,
+    modelTrend: false,
+  });
+  /** 各路由最近一次的报错，null 表示该路由正常 */
+  const routeErrors = reactive<Record<string, string | null>>({
+    providers: null,
+    statistics: null,
+    list: null,
+    trend: null,
+    modelTrend: null,
+  });
+  /** 按路由压缩的“加载中”：驱动顶栏底边 2px 流光条，任一路在飞就亮灯 */
+  const refreshing = computed(() => Object.values(routeLoading).some(Boolean));
+  /** 快速切时间范围时，只保留最后一次 `loadData` 的响应（旧响应不接管状态） */
+  let loadSeq = 0;
+
+  /** 清除上一次的报错记录，避免旧报错一直亮红 */
+  function clearRouteErrors() {
+    routeErrors.providers = null;
+    routeErrors.statistics = null;
+    routeErrors.list = null;
+    routeErrors.trend = null;
+    routeErrors.modelTrend = null;
+  }
+
+  const FAULT_LABELS: Record<string, string> = {
+    providers: "服务商映射",
+    statistics: "统计快照",
+    list: "明细列表",
+    trend: "每日趋势",
+    modelTrend: "模型趋势",
+  };
+
+  /** 本次拉数失败的路由中文说明；没有则返回 null（一次汇总提醒，不做 N 连弹） */
+  function aggregatedFaults(): string | null {
+    const faults = Object.entries(routeErrors).filter(([, e]) => e);
+    if (!faults.length) return null;
+    return faults.map(([k, e]) => `${FAULT_LABELS[k] ?? k}：${String(e)}`).join("；");
+  }
+
+  /** 服务商参数映射：一次性的备案表，失败不影响表格（兜底显示原始 id） */
+  async function loadProviders(seq: number) {
+    if (providerNameLoaded) return;
+    routeLoading.providers = true;
     try {
-      // 服务商名称映射与用量快照并行：映射失败不阻断表格（providerDisplay 兜底显示原始 id）。
-      if (!providerNameLoaded) {
-        providerNameLoaded = true;
-        // 新接口未部署时会 404：映射失败静默，服务商列显示原始 id，不弹错
-        usageApi.usageProviders().then((res: any) => {
-          const list: any[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-          for (const p of list) {
-            const id = p?.id ?? p?.provider_id;
-            const name = p?.name;
-            if (id && name) providerNameMap.value[String(id)] = String(name);
-          }
-        }).catch(() => { /* 兜底显示原始 id，不弹错 */ });
+      const res: any = await usageApi.usageProviders();
+      if (loadSeq !== seq) return;
+      const list: any[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      for (const p of list) {
+        const id = p?.id ?? p?.provider_id;
+        const name = p?.name;
+        if (id && name) providerNameMap.value[String(id)] = String(name);
       }
-      const [statRes, sumRes, trendRes, modelTrendRes]: any[] = await Promise.all([
-        usageApi.statistics(timeParams.value),
-        usageApi.list(timeParams.value),
-        usageApi.trend(timeParams.value),
-        usageApi.modelTrend(timeParams.value),
-      ]);
-      Object.assign(stats, statRes.data || {});
+    } catch (e: any) {
+      routeErrors.providers = e?.message || e;
+    } finally {
+      routeLoading.providers = false;
+    }
+  }
+
+  /** 统计快照：写 `stats`，触发 KPI 数字滚动 */
+  async function loadStatistics(seq: number) {
+    routeLoading.statistics = true;
+    try {
+      const res: any = await usageApi.statistics(timeParams.value);
+      if (loadSeq !== seq) return;
+      Object.assign(stats, res.data || {});
       // 数字滚动：数据落定后再动画，否则会滚到一半被下一次刷新打断
       runCountUp();
-      summaryRows.value = sumRes.data || [];
-      modelTrendRows.value = (modelTrendRes?.data || []).map((r: any) => ({
-        date: String(r?.date || "").slice(0, 10),
-        model: r?.model,
-        provider: r?.provider,
-        totalTokens: Number(r?.totalTokens) || 0,
-        totalCost: Number(r?.totalCost) || 0,
-        // null 保持 null（而不是 0）：没实测样本时延迟图应断点，不能画成 0ms
-        avgFirstTokenLatency: r?.avgFirstTokenLatency == null ? null : Number(r.avgFirstTokenLatency),
-        avgTotalLatency: r?.avgTotalLatency == null ? null : Number(r.avgTotalLatency),
-      }));
-      const dailyRows: any[] = trendRes.data || [];
+    } catch (e: any) {
+      routeErrors.statistics = e?.message || e;
+    } finally {
+      routeLoading.statistics = false;
+    }
+  }
+
+  /** 分组明细：驱动分布表/环形图/看板 Top5（后端带时间参数） */
+  async function loadList(seq: number) {
+    routeLoading.list = true;
+    try {
+      const res: any = await usageApi.list(timeParams.value);
+      if (loadSeq !== seq) return;
+      summaryRows.value = res.data || [];
+    } catch (e: any) {
+      routeErrors.list = e?.message || e;
+    } finally {
+      routeLoading.list = false;
+    }
+  }
+
+  /** 每日用量趋势：按日期归并小时粒度 */
+  async function loadTrend(seq: number) {
+    routeLoading.trend = true;
+    try {
+      const res: any = await usageApi.trend(timeParams.value);
+      if (loadSeq !== seq) return;
+      const dailyRows: any[] = res.data || [];
       const map = new Map<string, { date: string; input: number; output: number; cached: number; total: number }>();
       for (const r of dailyRows) {
         const raw = String(r.date || ""); const d = raw.length > 10 && raw.includes(":") ? raw.slice(0, 13) : raw.slice(0, 10);
@@ -421,10 +519,61 @@ export function useUsageBoard() {
       }
       trendData.value = [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
     } catch (e: any) {
-      message.error("加载用量数据失败: " + (e?.message || e));
+      routeErrors.trend = e?.message || e;
     } finally {
-      refreshing.value = false;
+      routeLoading.trend = false;
     }
+  }
+
+  /** 每日模型趋势：驱动每日模型用量堆叠图、模型延迟图、平均 tok/s 线 */
+  async function loadModelTrend(seq: number) {
+    routeLoading.modelTrend = true;
+    try {
+      const res: any = await usageApi.modelTrend(timeParams.value);
+      if (loadSeq !== seq) return;
+      modelTrendRows.value = (res?.data || []).map((r: any) => ({
+        date: String(r?.date || "").slice(0, 10),
+        model: r?.model,
+        provider: r?.provider,
+        totalTokens: Number(r?.totalTokens) || 0,
+        totalCost: Number(r?.totalCost) || 0,
+        // null 保持 null（而不是 0）：没实测样本时延迟图应断点，不能画成 0ms
+        avgFirstTokenLatency: r?.avgFirstTokenLatency == null ? null : Number(r.avgFirstTokenLatency),
+        avgTotalLatency: r?.avgTotalLatency == null ? null : Number(r.avgTotalLatency),
+        // 后端统计了 AVG(tokens_per_second)
+        avgTokensPerSecond: r?.avgTokensPerSecond == null ? null : Number(r.avgTokensPerSecond),
+      }));
+    } catch (e: any) {
+      routeErrors.modelTrend = e?.message || e;
+    } finally {
+      routeLoading.modelTrend = false;
+    }
+  }
+
+  /**
+   * 汇总拉数：五路请求独立加载，任一路失败不阻塞其他路。
+   *
+   * <p>过去一把 `await Promise.all([...])`：四份数据要么全部落盘、要么全部报错；
+   * 一条链路卡死（比如后端模型趋势切分统计），整页的 KPI/表格/图表一起挂，还
+   * 弹出一行 "加载用量数据失败"。改成逐路独立拉数后，能出的先出，出不了留
+   * 空区块；所有路都走完后统一判一次错，不再一路报错全量补偿。</p>
+   */
+  async function loadData() {
+    clearRouteErrors();
+    // 版本号 +1：快速连点时，只保留最后一发的响应，避免旧响应覆盖新数据
+    loadSeq++;
+    const seq = loadSeq;
+    await Promise.all([
+      loadProviders(seq),
+      loadStatistics(seq),
+      loadList(seq),
+      loadTrend(seq),
+      loadModelTrend(seq),
+    ]);
+    // 检查回退到了更晚的版本（本次拉数被覆盖）
+    if (loadSeq !== seq) return;
+    const faults = aggregatedFaults();
+    if (faults) message.warning(`部分数据未加载：${faults}`);
   }
 
   // ---------- 模型/分组/应用分布 ----------
@@ -730,6 +879,14 @@ export function useUsageBoard() {
   const RING_TOP_N = 8;
   /** 「其他」扇区的固定色（中性灰，不占调色板名次） */
   const OTHER_SLICE_COLOR = "#C9CDD4";
+  /**
+   * 模型构成 treemap 最多显示的色块数（模型级自然块）。
+   *
+   * <p>环形图（与自然图各画各的）只有 8 个扇区，面积图放 10 个：块多了，名
+   * 字挤在一起看不清，只有最大的两块好辨认；超出的模型聚合成「其他 N 项」那块
+   * 灰块，点它展开看它具体由哪些模型构成（§6.1）。</p>
+   */
+  const TREEMAP_TOP_N = 10;
 
   /**
    * 把分布数据整理成看板要的形状：按当前指标降序、算占比、分配稳定颜色。
@@ -763,6 +920,127 @@ export function useUsageBoard() {
   const groupChartType = ref<ChartType>("token");
   const modelBoard = computed(() => buildBoard(modelDist.value, modelChartType.value));
   const groupBoard = computed(() => buildBoard(groupDist.value, groupChartType.value));
+
+  // ==================== 模型构成 treemap 交互（§6.2 / §6.3 / §6.4 / §6.5） ====================
+
+  /**
+   * treemap 要画的色块：正值模型（按当前口径降序） + 尾部的「其他 N 项」汇总块。
+   *
+   * X 的切片固定 8 个扇区给环形图；面积图单独取前 {@code TREEMAP_TOP_N}
+   * 条，多出的模型整段包进一块灰区，点它就能看它自己由哪些模型构成（§6.1 汇总块
+   * 展开）：</p>
+   *
+   * <p>〇 是独立统计口径（§6.4）：聚合块不在自然块里面，点击自然块拿自然块的行，
+   * 点击聚合块拿整段名册，两不混。</p>
+   */
+  const treemapBlocks = computed<{ blocks: TreeMapBlockItem[]; total: number }>(() => {
+    const items = modelBoard.value.items.filter((it) => Number(it.value) > 0);
+    const blocks: TreeMapBlockItem[] = items
+      .slice(0, TREEMAP_TOP_N)
+      .map((it) => ({ name: it.name, value: Number(it.value), pct: Number(it.pct), color: it.color }));
+    const rest = items.slice(TREEMAP_TOP_N);
+    if (!rest.length) return { blocks, total: items.length };
+    const mk = (fn: (it: BoardItem) => number) =>
+      rest.reduce((s, it) => s + fn(it), 0);
+    return {
+      total: items.length,
+      blocks: [
+        ...blocks,
+        {
+          name: `其他 ${rest.length} 项`,
+          value: mk((it) => it.value),
+          pct: mk((it) => it.pct),
+          color: OTHER_SLICE_COLOR,
+          members: rest.map((it) => ({ name: it.name, pct: it.pct, value: it.value, cost: Number(it.row.cost) || 0 })),
+          // 汇总块的指标：目录幕过那一整段（自然块的指数不受影响）
+          requests: mk((it) => it.row.requests),
+          promptTokens: mk((it) => it.row.promptTokens),
+          completionTokens: mk((it) => it.row.completionTokens),
+          totalTokens: mk((it) => it.row.totalTokens),
+          cost: mk((it) => it.row.cost),
+        },
+      ],
+    };
+  });
+
+  /** 当前悬停的色块名（null = 没有悬停 — 压暗状态由它驱动） */
+  const treemapHover = ref<string | null>(null);
+  /** 点击生效的色块详情（null = 弹窗关闭） */
+  const treemapSelected = ref<TreeMapDetail | null>(null);
+  /** 模型构成详情弹窗 */
+  const treemapDetailVisible = ref(false);
+  /** 「所有模型」展开弹窗 */
+  const treemapMoreVisible = ref(false);
+
+  /**
+   * 悬停：echarts 的 `mouseover` 返回色块名，直接比对即可压暗另一头。
+   *
+   * <p>这里只记名不记值：模型级色块与「其他 N 项」色块都走同一个压暗（悬停那块
+   * 全亮，其余压暗）。</p>
+   */
+  function onTreemapHover(params: any) {
+    treemapHover.value = params?.name ?? null;
+  }
+
+  function onTreemapOut() {
+    treemapHover.value = null;
+  }
+
+  /**
+   * 点击色块：弹窗展示详情（自然块模型级，汇总块展开成员列表）。
+   *
+   * <p>null 不设为可选：点中的是省级的参数名 → 映射回 `board.modelBoard.items` 找
+   * 对应的行。两类混淆时用中文名区分：参与者叫「其他 N 项」，成员列表压入详情。</p>
+   */
+  function onTreemapClick(params: any) {
+    const name = params?.name;
+    if (name == null) return;
+    const blocks = treemapBlocks.value.blocks;
+    const block = blocks.find((b) => b.name === name);
+    if (block == null) return;
+
+    if (block.name.startsWith("其他 ")) {
+      // 汇总块：详情里的成员列表就是它自己包的切段（§6.4 分组隔离）
+      treemapSelected.value = {
+        name: block.name,
+        pct: block.pct,
+        value: block.value,
+        requests: block.requests,
+        promptTokens: block.promptTokens,
+        completionTokens: block.completionTokens,
+        totalTokens: block.totalTokens,
+        cost: block.cost,
+        members: block.members,
+      };
+    } else {
+      const it = modelBoard.value.items.find((i) => i.name === name);
+      if (!it) return;
+      treemapSelected.value = {
+        name: it.name,
+        pct: it.pct,
+        value: it.value,
+        requests: it.row.requests,
+        promptTokens: it.row.promptTokens,
+        completionTokens: it.row.completionTokens,
+        totalTokens: it.row.totalTokens,
+        cost: it.row.cost,
+      };
+    }
+    treemapDetailVisible.value = true;
+  }
+
+  /** 点击展示全部模型（ Treemap 「更多」与「其他 N 项」弹窗同源可见） */
+  function onTreemapMore() {
+    treemapMoreVisible.value = true;
+  }
+
+  /** 关闭 treemap 弹窗，恢复所有色块 */
+  function closeTreemapDialog() {
+    treemapDetailVisible.value = false;
+    treemapMoreVisible.value = false;
+    treemapSelected.value = null;
+    treemapHover.value = null;
+  }
 
   /** 当前悬停的扇区（null = 没悬停，环心回落到 Top1） */
   const modelHover = ref<HoverSlice | null>(null);
@@ -934,6 +1212,7 @@ export function useUsageBoard() {
     date: string; model: string; provider: string;
     totalTokens: number; totalCost: number;
     avgFirstTokenLatency: number | null; avgTotalLatency: number | null;
+    avgTokensPerSecond: number | null;
   }>>([]);
   const modelBarMetric = ref<ChartType>("token");
 
@@ -1101,7 +1380,8 @@ export function useUsageBoard() {
 
   const latencyMatrix = computed(() => {
     const weight = new Map<string, number>();
-    const cell = new Map<string, Map<string, number>>();
+    const latencyCell = new Map<string, Map<string, number>>();
+    const speedCell = new Map<string, Map<string, number>>();
     for (const r of modelTrendRows.value) {
       const date = String(r.date || "").slice(0, 10);
       const model = String(r.model || "").trim() || "未知模型";
@@ -1109,18 +1389,25 @@ export function useUsageBoard() {
       weight.set(model, (weight.get(model) || 0) + (Number(r.totalTokens) || 0));
       const v = r.avgFirstTokenLatency;
       if (v == null || !Number.isFinite(v) || v <= 0) continue;
-      let day = cell.get(date);
-      if (!day) { day = new Map(); cell.set(date, day); }
+      let day = latencyCell.get(date);
+      if (!day) { day = new Map(); latencyCell.set(date, day); }
       day.set(model, Math.round(v));
+      // 平均 tok/s 独立一列：null 保持 null，没实测样本时数据断点、垂线断开
+      const s = r.avgTokensPerSecond;
+      if (s == null || !Number.isFinite(s) || s <= 0) continue;
+      let daySp = speedCell.get(date);
+      if (!daySp) { daySp = new Map(); speedCell.set(date, daySp); }
+      daySp.set(model, s);
     }
     const keep = [...weight.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, MODEL_LATENCY_TOP_N)
       .map(([m]) => m);
-    const dates = [...cell.keys()].sort();
+    const dates = [...latencyCell.keys()].sort();
     const series = keep.map((model) => ({
       model,
-      data: dates.map((d) => cell.get(d)?.get(model) ?? null),
+      latency: dates.map((d) => latencyCell.get(d)?.get(model) ?? null),
+      speed: dates.map((d) => speedCell.get(d)?.get(model) ?? null),
     }));
     return { dates, series };
   });
@@ -1135,22 +1422,51 @@ export function useUsageBoard() {
       tooltip: {
         trigger: "axis",
         confine: true,
-        valueFormatter: (v: any) => (v == null ? "—" : formatLatency(v)),
+        formatter: (params: any[]) => params
+          .map((p: any) => {
+            const px = p.seriesName.endsWith("（tok/s）");
+            const v = p.value == null ? null : Number(p.value);
+            return `${p.marker}${p.seriesName}: ${px ? (v == null ? "—" : formatSpeed(v)) : (v == null ? "—" : formatLatency(v))}`;
+          })
+          .join("<br/>"),
       },
       legend: { top: 0, type: "scroll" },
       grid: { left: 56, right: 44, top: 40, bottom: 32 },
       xAxis: { type: "category", boundaryGap: false, data: dates.map((d) => (d.length > 10 ? d.slice(11, 16) : d)) },
-      yAxis: { type: "value", name: "ms", axisLabel: { formatter: (v: number) => `${v}` } },
-      series: series.map((s) => ({
-        name: s.model,
-        type: "line",
-        smooth: true,
-        showSymbol: true,
-        symbolSize: 5,
-        connectNulls: false,
-        data: s.data,
-        color: colorOfModel(s.model),
-      })),
+      yAxis: [
+        { type: "value", name: "ms", position: "left", axisLabel: { formatter: (v: number) => `${v}` } },
+        {
+          type: "value",
+          name: "tok/s",
+          position: "right",
+          axisLabel: { formatter: (v: number) => `${v}` },
+          splitLine: { show: true, lineStyle: { type: "dashed", opacity: 0.3 } },
+        },
+      ],
+      series: series.flatMap((s) => [
+        {
+          name: s.model,
+          type: "line",
+          smooth: true,
+          showSymbol: true,
+          symbolSize: 5,
+          connectNulls: false,
+          data: s.latency,
+          color: colorOfModel(s.model),
+        },
+        {
+          name: s.model + "（tok/s）",
+          type: "line",
+          smooth: true,
+          showSymbol: true,
+          symbolSize: 5,
+          connectNulls: false,
+          data: s.speed,
+          color: colorOfModel(s.model),
+          // 虚线区分：平均 tok/s 不是首字延迟口径，避免与延迟线混淆
+          lineStyle: { type: "dashed" },
+        },
+      ]),
     };
   });
 
@@ -1427,6 +1743,9 @@ export function useUsageBoard() {
     liveEnabled, liveState, liveTodayTokens, liveRangeTokens, liveRate, liveLabel,
     boardTabs, modelChartType, groupChartType, modelBoard, groupBoard,
     modelHover, groupHover, onRingHover, onLegendHover, ringTop, topPct, topName,
+    treemapBlocks, treemapHover, treemapSelected, treemapDetailVisible, treemapMoreVisible,
+    onTreemapHover, onTreemapOut, onTreemapClick, onTreemapMore,
+    closeTreemapDialog,
     OTHER_SLICE_COLOR, boardColorOf, barWidth, isZeroCost,
     modelRingOption, groupRingOption, miniRingOption, boardColumns, percentNum, percent,
     modelBarMetric, modelBarDates, modelBarOption,

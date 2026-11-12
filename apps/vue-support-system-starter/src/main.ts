@@ -13,6 +13,7 @@ import { createContextApp } from "@repo/app";
 import { registerAnnouncementApi, type AnnouncementItem } from "@repo/theme";
 import { registerStaticMenu } from "@repo/pinia";
 import { systemMenus, systemRoutes, systemWidgets } from "@pages/system";
+import { tenantMenus, tenantRoutes } from "@pages/tenant";
 import { getActiveAnnouncements, markAnnouncementRead } from "@pages/system/api/announcementApi";
 // home widget 贡献器：各 pages 模块贡献的 widget 挂到 app 上
 import { defineWidgetContribution } from "@repo/theme/koi/views/home/registry";
@@ -44,7 +45,7 @@ registerAnnouncementApi({
 });
 
 // 后端菜单不可用时仍保证左侧导航可见；远程菜单成功后会由 auth store 自动隐藏这些兜底根节点。
-registerStaticMenu(systemMenus);
+registerStaticMenu([...systemMenus, ...tenantMenus]);
 
 /**
  * 启动失败兜底 —— 后端不可用时至少要让用户看见原因。
@@ -111,7 +112,7 @@ createContextApp({
     url: { jobApi: "/v2/job" },
   },
 })
-  .routes(systemRoutes as never)
+  .routes([...systemRoutes, ...tenantRoutes] as never)
   // 监控大屏卡片：各 pages 包自己注册（见 @pages/actuator、@pages/apm/monitor）
   .widgets([actuatorContribution, apmContribution, defineWidgetContribution(systemWidgets)])
   // 原先是 main.ts 手工 `.use(ReButtonInstall, ReInputInstall, ...)` 逐个导入安装。

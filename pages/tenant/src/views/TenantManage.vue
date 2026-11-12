@@ -8,12 +8,12 @@
 import { getGlobalSocketService, message } from "@repo/core";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
-import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions } from "../api/systemApi";
-import type { SysTenant, TenantDatasourceOption, TenantEndpointInfo } from "../api/types";
+import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions } from "@pages/system/api/systemApi";
+import type { SysTenant, TenantDatasourceOption, TenantEndpointInfo } from "@pages/system/api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import ReProgressDialog, { type ProgressSnapshot, type ProgressStep } from "@repo/ui/re-progress-dialog";
-import ServiceCatalogPanel from "./components/ServiceCatalogPanel.vue";
-import TenantServiceBindDialog from "./components/TenantServiceBindDialog.vue";
+import ServiceCatalogPanel from "@pages/system/views/components/ServiceCatalogPanel.vue";
+import TenantServiceBindDialog from "@pages/system/views/components/TenantServiceBindDialog.vue";
 
 const tenantStatusOptions = [
   { label: "启用", value: 0 },

@@ -7,7 +7,7 @@
   一个帧只有一个方向：带请求头的显示「HTTP 请求」，带响应头的显示「HTTP 响应」。
   正文跟随头部归属，所以请求体不会跑到响应下面。
 
-  正文本身交给 ScTsharkHttpBody：文本 / JSON / HEX 三视图、截断说明、按视图复制。
+  正文本身交给 ScTsharkHttpBody：智能 / 表单 / JSON / 文本 / HEX 视图、截断说明、按视图复制。
 -->
 <template>
   <div v-if="hasAny" class="http-info">

@@ -3,6 +3,9 @@ import { defineStore } from 'pinia'
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { getMe, login as loginApi, syncUserPerm } from '@repo/core'
 import { unwrapResult } from '@repo/utils'
+// 框架用户 store：登出时同步清掉，避免「业务已登出、框架仍认为已登录」，
+// 使框架登录页（ReLoginForm 按 userStore.token 自动跳首页）误判。
+import useFrameworkUserStore from '@repo/pinia/modules/user'
 import { t } from '@/locales'
 import {
     api,
@@ -32,13 +35,36 @@ interface LoginPayload extends MePayload {
 }
 
 /**
+ * 后端用户信息 → 业务 User 的类型化映射。
+ *
+ * <p>兼容两套契约：AI 后端返回 userId/username/nickname/avatarUrl，
+ * 系统后端返回 sysUserId/sysUserUsername/sysUserNickname/sysUserAvatar。</p>
+ */
+function toUser(raw: Record<string, any>): User {
+    const roles = Array.isArray(raw.roles) ? raw.roles : []
+    return {
+        ...raw,
+        id: String(raw.id ?? raw.userId ?? raw.sysUserId ?? ''),
+        userId: raw.userId ?? raw.sysUserId ?? raw.id,
+        username: raw.username ?? raw.sysUserUsername ?? raw.loginName ?? '',
+        nickname: raw.nickname ?? raw.sysUserNickname ?? '',
+        avatarUrl: raw.avatarUrl ?? raw.avatar ?? raw.sysUserAvatar ?? '',
+        roles,
+    } as unknown as User
+}
+
+/**
  * 认证状态 Store
  *
  * 令牌与用户信息统一由框架 storage 持有（@repo/utils token 模块），请求侧的
  * Authorization 头与 401/403 跳登录由 @repo/core 的 http 拦截器负责，
  * 本 store 只做状态镜像与登录 / 登出 / 校验动作。
+ *
+ * <p><b>store id 不能叫 auth</b>：框架 @repo/pinia 也有 defineStore("auth")
+ * （登录页 ReLoginForm 会用到）。同 id 的两个 store 定义在同一个 pinia 实例上
+ * 会互相覆盖状态，因此本应用使用 "ai-auth"。</p>
  */
-export const useAuthStore = defineStore('auth', () => {
+export const useAuthStore = defineStore('ai-auth', () => {
     // 状态：store 创建时立即从框架 storage 恢复，确保刷新后数据不丢失
     const user: Ref<User | null> = ref((cachedUserInfo<MePayload>() as User | null) ?? null)
     const token: Ref<string | null> = ref(currentToken() || null)
@@ -52,6 +78,8 @@ export const useAuthStore = defineStore('auth', () => {
     // 定时验证定时器引用
     let refreshTimer: number | null = null
     const REFRESH_INTERVAL = 30 * 60 * 1000 // 30分钟
+    /** 补拉用户信息去重：框架 getLoginUserInfo 是 fire-and-forget，跳转可能先行 */
+    let syncingProfile = false
 
     /** 令牌与用户信息写入框架 storage（用户级存储前缀依赖 userId） */
     function remember(accessToken: string, profile: MePayload): void {
@@ -62,7 +90,7 @@ export const useAuthStore = defineStore('auth', () => {
         // 否则 isAdmin() 读不到角色，MCP 等仅管理员入口在登录后不显示（刷新才恢复）
         syncUserPerm(profileWithRoles)
         token.value = accessToken
-        user.value = rest as unknown as User
+        user.value = toUser(profileWithRoles as Record<string, any>)
     }
 
     // Actions
@@ -88,9 +116,50 @@ export const useAuthStore = defineStore('auth', () => {
         return true
     }
 
+    /**
+     * 从框架 storage 回填业务状态镜像。
+     *
+     * <p>登录页已交给框架 ReLoginForm：登录成功后由框架写入 accessToken 与
+     * userInfo（见 @repo/pinia 的 loginByUsername + initAuthRouter），本 store
+     * 不再参与登录流程。路由切换后调用本方法，把 storage 里的登录态同步成
+     * `user` / `token`，页面里的 isAuthenticated / 头像 / 用户名才会立即更新。</p>
+     *
+     * <p>字段兼容两套后端契约：AI 后端返回 userId/username/nickname/avatarUrl，
+     * 系统后端返回 sysUserId/sysUserUsername/sysUserNickname/sysUserAvatar。</p>
+     */
+    function syncFromFramework(): void {
+        const nextToken = currentToken() || null
+        token.value = nextToken
+        if (!nextToken) {
+            user.value = null
+            // 框架 user store 是内存态：401 拦截器 clearAllAuthData() 只清 storage，
+            // 旧 token 仍留在 store 里，框架登录页（按 userStore.token 判断）会误判
+            // 已登录并把用户弹回首页，形成 /login ↔ 首页循环。这里同步清掉。
+            useFrameworkUserStore().$reset()
+            return
+        }
+        const raw = cachedUserInfo<Record<string, any>>()
+        if (raw) {
+            user.value = toUser(raw)
+            return
+        }
+        // 框架登录成功后 initAuthRouter 里的 getLoginUserInfo 是「不 await」的，
+        // 跳转（router.replace(HOME_URL)）可能先于 /v2/user/me 返回。此时 storage
+        // 还没有 userInfo，补拉一次，避免侧边栏/头像一直停在未登录形态。
+        if (!syncingProfile) {
+            syncingProfile = true
+            void checkAuth().finally(() => {
+                syncingProfile = false
+            })
+        }
+    }
+
     function logout(): void {
         // 通知后端登出，失败不阻断本地清理（令牌失效场景由拦截器跳转处理）
         void api.post('/user/logout').catch(() => undefined)
+        // 同步清掉框架 user store：框架登录页按 userStore.token 判断是否已登录，
+        // 只清 storage 不清 store 时，登出后访问 /login 会被自动弹回首页。
+        useFrameworkUserStore().$reset()
         clearAuth()
         token.value = null
         user.value = null
@@ -172,5 +241,6 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         initializeAuth,
         checkAuth,
+        syncFromFramework,
     }
 })

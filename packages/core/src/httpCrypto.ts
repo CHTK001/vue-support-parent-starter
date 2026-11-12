@@ -15,8 +15,9 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import type { CryptoModule } from "./crypto/types";
-import { encodeRequestBody, getAccessToken, clearAllAuthData } from "@repo/utils";
+import { encodeRequestBody, decodeCodecResponse, getAccessToken, clearAllAuthData } from "@repo/utils";
 import type { HttpRequestCodecConfig } from "@repo/config";
+import { getHttpCodecRuntime, isCodecRequestExcluded } from "./httpCodecRuntime";
 import { getRouter, hasRouter } from "./router/inject";
 import { startLoading, doneLoading } from "./progress";
 import { upgrade, getStorageKey, getConfig, LOGIN_URL } from "@repo/config";
@@ -439,18 +440,28 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
     // 即整包解密，两条协议同时开会让 body 被双重编码而解码失败。
     // 生效条件：app.yaml 配置 requestCodec.enable=true + key，且该请求链式 .codec(true)。
     const rc = options.requestCodec;
+    const runtimeCodec = getHttpCodecRuntime();
+    // 自动模式：系统配置页打开 CodecRequestOpen 后，业务请求不必逐条写 .codec(true)。
+    // 登录/设置接口排除，避免“拿密钥前先加密”以及设置页自锁。
+    const autoCodec =
+      runtimeCodec.requestOpen &&
+      !!runtimeCodec.key &&
+      !isCodecRequestExcluded(config.url);
+    const explicitCodec = rc?.enable === true && !!rc.key && hc?.codec === true;
     const useCodec =
       !isRetry &&
-      rc?.enable === true &&
-      !!rc.key &&
-      hc?.codec === true &&
+      (autoCodec || explicitCodec) &&
+      !isCodecRequestExcluded(config.url) &&
       isEncryptable(config.data);
 
     if (useCodec) {
       const bodyText = typeof config.data === "string"
         ? config.data
         : JSON.stringify(config.data);
-      config.data = encodeRequestBody(bodyText, { type: rc!.type, key: rc!.key });
+      const codecOptions = autoCodec
+        ? { type: runtimeCodec.type, key: runtimeCodec.key }
+        : { type: rc!.type, key: rc!.key };
+      config.data = encodeRequestBody(bodyText, codecOptions);
       // hex 串已是最终请求体：axios 默认 transformRequest 见到 Content-Type 为
       // application/json 会对 string 再 JSON.stringify 套引号，后端
       // extractEncryptedPayload 拿带引号的串当 hex 解必然失败，故覆盖为直通。
@@ -502,6 +513,22 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
         const noiseLevel = Number(response.headers[NOISE_LEVEL_HEADER] ?? 0);
         const { plainText, isJson } = crypto.decodeBody(rawData, keyHeader, noiseLevel);
         response.data = isJson ? JSON.parse(plainText) : plainText;
+      }
+
+      // 后端 CodecResponseOpen：响应被包装成 02{key}200{data}ffff。
+      // 必须在 checkApiResponse 之前还原，否则统一响应校验会把二进制/包装串当业务错误。
+      const runtimeCodec = getHttpCodecRuntime();
+      // 不能只在 responseOpen=true 时解码：打开开关后，紧接着用于刷新设置的
+      // /v2/setting/list 响应本身就已经被后端包装，此时运行时状态还是旧值。
+      // 先按包装特征识别，识别不到时 decodeCodecResponse 返回 null，不影响普通 JSON。
+      if (response.data) {
+        const decoded = decodeCodecResponse(response.data, {
+          type: runtimeCodec.type,
+          key: runtimeCodec.key,
+        });
+        if (decoded !== null) {
+          response.data = decoded;
+        }
       }
 
       // 统一响应校验：失败弹提示 + reject，成功透传

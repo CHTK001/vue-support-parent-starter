@@ -71,13 +71,19 @@ async function enrichFromIds() {
 }
 
 function close() {
-  // 弹窗页面优先自关；作为普通页面打开时返回趣味中心
+  // 弹窗页面优先自关
   if (window.opener) {
     window.close();
     return;
   }
+  // 站内普通页面：能回退就回退（回到打开它的学生端/上一页）；
+  // 没有上一页时才落学生端首页 —— 不要再落到 /edu/fun，那是后台外壳。
+  if (window.history.length > 1) {
+    window.history.back();
+    return;
+  }
   // 直接写 pathname 在 hash 路由下会被启动归一化改写回首页，必须带 # 前缀
-  window.location.href = routeUrl(router, "/edu/fun");
+  window.location.href = routeUrl(router, "/edu/student");
 }
 
 loadCards();

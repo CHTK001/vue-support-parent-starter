@@ -47,100 +47,96 @@
       </div>
     </section>
 
-    <!-- ==================== 01 左右布局 ==================== -->
-    <div class="svc-split">
-      <!-- ---------- 左栏：服务实例卡片列表 ---------- -->
-      <aside class="svc-side" aria-label="服务实例列表">
-        <div class="svc-sect__head">
-          <span class="svc-sect__no">01</span>
-          <h3 class="svc-sect__title" id="svc-inst-t">服务实例</h3>
-          <div class="svc-sect__extra">
-            <span class="svc-sect__hint">{{ instances.length }} 个</span>
+    <!-- ==================== 01 实例端口带 ==================== -->
+    <section class="svc-inst" aria-label="服务实例">
+      <div class="svc-sect__head">
+        <span class="svc-sect__no">01</span>
+        <h3 class="svc-sect__title" id="svc-inst-t">服务实例</h3>
+        <div class="svc-sect__extra">
+          <span class="svc-sect__hint">{{ instances.length }} 个 · {{ runningCount }} 个在跑</span>
+        </div>
+      </div>
+
+      <!-- 内联错误条：旧数据不清空（实例卡片继续可读） -->
+      <div class="svc-alert is-danger" v-if="instError">
+        <span class="svc-alert__text">服务实例加载失败：{{ instError }}</span>
+        <button class="svc-alert__act" @click="loadInstances">重试</button>
+      </div>
+
+      <!-- 首屏骨架：3 片，不遮罩 -->
+      <div v-if="instLoading && !instances.length" class="svc-tiles">
+        <div v-for="n in 3" :key="'skel' + n" class="svc-tile is-skeleton" aria-hidden="true">
+          <span class="svc-tile__state"></span>
+          <div class="svc-tile__body">
+            <div class="svc-tile__line"><b class="svc-skel" style="width: 120px; height: 15px"></b></div>
+            <div class="svc-tile__meta"><b class="svc-skel" style="width: 96px; height: 14px"></b></div>
           </div>
         </div>
+      </div>
 
-        <!-- 内联错误条：旧数据不清空（实例卡片继续可读） -->
-        <div class="svc-alert is-danger" v-if="instError">
-          <span class="svc-alert__text">服务实例加载失败：{{ instError }}</span>
-          <button class="svc-alert__act" @click="loadInstances">重试</button>
-        </div>
+      <!-- 空态：虚线框 + 引导 CTA -->
+      <div class="svc-empty" v-else-if="!instances.length">
+        <span class="svc-empty__mark" aria-hidden="true"></span>
+        <b>还没有服务实例</b>
+        <i>创建后即可对外提供 OpenAI / Claude / Gemini 兼容接口</i>
+        <el-button type="primary" class="svc-btn" style="margin-top: 6px" @click="showCreateDialog = true">
+          <el-icon class="svc-btn__icon" aria-hidden="true"><AddIcon /></el-icon>
+          新建服务实例
+        </el-button>
+      </div>
 
-        <!-- 首屏骨架：3 片，不遮罩 -->
-        <div v-if="instLoading && !instances.length" class="svc-side__list">
-          <div v-for="n in 3" :key="'skel' + n" class="svc-tile is-skeleton" aria-hidden="true">
-            <span class="svc-tile__state"></span>
-            <div class="svc-tile__body">
-              <div class="svc-tile__line"><b class="svc-skel" style="width: 132px; height: 15px"></b></div>
-              <div class="svc-tile__meta">
-                <b class="svc-skel" style="width: 52px; height: 18px"></b>
-                <b class="svc-skel" style="width: 92px; height: 14px"></b>
-              </div>
+      <!-- 端口卡横排：端口是运维认实例的第一锚点，故放在最前 -->
+      <div v-else class="svc-tiles">
+        <div v-for="t in instances" :key="t.id"
+            class="svc-tile"
+            :class="{ 'is-active': isActive(t), 'is-ok': t.running === true, 'is-down': isDown(t), 'is-flash': flashId === t.id }"
+            tabindex="0" role="button"
+            :aria-current="isActive(t) ? 'true' : undefined"
+            :aria-label="`${t.name} 端口 ${t.port}，${statusBadgeText(t)}，回车查看该实例的访问日志`"
+            @click="selectInstance(t.id)"
+            @keydown.enter.prevent="selectInstance(t.id)"
+            @keydown.space.prevent="selectInstance(t.id)">
+          <span class="svc-tile__state" aria-hidden="true"></span>
+          <div class="svc-tile__body">
+            <div class="svc-tile__line">
+              <span class="svc-tile__port">:{{ t.port }}</span>
+              <b class="svc-tile__name" :title="t.name">{{ t.name }}</b>
+            </div>
+            <div class="svc-tile__meta">
+              <span class="svc-badge" :class="statusBadgeClass(t)"><i aria-hidden="true"></i>{{ statusBadgeText(t) }}</span>
+              <span class="svc-tile__protos">
+                <span class="svc-chip is-protocol" v-if="t.enableGpt">GPT</span>
+                <span class="svc-chip is-protocol" v-if="t.enableCc">CC</span>
+                <span class="svc-chip is-protocol" v-if="t.enableGemini">GEMINI</span>
+                <span class="svc-chip is-empty" v-if="!protoCount(t)">无协议</span>
+              </span>
+              <span class="svc-tile__usage">用量 {{ t.logUsage ? '开' : '关' }}</span>
             </div>
           </div>
-        </div>
-
-        <!-- 空态：虚线框 + 引导 CTA -->
-        <div class="svc-empty svc-side__empty" v-else-if="!instances.length">
-          <span class="svc-empty__mark" aria-hidden="true"></span>
-          <b>还没有服务实例</b>
-          <i>创建后即可对外提供 OpenAI / Claude / Gemini 兼容接口</i>
-          <el-button type="primary" class="svc-btn" style="margin-top: 6px" @click="showCreateDialog = true">
-            <el-icon class="svc-btn__icon" aria-hidden="true"><AddIcon /></el-icon>
-            新建服务实例
-          </el-button>
-        </div>
-
-        <!-- 卡片列表 -->
-        <div v-else class="svc-side__list">
-          <div v-for="t in instances" :key="t.id"
-              class="svc-tile svc-tile--card"
-              :class="{ 'is-active': isActive(t), 'is-ok': t.running === true, 'is-down': isDown(t), 'is-flash': flashId === t.id }"
-              tabindex="0" role="button"
-              :aria-current="isActive(t) ? 'true' : undefined"
-              :aria-label="`${t.name} 端口 ${t.port}，${statusBadgeText(t)}，回车查看该实例的访问日志`"
-              @click="selectInstance(t.id)"
-              @keydown.enter.prevent="selectInstance(t.id)"
-              @keydown.space.prevent="selectInstance(t.id)">
-            <span class="svc-tile__state" aria-hidden="true"></span>
-            <div class="svc-tile__body">
-              <div class="svc-tile__line">
-                <b class="svc-tile__name" :title="t.name">{{ t.name }}</b>
-                <span class="svc-badge" :class="statusBadgeClass(t)"><i aria-hidden="true"></i>{{ statusBadgeText(t) }}</span>
-              </div>
-              <div class="svc-tile__meta">
-                <span class="svc-tile__port">:{{ t.port }}</span>
-                <span class="svc-tile__protos">
-                  <span class="svc-chip is-protocol" v-if="t.enableGpt">GPT</span>
-                  <span class="svc-chip is-protocol" v-if="t.enableCc">CC</span>
-                  <span class="svc-chip is-protocol" v-if="t.enableGemini">GEMINI</span>
-                  <span class="svc-chip is-empty" v-if="!protoCount(t)">无协议</span>
-                </span>
-                <span class="svc-tile__usage">用量 {{ t.logUsage ? '开' : '关' }}</span>
-              </div>
-            </div>
-            <!-- 操作组：阻止冒泡，点「删除」不能同时切换选中 -->
-            <div class="svc-tile__acts" @click.stop @keydown.stop>
-              <button class="svc-ico" :disabled="busy[t.id] === true"
-                      :title="t.running === true ? '停止该实例' : '启动该实例'"
-                      :aria-label="t.running === true ? '停止该实例' : '启动该实例'"
-                      @click="toggleInstance(t)">
-                <el-icon><component :is="t.running === true ? StopIcon : PlayIcon" /></el-icon>
-              </button>
-              <button class="svc-ico" title="Key 台账（全局共用）" aria-label="打开 Key 台账" @click="openTokens(t)">
-                <el-icon><KeyIcon /></el-icon>
-              </button>
-              <button class="svc-ico svc-ico--danger" :disabled="t.running === true || busy[t.id] === true"
-                      :title="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
-                      :aria-label="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
-                      @click="deleteInstance(t)">
-                <el-icon><DeleteIcon /></el-icon>
-              </button>
-            </div>
+          <!-- 操作组：阻止冒泡，点「删除」不能同时切换选中 -->
+          <div class="svc-tile__acts" @click.stop @keydown.stop>
+            <button class="svc-ico" :disabled="busy[t.id] === true"
+                    :title="t.running === true ? '停止该实例' : '启动该实例'"
+                    :aria-label="t.running === true ? '停止该实例' : '启动该实例'"
+                    @click="toggleInstance(t)">
+              <el-icon><component :is="t.running === true ? StopIcon : PlayIcon" /></el-icon>
+            </button>
+            <button class="svc-ico" title="Key 台账（全局共用）" aria-label="打开 Key 台账" @click="openTokens(t)">
+              <el-icon><KeyIcon /></el-icon>
+            </button>
+            <button class="svc-ico svc-ico--danger" :disabled="t.running === true || busy[t.id] === true"
+                    :title="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
+                    :aria-label="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
+                    @click="deleteInstance(t)">
+              <el-icon><DeleteIcon /></el-icon>
+            </button>
           </div>
         </div>
-      </aside>
+      </div>
+    </section>
 
-      <!-- ---------- 右栏：ReTab 工作区 ---------- -->
+    <div class="svc-work">
+      <!-- ---------- 主工作区 ---------- -->
       <section class="svc-main" aria-label="实例详情工作区">
         <ReTab :tabs="logTabs" v-model="activeTab" variant="underline" stretch class="svc-rtab">
           <!-- ═══ tab 1 运行日志 ═══ -->
@@ -347,6 +343,64 @@
           </template>
         </ReTab>
       </section>
+
+      <!-- ---------- 右栏：台账概览 / 正在排查 ---------- -->
+      <aside class="svc-aside" aria-label="台账概览">
+        <section class="svc-sidecard">
+          <div class="svc-sidecard__h">
+            <b>台账概览</b>
+            <span>Key · 分组</span>
+          </div>
+          <div class="svc-metrics">
+            <button class="svc-metric" @click="activeTab = 'keys'">
+              <b>{{ keyStats.total }}</b><i>AppKey</i>
+            </button>
+            <button class="svc-metric" @click="activeTab = 'keys'">
+              <b>{{ keyStats.usable }}</b><i>可用</i>
+            </button>
+            <button class="svc-metric" :class="{ 'is-warn': keyStats.atRisk > 0 }" @click="activeTab = 'keys'">
+              <b>{{ keyStats.atRisk }}</b><i>有风险</i>
+            </button>
+          </div>
+          <div class="svc-kv"><span>已耗 Token</span><b>{{ formatCompact(keyStats.usedTokens) }}</b></div>
+          <div class="svc-kv"><span>分组</span><b>{{ groupStats.total }} 个 · {{ groupStats.models }} 模型</b></div>
+          <div class="svc-kv"><span>分组内成员 Key</span><b>{{ groupStats.keys }}</b></div>
+
+          <!-- 风险清单：名称 + 余量 + 状态三件套；点一行直接跳台账 -->
+          <div class="svc-risk" v-if="keyStats.risk && keyStats.risk.length">
+            <button v-for="k in keyStats.risk" :key="k.id" class="svc-risk__row" @click="activeTab = 'keys'">
+              <span class="svc-risk__name" :title="k.name">{{ k.name }}</span>
+              <span class="svc-risk__val">{{ k.remainText }}</span>
+              <i class="svc-risk__tag" :class="'is-' + k.tone">{{ k.statusText }}</i>
+            </button>
+          </div>
+          <p class="svc-sidecard__note" v-else-if="keyStats.total">
+            没有额度告急或即将到期的 Key。
+          </p>
+        </section>
+
+        <section class="svc-sidecard">
+          <div class="svc-sidecard__h">
+            <b>正在排查</b>
+            <span class="svc-mono">{{ activeInstance ? ':' + activeInstance.port : '未选中' }}</span>
+          </div>
+          <template v-if="activeInstance">
+            <div class="svc-instline">
+              <b>{{ activeInstance.name }}</b>
+              <span class="svc-badge" :class="statusBadgeClass(activeInstance)">
+                <i aria-hidden="true"></i>{{ statusBadgeText(activeInstance) }}
+              </span>
+            </div>
+            <div class="svc-kv"><span>失败请求</span><b>{{ failedForActive }} 次</b></div>
+            <div class="svc-kv"><span>访问记录作用域</span><b>{{ logInstanceId ? '仅该实例' : '全部实例' }}</b></div>
+            <p class="svc-sidecard__note">运行日志是进程级输出，不按实例过滤；用它看启动与上游报错。</p>
+            <button class="svc-linkbtn" @click="activeTab = 'runtime'">打开运行日志 →</button>
+          </template>
+          <p class="svc-sidecard__note" v-else>
+            点上方任一实例卡片，这里会锁定到该实例的端口与失败请求数。
+          </p>
+        </section>
+      </aside>
     </div>
 
     <!-- 新建实例对话框 -->
@@ -599,7 +653,7 @@ const flashId = ref<any>(null)
 const showCreateDialog = ref(false)
 const creating = ref(false)
 const activeId = ref<any>(null)
-const activeTab = ref('runtime')
+const activeTab = ref('access')
 
 /**
  * 页签：前两个按实例看日志，第三个是全局 Key 台账。
@@ -608,10 +662,29 @@ const activeTab = ref('runtime')
  * 同一把 Key 在任何实例端口都能用，按实例切分只会制造「这把 Key 属于哪个实例」的错觉。</p>
  */
 const keyRefreshKey = ref(0)
-const keyStats = ref({ total: 0, usable: 0, atRisk: 0, usedTokens: 0 })
+/**
+ * Key 台账概览：总量 / 可用 / 有风险 / 已耗 Token，外加最多 3 行风险清单。
+ *
+ * <p>风险清单由台账组件回传（它已经算好每把 Key 的余量与状态），
+ * 这里不重复算一遍额度口径 —— 两份实现必然漂移，用户就会看到
+ * 「台账说用尽、右栏说可用」。</p>
+ */
+const keyStats = ref<{
+  total: number
+  usable: number
+  atRisk: number
+  usedTokens: number
+  risk: Array<{ id: any; name: string; remainText: string; statusText: string; tone: string }>
+}>({ total: 0, usable: 0, atRisk: 0, usedTokens: 0, risk: [] })
 
-function onKeyStats(v: { total: number; usable: number; atRisk: number; usedTokens: number }) {
-  keyStats.value = v
+function onKeyStats(v: {
+  total: number
+  usable: number
+  atRisk: number
+  usedTokens: number
+  risk?: Array<{ id: any; name: string; remainText: string; statusText: string; tone: string }>
+}) {
+  keyStats.value = { ...v, risk: v.risk || [] }
 }
 
 /**
@@ -637,10 +710,10 @@ function onKeyChanged() {
 }
 
 const logTabs = computed<ReTabItem[]>(() => [
-  { name: 'runtime', label: '运行日志', badge: runtimeLogLines.value.length || '' },
   { name: 'access', label: '访问日志', badge: logs.value.length || '' },
   { name: 'keys', label: 'Key 台账', badge: keyStats.value.total || '' },
   { name: 'groups', label: '分组', badge: groupStats.value.total || '' },
+  { name: 'runtime', label: '运行日志', badge: runtimeLogLines.value.length || '' },
 ])
 
 const logs = ref<any[]>([])

@@ -60,6 +60,10 @@ import {
   sessionNextTaskApi,
   type SessionNextTaskApi,
 } from "./modules/session-next-task.api";
+import {
+  sessionInputSuggestApi,
+  type SessionInputSuggestApi,
+} from "./modules/session-input-suggest.api";
 
 export type { FileChangeEvent };
 export type { SessionEvent, SessionEventType };
@@ -95,6 +99,7 @@ interface ApiService
     InputApi,
     GoalApi,
     SessionNextTaskApi,
+    SessionInputSuggestApi,
     GitApi {}
 
 /**
@@ -372,6 +377,7 @@ Object.assign(
   inputApi,
   goalApi,
   sessionNextTaskApi,
+  sessionInputSuggestApi,
   gitApi,
 );
 

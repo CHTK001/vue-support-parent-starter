@@ -36,3 +36,6 @@ otherConfig:
   # 头像框开关
   avatarFrame:
     enable: true
+  # 壁纸开关（内置壁纸纯 CSS，不依赖后端；上传走 /v2/file/upload）
+  wallpaper:
+    enable: true

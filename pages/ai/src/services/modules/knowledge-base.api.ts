@@ -63,7 +63,6 @@ export interface KnowledgeBaseApi {
   moveKBFile(kbId: string, fileId: string, targetParentFolderId: string | null): Promise<{ success: boolean; message: string; data: any }>;
   createKBFolder(kbId: string, folderName: string, parentFolderId?: string | null): Promise<any>;
   getFileProcessingStatus(kbId: string, fileId: string): Promise<KBFile>;
-  batchGetFileProcessingStatus(kbId: string, fileIds: string[]): Promise<KBFile[]>;
   retryKBFile(kbId: string, fileId: string): Promise<{ success: boolean; message: string }>;
   getKBFileChunks(kbId: string, fileId: string, skip?: number, limit?: number): Promise<any[]>;
   searchKnowledgeBase(kbId: string, query: string, topK?: number, filterFileId?: string): Promise<any>;
@@ -80,7 +79,16 @@ export interface KnowledgeBaseApi {
   generateKnowledgeBaseGraph(
     kbId: string,
     docPath?: string,
-  ): Promise<{ files: number; entityCount: number; relationCount: number; elapsedMs: number }>;
+  ): Promise<{
+    files: number;
+    entityCount: number;
+    relationCount: number;
+    elapsedMs: number;
+    /** ok=全部成功 / empty=没有可抽取的知识点 / partial=部分失败 / failed=全部失败 */
+    status: "ok" | "empty" | "partial" | "failed";
+    /** 抽取链路失败的知识点及原因；status 为 partial/failed 时非空 */
+    failedFiles: Array<{ docPath: string; errorMessage: string }>;
+  }>;
   /** 关系图谱计数：GET /v2/rag/graph/count */
   fetchKnowledgeGraphCount(kbId: string): Promise<{ entityCount: number; relationCount: number }>;
   /** 扩线：GET /v2/rag/graph/neighbors，返回直接邻居子图 */
@@ -167,14 +175,35 @@ function unwrapData<T = any>(env: any, route: string): T {
       break;
     }
     if (!isOkEnvelope(cur)) {
-      throw new Error(`[knowledge-base] ${route} 调用失败：${cur.error || cur.msg || cur.code || "未知错误"}`);
+      throw envelopeError(route, cur);
     }
     cur = cur.data;
   }
   if (cur && typeof cur === "object" && (cur.success === false || cur.error)) {
-    throw new Error(`[knowledge-base] ${route} 调用失败：${cur.error || cur.msg || "未知错误"}`);
+    throw envelopeError(route, cur);
   }
   return cur as T;
+}
+
+/**
+ * 把失败信封转成 Error，并把结构化 `detail` 原样挂上去。
+ *
+ * <p>为什么不能只留 message：知识库问答失败时要展示「生效模型 / 脱敏地址 /
+ * 失败节点」的折叠明细，把 detail 序列化进一句中文既读不懂也解析不回来。
+ * HTTP 非 2xx 的失败由传输层直接抛出（`e.response.data` 带同一份 detail），
+ * 这里补齐 HTTP 200 业务失败那一支，两条路径在前端拿到的是同一形状。</p>
+ *
+ * @param route 路由描述（错误前缀用）
+ * @param env   失败信封
+ * @returns 带 detail 的 Error
+ */
+function envelopeError(route: string, env: any): Error {
+  const error = new Error(
+    `[knowledge-base] ${route} 调用失败：${env?.error || env?.msg || env?.code || "未知错误"}`,
+  )
+  ;(error as any).detail = env?.detail
+  ;(error as any).errorCode = env?.code
+  return error
 }
 
 /** 取失败原因文本（信封或拒绝对象） */
@@ -308,7 +337,10 @@ function toKBFile(raw: any, kbId: string): KBFile {
     processingStatus: isDir ? "completed" : (raw?.processing_status || "uploaded"),
     progressPercentage: 0,
     currentStep: null,
-    errorMessage: null,
+    // 失败原因由后端 /tree 的 error_message 下发（RagDocument.errorMessage）。
+    // 此前这里硬编码 null，左栏「待处理失败」只能写「原因未返回」——
+    // 用户看得到失败、看不到为什么失败，也就无从判断该改配置还是换文件。
+    errorMessage: raw?.error_message ?? null,
     totalChunks: 0,
     totalTokens: 0,
     uploadedAt: toIso(raw?.modified_at),
@@ -463,9 +495,15 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
     const dir = normalizeRelPath(targetPath);
     const name = normalizeRelPath(file.name);
     const relPath = dir ? `${dir}/${name}` : name;
+    const content = await file.text();
+    // 空文件（含仅空白）没有可索引内容：上传前就拦住，别让它入库后显示「失败 · 提取文本为空」，
+    // 那会把用户引向 embedding / 解析器排查。后端对新建空文件同样返回 INVALID_PARAM，这里先给可读提示。
+    if (!content.trim()) {
+      throw new Error(`「${name}」是空文件（0 字节），没有内容可索引，已跳过`)
+    }
     const env = await apiHttp.put(`${KB}/bases/${encodeURIComponent(kbId)}/file`, {
       path: relPath,
-      content: await file.text(),
+      content,
     });
     unwrapData(env, route);
     const node = toKBFile({ rel_path: relPath, size: file.size }, kbId);
@@ -533,12 +571,20 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
     return { success: true, message: "重命名成功", data: toKBFile(raw, kbId) };
   },
 
-  /** 无后端出口：/api/knowledge 未提供移动路由 */
+  /**
+   * 移动文件/目录：POST /api/knowledge/bases/{id}/move {path, target_dir}
+   *
+   * <p>移动会改 docId，后端同时处理「回收旧向量 / 重建新索引 / 迁移图谱 doc_path」，
+   * 所以必须走后端路由，前端不能只改本地树。</p>
+   */
   async moveKBFile(kbId, fileId, targetParentFolderId) {
-    return missingOutlet(
-      "moveKBFile",
-      "后端 /api/knowledge 没有文件/目录移动接口，且 tree/rename 明确拒绝含路径分隔符的 new_name",
-    );
+    const route = `POST ${KB}/bases/{id}/move`;
+    const env = await apiHttp.post(`${KB}/bases/${encodeURIComponent(kbId)}/move`, {
+      path: normalizeRelPath(fileId),
+      target_dir: normalizeRelPath(targetParentFolderId).replace(/\/+$/, ""),
+    });
+    const raw = unwrapData<any>(env, route);
+    return { success: true, message: "移动成功", data: toKBFile(raw, kbId) };
   },
 
   /** POST /api/knowledge/bases/{knowledge_base_id}/folder */
@@ -557,14 +603,6 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
     return missingOutlet(
       "getFileProcessingStatus",
       "后端 /api/knowledge 没有单文件处理状态/进度接口",
-    );
-  },
-
-  /** 无后端出口：/api/knowledge 未提供批量状态路由 */
-  async batchGetFileProcessingStatus(kbId, fileIds) {
-    return missingOutlet(
-      "batchGetFileProcessingStatus",
-      "后端 /api/knowledge 没有批量文件处理状态接口",
     );
   },
 
@@ -790,11 +828,21 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
       { params: docPath ? { doc_path: normalizeRelPath(docPath) } : {} },
     );
     const data = unwrapData<any>(env, route) ?? {};
+    const rawFailed = Array.isArray(data.failed_files) ? data.failed_files : [];
     return {
       files: toNumber(data.files),
       entityCount: toNumber(data.entity_count),
       relationCount: toNumber(data.relation_count),
       elapsedMs: toNumber(data.elapsed_ms),
+      // 后端此前无论抽取链路是否可用都返回 200 + 计数，页面只能弹「已生成 0 个实体」。
+      // 现在由后端给出整体状态，前端按 status 如实报错而不是报成功。
+      status: (["ok", "empty", "partial", "failed"].includes(String(data.status))
+        ? String(data.status)
+        : "ok") as "ok" | "empty" | "partial" | "failed",
+      failedFiles: rawFailed.map((f: any) => ({
+        docPath: String(f?.doc_path ?? ""),
+        errorMessage: String(f?.error_message ?? ""),
+      })),
     };
   },
 

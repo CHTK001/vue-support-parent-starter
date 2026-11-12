@@ -41,6 +41,17 @@ interface Props {
     anchorEl?: HTMLElement | null
     /** 直接指定 fixed 坐标 { left, top }，跳过自动定位 */
     position?: { left: number; top: number } | null
+    /**
+     * 宽度跟随锚点元素（左右边界与锚点完全对齐）。
+     *
+     * <p>输入区弹层（指令 / 附件 / MCP）要求「和输入框一样宽」：只给一个固定
+     * px 宽度，窄窗会溢出、宽窗会缩在中间；用锚点实测宽度才能两边都对齐。</p>
+     */
+    matchAnchorWidth?: boolean
+    /** 水平对齐方式：center 以锚点居中（默认，菜单类小弹层）/ start 左对齐 / end 右对齐 */
+    align?: 'center' | 'start' | 'end'
+    /** 与锚点的垂直间距（px），默认 8 */
+    offset?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -50,6 +61,9 @@ const props = withDefaults(defineProps<Props>(), {
     popperClass: '',
     anchorEl: null,
     position: null,
+    matchAnchorWidth: false,
+    align: 'center',
+    offset: 8,
 })
 
 const emit = defineEmits<{
@@ -89,23 +103,45 @@ const updatePosition = () => {
 
     const rect = props.anchorEl.getBoundingClientRect()
     const popoverElement = popoverRef.value
+    const spacing = props.offset
+    // 宽度：跟随锚点时用锚点实测宽度，否则按入参（数字 / CSS 长度），
+    // 最后退回元素实测宽度 —— 传字符串宽度时旧实现一律按 320 算，横向定位会偏。
+    const popoverWidth = props.matchAnchorWidth
+        ? rect.width
+        : (typeof props.width === 'number' ? props.width : (popoverElement.offsetWidth || 320))
+
+    // 计算水平位置：默认以按钮为中心对齐；输入区弹层用 start / end 贴边
+    let left: number
+    if (props.align === 'start') {
+        left = rect.left
+    } else if (props.align === 'end') {
+        left = rect.right - popoverWidth
+    } else {
+        left = rect.left + (rect.width / 2) - (popoverWidth / 2)
+    }
+
+    // 边界检查：确保不超出视口左右边界
+    const viewportWidth = window.innerWidth
+    if (left < 10) {
+        left = 10
+    } else if (left + popoverWidth > viewportWidth - 10) {
+        left = Math.max(10, viewportWidth - popoverWidth - 10)
+    }
+
+    // 先把宽度与横向位置落下去：整宽弹层如果等下一帧才改宽度，
+    // 打开瞬间会以默认宽度闪一下再跳到输入框宽度，看起来像「弹歪了」。
+    const baseStyle: Record<string, any> = {
+        position: 'fixed',
+        left: `${left}px`,
+    }
+    if (props.matchAnchorWidth) {
+        baseStyle.width = `${popoverWidth}px`
+    }
+    positionStyle.value = baseStyle
 
     // 等待下一帧确保元素已渲染
     safeRaf(() => {
         const actualHeight = popoverElement.offsetHeight
-        const popoverWidth = typeof props.width === 'number' ? props.width : 320
-        const spacing = 8
-
-        // 计算水平位置：以按钮为中心对齐
-        let left = rect.left + (rect.width / 2) - (popoverWidth / 2)
-
-        // 边界检查：确保不超出视口左右边界
-        const viewportWidth = window.innerWidth
-        if (left < 10) {
-            left = 10
-        } else if (left + popoverWidth > viewportWidth - 10) {
-            left = viewportWidth - popoverWidth - 10
-        }
 
         // 计算垂直位置：优先显示在按钮上方
         const spaceAbove = rect.top
@@ -124,16 +160,14 @@ const updatePosition = () => {
         if (showAbove) {
             // 上方：用 bottom 定位，高度变化时底部不变，不跳动
             positionStyle.value = {
-                position: 'fixed',
-                left: `${left}px`,
+                ...baseStyle,
                 bottom: `${window.innerHeight - rect.top + spacing}px`,
                 top: 'auto'
             }
         } else {
             // 下方：用 top 定位
             positionStyle.value = {
-                position: 'fixed',
-                left: `${left}px`,
+                ...baseStyle,
                 top: `${rect.bottom + spacing}px`,
                 bottom: 'auto'
             }

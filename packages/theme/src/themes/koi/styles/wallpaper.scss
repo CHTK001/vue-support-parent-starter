@@ -1,0 +1,129 @@
+/**
+ * 壁纸层
+ *
+ * <p>一个固定定位的图层，落在布局（普通流）的背景之下：</p>
+ * <pre>
+ *   #app
+ *   ├── .koi-wallpaper        z-index:-1  ← 只在普通流元素之下、画布之上
+ *   └── div                   布局组件（.layout-container …）
+ * </pre>
+ *
+ * <p>为什么用负 z-index 而不是把布局包进定位容器：布局组件各自写死了
+ * {@code height: 100vh}，外面再套一层需要重新调高度链，改一处漏一处；
+ * 负层只需要保证 body / #app 没有实色底，没有别的副作用。</p>
+ *
+ * <p>变量由 components/wallpaper/store.ts 写在 {@code <html>} 的行内样式上：
+ * {@code --koi-wallpaper-image / -image-dark / -size / -repeat /
+ * -opacity / -blur / -dim}。</p>
+ */
+
+.koi-wallpaper {
+  position: fixed;
+  inset: 0;
+  /* 布局是普通流，负层正好压在其背景之下、body 画布之上 */
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  /* 未预加载完成前保持透明：先露纯色再跳成图片比慢一点更刺眼 */
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+html.koi-wallpaper-ready .koi-wallpaper {
+  opacity: var(--koi-wallpaper-opacity, 1);
+}
+
+.koi-wallpaper__image {
+  position: absolute;
+  /* 模糊会把四周边缘晕开，按模糊半径外扩两倍，避免视口边缘露出白边 */
+  inset: calc(var(--koi-wallpaper-blur, 0px) * -2);
+  background-image: var(--koi-wallpaper-image, none);
+  background-size: var(--koi-wallpaper-size, cover);
+  background-repeat: var(--koi-wallpaper-repeat, no-repeat);
+  background-position: center center;
+  filter: blur(var(--koi-wallpaper-blur, 0px));
+}
+
+/* 暗色专用底图：预设没有提供时回落到亮色那张（由 store 决定写不写这个变量） */
+html.dark .koi-wallpaper__image {
+  background-image: var(--koi-wallpaper-image-dark, var(--koi-wallpaper-image, none));
+}
+
+/* 压暗遮罩：亮图铺在亮色主题下会让正文发飘，这一层保文字对比度 */
+.koi-wallpaper__dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, var(--koi-wallpaper-dim, 0));
+}
+
+/* 画布本身不能有实色底，否则负层永远看不见 */
+html.koi-wallpaper-on body,
+html.koi-wallpaper-on #app {
+  background-color: transparent;
+}
+
+/*
+ * 侧栏容器已经改成语义底色，但 el-menu 自己还有一层 --el-menu-bg-color，
+ * 遮着等于白做。只放行侧栏菜单，弹出菜单（.el-menu--popup）必须保持实色，
+ * 它浮在内容之上，透了会看不清。
+ */
+html.koi-wallpaper-on .el-menu {
+  background-color: transparent;
+}
+
+html.koi-wallpaper-on .el-menu--popup {
+  background-color: var(--el-menu-bg-color);
+}
+
+/*
+ * 卡片留 88%：既透得出壁纸，又保得住表格与正文的对比度。
+ * 只覆盖 --el-card-bg-color，不碰 --el-bg-color：
+ * 后者是全局底色，表格、下拉、弹窗都在用，动它会一起变透。
+ */
+html.koi-wallpaper-on .el-card {
+  --el-card-bg-color: color-mix(in srgb, var(--el-bg-color-overlay) 84%, transparent);
+}
+
+/* 弱视模式对整页做 invert(80%)，壁纸会反成一张底片，直接不显示 */
+html.weak-mode .koi-wallpaper {
+  display: none;
+}
+
+/*
+ * 顶栏 / 侧栏 / 标签栏：壁纸模式下一并放透并叠毛玻璃。
+ * 只靠 --koi-chrome-alpha 改底色还不够 —— 这几处面积大、下面是浅色壁纸时
+ * 60% 的白仍然像实色，加一层 backdrop blur 才能让整页看起来是同一张壁纸。
+ */
+html.koi-wallpaper-on .layout-header,
+html.koi-wallpaper-on .layout-group-header,
+html.koi-wallpaper-on .layout-vertical-aside,
+html.koi-wallpaper-on .layout-classic-aside,
+html.koi-wallpaper-on .layout-group-aside,
+html.koi-wallpaper-on .layout-optimum-aside,
+html.koi-wallpaper-on .layout-columns-second-aside,
+html.koi-wallpaper-on .layout-double-first-aside,
+html.koi-wallpaper-on .layout-double-second-aside,
+html.koi-wallpaper-on .layout-column,
+html.koi-wallpaper-on .layout-tabs-bar {
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+}
+
+/* 标签栏自己写死了 --el-bg-color，不跟着语义底色走，单独放透 */
+html.koi-wallpaper-on .layout-tabs-bar {
+  background-color: color-mix(in srgb, var(--el-bg-color) var(--koi-chrome-alpha), transparent);
+}
+
+/* 打印时不该把壁纸打进纸面 */
+@media print {
+  .koi-wallpaper {
+    display: none;
+  }
+}
+
+/* 减少动效偏好：去掉淡入，直接显示 */
+@media (prefers-reduced-motion: reduce) {
+  .koi-wallpaper {
+    transition: none;
+  }
+}

@@ -87,6 +87,8 @@ interface Turn {
   loading: boolean
   /** 是否失败（渲染成告警态，而非普通答复） */
   error?: boolean
+  /** 后端下发的结构化排查明细（生效模型 / 脱敏地址 / 失败节点等） */
+  detail?: Record<string, unknown>
   /** 后端耗时（毫秒） */
   elapsed?: number
   /** 引用来源 */
@@ -123,6 +125,60 @@ function friendlyError(raw: string, status?: number): string {
     return `服务端处理问答时出错（HTTP ${status}）：可能是检索索引未就绪或模型服务异常。请稍后重试；若持续失败，请联系管理员检查检索服务。`
   }
   return status ? `问答失败（HTTP ${status}），请稍后重试。` : '未知错误，请稍后重试。'
+}
+
+/**
+ * 结构化排查明细的展示名（后端键 → 中文标签）。
+ *
+ * <p>后端只下发机器可读的键，标签归前端：以后端新增字段时前端不认识的键
+ * 原样显示，不隐藏——宁可露出 `some_key` 也不吞掉排查线索。</p>
+ */
+const DETAIL_LABELS: Record<string, string> = {
+  stage_label: '失败节点',
+  cause: '上游原始报错',
+  http_status: '上游状态码',
+  embedding_model: 'Embedding 模型',
+  embedding_engine: 'Embedding 引擎',
+  embedding_base_url: 'Embedding 地址（已脱敏）',
+  embedding_key_configured: 'Embedding 密钥',
+  embedding_dimensions: '向量维度',
+  llm_model: 'RAG 对话模型',
+  vector_storage: '向量库',
+  upload_dir: '上传目录',
+  account: '账号',
+  embedding_issue: '配置自检结论',
+}
+
+/** 明细里不展示的键：`stage` 与 `stage_label` 重复，`config_path` 是跳转路由不是排查项 */
+const DETAIL_SKIP = new Set(['stage', 'config_path'])
+
+/**
+ * 把一轮问答的排查明细转成「标签 / 值」行。
+ *
+ * <p>布尔值翻成「已配置 / 未配置」——直接显示 true/false 用户还得猜含义；
+ * 空值直接跳过，避免出现「Embedding 地址（已脱敏）: （空）」这种噪音行。</p>
+ *
+ * @param turn 目标轮次
+ * @returns 可展示的明细行
+ */
+function detailRows(turn: Turn): Array<{ label: string; value: string }> {
+  const detail = turn?.detail
+  if (!detail) {
+    return []
+  }
+  const rows: Array<{ label: string; value: string }> = []
+  Object.keys(detail).forEach((key) => {
+    if (DETAIL_SKIP.has(key)) {
+      return
+    }
+    const v = detail[key]
+    if (v === null || v === undefined || v === '') {
+      return
+    }
+    const value = typeof v === 'boolean' ? (v ? '已配置' : '未配置') : String(v)
+    rows.push({ label: DETAIL_LABELS[key] || key, value })
+  })
+  return rows
 }
 
 /** 问答记录列表 */
@@ -243,7 +299,25 @@ async function submit(q?: string) {
     turn.loading = false
   } catch (e: any) {
     const d = e?.response?.data
-    const raw = d?.msg || d?.message || d?.detail || d?.error || e?.message || ''
+    // detail 现在是结构化对象（生效模型 / 脱敏地址 / 失败节点），不能当字符串拼进文案。
+    // HTTP 非 2xx 时它在响应体里；HTTP 200 业务失败时由 api 层挂到 Error 上，两处都看。
+    // 旧后端没有该字段时退回字符串分支，兼容滚动升级期间的两端组合。
+    const rawDetail = d && typeof d.detail === 'object' && d.detail !== null ? d.detail : e?.detail
+    turn.detail =
+      rawDetail && typeof rawDetail === 'object'
+        ? (rawDetail as Record<string, unknown>)
+        : undefined
+    // api 层给业务失败加的「[knowledge-base] POST ...：」前缀只对开发者有用，
+    // 用户要看的是后面的真因，展示前剥掉
+    const raw = String(
+      d?.msg ||
+        d?.message ||
+        d?.error ||
+        (typeof d?.detail === 'string' ? d.detail : '') ||
+        e?.message ||
+        (turn.detail?.cause as string) ||
+        '',
+    ).replace(/^\[knowledge-base\][^：]*：/, '')
     turn.answer = friendlyError(raw, e?.response?.status)
     turn.error = true
     turn.loading = false
@@ -402,6 +476,27 @@ watch(() => props.kbId, () => clearTurns())
                 <span v-if="turn.error" class="whitespace-pre-wrap break-words">{{ turn.answer }}</span>
                 <span v-else class="kb-ask__md flex-1 min-w-0" @click="onAnswerClick"><MarkdownContent :content="citableAnswer(turn)" /></span>
               </p>
+
+              <!-- 结构化排查明细：生效模型 / 脱敏地址 / 失败节点 / 上游状态。
+                   默认折叠——一句人话已经够看，需要动手改配置时才展开对照。 -->
+              <details
+                v-if="turn.error && detailRows(turn).length"
+                class="kb-ask__diag"
+              >
+                <summary>排查详情（生效模型 / 地址 / 失败节点）</summary>
+                <dl class="kb-ask__diag-list">
+                  <template
+                    v-for="row in detailRows(turn)"
+                    :key="row.label"
+                  >
+                    <dt>{{ row.label }}</dt>
+                    <dd>{{ row.value }}</dd>
+                  </template>
+                </dl>
+                <p class="kb-ask__diag-tip">
+                  对照以上生效值到「设置中心 → 默认模型 → RAG」逐项核对后重试。
+                </p>
+              </details>
 
               <!-- 引用来源 -->
               <div

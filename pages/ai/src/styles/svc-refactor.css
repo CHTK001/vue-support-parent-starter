@@ -248,13 +248,13 @@ html.dark .svc {
    ############################################################################ */
 .svc-tiles {
   list-style: none; margin: 0; padding: 0;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(226px, 1fr));
   gap: var(--svc-sp-3);
 }
 .svc-tile {
   position: relative; overflow: hidden;
   display: flex; align-items: center; gap: var(--svc-sp-3);
-  min-height: var(--svc-tile-h); padding: 10px 12px 10px 14px;
+  min-height: 78px; padding: 12px 12px 12px 14px;
   border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
   background: var(--svc-surface); box-shadow: var(--svc-shadow-1);
   cursor: pointer; outline: none;
@@ -280,9 +280,9 @@ html.dark .svc {
   color: var(--svc-ink); min-width: 0; max-width: 240px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-/* 端口 = 运维认实例的第一锚点，20px 等宽，比名字更醒目 */
+/* 端口 = 运维认实例的第一锚点，19px 等宽，排在名字之前 */
 .svc-tile__port {
-  font-family: var(--svc-mono); font-size: 20px; font-weight: 650;
+  font-family: var(--svc-mono); font-size: 19px; font-weight: 650;
   letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
   line-height: 1; color: var(--svc-ink); flex-shrink: 0;
 }
@@ -306,38 +306,112 @@ html.dark .svc {
 .svc-ico .el-icon { font-size: 15px; }
 
 /* ############################################################################
-   6. 左右分栏工作区
+   6. 工作区：主面板 + 右栏台账
    ----------------------------------------------------------------------------
-   左栏：服务实例卡片列表（固定 ~340px）；
-   右栏：ReTab underline 工作区（运行日志 / 访问日志 / 令牌），stretch 吃满剩余高度。
+   页面重心从「左栏实例列表」改成「上方端口带 + 下方工作台」：
+     · 实例是页面的主语，横排一行看完，不再长期占掉 300px 的纵向空间；
+     · 主面板放页签（访问日志 / Key / 分组 / 运行日志），吃满宽度；
+     · 右栏只放跨页签的结论（台账概览 / 正在排查），四页签共用一份上下文。
    ############################################################################ */
-.svc-split {
+.svc-inst { display: flex; flex-direction: column; min-width: 0; }
+.svc-inst .svc-sect__head { margin-bottom: var(--svc-sp-2); }
+
+.svc-work {
   display: grid;
-  grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 296px;
   gap: var(--svc-sp-4);
   align-items: start;
   min-width: 0;
 }
 
-.svc-side {
-  min-width: 0;
+.svc-aside {
   display: flex; flex-direction: column; gap: var(--svc-sp-3);
+  min-width: 0;
 }
 
-.svc-side .svc-sect__head {
-  margin-bottom: 0;
-}
-
-.svc-side__list {
+.svc-sidecard {
   display: flex; flex-direction: column; gap: var(--svc-sp-2);
-  min-width: 0; max-height: 70vh; overflow-y: auto;
-  padding-right: 2px;
+  padding: var(--svc-sp-3) var(--svc-sp-4);
+  border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
+  background: var(--svc-surface); box-shadow: var(--svc-shadow-1);
+}
+.svc-sidecard__h {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--svc-sp-2);
+  padding-bottom: var(--svc-sp-2);
+  border-bottom: 1px solid var(--svc-rule);
+}
+.svc-sidecard__h b {
+  font-family: var(--svc-serif); font-size: 13px; font-weight: 700; color: var(--svc-ink);
+}
+.svc-sidecard__h span { font-family: var(--svc-mono); font-size: 10.5px; color: var(--svc-ink-3); }
+.svc-sidecard__note { margin: 0; font-size: 11.5px; line-height: 1.6; color: var(--svc-ink-3); }
+
+/* 三个小指标：1px 缝隙代替边框，格子数量变化时不会出现「少一条线」 */
+.svc-metrics {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px;
+  border: 1px solid var(--svc-rule); border-radius: var(--svc-r-sm);
+  background: var(--svc-rule); overflow: hidden;
+}
+.svc-metric {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  padding: 8px 9px; border: 0; background: var(--svc-surface); text-align: left; cursor: pointer;
+}
+.svc-metric:hover { background: var(--svc-accent-soft); }
+.svc-metric:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: -2px; }
+.svc-metric b {
+  font-family: var(--svc-mono); font-size: 19px; font-weight: 650; line-height: 1.1;
+  letter-spacing: -0.02em; color: var(--svc-ink); font-variant-numeric: tabular-nums;
+}
+.svc-metric i { font-style: normal; font-size: 10.5px; color: var(--svc-ink-3); }
+.svc-metric.is-warn b { color: var(--svc-warning); }
+
+.svc-kv {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--svc-sp-2);
+  font-size: 11.5px; color: var(--svc-ink-3);
+}
+.svc-kv b {
+  font-family: var(--svc-mono); font-weight: 600; font-size: 11.5px;
+  color: var(--svc-ink-2); font-variant-numeric: tabular-nums; text-align: right;
 }
 
-/* 左栏卡片：保持原瓦片横排的紧凑信息，但变纵向列表卡片 */
-.svc-tile--card {
-  min-height: 58px; flex-shrink: 0;
+/* 风险清单：一行一把 Key —— 名字是检索目标，余量与状态是判据 */
+.svc-risk {
+  display: flex; flex-direction: column; gap: 1px;
+  padding-top: var(--svc-sp-2); border-top: 1px solid var(--svc-rule);
 }
+.svc-risk__row {
+  display: flex; align-items: center; gap: var(--svc-sp-2);
+  padding: 5px 6px; border-radius: var(--svc-r-sm); text-align: left;
+}
+.svc-risk__row:hover { background: var(--svc-accent-soft); }
+.svc-risk__row:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: -1px; }
+.svc-risk__name {
+  flex: 1 1 auto; min-width: 0; font-size: 12px; color: var(--svc-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-risk__val {
+  font-family: var(--svc-mono); font-size: 11px; color: var(--svc-ink-2);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.svc-risk__tag {
+  font-style: normal; font-size: 10.5px; padding: 1px 5px; border-radius: 4px;
+  color: var(--svc-ink-3); background: var(--svc-surface-2); white-space: nowrap;
+}
+.svc-risk__tag.is-warn { color: var(--svc-warning); background: var(--svc-warning-soft); }
+.svc-risk__tag.is-danger { color: var(--svc-danger); background: var(--svc-danger-soft); }
+
+.svc-linkbtn {
+  align-self: flex-start; padding: 2px 0;
+  font-size: 11.5px; color: var(--svc-accent);
+}
+.svc-linkbtn:hover { color: var(--svc-accent-hover); text-decoration: underline; }
+
+.svc-instline { display: flex; align-items: center; gap: var(--svc-sp-2); min-width: 0; }
+.svc-instline b {
+  font-family: var(--svc-serif); font-size: 13px; font-weight: 700; color: var(--svc-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-mono { font-family: var(--svc-mono); font-variant-numeric: tabular-nums; }
 
 /* 主工作区：白底卡片 + 右侧 ReTab 撑满。
    min-height 让右栏在「无日志 / 少日志 / 令牌列表短」时也不会塌成一条线；
@@ -378,11 +452,12 @@ html.dark .svc {
   background: var(--svc-surface-2);
 }
 
-/* 焦点模式：实例区 / 状态带 / 访问日志整块退场，控制台吃满。
-   用 display:none 而非透明度 —— 半残的三栏 flex 在实测里极易算出 0 高度。 */
+/* 焦点模式：端口带 / 状态带 / 右栏整块退场，控制台吃满。
+   用 display:none 而非透明度 —— 半残的 grid 在实测里极易算出 0 高度。 */
 .svc.is-focus .svc-band,
-.svc.is-focus .svc-side { display: none; }
-.svc.is-focus .svc-split { grid-template-columns: minmax(0, 1fr); }
+.svc.is-focus .svc-inst,
+.svc.is-focus .svc-aside { display: none; }
+.svc.is-focus .svc-work { grid-template-columns: minmax(0, 1fr); }
 .svc.is-focus .svc-pane--console { max-height: none; }
 .svc.is-focus .svc-console { max-height: none; }
 
@@ -716,19 +791,24 @@ html.dark .svc {
   .svc-tile { transform: none; }
 }
 
-/* ≤1180：左右分栏收窄；控制台不再需要窄 min */
+/* ≤1180：右栏收窄；控制台不再需要窄 min */
 @media (max-width: 1180px) {
-  .svc-split { grid-template-columns: minmax(260px, 300px) minmax(0, 1fr); }
+  .svc-work { grid-template-columns: minmax(0, 1fr) 268px; }
   .svc-console { max-height: clamp(280px, 40vh, 520px); }
   .svc-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .svc-band__cell:nth-child(4) { border-left: 0; }
   .svc-band__cell:nth-child(n+4) { border-top: 1px solid var(--svc-rule); }
 }
 
-/* ≤900：状态带 2 列；左右分栏 → 单列堆叠；控件行整宽；命中区 44px；隐藏聚焦入口 */
+/* ≤1020：右栏落到主面板下方，两张卡并排；状态带 3 列 */
+@media (max-width: 1020px) {
+  .svc-work { grid-template-columns: minmax(0, 1fr); }
+  .svc-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ≤900：状态带 2 列；控件行整宽；命中区 44px；隐藏聚焦入口 */
 @media (max-width: 900px) {
-  .svc-split { grid-template-columns: minmax(0, 1fr); }
-  .svc-side__list { max-height: none; }
+  .svc-aside { grid-template-columns: minmax(0, 1fr); }
   .svc-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .svc-band__cell:nth-child(3) { border-left: 0; }
   .svc-band__cell:nth-child(n+3) { border-top: 1px solid var(--svc-rule); }
@@ -737,7 +817,7 @@ html.dark .svc {
   .svc-select, .svc-search, .svc-select--fixed { width: 100%; flex: 1 1 140px; }
   .svc-ico { width: 44px; height: 44px; }        /* 触控目标 */
   .svc-ico .el-icon { font-size: 17px; }
-  .svc-tile { min-height: 72px; }
+  .svc-tile { min-height: 84px; }
   .svc-seg__btn { height: 32px; padding: 0 12px; }
   /* focus 模式在单列下失去意义，直接禁用入口 */
   .svc-pane--console .svc-ico[aria-pressed] { display: none; }

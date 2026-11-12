@@ -174,14 +174,14 @@ onBeforeUnmount(() => {
   padding: 8px !important;
   flex: 1;
   margin: 0;
-  background-color: var(--el-bg-color-page);
+  background-color: var(--koi-surface-page);
   min-height: 0;
   // 骨架用绝对定位盖住内容区，需要定位上下文
   position: relative;
 
   // 暗色模式
   .dark & {
-    background-color: var(--el-bg-color-page);
+    background-color: var(--koi-surface-page);
   }
 }
 

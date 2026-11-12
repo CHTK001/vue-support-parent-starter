@@ -216,7 +216,7 @@
             <h2 class="kb-nav__title">待处理失败<em>{{ failedFiles.length }}</em></h2>
             <div v-for="f in failedFiles.slice(0, 4)" :key="f.id" class="kb-failrow">
               <span class="kb-failrow__name">{{ f.displayName || f.fileName }}</span>
-              <span class="kb-failrow__why">{{ f.errorMessage || '解析失败，原因未返回' }}</span>
+              <span class="kb-failrow__why" :title="f.errorMessage || ''">{{ f.errorMessage || '解析失败，原因未返回' }}</span>
               <button
                 v-if="canEditCurrent"
                 type="button"
@@ -674,6 +674,31 @@
                   <ReSquareButton layout="square" v-if="graphView.nodes.length > 0" class="kb-btn" :icon="Connection" tip="管理关系" @click="goManage('relation')" />
                 </div>
               </div>
+
+              <!-- 生成图谱的真实结果：抽取链路失败时如实列出失败的知识点与原因，
+                   并给出可行动的入口，而不是弹一句「已生成 0 个实体」 -->
+              <el-alert
+                v-if="graphFailures.length > 0"
+                class="mb-2"
+                type="error"
+                :closable="true"
+                show-icon
+                @close="graphFailures = []"
+              >
+                <template #title>
+                  关系抽取失败 {{ graphFailures.length }} 个知识点
+                </template>
+                <ul class="kb-genfail">
+                  <li v-for="(f, i) in graphFailures.slice(0, 3)" :key="i">
+                    <b v-if="f.docPath">{{ f.docPath }}</b>
+                    <span>{{ f.errorMessage }}</span>
+                  </li>
+                  <li v-if="graphFailures.length > 3">…另有 {{ graphFailures.length - 3 }} 个</li>
+                </ul>
+                <ReButton type="primary" link size="small" @click="goDefaultModels">
+                  去设置默认模型
+                </ReButton>
+              </el-alert>
 
               <div class="kb-graphview__canvas">
                 <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage" style="height: 100%">
@@ -2618,16 +2643,25 @@ function focusGraphTypeFilter() {
 }
 
 /**
+ * 图谱请求序号：切库 / 重复点击「刷新」会让多个请求并发回来，
+ * 慢的那个若后到会把新库的图覆盖成旧库的（界面表现为串库）。
+ * 每次发起自增，回包时比对，不是最新一次就整包丢弃。
+ */
+let graphReqSeq = 0
+
+/**
  * 拉取当前知识库的关系图谱。
  * 抽取是上传后的异步任务，因此这里同时刷新页签徽标计数。
  */
 async function loadGraph() {
   const kbId = store.activeKnowledgeBaseId
+  const seq = ++graphReqSeq
   if (!kbId) {
     graphView.nodes = []
     graphView.edges = []
     graphView.entityCount = 0
     graphView.relationCount = 0
+    graphView.placeholder = true
     graphCount.value = 0
     resetGraphLazy()
     return
@@ -2636,6 +2670,11 @@ async function loadGraph() {
   graphError.value = ''
   try {
     const view = await apiService.fetchKnowledgeGraph(kbId)
+    // 过期响应守卫：切库或又发了一次请求后，这个回包属于被取代的那次。
+    // 不拦的话，旧库的节点会画到新库的页面上——看起来就像「串库」。
+    if (seq !== graphReqSeq || store.activeKnowledgeBaseId !== kbId) {
+      return
+    }
     graphView.nodes = view.nodes
     graphView.edges = view.edges
     graphView.entityCount = view.entityCount
@@ -2648,6 +2687,10 @@ async function loadGraph() {
       : Boolean(view.placeholder)
     graphCount.value = view.entityCount + view.relationCount
   } catch (e: any) {
+    // 过期请求的失败同样与当前库无关，不能污染新库的错误提示
+    if (seq !== graphReqSeq || store.activeKnowledgeBaseId !== kbId) {
+      return
+    }
     graphError.value = e?.message || '关系图谱加载失败'
     // 拉取失败（后端间歇性 5xx 等）时保留现有数据：
     // graphNodes 是 graphView 的派生计算，图谱组件挂载条件是 graphNodes.length > 0，
@@ -2659,7 +2702,10 @@ async function loadGraph() {
       graphCount.value = 0
     }
   } finally {
-    graphLoading.value = false
+    // 过期请求不许关掉当前请求的 loading（否则后发的还在飞，界面已显示加载完）
+    if (seq === graphReqSeq) {
+      graphLoading.value = false
+    }
   }
 }
 
@@ -2670,6 +2716,11 @@ const graphGenerating = ref(false)
  * 触发一次关系抽取并刷新图谱。
  *
  * <p>不传 doc_path 时后端会遍历该知识库下所有文本文件，网页采集来的快照也在其中。</p>
+ *
+ * <p>结果按后端给出的 status 如实呈现：{@code failed}（全部失败）与 {@code partial}
+ * （部分失败）都不报成功 —— 此前无可用模型时后端返回 200 + 0 计数，页面弹
+ * 「已生成 0 个实体」，是假成功。失败原因收进 {@link graphFailures}，在页面顶部常驻，
+ * 并给出「去设置默认模型」的入口。</p>
  */
 async function handleGenerateGraph() {
   const kbId = store.activeKnowledgeBaseId
@@ -2677,18 +2728,53 @@ async function handleGenerateGraph() {
     return
   }
   graphGenerating.value = true
+  graphFailures.value = []
   try {
     const r = await apiService.generateKnowledgeBaseGraph(kbId)
-    toast.success(
-      `已生成：${r?.entityCount ?? 0} 个实体 / ${r?.relationCount ?? 0} 条关系（${r?.files ?? 0} 个知识点，${r?.elapsedMs ?? 0} ms）`,
-    )
+    const e = r?.entityCount ?? 0
+    const rel = r?.relationCount ?? 0
+    const files = r?.files ?? 0
+    const fails = (r?.failedFiles ?? []).filter((f) => f?.errorMessage)
+    if (r?.status === 'failed' || (files > 0 && fails.length >= files)) {
+      graphFailures.value = fails.length
+        ? fails
+        : [{ docPath: '', errorMessage: '关系抽取没有跑成，请检查对话模型配置' }]
+      toast.error(
+        fails[0]?.errorMessage ||
+          '生成图谱失败：关系抽取没有跑成，请先在「设置 → 默认模型」配置对话模型',
+      )
+      return
+    }
+    if (r?.status === 'empty') {
+      toast.warning('这个知识库还没有可抽取的知识点，先上传并重建索引后再试')
+      return
+    }
+    if (fails.length > 0) {
+      // 部分成功：成功的照常刷新，失败的原样列出来，不合并成一句「已完成」
+      graphFailures.value = fails
+      toast.warning(
+        `已生成 ${e} 个实体 / ${rel} 条关系，但有 ${fails.length}/${files} 个知识点抽取失败`,
+      )
+    } else {
+      toast.success(
+        `已生成：${e} 个实体 / ${rel} 条关系（${files} 个知识点，${r?.elapsedMs ?? 0} ms）`,
+      )
+    }
     await loadGraph()
     await refreshGraphCount()
-  } catch (e: any) {
-    toast.error(e?.message || '生成图谱失败')
+  } catch (err: any) {
+    toast.error(err?.message || '生成图谱失败')
   } finally {
     graphGenerating.value = false
   }
+}
+
+/** 上次「生成图谱」里抽取失败的知识点及原因；空数组表示没有失败 */
+const graphFailures = ref<Array<{ docPath: string; errorMessage: string }>>([])
+
+/** 跳到默认模型设置页（路由是 /setting/:tab?，见 main.js） */
+function goDefaultModels() {
+  router.push('/setting/default-models')
 }
 
 /** 点击节点时把该实体的关联情况提示出来（后续可扩展为展开子图） */
@@ -4179,6 +4265,13 @@ const previewPath = ref('')
  * @param path 显式相对路径，优先于 file.relativePath
  */
 function openFilePreview(file?: KBFile, path?: string) {
+  // 目录是容器不是文档：此前只有「缺路径」一道判断，目录节点（如删除失败残留、
+  // 或点了目录行本身）会被当成文件去 GET /file，后端回「文件不存在」，
+  // 用户看到的是 404 而不是「这是目录，不能预览」。
+  if (file?.isDirectory) {
+    toast.warning('这是目录，不能预览；请展开后点里面的文件')
+    return
+  }
   const p = path || file?.relativePath || file?.fileName || ''
   if (!p) {
     toast.warning('该文件没有可预览的相对路径')
@@ -4259,6 +4352,15 @@ watch(() => store.activeKnowledgeBaseId, () => {
   relationPage.value = 1
   selectedEntityUids.value = []
   selectedRelationUids.value = []
+  // 先清掉上一张图再决定要不要重拉：否则切库瞬间、或轻量计数路径下，
+  // 新库的页面上还挂着旧库的节点（用户看到的就是「串库」）。
+  graphView.nodes = []
+  graphView.edges = []
+  graphView.entityCount = 0
+  graphView.relationCount = 0
+  graphView.placeholder = true
+  graphCount.value = 0
+  resetGraphLazy()
   if (activeTab.value === 'graph' || activeTab.value === 'entities' || activeTab.value === 'relations') {
     void loadGraph()
   } else {

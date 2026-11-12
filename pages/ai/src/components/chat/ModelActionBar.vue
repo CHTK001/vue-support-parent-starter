@@ -12,7 +12,9 @@
       4. retrying  —— 网络抖动，等待重试（琥珀色呼吸点 + 「第几次/上限 + 原因」）
       5. thinking  —— 正在思考
       6. streaming —— 正在生成
-      7. idle      —— 已答完、输入框为空：弱提示「轮到你」+ 下一步动作
+
+    答完之后不再有「空闲态」（用户 2026-11-12：已作答就不要显示了，整个条不要了）：
+    回合结束即 kind 为 null，整条动作条不渲染，输入框上方不留任何残余行。
 
     数据全部由父级（ChatPanel）从会话轨迹推导后传入，本组件只负责展示与转发
     停止/展开/批准动作，判据集中在会话状态一侧，避免同一状态多处计算分叉。
@@ -38,8 +40,9 @@
         </span>
 
         <!-- 模型品牌图标：与模型选择面板同一口径（ProviderLogo + 品牌 id 解析）。
-             用户报障「xxx正在回答」里模型名前面要有图标；各阶段都显示，不只 streaming。 -->
-        <ProviderLogo v-if="props.modelName" class="mab-model-logo" :pid="modelBrand" :name="props.modelName" :size="14" />
+             用户报障「xxx正在回答」里模型名前面要有图标；各阶段都显示，不只 streaming。
+             只有图板里真有该品牌图标时才渲染，否则不占位（14px 的首字兜底不可读）。 -->
+        <ProviderLogo v-if="modelBrand" class="mab-model-logo" :pid="modelBrand" :name="props.modelName" :size="14" />
         <!-- 阶段徽标：后台流式事件（think / tool_call / search / confirmation / retry /
              compression_start / finish）归一成 kind 后，用形状区分「在做什么」 -->
         <svg class="mab-stage-icon" :class="`is-${props.kind}`" viewBox="0 0 16 16" fill="none"
@@ -54,11 +57,9 @@
 
         <template v-if="kind === 'executing' && card">
           <span v-if="elapsedText" class="mab-head__elapsed">{{ elapsedText }}</span>
-          <!-- 需求 7：卡住的 cmd 支持关闭（终止本轮执行） -->
-          <button type="button" class="mab-stop" @click.stop="$emit('stop')">
-            {{ t('chat.panel.actionBarStop') }}
-          </button>
-          <!-- 需求 8：右上角小箭头收起，只留工具头 -->
+          <!-- 右上角小箭头收起，只留工具头（需求 8）。
+               「停止」不再在这里：它与输入行发送位、时间线命令行的停止是同一个
+               abortResponse，三处并列只是把同一件事说了三遍。终止整轮统一由输入行那一个承担。 -->
           <button type="button" class="mab-chev" :aria-label="cardOpen ? t('chat.panel.actionBarCollapse') : t('chat.panel.actionBarExpand')"
             :aria-expanded="cardOpen" @click.stop="cardOpen = !cardOpen">
             <el-icon size="12" class="mab-chev__icon" :class="{ 'is-open': cardOpen }"><ArrowDown12Filled /></el-icon>
@@ -93,18 +94,7 @@
         </button>
       </div>
 
-      <!-- 空闲态：轮到你 + 下一步动作（AI 联想的建议就地给出，点一下直接发送）。
-           没有任何建议、且联想开关关着时不渲染这一行 —— 否则卡片下沿会多出一条空带。 -->
-      <div v-else-if="kind === 'idle' && (suggestions.length || suggestionsEnabled)" class="mab-idle">
-        <button v-for="s in suggestions" :key="s.title" type="button" class="mab-suggestion"
-          :title="s.detail || s.title" @click="$emit('suggestion', s)">
-          {{ s.title }}
-        </button>
-        <button v-if="suggestionsEnabled" type="button" class="mab-suggestion mab-suggestion--refresh"
-          :disabled="refreshing" @click="refreshSuggestions">
-          {{ refreshing ? t('chat.panel.actionBarSuggesting') : t('chat.panel.actionBarSuggest') }}
-        </button>
-      </div>
+      <!-- 空闲态（轮到你 + 下一步建议）已移除：答完就整条收掉，不留残余行。 -->
     </div>
   </Transition>
 </template>
@@ -114,10 +104,9 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElIcon } from 'element-plus';
 import { ArrowDown12Filled, Info12Filled } from '@vicons/fluent';
-import { apiService } from '@/services/ApiService';
 import ProviderLogo from '@/components/models/ProviderLogo.vue';
+import { PROVIDER_ICONS } from '@/components/models/providerIcons';
 import { detectModelProvider } from '@/utils/modelUtils';
-import type { SessionNextTaskItem } from '@/services/modules/session-next-task.api';
 
 const { t } = useI18n();
 
@@ -155,8 +144,8 @@ export interface ModelActionPending {
 }
 
 const props = defineProps<{
-  /** 当前状态类型；null = 不渲染 */
-  kind: 'executing' | 'retrying' | 'thinking' | 'streaming' | 'waiting' | 'idle' | null;
+  /** 当前状态类型；null = 不渲染（回合结束就是 null，不再有空闲条） */
+  kind: 'executing' | 'retrying' | 'thinking' | 'streaming' | 'waiting' | null;
   /** 模型名（如「卡扣-deepseek-v4.1-flash」） */
   modelName?: string;
   /** executing 时的命令卡数据 */
@@ -167,23 +156,13 @@ const props = defineProps<{
   pending?: ModelActionPending | null;
   /** retrying 时的重试信息（第几次 / 上限 / 原因） */
   retry?: { attempt?: number; maxRetries?: number; reason?: string } | null;
-  /** idle 时的下一步建议 */
-  suggestions?: SessionNextTaskItem[];
-  /** 本会话是否开启「AI 联想下一步」 */
-  suggestionsEnabled?: boolean;
-  /** 会话 id：重新联想要用 */
-  sessionId?: string | null;
 }>();
 
 const emit = defineEmits<{
-  stop: [];
+  /** 终止整轮已统一由输入行承担，本组件不再上抛 stop */
   locate: [];
   /** 就地批准：回传给父级走同一条 resumeConfirmation 路径 */
   approve: [replyId: string];
-  /** 点了一条下一步建议：作为用户消息发送 */
-  suggestion: [item: SessionNextTaskItem];
-  /** 重新联想完成（父级据此重读一次状态，避免组件自己持有第二份数据） */
-  suggested: [];
 }>();
 
 /** 命令卡默认展开：需求「输入框上方要有模型正在进行的动作」，
@@ -191,17 +170,6 @@ const emit = defineEmits<{
 const cardOpen = ref(true);
 
 const visible = computed(() => props.kind !== null);
-
-/**
- * 工具头左侧那个小标记的形态。语义与「状态」一一对应，不重复造状态机：
- *   spin  正在执行（环在转 = 在做）
- *   think 正在思考（灰环）
- *   wait  等待命令返回（实心点呼吸 = 在等）
- *   warn  网络重试（琥珀色呼吸点，不是故障）
- *   ask   等你确认（信息图标，需要你动手）
- *   hollow 空闲（空心点，最弱）
- */
-const modelBrand = computed(() => detectModelProvider(props.modelName || ''));
 
 /**
  * 阶段图标路径：与后端 SSE 的事件类型一一对应（见 useStreamResponse.ts 的
@@ -214,11 +182,19 @@ const STAGE_PATHS: Record<string, string> = {
   streaming: 'M2.5 8h3l1.6-3.6 2 7.2L10.7 8h2.8',
   waiting: 'M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11 M8 5.2v3.3l2.2 1.3',
   retrying: 'M13 6.2A5.4 5.4 0 1 0 13.4 10 M13 2.8v3.5H9.5',
-  idle: 'M3 8.5h10 M3 5.5h10 M3 11.5h6',
 };
 
-const stageIconPath = computed(() => STAGE_PATHS[String(props.kind)] || STAGE_PATHS.idle);
+const stageIconPath = computed(() => STAGE_PATHS[String(props.kind)] || '');
 
+/**
+ * 工具头左侧那个小标记的形态。语义与「状态」一一对应，不重复造状态机：
+ *   spin  正在执行（环在转 = 在做）
+ *   think 正在思考（灰环）
+ *   wait  等待命令返回（实心点呼吸 = 在等）
+ *   warn  网络重试（琥珀色呼吸点，不是故障）
+ *   ask   等你确认（信息图标，需要你动手）
+ *   hollow 空闲（空心点，最弱）
+ */
 const markKind = computed(() => {
   if (props.kind === 'executing') return toolWaiting.value ? 'wait' : 'spin';
   switch (props.kind) {
@@ -228,13 +204,22 @@ const markKind = computed(() => {
       return 'warn';
     case 'waiting':
       return 'ask';
-    case 'idle':
-      return 'hollow';
     case 'streaming':
       return 'spin';
     default:
       return 'hollow';
   }
+});
+
+/**
+ * 模型品牌 id：优先按模型名前缀认（{@link detectModelProvider}），
+ * 但只有图板里真有该品牌图标时才返回 —— 认出的键若在图板里没有映射，
+ * ProviderLogo 会退成首字头像，14px 下不可读。
+ */
+const modelBrand = computed(() => {
+  const key = detectModelProvider(props.modelName || '');
+  const id = String(key || '').toLowerCase();
+  return id && PROVIDER_ICONS[id] ? id : '';
 });
 
 // ============================================
@@ -376,28 +361,6 @@ function approveAll() {
   setTimeout(() => { approving.value = false; }, 1500);
 }
 
-// ============================================
-// 空闲态：下一步动作（AI 联想建议就地给出）
-// ============================================
-const suggestions = computed(() => (props.kind === 'idle' ? props.suggestions || [] : []));
-const refreshing = ref(false);
-
-async function refreshSuggestions() {
-  const sid = props.sessionId;
-  if (!sid || refreshing.value) return;
-  refreshing.value = true;
-  try {
-    await apiService.refreshSessionNextTask(String(sid));
-    // 只通知、不自己缓存：建议的唯一来源仍是父级的 nextTaskState，
-    // 否则刷新后这里的新数据与父级旧数据会各说各话。
-    emit('suggested');
-  } catch (error) {
-    console.error('[ActionBar] 重新联想失败:', error);
-  } finally {
-    refreshing.value = false;
-  }
-}
-
 const pillText = computed(() => {
   if (!props.kind) return '';
   const model = props.modelName ? `${props.modelName} ` : '';
@@ -413,8 +376,6 @@ const pillText = computed(() => {
       return t('chat.panel.actionBarWaiting', { model });
     case 'retrying':
       return t('chat.panel.actionBarNetworkWaiting', { model }) + retrySuffix.value;
-    case 'idle':
-      return t('chat.panel.actionBarIdle');
     default:
       return '';
   }
@@ -507,7 +468,6 @@ const pillText = computed(() => {
 .mab-stage-icon.is-thinking { color: var(--el-text-color-secondary); }
 .mab-stage-icon.is-waiting { color: var(--el-color-warning); }
 .mab-stage-icon.is-retrying { color: var(--el-color-warning); }
-.mab-stage-icon.is-idle { color: var(--el-text-color-placeholder); }
 
 /* ── 状态标记：形态即语义（旋转=在做 / 呼吸=在等 / 图标=需要你动手） ── */
 .mab-mark {
@@ -583,29 +543,7 @@ const pillText = computed(() => {
   color: var(--el-color-warning);
 }
 
-.model-action-bar.is-idle .mab-head {
-  color: var(--text-tertiary, var(--el-text-color-placeholder));
-}
-
-/* ── 停止 / 收起：头右端的两个动作 ── */
-.mab-stop {
-  flex-shrink: 0;
-  height: 22px;
-  padding: 0 9px;
-  border: 1px solid color-mix(in srgb, var(--el-color-danger) 32%, transparent);
-  border-radius: var(--el-radius-full, 999px);
-  background: var(--bg-container, #fff);
-  color: var(--el-color-danger);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.16s ease;
-}
-
-.mab-stop:hover {
-  background: color-mix(in srgb, var(--el-color-danger) 8%, var(--bg-container, #fff));
-}
-
+/* ── 收起：头右端唯一的动作（停止已收归输入行） ── */
 .mab-chev {
   display: inline-flex;
   align-items: center;
@@ -744,51 +682,6 @@ const pillText = computed(() => {
 
 .mab-primary:disabled {
   opacity: 0.5;
-  cursor: default;
-}
-
-/* ── 空闲态：下一步动作 ──
-   建议是「虚线胶囊」——保留虚线是因为它表示「还没发生、点一下才成为你的输入」，
-   与实线的可执行按钮区分开；但底色改成白，融进卡片下沿，不再是一堆漂浮标签。 */
-.mab-idle {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px 9px;
-  border-top: 1px solid var(--border-subtle, var(--el-border-color-lighter, #eef2f8));
-}
-
-.mab-suggestion {
-  max-width: 320px;
-  padding: 3px 10px;
-  border-radius: var(--el-radius-full, 999px);
-  border: 1px dashed var(--border-strong, var(--el-border-color));
-  background: var(--bg-container, #fff);
-  color: var(--text-secondary, var(--el-text-color-regular));
-  font-size: 12.5px;
-  line-height: 1.6;
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition:
-    border-color 0.16s ease,
-    color 0.16s ease;
-}
-
-.mab-suggestion:hover {
-  border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
-  color: var(--el-color-primary);
-}
-
-.mab-suggestion--refresh {
-  color: var(--el-text-color-placeholder);
-  border-style: solid;
-}
-
-.mab-suggestion--refresh:disabled {
-  opacity: 0.6;
   cursor: default;
 }
 

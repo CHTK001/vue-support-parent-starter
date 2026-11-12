@@ -72,7 +72,7 @@
           </div>
           <div class="ws-chat-head-actions">
             <button class="ws-auto" type="button" :class="{ on: autoWatch }" :title="autoWatch ? '停止自动观看' : '让世界自己演下去'"
-              @click="toggleAutoWatch">
+              @click="toggleAutoWatch" data-role="auto-watch">
               <span class="ws-auto-dot"></span>
               {{ autoWatch ? '自动观看中' : '自动观看' }}
             </button>
@@ -392,7 +392,10 @@
               {{ n.displayName }}
               <span v-if="n.isActive === false" class="ws-tag sm">挂起</span>
             </div>
-            <div class="cast-sub">{{ sceneNameOf(n.sceneId) }}</div>
+            <div class="cast-sub">
+              {{ sceneNameOf(n.sceneId) }}
+              <span v-if="n.modelOverride" class="cast-model" :title="'演员模型：' + n.modelOverride">模型 {{ n.modelOverride }}</span>
+            </div>
             <div class="cast-persona">{{ n.persona || n.sysPrompt || '（没有单独的性格设定）' }}</div>
           </div>
         </div>
@@ -461,7 +464,9 @@
             <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" />
             <div class="ws-mg-npc-main">
               <div class="ws-mg-npc-name">{{ n.displayName }}</div>
-              <div class="ws-mg-npc-sub">{{ sceneNameOf(n.sceneId) }}</div>
+              <div class="ws-mg-npc-sub">
+                {{ sceneNameOf(n.sceneId) }}<template v-if="n.modelOverride"> · {{ n.modelOverride }}</template>
+              </div>
             </div>
             <span class="el-switch ws-mg-npc-switch" @click.stop>
               <el-switch :model-value="n.isActive !== false" size="small"
@@ -516,10 +521,12 @@
           <span class="ws-hint">世界的剧本导演用哪个模型写剧本；留空则沿用默认</span>
         </div>
         <div class="ws-field">
-          <label class="ws-label">演员（一行一个）</label>
-          <el-input v-model="worldForm.actorRoles" type="textarea" :rows="3"
-            placeholder="如：诸葛亮&#10;曹操&#10;刘备" />
-          <span class="ws-hint">导演可用的角色；留空由 AI 按世界观随机安排</span>
+          <label class="ws-label">演员</label>
+          <el-select v-model="actorRoleList" multiple filterable allow-create default-first-option
+            placeholder="选择已有角色，或直接输入新名字；留空由 AI 安排" style="width: 100%">
+            <el-option v-for="n in npcNameOptions" :key="n" :label="n" :value="n" />
+          </el-select>
+          <span class="ws-hint">编剧会优先在这些角色里排戏；留空则由 AI 按世界观安排</span>
         </div>
       </div>
       <template #footer>
@@ -578,10 +585,12 @@
           <span class="ws-hint">世界的剧本导演用哪个模型写剧本；留空则沿用默认</span>
         </div>
         <div class="ws-field">
-          <label class="ws-label">演员（一行一个）</label>
-          <el-input v-model="worldForm.actorRoles" type="textarea" :rows="3"
-            placeholder="如：诸葛亮&#10;曹操&#10;刘备" />
-          <span class="ws-hint">导演可用的角色；留空由 AI 按世界观随机安排</span>
+          <label class="ws-label">演员</label>
+          <el-select v-model="actorRoleList" multiple filterable allow-create default-first-option
+            placeholder="选择已有角色，或直接输入新名字；留空由 AI 安排" style="width: 100%">
+            <el-option v-for="n in npcNameOptions" :key="n" :label="n" :value="n" />
+          </el-select>
+          <span class="ws-hint">编剧会优先在这些角色里排戏；留空则由 AI 按世界观安排</span>
         </div>
       </div>
       <template #footer>
@@ -832,14 +841,10 @@ const actProcessing = ref(false)
 const actBusyText = ref('AI 正在处理这一幕…')
 const currentSceneId = ref<number | null>(null)
 const messages = ref<UIMessage[]>([])
-const draft = ref('')
 const advancing = ref(false)
 const spectating = ref(false)
 const autoWatch = ref(false)
-const pendingAt = ref<WorldNpc | null>(null)
-const atMenuVisible = ref(false)
 const worldKw = ref('')
-const sending = ref(false)
 const sideTab = ref<'cast' | 'relations' | 'timeline' | 'stage'>('cast')
 
 const createVisible = ref(false)
@@ -860,6 +865,26 @@ const worldForm = reactive({
   description: '',
   directorModel: '',
   actorRoles: '',
+})
+
+/**
+ * 演员多选的读写桥：表单里存「一行一个」的纯文本（与后端 actor_roles 一致），
+ * 界面上是可选已有 NPC、也可手输新名字的多选框。
+ */
+const actorRoleList = computed<string[]>({
+  get: () => worldForm.actorRoles
+    .split(/[\n,，、]+/)
+    .map((s) => s.trim())
+    .filter(Boolean),
+  set: (v: string[]) => {
+    worldForm.actorRoles = (v || []).map((s) => String(s).trim()).filter(Boolean).join('\n')
+  },
+})
+
+/** 演员下拉的候选：当前世界已登场的角色名 */
+const npcNameOptions = computed<string[]>(() => {
+  const names = npcs.value.map((n) => n.displayName).filter(Boolean) as string[]
+  return [...new Set(names)]
 })
 const sceneForm = reactive({ name: '', description: '' })
 
@@ -889,7 +914,6 @@ const relEditForm = reactive<{ affinity: number; relationTag: string; memo: stri
 })
 
 const msgBoxRef = ref<HTMLElement | null>(null)
-const taInputRef = ref<HTMLTextAreaElement | null>(null)
 let keySeq = 1
 let streamHandle: { close: () => void } | null = null
 let autoTimer: number | null = null
@@ -1211,8 +1235,6 @@ async function selectWorld(w: WorldItem) {
   stopAutoWatch()
   currentWorldId.value = w.id
   currentWorld.value = w
-  pendingAt.value = null
-  atMenuVisible.value = false
   currentAct.value = null
   actDetail.value = null
   stories.value = []
@@ -1425,7 +1447,6 @@ async function onWorldCmd(cmd: string, w: WorldItem) {
 /* ---------------- 场景 ---------------- */
 async function selectScene(s: WorldScene) {
   currentSceneId.value = s.id
-  pendingAt.value = null
   messages.value = []
   await loadMessages()
 }
@@ -1889,11 +1910,6 @@ async function autoWatchStep() {
     stopAutoWatch()
     return
   }
-  // 上一轮还在流式返回时再等一拍，避免两轮回复交错
-  if (sending.value) {
-    scheduleAutoWatch(1500)
-    return
-  }
   try {
     await spectate()
   } catch {
@@ -1937,71 +1953,6 @@ function actProgress(v?: Record<string, any>) {
   const done = v?.assets?.done as number | undefined
   if (total != null && total > 0) return Math.min(100, Math.round((done ?? 0) / total * 100))
   return Math.min(100, Number(v?.progress ?? 0))
-}
-
-/** 详情资产的完成数 */
-function assetDone(d: Record<string, any>) { return d?.assets?.done ?? 0 }
-
-/** 详情资产的总需求数 */
-function assetTotal(d: Record<string, any>) { return d?.assets?.total ?? 0 }
-
-/** 一个素材区划（场景 / 过场 / 道具） */
-interface ActAssetSection {
-  key: string
-  label: string
-  items: Record<string, any>[]
-}
-
-/** 解析剧本，按场景/过场/道具拆出素材区划 */
-//
-// 必须显式标返回类型：两个早退分支返回 `[]`，TS 会把它推成 `never[]`，
-// 与后面那个对象数组组成联合后，模板里 `sec.key` 就变成「属性不存在于 never」。
-function actAssetSections(): ActAssetSection[] {
-  const script = actDetail.value?.script
-  if (!script) return []
-  let json: Record<string, any>
-  try {
-    json = JSON.parse(script)
-  } catch {
-    return []
-  }
-  return [
-    { key: 'scenes', label: '场景', items: (json.scenes ?? []) as Record<string, any>[] },
-    { key: 'transitions', label: '过场', items: (json.transitions ?? []) as Record<string, any>[] },
-    { key: 'props', label: '道具', items: (json.props ?? []) as Record<string, any>[] },
-  ]
-}
-
-/** 素材媒体的状态显示名 */
-function mediaStatusName(head?: Record<string, any>) {
-  if (!head) return '无'
-  if (head.status === 'NO_PROMPT') return '无需求'
-  if (head.status === 'OK') return '已完成'
-  if (head.status === 'NOT_STARTED') return '未开始'
-  if (head.status === 'FAILED' || head.status === 'CANCELED') return '已取消'
-  return '生成中'
-}
-
-/** 视频素材的展示名：区分「图生视频（AI 先画好这一帧）」与「文生视频」 */
-function mediaModeName(head?: Record<string, any>) {
-  if (!head) return '无'
-  if (head.videoMode === 'image2video') return '视频 · 图生'
-  if (head.videoMode === 'text2video' && head.referenceImage) return '视频 · 文生（已退回）'
-  const st = mediaStatusName(head)
-  return st === '无' || st === '无需求' ? '视频' : '视频 · ' + st
-}
-
-/** 素材媒体的状态展示样式 */function mediaStatusClass(head?: Record<string, any>) {
-  switch (head?.status) {
-    case 'NO_PROMPT':
-      return 'neutral'
-    case 'OK':
-      return 'success'
-    case 'NOT_STARTED':
-      return 'info'
-    default:
-      return 'warning'
-  }
 }
 
 /** 幕次所在阶段（来自当前选中的幕次行） */
@@ -2250,16 +2201,6 @@ function scrollBottom() {
   })
 }
 
-function onPickAt(n: WorldNpc) {
-  pendingAt.value = n
-  atMenuVisible.value = false
-  nextTick(() => taInputRef.value?.focus())
-}
-
-function onShiftEnter() {
-  // 允许默认换行
-}
-
 function evSpeakerFallback(map: Map<string, UIMessage>): UIMessage | null {
   const streamings = [...map.values()].filter((m) => m.streaming)
   return streamings.length === 1 ? streamings[0] : null
@@ -2281,86 +2222,6 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
   scrollBottom()
 }
 
-async function send() {
-  const content = draft.value.trim()
-  if (!content || !currentWorldId.value || sending.value) return
-  sending.value = true
-  messages.value.push({ _key: keySeq++, speakerType: 'user', speakerName: '我', content })
-  draft.value = ''
-  const atNpcId = pendingAt.value ? Number(pendingAt.value.id) : null
-  const atName = pendingAt.value?.displayName
-  pendingAt.value = null
-  scrollBottom()
-
-  const aiBySpeaker = new Map<string, UIMessage>()
-  try {
-    streamHandle = apiService.worldChatStream(
-      { worldId: currentWorldId.value, sceneId: currentSceneId.value, content, atNpcId },
-      {
-        onEvent: (ev) => {
-          const type = ev.type
-          if (type === 'create') {
-            const created: UIMessage = {
-              _key: keySeq++,
-              speakerType: 'ai',
-              speakerId: ev.speakerId,
-              speakerName: ev.speakerName || atName || 'AI',
-              content: '',
-              modelName: ev.modelName,
-              streaming: true,
-            }
-            messages.value.push(created)
-            const key = created.speakerId || `ai-${created._key}`
-            aiBySpeaker.set(key, created)
-            scrollBottom()
-          } else if (type === 'text') {
-            const target = aiBySpeaker.get(ev.speakerId || '') || evSpeakerFallback(aiBySpeaker)
-            if (target) {
-              target.content += ev.content || ''
-              scrollBottom()
-            }
-          } else if (type === 'finish') {
-            const target = aiBySpeaker.get(ev.speakerId || '') || evSpeakerFallback(aiBySpeaker)
-            if (target) {
-              target.streaming = false
-              if (ev.error) {
-                target.content += `\n[错误] ${ev.error}`
-              } else if (!target.content.trim()) {
-                target.content = '（模型未返回内容）'
-              }
-            } else if (ev.error) {
-              pushStreamError(ev)
-            }
-          } else if (type === 'user_message') {
-            // 后端回显用户消息，忽略（本地已 push）
-          } else if (type === 'turn_end') {
-            aiBySpeaker.forEach((msg) => { msg.streaming = false })
-          }
-        },
-        onError: (err) => {
-          console.error('world stream error', err)
-          sending.value = false
-          // 一条 AI 气泡都没建起来：补一个可见结果，避免「发了消息却毫无反应」
-          if (aiBySpeaker.size === 0) pushStreamError({ error: '连接中断，本轮没有收到回复，请重试' })
-        },
-        onClose: () => {
-          sending.value = false
-          aiBySpeaker.forEach((msg) => { msg.streaming = false })
-          // 一轮结束后刷新关系网（后端已按互动调整好感度）
-          if (currentWorldId.value) {
-            apiService.fetchWorldRelationships(currentWorldId.value)
-              .then((rows) => { relationships.value = rows })
-              .catch(() => {})
-          }
-        },
-      },
-    )
-  } catch (e) {
-    console.error(e)
-    sending.value = false
-    message.error('发送失败')
-  }
-}
 </script>
 
 <style scoped>
@@ -3216,38 +3077,6 @@ async function send() {
   cursor: pointer;
 }
 .ws-mini:hover { background: var(--el-fill-color-light); }
-.ws-assets {
-  border-radius: var(--el-radius-md, 8px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
-  padding: 8px 10px;
-}
-.ws-assets-sum {
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  marker: none;
-}
-.ws-assets-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-.ws-asset-head { font-size: 12px; font-weight: 600; color: var(--el-text-color-primary); margin-bottom: 4px; }
-.ws-asset-card {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 4px 0;
-  border-bottom: 1px dashed var(--el-border-color-lighter);
-}
-.ws-asset-card:last-child { border-bottom: 0; }
-.ws-asset-name { font-size: 12.5px; color: var(--el-text-color-primary); flex-shrink: 0; }
-.ws-asset-desc {
-  flex: 1;
-  min-width: 0;
-  font-size: 11.5px;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* ---- 标签 ---- */
 .ws-tag {
@@ -3389,72 +3218,6 @@ async function send() {
 }
 .ws-watch-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ws-watch-hint { font-size: 12px; color: var(--el-text-color-placeholder); line-height: 1.6; }
-.ws-at-chip { margin-bottom: 6px; }
-.ws-input-tools { display: flex; align-items: center; gap: 4px; }
-.ws-at-wrap { position: relative; }
-.ws-tool {
-  height: 28px;
-  min-width: 30px;
-  padding: 0 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: var(--el-radius-md, 8px);
-  cursor: pointer;
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  font-size: 12.5px;
-}
-.ws-tool:hover:not(:disabled) { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
-.ws-tool:disabled { opacity: 0.5; cursor: not-allowed; }
-.ws-tool-at { font-size: 15px; font-weight: 600; }
-.ws-tool-watch { color: var(--el-color-primary); }
-.ws-at-menu {
-  position: absolute;
-  bottom: 34px;
-  left: 0;
-  width: 240px;
-  max-height: 300px;
-  overflow-y: auto;
-  padding: 6px;
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
-  box-shadow: var(--el-box-shadow-light);
-  z-index: 20;
-}
-.ws-at-empty { padding: 16px; text-align: center; font-size: 12.5px; color: var(--el-text-color-secondary); }
-.ws-at-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--el-radius-md, 8px); cursor: pointer; }
-.ws-at-item:hover { background: var(--el-fill-color-light); }
-.ws-at-name { flex: 1; font-size: 13px; color: var(--el-text-color-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ws-at-scene { font-size: 11px; color: var(--el-text-color-placeholder); }
-.ws-textarea {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  resize: none;
-  background: transparent;
-  font-family: inherit;
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-  line-height: 1.6;
-  padding: 6px 2px;
-}
-.ws-textarea::placeholder { color: var(--el-text-color-placeholder); }
-.ws-input-foot { display: flex; align-items: center; justify-content: space-between; }
-.ws-foot-hint { font-size: 11.5px; color: var(--el-text-color-placeholder); }
-.ws-send {
-  height: 32px;
-  padding: 0 20px;
-  border: 0;
-  border-radius: var(--el-radius-md, 8px);
-  cursor: not-allowed;
-  background: var(--el-fill-color);
-  color: var(--el-text-color-placeholder);
-  font-size: 13px;
-}
-.ws-send.ready { cursor: pointer; background: var(--el-color-primary); color: var(--el-color-white); }
 
 .ws-chat-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; }
 .ph-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--el-text-color-placeholder); }
@@ -3507,6 +3270,15 @@ async function send() {
   color: var(--el-text-color-primary);
 }
 .cast-sub { font-size: 11px; color: var(--el-text-color-placeholder); margin-top: 1px; }
+.cast-model {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
 .cast-persona {
   margin-top: 3px;
   font-size: 11.5px;

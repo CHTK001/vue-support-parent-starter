@@ -119,6 +119,7 @@ interface FlowNodeTypeDef {
 | `panning`          | `boolean`           | `true`        | 空格 + 拖动平移画布                      |
 | `zoom`             | `boolean`           | `true`        | ctrl/meta + 滚轮缩放；**不含工具栏缩放按钮** |
 | `nodeDraggable`    | `boolean`           | `true`        | 节点能否拖动；`readonly` 仍然一票否决      |
+| `activeEdgeIds`    | `string[]`          | `[]`          | 当前推进的连线 id；命中项播放流动虚线，空数组清除 |
 | `startType`        | `string`            | `"start"`     | 结构预检用的开始类型名                   |
 | `endType`          | `string`            | `"end"`       | 结构预检用的结束类型名                   |
 | `propertiesTitle`  | `string`            | `"属性"`      | 停靠区标题                               |

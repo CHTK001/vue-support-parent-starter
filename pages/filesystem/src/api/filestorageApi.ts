@@ -21,6 +21,7 @@ import type { Http } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { createObjectTicketResolver } from "./objectTicket";
 import type { ResolveOptions } from "./objectTicket";
+import { apiHttpBase, apiOrigin, getServerOverride, setServerOverride } from "./connection";
 
 /**
  * 当前协同用户标识（协同接口的统一身份来源）。
@@ -54,9 +55,6 @@ export function collabCurrentUserName(): string {
     info.realName ?? info.name;
   return name == null || name === "" ? `用户 ${collabCurrentUserId()}` : String(name);
 }
-
-/** localStorage 中服务器地址的键名 */
-const SERVER_KEY = "filestorage.server";
 
 /** localStorage 中默认存储桶的键名 */
 const BUCKET_KEY = "filestorage.bucket";
@@ -242,7 +240,7 @@ export async function loadFileServerConfig(): Promise<FileServerConfig | null> {
     // createHttp() 的 then 回调拿到的是 AxiosResponse（.data=业务体 {code,data,msg}），
     // 但宿主若已注入剥层拦截器，then 回调拿到的就是业务体本身。两者都要兼容：
     // 逐层剥开 data，直到出现带 mode/server 的配置对象为止。
-    const res = await createHttp({ headers: authHeaders() }).get("/v2/file/server-config");
+    const res = await createHttp({ baseUrl: apiHttpBase(), headers: authHeaders() }).get("/v2/file/server-config");
     const config = unwrapFileServerConfig(res);
     if (!config?.mode || !config?.server) {
       configDiscoveryError = { message: "配置接口返回内容不完整" };
@@ -326,32 +324,37 @@ export function clearRuntimeFileServerConfig(): void {
 /**
  * 读取文件服务器地址
  *
- * <p>优先级：运行时配置（{@link #loadFileServerConfig()} 请求成功）＞
- * localStorage（页面级覆盖）＞ spring starter 下发
- * {@code other.filestorage.mode + server}＞ 当前地址（window.location.origin）。</p>
+ * <p>优先级：页面级覆盖（连接设置 / {@code ?server=}）＞
+ * 运行时配置（{@link #loadFileServerConfig()} 请求成功）＞ spring starter 下发
+ * {@code other.filestorage.mode + server}＞ 当前应用接口源。</p>
+ *
+ * <p><b>为什么覆盖必须排第一</b>：连接设置是用户「我现在就要连这台」的显式意图。
+ * 若仍让后端下发的 server 压过它，那么把本机页面指向远端后端时会永远落回
+ * 远端自己下发的地址，设置项形同虚设。</p>
  *
  * <p><b>嵌入/独立分流</b>：后端配置接口返回
  * {@code mode=embedded|standalone} 与 {@code server}；
  * embedded 的 server 是相对路径（如 /fs 或 /system/api/fs），
- * 必须用当前 origin 拼出完整地址；standalone 的 server 是完整 http://host:port，
- * 直接使用，不再落到 window.location.origin。</p>
+ * 必须用应用接口源拼出完整地址（本机前端 + 远端后端时就是远端源，
+ * 不能再用 window.location.origin，否则会打到本机 dev 服务器上）；
+ * standalone 的 server 是完整 http://host:port，直接使用。</p>
  *
  * @return 文件服务器地址（已去除尾部斜杠）
  */
 export function getServerBase(): string {
+  const override = getServerOverride();
+  if (override) {
+    return override;
+  }
   const runtime = runtimeFileServer?.server?.trim();
   if (runtime) {
     return embbedResolve(runtime, runtimeFileServer?.mode || "embedded");
-  }
-  const stored = localStorage.getItem(SERVER_KEY);
-  if (stored) {
-    return stored.replace(/\/+$/, "");
   }
   const cfg = appFileStorageConfig();
   const configured = cfg.server?.trim();
   const mode = (cfg.mode || "embedded").toLowerCase();
   if (!configured) {
-    return typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
+    return apiOrigin() || DEFAULT_SERVER;
   }
   return embbedResolve(configured, mode);
 }
@@ -363,8 +366,9 @@ function embbedResolve(configured: string, mode: string): string {
   if (mode === "standalone" || /^https?:\/\//i.test(configured)) {
     return configured.replace(/\/+$/, "");
   }
-  // 嵌入：相对路径（/fs 或 /system/api/fs），由前端拼当前页面 origin。
-  const origin = typeof window !== "undefined" ? window.location.origin : DEFAULT_SERVER;
+  // 嵌入：相对路径（/fs 或 /system/api/fs），由应用接口源拼出完整地址。
+  // 本机前端连远端后端时，源是远端，不能再用 window.location.origin。
+  const origin = apiOrigin() || DEFAULT_SERVER;
   const relative = configured.startsWith("/") ? configured.slice(1) : configured;
   if (!relative) return origin;
   return `${origin}/${relative}`.replace(/\/+$/, "");
@@ -373,10 +377,14 @@ function embbedResolve(configured: string, mode: string): string {
 /**
  * 保存服务器地址
  *
+ * <p>写入页面级覆盖并广播变更；空值表示清除覆盖、回到后端下发值。
+ * 走 {@code connection.ts} 而不是直接写 localStorage，保证其它监听方
+ * （连接设置弹框、协同传输层）能收到通知。</p>
+ *
  * @param value 服务器地址
  */
 export function setServerBase(value: string): void {
-  localStorage.setItem(SERVER_KEY, value.replace(/\/+$/, ""));
+  setServerOverride(value);
 }
 
 /**
@@ -516,6 +524,28 @@ export function objectUrl(bucket: string, key: string, download = false): string
   }
   const suffix = params.toString();
   return `${getServerBase().replace(/\/+$/, "")}${objectPath(bucket, key)}${suffix ? `?${suffix}` : ""}`;
+}
+
+/**
+ * 把「预览地址」改写成「原始字节地址」。
+ *
+ * <p>预览地址（票据 URL 或 {@code ?preview=true} 直链）在服务端走的是<b>渲染</b>
+ * 通道：能内联渲染的类型（图片/文本/PDF）回原始字节，服务端渲染不了的类型
+ * （如 Arrow、SQLite）回的是服务端预览页 HTML。而那些自己解码字节的面板
+ * （{@code FvArrowPanel} / {@code FvTextPanel} …）拿到 HTML 只会解析失败，
+ * 表现为「面板一闪就退回 iframe」。</p>
+ *
+ * <p>{@code raw=true} 让服务端跳过渲染、直出对象字节（{@code application/octet-stream}），
+ * 因此凡是「自己解码」的调用点都必须经过本函数改写地址。</p>
+ *
+ * @param url 预览地址（可含查询串，可为相对地址）
+ * @return 带 {@code raw=true} 的地址；不是预览地址或已带 raw 时原样返回
+ */
+export function rawBytesUrl(url: string): string {
+  if (!url || !/[?&]preview=true(&|$)/.test(url) || /[?&]raw=true(&|$)/.test(url)) {
+    return url;
+  }
+  return `${url}${url.includes("?") ? "&" : "?"}raw=true`;
 }
 
 /**
@@ -1717,7 +1747,9 @@ export interface UploadTaskInfo {
  * 请求上传任务接口（走应用登录态，与 server-config 同一通道）
  */
 function uploadTaskHttp(): Http {
-  return createHttp({ headers: authHeaders() });
+  // 与 server-config 同一通道：连接设置改了后端，上传任务 / 协同 REST
+  // 必须跟着走，否则会出现「列表来自 B、协同还在 A」。
+  return createHttp({ baseUrl: apiHttpBase(), headers: authHeaders() });
 }
 
 /**
@@ -1971,7 +2003,7 @@ export function subscribeUploadTasks(
       // 令牌提供者设置失败不影响连接（公共接口匿名可用）
     }
     const sse = core.createSseService({
-      urls: [window.location.origin],
+      urls: [apiOrigin()],
       path: `${UPLOAD_TASK_BASE}/events`,
       reconnection: true,
       reconnectionDelay: 3000,
@@ -2046,7 +2078,7 @@ export function subscribeFileCollab(
       // 令牌提供者设置失败不影响连接（公开文档匿名可看）
     }
     const sse = core.createSseService({
-      urls: [window.location.origin],
+      urls: [apiOrigin()],
       path: `${FILE_COLLAB_BASE}/${encodeURIComponent(id)}/events`,
       reconnection: true,
       reconnectionDelay: 3000,

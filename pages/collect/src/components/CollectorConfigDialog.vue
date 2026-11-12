@@ -1,5 +1,5 @@
 <!--
-  采集器全局配置弹窗：全局配置 / 变量 / 函数 / 通知四个页签。
+  采集器全局配置弹窗：全局配置 / 运行参数 / 变量 / 函数 / 通知五个页签。
 
   唯一入口在采集器管理页的顶部工具栏（「全局配置」下拉），不在任何一行里：
   这四样都是平台级配置，逐行挂入口会让人以为「这条采集器有自己的一套变量」。
@@ -20,13 +20,14 @@ import { ref, watch } from "vue";
 import ReDialog from "@repo/ui/re-dialog";
 import ReTab from "@repo/ui/re-tab";
 import CollectActionConfig from "./CollectActionConfig.vue";
+import CollectSettingsPanel from "./CollectSettingsPanel.vue";
 import FunctionView from "../views/FunctionView.vue";
 import NoticeView from "../views/NoticeView.vue";
 import VariableView from "../views/VariableView.vue";
 
 const props = defineProps<{
   modelValue: boolean;
-  /** 初始页签：global | variable | function | notice */
+  /** 初始页签：global | settings | variable | function | notice */
   panel?: string;
 }>();
 
@@ -34,6 +35,7 @@ const emit = defineEmits<{ (event: "update:modelValue", value: boolean): void }>
 
 const TABS = [
   { name: "global", label: "全局配置" },
+  { name: "settings", label: "运行参数" },
   { name: "variable", label: "变量管理" },
   { name: "function", label: "函数库" },
   { name: "notice", label: "执行通知" },
@@ -89,6 +91,9 @@ watch(
       <ReTab v-model="tab" :tabs="TABS" variant="capsule">
         <template #global>
           <CollectActionConfig />
+        </template>
+        <template #settings>
+          <CollectSettingsPanel />
         </template>
         <template #variable>
           <VariableView />

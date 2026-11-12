@@ -368,8 +368,6 @@ const movingFileId = ref<string | null>(null) // 保存正在移动的文件ID
 const POLL_INTERVAL = 3000 // 3 秒轮询间隔
 let pollingTimer: ReturnType<typeof setTimeout> | null = null
 let pollingFileIds = new Set<string>()
-// 批量状态接口后端是否不可用：为 true 时不再起轮询（见 poll 的 catch）
-let statusPollingUnavailable = false
 
 /**
  * 加载指定路径的文件夹内容
@@ -498,27 +496,15 @@ function updateBreadcrumbPathFromRelativePath(relativePath: string | null) {
 }
 
 /**
- * 判断错误是否为「后端没有这个路由」。
- *
- * <p>api 层用 {@code missingOutlet} 抛出的消息有稳定前缀
- * {@code [knowledge-base] <方法>：后端出口缺失}。这类错误重试不可能成功，
- * 与真实网络抖动必须区别对待——前者应永久停表，后者按原策略继续重试。</p>
- */
-function isMissingOutletError(error: unknown): boolean {
-  return /后端出口缺失/.test(String((error as Error)?.message ?? error ?? ''))
-}
-
-/**
  * 启动文件处理轮询（组件内部管理）
+ *
+ * <p><b>状态来源只有一个：{@code GET /bases/{id}/tree}</b>。后端没有单文件/批量
+ * 处理进度路由，此前这里调 {@code batchGetFileProcessingStatus}，api 层直接抛
+ * 「后端出口缺失」，于是每次进目录都必然失败一次、按轮询间隔刷一屏错误日志。
+ * 现在改为重拉当前目录的树：一次请求就带回该目录全部文件的 {@code processing_status}
+ * 与 {@code error_message}，与页面其它地方的读数同源。</p>
  */
 async function startFileProcessingPolling() {
-  // 后端 /api/knowledge 没有批量状态出口时，这个轮询永远不可能成功：
-  // 一旦认定不可用就整体跳过，不再每次进目录都白起一个必然报错的定时器。
-  if (statusPollingUnavailable) {
-    console.log('[DEBUG] KBFileTree: 批量状态接口不可用，跳过本轮轮询')
-    return
-  }
-
   // 筛选出 processing/pending 状态的文件
   const processingFiles = currentItems.value.filter(file =>
     file.processingStatus === 'processing' || file.processingStatus === 'pending'
@@ -546,64 +532,70 @@ async function startFileProcessingPolling() {
     console.log(`[DEBUG] KBFileTree: 开始轮询 ${pollingFileIds.size} 个文件`)
 
     const poll = async () => {
+      // 重拉当前目录的树：/tree 是唯一带回 processing_status 的出口。
+      // 只把状态合并回本地条目，不替换列表（保留分页与上传流程插入的临时条目）。
+      let listing: any[] = []
       try {
-
-        // 批量获取文件状态
-        const responses = await apiService.batchGetFileProcessingStatus(
+        const resp = await apiService.fetchKBFilesByPath(
           props.kbId,
-          Array.from(pollingFileIds)
+          currentRelativePath.value,
+          0,
+          1000
         )
-
-        console.log(`[DEBUG] KBFileTree: 轮询收到 ${responses.length} 个文件的状态更新`)
-
-        // 遍历结果并更新本地状态
-        responses.forEach((response: any) => {
-          // 更新本地文件状态
-          updateFileStatus(response.id, {
-            processingStatus: response.processingStatus,
-            progressPercentage: response.progressPercentage || 0,
-            currentStep: response.currentStep || null,
-            errorMessage: response.errorMessage || null,
-            totalChunks: response.totalChunks || 0,
-            totalTokens: response.totalTokens || 0
-          })
-
-          // 如果文件处理完成或失败，从轮询列表中移除
-          if (response.processingStatus === 'completed' ||
-            response.processingStatus === 'failed') {
-            console.log(`[DEBUG] KBFileTree: 文件 ${response.id} 处理${response.processingStatus === 'completed' ? '完成' : '失败'},停止轮询`)
-            pollingFileIds.delete(response.id)
-          }
-        })
-
-        // 如果所有文件都处理完成，停止轮询
-        if (pollingFileIds.size === 0) {
-          console.log('[DEBUG] KBFileTree: 所有文件处理完成,停止轮询')
-          stopFileProcessingPolling()
-        }
+        listing = (resp?.items || []) as any[]
       } catch (error) {
-        console.error(`[DEBUG] KBFileTree: 批量轮询文件状态失败:`, error)
-        // 「后端出口缺失」是 api 层对「后端根本没这个路由」的显式报错，重试永远不可能成功。
-        // 原先这里一律「出错不停止」，后果是定时器永久空转、按 POLL_INTERVAL 刷一屏错误日志，
-        // 而清理 pollingFileIds / 停表的逻辑都写在 try 里，于是永远执行不到 → 定时器泄漏。
-        // 只有这种情况才永久停表；真实网络抖动仍按原策略继续重试。
-        if (isMissingOutletError(error)) {
-          statusPollingUnavailable = true
-          console.warn('[DEBUG] KBFileTree: 批量文件状态接口后端未提供，停止状态轮询（文件状态改由上传流程自身推进）')
-          stopFileProcessingPolling()
+        const msg = String((error as any)?.message || '')
+        // 空库目录尚未创建时后端回「目录不存在」，属于正常空态，不刷红
+        if (/目录不存在|not exist|NoSuchFile/i.test(msg)) {
+          console.log(`[DEBUG] KBFileTree: 轮询时目录尚不存在，按空目录处理: ${msg.slice(0, 80)}`)
+          listing = []
+        } else {
+          // 网络抖动继续重试，不停表
+          console.log(`[DEBUG] KBFileTree: 轮询状态失败（稍后重试）: ${msg.slice(0, 80)}`)
           return
         }
-        // 出错时不停止轮询，继续尝试
+      }
+
+      const latest = new Map<string, any>(listing.map((f: any) => [String(f.id), f]))
+      // 先收集再删除：直接改 Set 的同时 forEach 会漏项
+      const doneIds: string[] = []
+      pollingFileIds.forEach((fileId) => {
+        const f = latest.get(fileId)
+        if (!f) {
+          // 文件已不在当前目录（被删 / 被移走），停止对它轮询
+          doneIds.push(fileId)
+          return
+        }
+        updateFileStatus(fileId, {
+          processingStatus: f.processingStatus,
+          progressPercentage: f.progressPercentage || 0,
+          currentStep: f.currentStep || null,
+          errorMessage: f.errorMessage || null,
+          totalChunks: f.totalChunks || 0,
+          totalTokens: f.totalTokens || 0
+        })
+        // completed（已索引）/ failed（失败）/ uploaded（待重建索引）都是稳定态，
+        // 继续等也不会变，留在名单里只是白刷请求。
+        if (f.processingStatus === 'completed'
+          || f.processingStatus === 'failed'
+          || f.processingStatus === 'uploaded') {
+          doneIds.push(fileId)
+        }
+      })
+      doneIds.forEach((id) => pollingFileIds.delete(id))
+
+      if (pollingFileIds.size === 0) {
+        console.log('[DEBUG] KBFileTree: 所有文件状态已稳定,停止轮询')
+        stopFileProcessingPolling()
       }
     }
 
     // 立即执行一次
     await poll()
 
-    // 定时轮询。首次执行若已判定「后端没这个出口」，就不能再起表 ——
-    // 否则 poll() 内部刚 stopFileProcessingPolling()，这里又 setInterval 把表建回来，
-    // 只会多空转一轮再停，白刷一轮错误日志。
-    if (!statusPollingUnavailable && !pollingTimer) {
+    // 首次 poll 若已把所有文件判定为稳定态，stopFileProcessingPolling 会清空名单，
+    // 这里就不要再把表建回来。
+    if (pollingFileIds.size > 0 && !pollingTimer) {
       pollingTimer = setInterval(poll, POLL_INTERVAL)
     }
   } else {

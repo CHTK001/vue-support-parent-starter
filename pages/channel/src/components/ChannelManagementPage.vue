@@ -23,13 +23,14 @@ import {
   // @element-plus/icons-vue 导出的名字**没有 Icon 后缀**（Refresh / Plus / Delete /
   // Connection / DataAnalysis）。此前按「XxxIcon」写，构建直接报 MISSING_EXPORT，
   // 整个应用打不出包。这里用 `as XxxIcon` 起别名，模板里的标签名保持不变。
-  Refresh as RefreshIcon,
   Plus as PlusIcon,
   Delete as DeleteIcon,
   Connection as ConnectionIcon,
   DataAnalysis as DataAnalysisIcon,
   Setting as SettingIcon,
   Picture as PictureIcon,
+  ArrowDown as ArrowDownIcon,
+  ArrowRight as ArrowRightIcon,
 } from '@element-plus/icons-vue'
 import { channelApi } from '../channelApi'
 import type {
@@ -46,7 +47,7 @@ import MagpieAccountBindDialog from './MagpieAccountBindDialog.vue'
 import MagpieGatewaySettingsDialog from './MagpieGatewaySettingsDialog.vue'
 import MagpieProviderPanel from './MagpieProviderPanel.vue'
 import MagpiePluginPanel from './MagpiePluginPanel.vue'
-import { MAGPIE_OWNED_VENDORS, magpieOwnedOf, type MagpieOwnedVendor } from '../magpieOwnership'
+import { magpieOwnedOf, type MagpieOwnedVendor } from '../magpieOwnership'
 import {
   MAGPIE_PLUGIN_CHANNELS,
   magpiePluginOfProviders,
@@ -145,6 +146,8 @@ interface ParsedHandle {
 
 const loading = ref(false)
 const loadError = ref('')
+/** 渠道清单是否已经读到过（区分「还没读到」与「真的没有」） */
+const channelsLoaded = ref(false)
 const channels = ref<ChannelSummary[]>([])
 
 // 当前选中的渠道 id
@@ -179,18 +182,35 @@ const busyOf = (channel: string) => {
 const activeSummary = () => channels.value.find((c) => c.channel === activeChannel.value)
 
 // ---------- 方案 A：运维甲板（OPS·DECK）派生状态 ----------
+/**
+ * 内置通道的种类：对话 / 出图 / 都不是。
+ *
+ * <p>分组（左栏「免登录对话 / 文生图」）与状态灯必须用同一个判据：以前分组看
+ * {@code chatClient || kind}、状态灯只看 {@code kind}，若后端给
+ * {@code chatClient=true} 而 {@code kind=AI}，这一行会落在「免登录对话」组里、
+ * 灯却是「未绑定」。这里收成一处，两边都调它。</p>
+ *
+ * @param c 渠道摘要
+ * @returns 'chat' / 'image' / ''（普通账号渠道）
+ */
+function builtinKindOf(c?: ChannelSummary): 'chat' | 'image' | '' {
+  const kind = String(c?.kind ?? '').toUpperCase()
+  if (c?.chatClient || kind === 'CHAT') return 'chat'
+  if (c?.imageClient || kind === 'IMAGE') return 'image'
+  return ''
+}
+
 // 渠道级健康状态：按该渠道绑定的账号状态汇总出「在线 / 待刷新 / 未绑定」。
 const channelState = (c?: ChannelSummary): 'online' | 'stale' | 'none' => {
   // ChatClient 免登录渠道（对话 / 文生图）没有连接行：只要 SPI 已注册即可用
-  const kind = String(c?.kind ?? '').toUpperCase()
-  if (kind === 'CHAT' || kind === 'IMAGE') return 'online'
+  if (builtinKindOf(c)) return 'online'
   const conns = c?.connections ?? []
   // 网关托管：凭据在 magpie 里，本地没有连接行，但渠道本身是可用的
   if (!conns.length) return c && hostedProviderOf(c.channel) ? 'online' : 'none'
   return conns.some((x) => x.status === 'valid') ? 'online' : 'stale'
 }
 const channelStateText = (c?: ChannelSummary): string =>
-  ['CHAT', 'IMAGE'].includes(String(c?.kind ?? '').toUpperCase())
+  builtinKindOf(c)
     ? '免登录可用'
     : ({ online: '在线', stale: '待刷新', none: '未绑定' })[channelState(c)]
 
@@ -241,6 +261,8 @@ async function loadChannels() {
     const imageRows: ChannelSummary[] =
       image.status === 'fulfilled' ? (image.value?.channels ?? []).map((x) => toSummary(x, 'IMAGE')) : []
     channels.value = [...aiRows, ...chatRows, ...imageRows]
+    // 从这一刻起「没有这个渠道」才是可信的结论；之前左栏不该画「还没有配置网关」。
+    channelsLoaded.value = true
     // 对话渠道的模型清单不在元数据里，并发补一次实时拉取，避免面板首屏空模型；
     // 单渠道失败/未就绪直接跳过（模型区仍可手动「拉取模型」）。
     await Promise.allSettled(
@@ -1439,16 +1461,30 @@ const gatewayPlugins = ref<string[]>([])
  */
 const gatewayQuotaCards = ref<MagpieQuota[]>([])
 
+/**
+ * 网关上游列表这次有没有读到（空串＝读到了）。
+ *
+ * <p>「读不到」和「一家都没接」必须分开：读不到时若继续沿用上一次的列表（或者上一次
+ * 本来就是空的），左栏就会把「这次没读到」画成「待接入」，用户没有任何办法分辨。
+ * 实测过一次：8848 代理指到另一套后端时，13 行整列「待接入」，被当成「数据丢了」查了半天。
+ * 所以失败时清空列表，并把原因留在这里交给左栏显示，而不是让它静默冒充当前状态。</p>
+ */
+const gatewayIndexError = ref('')
+
 /** 前端合成的网关托管行所用的连接 id（后端不存在这条记录） */
 const GATEWAY_CONNECTION_ID = '__gateway__'
 
-/** 渠道在网关里命中的上游实例；没有返回 undefined */
+/**
+ * 渠道在网关里命中的第一条上游实例（状态灯 / 图标用）；没有返回 undefined。
+ *
+ * <p>只保留一份实现：数量（角标）与状态（灯）必须来自同一个过滤结果，
+ * 否则改一处就会出现「角标说已接入 2、灯说未绑定」这种自相矛盾的画面。</p>
+ *
+ * @param channel 业务渠道标识
+ * @returns 命中的上游实例；没有时 undefined
+ */
 function hostedProviderOf(channel: string): MagpieProvider | undefined {
-  const vendor = magpieOwnedOf(channel)
-  if (!vendor || !vendor.providers.length) return undefined
-  return gatewayProviderRows.value.find((p) =>
-    vendor.providers.includes(String(p?.id ?? '')),
-  )
+  return hostedProvidersOf(channel)[0]
 }
 
 /**
@@ -1461,11 +1497,9 @@ function hostedProviderOf(channel: string): MagpieProvider | undefined {
  * @returns 网关上游实例列表
  */
 function hostedProvidersOf(channel: string): MagpieProvider[] {
-  const vendor = magpieOwnedOf(channel)
-  if (!vendor || !vendor.providers.length) return []
-  return gatewayProviderRows.value.filter((p) =>
-    vendor.providers.includes(String(p?.id ?? '')),
-  )
+  const ids = gatewayProviderIdsOf(channel)
+  if (!ids.length) return []
+  return gatewayProviderRows.value.filter((p) => ids.includes(String(p?.id ?? '')))
 }
 
 /**
@@ -1576,6 +1610,105 @@ function hostedOnly(c?: ChannelSummary): boolean {
   return list.length > 0 && list.every((conn) => !!conn.hosted)
 }
 
+/* ==================== 来源标签（按「谁实现」分） ==================== */
+
+/**
+ * 渠道来源 = 这条渠道的能力由谁实现。
+ *
+ * <p>左栏里混着三种实现方，光看名字分不出来：</p>
+ * <ul>
+ *   <li>网关（magpie）—— 网关声明由它承载的渠道（登录 / 上游 key / 模型目录由网关负责），
+ *       以及只存在于网关里、对不上业务渠道的上游实例</li>
+ *   <li>本机 —— 不在网关承载名单里的渠道，由本服务的实现直连上游（例：eac）</li>
+ *   <li>内置通道 —— 免登录对话 / 文生图，没有账号表，也不需要绑定</li>
+ * </ul>
+ *
+ * <p>网关组里的角标印的是<b>接入数量</b>：网关里已经接了几条这个渠道的上游就印几，
+ * 一条都没有时才印「待接入」。这比「已托管 / 待接入」两种状态有用——用户要知道的是
+ * 接进来了几个，而不是一个笼统的「接好了」；0 条才是需要动手的那种情况，
+ * 单独给一句话提醒。</p>
+ *
+ * <p>标签只说什么在提供能力，不出现实现类名或 SPI 名。</p>
+ */
+interface ChannelSource {
+  /** 来源键（= 谁实现）：同时用于角标配色 */
+  key: 'gateway' | 'local' | 'chat' | 'image' | 'upstream'
+  /** 角标文字：网关＝接入数量（0 条时「待接入」），其余 2~3 个字 */
+  label: string
+  /** 网关里已接入的上游条数（只有网关行有；0 表示还没接） */
+  count?: number
+  /** 悬浮说明：讲清这条渠道的能力由谁提供 */
+  hint: string
+}
+
+/**
+ * 计算一个业务渠道的来源（谁实现的）。
+ *
+ * <p>判定顺序即优先级：内置通道（对话 / 出图）先于账号归属——它们没有账号表，
+ * 不该被算成「没绑账号的账号渠道」；账号归属里网关优先——网关归属表命中就算网关渠道，
+ * 角标印的是网关里已接入的上游条数，一条都没有才印「待接入」。</p>
+ *
+ * @param c 渠道摘要
+ * @returns 来源（key / 角标 / 说明）
+ */
+function sourceOfChannel(c?: ChannelSummary): ChannelSource {
+  if (!c) return { key: 'local', label: '账号', hint: '没有读到这个渠道的信息' }
+  // 内置通道（对话 / 出图）先判：它们没有账号表，与状态灯同一判据（见 builtinKindOf）
+  const builtin = builtinKindOf(c)
+  // 免登录对话：由服务端内置对话通道实现，没有账号表
+  if (builtin === 'chat') {
+    return { key: 'chat', label: '对话', hint: '能力由服务端内置对话通道提供，不需要绑定账号' }
+  }
+  // 文生图：由服务端内置出图通道实现，没有账号表
+  if (builtin === 'image') {
+    return { key: 'image', label: '出图', hint: '能力由服务端内置出图通道提供，不需要绑定账号' }
+  }
+  const hosted = hostedProvidersOf(c.channel)
+  const local = localConnectionCount(c)
+  // 上游列表这次没读到：对「接了几条」既不能报数，也不能说「待接入」（那是相反的结论）
+  if (gatewayIndexError.value && gatewayOwnedChannel(c.channel)) {
+    return {
+      key: 'gateway',
+      label: '接入数未读到',
+      hint: '这次没读到网关数据，接入数量暂时不知道；到左栏「网关」组头点重试',
+    }
+  }
+  // 角标印接入数量：网关里接了几条这个渠道的上游就印几
+  if (hosted.length > 0) {
+    const names = hosted.map((p) => providerLabel(p)).join('、')
+    const tail = local > 0 ? `；本页还留着 ${local} 条旧账号，不参与使用` : ''
+    return {
+      key: 'gateway',
+      label: `已接入 ${hosted.length}`,
+      count: hosted.length,
+      hint: `能力由网关提供：网关里已接入 ${hosted.length} 条该渠道的上游（${names}）${tail}`,
+    }
+  }
+  // 网关声明承载这条渠道、而网关里一条都没接：这才是需要动手的情况，单独给提示
+  if (gatewayOwnedChannel(c.channel)) {
+    return {
+      key: 'gateway',
+      label: '待接入',
+      count: 0,
+      hint: local > 0
+        ? `网关可接管这个渠道，但网关里还没有它的上游（本页还有 ${local} 条本地账号在用）；点开去接入`
+        : '网关可接管这个渠道，但网关里还没有它的上游；点开去接入',
+    }
+  }
+  // 其余是本服务直连上游的实现：能不能用取决于绑没绑账号，那是状态不是来源
+  return {
+    key: 'local',
+    label: local > 0 ? '本地账号' : '未绑定',
+    count: local,
+    hint: local > 0
+      ? `由本服务直连上游，已绑定 ${local} 个账号`
+      : '由本服务直连上游，还没有绑定账号',
+  }
+}
+
+/** 当前选中渠道的来源（详情页头角标用） */
+const activeSource = computed<ChannelSource>(() => sourceOfChannel(activeSummary()))
+
 /**
  * 当前渠道是否可以看积分。
  *
@@ -1646,18 +1779,65 @@ watch(
 
 // ---------- Magpie 托管收敛（左栏） ----------
 
-/** 网关型渠道：能力位驱动，不按渠道名硬编码 */
+/** 网关型渠道：能力位驱动，不按渠道名硬编码。 */
 const gatewayChannel = computed(() => channels.value.find((c) => c.supportsUpstream))
+
+/**
+ * 网关自报的「承载了哪些业务渠道 → 对应哪些上游 provider id」。
+ *
+ * <p>只认后端随 {@code /api/channels} 下发的 {@code ownedChannels}：这就是
+ * 「谁承载谁」的唯一真值。老后端 / 还没绑定网关时是空表——那时没有任何渠道被
+ * 认成网关渠道，也不会把一条自己直连的渠道凭空画成「待接入」。</p>
+ */
+const gatewayOwnership = computed<Record<string, string[]>>(() => {
+  const out: Record<string, string[]> = {}
+  const raw = gatewayChannel.value?.ownedChannels
+  if (!raw || typeof raw !== 'object') return out
+  for (const [channel, ids] of Object.entries(raw)) {
+    if (!Array.isArray(ids)) continue
+    const list = ids.map((id) => String(id ?? '').trim()).filter(Boolean)
+    const key = String(channel ?? '').trim().toLowerCase()
+    if (key && list.length) out[key] = list
+  }
+  return out
+})
+
+/**
+ * 某业务渠道在网关里对应的上游 provider id 候选（按优先级）。
+ *
+ * @param channel 业务渠道标识
+ * @returns provider id 候选；网关没声明这个渠道时为空数组
+ */
+function gatewayProviderIdsOf(channel: string): string[] {
+  const key = String(channel ?? '').trim().toLowerCase()
+  return key ? gatewayOwnership.value[key] ?? [] : []
+}
+
+/** 该渠道是否由网关承载（网关自己声明的，不按渠道名硬编码） */
+function gatewayOwnedChannel(channel: string): boolean {
+  return gatewayProviderIdsOf(channel).length > 0
+}
+
+/**
+ * 网关是否已经绑定（至少一条连接）。
+ *
+ * <p>没绑定时网关里一条上游都读不到，左栏「网关」组的渠道就全是 0 接入、整列印「待接入」。
+ * 那是最容易误判成「数据丢了」的时刻，所以组头下面要先把原因写出来，并给出绑定入口。</p>
+ */
+const gatewayBound = computed(() => (gatewayChannel.value?.connections ?? []).length > 0)
 
 /**
  * 已经可以整体交给 Magpie 的渠道。
  *
- * <p>两个条件缺一不可：</p>
+ * <p>条件缺一不可：</p>
  * <ol>
  *   <li>名单里有一个网关型渠道（能力位 {@code supportsUpstream}），它是收纳方；</li>
  *   <li>网关自己至少绑定了一个连接——没绑连接时跳过去只会看到「未绑定」；</li>
- *   <li>被收纳的渠道在 {@link MAGPIE_OWNED_VENDORS} 名单里。</li>
+ *   <li>网关自报了这条渠道对应的上游 provider（{@code ownedChannels}）。</li>
  * </ol>
+ *
+ * <p>归属判定只认网关下发的 {@code ownedChannels}，前端不再留第二份对照表：
+ * 网关给渠道换一个 provider 命名时，页面不该静默滑回「待接入」。</p>
  *
  * <p>网关优先：渠道即使还留着本地旧连接也算托管，旧连接不参与展示与请求，
  * 但数据保留在库里。</p>
@@ -1665,9 +1845,7 @@ const gatewayChannel = computed(() => channels.value.find((c) => c.supportsUpstr
 const managedChannels = computed(() => {
   const gateway = gatewayChannel.value
   if (!gateway || !(gateway.connections ?? []).length) return []
-  return channels.value.filter((c) =>
-    MAGPIE_OWNED_VENDORS.some((v) => v.channel === c.channel),
-  )
+  return channels.value.filter((c) => gatewayOwnedChannel(c.channel))
 })
 
 /** 「Magpie 插件」分组是否展开（默认收起：44 个社区插件） */
@@ -1676,17 +1854,23 @@ const pluginOpen = ref(false)
 /** 插件分组过滤词：44 行不靠滚动找，输入名字 / provider / 说明都能命中 */
 const pluginFilter = ref('')
 
-/** 托管子项：渠道摘要 + 归属条目（顺序跟随 MAGPIE_OWNED_VENDORS） */
+/**
+ * 托管子项：渠道摘要 + 界面元数据（预设 / 插件）。
+ *
+ * <p>元数据可以没有：网关能承载一条渠道，不代表这里知道该用哪个预设或插件。
+ * 那种情况下条目仍然成立，只是点开落到「上游」页签。</p>
+ */
 interface ManagedEntry {
   channel: ChannelSummary
-  vendor: MagpieOwnedVendor
+  vendor?: MagpieOwnedVendor
 }
 
-const managedEntries = computed<ManagedEntry[]>(() => {
-  const rows = new Map(managedChannels.value.map((c) => [c.channel, c]))
-  return MAGPIE_OWNED_VENDORS.map((vendor) => ({ vendor, channel: rows.get(vendor.channel) }))
-    .filter((x): x is ManagedEntry => !!x.channel)
-})
+const managedEntries = computed<ManagedEntry[]>(() =>
+  managedChannels.value.map((channel) => ({
+    channel,
+    vendor: magpieOwnedOf(channel.channel),
+  })),
+)
 
 /** 上游行的展示名：magpie 的 name 优先，没有就退回 provider id */
 function providerLabel(provider: MagpieProvider): string {
@@ -1702,6 +1886,8 @@ async function loadGatewayIndex(): Promise<void> {
     gatewayProviderRows.value = []
     gatewayPlugins.value = []
     gatewayQuotaCards.value = []
+    // 没绑网关不是「读失败」：这里给的是「还没配」的落点，不是重试
+    gatewayIndexError.value = ''
     return
   }
   const ref = { connectionId: conn.connectionId }
@@ -1722,6 +1908,16 @@ async function loadGatewayIndex(): Promise<void> {
     gatewayProviders.value = rows
       .map((p: any) => String(p?.id ?? ''))
       .filter(Boolean)
+    gatewayIndexError.value = ''
+  } else {
+    // 读不到就清空：沿用上一次的列表会把「这次没读到」画成「网关里就这些」，
+    // 而上一次本来就可能是空的（首次进页面 / 刚绑上网关），那时整组都成了「待接入」。
+    // 清空 + 留一条可重试的提示，用户才能分清「真没接」和「没读到」。
+    gatewayProviderRows.value = []
+    gatewayProviders.value = []
+    gatewayIndexError.value = '网关数据这次没读到，页面 Key 可能失效了，或者网关没在运行'
+    // 原始错误只进控制台（排障用），不进界面：里面可能带地址与实现名
+    console.warn('[channel] 网关上游列表读取失败', prov.reason)
   }
   if (quota.status === 'fulfilled') {
     const out = (quota.value as any)?.data ?? quota.value
@@ -1752,7 +1948,8 @@ function pluginInstalled(spec?: string): boolean {
 
 /** 托管子项状态灯：网关已接上（有上游或插件已装）→ 绿，否则灰 */
 function managedState(entry: ManagedEntry): 'online' | 'none' {
-  return liveProvider(entry.vendor.providers) || pluginInstalled(entry.vendor.plugin)
+  return liveProvider(gatewayProviderIdsOf(entry.channel.channel))
+    || pluginInstalled(entry.vendor?.plugin)
     ? 'online'
     : 'none'
 }
@@ -1789,17 +1986,19 @@ const focusPluginName = ref('')
 const focusPluginSummary = ref('')
 const focusPluginProviders = ref<string[]>([])
 
-/** 该渠道的归属条目；没点托管子项时为空 */
+/** 该渠道的界面元数据（预设 / 插件）；没点托管子项、或后端没给元数据时为空 */
 const focusVendor = computed(() =>
   focusChannel.value ? magpieOwnedOf(focusChannel.value) : undefined,
 )
 
 /** 从托管分组点进去时要高亮的 magpie provider id */
-const focusProvider = computed(() => focusProviderId.value || focusVendor.value?.providers[0] || '')
+const focusProvider = computed(() =>
+  focusProviderId.value || gatewayProviderIdsOf(focusChannel.value)[0] || '',
+)
 
 /** 备选 provider id（插件 / 预设两种装法，如 cline → clinepass） */
 const focusAlt = computed(() =>
-  focusAltIds.value.length ? focusAltIds.value : (focusVendor.value?.providers.slice(1) ?? []),
+  focusAltIds.value.length ? focusAltIds.value : gatewayProviderIdsOf(focusChannel.value).slice(1),
 )
 
 /**
@@ -1865,11 +2064,23 @@ const businessChannels = computed<ChannelSummary[]>(() =>
  * 作为一行渠道出现在左栏同一张列表里，不另开分组、不叫「其它上游」。</p>
  */
 const gatewayOnlyProviders = computed<MagpieProvider[]>(() => {
-  const covered = new Set<string>([
-    ...channels.value.map((c) => c.channel),
-    ...MAGPIE_OWNED_VENDORS.flatMap((v) => v.providers),
-  ])
-  return gatewayProviderRows.value.filter((p) => p?.id && !covered.has(String(p.id)))
+  // 只有「已经出现在某个渠道行里」的上游才算被承载。渠道 id 与 provider id 是两套
+  // 命名空间，混进同一个集合会误伤：网关里若真有一条 id 恰好等于某个渠道名
+  // （如 opencode）的上游，它既不在渠道行、又不进上游行，被静默吞掉。
+  const present = new Set(
+    channels.value.map((c) => String(c.channel ?? '').trim().toLowerCase()),
+  )
+  const carried = new Set<string>()
+  for (const [channel, ids] of Object.entries(gatewayOwnership.value)) {
+    // 归属表里有、但 /api/channels 里没有这条渠道时不排除：
+    // 那些上游仍然只存在于网关，必须作为上游行出现，否则整条链路都看不到。
+    if (!present.has(channel)) continue
+    for (const id of ids) carried.add(id)
+  }
+  return gatewayProviderRows.value.filter((p) => {
+    const id = String(p?.id ?? '').trim()
+    return !!id && !carried.has(id)
+  })
 })
 
 /**
@@ -1887,13 +2098,30 @@ interface RailRow {
   summary?: ChannelSummary
   /** 上游行携带的网关上游实例 */
   provider?: MagpieProvider
+  /** 这一行的来源（左栏角标）：本机 / 托管 / 免登录 / 出图 / 上游 */
+  source: ChannelSource
 }
 
 /** 左栏列表：业务渠道 + 只存在于网关里的上游，顺序由拖拽决定并记在本地 */
 const railRows = computed<RailRow[]>(() => {
   const rows: RailRow[] = [
-    ...businessChannels.value.map<RailRow>((c) => ({ key: c.channel, kind: 'channel', summary: c })),
-    ...gatewayOnlyProviders.value.map<RailRow>((p) => ({ key: 'up:' + String(p.id), kind: 'upstream', provider: p })),
+    ...businessChannels.value.map<RailRow>((c) => ({
+      key: c.channel,
+      kind: 'channel',
+      summary: c,
+      source: sourceOfChannel(c),
+    })),
+    ...gatewayOnlyProviders.value.map<RailRow>((p) => ({
+      key: 'up:' + String(p.id),
+      kind: 'upstream',
+      provider: p,
+      // 只存在于网关里的上游：来源就是网关本身，不用再按渠道算
+      source: {
+        key: 'upstream',
+        label: '上游',
+        hint: `网关里的一条上游实例${upstreamModelCount(p) ? `，提供 ${upstreamModelCount(p)} 个模型` : ''}`,
+      } as ChannelSource,
+    })),
   ]
   const rank = new Map(channelOrder.value.map((id, i) => [id, i]))
   return rows.sort((a, b) => {
@@ -1905,6 +2133,242 @@ const railRows = computed<RailRow[]>(() => {
     return ra - rb
   })
 })
+
+/* ==================== 左栏分组（按「谁实现」） ==================== */
+
+/** 左栏一个分组：同一实现方的行放在一起，组头点名实现方 */
+interface RailGroup {
+  /** 分组键：gateway / local / chat / image */
+  key: string
+  /** 组头文字 */
+  label: string
+  /** 组头悬浮说明 */
+  hint: string
+  /** 组头是「配置网关」而不是折叠（只有网关组） */
+  configurable: boolean
+  /** 组内行（已按拖拽顺序排好） */
+  rows: RailRow[]
+  /** 只在网关组有：对不上业务渠道的上游实例，折叠在组尾 */
+  upstreamRows?: RailRow[]
+}
+
+/**
+ * 分组定义（顺序即左栏从上到下的顺序）。
+ *
+ * <p>分组轴是「能力由谁实现」：网关归属表里的渠道（magpie 接管登录 / 上游 key / 模型目录）、
+ * 不在归属表里的本机渠道、内置对话通道、内置出图通道。账号绑在本页还是网关里、绑没绑，
+ * 都是同一组里的状态，不是分组。</p>
+ *
+ * <p>「网关」把两类行放在同一组里：网关可接管的业务渠道（行内印接入数量），以及只在网关里
+ * 存在、对不上业务渠道的上游实例（上游）——对用户来说它们都是「网关里的东西」。
+ * 这一组的组头就是配置网关的入口：点它才弹网关地址 / 页面 Key，其它组不碰网关设置。</p>
+ *
+ * <p>顺序按「离用户最近」排：网关组在最上——它的组头就是配置网关的唯一入口，跟着列表
+ * 滚走就找不到了；随后是不走网关的本机渠道；内置通道没有账号可管，排在最后。
+ * 网关上游实例可能几十条，折叠在网关组尾。</p>
+ */
+const GROUP_DEFS: Array<{
+  key: string
+  label: string
+  hint: string
+  sources: ChannelSource['key'][]
+  configurable?: boolean
+  /** 即使没有条目也显示（网关组：空的时候也要有「去配置网关」的落点） */
+  always?: boolean
+  /** 拆出上游行折叠（只有网关组） */
+  foldUpstream?: boolean
+}> = [
+  {
+    key: 'gateway',
+    label: '网关',
+    hint: '这些渠道由网关接管登录与上游；点这一行去配置网关地址与页面 Key',
+    sources: ['gateway', 'upstream'],
+    configurable: true,
+    always: true,
+    foldUpstream: true,
+  },
+  {
+    key: 'local',
+    label: '本机',
+    hint: '不在网关归属表里的渠道，由本服务的实现直连上游',
+    sources: ['local'],
+  },
+  {
+    key: 'chat',
+    label: '免登录对话',
+    hint: '由服务端内置对话通道实现，没有账号需要绑定',
+    sources: ['chat'],
+  },
+  {
+    key: 'image',
+    label: '文生图',
+    hint: '由服务端内置出图通道实现，没有账号需要绑定',
+    sources: ['image'],
+  },
+]
+
+/** 左栏分组：空组不显示；组内顺序沿用拖拽顺序 */
+const railGroups = computed<RailGroup[]>(() => {
+  const rows = railRows.value
+  const out: RailGroup[] = []
+  for (const def of GROUP_DEFS) {
+    const picked = rows.filter((row) => def.sources.includes(row.source.key))
+    // 网关组恒在：没绑网关时它是唯一「点这里去配置」的落点
+    if (!picked.length && def.always !== true) continue
+    // 只有管理员能改网关地址：非管理员组头只是标题，提示语也不再让人去点
+    const configurable = def.configurable === true && isAdminUser.value
+    const hint = def.configurable === true && !configurable
+      ? '模型与额度由网关提供；网关地址与页面 Key 由管理员配置'
+      : def.hint
+    if (def.foldUpstream === true) {
+      out.push({
+        key: def.key,
+        label: def.label,
+        hint,
+        configurable,
+        rows: picked.filter((row) => row.source.key !== 'upstream'),
+        upstreamRows: picked.filter((row) => row.source.key === 'upstream'),
+      })
+      continue
+    }
+    out.push({
+      key: def.key,
+      label: def.label,
+      hint,
+      configurable,
+      rows: picked,
+    })
+  }
+  return out
+})
+
+/** 网关上游实例是否已展开（几十条默认折叠，免得把其它组挤出视野） */
+const upstreamExpanded = ref(false)
+
+/** 被折叠的分组键：网关组的组头是「配置网关」，其余组头点击 = 折叠 / 展开本组 */
+const collapsedGroups = ref<string[]>([])
+
+/**
+ * 切换某个分组的折叠状态。
+ *
+ * @param key 分组键
+ */
+function toggleGroup(key: string): void {
+  const i = collapsedGroups.value.indexOf(key)
+  if (i >= 0) collapsedGroups.value.splice(i, 1)
+  else collapsedGroups.value.push(key)
+}
+
+/**
+ * 该分组当前是否折叠。
+ *
+ * @param group 分组
+ * @returns 折叠时 true
+ */
+function groupCollapsed(group: RailGroup): boolean {
+  return collapsedGroups.value.includes(group.key)
+}
+
+/**
+ * 组头右侧的条数：这个组自己的渠道行数，折叠着的上游实例不算在内。
+ *
+ * <p>以前网关组的组头把折叠的上游也算进去（13 条渠道 + 31 条上游 = 44），组尾的折叠条
+ * 又写「展开 31 个网关上游」——同一个 31 被数了两遍，组头的 44 既不是渠道数也不是上游数。
+ * 现在一个数字只有一个含义：组头数渠道行，折叠条数上游行。</p>
+ *
+ * @param group 分组
+ * @returns 该组的渠道行数
+ */
+function groupCount(group: RailGroup): number {
+  return group.rows.length
+}
+
+/**
+ * 组内总行数（含折叠的上游）。
+ *
+ * <p>只用来判断「这一组是不是空的」，不显示给用户：只有上游、没有渠道行的组
+ * 不该被当成空组去画「网关里还没有接入渠道」。</p>
+ *
+ * @param group 分组
+ * @returns 渠道行 + 折叠的上游行数
+ */
+function groupTotal(group: RailGroup): number {
+  return group.rows.length + (group.upstreamRows?.length ?? 0)
+}
+
+/** 行内标记：网关组标出接入数量（0 条＝待接入）与「上游」，本机组只标「未绑定」这个状态 */
+interface RailTag {
+  /** 标记文字 */
+  label: string
+  /** 配色键：gateway / pending / upstream / none */
+  key: string
+  /** 悬浮说明 */
+  hint: string
+}
+
+/** 左栏渲染项：一行渠道 / 上游，或一条「展开网关上游」的折叠条 */
+type RailDisplay =
+  | { key: string; kind: 'row'; row: RailRow; tag: RailTag | null }
+  | { key: string; kind: 'fold'; count: number }
+
+/**
+ * 一个分组实际渲染的项：正常行 → 折叠条 → （展开后）上游行。
+ *
+ * <p>折叠条插在网关可接管的渠道与上游实例之间：上面是业务渠道，下面是只在网关里存在的
+ * 上游实例，两者用途不同，上游几十条默认收起。</p>
+ *
+ * <p>行内标记只说状态：网关组印<b>接入数量</b>（网关里几条这个渠道的上游），一条都没有时才印
+ * 「待接入」；组内混排的上游实例标「上游」。本机组只在没绑账号时标「未绑定」。
+ * 组头已经点名的实现方（免登录对话 / 文生图）不再逐行重复。</p>
+ *
+ * @param group 分组
+ * @returns 渲染项
+ */
+function displayRows(group: RailGroup): RailDisplay[] {
+  if (groupCollapsed(group)) return []
+  const decorate = (row: RailRow): RailDisplay => {
+    let tag: RailTag | null = null
+    if (group.key === 'gateway') {
+      // 上游实例自己就是一条接入，不再重复印数量
+      if (row.source.key === 'upstream') {
+        tag = { label: row.source.label, key: 'upstream', hint: row.source.hint }
+      } else if (gatewayIndexError.value) {
+        // 接入数量这次没读到：印「待接入」等于说「网关里没有」，是相反的结论。
+        // 组头有一条可重试的提示，这里就不逐行重复错误。
+        tag = null
+      } else {
+        const pending = !row.source.count
+        tag = {
+          label: row.source.label,
+          key: pending ? 'pending' : 'gateway',
+          hint: row.source.hint,
+        }
+      }
+    } else if (group.key === 'local' && !localConnectionCount(row.summary)) {
+      tag = { label: '未绑定', key: 'none', hint: '还没有账号：点下方「新增账号」绑定' }
+    }
+    return { key: row.key, kind: 'row', row, tag }
+  }
+  const items: RailDisplay[] = group.rows.map(decorate)
+  const extra = group.upstreamRows ?? []
+  if (!extra.length) return items
+  items.push({ key: 'fold:' + group.key, kind: 'fold', count: extra.length })
+  if (upstreamExpanded.value) {
+    items.push(...extra.map(decorate))
+  }
+  return items
+}
+
+/**
+ * 一行属于哪个分组：上游行归到「网关」组，其余按来源键。
+ *
+ * @param row 左栏行
+ * @returns 分组键
+ */
+function groupKeyOf(row?: RailRow): string {
+  if (!row) return ''
+  return row.source.key === 'upstream' ? 'gateway' : row.source.key
+}
 
 /** 该行是否处于选中态（上游行：网关渠道 + 这个上游被定位时选中） */
 function railActive(row: RailRow): boolean {
@@ -1985,6 +2449,14 @@ function onChannelDrop(key: string): void {
   const fromIndex = ids.indexOf(from)
   const toIndex = ids.indexOf(key)
   if (fromIndex < 0 || toIndex < 0) return
+  // 只在同一来源分组内换序：跨组拖拽会让人以为「拖一下就能换来源」，而来源是数据决定的
+  const fromRow = railRows.value.find((r) => r.key === from)
+  const toRow = railRows.value.find((r) => r.key === key)
+  if (groupKeyOf(fromRow) !== groupKeyOf(toRow)) {
+    // 静默不动会让人以为是拖拽失灵，这里明说一句
+    ElMessage.info('来源不同的渠道不在同一组，只能在本组内调整顺序')
+    return
+  }
   ids.splice(fromIndex, 1)
   ids.splice(toIndex, 0, from)
   channelOrder.value = ids
@@ -2226,19 +2698,20 @@ function openGateway(tab: string, apply: () => void): void {
  */
 function openManaged(entry: ManagedEntry): void {
   const { vendor, channel } = entry
+  const ids = gatewayProviderIdsOf(channel.channel)
   const name = channel.displayName || channel.channel
-  const hit = liveProvider(vendor.providers)
+  const hit = liveProvider(ids)
   if (hit) {
     openGateway('upstream', () => {
       clearManagedFocus()
       focusChannel.value = channel.channel
       focusProviderId.value = hit
-      focusAltIds.value = vendor.providers.filter((x) => x !== hit)
+      focusAltIds.value = ids.filter((x) => x !== hit)
       focusLabelText.value = name
     })
     return
   }
-  if (vendor.preset) {
+  if (vendor?.preset) {
     openGateway('upstream', () => {
       clearManagedFocus()
       focusChannel.value = channel.channel
@@ -2246,9 +2719,9 @@ function openManaged(entry: ManagedEntry): void {
     })
     return
   }
-  const plugin = vendor.plugin
+  const plugin = vendor?.plugin
     ? magpiePluginOfSpec(vendor.plugin)
-    : magpiePluginOfProviders(vendor.providers)
+    : magpiePluginOfProviders(ids)
   openGateway(plugin ? 'plugins' : 'upstream', () => {
     clearManagedFocus()
     focusChannel.value = channel.channel
@@ -2289,7 +2762,7 @@ function openGatewayRoot(): void {
 /** 当前渠道能否新增账号：普通渠道走本页表单，网关托管渠道走 Magpie 绑定 */
 const canAddAccount = computed(() => {
   const c = activeSummary()
-  return !!c && (accountsSupported(c) || !!magpieOwnedOf(c.channel))
+  return !!c && (accountsSupported(c) || gatewayOwnedChannel(c.channel))
 })
 
 /**
@@ -2342,7 +2815,7 @@ function openAddAccount(): void {
   if (!activeChannel.value) return
   if (activeMagpieOwned.value) {
     if (!gatewayConnectionId.value) {
-      ElMessage.warning('还没有配置网关，请先在左下角「网关设置」里配置')
+      ElMessage.warning('还没有配置网关，请先在左栏顶部的「网关」组头里配置')
       return
     }
     magpieBindVisible.value = true
@@ -2389,8 +2862,8 @@ function openPlugin(plugin: MagpiePluginChannel): void {
  */
 function managedHint(entry: ManagedEntry): string {
   const name = entry.channel.displayName || entry.channel.channel
-  if (entry.vendor.preset) return `接入「${name}」的上游（预设 + API Key）`
-  const plugin = entry.vendor.plugin ? magpiePluginOfSpec(entry.vendor.plugin) : undefined
+  if (entry.vendor?.preset) return `接入「${name}」的上游（预设 + API Key）`
+  const plugin = entry.vendor?.plugin ? magpiePluginOfSpec(entry.vendor.plugin) : undefined
   return plugin
     ? `用插件「${plugin.name}」接管「${name}」的登录与签到`
     : `管理「${name}」的登录与签到`
@@ -2618,8 +3091,10 @@ const creditText = (credit: any): string => {
       : `— / ${total}${unit ? ' ' + unit : ''}`
   }
   const remain = Number(credit.remain)
-  const head = `${remain}${unit ? ' ' + unit : ''}`
-  return total === undefined || total === null || total === '' ? head : `${head} / ${total}${unit ? ' ' + unit : ''}`
+  // 单位只说一次：「3966 / 4653 积分」比「3966 积分 / 4653 积分」短一截；
+  // 卡片窄到 350px 时这几十像素决定了百分比徽章会不会被挤到下一行。
+  const suffix = unit ? ' ' + unit : ''
+  return total === undefined || total === null || total === '' ? `${remain}${suffix}` : `${remain} / ${total}${suffix}`
 }
 
 /** 明细行文案：上游给了 display 就照抄，避免把 1.2k 换算错 */
@@ -2658,12 +3133,29 @@ const creditHasRatio = (credit: any): boolean => Number(credit?.total ?? 0) > 0
 interface CreditTotal {
   /** 单位（currency 时为币种代码） */
   unit: string
-  /** 展示文案，如「1,234 积分」 */
+  /** 展示文案，如「1,234 / 2,000 积分」 */
   text: string
   /** 剩余比例（0~100）；没有总量时为 null，只显示数字 */
   percent: number | null
-  /** 聚合的账号数 */
-  accounts: number
+  /** 计入合计的账号数（有该单位的数字读数） */
+  counted: number
+  /** 有读数但只有文案、没进这个单位的账号数 */
+  skipped: number
+}
+
+/**
+ * 顶部汇总的口径说明（悬浮提示）。
+ *
+ * <p>卡片是「一个账号」，顶部是「这些账号按单位加起来」，两者数字本来就不会相等；
+ * 但只在悬浮里说清还不够——还必须让用户看得见分母。以前顶部只印「剩余 3966 积分」
+ * 配 82%，而唯一有额度的那张卡印着 85%，看起来像算错了。现在文案带 {@code / 总量}，
+ * 百分比可以由这两个数字直接验算。</p>
+ */
+const creditTotalHint = (total: CreditTotal): string => {
+  const scope = total.skipped > 0
+    ? `${total.counted} 个账号计入，另有 ${total.skipped} 个账号没有这一单位的数字读数`
+    : `${total.counted} 个账号合计`
+  return `本渠道已查询到的剩余额度：同单位相加，积分 / Token / 货币不混算（${scope}）`
 }
 
 /**
@@ -2685,9 +3177,11 @@ const creditTotals = computed<CreditTotal[]>(() => {
     total: number
     hasRemain: boolean
     hasTotal: boolean
-    accounts: number
   }>()
-  const addBucket = (unit: string, currency: string, remain: unknown, total: unknown) => {
+  // 每个账号（连接）实际进了哪些桶：用来算「几个账号计入 / 几个只有文案」，
+  // 不能拿桶的累加次数当账号数（一个账号可能同时给积分和货币两个桶）。
+  const contributors: Set<string>[] = []
+  const addBucket = (unit: string, currency: string, remain: unknown, total: unknown, touched: Set<string>) => {
     const remainMissing = remain === undefined || remain === null || remain === ''
     const totalMissing = total === undefined || total === null || total === ''
     // 两个字段都没有的桶不显示：不能拿「未提供」画一条空账
@@ -2700,14 +3194,14 @@ const creditTotals = computed<CreditTotal[]>(() => {
       total: 0,
       hasRemain: false,
       hasTotal: false,
-      accounts: 0,
     }
+    let added = false
     if (!remainMissing) {
       const value = Number(remain)
       if (Number.isFinite(value)) {
         group.remain += value
         group.hasRemain = true
-        group.accounts += 1
+        added = true
       }
     }
     if (!totalMissing) {
@@ -2715,37 +3209,48 @@ const creditTotals = computed<CreditTotal[]>(() => {
       if (Number.isFinite(value) && value > 0) {
         group.total += value
         group.hasTotal = true
+        added = true
       }
     }
     groups.set(key, group)
+    if (added) touched.add(key)
   }
   for (const conn of displayConnections(summary)) {
     const data = creditState.value[conn.connectionId]?.data
     if (!data || data.error) continue
+    const touched = new Set<string>()
     // 新后端按单位分桶；旧后端没有 units，退回单条 unit / remain / total
     const units = Array.isArray(data.units) ? data.units : []
     if (units.length) {
       for (const bucket of units) {
         if (!bucket) continue
-        addBucket(String(bucket.unit ?? ''), String(bucket.currency ?? ''), bucket.remain, bucket.total)
+        addBucket(String(bucket.unit ?? ''), String(bucket.currency ?? ''), bucket.remain, bucket.total, touched)
       }
-      continue
+    } else {
+      addBucket(String(data.unit ?? ''), String(data.currency ?? ''), data.remain, data.total, touched)
     }
-    addBucket(String(data.unit ?? ''), String(data.currency ?? ''), data.remain, data.total)
+    contributors.push(touched)
   }
-  return [...groups.values()]
-    .filter((group) => group.hasRemain || group.hasTotal)
-    .map((group) => {
+  return [...groups.entries()]
+    .filter(([, group]) => group.hasRemain || group.hasTotal)
+    .map(([key, group]) => {
       const label = group.unit === 'currency' ? (group.currency || '货币') : creditUnitText(group.unit)
+      const suffix = label ? ' ' + label : ''
+      // 带上分母：顶部是「账号合计」，卡片是「单个账号」，只印剩余值会和卡片对不上
+      const text = group.hasRemain
+        ? (group.hasTotal
+            ? `${compactNumber(group.remain)} / ${compactNumber(group.total)}${suffix}`
+            : `${compactNumber(group.remain)}${suffix}`)
+        : `— / ${compactNumber(group.total)}${suffix}`
+      const counted = contributors.filter((keys) => keys.has(key)).length
       return {
         unit: group.unit === 'currency' ? (group.currency || 'currency') : group.unit,
-        text: group.hasRemain
-          ? `${compactNumber(group.remain)}${label ? ' ' + label : ''}`
-          : `—${label ? ' ' + label : ''}`,
+        text,
         percent: group.hasRemain && group.hasTotal && group.total > 0
           ? Math.max(0, Math.min(100, Math.round((group.remain / group.total) * 100)))
           : null,
-        accounts: group.accounts,
+        counted,
+        skipped: contributors.length - counted,
       }
     })
 })
@@ -2798,9 +3303,10 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
     <el-empty v-if="!loading && !channels.length" description="尚未注册任何渠道">
       <template #description>
         <p>尚未注册任何渠道</p>
+        <!-- 空态只说「怎么办」，不列实现类名（AccountChannelAuthManager 之类属于开发者口径） -->
         <p class="chm-empty__hint">
-          渠道清单来自后端注册表：AI 账号渠道（AccountChannelAuthManager）与
-          免登录对话 / 文生图渠道（ChatChannelProvider / ImageChannelProvider）。
+          渠道清单由服务端统一登记：AI 账号渠道与免登录对话 / 文生图渠道都会出现在这里。
+          清单为空说明服务端还没有登记任何渠道，请联系管理员确认。
         </p>
       </template>
     </el-empty>
@@ -2813,90 +3319,206 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           <span>渠道索引</span>
           <span class="chm-rail__head-right">
             <b>{{ railRows.length }}</b>
-            <button
-              type="button"
-              class="chm-rail__refresh"
-              :class="{ 'is-busy': loading }"
+            <!--
+              刷新与详情面板里的图标钮是同一套控件（ReButton square / 24px）：
+              以前这里是 20px 自绘原生 button，和面板里 24px 的钮并排差一档，
+              也没有统一的 loading / 提示语行为。
+            -->
+            <ReButton
+              layout="square"
+              size="mini"
+              icon="Refresh"
+              tip="刷新渠道清单"
+              :loading="loading"
               :disabled="loading"
-              title="刷新渠道清单"
-              aria-label="刷新渠道清单"
               @click="loadChannels"
-            >
-              <el-icon aria-hidden="true"><RefreshIcon /></el-icon>
-            </button>
+            />
           </span>
         </div>
         <!--
-          左栏就是渠道清单：一行一个，拖上拖下调整顺序。
-          网关里的上游同样是渠道，对不上业务渠道的那些也直接排在这张列表里，
-          不另开分组、不叫「其它上游」；后端是 magpie、cdp 还是原生 SPI 都不在这里体现。
+          左栏按「谁实现」分组：网关 / 本机 / 免登录对话 / 文生图。
+          组头是该组唯一的全局入口：网关组点开＝配置网关（地址 / 页面 Key），
+          其它组没有全局配置项，点组头＝折叠 / 展开本组。
+          网关组最长（渠道行 + 几十条上游），所以它另外给一个折叠箭头：
+          点箭头只收组、不弹配置，两者不抢同一个点击。
         -->
         <!-- 渠道行单独滚动：底部入口固定在底部，不被长列表挤出视口 -->
         <div class="chm-rail__list">
-          <button
-            v-for="row in railRows"
-            :key="row.key"
-            type="button"
-            class="chm-rail__item"
-            :class="{
-              'is-active': railActive(row),
-              'is-dragging': draggingRow === row.key,
-              'is-drop-target': dropTargetRow === row.key && draggingRow !== row.key,
-              'chm-rail__item--upstream': row.kind === 'upstream',
-            }"
-            draggable="true"
-            :title="`${railRowName(row)}（拖拽调整顺序）`"
-            @click="onRailClick(row)"
-            @dragstart="onChannelDragStart($event, row.key)"
-            @dragover.prevent="onChannelDragOver(row.key)"
-            @dragleave="onChannelDragLeave(row.key)"
-            @drop.prevent="onChannelDrop(row.key)"
-            @dragend="onChannelDragEnd()"
-          >
-            <span class="chm-rail__grip" aria-hidden="true">⠿</span>
-            <!-- 渠道行 / 上游行都用真实软件图标，取不到才回落品牌色首字徽标 -->
-            <template v-if="row.kind === 'channel' && row.summary">
-              <span class="chm-rail__logo"
-                    :class="{ 'is-ico': !!channelIcon(row.summary.channel) }"
-                    :style="channelIcon(row.summary.channel) ? undefined : { background: brandOf(row.summary.channel).color }">
-                <img v-if="channelIcon(row.summary.channel)" :src="channelIcon(row.summary.channel)" :alt="row.summary.channel" />
-                <b v-else>{{ brandOf(row.summary.channel).glyph }}</b>
-              </span>
-              <span class="chm-rail__name" :title="row.summary.displayName || row.summary.channel">
-                {{ row.summary.displayName || row.summary.channel }}
-              </span>
-              <span class="chm-rail__kind" :title="kindText(row.summary)">{{ kindOf(row.summary) }}</span>
-              <span class="chm-rail__dot" :class="'is-' + channelState(row.summary)"
-                    :title="channelStateText(row.summary)" />
-            </template>
-            <template v-else-if="row.provider">
-              <span class="chm-rail__logo"
-                    :class="{ 'is-ico': !!upstreamIcon(row.provider), 'is-upstream': !upstreamIcon(row.provider) }">
-                <img v-if="upstreamIcon(row.provider)" :src="upstreamIcon(row.provider)" :alt="upstreamName(row.provider)" />
-                <b v-else>{{ upstreamGlyph(row.provider) }}</b>
-              </span>
-              <span class="chm-rail__name" :title="upstreamName(row.provider)">
-                {{ upstreamName(row.provider) }}
-              </span>
+          <div v-for="group in railGroups" :key="group.key" class="chm-rail__group">
+            <button
+              type="button"
+              class="chm-rail__group-head"
+              :class="{ 'is-config': group.configurable, 'is-collapsed': groupCollapsed(group) }"
+              :title="group.hint"
+              :aria-expanded="groupCollapsed(group) ? 'false' : 'true'"
+              @click="group.configurable ? openGatewaySettings() : toggleGroup(group.key)"
+            >
+              <span class="chm-rail__group-name">{{ group.label }}</span>
+              <b v-if="groupCount(group)">{{ groupCount(group) }}</b>
+              <!--
+                网关组头点一下＝配置网关，所以整组收起 / 展开另给一个箭头：
+                这一组最长（渠道行 + 几十条上游），收不起来时其它组永远在视野外。
+              -->
               <span
-                v-if="upstreamModelCount(row.provider)"
-                class="chm-rail__kind"
-                :title="`网关里这个渠道提供了 ${upstreamModelCount(row.provider)} 个模型`"
-              >{{ upstreamModelCount(row.provider) }} 模型</span>
-              <span class="chm-rail__dot" :class="'is-' + upstreamState(row.provider)"
-                    :title="upstreamStateText(row.provider)" />
+                v-if="group.key === 'gateway'"
+                class="chm-rail__group-toggle"
+                role="presentation"
+                :title="groupCollapsed(group) ? '展开「' + group.label + '」组' : '收起「' + group.label + '」组'"
+                @click.stop="toggleGroup(group.key)"
+              >
+                <el-icon aria-hidden="true">
+                  <ArrowRightIcon v-if="groupCollapsed(group)" />
+                  <ArrowDownIcon v-else />
+                </el-icon>
+              </span>
+              <el-icon v-if="group.configurable" class="chm-rail__group-gear" aria-hidden="true">
+                <SettingIcon />
+              </el-icon>
+              <el-icon v-else-if="group.key !== 'gateway'" class="chm-rail__group-fold" aria-hidden="true">
+                <ArrowRightIcon v-if="groupCollapsed(group)" />
+                <ArrowDownIcon v-else />
+              </el-icon>
+            </button>
+            <!--
+              网关数据没读到：先说是「没读到」，不要把它画成一列「待接入」——
+              两者对用户是相反的结论。点这行重试。
+            -->
+            <template v-if="!groupCollapsed(group)">
+            <button
+              v-if="group.key === 'gateway' && gatewayIndexError"
+              type="button"
+              class="chm-rail__group-empty is-error"
+              :title="gatewayIndexError"
+              @click="loadGatewayIndex"
+            >没有读到网关数据，点这里重试</button>
+            <!-- 渠道清单还没回来 / 没读到：这时说「还没有配置网关」是错的 -->
+            <div
+              v-else-if="group.key === 'gateway' && !channelsLoaded && !loadError"
+              class="chm-rail__group-empty is-static"
+            >正在读取渠道清单…</div>
+            <div
+              v-else-if="group.key === 'gateway' && loadError"
+              class="chm-rail__group-empty is-static"
+            >渠道清单没读到，点左栏顶部的刷新再试</div>
+            <!-- 网关组恒在：没绑网关时这里就是「去配置」的落点（非管理员只看提示） -->
+            <button
+              v-else-if="!groupTotal(group) && group.configurable"
+              type="button"
+              class="chm-rail__group-empty"
+              @click="openGatewaySettings"
+            >还没有配置网关，点这里配置</button>
+            <!--
+              绑定了网关但还没接上游时，整组都是 0 接入：先说清原因，
+              否则一列「待接入」看起来像数据没读出来。
+            -->
+            <button
+              v-else-if="group.key === 'gateway' && !gatewayBound && group.configurable"
+              type="button"
+              class="chm-rail__group-empty"
+              @click="openGatewaySettings"
+            >网关还没绑定，下面都是 0 接入；点这里绑定</button>
+            <!-- 非管理员改不了网关地址：给结论，不给一个点了也存不下的按钮 -->
+            <div
+              v-else-if="group.key === 'gateway' && !gatewayBound"
+              class="chm-rail__group-empty is-static"
+            >网关还没绑定，接入数量要等管理员绑定后才有</div>
+            <div v-else-if="!groupTotal(group)" class="chm-rail__group-empty is-static">
+              网关里还没有接入渠道
+            </div>
             </template>
-          </button>
+            <template v-for="item in displayRows(group)" :key="item.key">
+              <!--
+                折叠条：只在网关组出现，夹在「已接入的业务渠道」与「只在网关里的上游实例」之间。
+                上游可能有几十条，默认收起，展开状态只记在本次会话里。
+              -->
+              <button
+                v-if="item.kind === 'fold'"
+                type="button"
+                class="chm-rail__fold"
+                :title="upstreamExpanded ? '收起网关里的上游实例' : '展开网关里只在网关存在的上游实例'"
+                @click="upstreamExpanded = !upstreamExpanded"
+              >
+                <el-icon class="chm-rail__fold-ico" aria-hidden="true">
+                  <ArrowRightIcon v-if="!upstreamExpanded" />
+                  <ArrowDownIcon v-else />
+                </el-icon>
+                <span>{{ upstreamExpanded ? `收起 ${item.count} 个网关上游` : `展开 ${item.count} 个网关上游` }}</span>
+              </button>
+              <button
+                v-else
+                type="button"
+                class="chm-rail__item"
+                :class="{
+                  'is-active': railActive(item.row),
+                  'is-dragging': draggingRow === item.row.key,
+                  'is-drop-target': dropTargetRow === item.row.key && draggingRow !== item.row.key,
+                  'chm-rail__item--upstream': item.row.kind === 'upstream',
+                }"
+                draggable="true"
+                :title="`${railRowName(item.row)}（拖拽调整顺序）`"
+                @click="onRailClick(item.row)"
+                @dragstart="onChannelDragStart($event, item.row.key)"
+                @dragover.prevent="onChannelDragOver(item.row.key)"
+                @dragleave="onChannelDragLeave(item.row.key)"
+                @drop.prevent="onChannelDrop(item.row.key)"
+                @dragend="onChannelDragEnd()"
+              >
+                <span class="chm-rail__grip" aria-hidden="true">⠿</span>
+                <!-- 渠道行 / 上游行都用真实软件图标，取不到才回落品牌色首字徽标 -->
+                <template v-if="item.row.kind === 'channel' && item.row.summary">
+                  <span class="chm-rail__logo"
+                        :class="{ 'is-ico': !!channelIcon(item.row.summary.channel) }"
+                        :style="channelIcon(item.row.summary.channel) ? undefined : { background: brandOf(item.row.summary.channel).color }">
+                    <img v-if="channelIcon(item.row.summary.channel)" :src="channelIcon(item.row.summary.channel)" :alt="item.row.summary.channel" />
+                    <b v-else>{{ brandOf(item.row.summary.channel).glyph }}</b>
+                  </span>
+                  <span class="chm-rail__name" :title="item.row.summary.displayName || item.row.summary.channel">
+                    {{ item.row.summary.displayName || item.row.summary.channel }}
+                  </span>
+                  <span
+                    v-if="item.tag"
+                    class="chm-rail__kind"
+                    :class="'is-src-' + item.tag.key"
+                    :title="item.tag.hint"
+                  >{{ item.tag.label }}</span>
+                  <span class="chm-rail__dot" :class="'is-' + channelState(item.row.summary)"
+                        :title="channelStateText(item.row.summary)" />
+                </template>
+                <template v-else-if="item.row.provider">
+                  <span class="chm-rail__logo"
+                        :class="{ 'is-ico': !!upstreamIcon(item.row.provider), 'is-upstream': !upstreamIcon(item.row.provider) }">
+                    <img v-if="upstreamIcon(item.row.provider)" :src="upstreamIcon(item.row.provider)" :alt="upstreamName(item.row.provider)" />
+                    <b v-else>{{ upstreamGlyph(item.row.provider) }}</b>
+                  </span>
+                  <span class="chm-rail__name" :title="upstreamName(item.row.provider)">
+                    {{ upstreamName(item.row.provider) }}
+                  </span>
+                  <span
+                    v-if="upstreamModelCount(item.row.provider)"
+                    class="chm-rail__kind"
+                    :title="`网关里这个渠道提供了 ${upstreamModelCount(item.row.provider)} 个模型`"
+                  >{{ upstreamModelCount(item.row.provider) }} 模型</span>
+                  <span
+                    v-if="item.tag"
+                    class="chm-rail__kind"
+                    :class="'is-src-' + item.tag.key"
+                    :title="item.tag.hint"
+                  >{{ item.tag.label }}</span>
+                  <span class="chm-rail__dot" :class="'is-' + upstreamState(item.row.provider)"
+                        :title="upstreamStateText(item.row.provider)" />
+                </template>
+              </button>
+            </template>
+          </div>
         </div>
 
         <!--
-          底部常驻入口：
-            新增账号 —— 普通渠道弹本页账号表单；托管渠道当场走网关登录会话。
-            网关设置 —— 配置网关地址 / 页面 Key，新电脑上还能从这里去下载网关。
+          底部常驻入口只剩「新增账号」：普通渠道弹本页账号表单，托管渠道当场走网关登录会话。
+          网关地址 / 页面 Key 的入口在「网关」组的组头（点组头即配置网关），
+          这里再放一个「网关设置」只是同一件事的第二个按钮。
         -->
-        <div class="chm-rail__foot">
+        <div v-if="canAddAccount" class="chm-rail__foot">
           <button
-            v-if="canAddAccount"
             type="button"
             class="chm-rail__item chm-rail__item--util is-add-account"
             title="给当前渠道新增一个账号"
@@ -2907,19 +3529,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               <el-icon><PlusIcon /></el-icon>
             </span>
             <span class="chm-rail__name">新增账号</span>
-          </button>
-          <button
-            v-if="isAdminUser"
-            type="button"
-            class="chm-rail__item chm-rail__item--util is-gateway"
-            title="配置网关地址，或下载安装网关"
-            @click="openGatewaySettings"
-          >
-            <span class="chm-rail__grip" aria-hidden="true">⚙</span>
-            <span class="chm-rail__logo is-gateway" aria-hidden="true">
-              <el-icon><SettingIcon /></el-icon>
-            </span>
-            <span class="chm-rail__name">网关设置</span>
           </button>
         </div>
       </aside>
@@ -2958,6 +3567,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <span>
               <i>{{ brandOf(activeChannel).method || activeSummary()!.loginMethod || '—' }}</i>
               <span v-if="activeSummary()!.providerId">· provider {{ activeSummary()!.providerId }}</span>
+              <span
+                class="chm-panel__chip"
+                :class="'is-src-' + activeSource.key"
+                :title="activeSource.hint"
+              >{{ activeSource.label }}</span>
               <span class="chm-panel__chip">{{ kindText(activeSummary()) }}</span>
               <span v-if="activeSummary()!.priority !== undefined" class="chm-panel__chip is-muted">
                 优先级 {{ activeSummary()!.priority }}
@@ -2992,9 +3606,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
         <div
           v-if="creditTotals.length"
           class="chm-total"
-          title="当前渠道已查询到的剩余额度：同单位相加，积分 / token / 货币不混算"
         >
-          <div v-for="(total, idx) in creditTotals" :key="'chm-total-' + idx" class="chm-total__item">
+          <div
+            v-for="(total, idx) in creditTotals"
+            :key="'chm-total-' + idx"
+            class="chm-total__item"
+            :title="creditTotalHint(total)"
+          >
             <span class="chm-total__label">剩余</span>
             <span class="chm-total__value">{{ total.text }}</span>
             <span
@@ -3162,17 +3780,19 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     <!-- 积分：额度 + 进度 + 签到，一条读完 -->
                     <section v-if="creditSupported(activeSummary())" class="chm-acc__credit">
                       <div class="chm-credit__top">
-                        <span class="chm-credit__caption">积分</span>
-                        <template v-if="creditState[conn.connectionId]?.data">
-                          <span class="chm-credit__value">{{ creditText(creditState[conn.connectionId]!.data) }}</span>
-                          <span
-                            v-if="creditHasRatio(creditState[conn.connectionId]!.data)"
-                            class="chm-credit__pct"
-                            :class="{ 'is-low': creditPercent(creditState[conn.connectionId]!.data) <= 20 }"
-                          >剩余 {{ creditPercent(creditState[conn.connectionId]!.data) }}%</span>
-                        </template>
-                        <span v-else-if="creditState[conn.connectionId]?.loading" class="chm-credit__caption">查询中…</span>
-                        <span v-else class="chm-credit__caption">尚未查询</span>
+                        <div class="chm-credit__num">
+                          <span class="chm-credit__caption">积分</span>
+                          <template v-if="creditState[conn.connectionId]?.data">
+                            <span class="chm-credit__value">{{ creditText(creditState[conn.connectionId]!.data) }}</span>
+                            <span
+                              v-if="creditHasRatio(creditState[conn.connectionId]!.data)"
+                              class="chm-credit__pct"
+                              :class="{ 'is-low': creditPercent(creditState[conn.connectionId]!.data) <= 20 }"
+                            >剩余 {{ creditPercent(creditState[conn.connectionId]!.data) }}%</span>
+                          </template>
+                          <span v-else-if="creditState[conn.connectionId]?.loading" class="chm-credit__caption">查询中…</span>
+                          <span v-else class="chm-credit__caption">尚未查询</span>
+                        </div>
                         <div class="chm-credit__ops">
                           <!--
                             积分行的两个动作和账号操作行是同一套控件：ReButton square（24px 图标钮 + 悬浮提示）。
@@ -3252,7 +3872,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                   <el-icon v-if="!busyFor(activeChannel, 'login')" class="chm-btn__icon" aria-hidden="true">
                     <PlusIcon />
                   </el-icon>
-                  {{ busyFor(activeChannel, 'login') ? '登录中…' : '＋ 绑定登录态账号（点击弹出）' }}
+                  {{ busyFor(activeChannel, 'login') ? '登录中…' : '绑定登录态账号' }}
                 </button>
               </div>
               <!--
@@ -3269,14 +3889,15 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                   <el-icon class="chm-btn__icon" aria-hidden="true"><PlusIcon /></el-icon>
                   新增账号
                 </button>
-                <button
+                <ReButton
                   v-if="isAdminUser"
                   class="chm-panel__bindlink"
-                  type="button"
+                  link
+                  size="small"
                   @click="openGatewayLogin"
                 >
                   管理上游与插件
-                </button>
+                </ReButton>
               </div>
             </div>
 
@@ -3715,8 +4336,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
     />
 
     <!--
-      网关设置：地址 / 页面 Key 是全部托管渠道共用的基础配置，单独一个入口。
-      新电脑上还没装网关时，这里也能直接去下载页。
+      网关设置：地址 / 页面 Key 是全部托管渠道共用的基础配置。
+      唯一入口是左栏「网关」组的组头；新电脑上还没装网关时，弹窗里也能直接去下载页。
     -->
     <MagpieGatewaySettingsDialog
       v-model="gatewaySettingsVisible"
@@ -3879,33 +4500,136 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   margin-right: -2px;
   padding-right: 2px;
 }
-/* 刷新：原先在页头，页头移除后落到索引标题行，保持一键重取 */
-.chm-rail__refresh {
-  display: inline-grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
+/* 来源分组：组头是标题；网关组可点（点它配置网关），其它组只是标签 */
+.chm-rail__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chm-rail__group + .chm-rail__group {
+  margin-top: 6px;
+}
+.chm-rail__group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px 2px;
   border: 0;
-  border-radius: 5px;
   background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
   color: var(--text-tertiary, #94a3b8);
+  text-align: left;
+  /* 组头都是按钮：网关组点开配置，其它组折叠 / 展开 */
   cursor: pointer;
+  border-radius: 6px;
   transition: color .15s ease, background-color .15s ease;
 }
-.chm-rail__refresh:hover:not(:disabled) {
-  color: var(--el-color-primary, #409eff);
+.chm-rail__group-head:hover {
+  color: var(--brand-600, #2563eb);
   background: var(--bg-hover, #f1f5fb);
 }
-.chm-rail__refresh:disabled {
+.chm-rail__group-head b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* 折叠后的组头：只留一行标题，颜色压暗表示「整组收起来了」 */
+.chm-rail__group-head.is-collapsed {
+  padding-bottom: 6px;
+  color: var(--text-tertiary, #94a3b8);
+}
+.chm-rail__group-gear {
+  margin-left: 4px;
+  font-size: 12px;
+  color: inherit;
+}
+/* 网关组的整组折叠箭头：与齿轮同一个组头，但点的意思不同（收组 ≠ 配置网关） */
+.chm-rail__group-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: pointer;
+}
+.chm-rail__group-toggle:hover {
+  color: var(--brand-600, #2563eb);
+  background: var(--bg-sunken, #e8eefb);
+}
+.chm-rail__group-fold {
+  margin-left: auto;
+  font-size: 11px;
+  color: inherit;
+}
+/* 网关组为空时的落点：一条虚线提示，点它就是配置网关 */
+.chm-rail__group-empty {
+  margin: 2px 8px 0;
+  padding: 10px 8px;
+  border: 1px dashed var(--border-strong, #d3dceb);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .15s ease, color .15s ease;
+}
+.chm-rail__group-empty:hover {
+  border-color: var(--brand-600, #2563eb);
+  color: var(--brand-600, #2563eb);
+}
+/* 非管理员看到的是静态提示，不是按钮：不要给出按不下去的视觉暗示 */
+.chm-rail__group-empty.is-static {
   cursor: default;
-  opacity: .6;
 }
-.chm-rail__refresh.is-busy :deep(svg) {
-  animation: chm-spin 1s linear infinite;
+.chm-rail__group-empty.is-static:hover {
+  border-color: var(--border-strong, #d3dceb);
+  color: var(--text-tertiary, #94a3b8);
 }
-@keyframes chm-spin {
-  to { transform: rotate(360deg); }
+/* 数据没读到：用警示色与实线，让人一眼看出这是「异常」而不是「空」 */
+.chm-rail__group-empty.is-error {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--el-color-warning, #e6a23c) 55%, transparent);
+  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 12%, transparent);
+  color: #b45309;
+}
+.chm-rail__group-empty.is-error:hover {
+  border-color: var(--el-color-warning, #e6a23c);
+  color: #b45309;
+}
+/* 折叠条：网关上游实例的展开 / 收起，夹在托管渠道与上游之间 */
+.chm-rail__fold {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 8px 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: pointer;
+  text-align: left;
+  transition: color .15s ease, background-color .15s ease;
+}
+.chm-rail__fold:hover {
+  color: var(--brand-600, #2563eb);
+  background: var(--bg-hover, #f1f5fb);
+}
+.chm-rail__fold-ico {
+  font-size: 12px;
+  color: inherit;
+}
+/* 刷新按钮已换成 ReButton square（24px），这里只留标题行与计数样式 */
+.chm-rail__head-right .rs-btn {
+  flex: none;
 }
 .chm-rail__item {
   display: flex;
@@ -4017,6 +4741,47 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   background: var(--fill-quaternary, #f1f5f9);
   letter-spacing: 0.04em;
 }
+/*
+ * 来源角标配色：区分「这条渠道的能力由谁实现」，不表达状态（状态在右侧圆点）。
+ * 托管=青（网关）、账号=中性灰、对话=绿、出图=紫、上游=天蓝、未绑定=描边灰（状态）。
+ */
+.chm-rail__kind.is-src-gateway,
+.chm-panel__chip.is-src-gateway {
+  color: #0f766e;
+  background: color-mix(in srgb, #0ea5a4 13%, transparent);
+}
+/* 网关可接管但还没接入：用警示色，点开就是去加一条上游 */
+.chm-rail__kind.is-src-pending,
+.chm-panel__chip.is-src-pending {
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+}
+.chm-rail__kind.is-src-local,
+.chm-panel__chip.is-src-local {
+  color: var(--text-secondary, #475569);
+  background: var(--fill-quaternary, #f1f5f9);
+}
+.chm-rail__kind.is-src-chat,
+.chm-panel__chip.is-src-chat {
+  color: #15803d;
+  background: color-mix(in srgb, #22c55e 14%, transparent);
+}
+.chm-rail__kind.is-src-image,
+.chm-panel__chip.is-src-image {
+  color: #6d28d9;
+  background: color-mix(in srgb, #8b5cf6 13%, transparent);
+}
+.chm-rail__kind.is-src-upstream,
+.chm-panel__chip.is-src-upstream {
+  color: #0369a1;
+  background: color-mix(in srgb, #0ea5e9 13%, transparent);
+}
+.chm-rail__kind.is-src-none,
+.chm-panel__chip.is-src-none {
+  color: var(--text-tertiary, #94a3b8);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border-default, #e2e9f3);
+}
 .chm-rail__dot {
   flex: none;
   width: 7px;
@@ -4058,7 +4823,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   opacity: 1;
   width: 10px;
 }
-/* 底部常驻入口组：新增账号 + 网关设置，与上面的渠道列表用一条分隔线隔开 */
+/* 底部常驻入口组：与上面的渠道列表用一条分隔线隔开 */
 .chm-rail__foot {
   flex: none;
   margin-top: 6px;
@@ -4075,15 +4840,10 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   opacity: 1;
   width: 10px;
 }
-.chm-rail__logo.is-add,
-.chm-rail__logo.is-gateway {
+.chm-rail__logo.is-add {
   background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
   color: var(--brand-500, #3b82f6);
   font-size: 15px;
-}
-.chm-rail__logo.is-gateway {
-  color: var(--text-secondary, #475569);
-  background: var(--fill-quaternary, #f1f5f9);
 }
 /* 只存在于网关里的上游：左栏与业务渠道同一套行，只是徽标用文字占位 */
 .chm-rail__logo.is-upstream {
@@ -4480,6 +5240,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /*
+   * 账号卡网格按「区块自己的宽度」而不是视口切列。
+   * 左栏可折叠、页面还能被宿主内嵌，视口宽 ≠ 卡片可用宽；
+   * 以前用 @media (max-width:1100px) 判列，1280 视口下仍给两列 353px 的卡，
+   * 读数、百分比徽章、三个图标钮全挤成一团。
+   */
+  container-type: inline-size;
 }
 .chm-panel__sect-title {
   display: flex;
@@ -4537,17 +5304,19 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 }
 /*
  * 账号区一行两列：账号/连接是「看一眼状态」的密集信息，一行一个会被拉成整屏
- * 一张卡；三列又把「设为主账号 / 刷新 / 删除」那排按钮挤到换行，所以固定两列。
- * 窄屏按 1 列回收，避免卡片被压到读不清。
+ * 一张卡；三列又把「设为主账号 / 刷新 / 删除」那排按钮挤到换行，所以最多两列。
+ * 列数按区块自身宽度回收（见 .chm-panel__block 的 container-type）：
+ * 两张卡各留得下 400px 以上才并排，否则退回一列 —— 否则「读数 / 剩余% / 图标钮」
+ * 三样会挤成两行，右边那张卡还常常出现一整行只有按钮。
  */
 .chm-accs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
-@media (max-width: 1100px) {
+@container (min-width: 860px) {
   .chm-accs {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 /* 空态/说明行横跨整行，不被挤进第一列 */
@@ -5010,10 +5779,24 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   background: var(--bg-container, #fff);
 }
 .chm-credit__top {
+  /*
+   * 左侧「读数 + 百分比」一组，右侧动作钮一组。
+   *
+   * 以前整行是一个 flex-wrap：卡窄到 400px 以下时「剩余 85%」会单独掉到第二行、
+   * 两个图标钮也跟着掉，卡里就出现一行只有按钮的空白。改成两列网格后，
+   * 动作钮永远钉在第一行右侧；只有读数本身会在组内换行。
+   */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.chm-credit__num {
   display: flex;
   align-items: baseline;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 }
 .chm-credit__caption {
   font-size: 11px;
@@ -5076,7 +5859,9 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   justify-content: center;
   gap: 6px;
   width: 100%;
-  padding: 12px 10px;
+  /* 与左栏底部同名入口（262×40）同高：同页两个「新增账号」不该差 4px */
+  padding: 10px;
+  min-height: 40px;
   /*
    * 就是一条「点这里新增」的虚线入口，不吸收剩余高度：之前把它 flex 拉满，
    * 内容少的时候会变成半屏高的空槽，看着像页面没加载完。
@@ -5112,19 +5897,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   flex: 1 1 auto;
   min-height: 0;
 }
-/* 网关管理的次级入口：不抢「新增账号」的位置 */
+/* 网关管理的次级入口：不抢「新增账号」的位置。
+   ReButton 的 link 形态接管颜色与悬浮态，这里只压回文字尺寸、贴左对齐 */
 .chm-panel__bindlink {
   align-self: flex-start;
+  height: auto;
   padding: 0;
-  border: none;
-  background: transparent;
   font-size: 12px;
-  color: var(--text-tertiary, #94a3b8);
-  cursor: pointer;
-}
-.chm-panel__bindlink:hover {
-  color: var(--brand-600, #2563eb);
-  text-decoration: underline;
 }
 
 /* ---------- 绑定弹窗（ReDialog 重构） ---------- */

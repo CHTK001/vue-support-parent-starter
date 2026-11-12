@@ -103,6 +103,38 @@ export interface CollectRuntime {
   builtinFunctions: string[];
 }
 
+/** 采集平台运行参数项（/v2/collect/settings/list，值统一为字符串） */
+export interface CollectSettingItem {
+  /** 配置键，如 task-timeout-ms */
+  key: string;
+  /** 显示名 */
+  label: string;
+  /** 分组：执行 / 抓取 / 安全 / 能力开关 / AI */
+  group: string;
+  /** 控件类型 */
+  type: "boolean" | "number" | "text" | "select";
+  /** 当前值 */
+  value: string;
+  /** yml 缺省值 */
+  defaultValue: string;
+  /** 是否已被界面覆盖 */
+  overridden: boolean;
+  /** 是否重启后生效 */
+  restartRequired: boolean;
+  /** 是否只读（部署级配置，只能改 yml） */
+  readOnly?: boolean;
+  /** 说明 */
+  description?: string;
+  /** 数值下限 */
+  min?: string | null;
+  /** 数值上限 */
+  max?: string | null;
+  /** 单位 */
+  unit?: string | null;
+  /** select 候选项 */
+  options?: string[] | null;
+}
+
 /* --------------------------------- 流程 DSL -------------------------------- */
 
 /** 抽取字段声明（extract 节点） */
@@ -240,6 +272,111 @@ export interface CollectTask {
   collectTaskExecutorId: string | null;
   running: boolean;
   createName: string | null;
+}
+
+/** 节点质量（/task/quality 的节点明细） */
+export interface CollectQualityNode {
+  nodeId: string;
+  nodeName: string | null;
+  nodeShape: string | null;
+  execCount: number;
+  successCount: number;
+  failedCount: number;
+  skippedCount: number;
+  avgCostMs: number | null;
+  totalCostMs: number | null;
+  recordCount: number;
+  /** 成功率，0-100 */
+  successRate: number | null;
+}
+
+/** 任务质量报告（后端 CollectQualityVO） */
+export interface CollectTaskQuality {
+  taskId: number;
+  taskNo: string | null;
+  totalNodes: number;
+  successNodes: number;
+  failedNodes: number;
+  skippedNodes: number;
+  requestCount: number;
+  requestSuccess: number;
+  requestFailed: number;
+  recordCount: number;
+  newRecords: number;
+  duplicateRecords: number;
+  /** 入库率（入库数/请求成功数），0-100 */
+  insertRate: number | null;
+  /** 节点成功率，0-100 */
+  nodeSuccessRate: number | null;
+  totalCostMs: number | null;
+  slowestNode: string | null;
+  slowestNodeCostMs: number | null;
+  /** 质量评分 0-100 */
+  qualityScore: number;
+  /** EXCELLENT / GOOD / FAIR / POOR */
+  qualityLevel: string;
+  errorSummary: string | null;
+  nodes: CollectQualityNode[];
+}
+
+/** 每日执行趋势（/task/stats） */
+export interface CollectDailyTrend {
+  date: string;
+  runCount: number;
+  successCount: number;
+  failureCount: number;
+  recordCount: number;
+  avgCostMs: number | null;
+}
+
+/** 节点耗时统计（/task/stats） */
+export interface CollectNodeCost {
+  nodeId: string;
+  nodeName: string | null;
+  nodeShape: string | null;
+  execCount: number;
+  avgCostMs: number | null;
+  totalCostMs: number | null;
+  successRate: number | null;
+}
+
+/** 流程执行历史统计（后端 CollectStatsVO） */
+export interface CollectTaskStats {
+  flowId: number;
+  flowName: string | null;
+  days: number;
+  totalRuns: number;
+  successCount: number;
+  failureCount: number;
+  skippedCount: number;
+  successRate: number | null;
+  totalRecords: number;
+  avgRecordsPerRun: number | null;
+  totalCostMs: number | null;
+  avgCostMs: number | null;
+  maxCostMs: number | null;
+  minCostMs: number | null;
+  daily: CollectDailyTrend[];
+  nodeCosts: CollectNodeCost[];
+}
+
+/** 流程版本快照（/flow-version/list，实体直出） */
+export interface CollectFlowVersion {
+  collectFlowVersionId?: number | null;
+  collectFlowId: number;
+  versionNo: number;
+  flowDsl: string;
+  versionRemark: string | null;
+  createName?: string | null;
+  createTime: string | null;
+}
+
+/** 版本对比出参：后端只回两段原始 DSL，结构差异由前端计算 */
+export interface CollectFlowVersionDiff {
+  v1: number;
+  dsl1: string;
+  v2: number;
+  dsl2: string;
 }
 
 export interface CollectTaskLog {

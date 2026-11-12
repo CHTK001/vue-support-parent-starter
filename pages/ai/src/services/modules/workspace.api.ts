@@ -15,6 +15,8 @@ export interface WorkspaceApi {
   getWorkspaceHtmlPreviewBaseUrl(sessionId: string, dirPath?: string): string;
   deleteWorkspaceFile(sessionId: string, filePath: string): Promise<{ success: boolean; isDirectory?: boolean }>;
   renameWorkspaceFile(sessionId: string, filePath: string, newName: string): Promise<{ success: boolean; isDirectory?: boolean; newPath?: string }>;
+  createWorkspaceDirectory(name: string): Promise<{ name: string; path: string }>;
+  cloneWorkspaceFromGit(url: string, name?: string): Promise<{ name: string; path: string; gitUrl?: string }>;
 }
 
 export const workspaceApi: WorkspaceApi = {
@@ -81,6 +83,37 @@ export const workspaceApi: WorkspaceApi = {
     return await this._request(`/sessions/${sessionId}/workspace/rename`, {
       method: "POST",
       data: { path: filePath, newName },
+    });
+  },
+
+  /**
+   * 在账号工作目录（{@code <基路径>/<账号>/agent}）下新建一个项目目录。
+   *
+   * <p>可写范围由后端钉死在账号工作目录内：名称只接受单级目录名，
+   * 解析后仍须落在该目录下。这里不传绝对路径，避免前端拿到主机级写权限。</p>
+   *
+   * @param name 项目目录名（单级，不含路径分隔符）
+   */
+  async createWorkspaceDirectory(this: ApiContext, name: string) {
+    return await this._request(`/workspace/directory`, {
+      method: "POST",
+      data: { name },
+    });
+  },
+
+  /**
+   * 从 GitHub 仓库创建项目目录（服务端浅克隆）。
+   *
+   * <p>后端只放行 {@code https://github.com/owner/repo}，并会在克隆失败时
+   * 删除半成品目录，所以这里拿到 4xx 就是「这次没建成」，可以直接重试。</p>
+   *
+   * @param url  仓库地址
+   * @param name 项目目录名，留空时后端取仓库名
+   */
+  async cloneWorkspaceFromGit(this: ApiContext, url: string, name?: string) {
+    return await this._request(`/workspace/directory/git-clone`, {
+      method: "POST",
+      data: { url, name: name || undefined },
     });
   },
 };

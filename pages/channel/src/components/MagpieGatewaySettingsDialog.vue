@@ -10,7 +10,7 @@
   >
     <div class="mgs">
       <p class="mgs__intro">
-        填写网关地址后点「保存并检测」。可以只填网关地址，也可以直接粘贴网关启动时打印的
+        网关地址已按默认值填好，只补页面 Key 就能保存。也可以直接粘贴网关启动时打印的
         整条链接（含页面 Key），其余字段会自动拆开。
       </p>
 
@@ -119,7 +119,16 @@ const visible = computed({
 /** 网关官方发布页（Windows / macOS 安装包） */
 const DOWNLOAD_URL = 'https://github.com/yetone/magpie/releases/latest'
 
-const baseUrl = ref('')
+/**
+ * magpie 网关的默认数据面地址。
+ *
+ * <p>与后端 {@code MagpieSupport.DEFAULT_BASE_URL} 同一个口径：magpie 装好就在
+ * 3425 上提供 OpenAI 兼容接口，用户不必去查端口。留空反而是最差的默认值——
+ * 「保存并检测」会一直是禁用状态，用户不知道要先填什么。</p>
+ */
+const DEFAULT_GATEWAY_URL = 'http://127.0.0.1:3425'
+
+const baseUrl = ref(DEFAULT_GATEWAY_URL)
 const pageUrl = ref('')
 const pageKey = ref('')
 const gatewayKey = ref('')
@@ -135,7 +144,7 @@ const statusText = computed(() => {
   return '填好后点「保存并检测」'
 })
 
-/** 打开时回显当前网关地址（拿不到就留空，不猜） */
+/** 打开时回显当前网关地址；没有绑定过就用默认 3425，不猜别的端口 */
 watch(
   () => props.modelValue,
   async (open) => {
@@ -151,8 +160,9 @@ watch(
         connectionId: props.connectionId,
       })
       const out = (res as any)?.data ?? res
-      if (!baseUrl.value) baseUrl.value = String(out?.baseUrl ?? '')
-      if (!pageUrl.value) pageUrl.value = String(out?.pageUrl ?? '')
+      // 已绑定的地址覆盖默认值；后端没返回就保留默认 3425
+      if (out?.baseUrl) baseUrl.value = String(out.baseUrl)
+      if (out?.pageUrl) pageUrl.value = String(out.pageUrl)
     } catch {
       /* 回显失败不影响填写，保存时会重新探活 */
     }

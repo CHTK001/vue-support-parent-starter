@@ -80,6 +80,64 @@ export const useSessionStore = defineStore('session', () => {
         } catch { /* 隐私模式/存储满：静默降级为仅内存态 */ }
     }
 
+    /** localStorage 键前缀：排队中的消息（按会话隔离，刷新/重启后恢复） */
+    const QUEUE_KEY_PREFIX = 'ai-session.queue.'
+
+    /**
+     * 排队消息的本地保留期。
+     *
+     * <p>队列会在下次打开会话时被消费（见 ChatPanel 的 resumeQueuedMessagesOnLoad）。
+     * 若无限期保留，几个月前排队的内容会在某次打开时突然发出去，还白扣一轮 token，
+     * 故超过 7 天直接丢弃。</p>
+     */
+    const QUEUE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+    const queueStorageKey = (sessionId: string): string => `${QUEUE_KEY_PREFIX}${sessionId}`
+
+    /**
+     * 读取会话的排队消息。
+     *
+     * @param sessionId 会话 ID
+     * @returns 未过期的排队消息；没有、损坏或已过期时返回空数组
+     */
+    const loadQueue = (sessionId: string): QueuedMessage[] => {
+        try {
+            const raw = window.localStorage.getItem(queueStorageKey(sessionId))
+            if (!raw) return []
+            const parsed = JSON.parse(raw) as { savedAt?: number; items?: QueuedMessage[] }
+            if (!parsed || typeof parsed.savedAt !== 'number' || Date.now() - parsed.savedAt > QUEUE_TTL_MS) {
+                window.localStorage.removeItem(queueStorageKey(sessionId))
+                return []
+            }
+            // 落盘时可能有一条处于 sending（页面在发送途中被关掉）：重启后没有任何请求在跑，
+            // 一律归位成 queued，否则它会永远转圈且不可编辑/不可删。
+            return Array.isArray(parsed.items)
+                ? parsed.items
+                    .filter((item) => item && typeof item.content === 'string')
+                    .map((item) => ({ ...item, status: 'queued' as const }))
+                : []
+        } catch {
+            // 隐私模式 / 存储损坏：降级为仅内存态，不影响会话本身
+            return []
+        }
+    }
+
+    /**
+     * 把会话的排队消息写回 localStorage；队列清空时删键。
+     *
+     * @param sessionId 会话 ID
+     */
+    const saveQueue = (sessionId: string): void => {
+        try {
+            const items = getSessionState(sessionId).messageQueue
+            if (!items.length) {
+                window.localStorage.removeItem(queueStorageKey(sessionId))
+                return
+            }
+            window.localStorage.setItem(queueStorageKey(sessionId), JSON.stringify({ savedAt: Date.now(), items }))
+        } catch { /* 隐私模式/存储满：静默降级为仅内存态 */ }
+    }
+
     loadRunDurations()
 
     /**
@@ -101,7 +159,8 @@ export const useSessionStore = defineStore('session', () => {
                 lastUpdated: Date.now(),
                 settings: {
                 },
-                messageQueue: [],
+                // 队列落盘在 localStorage：刷新/重启后恢复，由 ChatPanel 决定何时消费
+                messageQueue: loadQueue(sessionId),
             })
         }
         return sessions.value.get(sessionId)!
@@ -369,6 +428,7 @@ export const useSessionStore = defineStore('session', () => {
             status: 'queued',
         }
         state.messageQueue.push(item)
+        saveQueue(sessionId)
         return item.id
     }
 
@@ -376,12 +436,39 @@ export const useSessionStore = defineStore('session', () => {
         const state = getSessionState(sessionId)
         if (state.messageQueue.length === 0) return null
         const item = state.messageQueue.shift()!
+        saveQueue(sessionId)
         return item
     }
 
     const peekQueue = (sessionId: string): QueuedMessage | null => {
         const queue = getSessionState(sessionId).messageQueue
         return queue.length > 0 ? queue[0] : null
+    }
+
+    /**
+     * 领取队列第一条，跨标签页安全。
+     *
+     * <p>重启后的自动发送走这里而不是直接 dequeue：先重读 localStorage 确认它
+     * 仍是磁盘上的队首，再一起从磁盘与内存里移除。两个标签页同时恢复同一个会话时，
+     * 只有真正读到队首的那个能把它拿走，另一个会把内存队列按磁盘重置后退出。</p>
+     *
+     * @param sessionId 会话 ID
+     * @returns 领取到的消息；队列已空、已被别的标签页拿走或已过期时返回 null
+     */
+    const claimFirstQueuedMessage = (sessionId: string): QueuedMessage | null => {
+        const state = getSessionState(sessionId)
+        if (state.messageQueue.length === 0) return null
+        const head = state.messageQueue[0]
+        const onDisk = loadQueue(sessionId)
+        if (!onDisk.length || onDisk[0].id !== head.id) {
+            // 磁盘为准：别的标签页已经发掉了这一条，本页不能再发一遍
+            state.messageQueue = onDisk
+            saveQueue(sessionId)
+            return null
+        }
+        state.messageQueue.shift()
+        saveQueue(sessionId)
+        return head
     }
 
     const getMessageQueue = (sessionId: string): QueuedMessage[] => {
@@ -394,6 +481,7 @@ export const useSessionStore = defineStore('session', () => {
         if (idx !== -1) {
             state.messageQueue.splice(idx, 1)
         }
+        saveQueue(sessionId)
     }
 
     const updateQueuedMessage = (sessionId: string, msgId: string, updates: Partial<QueuedMessage>): void => {
@@ -402,6 +490,7 @@ export const useSessionStore = defineStore('session', () => {
         if (idx !== -1) {
             state.messageQueue[idx] = { ...state.messageQueue[idx], ...updates }
         }
+        saveQueue(sessionId)
     }
 
     const reorderQueue = (sessionId: string, fromId: string, toId: string): void => {
@@ -412,6 +501,7 @@ export const useSessionStore = defineStore('session', () => {
         
         const [moved] = state.messageQueue.splice(fromIdx, 1)
         state.messageQueue.splice(toIdx, 0, moved)
+        saveQueue(sessionId)
     }
 
     /**
@@ -424,6 +514,7 @@ export const useSessionStore = defineStore('session', () => {
         
         const [moved] = state.messageQueue.splice(idx, 1)
         state.messageQueue.unshift(moved)
+        saveQueue(sessionId)
     }
 
     /**
@@ -435,6 +526,7 @@ export const useSessionStore = defineStore('session', () => {
         if (idx === -1) return null
         
         const [removed] = state.messageQueue.splice(idx, 1)
+        saveQueue(sessionId)
         return removed
     }
 
@@ -648,6 +740,7 @@ export const useSessionStore = defineStore('session', () => {
             state.scrollPosition = 0
             state.lastUpdated = Date.now()
             state.messageQueue = []
+            saveQueue(sessionId)
         }
         clearSidebarState(sessionId)
     }
@@ -674,6 +767,7 @@ export const useSessionStore = defineStore('session', () => {
         enqueueMessage,
         dequeueMessage,
         peekQueue,
+        claimFirstQueuedMessage,
         getMessageQueue,
         removeQueuedMessage,
         updateQueuedMessage,

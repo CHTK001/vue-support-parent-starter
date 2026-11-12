@@ -3,6 +3,7 @@
     <ReSectionHead description="管理服务器发布与项目 · 支持启动/停止/重启/升级/备份/回滚">
       <template #title>发布管理</template>
       <template #actions>
+        <ReButton icon="Connection" :show-text="true" @click="openGlobalApm">全局 APM</ReButton>
         <ReButton icon="Tickets" :show-text="true" @click="opLogVisible = true">日志管理</ReButton>
         <ReButton icon="Top" :show-text="true" :loading="batchLoading" @click="openBatchUpgrade">批量升级</ReButton>
         <ReButton icon="Plus" :show-text="true" type="primary" @click="openCreateDialog">新增发布</ReButton>
@@ -124,7 +125,7 @@
                 </span>
               </div>
             </ReFormItem>
-            <ReFormItem label="agent jar 路径（目标主机绝对路径）" :required="!!form.swEnabled">
+            <ReFormItem label="agent jar 路径（目标主机绝对路径，留空继承全局）" :required="!!form.swEnabled && !globalFallbackActive">
               <ReInput v-model="form.swJarPath" placeholder="如 /opt/skywalking/skywalking-agent.jar" style="width:100%" />
               <div v-if="swMissingJar" class="apm-warn">
                 已勾选启用，但 agent jar 路径为空：该发布不会注入 agent。
@@ -132,11 +133,10 @@
             </ReFormItem>
             <ReFormItem label="service_name 前缀（留空则只取项目名）">
               <ReInput v-model="form.swServiceNamePrefix" placeholder="如 prod，最终为 prod-项目名" style="width:100%" />
-            </ReFormItem>
-            <ReFormItem label="collector.backend_service（OAP 地址）" :required="!!form.swEnabled">
-              <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800" style="width:100%" />
+            </ReFormItem>            <ReFormItem label="OAP 上报地址（collector.backend_service，留空继承全局）" :required="!!form.swEnabled && !globalFallbackActive">
+              <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800；留空用全局兜底" style="width:100%" />
               <div v-if="swMissingBackend" class="apm-warn">
-                已勾选启用，但 OAP 地址为空：agent 起来了也上报不到任何后端。
+                已勾选启用，但发布与全局都没有 OAP 地址：agent 起来了也上报不到任何后端。
               </div>
             </ReFormItem>
             <ReFormItem v-if="form.swEnabled && form.swJarPath && form.swBackendService" label="启动命令预览">
@@ -229,6 +229,62 @@
       </template>
     </ReDialog>
 
+    <!-- 全局 APM 兜底：发布级留空的字段统一取这里；项目自身 APM 永远优先 -->
+    <ReDialog
+      v-model="globalApmVisible"
+      title="全局 APM 兜底"
+      width="640px"
+      :close-on-click-modal="false"
+    >
+      <div class="global-apm">
+        <p class="rel-edit__hint">
+          发布自身填写了 agent / OAP 时优先用发布配置；发布留空的字段才取这里。
+          项目 jvmArgs 里已经声明的 APM 参数优先级最高，不会被覆盖。
+        </p>
+        <ReForm label-position="top">
+          <ReFormItem label="启用全局兜底">
+            <div class="sw-toggle">
+              <ReSwitch v-model="globalApmForm.enabled" />
+              <span class="apm-divider-sub">
+                {{ globalApmForm.enabled ? "发布留空字段将使用下面的统一配置" : "关闭后只使用发布自身配置" }}
+              </span>
+            </div>
+          </ReFormItem>
+          <ReFormItem label="OAP 上报地址（collector.backend_service）">
+            <ReInput
+              v-model="globalApmForm.backendService"
+              placeholder="如 oap-vip:11800（单机填 OAP_IP:11800）"
+              style="width:100%"
+            />
+            <div class="apm-divider-sub" style="margin-top:6px">
+              单机填 OAP 的 11800 端口；OAP 集群/聚合填统一 VIP、负载均衡或域名。
+              观测台查询地址仍在「APM 设置 → OAP 地址」（HTTP 12800）。
+            </div>
+          </ReFormItem>
+          <ReFormItem label="agent jar 路径（目标主机绝对路径，可选）">
+            <ReInput
+              v-model="globalApmForm.jarPath"
+              placeholder="如 /opt/skywalking/agent.jar"
+              style="width:100%"
+            />
+            <div class="apm-divider-sub" style="margin-top:6px">
+              仅当发布未填 jar 时使用；不同操作系统路径不同，跨平台请由发布分别配置。
+            </div>
+          </ReFormItem>
+          <ReFormItem label="service_name 前缀（可选）">
+            <ReInput
+              v-model="globalApmForm.serviceNamePrefix"
+              placeholder="如 prod，最终为 prod-项目名"
+              style="width:100%"
+            />
+          </ReFormItem>
+        </ReForm>
+      </div>
+      <template #footer>
+        <ReButton @click="globalApmVisible = false">取消</ReButton>
+        <ReButton type="primary" :loading="globalApmSaving" @click="saveGlobalApm">保存并同步</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -279,11 +335,23 @@ interface Host {
   serverHostSshEnabled?: number | null;
 }
 
+/** 全局 APM 兜底配置（发布留空字段时使用） */
+interface GlobalApm {
+  enabled: boolean;
+  jarPath: string;
+  backendService: string;
+  serviceNamePrefix: string;
+}
+
 const list = ref<Release[]>([]);
 const hosts = ref<Host[]>([]);
 const counts = ref<Record<number, number>>({});
 const dialogVisible = ref(false);
 const editingId = ref<number | null>(null);
+const globalApmVisible = ref(false);
+const globalApmSaving = ref(false);
+const globalApm = ref<GlobalApm>({ enabled: false, jarPath: '', backendService: '', serviceNamePrefix: '' });
+const globalApmForm = ref<GlobalApm>({ enabled: false, jarPath: '', backendService: '', serviceNamePrefix: '' });
 
 const form = ref({
   releaseName: '',
@@ -296,11 +364,29 @@ const form = ref({
   swBackendService: '',
 });
 
-/** 发布级 SkyWalking 启动参数预览 */
+/** 全局兜底是否生效：关闭时只使用发布自身配置 */
+const globalFallbackActive = computed(() => !!globalApm.value.enabled);
+
+/** 当前表单的生效 agent jar：发布填写优先，否则取全局兜底 */
+const effectiveJar = computed(() =>
+  !isBlank(form.value.swJarPath) ? form.value.swJarPath : (globalFallbackActive.value ? globalApm.value.jarPath : ''),
+);
+
+/** 当前表单的生效 OAP 上报地址：发布填写优先，否则取全局兜底 */
+const effectiveBackend = computed(() =>
+  !isBlank(form.value.swBackendService) ? form.value.swBackendService : (globalFallbackActive.value ? globalApm.value.backendService : ''),
+);
+
+/** 当前表单的生效 service_name 前缀：发布填写优先，否则取全局兜底 */
+const effectivePrefix = computed(() =>
+  !isBlank(form.value.swServiceNamePrefix) ? form.value.swServiceNamePrefix : (globalFallbackActive.value ? globalApm.value.serviceNamePrefix : ''),
+);
+
+/** 发布级 SkyWalking 启动参数预览（展示生效值，不修改表单） */
 const releaseJvmArgs = computed(() => {
-  const jar = form.value.swJarPath;
-  const backend = form.value.swBackendService;
-  const prefix = form.value.swServiceNamePrefix;
+  const jar = effectiveJar.value || '<agent.jar>';
+  const backend = effectiveBackend.value || '<OAP:11800>';
+  const prefix = effectivePrefix.value;
   const serviceName = isBlank(prefix) ? '<项目名>' : `${prefix}-<项目名>`;
   return [
     `-javaagent:${jar}`,
@@ -349,16 +435,20 @@ const currentHostUnusable = computed(() => {
   return !!h && !sshEnabled(h);
 });
 
-/** 发布是否已下发 SkyWalking APM（均非空才接单） */
+/** 发布是否已下发 SkyWalking APM（生效值均非空才接单） */
 function releaseSwEnabled(item: Release): boolean {
-  return !!item.swEnabled && !isBlank(item.swJarPath) && !isBlank(item.swBackendService);
+  const jar = !isBlank(item.swJarPath) ? item.swJarPath : (globalFallbackActive.value ? globalApm.value.jarPath : '');
+  const backend = !isBlank(item.swBackendService)
+    ? item.swBackendService
+    : (globalFallbackActive.value ? globalApm.value.backendService : '');
+  return !!item.swEnabled && !isBlank(jar) && !isBlank(backend);
 }
 
-/** 勾了启用但漏填 agent jar：保存后不会注入，必须在表单里就说清楚 */
-const swMissingJar = computed(() => !!form.value.swEnabled && isBlank(form.value.swJarPath));
+/** 勾了启用但生效 agent jar 仍为空：保存后不会注入，必须在表单里说清楚 */
+const swMissingJar = computed(() => !!form.value.swEnabled && isBlank(effectiveJar.value));
 
-/** 勾了启用但漏填 OAP 地址：同样只在界面提示，不阻断保存（项目级仍可覆盖） */
-const swMissingBackend = computed(() => !!form.value.swEnabled && isBlank(form.value.swBackendService));
+/** 勾了启用但生效 OAP 地址仍为空：同样只在界面提示，不阻断保存（项目级仍可覆盖） */
+const swMissingBackend = computed(() => !!form.value.swEnabled && isBlank(effectiveBackend.value));
 
 /** 平台类型 -> 样式类 */
 function osType(item: Release): string {
@@ -458,9 +548,9 @@ async function openEditDialog(item: Release) {
 async function handleSave() {
   try {
     const body = { ...form.value, swEnabled: form.value.swEnabled };
-    // 未配置完整时给出提示，避免“开了开关但没下发”的空转
-    if (body.swEnabled && (isBlank(body.swJarPath) || isBlank(body.swBackendService))) {
-      message.warning('启用 SkyWalking 注入需要同时配置 agent jar 路径与 OAP 地址');
+    // 未配置完整时给出提示，避免“开了开关但没下发”的空转；全局兜底也算生效值
+    if (body.swEnabled && (isBlank(effectiveJar.value) || isBlank(effectiveBackend.value))) {
+      message.warning('启用 SkyWalking 注入需要配置 agent jar 路径与 OAP 地址（可留空由全局兜底）');
     }
     // 主机没开 SSH：保存不拦（可能还在装 OpenSSH），但必须说明后果
     if (currentHostUnusable.value) {
@@ -477,6 +567,54 @@ async function handleSave() {
     loadList();
   } catch (e: any) {
     toastError(e, '保存失败');
+  }
+}
+
+/** 把后端返回的全局配置归一成表单结构（空值/null 都变成空串） */
+function normalizeGlobalApm(raw: any): GlobalApm {
+  return {
+    enabled: !!raw?.enabled,
+    jarPath: raw?.jarPath || '',
+    backendService: raw?.backendService || '',
+    serviceNamePrefix: raw?.serviceNamePrefix || '',
+  };
+}
+
+/** 读取全局 APM 兜底配置；读不到时保持关闭，不影响发布编辑 */
+async function loadGlobalApm() {
+  try {
+    globalApm.value = normalizeGlobalApm(await api<GlobalApm>('/apm/global'));
+  } catch (e) {
+    console.warn('加载全局 APM 配置失败:', e);
+  }
+}
+
+/** 打开全局 APM 对话框前重新读取，避免别处改过之后用旧值覆盖 */
+async function openGlobalApm() {
+  await loadGlobalApm();
+  globalApmForm.value = { ...globalApm.value };
+  globalApmVisible.value = true;
+}
+
+/** 保存全局 APM 兜底配置；后端会立即重算所有发布下的项目 */
+async function saveGlobalApm() {
+  if (globalApmForm.value.enabled
+    && isBlank(globalApmForm.value.backendService)
+    && isBlank(globalApmForm.value.jarPath)) {
+    message.warning('启用全局兜底但 OAP 地址和 agent jar 都为空，保存后不会产生实际注入');
+  }
+  globalApmSaving.value = true;
+  try {
+    const res = await http().put(BASE + '/apm/global').data(globalApmForm.value);
+    const saved = unwrapResult<GlobalApm>(res);
+    globalApm.value = normalizeGlobalApm(saved);
+    globalApmVisible.value = false;
+    await loadList();
+    message.success('全局 APM 配置已保存并同步');
+  } catch (e: any) {
+    toastError(e, '保存全局 APM 配置失败');
+  } finally {
+    globalApmSaving.value = false;
   }
 }
 
@@ -666,6 +804,7 @@ onMounted(() => {
   releaseSse.open();
   loadList();
   loadHosts();
+  loadGlobalApm();
 });
 
 onBeforeUnmount(() => {

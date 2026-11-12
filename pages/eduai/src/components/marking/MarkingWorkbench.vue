@@ -46,6 +46,16 @@ const props = withDefaults(
   { mode: 'admin', students: () => [] },
 );
 const isAdmin = computed(() => props.mode === 'admin');
+const emit = defineEmits<{
+  /**
+   * 老师端：内置卷「打开组卷编辑页」交给宿主导弹。
+   *
+   * <p>老师端把本组件嵌在门户里，门户自带组卷弹窗；若这里直接 push
+   * `/eduai/paper-compose`，老师会被甩进管理后台外壳（侧边栏/标签栏全露出）。
+   * 管理端没有宿主，仍按原路跳转。</p>
+   */
+  (e: 'paper-template', paperId: number): void;
+}>();
 const router = useRouter();
 
 /* ==================== 视图与列表 ==================== */
@@ -285,6 +295,11 @@ const onOpenPaperTemplate = (row: TeacherMarkingTask) => {
   const paperId = row.markingTaskPaperId;
   if (paperId == null) {
     message.warning('该任务未关联内置试卷，无法打开卷面模板');
+    return;
+  }
+  // 老师端：交回宿主的组卷弹窗，绝不 push 管理后台路由
+  if (!isAdmin.value) {
+    emit('paper-template', Number(paperId));
     return;
   }
   void router.push({

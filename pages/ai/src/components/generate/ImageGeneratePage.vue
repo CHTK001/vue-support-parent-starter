@@ -364,11 +364,22 @@
               <template v-if="row.task.referenceImage">
                 <figure class="wg-ref-box">
                   <img
+                    v-if="!mediaFailed(row.task.referenceImage)"
                     :src="mediaSrc(row.task.referenceImage)"
                     alt="参考图"
                     loading="lazy"
                     :style="{ aspectRatio: refRatioOf(row.task) }"
                   />
+                  <!-- 参考图字节已不在磁盘上：给明确文案，别留一块看不懂的空白 -->
+                  <div
+                    v-else
+                    class="wg-media-lost"
+                    :style="{ aspectRatio: refRatioOf(row.task) }"
+                    role="img"
+                    aria-label="参考图已丢失"
+                  >
+                    参考图已丢失
+                  </div>
                   <figcaption class="wg-ref-tag">参考图</figcaption>
                   <span class="wg-ref-kind">{{ row.task.type === 'video' ? '图生视频' : '图生图' }}</span>
                 </figure>
@@ -386,13 +397,21 @@
                   :class="{ 'is-lead': isLead(row, idx), 'is-loaded': loadedImages.has(entry.key) }"
                 >
                   <video
-                    v-if="row.task.type === 'video'"
+                    v-if="row.task.type === 'video' && !mediaFailed(entry.url)"
                     :src="mediaVideoSrc(entry.url)"
                     class="wg-media"
                     controls
                     preload="metadata"
                     @loadeddata="markLoaded(entry.key)"
                   />
+                  <div
+                    v-else-if="row.task.type === 'video'"
+                    class="wg-media-lost is-video"
+                    role="img"
+                    aria-label="视频已丢失"
+                  >
+                    视频已丢失
+                  </div>
                   <!--
                     decoding="async" 让解码不占主线程，配合 loading="lazy" 只解可见区的那几张。
                     结果图现在走后端字节流地址（不再内联 base64），懒加载才真正起作用：
@@ -400,7 +419,7 @@
                     is-loaded 只做透明度过渡，不加装饰投影（见 .wg-thumb）。
                   -->
                   <img
-                    v-else
+                    v-else-if="!mediaFailed(entry.url)"
                     :src="mediaSrc(entry.url)"
                     class="wg-media"
                     :alt="row.task.prompt"
@@ -408,6 +427,8 @@
                     decoding="async"
                     @load="markLoaded(entry.key)"
                   />
+                  <!-- 字节已丢失：这条记录仍然要留（可删除 / 可重试），但不能只给一张空白 -->
+                  <div v-else class="wg-media-lost" role="img" aria-label="原图已丢失">原图已丢失</div>
 
                   <figcaption class="wg-thumb-actions">
                     <button
@@ -839,13 +860,21 @@ const mediaImages = createAuthImageLoader({ withBaseUrl: false })
 const mediaSrc = (url: string | null | undefined): string =>
   isInlineMedia(url) ? mediaImages.resolve(url) : (url ?? '')
 /**
+ * 内联媒体是否已确定取回失败（后端字节已丢失 / 接口报错）。
+ *
+ * <p>失败时加载器只能给 1×1 占位图，放进卡片就是一片空白 —— 用户看不出是「没生成出图」
+ * 还是「图丢了」。模板据此换成明确的「原图已丢失」占位。</p>
+ */
+const mediaFailed = (url: string | null | undefined): boolean =>
+  isInlineMedia(url) && mediaImages.failed(url)
+/**
  * <video> 专用版本。
  *
  * 加载器未就绪时返回的 1×1 GIF 对 <video> 是**非法媒体源**（会抛媒体错误、
  * 触发一次 error），所以这里给空串让 <video> 保持无源，等 blob 就绪后再挂上。
  */
 const mediaVideoSrc = (url: string | null | undefined): string =>
-  isInlineMedia(url) && !mediaImages.isReady(url) ? '' : mediaSrc(url)
+  isInlineMedia(url) && (!mediaImages.isReady(url) || mediaImages.failed(url)) ? '' : mediaSrc(url)
 /*
  * 注意：v-viewer 的 default 导出是「插件对象」（只有 install），
  * 真正可用作指令的是具名导出 directive，而它是个工厂函数，
@@ -861,6 +890,7 @@ const vViewer = viewerDirective({ name: 'viewer' })
 import GenerateComposer from './GenerateComposer.vue'
 import RePageHead from '@/components/ui/RePageHead.vue'
 import { getModelAvatarPath } from '../../utils/modelUtils'
+import { getProviderLogoPath } from '../models/providerIcons'
 import { ElMessageBox } from 'element-plus';
 
 /**
@@ -1224,7 +1254,17 @@ const modelLabel = (value: string) => {
  *
  * 生成接口的模型对象没有 logo 字段，这里复用会话侧同一套
  * 「模型名 → 提供商 → /images/models/<Provider>.svg」映射，
- * 保证两处展示的 logo 一致；映射不到时返回 null，由调用方决定是否留白。
+ * 保证两处展示的 logo 一致。
+ *
+ * <p>生图 / 生视频的模型族比对话模型杂得多：{@code flux-*}、{@code kling-*}、
+ * {@code vidu-*}、{@code kolors-*} 这些既没有本地品牌图、也常被聚合渠道转发，
+ * 只按模型名前缀查必然查空（表现为芯片与菜单里空白一块）。模型自身查不到时
+ * 回退到**渠道**的品牌图（{@code 硅基流动 → siliconflow.svg}、
+ * {@code 302.AI → 302ai.svg}），两处都查不到才返回 null 留白。</p>
+ *
+ * @param modelName 模型名
+ * @param providerName 渠道显示名（历史行拿不到时会按模型列表反查）
+ * @return 可直接放进 img.src 的地址；都查不到返回 null
  */
 const modelLogo = (modelName: string, providerName?: string) => {
   if (!modelName) {
@@ -1232,7 +1272,7 @@ const modelLogo = (modelName: string, providerName?: string) => {
   }
   const provider =
     providerName || models.value.find((item) => item.model === modelName)?.providerName
-  return getModelAvatarPath(modelName, provider)
+  return getModelAvatarPath(modelName, provider) ?? getProviderLogoPath(provider)
 }
 
 const styleLabel = computed(() => {
@@ -3671,6 +3711,32 @@ onUnmounted(() => {
   background: var(--color-secondary-surface);
   object-fit: contain;
   cursor: default;
+}
+
+/*
+ * 媒体字节已丢失时的占位。
+ *
+ * 之前这种情况只剩加载器的 1×1 透明占位图，卡片是一片空白 ——
+ * 用户分不清「还没出图」和「图没了」。这里给同尺寸的浅底 + 一行说明，
+ * 保证网格不塌、记录仍可点删除或重新生成。
+ */
+.wg-media-lost {
+  display: flex;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  box-sizing: border-box;
+  background: var(--color-secondary-surface);
+  color: var(--color-text-gray);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.wg-media-lost.is-video {
+  aspect-ratio: 16 / 9;
 }
 
 .wg-thumb-actions {

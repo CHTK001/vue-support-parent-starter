@@ -402,7 +402,14 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  (e: 'stats', v: { total: number; usable: number; atRisk: number; usedTokens: number }): void
+  (e: 'stats', v: {
+    total: number
+    usable: number
+    atRisk: number
+    usedTokens: number
+    /** 风险清单（最多 3 行）：父级右栏直接展示，避免两处各算一次额度口径 */
+    risk: Array<{ id: any; name: string; remainText: string; statusText: string; tone: string }>
+  }): void
   /** 台账发生写操作（新建 / 编辑 / 删除）：父级据此刷新分组台账的成员数 */
   (e: 'changed'): void
 }>()
@@ -727,11 +734,19 @@ async function load() {
   try {
     const res = await appKeyApi.list()
     rows.value = asList(pick(res)).map(decorate)
+    const risky = rows.value.filter((r) => r.statusCls === 'is-down').slice(0, 3)
     emit('stats', {
       total: rows.value.length,
       usable: rows.value.filter((r) => r.statusText === '可用').length,
       atRisk: rows.value.filter((r) => r.statusCls === 'is-down').length,
       usedTokens: rows.value.reduce((s, r) => s + (isFinite(r.usedTokens) ? r.usedTokens : 0), 0),
+      risk: risky.map((r) => ({
+        id: r.id,
+        name: r.name,
+        remainText: r.remainText,
+        statusText: r.statusText,
+        tone: r.tone,
+      })),
     })
   } catch (e: any) {
     // 旧数据不清空：接口抖一下不该让整页变白

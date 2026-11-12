@@ -165,12 +165,12 @@ export const eduaiRoutes: RouteConfigsTable[] = [
       meta: { title: "词语库", icon: "Collection", showLink: true, keepAlive: true, isVisible: "1" },
     },
     {
-      // 模块管理：配置**每个学段有哪些趣味模块**（学生端首页卡片由此生成）。
-      // 这是纯配置页，不是用来打开模块的 —— 模块由学生端自己的页面消费。
+      // 模块管理：配置**每个学段有哪些入口**（学生端首页卡片由此生成），
+      // 以及教师端的页签启停与顺序。这是纯配置页，不是用来打开模块的。
       path: "/edu/fun/config",
       name: "EduFunConfig",
       component: () => import("../views/FunConfigView.vue"),
-      meta: { title: "模块管理", icon: "Setting", showLink: true, keepAlive: true, isVisible: "1" },
+      meta: { title: "门户菜单", icon: "Setting", showLink: true, keepAlive: true, isVisible: "1" },
     },
     {
       // 学生管理：学生 / 班级 / 教师档案（学生端绑定与学习数据由学生自己产生）

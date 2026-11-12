@@ -192,7 +192,7 @@ const activeMenu = computed(() => (route.meta.activeMenu ? route.meta.activeMenu
   .layout-header {
     height: $aside-header-height;
     overflow: hidden;
-    background-color: var(--el-header-bg-color);
+    background-color: var(--koi-surface-header);
   }
 }
 </style>

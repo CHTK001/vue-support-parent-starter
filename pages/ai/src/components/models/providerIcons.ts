@@ -13,6 +13,7 @@
 // ============================================================
 
 import { PROVIDER_TEMPLATES } from './model.constants'
+import { fixFrontendAssetUrl } from '@/utils/url'
 
 export const PROVIDER_ICONS: Record<string, string> = {
   // ===== 国际主流 =====
@@ -444,6 +445,33 @@ export function resolveProviderBrand(p: any): string {
     return plat
   }
   return 'custom'
+}
+
+/**
+ * 供应商名称 → 供应商 Logo 地址（`/images/providers/*`）。
+ *
+ * <p>生图 / 生视频的模型名不在 {@code PROVIDER_LOGOS} 的模型前缀表里时
+ * （flux、kling、vidu、kolors 这些既没有本地品牌图、也常被聚合渠道转发），
+ * 模型自身已经解析不出图标，但**渠道**一定有个能看的品牌图：
+ * {@code 硅基流动 → siliconflow.svg}、{@code 302.AI → 302ai.svg}、
+ * {@code 火山方舟 → volcengine.svg}。这里复用模型管理页同一套
+ * {@link resolveProviderBrand}，保证「模型自身 → 供应商」的回退口径一致。</p>
+ *
+ * <p>只吃名称：调用方给的是渠道显示名（providerName），不含 base_url。
+ * 名称解析不出品牌、或品牌本身没有图（custom / agent）时返回 null，
+ * 由调用方决定是否留白——不要退成一个错的品牌图。</p>
+ *
+ * @param providerName 渠道 / 供应商显示名
+ * @returns 可直接放进 img.src 的地址；解析不出返回 null
+ */
+export function getProviderLogoPath(providerName?: string | null): string | null {
+  const name = (providerName ?? '').trim()
+  if (!name) return null
+  const brand = resolveProviderBrand({ name })
+  if (!brand || brand === 'custom' || brand === 'agent') return null
+  const file = PROVIDER_ICONS[brand]
+  if (!file) return null
+  return fixFrontendAssetUrl(`/images/providers/${file}`)
 }
 
 /**

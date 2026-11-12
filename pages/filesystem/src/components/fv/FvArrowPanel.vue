@@ -20,7 +20,7 @@
  * @since 2026/11/10
  */
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
-import { resolveObjectUrl } from "../../api/filestorageApi";
+import { authHeaders, rawBytesUrl, resolveObjectUrl } from "../../api/filestorageApi";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -183,13 +183,14 @@ async function load(): Promise<void> {
   try {
     let buf: ArrayBuffer;
     if (props.src) {
-      const res = await fetch(props.src);
+      // src 是父组件的「渲染预览地址」，本面板自己解码 IPC，必须要求原始字节
+      const res = await fetch(rawBytesUrl(props.src), { headers: authHeaders() });
       if (!res.ok) {
         throw new Error(`读取文件失败（HTTP ${res.status}）`);
       }
       buf = await res.arrayBuffer();
     } else {
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = { raw: "true" };
       if (props.inner) {
         params.preview = "true";
         params.inner = props.inner;
@@ -251,6 +252,7 @@ async function load(): Promise<void> {
     if (disposed) {
       return;
     }
+    console.warn("[FvArrowPanel] Arrow 解析失败", e);
     const msg = e instanceof Error && e.message
       ? `Arrow 文件解析失败：${e.message}`
       : "Arrow 文件解析失败，文件可能已损坏";

@@ -277,6 +277,7 @@ function typeOf(key: string): string {
     <ReSelect
       v-else-if="param.type === 'select'"
       class="pane-fill"
+      :filterable="param.name === 'agentName'"
       :placeholder="param.tip || '请选择'"
       :model-value="value"
       :options="optionsOf(param)"

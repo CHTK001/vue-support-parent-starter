@@ -5,37 +5,123 @@
   <title>SSH 直连终端</title>
   <link rel="stylesheet" href="/term/xterm.css">
   <style>
-    html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+    html, body { margin: 0; height: 100%;
+                 /* 底色由终端配色决定（--term-bg 由 JS 按 theme 参数/消息设置），
+                    #111 只是配色还没就绪时的兜底 */
+                 background: var(--term-bg, #111); overflow: hidden; }
     #term { width: 100%; height: 100%; padding: 4px 0 0 6px; box-sizing: border-box; }
     /* 滚动条：6px 细条，默认全透明，鼠标进入终端才显形（Chromium）。
-       原生 15px 常驻条会把终端右侧挤掉一块，和侧栏面板的细条也不一致。 */
+       原生 15px 常驻条会把终端右侧挤掉一块，和侧栏面板的细条也不一致。
+       颜色跟随终端文字色，浅色主题下才看得见。 */
     .xterm .xterm-viewport { scrollbar-width: thin; scrollbar-color: transparent transparent; }
-    .xterm:hover .xterm-viewport { scrollbar-color: rgba(230, 230, 230, .26) transparent; }
+    .xterm:hover .xterm-viewport {
+      scrollbar-color: color-mix(in srgb, var(--term-fg, #e6e6e6) 30%, transparent) transparent;
+    }
     .xterm .xterm-viewport::-webkit-scrollbar { width: 6px; height: 6px; }
     .xterm .xterm-viewport::-webkit-scrollbar-track { background: transparent; }
     .xterm .xterm-viewport::-webkit-scrollbar-thumb {
       background-color: transparent;
       border-radius: 4px;
     }
-    .xterm:hover .xterm-viewport::-webkit-scrollbar-thumb { background-color: rgba(230, 230, 230, .26); }
-    .xterm .xterm-viewport::-webkit-scrollbar-thumb:hover { background-color: rgba(230, 230, 230, .45); }
+    .xterm:hover .xterm-viewport::-webkit-scrollbar-thumb {
+      background-color: color-mix(in srgb, var(--term-fg, #e6e6e6) 30%, transparent);
+    }
+    .xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+      background-color: color-mix(in srgb, var(--term-fg, #e6e6e6) 55%, transparent);
+    }
     #status { position: fixed; top: 8px; right: 14px;
-              color: #eee; background: rgba(0,0,0,.72); padding: 5px 12px; border-radius: 4px;
+              /* 跟随配色：浅色主题下仍是深色胶囊就成了「主题没生效」的样子 */
+              color: var(--term-fg, #eee);
+              background: color-mix(in srgb, var(--term-bg, #111) 72%, transparent);
+              border: 1px solid color-mix(in srgb, var(--term-fg, #eee) 18%, transparent);
+              padding: 5px 12px; border-radius: 4px;
               font: 12px/1.4 monospace; z-index: 11; pointer-events: none; }
     /* 连接请求加载遮罩 */
+    /* 终端内搜索条：Ctrl+F 打开，浮在右上角状态胶囊下方 */
+    #find { position: fixed; top: 40px; right: 14px; z-index: 12;
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 8px; border-radius: 6px;
+            background: color-mix(in srgb, var(--term-bg, #111) 90%, transparent);
+            border: 1px solid color-mix(in srgb, var(--term-fg, #eee) 22%, transparent);
+            color: var(--term-fg, #eee); font: 12px/1.4 monospace; }
+    #find.hide { display: none; }
+    #find input { width: 190px; padding: 3px 6px; border-radius: 4px;
+                  border: 1px solid color-mix(in srgb, var(--term-fg, #eee) 25%, transparent);
+                  background: transparent; color: inherit; font: inherit; outline: none; }
+    #find input:focus { border-color: var(--term-accent, #6aa1ff); }
+    #find button { min-width: 22px; height: 22px; padding: 0 4px; cursor: pointer;
+                   border: 1px solid transparent; border-radius: 4px;
+                   background: transparent; color: inherit; font: inherit; }
+    #find button:hover { background: color-mix(in srgb, var(--term-fg, #eee) 14%, transparent); }
+    #find-count { min-width: 44px; text-align: center; opacity: .75; }
+    /* 窄屏：固定 right + 固定输入宽度会把三个按钮挤出屏幕，改成整行铺开 */
+    @media (max-width: 420px) {
+      #find { left: 8px; right: 8px; top: 34px; }
+      #find input { flex: 1 1 auto; width: auto; min-width: 0; }
+    }
     #loading { position: fixed; inset: 0; z-index: 10; display: flex;
                flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-               background: #111; transition: opacity .25s ease; }
+               background: var(--term-bg, #111); transition: opacity .25s ease; }
     #loading.hide { opacity: 0; pointer-events: none; }
-    #loading .lbl { color: #cfd3da; font: 13px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+    /* 遮罩文字/转圈都取终端前景色：浅色主题下灰底灰字会看不清 */
+    #loading .lbl { color: var(--term-fg, #cfd3da); opacity: .85;
+                    font: 13px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
                     letter-spacing: .3px; text-align: center; }
-    #loading .sub { color: #6b7280; font: 11px/1.4 monospace; }
-    #loading .err { color: #ff7a7a; max-width: 70%; }
+    #loading .sub { color: var(--term-fg, #6b7280); opacity: .5; font: 11px/1.4 monospace; }
+    #loading .err { color: #ff7a7a; max-width: 70%; opacity: 1; }
     .spinner { width: 38px; height: 38px; border-radius: 50%;
-               border: 3px solid rgba(255,255,255,.14); border-top-color: #6aa1ff;
+               border: 3px solid rgba(128,128,128,.28);
+               border-top-color: var(--term-accent, #6aa1ff);
                animation: spin .8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
+  <script>
+    /* 配色必须在首帧之前就生效：这段放在 head 里同步执行，否则页面会先按兜底
+       深色画一帧再被脚本改掉（浅色主题下就是明显的一下闪黑）。算出来的对象挂到
+       window.termTheme，body 里的脚本复用同一份，不再重复解码。 */
+    (function () {
+      var DEFAULT_THEME = {
+        background: '#111111', foreground: '#e6e6e6',
+        cursor: '#e6e6e6', cursorAccent: '#111111', selectionBackground: '#264f78',
+        black: '#000000', red: '#cd3131', green: '#0dbc79', yellow: '#e5e510',
+        blue: '#2472c8', magenta: '#bc3fbc', cyan: '#11a8cd', white: '#e5e5e5',
+        brightBlack: '#666666', brightRed: '#f14c4c', brightGreen: '#23d18b',
+        brightYellow: '#f5f543', brightBlue: '#3b8eea', brightMagenta: '#d670d6',
+        brightCyan: '#29b8db', brightWhite: '#ffffff'
+      };
+
+      /** 解 URL-safe base64（无填充）里的 JSON；任何异常都返回 null，走默认配色 */
+      function decodeTheme(raw) {
+        if (!raw) return null;
+        try {
+          var b64 = raw.replace(/-/g, '+').replace(/_/g, '/');
+          while (b64.length % 4) b64 += '=';
+          var bin = atob(b64);
+          var json = '';
+          for (var i = 0; i < bin.length; i++) {
+            json += '%' + ('00' + bin.charCodeAt(i).toString(16)).slice(-2);
+          }
+          var obj = JSON.parse(decodeURIComponent(json));
+          return obj && typeof obj === 'object' ? obj : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      /** 页面底色、遮罩与状态胶囊的配色变量 */
+      function applyThemeChrome(t) {
+        var root = document.documentElement.style;
+        root.setProperty('--term-bg', t.background || '#111111');
+        root.setProperty('--term-fg', t.foreground || '#e6e6e6');
+        root.setProperty('--term-accent', t.cursor || t.foreground || '#6aa1ff');
+      }
+
+      var raw = new URLSearchParams(location.search).get('theme');
+      var theme = Object.assign({}, DEFAULT_THEME, decodeTheme(raw) || {});
+      applyThemeChrome(theme);
+      window.termTheme = { DEFAULT: DEFAULT_THEME, apply: applyThemeChrome, initial: theme };
+    })();
+  </script>
 </head>
 <body>
   <div id="loading">
@@ -44,6 +130,13 @@
     <div class="sub" id="loading-sub"></div>
   </div>
   <div id="status">正在连接…</div>
+  <div id="find" class="hide">
+    <input id="find-input" type="text" placeholder="在回滚缓冲里搜索" spellcheck="false" />
+    <span id="find-count"></span>
+    <button id="find-prev" type="button" title="上一个（Shift+Enter）">↑</button>
+    <button id="find-next" type="button" title="下一个（Enter）">↓</button>
+    <button id="find-close" type="button" title="关闭（Esc）">×</button>
+  </div>
   <div id="term"></div>
   <script src="/term/xterm.js"></script>
   <script src="/term/addon-fit.js"></script>
@@ -59,17 +152,169 @@
       var sharedUser = params.get('user') || '';
       var readonly = params.get('readonly') === '1';
 
+      /* ===== 终端配色 =====
+         默认值、theme 参数解码与首次着色都在 <head> 的内联脚本里做完了（必须早于
+         首帧，否则浅色主题会先闪一下兜底深色）；这里只取回同一份对象。
+         运行期热更新仍走 postMessage({ type: 'TERMINAL_THEME', theme })。 */
+      var DEFAULT_THEME = window.termTheme.DEFAULT;
+      var applyThemeChrome = window.termTheme.apply;
+      var theme = window.termTheme.initial;
+
       var term = new Terminal({
         cursorBlink: true,
         fontFamily: 'Consolas, Menlo, "Courier New", monospace',
         fontSize: 13,
         scrollback: 8000,
-        theme: { background: '#111111', foreground: '#e6e6e6' }
+        theme: theme
       });
       var fit = new FitAddon.FitAddon();
       term.loadAddon(fit);
       term.open(document.getElementById('term'));
       fit.fit();
+
+      /* ===== 终端内搜索（Ctrl+F） =====
+         public/term 下只有 xterm.js 与 addon-fit.js，没有 search addon，
+         所以这里直接在回滚缓冲里按行找子串：Enter 下一个、Shift+Enter 上一个、
+         Esc 关闭；命中后把那一行滚进视野，并用 term.select 选中关键字。 */
+      var findEl = document.getElementById('find');
+      var findInput = document.getElementById('find-input');
+      var findCount = document.getElementById('find-count');
+      var findHits = [];
+      var findIndex = -1;
+
+      /**
+       * 按行扫回滚缓冲收集命中（同一行多处命中都算）。
+       */
+      function collectHits(needle) {
+        var hits = [];
+        var lower = needle.toLowerCase();
+        var buf = term.buffer.active;
+        for (var y = 0; y < buf.length; y++) {
+          var line = buf.getLine(y);
+          if (!line) continue;
+          var text = line.translateToString(true);
+          if (!text) continue;
+          var lowerText = text.toLowerCase();
+          /* 大小写转换可能改变长度（土耳其 İ、德语 ß）：那种情况下下标与 cellAt
+             对不上，退化成区分大小写搜索，保证选区位置仍准确 */
+          var sameLen = lowerText.length === text.length;
+          var haystack = sameLen ? lowerText : text;
+          var needleText = sameLen ? lower : needle;
+          var from = haystack.indexOf(needleText);
+          if (from < 0) continue;
+          /* 只为确实有命中的行建「字符串下标 → 单元格列」映射，没命中的行不多走一遍 */
+          var cellAt = [];
+          var strIdx = 0;
+          for (var x = 0; x < line.length; x++) {
+            var cell = line.getCell(x);
+            var chars = cell ? cell.getChars() : '';
+            if (!chars) continue;                 /* 宽字符尾部占位格没有字符 */
+            for (var k = 0; k < chars.length; k++) cellAt[strIdx + k] = x;
+            strIdx += chars.length;
+          }
+          while (from >= 0) {
+            var head = cellAt[from];
+            var tail = cellAt[from + needleText.length - 1];
+            if (head === undefined) { from = haystack.indexOf(needleText, from + 1); continue; }
+            if (tail === undefined) tail = head;
+            hits.push({ row: y, col: head, len: tail - head + 1 });
+            from = haystack.indexOf(needleText, from + needleText.length);
+          }
+        }
+        return hits;
+      }
+
+      /** 把当前命中滚进视野并选中 */
+      function showHit() {
+        if (!findHits.length) { findCount.textContent = '0/0'; return; }
+        var hit = findHits[findIndex];
+        findCount.textContent = (findIndex + 1) + '/' + findHits.length;
+        try {
+          term.scrollToLine(hit.row);
+          var top = term.buffer.active.viewportY;
+          term.select(hit.col, Math.max(0, hit.row - top), hit.len);
+        } catch (err) {
+          /* 老版本 xterm 没有 select：滚到位置也算达成 */
+        }
+      }
+
+      /** 往前/后走一格命中（循环） */
+      function findStep(delta) {
+        var needle = findInput.value;
+        if (!needle) { findHits = []; findIndex = -1; findCount.textContent = ''; return; }
+        findHits = collectHits(needle);
+        if (!findHits.length) { findIndex = -1; findCount.textContent = '0/0'; return; }
+        if (findIndex < 0 || findIndex >= findHits.length) {
+          findIndex = delta > 0 ? 0 : findHits.length - 1;
+        } else {
+          findIndex = (findIndex + delta + findHits.length) % findHits.length;
+        }
+        showHit();
+      }
+
+      function openFind() {
+        findEl.classList.remove('hide');
+        findHits = [];
+        findIndex = -1;
+        findCount.textContent = '';
+        findInput.focus();
+        findInput.select();
+        if (findInput.value) findStep(1);
+      }
+
+      function closeFind() {
+        findEl.classList.add('hide');
+        findHits = [];
+        findIndex = -1;
+        findCount.textContent = '';
+        /* 关键词留着：再按 Ctrl+F 直接回车就能接着找，和浏览器查找一致 */
+        term.focus();
+      }
+
+      findInput.addEventListener('input', function () { findIndex = -1; });
+      findInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); closeFind(); return; }
+        if (e.key === 'Enter') { e.preventDefault(); findStep(e.shiftKey ? -1 : 1); }
+      });
+      document.getElementById('find-prev').addEventListener('click', function () { findStep(-1); });
+      document.getElementById('find-next').addEventListener('click', function () { findStep(1); });
+      document.getElementById('find-close').addEventListener('click', function () { closeFind(); });
+
+      /* Ctrl+F / Cmd+F 归页面所有，不再把 ^F 发给远端 shell */
+      term.attachCustomKeyEventHandler(function (e) {
+        if (e.type !== 'keydown' || e.altKey) return true;
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'f' || e.key === 'F')) {
+          openFind();
+          return false;
+        }
+        return true;
+      });
+
+      /* 焦点不在终端里（刚打开页面、刚点过状态条）时按 Ctrl+F：浏览器会弹自己的
+         查找框，而它搜的是 DOM，终端内容一个字都搜不到，用户会以为搜索坏了。
+         捕获阶段先接管；终端内部交给上面的 xterm key handler，不重复打开。 */
+      document.addEventListener('keydown', function (e) {
+        if (e.altKey || e.shiftKey) return;
+        if (!(e.ctrlKey || e.metaKey) || (e.key !== 'f' && e.key !== 'F')) return;
+        var host = document.getElementById('term');
+        if (host && e.target && host.contains(e.target)) return;
+        e.preventDefault();
+        openFind();
+      }, true);
+
+      /* 运行期热更新配色：外层设置面板边调边发，改完不必重开终端 */
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.type !== 'TERMINAL_THEME' || !d.theme) return;
+        theme = Object.assign({}, DEFAULT_THEME, d.theme);
+        applyThemeChrome(theme);
+        try {
+          term.options.theme = theme;
+        } catch (err) {
+          /* 老版本 xterm 没有 options 设置器，只能等下次打开生效 */
+        }
+        try { fit.fit(); } catch (err2) { /* 忽略 */ }
+      });
 
       /* ===== 输入跟踪：终端里执行 `pwd` 回车后，把当前目录回传给外层文件面板 ===== */
       var lineBuf = '';
@@ -158,6 +403,19 @@
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ c: 'resize', cols: size.cols, rows: size.rows }));
         }
+      });
+
+      /* 外层工具条下发命令（终端片段双击、工作台）：走和用户键入同一条路——
+         先喂给 trackInput（否则下发 pwd 时外层文件面板拿不到新目录），再按只读
+         状态决定是否真的发出去。多行命令统一成 \r 逐行回车，不能留裸 \n：
+         PTY 只认回车，裸 \n 会让几行命令粘成一行。 */
+      window.addEventListener('message', function (e) {
+        var d = e.data;
+        if (!d || d.type !== 'TERMINAL_INPUT' || typeof d.command !== 'string') return;
+        var text = d.command.replace(/\r?\n/g, '\r') + '\r';
+        trackInput(text);
+        if (readonly) return;
+        if (ws.readyState === WebSocket.OPEN) ws.send(encoder.encode(text));
       });
 
       var loadingEl = document.getElementById('loading');

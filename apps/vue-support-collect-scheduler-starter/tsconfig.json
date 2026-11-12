@@ -13,7 +13,18 @@
       "@pages/collect/*": ["../../pages/collect/*"],
       "@pages/collect": ["../../pages/collect/src/index.ts"],
       "@pages/job/*": ["../../pages/job/*"],
-      "@pages/job": ["../../pages/job/src/index.ts"]
+      "@pages/job": ["../../pages/job/src/index.ts"],
+      "@pages/osgi/*": ["../../pages/osgi/*"],
+      "@pages/osgi": ["../../pages/osgi/src/index.ts"],
+      "@repo/config": ["../../packages/config/src"],
+      "@repo/config/*": ["../../packages/config/src/*"],
+      "@repo/core": ["../../packages/core/src"],
+      "@repo/core/*": ["../../packages/core/src/*"],
+      "@repo/utils": ["../../packages/utils/src"],
+      "@repo/utils/*": ["../../packages/utils/src/*"],
+      "@repo/ui/re-button": ["../../packages/ui/src/components/ReButton/index.ts"],
+      "@repo/ui/re-tag": ["../../packages/ui/src/components/ReTag/index.ts"],
+      "@repo/ui/re-table": ["../../packages/ui/src/components/ReTable/index.ts"]
     }
   },
   "include": [

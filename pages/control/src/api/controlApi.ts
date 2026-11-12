@@ -13,7 +13,8 @@
 // 默认走同源相对路径，由 dev server 的 /control 代理转发到后端；
 // 跨域部署时用 VITE_GATEWAY_HTTP 指定后端绝对地址。
 const GATEWAY_HTTP = import.meta.env.VITE_GATEWAY_HTTP || "";
-const RTC_WS = import.meta.env.VITE_RTC_WS || "ws://127.0.0.1:10000/webrtc";
+// 留空时按当前页面 host 推断：127.0.0.1 只在“浏览器与后端同机”时成立
+const RTC_WS = import.meta.env.VITE_RTC_WS || "";
 
 /** 后端统一响应（com.chua.common.support.lang.code.ReturnResult） */
 interface ReturnResult<T> {
@@ -57,6 +58,8 @@ export interface ControlConfig {
   path: string;
   /** 完整 ws 地址 */
   wsUrl: string;
+  /** 信令访问令牌（仅已登录页面可见） */
+  token?: string;
   /** 采集帧率 */
   frameRate: number;
   /** 采集最大宽度 */
@@ -157,10 +160,34 @@ export async function getControlConfig(): Promise<ControlConfig> {
 }
 
 /**
- * 组装信令 WebSocket 地址
+ * 组装信令 WebSocket 地址。
+ *
+ * <p>没有显式配置 VITE_RTC_WS 时用当前页面的 hostname，而不是写死 127.0.0.1：
+ * 从另一台电脑打开页面时，127.0.0.1 指向的是浏览器所在的机器。</p>
  */
 export function signalingUrl(): string {
-  return RTC_WS;
+  if (RTC_WS) {
+    return RTC_WS;
+  }
+  const scheme = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "ws";
+  const host = typeof window !== "undefined" && window.location.hostname
+    ? window.location.hostname
+    : "127.0.0.1";
+  return `${scheme}://${host}:10000/webrtc`;
+}
+
+/**
+ * 给信令地址附加访问令牌。
+ *
+ * @param url 信令地址
+ * @param token 后端 /control/config 下发的令牌
+ */
+export function withSignalingToken(url: string, token?: string): string {
+  if (!token) {
+    return url;
+  }
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}token=${encodeURIComponent(token)}`;
 }
 
 /**

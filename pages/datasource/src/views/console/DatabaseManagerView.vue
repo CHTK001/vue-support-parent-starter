@@ -472,18 +472,32 @@
                   @commit="saveCell(row, col)"
                   @cancel="cancelCell"
                 />
-                <ReInput
-                  v-else
-                  :model-value="editingCell.value"
-
-                  autofocus
-                  focus-right
-                  :type="longTextColumns.has(col) ? 'textarea' : 'text'"
-                  @update:model-value="setEditingCellValue"
-                  @keyup.enter="saveCell(row, col)"
-                  @keyup.esc="cancelCell"
-                  @blur="onEditBlur(row, col)"
-                />
+                <div v-else class="dbm-cell-edit__row">
+                  <ReInput
+                    :model-value="editingCell.value"
+                    autofocus
+                    focus-right
+                    type="text"
+                    @update:model-value="setEditingCellValue"
+                    @keyup.enter="onCellEnter($event, row, col)"
+                    @keyup.esc="cancelCell"
+                    @blur="onEditBlur(row, col)"
+                  />
+                  <!-- 显式写 NULL：清空输入框保存的是空串（所见即所得），
+                       NULL 变成一个需要明确点一下的动作，不再靠「清空」去猜。
+                       数字列没有空串语义，空就是 NULL，不需要这个按钮。
+                       @mousedown.prevent 必须加：否则按下瞬间输入框先 blur 提交，
+                       等 click 到达时编辑器已经关了。 -->
+                  <button
+                    v-if="!isNumericCol(col)"
+                    type="button"
+                    class="dbm-cell-null"
+                    title="写入 NULL（清空输入框则保存为空字符串）"
+                    data-testid="dbm-cell-null"
+                    @mousedown.prevent
+                    @click.stop="saveCellNull(row, col)"
+                  >NULL</button>
+                </div>
               </div>
               <!-- 二进制 / 长文本：不进格内编辑，走 Blob Viewer -->
               <div
@@ -956,6 +970,17 @@
           <span class="dbm-spinner dbm-spinner--lg" />
           <p class="dbm-empty-text">正在加载数据源与表结构…</p>
         </div>
+        <!-- 加载失败必须与「真的没有数据」区分开：否则后端挂了也显示
+             「从左侧选择表查看数据」，用户会以为库被清空了。 -->
+        <div
+          v-else-if="bootError"
+          class="dbm-empty dbm-boot-error"
+          data-testid="dbm-boot-error"
+        >
+          <ReIcon name="WarningFilled" size="48" class="dbm-empty-icon" />
+          <p class="dbm-empty-text">{{ bootError }}</p>
+          <ReButton size="small" icon="Refresh" :show-text="true" @click="loadDatasources">重试</ReButton>
+        </div>
         <div v-else-if="tabs.length === 0" class="dbm-empty" data-testid="dbm-empty">
           <ReIcon name="Grid" size="64" class="dbm-empty-icon" />
           <p class="dbm-empty-text">从左侧选择表查看数据，或点击"新建查询"执行 SQL</p>
@@ -1360,10 +1385,13 @@
         </div>
         <div class="dbm-doc-row">
           <span class="dbm-doc-label">模板样式</span>
-          <select v-model="docExportTemplate" class="dbm-doc-select">
+          <select v-model="docExportTemplate" class="dbm-doc-select" :disabled="!docTemplateApplicable">
             <option v-for="t in docExportTemplates" :key="t" :value="t">{{ DOC_TEMPLATE_LABELS[t] ?? t }}</option>
           </select>
         </div>
+        <p v-if="!docTemplateApplicable" class="dbm-doc-hint">
+          {{ DOC_FORMAT_LABELS[docExportFormat] ?? docExportFormat }} 由服务端固定版式渲染，模板样式不生效。
+        </p>
         <p class="dbm-doc-hint">
           导出内容为本库全部表与视图的字段、类型、主键与外键（不含数据行）。
           <br />
@@ -1392,11 +1420,16 @@
         <p>预览失败：{{ docPreviewError }}</p>
         <ReButton type="primary" @click="doDocumentExport">改为下载文档</ReButton>
       </div>
+      <!-- 预览用 html 模板渲染（自带版式与导航脚本），因此必须放行脚本；
+           但**不能**同时给 allow-same-origin：srcdoc + allow-scripts +
+           allow-same-origin 等于没有沙箱，文档里的脚本能反向操作父页面。
+           只给 allow-scripts 时 iframe 是 opaque origin，脚本能渲染自家
+           文档，却读不到宿主的 storage / DOM。 -->
       <iframe
         v-else-if="docPreviewContent"
         :srcdoc="docPreviewContent"
         class="dbm-doc-preview-iframe"
-        sandbox="allow-same-origin"
+        sandbox="allow-scripts"
         title="数据库文档预览"
       />
     </ReDialog>
@@ -5285,9 +5318,14 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(bin);
 }
 
-/** 按列类型决定提交值：数字列转 Number，空串转 null */
+/** 按列类型决定提交值：数字列空串转 null，文本列空串就是空串 */
 function normalizeCellValue(col: string, raw: string) {
-  if (raw === "") return null;
+  if (raw === "") {
+    // 数字列存不下空串，空只能落到 NULL；文本列按「编辑器里是什么就写什么」
+    // 处理 —— 以前这里一律转 null，用户清空文本格就等于把值改成 NULL，
+    // 想写空串（'' 与 NULL 在 MySQL 里是两个值）根本没有入口。
+    return isNumericCol(col) ? null : "";
+  }
   const t = (columnTypes.value.get(col) || "").toUpperCase();
   if (/INT|DECIMAL|NUMERIC|FLOAT|DOUBLE/.test(t)) {
     const n = Number(raw);
@@ -5398,9 +5436,53 @@ function onEditBlur(row: Record<string, any>, col: string) {
   void saveCell(row, col);
 }
 
+/**
+ * 单元格 Enter 提交。
+ *
+ * <p>输入法（中文拼音、日文假名）在选词时也会派发 Enter，此时事件带
+ * {@code isComposing=true}（老浏览器只有 keyCode 229）。不挡这一下，
+ * 用户敲回车选字就会把半截拼音当新值写进库，而且编辑器立刻关掉，
+ * 看起来像「自己的输入被吞了」。命中输入法时直接放行，交给 IME。</p>
+ *
+ * <p>Ctrl/Cmd+Enter 也命中 keyup.enter，行为不变。</p>
+ *
+ * @param event 键盘事件
+ * @param row   行对象
+ * @param col   列名
+ */
+function onCellEnter(event: KeyboardEvent, row: Record<string, any>, col: string) {
+  if (event.isComposing || event.keyCode === 229) return;
+  void saveCell(row, col);
+}
+
+/**
+ * 显式把单元格写成 NULL。
+ *
+ * <p>文本列清空输入框现在保存空串（''），NULL 必须由这个动作显式表达；
+ * 否则「清空」到底该落 '' 还是 NULL 永远只能猜一个。</p>
+ *
+ * @param row 行对象
+ * @param col 列名
+ */
+async function saveCellNull(row: Record<string, any>, col: string) {
+  if (!editingCell.value) return;
+  await commitCell(row, col, null);
+}
+
 async function saveCell(row: Record<string, any>, col: string) {
   const cell = editingCell.value;
   if (!cell) return;
+  await commitCell(row, col, normalizeCellValue(col, cell.value));
+}
+
+/**
+ * 提交一个单元格的新值（定位、影响行数校验、失败回滚都在这里）。
+ *
+ * @param row      行对象
+ * @param col      列名
+ * @param newValue 归一化后的新值
+ */
+async function commitCell(row: Record<string, any>, col: string, newValue: unknown) {
   editingCell.value = null;
   const tab = activeTabObj.value;
   if (!tab?.tableName) return;
@@ -5410,7 +5492,6 @@ async function saveCell(row: Record<string, any>, col: string) {
     message.warning("该表无主键，无法定位更新");
     return;
   }
-  const newValue = normalizeCellValue(col, cell.value);
   try {
     const affected = await updateDbCell({
       tableName: tab.tableName,
@@ -6406,10 +6487,20 @@ let loadingDatasources = false;
  */
 const bootLoading = ref(true);
 
+/**
+ * 首屏加载失败的原因（空串 = 没失败）。
+ *
+ * <p>以前 {@code loadDatasources} 失败只打 console，界面照常落到
+ * 「从左侧选择表查看数据」的空态 —— 后端挂了与库真的为空长得一模一样，
+ * 用户会以为数据没了。失败要给可见出口，并允许原地重试。</p>
+ */
+const bootError = ref("");
+
 async function loadDatasources() {
   loadingDatasources = true;
   // 切数据源（内嵌宿主）也会走这里：重新进入加载态，避免旧空态闪一下
   bootLoading.value = true;
+  bootError.value = "";
   try {
     const list = await fetchDataSources();
     // 按「JDBC 家族」过滤，不是只看 type === "jdbc"：ClickHouse / DuckDB 的
@@ -6440,6 +6531,8 @@ async function loadDatasources() {
   } catch (e) {
     console.error("加载数据源失败", e);
     datasources.value = [DEFAULT_DATASOURCE];
+    bootError.value = `加载数据源失败：${String((e as Error)?.message ?? e)}`;
+    message.error(bootError.value);
   }
   // 标志要罩住 loadTree 才算数：给 currentDatasourceId 赋值排队的 watcher
   // 是微任务，若在 finally 里就置 false，它会赶在下面这次 loadTree 之前
@@ -7520,7 +7613,16 @@ const docExportTemplates = ref<string[]>([]);
 const docExportLoading = ref(false);
 const docExportFormatsError = ref("");
 
-// 在线查看文档（右键「查看文档」→ markdown 转 HTML 弹窗预览）
+/**
+ * 模板样式是否对当前格式生效。
+ *
+ * <p>只有 markdown / html 走模板渲染；word / pdf 由后端固定版式渲染，
+ * 模板参数会被忽略。下拉不置灰时用户会以为「选了 Screw 导出 Word 就是
+ * 装配图」，拿到文件才发现不是。</p>
+ */
+const docTemplateApplicable = computed(() => docExportFormat.value === "markdown" || docExportFormat.value === "html");
+
+// 在线查看文档（右键「查看文档」→ 后端按所选模板渲染 HTML，弹窗内预览）
 const docPreviewVisible = ref(false);
 const docPreviewLoading = ref(false);
 const docPreviewContent = ref("");
@@ -7598,6 +7700,24 @@ async function openDocumentExport(database = activeDatabase.value) {
  * <p>文件名取后端给的（它按文档标题生成），而不是前端拼一个：中文标题经
  * RFC 5987 编码后由后端给出，前端再拼一次容易出现两套命名。</p>
  */
+/**
+ * 文档导出/预览失败的友好文案。
+ *
+ * <p>后端对「主数据源（datasourceId=0）」一律抛
+ * {@code 本操作必须显式指定数据源}，HTTP 层再包一层 500/409 + JSON。
+ * 原样抛给用户就是一段看不懂的报文，这里翻成一句可执行的提示。</p>
+ *
+ * @param e 异常
+ * @returns 可直接展示的文案
+ */
+function documentErrorMessage(e: unknown): string {
+  const raw = String((e as Error)?.message ?? e);
+  if (raw.includes("必须显式指定数据源")) {
+    return "主数据源不支持文档导出/预览，请从数据源中心的具体数据源进入后再试";
+  }
+  return raw;
+}
+
 async function doDocumentExport() {
   if (!docExportDatabase.value || docExportLoading.value) return;
   docExportLoading.value = true;
@@ -7617,7 +7737,7 @@ async function doDocumentExport() {
     docExportVisible.value = false;
     message.success(`文档已导出：${filename}`);
   } catch (e) {
-    message.error(`文档导出失败：${(e as Error).message}`);
+    message.error(`文档导出失败：${documentErrorMessage(e)}`);
   } finally {
     docExportLoading.value = false;
   }
@@ -7647,14 +7767,14 @@ async function openDatasourceDocument() {
       template: docExportTemplate.value,
     });
   } catch (e) {
-    docPreviewError.value = String((e as Error)?.message ?? e);
+    docPreviewError.value = documentErrorMessage(e);
   } finally {
     docPreviewLoading.value = false;
   }
 }
 
 /**
- * 库右键「查看文档」：把数据库设计文档（markdown → HTML）在弹窗里在线预览。
+ * 库右键「查看文档」：把数据库设计文档按所选模板渲染成 HTML，在弹窗里在线预览。
  *
  * <p>与导出同一份采集/渲染链路，只是不落盘；word / pdf 是二进制，
  * 后端预览端点会返回 501，这里把错误原文展示给用户而不是假装成功。</p>
@@ -7678,7 +7798,7 @@ async function openDocumentPreview(database = activeDatabase.value) {
       template: docExportTemplate.value,
     });
   } catch (e) {
-    docPreviewError.value = String((e as Error)?.message ?? e);
+    docPreviewError.value = documentErrorMessage(e);
   } finally {
     docPreviewLoading.value = false;
   }
@@ -11475,6 +11595,16 @@ onBeforeUnmount(() => {
   border-width: 2px;
 }
 
+/* 首屏加载失败：与空态同一套布局，只把图标与按钮区分出来 */
+.dbm-empty.dbm-boot-error { gap: 12px; }
+.dbm-empty.dbm-boot-error .dbm-empty-icon { color: var(--el-color-warning); }
+.dbm-empty.dbm-boot-error .dbm-empty-text {
+  max-width: 520px;
+  text-align: center;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+}
+
 /* 用户管理面板（users 页签） */
 .dbm-users-view {
   flex: 1 1 auto;
@@ -11542,6 +11672,31 @@ onBeforeUnmount(() => {
 .dbm-cell-edit :deep(textarea) { width: 100%; }
 .dbm-cell-edit :deep(.el-input__inner),
 .dbm-cell-edit :deep(textarea) { background: transparent; }
+
+/* 编辑态一行：输入框吃满，右侧挂一个显式的 NULL 按钮（写 NULL 用） */
+.dbm-cell-edit__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+.dbm-cell-edit__row > :first-child { flex: 1 1 auto; min-width: 0; }
+.dbm-cell-null {
+  flex: none;
+  padding: 1px 6px;
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.dbm-cell-null:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
 
 /* 设计视图子页签（胶囊分段） */
 .dbm-subtabs {

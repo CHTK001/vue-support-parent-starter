@@ -253,7 +253,10 @@ const back = () => {
   }
   // 明确回到阅卷记录页，而不是 tab 列表的下一个标签（可能是菜单里的其他页，
   // 极端时落到 HOME_URL / 登录页）。
-  router.push({ path: '/edu/marking' });
+  // 老师端没有后台标签页体系：详情是从老师端门户新标签打开的，返回要回老师端，
+  // 不能把老师送进 /edu/marking 的后台外壳。
+  const prev = typeof window.history.state?.back === 'string' ? window.history.state.back : '';
+  router.push({ path: prev.startsWith('/edu/teacher') ? '/edu/teacher' : '/edu/marking' });
 };
 
 // 同一路由只改 query.taskId 时组件会被复用（Vue Router 默认行为），

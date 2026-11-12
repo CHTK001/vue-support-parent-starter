@@ -52,3 +52,67 @@ export function encodeRequestBody(plaintext: string, options: RequestCodecOption
   });
   return encrypted.ciphertext.toString();
 }
+
+/**
+ * 解后端 {@code ApiResponseEncodeResponseBodyAdvice} 的响应包装。
+ *
+ * <p>后端格式：{@code 02{key}200{data}ffff}。其中 AES 分支的 data 是按
+ * {@link encodeRequestBody} 同一套 key/IV 派生的 hex 密文；旧版 sm4/des 分支
+ * 只是 hex 编码。这里先按 AES 尝试，解不出可读文本时回退 hex，兼容两种后端。</p>
+ *
+ * @param payload 响应体（字符串 / ArrayBuffer / Uint8Array）
+ * @param options codec 配置
+ * @returns 解析后的 JSON 对象、纯文本；不是 codec 包装时返回 null
+ */
+export function decodeCodecResponse(
+  payload: unknown,
+  options: RequestCodecOptions,
+): unknown | null {
+  let text = "";
+  if (typeof payload === "string") {
+    text = payload.trim();
+  } else if (payload instanceof ArrayBuffer) {
+    text = new TextDecoder().decode(new Uint8Array(payload)).trim();
+  } else if (payload instanceof Uint8Array) {
+    text = new TextDecoder().decode(payload).trim();
+  } else {
+    return null;
+  }
+
+  const matched = /^02(.+?)200([0-9a-fA-F]*)ffff$/.exec(text);
+  if (!matched) return null;
+  const dataHex = matched[2];
+  if (!dataHex) return null;
+
+  let plain = "";
+  const type = (options.type ?? "").toLowerCase();
+  if (type.includes("aes") && options.key) {
+    try {
+      const digest = sha256Hex(options.key);
+      const cipherParams = CryptoJS.lib.CipherParams.create({
+        ciphertext: CryptoJS.enc.Hex.parse(dataHex),
+      });
+      const decrypted = CryptoJS.AES.decrypt(cipherParams, CryptoJS.enc.Hex.parse(digest), {
+        mode: CryptoJS.mode.CBC,
+        iv: CryptoJS.enc.Hex.parse(digest.slice(0, 32)),
+        padding: CryptoJS.pad.Pkcs7,
+      });
+      plain = decrypted.toString(CryptoJS.enc.Utf8);
+    } catch {
+      // AES 失败时继续尝试 hex（兼容仅做 hex 编码的旧版后端）
+    }
+  }
+  if (!plain) {
+    try {
+      plain = CryptoJS.enc.Hex.parse(dataHex).toString(CryptoJS.enc.Utf8);
+    } catch {
+      return null;
+    }
+  }
+  if (!plain) return null;
+  try {
+    return JSON.parse(plain);
+  } catch {
+    return plain;
+  }
+}

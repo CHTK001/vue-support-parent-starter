@@ -64,10 +64,11 @@
         <p v-if="bindError" class="tp-bind__err">{{ bindError }}</p>
       </div>
 
-      <el-tabs v-else-if="needBind === false" v-model="tab" class="tp-tabs">
+      <el-tabs v-else-if="needBind === false && tabs.length" v-model="tab" class="tp-tabs">
+        <!-- 页签由「门户菜单」配置：启停与顺序都按后台配置来；没有配置时回落三项内置页签 -->
+        <el-tab-pane v-for="t in tabs" :key="t.key" :label="t.label" :name="t.key">
         <!-- ==================== 我的班级 ==================== -->
-        <el-tab-pane label="我的班级" name="class">
-          <div class="tp-class">
+        <div v-if="t.key === 'class'" class="tp-class">
             <aside class="tp-class__side">
               <div class="tp-side__head">
                 <span>我的班级</span>
@@ -125,10 +126,9 @@
               </ReTable>
             </div>
           </div>
-        </el-tab-pane>
 
         <!-- ==================== 组卷 ==================== -->
-        <el-tab-pane label="组卷" name="paper">
+        <div v-else-if="t.key === 'paper'">
           <div class="tp-toolbar">
             <el-select v-model="paperFilter.subject" placeholder="学科" clearable size="default" style="width: 140px">
               <el-option v-for="s in dropdown.subjects" :key="s.subjectCode" :label="s.subjectName" :value="s.subjectName" />
@@ -211,15 +211,24 @@
               </template>
             </ReTable>
           </div>
-        </el-tab-pane>
+        </div>
 
         <!-- ==================== 阅卷 ==================== -->
         <!-- 整套阅卷（工具栏 / 记录列表 / 详情 / 上传 / 分布）收敛到 MarkingWorkbench，
              与管理端共用同一套 UI 与样式；mode=teacher 只保留老师可用的操作 -->
-        <el-tab-pane label="阅卷" name="mark">
-          <MarkingWorkbench mode="teacher" :students="students" />
+        <MarkingWorkbench
+          v-else-if="t.key === 'mark'"
+          mode="teacher"
+          :students="students"
+          @paper-template="openComposeById"
+        />
         </el-tab-pane>
       </el-tabs>
+
+      <!-- 管理员把三个页签都停用了：不再回落到默认三项，明确告知 -->
+      <div v-else-if="needBind === false" class="tp-empty tp-empty--page">
+        管理员还没有开放任何功能页签，请联系管理员在「门户菜单」里启用。
+      </div>
     </section>
 
     <!-- 学生弹框 -->
@@ -430,7 +439,52 @@ const GRADE_LEVEL_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "OTHER", label: "其他" },
 ];
 
-const tab = ref<"class" | "paper" | "mark">("class");
+/** 教师端页签：默认三项内置能力；后台「门户菜单」配了 TEACHER 作用域时以配置为准 */
+interface TeacherTab {
+  key: string;
+  label: string;
+}
+
+/** 没有配置时的兜底页签（与历史行为一致） */
+const DEFAULT_TABS: TeacherTab[] = [
+  { key: "class", label: "我的班级" },
+  { key: "paper", label: "组卷" },
+  { key: "mark", label: "阅卷" },
+];
+
+const tabs = ref<TeacherTab[]>(DEFAULT_TABS);
+const tab = ref<string>("class");
+
+/**
+ * 拉取教师端页签配置。
+ *
+ * <p>只认系统内置的三个 key：配置里出现别的编码时忽略，避免后台写错一条
+ * 就在门户里多出一个没有内容的空页签。</p>
+ *
+ * <p>必须用「含停用」的列表判断：后台从没配过 → 回落默认三项；
+ * 配过但三项都被停用 → 就是空门户（不能再把默认三项放回来，否则启停形同虚设）。
+ * 接口失败同样回落默认三项，保证门户不白屏。</p>
+ */
+async function loadTabs(): Promise<void> {
+  try {
+    const all = await eduaiApi.listAllFunConfigs();
+    const rows = (all ?? []).filter((r) => (r.funConfigGradeLevel ?? "") === "TEACHER");
+    if (!rows.length) {
+      tabs.value = DEFAULT_TABS;
+    } else {
+      tabs.value = rows
+        .filter((r) => Number(r.enabled ?? 0) === 1)
+        .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
+        .map((r) => ({ key: r.moduleCode, label: r.moduleName || r.moduleCode }))
+        .filter((t) => DEFAULT_TABS.some((d) => d.key === t.key));
+    }
+  } catch {
+    tabs.value = DEFAULT_TABS;
+  }
+  if (tabs.value.length && !tabs.value.some((t) => t.key === tab.value)) {
+    tab.value = tabs.value[0].key;
+  }
+}
 
 /* ==================== 绑定 / 概览 ==================== */
 const binding = ref(false);
@@ -504,6 +558,8 @@ async function load() {
     needBind.value = false;
     overview.value = await eduaiApi.teacherOverview();
     classes.value = await eduaiApi.teacherClasses();
+    // 页签配置与概览并行拉取：配置失败会回落默认三项，不影响门户可用
+    void loadTabs();
     if (!dropdown.value.gradeLevels.length) {
       void loadDropdown();
     }
@@ -896,6 +952,19 @@ function goCompose(row?: Paper) {
   composeVisible.value = true;
 }
 
+/**
+ * 阅卷记录里「打开组卷编辑页」的落点（MarkingWorkbench 在老师端发事件过来）。
+ *
+ * <p>组卷仍开在门户内已有的弹窗里；不跳 `/eduai/paper-compose`，
+ * 否则老师会看到管理后台的侧边栏与标签栏。</p>
+ *
+ * @param paperId 试卷 ID
+ */
+function openComposeById(paperId: number): void {
+  composePaperId.value = paperId;
+  composeVisible.value = true;
+}
+
 const paperStatusCode = (row: Paper): number => Number(row.paperStatus ?? 0);
 const paperStatusLabel = (n?: number) =>
   ({ 0: "草稿", 1: "已发布", 2: "已归档" })[Number(n ?? 0)] ?? "草稿";
@@ -1187,6 +1256,13 @@ onMounted(async () => {
   text-align: center;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+.tp-empty--page {
+  margin: 24px 34px;
+  padding: 56px 20px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
 }
 
 /* 已布置记录区：与上方试卷表拉开距离，标题行右侧放「刷新」 */

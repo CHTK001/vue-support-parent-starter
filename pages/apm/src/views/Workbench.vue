@@ -14,7 +14,7 @@
   视图里的跳转因此不需要改一行代码。
 -->
 <template>
-  <div class="apm-shell" :class="{ 'apm-shell--popout': isPopout }">
+  <div class="apm-shell" :class="{ 'apm-shell--popout': isPopout, 'apm-shell--embedded': props.embedded }">
     <!-- 弹出模式：只渲染一个视图，没有页签条 -->
     <div v-if="isPopout && popoutTab" class="apm-shell__body">
       <div class="apm-workbench__view">
@@ -26,12 +26,12 @@
       <ReTabs
         v-model="active"
         class="apm-workbench"
-        :id="APM_WORKBENCH_ID"
+        :id="props.embedded ? '' : APM_WORKBENCH_ID"
         :tabs="reTabsItems"
         :closable="false"
-        size="mini"
-        position="bottom"
-        poppable
+        :size="props.embedded ? 'small' : 'mini'"
+        :position="props.embedded ? 'top' : 'bottom'"
+        :poppable="!props.embedded"
         empty-text="APM 观测台"
         @popout="openPopout"
       >
@@ -59,8 +59,30 @@ import type { ReTabsItem } from "@repo/ui/re-tabs";
 import { APM_DEFAULT_TAB, APM_OPEN_TAB_EVENT, APM_TAB_ACTIVATED_EVENT, APM_TABS, APM_WORKBENCH_ID, findApmTab, stashApmTabContext } from "../tabs";
 import type { ApmTabContext } from "../tabs";
 import { ROUTE_PREFIX } from "../config";
+// 工作台可能被宿主直接嵌入（不经过 @pages/apm 的路由表），样式必须跟自己走
+import "../styles/apm.css";
 
 defineOptions({ name: "ApmWorkbench" });
+
+/**
+ * 嵌入模式参数。
+ *
+ * <p>独立路由下保持原有的 URL 同步、页签记忆与弹出窗口行为；
+ * 发布管理把它作为项目工作区页签嵌入时，只渲染工作台内容，
+ * 不读写宿主路由，避免把项目页地址改写成 /apm。</p>
+ */
+const props = withDefaults(defineProps<{
+  /** 是否为宿主工作区内的嵌入模式 */
+  embedded?: boolean;
+  /** 嵌入模式的首个页签；为空时落默认页签 */
+  initialTab?: string;
+  /** 嵌入模式预选的服务名 */
+  service?: string;
+}>(), {
+  embedded: false,
+  initialTab: "",
+  service: "",
+});
 
 const route = useRoute();
 
@@ -97,13 +119,15 @@ function contextFromRoute(): ApmTabContext | null {
 }
 
 // 只在 setup 里暂存一次：页签内部消费后即清空，切页签不该再触发一次筛选
-const bootContext = contextFromRoute();
+const bootContext: ApmTabContext | null = props.embedded
+  ? (props.service ? { service: props.service } : null)
+  : contextFromRoute();
 if (bootContext) {
   stashApmTabContext(bootContext);
 }
 
-/** 弹出模式：地址上带 `popout=1` 时只渲染单个视图，不挂页签条 */
-const isPopout = computed(() => String(route.query.popout ?? "") === "1");
+/** 弹出模式：地址上带 `popout=1` 时只渲染单个视图，不挂页签条；嵌入模式永不弹出 */
+const isPopout = computed(() => !props.embedded && String(route.query.popout ?? "") === "1");
 
 /** 从 URL 里取合法页签名；不合法（外部输入）一律当作没给 */
 function tabFromRoute(): string {
@@ -113,12 +137,19 @@ function tabFromRoute(): string {
 }
 
 /**
- * 当前页签。
+ * 首次打开的页签：嵌入模式用调用方给的页签；独立路由优先 URL（深链优先），
+ * URL 没给时留空，交给 `ReTabs` 用本地记忆恢复 —— 恢复失败再落到默认页签。
  *
- * <p>URL 带 tab 就用它（深链优先）；不带时留空，交给 `ReTabs` 用本地记忆恢复 ——
- * 恢复失败的兜底是 `onMounted` 里的默认页签。</p>
+ * @returns 合法的页签名
  */
-const active = ref<string>(tabFromRoute());
+function initialActive(): string {
+  if (props.embedded) {
+    return findApmTab(props.initialTab)?.name ?? APM_DEFAULT_TAB;
+  }
+  return tabFromRoute();
+}
+
+const active = ref<string>(initialActive());
 
 /** 传给 ReTabs 的页签项：只给骨架字段，组件本体按 name 查表 */
 const reTabsItems: ReTabsItem[] = APM_TABS.map(tab => ({
@@ -168,7 +199,9 @@ function syncUrl(name: string): void {
 
 // 页签变化 → 回填 URL；同时广播「这一页到前台了」，常驻面板据此重取数据
 watch(active, (name) => {
-  syncUrl(name);
+  if (!props.embedded) {
+    syncUrl(name);
+  }
   window.dispatchEvent(new CustomEvent(APM_TAB_ACTIVATED_EVENT, { detail: { tab: name } }));
 });
 
@@ -176,7 +209,7 @@ watch(active, (name) => {
 watch(
   () => route.query.tab,
   () => {
-    if (isPopout.value) return;
+    if (props.embedded || isPopout.value) return;
     const name = tabFromRoute();
     if (name && name !== active.value) active.value = name;
   },
@@ -295,6 +328,12 @@ onBeforeUnmount(() => {
   border-top: 1px solid var(--apm-sig-line);
   border-bottom: none;
   background: var(--apm-sig-surface);
+}
+
+/* 嵌入项目工作区时页签条在顶部，边框方向要跟着翻转 */
+.apm-shell--embedded .apm-workbench :deep(.re-tabs__bar) {
+  border-top: none;
+  border-bottom: 1px solid var(--apm-sig-line);
 }
 
 .apm-workbench :deep(.re-tabs__tab) {

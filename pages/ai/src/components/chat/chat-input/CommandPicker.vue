@@ -31,8 +31,11 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="filteredCommands.length === 0" class="picker-empty">
-      暂无技能
+    <div v-if="!loading && filteredCommands.length === 0" class="picker-empty">
+      {{ t('chat.input.noMatchCommand') }}
+    </div>
+    <div v-else-if="loading && filteredCommands.length === 0" class="picker-empty">
+      {{ t('chat.input.menuLoading') }}
     </div>
 
     <!-- 底部搜索框 -->
@@ -54,6 +57,7 @@
 import { computed, ref, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Search24Regular } from '@vicons/fluent';
+import { COMMAND_ICON_PATHS, resolveCommandIconKind, type CommandIconKind } from './commandIcons';
 
 const { t } = useI18n();
 
@@ -63,6 +67,8 @@ const props = defineProps<{
   query: string;
   selectedIndex: number;
   trigger: 'slash' | 'mention';
+  /** 候选集还在加载：空列表时显示「加载中」而不是「未找到」 */
+  loading?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -82,40 +88,12 @@ const searchQuery = ref('');
  * 用户报障「输入库的图标显示还是不对」：原实现每一行都渲染 Apps20Regular，
  * 底色由 item.name 哈希到 8 个写死的 hex（换肤后是一排不跟随主题的彩色块）。
  * 这里改成语义图标 + --el-* 主题色，附件 / 知识库 / 技能 / 模型 / 会话动作
- * 一眼能分开；图标用内联 path，避免再出现「图标包缺项 → 渲染成空白」。
+ * 一眼能分开；映射表与 + 弹层共用（见 commandIcons.ts）。
  */
-type ItemIconKind = 'file' | 'image' | 'knowledge' | 'model' | 'skill' | 'session' | 'compress';
+const iconKind = resolveCommandIconKind;
 
-const ICON_PATHS: Record<ItemIconKind, string> = {
-  file: 'M5 2.5h6.2L15.5 6.8V17.5H5z M11 2.5v4.5h4.5',
-  image: 'M3 4.5h14v11H3z M3 12.5l3.6-3.4 3 2.7 2.4-2.2 5 4.6 M12.8 7.6h.01',
-  knowledge: 'M3.5 4.2c2.6-.8 4.6-.5 6.5.6v11c-1.9-1.1-3.9-1.4-6.5-.6z M16.5 4.2c-2.6-.8-4.6-.5-6.5.6v11c1.9-1.1 3.9-1.4 6.5-.6z',
-  model: 'M10 2.2l1.9 4.5 4.9.4-3.7 3.2 1.1 4.8L10 12.6l-4.2 2.5 1.1-4.8-3.7-3.2 4.9-.4z',
-  skill: 'M10 2.6l6.2 3.6v7.6L10 17.4 3.8 13.8V6.2z M10 7.2v5.6 M7.2 8.8l5.6 2.4',
-  session: 'M3.5 5.5h13v9h-8l-3.2 2.6v-2.6h-1.8z M7 9h6 M7 11.6h3.6',
-  compress: 'M4 6h12 M4 10h12 M4 14h12 M8 3.2 10 5.4 8 7.6 M12 12.4l-2 2.2 2 2.2',
-};
-
-/** 从 builtin 标记 / 名称推断类型；后端下发的技能统一落到 skill */
-function iconKind(item: any): ItemIconKind {
-  const builtin = String(item?.builtin || '');
-  if (builtin === 'attach-image') return 'image';
-  if (builtin === 'attach-file') return 'file';
-  if (builtin === 'knowledge-base') return 'knowledge';
-  if (builtin === 'model') return 'model';
-  if (builtin === 'compress') return 'compress';
-  if (builtin === 'new-session') return 'session';
-  if (builtin === 'create-skill') return 'skill';
-  const name = `${item?.name || ''} ${item?.label || ''}`.toLowerCase();
-  if (/image|图片/.test(name)) return 'image';
-  if (/file|upload|文件|附件/.test(name)) return 'file';
-  if (/kb|knowledge|知识库/.test(name)) return 'knowledge';
-  if (/model|模型/.test(name)) return 'model';
-  return 'skill';
-}
-
-function iconPath(kind: ItemIconKind): string {
-  return ICON_PATHS[kind];
+function iconPath(kind: CommandIconKind): string {
+  return COMMAND_ICON_PATHS[kind];
 }
 
 // 同步外部 selectedIndex → 内部
