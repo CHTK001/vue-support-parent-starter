@@ -30,7 +30,7 @@
           </div>
 
           <!-- 空态：引导上传 -->
-          <div v-if="!previewUrl" class="reid-drop" @click="pickImage">
+          <div v-if="!previewUrl" class="reid-drop" :class="{ 'is-disabled': !available }" @click="pickImage">
             <el-icon :size="46" class="reid-drop-icon"><Picture /></el-icon>
             <p class="reid-drop-title">{{ mode === 'observe' ? '上传一帧监控画面，开始观测' : '上传一张人脸照片，检索记录' }}</p>
             <p class="reid-drop-desc">
@@ -258,7 +258,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { message } from "@repo/core";
 import { useRouter } from "vue-router";
 import { Aim, Collection, FolderOpened, Picture, Search, Setting, User, Warning } from "@element-plus/icons-vue";
@@ -441,7 +441,9 @@ const cards = computed<ReidCard[]>(() => {
           similarity: null,
           matchType: face.decision,
           faceIndex: face.index,
-          reason: "该脸未命中底库记录",
+          // decision 为 null 表示后端没给结论，不能说成「未命中」——
+          // 那是「跑完了没查到」，两者对用户的意义完全不同。
+          reason: face.decision ? "该脸未命中底库记录" : "该脸未返回分流结论（接口未给出 decision）",
           group: group.value,
         });
         continue;
@@ -562,8 +564,17 @@ function faceTitle(f: ReidFaceBox): string {
   return `${kind}${name}${conf}${reason}`;
 }
 
-/** 打开文件选择。 */
+/**
+ * 打开文件选择。
+ *
+ * <p>能力未就绪时整个空态区域都不可点：只挡按钮不挡空白区，
+ * 用户点空白照样弹出文件框，选完图再被 gate 拦下，等于白选一次。</p>
+ */
 function pickImage() {
+  if (!available.value) {
+    message.warning("人脸重识别未启用：请先在「系统设置 → 人脸重识别配置」中选好检测与特征模型");
+    return;
+  }
   fileInput.value?.click();
 }
 
@@ -582,6 +593,10 @@ function onFilePicked(e: Event) {
   searchHits.value = [];
   done.value = false;
   const url = URL.createObjectURL(file);
+  // 换图前回收上一张的 blob URL：连续换 N 次会留 N 个引用，大图场景是实打实的内存占用
+  if (previewUrl.value.startsWith("blob:")) {
+    URL.revokeObjectURL(previewUrl.value);
+  }
   previewUrl.value = url;
   // 取原图尺寸：叠框 viewBox 必须与原图一致，否则框会错位
   const img = new Image();
@@ -628,6 +643,9 @@ async function onGroupChange(selected?: string | string[]) {
   faceResults.value = [];
   observeResult.value = null;
   faces.value = [];
+  // done 是「这张图做过一次操作」，换组清空的是结果而不是操作历史；
+  // 不复位会让「未检测到人脸」的空态在换组后误报（图明明有脸）
+  done.value = false;
   await loadObservations();
 }
 
@@ -654,6 +672,10 @@ async function runObserve() {
     // 叠加层要按 matchType 分「人脸识别 / 重识别 / 未命中」三种框样式
     faces.value = (result.faces ?? []).map((f) => ({ ...f, trackId: f.trackId ?? null }));
     message.success(`观测完成：检出 ${result.faceCount} 张脸`);
+    // 右侧回到「观测记录」：本次入库的行必须在右栏可见。
+    // 不复位页签时，此前检索过的 hit 档会继续显示上一张图的逐脸结果，
+    // 与本帧刚写入的轨迹自相矛盾。
+    activeTab.value = "all";
     await loadObservations();
   } catch (e) {
     message.error(`观测失败：${(e as Error)?.message ?? e}`);
@@ -680,6 +702,9 @@ async function runSearchFromButton() {
     // 后端收逗号分隔的多分组，这边直接把选中的分组集合扔过去。
     const results = await apiService.searchReidFaces(lastFile.value, undefined, undefined, groups.value);
     faceResults.value = results;
+    // 检索成功即离开「观测」语境：不清掉这枚角标，左侧会同时挂
+    // 「观测完成 · 检出 N 张脸」与右侧的逐脸检索结果，两套数字必然对不上
+    observeResult.value = null;
     // 左侧叠加层按每张脸的检测框与分流结论画框（不合规也要能看到是哪张脸）
     faces.value = results.map((f) => ({
       ...f.box,
@@ -739,12 +764,18 @@ async function clearObservations() {
   const label = selected.length === 1
     ? `所有记录`
     : `选定分组的 ${selected.length} 个记录库`
+  // 二次确认单独 try：用户取消是正常路径，网络失败不能被当成「取消」静默吞掉
   try {
     await ElMessageBox.confirm(`确认要清空${label}吗？此动作不可恢复。`, '清空操作', {
       confirmButtonText: '清空',
       cancelButtonText: '取消',
       type: 'warning',
     })
+  } catch {
+    // 用户取消，不做任何事
+    return
+  }
+  try {
     const results = await Promise.all(selected.map((g) => apiService.clearReidTracks(g)))
     const total = results.reduce((n, c) => n + (c ?? 0), 0)
     message.success(`已清空 ${label} 共 ${total} 条记录`)
@@ -752,9 +783,11 @@ async function clearObservations() {
     faceResults.value = [];
     observeResult.value = null;
     faces.value = [];
+    done.value = false;
     await loadObservations();
-  } catch {
-    // 用户取消，不做任何事
+  } catch (e) {
+    // 确认已点过「清空」：失败必须明确回报，否则用户会以为库已经清了
+    message.error(`清空失败：${(e as Error)?.message ?? e}`);
   }
 }
 
@@ -779,7 +812,31 @@ onMounted(async () => {
   } catch {
     available.value = false;
   }
+  // 摘要字符串里的模型名是按 `,` 切分的键值对，模型标识一旦含空格/逗号就会被截断。
+  // 以设置接口的合并视图为准（同一个 settingReader 口径），失败时才退回摘要解析。
+  try {
+    const response = await apiService.fetchMergedGroupSettings("face");
+    const items = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
+    const byField = new Map<string, string>();
+    for (const item of items) {
+      if (!item?.field) continue;
+      byField.set(String(item.field), String(item.value ?? ""));
+    }
+    const detector = byField.get("detector_model") ?? "";
+    const feature = byField.get("feature_model") ?? "";
+    if (detector) detectorModel.value = detector;
+    if (feature) featureModel.value = feature;
+  } catch {
+    // 设置接口不可用（权限/网络）时保留摘要解析的结果，不影响主流程
+  }
   await loadObservations();
+});
+
+onUnmounted(() => {
+  // 页面销毁时回收最后一张预览图的 blob URL
+  if (previewUrl.value.startsWith("blob:")) {
+    URL.revokeObjectURL(previewUrl.value);
+  }
 });
 </script>
 
@@ -917,6 +974,17 @@ onMounted(async () => {
 .reid-drop:hover {
   border-color: var(--reid-accent);
   background: var(--reid-hover);
+}
+
+/* 能力未就绪：视觉上不给出「可点」的暗示，hover 也不再高亮 */
+.reid-drop.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.reid-drop.is-disabled:hover {
+  border-color: var(--reid-border);
+  background: var(--reid-card);
 }
 
 .reid-drop-icon {

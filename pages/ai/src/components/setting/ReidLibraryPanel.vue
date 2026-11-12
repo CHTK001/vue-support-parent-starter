@@ -4,7 +4,8 @@
       <div>
         <h3 class="reid-lib-title">重识别库</h3>
         <p class="reid-lib-desc">
-          每次观测一行记录，跨帧轨迹由这些记录按轨迹 ID 汇聚而来。删掉一行等于把那次观测从轨迹中移除。
+          底库一人一行：登记入库写入一条人员记录，观测写入的每一张脸也各占一行。
+          每行同时存人脸特征与 ReID 特征，「来源轨迹」只用于回溯它是哪次观测写进来的。
         </p>
       </div>
       <div class="reid-lib-actions">
@@ -69,13 +70,29 @@
         <span v-else class="reid-lib-muted">未关联</span>
       </template>
       <!--
-        特征库：一条底库记录同时存人脸特征与 ReID 特征（两个特征值），
-        这里标出这条记录是以哪套特征登记的 —— 检索时走的是哪条管线。
+        特征库：一条底库记录同时存两个特征值 —— 人脸特征（给人脸识别 1:N）与
+        ReID 特征（给重识别）。两列结果要分开看：人脸特征缺失时这条记录只能被
+        ReID 命中，人脸识别那条管线永远查不到它。
       -->
       <template #feature="{ row }">
-        <el-tag :type="row.matchType === 'FACE' ? 'success' : 'info'" size="small" effect="plain">
-          {{ row.matchType === 'FACE' ? '人脸特征' : 'ReID 特征' }}
-        </el-tag>
+        <span class="reid-lib-feature">
+          <el-tag
+            :type="row.faceVectorId ? 'success' : 'warning'"
+            size="small"
+            effect="plain"
+            :title="row.faceVectorId ? `人脸特征向量：${row.faceVectorId}` : '缺少人脸特征向量，人脸识别管线检索不到本行'"
+          >
+            人脸{{ row.faceVectorId ? '' : '（缺）' }}
+          </el-tag>
+          <el-tag
+            type="success"
+            size="small"
+            effect="plain"
+            :title="`ReID 特征向量：${row.id}`"
+          >
+            ReID
+          </el-tag>
+        </span>
       </template>
       <template #latlng="{ row }">
         <span v-if="row.lat != null && row.lng != null">{{ row.lat }}, {{ row.lng }}</span>
@@ -143,6 +160,7 @@ import { message } from '@repo/core'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
+import { ElMessageBox } from 'element-plus'
 import { Delete, Plus, Refresh } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { useLibraryGroups } from '@/composables/useLibraryGroups'
@@ -222,12 +240,12 @@ async function load() {
  * 单元格里的自定义内容用 {@code slot} 名字 + 同名具名插槽给。</p>
  */
 const tableColumns: ReTableColumn[] = [
-  { prop: 'trackId', label: '轨迹 ID', width: 150 },
+  { prop: 'trackId', label: '来源轨迹', width: 150 },
   { prop: 'group', label: '分组', width: 120, slot: 'group', showOverflowTooltip: true },
   { prop: 'cameraId', label: '摄像头', width: 140 },
   { prop: 'name', label: '记录名', minWidth: 160, showOverflowTooltip: true },
   { prop: 'faceName', label: '关联人脸', width: 120, slot: 'faceName' },
-  { prop: 'matchType', label: '特征库', width: 110, slot: 'feature' },
+  { prop: 'matchType', label: '已存特征', width: 150, slot: 'feature' },
   { prop: 'lat', label: '经纬度', width: 190, slot: 'latlng' },
   { prop: 'createTime', label: '观测时间', width: 180, slot: 'createTime' },
   { prop: 'actions', label: '操作', width: 90, slot: 'actions', fixed: 'right' },
@@ -249,11 +267,19 @@ async function remove(row: any) {
     message.warning('该记录缺少 ID，无法删除')
     return
   }
+  const label = row?.name || row?.faceName || id
+  // 二次确认单独 try：用户取消是正常路径，网络失败不能被当成「取消」静默吞掉
   try {
-    await (apiService as any)._request(`/reid/library/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      params: { group: group.value },
-    })
+    await ElMessageBox.confirm(
+      `确认删除记录「${label}」吗？人脸与 ReID 两套特征会一起删除，此动作不可恢复。`,
+      '删除记录',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await apiService.deleteReidLibrary(id, group.value)
     message.success('已删除')
     await load()
   } catch (e) {
@@ -261,15 +287,28 @@ async function remove(row: any) {
   }
 }
 
-/** 清空当前分组的全部观测。 */
+/** 清空当前分组的底库记录（含本人脸与 ReID 双特征向量）。 */
 async function clearAll() {
+  const count = items.value.length
+  // 二次确认单独 try：用户取消是正常路径，网络失败不能被当成「取消」静默吞掉
   try {
-    const res: any = await (apiService as any)._request('/reid/tracks', {
-      method: 'DELETE',
-      params: { group: group.value },
-    })
-    const data = res && typeof res === 'object' && 'data' in res ? res.data : res
-    message.success(`已清空分组「${group.value}」的 ${data?.cleared ?? 0} 条记录`)
+    await ElMessageBox.confirm(
+      `确认清空分组「${group.value}」的全部 ${count} 条记录吗？此动作不可恢复。`,
+      '清空重识别库',
+      { confirmButtonText: '清空', cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  try {
+    const cleared = await apiService.clearReidLibrary(group.value)
+    // 后端返回的 cleared 是「被清掉的轨迹数」，与列表行数不是一个口径；
+    // 列表条数才是用户看得见的那个数，两者不一致时把实际删除量也报出来。
+    message.success(
+      cleared === count
+        ? `已清空分组「${group.value}」的 ${count} 条记录`
+        : `已清空分组「${group.value}」的 ${count} 条记录（后端清理轨迹 ${cleared} 条）`,
+    )
     await load()
   } catch (e) {
     message.error(`清空失败：${(e as Error)?.message ?? e}`)
@@ -424,6 +463,13 @@ onMounted(async () => {
 
 .reid-lib-muted {
   color: var(--el-text-color-secondary);
+}
+
+/* 双特征并排：两个标签同属一条记录，要读得出「都存了」而不是二选一 */
+.reid-lib-feature {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
 }
 
 /* ==================== 登记入库弹窗 ==================== */

@@ -46,26 +46,45 @@
             <!--
               叠加层与图片用同一 viewBox + 同一 preserveAspectRatio，
               二者缩放/留白完全一致，检测框坐标即可直接落在原图像素上。
+
+              逐脸口径：**每一张脸都画框并标注序号**，点框即选中该脸（右栏对应那一行高亮）。
+              只画最大的那张会让「多脸多行」失去图上锚点 —— 用户无法确认第 3 行到底对应谁。
             -->
             <svg
-              v-if="mainHit && showBox"
-              class="fs-overlay"
+              v-if="hits.length && showBox"
+              class="fs-overlay fs-overlay-box"
               :viewBox="`0 0 ${natural.w} ${natural.h}`"
               preserveAspectRatio="xMidYMid meet"
             >
-              <!-- 人脸框：青色虚线圆角 -->
-              <rect
-                class="fs-box"
-                :x="mainHit.box.x"
-                :y="mainHit.box.y"
-                :width="mainHit.box.width"
-                :height="mainHit.box.height"
-                rx="26"
-              />
-              <!-- 关键点 -->
+              <g
+                v-for="(f, i) in hits"
+                :key="'box' + i"
+                class="fs-box-g"
+                :class="{ 'is-active': activeFaceIndex === i + 1 }"
+                @click="selectFace(i + 1)"
+              >
+                <!-- 人脸框：青色虚线圆角；当前选中那张加粗 -->
+                <rect
+                  class="fs-box"
+                  :class="{ 'is-active': activeFaceIndex === i + 1 }"
+                  :x="f.box.x"
+                  :y="f.box.y"
+                  :width="f.box.width"
+                  :height="f.box.height"
+                  rx="26"
+                />
+                <text
+                  class="fs-box-label"
+                  :x="f.box.x + 4"
+                  :y="Math.max(24, f.box.y - 10)"
+                >
+                  第 {{ i + 1 }} 张脸
+                </text>
+              </g>
+              <!-- 关键点：跟随当前选中的那张脸 -->
               <circle
                 v-for="(kp, i) in showLandmark ? landmarks : []"
-                :key="i"
+                :key="'kp' + i"
                 class="fs-kp"
                 :cx="kp[0]"
                 :cy="kp[1]"
@@ -103,16 +122,16 @@
               <span class="fs-mask-text">正在识别人脸…</span>
             </div>
 
-            <!-- 角标：找到相似脸 -->
-            <div v-if="mainHit && !detecting" class="fs-found">
+            <!-- 角标：找到相似脸（副文案汇总「几张脸命中 / 共几条记录」） -->
+            <div v-if="activeHit && !detecting" class="fs-found">
               <div class="fs-found-title">
-                <el-icon><Search /></el-icon>找到相似脸
+                <el-icon><Search /></el-icon>{{ foundTitle }}
               </div>
               <div class="fs-found-sub">{{ foundSub }}</div>
             </div>
 
             <!-- 未检出人脸 -->
-            <div v-else-if="previewUrl && !detecting && !mainHit" class="fs-noface">
+            <div v-else-if="previewUrl && !detecting && !activeHit" class="fs-noface">
               <el-icon :size="20"><Warning /></el-icon>
               <span>未检测到人脸，请换一张正面清晰的照片</span>
             </div>
@@ -124,21 +143,32 @@
               <el-icon><FolderOpened /></el-icon>更换图片
             </el-button>
             <el-button
-              class="fs-btn fs-btn-accent"
-              :disabled="busy || !mainHit"
-              @click="recognizeCrop"
-            >
-              <el-icon><Crop /></el-icon>裁剪脸部
-            </el-button>
-            <el-button
               class="fs-btn fs-btn-brand"
-              :disabled="busy || !mainHit"
+              :disabled="busy || !hits.length"
               :loading="identifying"
               @click="runIdentify"
             >
               <el-icon v-if="!identifying"><component :is="identifyDone ? Refresh : Search" /></el-icon
               >{{ identifyDone ? '重新识别' : '识别' }}
             </el-button>
+          </div>
+
+          <!--
+            逐脸提示条：多脸时必须让用户知道「一张脸一行、不合并」，
+            否则只看到 3 行结果会以为重复。点序号与点图上的框等价。
+          -->
+          <div v-if="previewUrl && hits.length > 1" class="fs-facebar">
+            <span class="fs-facebar-text">本图检出 <b>{{ hits.length }}</b> 张脸，逐脸识别，一张脸一行</span>
+            <button
+              v-for="(f, i) in hits"
+              :key="'chip' + i"
+              class="fs-facebar-chip"
+              :class="{ 'is-active': activeFaceIndex === i + 1 }"
+              :title="`第 ${i + 1} 张脸 · 置信度 ${percent(f.box.confidence)}%`"
+              @click="selectFace(i + 1)"
+            >
+              第 {{ i + 1 }} 张
+            </button>
           </div>
         </div>
       </section>
@@ -164,40 +194,78 @@
           </button>
         </nav>
 
-        <!-- 结果网格 -->
-        <div v-if="visibleHits.length" class="fs-grid">
-          <article
-            v-for="item in visibleHits"
-            :key="item.id"
-            class="fs-card"
-            :class="{ 'is-picked': pickedId === item.id }"
-            @click="pickedId = item.id"
+        <!-- 结果：逐脸分组，一张脸一段，多脸多段，不合并 -->
+        <div v-if="faceSections.length" class="fs-sections">
+          <section
+            v-for="sec in faceSections"
+            :key="'sec' + sec.index"
+            class="fs-section"
+            :class="{ 'is-active': activeFaceIndex === sec.index }"
           >
-            <div class="fs-card-face">
-              <img v-if="item.thumb" :src="item.thumb" :alt="item.name" class="fs-card-img" />
-              <div v-else class="fs-card-fallback"><el-icon><User /></el-icon></div>
-              <!-- 相似度环 -->
-              <svg v-if="showRing" class="fs-ring" viewBox="0 0 120 120">
-                <circle class="fs-ring-track" cx="60" cy="60" r="54" />
-                <circle
-                  class="fs-ring-bar"
-                  cx="60"
-                  cy="60"
-                  r="54"
-                  :stroke-dasharray="RING_C"
-                  :stroke-dashoffset="ringOffset(item.score)"
-                />
-              </svg>
-              <span v-if="pickedId === item.id" class="fs-check"><el-icon><Check /></el-icon></span>
+            <header
+              class="fs-section-head"
+              role="button"
+              tabindex="0"
+              @click="selectFace(sec.index)"
+              @keydown.enter.prevent="selectFace(sec.index)"
+              @keydown.space.prevent="selectFace(sec.index)"
+            >
+              <span class="fs-section-idx">第 {{ sec.index }} 张脸</span>
+              <span
+                class="fs-section-badge"
+                :class="{
+                  'is-hit': sec.state === 'hit',
+                  'is-miss': sec.state === 'miss',
+                  'is-busy': sec.state === 'busy',
+                  'is-error': sec.state === 'error',
+                }"
+              >
+                {{ sec.stateText }}
+              </span>
+              <span class="fs-section-conf">置信度 {{ percent(sec.confidence) }}%</span>
+            </header>
+
+            <div v-if="sec.cards.length" class="fs-grid">
+              <article
+                v-for="item in sec.cards"
+                :key="'c' + sec.index + '-' + item.id"
+                class="fs-card"
+                :class="{ 'is-picked': pickedKey === sec.index + ':' + item.id }"
+                @click="pickedKey = sec.index + ':' + item.id"
+              >
+                <div class="fs-card-face">
+                  <img v-if="item.thumb" :src="item.thumb" :alt="item.name" class="fs-card-img" />
+                  <div v-else class="fs-card-fallback"><el-icon><User /></el-icon></div>
+                  <!-- 相似度环 -->
+                  <svg v-if="showRing" class="fs-ring" viewBox="0 0 120 120">
+                    <circle class="fs-ring-track" cx="60" cy="60" r="54" />
+                    <circle
+                      class="fs-ring-bar"
+                      cx="60"
+                      cy="60"
+                      r="54"
+                      :stroke-dasharray="RING_C"
+                      :stroke-dashoffset="ringOffset(item.score)"
+                    />
+                  </svg>
+                  <span
+                    v-if="pickedKey === sec.index + ':' + item.id"
+                    class="fs-check"
+                  ><el-icon><Check /></el-icon></span>
+                </div>
+                <p class="fs-card-name" :title="item.name || item.id">{{ item.name || '未命名' }}</p>
+                <p class="fs-card-cap">
+                  <b class="fs-card-score">{{ percent(item.score) }}%</b>
+                  <span class="fs-card-sep">|</span>
+                  <span class="fs-card-tag">{{ item.caption }}</span>
+                </p>
+                <p v-if="item.idCardMasked" class="fs-card-id">证件 {{ item.idCardMasked }}</p>
+              </article>
             </div>
-            <p class="fs-card-name" :title="item.name || item.id">{{ item.name || '未命名' }}</p>
-            <p class="fs-card-cap">
-              <b class="fs-card-score">{{ percent(item.score) }}%</b>
-              <span class="fs-card-sep">|</span>
-              <span class="fs-card-tag">{{ item.caption }}</span>
-            </p>
-            <p v-if="item.idCardMasked" class="fs-card-id">证件 {{ item.idCardMasked }}</p>
-          </article>
+
+            <!-- 该脸没有可展示的命中：分行交代去路，不把这张脸藏掉 -->
+            <p v-else class="fs-section-note">{{ sec.note }}</p>
+          </section>
         </div>
 
         <!-- 无结果 -->
@@ -227,7 +295,7 @@
           <el-icon><Star /></el-icon>人脸登记入库
         </el-button>
         <p class="fs-gallery-hint">
-          已选分组 <b>{{ groupTags }}</b>（检索范围） · 已登记 <b>{{ serverFaceCount }}</b> 张
+          已选分组 <b>{{ groupTags.join('、') }}</b>（检索范围） · 已登记 <b>{{ serverFaceCount }}</b> 张
           <span v-if="serverFaceCount && !cards.length && !identifying">· 向量库可能已随服务重启清空，需重新登记</span>
         </p>
 
@@ -277,7 +345,7 @@
 </template>
 
 <script setup lang="ts">
-import { message } from "@repo/core";
+import { message, msgBox } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import {
@@ -298,7 +366,53 @@ const RING_C = 2 * Math.PI * 54
 const previewUrl = ref('')
 const natural = ref({ w: 1, h: 1 })
 const hits = ref<FaceHit[]>([])
-const matches = ref<FaceMatch[]>([])
+
+/**
+ * 逐脸识别结果：**一张脸一行**，多脸多行，绝不合并成一份命中列表。
+ *
+ * <p>合并的坏处很具体：三人合影只出现一张脸的结果，用户无法判断命中的是谁；
+ * 或者三张脸的命中最像的几个混在一起，看起来像同一个人的多条记录。
+ * 每张脸自带 `index`（与图上框、顶部序号一一对应），左图点框即定位到对应行。</p>
+ */
+interface FaceResultRow {
+  /** 第几张脸（从 1 开始，与检测框顺序一致） */
+  index: number
+  /** 检测置信度（图上标注与行头都用它） */
+  confidence: number
+  /** 该脸命中的库记录（只属于这一张脸） */
+  matches: FaceMatch[]
+  /** 该脸当前状态 */
+  state: 'pending' | 'busy' | 'hit' | 'miss' | 'error'
+  /** 失败原因（仅 error 时非空） */
+  error: string
+}
+
+const faceResults = ref<FaceResultRow[]>([])
+/** 当前选中的脸（左图框加粗、右栏对应行高亮） */
+const activeFaceIndex = ref(1)
+/** 当前选中的结果卡片：`脸序号:记录id`，跨脸不会串 */
+const pickedKey = ref('')
+
+/** 逐脸识别并发序号：连点「重新识别」/中途换图时，旧一轮的结果不许覆盖新一轮 */
+let identifySeq = 0
+
+/**
+ * 按当前检测结果铺出「每脸一行」的骨架（状态待识别）。
+ *
+ * <p>检测一有结果就调用，保证右栏的脸数与左图框数始终一致：换分组清空的是
+ * **识别结果**，不是检测结果 —— 人脸框还在，用户点「识别」即可在新库里重查。</p>
+ */
+function seedRows() {
+  faceResults.value = hits.value.map((h, i) => ({
+    index: i + 1,
+    confidence: Number(h.box?.confidence ?? 0),
+    matches: [] as FaceMatch[],
+    state: 'pending' as FaceResultRow['state'],
+    error: '',
+  }))
+  activeFaceIndex.value = 1
+  pickedKey.value = ''
+}
 
 /**
  * 模型门禁 store。
@@ -373,7 +487,6 @@ function gateWarning(): string {
   if (faceUnregistered.value.length) return NOT_REGISTERED_MSG.value
   return '人脸识别未启用：请先到「系统设置 → 默认模型 → 人脸识别」配置检测模型与特征模型'
 }
-const pickedId = ref('')
 const galleryKey = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const enrollVisible = ref(false)
@@ -533,22 +646,37 @@ function onGroupChange(selected?: string | string[]) {
   setGroups(current)
   // 已选组全部进选项（手输的新分组尤其要进，否则下次打开下拉又选不到它）
   rememberGroups(current)
-  // 换组 = 换了一整套人脸库：上一组的命中结果留在屏幕上会与「已登记 N 张」自相矛盾
-  matches.value = []
-  hits.value = []
-  pickedId.value = ''
+  // 换组 = 换了一整套人脸库：上一组的命中结果留在屏幕上会与「已登记 N 张」自相矛盾。
+  // 只清识别结果、保留检测框 —— 人脸还在图上，改点「识别」即可在新库里重查。
+  identifySeq += 1
+  identifying.value = false
   identifyDone.value = false
+  seedRows()
   void loadServerMeta()
 }
 
-/** 目标人脸（取面积最大的一张） */
-const mainHit = computed<FaceHit | null>(() => {
-  if (!hits.value.length) return null
-  return hits.value.reduce((a, b) => (b.box.width * b.box.height > a.box.width * a.box.height ? b : a))
+/** 目标人脸（当前选中的那张） —— 关键点跟随选中脸，而不是恒取最大脸 */
+const activeHit = computed<FaceHit | null>(() => {
+  const idx = activeFaceIndex.value - 1
+  return hits.value[idx] ?? hits.value[0] ?? null
 })
 
+/**
+ * 选中第几张脸。
+ *
+ * <p>图上框、顶部序号 chip、右栏分段三处共用 {@link activeFaceIndex}，
+ * 因此任一处点击都会同步另外两处的高亮 —— 多脸时用户才能确认「第 3 行是谁」。</p>
+ *
+ * @param index 脸序号（从 1 开始，越界时夹到合法范围）
+ */
+function selectFace(index: number) {
+  const max = hits.value.length || 1
+  const next = Math.max(1, Math.min(Math.trunc(index), max))
+  activeFaceIndex.value = next
+}
+
 const landmarks = computed<number[][]>(() => {
-  const kp = mainHit.value?.box.keypoints
+  const kp = activeHit.value?.box.keypoints
   if (!Array.isArray(kp)) return []
   return kp.filter((p) => Array.isArray(p) && p.length >= 2).map((p) => [Number(p[0]), Number(p[1])])
 })
@@ -573,8 +701,17 @@ interface HitCard {
   idCardMasked: string
 }
 
-const cards = computed<HitCard[]>(() =>
-  matches.value.map((m) => {
+/**
+ * 命中项 → 卡片（档案服务端优先、本地登记簿只补缩略图）。
+ *
+ * <p>逐脸化之后每张脸各有一份命中，因此「一次识别」不再是扁平的一张卡片列表；
+ * 这里只负责把**一张脸**的命中转成卡片，跨脸汇总由 {@link faceSections} 负责。</p>
+ *
+ * @param list 某一张脸的 1:N 命中
+ * @returns 可直接渲染的卡片
+ */
+function toCards(list: FaceMatch[]): HitCard[] {
+  return list.map((m) => {
     // 档案优先取**服务端列表**（权威，换浏览器也在），其次 hit 自带metadata（当前后端不回），
     // 最后才落到本地登记簿 —— 本地只用来补缩略图。
     const sv = serverMeta.value[String(m.id)] ?? {}
@@ -606,8 +743,11 @@ const cards = computed<HitCard[]>(() =>
       photogenic,
       idCardMasked: maskIdCard(idCard),
     }
-  }),
-)
+  })
+}
+
+/** 全部已出结果的卡片（跨脸扁平；仅用于空态判据与「向量库可能已清空」提示） */
+const cards = computed<HitCard[]>(() => faceResults.value.flatMap((r) => toCards(r.matches)))
 
 /**
  * 分类页签：全部按登记档案信息筛选。
@@ -627,8 +767,17 @@ const activeTab = ref<string>('all')
 /** 当前查询图自己的档案（若它也在登记簿里，用于同龄段比较） */
 const queryRecord = computed<FaceRecord | undefined>(() => registryLookup(galleryKey.value))
 
-const visibleHits = computed<HitCard[]>(() => {
-  const list = cards.value
+/**
+ * 按当前分类页签过滤**一张脸**的卡片。
+ *
+ * <p>筛选基准取自当前选中的查询图档案（{@link queryRecord}）；没有档案时
+ * 「同年龄段」退化为「自身年龄成立即保留」、「相似发型」退化为「有发型即可」，
+ * 与改造前的兜底口径一致，避免页签变成一片空白。</p>
+ *
+ * @param list 某一张脸的卡片
+ * @returns 过滤（并按上镜感排序）后的卡片
+ */
+function filterCards(list: HitCard[]): HitCard[] {
   if (activeTab.value === 'age') {
     const base = queryRecord.value?.age
     return list.filter((c) => c.age != null && isSameAgeRange(base ?? c.age, c.age))
@@ -642,22 +791,74 @@ const visibleHits = computed<HitCard[]>(() => {
     return list.filter((c) => c.photogenic >= 4).sort((a, b) => b.photogenic - a.photogenic)
   }
   return list
-})
+}
 
+/** 一张脸在右栏的一段（含状态文案与去路说明） */
+interface FaceSection {
+  index: number
+  confidence: number
+  state: FaceResultRow['state']
+  stateText: string
+  cards: HitCard[]
+  /** 该段没有卡片时的说明（不是「无结果」，而是讲清这张脸走到哪一步） */
+  note: string
+}
+
+/** 状态 → 徽标文案 */
+const STATE_TEXT: Record<FaceResultRow['state'], string> = {
+  pending: '待识别',
+  busy: '识别中',
+  hit: '已命中',
+  miss: '未命中',
+  error: '识别失败',
+}
+
+/**
+ * 右栏分段：**一张脸一段，多脸多段，绝不合并**。
+ *
+ * <p>为什么不能合并：三人合影若把三张脸的命中混成一个列表，用户无法判断
+ * 「这条记录对应哪张脸」，也就无法据此判断该信谁。分段后每段头写清脸序号、
+ * 状态、该脸的检测置信度，与左图框、顶部序号 chip 三处一一对应。</p>
+ */
+const faceSections = computed<FaceSection[]>(() =>
+  faceResults.value.map((r) => {
+    const cards = filterCards(toCards(r.matches))
+    let note = ''
+    if (r.state === 'pending') note = '这张脸还没有识别结果（点「识别」开始比对）'
+    else if (r.state === 'busy') note = '正在与所选分组的人脸库比对…'
+    else if (r.state === 'error') note = `识别失败：${r.error || '未知错误'}`
+    else if (!r.matches.length) note = '该脸未命中底库记录'
+    else if (!cards.length) note = '该分类下没有结果，换个分类看看'
+    return {
+      index: r.index,
+      confidence: r.confidence,
+      state: r.state,
+      stateText: STATE_TEXT[r.state],
+      cards,
+      note,
+    }
+  }),
+)
+
+/**
+ * 空态文案。
+ *
+ * <p>逐脸化之后「没有结果」有三种完全不同的原因，不能共用一句话：
+ * 没上传、正在检测、检不到脸。而「有脸但该分类没命中」由**每一段自己的说明**
+ * 承担（{@code sec.note}），不再用整栏空态吞掉其他脸的命中。</p>
+ */
 const blankTitle = computed(() => {
-  if (identifying.value) return '正在比对…'
+  if (detecting.value) return '正在检测人脸…'
   if (!previewUrl.value) return '等待上传照片'
-  if (cards.value.length && !visibleHits.value.length) return '该分类下没有结果'
-  if (registry.records.value.length) return '人脸库为空或已重置'
-  return '还没有登记任何人脸'
+  if (hits.value.length) return '等待识别'
+  return '未检测到人脸'
 })
 
 const blankDesc = computed(() => {
-  if (identifying.value) return '正在与已登记人脸逐一比对'
-  if (!previewUrl.value) return '上传一张含人脸的照片，这里会给出最像的几张'
-  if (cards.value.length && !visibleHits.value.length) return '换个分类看看，或先登记更多档案'
-  if (registry.records.value.length) return '向量库是内存存储，后端重启后会清空，需要重新登记'
-  return '先点「人脸登记入库」录入档案（含年龄、身份证等），再上传照片（自动识别）或点「识别」'
+  if (detecting.value) return '正在定位图片中的人脸，请稍候'
+  if (!previewUrl.value) return '上传一张含人脸的照片，这里会逐脸给出最像的几张（多脸分行，不合并）'
+  if (hits.value.length) return '已检出人脸但还没有识别结果，点「识别」开始比对'
+  return '这张图片里没有可用人脸，请换一张正面清晰的照片；多人合影同样支持'
 })
 
 /** 右缘悬浮工具条的一项 */
@@ -715,7 +916,7 @@ const RAIL: RailTool[] = [
     icon: Delete,
     // 动作类按钮：不表示"开启中"，只借 active 关闭态做置灰
     active: () => false,
-    toggle: () => { clearWorkspace() },
+    toggle: () => { void confirmClear() },
     // 常驻置灰：空态保留按钮位置，有内容才可点
     disabled: () => !hasWorkspace.value,
     // 危险动作：悬停给红色，避免与旁边几个"开关"混淆
@@ -739,15 +940,22 @@ function ringOffset(score: number): number {
 /**
  * 角标副文案：显示识别的真实结果数据。
  *
- * <p>此前这里是恒定的「匹配度参考」四个字，没有任何信息量。现在按状态给出
- * 最高匹配度、命中张数；识别中/未识别/未命中各有对应文案。</p>
+ * <p>逐脸化之后「命中张数」有两层含义，必须分开说：几张脸命中、最高匹配度多少。
+ * 未识别 / 识别中 / 全部未命中各有对应文案，不再用恒定占位语。</p>
  */
+const foundTitle = computed(() =>
+  identifyDone.value && !faceResults.value.some((r) => r.matches.length) ? '逐脸识别完成' : '找到相似脸',
+)
+
 const foundSub = computed(() => {
-  if (identifying.value) return '正在与人脸库比对…'
-  if (!identifyDone.value) return '已检出人脸'
-  if (!matches.value.length) return '未命中库中人脸'
-  const top = Math.max(...matches.value.map((m) => m.score))
-  return `最高匹配度 ${percent(top)}% · 命中 ${matches.value.length} 张`
+  const total = hits.value.length
+  if (identifying.value) return `正在逐脸比对 ${total} 张脸…`
+  if (!identifyDone.value) return `已检出 ${total} 张脸`
+  const rows = faceResults.value
+  const hitRows = rows.filter((r) => r.matches.length)
+  if (!hitRows.length) return `${total} 张脸均未命中库中人脸`
+  const top = Math.max(...rows.flatMap((r) => r.matches.map((m) => m.score)))
+  return `命中 ${hitRows.length}/${total} 张脸 · 最高匹配度 ${percent(top)}%`
 })
 
 function openEnroll() {
@@ -762,7 +970,12 @@ function openEnroll() {
 
 function onEnrolled() {
   galleryKey.value = ''
-  matches.value = []
+  identifyDone.value = false
+  // 新登记会让旧识别结果过期（底库变了），回到「待识别」而不是留着旧命中
+  seedRows()
+  // 底库变了就要重拉：否则「已登记 N 张」与相册仍停在登记前的数字，
+  // 用户会以为没登记成功（下一次识别虽然会补拉，但那之前界面是自相矛盾的）
+  void loadServerMeta()
 }
 
 /**
@@ -800,10 +1013,14 @@ async function loadFile(file: File) {
     return
   }
   revokePreview()
+  // 让在途的逐脸识别作废（结果不再写回），否则旧图的行会落到新图上
+  identifySeq += 1
+  identifying.value = false
   previewUrl.value = URL.createObjectURL(file)
   galleryKey.value = ''
-  pickedId.value = ''
-  matches.value = []
+  pickedKey.value = ''
+  activeFaceIndex.value = 1
+  faceResults.value = []
   hits.value = []
   landmarks106.value = []
   landmark106Error.value = ''
@@ -819,6 +1036,27 @@ function revokePreview() {
 }
 
 /**
+ * 悬浮条「清空」的确认流程。
+ *
+ * <p>这个按钮与三个叠加层开关挤在同一条竖排里，误点概率不低，而清空会丢掉
+ * 本次的检测与逐脸识别结果（虽然不动底库）。破坏性动作先问一句，
+ * 并在弹窗里说清「只清本次、不动已登记底库」，避免用户以为会连库一起删。</p>
+ */
+async function confirmClear() {
+  try {
+    const ok = await msgBox(
+      '将清空当前上传的图片、检测框与逐脸识别结果。<br/>已登记的人脸底库不受影响。',
+      '清空当前图片？',
+      '清空',
+      '取消',
+    )
+    if (ok) clearWorkspace()
+  } catch {
+    // 取消：保持现状
+  }
+}
+
+/**
  * 清空当前工作区：当前图片 + 检测/识别结果 + 叠加数据。
  *
  * <p>只清「这一次上传的临时状态」，**不动已登记的人脸库** —— 底库是用户长期资产，
@@ -829,10 +1067,13 @@ function revokePreview() {
  */
 function clearWorkspace() {
   revokePreview()
+  identifySeq += 1
+  identifying.value = false
   natural.value = { w: 1, h: 1 }
   hits.value = []
-  matches.value = []
-  pickedId.value = ''
+  faceResults.value = []
+  pickedKey.value = ''
+  activeFaceIndex.value = 1
   galleryKey.value = ''
   identifyDone.value = false
   landmarks106.value = []
@@ -845,7 +1086,7 @@ function clearWorkspace() {
 
 /** 是否有可清空的内容（决定按钮是否可点、要不要置灰） */
 const hasWorkspace = computed(
-  () => !!previewUrl.value || hits.value.length > 0 || matches.value.length > 0,
+  () => !!previewUrl.value || hits.value.length > 0 || faceResults.value.length > 0,
 )
 
 /** 读图片原始尺寸，作为叠加层 viewBox */
@@ -869,6 +1110,9 @@ async function runDetect(file: File) {
     natural.value = await readNaturalSize(previewUrl.value)
     const res = await apiService.detectFace(file, file.name)
     hits.value = res.faces ?? []
+    // 检测一出结果就把「每脸一行」的骨架铺出来（待识别），
+    // 否则识别开始前右栏一片空白，用户以为没检测到
+    seedRows()
     if (!hits.value.length) {
       message.warning('未检测到人脸，请换一张正面清晰的照片')
     }
@@ -941,62 +1185,116 @@ async function runLandmark106() {
   }
 }
 
-/** 1:N 识别：拿当前照片与向量库比对 */
+/** base64 → Blob（后端返回的裁剪图不带 data: 前缀，这里两种都兼容） */
+function base64Blob(b64: string, type = 'image/jpeg'): Blob {
+  const raw = b64.includes(',') ? b64.slice(b64.indexOf(',') + 1) : b64
+  const bin = atob(raw)
+  const buf = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i += 1) buf[i] = bin.charCodeAt(i)
+  return new Blob([buf], { type })
+}
+
+/**
+ * 取某一张脸的裁剪图。
+ *
+ * <p>优先用检测接口随结果返回的 {@code faceImage}（后端已按框裁好，和识别所用的
+ * 预处理最一致）；缺失时按 {@link FaceHit.box} 在原图上用画布裁，留 20% 边距，
+ * 避免把下巴/额头切掉导致特征模型判不出脸。</p>
+ *
+ * @param hit 该脸的检测结果
+ * @returns 只含这一张脸的图片
+ */
+async function faceBlob(hit: FaceHit): Promise<Blob> {
+  const b64 = String(hit.faceImage ?? '').trim()
+  if (b64) return base64Blob(b64)
+  const src = await (await fetch(previewUrl.value)).blob()
+  const bmp = await createImageBitmap(src)
+  try {
+    const pad = 0.2
+    const x = Math.max(0, Math.floor(hit.box.x - hit.box.width * pad))
+    const y = Math.max(0, Math.floor(hit.box.y - hit.box.height * pad))
+    const w = Math.max(1, Math.min(bmp.width - x, Math.ceil(hit.box.width * (1 + pad * 2))))
+    const h = Math.max(1, Math.min(bmp.height - y, Math.ceil(hit.box.height * (1 + pad * 2))))
+    const cv = document.createElement('canvas')
+    cv.width = w
+    cv.height = h
+    const ctx = cv.getContext('2d')
+    if (!ctx) return src
+    ctx.drawImage(bmp, x, y, w, h, 0, 0, w, h)
+    return await new Promise<Blob>((resolve) => cv.toBlob((b) => resolve(b ?? src), 'image/jpeg', 0.92))
+  } finally {
+    bmp.close?.()
+  }
+}
+
+/**
+ * 逐脸识别：每一张检测到的人脸**各自裁剪、各自检索**，结果按脸分段。
+ *
+ * <p>为什么不整图调一次：后端 {@code /face/identify} 走的是「取最大脸」管线，
+ * 多人合影只会回一张脸的结果。这里按检测框逐脸裁剪后各调一次，才能真正做到
+ * 「一张脸一行、多脸多行、不合并」。</p>
+ *
+ * <p>串行执行（不是并发）：每张脸的手机率不高，串行能让右栏一行一行出结果，
+ * 用户能看出「第 2 张脸还在比对」；并发只会在同一瞬间全部跳成结果。</p>
+ */
 async function runIdentify() {
   if (!previewUrl.value) return
   if (!faceUsable.value) {
     message.warning(gateWarning())
     return
   }
+  if (!hits.value.length) {
+    message.warning('未检测到人脸，请换一张正面清晰的照片')
+    return
+  }
+  const seq = ++identifySeq
   identifying.value = true
+  identifyDone.value = false
+  // 先按检测结果铺出「每脸一行」，用户立刻看到要识别几张（状态待识别）
+  seedRows()
   try {
-    const blob = await (await fetch(previewUrl.value)).blob()
-    // 多选检索范围：后端收逗号分隔，这边直接把选中的分组集合扔过去
-    const res = await apiService.identifyFace(blob, 'query.png', groups.value)
-    matches.value = res.hits ?? []
-    void loadServerMeta()
-    pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
+    for (let i = 0; i < hits.value.length; i += 1) {
+      if (seq !== identifySeq) return
+      const hit = hits.value[i]
+      const row = faceResults.value[i]
+      if (!hit || !row) continue
+      row.state = 'busy'
+      try {
+        const blob = await faceBlob(hit)
+        const res = await apiService.identifyFace(blob, `face-${i + 1}.jpg`, groups.value)
+        if (seq !== identifySeq) return
+        row.matches = res.hits ?? []
+        row.state = row.matches.length ? 'hit' : 'miss'
+      } catch (e: any) {
+        if (seq !== identifySeq) return
+        row.matches = []
+        row.state = 'error'
+        row.error = String(e?.message ?? e)
+      }
+      // row 是响应式代理，直接改属性已生效；这里重建一次数组只为明确触发分段重算
+      faceResults.value = [...faceResults.value]
+    }
+    if (seq !== identifySeq) return
     identifyDone.value = true
-    if (!matches.value.length) {
+    // 默认选中第一张命中的脸；全部未命中就停在第一张
+    const firstHit = faceResults.value.find((r) => r.state === 'hit')
+    if (firstHit) {
+      activeFaceIndex.value = firstHit.index
+      pickedKey.value = `${firstHit.index}:${firstHit.matches[0].id}`
+    } else {
+      activeFaceIndex.value = 1
+    }
+    void loadServerMeta()
+    const total = faceResults.value.reduce((n, r) => n + r.matches.length, 0)
+    if (!total) {
       message.info(
         registry.records.value.length
           ? '没有命中任何已登记人脸（向量库可能已随服务重启清空）'
           : '人脸库为空，先点「人脸登记入库」录入档案',
       )
     }
-  } catch (e: any) {
-    message.error(`识别失败：${e?.message ?? e}`)
   } finally {
-    identifying.value = false
-  }
-}
-
-/** 裁剪脸部：用检测返回的裁剪图再识别一次，聚焦面部区域 */
-async function recognizeCrop() {
-  if (!faceUsable.value) {
-    message.warning(gateWarning())
-    return
-  }
-  const hit = mainHit.value
-  if (!hit?.faceImage) {
-    message.warning('没有拿到裁剪图，请重新检测')
-    return
-  }
-  identifying.value = true
-  try {
-    const bin = atob(hit.faceImage)
-    const buf = new Uint8Array(bin.length)
-    for (let i = 0; i < bin.length; i += 1) buf[i] = bin.charCodeAt(i)
-    const res = await apiService.identifyFace(new Blob([buf], { type: 'image/jpeg' }), 'crop.jpg', groups.value)
-    matches.value = res.hits ?? []
-    void loadServerMeta()
-    pickedId.value = matches.value.length ? String(matches.value[0].id) : ''
-    identifyDone.value = true
-    message.success(matches.value.length ? `裁剪后命中 ${matches.value.length} 张` : '裁剪后未命中')
-  } catch (e: any) {
-    message.error(`裁剪识别失败：${e?.message ?? e}`)
-  } finally {
-    identifying.value = false
+    if (seq === identifySeq) identifying.value = false
   }
 }
 
@@ -1166,6 +1464,93 @@ onBeforeUnmount(() => {
   stroke-width: 4;
   stroke-dasharray: 14 10;
   filter: drop-shadow(0 0 6px var(--fs-accent));
+}
+
+/* 逐脸框：每个框是一组可点击对象。叠加层本身 pointer-events: none，
+   这里单独放开，让「点框选中该脸」可用而整层仍不挡图片的其他交互 */
+.fs-box-g {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* 框内区域也必须能点：`fill: none` 的矩形只有描边参与命中测试，
+   点在脸上（框内空白处）什么都不会发生 —— 用户的第一反应正是去点脸。
+   这让整个框成为一个「选中该脸」的命中区，同时仍然不遮挡图片（透明填充）。 */
+.fs-box {
+  pointer-events: all;
+}
+
+/* 选中脸：加粗 + 实线 + 主橙，与未选中的青虚线一眼可分 */
+.fs-box.is-active {
+  stroke: var(--fs-brand);
+  stroke-width: 6;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 8px var(--fs-brand));
+}
+
+/* 框上序号：白字 + 身份色描边，任何背景都读得出来 */
+.fs-box-label {
+  fill: #fff;
+  font-size: 26px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--fs-brand);
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+
+/* 逐脸提示条：仅多脸时出现，说明「一张脸一行、不合并」并给出切换序号 */
+.fs-facebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-radius);
+  background: var(--fs-card);
+}
+
+.fs-facebar-text {
+  font-size: 13px;
+  color: var(--fs-muted);
+}
+
+.fs-facebar-text b {
+  color: var(--fs-brand);
+}
+
+.fs-facebar-chip {
+  height: 26px;
+  padding: 0 10px;
+  /* 原值 999px（胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid var(--fs-border);
+  background: transparent;
+  color: var(--fs-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.fs-facebar-chip:hover {
+  border-color: var(--fs-accent);
+  color: var(--fs-text);
+}
+
+.fs-facebar-chip:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.fs-facebar-chip.is-active {
+  border-color: var(--fs-brand);
+  background: color-mix(in srgb, var(--fs-brand) 14%, transparent);
+  color: var(--fs-brand);
 }
 
 /* SVG 关键点填充：盖在照片上必须是纯白才能在任何肤色/背景下都看得见，
@@ -1413,6 +1798,91 @@ onBeforeUnmount(() => {
   background: var(--fs-card);
   color: var(--fs-brand);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
+}
+
+/* 结果分段：一张脸一段 */
+.fs-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fs-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--fs-radius-sm);
+  border: 1px solid var(--fs-border);
+  background: var(--fs-card);
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+/* 当前选中的脸：与左图加粗框、顶部序号 chip 同步高亮 */
+.fs-section.is-active {
+  border-color: var(--fs-brand);
+}
+
+.fs-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.fs-section-head:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.fs-section-idx {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fs-text);
+}
+
+.fs-section-badge {
+  padding: 1px 8px;
+  /* 原值 999px（胶囊）→ full 档 */
+  border-radius: var(--el-radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--fs-border);
+  color: var(--fs-muted);
+  background: var(--fs-hover);
+}
+
+/* 命中 = 主橙（本页身份色）；未命中/失败/进行中各自一档中性语义 */
+.fs-section-badge.is-hit {
+  border-color: var(--fs-brand);
+  color: var(--fs-brand);
+  background: color-mix(in srgb, var(--fs-brand) 14%, transparent);
+}
+
+.fs-section-badge.is-miss,
+.fs-section-badge.is-error {
+  border-color: var(--el-color-danger);
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+
+.fs-section-badge.is-busy {
+  border-color: var(--fs-accent);
+  color: var(--fs-accent);
+  background: color-mix(in srgb, var(--fs-accent) 12%, transparent);
+}
+
+.fs-section-conf {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--fs-muted);
+}
+
+/* 该脸没有卡片时的去路说明（不是错误，也不是空态） */
+.fs-section-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fs-muted);
 }
 
 /* 结果网格 */
@@ -1729,6 +2199,8 @@ onBeforeUnmount(() => {
   .fs-card,
   .fs-thumb,
   .fs-ring-bar,
+  .fs-facebar-chip,
+  .fs-section,
   .fs-rail-btn {
     transition: none;
   }

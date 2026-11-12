@@ -77,7 +77,7 @@ export function useLibraryGroups(kind: 'face' | 'reid' | 'image') {
    * 它同时维护 {@link group}，让单值口径（定位/登记）也有所适从 ——
    * 单组时两者一致，多选时 {@link group} 取第一组。</p>
    *
-   * @param names 分组名（单值 / 列表 / 空；空串 / 纯空白一律归到 default）
+   * @param names 分组名（单值 / 列表 / 空；空串 / 纯空白忽略；全部为空时回落 default）
    */
   function setGroups(names: string | Array<string | null | undefined> | null | undefined = DEFAULT_GROUP) {
     const list = Array.isArray(names)
@@ -85,12 +85,17 @@ export function useLibraryGroups(kind: 'face' | 'reid' | 'image') {
       : typeof names === 'string'
         ? [names]
         : []
-    const merged = new Set<string>([DEFAULT_GROUP])
+    // 不要把 DEFAULT_GROUP 无条件并进来：此前写成 `new Set([DEFAULT_GROUP])`，
+    // 于是「关闭 default 标签」「Backspace 删除」都会被这一行立刻加回来 ——
+    // 界面上标签删不掉、检索范围恒为「default + 新组」，分组隔离形同失效
+    // （表现为换组后计数 = 两组之和、命中结果跨组混出）。
+    // default 只在「一个都没选」时作为回落，语义与后端「不带分组即 default」一致。
+    const merged = new Set<string>()
     for (const n of list) {
       const v = String(n ?? '').trim()
       if (v) merged.add(v)
     }
-    const selected = [...merged]
+    const selected = merged.size ? [...merged] : [DEFAULT_GROUP]
     groups.value = selected as string[]
     // 单组时 group 与检索范围一致；多选时 group 记第一组（用于定位 / 单组操作）
     group.value = selected.length > 1 ? (selected.find((g) => g !== DEFAULT_GROUP) || DEFAULT_GROUP) : (selected[0] || DEFAULT_GROUP)

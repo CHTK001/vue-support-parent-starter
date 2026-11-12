@@ -1,6 +1,46 @@
 <template>
   <div class="reid-config-page">
     <!--
+      普通账号：后端只放行字段名含 model 的项，阈值/维度/轨迹参数一律 403。
+      这里先把「能改什么」讲清楚，再把写不了的控件禁用 —— 让用户点到报错才发现，
+      比不给入口更糟。
+    -->
+    <el-alert
+      v-if="!admin"
+      type="info"
+      show-icon
+      :closable="false"
+      class="rc-admin-only"
+      title="当前账号只能修改模型选择项"
+      description="阈值、维度与轨迹参数由管理员在全局层统一配置，这里仅作只读展示。"
+    />
+
+    <!--
+      本人覆盖遮蔽提示：管理员写的是全局层，而本页读的是「用户覆盖 > 全局」的合并值。
+      有用户覆盖时，保存成功也看不到变化 —— 必须明确指出来，并给出撤销入口。
+    -->
+    <div v-if="myOverrideFields.length" class="rc-override-bar">
+      <el-icon class="rc-override-icon"><WarningFilled /></el-icon>
+      <span class="rc-override-text">
+        以下项被<b>你的个人覆盖</b>遮蔽，本页显示的是你的个人值（全局改动不会在这些项上生效）：
+      </span>
+      <span class="rc-override-tags">
+        <el-tag
+          v-for="f in myOverrideFields"
+          :key="f"
+          size="small"
+          closable
+          type="warning"
+          effect="plain"
+          :title="`撤销我在这项上的个人覆盖，回到全局值`"
+          @close="clearOverride(f)"
+        >
+          {{ fieldLabel(f) }}
+        </el-tag>
+      </span>
+    </div>
+
+    <!--
       分流示意 + 分流阈值。
       三档不是「两条管线都跑完再合并」：检测置信度先落档，同一张脸只由达标的那条回答，
       所以阈值必须并排展示 —— 分开放在两段里，用户看不出它们是一条线上的两个刻度。
@@ -41,12 +81,13 @@
         risk-tip="这条线同时决定两档的边界：改它等于同时改变人脸识别与 ReID 各自接收的人脸质量"
       >
         <el-input-number
+          :key="`face_threshold-${revertEpoch}`"
           :model-value="numberModel('face_threshold')"
           :min="0"
           :max="1"
           :step="0.05"
           :precision="2"
-          :disabled="saving"
+          :disabled="saving || !canEdit('face_threshold')"
           class="rc-number"
           aria-label="人脸阈值（分流线）"
           @change="onNumberChange('face_threshold', $event)"
@@ -61,12 +102,13 @@
         risk-tip="必须 ≤ 人脸阈值，否则中间那一档是空集，ReID 永远不会被选中"
       >
         <el-input-number
+          :key="`reid_threshold-${revertEpoch}`"
           :model-value="numberModel('reid_threshold')"
           :min="0"
           :max="1"
           :step="0.05"
           :precision="2"
-          :disabled="saving"
+          :disabled="saving || !canEdit('reid_threshold')"
           class="rc-number"
           aria-label="ReID 阈值（分流下限）"
           @change="onNumberChange('reid_threshold', $event)"
@@ -79,12 +121,13 @@
         :badge="badgeOf('reid_detector_threshold')"
       >
         <el-input-number
+          :key="`reid_detector_threshold-${revertEpoch}`"
           :model-value="numberModel('reid_detector_threshold')"
           :min="0"
           :max="1"
           :step="0.05"
           :precision="2"
-          :disabled="saving"
+          :disabled="saving || !canEdit('reid_detector_threshold')"
           class="rc-number"
           aria-label="ReID 检测下限"
           @change="onNumberChange('reid_detector_threshold', $event)"
@@ -179,12 +222,13 @@
         </el-input>
         <el-input-number
           v-else-if="item.type === 'number'"
+          :key="`${item.field}-${revertEpoch}`"
           :model-value="numberModel(item.field)"
           :min="item.min"
           :max="item.max"
           :step="item.step ?? 1"
           :precision="item.integer ? 0 : 2"
-          :disabled="saving"
+          :disabled="saving || !canEdit(item.field)"
           class="rc-number"
           :aria-label="item.label"
           @change="onNumberChange(item.field, $event)"
@@ -192,7 +236,7 @@
         <el-input
           v-else
           :model-value="String(values[item.field] ?? '')"
-          :disabled="saving"
+          :disabled="saving || !canEdit(item.field)"
           :aria-label="item.label"
           placeholder="留空表示不指定"
           @change="onTextChange(item.field, $event)"
@@ -206,8 +250,7 @@
           「ReID 特征模型」留空时复用「人脸特征模型」，此时两套特征相同但仍分两条库写入 ——
           换 ReID 模型不会把人脸识别一起换掉。
         </span>
-      </p>
-    </SettingsCard>
+      </p>    </SettingsCard>
 
     <ModelPickerDialog
       v-model:visible="pickerVisible"
@@ -236,7 +279,7 @@
  */
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { InfoFilled, ArrowDown, Avatar } from '@element-plus/icons-vue'
+import { InfoFilled, ArrowDown, Avatar, WarningFilled } from '@element-plus/icons-vue'
 import { Fingerprint24Regular } from '@vicons/fluent'
 import { apiService } from '../../services/ApiService'
 import { usePopup } from '../../composables/usePopup'
@@ -250,6 +293,19 @@ import ModelPickerDialog from './dms/ModelPickerDialog.vue'
 
 const { t } = useI18n()
 const { notify, toast } = usePopup()
+
+/** 是否管理员：管理员写全局层，普通账号只放行模型选择项 */
+const admin = computed(() => isAdmin())
+
+/**
+ * 该字段当前账号能否修改。
+ *
+ * <p>与后端 {@code SettingsController#isUserWritableField} 同口径：字段名含 {@code model}
+ * 才放行。这里只是把「改不了」提前到界面上，真正的拦截仍在接口层。</p>
+ *
+ * @param field 字段名
+ */
+const canEdit = (field: string): boolean => admin.value || /model/i.test(field)
 
 /** 配置分组：与后端 FaceGlobalSettingProvider.GROUP 一致 */
 const GROUP = 'face'
@@ -431,6 +487,16 @@ const meta = ref<Record<string, any>>({})
  */
 const numberModels = ref<Record<string, number | undefined>>({})
 
+/**
+ * 数值输入的复位纪元。
+ *
+ * <p>校验失败时要把输入框退回旧值，但 `el-input-number` 的受控值只认 prop 的「变化」：
+ * 直接把 ref 赋成它原本就有的值，Vue 认为没有变更，输入框会继续显示用户刚敲的非法值，
+ * 而上方三档摘要已经退回旧值 —— 同屏两个数字。这里改键盘上的 key 强制重建该输入框，
+ * 让它带着正确的旧值重新挂载。</p>
+ */
+const revertEpoch = ref(0)
+
 const saving = ref(false)
 const loading = ref(false)
 
@@ -463,11 +529,17 @@ const reidThreshold = computed(() => effectiveNumber('reid_threshold', DEFAULT_R
 const numberModel = (field: string): number | undefined => numberModels.value[field]
 
 /**
- * 「继承」标记：overridden=false 表示这个值来自全局默认，改它等于给自己加一条覆盖。
+ * 徽标文案。
+ *
+ * <p>管理员写的就是全局层，「继承」对它没有意义（它没有可继承的上一层），
+ * 所以管理员视角不显示；普通账号 overridden=false 才表示值来自全局默认。</p>
  *
  * @param field 字段名
  */
-const badgeOf = (field: string): string => (meta.value[field]?.overridden === false ? '继承' : '')
+const badgeOf = (field: string): string => {
+  if (admin.value) return ''
+  return meta.value[field]?.overridden === false ? '继承' : ''
+}
 
 /**
  * 从 merged 响应里取出字段项（响应是双层信封，数组/对象两种形态都要兜住）。
@@ -487,6 +559,48 @@ const FIELDS_WITH_SPLIT: FieldSpec[] = [
   { field: 'reid_threshold', label: '', description: '', type: 'number' },
   { field: 'reid_detector_threshold', label: '', description: '', type: 'number' },
 ]
+
+/** 分流阈值不在字段清单里（没有 label），单独给它们一个展示名 */
+const EXTRA_FIELD_LABELS: Record<string, string> = {
+  face_threshold: '人脸阈值',
+  reid_threshold: 'ReID 阈值',
+  reid_detector_threshold: 'ReID 检测下限',
+}
+
+/**
+ * 字段的展示名。
+ *
+ * @param field 字段名
+ */
+const fieldLabel = (field: string): string =>
+  EXTRA_FIELD_LABELS[field] ?? FIELDS_WITH_SPLIT.find((it) => it.field === field)?.label ?? field
+
+/**
+ * 当前账号存在个人覆盖（会遮住全局值）的字段。
+ *
+ * <p>{@code origin === 'USER'} 表示这一项当前生效值来自本人覆盖层。
+ * 管理员改的是全局层，这些项在他的页面上「保存成功但不生效」，
+ * 所以在页面顶部集中提示并允许一键撤销 —— 否则只能靠人回忆自己去哪一天改过。</p>
+ */
+const myOverrideFields = computed(() =>
+  FIELDS_WITH_SPLIT.map((it) => it.field).filter((field) => meta.value[field]?.origin === 'USER'),
+)
+
+/**
+ * 撤销某一项的个人覆盖（回到全局值）。
+ *
+ * @param field 字段名
+ */
+const clearOverride = async (field: string) => {
+  try {
+    await apiService.updateUserGroupOverrides(GROUP, { [field]: null })
+    toast.success('已撤销该项的个人覆盖，改为跟随全局值')
+    await load()
+  } catch (error) {
+    console.error(`[ReID 配置] 撤销 ${field} 的个人覆盖失败:`, error)
+    notify.error('撤销个人覆盖失败', error)
+  }
+}
 
 /** 加载 face 分组的合并视图（全局默认 + 本人覆盖） */
 const load = async () => {
@@ -535,7 +649,12 @@ const load = async () => {
 const saveField = async (field: string, value: unknown): Promise<boolean> => {
   saving.value = true
   try {
-    const payload = { [field]: value }
+    // 管理员写的是全局层，没有「个人覆盖」可撤销：null 送到后端会被落成空串，
+    // 与「显式留空」混为一谈。这里改写成该字段的系统默认值，语义才是「恢复默认」。
+    const payloadValue = value === null && isAdmin()
+      ? String(meta.value[field]?.defaultValue ?? '')
+      : value
+    const payload = { [field]: payloadValue }
     if (isAdmin()) {
       await apiService.updateGroupSettings(GROUP, payload)
     } else {
@@ -578,6 +697,29 @@ const validateThreshold = (field: string, value: number): string | null => {
 }
 
 /**
+ * 允许留空的数值字段。
+ *
+ * <p>{@code reid_feature_dimension} 留空 = 复用人脸特征维度；
+ * {@code reid_match_threshold} 留空 = 由后端按检测阈值推导，而不是「0 分也算命中」。
+ * 两者都必须能把输入框清空并落库，否则「留空」这条语义在界面上不可达。</p>
+ */
+const CLEARABLE_NUMERIC = new Set(['reid_feature_dimension', 'reid_match_threshold'])
+
+/**
+ * 把输入框退回旧值。
+ *
+ * <p>只赋 ref 不够：`el-input-number` 的受控值没有「变化」就不会重绘，
+ * 输入框会继续显示刚敲的非法值。bump 复位纪元让它带着旧值重建。</p>
+ *
+ * @param field 字段名
+ * @param previous 旧值
+ */
+const revertNumber = (field: string, previous: number | undefined) => {
+  numberModels.value[field] = previous
+  revertEpoch.value += 1
+}
+
+/**
  * 数值字段变更：先校验阈值关系，通过后即改即存；不通过则把输入框退回原值。
  *
  * @param field 字段名
@@ -586,13 +728,13 @@ const validateThreshold = (field: string, value: number): string | null => {
 const onNumberChange = async (field: string, raw: number | undefined | null) => {
   const previous = numberModels.value[field]
   if (raw === null || raw === undefined || !Number.isFinite(Number(raw))) {
-    // 清空：只有「可留空」的字段才允许（ReID 特征维度），其余字段清空视为非法输入，回退
-    if (field === 'reid_feature_dimension') {
+    // 清空：只有「可留空」的字段才允许，其余字段清空视为非法输入，回退
+    if (CLEARABLE_NUMERIC.has(field)) {
       numberModels.value[field] = undefined
       await saveField(field, null)
       return
     }
-    numberModels.value[field] = previous
+    revertNumber(field, previous)
     return
   }
   const value = Number(raw)
@@ -600,14 +742,14 @@ const onNumberChange = async (field: string, raw: number | undefined | null) => 
     const violation = validateThreshold(field, value)
     if (violation) {
       toast.error(violation)
-      numberModels.value[field] = previous
+      revertNumber(field, previous)
       return
     }
   }
   numberModels.value[field] = value
   const ok = await saveField(field, value)
   if (!ok) {
-    numberModels.value[field] = previous
+    revertNumber(field, previous)
   }
 }
 

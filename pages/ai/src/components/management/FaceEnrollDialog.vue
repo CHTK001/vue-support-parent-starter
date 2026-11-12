@@ -61,6 +61,34 @@
         </el-col>
       </el-row>
 
+      <!--
+        年龄 / 性别：`age` 是必填规则（同龄段筛选要靠它），但表单此前**没有这两个控件** ——
+        校验永远卡在「请填写年龄」，登记入口实际上无法提交。这里补齐，
+        并保持「年龄必填、性别可选（缺省未知）」的口径。
+      -->
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="年龄" prop="age">
+            <el-input-number
+              v-model="form.age"
+              :min="0"
+              :max="120"
+              :precision="0"
+              :controls="false"
+              placeholder="必填，0–120"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="性别" prop="gender">
+            <el-select v-model="form.gender" placeholder="选择性别" style="width: 100%">
+              <el-option v-for="g in GENDER_OPTIONS" :key="g" :label="g" :value="g" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="现居住地" prop="residence">
@@ -162,6 +190,8 @@ const visible = computed({
 })
 
 const HAIR_OPTIONS = ['短发', 'bob', '长发', '卷发', '直发', '马尾', '寸头', '光头', '盘发']
+/** 性别选项：与既有档案口径一致（未填即「未知」，展示时不渲染这段说明） */
+const GENDER_OPTIONS = ['男', '女', '未知']
 const RATE_TEXTS = ['很差', '偏差', '一般', '不错', '很上镜']
 
 const formRef = ref<FormInstance>()
@@ -336,7 +366,12 @@ function setPhoto(file: File) {
       }
       // 单脸预检（5.3）：后端原本静默取最大的一张脸，多脸照片会让用户以为
       // 「A 和 B 都登记了」，实际只进了 A。这里提交前先探一次并明确拒绝。
-      await assertSingleFace(dataUrl)
+      //
+      // 注意必须**用返回值**：此前写成 `await assertSingleFace(...)` 后无条件赋 form.photo，
+      // 于是多脸照片虽然弹了「请裁剪」，预览里照样有一张脸、按钮照样可提交 ——
+      // 提示与界面自相矛盾，用户会以为提示是误报，直到后端再拒一次。
+      const single = await assertSingleFace(dataUrl)
+      if (!single) return
       form.photo = dataUrl
     }
     img.onerror = () => message.error('无法解析该图片，请换一张')

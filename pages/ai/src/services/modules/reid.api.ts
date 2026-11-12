@@ -194,9 +194,10 @@ export interface ReidFaceResult {
   confidence: number;
   /**
    * 分流结论：`FACE` = 人脸识别管线，`REID` = 重识别管线，
-   * `INVALID` = 不合规（低于 ReID 阈值，只提示、不出结果）。
+   * `INVALID` = 不合规（低于 ReID 阈值，只提示、不出结果），
+   * `null` = 后端没给结论（旧版本接口 / 响应缺字段），不是「不合规」。
    */
-  decision: "FACE" | "REID" | "INVALID";
+  decision: "FACE" | "REID" | "INVALID" | null;
   /** 不合规时的提示文案（其余为空） */
   reason?: string | null;
   /** 该脸命中的记录（不合规或未命中时为空数组） */
@@ -257,6 +258,10 @@ export interface ReidApi {
   listReidTracks(params?: ReidTracksParams): Promise<ReidTrack[]>;
   /** 列出底库观测记录（人员，不做跨帧轨迹汇聚） */
   listReidLibrary(params?: ReidLibraryParams): Promise<ReidLibraryItem[]>;
+  /** 删除底库中的一条记录（元数据 + 两套特征向量一起删） */
+  deleteReidLibrary(id: string, group?: string): Promise<void>;
+  /** 清空指定分组的底库记录，返回删除条数 */
+  clearReidLibrary(group?: string): Promise<number>;
   /** 轨迹详情 */
   getReidTrack(trackId: string, group?: string): Promise<ReidTrack | null>;
   /** 轨迹统计 */
@@ -460,7 +465,9 @@ export const reidApi: ReidApi = {
       index: Number(face?.index ?? i + 1),
       box: face?.box ?? { x: 0, y: 0, width: 0, height: 0, score: 0, matched: false },
       confidence: Number(face?.confidence ?? face?.box?.confidence ?? 0),
-      decision: (face?.decision ?? "INVALID") as ReidFaceResult["decision"],
+      // 缺字段时保持「无结论」而不是兜成 INVALID：
+      // INVALID 的语义是「低于 ReID 阈值、图片不合规」，无端给用户扣这条结论会误导他去换图。
+      decision: (face?.decision ?? null) as ReidFaceResult["decision"],
       reason: face?.reason ?? null,
       hits: Array.isArray(face?.hits)
         ? face.hits.map((hit) => ({
@@ -499,6 +506,37 @@ export const reidApi: ReidApi = {
     });
     const data = unwrap<{ items?: ReidLibraryItem[] }>(res);
     return Array.isArray(data?.items) ? data.items : [];
+  },
+
+  /**
+   * 删除底库中的一条记录。
+   *
+   * <p>删的是「一条人员记录」，元数据与它挂着的两套特征向量（人脸 + ReID）由后端一起清掉，
+   * 只删元数据会留下孤儿向量，检索时仍可能命中一个查不到名字的记录。</p>
+   *
+   * @param id 记录 ID（即 vectorId）
+   * @param group 所属分组
+   */
+  async deleteReidLibrary(this: ApiContext, id: string, group?: string): Promise<void> {
+    await this._request(`/reid/library/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      params: { group: normalizeGroup(group) },
+    });
+  },
+
+  /**
+   * 清空指定分组的底库记录。
+   *
+   * @param group 分组，缺省 = default
+   * @returns 实际删除条数
+   */
+  async clearReidLibrary(this: ApiContext, group?: string): Promise<number> {
+    const res = await this._request("/reid/tracks", {
+      method: "DELETE",
+      params: { group: normalizeGroup(group) },
+    });
+    const data = unwrap<{ cleared?: number }>(res);
+    return Number(data?.cleared ?? 0);
   },
 
   async getReidTrack(this: ApiContext, trackId: string, group?: string): Promise<ReidTrack | null> {
