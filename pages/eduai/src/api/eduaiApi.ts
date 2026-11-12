@@ -669,6 +669,17 @@ export const eduaiApi = {
       .post("/v2/edu/fun/save")
       .data(data as unknown as Record<string, unknown>)
       .then<boolean>(unwrap),
+  /**
+   * 批量保存（后端同一事务，全成或全败）。
+   *
+   * @param list 配置列表
+   * @returns 保存后的配置（新建行带回 configId）
+   */
+  batchSaveFunConfigs: (list: Partial<FunConfig>[]) =>
+    http()
+      .post("/v2/edu/fun/batch-save")
+      .data(list as unknown as Record<string, unknown>[])
+      .then<FunConfig[]>(unwrap),
   deleteFunConfig: (configId: number) =>
     http()
       .delete(`/v2/edu/fun/delete/${configId}`)
@@ -1128,7 +1139,7 @@ export const eduaiApi = {
       .query({ limit })
       .then<TeacherMarkingTask[]>(unwrap),
   /** 我发起的阅卷任务（分页，按创建时间倒序） */
-  pageTeacherMarkingTasks: (params: { pageNum?: number; pageSize?: number; teacherFinished?: 0 | 1 } = {}) =>
+  pageTeacherMarkingTasks: (params: { pageNum?: number; pageSize?: number; teacherFinished?: 0 | 1; keyword?: string } = {}) =>
     http()
       .get("/v2/edu/teacher/marking/tasks/page")
       .query(params as unknown as Record<string, unknown>)
@@ -1182,6 +1193,19 @@ export const eduaiApi = {
     http()
       .get("/v2/edu/fun/modules")
       .query({ gradeLevel })
+      .then<FunModuleConfig[]>(unwrap),
+  /**
+   * 门户菜单清单（含停用项，学生端/教师端用）。
+   *
+   * <p>只返回编码/名称/路径/学段/启停/排序，用来区分「从没配过」与「全部停用」，
+   * 并过滤「全部功能」里的停用入口；不含 configJson 等管理端信息。</p>
+   *
+   * @param level PRIMARY / JUNIOR / SENIOR / TEACHER
+   */
+  portalMenu: (level: string) =>
+    http()
+      .get("/v2/edu/fun/portal-menu")
+      .query({ level })
       .then<FunModuleConfig[]>(unwrap),
 
   // ==================== 学生 / 班级 / 教师（数据配置 - 学生管理） ====================

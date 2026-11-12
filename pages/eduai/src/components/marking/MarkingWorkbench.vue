@@ -116,6 +116,7 @@ const fetchMarkingPage = async (pageNo: number, pageSizeNo: number): Promise<Pag
         pageNum: pageNo,
         pageSize: pageSizeNo,
         teacherFinished: finishFilter.value,
+        keyword: keywordFilter.value.trim() || undefined,
       });
       rows = (res.data ?? res.records ?? []) as TeacherMarkingTask[];
       total = Number(res.total ?? rows.length);
@@ -126,9 +127,17 @@ const fetchMarkingPage = async (pageNo: number, pageSizeNo: number): Promise<Pag
   }
   if (!markingTasksPagedSupported) {
     const all = (await eduaiApi.teacherMarkingTasks(100)) as TeacherMarkingTask[];
-    total = all.length;
+    const kw = keywordFilter.value.trim().toLowerCase();
+    const filtered = kw
+      ? all.filter(
+          (t) =>
+            String(t.markingTaskTaskId || "").toLowerCase().includes(kw) ||
+            String(t.markingTaskStudentId || "").toLowerCase().includes(kw),
+        )
+      : all;
+    total = filtered.length;
     const start = (pageNo - 1) * pageSizeNo;
-    rows = all.slice(start, start + pageSizeNo);
+    rows = filtered.slice(start, start + pageSizeNo);
   }
   void Promise.all(
     rows
@@ -144,6 +153,20 @@ const markingTasksLoader = createPageLoader<TeacherMarkingTask>(fetchMarkingPage
 
 /** 阅卷列表「完成状态」筛选（0=待完成, 1=已完成） */
 const finishFilter = ref<0 | 1 | undefined>(undefined);
+
+/** 关键词检索：任务号 / 学号（服务端 like，切页仍生效） */
+const keywordFilter = ref("");
+
+/** 搜索 / 回车：回到第一页并按关键词重查 */
+const onKeywordSearch = () => {
+  void markingTaskTableRef.value?.reload();
+};
+
+/** 清空关键词并重查 */
+const onKeywordClear = () => {
+  keywordFilter.value = "";
+  onKeywordSearch();
+};
 
 /** 切换完成状态筛选后刷新列表 */
 const onFinishFilterChange = () => {
@@ -811,6 +834,16 @@ onUnmounted(() => {
           <ReTag type="info">{{ totalCount }} 份</ReTag>
           <ReTag type="success" effect="plain">老师总分为最终成绩</ReTag>
           <span class="mw-spacer" />
+          <el-input
+            v-model="keywordFilter"
+            size="small"
+            clearable
+            placeholder="任务号 / 学号"
+            style="width: 180px"
+            @keyup.enter="onKeywordSearch"
+            @clear="onKeywordClear"
+          />
+          <el-button size="small" @click="onKeywordSearch">搜索</el-button>
           <el-select
             v-model="finishFilter"
             size="small"

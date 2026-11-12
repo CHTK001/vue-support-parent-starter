@@ -317,6 +317,9 @@ async function undoFinish(): Promise<void> {
         </template>
         取消勾选可剔除不想进错题本的题目（例如得分率压线或存疑的主观题）。
       </div>
+      <div v-if="!preview?.questions?.length" class="mr-preview-tip mr-preview-tip--muted">
+        这份卷没有可归入错题本的题目：任意卷没有题库关联，或本次得分率均未触发判错。
+      </div>
       <div v-if="preview?.questions?.length" class="mr-preview-list">
         <div
           v-for="q in preview.questions"
@@ -408,6 +411,9 @@ async function undoFinish(): Promise<void> {
 }
 .mr-preview-tip b {
   color: var(--el-color-primary);
+}
+.mr-preview-tip--muted {
+  color: var(--el-text-color-secondary);
 }
 .mr-preview-list {
   max-height: 46vh;

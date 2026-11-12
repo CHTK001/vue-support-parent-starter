@@ -298,12 +298,22 @@ const clearPreview = () => {
         />
       </span>
     </template>
+    <!-- 空态：ReTable 默认 plot 图没有文字，这里补一句可读的说明 -->
+    <template #empty>
+      <div class="mt-empty">当前筛选下没有阅卷任务</div>
+    </template>
   </ReTable>
 </template>
 
 <style scoped>
 .mt-final {
   color: var(--el-color-primary);
+}
+.mt-empty {
+  padding: 18px 0 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 /* 学生列：姓名主行 + 学号副标题（副行小一档、弱化色，行高由内容决定） */
 .mt-student {
