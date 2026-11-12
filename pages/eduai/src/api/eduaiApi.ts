@@ -95,7 +95,7 @@ export const eduaiApi = {
   questionStats: () =>
     http()
       .get("/v2/edu/question/stats")
-      .then<{ total?: number; pendingAudit?: number; todayNew?: number; subjectCount?: number }>(unwrap),
+      .then<{ total?: number; pendingAudit?: number; todayNew?: number; yesterdayNew?: number; subjectCount?: number }>(unwrap),
   getQuestion: (id: number) =>
     http()
       .get(`/v2/edu/question/${id}`)

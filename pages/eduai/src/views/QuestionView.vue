@@ -227,6 +227,15 @@
                   tip="驳回（需填理由）"
                   @click.stop="auditOne(row as unknown as Question, false)"
                 />
+                <!-- 删除接口与确认框此前只有实现没有入口，脏题只能走接口清 -->
+                <ReButton
+                  layout="square"
+                  type="danger"
+                  plain
+                  :icon="Delete"
+                  tip="删除"
+                  @click.stop="remove(row as unknown as Question)"
+                />
               </template>
             </template>
             <!-- 空态门控：本页 loading 是自己 div 上的 v-loading，没传给 ReTable，
@@ -840,7 +849,8 @@ const SORT_TABS = [
  * <p>自定义单元格一律走 {@code #col-<prop>} 插槽，插槽名与这里的 {@code slot} 字段一一对应；
  * 不在行数据上的两列（{@code gradeRange} / {@code stem}）只是插槽载体，没有真实字段。</p>
  *
- * <p>操作列宽 70 与迁移前一致，并保持 {@code fixed="right"}：横向滚动时编辑按钮不会被推走。</p>
+ * <p>操作列宽 190：管理员有编辑/通过/驳回/删除四个方形按钮，窄了会折行；
+ * 保持 {@code fixed="right"}，横向滚动时行操作不会被推走。</p>
  */
 const questionColumns: ReTableColumn[] = [
   { prop: "questionId", label: "ID", width: 80 },
@@ -853,7 +863,7 @@ const questionColumns: ReTableColumn[] = [
   { prop: "questionAddCount", label: "添加次数", width: 100, align: "right", slot: "col-questionAddCount" },
   { prop: "questionAuditStatus", label: "审核状态", width: 130, slot: "col-questionAuditStatus" },
   { prop: "questionStatus", label: "状态", width: 100, slot: "col-questionStatus" },
-  { prop: "actions", label: "操作", width: 150, align: "center", fixed: "right", slot: "col-actions" },
+  { prop: "actions", label: "操作", width: 190, align: "center", fixed: "right", slot: "col-actions" },
 ];
 
 const subjectOptions = computed(() => {
@@ -865,32 +875,40 @@ const questionStatsValue = reactive({
   total: 0,
   pendingAudit: 0,
   todayNew: 0,
+  yesterdayNew: 0,
   subjectCount: 0,
 });
 
+/** 统计接口是否成功过一次：失败时不要拿列表 total 顶上（两个口径混用会得到错误结论） */
+const statsLoaded = ref(false);
+
 const statCards = computed(() => {
-  const yesterdayDelta = Math.max(0, Number(questionStatsValue.todayNew) - 5);
+  const todayNew = Number(questionStatsValue.todayNew || 0);
+  const yesterdayNew = Number(questionStatsValue.yesterdayNew || 0);
+  const delta = todayNew - yesterdayNew;
   return [
     {
       title: "待审核",
       value: questionStatsValue.pendingAudit,
       icon: Warning,
       bg: "var(--el-color-warning-light-9)",
-      hint: "需人工审核",
+      hint: "仅统计未审核题目",
     },
     {
       title: "题目总数",
-      value: Number(questionStatsValue.total || total.value).toLocaleString("en-US"),
+      // 统计卡固定全库口径；列表 footer 是「当前筛选结果」，两者不能互相顶替
+      value: statsLoaded.value ? questionStatsValue.total : total.value,
       icon: Document,
       bg: "var(--el-color-primary-light-9)",
       hint: `覆盖${questionStatsValue.subjectCount || "—"}学科`,
     },
     {
       title: "今日新增",
-      value: questionStatsValue.todayNew,
+      value: todayNew,
       icon: Plus,
       bg: "var(--el-color-success-light-9)",
-      hint: `较昨日 +${yesterdayDelta}`,
+      // 没拿到真实昨日数据时宁可留空，也不要编一个「较昨日 +0」
+      hint: !statsLoaded.value ? "—" : delta === 0 ? "与昨日持平" : `较昨日 ${delta > 0 ? "+" : ""}${delta}`,
     },
   ];
 });
@@ -935,9 +953,29 @@ const reloadStats = async () => {
     questionStatsValue.total = Number(res?.total ?? 0);
     questionStatsValue.pendingAudit = Number(res?.pendingAudit ?? 0);
     questionStatsValue.todayNew = Number(res?.todayNew ?? 0);
+    questionStatsValue.yesterdayNew = Number(res?.yesterdayNew ?? 0);
     questionStatsValue.subjectCount = Number(res?.subjectCount ?? 0);
+    statsLoaded.value = true;
   } catch {
     // 统计失败不阻断列表；保留上一次成功值
+  }
+};
+
+/**
+ * 增删改审之后刷新列表 + 统计。
+ *
+ * <p>只刷统计卡会出现「卡片变了、行没变」的自相矛盾（保存后列表里找不到新题，
+ * 审核后行里还是「待审核」），所以两处必须一起刷。删掉当页最后一条时回退一页。</p>
+ *
+ * @param toFirst 是否回到第一页（新建题目后回到首页才看得到新行）
+ */
+const refreshList = async (toFirst = false) => {
+  if (toFirst) pageNo.value = 1;
+  await Promise.all([loadPage(), reloadStats()]);
+  const maxPage = Math.max(1, Math.ceil((Number(total.value) || 0) / pageSize.value));
+  if (pageNo.value > maxPage) {
+    pageNo.value = maxPage;
+    await loadPage();
   }
 };
 
@@ -1279,10 +1317,12 @@ const save = async (auditOnSave = false) => {
   try {
     // 审核态由服务端裁定：前端不经 save 直写 auditStatus；保存并审核走 auditOnSave 通道。
     const { questionAuditStatus: _omitAudit, questionAuditRemark: _omitRemark, ...payload } = form;
+    const isCreate = !payload.questionId;
     await eduaiApi.saveQuestion({ ...payload, auditOnSave } as Parameters<typeof eduaiApi.saveQuestion>[0]);
     message.success(auditOnSave ? "已保存并审核通过" : "保存成功");
     dialogVisible.value = false;
-    await reloadStats();
+    // 保存后必须让列表跟着变：只刷统计卡会出现「卡片 +1、列表里却没有这题」
+    await refreshList(isCreate);
   } catch (e) {
     message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
@@ -1318,7 +1358,8 @@ const auditOne = async (row: Question, passed: boolean) => {
   try {
     await eduaiApi.auditQuestion(row.questionId, passed, remark || undefined);
     message.success(passed ? "已通过" : "已驳回");
-    await reloadStats();
+    // 审核后行的「审核状态」标签必须跟着变，否则统计卡与列表互相打脸
+    await refreshList();
   } catch (e) {
     message.error("审核失败: " + (e instanceof Error ? e.message : String(e)));
   }
@@ -1362,7 +1403,7 @@ const batchAudit = async (passed: boolean) => {
     const count = await eduaiApi.auditQuestions(selectedIds.value, passed, remark || undefined);
     message.success(`审核完成，成功 ${count} 条`);
     selectedIds.value = [];
-    await reloadStats();
+    await refreshList();
   } catch (e) {
     message.error("批量审核失败: " + (e instanceof Error ? e.message : String(e)));
   }
@@ -1381,7 +1422,7 @@ const remove = async (row: Question) => {
   try {
     await eduaiApi.deleteQuestion(row.questionId);
     message.success("已删除");
-    await reloadStats();
+    await refreshList();
   } catch (e) {
     message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
@@ -1416,7 +1457,8 @@ const doImport = async () => {
     }
     if (result.successCount > 0) {
       importDialogVisible.value = false;
-      await reloadStats();
+      // 导入成功也要让列表跟着变，否则用户只能靠统计卡 +N 猜结果
+      await refreshList(true);
     }
   } catch (e) {
     message.error("导入失败: " + (e instanceof Error ? e.message : String(e)));

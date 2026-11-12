@@ -401,7 +401,8 @@ const statCards = computed(() => {
   const easy = list.filter((r) => (r.idiomDifficulty ?? 3) <= 2).length;
   const hard = list.filter((r) => (r.idiomDifficulty ?? 3) >= 4).length;
   return [
-    { title: "成语总数", value: total.value, icon: Collection, bg: "var(--el-color-primary-light-9)", hint: "全部成语" },
+    // total 是服务端按筛选条件算的，写「全部成语」会在筛选后自相矛盾
+    { title: "成语总数", value: total.value, icon: Collection, bg: "var(--el-color-primary-light-9)", hint: "按筛选条件" },
     { title: "本页简单", value: easy, icon: Plus, bg: "var(--el-color-success-light-9)", hint: "难度 ≤ 2" },
     { title: "本页困难", value: hard, icon: Delete, bg: "var(--el-color-warning-light-9)", hint: "难度 ≥ 4" },
   ];

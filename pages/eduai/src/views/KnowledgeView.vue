@@ -106,10 +106,11 @@
     <!-- 卡片网格 / 列表 -->
     <el-card shadow="never" class="table-card">
       <div v-loading="loading" class="card-grid-wrap">
-      <div v-if="viewMode === 'grid'" class="card-grid">
+      <div v-if="viewMode === 'grid'" class="card-grid-shell">
+      <div class="card-grid">
         <!-- 卡片本身可点：补 role/tabindex 让键盘能聚焦，:focus-visible 的焦点环才有意义 -->
         <div
-          v-for="card in sortedCards"
+          v-for="card in pagedCards"
           :key="card.knowledgePointId"
           class="kp-card"
           :class="{ 'is-selected': detailCard?.knowledgePointId === card.knowledgePointId }"
@@ -165,6 +166,21 @@
           <el-icon :size="28"><Plus /></el-icon>
           <span>新增卡片</span>
         </div>
+      </div>
+
+      <!-- 网格视图页脚：原来卡片全量铺开，既没有总条数也没有分页 -->
+      <div v-if="sortedCards.length" class="grid-footer">
+        <span class="grid-footer__total">共 {{ sortedCards.length }} 条</span>
+        <el-pagination
+          v-model:current-page="gridPageNo"
+          :page-size="GRID_PAGE_SIZE"
+          :total="sortedCards.length"
+          layout="prev, pager, next"
+          background
+          small
+          hide-on-single-page
+        />
+      </div>
       </div>
 
       <!-- 列表视图 -->
@@ -550,6 +566,10 @@ const tableRef = ref();
 const viewMode = ref<"grid" | "list">("grid");
 const sortMode = ref<"updated" | "created" | "name">("updated");
 
+/** 网格视图分页：卡片视图原来全量渲染，几百条就开始掉帧，页脚也没有「共 N 条」 */
+const GRID_PAGE_SIZE = 24;
+const gridPageNo = ref(1);
+
 const subjectMeta = ref<EduSubject[]>([]);
 const gradeMeta = ref<EduGrade[]>([]);
 
@@ -651,15 +671,47 @@ const onFormGradeLevelChange = () => {
   }
 };
 
+/**
+ * 解析后端时间串。
+ *
+ * <p>后端目前给的是「YYYY-MM-DD HH:mm:ss」：Safari / 旧内核不认空格分隔，必须先换成 T；
+ * 以后若改成带毫秒、带时区偏移或 ISO 形态，Date.parse 也能直接吃。
+ * 两种都失败时按「年月日 时分秒」手工拼成本地时间，
+ * 避免格式一变就把「新增本周」和排序整体退化成 0。</p>
+ */
+const parseTime = (raw?: string | null): number => {
+  if (!raw) return 0;
+  const text = String(raw).trim();
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(text);
+  const direct = Date.parse(hasZone ? text : text.replace(" ", "T"));
+  if (!Number.isNaN(direct)) return direct;
+  const m = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (!m) return 0;
+  return new Date(
+    Number(m[1]),
+    Number(m[2]) - 1,
+    Number(m[3]),
+    Number(m[4] || 0),
+    Number(m[5] || 0),
+    Number(m[6] || 0),
+  ).getTime();
+};
+
 const sortedCards = computed(() => {
   const list = [...cards.value];
   if (sortMode.value === "name") {
     list.sort((a, b) => (a.knowledgePointName || "").localeCompare(b.knowledgePointName || "", "zh-CN"));
     return list;
   }
-  const t = (c: KnowledgeCard) => (c.createTime ? Date.parse(c.createTime.replace(" ", "T")) || 0 : 0);
+  const t = (c: KnowledgeCard) => parseTime(c.createTime);
   if (sortMode.value === "created") return list.sort((a, b) => t(a) - t(b));
   return list.sort((a, b) => t(b) - t(a));
+});
+
+/** 网格视图当前页切片（列表视图仍由 ReTable 自己分页） */
+const pagedCards = computed(() => {
+  const start = (gridPageNo.value - 1) * GRID_PAGE_SIZE;
+  return sortedCards.value.slice(start, start + GRID_PAGE_SIZE);
 });
 
 /** ReTable 的 data 只收 Record 结构，此处仅做渲染层类型适配，不改数据本身 */
@@ -688,8 +740,8 @@ const knowledgeColumns: ReTableColumn[] = [
 const relativeTime = (card: KnowledgeCard) => {
   const raw = card.createTime;
   if (!raw) return "刚刚";
-  const ts = Date.parse(String(raw).replace(" ", "T"));
-  if (Number.isNaN(ts)) return "刚刚";
+  const ts = parseTime(raw);
+  if (!ts) return "刚刚";
   const diff = Math.max(0, Date.now() - ts);
   const min = Math.floor(diff / 60000);
   if (min < 1) return "刚刚";
@@ -703,16 +755,28 @@ const relativeTime = (card: KnowledgeCard) => {
   return raw.slice(0, 10);
 };
 
-/** 统计：总数 / 学科 Top2 / 本周新增（基于全量 allCards） */
+/** 过滤条件是否生效：统计卡据此在「全库」与「当前筛选」之间切换 */
+const hasFilter = computed(() =>
+  Boolean(filter.keyword || filter.subject || filter.gradeLevel || filter.grade),
+);
+
+/**
+ * 统计：总数 / 学科 Top2 / 本周新增。
+ *
+ * <p>必须基于 {@code cards}（已按筛选过滤），否则筛完学科网格只剩 2 张、
+ * 上面四张卡还写着全库数字，用户没法判断筛选到底做没做。
+ * 没有数据时不编造「数学 / 物理」，空就是空。</p>
+ */
 const statCards = computed(() => {
-  const total = allCards.value.length;
+  const list = cards.value;
+  const total = list.length;
   const bySubject = new Map<string, number>();
   let weekNew = 0;
   const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-  for (const c of allCards.value) {
+  for (const c of list) {
     const s = (c.knowledgePointSubject || "").trim();
     if (s) bySubject.set(s, (bySubject.get(s) || 0) + 1);
-    const ts = c.createTime ? Date.parse(String(c.createTime).replace(" ", "T")) : 0;
+    const ts = parseTime(c.createTime);
     if (ts && ts >= weekAgo) weekNew += 1;
   }
   const top = [...bySubject.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2);
@@ -726,13 +790,19 @@ const statCards = computed(() => {
     return Notebook;
   };
   const stats = [
-    { title: "知识点总数", value: total, icon: Document, bg: "var(--el-color-primary-light-9)", hint: "全部学科汇总" },
+    {
+      title: "知识点总数",
+      value: total,
+      icon: Document,
+      bg: "var(--el-color-primary-light-9)",
+      hint: hasFilter.value ? "当前筛选结果" : "全部学科汇总",
+    },
     top[0]
       ? { title: top[0][0], value: top[0][1], icon: iconFor(top[0][0]), bg: "var(--el-color-primary-light-9)", hint: "学科 Top1" }
-      : { title: "数学", value: 0, icon: Grid, bg: "var(--el-color-primary-light-9)", hint: "学科 Top1" },
+      : { title: "学科 Top1", value: "—", icon: Grid, bg: "var(--el-color-primary-light-9)", hint: "暂无数据" },
     top[1]
       ? { title: top[1][0], value: top[1][1], icon: iconFor(top[1][0]), bg: "var(--el-color-success-light-9)", hint: "学科 Top2" }
-      : { title: "物理", value: 0, icon: MagicStick, bg: "var(--el-color-success-light-9)", hint: "学科 Top2" },
+      : { title: "学科 Top2", value: "—", icon: MagicStick, bg: "var(--el-color-success-light-9)", hint: "暂无数据" },
     { title: "新增本周", value: weekNew, icon: Plus, bg: "var(--el-color-warning-light-9)", hint: "近 7 天创建" },
   ];
   return stats;
@@ -787,8 +857,8 @@ const loadDims = async () => {
   }
 };
 
-/** 拉取全量卡片（统计用），再按当前 filter 过滤展示 */
-const reload = async () => {
+/** 拉取全量卡片（统计基线），再按当前 filter 过滤出展示集合 */
+const loadCards = async () => {
   filter.keyword = searchDraft.keyword;
   filter.subject = searchDraft.subject;
   filter.gradeLevel = searchDraft.gradeLevel;
@@ -813,6 +883,18 @@ const reload = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+/** 当前页越界时退回最后一页（删除掉当页最后一条时会发生） */
+const clampGridPage = () => {
+  const maxPage = Math.max(1, Math.ceil(sortedCards.value.length / GRID_PAGE_SIZE));
+  if (gridPageNo.value > maxPage) gridPageNo.value = maxPage;
+};
+
+/** 条件变化重载：回到第一页，避免停在第 5 页却只剩 1 页结果 */
+const reload = async () => {
+  gridPageNo.value = 1;
+  await loadCards();
 };
 
 const handleReset = () => {
@@ -852,10 +934,14 @@ const saveCard = async () => {
   }
   cardSaving.value = true;
   try {
+    // 新建后卡片排在最前，只有回第一页才看得到（否则「已保存」却找不到那张卡）
+    const isCreate = !cardForm.knowledgePointId;
     await eduaiApi.saveKnowledgePoint(cardForm);
     message.success("已保存");
     cardDialogVisible.value = false;
-    await reload();
+    if (isCreate) gridPageNo.value = 1;
+    await loadCards();
+    clampGridPage();
     if (detailCard.value && detailCard.value.knowledgePointId === cardForm.knowledgePointId) {
       detailCard.value = { ...detailCard.value, ...cardForm } as KnowledgeCard;
     }
@@ -873,7 +959,8 @@ const removeCard = async (row: KnowledgeCard) => {
     if (detailCard.value?.knowledgePointId === row.knowledgePointId) {
       detailVisible.value = false;
     }
-    await reload();
+    await loadCards();
+    clampGridPage();
   } catch (e) {
     message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
@@ -1180,13 +1267,34 @@ onMounted(() => {
   contain: layout size;
   overflow: hidden;
 }
-.card-grid {
+/* 网格 + 页脚：外壳撑满定高容器，滚动条只出现在网格内部 */
+.card-grid-shell {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.card-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 14px;
   align-content: start;
+}
+/* 网格页脚：左「共 N 条」、右页码 */
+.grid-footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+}
+.grid-footer__total {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 /* 空态：定高容器内垂直居中 */
 .card-grid-wrap :deep(.el-empty) {

@@ -504,11 +504,11 @@ const translatedCount = computed(() => rows.value.filter((r) => Boolean(r.poemTr
 
 /**
  * 统计卡（与成语页同构：标题 / 数值 / 提示 + 右上角图标底色）。
- * 「古诗总数」取服务端全库 total（按筛选条件）；其余三张为**本页**口径 ——
- * 服务端分页后前端只持有当前页，不再有全量数据可算。
+ * 「古诗总数」取服务端 total（随筛选条件变化，所以提示写「按筛选条件」而不是「全库」）；
+ * 其余三张为**本页**口径 —— 服务端分页后前端只持有当前页，不再有全量数据可算。
  */
 const statCards = computed(() => [
-  { title: "古诗总数", value: total.value, icon: Reading, bg: "var(--el-color-primary-light-9)", hint: "全库，按筛选条件" },
+  { title: "古诗总数", value: total.value, icon: Reading, bg: "var(--el-color-primary-light-9)", hint: "按筛选条件" },
   {
     title: "可游戏篇目",
     value: playableCount.value,
