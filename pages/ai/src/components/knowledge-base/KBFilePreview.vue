@@ -132,13 +132,17 @@ watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) l
     <div v-loading="loading" class="kb max-h-[68vh] overflow-auto">
       <el-alert v-if="errorText" type="error" :closable="false" :title="errorText" class="mb-3" />
       <template v-else>
-        <div class="flex items-center gap-2 pb-2.5 mb-2.5 border-b border-[var(--rm-border-light)] text-xs text-[var(--rm-text-secondary)]">
-          <ReTag size="small" effect="plain">{{ ext.toUpperCase() || 'TEXT' }}</ReTag>
-          <span class="flex-1 min-w-0 truncate">{{ relPath }}</span>
-          <span class="shrink-0">{{ content.length }} 字符</span>
+        <!-- 阅读稿纸：正文收在 760px 内，长行不再横跨整个弹窗 -->
+        <div class="kb-read">
+          <div class="kb-read__meta flex items-center gap-2 pb-2.5 mb-2.5 border-b border-[var(--rm-border-light)] text-xs text-[var(--rm-text-secondary)]">
+            <ReTag size="small" effect="plain">{{ ext.toUpperCase() || 'TEXT' }}</ReTag>
+            <span class="flex-1 min-w-0 truncate" :title="relPath">{{ relPath }}</span>
+            <span class="shrink-0">{{ content.length }} 字符</span>
+          </div>
+          <!-- eslint-disable-next-line vue/no-v-html —— Markdown 由 marked 渲染，原文 HTML 已关闭 -->
+          <div class="kb-md text-sm leading-relaxed text-[var(--rm-text)]" v-html="renderedHtml" />
+          <p v-if="!loading && !content" class="kb-read__empty">这个文件没有可显示的正文。</p>
         </div>
-        <!-- eslint-disable-next-line vue/no-v-html —— Markdown 由 marked 渲染，原文 HTML 已关闭 -->
-        <div class="kb-md text-sm leading-relaxed text-[var(--rm-text)]" v-html="renderedHtml" />
       </template>
     </div>
     <template #footer>
@@ -148,6 +152,27 @@ watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) l
 </template>
 
 <style scoped>
+/* 阅读稿纸：正文最大 760px，弹窗再宽也不会出现一屏长行；
+   元信息条吸顶，长文档滚动时文件名 / 字符数始终可见。 */
+.kb-read {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.kb-read__meta {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--rm-bg, var(--bg-container, #fff));
+}
+
+.kb-read__empty {
+  margin: 28px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--rm-text-secondary);
+}
+
 /* markdown 正文排版（内容渲染，非 UI 外壳）。变量统一走 koi --rm-*。 */
 .kb-md :deep(pre) {
   margin: 0;
@@ -190,6 +215,14 @@ watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) l
   background: var(--rm-bg-subtle);
   font-size: 0.92em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* 代码块里的 code 不要再套一层内联底色，否则是「灰底上又一块灰」 */
+.kb-md :deep(pre code) {
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  font-size: inherit;
 }
 
 .kb-md :deep(blockquote) {
