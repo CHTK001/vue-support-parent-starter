@@ -3368,17 +3368,24 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
     <!-- 错误条 -->
     <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="loadChannels" />
 
-    <!-- 空态 -->
-    <el-empty v-if="!loading && !channels.length" description="尚未注册任何渠道">
-      <template #description>
-        <p>尚未注册任何渠道</p>
-        <!-- 空态只说「怎么办」，不列实现类名（AccountChannelAuthManager 之类属于开发者口径） -->
-        <p class="chm-empty__hint">
-          渠道清单由服务端统一登记：AI 账号渠道与免登录对话 / 文生图渠道都会出现在这里。
-          清单为空说明服务端还没有登记任何渠道，请联系管理员确认。
-        </p>
-      </template>
-    </el-empty>
+    <!-- 空态：一张卡片，而不是裸露的 el-empty —— 整页唯一的内容要站得住 -->
+    <div v-if="!loading && !channels.length" class="chm-empty">
+      <div class="chm-empty__card">
+        <span class="chm-empty__icon" aria-hidden="true">
+          <el-icon><ConnectionIcon /></el-icon>
+        </span>
+        <div class="chm-empty__body">
+          <h3 class="chm-empty__title">尚未注册任何渠道</h3>
+          <!-- 空态只说「怎么办」，不列实现类名（AccountChannelAuthManager 之类属于开发者口径） -->
+          <p class="chm-empty__hint">
+            渠道清单由服务端统一登记：AI 账号渠道与免登录对话 / 文生图渠道都会出现在这里。
+          </p>
+          <p class="chm-empty__hint chm-empty__hint--muted">
+            清单为空说明服务端还没有登记任何渠道，请联系管理员确认。
+          </p>
+        </div>
+      </div>
+    </div>
 
     <!-- 方案 A · 运维甲板：左渠道索引 + 右选中详情 -->
     <div v-else class="chm-deck">
@@ -6238,9 +6245,54 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   align-items: center;
   gap: 8px;
 }
+/* 空态卡片：图标 + 标题 + 说明，与页面其它卡面共用同一套边框/圆角/底色 */
+.chm-empty {
+  display: flex;
+  justify-content: center;
+  padding: 48px 24px;
+}
+.chm-empty__card {
+  display: flex;
+  gap: 14px;
+  max-width: 560px;
+  padding: 20px 22px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  background: var(--surface-1, #fff);
+}
+.chm-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  font-size: 18px;
+  color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+.chm-empty__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.chm-empty__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--text-primary, #0f172a);
+}
 .chm-empty__hint {
+  margin: 0;
   font-size: 12px;
+  line-height: 1.6;
   color: var(--el-text-color-secondary, #909399);
+}
+.chm-empty__hint--muted {
+  color: var(--text-tertiary, #94a3b8);
 }
 
 </style>
