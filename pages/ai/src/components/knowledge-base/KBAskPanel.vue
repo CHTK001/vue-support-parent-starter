@@ -455,10 +455,18 @@ watch(() => props.kbId, () => clearTurns())
       </div>
 
       <div
-        v-for="turn in turns"
+        v-for="(turn, ti) in turns"
         :key="turn.id"
         class="[&+&]:mt-5 [&+&]:pt-5 [&+&]:border-t [&+&]:border-dashed [&+&]:border-[var(--rm-border-light)]"
       >
+        <!-- 轮次头：第几问 / 耗时 / 引用数 / 失败标记，长对话里便于回看 -->
+        <div class="kb-turn__head">
+          <span class="kb-turn__no">第 {{ String(ti + 1).padStart(2, '0') }} 问</span>
+          <span v-if="turn.elapsed" class="kb-turn__meta">{{ (turn.elapsed / 1000).toFixed(1) }}s</span>
+          <span v-if="turn.citations.length" class="kb-turn__meta">{{ turn.citations.length }} 条引用</span>
+          <span v-if="turn.error" class="kb-turn__meta kb-turn__meta--err">未完成</span>
+        </div>
+
         <!-- 提问 -->
         <div class="kb-ask__q">{{ turn.question }}</div>
 

@@ -2035,6 +2035,34 @@
 }
 
 /* --- 一轮问答 --- */
+/* 轮次头：等宽小字，回答再长也能一眼定位「第几问」 */
+.kb-turn__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-family: var(--kb-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--kb-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-turn__head > * + *::before {
+  content: "·";
+  margin-right: 6px;
+  opacity: 0.6;
+}
+
+.kb-turn__no {
+  color: var(--kb-ink-2);
+  font-weight: 500;
+}
+
+.kb-turn__meta--err {
+  color: var(--kb-err);
+}
+
 .kb-ask__q {
   margin: 0 0 var(--kb-sp-2);
   padding-left: 8px;
