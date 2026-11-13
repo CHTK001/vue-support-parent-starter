@@ -1734,6 +1734,9 @@ const groupedRecycle = computed(() => {
 async function loadRecycle(): Promise<void> {
   recycleLoading.value = true;
   try {
+    // 回收站目录只在第一次删除时创建；直接 list 会让浏览器稳定报 404。
+    // 先幂等 ensure 一次，再读；失败仍按空列表处理，不阻断页面。
+    await ensureRecycleDir();
     recycleItems.value = await listObjects(bucket.value, RECYCLE_DIR);
   } catch {
     recycleItems.value = [];
@@ -1742,11 +1745,17 @@ async function loadRecycle(): Promise<void> {
   }
 }
 
+/** 已确认过回收站目录的桶（避免每次刷新都再发一次 mkdir） */
+const recycleEnsuredBuckets = new Set<string>();
+
 /** 确保回收站目录存在（已存在时忽略） */
 async function ensureRecycleDir(): Promise<void> {
+  const bucketName = bucket.value;
+  if (recycleEnsuredBuckets.has(bucketName)) return;
   try {
-    await createDirectory(bucket.value, "", RECYCLE_DIR);
+    await createDirectory(bucketName, "", RECYCLE_DIR);
   } catch { /* 已存在忽略 */ }
+  recycleEnsuredBuckets.add(bucketName);
 }
 
 /**
@@ -1803,6 +1812,9 @@ async function emptyRecycle(): Promise<void> {
   actionRunning.value = true;
   try {
     await deleteObject(bucket.value, RECYCLE_DIR);
+    // 清空会连 .recycle 目录一起删掉；允许下一次 ensure 重新创建，
+    // 否则「清空后再删除文件」会落进一个不存在的目录。
+    recycleEnsuredBuckets.delete(bucket.value);
     message.success("回收站已清空");
     await loadRecycle();
   } catch (e) {
