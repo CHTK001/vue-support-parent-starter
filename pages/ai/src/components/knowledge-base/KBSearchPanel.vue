@@ -49,8 +49,8 @@
             @click="handleResultClick(result)"
           >
             <!-- 分数 -->
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-              <div class="flex items-center gap-1.5 flex-wrap">
+            <div class="kb-search__head flex items-center justify-between gap-2 flex-wrap">
+              <div class="kb-search__scores flex items-center gap-1.5 flex-wrap">
                 <template v-if="hasHybridScores(result)">
                   <ReTag type="primary" effect="plain" size="small">
                     {{ t('knowledge.search.semantic') }} <b class="ml-1">{{ (result.semanticScore || 0).toFixed(2) }}</b>
@@ -75,20 +75,20 @@
                   {{ t('knowledge.search.relevance') }}: {{ result.finalScore.toFixed(3) }}
                 </ReTag>
               </div>
-              <span class="text-xs text-[var(--rm-text-disabled)]">#{{ index + 1 }}</span>
+              <span class="kb-search__rank">{{ String(index + 1).padStart(2, '0') }}</span>
             </div>
 
             <!-- 来源文件 -->
-            <div v-if="result.fileName || result.metadata?.fileId">
+            <div v-if="result.fileName || result.metadata?.fileId" class="kb-search__file">
               <ReTag type="info" size="small">{{ result.fileName || t('knowledge.search.unknownFile') }}</ReTag>
             </div>
 
             <!-- 内容预览 -->
             <!-- eslint-disable-next-line vue/no-v-html —— highlightText 已先做 HTML 转义再高亮 -->
-            <div class="kb-search-hl text-sm leading-relaxed line-clamp-3" v-html="highlightText(result.content, searchForm.query)" />
+            <div class="kb-search__snippet kb-search-hl text-sm leading-relaxed line-clamp-3" v-html="highlightText(result.content, searchForm.query)" />
 
             <!-- 元数据 -->
-            <div v-if="result.metadata" class="text-xs text-[var(--rm-text-disabled)]">
+            <div v-if="result.metadata" class="kb-search__meta text-xs text-[var(--rm-text-disabled)]">
               <span v-if="result.metadata.chunk_index">{{ t('knowledge.search.chunk') }} #{{ result.metadata.chunk_index }}</span>
             </div>
           </div>

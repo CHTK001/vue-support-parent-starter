@@ -3841,8 +3841,7 @@ html.dark .kb-tpl__cover {
   color: var(--kb-accent);
 }
 
-/* 左栏库目录筛选：只在库多时出现，聚焦时与右栏输入区同一套光晕 */
-.kb-nav__search {
+/* 左栏库目录筛选：只在库多时出现，聚焦时与右栏输入区同一套光晕 */.kb-nav__search {
   position: relative;
   margin: 0 0 6px;
 }
@@ -3959,4 +3958,72 @@ html.dark .kb-tpl__cover {
 
 .kb-nav__group {
   gap: 3px;
+}
+
+/* ##########  10. 检索结果卡（2026-11-13 第四轮） ########## */
+
+/* 每条命中是一张可扫读的卡：编号 → 来源 → 片段 → 分块，
+   悬停亮起左侧标尺，和文件表同一套语言 */
+.kb-search__result {
+  position: relative;
+  padding: 12px 14px;
+  border: 1px solid var(--kb-line);
+  border-radius: var(--kb-r-md);
+  background: var(--kb-card);
+  transition:
+    border-color var(--kb-dur) var(--kb-ease),
+    box-shadow var(--kb-dur) var(--kb-ease);
+}
+
+.kb-search__result::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--kb-accent);
+  opacity: 0;
+  transition: opacity var(--kb-dur) var(--kb-ease);
+}
+
+.kb-search__result:hover {
+  border-color: var(--kb-accent-line);
+  box-shadow: 0 8px 20px -16px rgb(15 23 42 / 0.45);
+}
+
+.kb-search__result:hover::before {
+  opacity: 0.9;
+}
+
+.kb-search__rank {
+  font-family: var(--kb-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--kb-ink-3);
+}
+
+.kb-search__snippet {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--kb-ink-2);
+}
+
+/* 命中词高亮：此前没有任何样式，<mark> 用的是浏览器默认亮黄底 */
+.kb-search__snippet mark,
+.kb-search-hl mark {
+  background: color-mix(in srgb, var(--kb-accent) 16%, transparent);
+  color: var(--kb-ink);
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.kb-search__meta {
+  display: flex;
+  gap: var(--kb-sp-2);
+  font-family: var(--kb-mono);
+  font-size: 10.5px;
+  color: var(--kb-ink-3);
 }
