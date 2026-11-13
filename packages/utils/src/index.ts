@@ -17,6 +17,7 @@ export * from "./modules/axiosThrottle";
 export * from "./modules/screen";
 export * from "./modules/cache";
 export * from "./modules/token";
+export * from "./modules/loginCredential";
 export * from "./modules/userDisplay";
 export * from "./modules/costMs";
 export * from "./modules/dexie";

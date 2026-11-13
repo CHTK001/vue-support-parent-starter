@@ -209,12 +209,18 @@ export class StorageWrapper {
   /**
    * 清空用户级存储（登录跳转时调用）
    * 保留 noPrefixKeys（如 sys-fingerprint），删除所有带前缀的用户/应用级 key
+   *
+   * @param keepKeyFragments 需要保留的 key 片段（如 login.remember），
+   *                         用于登录页刷新时不被清掉「记住账号密码」
    */
-  clearUserStorage(): void {
+  clearUserStorage(keepKeyFragments: string[] = []): void {
     const prefix = this.prefix ? `${this.prefix}:` : "";
     for (let i = 0; i < this.store.length; i++) {
       const storeKey = this.store.key(i);
       if (!storeKey) continue;
+      if (keepKeyFragments.some((fragment) => fragment && storeKey.includes(fragment))) {
+        continue;
+      }
       if (storeKey.startsWith(prefix)) {
         this.store.removeItem(storeKey);
         const expiresKey = storeKey + EXPIRES_KEY_SUFFIX;

@@ -12,6 +12,7 @@
  * 三方是外部政府接口，不走项目 http 拦截器（无需签名/加密），用原生 fetch + 超时。
  * dev 期若应用配了 /typhoon-api 代理前缀会优先走代理（免跨域），否则直连。
  */
+import { isCapabilityEnabled } from "@repo/config";
 import { log } from "@repo/utils";
 import { http } from "./index";
 import { probeBackend } from "./backendProbe";
@@ -369,6 +370,10 @@ function toTyphoonDetail(raw: RawTyphoonDetail, fallbackId: string): TyphoonDeta
  * 与历史行为一致：任何链路都失败时返回空数组，顶栏据此不显示台风入口。
  */
 export async function getActiveTyphoonList(): Promise<TyphoonItem[]> {
+  // 能力位显式关闭：返回空列表，不回落浙水利
+  if (!isCapabilityEnabled("typhoon")) {
+    return [];
+  }
   if (await probeBackend(TYPHOON_ACTIVE_PATH)) {
     try {
       const res = await http()
@@ -430,6 +435,9 @@ export async function getActiveTyphoonList(): Promise<TyphoonItem[]> {
 export async function getTyphoonDetail(id: string): Promise<TyphoonDetail> {
   if (!id) {
     throw new Error("[typhoon] 缺少台风编号");
+  }
+  if (!isCapabilityEnabled("typhoon")) {
+    throw new Error("[typhoon] 能力位已关闭（other.capabilities.typhoon=false），不发起任何请求");
   }
 
   if (await probeBackend(TYPHOON_ACTIVE_PATH)) {

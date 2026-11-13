@@ -288,11 +288,16 @@ export function refreshSecurity(): void {
  */
 function warmHeaderCapabilityProbes(config: AppConfig): void {
   const other = config.other;
-  if (other?.toolbar?.weather && other?.weather?.enable !== false) {
+  // 声明的 items 白名单优先：没列出的条目根本不会渲染，更不该为它发探测
+  const declared = Array.isArray(other?.toolbar?.items) ? other.toolbar.items : [];
+  const listed = (key: string): boolean =>
+    declared.length === 0 ||
+    declared.some((item) => String(item?.key ?? "") === key && item?.visible !== false);
+  if (other?.toolbar?.weather && other?.weather?.enable !== false && listed("weather")) {
     void probeBackend(WEATHER_OVERVIEW_PATH);
     void probeBackend(LOCATION_RESOLVE_PATH);
   }
-  if (other?.toolbar?.typhoon) {
+  if (other?.toolbar?.typhoon && listed("typhoon")) {
     // 详情接口与列表同属一个后台控制器，探测列表即可
     void probeBackend(TYPHOON_ACTIVE_PATH);
   }

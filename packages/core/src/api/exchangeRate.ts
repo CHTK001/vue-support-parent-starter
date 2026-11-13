@@ -21,7 +21,7 @@
  * 代理不存在时自动退回直连：直连时**必须**使用新域名 `https://api.frankfurter.dev/v1`，
  * 旧域名 301 到 `/v1/` 时不返回 CORS 头，浏览器直接卡死。
  */
-import { getConfig } from "@repo/config";
+import { getConfig, isCapabilityEnabled } from "@repo/config";
 import { log } from "@repo/utils";
 import { http } from "./index";
 import { probeBackend } from "./backendProbe";
@@ -450,6 +450,10 @@ async function fetchRatesFromFrankfurter(query: ExchangeRateQuery): Promise<Exch
  * 除非被显式要求，否则 symbols/period 均取 app.yaml 默认。
  */
 export async function getExchangeRateOverview(query: ExchangeRateQuery = {}): Promise<ExchangeRateOverview> {
+  // 能力位显式关闭：不回落 frankfurter。只挡后台探测等于没关。
+  if (!isCapabilityEnabled("exchangeRate")) {
+    throw new Error("[exchangeRate] 能力位已关闭（other.capabilities.exchangeRate=false），不发起任何请求");
+  }
   const effective = normalizeQuery(query);
   if (await probeBackend(EXCHANGE_RATE_OVERVIEW_PATH)) {
     try {

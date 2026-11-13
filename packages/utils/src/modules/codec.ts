@@ -1,11 +1,13 @@
 /**
- * 请求体编解码（对齐后端 ApiRequestDecodeRegister / Codec / AesCodec 协议）
+ * 请求体编解码（对齐后端 ApiRequestDecodeRegister / Codec SPI 协议）
  *
  * 后端 `plugin.api.decode` 开启后，`ApiRequestDecodeBodyAdvice` 对携带
  * `access-control-origin-key` 头的请求体做解密：
- *  - codecType 含 "aes" → `AesCodec`：aesKey = SHA-256(key)（32 字节，AES-256），
+ *  - codecType 含 "aes" → `AesCbcCodec`：aesKey = SHA-256(key)（32 字节，AES-256），
  *    iv = SHA-256(key) 前 16 字节，AES/CBC/PKCS5Padding 解密，线上载荷为 hex 字符串；
- *  - 其余（sm4/des）→ `Codec` 仅做 hex 编解码（无真实加密）。
+ *  - codecType 为 "hex"（或未配置密钥）→ 仅十六进制编码，属兼容路径；
+ *  - sm4 / des 后端已是真实加密（SPI 实现），前端尚未实现对应算法，
+ *    这里显式抛错而不是悄悄发 hex 明文。
  *
  * 载荷形态（后端 `extractEncryptedPayload`）：不以 `{` / `[` 开头的原始 body 文本
  * 即视为密文，故前端直接发送 hex 字符串即可，无需 `{"data": "..."}` 包装。
@@ -24,7 +26,7 @@ export function sha256Hex(input: string): string {
 
 /** 编解码配置（与后端 plugin.api.decode.codec-type / codec-request-key 对齐） */
 export interface RequestCodecOptions {
-  /** 编解码类型：含 aes 走 AES-256-CBC，其余（sm4/des）为纯 hex */
+  /** 编解码类型：含 aes 走 AES-256-CBC；hex 为显式编码；sm4/des 前端未实现，会直接报错 */
   type: string;
   /** 编解码密钥（后端 codec-request-key） */
   key: string;
@@ -38,12 +40,18 @@ export interface RequestCodecOptions {
  * @returns hex 编码的载荷（后端 decodeHex 的输入）
  */
 export function encodeRequestBody(plaintext: string, options: RequestCodecOptions): string {
-  const isAes = (options.type ?? "").toLowerCase().includes("aes");
-  if (!isAes) {
-    // sm4/des：后端 Codec 对该类型仅做 hex 编解码
+  const type = (options.type ?? "").toLowerCase();
+  if (!type || type === "hex") {
+    // 未配置密钥时的显式兼容路径：只编码，不号称加密
     return CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(plaintext));
   }
-  // aes：与后端 AesCodec 完全一致 —— key/IV 均由 SHA-256(key) 派生
+  if (!type.includes("aes")) {
+    throw new Error(`未支持的请求体加密类型: ${options.type}（后端已改为真实加密，前端需先实现对应算法）`);
+  }
+  if (!options.key) {
+    throw new Error("AES codec 缺少密钥");
+  }
+  // aes：与后端 AesCbcCodec 完全一致 —— key/IV 均由 SHA-256(key) 派生
   const digest = sha256Hex(options.key);
   const encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(plaintext), CryptoJS.enc.Hex.parse(digest), {
     mode: CryptoJS.mode.CBC,
@@ -57,8 +65,8 @@ export function encodeRequestBody(plaintext: string, options: RequestCodecOption
  * 解后端 {@code ApiResponseEncodeResponseBodyAdvice} 的响应包装。
  *
  * <p>后端格式：{@code 02{key}200{data}ffff}。其中 AES 分支的 data 是按
- * {@link encodeRequestBody} 同一套 key/IV 派生的 hex 密文；旧版 sm4/des 分支
- * 只是 hex 编码。这里先按 AES 尝试，解不出可读文本时回退 hex，兼容两种后端。</p>
+ * {@link encodeRequestBody} 同一套 key/IV 派生的 hex 密文；hex 类型则是明文十六进制。
+ * AES 解不开时返回 null，不再回退 hex 把密文当明文交给业务。</p>
  *
  * @param payload 响应体（字符串 / ArrayBuffer / Uint8Array）
  * @param options codec 配置
@@ -86,7 +94,8 @@ export function decodeCodecResponse(
 
   let plain = "";
   const type = (options.type ?? "").toLowerCase();
-  if (type.includes("aes") && options.key) {
+  if (type.includes("aes")) {
+    if (!options.key) return null;
     try {
       const digest = sha256Hex(options.key);
       const cipherParams = CryptoJS.lib.CipherParams.create({
@@ -99,15 +108,19 @@ export function decodeCodecResponse(
       });
       plain = decrypted.toString(CryptoJS.enc.Utf8);
     } catch {
-      // AES 失败时继续尝试 hex（兼容仅做 hex 编码的旧版后端）
+      return null;
     }
-  }
-  if (!plain) {
+    // AES 解不开就是密钥/数据不匹配，不再回退 hex 把密文当明文
+    if (!plain) return null;
+  } else if (!type || type === "hex" || (type.includes("aes") && !options.key)) {
+    // 后端在未配置密钥时显式走 hex 兼容路径，前端保持一致
     try {
       plain = CryptoJS.enc.Hex.parse(dataHex).toString(CryptoJS.enc.Utf8);
     } catch {
       return null;
     }
+  } else {
+    return null;
   }
   if (!plain) return null;
   try {

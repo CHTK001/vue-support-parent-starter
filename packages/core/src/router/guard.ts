@@ -17,7 +17,7 @@ import type { Router, RouteLocationNormalized, NavigationGuardReturn } from "vue
 import { getConfig } from "@repo/config";
 import { getMenuLanguage } from "@repo/languages";
 import { getAppStorage } from "../storage";
-import { log } from "@repo/utils";
+import { log, REMEMBER_KEY_PREFIX } from "@repo/utils";
 import type { RouteConfigsTable } from "./types";
 import { checkRouteAccess, ROUTER_WHITE_LIST, type RouteAccessContext } from "./access";
 
@@ -134,7 +134,9 @@ export function setupRouterGuard(
       // system: 前缀 key（含 accessToken）；先清后读会让已登录重定向首页
       // 的逻辑（access.ts checkRouteAccess 约定）永远失效。
       const hasToken = !!getAccessToken();
-      try { getAppStorage().clearUserStorage(); } catch { /* ignore */ }
+      // 「记住账号密码」是登录前就要用的凭据，不能被登录页刷新清掉：
+      // 只保留 login.remember.*，其余 system: 前缀的旧令牌/用户缓存照常清理
+      try { getAppStorage().clearUserStorage([REMEMBER_KEY_PREFIX]); } catch { /* ignore */ }
       if (hasToken) {
         return { path: route.homePath, replace: true };
       }

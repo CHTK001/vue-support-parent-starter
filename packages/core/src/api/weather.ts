@@ -11,7 +11,7 @@
  * dev 期若应用配了 /weather-api、/geo-api 等代理前缀，会优先用代理（免跨域、可走内网），
  * 代理不存在时自动退回直连。
  */
-import { getConfig } from "@repo/config";
+import { getConfig, isCapabilityEnabled } from "@repo/config";
 import { log } from "@repo/utils";
 import { http } from "./index";
 import { probeBackend } from "./backendProbe";
@@ -271,6 +271,11 @@ async function fetchOverviewFromThirdParty(query: WeatherQuery): Promise<Weather
  * 调用方（顶栏环境信息等）往往只想要"当前天气"，不该要求它先自己定位。</p>
  */
 export async function getWeatherOverview(query: WeatherQuery = {}): Promise<WeatherOverview> {
+  // 能力位显式关闭：连三方都不回落。之前 probeBackend 只挡住后台请求，
+  // 随后仍会去 Open-Meteo 取数 —— 「关掉开关还在查」就是这么来的。
+  if (!isCapabilityEnabled("weather")) {
+    throw new Error("[weather] 能力位已关闭（other.capabilities.weather=false），不发起任何请求");
+  }
   const effective = await withResolvedLocation(query);
   if (await probeBackend(WEATHER_OVERVIEW_PATH)) {
     try {
@@ -409,6 +414,15 @@ function isUsableCoord(lat: number, lon: number): boolean {
  */
 export async function resolveGeoLocation(): Promise<GeoLocation> {
   const weather = getConfig().other.weather;
+  // 定位能力关闭：不探后台、不调浏览器定位、不查 IP，只用部署侧配置的坐标
+  if (!isCapabilityEnabled("location")) {
+    const lat = num(weather?.latitude);
+    const lon = num(weather?.longitude);
+    if (!isUsableCoord(lat, lon)) {
+      throw new Error("[location] 能力位已关闭且未配置 weather 经纬度");
+    }
+    return { latitude: lat, longitude: lon, city: weather.city || "本地", source: "config" };
+  }
   if (await probeBackend(LOCATION_RESOLVE_PATH)) {
     try {
       const res = await http()
