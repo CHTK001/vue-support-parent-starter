@@ -1,9 +1,5 @@
 <template>
   <div class="w-full flex flex-col items-center">
-    <!-- 目标条：输入框上方的会话目标（Issue），激活后随会话推进。
-         编辑消息时隐藏：编辑态下「编辑提示条 + 输入框」要拼成一整张卡，
-         中间插一条独立的目标条会把卡片连续性切断（实测三段割裂）。 -->
-    <GoalBar v-if="!props.editing" :session-id="sessionId == null ? null : String(sessionId)" />
     <!--
       AI 联想的下一步任务：位置在「目标条下方、输入框上方」。
       开关关闭时组件整块不渲染（v-if 在组件内部），不占任何高度。
@@ -26,6 +22,12 @@
       :class="[styleClass, { 'drag-over': isDragOver }, { 'is-backdrop': backdrop }, { 'input-area--continues-banner': props.editing }]"
       @dragover.prevent @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave"
       @drop.prevent="handleDrop">
+      <!-- 目标展示区（参考图）：目标条是输入卡内部的第一行，与输入内容同一张卡片，
+           不再浮在卡片上方占一条独立带子。编辑消息时不渲染。 -->
+      <div v-if="!props.editing" class="input-goal">
+        <GoalBar :session-id="sessionId == null ? null : String(sessionId)" />
+      </div>
+
       <!-- 文件列表显示区域 -->
       <div class="file-list flex flex-wrap gap-2 mb-3" v-if="uploadFiles.length > 0">
         <FileItem v-for="file in uploadFiles" :key="file.id" :name="file.displayName" :type="file.fileType"
@@ -79,13 +81,17 @@
             <button type="button" class="input-prediction__kbd" :title="predictionTitle"
               @mousedown.prevent="acceptPrediction">Tab</button>
           </div>
-          <!-- 命令选择弹窗 -->
-          <CommandPicker v-if="commandPickerVisible" ref="commandPickerRef" :visible="commandPickerVisible"
-            :items="pickerItems" :query="pickerQuery" :selected-index="selectedIndex" :loading="commandsLoading"
-            :trigger="commandTrigger" @select="selectCommand" @close="closeCommandPicker"
-            @update:selected-index="selectedIndex = $event" />
         </template>
       </div>
+
+      <!-- 命令选择弹窗（用户口径 2026-11-12）：
+           锚点从 .editor-container 提到 .input-area —— 挂在编辑器上时左右各缩进
+           10px（卡片内边距），弹框比输入框窄一圈，且向上弹出时会压在卡片内部。
+           挂到输入卡这一层后，宽度与 + 弹层同口径（整张输入卡），位置在卡片上方。 -->
+      <CommandPicker v-if="commandPickerVisible" ref="commandPickerRef" :visible="commandPickerVisible"
+        :items="pickerItems" :query="pickerQuery" :selected-index="selectedIndex" :loading="commandsLoading"
+        :trigger="commandTrigger" @select="selectCommand" @close="closeCommandPicker"
+        @update:selected-index="selectedIndex = $event" />
 
       <!-- 隐藏的文件输入框 -->
       <input type="file" ref="fileInputRef" style="display: none" multiple
@@ -108,9 +114,11 @@
               <button ref="plusButtonRef" class="tool-btn" :class="{ 'tool-btn-active': inputMenuVisible }"
                 :aria-label="t('chat.input.plusAria')" :aria-expanded="inputMenuVisible"
                 @click.stop="toggleInputMenu">
-                <el-icon size="16" class="plus-glyph" :class="{ 'is-open': inputMenuVisible }">
-                  <Add24Regular />
-                </el-icon>
+                <svg class="plus-glyph" :class="{ 'is-open': inputMenuVisible }" viewBox="0 0 20 20" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                  <circle cx="10" cy="10" r="7.4" />
+                  <path d="M10 6.7v6.6M6.7 10h6.6" />
+                </svg>
               </button>
             </LTooltip>
 
@@ -188,6 +196,10 @@
             :anchor-el="thinkingLevelButtonRef" :options="thinkingLevelOptions" :current-value="currentThinkingValue"
             @select="handleThinkingLevelSelect" />
 
+          <!-- 会话目标编辑弹框（目标激活时点靶心打开） -->
+          <GoalDialog v-model:visible="goalDialogVisible" :session-id="sessionId == null ? null : String(sessionId)"
+            :goal="goal" />
+
           <!-- 智能体（形态）：截图里是「橙底人像 + Build」，不带描边胶囊 -->
           <LTooltip v-if="admin" :content="runModeLabel" placement="top">
             <button ref="runModeButtonRef" class="mode-chip"
@@ -212,16 +224,17 @@
                顺序是 [停止][入队/发送]：发送位永远在最右，不会因为停止出现而跳动。 -->
           <LTooltip v-if="streaming" :content="t('chat.input.stopGenerating')" placement="top">
             <button class="send-btn stop-btn" :aria-label="t('chat.input.stopGenerating')" @click="abortResponse">
-              <el-icon size="16">
-                <Stop24Filled />
-              </el-icon>
+              <svg class="stop-glyph" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"
+                aria-hidden="true">
+                <rect x="5.2" y="5.2" width="9.6" height="9.6" rx="1.4" />
+              </svg>
             </button>
           </LTooltip>
           <LTooltip v-if="!streaming || inputContent.trim()"
             :content="streaming ? t('chat.input.enqueue') : t('chat.input.send')" placement="top">
             <button class="send-btn" :class="{ 'queue-btn': streaming }"
               :aria-label="streaming ? t('chat.input.enqueue') : t('chat.input.send')" @click="sendMessage"
-              :disabled="props.readonly || !inputContent.trim() || !props.config?.modelId">
+              :disabled="props.readonly || (!inputContent.trim() && uploadFiles.length === 0) || !props.config?.modelId">
               <svg class="send-glyph" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 4.4 19.1 12 6 19.6V4.4Z" />
               </svg>
@@ -288,6 +301,7 @@ import { resolvePromptFormIcon } from '@/utils/promptFormIcons';
 /** 内置兜底形态标识：build 恒存，形态列表取不到时也要有东西可选 */
 const FORM_KEY_BUILD = 'build';
 import ThinkingEffortPopover from './chat-input/ThinkingEffortPopover.vue';
+import GoalDialog from './chat-input/GoalDialog.vue';
 import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
 import GoalBar from './GoalBar.vue';
 import AiNextTaskPanel from './AiNextTaskPanel.vue';
@@ -301,8 +315,8 @@ import ProviderLogo from '../models/ProviderLogo.vue';
 import { PROVIDER_ICONS, resolveModelChannelBrand, resolveProviderBrand } from '../models/providerIcons';
 import {
 
-  Stop24Filled, BookSearch24Regular, Cloud24Regular,
-  Add24Regular, GlobeShield20Regular, Wand20Regular,
+  BookSearch24Regular, Cloud24Regular, GlobeShield20Regular,
+  Wand20Regular,
   // 「优化输入」按钮的加载态：原先写的是 <Loading />，@vicons/fluent 并没有这个导出，
   // 控制台一直报 "Failed to resolve component: Loading"，加载时按钮里是空的。
   SpinnerIos20Filled
@@ -405,11 +419,16 @@ const editor = ref<Editor>();
 const commandPickerVisible = ref(false);
 const pickerQuery = ref('');
 const selectedIndex = ref(0);
+/**
+ * 触发符：/ 命令、@ 提及、$ 技能（与输入框占位文案「@ 提及，$ 技能，/ 命令」一致）。
+ */
+type CommandTrigger = 'slash' | 'mention' | 'skill';
+
 const commandsCache = reactive<{ slash: any[]; mention: any[] }>({
   slash: [],
   mention: [],
 });
-const commandTrigger = ref<'slash' | 'mention'>('slash');
+const commandTrigger = ref<CommandTrigger>('slash');
 /** 指令候选是否在加载：只用于弹层的「加载中」占位，绝不阻塞弹层打开 */
 const commandsLoading = ref(false);
 /** 在途的触发方式（slash / mention），用于避免同一份列表并发重复请求 */
@@ -620,11 +639,12 @@ const goalCounter = computed(() => {
   return `${formatTokenCounter(current.tokensUsed)}/${formatTokenCounter(budget)}`;
 });
 
-/** 靶心按钮的提示：说明当前状态与「点一下会发生什么」 */
+/** 目标按钮的提示：说明当前状态与「点一下会发生什么」 */
+const goalDialogVisible = ref(false);
 const goalTooltip = computed(() => {
   const current = goal.value;
   if (!current) {
-    return '添加目标：让 AI 围绕一个目标持续工作';
+    return '用下一条消息启动目标';
   }
   const prefix = `目标：${current.title}`;
   if (current.state === 'PAUSED') {
@@ -672,16 +692,14 @@ async function onGoalClick(): Promise<void> {
   if (!sid) {
     return;
   }
+  // 目标处于激活/暂停态时，再点靶心打开「会话目标」编辑弹框（用户口径 2026-11-13）；
+  // 没有目标或已终态，仍走原来的新建流程。
   const current = goal.value;
-  if (!current || current.state === 'COMPLETED' || current.state === 'FAILED' || current.state === 'CANCELED') {
-    await promptAddGoal();
+  if (current && !['COMPLETED', 'FAILED', 'CANCELED'].includes(String(current.state))) {
+    goalDialogVisible.value = true;
     return;
   }
-  if (current.state === 'PAUSED') {
-    await goalStore.resume(sid);
-  } else {
-    await goalStore.pause(sid);
-  }
+  await promptAddGoal();
 }
 
 // 打开 / 切换会话时向后端要一次目标（端点未上线时 store 静默保留本地态）
@@ -850,7 +868,13 @@ const activeForm = computed(() =>
   runModeOptions.value.find(o => o.value === currentRunMode.value) || runModeOptions.value[0]
 );
 
-const runModeLabel = computed(() => activeForm.value?.label || FORM_KEY_BUILD);
+const runModeLabel = computed(() => {
+  // 参考图口径：形态名用英文（Build / Plan），与模型档位的英文标签同一行风格。
+  // 自定义形态仍用后端给的 formName，避免把用户自建的名字吞掉。
+  if (currentRunMode.value === FORM_KEY_BUILD) return 'Build';
+  if (currentRunMode.value === 'plan') return 'Plan';
+  return activeForm.value?.label || FORM_KEY_BUILD;
+});
 
 /** 拉取形态列表；失败时保持空数组，由上面的降级分支兜底 */
 const loadPromptForms = async () => {
@@ -964,7 +988,20 @@ const currentThinkingLabel = computed(() => {
  * 旧实现只在开启时回显，关闭时留空，结果那半段整个消失、`/` 悬空。
  * 关闭态显示「不思考」，语义与下拉首项一致。</p>
  */
-const currentThinkingValueLabel = computed(() => getThinkingEffortLabel(currentThinkingValue.value));
+/**
+ * 模型名右侧「/ 档位」的文案：**恒有值**，且用英文小写（参考图 `cn:… / high`）。
+ *
+ * <p>档位名就是厂商参数值（none / low / medium / high / max），与思考弹层的主标签
+ * 同一口径；`default` 表示「不指定档位」，显示为 auto。中文解释只在弹层副标题里。</p>
+ */
+const currentThinkingValueLabel = computed(() => {
+  const key = currentThinkingValue.value;
+  // 只有 none / default 走中文（用户口径 2026-11-13）：
+  // 「不思考」「默认」是用户可读的状态词，其余档位保持英文原值（low/medium/high/max）。
+  if (key === 'none') return '不思考';
+  if (key === 'default') return '默认';
+  return key;
+});
 
 const currentModelName = computed(() => {
   const name = currentModelNameOnly.value;
@@ -1061,6 +1098,8 @@ const emit = defineEmits([
   'update:modelId', 'config-change', 'update:knowledgeBaseIds',
   /** 历史浮层里的「加载更多提示」：由 ChatPanel 去拉更早一页消息 */
   'history-load-more',
+  /** 空输入框按 ←/→：切换内容区宽度（narrow = 输入框宽度 / full = 满屏） */
+  'toggle-width',
 ]);
 
 // 工具函数
@@ -2166,16 +2205,32 @@ const abortResponse = () => {
  * 敲下 / 要等一个接口往返，表现为「弹出来很慢」。现在先用缓存立即显示，
  * 缓存为空时在后台加载，弹层里显示「加载中」。</p>
  */
-const openCommandPicker = (query: string = '', trigger: 'slash' | 'mention' = 'slash') => {
+const openCommandPicker = (query: string = '', trigger: CommandTrigger = 'slash') => {
   pickerQuery.value = query;
   selectedIndex.value = 0;
   commandTrigger.value = trigger;
   commandPickerVisible.value = true;
+  // $ 技能与 / 命令共用后端的技能清单（slash 缓存），别为同一个列表再开一条请求
+  if (trigger === 'skill') {
+    if (!commandsCache.slash.length) void loadCommands('slash');
+    return;
+  }
   if (!commandsCache[trigger].length) void loadCommands(trigger);
 };
 
-// 候选集按触发方式取，过滤 / 键盘 / 选中逻辑完全共用
-const pickerItems = computed(() => commandsCache[commandTrigger.value]);
+/**
+ * 候选集按触发方式取：
+ * / 命令 = 内置命令 + 后端技能；@ 提及 = 提及候选；$ 技能 = 只保留技能条目
+ * （后端没标 providerId 时退化为「非内置条目」，避免 $ 弹层一片空白）。
+ */
+const pickerItems = computed(() => {
+  if (commandTrigger.value === 'skill') {
+    const all = commandsCache.slash || [];
+    const skills = all.filter((item) => item?.providerId === 'skill');
+    return skills.length ? skills : all.filter((item) => !item?.builtin);
+  }
+  return commandsCache[commandTrigger.value];
+});
 
 const closeCommandPicker = () => {
   commandPickerVisible.value = false;
@@ -2206,13 +2261,30 @@ const checkCommandTrigger = () => {
   }
 
   // 检测 @ 触发（艾特命令）
+  // 中文输入里 @ 前几乎不会有空格（「帮我@文件」），所以边界判定放宽为
+  // 「前一个字符不是字母/数字/下划线」即触发；邮箱 a@b 这类仍不会误触。
   const lastAtIndex = textBefore.lastIndexOf('@');
   if (lastAtIndex >= 0) {
     const charBeforeAt = textBefore[lastAtIndex - 1];
-    if (lastAtIndex === 0 || charBeforeAt === ' ' || charBeforeAt === '\n') {
+    const atBoundary = lastAtIndex === 0 || !/[A-Za-z0-9_]/.test(charBeforeAt || '');
+    if (atBoundary) {
       const query = textBefore.slice(lastAtIndex + 1);
       if (!query.includes(' ')) {
         openCommandPicker(query, 'mention');
+        return;
+      }
+    }
+  }
+
+  // 检测 $ 触发（技能）：占位文案里承诺了「$ 技能」，必须真的能弹
+  const lastDollarIndex = textBefore.lastIndexOf('$');
+  if (lastDollarIndex >= 0) {
+    const charBeforeDollar = textBefore[lastDollarIndex - 1];
+    const dollarBoundary = lastDollarIndex === 0 || !/[A-Za-z0-9_]/.test(charBeforeDollar || '');
+    if (dollarBoundary) {
+      const query = textBefore.slice(lastDollarIndex + 1);
+      if (!query.includes(' ')) {
+        openCommandPicker(query, 'skill');
         return;
       }
     }
@@ -2257,7 +2329,8 @@ const insertCommandNode = (item: any) => {
   const providerId = item?.providerId || 'skill';
   const name = item?.name;
   const label = item?.label || item?.name;
-  const trigger = commandTrigger.value === 'mention' ? '@' : '/';
+  const trigger = commandTrigger.value === 'mention' ? '@'
+    : commandTrigger.value === 'skill' ? '$' : '/';
 
   editor.value
     .chain()
@@ -2281,10 +2354,11 @@ const selectCommand = (item: any) => {
 
   const textBefore = $from.parent.textBetween(0, $from.parentOffset, '\n', '\n');
 
-  // 删除触发字符（/ 或 @）及其后的查询文本
+  // 删除触发字符（/、@ 或 $）及其后的查询文本
   const triggerIndex = textBefore.lastIndexOf('/');
   const atIndex = textBefore.lastIndexOf('@');
-  const delIndex = Math.max(triggerIndex, atIndex);
+  const dollarIndex = textBefore.lastIndexOf('$');
+  const delIndex = Math.max(triggerIndex, atIndex, dollarIndex);
 
   if (delIndex >= 0) {
     const from = $from.start() + delIndex;
@@ -2430,11 +2504,18 @@ const loadCommands = async (trigger: 'slash' | 'mention') => {
     const remote = res.items || [];
     // 内置命令只挂在 / 列表上（@ 是提及角色 / 工具，语义不同）
     commandsCache[trigger] = trigger === 'slash' ? [...BUILTIN_COMMANDS, ...remote] : remote;
+    // 后端 /commands 对 slash 与 mention 返回同一份技能清单；若 mention 这次拿回空，
+    // 用 slash 里的技能兜底 —— 否则第一次敲 @ 弹层是空的，看起来像「@ 没实现」。
+    if (trigger === 'mention' && !commandsCache.mention.length) {
+      commandsCache.mention = commandsCache.slash.filter((item) => !item?.builtin);
+    }
   } catch (error) {
     console.error('获取命令列表失败:', error);
     // 后端命令列表不可用时，内置命令仍然要可用
     if (trigger === 'slash') {
       commandsCache[trigger] = [...BUILTIN_COMMANDS];
+    } else if (trigger === 'mention' && commandsCache.slash.length) {
+      commandsCache.mention = commandsCache.slash.filter((item) => !item?.builtin);
     }
   } finally {
     loadingTriggers.delete(trigger);
@@ -2517,6 +2598,9 @@ onMounted(() => {
   // 指令 / 知识库 / 附加连接 / MCP 四个列表都在挂载后异步拉一次，打开面板时直接读缓存。
   // 用 void 而不是 await：预取失败不能影响编辑器初始化。
   void loadCommands('slash');
+  // @ 提及同样预取：后端 /commands 对 slash/mention 返回同一份技能清单，
+  // 但两条缓存各自独立，不预取的话第一次敲 @ 要等一个网络往返，验收里表现为「@ 不弹」。
+  void loadCommands('mention');
   void loadKnowledgeBases();
   void loadAttachmentTypes();
   if (admin.value) void loadMcpServers();
@@ -2558,11 +2642,26 @@ onMounted(() => {
               pickHistory(historyIndex.value);
               return true;
             }
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+              // 历史浮层里左右键只负责收起，不触发宽度切换（避免两层快捷键打架）
+              event.preventDefault();
+              closeHistory();
+              return true;
+            }
             if (event.key === 'Escape') {
               event.preventDefault();
               closeHistory();
               return true;
             }
+          }
+          // 空输入框按 ←/→ = 直接切换内容区宽度（窄屏输入列 ↔ 满屏）。
+          // 只在没有草稿时接管：有文字时左右键必须是移动光标。
+          if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+            && !editorContent.value.trim()
+            && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+            event.preventDefault();
+            emit('toggle-width', event.key === 'ArrowRight' ? 'full' : 'narrow');
+            return true;
           }
           // 空输入框按 ↑ = 打开历史提示（有草稿时 ↑ 仍然是正常的光标移动）
           if (event.key === 'ArrowUp' && !editorContent.value.trim()
@@ -2570,6 +2669,12 @@ onMounted(() => {
             && props.history.length > 0) {
             event.preventDefault();
             openHistory();
+            return true;
+          }
+          // Esc 先关最上层浮层：+ 面板 → 历史 → 灰字预测（由内到外，行为可预期）
+          if (event.key === 'Escape' && inputMenuVisible.value) {
+            event.preventDefault();
+            inputMenuVisible.value = false;
             return true;
           }
           // 输入预测：Tab 采纳成可编辑草稿，Escape 收起。
@@ -2588,9 +2693,12 @@ onMounted(() => {
           }
           // Shift+Enter 换行，Enter 发送消息
           if (event.key === 'Enter' && !event.shiftKey) {
-            // 与发送按钮相同的禁用条件
-            if (props.readonly || !inputContent.value.trim() || !props.config?.modelId) {
+            // 与发送按钮相同的禁用条件（附件也算内容：只贴图不写字时仍要能发）
+            if (props.readonly || (!inputContent.value.trim() && uploadFiles.value.length === 0) || !props.config?.modelId) {
               event.preventDefault();
+              // 没有模型时不要静默吞掉 Enter：那是「看起来能发、其实没反应」，
+              // 直接把模型选择器打开，用户知道缺的是什么。
+              if (!props.config?.modelId) openModelPanel();
               return true;
             }
             event.preventDefault();
@@ -2876,11 +2984,13 @@ html.dark .input-area--continues-banner {
   margin: 0;
 }
 
-/* Placeholder 灰色提示文案样式 */
+/* Placeholder 灰色提示文案样式。
+   颜色从 --el-text-color-placeholder（#a8abb2）抬到 regular：用户报障
+   「文字太淡而且灰色，看久了眼睛不舒服」（2026-11-12），占位文案也要可读。 */
 :deep(.message-editor .ProseMirror p.is-editor-empty:first-child::before) {
   content: attr(data-placeholder);
   float: left;
-  color: var(--el-text-color-placeholder);
+  color: var(--el-text-color-regular);
   pointer-events: none;
   height: 0;
 }
@@ -3034,7 +3144,7 @@ html.dark .input-area--continues-banner {
    目标 UI 里左组是三个**无边框、无底色**的纯图标按钮：常态只有图标本身，
    悬停才浮出一层极淡的底色。尺寸 28×28，与右侧模型/智能体/发送同一基线。 */
 .tool-btn {
-  color: var(--text-tertiary, var(--color-text-gray));
+  color: var(--text-secondary, var(--el-text-color-regular));
   cursor: pointer;
   font-size: 14px;
   height: 28px;
@@ -3086,11 +3196,36 @@ html.dark .input-area--continues-banner {
 /* 「+」展开态：图标转 45° 变成「×」，给一个「再点一下收起」的视觉暗示。
    只转图标不转按钮：按钮底是圆角方块，转起来会跟着歪。 */
 .plus-glyph {
+  width: 17px;
+  height: 17px;
+  display: block;
   transition: transform 0.18s ease;
+}
+
+/* 工具条里的线性图标（盾牌检索等）：与「+」同一尺寸基线 */
+.tool-glyph {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .plus-glyph.is-open {
   transform: rotate(45deg);
+}
+
+/* ===== 目标展示区（输入卡内第一行）=====
+   目标条自带「填充底 + 描边 + 圆角」的独立卡片外观；放进输入卡后必须去掉，
+   否则会出现卡中卡。参考图里它只是输入卡内的一行元信息。 */
+.input-goal {
+  margin: 0 0 6px;
+}
+
+.input-goal :deep(.goal-bar) {
+  margin: 0;
+  padding: 0 2px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
 /* ===== 工作间入口（在输入卡底栏这一行里）=====
@@ -3113,8 +3248,9 @@ html.dark .input-area--continues-banner {
 }
 
 .goal-btn__count {
-  color: var(--text-tertiary, var(--color-text-gray));
-  font-size: 12px;
+  /* 参考图：靶心右侧直接跟「4/5000」的等宽数字，不用胶囊底 */
+  color: var(--text-secondary, var(--el-text-color-regular));
+  font-size: 11.5px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
@@ -3236,7 +3372,7 @@ html.dark .input-area--continues-banner {
   padding: 0 8px 0 3px;
   border: none;
   background: transparent;
-  color: var(--text-tertiary, var(--color-text-gray));
+  color: var(--text-secondary, var(--el-text-color-regular));
   font-size: 12.5px;
   line-height: 1;
   cursor: pointer;
@@ -3335,7 +3471,18 @@ html.dark .input-area--continues-banner {
 .send-glyph {
   width: 19px;
   height: 19px;
-  fill: currentColor;
+  /* 参考图：空心三角（原实心块状太重，和右侧一排线性图标不是一套） */
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+/* 停止：同样的空心方块（参考图里运行态是红色描边方块） */
+.stop-glyph {
+  width: 15px;
+  height: 15px;
+  display: block;
 }
 
 .send-btn:focus-visible {

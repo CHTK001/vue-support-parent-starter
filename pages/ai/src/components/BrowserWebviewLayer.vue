@@ -272,6 +272,8 @@ function handleCreateWebview(_event: any, data: {
   // 说明：这是 AI 路径唯一的确定性触发源（主进程创建 webview 后不会主动 setActive）。
   // 用户路径（previewUrl/createNewBrowserWindow）会再幂等执行一次 enterPreviewMode+selectTab，无害。
   if (data.metadata?.sessionId && data.metadata.sessionId === store.currentSessionId) {
+    // 独立浮层模式：宿主由 BrowserStandaloneHost 提供，不要展开工作区
+    if (store.standalone) return
     if (!getAutoShowSidebar()) return
     const layoutStore = useLayoutStore()
     layoutStore.workspaceVisible = true

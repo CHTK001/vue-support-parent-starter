@@ -23,7 +23,12 @@
    按项目口径把令牌值落到 scoped 样式里，模板只保留结构类。 */
 .popover-shell {
     border-radius: var(--size-dialog-rounded-radius, 18px);
-    background: color-mix(in srgb, var(--color-surface, #ffffff) 70%, transparent);
+    /*
+      92% 不透明而不是 70%：弹层下面常常压着图片/正文，70% + 模糊仍能看出
+      底色与文字轮廓透进来（「背景色穿透」），读选项时很脏。
+      保留一点透明度只为和页面层次呼应，实际观感接近实面。
+    */
+    background: color-mix(in srgb, var(--color-surface, #ffffff) 92%, transparent);
 }
 
 .popover-content {

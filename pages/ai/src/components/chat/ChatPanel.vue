@@ -151,7 +151,7 @@
               :backdrop="hasWallpaper" :history="promptHistory" :history-has-more="hasMoreMessages && !!currentSessionId"
               :history-loading-more="isLoadingMore"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse"
-              @history-load-more="handleHistoryLoadMore">
+              @history-load-more="handleHistoryLoadMore" @toggle-width="handleToggleContentWidth">
               <!-- 会话页的工作目录（2026-11-12 口径修正）：放进输入卡底栏那一行，
                     与 + / 检索 / 优化同排，只显示目录名与「本地 / 远端」，不显示真实路径。
                     弹层复用 WorkspaceSelectorPopover（含「添加项目」与 GitHub 克隆）。 -->
@@ -217,6 +217,7 @@ import type { Character } from '@/types/character';
 import { useSessionChat } from '@/composables/useSessionChat'
 import { useMessageOperations } from '@/composables/useMessageOperations'
 import { useSessionTokenStats } from '@/composables/useSessionTokenStats'
+import { useKbDisplay } from '@/composables/useKbDisplay'
 
 // 组件导入
 import TurnItem from "./TurnItem.vue";
@@ -1147,6 +1148,21 @@ function handleHistoryLoadMore(): void {
   if (!earliestId) return
   isLoadingMore.value = true
   void loadMoreMessages(sessionId, earliestId)
+}
+
+/**
+ * 空输入框按 ←/→：切换内容区宽度（用户口径 2026-11-12）。
+ *
+ * <p>口径与「设置 → 显示 → 内容区宽度」完全一致，走 {@link useKbDisplay} 的
+ * 单例状态 + 落库，所以快捷键、设置页、其他页面（设置中心 / 知识库问答栏）
+ * 看到的是同一个值，不会出现「按了键只有会话页变宽」。</p>
+ *
+ * @param width narrow = 输入框宽度，full = 满屏
+ */
+const { askWidth, setKbAskWidth } = useKbDisplay()
+function handleToggleContentWidth(width: 'narrow' | 'full'): void {
+  if (askWidth.value === width) return
+  void setKbAskWidth(width)
 }
 /**
  * 处理会话切换

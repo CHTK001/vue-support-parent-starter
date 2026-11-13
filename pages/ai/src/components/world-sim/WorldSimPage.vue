@@ -239,16 +239,17 @@
                 </footer>
               </section>
 
-              <!-- 场次导航：一屏一场，点圆点翻场 -->
+              <!-- 场次导航：一屏一场，点圆点翻场；舞台获得焦点时支持 ←/→ -->
               <nav v-if="storyScenes.length > 1" class="ws-cue-nav" data-role="cue-nav">
                 <button class="ws-cue-arrow" type="button" :disabled="cueIndex <= 0"
-                  title="上一场" @click="stepCue(-1)">‹</button>
+                  title="上一场（←）" @click="stepCue(-1)">‹</button>
                 <button v-for="(s, i) in storyScenes" :key="i" class="ws-cue-dot"
                   :class="{ active: i === cueIndex }" type="button"
                   :title="`第 ${i + 1} 场：${s.title}`" :aria-label="`第 ${i + 1} 场`"
                   @click="gotoCue(i)"></button>
                 <button class="ws-cue-arrow" type="button" :disabled="cueIndex >= storyScenes.length - 1"
-                  title="下一场" @click="stepCue(1)">›</button>
+                  title="下一场（→）" @click="stepCue(1)">›</button>
+                <span class="ws-cue-keys" aria-hidden="true"><kbd>←</kbd><kbd>→</kbd> 切场</span>
               </nav>
             </article>
 
@@ -339,7 +340,10 @@
 
               <div v-if="!messages.length" class="ws-msgs-empty">
                 <p>在【{{ currentScene?.name || '场景' }}】里还没开演</p>
-                <p class="sub">点下方「观演一次」，让 AI 自己接下去；也可以 @ 某位角色点名</p>
+                <p class="sub">点下方「观演一次」，让 AI 自己接下去；也可以先新建一幕，交给导演写整场戏</p>
+                <button v-if="!acts.length" class="btn primary ws-empty-cta" type="button" @click="openCreateAct">
+                  新建第一幕，让 AI 开演
+                </button>
               </div>
             </div>
           </template>
@@ -483,6 +487,7 @@
     <ReDialog :close-on-click-modal="true" v-model="createVisible" width="460" append-to-body class="ws-dialog">
       <template #header><span class="ws-dlg-title">让 AI 造一个世界</span></template>
       <div class="ws-form">
+        <div class="ws-form-sec">世界观</div>
         <div class="ws-field">
           <label class="ws-label">世界名称</label>
           <el-input v-model="worldForm.name" placeholder="如：雾都侦探社（留空由 AI 取一个）" maxlength="30" />
@@ -504,6 +509,7 @@
           <el-input v-model="worldForm.description" type="textarea" :rows="2"
             placeholder="AI 会按这个描述生成世界，不写也不要紧" />
         </div>
+        <div class="ws-form-sec">舞台出片</div>
         <div class="ws-field">
           <label class="ws-label">舞台出片</label>
            <el-radio-group v-model="mediaForm.mediaMode" data-role="media-mode-create">
@@ -513,6 +519,7 @@
           </el-radio-group>
           <span class="ws-hint">{{ MEDIA_MODE_HINT[mediaForm.mediaMode] }}</span>
         </div>
+        <div class="ws-form-sec">导演与演员</div>
         <div class="ws-field">
           <label class="ws-label">导演模型</label>
           <el-select v-model="worldForm.directorModel" placeholder="留空使用全局默认模型" clearable filterable style="width: 100%">
@@ -540,6 +547,7 @@
     <ReDialog :close-on-click-modal="true" v-model="editVisible" width="460" append-to-body class="ws-dialog">
       <template #header><span class="ws-dlg-title">世界设置</span></template>
       <div class="ws-form">
+        <div class="ws-form-sec">基础信息</div>
         <div class="ws-field">
           <label class="ws-label">世界名称</label>
           <el-input v-model="worldForm.name" maxlength="30" />
@@ -560,6 +568,7 @@
           <label class="ws-label">世界观设定</label>
           <el-input v-model="worldForm.description" type="textarea" :rows="4" />
         </div>
+        <div class="ws-form-sec">舞台出片</div>
         <div class="ws-field">
           <label class="ws-label">舞台出片（这个世界的每一幕）</label>
           <el-radio-group v-model="mediaForm.mediaMode" data-role="media-mode">
@@ -577,6 +586,7 @@
           </el-select>
           <span class="ws-hint">选哪个模型，决定了是文生视频还是图生视频；未配置时按场景图自动走图生视频。</span>
         </div>
+        <div class="ws-form-sec">导演与演员</div>
         <div class="ws-field">
           <label class="ws-label">导演模型</label>
           <el-select v-model="worldForm.directorModel" placeholder="留空使用全局默认模型" clearable filterable style="width: 100%">
@@ -1220,11 +1230,44 @@ const unplayedAct = computed(() => {
 })
 
 /* ---------------- 生命周期 ---------------- */
+
+/**
+ * 舞台快捷键：←/→ 切场，Home/End 首末场。
+ *
+ * 只在「正在看某一幕的演出正文」时生效；输入框/下拉里打字不拦截，
+ * 避免和世界搜索、演员多选等输入控件抢键。
+ */
+function onStageKeydown(e: KeyboardEvent) {
+  const el = document.activeElement as HTMLElement | null
+  if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return
+  if (el && el.isContentEditable) return
+  if (!currentAct.value || storyScenes.value.length <= 1) return
+  if (e.altKey || e.ctrlKey || e.metaKey) return
+  const last = storyScenes.value.length - 1
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    stepCue(-1)
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault()
+    stepCue(1)
+  } else if (e.key === 'Home') {
+    e.preventDefault()
+    gotoCue(0)
+  } else if (e.key === 'End') {
+    e.preventDefault()
+    gotoCue(last)
+  }
+}
+
 onMounted(() => {
   void loadWorlds()
+  window.addEventListener('keydown', onStageKeydown)
 })
 
-onUnmounted(stopAutoWatch)
+onUnmounted(() => {
+  window.removeEventListener('keydown', onStageKeydown)
+  stopAutoWatch()
+})
 
 /* ---------------- 世界 ---------------- */
 async function loadWorlds() {
@@ -2968,6 +3011,27 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
   gap: 6px;
   padding: 2px 0;
 }
+/* 键盘提示：只在多场时可用的轻量说明，不抢圆点的注意力 */
+.ws-cue-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+.ws-cue-keys kbd {
+  min-width: 16px;
+  padding: 0 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+}
 .ws-cue-arrow {
   width: 24px;
   height: 24px;
@@ -3206,6 +3270,8 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
 .ws-msgs-empty { text-align: center; padding: 48px 20px; color: var(--el-text-color-placeholder); }
 .ws-msgs-empty p { font-size: 13.5px; margin: 0 0 6px; }
 .ws-msgs-empty .sub { font-size: 12px; }
+/* 空态里给一个真正能点的起点：新世界没有幕次时，用户不该自己去找「+」 */
+.ws-empty-cta { margin-top: 14px; }
 
 /* ---- 底部输入 ---- */
 .ws-input {
@@ -3428,6 +3494,23 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
 .ws-dialog :deep(.el-dialog__header) { padding-bottom: 8px; }
 .ws-dlg-title { font-size: 15px; font-weight: 600; }
 .ws-form { display: flex; flex-direction: column; gap: 14px; }
+/* 设置弹框分组标题：把「世界观 / 出片 / 导演与演员」分开，字段多时不至于糊成一列 */
+.ws-form-sec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 -4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-color-primary);
+}
+.ws-form-sec::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--el-border-color-lighter);
+}
 /* 左右两栏：左侧窄（身份/场景/开关），右侧宽（人设/关系） */
 .ws-form-split {
   flex-direction: row;

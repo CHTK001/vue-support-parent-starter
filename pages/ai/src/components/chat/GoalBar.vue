@@ -15,6 +15,7 @@
     <span class="goal-bar__title" :title="tooltip">{{ goal.title }}</span>
 
     <span class="goal-bar__state">{{ stateLabel(goal.state) }}</span>
+    <span v-if="goal.tokensUsed" class="goal-bar__tokens">{{ formatTokenCounter(goal.tokensUsed) }} 词元</span>
 
     <button v-if="pausable" type="button" class="goal-bar__action" title="暂停目标" @click.stop="onPause">
       <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
@@ -51,7 +52,7 @@
  */
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useGoalStore } from '@/stores/goal'
+import { useGoalStore, formatTokenCounter } from '@/stores/goal'
 
 const props = defineProps<{
   /** 会话标识；缺省时不渲染目标条 */
@@ -207,6 +208,16 @@ async function onCancel(): Promise<void> {
   color: var(--goal-color);
   font-size: 12px;
   font-weight: 500;
+}
+
+/* 词元用量：参考图里跟在状态后面的一串等宽数字（"502K 词元"） */
+.goal-bar__tokens {
+  flex: none;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-size: 11.5px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .goal-bar__action {

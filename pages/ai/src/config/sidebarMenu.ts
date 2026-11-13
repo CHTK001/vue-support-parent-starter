@@ -4,7 +4,7 @@ import {
   Apps20Regular, Image20Regular, Person20Regular, ImageSearch20Regular,
   DocumentText20Regular, DesktopSpeaker24Regular, Headphones24Regular, BrainCircuit20Regular,
   DataBarVertical20Regular, PlugConnected20Regular, Fingerprint24Regular,
-  ArrowRouting20Regular,
+  ArrowRouting20Regular, Server24Regular,
   Earth24Regular,
 } from '@vicons/fluent'
 
@@ -54,6 +54,8 @@ export interface SidebarMenuContext {
   /** 模型门禁 store（提供各能力就绪状态） */
   modelConfig: {
     faceReady: boolean
+    /** 人脸模型清单接口是否失败（与「未配置」区分） */
+    faceModelsError: boolean
     imageReady: boolean
     colorizeReady: boolean
     ocrReady: boolean
@@ -167,11 +169,14 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       section: '图像',
       showKey: 'showFaceSearchMenu',
       // 底库按账号隔离，不再标 adminOnly；模型配置仍是全局的（仅管理员可改）
-      badge: modelConfig.unregisteredConfigured.length ? '未注册'
-        : modelConfig.faceReady ? '' : '未配置',
-      badgeTip: modelConfig.unregisteredConfigured.length
-        ? '人脸检测/特征模型已配置但未在后端注册，识别与登记不可用'
-        : '人脸检测模型 / 人脸特征模型未配置，识别不可用',
+      badge: modelConfig.faceModelsError ? '异常'
+        : modelConfig.unregisteredConfigured.length ? '未注册'
+          : modelConfig.faceReady ? '' : '未配置',
+      badgeTip: modelConfig.faceModelsError
+        ? '人脸模型清单接口异常（读取失败），无法确认是否可用；先看服务端日志，别按「未配置」去改模型'
+        : modelConfig.unregisteredConfigured.length
+          ? '人脸检测/特征模型已配置但未在后端注册，识别与登记不可用'
+          : '人脸检测模型 / 人脸特征模型未配置，识别不可用',
     },
     {
       // 人脸重识别：与人脸识别并列的另一条业务 —— 跨摄像头/跨帧追踪同一个人。
@@ -181,11 +186,14 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       icon: Fingerprint24Regular,
       section: '图像',
       showKey: 'showFaceReidMenu',
-      badge: modelConfig.unregisteredConfigured.length ? '未注册'
-        : modelConfig.faceReady ? '' : '未配置',
-      badgeTip: modelConfig.unregisteredConfigured.length
-        ? '人脸检测/特征模型已配置但未在后端注册，重识别不可用'
-        : '人脸检测模型 / 人脸特征模型未配置，重识别不可用',
+      badge: modelConfig.faceModelsError ? '异常'
+        : modelConfig.unregisteredConfigured.length ? '未注册'
+          : modelConfig.faceReady ? '' : '未配置',
+      badgeTip: modelConfig.faceModelsError
+        ? '人脸模型清单接口异常（读取失败），无法确认重识别是否可用；先看服务端日志，别按「未配置」去改模型'
+        : modelConfig.unregisteredConfigured.length
+          ? '人脸检测/特征模型已配置但未在后端注册，重识别不可用'
+          : '人脸检测模型 / 人脸特征模型未配置，重识别不可用',
     },
     {
       key: 'image-search',
@@ -233,6 +241,20 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       badgeTip: 'TTS 默认模型未配置，语音合成不可用',
     },
     {
+      // 服务管理：对外实例 / AppKey / 分组 / 访问日志 / 运行日志。
+      // 系统核心页，提到一级菜单；「系统设置」里仍保留同一组件的入口，供设置动线使用。
+      //
+      // 仅管理员：这一页能新建/停启实例、看到全部分组的 AppKey 与访问日志，
+      // 普通账号既没有可管的服务，也不该看到别人的 Key 台账。入口按角色隐藏，
+      // 和「配置中心 → 服务配置」保持同一道门槛。
+      key: 'services',
+      label: '服务管理',
+      icon: Server24Regular,
+      section: 'AI 配置',
+      showKey: 'showServicesMenu',
+      adminOnly: true,
+    },
+    {
       key: 'models',
       label: '模型管理',
       icon: BrainCircuit20Regular,
@@ -245,11 +267,15 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       // 前端不再用「看不见」代替「没权限」。
     },
     {
+      // 路由：入站 AppKey → 路由组 → 上游成员的实时拓扑，属于网关侧的系统配置。
+      // 仅管理员：拓扑暴露上游地址与分组构成，普通账号只用自己的会话/模型，
+      // 不参与路由编排。
       key: 'route',
       label: '路由',
       icon: ArrowRouting20Regular,
       section: 'AI 配置',
       showKey: 'showRouteMenu',
+      adminOnly: true,
     },
     {
       key: 'usage',

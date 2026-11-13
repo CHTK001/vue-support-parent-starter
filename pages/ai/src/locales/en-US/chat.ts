@@ -10,8 +10,8 @@ export default {
     enqueue: 'Enqueue',
     send: 'Send',
     selectModel: 'Please select a model',
-    plusTooltip: 'Commands & attachments',
-    plusAria: 'Command bar: attachments and commands',
+    plusTooltip: 'Commands, attachments & MCP',
+    plusAria: 'Input menu: commands, attachments and MCP',
     mcpTooltip: 'MCP tools',
     webSearchTooltip: 'Web search',
     optimizeInput: 'Optimize input',
@@ -181,6 +181,11 @@ export default {
     taskList: 'Task List',
     local: 'Local',
     remote: 'Remote',
+    filesTitle: 'Workspace files',
+    filesLoading: 'Loading…',
+    filesFailed: 'Failed to read the workspace',
+    filesEmpty: 'No files yet',
+    filesOpen: 'Open workspace',
   },
 
   // ── 上传 ──
@@ -450,6 +455,7 @@ export default {
     executing: 'Executing…',
     viewDetail: 'View details',
     openFileInWorkspace: 'Preview this file in workspace',
+    unmodifiedLines: 'unmodified lines',
   },
 
   // ── 文件变更 ──

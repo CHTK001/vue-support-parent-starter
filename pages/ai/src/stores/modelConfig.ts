@@ -48,6 +48,14 @@ const OCR_REQUIRED = ['detector_model', 'recognizer_model'] as const
 
 export const useModelConfigStore = defineStore('modelConfig', () => {
   const faceReady = ref(false)
+  /**
+   * 人脸「模型清单」接口是否失败。
+   *
+   * <p>为什么要单独记：`/v2/face/config/models` 挂掉时，代码取不到可用清单，
+   * `faceReady` 可能仍是 true 但 `unregisteredConfigured` 非空 → 页面统一渲染成
+   * 「还需配置模型」。把接口故障说成「没配置」会把运维引到错误的排查方向。</p>
+   */
+  const faceModelsError = ref(false)
   const imageReady = ref(false)
   const colorizeReady = ref(false)
   const asrReady = ref(false)
@@ -151,9 +159,11 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
         }
       }
       faceAvailableModelNames.value = names
+      faceModelsError.value = false
     } catch (e) {
-      console.warn('加载人脸可用模型清单失败，跳过存在性预检:', e)
+      console.warn('加载人脸可用模型清单失败（按接口异常处理，不要当成未配置）:', e)
       faceAvailableModelNames.value = new Set()
+      faceModelsError.value = true
     }
   }
 
@@ -281,6 +291,7 @@ export const useModelConfigStore = defineStore('modelConfig', () => {
 
   return {
     faceReady,
+    faceModelsError,
     imageReady,
     colorizeReady,
     asrReady,

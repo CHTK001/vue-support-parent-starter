@@ -285,7 +285,13 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  (e: 'stats', v: { total: number; models: number; keys: number }): void
+  (e: 'stats', v: {
+    total: number
+    models: number
+    keys: number
+    /** 分组清单（父级右栏直接展示，不重复拉一次接口） */
+    items: Array<{ id: any; name: string; models: number; members: number }>
+  }): void
   /** 分组或其成员发生变化：父级据此刷新 Key 台账（Key 的分组名 / 模型范围都跟着变） */
   (e: 'changed'): void
 }>()
@@ -696,6 +702,12 @@ watch(rows, (list) => {
     total: list.length,
     models: list.reduce((s, r) => s + r.modelCount, 0),
     keys: list.reduce((s, r) => s + r.memberCount, 0),
+    items: list.map((r) => ({
+      id: r.id,
+      name: r.name,
+      models: r.modelCount,
+      members: r.memberCount,
+    })),
   })
 }, { immediate: true })
 

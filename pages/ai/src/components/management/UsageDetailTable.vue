@@ -16,6 +16,20 @@
         <!-- 模型过滤：值进了 detailQueryParams，ReTable 会 watch params 变化
              自动回到第 1 页重新取数，无需再手动触发 -->
         <el-input v-model="board.detailModelFilter" placeholder="按模型筛选" clearable class="ud-filter" />
+        <!-- 列显隐：13 列横滚是常态，按需裁剪 -->
+        <el-popover placement="bottom-end" :width="190" trigger="click" popper-class="ud-cols-popper">
+          <template #reference>
+            <el-button text size="small" class="ud-cols-btn" title="选择要显示的列">列</el-button>
+          </template>
+          <div class="ud-cols">
+            <el-checkbox
+              v-for="c in board.detailColumns"
+              :key="c.prop"
+              :model-value="isColVisible(c.prop)"
+              @change="(v: any) => setColVisible(c.prop, !!v)"
+            >{{ c.label }}</el-checkbox>
+          </div>
+        </el-popover>
         <!-- 敏感数据（费用）显示开关：默认隐藏，点眼睛才露出金额 -->
         <el-button link type="primary" class="ud-cost-toggle" @click="board.costVisible = !board.costVisible"
           :title="board.costVisible ? '隐藏费用等敏感数据' : '显示费用等敏感数据'">
@@ -28,13 +42,13 @@
       <ReTable
         :data="board.detailRecords"
         :loading="board.detailLoading"
-        :columns="board.detailColumns"
+        :columns="visibleColumns"
         :show-index="false"
         class="ud-table"
         row-key="sysAiUsageId"
         :pagination="true"
         :page-size="20"
-        :layout-table="{ minHeight: 0, maxHeight: 560 }"
+        :layout-table="{ minHeight: 0, maxHeight: board.detailTotal > 0 ? 560 : 200 }"
         :loader="board.loadDetailPage"
         :params="board.detailQueryParams"
         :page-sizes="[10, 20, 50]"
@@ -219,8 +233,28 @@ import ReTable from '@/components/ui/ReTable.vue';
 import ReTag from '@/components/ui/ReTag.vue';
 import ReIpText from '@repo/ui/re-ip-text';
 import { Eye24Regular, EyeOff24Regular } from '@vicons/fluent';
+import { computed, ref } from 'vue';
 
-defineProps<{ board: any }>();
+const props = defineProps<{ board: any }>();
+
+/**
+ * 列显隐：13 列在 1280~1600 宽度下必然横滚，给用户一个「只留关心的几列」的出口。
+ *
+ * <p>状态只活在本组件（不写 localStorage）：明细表是排查用的临时视图，
+ * 下次进来回到「全列」比记住上次的裁剪更可预期。</p>
+ */
+const hiddenProps = ref<string[]>([]);
+const isColVisible = (prop: string) => !hiddenProps.value.includes(prop);
+function setColVisible(prop: string, visible: boolean): void {
+  if (visible) {
+    hiddenProps.value = hiddenProps.value.filter((p) => p !== prop);
+  } else if (!hiddenProps.value.includes(prop) && hiddenProps.value.length < props.board.detailColumns.length - 1) {
+    hiddenProps.value = [...hiddenProps.value, prop];
+  }
+}
+const visibleColumns = computed(() =>
+  (props.board.detailColumns || []).filter((c: any) => !hiddenProps.value.includes(c.prop)),
+);
 </script>
 
 <style scoped>
@@ -250,31 +284,12 @@ defineProps<{ board: any }>();
 .ud-filter { width: 180px; }
 .ud-cost-toggle { margin-left: 8px; }
 .ud-body { padding: 0 0 10px; min-width: 0; }
+.ud-cols-btn { padding: 0 6px; }
+.ud-cols { display: flex; flex-direction: column; gap: 2px; max-height: 320px; overflow-y: auto; }
+.ud-cols :deep(.el-checkbox) { margin-right: 0; height: 26px; }
 
-.ud-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-.ud-table :deep(.re-table-wrapper) { border-radius: 0; }
-.ud-table :deep(.vxe-table--border-line),
-.ud-table :deep(.vxe-table--render-default) { border: 0; }
-.ud-table :deep(.vxe-table--header-wrapper) { background: transparent; }
-.ud-table :deep(.vxe-header--column) {
-  background: transparent;
-  color: var(--el-text-color-regular);
-  font-weight: 600;
-  font-size: 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.ud-table :deep(.vxe-body--column) { border-bottom: 1px solid var(--el-border-color-lighter); }
-.ud-table :deep(.vxe-body--row:last-child .vxe-body--column) { border-bottom: 0; }
-.ud-table :deep(.re-table--compact .vxe-body--column) { padding-top: 4px !important; padding-bottom: 4px !important; }
-.ud-table :deep(.vxe-body--column .vxe-cell) { line-height: 1.4; }
-.ud-table :deep(.vxe-header--column) { padding-top: 2px !important; padding-bottom: 2px !important; }
-.ud-table :deep(.vxe-body--row.row--hover),
-.ud-table :deep(.vxe-body--row:hover) { background: color-mix(in srgb, var(--u-primary) 5%, transparent); }
-/* 空态别把整块撑到上千像素：给占位图与空态块一个上限 */
-.ud-table :deep(.vxe-table--empty-block),
-.ud-table :deep(.vxe-table--empty-content) { min-height: 160px; }
-.ud-table :deep(.vxe-table--empty-content img),
-.ud-table :deep(.vxe-table--empty-content svg) { max-height: 96px; width: auto; }
+/* 不再覆盖 vxe 的表格内部样式：固定列是独立渲染的三张表，任何只作用于其中一层的
+   边框/内边距/圆角都会让表头与表体错开。外观交给 ReTable 的默认皮肤。 */
 
 .ud-cell-time { font-variant-numeric: tabular-nums; }
 .ud-cell-model { display: flex; flex-direction: column; gap: 1px; min-width: 0; }

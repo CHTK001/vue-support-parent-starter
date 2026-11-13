@@ -32,16 +32,20 @@
       配色沿用本面板的 --el-* 令牌，不写死 hex（需求 4.1 / 4.2 / 4.5）。
     -->
     <template v-else-if="hasBreakdown || hasWindow">
-      <div class="cw-chart">
+      <div class="cw-chart" ref="chartRef">
         <div v-if="viewMode === 'area'" ref="areaRef" class="cw-area" role="group" aria-label="上下文地图">
           <button
             v-for="cell in cells"
             :key="cell.key"
             type="button"
             class="cw-cell"
-            :class="{ 'is-active': activeTab === cell.slice.key }"
+            :class="{ 'is-active': activeTab === cell.slice.key, 'is-dim': isDimSlice(cell.slice) }"
             :style="cellStyle(cell)"
-            :title="`${cell.slice.label} · ${formatTokens(cell.slice.tokens)} token`"
+            @mouseenter="onSliceEnter($event, cell.slice)"
+            @mousemove="onPointerMove"
+            @mouseleave="onPointerLeave"
+            @focus="onSliceEnter($event, cell.slice)"
+            @blur="onPointerLeave"
             @click="pickTab(activeTab === cell.slice.key ? 'all' : cell.slice.key)"
           >
             <span v-if="cell.w > 56 && cell.h > 26" class="cw-cell__label">{{ cell.slice.label }}</span>
@@ -50,8 +54,31 @@
         </div>
 
         <div v-else class="cw-grid" role="group" aria-label="上下文方格">
-          <span v-for="(dot, i) in dots" :key="i" class="cw-grid__dot" :class="{ 'is-free': dot.key === 'free' }"
-            :style="{ background: dot.color }" :title="dot.title" />
+          <span
+            v-for="(dot, i) in dots"
+            :key="i"
+            class="cw-grid__dot"
+            :class="{ 'is-free': dot.key === 'free', 'is-dim': hoveredKey !== null && hoveredKey !== dot.key }"
+            :style="{ background: dot.color }"
+            @mouseenter="onDotEnter($event, dot)"
+            @mousemove="onPointerMove"
+            @mouseleave="onPointerLeave"
+            @click="pickTab(activeTab === dot.key ? 'all' : dot.key)"
+          />
+        </div>
+
+        <!-- 悬停详情：取代原生 title，可把分类、token、两种占比一次看全 -->
+        <div
+          v-if="tip.visible && tip.slice"
+          class="cw-tip"
+          :style="{ left: `${tip.x}px`, top: `${tip.y}px` }"
+          role="tooltip"
+        >
+          <span class="cw-tip__title">{{ tip.slice.label }}</span>
+          <span class="cw-tip__row"><i>占用</i><b>{{ formatTokens(tip.slice.tokens) }} token</b></span>
+          <span class="cw-tip__row"><i>占已用</i><b>{{ pctText(tip.slice, usedTokens) }}</b></span>
+          <span class="cw-tip__row"><i>占窗口</i><b>{{ hasWindow ? pctText(tip.slice, contextWindow) : '窗口未登记' }}</b></span>
+          <span class="cw-tip__hint">点击只看这一类</span>
         </div>
 
         <!-- 切换图标：截图里在图表右下角，两枚图标按钮 -->
@@ -100,6 +127,23 @@
     </div>
 
     <p v-if="loadError" class="cw-error">{{ loadError }}</p>
+
+    <!-- 当前角色的提示词（用户口径 2026-11-12）：执行轨迹要能直接看到「这一轮
+         到底带着谁的人设」。默认折叠成 3 行预览，点开是完整原文。 -->
+    <section class="cw-prompt">
+      <header class="cw-prompt-head">
+        <span class="cw-prompt-title">{{ promptTitle }}</span>
+        <span class="cw-prompt-sub">{{ characterName || '当前会话' }}</span>
+      </header>
+      <button v-if="promptText" type="button" class="cw-prompt-body" :aria-expanded="showPrompt"
+        @click="showPrompt = true">
+        <span class="cw-prompt-preview">{{ promptText }}</span>
+        <span class="cw-prompt-more">查看完整 ›</span>
+      </button>
+      <div v-else class="cw-prompt-body is-empty">
+        <span class="cw-prompt-preview is-empty">当前会话没有角色提示词（使用平台默认）</span>
+      </div>
+    </section>
 
     <section class="cw-detail">
       <header class="cw-detail-head">
@@ -191,6 +235,24 @@
       </div>
     </Teleport>
 
+    <!-- 角色提示词全文 -->
+    <Teleport to="body">
+      <div v-if="showPrompt" class="cw-overlay" @click.self="showPrompt = false">
+        <section class="cw-modal" role="dialog" aria-modal="true" :aria-label="promptTitle">
+          <header class="cw-modal-head">
+            <span class="cw-modal-kind" style="background: var(--el-color-primary)" />
+            <span class="cw-modal-title">{{ promptTitle }} · {{ characterName || '当前会话' }}</span>
+            <button type="button" class="cw-modal-close" aria-label="关闭详情" @click="showPrompt = false">×</button>
+          </header>
+          <pre class="cw-code">{{ promptText }}</pre>
+          <footer class="cw-card-foot">
+            <span class="cw-card-count">共 {{ promptText.length }} 字</span>
+            <button type="button" class="cw-foot-btn cw-foot-btn--primary" @click="showPrompt = false">关闭</button>
+          </footer>
+        </section>
+      </div>
+    </Teleport>
+
     <footer class="cw-foot">
       <span class="cw-foot-count">全部条目 · {{ entries.length }}</span>
       <span class="cw-foot-spacer" />
@@ -216,8 +278,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { apiService } from "@/services/ApiService";
+import { useSessionStore } from "@/stores/session";
 import { useSessionTokenStats } from "@/composables/useSessionTokenStats";
 import { ContextModeIcon } from "@repo/ui/re-chart";
 import { assignDots, layoutTreemap, type ContextSlice } from "@repo/ui/re-chart";
@@ -229,6 +292,7 @@ import { assignDots, layoutTreemap, type ContextSlice } from "@repo/ui/re-chart"
  */
 const props = defineProps<{ sessionId: string | number }>();
 const emit = defineEmits<{ close: [] }>();
+const sessionStore = useSessionStore();
 
 const sessionIdRef = computed(() => (props.sessionId ? String(props.sessionId) : null));
 const { tokenStats, loading, fetchTokenStats } = useSessionTokenStats(sessionIdRef);
@@ -237,6 +301,45 @@ const { tokenStats, loading, fetchTokenStats } = useSessionTokenStats(sessionIdR
 const messages = ref<any[]>([]);
 const loadingMessages = ref(false);
 const loadError = ref("");
+
+/* ===== 当前角色的提示词（用户口径 2026-11-12）=====
+   数据优先级：会话级覆盖（settings.systemPrompt）> 角色自身 systemPrompt。
+   角色可能已被删除或无权限读取，取不到就退回会话覆盖，再没有就显示空态。 */
+const characterName = ref("");
+const promptText = ref("");
+const isPromptOverride = ref(false);
+const showPrompt = ref(false);
+const promptTitle = computed(() => (isPromptOverride.value ? "角色提示词（会话覆盖）" : "角色提示词"));
+
+/**
+ * 读取当前会话的角色提示词。
+ *
+ * <p>会话对象来自 sessionStore（列表/详情都已写入），角色正文再按 characterId 拉一次；
+ * 失败只记一条 warn，不阻塞上下文面板的其它数据。</p>
+ */
+async function loadCharacterPrompt(): Promise<void> {
+  const sid = sessionIdRef.value;
+  if (!sid) return;
+  const session: any = sessionStore.getSession(sid);
+  const override = String(session?.settings?.systemPrompt || "").trim();
+  const characterId = session?.characterId ?? session?.character_id;
+  let name = String(session?.characterName || "");
+  let base = "";
+  if (characterId) {
+    try {
+      const character: any = await apiService.fetchCharacter(String(characterId));
+      base = String(character?.systemPrompt || "").trim();
+      name = String(character?.name || name);
+    } catch (e) {
+      console.warn("[ContextWindowPanel] 读取角色提示词失败", e);
+    }
+  }
+  characterName.value = name;
+  isPromptOverride.value = !!override;
+  promptText.value = override || base;
+}
+
+watch(() => props.sessionId, () => { void loadCharacterPrompt(); }, { immediate: true });
 
 /**
  * 五个分类与后端 breakdown 的键一一对应。
@@ -304,6 +407,73 @@ const freeShare = computed(() => {
  * 两个视图共用同一份 slices，切视图不改数据、不重新请求。
  */
 const viewMode = ref<'area' | 'grid'>('area');
+
+/* ==================== 悬停：聚焦同类 + 详情浮层 ==================== */
+
+/** 悬停中的分类键；null = 没有悬停 */
+const hoveredKey = ref<string | null>(null);
+
+/** 图表容器：浮层相对它定位，避免被 area 的 overflow 裁掉 */
+const chartRef = ref<HTMLElement | null>(null);
+
+/** 悬停浮层状态（位置为容器内 px） */
+const tip = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  slice: null as ContextSlice | null,
+});
+
+const TIP_WIDTH = 168;
+const TIP_HEIGHT = 104;
+
+/**
+ * 该块是否应虚化。
+ *
+ * 面板里一块就是一个类别，所以「悬停一块」等价于「聚焦这一类」：
+ * 其余块退到 0.25，占比大小对比才看得出来（原来所有块同亮度，谁大谁小全靠猜）。
+ */
+function isDimSlice(slice: ContextSlice): boolean {
+  return hoveredKey.value !== null && slice.key !== hoveredKey.value;
+}
+
+/**
+ * 进入某块：记下分类、打开浮层并立刻定位。
+ *
+ * 键盘聚焦没有指针坐标（FocusEvent），此时只开浮层不定位，
+ * 浮层留在上一次位置，保证内容仍可读。
+ */
+function onSliceEnter(ev: MouseEvent | FocusEvent, slice: ContextSlice): void {
+  hoveredKey.value = slice.key;
+  tip.slice = slice;
+  tip.visible = true;
+  if (ev instanceof MouseEvent) {
+    onPointerMove(ev);
+  }
+}
+
+function onDotEnter(ev: MouseEvent, dot: { slice: ContextSlice }): void {
+  onSliceEnter(ev, dot.slice);
+}
+
+function onPointerMove(ev: MouseEvent): void {
+  const box = chartRef.value?.getBoundingClientRect();
+  if (!box || !tip.visible) return;
+  tip.x = Math.min(Math.max(6, box.width - TIP_WIDTH - 6), Math.max(6, ev.clientX - box.left + 12));
+  tip.y = Math.min(Math.max(6, box.height - TIP_HEIGHT - 6), Math.max(6, ev.clientY - box.top + 12));
+}
+
+function onPointerLeave(): void {
+  hoveredKey.value = null;
+  tip.visible = false;
+}
+
+/** 占比文案：小于 1% 保留一位小数，否则取整 */
+function pctText(slice: ContextSlice, base: number): string {
+  if (!base || base <= 0) return '0%';
+  const value = (slice.tokens / base) * 100;
+  return `${value > 0 && value < 1 ? value.toFixed(1) : value.toFixed(0)}%`;
+}
 
 /** 面积图容器实测尺寸：treemap 布局需要像素宽高才能切矩形 */
 const areaRef = ref<HTMLElement | null>(null);
@@ -376,7 +546,7 @@ const cells = computed(() => {
 const dots = computed(() => {
   const slices = chartSlices.value;
   const total = slices.reduce((sum, s) => sum + Math.max(0, s.tokens), 0);
-  if (total <= 0) return [] as Array<{ key: string; color: string; title: string }>;
+  if (total <= 0) return [] as Array<{ key: string; color: string; title: string; slice: ContextSlice }>;
   const count = 288;
   const assignment = assignDots(slices, total, count);
   const colorOf = (key: string) => {
@@ -389,6 +559,7 @@ const dots = computed(() => {
       key: slice.key,
       color: colorOf(slice.key),
       title: `${slice.label} · ${formatTokens(slice.tokens)} token`,
+      slice,
     };
   });
 });
@@ -926,16 +1097,26 @@ watch(
   gap: 2px;
   padding: 5px 7px;
   border: 0;
-  border-radius: 3px;
+  border-radius: 5px;
   overflow: hidden;
   cursor: pointer;
-  color: var(--el-color-white);
+  /* 深墨色而非白色：Element 的 warning/success/info 都是中亮度，
+     白字对比度只有 2~3:1（浅色块上的标签几乎看不见），深墨色能到 4.5:1 以上。 */
+  color: color-mix(in srgb, var(--el-color-black, #0f172a) 88%, transparent);
   text-align: left;
-  transition: filter var(--el-transition-duration-fast, 0.2s) ease;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-white) 30%, transparent);
+  transition: filter var(--el-transition-duration-fast, 0.2s) ease,
+    opacity var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 
 .cw-cell:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.06);
+}
+
+/* 悬停一块时其余块退到 0.25：类别之间的大小对比一眼可读 */
+.cw-cell.is-dim {
+  opacity: 0.25;
 }
 
 .cw-cell.is-active {
@@ -949,7 +1130,8 @@ watch(
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.2;
-  text-shadow: 0 1px 2px color-mix(in srgb, var(--el-color-black) 28%, transparent);
+  /* 深色字 + 浅色浮光：色块明度差异较大时都能压住背景 */
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--el-color-white) 45%, transparent);
 }
 .cw-cell__label {
   font-size: 11px;
@@ -979,11 +1161,63 @@ watch(
   width: 100%;
   height: 100%;
   min-width: 0;
-  border-radius: 1.5px;
+  border-radius: 2px;
   background: var(--el-color-primary);
+  cursor: pointer;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease,
+    transform var(--el-transition-duration-fast, 0.2s) ease;
 }
 .cw-grid__dot.is-free {
   background: var(--el-fill-color);
+}
+/* 与面积图同一口径：悬停一类时其余格虚化 */
+.cw-grid__dot.is-dim {
+  opacity: 0.18;
+}
+.cw-grid__dot:hover {
+  transform: scale(1.25);
+}
+
+/* 悬停详情浮层：替代原生 title，四行给全（分类 / token / 占已用 / 占窗口） */
+.cw-tip {
+  position: absolute;
+  z-index: 20;
+  width: 168px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color-light);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--el-color-black) 16%, transparent);
+  pointer-events: none;
+}
+.cw-tip__title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+}
+.cw-tip__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+.cw-tip__row i {
+  font-style: normal;
+}
+.cw-tip__row b {
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.cw-tip__hint {
+  font-size: 10px;
+  color: var(--el-color-primary);
 }
 
 /* 画法切换：右下角浮层，两枚图标按钮（选中态用主色描边而不是实底，避免抢色块的视觉） */
@@ -1119,6 +1353,87 @@ watch(
   margin: 8px 16px 0;
   color: var(--el-color-danger);
   font-size: 11px;
+}
+
+/* ===== 角色提示词卡片（执行轨迹顶部）=====
+   预览 3 行，点开弹完整原文；与「内容明细」用同一条细分隔线分层。 */
+.cw-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 8px;
+}
+
+.cw-prompt-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cw-prompt-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.cw-prompt-sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+.cw-prompt-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-lighter, var(--el-fill-color-light));
+  text-align: left;
+  cursor: pointer;
+}
+
+.cw-prompt-body:disabled {
+  cursor: default;
+}
+
+.cw-prompt-body.is-empty {
+  cursor: default;
+}
+
+.cw-prompt-preview {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+}
+
+.cw-prompt-preview.is-empty {
+  color: var(--el-text-color-placeholder);
+}
+
+.cw-prompt-more {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--el-color-primary);
+  white-space: nowrap;
+}
+
+.cw-prompt-body:hover:not(:disabled) .cw-prompt-more {
+  text-decoration: underline;
 }
 
 .cw-detail {

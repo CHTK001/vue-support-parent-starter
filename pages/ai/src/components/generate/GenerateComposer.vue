@@ -30,10 +30,11 @@
               >
                 <span class="gsp-thumb">
                   <img
-                    v-if="item.thumb"
+                    v-if="item.thumb && !failedStyleThumbs.has(item.key)"
                     :src="item.thumb"
                     :alt="item.name"
                     loading="lazy"
+                    @error="failedStyleThumbs.add(item.key)"
                   />
                   <span v-else class="gsp-fallback">{{ item.name }}</span>
                 </span>
@@ -380,6 +381,14 @@ const props = defineProps({
     })
   },
 });
+
+/**
+ * 缩略图加载失败的风格 key。
+ *
+ * <p>地址非空不等于文件在：dev 下静态目录没接上时请求会被回成 index.html，
+ * `<img>` 拿到 HTML 就是一张破图。失败后记下来，渲染退回风格名占位。</p>
+ */
+const failedStyleThumbs = reactive(new Set<string>())
 
 // 计算属性
 const styleClass = computed(() => {

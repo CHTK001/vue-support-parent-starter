@@ -13,7 +13,7 @@
     明细 / 单位设置），本文件只负责版面与视觉；treemap 的切片直接复用
     {@code modelBoard.items}，颜色与占比和其他图表完全一致。</p>
   -->
-  <div class="usage-page" data-page="usage">
+  <div v-if="isAdminUser" class="usage-page" data-page="usage">
     <!-- ── 顶栏：标题 + 实时胶囊 + 时间筛选 + 操作 ── -->
     <header class="usage-head usage-card">
       <div class="usage-head__lead">
@@ -132,14 +132,13 @@
           <ReEcharts
             v-if="board.treemapBlocks.blocks.length"
             :option="treemapOption"
-            height="420px"
+            height="360px"
             notMerge
             @click="board.onTreemapClick"
-            @mouseover="board.onTreemapHover"
-            @mouseout="board.onTreemapOut"
-            @globalout="board.onTreemapOut"
           />
-          <div v-else class="usage-empty"><el-empty description="暂无模型用量" :image-size="56" /></div>
+          <div v-else class="usage-empty">
+            <el-empty :description="board.routeErrors.list ? '模型用量加载失败，点右上角刷新重试' : '暂无模型用量'" :image-size="56" />
+          </div>
         </div>
 
         <footer class="usage-compo__foot">
@@ -371,17 +370,53 @@
       </article>
     </section>
 
-    <!-- ── Token 趋势（通栏） ── -->
+    <!-- ── 用量趋势（通栏）：口径 + 柱/线切换 ── -->
     <article class="usage-panel usage-card usage-full">
       <header class="usage-panel__head">
         <div>
-          <h2 class="usage-panel__title">Token 趋势</h2>
-          <p class="usage-panel__desc">输入 / 输出 / 缓存读取按日走势</p>
+          <h2 class="usage-panel__title">用量趋势</h2>
+          <p class="usage-panel__desc">{{ trendDesc }}</p>
+        </div>
+        <div class="usage-trend-tools">
+          <div class="usage-seg usage-seg--sm" role="tablist" aria-label="趋势口径">
+            <button
+              v-for="m in trendMetrics"
+              :key="m.key"
+              type="button"
+              role="tab"
+              class="usage-seg__btn"
+              :class="{ 'is-on': board.trendMetric === m.key }"
+              :aria-selected="board.trendMetric === m.key"
+              @click="board.trendMetric = m.key"
+            >{{ m.label }}</button>
+          </div>
+          <div class="usage-seg usage-seg--sm" role="tablist" aria-label="图形类型">
+            <button
+              type="button"
+              role="tab"
+              class="usage-seg__btn"
+              :class="{ 'is-on': board.trendChartType === 'bar' }"
+              :aria-selected="board.trendChartType === 'bar'"
+              title="柱状图"
+              @click="board.trendChartType = 'bar'"
+            >柱</button>
+            <button
+              type="button"
+              role="tab"
+              class="usage-seg__btn"
+              :class="{ 'is-on': board.trendChartType === 'line' }"
+              :aria-selected="board.trendChartType === 'line'"
+              title="折线图"
+              @click="board.trendChartType = 'line'"
+            >线</button>
+          </div>
         </div>
       </header>
       <div class="usage-panel__chart">
         <ReEcharts v-if="board.trendData.length" :option="board.trendOption" height="340px" notMerge />
-        <div v-else class="usage-empty"><el-empty description="暂无趋势数据" :image-size="56" /></div>
+        <div v-else class="usage-empty">
+          <el-empty :description="board.routeErrors.trend ? '趋势加载失败，点右上角刷新重试' : '暂无趋势数据'" :image-size="56" />
+        </div>
       </div>
     </article>
 
@@ -615,6 +650,11 @@
       </template>
     </ReDialog>
   </div>
+
+  <!-- 用量是全租户的经营数据：非管理员直接不给看，避免「能进来就能看到别人的花费」 -->
+  <div v-else class="usage-page usage-denied" data-page="usage">
+    <el-empty description="用量数据仅管理员可见" :image-size="72" />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -632,11 +672,33 @@ import { computed, reactive } from 'vue'
 import type { EChartsOption } from 'echarts'
 import ReEcharts from '@repo/ui/re-echarts'
 import ReDialog from '@repo/ui/re-dialog'
+import { isAdmin } from '@repo/core'
 import ReTable from '@/components/ui/ReTable.vue'
 import { useUsageBoard } from '@/composables/useUsageBoard'
 import UsageDetailTable from './UsageDetailTable.vue'
 
+/** 用量只对管理员开放：页面级硬门，非管理员渲染无权限空态 */
+const isAdminUser = isAdmin()
+
 const board = reactive(useUsageBoard())
+
+/** 趋势图的口径（与 composable 的 trendMetric 一一对应）与说明文案 */
+const trendMetrics = [
+  { key: 'token', label: 'Token' },
+  { key: 'cost', label: '费用' },
+  { key: 'calls', label: '请求' },
+  { key: 'speed', label: '速度' },
+] as const
+
+const trendDesc = computed(() => {
+  const map: Record<string, string> = {
+    token: '输入 / 输出 / 缓存读取按日走势',
+    cost: '每日消费（按各模型费用汇总）',
+    calls: '每日请求次数',
+    speed: '每日平均解码速率（按 Token 加权）',
+  }
+  return map[board.trendMetric] ?? ''
+})
 
 /**
  * 模型构成面积图。
@@ -649,7 +711,6 @@ const board = reactive(useUsageBoard())
  */
 const treemapOption = computed<EChartsOption>(() => {
   const blocks = board.treemapBlocks.blocks
-  const hovered = board.treemapHover
   const metricText = (v: number) =>
     board.modelChartType === 'token' ? board.fmtToken(v) : `${board.currencySymbol}${board.money(v)}`
   return {
@@ -714,15 +775,11 @@ const treemapOption = computed<EChartsOption>(() => {
           },
         },
         upperLabel: { show: false },
-        data: blocks.map((b) => ({
-          name: b.name,
-          value: b.value,
-          // 手动压暗：悬停的块全亮，其余块降透明（§6.5）
-          itemStyle: {
-            color: b.color,
-            opacity: hovered == null || hovered === b.name ? 1 : 0.4,
-          },
-        })),
+        // 悬停压暗（§6.5）交给 echarts 自己的 emphasis.focus：聚焦自身时其余块走 blur
+        // 态；透明度压到 0.18，和「同类页面」的观感一致（0.4 还不够淡）
+        emphasis: { focus: 'self', itemStyle: { borderColor: 'rgba(255,255,255,0.95)', borderWidth: 2 } },
+        blur: { itemStyle: { opacity: 0.18 } },
+        data: blocks.map((b) => ({ name: b.name, value: b.value, itemStyle: { color: b.color } })),
       },
     ],
   }
@@ -749,12 +806,18 @@ const readoutCards = computed<ReadoutCard[]>(() => {
   const tokens = Number(board.stats.totalTokens) || 0
   const cost = Number(board.stats.totalCost) || 0
   const perK = tokens > 0 ? (cost / tokens) * 1000 : null
+  // 每千 Token 成本通常只有 0.0001~0.01 量级，两位小数会一律显示 ¥0.00
+  const perKText = perK === null
+    ? '—'
+    : Math.abs(perK) < 0.01
+      ? `${board.currencySymbol}${perK.toFixed(4)}`
+      : `${board.currencySymbol}${board.money(perK)}`
   return [
     ...board.statCards,
     {
       key: 'cost-per-k',
       label: '每千 Token 成本',
-      value: perK === null ? '—' : `${board.currencySymbol}${board.money(perK)}`,
+      value: perKText,
       unit: '',
       sub: [
         perK === null
@@ -855,6 +918,29 @@ function pctStyle(r: any) {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--u-radius, 8px);
 }
+
+/* 页面是「固定高 + 内部滚动」的列 flex：子块必须禁止收缩。
+   否则内容总高超过视口时，没有最小高度的块会被压扁（趋势面板实测被压到 2px，
+   工具条溢出后被下一区块盖住，表现为「按钮点不动」）。滚动由容器自己负责。 */
+.usage-page > * { flex-shrink: 0; }
+
+/* ============================================================================
+   2026-11-13 视觉收敛（排版 / 布局 / 颜色）
+   1) 节奏：页边距 24/28，块间距 18 → 14，卡片内边距统一 14/18；
+   2) 层级：不再靠「每块一条边框」，改为同一底色 + 极浅描边，靠留白分层；
+   3) 字号：标题 17 → 18，辅助读数统一 12，数字全部等宽；
+   4) 颜色：只保留一个主色承载「实时 / 选中」，其余压回中性色阶。
+   仍然沿用 --el-* 令牌，暗色主题自动跟随，不引入新的调色盘。
+   ============================================================================ */
+.usage-page { padding: 24px 28px 40px; gap: 14px; }
+.usage-card {
+  border-color: var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  background: var(--el-bg-color);
+}
+.usage-head { padding: 14px 18px; }
+.usage-title { font-size: 18px; font-weight: 650; letter-spacing: -0.015em; }
+.usage-head__tools { gap: 6px; }
+
 
 /* ── 顶栏 ── */
 .usage-head {
@@ -984,10 +1070,10 @@ function pctStyle(r: any) {
 .usage-icon :deep(.el-icon) { font-size: 16px; }
 .usage-icon svg { width: 16px; height: 16px; }
 
-/* ── 首屏：构成图通栏，读数压成一条五格横带 ── */
+/* ── 首屏：左模型构成，右四张读数格 + 派生效率读数（同一行） ── */
 .usage-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
 }
@@ -1062,7 +1148,7 @@ function pctStyle(r: any) {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 右侧读数区改成横带：五行 KPI 并排 + 一行派生效率读数 */
+/* 右侧读数区：2×2 KPI + 一行派生效率读数（同一张白底，不分色块） */
 .usage-readouts {
   display: flex;
   flex-direction: column;
@@ -1070,10 +1156,10 @@ function pctStyle(r: any) {
   min-width: 0;
 }
 .usage-kpis {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  grid-template-rows: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr)) auto;
   gap: 12px;
 }
 .usage-kpi {
@@ -1118,21 +1204,25 @@ function pctStyle(r: any) {
 }
 .usage-kpi__ring { position: absolute; right: 10px; bottom: 8px; pointer-events: none; opacity: 0.9; }
 
-/* 第 5 张派生卡：和其余四张同列同高，标签在上、读数在下 */
+/* 第 5 张派生卡：横跨两列，标签左、读数右、注解整行 */
 .usage-kpi--wide {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 15px 16px;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 3px;
+  padding: 12px 16px;
 }
-.usage-kpi--wide .usage-kpi__value { justify-self: auto; font-size: 26px; }
+.usage-kpi--wide .usage-kpi__value { justify-self: end; font-size: 24px; }
 .usage-kpi--wide .usage-kpi__sub {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 2px;
+  grid-column: 1 / -1;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2px 10px;
 }
 
-/* 派生读数：一行三条，安静的一体条带，不抢 KPI 的主次 */
+/* 派生读数：一行三条，与 KPI 同一张白底卡片，不再单独配色 */
 .usage-deriv {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1142,7 +1232,7 @@ function pctStyle(r: any) {
   list-style: none;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--u-radius, 10px);
-  background: var(--el-fill-color-lighter, rgba(247, 248, 250, 0.9));
+  background: var(--el-bg-color);
 }
 .usage-deriv__item {
   display: flex;
@@ -1204,6 +1294,7 @@ function pctStyle(r: any) {
 }
 .usage-panel__body {
   display: grid;
+  height: 100%;
   grid-template-columns: 164px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
@@ -1319,6 +1410,7 @@ function pctStyle(r: any) {
 .usage-pct__text { flex: 0 0 auto; min-width: 42px; text-align: right; font-size: 12px; color: var(--el-text-color-secondary); font-variant-numeric: tabular-nums; }
 
 .usage-panel__chart { padding: 0 12px 12px; min-width: 0; }
+.usage-trend-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .usage-empty { display: flex; align-items: center; justify-content: center; min-height: 200px; }
 
 /* ── 排行 ── */
@@ -1507,10 +1599,8 @@ function pctStyle(r: any) {
 
 /* ── 响应式 ── */
 @media (max-width: 1180px) {
+  .usage-hero { grid-template-columns: minmax(0, 1fr); }
   .usage-split--7-5 { grid-template-columns: minmax(0, 1fr); }
-  /* 五格横带在窄屏退成 2×2 + 一张通栏，避免末行只坐一张卡留出空位 */
-  .usage-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .usage-kpi--wide { grid-column: 1 / -1; }
 }
 @media (max-width: 900px) {
   .usage-split,

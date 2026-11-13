@@ -10,8 +10,8 @@ export default {
     enqueue: '加入队列',
     send: '发送',
     selectModel: '请选择模型',
-    plusTooltip: '指令与附件',
-    plusAria: '指令栏：附件与指令',
+    plusTooltip: '指令、附件与 MCP',
+    plusAria: '输入区菜单：指令、附件与 MCP',
     mcpTooltip: 'MCP 工具',
     webSearchTooltip: '在线检索',
     optimizeInput: '优化输入',
@@ -182,6 +182,12 @@ export default {
     // 工作间徽标：这条路径落在本机还是另一台机器
     local: '本地',
     remote: '远端',
+    // 工作区悬停预览（顶栏「工作目录」图标）
+    filesTitle: '工作区文件',
+    filesLoading: '加载中…',
+    filesFailed: '读取工作区失败',
+    filesEmpty: '工作区还没有文件',
+    filesOpen: '打开工作区',
   },
 
   // ── 上传 ──
@@ -457,6 +463,7 @@ export default {
     executing: '执行中…',
     viewDetail: '查看详情',
     openFileInWorkspace: '在工作区预览此文件',
+    unmodifiedLines: '行未改动',
   },
 
   // ── 文件变更 ──

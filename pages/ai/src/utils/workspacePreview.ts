@@ -206,7 +206,7 @@ async function previewUrlInWeb(url: string): Promise<void> {
  *
  * 创建浏览器窗口，setActive 后 tabStore 的 watch 自动同步标签。
  */
-export async function previewUrl(url: string): Promise<void> {
+export async function previewUrl(url: string, options: { standalone?: boolean } = {}): Promise<void> {
     const isElectron = typeof window !== 'undefined' && window.electronAPI !== undefined
     if (!isElectron || !window.electronAPI?.createBrowserWindow) {
         await previewUrlInWeb(url)
@@ -230,11 +230,15 @@ export async function previewUrl(url: string): Promise<void> {
         if (result.success && result.window?.windowId) {
             const layoutStore = useLayoutStore()
             const wasVisible = layoutStore.workspaceVisible
-            layoutStore.workspaceVisible = true
-
-            // 侧边栏从隐藏→可见时，WorkspaceSidebar 需要一个 tick 完成挂载
-            if (!wasVisible) {
-                await nextTick()
+            // 独立模式：不展开工作区，交给 BrowserStandaloneHost 提供浮层宿主
+            if (options.standalone) {
+                useBrowserWebviewStore().setStandalone(true)
+            } else {
+                layoutStore.workspaceVisible = true
+                // 侧边栏从隐藏→可见时，WorkspaceSidebar 需要一个 tick 完成挂载
+                if (!wasVisible) {
+                    await nextTick()
+                }
             }
 
             const tabStore = useTabStore()

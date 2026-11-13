@@ -187,11 +187,21 @@ export const useBrowserWebviewStore = defineStore('browserWebview', () => {
     return Array.from(webviews.value.values())
   })
 
+  /**
+   * 独立模式（用户口径 2026-11-13）：内置浏览器不依附工作区侧栏时由
+   * BrowserStandaloneHost 提供浮层宿主，侧栏自己的 previewRect 不参与。
+   */
+  const standalone = ref(false)
+  function setStandalone(value: boolean): void {
+    standalone.value = value
+  }
+
   return {
     // state
     webviews,
     activeWindowId,
     previewRect,
+    standalone,
     currentSessionId,
     isDragging,
     renderableOverrides,
@@ -211,6 +221,7 @@ export const useBrowserWebviewStore = defineStore('browserWebview', () => {
     updateWebview,
     setActive,
     setPreviewRect,
+    setStandalone,
     setCurrentSession,
     setDragging,
     setRenderableOverride,

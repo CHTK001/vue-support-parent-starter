@@ -505,17 +505,18 @@ export function useUsageBoard() {
       const res: any = await usageApi.trend(timeParams.value);
       if (loadSeq !== seq) return;
       const dailyRows: any[] = res.data || [];
-      const map = new Map<string, { date: string; input: number; output: number; cached: number; total: number }>();
+      const map = new Map<string, { date: string; input: number; output: number; cached: number; total: number; calls: number }>();
       for (const r of dailyRows) {
         const raw = String(r.date || ""); const d = raw.length > 10 && raw.includes(":") ? raw.slice(0, 13) : raw.slice(0, 10);
         if (!d) continue;
-        if (!map.has(d)) map.set(d, { date: d, input: 0, output: 0, cached: 0, total: 0 });
+        if (!map.has(d)) map.set(d, { date: d, input: 0, output: 0, cached: 0, total: 0, calls: 0 });
         const a = map.get(d)!;
         a.input += Number(r.promptTokens) || 0;
         a.output += Number(r.completionTokens) || 0;
         // cachedTokens 后端 /usage/trend 早就返回了，只是之前没接进图里
         a.cached += Number(r.cachedTokens) || 0;
         a.total += Number(r.totalTokens) || 0;
+        a.calls += Number(r.totalCalls) || 0;
       }
       trendData.value = [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
     } catch (e: any) {
@@ -1319,51 +1320,89 @@ export function useUsageBoard() {
     };
   });
 
+  /**
+   * 趋势图的口径与图形。
+   *
+   * <p>四个口径里只有 Token / 请求直接来自 {@code /usage/trend}；费用与速度在
+   * {@code /usage/model-trend} 里（按模型按天），这里按天汇总：费用求和、速度按
+   * Token 加权平均 —— 直接对各模型的 tok/s 取算术平均会被小模型拉偏。</p>
+   */
+  type TrendMetric = "token" | "cost" | "calls" | "speed";
+  const trendMetric = ref<TrendMetric>("token");
+  const trendChartType = ref<"line" | "bar">("line");
+
+  const trendAux = computed(() => {
+    const cost = new Map<string, number>();
+    const speed = new Map<string, { sum: number; weight: number }>();
+    for (const r of modelTrendRows.value) {
+      const d = r.date;
+      cost.set(d, (cost.get(d) || 0) + (Number(r.totalCost) || 0));
+      const w = Number(r.totalTokens) || 0;
+      const s = Number(r.avgTokensPerSecond);
+      if (Number.isFinite(s) && s > 0 && w > 0) {
+        const cur = speed.get(d) || { sum: 0, weight: 0 };
+        cur.sum += s * w;
+        cur.weight += w;
+        speed.set(d, cur);
+      }
+    }
+    return { cost, speed };
+  });
+
   const trendOption = computed<EChartsOption>(() => {
     const rows = trendData.value;
+    const dates = rows.map((r) => (r.date.length > 10 ? r.date.slice(11, 16) : r.date));
+    const metric = trendMetric.value;
+    const isBar = trendChartType.value === "bar";
+    const fmt = (v: number) =>
+      metric === "token"
+        ? fmtToken(v)
+        : metric === "cost"
+          ? `${currencySymbol.value}${money(v)}`
+          : metric === "calls"
+            ? formatNumber(v)
+            : `${Math.round(v)} tok/s`;
+    const barBase = { barMaxWidth: 20, itemStyle: { borderRadius: [3, 3, 0, 0] } };
+    const lineBase = { smooth: true, showSymbol: false };
+    let series: any[];
+    if (metric === "token") {
+      const mk = (name: string, key: "input" | "output" | "cached", dashed = false) => ({
+        name,
+        type: trendChartType.value,
+        ...(isBar ? { ...barBase, stack: "token" } : lineBase),
+        data: rows.map((r) => r[key]),
+        ...(dashed ? { lineStyle: { type: "dashed", width: 2 } } : {}),
+        ...(isBar ? {} : { areaStyle: { opacity: dashed ? 0.06 : 0.12 } }),
+      });
+      series = [mk("输入 Token", "input"), mk("输出 Token", "output"), mk("缓存读取", "cached", true)];
+    } else if (metric === "cost") {
+      series = [{ name: "费用", type: trendChartType.value, ...(isBar ? barBase : lineBase), data: rows.map((r) => Number(trendAux.value.cost.get(r.date) || 0)) }];
+    } else if (metric === "calls") {
+      series = [{ name: "请求", type: trendChartType.value, ...(isBar ? barBase : lineBase), data: rows.map((r) => r.calls) }];
+    } else {
+      series = [{
+        name: "速度",
+        type: trendChartType.value,
+        ...(isBar ? barBase : lineBase),
+        // 没测到的天给 null：ECharts 会断线，正好表达「那天没有速率样本」
+        data: rows.map((r) => {
+          const s = trendAux.value.speed.get(r.date);
+          return s && s.weight > 0 ? Number((s.sum / s.weight).toFixed(1)) : null;
+        }),
+      }];
+    }
     return {
       tooltip: {
         trigger: "axis",
         confine: true,
         axisPointer: { type: "line", lineStyle: { type: "dashed" } },
-        valueFormatter: (v: any) => fmtToken(v),
+        valueFormatter: (v: any) => fmt(Number(v)),
       },
-      legend: { data: ["输入 Token", "输出 Token", "缓存读取"], top: 0 },
+      legend: { show: metric === "token", data: ["输入 Token", "输出 Token", "缓存读取"], top: 0 },
       grid: { left: 56, right: 44, top: 40, bottom: 32 },
-      xAxis: { type: "category", boundaryGap: false, data: rows.map((r) => r.date.length > 10 ? r.date.slice(11, 16) : r.date) },
-      yAxis: {
-        type: "value",
-        axisLabel: { formatter: (v: number) => fmtToken(v) },
-      },
-      series: [
-        {
-          name: "输入 Token",
-          type: "line",
-          smooth: true,
-          showSymbol: false,
-          data: rows.map((r) => r.input),
-          areaStyle: { opacity: 0.12 },
-        },
-        {
-          name: "输出 Token",
-          type: "line",
-          smooth: true,
-          showSymbol: false,
-          data: rows.map((r) => r.output),
-          areaStyle: { opacity: 0.12 },
-        },
-        {
-          // 缓存读取是「输入 Token 里命中缓存的那部分」，属于输入的子集，
-          // 不是额外叠加的量。所以用虚线单独画、不堆叠。
-          name: "缓存读取",
-          type: "line",
-          smooth: true,
-          showSymbol: false,
-          data: rows.map((r) => r.cached),
-          lineStyle: { type: "dashed", width: 2 },
-          areaStyle: { opacity: 0.06 },
-        },
-      ],
+      xAxis: { type: "category", boundaryGap: isBar, data: dates },
+      yAxis: { type: "value", axisLabel: { formatter: (v: number) => fmt(v) } },
+      series,
     };
   });
 
@@ -1485,9 +1524,10 @@ export function useUsageBoard() {
   const detailUserFilter = ref("");
 
   const detailColumns = computed<ReTableColumn[]>(() => [
-    // 时间列固定在左侧：明细表有 13 列、横滚是常态，时间不钉住的话滚到右边
-    // 就不知道这一行是什么时候的记录了。
-    { prop: "time", label: "时间", width: 160, slot: "time", fixed: "left" },
+    // 时间列不钉左：vxe 的固定列是双份渲染（表头/表体各一份），在本页宽度下
+    // 表头与表体会整体错开约 40px，且左侧多出一条空白带；整表一起横滚更稳。
+    // 时间列钉左：默认皮肤下固定层与主表列宽一致，钉住才不会滚丢时间
+    { prop: "time", label: "时间", width: 150, slot: "time", fixed: "left" },
     { prop: "model", label: "模型", minWidth: 180, showOverflowTooltip: true, slot: "model" },
     { prop: "group", label: "分组", width: 140, showOverflowTooltip: true, slot: "group" },
     { prop: "user", label: "账号", width: 90, slot: "user" },
@@ -1749,7 +1789,7 @@ export function useUsageBoard() {
     OTHER_SLICE_COLOR, boardColorOf, barWidth, isZeroCost,
     modelRingOption, groupRingOption, miniRingOption, boardColumns, percentNum, percent,
     modelBarMetric, modelBarDates, modelBarOption,
-    trendData, trendOption,
+    trendData, trendOption, trendMetric, trendChartType,
     latencyDates, latencyModelCount, latencyOption,
     detailRecords, detailLoading, detailTotal, detailModelFilter, costVisible,
     detailColumns, detailQueryParams, loadDetailPage,
@@ -1758,5 +1798,6 @@ export function useUsageBoard() {
     formatTypeLabel, typeTagType, callModeLabel, callModeTag, cacheRatePct, cacheRateText,
     endpointDisplay, providerDisplay, isSuspiciousSpeed, formatTime,
     currencySymbol,
+    routeErrors,
   };
 }

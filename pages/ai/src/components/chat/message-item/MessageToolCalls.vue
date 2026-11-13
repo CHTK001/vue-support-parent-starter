@@ -18,16 +18,22 @@
           :class="{ 'is-expanded': isExpanded(toolIndex) }" role="button" tabindex="0"
           :aria-expanded="isExpanded(toolIndex)" @click.stop="toggleTool(toolIndex)"
           @keydown.enter.prevent="toggleTool(toolIndex)" @keydown.space.prevent="toggleTool(toolIndex)">
-          <span class="tool-row__glyph shrink-0">
-            <el-icon v-if="tool.outcome === 'error' || tool.outcome === 'rejected'" class="glyph-icon" size="15"
-              style="color: #f56c6c;">
+          <!-- 左侧：默认是工具类型图标，悬停/展开时变成折角（用户口径 2026-11-12） -->
+          <span class="tool-row__glyph shrink-0" :title="getToolActionLabel(tool)">
+            <el-icon v-if="tool.outcome === 'error' || tool.outcome === 'rejected'" class="glyph-icon tool-row__glyph-icon"
+              size="15" style="color: #f56c6c;">
               <component :is="getToolIcon(tool)" />
             </el-icon>
-            <el-icon v-else-if="tool.outcome === 'aborted'" class="glyph-icon" size="15" style="color: #c0c4cc;">
+            <el-icon v-else-if="tool.outcome === 'aborted'" class="glyph-icon tool-row__glyph-icon" size="15"
+              style="color: #c0c4cc;">
               <component :is="getToolIcon(tool)" />
             </el-icon>
-            <el-icon v-else class="glyph-icon" size="15" :class="{ 'shimmer-icon': isToolExecuting(tool, toolIndex) }">
+            <el-icon v-else class="glyph-icon tool-row__glyph-icon" size="15"
+              :class="{ 'shimmer-icon': isToolExecuting(tool, toolIndex) }">
               <component :is="getToolIcon(tool)" class="text-gray-500" />
+            </el-icon>
+            <el-icon class="glyph-icon tool-row__glyph-chev" size="13">
+              <ChevronRight12Regular />
             </el-icon>
           </span>
           <div class="ml-1.5 min-w-0 flex-1 flex items-baseline overflow-hidden">
@@ -35,26 +41,29 @@
             <span class="tool-row__action shrink-0"
               :class="rowInfo(toolIndex).failed ? 'text-red-500 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'">{{
                 getToolActionLabel(tool) }}</span>
-            <span v-if="tool.outcome === 'aborted'" class="shrink-0 text-gray-400">{{
-              `（${t('chat.toolCalls.aborted')}）` }}</span>
 
-            <!--
-              目标摘要：文件路径 / 命令 / 检索式，用「·」与动作名分隔。
-              命令类失败时整段标红——一屏工具行里只有失败那几行刺眼，才看得出问题在哪。
-            -->
-            <span v-if="rowInfo(toolIndex).target" class="tool-row__target"
-              :class="rowInfo(toolIndex).isCommand && rowInfo(toolIndex).failed
-                ? 'tool-row__target--failed'
-                : 'text-gray-500 dark:text-gray-400'"
-              :title="rowInfo(toolIndex).target">· {{ rowInfo(toolIndex).target }}</span>
-
-            <!-- 文件路径可点开在工作区预览 -->
+            <!-- 路径类目标：动作名后面直接给「在工作区打开」（参考图位置），
+                 目标文本本身也保留点击入口（见下方 target 的 click） -->
             <button v-if="rowInfo(toolIndex).targetIsPath" type="button" class="tool-row__ext shrink-0"
               :title="t('chat.toolCalls.openFileInWorkspace')"
               :aria-label="t('chat.toolCalls.openFileInWorkspace')"
               @click.stop="previewFile(rowInfo(toolIndex).filePath)">
               <el-icon size="12"><Open16Regular /></el-icon>
             </button>
+            <span v-if="tool.outcome === 'aborted'" class="shrink-0 text-gray-400">{{
+              `（${t('chat.toolCalls.aborted')}）` }}</span>
+
+            <!--
+              目标摘要：文件路径 / 命令 / 检索式。
+              路径前面带文件类型图标（参考图口径），命令类失败时整段标红。
+            -->
+            <img v-if="rowInfo(toolIndex).targetIsPath" class="tool-row__file-icon shrink-0"
+              :src="fileIconFor(rowInfo(toolIndex).filePath)" alt="" aria-hidden="true" />
+            <span v-if="rowInfo(toolIndex).target" class="tool-row__target"
+              :class="rowInfo(toolIndex).isCommand && rowInfo(toolIndex).failed
+                ? 'tool-row__target--failed'
+                : 'text-gray-500 dark:text-gray-400'"
+              :title="rowInfo(toolIndex).target">{{ rowInfo(toolIndex).target }}</span>
 
             <!-- write/edit 增删行数：与文件变更条同一 diffLines 口径，绿色加 / 红色减 -->
             <span v-if="rowInfo(toolIndex).diff.added || rowInfo(toolIndex).diff.removed" class="tool-diff shrink-0">
@@ -103,12 +112,13 @@
             <span class="tool-inline__running-text">{{ t('chat.toolCalls.executing') }}</span>
           </div>
           <!--
-            详情直读消息自带的 toolCalls / toolCallsResponse 轨迹（历史消息接口随消息返回，
-            AiSessionController 已把 toolTrace 写进 contentMetadata）。
-            不再请求 /message-content/{id}/tool-details：该端点后端从未存在，
-            每次展开必 404 → 弹「加载工具详情失败」（2026-10-09 报障根因）。
+            写文件类：展开就是真实 diff（参考图版式：路径头 + 行号 + 增删底色 +
+            大段未改动折成「N unmodified lines」）。参数 / 结果的完整视图仍在行尾「详情」弹窗。
+            其它工具继续用 ToolCallDetail 直接展示参数与结果。
           -->
-          <ToolCallDetail :tool="tool" :response="inlineResponse(toolIndex)"
+          <ToolCallDiff v-if="rowInfo(toolIndex).diffText" :file-path="rowInfo(toolIndex).filePath"
+            :diff-text="rowInfo(toolIndex).diffText" />
+          <ToolCallDetail v-else :tool="tool" :response="inlineResponse(toolIndex)"
             :executing="isToolExecuting(tool, toolIndex)" />
         </div>
       </transition>
@@ -155,6 +165,8 @@ import { useI18n } from 'vue-i18n';
 import { Info24Regular, ChevronRight12Regular, Open16Regular } from '@vicons/fluent';
 import ReDialog from '@repo/ui/re-dialog';
 import ToolCallDetail from './ToolCallDetail.vue';
+import ToolCallDiff from './ToolCallDiff.vue';
+import { getFileIcon } from '@/utils/fileType';
 import {
   type ToolCall,
   resolveToolName, getToolIcon,
@@ -176,6 +188,31 @@ function parseArgs(raw: any): Record<string, any> | null {
     }
   }
   return typeof raw === 'object' ? raw : null;
+}
+
+/** 行首的文件类型图标：按扩展名取图标集（参考图里路径前那枚图标） */
+function fileIconFor(filePath: string): string {
+  const ext = (filePath.split('.').pop() || '').toLowerCase();
+  return getFileIcon(undefined, ext);
+}
+
+/**
+ * edit / write 的原文与新文：展开时直接渲染真实 diff（用户口径 2026-11-12）。
+ *
+ * @param tool 工具调用
+ * @returns 两段文本；非写文件类或缺参数时返回 null
+ */
+function diffContentFor(tool: ToolCall): { oldText: string; newText: string } | null {
+  const name = tool.name;
+  if (!name || !WRITE_TOOLS.has(name)) return null;
+  const args = parseArgs(tool.arguments);
+  if (!args) return null;
+  const oldText = name === 'edit' ? String(args.old_text ?? args.oldText ?? '') : '';
+  const newText = name === 'edit'
+    ? String(args.new_text ?? args.newText ?? '')
+    : String(args.content ?? '');
+  if (!oldText && !newText) return null;
+  return { oldText, newText };
 }
 
 /**
@@ -221,6 +258,8 @@ function formatToolDuration(ms: number): string {
 interface ToolRowInfo {
   filePath: string;
   diff: { added: number; removed: number };
+  /** edit / write 的原文与新文；非写文件类为 null（展开时渲染真实 diff） */
+  diffText: { oldText: string; newText: string } | null;
   durationMs: number;
   /** 动作名后的目标摘要：文件路径 / 命令 / 检索式 */
   target: string;
@@ -257,6 +296,7 @@ const rowInfos = computed<ToolRowInfo[]>(() =>
     return {
       filePath,
       diff: diffStatFor(tool),
+      diffText: diffContentFor(tool),
       durationMs: durationFor(tool),
       // getArgsText 的返回类型是 string | undefined（它对没有可读参数的工具返回 undefined），
       // 而 ToolRowInfo.target 声明为 string。模板里按字符串用，所以在此收敛成空串，
@@ -270,7 +310,7 @@ const rowInfos = computed<ToolRowInfo[]>(() =>
 );
 
 const EMPTY_ROW: ToolRowInfo = {
-  filePath: '', diff: { added: 0, removed: 0 }, durationMs: 0,
+  filePath: '', diff: { added: 0, removed: 0 }, diffText: null, durationMs: 0,
   target: '', targetIsPath: false, isCommand: false, failed: false,
 };
 
@@ -680,5 +720,40 @@ const closeDialog = () => {
 @keyframes shimmer {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
+}
+
+/* 行首图标 ⇄ 折角（用户口径 2026-11-12）：
+   默认显示工具类型图标；鼠标经过或已展开时换成 ›，展开态再转 90° 变成 ˅。
+   这样不用在行尾再放一个箭头，行体本身就能看出「可展开」。 */
+.tool-row__glyph-chev {
+  color: var(--el-text-color-secondary);
+  transition: transform 0.12s ease;
+}
+
+.tool-row__glyph .tool-row__glyph-chev {
+  display: none;
+}
+
+.tool-row:hover .tool-row__glyph-icon,
+.tool-row.is-expanded .tool-row__glyph-icon {
+  display: none;
+}
+
+.tool-row:hover .tool-row__glyph-chev,
+.tool-row.is-expanded .tool-row__glyph-chev {
+  display: inline-flex;
+}
+
+.tool-row.is-expanded .tool-row__glyph-chev {
+  transform: rotate(90deg);
+}
+
+/* 路径前的文件类型图标（参考图口径）：比文字小一档，只做扫读锚点 */
+.tool-row__file-icon {
+  width: 13px;
+  height: 13px;
+  margin-left: 6px;
+  object-fit: contain;
+  flex: none;
 }
 </style>

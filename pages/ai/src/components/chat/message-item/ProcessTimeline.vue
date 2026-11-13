@@ -122,8 +122,11 @@ defineEmits<{
   min-width: 0;
 }
 
-/* 中间叙述文本：比最终回答弱化一档，强调它是过程而非结论 */
+/* 叙述文本：这是用户真正要读的 AI 回答正文，用主文字色（2026-11-12 用户报障：
+   回答被当成「过程」弱化成 #94a3b8，太淡、发灰，看久了眼睛不舒服）。
+   弱化色只留给检索 / 思考 / 工具这些过程行。 */
 .timeline-text {
-  color: var(--el-text-color-secondary);
+  color: var(--el-text-color-primary);
+  line-height: 1.7;
 }
 </style>

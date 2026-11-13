@@ -242,8 +242,11 @@
         <div v-if="!available" class="reid-gate">
           <el-icon><Warning /></el-icon>
           <div>
-            <p class="reid-gate-title">人脸重识别未启用</p>
-            <p class="reid-gate-desc">
+            <p class="reid-gate-title">{{ statusError ? '人脸重识别状态未知' : '人脸重识别未启用' }}</p>
+            <p class="reid-gate-desc" v-if="statusError">
+              能力状态接口读取失败（/v2/reid/stats 异常），无法确认检测/特征模型是否可用。请查看服务端日志后刷新重试，不要按「未配置」去改模型。
+            </p>
+            <p class="reid-gate-desc" v-else>
               还需配置人脸检测模型与人脸特征模型。请到「系统设置 → 人脸重识别配置」中选择模型，保存后立即生效。
             </p>
             <el-button link type="primary" @click="gotoSettings">前往配置</el-button>
@@ -354,6 +357,14 @@ const lng = ref<number | null>(null);
 
 /** 能力是否就绪。 */
 const available = ref(false);
+
+/**
+ * 能力状态接口是否失败（/v2/reid/stats）。
+ *
+ * <p>与「模型没配」必须分开：接口挂了时 `available` 也会是 false，
+ * 但让运维去看设置里选模型是错方向。</p>
+ */
+const statusError = ref(false);
 
 /** 模型标识（只读展示）。 */
 const detectorModel = ref("");
@@ -803,6 +814,7 @@ onMounted(async () => {
   try {
     const stats = await apiService.getReidStats();
     available.value = stats.available;
+    statusError.value = false;
     // 摘要形如 face-reid{detector=scrfd, feature=arc-face, ...}，取出模型名作只读展示
     const cfg = stats.config ?? "";
     const feature = /feature=([^,}\s]+)/.exec(cfg);
@@ -811,6 +823,7 @@ onMounted(async () => {
     detectorModel.value = detector && detector[1] !== "null" ? detector[1] : "";
   } catch {
     available.value = false;
+    statusError.value = true;
   }
   // 摘要字符串里的模型名是按 `,` 切分的键值对，模型标识一旦含空格/逗号就会被截断。
   // 以设置接口的合并视图为准（同一个 settingReader 口径），失败时才退回摘要解析。

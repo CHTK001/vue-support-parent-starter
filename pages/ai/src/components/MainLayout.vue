@@ -19,6 +19,8 @@
 
   <!-- 浏览器 Webview 浮层（跨会话持久，fixed 定位覆盖在预览占位区域上方） -->
   <BrowserWebviewLayer />
+  <!-- 内置浏览器独立宿主（不展开工作区时使用） -->
+  <BrowserStandaloneHost />
 </template>
 
 <script setup lang="ts">
@@ -33,6 +35,7 @@ import { setPluginToolDisplays } from '@/utils/toolDisplay'
 import SidebarLayout from './ui/SidebarLayout.vue'
 import GlobalSidebar from './GlobalSidebar.vue'
 import BrowserWebviewLayer from './BrowserWebviewLayer.vue'
+import BrowserStandaloneHost from './browser/BrowserStandaloneHost.vue'
 import FloatingChatPanel from './chat/FloatingChatPanel.vue'
 
 const layoutStore = useLayoutStore()

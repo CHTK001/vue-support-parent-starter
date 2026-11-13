@@ -66,7 +66,7 @@ const props = defineProps<{
   items: any[];
   query: string;
   selectedIndex: number;
-  trigger: 'slash' | 'mention';
+  trigger: 'slash' | 'mention' | 'skill';
   /** 候选集还在加载：空列表时显示「加载中」而不是「未找到」 */
   loading?: boolean;
 }>();
@@ -199,9 +199,11 @@ defineExpose({
 
 .command-picker {
   position: absolute;
-  bottom: calc(100% + 12px);
-  left: 0;
-  right: 0;
+  /* 锚点 = .input-area（整张输入卡）：左右各 −1px 抵掉卡片 1px 边框，
+     弹框宽度与输入框外框完全一致（用户口径 2026-11-12）。 */
+  bottom: calc(100% + 8px);
+  left: -1px;
+  right: -1px;
   z-index: 1000;
   /* 原值 16px → xl 档 */
   border-radius: var(--el-radius-xl, 16px);

@@ -1,14 +1,21 @@
 <template>
   <section class="rg-panel">
-    <!-- 头部：策略 + 保存 -->
+    <!-- 头部：策略摘要 + 配置入口（齿轮）/ 刷新 / 保存 -->
     <div class="rg-head">
       <div class="rg-head-text">
         <div class="rg-head-title">路由策略</div>
         <div class="rg-head-desc">
           会话里选中这个路由组的任意模型时，由组内策略挑选真正调用的成员模型。
         </div>
+        <!-- 策略本体收进弹框后，这里只留一行摘要，保证不进弹框也能看清当前口径 -->
+        <div class="rg-head-summary">{{ strategySummary }}</div>
       </div>
       <div class="rg-head-actions">
+        <el-tooltip content="路由配置" placement="bottom" :show-after="300">
+          <el-button class="rg-cfg-btn" circle :disabled="!canWrite" @click="openConfig">
+            <el-icon :size="16"><SettingsOutlined /></el-icon>
+          </el-button>
+        </el-tooltip>
         <el-button :loading="loading" round @click="load">刷新</el-button>
         <el-button type="primary" round :loading="saving" :disabled="!canWrite" @click="save">
           保存配置
@@ -16,111 +23,28 @@
       </div>
     </div>
 
-    <!-- 策略区 -->
-    <div class="rg-grid">
-      <label class="rg-field">
-        <span class="rg-label">路由策略</span>
-        <el-select v-model="setting.strategy" :disabled="!canWrite" size="default">
-          <el-option v-for="item in STRATEGY_OPTIONS" :key="item.value" :label="item.label" :value="item.value" />
-        </el-select>
-        <span class="rg-hint">{{ activeStrategyHint }}</span>
-      </label>
-
-      <label class="rg-field">
-        <span class="rg-label">被限流时</span>
-        <el-select v-model="setting.on_rate_limit" :disabled="!canWrite" size="default">
-          <el-option label="默认" value="default" />
-          <el-option label="保持原位" value="keep_position" />
-          <el-option label="排到最后" value="move_to_end" />
-        </el-select>
-        <span class="rg-hint">成员被上游限流后怎么排：保持原位不变，或排到顺序末尾。</span>
-      </label>
-
-      <label class="rg-field">
-        <span class="rg-label">延迟不出字</span>
-        <el-select v-model="setting.on_slow" :disabled="!canWrite" size="default">
-          <el-option label="默认" value="default" />
-          <el-option label="一直等" value="wait" />
-          <el-option label="30 秒" value="30s" />
-          <el-option label="1 分钟" value="1m" />
-          <el-option label="2 分钟" value="2m" />
-          <el-option label="自定义" value="custom" />
-        </el-select>
-        <span v-if="setting.on_slow === 'custom'" class="rg-inline">
-          <el-input-number v-model="customSlowSeconds" :min="5" :step="5" :disabled="!canWrite" size="default" controls-position="right" />
-          <span class="rg-unit">秒</span>
-        </span>
-        <span v-else class="rg-hint">首字迟迟不出时最多等多久再换下一个成员。</span>
-      </label>
-
-      <label class="rg-field">
-        <span class="rg-label">成员全都忙</span>
-        <el-select v-model="setting.on_busy" :disabled="!canWrite" size="default">
-          <el-option label="默认" value="default" />
-          <el-option label="关闭" value="off" />
-          <el-option label="1 分钟" value="1m" />
-          <el-option label="2 分钟" value="2m" />
-          <el-option label="4 分钟" value="4m" />
-        </el-select>
-        <span class="rg-hint">所有成员都在冷却时的等待时长，等不到就全部放行。</span>
-      </label>
-
-      <label class="rg-field">
-        <span class="rg-label">上下文</span>
-        <el-select v-model="setting.on_context" :disabled="!canWrite" size="default">
-          <el-option label="最大模型的" value="max" />
-          <el-option label="最小模型的" value="min" />
-          <el-option label="自定义" value="custom" />
-        </el-select>
-        <span v-if="setting.on_context === 'custom'" class="rg-inline">
-          <el-input-number v-model="customContext" :min="1024" :step="1024" :disabled="!canWrite" size="default" controls-position="right" />
-          <span class="rg-unit">token</span>
-        </span>
-        <span v-else class="rg-hint">{{ contextHint }}</span>
-      </label>
-    </div>
-
-    <!-- 成员表 -->
+    <!-- 成员表：页面上只保留「谁在这个组里、按什么顺序、什么 effort」 -->
     <div class="rg-members">
       <div class="rg-members-head">
         <span class="rg-members-title">成员模型</span>
         <span class="rg-members-count">{{ members.length }}</span>
         <span class="rg-members-desc">来自已添加的模型库；顺序即「按顺序」策略的优先顺序。</span>
-        <el-input
-          v-model="candidateKeyword"
-          class="rg-search"
+        <el-button
+          v-if="canWrite"
+          class="rg-add-btn"
+          type="primary"
+          plain
+          round
           size="small"
-          clearable
-          placeholder="搜索模型库添加成员"
-          @keyup.enter="searchCandidates"
-          @clear="searchCandidates"
+          @click="openPicker"
         >
-          <template #prefix><el-icon :size="14"><SearchOutlined /></el-icon></template>
-        </el-input>
-        <el-button v-if="canWrite" size="small" round :loading="candidateLoading" @click="searchCandidates">
-          搜索
+          <el-icon :size="14"><AddOutlined /></el-icon>
+          <span>添加成员</span>
         </el-button>
       </div>
 
-      <!-- 候选（已加入模型库但不在组里） -->
-      <div v-if="candidates.length > 0" class="rg-candidates">
-        <span class="rg-candidates-label">可添加：</span>
-        <button
-          v-for="c in candidates"
-          :key="c.label"
-          class="rg-cand-chip"
-          type="button"
-          :disabled="!canWrite"
-          @click="addMember(c)"
-        >
-          <span class="rg-cand-provider">{{ c.provider_name }}</span>
-          <span class="rg-cand-model">{{ c.model }}</span>
-          <el-icon :size="12"><AddOutlined /></el-icon>
-        </button>
-      </div>
-
       <div v-if="members.length === 0" class="rg-empty">
-        还没有成员。先用上方搜索把模型库里的模型加进来。
+        还没有成员。点右上角「添加成员」，从模型库里挑几个进来。
       </div>
 
       <ul v-else class="rg-member-list">
@@ -130,15 +54,15 @@
           <div class="rg-member-info">
             <div class="rg-member-name">
               {{ m.alias || m.model }}
+              <span v-if="m.model !== (m.alias || m.model)" class="rg-member-raw">{{ m.model }}</span>
               <span v-if="!m.exists" class="rg-badge rg-badge-warn">已删除</span>
               <span v-if="isFreeMember(m)" class="rg-badge rg-badge-free">免费</span>
             </div>
             <div class="rg-member-meta">
               <span>{{ m.provider_name }}</span>
-              <span v-if="m.context_window">· 上下文 {{ formatContext(m.context_window) }}</span>
-              <span v-if="m.platform">· {{ m.platform }}</span>
-              <span v-if="m.model !== (m.alias || m.model)">· {{ m.model }}</span>
+              <span v-for="f in candidateFacts(m)" :key="f">· {{ f }}</span>
             </div>
+            <div v-if="describeMember(m)" class="rg-member-desc">{{ describeMember(m) }}</div>
           </div>
           <div class="rg-member-effort">
             <span class="rg-effort-label">effort</span>
@@ -167,6 +91,139 @@
         </li>
       </ul>
     </div>
+
+    <!-- 路由配置弹框：策略 / 限流 / 延迟 / 全忙 / 上下文 -->
+    <ReDialog
+      v-model="configVisible"
+      title="路由配置"
+      width="640px"
+      append-to-body
+      show-footer
+      :confirm-loading="saving"
+      ok-text="保存"
+      @ok="confirmConfig"
+    >
+      <div class="rg-cfg-grid">
+        <label class="rg-field">
+          <span class="rg-label">路由策略</span>
+          <el-select v-model="draft.strategy" :disabled="!canWrite">
+            <el-option v-for="item in STRATEGY_OPTIONS" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+          <span class="rg-hint">{{ activeStrategyHint }}</span>
+        </label>
+
+        <label class="rg-field">
+          <span class="rg-label">被限流时</span>
+          <el-select v-model="draft.on_rate_limit" :disabled="!canWrite">
+            <el-option label="默认" value="default" />
+            <el-option label="保持原位" value="keep_position" />
+            <el-option label="排到最后" value="move_to_end" />
+          </el-select>
+          <span class="rg-hint">成员被上游限流后怎么排：保持原位不变，或排到顺序末尾。</span>
+        </label>
+
+        <label class="rg-field">
+          <span class="rg-label">延迟不出字</span>
+          <el-select v-model="draft.on_slow" :disabled="!canWrite">
+            <el-option label="默认" value="default" />
+            <el-option label="一直等" value="wait" />
+            <el-option label="30 秒" value="30s" />
+            <el-option label="1 分钟" value="1m" />
+            <el-option label="2 分钟" value="2m" />
+            <el-option label="自定义" value="custom" />
+          </el-select>
+          <span v-if="draft.on_slow === 'custom'" class="rg-inline">
+            <el-input-number v-model="draftSlowSeconds" :min="5" :step="5" :disabled="!canWrite" controls-position="right" />
+            <span class="rg-unit">秒</span>
+          </span>
+          <span v-else class="rg-hint">首字迟迟不出时最多等多久再换下一个成员。</span>
+        </label>
+
+        <label class="rg-field">
+          <span class="rg-label">成员全都忙</span>
+          <el-select v-model="draft.on_busy" :disabled="!canWrite">
+            <el-option label="默认" value="default" />
+            <el-option label="关闭" value="off" />
+            <el-option label="1 分钟" value="1m" />
+            <el-option label="2 分钟" value="2m" />
+            <el-option label="4 分钟" value="4m" />
+          </el-select>
+          <span class="rg-hint">所有成员都在冷却时的等待时长，等不到就全部放行。</span>
+        </label>
+
+        <label class="rg-field rg-field-wide">
+          <span class="rg-label">上下文</span>
+          <el-select v-model="draft.on_context" :disabled="!canWrite">
+            <el-option label="最大模型的" value="max" />
+            <el-option label="最小模型的" value="min" />
+            <el-option label="自定义" value="custom" />
+          </el-select>
+          <span v-if="draft.on_context === 'custom'" class="rg-inline">
+            <el-input-number v-model="draftContext" :min="1024" :step="1024" :disabled="!canWrite" controls-position="right" />
+            <span class="rg-unit">token</span>
+          </span>
+          <span v-else class="rg-hint">{{ contextHint }}</span>
+        </label>
+      </div>
+    </ReDialog>
+
+    <!-- 选择模型弹框：搜索模型库，勾选后一次性加入成员 -->
+    <ReDialog
+      v-model="pickerVisible"
+      title="选择模型"
+      width="720px"
+      append-to-body
+      show-footer
+      :ok-text="pickerCount ? `添加 ${pickerCount} 个` : '添加'"
+      :show-ok="pickerCount > 0"
+      @ok="confirmPicker"
+    >
+      <div class="rg-pick-bar">
+        <el-input
+          v-model="pickerKeyword"
+          placeholder="按模型名 / 供应商搜索模型库"
+          clearable
+          @keyup.enter="loadPicker"
+          @clear="loadPicker"
+        >
+          <template #prefix><el-icon :size="14"><SearchOutlined /></el-icon></template>
+        </el-input>
+        <el-button round :loading="pickerLoading" @click="loadPicker">搜索</el-button>
+      </div>
+
+      <div v-if="pickerLoading" class="rg-pick-empty">正在读取模型库…</div>
+      <div v-else-if="pickerList.length === 0" class="rg-pick-empty">
+        没有可添加的模型。模型库里的模型都已在这个组里，或换个关键词再搜。
+      </div>
+      <ul v-else class="rg-pick-list">
+        <li
+          v-for="c in pickerList"
+          :key="c.label"
+          class="rg-pick-row"
+          :class="{ 'is-picked': pickerSelected.includes(c.label) }"
+          @click="togglePick(c.label)"
+        >
+          <el-checkbox
+            :model-value="pickerSelected.includes(c.label)"
+            @click.stop
+            @change="togglePick(c.label)"
+          />
+          <ProviderLogo :pid="brandFor(c)" :name="c.provider_name" size="sm" />
+          <div class="rg-pick-info">
+            <div class="rg-pick-name">
+              {{ c.alias || c.model }}
+              <span v-if="isFreeMember(c)" class="rg-badge rg-badge-free">免费</span>
+              <span v-if="c.model !== (c.alias || c.model)" class="rg-pick-model">{{ c.model }}</span>
+            </div>
+            <div class="rg-pick-meta">
+              <span class="rg-pick-provider">{{ c.provider_name }}</span>
+              <span v-for="f in candidateFacts(c)" :key="f">· {{ f }}</span>
+            </div>
+            <div v-if="describeMember(c)" class="rg-pick-desc">{{ describeMember(c) }}</div>
+          </div>
+        </li>
+      </ul>
+    </ReDialog>
   </section>
 </template>
 
@@ -180,15 +237,21 @@
  *
  * <p>每模型 effort 只作用于该成员的请求；会话层不支持 effort 覆盖
  * （路由组客户端忽略 thinkingEffort），避免整组被同一档位绑死。</p>
+ *
+ * <p><b>版式（2026-11-12）：</b>策略五件套（策略 / 限流 / 延迟 / 全忙 / 上下文）
+ * 收进右上角齿轮打开的「路由配置」弹框，页面上只留一行摘要；成员不再把候选模型
+ * 平铺成一堆 chip（一屏塞十几个，反而找不到自己关心的成员），改成「添加成员」
+ * 弹框里搜索 + 勾选。</p>
  */
 import { computed, onMounted, ref, watch } from 'vue'
 import {
   AddOutlined, ArrowDownwardOutlined, ArrowUpwardOutlined,
-  DeleteOutlined, SearchOutlined,
+  DeleteOutlined, SearchOutlined, SettingsOutlined,
 } from '@vicons/material'
 import { message } from '@repo/core'
+import ReDialog from '@repo/ui/re-dialog'
 import { adminApi } from '@/framework/context'
-import { resolveProviderBrand } from './model.utils'
+import { describeFetchRow, modelPriceOf, resolveProviderBrand } from './model.utils'
 import ProviderLogo from './ProviderLogo.vue'
 
 interface GroupMember {
@@ -202,6 +265,17 @@ interface GroupMember {
   context_window?: number | null
   metrics?: Record<string, any> | null
   exists?: boolean
+}
+
+interface GroupSetting {
+  strategy: string
+  on_rate_limit: string
+  on_slow: string
+  on_busy: string
+  on_context: string
+  context_window: number | null
+  slow_ms: number | null
+  busy_ms: number | null
 }
 
 const props = withDefaults(defineProps<{ providerId: string; canWrite?: boolean }>(), { canWrite: true })
@@ -223,46 +297,118 @@ const STRATEGY_OPTIONS = [
 
 const EFFORT_OPTIONS = ['low', 'medium', 'high', 'minimal', 'none']
 
-const setting = ref({
+const RATE_LIMIT_LABEL: Record<string, string> = {
+  default: '默认', keep_position: '保持原位', move_to_end: '排到最后',
+}
+const SLOW_LABEL: Record<string, string> = {
+  default: '默认', wait: '一直等', '30s': '30 秒', '1m': '1 分钟', '2m': '2 分钟',
+}
+const BUSY_LABEL: Record<string, string> = {
+  default: '默认', off: '关闭', '1m': '1 分钟', '2m': '2 分钟', '4m': '4 分钟',
+}
+
+const setting = ref<GroupSetting>({
   strategy: 'smart',
   on_rate_limit: 'default',
   on_slow: 'default',
   on_busy: 'default',
   on_context: 'max',
-  context_window: null as number | null,
-  slow_ms: null as number | null,
-  busy_ms: null as number | null,
+  context_window: null,
+  slow_ms: null,
+  busy_ms: null,
 })
 
+/** 配置弹框里的草稿：点「保存」才写回 setting 并提交 */
+const draft = ref<GroupSetting>({ ...setting.value })
+const configVisible = ref(false)
+
 const members = ref<GroupMember[]>([])
-const candidates = ref<(GroupMember & { provider_id: string })[]>([])
-const candidateKeyword = ref('')
-const candidateLoading = ref(false)
 const loading = ref(false)
 const saving = ref(false)
 
-const customSlowSeconds = computed({
-  get: () => Math.round((setting.value.slow_ms || 30000) / 1000),
-  set: (v: number) => { setting.value.slow_ms = Math.max(5, Math.round(v || 30)) * 1000 },
+/* ---------- 选择模型弹框 ---------- */
+const pickerVisible = ref(false)
+const pickerKeyword = ref('')
+const pickerLoading = ref(false)
+const pickerList = ref<GroupMember[]>([])
+const pickerSelected = ref<string[]>([])
+const pickerCount = computed(() => pickerSelected.value.length)
+
+const draftSlowSeconds = computed({
+  get: () => Math.round((draft.value.slow_ms || 30000) / 1000),
+  set: (v: number) => { draft.value.slow_ms = Math.max(5, Math.round(v || 30)) * 1000 },
 })
 
-const customContext = computed({
-  get: () => setting.value.context_window || 32000,
-  set: (v: number) => { setting.value.context_window = Math.max(1024, Math.round(v || 32000)) },
+const draftContext = computed({
+  get: () => draft.value.context_window || 32000,
+  set: (v: number) => { draft.value.context_window = Math.max(1024, Math.round(v || 32000)) },
 })
 
 const activeStrategyHint = computed(
-  () => STRATEGY_OPTIONS.find((s) => s.value === setting.value.strategy)?.hint || '',
+  () => STRATEGY_OPTIONS.find((s) => s.value === draft.value.strategy)?.hint || '',
 )
 
 const contextHint = computed(() => {
-  if (setting.value.on_context === 'min') return '按成员里最小的上下文窗口计算，保证任何成员都吃得下。'
+  if (draft.value.on_context === 'min') return '按成员里最小的上下文窗口计算，保证任何成员都吃得下。'
   return '按成员里最大的上下文窗口计算。'
+})
+
+const customSlowLabel = computed(() => `自定义 ${Math.round((setting.value.slow_ms || 30000) / 1000)} 秒`)
+
+/** 头部摘要：不进弹框也能看清当前策略口径 */
+const strategySummary = computed(() => {
+  const strategy = STRATEGY_OPTIONS.find((s) => s.value === setting.value.strategy)?.label || setting.value.strategy
+  const slow = setting.value.on_slow === 'custom'
+    ? `${customSlowLabel.value}`
+    : (SLOW_LABEL[setting.value.on_slow] || setting.value.on_slow)
+  const context = setting.value.on_context === 'custom'
+    ? `自定义 ${formatContext(setting.value.context_window || 32000)}`
+    : setting.value.on_context === 'min' ? '最小模型' : '最大模型'
+  return [
+    `策略 ${strategy}`,
+    `限流 ${RATE_LIMIT_LABEL[setting.value.on_rate_limit] || setting.value.on_rate_limit}`,
+    `首字 ${slow}`,
+    `全忙 ${BUSY_LABEL[setting.value.on_busy] || setting.value.on_busy}`,
+    `上下文 ${context}`,
+  ].join(' · ')
 })
 
 const formatContext = (value: number) => (value >= 1000 ? `${Math.round(value / 1000)}K` : String(value))
 
-/** 免费判定：成员显式标记，或价格键为 0 / 缺失 */
+/** 任务类型的中文说明：模型能干什么（候选行里直接可读） */
+const TASK_LABEL: Record<string, string> = {
+  chat: '文本对话', completion: '文本补全', image_generation: '图像生成', image: '图像生成',
+  video_generation: '视频生成', video: '视频生成', embedding: '向量化', rerank: '重排序',
+  tts: '语音合成', asr: '语音识别', detection: '目标检测', ocr: 'OCR 识别', colorize: '图像上色',
+}
+
+/** 模型「能干什么」：description 优先，否则把 capabilities 的任务翻成中文 */
+const describeMember = (m: any) => {
+  const text = describeFetchRow(m)
+  if (!text) return ''
+  return TASK_LABEL[text] || text
+}
+
+/** 价格摘要：$/M token；未给价格时不显示（不写「未知」占位，避免噪音） */
+const priceText = (m: any) => {
+  const p = modelPriceOf(m)
+  if (!p.known) return ''
+  if (p.free) return '免费'
+  const fmt = (v: number | null) => (v == null ? '—' : `$${v}`)
+  return `${fmt(p.input)} / ${fmt(p.output)} 每百万 token`
+}
+
+/** 候选行的事实行：上下文 / 最大输出 / 价格 */
+const candidateFacts = (m: any) => {
+  const facts: string[] = []
+  if (m.platform) facts.push(String(m.platform))
+  if (m.context_window) facts.push(`上下文 ${formatContext(m.context_window)}`)
+  if (m.max_tokens) facts.push(`输出 ${formatContext(m.max_tokens)}`)
+  const price = priceText(m)
+  if (price) facts.push(price)
+  return facts
+}
+
 /** 成员品牌：由成员类别 + 供应商名解析品牌，取到 logo，取不到 fall 首字母 */
 const brandFor = (m: any) => resolveProviderBrand({
   platform: m.platform,
@@ -300,7 +446,6 @@ const load = async () => {
       label: m.label || `${m.provider_id}:${m.model}`,
       effort: m.effort || null,
     }))
-    await searchCandidates()
   } catch (error: any) {
     message.error(error?.response?.data?.message || error?.message || '读取路由组失败')
   } finally {
@@ -308,34 +453,71 @@ const load = async () => {
   }
 }
 
-/** 搜索模型库里可加入的模型 */
-const searchCandidates = async () => {
-  candidateLoading.value = true
+/** 打开配置弹框：从当前配置拷一份草稿，取消不影响页面 */
+const openConfig = () => {
+  draft.value = { ...setting.value }
+  configVisible.value = true
+}
+
+/** 配置弹框「保存」：写回页面并立即落库（避免改完忘了点右上角保存） */
+const confirmConfig = async () => {
+  const prev = { ...setting.value }
+  setting.value = { ...draft.value }
+  configVisible.value = false
+  const ok = await save()
+  if (!ok) setting.value = prev
+}
+
+/** 打开选择模型弹框：每次都从模型库重新拉候选 */
+const openPicker = async () => {
+  pickerSelected.value = []
+  pickerKeyword.value = ''
+  pickerVisible.value = true
+  await loadPicker()
+}
+
+/** 读取模型库里还没进组的候选模型 */
+const loadPicker = async () => {
+  pickerLoading.value = true
   try {
     const res: any = await adminApi.get('/api/router-groups/candidates', {
-      params: { keyword: candidateKeyword.value || undefined },
+      params: { keyword: pickerKeyword.value || undefined },
     })
     const data = res?.data ?? res
     const picked = new Set(members.value.map((m) => m.label))
-    candidates.value = (Array.isArray(data) ? data : [])
+    pickerList.value = (Array.isArray(data) ? data : [])
       .map((c: any) => ({ ...c, label: `${c.provider_id}:${c.model}`, effort: c.effort || null }))
       .filter((c: any) => !picked.has(c.label))
-      .slice(0, 24)
+      .slice(0, 50)
+    pickerSelected.value = pickerSelected.value.filter((label) =>
+      pickerList.value.some((c) => c.label === label))
   } catch {
-    candidates.value = []
+    pickerList.value = []
   } finally {
-    candidateLoading.value = false
+    pickerLoading.value = false
   }
 }
 
-const addMember = (c: any) => {
-  members.value.push({ ...c, effort: c.effort || null, exists: true })
-  candidates.value = candidates.value.filter((x: any) => x.label !== c.label)
+const togglePick = (label: string) => {
+  const idx = pickerSelected.value.indexOf(label)
+  if (idx >= 0) pickerSelected.value.splice(idx, 1)
+  else pickerSelected.value.push(label)
+}
+
+/** 选择模型弹框「添加」：勾选的按当前顺序追加到成员末尾 */
+const confirmPicker = () => {
+  const chosen = pickerList.value.filter((c) => pickerSelected.value.includes(c.label))
+  for (const c of chosen) {
+    if (!members.value.some((m) => m.label === c.label)) {
+      members.value.push({ ...c, effort: c.effort || null, exists: true })
+    }
+  }
+  pickerSelected.value = []
+  pickerVisible.value = false
 }
 
 const removeMember = (idx: number) => {
   members.value.splice(idx, 1)
-  searchCandidates()
 }
 
 /** 调整顺序 */
@@ -346,8 +528,8 @@ const move = (idx: number, delta: number) => {
   members.value.splice(target, 0, item)
 }
 
-/** 保存配置（已删除的成员不提交） */
-const save = async () => {
+/** 保存配置（已删除的成员不提交）；返回是否成功，供配置弹框回滚 */
+const save = async (): Promise<boolean> => {
   saving.value = true
   try {
     const body = {
@@ -369,9 +551,10 @@ const save = async () => {
       members.value = data.members.map((m: any) => ({ ...m, effort: m.effort || null }))
     }
     message.success('路由组配置已保存')
-    await searchCandidates()
+    return true
   } catch (error: any) {
     message.error(error?.response?.data?.message || error?.message || '保存路由组失败')
+    return false
   } finally {
     saving.value = false
   }
@@ -389,8 +572,13 @@ defineExpose({ load })
 .rg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .rg-head-title { font-size: 15px; font-weight: 600; color: var(--el-text-color-primary); }
 .rg-head-desc { margin-top: 4px; font-size: 12px; color: var(--el-text-color-secondary); max-width: 620px; line-height: 1.6; }
-.rg-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.rg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px 18px; }
+.rg-head-summary {
+  margin-top: 6px; font-size: 11px; color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums; line-height: 1.6;
+}
+.rg-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rg-cfg-btn { color: var(--el-text-color-regular); }
+.rg-cfg-btn:hover { color: var(--el-color-primary); }
 .rg-field { display: flex; flex-direction: column; gap: 6px; }
 .rg-label { font-size: 12px; font-weight: 600; color: var(--el-text-color-regular); }
 .rg-hint { font-size: 11px; color: var(--el-text-color-secondary); line-height: 1.5; }
@@ -401,17 +589,7 @@ defineExpose({ load })
 .rg-members-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
 .rg-members-count { font-size: 11px; padding: 0 6px; border-radius: 8px; background: var(--el-fill-color); color: var(--el-text-color-secondary); }
 .rg-members-desc { font-size: 11px; color: var(--el-text-color-secondary); }
-.rg-search { width: 220px; margin-left: auto; }
-.rg-candidates { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
-.rg-candidates-label { font-size: 11px; color: var(--el-text-color-secondary); }
-.rg-cand-chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; font-size: 12px;
-  border: 1px solid var(--el-border-color); border-radius: 12px; background: var(--el-fill-color-blank);
-  color: var(--el-text-color-regular); cursor: pointer;
-}
-.rg-cand-chip:hover:not(:disabled) { border-color: var(--el-color-primary); color: var(--el-color-primary); }
-.rg-cand-chip:disabled { cursor: not-allowed; opacity: 0.55; }
-.rg-cand-provider { color: var(--el-text-color-secondary); }
+.rg-add-btn { margin-left: auto; }
 .rg-empty { margin-top: 12px; padding: 18px; text-align: center; font-size: 12px; color: var(--el-text-color-secondary); border: 1px dashed var(--el-border-color); border-radius: 8px; }
 .rg-member-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .rg-member { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--el-border-color-lighter); border-radius: 8px; }
@@ -419,6 +597,8 @@ defineExpose({ load })
 .rg-member-info { min-width: 0; flex: 1; }
 .rg-member-name { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--el-text-color-primary); }
 .rg-member-meta { margin-top: 2px; font-size: 11px; color: var(--el-text-color-secondary); display: flex; gap: 4px; flex-wrap: wrap; }
+.rg-member-desc { margin-top: 2px; font-size: 11px; color: var(--el-text-color-secondary); opacity: .85; }
+.rg-member-raw { font-size: 10px; color: var(--el-text-color-disabled); }
 .rg-badge { font-size: 10px; padding: 0 5px; border-radius: 8px; line-height: 16px; }
 .rg-badge-warn { background: var(--el-color-warning-light-9); color: var(--el-color-warning); }
 .rg-badge-free { background: var(--el-color-success-light-9); color: var(--el-color-success); }
@@ -426,4 +606,28 @@ defineExpose({ load })
 .rg-effort-label { font-size: 11px; color: var(--el-text-color-secondary); }
 .rg-effort-select { width: 118px; }
 .rg-member-ops { display: flex; align-items: center; gap: 2px; }
+
+/* 配置弹框 */
+.rg-cfg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 18px; padding: 4px 0 2px; }
+.rg-field-wide { grid-column: 1 / -1; }
+
+/* 选择模型弹框 */
+.rg-pick-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.rg-pick-list {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
+  max-height: 46vh; overflow-y: auto;
+}
+.rg-pick-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter); border-radius: 8px; cursor: pointer;
+}
+.rg-pick-row:hover { border-color: var(--el-color-primary-light-5); }
+.rg-pick-row.is-picked { border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
+.rg-pick-info { min-width: 0; flex: 1; }
+.rg-pick-name { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--el-text-color-primary); }
+.rg-pick-meta { margin-top: 2px; font-size: 11px; color: var(--el-text-color-secondary); display: flex; gap: 4px; flex-wrap: wrap; }
+.rg-pick-provider { color: var(--el-text-color-regular); }
+.rg-pick-desc { margin-top: 2px; font-size: 11px; line-height: 1.5; color: var(--el-text-color-secondary); }
+.rg-pick-model { font-size: 10px; color: var(--el-text-color-disabled); }
+.rg-pick-empty { padding: 26px 12px; text-align: center; font-size: 12px; color: var(--el-text-color-secondary); }
 </style>

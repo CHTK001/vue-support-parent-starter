@@ -17,16 +17,14 @@
               视频入口仍受 videoAvailable 约束（后端 openai 协议没有 VideoClient），
               只有一种类型时不做无意义的切换。
             -->
-            <el-popover
+            <PickerPopover
               v-if="videoAvailable"
-              ref="mediaPopoverRef"
-              placement="bottom-end"
+              v-model:show="mediaOpen"
               :width="200"
-              trigger="click"
-              popper-class="wg-popper"
+              align="end"
             >
-              <template #reference>
-                <button type="button" class="wg-media-btn" title="生成类型">
+              <template #trigger="{ toggle }">
+                <button type="button" class="wg-media-btn" title="生成类型" @click="toggle">
                   <WgIcon :d="mediaType === 'video' ? ICONS.video : ICONS.image" />
                   <span>{{ mediaType === 'video' ? '视频' : '图像' }}</span>
                   <WgIcon :d="ICONS.chevron" class="wg-media-caret" />
@@ -50,7 +48,7 @@
                   <WgIcon v-if="mediaType === opt.value" :d="ICONS.check" class="wg-menu-check" />
                 </button>
               </div>
-            </el-popover>
+            </PickerPopover>
 
             <div class="wg-views">
               <button
@@ -79,9 +77,9 @@
           </label>
 
           <!-- 筛选：模型 / 状态 / 仅收藏 收进一个弹层，角标为生效中的条件数 -->
-          <el-popover placement="bottom-start" :width="260" trigger="click" popper-class="wg-popper">
-            <template #reference>
-              <button type="button" class="wg-chip" title="筛选">
+          <PickerPopover v-model:show="filterOpen" :width="260">
+            <template #trigger="{ toggle }">
+              <button type="button" class="wg-chip" title="筛选" @click="toggle">
                 <WgIcon :d="ICONS.filter" />
                 <span>筛选</span>
                 <span v-if="activeFilterCount" class="wg-chip-badge">{{ activeFilterCount }}</span>
@@ -96,7 +94,7 @@
                 type="button"
                 class="wg-menu-item"
                 :class="{ 'is-active': modelFilter === opt.key }"
-                @click="modelFilter = opt.key"
+                @click="modelFilter = opt.key; filterOpen = false"
               >
                 <span class="wg-menu-text">
                   <span class="wg-menu-name">{{ opt.label }}</span>
@@ -112,7 +110,7 @@
                 type="button"
                 class="wg-menu-item"
                 :class="{ 'is-active': statusFilter === opt.key }"
-                @click="statusFilter = opt.key"
+                @click="statusFilter = opt.key; filterOpen = false"
               >
                 <span class="wg-menu-text"><span class="wg-menu-name">{{ opt.label }}</span></span>
                 <WgIcon v-if="statusFilter === opt.key" :d="ICONS.check" class="wg-menu-check" />
@@ -123,32 +121,27 @@
                 type="button"
                 class="wg-menu-item"
                 :class="{ 'is-active': onlyFavorite }"
-                @click="onlyFavorite = !onlyFavorite"
+                @click="onlyFavorite = !onlyFavorite; filterOpen = false"
               >
                 <span class="wg-menu-text"><span class="wg-menu-name">仅收藏</span></span>
                 <WgIcon v-if="onlyFavorite" :d="ICONS.check" class="wg-menu-check" />
               </button>
             </div>
-          </el-popover>
+          </PickerPopover>
 
           <!--
             记录管理：清理失败 / 批量删除 / 清空全部。
             三个都是破坏性操作，收进一个 popover 而不是并排摆三个危险按钮 ——
             并排会让「清空全部」离「清理失败」只有几十像素，误触代价却是全部作品。
           -->
-          <el-popover
-            v-if="!selecting"
-            placement="bottom-end"
-            :width="280"
-            trigger="click"
-            popper-class="wg-popper"
-          >
-            <template #reference>
+          <PickerPopover v-if="!selecting" v-model:show="recordsOpen" :width="280" align="end">
+            <template #trigger="{ toggle }">
               <button
                 type="button"
                 class="wg-chip wg-chip-danger"
                 :disabled="busyClearing"
                 :title="busyClearing ? '正在处理…' : '记录管理'"
+                @click="toggle"
               >
                 <WgIcon :d="ICONS.trash" />
                 <span>清理{{ voidRecordCount ? ' ' + voidRecordCount : '' }}</span>
@@ -200,7 +193,7 @@
                 </span>
               </button>
             </div>
-          </el-popover>
+          </PickerPopover>
 
           <!-- 选择模式工具条：替换掉上面的入口，不并存两套操作，免得点了哪个说不清 -->
           <template v-else>
@@ -221,9 +214,9 @@
           </template>
 
           <!-- 排序 -->
-          <el-popover placement="bottom-end" :width="200" trigger="click" popper-class="wg-popper">
-            <template #reference>
-              <button type="button" class="wg-chip" title="排序">
+          <PickerPopover v-model:show="sortOpen" :width="200" align="end">
+            <template #trigger="{ toggle }">
+              <button type="button" class="wg-chip" title="排序" @click="toggle">
                 <span>{{ sortLabel }}</span>
                 <WgIcon :d="ICONS.chevron" />
               </button>
@@ -236,13 +229,18 @@
                 type="button"
                 class="wg-menu-item"
                 :class="{ 'is-active': sortOrder === opt.key }"
-                @click="sortOrder = opt.key"
+                @click="sortOrder = opt.key; sortOpen = false"
               >
                 <span class="wg-menu-text"><span class="wg-menu-name">{{ opt.label }}</span></span>
                 <WgIcon v-if="sortOrder === opt.key" :d="ICONS.check" class="wg-menu-check" />
               </button>
+              <div class="wg-menu-foot">
+                <span>↑↓ 导航</span>
+                <span>Enter 选择</span>
+                <span>Esc 关闭</span>
+              </div>
             </div>
-          </el-popover>
+          </PickerPopover>
         </template>
       </RePageHead>
 
@@ -286,21 +284,29 @@
           class="wg-list"
           :class="{ 'is-grid': viewStyle === 'grid' }"
         >
-          <article
-            v-for="row in rows"
-            :key="row.id"
-            class="wg-card"
-            :class="[`is-${row.kind}`, { 'is-selecting': selecting, 'is-selected': selectedIds.has(row.id) }]"
-            @click="onCardClick(row)"
-          >
+          <template v-for="entry in listEntries" :key="entry.key">
+            <!-- 日期分隔：只在天变的时候出现一次，网格视图里横跨整行 -->
+            <h2 v-if="entry.kind === 'day'" class="wg-day-label">
+              <span>{{ entry.label }}</span>
+              <span class="wg-day-count">{{ entry.count }}</span>
+            </h2>
+            <article
+              v-else
+              :key="entry.row.id"
+              class="wg-card"
+              :class="[`is-${entry.row.kind}`, { 'is-selecting': selecting, 'is-selected': selectedIds.has(entry.row.id) }]"
+              @click="onCardClick(entry.row)"
+            >
+              <!-- 卡片内部沿用原来的 row 变量：v-for 单元素包一层，避免把上百处 row.* 全改成 entry.row.* -->
+              <template v-for="row in [entry.row]" :key="row.id">
             <!-- 选择模式下每张卡左上角一个勾选框；其余操作整块屏蔽，避免误触删除/重试 -->
             <span v-if="selecting" class="wg-pick" :aria-checked="selectedIds.has(row.id)" role="checkbox">
               <WgIcon :d="selectedIds.has(row.id) ? ICONS.check : ICONS.circle" />
             </span>
-            <!-- 第一行：状态 + 提示词 + 耗时/时间 -->
+            <!-- 第一行：状态 …… 耗时/时间/操作。提示词移到右栏（图 + 说明），
+                 卡片宽的时候不再是一行字挂在左上、右侧大片空白 -->
             <div class="wg-card-head">
               <span class="wg-badge" :class="badgeClass(row.task)">{{ badgeText(row.task) }}</span>
-              <p class="wg-card-title" :title="row.task.prompt">{{ row.task.prompt || '（无提示词）' }}</p>
 
               <div class="wg-card-head-right">
                 <!-- 提示词复制：凡有提示词的卡片都可一键复制 -->
@@ -360,31 +366,39 @@
             <div class="wg-card-body">
               <!-- 媒体 -->
               <div v-if="row.kind === 'result'" class="wg-card-media">
-              <!-- 参考图 + 箭头：图生图 -->
+              <!--
+                参考图（源）→ 结果：图生图不是「两张同等的图」。
+                源图固定窄档、缩到结果的一半宽，并配一行说明文字；
+                结果图保持与其他记录同一尺寸，读者一眼先看到成片，再回看它改自哪张。
+                早先两者等大并排（各 240px），源图和成品互相抢视觉，
+                卡片看着像「两张作品」而不是「一次改造」。
+              -->
               <template v-if="row.task.referenceImage">
-                <figure class="wg-ref-box">
-                  <img
-                    v-if="!mediaFailed(row.task.referenceImage)"
-                    :src="mediaSrc(row.task.referenceImage)"
-                    alt="参考图"
-                    loading="lazy"
-                    :style="{ aspectRatio: refRatioOf(row.task) }"
-                  />
-                  <!-- 参考图字节已不在磁盘上：给明确文案，别留一块看不懂的空白 -->
-                  <div
-                    v-else
-                    class="wg-media-lost"
-                    :style="{ aspectRatio: refRatioOf(row.task) }"
-                    role="img"
-                    aria-label="参考图已丢失"
-                  >
-                    参考图已丢失
-                  </div>
-                  <figcaption class="wg-ref-tag">参考图</figcaption>
-                  <span class="wg-ref-kind">{{ row.task.type === 'video' ? '图生视频' : '图生图' }}</span>
+                <figure class="wg-ref-src">
+                  <span class="wg-ref-frame">
+                    <img
+                      v-if="!mediaFailed(row.task.referenceImage)"
+                      :src="mediaSrc(row.task.referenceImage)"
+                      alt="参考图"
+                      loading="lazy"
+                      :style="{ aspectRatio: refRatioOf(row.task) }"
+                    />
+                    <!-- 参考图字节已不在磁盘上：给明确文案，别留一块看不懂的空白 -->
+                    <div
+                      v-else
+                      class="wg-media-lost"
+                      :style="{ aspectRatio: refRatioOf(row.task) }"
+                      role="img"
+                      aria-label="参考图已丢失"
+                    >
+                      参考图已丢失
+                    </div>
+                  </span>
+                  <figcaption class="wg-ref-caption">参考图</figcaption>
                 </figure>
-                <span class="wg-arrow" aria-hidden="true">
+                <span class="wg-flow" aria-hidden="true">
                   <WgIcon :d="ICONS.arrowRight" />
+                  <span class="wg-flow-label">{{ row.task.type === 'video' ? '图生视频' : '图生图' }}</span>
                 </span>
               </template>
 
@@ -543,34 +557,60 @@
 
               <!--
                 参数栏：模型 / 尺寸 / 张数 / 风格。
-                三处去冗余：
-                · 去掉「模型」标签字 —— 模型名自带 logo，说法自解释；
-                · 去掉重复的时间 —— 第一行右侧已经有了，这里再显示一遍；
-                · 风格为空、张数为 1 都不出胶囊 —— 「无风格」「1 张」是废话不是信息。
+                放在媒体右侧、竖排成一张「参数表」：宽卡片右侧原本空着 600px+，
+                横排一行胶囊贴顶后下面全是空白；竖排后每条一个标签，扫读对齐，
+                卡片看起来是「图 + 规格」而不是「图 + 一条挤在角落的字」。
+                仍去冗余：张数为 1、风格为空都不出条目（是噪音不是信息），
+                用时留在标题行右侧，这里不重复。
               -->
-              <div class="wg-card-chips">
+              <div class="wg-card-detail">
+                <p class="wg-card-title" :title="row.task.prompt">{{ row.task.prompt || '（无提示词）' }}</p>
+                <div class="wg-card-chips">
                 <span class="wg-pill wg-pill-model">
+                  <em class="wg-pill-label">模型</em>
                   <img v-if="modelLogo(row.task.model)" :src="modelLogo(row.task.model)!" alt="" class="wg-logo" />
                   <span>{{ modelLabel(row.task.model) }}</span>
                 </span>
                 <span v-if="row.task.size" class="wg-pill">
-                  {{ row.task.size }}<template v-if="ratioOf(row.task.size)"> · {{ ratioOf(row.task.size) }}</template>
+                  <em class="wg-pill-label">尺寸</em>
+                  <span>{{ row.task.size }}<template v-if="ratioOf(row.task.size)"> · {{ ratioOf(row.task.size) }}</template></span>
                 </span>
                 <span v-if="row.task.type === 'image' && (row.task.count ?? 1) > 1" class="wg-pill">
-                  {{ row.task.count }} 张
+                  <em class="wg-pill-label">张数</em>
+                  <span>{{ row.task.count }} 张</span>
                 </span>
-                <span v-if="row.task.type === 'video' && row.task.duration" class="wg-pill">{{ row.task.duration }}s</span>
+                <span v-if="row.task.type === 'video' && row.task.duration" class="wg-pill">
+                  <em class="wg-pill-label">时长</em>
+                  <span>{{ row.task.duration }}s</span>
+                </span>
                 <span v-if="row.task.type === 'image' && row.task.style" class="wg-pill">
-                  {{ styleName(row.task.style) }}
+                  <em class="wg-pill-label">风格</em>
+                  <span>{{ styleName(row.task.style) }}</span>
                 </span>
+                </div>
               </div>
             </div>
-          </article>
+              </template>
+            </article>
+          </template>
         </div>
 
-        <p v-if="!loading && !rows.length" class="wg-empty">
-          还没有作品，描述你想象的场景，开始生成
-        </p>
+        <!-- 空态：给三条能直接用的提示词，点了就填进输入条；比一句「开始生成」更接近下一步 -->
+        <div v-if="!loading && !rows.length" class="wg-empty">
+          <p class="wg-empty-title">还没有作品</p>
+          <p class="wg-empty-hint">描述你想看到的画面，或者从这三条开始：</p>
+          <div class="wg-empty-samples">
+            <button
+              v-for="sample in EMPTY_SAMPLES"
+              :key="sample"
+              type="button"
+              class="wg-empty-sample"
+              @click="prompt = sample"
+            >
+              {{ sample }}
+            </button>
+          </div>
+        </div>
 
         <!-- 分页尾部：加载中 / 还有更多（可点）/ 到底了。
              「还有更多」必须给按钮而不是只靠滚动触发：内容不足一屏时容器不会产生滚动事件，
@@ -629,23 +669,27 @@
 
           <!-- 参数芯片：模型 / 分辨率 / 比例 / 时长 / 张数 / 风格 -->
           <template #buttons>
-            <el-popover placement="top-start" :width="300" trigger="click" popper-class="wg-popper">
-              <template #reference>
-                <button type="button" class="wg-chip is-strong" title="创作模型">
+            <PickerPopover v-model:show="modelOpen" :width="340" @update:show="(v) => { modelOpen = v; if (!v) modelKeyword = '' }">
+              <template #trigger="{ toggle }">
+                <button type="button" class="wg-chip is-strong" title="创作模型" @click="toggle">
                   <img v-if="modelLogo(model)" :src="modelLogo(model)!" alt="" class="wg-logo" />
                   <span>{{ modelLabel(model) }}</span>
                   <WgIcon :d="ICONS.chevron" />
                 </button>
               </template>
               <div class="wg-menu">
-                <p class="wg-menu-title">创作模型</p>
+                <label v-if="currentModels.length > 1" class="wg-menu-search">
+                  <WgIcon :d="ICONS.search" class="wg-menu-search-icon" />
+                  <input v-model="modelKeyword" type="search" placeholder="搜索模型" aria-label="搜索模型" />
+                </label>
+                <p class="wg-menu-title">创作模型<span class="wg-menu-count">{{ modelMenuOptions.length }}</span></p>
                 <button
-                  v-for="opt in currentModels"
+                  v-for="opt in modelMenuOptions"
                   :key="opt.model"
                   type="button"
                   class="wg-menu-item"
                   :class="{ 'is-active': model === opt.model }"
-                  @click="pickModel(opt.model)"
+                  @click="pickModel(opt.model); modelOpen = false"
                 >
                   <img v-if="modelLogo(opt.model, opt.providerName)" :src="modelLogo(opt.model, opt.providerName)!" alt="" class="wg-logo" />
                   <span class="wg-menu-text">
@@ -654,25 +698,25 @@
                   </span>
                   <WgIcon v-if="model === opt.model" :d="ICONS.check" class="wg-menu-check" />
                 </button>
+                <p v-if="!modelMenuOptions.length" class="wg-menu-empty">没有匹配的模型</p>
+                <div class="wg-menu-foot">
+                  <span>↑↓ 导航</span>
+                  <span>Enter 选择</span>
+                  <span>Esc 关闭</span>
+                </div>
               </div>
-            </el-popover>
+            </PickerPopover>
 
             <!-- 分辨率 + 比例 -->
-            <el-popover
-              v-if="sizes.length"
-              placement="top-start"
-              :width="300"
-              trigger="click"
-              popper-class="wg-popper"
-            >
-              <template #reference>
-                <button type="button" class="wg-chip" title="分辨率与比例">
+            <PickerPopover v-if="sizes.length" v-model:show="sizeOpen" :width="300">
+              <template #trigger="{ toggle }">
+                <button type="button" class="wg-chip" title="分辨率与比例" @click="toggle">
                   <span>{{ size || sizes[0] }}<template v-if="activeRatio"> · {{ activeRatio }}</template></span>
                   <WgIcon :d="ICONS.chevron" />
                 </button>
               </template>
               <div class="wg-menu">
-                <p class="wg-menu-title">设置</p>
+                <p class="wg-menu-title">分辨率</p>
                 <div class="wg-seg">
                   <button
                     v-for="item in sizes"
@@ -685,33 +729,34 @@
                     {{ resolutionLabel(item) }}
                   </button>
                 </div>
-                <div v-if="ratios.length" class="wg-ratio-grid">
-                  <button
-                    v-for="item in ratios"
-                    :key="item"
-                    type="button"
-                    class="wg-ratio"
-                    :class="{ 'is-active': activeRatio === item }"
-                    :aria-pressed="activeRatio === item"
-                    @click="pickRatio(item)"
-                  >
-                    <span class="wg-ratio-box" :style="ratioBoxStyle(item)"></span>
-                    <span class="wg-ratio-label">{{ item }}</span>
-                  </button>
-                </div>
+                <template v-if="ratios.length">
+                  <p class="wg-menu-title">比例</p>
+                  <div class="wg-ratio-grid">
+                    <button
+                      v-for="item in ratios"
+                      :key="item"
+                      type="button"
+                      class="wg-ratio"
+                      :class="{ 'is-active': activeRatio === item }"
+                      :aria-pressed="activeRatio === item"
+                      @click="pickRatio(item); sizeOpen = false"
+                    >
+                      <span class="wg-ratio-box" :style="ratioBoxStyle(item)"></span>
+                      <span class="wg-ratio-label">{{ item }}</span>
+                    </button>
+                  </div>
+                </template>
               </div>
-            </el-popover>
+            </PickerPopover>
 
             <!-- 时长（视频） -->
-            <el-popover
+            <PickerPopover
               v-if="mediaType === 'video' && durations.length"
-              placement="top-start"
+              v-model:show="durationOpen"
               :width="300"
-              trigger="click"
-              popper-class="wg-popper"
             >
-              <template #reference>
-                <button type="button" class="wg-chip" title="时长">
+              <template #trigger="{ toggle }">
+                <button type="button" class="wg-chip" title="时长" @click="toggle">
                   <span>{{ duration || durations[0] }}s</span>
                   <WgIcon :d="ICONS.chevron" />
                 </button>
@@ -734,24 +779,18 @@
                     type="button"
                     class="wg-seg-item"
                     :class="{ 'is-active': (duration || durations[0]) === item }"
-                    @click="onDurationPick(item)"
+                    @click="onDurationPick(item); durationOpen = false"
                   >
                     {{ item }}s
                   </button>
                 </div>
               </div>
-            </el-popover>
+            </PickerPopover>
 
             <!-- 张数 -->
-            <el-popover
-              v-if="mediaType === 'image'"
-              placement="top-start"
-              :width="180"
-              trigger="click"
-              popper-class="wg-popper"
-            >
-              <template #reference>
-                <button type="button" class="wg-chip" title="张数">
+            <PickerPopover v-if="mediaType === 'image'" v-model:show="countOpen" :width="180">
+              <template #trigger="{ toggle }">
+                <button type="button" class="wg-chip" title="张数" @click="toggle">
                   <span>{{ count }} 张</span>
                   <WgIcon :d="ICONS.chevron" />
                 </button>
@@ -764,34 +803,40 @@
                   type="button"
                   class="wg-menu-item"
                   :class="{ 'is-active': count === n }"
-                  @click="count = n"
+                  @click="count = n; countOpen = false"
                 >
                   <span class="wg-menu-text"><span class="wg-menu-name">{{ n }} 张</span></span>
                   <WgIcon v-if="count === n" :d="ICONS.check" class="wg-menu-check" />
                 </button>
+                <div class="wg-menu-foot">
+                  <span>↑↓ 导航</span>
+                  <span>Enter 选择</span>
+                  <span>Esc 关闭</span>
+                </div>
               </div>
-            </el-popover>
+            </PickerPopover>
 
             <!-- 风格：仅模型声明支持 style 时展示；缩略图只取真正用过该风格的图 -->
-            <el-popover
+            <PickerPopover
               v-if="mediaType === 'image' && styleSupported"
-              placement="top-start"
+              v-model:show="styleOpen"
               :width="360"
-              trigger="click"
-              popper-class="wg-popper"
+              :max-height="560"
             >
-              <template #reference>
+              <template #trigger="{ toggle }">
                 <button
                   type="button"
                   class="wg-chip"
                   :class="{ 'is-strong': !!style }"
                   title="风格模板"
+                  @click="toggle"
                 >
                   <img
-                    v-if="style && stylePreview(style)"
-                    :src="mediaSrc(stylePreview(style))!"
+                    v-if="style && styleThumb(style)"
+                    :src="mediaSrc(styleThumb(style))!"
                     alt=""
                     class="wg-style-chip-thumb"
+                    @error="markStyleThumbFailed(style)"
                   />
                   <span>{{ styleLabel }}</span>
                   <WgIcon :d="ICONS.chevron" />
@@ -807,14 +852,15 @@
                     class="wg-style"
                     :class="{ 'is-active': style === item.key }"
                     :aria-pressed="style === item.key"
-                    @click="pickStyle(item.key)"
+                    @click="pickStyle(item.key); styleOpen = false"
                   >
                     <span class="wg-style-thumb">
                       <img
-                        v-if="stylePreview(item.key)"
-                        :src="mediaSrc(stylePreview(item.key))"
+                        v-if="styleThumb(item.key)"
+                        :src="mediaSrc(styleThumb(item.key))"
                         :alt="item.name"
                         loading="lazy"
+                        @error="markStyleThumbFailed(item.key)"
                       />
                       <span v-else class="wg-style-fallback">{{ item.name }}</span>
                     </span>
@@ -822,7 +868,7 @@
                   </button>
                 </div>
               </div>
-            </el-popover>
+            </PickerPopover>
           </template>
         </GenerateComposer>
 
@@ -889,6 +935,7 @@ import 'viewerjs/dist/viewer.css'
 const vViewer = viewerDirective({ name: 'viewer' })
 import GenerateComposer from './GenerateComposer.vue'
 import RePageHead from '@/components/ui/RePageHead.vue'
+import PickerPopover from '@/components/ui/PickerPopover.vue'
 import { getModelAvatarPath } from '../../utils/modelUtils'
 import { getProviderLogoPath } from '../models/providerIcons'
 import { ElMessageBox } from 'element-plus';
@@ -1017,33 +1064,41 @@ const STYLE_TEMPLATES: ReadonlyArray<StyleTemplate> = [
 /**
  * 内置风格的缩略图（放在 public/gen-style 下，构建时原样拷贝）。
  *
- * 这些图是按「固定主体 + 该风格描述」在本系统里跑生图接口批量生成的：
- * 八张图共用同一个主体（少女 / 海边礁石），差异只来自风格本身，
- * 所以并排看就能直接对比风格差别，而不是各画各的内容。
+ * 这些图是按「同一主体（雨后黄昏的日式小镇街道）+ 该风格描述」在本系统里跑
+ * 生图接口批量生成的（脚本：test/vue/ai-sweep/gen-style-thumbs.cjs +
+ * shrink-style-thumbs.cjs），主体一致，差异只来自风格本身。
  *
- * 生成方式：node .tmp/sg/gen-styles.mjs（风格表从本文件的 STYLE_TEMPLATES 正则提取，
- * 不会与页面漂移），再用 .tmp/sg/shrink-styles.ps1 压成 256px JPEG。
+ * 必须是 **.webp**：仓库根 .gitignore 有一行全局 `*.jpg`（本意是挡调试截图），
+ * 早先这套缩略图用 .jpg，结果只进了工作区没进版本库，换台机器/清理一次就全没了，
+ * 页面里 8 格有 7 格是破图。webp 不在忽略名单里，能跟着提交走。
  *
  * 表里没有对应文件的 key（模型管理里自配的风格）会退到「真用过该风格」的生成结果，
  * 都没有时用风格名占位——配错图比没图更误导。
  */
 const STYLE_THUMBS: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(
-    [
-      ['photo', 'photo.jpg'],
-      ['anime', 'anime.jpg'],
-      ['ink', 'ink.jpg'],
-      ['cyber', 'cyber.jpg'],
-      ['clay', 'clay.jpg'],
-      ['product', 'product.jpg'],
-      ['sketch', 'sketch.jpg'],
-      ['pixel', 'pixel.webp'],
-    ].map(([key, file]) => [key, `${import.meta.env.BASE_URL}gen-style/${file}`]),
+    ['photo', 'anime', 'ink', 'cyber', 'clay', 'product', 'sketch', 'pixel'].map((key) => [
+      key,
+      `${import.meta.env.BASE_URL}gen-style/${key}.webp`,
+    ]),
   ),
 )
 
 /** 收藏持久化键：生成接口暂无收藏字段，用本地集合让「仅收藏」真正生效 */
 const FAVORITE_KEY = 'ai-guada:generate-favorites'
+
+/**
+ * 空态的三条示例提示词。
+ *
+ * <p>空态只写「开始生成」等于把「写什么」这件难事丢回给用户；给三条可点的短句，
+ * 点一下即填进输入条（不自动提交，仍由用户按生成）。选的都是生图常见的题材，
+ * 不绑定具体模型能力（不含参考图、不含视频参数）。</p>
+ */
+const EMPTY_SAMPLES = [
+  '雨夜的旧街，霓虹灯映在积水里',
+  '清晨的窗台，一杯咖啡和一本书',
+  '海边的灯塔，黄昏，长焦压缩感',
+] as const
 
 const readFavorites = (): string[] => {
   try {
@@ -1116,12 +1171,9 @@ const loading = ref(false)/**
 const videoAvailable = ref(false)
 
 /**
- * 生成类型切换弹层的实例。
- *
- * `trigger="click"` 的 el-popover 点内容不会自动收起，而切换类型属于「跳转」
- * 语义（下方模型列表与历史都会重载），选完必须关掉，否则弹层挡住刷新后的页面。
+ * 生成类型切换属于「跳转」语义（下方模型列表与历史都会重载），
+ * 选完必须关掉弹层，否则它挡住刷新后的页面。开合状态见 mediaOpen。
  */
-const mediaPopoverRef = ref<{ hide: () => void } | null>(null)
 
 /** 当前生成类型的中文名（标题与切换按钮共用） */
 const mediaLabel = computed(() => (mediaType.value === 'video' ? '视频' : '图像'))
@@ -1148,6 +1200,34 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const pollTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 const currentModels = computed(() => models.value.filter((item) => item.type === mediaType.value))
+
+/* ---------- 下拉选择的开合状态 ----------
+ * 会话页的每个下拉都是「点触发器开、选中或点外部关」，这里保持一致。
+ * 每个弹层各一个 ref：点另一个芯片时，前一个由 CustomPopover 的「点外部关闭」收起。 */
+const mediaOpen = ref(false)
+const filterOpen = ref(false)
+const recordsOpen = ref(false)
+const sortOpen = ref(false)
+const modelOpen = ref(false)
+const sizeOpen = ref(false)
+const durationOpen = ref(false)
+const countOpen = ref(false)
+const styleOpen = ref(false)
+
+/** 模型弹层里的检索词：模型多了以后，会话侧同样是先给检索框再列模型 */
+const modelKeyword = ref('')
+
+/** 检索后的模型列表：名称 / 模型编码 / 供应商名三处都能命中 */
+const modelMenuOptions = computed(() => {
+  const kw = modelKeyword.value.trim().toLowerCase()
+  if (!kw) {
+    return currentModels.value
+  }
+  return currentModels.value.filter((opt) =>
+    `${modelLabel(opt.model)} ${opt.model} ${opt.providerName}`.toLowerCase().includes(kw),
+  )
+})
+
 const currentConfig = computed(() => currentModels.value.find((item) => item.model === model.value)?.config)
 const sizes = computed(() => currentConfig.value?.sizes ?? [])
 const maxCount = computed(() => Math.max(1, currentConfig.value?.maxCount ?? 1))
@@ -1196,7 +1276,7 @@ const stylePanelItems = computed(() =>
       key: item.key,
       name: item.name,
       prompt: item.prompt,
-      thumb: stylePreview(item.key),
+      thumb: styleThumb(item.key),
     })),
 )
 
@@ -1414,6 +1494,49 @@ const rows = computed<Row[]>(() =>
 )
 
 const badgeText = (task: GenerateTask) => STATUS_TEXT[task.status] ?? task.status
+
+/**
+ * 日期分组的分隔标签。
+ *
+ * <p>历史列表是纯时间流，翻到中间时读者不知道「这屏是哪天的」。按天插一条窄标签，
+ * 只编码真实信息（哪天、几条），不做装饰。今天/昨天用相对说法，更早给月日。</p>
+ *
+ * @param ts 任务创建时间（毫秒）
+ * @returns 标签文字
+ */
+const dayLabelOf = (ts: number): string => {
+  const d = new Date(ts)
+  const now = new Date()
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86400000)
+  if (diffDays === 0) return '今天'
+  if (diffDays === 1) return '昨天'
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+/** 列表渲染项：日期分隔 + 记录，保证小组标题与卡片同属一个 v-for */
+type ListEntry =
+  | { kind: 'day'; key: string; label: string; count: number }
+  | { kind: 'row'; key: string; row: Row }
+
+const listEntries = computed<ListEntry[]>(() => {
+  const entries: ListEntry[] = []
+  let currentKey = ''
+  for (const row of rows.value) {
+    const d = new Date(row.task.createdAt)
+    const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+    if (key !== currentKey) {
+      currentKey = key
+      const count = rows.value.filter((r) => {
+        const rd = new Date(r.task.createdAt)
+        return `${rd.getFullYear()}-${rd.getMonth() + 1}-${rd.getDate()}` === key
+      }).length
+      entries.push({ kind: 'day', key: `day-${key}`, label: dayLabelOf(row.task.createdAt), count })
+    }
+    entries.push({ kind: 'row', key: row.id || `row-${row.task.taskId}`, row })
+  }
+  return entries
+})
 
 /** 失败 / 已取消的记录数：清理按钮的角标与是否显示都看它 */
 const voidRecordCount = computed(
@@ -1689,9 +1812,28 @@ const stylePreview = (key: string) => {
   return hit?.urls?.[0] ?? ''
 }
 
+/**
+ * 缩略图取回失败过的 key。
+ *
+ * <p>地址存在不等于文件存在：dev 下没接上的静态目录会把请求回成千篇一律的 index.html
+ * （HTTP 200 + text/html），`<img>` 于是 complete=true、naturalWidth=0 —— 面板里就是
+ * 一排破图。加载失败后记下来，渲染退回「风格名占位」，和「没有缩略图」表现一致。</p>
+ */
+const failedStyleThumbs = reactive(new Set<string>())
+
+/** 记录缩略图加载失败，避免下一次重渲染又去要同一张破图 */
+const markStyleThumbFailed = (key: string | undefined) => {
+  if (key) {
+    failedStyleThumbs.add(key)
+  }
+}
+
+/** 渲染用缩略图：失败过的 key 一律返回空串，让模板走占位分支 */
+const styleThumb = (key: string) => (failedStyleThumbs.has(key) ? '' : stylePreview(key))
+
 const switchMedia = (value: 'image' | 'video') => {
   // 切换类型是「跳转」而非「调节某个开关」，选完应当收起弹层
-  mediaPopoverRef.value?.hide()
+  mediaOpen.value = false
   if (mediaType.value === value) {
     return
   }
@@ -2816,9 +2958,10 @@ onUnmounted(() => {
   background: var(--color-bg);
   color: var(--color-text);
   /* 结果缩略图边长：改这里整页结果图等比变化。
-     列表视图下卡片是「左图 / 右参数」两栏，190px 的图在 1200px 宽的卡里太瘦，
-     拉到 240px 才撑得起左栏（参考图与结果图共用同一令牌，会同步放大）。 */
-  --wg-thumb: 240px;
+     列表视图下卡片是「左图 / 右参数」两栏；190px 太瘦、240px 仍会在
+     宽卡片里留出一大片空白（实测 1200px 卡里右侧空 500px+），
+     拉到 300px 让图占住左栏，卡片不再看着「内容挤在左边」。 */
+  --wg-thumb: 300px;
 }
 
 .wg-main {
@@ -3009,33 +3152,83 @@ onUnmounted(() => {
   height: 18px;
 }
 
-/* ---------- 下拉菜单 ---------- */
+/* ---------- 下拉菜单（会话同款） ----------
+
+   面板外壳交给 PickerPopover（CustomPopover）：圆角、毛玻璃、进出场与
+   会话页的模型 / 思考 / 形态弹层是同一份实现。这里只管面板内部：
+   分区小标题、30px 行、选中勾、页脚按键提示。
+
+   滚动只留一层：外层 .popover-shell 已经按 max-height 裁切并滚动，
+   菜单再套一层会出现双滚动条（内层滚到一半、外层才开始动）。*/
 
 .wg-menu {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 420px;
-  /*
-    纵向才滚动，横向必须 hidden。
-    用 overflow: auto 会变成**双向**：菜单里只要有比容器宽一点点的内容
-    （典型是 el-slider 的 marks 标签——首尾标签各 translateX(-50%) 外探半个宽度），
-    就会同时冒出横向与纵向两条滚动条，看起来像布局坏了。
-    菜单项本来就应该在宽度内换行，横向滚动没有任何意义。
-  */
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: visible;
 }
 
 .wg-menu-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 6px 0 2px;
-  padding: 0 8px;
+  padding: 4px 8px 6px;
   color: var(--color-text-gray);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  user-select: none;
 }
 
 .wg-menu-title:first-child {
   margin-top: 0;
+}
+
+/* 标题右侧的条数：会话的模型面板在同一位置给计数 */
+.wg-menu-count {
+  color: var(--color-text-gray);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.wg-menu-empty {
+  margin: 0;
+  padding: 6px 8px 10px;
+  color: var(--color-text-gray);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* 检索行：与会话模型面板同高（28px），图标 + 输入框 */
+.wg-menu-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin: 0 0 4px;
+  padding: 0 8px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+}
+
+.wg-menu-search-icon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-gray);
+}
+
+.wg-menu-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 13px;
+  outline: none;
 }
 
 .wg-menu-item {
@@ -3043,18 +3236,23 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 8px;
+  min-height: 30px;
+  padding: 4px 8px;
   border: 0;
-  border-radius: var(--r-sm);
+  border-radius: 6px;
   background: transparent;
   color: var(--color-text);
+  font-size: 13px;
+  line-height: 18px;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.12s ease;
 }
 
-.wg-menu-item:hover {
-  background: var(--color-surface-hover);
+/* hover 与键盘落点共用同一底色，避免「鼠标在 A、键盘在 B」两种高亮同时出现 */
+.wg-menu-item:hover,
+.wg-menu-item.is-nav {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
 }
 
 .wg-menu-item.is-active {
@@ -3072,20 +3270,36 @@ onUnmounted(() => {
 
 .wg-menu-name {
   overflow: hidden;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .wg-menu-desc {
   color: var(--color-text-gray);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .wg-menu-check {
   flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
+}
+
+/* 页脚按键提示：与会话面板的 hintNavigate / hintSelect / hintClose 同一行文 */
+.wg-menu-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 6px 8px 2px;
+  border-top: 1px solid var(--color-surface-border);
+  color: var(--color-text-gray);
+  font-size: 11px;
+  line-height: 16px;
+  user-select: none;
 }
 
 /* 菜单项左侧的类型图标（图像/视频），选中时跟随主色 */
@@ -3374,15 +3588,28 @@ onUnmounted(() => {
 }
 
 .wg-card-title {
-  flex: 1;
-  min-width: 0;
   margin: 0;
-  overflow: hidden;
   color: var(--color-text);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.6;
+  /* 右栏有宽度了，提示词给到 3 行；超出再截断，完整文本在 title 与卡片详情里 */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* 右栏：提示词 + 规格，与左侧媒体同一行，填掉宽卡片原本的空白 */
+.wg-card-detail {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 2px;
 }
 
 .wg-card-head-right {
@@ -3390,6 +3617,7 @@ onUnmounted(() => {
   flex: 0 0 auto;
   align-items: center;
   gap: 12px;
+  margin-left: auto;
   color: var(--color-text-gray);
   font-size: 13px;
 }
@@ -3473,6 +3701,38 @@ onUnmounted(() => {
 }
 
 /*
+ * 日期分隔：历史是时间流，翻到中间读不出「这屏是哪天」。
+ * 只在换天时出现一次；网格视图里横跨整行，不当成一张卡。
+ */
+.wg-day-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0 2px;
+  color: var(--color-text-gray);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.wg-day-label:first-child {
+  margin-top: 0;
+}
+
+.wg-day-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.wg-list.is-grid .wg-day-label {
+  grid-column: 1 / -1;
+  margin: 2px 0;
+}
+
+/*
  * 主体左右分栏：媒体在左、参数在右。
  * 单图卡片（1 张 190px）在 1200px 宽的卡片里右侧会空出 700px+，
  * 参数挪到右栏后正好填掉这块空白，卡片不再「内容挤在左上角」。
@@ -3484,12 +3744,46 @@ onUnmounted(() => {
   gap: 20px;
 }
 
-.wg-card-body > .wg-card-chips {
+.wg-card-detail > .wg-card-chips {
+  /* 竖排成参数表：宽卡片右侧不再是「一行胶囊 + 大片空白」 */
+  display: flex;
   flex: 0 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   max-width: 340px;
   margin-left: auto;
   /* 与媒体顶对齐；媒体比参数高时参数不居中，避免和图片抢视觉 */
   align-content: flex-start;
+}
+
+/* 参数名：小号灰字，统一宽度让右侧值左缘对齐 */
+.wg-pill-label {
+  flex: 0 0 auto;
+  min-width: 2.4em;
+  color: var(--color-text-gray);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+/*
+ * 列表视图里参数是「规格表」不是胶囊：去掉实底与大圆角，
+ * 行间用发丝线分隔，读起来是「模型 / 尺寸 / …」一列标签值，
+ * 而不是几颗像按钮一样散在角落的灰底块。网格视图仍保持胶囊（下方一行）。
+ */
+.wg-list:not(.is-grid) .wg-card-detail > .wg-card-chips .wg-pill {
+  gap: 4px;
+  height: 20px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.wg-list:not(.is-grid) .wg-card-detail > .wg-card-chips .wg-pill + .wg-pill {
+  padding-top: 6px;
+  border-top: 1px solid var(--color-surface-border);
 }
 
 .wg-pill {
@@ -3528,57 +3822,66 @@ onUnmounted(() => {
   min-width: 0;
 }
 
-.wg-ref-box {
-  position: relative;
+/*
+ * 参考图（源）：固定窄档，只有结果图的一半宽。
+ *
+ * 图生图的记录读法是「这张成片改自哪张图」，源图是上下文不是作品：
+ * 与结果等大时两张图互相抢视觉，卡片看起来像一次生成了两张。
+ * 缩到 120px 并把说明文字放到图外，图片本身不再压标签。
+ */
+.wg-ref-src {
+  display: flex;
   flex: 0 0 auto;
-  /* 与结果缩略图共用尺寸令牌，避免参考图比结果明显小一截 */
-  width: var(--wg-thumb);
+  flex-direction: column;
+  gap: 6px;
+  width: 120px;
   margin: 0;
+}
+
+.wg-ref-frame {
+  display: block;
   overflow: hidden;
-  border-radius: var(--size-dialog-rounded-radius);
+  border: 1px solid var(--color-surface-border);
+  border-radius: calc(var(--size-dialog-rounded-radius) - 4px);
   background: var(--color-secondary-surface);
 }
 
 /* 高度由内联 aspect-ratio（refRatioOf）决定，竖构图不会被压成方块 */
-.wg-ref-box img {
+.wg-ref-frame img {
   display: block;
   width: 100%;
   height: auto;
   object-fit: cover;
 }
 
-.wg-ref-tag {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  padding: 2px 8px;
-  border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--el-color-black) 45%, transparent);
-  color: var(--color-primary-text);
+.wg-ref-caption {
+  color: var(--color-text-gray);
   font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  letter-spacing: 0.02em;
 }
 
-.wg-ref-kind {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 8px;
-  border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--el-color-white) 82%, transparent);
-  color: var(--color-text);
-  font-size: 11px;
-}
-
-.wg-arrow {
+/* 「源 → 成片」的连接：图标与模式名上下排，说明这一对是生成关系而不是并列的图 */
+.wg-flow {
   display: flex;
   flex: 0 0 auto;
+  flex-direction: column;
   align-items: center;
+  gap: 2px;
   color: var(--color-primary);
 }
 
-.wg-arrow .wg-svg {
-  width: 26px;
-  height: 26px;
+.wg-flow .wg-svg {
+  width: 18px;
+  height: 18px;
+}
+
+.wg-flow-label {
+  color: var(--color-text-gray);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
 }
 
 /*
@@ -3623,7 +3926,9 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.wg-list.is-grid .wg-card-body > .wg-card-chips {
+.wg-list.is-grid .wg-card-detail > .wg-card-chips {
+  flex-direction: row;
+  flex-wrap: wrap;
   max-width: none;
   margin-left: 0;
 }
@@ -3664,21 +3969,14 @@ onUnmounted(() => {
   display: none;
 }
 
-/* 紧凑视图下参考图变小，两个标签会重叠，只保留「参考图」 */
-.wg-list.is-grid .wg-ref-kind {
+/* 紧凑视图下源图进一步收窄：一列只有 360px 左右，120px 会挤到结果 */
+.wg-list.is-grid .wg-ref-src {
+  width: 84px;
+}
+
+.wg-list.is-grid .wg-ref-caption,
+.wg-list.is-grid .wg-flow-label {
   display: none;
-}
-
-.wg-list.is-grid .wg-ref-tag {
-  top: 4px;
-  left: 4px;
-  padding: 1px 6px;
-  font-size: 10px;
-}
-
-.wg-list.is-grid .wg-arrow .wg-svg {
-  width: 18px;
-  height: 18px;
 }
 
 .wg-thumb {
@@ -4058,10 +4356,62 @@ onUnmounted(() => {
 }
 
 .wg-empty {
-  margin: 80px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 72px 0 0;
   color: var(--color-text-gray);
   font-size: 14px;
   text-align: center;
+}
+
+.wg-empty-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.wg-empty-hint {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* 示例提示词：点了只填进输入条，不自动提交 */
+.wg-empty-samples {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 560px;
+  margin-top: 8px;
+}
+
+.wg-empty-sample {
+  max-width: 100%;
+  padding: 8px 14px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--r-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.wg-empty-sample:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-50);
+  color: var(--color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wg-empty-sample {
+    transition: none;
+  }
 }
 
 /* 滚动分页尾部提示 */
@@ -4197,7 +4547,7 @@ onUnmounted(() => {
     gap: 12px;
   }
 
-  .wg-card-body > .wg-card-chips {
+  .wg-card-detail > .wg-card-chips {
     max-width: none;
     margin-left: 0;
   }
@@ -4315,14 +4665,3 @@ onUnmounted(() => {
 }
 </style>
 
-<!--
-  非 scoped：el-popover 的弹层被 teleport 到 body，scoped 选择器命中不到。
-  统一 8px 圆角（同时覆盖 Element Plus 自己的圆角变量，避免两处不一致）。
--->
-<style>
-.wg-popper.el-popover.el-popper {
-  /* 原值 8px → md 档 */
-  --el-popover-border-radius: var(--el-radius-md, 8px);
-  border-radius: var(--el-radius-md, 8px);
-}
-</style>

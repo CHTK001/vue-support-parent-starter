@@ -322,11 +322,16 @@ const visible = computed(() => list.value.length > 0 || usedTokens.value > 0);
 /**
  * 是否处于「数据未回来」的等待态。
  *
- * 用量只在本轮 finish 之后才随消息落下来，此前消息已经在流、条也已经在显示，
- * 但三段全是「—」。这时改用骨架 + 呼吸动画，让用户看到「在等数据」而不是一片空白。
- * 只要拿到任何一路数据（会话 token 合计或上下文占用）就退出等待态。
+ * <p>只在**还在流式生成**时用骨架：一轮都没跑过的会话，用量永远不会来，
+ * 骨架会一直挂着（验收里表现为「底部条一片空白」）。非流式一律按真实值渲染，
+ * 没有值就显示「—」。</p>
  */
-const pending = computed(() => list.value.length > 0 && stats.value.total <= 0 && usedTokens.value <= 0);
+const pending = computed(() => {
+  const streaming = list.value.some((m: any) =>
+    m?.state?.isStreaming === true
+    || (m?.contents || []).some((c: any) => c?.state?.isStreaming === true));
+  return streaming && stats.value.total <= 0 && usedTokens.value <= 0;
+});
 
 /**
  * Token 计数：≥1000 走 K/M。

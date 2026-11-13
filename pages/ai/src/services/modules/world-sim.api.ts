@@ -425,7 +425,9 @@ export const worldSimApi: WorldSimApi = {
   },
 
   async createWorldAct(this: ApiContext, worldId: number) {
-    return await this._request(`/world-sim/worlds/${worldId}/acts`, { method: "POST" });
+    // 后端 createAct 不读请求体，但框架对 application/json + 空 body 会直接 400
+    // （C0400S0001「请求体不能为空」）。显式给空对象，保证这是一个合法 JSON 请求。
+    return await this._request(`/world-sim/worlds/${worldId}/acts`, { method: "POST", data: {} });
   },
 
   async fetchWorldActDetail(this: ApiContext, worldId: number, actNo: number) {

@@ -104,7 +104,8 @@ interface SettingSchema {
 const schema = reactive<SettingSchema[]>([
   { field: 'enable_usage_analysis', label: '用量统计开关', valueType: 'BOOLEAN', type: 'switch', value: true, desc: '关闭后跳过定时同步与聚合' },
   { field: 'enable_usage_recorder', label: '会话用量统计开关', valueType: 'BOOLEAN', type: 'switch', value: true, desc: '关闭后不记录每次调用到明细表' },
-  { field: 'enable_connector_usage', label: '连接器聊天用量开关', valueType: 'BOOLEAN', type: 'switch', value: false, desc: '开启后连接器 AI 回复计入用量统计' },
+  // 「连接器聊天用量开关」（enable_connector_usage）已随后端 2026-11-10 的删除一并下线：
+  // 该字段不再出现在 UsageGlobalSettingProvider 定义里，也没有任何消费方。
   { field: 'usage_timewheel_enabled', label: '后台时间轮调度', valueType: 'BOOLEAN', type: 'switch', value: false, desc: '开启后用量同步改用时间轮调度' },
   { field: 'usage_report_interval', label: '定时聚合间隔', valueType: 'NUMBER', type: 'number', value: 3600 },
   { field: 'usage_sync_providers', label: 'Provider 白名单', valueType: 'STRING', type: 'text', value: '' },

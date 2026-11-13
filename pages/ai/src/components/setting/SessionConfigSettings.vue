@@ -276,14 +276,14 @@ const RUNTIME_GROUP = 'runtime'
 /**
  * 会话相关的模型字段。
  *
- * <p>原先这些字段在「默认模型」页里与图片识别/人脸/OCR 等模型并列，语义上却全属
- * 「会话用哪个模型」；挪到这里后一次配完。字段名与后端 runtime 分组定义一致。</p>
+ * <p>只保留后端真正定义并被消费的 {@code runtime.default_model}。原先还有
+ * 「标题总结 / 历史压缩 / 翻译」三项，它们既不在 {@code RuntimeGlobalSettingProvider}
+ * 的定义里，也在全仓 Java 源码里没有消费方（写进用户覆盖层后没人读），属于假配置，
+ * 已移除。历史压缩的真实字段是 {@code runtime.modelId}（见「通用 → 对话上下文」），
+ * 不要在这里再开第二个入口。</p>
  */
 const MODEL_FIELDS = [
   { field: 'default_model', label: '默认对话模型', description: '会话默认使用的对话模型' },
-  { field: 'default_title_summary_model', label: '标题总结模型', description: '生成会话标题用的模型' },
-  { field: 'default_history_compression_model', label: '历史压缩模型', description: '压缩长会话历史记录用的模型' },
-  { field: 'default_translation_model', label: '翻译模型', description: '跨语言对话用的翻译模型' },
 ]
 
 /** runtime 分组合并值：field -> { value, overridden, origin } */

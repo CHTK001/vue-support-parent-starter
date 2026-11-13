@@ -8,7 +8,7 @@
   <!-- 下拉菜单使用 Teleport 避免被父元素裁剪 -->
   <Teleport to="body">
     <Transition name="dropdown-fade">
-      <div v-if="visible" ref="menuRef" class="fixed z-50 bg-(--color-surface) rounded-(--size-dialog-rounded-radius) shadow-lg border border-(--color-surface-border) py-1 min-w-30 overflow-clip" :style="menuStyle" @click.stop>
+      <div v-if="visible" ref="menuRef" class="fixed z-50 bg-(--color-surface) rounded-(--size-dialog-rounded-radius) shadow-lg border border-(--color-surface-border) py-1 overflow-clip" :style="menuStyle" @click.stop>
         <slot name="dropdown"></slot>
       </div>
     </Transition>
@@ -60,19 +60,32 @@ const updatePosition = () => {
   const spaceBelow = window.innerHeight - rect.bottom;
   const spaceAbove = rect.top;
   const MARGIN = 8;
+  /**
+   * 最小宽度与「不出界」夹取（用户口径 2026-11-12）：
+   * 顶部右侧的菜单以触发器为中心弹出，菜单太窄时文字挤成两行，太靠右时又会出界。
+   * 先给 180px 的下限，再把中心点夹在视口内。
+   */
+  const MENU_MIN_WIDTH = 180;
+  const menuWidth = Math.max(menuRef.value?.offsetWidth || MENU_MIN_WIDTH, MENU_MIN_WIDTH);
+  let centerX = rect.left + rect.width / 2;
+  const minCenter = MARGIN + menuWidth / 2;
+  const maxCenter = window.innerWidth - MARGIN - menuWidth / 2;
+  centerX = Math.min(Math.max(centerX, minCenter), Math.max(minCenter, maxCenter));
 
   if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
     // 下方空间不足且上方空间更大，改为向上弹出
     menuStyle.value = {
       top: `${Math.max(MARGIN, rect.top - menuHeight)}px`,
-      left: `${rect.left + rect.width / 2}px`,
+      left: `${centerX}px`,
+      minWidth: `${MENU_MIN_WIDTH}px`,
       transform: 'translateX(-50%)'
     };
   } else {
     // 默认向下弹出
     menuStyle.value = {
       top: `${rect.bottom + 4}px`,
-      left: `${rect.left + rect.width / 2}px`,
+      left: `${centerX}px`,
+      minWidth: `${MENU_MIN_WIDTH}px`,
       transform: 'translateX(-50%)'
     };
   }

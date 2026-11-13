@@ -142,20 +142,21 @@ html.dark .svc {
 }
 @keyframes svc-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 
-/* 状态带：发丝线分隔的报头，不用独立卡片（Q1 的唯一答案，必须一眼可读） */
+/* 状态带：发丝线分隔的报头，不用独立卡片（Q1 的唯一答案，必须一眼可读）。
+   分隔线用 1px 间隙 + 底色实现：格子随宽度折行时不会出现「少一条线」，
+   也不再需要 nth-child 的边框补丁。 */
 .svc-band {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-  border: 1px solid var(--svc-rule); border-top: 2px solid color-mix(in srgb, var(--svc-accent) 52%, var(--svc-rule));
+  gap: 1px;
+  border: 1px solid var(--svc-rule);
   border-radius: var(--svc-r-md);
-  background: var(--svc-surface); box-shadow: var(--svc-shadow-1); overflow: hidden;
+  background: var(--svc-rule); box-shadow: var(--svc-shadow-1); overflow: hidden;
 }
 .svc-band__cell {
   padding: var(--svc-sp-3) var(--svc-sp-4);
   display: flex; flex-direction: column; gap: 3px;
+  background: var(--svc-surface);
 }
-.svc-band__cell + .svc-band__cell { border-left: 1px solid var(--svc-rule); }
-.svc-band__cell:first-child { background: color-mix(in srgb, var(--svc-accent) 6%, var(--svc-surface)); }
-.svc-band__cell:first-child .svc-band__num { color: var(--svc-accent); }
 .svc-band__num {
   font-family: var(--svc-mono); font-size: 24px; font-weight: 650;
   letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
@@ -286,11 +287,67 @@ html.dark .svc {
   letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
   line-height: 1; color: var(--svc-ink); flex-shrink: 0;
 }
-.svc-tile__meta { display: flex; align-items: center; gap: var(--svc-sp-2); min-width: 0; }
+.svc-tile__meta { display: flex; align-items: center; gap: var(--svc-sp-2); min-width: 0; flex-wrap: wrap; row-gap: 4px; }
 .svc-tile__protos { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .svc-tile__usage { font-size: 11.5px; color: var(--svc-ink-3); white-space: nowrap; }
-.svc-tile__acts { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+/* 最近一次请求：贴右，等宽数字，和「用量」同一行不抢视线 */
+.svc-tile__last {
+  margin-left: auto; white-space: nowrap;
+  font-family: var(--svc-mono); font-size: 10.5px; color: var(--svc-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+/* 状态徽标跟在名字后面（不再贴右：右上角留给 hover 才出现的操作） */
+.svc-tile__line .svc-badge { margin-left: 6px; }
+.svc-tile__portline {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--svc-sp-2);
+  font-family: var(--svc-mono); font-size: 11.5px; font-weight: 600;
+  color: var(--svc-ink-3); font-variant-numeric: tabular-nums; line-height: 1;
+}
 
+/* 端口卡读数：近 N 小时的真实聚合（请求 / Token / 失败 / P95）。
+   数值来自访问日志按 instance_id 汇总，缺样本时模板直接渲染「—」。 */
+.svc-tile__metrics {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px; margin-top: 2px; padding-top: 7px;
+  border-top: 1px solid var(--svc-rule);
+}
+
+/* 请求量迷你折线：24 桶固定点数，非缩放描边保证细线不糊 */
+.svc-tile__spark { height: 26px; margin-top: 2px; }
+.svc-tile__spark svg { display: block; width: 100%; height: 26px; overflow: visible; }
+.svc-tile__spark polyline {
+  fill: none; stroke: var(--svc-accent); stroke-width: 1.5;
+  stroke-linejoin: round; stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.svc-tile__metrics span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.svc-tile__metrics b {
+  font-family: var(--svc-mono); font-size: 12.5px; font-weight: 650;
+  letter-spacing: -0.01em; color: var(--svc-ink); font-variant-numeric: tabular-nums;
+}
+.svc-tile__metrics i { font-style: normal; font-size: 10px; color: var(--svc-ink-3); }
+.svc-tile__metrics .is-err b { color: var(--svc-danger); }
+
+/* 请求量迷你折线：固定 24 桶，24h / 7d / 30d 三个窗口形状可比 */
+.svc-tile__spark { height: 26px; margin-top: 2px; }
+.svc-tile__spark svg { width: 100%; height: 26px; display: block; overflow: visible; }
+.svc-tile__spark polyline {
+  fill: none; stroke: var(--svc-accent); stroke-width: 1.5;
+  stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke;
+}
+.svc-tile__acts {
+  /* 操作收进卡片右上角，hover 才出现：常驻会挤掉正文宽度，
+     实测 276px 卡片里四格读数会被压成两行。 */
+  position: absolute; top: 7px; right: 7px; z-index: 2;
+  display: flex; align-items: center; gap: 1px;
+  padding: 1px; border-radius: 7px;
+  background: var(--svc-surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.10);
+  opacity: 0; transition: opacity var(--svc-dur-fast) ease;
+}
+.svc-tile:hover .svc-tile__acts,
+.svc-tile:focus-within .svc-tile__acts { opacity: 1; }
+@media (hover: none) { .svc-tile__acts { opacity: 1; } }
 /* 图标按钮：28px 见方，命中区靠 ::before 撑到 44px（见 §6.3） */
 .svc-ico {
   width: 28px; height: 28px; display: grid; place-items: center;
@@ -380,8 +437,9 @@ html.dark .svc {
   padding-top: var(--svc-sp-2); border-top: 1px solid var(--svc-rule);
 }
 .svc-risk__row {
-  display: flex; align-items: center; gap: var(--svc-sp-2);
-  padding: 5px 6px; border-radius: var(--svc-r-sm); text-align: left;
+  display: flex; align-items: center; gap: var(--svc-sp-2); width: 100%;
+  padding: 5px 6px; border: 0; border-radius: var(--svc-r-sm);
+  background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;
 }
 .svc-risk__row:hover { background: var(--svc-accent-soft); }
 .svc-risk__row:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: -1px; }
@@ -401,10 +459,38 @@ html.dark .svc {
 .svc-risk__tag.is-danger { color: var(--svc-danger); background: var(--svc-danger-soft); }
 
 .svc-linkbtn {
-  align-self: flex-start; padding: 2px 0;
+  align-self: flex-start; padding: 2px 0; border: 0; background: transparent; cursor: pointer;
   font-size: 11.5px; color: var(--svc-accent);
 }
 .svc-linkbtn:hover { color: var(--svc-accent-hover); text-decoration: underline; }
+
+/* 右栏分组清单：名字是检索目标，模型/Key 是判据 */
+.svc-grps { display: flex; flex-direction: column; gap: 1px; }
+.svc-grps__row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--svc-sp-2); width: 100%;
+  padding: 5px 6px; border: 0; border-radius: var(--svc-r-sm);
+  background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer;
+}
+.svc-grps__row:hover { background: var(--svc-accent-soft); }
+.svc-grps__row:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: -1px; }
+.svc-grps__name {
+  font-size: 12px; color: var(--svc-ink); min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-grps__meta {
+  font-family: var(--svc-mono); font-size: 10.5px; color: var(--svc-ink-3);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+
+/* 页头副标题里的告警数字：只染色，不加背景，避免和状态带抢注意力 */
+.svc-sub-warn { color: var(--svc-warning); }
+
+/* 访问日志「模型」列：等宽、可截断，长模型名不撑破表格 */
+.svc-model {
+  display: block; max-width: 220px;
+  font-family: var(--svc-mono); font-size: 11.5px; color: var(--svc-ink-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .svc-instline { display: flex; align-items: center; gap: var(--svc-sp-2); min-width: 0; }
 .svc-instline b {
@@ -795,12 +881,9 @@ html.dark .svc {
 @media (max-width: 1180px) {
   .svc-work { grid-template-columns: minmax(0, 1fr) 268px; }
   .svc-console { max-height: clamp(280px, 40vh, 520px); }
-  .svc-band { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .svc-band__cell:nth-child(4) { border-left: 0; }
-  .svc-band__cell:nth-child(n+4) { border-top: 1px solid var(--svc-rule); }
 }
 
-/* ≤1020：右栏落到主面板下方，两张卡并排；状态带 3 列 */
+/* ≤1020：右栏落到主面板下方，两张卡并排 */
 @media (max-width: 1020px) {
   .svc-work { grid-template-columns: minmax(0, 1fr); }
   .svc-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -810,9 +893,6 @@ html.dark .svc {
 @media (max-width: 900px) {
   .svc-aside { grid-template-columns: minmax(0, 1fr); }
   .svc-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .svc-band__cell:nth-child(3) { border-left: 0; }
-  .svc-band__cell:nth-child(n+3) { border-top: 1px solid var(--svc-rule); }
-  .svc-band__cell:nth-child(4) { border-left: 1px solid var(--svc-rule); }
   .svc-toolbar .svc-sect__extra { width: 100%; justify-content: flex-start; }
   .svc-select, .svc-search, .svc-select--fixed { width: 100%; flex: 1 1 140px; }
   .svc-ico { width: 44px; height: 44px; }        /* 触控目标 */

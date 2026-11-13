@@ -315,10 +315,8 @@
         <div v-if="!faceUsable" class="fs-gate">
           <el-icon><Warning /></el-icon>
           <div>
-            <p class="fs-gate-title">人脸识别未启用</p>
-            <p class="fs-gate-desc">
-              还需配置{{ faceMissingLabels }}。请到「系统设置 → 默认模型 → 人脸识别」中选择模型，保存后立即生效。
-            </p>
+            <p class="fs-gate-title">{{ faceGateTitle }}</p>
+            <p class="fs-gate-desc">{{ faceGateDesc }}</p>
           </div>
         </div>
       </aside>
@@ -456,6 +454,14 @@ const faceReady = computed(() => modelConfig.faceReady)
 /** 已配置但当前不在 /api/providers 注册清单里的模型字段（登记/识别会报“模型未注册”） */
 const faceUnregistered = computed(() => modelConfig.unregisteredConfigured)
 
+/**
+ * 人脸模型清单接口是否失败。
+ *
+ * <p>接口失败时不能把「未知」说成「未配置」：这两种状态的处置方向完全相反
+ * （一个要查服务端日志/等恢复，一个要去设置里选模型）。</p>
+ */
+const faceModelsError = computed(() => modelConfig.faceModelsError)
+
 /** 页面主入口可用：字段配齐且注册清单可用（清单加载失败时放行，交给后端兜底） */
 const faceUsable = computed(() => modelConfig.faceReady && modelConfig.unregisteredConfigured.length === 0)
 
@@ -470,12 +476,40 @@ const faceMissingLabels = computed(() =>
   modelConfig.faceMissing.map((f) => FACE_FIELD_LABELS[f] ?? f).join('、'),
 )
 
-/** 已配置但未注册的模型字段（中文名，用于提示） */
+/** 已配置但未注册的模型字段（中文名） */
 const faceUnregisteredLabels = computed(() =>
-  faceUnregistered.value.map((f) => FACE_FIELD_LABELS[f] ?? f).join('、'),
+  modelConfig.unregisteredConfigured.map((f) => FACE_FIELD_LABELS[f] ?? f).join('、'),
 )
 
-/** 未注册时的统一提示：引导去设置中心换模型，而不是反复上传重试 */
+/**
+ * 门禁标题/说明。
+ *
+ * <p>三种情况必须说清，不能都用「还需配置」：</p>
+ * <ul>
+ *   <li>字段没填 → 去设置里选模型；</li>
+ *   <li>填了但后端查不到该模型（已停用/被删/带 provider 前缀）→ 重新选择可用模型；</li>
+ *   <li>模型清单接口失败 + 字段齐全 → 状态未知，先查服务端，别去改配置。</li>
+ * </ul>
+ */
+const faceGateTitle = computed(() => {
+  if (faceMissing.value.length) return '人脸识别未启用'
+  if (faceUnregistered.value.length) return '人脸识别未启用（模型未注册）'
+  return '人脸识别状态未知'
+})
+
+const faceGateDesc = computed(() => {
+  if (faceMissing.value.length) {
+    return `还需配置${faceMissingLabels.value}。请到「系统设置 → 默认模型 → 人脸识别」中选择模型，保存后立即生效。`
+  }
+  if (faceUnregistered.value.length) {
+    return `${faceUnregisteredLabels.value}已填写，但后端注册清单里查不到这些模型（可能已停用、被删除，或名称带了 provider 前缀）。请到「系统设置 → 默认模型 → 人脸识别」重新选择可用模型。`
+  }
+  return '人脸模型清单读取失败（接口异常），无法确认检测/特征模型是否可用。请查看服务端日志后刷新重试，不要按「未配置」去改模型。'
+})
+
+/**
+ * 未注册时的统一提示：引导去设置中心换模型，而不是反复上传重试
+ */
 const NOT_REGISTERED_MSG = computed(
   () =>
     `人脸识别模型当前不可用：${faceUnregisteredLabels.value} 已配置的模型未在后端注册。` +

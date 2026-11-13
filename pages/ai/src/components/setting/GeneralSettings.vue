@@ -10,13 +10,6 @@
       </SettingsRow>
     </SettingsCard>
 
-    <!-- 登录设置 -->
-    <SettingsCard :title="t('settings.general.login')">
-      <SettingsRow :label="t('settings.general.autoLoginMode')" :description="t('settings.general.autoLoginDesc')">
-        <el-switch v-model="settingsForm.autoLoginEnabled" />
-      </SettingsRow>
-    </SettingsCard>
-
     <!-- 工作目录 -->
     <SettingsCard :title="t('settings.general.workspace')">
       <SettingsRow :label="t('settings.general.workspaceBaseDir')" :description="t('settings.general.workspaceBaseDirDesc')">
@@ -68,33 +61,13 @@
           </el-button>
         </template>
       </div>
-      <SettingsRow :label="t('settings.general.maxToolIterations')" :description="t('settings.general.maxToolIterationsDesc')">
-        <el-select v-model="settingsForm.maxToolIterations">
-          <el-option label="10" :value="10" />
-          <el-option label="50" :value="50" />
-          <el-option label="100" :value="100" />
-          <el-option label="200" :value="200" />
-          <el-option label="500" :value="500" />
-        </el-select>
-      </SettingsRow>
-      <SettingsRow :label="t('settings.general.llmRequestTimeout')" :description="t('settings.general.llmRequestTimeoutDesc')">
-        <el-select v-model="settingsForm.llmRequestTimeoutMs">
-          <el-option label="30 秒" :value="30" />
-          <el-option label="60 秒" :value="60" />
-          <el-option label="120 秒" :value="120" />
-          <el-option label="300 秒" :value="300" />
-          <el-option label="600 秒" :value="600" />
-        </el-select>
-      </SettingsRow>
-      <SettingsRow :label="t('settings.general.llmIdleTimeout')" :description="t('settings.general.llmIdleTimeoutDesc')">
-        <el-select v-model="settingsForm.llmIdleTimeoutMs">
-          <el-option label="10 秒" :value="10" />
-          <el-option label="30 秒" :value="30" />
-          <el-option label="60 秒" :value="60" />
-          <el-option label="120 秒" :value="120" />
-          <el-option label="300 秒" :value="300" />
-        </el-select>
-      </SettingsRow>
+      <!--
+        这里原先还有「最大工具调用轮次」「请求超时」「空闲超时」三个下拉：
+        写进 system 分组后，全仓 Java 源码里没有任何消费方（聊天侧读的是
+        runtime.timeout_millis 与 session 的流式三项，工具轮次由 agent 策略
+        max_tool_iterations 决定），配置了也不生效，属于假配置，已移除。
+        真要开放这些旋钮，先在后端接上消费点再回到这里加。
+      -->
     </SettingsCard>
 
     <!-- 对话上下文（runtime 分组的上下文压缩） -->
@@ -124,31 +97,11 @@
     </SettingsCard>
 
     <!-- 对话过程 -->
-    <SettingsCard title="对话过程">
-      <SettingsRow label="折叠回复过程" description="回复成功完成后，将最终正文前的过程文本、思考和工具调用收进活动详情。">
-        <el-switch v-model="settingsForm.collapseReplyProcess" />
-      </SettingsRow>
-      <SettingsRow label="耗时显示格式" description="控制会话流和回复结果里的执行耗时精度。">
-        <el-select v-model="settingsForm.durationDisplayFormat">
-          <el-option label="整数秒" value="seconds" />
-          <el-option label="精确到毫秒" value="milliseconds" />
-          <el-option label="分秒格式" value="mmss" />
-        </el-select>
-      </SettingsRow>
-      <SettingsRow label="思考状态 Loader" description="选择思考状态文案左侧的加载动效。">
-        <el-select v-model="settingsForm.thinkingLoaderStyle">
-          <el-option label="Matrix（默认）" value="matrix" />
-          <el-option label="Music" value="music" />
-          <el-option label="Bird" value="bird" />
-          <el-option label="Fish" value="fish" />
-          <el-option label="ASCII" value="ascii" />
-          <el-option label="Dots" value="dots" />
-        </el-select>
-      </SettingsRow>
-      <SettingsRow label="思考状态文案" description="同时自定义思考期间轮换显示的中文和英文文案。">
-        <el-button @click="openThinkingTextDialog">编辑文案</el-button>
-      </SettingsRow>
-    </SettingsCard>
+    <!--
+      「对话过程」卡（折叠回复过程 / 耗时格式 / 思考 Loader / 思考文案）已删除：
+      这四项既没有写进任何分组（保存载荷里从来没有它们），也没有任何前端消费方，
+      刷新即回默认值。要让它们生效，先补一个真正读这些字段的存储与消费点。
+    -->
 
     <!-- 加载动画演示 -->
     <SettingsCard title="加载动画">
@@ -177,28 +130,14 @@
       @clear="clearModelField"
     />
 
-    <!-- 菜单显示控制 -->
-    <SettingsCard title="菜单显示控制">
-      <SettingsRow label="显示角色管理" description="在左侧菜单显示角色管理入口">
-        <el-switch v-model="settingsForm.showCharactersMenu" />
-      </SettingsRow>
-      <SettingsRow label="显示机器人管理" description="在左侧菜单显示机器人管理入口">
-        <el-switch v-model="settingsForm.showBotsMenu" />
-      </SettingsRow>
-      <SettingsRow label="显示知识库" description="在左侧菜单显示知识库入口">
-        <el-switch v-model="settingsForm.showKnowledgeBaseMenu" />
-      </SettingsRow>
-      <SettingsRow label="显示插件市场" description="在左侧菜单显示插件市场入口">
-        <el-switch v-model="settingsForm.showPluginsMenu" />
-      </SettingsRow>
-      <SettingsRow label="显示模型管理" description="在左侧菜单显示模型管理入口">
-        <el-switch v-model="settingsForm.showModelsMenu" />
-      </SettingsRow>
-      <SettingsRow label="显示用量管理" description="在左侧菜单显示用量管理入口">
-        <el-switch v-model="settingsForm.showUsageMenu" />
-      </SettingsRow>
-      <SettingsRow label="显示定时任务" description="在左侧菜单显示定时任务入口">
-        <el-switch v-model="settingsForm.showSchedulerMenu" />
+    <!--
+      侧栏菜单显隐统一由「系统 → 菜单管理」维护：那边与侧栏同源（config/sidebarMenu.ts
+      的单一清单）、逐项写 localStorage 且即时生效。此处原先的 7 个开关是同一批 showKey
+      的第二份实现，还会用整对象覆盖写把菜单管理里改过的其它项清掉，故只保留入口。
+    -->
+    <SettingsCard title="菜单显示">
+      <SettingsRow label="侧栏菜单" description="在「系统 → 菜单管理」里逐项显示或隐藏，修改立即生效。">
+        <el-button type="primary" plain @click="gotoMenuManage">去菜单管理</el-button>
       </SettingsRow>
     </SettingsCard>
   </div>
@@ -207,14 +146,13 @@
 <script setup lang="ts">
 import { message, isAdmin } from '@repo/core'
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus';
 import { WarningFilled } from '@element-plus/icons-vue'
 import { useDebounceFn } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
 import { adminApi } from '@/framework/context'
 import { usePopup } from '@/composables/usePopup'
-import { useAuthStore } from '@/stores/auth'
 import { useLanguage } from '@/composables/useLanguage'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
@@ -224,8 +162,8 @@ import { mapProviderModel, findPickedModel } from '@/components/models/modelMeta
 import { useModelConfigStore } from '@/stores/modelConfig'
 import { LOADER_ANIMATION_META, useLoaderAnimation } from '@repo/ui/re-loader'
 
-const authStore = useAuthStore()
 const modelConfig = useModelConfigStore()
+const router = useRouter()
 const { notify } = usePopup()
 const { t } = useI18n()
 const { locale: currentLocale, setLanguage } = useLanguage()
@@ -383,25 +321,13 @@ async function demoReLoader() {
 
 
 // 表单数据
+//
+// 只保留真正会被后端消费、且没有专属入口的 system 字段：
+//   · workspaceBaseDir —— 工作目录解析（WorkspacePathResolver / 会话与知识库按账号隔离）
+// 其余原字段（免登录、工具轮次、两个超时、对话过程四项）在后端没有消费方，
+// 已从界面移除，详见模板里的注释。
 const settingsForm = reactive({
-  autoLoginEnabled: false,
   workspaceBaseDir: '',
-  maxToolIterations: 100,
-  llmRequestTimeoutMs: 600,   // 秒（后端存储为毫秒）
-  llmIdleTimeoutMs: 120,     // 秒
-  showCharactersMenu: true,         // 显示角色管理
-  showBotsMenu: true,               // 显示机器人管理
-  showKnowledgeBaseMenu: true,      // 显示知识库
-  showPluginsMenu: true,            // 显示插件市场
-  showModelsMenu: true,             // 显示模型管理
-  showUsageMenu: true,              // 显示用量管理
-  showConnectorsMenu: true,         // 显示连接器
-  showSchedulerMenu: true,          // 显示定时任务
-  collapseReplyProcess: true,        // 折叠回复过程
-  durationDisplayFormat: 'seconds',  // 耗时显示格式
-  thinkingLoaderStyle: 'matrix',     // 思考状态 Loader
-  thinkingTextCN: '思考中',          // 思考状态中文文案
-  thinkingTextEN: 'Thinking',        // 思考状态英文文案
 })
 
 // ===================== 对话上下文：runtime 分组的上下文压缩 =====================
@@ -752,29 +678,10 @@ watch(agentImpl, async (value, previous) => {
   }
 }, { flush: 'sync' })
 
-// 监听设置变化自动保存
-watch(() => ({
-  autoLoginEnabled: settingsForm.autoLoginEnabled,
-  workspaceBaseDir: settingsForm.workspaceBaseDir,
-  maxToolIterations: settingsForm.maxToolIterations,
-  llmRequestTimeoutMs: settingsForm.llmRequestTimeoutMs,
-  llmIdleTimeoutMs: settingsForm.llmIdleTimeoutMs,
-  showCharactersMenu: settingsForm.showCharactersMenu,
-  showBotsMenu: settingsForm.showBotsMenu,
-  showKnowledgeBaseMenu: settingsForm.showKnowledgeBaseMenu,
-  showPluginsMenu: settingsForm.showPluginsMenu,
-  showModelsMenu: settingsForm.showModelsMenu,
-  showUsageMenu: settingsForm.showUsageMenu,
-  showConnectorsMenu: settingsForm.showConnectorsMenu,
-  showSchedulerMenu: settingsForm.showSchedulerMenu,
-  collapseReplyProcess: settingsForm.collapseReplyProcess,
-  durationDisplayFormat: settingsForm.durationDisplayFormat,
-  thinkingLoaderStyle: settingsForm.thinkingLoaderStyle,
-  thinkingTextCN: settingsForm.thinkingTextCN,
-  thinkingTextEN: settingsForm.thinkingTextEN
-}), () => {
+// 工作目录自动保存（防抖 300ms）；hasChanges 保证 load 回填不会触发一次空写
+watch(() => settingsForm.workspaceBaseDir, () => {
   debouncedSave()
-}, { deep: true })
+})
 
 // 加载 system 分组设置
 const loadSettings = async () => {
@@ -783,28 +690,8 @@ const loadSettings = async () => {
     // 后端返回两层data嵌套：{ success: true, data: {...} }
     const data = response?.data || response
 
-    // 填充表单
-    settingsForm.autoLoginEnabled = data.autoLoginEnabled === true || data.autoLoginEnabled === 'true'
+    // 填充表单（只取本页真正维护的字段）
     settingsForm.workspaceBaseDir = data.workspaceBaseDir || ''
-    settingsForm.maxToolIterations = Number(data.maxToolIterations) || 100
-    settingsForm.llmRequestTimeoutMs = Math.round(Number(data.llmRequestTimeoutMs) / 1000) || 600
-    settingsForm.llmIdleTimeoutMs = Math.round(Number(data.llmIdleTimeoutMs) / 1000) || 120
-
-    // 从 localStorage 加载菜单显示配置
-    const menuSettings = JSON.parse(localStorage.getItem('menuDisplaySettings') || '{}')
-    settingsForm.showCharactersMenu = menuSettings.showCharactersMenu !== false
-    settingsForm.showBotsMenu = menuSettings.showBotsMenu !== false
-    settingsForm.showKnowledgeBaseMenu = menuSettings.showKnowledgeBaseMenu !== false
-    settingsForm.showPluginsMenu = menuSettings.showPluginsMenu !== false
-    settingsForm.showModelsMenu = menuSettings.showModelsMenu !== false
-    settingsForm.showUsageMenu = menuSettings.showUsageMenu !== false
-    settingsForm.showConnectorsMenu = menuSettings.showConnectorsMenu !== false
-    settingsForm.showSchedulerMenu = menuSettings.showSchedulerMenu !== false
-    settingsForm.collapseReplyProcess = data.collapseReplyProcess !== false
-    settingsForm.durationDisplayFormat = data.durationDisplayFormat || 'seconds'
-    settingsForm.thinkingLoaderStyle = data.thinkingLoaderStyle || 'matrix'
-    settingsForm.thinkingTextCN = data.thinkingTextCN || '思考中'
-    settingsForm.thinkingTextEN = data.thinkingTextEN || 'Thinking'
     // 备份原始数据
     originalSettings.value = JSON.parse(JSON.stringify(settingsForm))
   } catch (error: any) {
@@ -836,6 +723,9 @@ const loadSettings = async () => {
   }
 }
 
+// 跳「系统 → 菜单管理」：菜单显隐的唯一维护点（与侧栏同源的清单 + 即时生效）
+const gotoMenuManage = () => router.push({ name: 'SystemSettings', params: { tab: 'menu-manage' } })
+
 // 选择文件夹
 const selectFolder = async () => {
   const isElectron = typeof window !== 'undefined' && !!window.electronAPI
@@ -857,36 +747,23 @@ const selectFolder = async () => {
 // 保存设置
 const handleSave = async () => {
   try {
-    // 保存菜单显示配置到 localStorage
-    const menuSettings = {
-      showCharactersMenu: settingsForm.showCharactersMenu,
-      showBotsMenu: settingsForm.showBotsMenu,
-      showKnowledgeBaseMenu: settingsForm.showKnowledgeBaseMenu,
-      showPluginsMenu: settingsForm.showPluginsMenu,
-      showModelsMenu: settingsForm.showModelsMenu,
-      showUsageMenu: settingsForm.showUsageMenu,
-      showConnectorsMenu: settingsForm.showConnectorsMenu,
-      showSchedulerMenu: settingsForm.showSchedulerMenu,
-    }
-    localStorage.setItem('menuDisplaySettings', JSON.stringify(menuSettings))
-
-    // 验证工作目录基路径
+    // 验证工作目录基路径。
+    // 只在「本次真的改了这个字段」时拦截：历史配置里可能存着相对路径（旧版本没收紧），
+    // 每次保存都校验会让纯读取的回填也被它打断。
     const path = settingsForm.workspaceBaseDir.trim()
-    if (path) {
-      const isAbsolute = /^[a-zA-Z]:\\/.test(path) || path.startsWith('/')
+    const previousPath = String(originalSettings.value?.workspaceBaseDir ?? '').trim()
+    if (path && path !== previousPath) {
+      // Windows 盘符（C:\ 与 C:/）、POSIX 绝对路径、UNC（\\server\share）都算绝对路径
+      const isAbsolute = /^[a-zA-Z]:[\\/]/.test(path) || path.startsWith('/') || path.startsWith('\\\\')
       if (!isAbsolute) {
         message.error(t('settings.general.pathMustBeAbsolute'))
         return
       }
     }
 
-    // 构造保存数据
+    // 构造保存数据：本页只剩工作目录一个真正生效的 system 字段
     const dataToSave = {
-      autoLoginEnabled: settingsForm.autoLoginEnabled,
       workspaceBaseDir: path || null,
-      maxToolIterations: settingsForm.maxToolIterations,
-      llmRequestTimeoutMs: settingsForm.llmRequestTimeoutMs * 1000,
-      llmIdleTimeoutMs: settingsForm.llmIdleTimeoutMs * 1000,
     }
 
     // 使用分组设置接口更新 system 分组
@@ -895,26 +772,11 @@ const handleSave = async () => {
     // 保存成功后更新原始数据备份
     originalSettings.value = JSON.parse(JSON.stringify(settingsForm))
 
-    // 同步更新 authStore 中的免登录状态
-    authStore.autoLoginEnabled = settingsForm.autoLoginEnabled
-
     notify.success(t('common.saveSuccess'), t('settings.general.updated'))
   } catch (error: any) {
     console.error('保存设置失败:', error)
     notify.error(t('common.saveFailed'), error.message || t('common.error.unknown'))
   }
-}
-
-// 打开思考文案编辑弹窗
-const openThinkingTextDialog = () => {
-  ElMessageBox.prompt('请输入思考状态中文文案（多个用逗号分隔）', '编辑思考状态文案', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    inputValue: settingsForm.thinkingTextCN,
-  }).then(({ value }) => {
-    settingsForm.thinkingTextCN = value
-    message.success('思考状态文案已更新')
-  }).catch(() => {})
 }
 
 // 生命周期

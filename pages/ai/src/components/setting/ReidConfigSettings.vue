@@ -143,51 +143,19 @@
       </p>
     </SettingsCard>
 
-    <!-- 人脸识别管线 -->
-    <SettingsCard
-      title="人脸识别管线"
-      subtitle="检测 → 裁脸 → 人脸特征 → 1:N 认人；这一段的模型与阈值决定「这张脸是谁」"
-    >
-      <SettingsRow
-        v-for="item in FACE_FIELDS"
-        :key="item.field"
-        :label="item.label"
-        :description="item.description"
-        :badge="badgeOf(item.field)"
-        :risk="item.risk"
-        :risk-tip="item.riskTip"
-        :control-flex="item.type === 'model'"
-      >
-        <el-input
-          v-if="item.type === 'model'"
-          :model-value="modelDisplay(item.field)"
-          readonly
-          class="rc-model-input cursor-pointer"
-          :aria-label="item.label"
-          @click="openModelPicker(item)"
-        >
-          <template #prefix>
-            <img v-if="modelLogo(item.field)" :src="modelLogo(item.field) ?? undefined" alt="" class="w-4 h-4 object-contain" />
-            <el-icon v-else><Avatar /></el-icon>
-          </template>
-          <template #suffix>
-            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-          </template>
-        </el-input>
-        <el-input-number
-          v-else-if="item.type === 'number'"
-          :model-value="numberModel(item.field)"
-          :min="item.min"
-          :max="item.max"
-          :step="item.step ?? 1"
-          :precision="item.integer ? 0 : 2"
-          :disabled="saving"
-          class="rc-number"
-          :aria-label="item.label"
-          @change="onNumberChange(item.field, $event)"
-        />
-      </SettingsRow>
-    </SettingsCard>
+    <!--
+      人脸识别管线的模型/阈值不在这里重复：它们都是 face 分组的公共字段，
+      已在「模型配置 → 人脸识别配置」整组渲染。同一批键摆两个入口时，两页的
+      保存层还不一致（那页管理员写用户覆盖、本页管理员写全局），用户会以为
+      改的是同一处。这里只留跳转，本页专注 ReID 专属参数。
+    -->
+    <p class="rc-pipeline-link">
+      <span>
+        检测模型、人脸特征模型、1:N 检索阈值与 TopK 属于<b>人脸识别管线</b>，
+        在「模型配置 → 人脸识别配置」维护。
+      </span>
+      <el-button link type="primary" @click="gotoFaceConfig">去人脸识别配置</el-button>
+    </p>
 
     <!-- ReID 管线 -->
     <SettingsCard
@@ -270,8 +238,9 @@
  * <p><b>为什么不复用 DefaultModelSettings。</b>后者是「一个分组一张表单」的通用渲染器，
  * 它按后端定义顺序平铺 face 分组 38 项 —— 检测、活体、超分、属性与重识别参数混在同一列里，
  * 用户看不出「哪些项属于人脸识别、哪些属于 ReID」，更看不出两条管线是靠阈值分流的。
- * 本面板按<b>管线</b>分段：三档分流（含分流阈值）→ 人脸识别管线 → ReID 管线，
- * 每段只放该段真正消费的字段。</p>
+ * 本面板按<b>管线</b>分段：三档分流（含分流阈值）→ ReID 管线，
+ * 每段只放该段真正消费的字段。人脸识别管线的模型/阈值不在这里重复 ——
+ * 它们由「模型配置 → 人脸识别配置」整组维护，本页只留一条跳转。</p>
  *
  * <p><b>保存方式。</b>逐字段即改即存（没有「保存」按钮）：管理员写全局层，普通用户写本人覆盖层。
  * 阈值类字段写库前先做关系校验（{@code ReID 检测下限 ≤ ReID 阈值 ≤ 人脸阈值}），
@@ -279,7 +248,8 @@
  */
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { InfoFilled, ArrowDown, Avatar, WarningFilled } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+import { InfoFilled, ArrowDown, WarningFilled } from '@element-plus/icons-vue'
 import { Fingerprint24Regular } from '@vicons/fluent'
 import { apiService } from '../../services/ApiService'
 import { usePopup } from '../../composables/usePopup'
@@ -293,6 +263,10 @@ import ModelPickerDialog from './dms/ModelPickerDialog.vue'
 
 const { t } = useI18n()
 const { notify, toast } = usePopup()
+const router = useRouter()
+
+/** 跳「模型配置 → 人脸识别配置」：人脸识别管线的公共字段在那里维护 */
+const gotoFaceConfig = () => router.push({ name: 'SystemSettings', params: { tab: 'face-config' } })
 
 /** 是否管理员：管理员写全局层，普通账号只放行模型选择项 */
 const admin = computed(() => isAdmin())
@@ -331,78 +305,12 @@ interface FieldSpec {
 }
 
 /**
- * 人脸识别管线的字段。
+ * ReID 管线的字段（模型、分流阈值以外的检索/归并参数）。
  *
- * <p>不含 {@code face_threshold}：它是两条管线的分界，已放到上面的「三档分流」卡里，
- * 放在这一段的末尾会让人以为它只影响人脸识别。</p>
+ * <p>人脸识别管线的字段（检测/特征模型、检测阈值、NMS、1:N 阈值、TopK、最小人脸尺寸）
+ * 不在本组件维护 —— 它们在「人脸识别配置」页由 {@code DefaultModelSettings} 整组渲染。
+ * </p>
  */
-const FACE_FIELDS: FieldSpec[] = [
-  {
-    field: 'detector_model',
-    label: '人脸检测模型',
-    description: '在场景图里找脸。ReID 与人脸识别共用这一批检测框，换掉等于两条管线一起换',
-    type: 'model',
-    subtype: 'face_detection',
-    risk: 'high',
-    riskTip: '换检测模型会改变检出框的位置与数量，已有轨迹与底库向量不再对应同一批裁剪',
-  },
-  {
-    field: 'detector_threshold',
-    label: '检测置信度阈值',
-    description: '人脸识别这一侧的常规检测阈值（0~1）。重识别还有一条更低的「ReID 检测下限」，见上方三档分流',
-    type: 'number',
-    min: 0,
-    max: 1,
-    step: 0.05,
-  },
-  {
-    field: 'nms_threshold',
-    label: 'NMS 阈值',
-    description: '去掉重叠框（0~1）。调低会合并更多相邻框，合影场景容易漏人',
-    type: 'number',
-    min: 0,
-    max: 1,
-    step: 0.05,
-  },
-  {
-    field: 'feature_model',
-    label: '人脸特征模型',
-    description: '把人脸裁图变成特征向量，用于 1:N 认人；底库的「人脸特征」这一列由它产出',
-    type: 'model',
-    subtype: 'face_feature',
-    risk: 'high',
-    riskTip: '换特征模型后旧向量与新向量不在同一空间，底库里已有的人脸会全部认不出来，需重新入库',
-  },
-  {
-    field: 'match_threshold',
-    label: '1:N 检索相似度阈值',
-    description: '人脸特征命中底库所需的最低相似度；与「ReID 检索阈值」分开，两者各查各的库',
-    type: 'number',
-    min: 0,
-    max: 1,
-    step: 0.05,
-  },
-  {
-    field: 'top_k',
-    label: '返回 TopK',
-    description: '1:N 检索最多返回多少条候选（按相似度倒序）',
-    type: 'number',
-    min: 1,
-    max: 100,
-    integer: true,
-  },
-  {
-    field: 'min_face_size',
-    label: '最小人脸尺寸',
-    description: '小于这个像素尺寸的人脸直接丢弃，避免把远景小人脸当识别对象',
-    type: 'number',
-    min: 1,
-    max: 2000,
-    integer: true,
-  },
-]
-
-/** ReID 管线的字段（模型、分流阈值以外的检索/归并参数） */
 const REID_FIELDS: FieldSpec[] = [
   {
     field: 'reid_feature_model',
@@ -551,9 +459,14 @@ const pickItems = (response: any): any[] => {
   return Array.isArray(first) ? first : Array.isArray(first?.data) ? first.data : []
 }
 
-/** 需要按数值读回的全部字段：两段管线 + 三条分流阈值 */
+/**
+ * 需要按数值读回的全部字段：ReID 管线 + 三条分流阈值。
+ *
+ * <p>人脸识别管线的 7 个字段不在此列：它们归「人脸识别配置」页，本页只做跳转。
+ * 之前两页各渲染一份，且保存层不一致（那边写用户覆盖、这边管理员写全局），
+ * 同一项在两页改会落到不同的层。</p>
+ */
 const FIELDS_WITH_SPLIT: FieldSpec[] = [
-  ...FACE_FIELDS,
   ...REID_FIELDS,
   { field: 'face_threshold', label: '', description: '', type: 'number' },
   { field: 'reid_threshold', label: '', description: '', type: 'number' },
@@ -1034,6 +947,27 @@ onMounted(() => {
   font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
+}
+
+/* 管线跳转条：本页只保留 ReID 专属字段，人脸识别管线指回独立配置页 */
+.rc-pipeline-link {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 10px 16px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: color-mix(in srgb, var(--el-fill-color-light) 45%, transparent);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.rc-pipeline-link b {
+  color: var(--el-text-color-regular);
+  font-weight: 600;
 }
 
 /* 底部说明：与 SettingsRow 的分隔线同源，避免文字直接贴边 */

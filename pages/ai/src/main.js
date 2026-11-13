@@ -192,8 +192,19 @@ const routes = [
         // 数据来自 /api/providers/{id}/router-group/topology 单次聚合。
         path: "route",
         name: "RouterTopology",
-        meta: { title: "路由", requiresAuth: true },
+        // 管理员专属：拓扑会暴露上游地址与分组构成，普通账号不参与路由编排
+        meta: { title: "路由", requiresAuth: true, adminOnly: true },
         component: () => import("./components/management/RouterTopologyPage.vue"),
+      },
+      {
+        // 服务管理：系统核心页（实例 / AppKey / 分组 / 访问日志 / 运行日志）。
+        // 原先只是「系统设置」里的一个 tab，被设置页的双层外壳压窄；
+        // 提到一级菜单后与定稿的「网关控制台」版式一致。
+        path: "services",
+        name: "Services",
+        // 管理员专属：实例/AppKey/日志是网关侧系统配置，普通账号没有可管的服务
+        meta: { title: "服务管理", requiresAuth: true, adminOnly: true },
+        component: () => import("./components/management/ServicesAdminPage.vue"),
       },
       {
         path: "image-generate",

@@ -14,14 +14,40 @@
         <span class="detail-count">{{ rowsOf(group.key).length }}</span>
       </header>
       <div v-if="rowsOf(group.key).length === 0" class="detail-none">无</div>
-      <div v-for="row in rowsOf(group.key)" :key="row.key" class="detail-row">
+      <button v-for="row in rowsOf(group.key)" :key="row.key" type="button" class="detail-row"
+        :title="row.text || ''" :aria-label="`${row.label} 查看完整内容`" @click="selected = row">
         <span class="detail-time">{{ formatClock(row.time) }}</span>
         <span class="detail-offset">+{{ formatDuration(row.offsetMs) }}</span>
         <span class="detail-kind">{{ row.label }}</span>
         <span v-if="row.badge" class="detail-badge">{{ row.badge }}</span>
-        <span class="detail-text" :title="row.text || ''">{{ row.text || "—" }}</span>
-      </div>
+        <span class="detail-text">{{ row.text || "—" }}</span>
+        <span class="detail-chevron">›</span>
+      </button>
     </section>
+
+    <!-- 行详情浮层：一行里塞不下的正文、全部候选文本与元信息都在这里 -->
+    <Teleport to="body">
+      <div v-if="selected" class="td-overlay" @click.self="selected = null">
+        <section class="td-modal" role="dialog" aria-modal="true" :aria-label="selected.label">
+          <header class="td-modal-head">
+            <span class="td-modal-title">{{ selected.label }}</span>
+            <span class="td-modal-when">{{ formatClock(selected.time) }} · +{{ formatDuration(selected.offsetMs) }}</span>
+            <button type="button" class="td-modal-close" aria-label="关闭详情" @click="selected = null">×</button>
+          </header>
+          <div v-if="selected.meta.length" class="td-modal-tags">
+            <span v-for="item in selected.meta" :key="item.label" class="td-modal-tag">
+              {{ item.label }}：{{ item.value }}
+            </span>
+          </div>
+          <pre v-if="!selected.detail.length" class="td-modal-body">（该条目没有可展示的正文）</pre>
+          <pre v-for="(chunk, i) in selected.detail" :key="i" class="td-modal-body">{{ chunk }}</pre>
+          <footer class="td-modal-foot">
+            <span class="td-modal-count">共 {{ selected.detail.length }} 段</span>
+            <button type="button" class="td-foot-btn" @click="selected = null">关闭</button>
+          </footer>
+        </section>
+      </div>
+    </Teleport>
   </div>
 </template>
 

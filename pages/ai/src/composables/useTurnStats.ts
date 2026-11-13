@@ -48,6 +48,39 @@ function num(value: unknown): number {
 }
 
 /**
+ * 流式中的输出 token 估算（只在 usage 还没回来的那一轮用）。
+ *
+ * <p>与后端 {@code AiUsage.tokensPerSecond()} 的差异只存在于「本轮还没结束」的
+ * 这段时间：那时 token 数根本不存在，先用字符数估一个速率让数字动起来；
+ * usage 一到就切换到精确值，结束后的读数与后端完全一致。</p>
+ *
+ * <p>估算口径：CJK 字符按 1 token，其余按 4 字符 1 token。</p>
+ */
+function estimateTokens(text: string): number {
+  if (!text) return 0;
+  let cjk = 0;
+  let other = 0;
+  for (const ch of text) {
+    if (/[\u3400-\u9fff\uf900-\ufaff]/.test(ch)) cjk += 1;
+    else other += 1;
+  }
+  return cjk + Math.round(other / 4);
+}
+
+/** 该助手消息是否仍在流式生成中 */
+function isStreamingMessage(message: any): boolean {
+  if (message?.state?.isStreaming === true) return true;
+  return (message?.contents || []).some((c: any) => c?.state?.isStreaming === true);
+}
+
+/** 一条助手消息的正文（用于流式期间的 token 估算） */
+function textOf(message: any): string {
+  return (message?.contents || [])
+    .map((c: any) => (typeof c?.content === 'string' ? c.content : ''))
+    .join('');
+}
+
+/**
  * 取一条助手消息的 usage。
  *
  * 历史消息的 usage 在 message.metadata 与 content.metadata 各有一份
@@ -81,6 +114,10 @@ export function computeTurnStats(messages: any[] | undefined | null): TurnStats 
   let toolDuration = 0;
   let ttftSum = 0;
   let ttftCount = 0;
+  /** 速度分子：已完成轮用 usage 的 completion，流式中用字符估算 */
+  let speedTokens = 0;
+  /** 速度分母：与后端一致，逐条消息的解码窗口（毫秒）之和 */
+  let decodeWindowSum = 0;
 
   for (const message of list) {
     if (!message) continue;
@@ -92,6 +129,8 @@ export function computeTurnStats(messages: any[] | undefined | null): TurnStats 
     if (message.role !== 'assistant') continue;
 
     const usage = usageOf(message);
+    const messageDuration = num(message.totalDurationMs);
+    let ttft = 0;
     if (usage) {
       const p = num(usage.promptTokens);
       const c = num(usage.completionTokens);
@@ -101,14 +140,28 @@ export function computeTurnStats(messages: any[] | undefined | null): TurnStats 
       // 缓存命中字段：新链路是 cachedTokens，历史/兼容字段是 promptCacheHitTokens
       cached += num(usage.cachedTokens ?? usage.promptCacheHitTokens);
 
-      const ttft = num(usage.firstTokenLatencyMs ?? usage.firstTokenLatency);
+      ttft = num(usage.firstTokenLatencyMs ?? usage.firstTokenLatency);
       if (ttft > 0) {
         ttftSum += ttft;
         ttftCount += 1;
       }
+      speedTokens += c;
+    } else if (isStreamingMessage(message)) {
+      // 本轮 usage 还没回来：用字符估算让速度条实时变化（结束后会被精确值覆盖）
+      speedTokens += estimateTokens(textOf(message));
     }
 
-    duration += num(message.totalDurationMs);
+    /**
+     * 解码窗口：与后端 {@code AiUsage.tokensPerSecond()} 逐行同口径 ——
+     * 有首字耗时时扣掉它；扣完不足 1 秒则退化为「输出 ÷ 总耗时」
+     * （服务商粗块推送时窗口只有几十毫秒，反推会得到几千 tok/s 的假象）。
+     */
+    if (messageDuration > 0) {
+      const window = ttft > 0 ? messageDuration - ttft : messageDuration;
+      decodeWindowSum += window >= 1000 ? window : messageDuration;
+    }
+
+    duration += messageDuration;
     toolDuration += num(message.toolDurationMs);
 
     for (const content of message.contents || []) {
@@ -117,9 +170,8 @@ export function computeTurnStats(messages: any[] | undefined | null): TurnStats 
   }
 
   const modelDuration = Math.max(0, duration - toolDuration);
-  // 每条消息都有自己的首字等待，故按 Σttft 扣减（不是按平均值扣一次）
-  const decodeWindow = Math.max(0, modelDuration - ttftSum);
-  const tokensPerSecond = decodeWindow > 0 ? completion / (decodeWindow / 1000) : 0;
+  // 每条消息各自的解码窗口已按后端口径累加（见循环内的 decodeWindowSum）
+  const tokensPerSecond = decodeWindowSum > 0 ? speedTokens / (decodeWindowSum / 1000) : 0;
 
   return {
     rounds,

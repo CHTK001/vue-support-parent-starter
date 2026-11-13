@@ -2,12 +2,13 @@
   <div class="global-sidebar flex flex-col h-full sidebar-transparent-bg overflow-hidden ">
     <!-- 导航菜单 -->
     <div class="px-2 py-2 space-y-0.5">
-      <template v-for="(item, idx) in navItems" :key="item.key">
-        <div v-if="item.section && (idx === 0 || navItems[idx - 1].section !== item.section)"
-          class="px-2 pt-2 pb-0.5 text-[10px] font-semibold tracking-normal text-gray-400 dark:text-gray-500 select-none">
-          {{ item.section }}
-        </div>
-
+      <!--
+        前 6 个是普通菜单（无分组），正常平铺。
+        有分组的菜单收进「更多」的 hover 弹层：侧栏总高度有限，13 个分组项平铺
+        会把下方的会话/任务列表挤出可视区（实测任务列表被顶掉）。弹层里仍按分组
+        显示，清单仍来自 config/sidebarMenu.ts，与「配置中心 → 菜单管理」同源。
+      -->
+      <template v-for="item in primaryNavItems" :key="item.key">
         <!-- 有 children 的父级菜单：可折叠 -->
         <template v-if="item.children?.length">
           <div @click="handleNavClick(item.key)" role="button" :aria-label="item.label"
@@ -47,6 +48,8 @@
             : 'text-(--color-text) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
           <component :is="item.icon" class="w-4.5 h-4.5 shrink-0" />
           <span class="text-sm font-medium flex-1 truncate">{{ item.label }}</span>
+          <!-- 仅管理员菜单：数据上 adminOnly 已在 navItems 里过滤，这里再用 v-admin 兜一层角色判断 -->
+          <span v-if="item.adminOnly" v-admin class="nav-admin-tag">管理员</span>
           <!-- 模型未配齐徽标：进菜单前就告知「暂时不可用」，以及为什么（hover 看 tip）。
                仍允许点击进入 —— 页面里会写清差哪几项、去哪儿配，比一个点不动的菜单更有用。 -->
           <span v-if="item.badge" class="nav-item-badge" :title="item.badgeTip">{{ item.badge }}</span>
@@ -56,6 +59,46 @@
           </span>
         </div>
       </template>
+
+      <!-- 更多：有分组的菜单（图像 / 音频 / AI 配置 / 用量统计 / 集成）收进 hover 弹层 -->
+      <el-popover
+        v-if="groupedNav.length"
+        :visible="moreOpen"
+        placement="right-start"
+        trigger="hover"
+        :width="248"
+        popper-class="nav-more-popper"
+      >
+        <template #reference>
+          <div class="nav-item flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ease-in-out"
+            role="button" aria-label="更多" :aria-expanded="moreOpen"
+            @mouseenter="openMore"
+            @mouseleave="scheduleMoreClose"
+            @click="moreOpen = !moreOpen"
+            :class="moreHasActive
+              ? 'nav-item-active bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
+              : 'text-(--color-text) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
+            <MoreHorizontal20Filled class="w-4.5 h-4.5 shrink-0" />
+            <span class="text-sm font-medium flex-1 truncate">更多</span>
+            <span class="nav-more-gt" aria-hidden="true">&gt;</span>
+          </div>
+        </template>
+        <div class="nav-more" @mouseenter="cancelMoreClose" @mouseleave="scheduleMoreClose">
+          <div v-for="group in groupedNav" :key="group.name" class="nav-more-group">
+            <div class="nav-more-title">{{ group.name }}</div>
+            <div v-for="item in group.items" :key="item.key" class="nav-more-item"
+              role="button" :aria-label="item.label"
+              :title="item.badge ? item.badgeTip : undefined"
+              :class="{ 'is-active': currentActiveTab === item.key, 'is-blocked': !!item.badge }"
+              @click="onMoreNavClick(item.key)">
+              <component :is="item.icon" class="w-4 h-4 shrink-0 opacity-80" />
+              <span class="nav-more-label">{{ item.label }}</span>
+              <span v-if="item.adminOnly" v-admin class="nav-admin-tag">管理员</span>
+              <span v-if="item.badge" class="nav-item-badge" :title="item.badgeTip">{{ item.badge }}</span>
+            </div>
+          </div>
+        </div>
+      </el-popover>
     </div>
 
 
@@ -959,10 +1002,76 @@ const currentActiveTab = computed(() => {
   if (routeName === 'TextToSpeech') return 'text-to-speech'
   if (routeName === 'Models') return 'models'
   if (routeName === 'RouterTopology') return 'route'
+  if (routeName === 'Services') return 'services'
   if (routeName === 'Usage' || routeName === 'UsageSyncLogs') return 'usage'
   if (routeName === 'Connectors') return 'connectors'
   return ''
 })
+
+// 普通菜单（无 section）：前 6 个直接平铺在侧栏
+const primaryNavItems = computed(() => navItems.value.filter((item) => !item.section))
+
+// 有分组的菜单，按 section 首次出现的顺序聚合，供「更多」弹层渲染
+const groupedNav = computed(() => {
+  const order: string[] = []
+  const bucket = new Map<string, SidebarMenuItem[]>()
+  for (const item of navItems.value) {
+    if (!item.section) continue
+    let list = bucket.get(item.section)
+    if (!list) {
+      list = []
+      bucket.set(item.section, list)
+      order.push(item.section)
+    }
+    list.push(item)
+  }
+  return order.map((name) => ({ name, items: bucket.get(name)! }))
+})
+
+// 当前页面是否落在「更多」弹层里：是则给「更多」本身一个选中态，用户知道自己在哪
+const moreHasActive = computed(() =>
+  groupedNav.value.some((group) => group.items.some((item) => item.key === currentActiveTab.value)),
+)
+
+// 「更多」弹层开关：点条目后主动收起，避免鼠标还停在弹层上时它不消失
+const moreOpen = ref(false)
+
+/** 关闭宽限定时器：参考元素与弹层之间有一小段空隙，立刻关会闪 */
+let moreCloseTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 取消待执行的关闭 */
+function cancelMoreClose() {
+  if (moreCloseTimer) {
+    clearTimeout(moreCloseTimer)
+    moreCloseTimer = null
+  }
+}
+
+/** 打开「更多」弹层 */
+function openMore() {
+  cancelMoreClose()
+  moreOpen.value = true
+}
+
+/** 延时关闭「更多」弹层（给鼠标穿过空隙的时间） */
+function scheduleMoreClose() {
+  cancelMoreClose()
+  moreCloseTimer = setTimeout(() => { moreOpen.value = false }, 180)
+}
+
+// 切页/卸载时清掉定时器，避免组件销毁后再改 ref
+onUnmounted(cancelMoreClose)
+
+/**
+ * 点击「更多」里的菜单：先收起弹层，再走统一导航（含模型门禁与跳转）。
+ *
+ * @param key 菜单 key
+ */
+function onMoreNavClick(key: string) {
+  cancelMoreClose()
+  moreOpen.value = false
+  handleNavClick(key)
+}
 
 // 当前会话 ID
 const currentSessionId = computed(() => {
@@ -1358,22 +1467,16 @@ const UNREGISTERED_MESSAGE: Record<string, string> = {
   'face-reid': '人脸重识别模型当前不可用：已配置的检测/特征模型未在后端注册。请到「系统设置 → 默认模型 → 人脸重识别」重新选择当前可用的模型',
 };
 
-/** 导航后在后台跑模型门禁，完成时只在未配置时发消息（fail-only，不抛错不挂起调用方） */
-const checkModelGate = (tab: string): void => {
-  modelConfig.load().then(() => {
-    const gate = MODEL_GATE_TABS[tab];
-    if (!gate) return;
-    if (!(modelConfig as any)[gate.field]) {
-      toast.warning(gate.missing);
-      return;
-    }
-    if (modelConfig.unregisteredConfigured.length) {
-      toast.warning(UNREGISTERED_MESSAGE[tab] ?? gate.missing);
-    }
-  }).catch(() => {
-    // 模型配置接口抛错时不退回到上一页（目标页自己会处理）
-  });
-};
+/** 模型门禁文案：未配置或已配置但未注册时返回提示；可用时返回 null */
+const modelGateMessage = (tab: string): string | null => {
+  const gate = MODEL_GATE_TABS[tab]
+  if (!gate) return null
+  if (!(modelConfig as any)[gate.field]) return gate.missing
+  if (modelConfig.unregisteredConfigured.length) {
+    return UNREGISTERED_MESSAGE[tab] ?? gate.missing
+  }
+  return null
+}
 
 /** 视觉管线默认回到（点击「视觉管线」时 /capabilities/:pipeline 加载的管线标识） */
 const CAPABILITIES_DEFAULT_PIPELINE = 'text-to-image';
@@ -1392,11 +1495,20 @@ const handleNavClick = async (tab: string) => {
     return;
   }
   if (GATED_TABS.has(tab)) {
-    // 先跳转，门禁检查单独放后台跑（不 await modelConfig.load() 再导航）
-    router.replace({ name: routeName });
-    expandedImageMgmt.value = IMAGE_GATED_TABS.includes(tab);
-    void checkModelGate(tab);
-    return;
+    // 未配置 / 已配置但未注册：不跳转，只提示（目标页离开模型也用不了）
+    try {
+      await modelConfig.load()
+    } catch {
+      // 配置接口失败时不拦路，交给目标页自己报错
+    }
+    const blocked = modelGateMessage(tab)
+    if (blocked) {
+      toast.warning(blocked)
+      return
+    }
+    router.replace({ name: routeName })
+    expandedImageMgmt.value = IMAGE_GATED_TABS.includes(tab)
+    return
   }
   router.replace({ name: routeName });
 };
@@ -1854,6 +1966,19 @@ onUnmounted(() => {
   .nav-item-badge { animation: none; }
 }
 
+/* 仅管理员菜单的标签：与「未配置」徽标同尺寸，用主色表示权限而不是可用性 */
+.nav-admin-tag {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-5);
+}
+
 /* 空状态 */
 .empty-state-icon {
   display: flex;
@@ -1910,6 +2035,15 @@ onUnmounted(() => {
 .session-in-check { padding-left: 8px; }
 .session-checked {
   background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+
+/* 「更多」右侧的展开提示：用大于号，不再用旋转的 chevron 图标 */
+.nav-more-gt {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--el-text-color-placeholder);
 }
 
 /* ============================================================================
@@ -2100,5 +2234,100 @@ onUnmounted(() => {
 .detail-action.is-danger:hover {
   border-color: var(--el-color-danger);
   color: var(--el-color-danger);
+}
+</style>
+
+<style>
+/*
+ * 「更多」弹层：el-popover 默认 teleport 到 body，scoped 样式够不到内部节点，
+ * 所以这一块必须写成非 scoped（与 ReDialog 同一类坑）。class 前缀统一 nav-more，
+ * 不会污染其它弹层。
+ */
+.nav-more-popper.el-popover.el-popper {
+  padding: 6px;
+  border-radius: 12px;
+  min-width: 200px;
+}
+
+.nav-more {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(78vh, 620px);
+  overflow-y: auto;
+}
+
+.nav-more-group + .nav-more-group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.nav-more-title {
+  padding: 2px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--el-text-color-secondary);
+}
+
+.nav-more-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-more-item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.nav-more-item.is-active {
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+/* 未配置 / 未注册：点击只给提示，不跳转；视觉上弱化，并提示不可用 */
+.nav-more-item.is-blocked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nav-more-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 弹层里的未配置徽标：scoped 里的 .nav-item-badge 不生效，这里补一份 */
+.nav-more-item .nav-item-badge {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  color: var(--el-color-warning-dark-2, #b88230);
+  background: var(--el-color-warning-light-8, #faecd8);
+}
+
+/* 弹层里的「管理员」标签（同样因为 teleport 够不到 scoped 样式） */
+.nav-more-item .nav-admin-tag {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border: 1px solid var(--el-color-primary-light-5);
 }
 </style>

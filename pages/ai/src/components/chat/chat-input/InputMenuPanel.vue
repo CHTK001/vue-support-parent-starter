@@ -23,7 +23,7 @@
           <Search24Regular />
         </el-icon>
         <input ref="searchRef" v-model="keyword" type="text" class="im__search-input"
-          :placeholder="t('chat.input.menuSearchPlaceholder')" @keydown.enter.prevent="runFirstCommand" />
+          :placeholder="t('chat.input.menuSearchPlaceholder')" @keydown="onSearchKeydown" />
         <button v-if="keyword" type="button" class="im__search-clear" :aria-label="t('chat.input.menuClearSearch')"
           :title="t('chat.input.menuClearSearch')" @click="keyword = ''">
           <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -44,8 +44,9 @@
           <div v-if="loading && !commands.length" class="im__state">{{ t('chat.input.menuLoading') }}</div>
           <div v-else-if="!filteredCommands.length" class="im__state">{{ t('chat.input.menuNoCommand') }}</div>
           <div v-else class="im__list">
-            <button v-for="command in filteredCommands" :key="`${command.name}-${command.label || ''}`" type="button"
-              class="im-row" @click="emit('select-command', command)">
+            <button v-for="(command, index) in filteredCommands" :key="`${command.name}-${command.label || ''}`" type="button"
+              class="im-row" :class="{ 'is-active': index === activeIndex }" @mouseenter="activeIndex = index"
+              :title="rowTip(command)" @click="emit('select-command', command)">
               <span class="im-row__icon" :class="`is-${iconKind(command)}`">
                 <svg class="im-row__glyph" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -244,15 +245,23 @@ const iconKind = resolveCommandIconKind;
 
 const searchRef = ref<HTMLInputElement | null>(null);
 const keyword = ref('');
+/** 指令区键盘高亮行（↑↓ 移动，Enter 执行）；与鼠标 hover 共用同一个高亮 */
+const activeIndex = ref(0);
 
 /** 打开即聚焦搜索框并清空上次输入；关闭时也清空，避免下次打开还带着过滤词 */
 watch(() => props.visible, (visible) => {
   if (visible) {
     keyword.value = '';
+    activeIndex.value = 0;
     nextTick(() => searchRef.value?.focus());
   } else {
     keyword.value = '';
   }
+});
+
+// 过滤词变化后回到首条：否则高亮可能停在一个已经不存在的下标上
+watch(keyword, () => {
+  activeIndex.value = 0;
 });
 
 const normalizedKeyword = computed(() => keyword.value.trim().toLowerCase());
@@ -314,9 +323,44 @@ function transportLabel(transport: any): string {
 }
 
 /** 搜索框回车：执行当前可见的第一条指令（与斜杠弹层的 Enter 口径一致） */
-function runFirstCommand() {
-  const first = filteredCommands.value[0];
-  if (first) emit('select-command', first);
+/** 行提示：紧凑行会把说明截断，悬停时用原生 title 给出「名称 — 说明」全文 */
+function rowTip(item: any): string {
+  const name = String(item?.label || item?.name || '');
+  const desc = String(item?.description || '');
+  return desc ? `${name} — ${desc}` : name;
+}
+
+/** 执行当前高亮指令（Enter）；无高亮时退回首条，保持原「Enter 跑第一条」的行为 */
+function runActiveCommand() {
+  const list = filteredCommands.value;
+  const target = list[activeIndex.value] || list[0];
+  if (target) emit('select-command', target);
+}
+
+/**
+ * 搜索框键盘导航。
+ *
+ * <p>原先只有 Enter 跑第一条，用户想选第二条只能放下键盘去点鼠标。
+ * 现在 ↑↓ 在指令列表里移动高亮（不循环，与其它弹层一致），Enter 执行高亮项。</p>
+ *
+ * @param event 键盘事件
+ */
+function onSearchKeydown(event: KeyboardEvent): void {
+  const list = filteredCommands.value;
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    if (list.length) activeIndex.value = Math.min(list.length - 1, activeIndex.value + 1);
+    return;
+  }
+  if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    activeIndex.value = Math.max(0, activeIndex.value - 1);
+    return;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    runActiveCommand();
+  }
 }
 </script>
 
@@ -336,7 +380,7 @@ function runFirstCommand() {
   gap: 8px;
   margin: 2px 2px 4px;
   padding: 0 8px;
-  height: 34px;
+  height: 30px;
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-light);
 }
@@ -352,7 +396,7 @@ function runFirstCommand() {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.4;
   color: var(--el-text-color-primary);
 }
@@ -405,7 +449,7 @@ function runFirstCommand() {
 /* ── 分区：宽窗三列、窄窗自动落成两列 / 一列 ── */
 .im__body {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   align-items: start;
   gap: 2px 12px;
   padding: 2px;
@@ -484,7 +528,7 @@ function runFirstCommand() {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  max-height: 300px;
+  max-height: 240px;
   overflow-y: auto;
   padding-bottom: 2px;
 }
@@ -515,13 +559,16 @@ function runFirstCommand() {
   padding-top: 4px;
 }
 
-/* ── 行 ── */
+/* ── 行 ──
+   用户口径 2026-11-12：弹层内部「小一点、舒服一点」，参考图是一行一条：
+   图标 + 名称 + 右侧灰色说明 + 右侧标签，行高 30px 左右，名称不再加粗。 */
 .im-row {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   width: 100%;
-  padding: 6px 8px;
+  min-height: 30px;
+  padding: 3px 8px;
   border: none;
   border-radius: var(--el-radius-md, 8px);
   background: transparent;
@@ -547,17 +594,17 @@ function runFirstCommand() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 18px;
+  height: 18px;
   flex: none;
-  border-radius: var(--el-radius-md, 8px);
+  border-radius: var(--el-radius-sm, 6px);
   color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
+  background: transparent;
 }
 
 .im-row__glyph {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
 }
 
 .im-row__icon.is-image {
@@ -590,17 +637,21 @@ function runFirstCommand() {
   background: var(--el-color-danger-light-9);
 }
 
+/* 名称与说明同一行（参考图口径）：名称定宽收缩，说明占剩余空间并从尾部截断 */
 .im-row__body {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 10px;
   min-width: 0;
   flex: 1;
 }
 
 .im-row__name {
+  flex: 0 1 auto;
+  max-width: 46%;
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.5;
   color: var(--el-text-color-primary);
   overflow: hidden;
@@ -609,7 +660,9 @@ function runFirstCommand() {
 }
 
 .im-row__desc {
-  font-size: 10.5px;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 11.5px;
   line-height: 1.5;
   color: var(--el-text-color-secondary);
   overflow: hidden;
@@ -621,13 +674,14 @@ function runFirstCommand() {
   font-family: var(--font-mono, "SF Mono", Consolas, monospace);
 }
 
+/* 标签退成右侧一行灰字（参考图的「个人」），不做彩色胶囊：它只是归属说明 */
 .im-row__tag {
   flex: none;
-  padding: 0 6px;
-  border-radius: var(--el-radius-full, 999px);
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-size: 10px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  font-size: 10.5px;
   line-height: 16px;
 }
 

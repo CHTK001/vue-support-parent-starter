@@ -4,10 +4,9 @@ import { ref, reactive, watch, computed } from 'vue'
 
 import {
   Add24Regular, Link24Regular, Eye24Regular, EyeOff24Regular,
-  Info24Regular, Key24Regular, Settings24Regular, CloudCheckmark24Regular,
+  Info24Regular, Key24Regular, ChevronDown24Regular, CloudCheckmark24Regular,
   CloudArrowDown24Regular, Folder24Regular,
 } from '@vicons/fluent'
-import { AltRouteOutlined } from '@vicons/material'
 import { useI18n } from 'vue-i18n'
 import ReSelect from '@repo/ui/re-select'
 import ReDialog from '@repo/ui/re-dialog'
@@ -58,6 +57,19 @@ const form = reactive({
   authPrefix: '',
   // 推理设备（仅本地 ONNX 提供商）：auto / cpu / gpu，落库到 extra.device；云端提供商不涉及
   device: 'auto',
+  // 多协议端点（extra.endpoints）：按模型协议覆盖上游地址，留空跟随 apiUrl
+  endpoints: { openai: '', 'openai-response': '', anthropic: '' } as Record<string, string>,
+  // 额外请求体（extra.extra_body，JSON 文本）：整段并入出站请求
+  extraBodyText: '',
+  // 透传头（extra.passthrough_request_headers / passthrough_response_headers，逗号分隔）
+  passthroughReq: '',
+  passthroughResp: '',
+  // 用量/指标接口（extra.metrics_url）：拉价格、延迟等指标数据的端点
+  metricsUrl: '',
+  // 供应商级限流（extra.max_concurrency / max_accounts / requests_per_minute），null = 不限制
+  maxConcurrency: null as number | null,
+  maxAccounts: null as number | null,
+  rpm: null as number | null,
 })
 
 /** 编辑态下保留的原始 extra，保存时合并回去，避免覆盖掉本表单不管理的键 */
@@ -110,6 +122,53 @@ const channelProviderId = computed(() => {
   return CHANNEL_PROVIDER_IDS.has(brand) ? brand : ''
 })
 
+/** 高级设置折叠时的摘要：不用展开也知道配了什么，避免「看着空白其实配了一堆」 */
+const advancedSummary = computed(() => {
+  const parts: string[] = []
+  const headerCount = splitList(form.customHeaders).length
+  if (headerCount) parts.push(`请求头 ${headerCount}`)
+  const endpointCount = ['openai', 'openai-response', 'anthropic'].filter((k) => (form.endpoints[k] || '').trim()).length
+  if (endpointCount) parts.push(`端点 ${endpointCount}`)
+  if (form.extraBodyText.trim()) parts.push('附加请求体')
+  if (splitList(form.passthroughResp).length) parts.push('透传响应头')
+  if (splitList(form.passthroughReq).length) parts.push('透传请求头')
+  if (form.metricsUrl.trim()) parts.push('用量接口')
+  if (proxyMode.value === 'custom') parts.push('自定义代理')
+  if (form.maxConcurrency) parts.push(`并发 ${form.maxConcurrency}`)
+  if (form.maxAccounts) parts.push(`账号 ${form.maxAccounts}`)
+  if (form.rpm) parts.push(`${form.rpm}/分`)
+  return parts
+})
+
+/** 额外请求体：空返回 null；非法 JSON 也返回 null（保存前单独拦并提示） */
+function parseExtraBody(): Record<string, any> | null {
+  const text = form.extraBodyText.trim()
+  if (!text) return null
+  try {
+    const parsed = JSON.parse(text)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+/** 逗号 / 换行分隔的名单 */
+function splitList(text: string): string[] {
+  return String(text || '').split(/[,\n]/).map((s) => s.trim()).filter(Boolean)
+}
+
+/** 名单回显成一行文本 */
+function listToText(value: any): string {
+  if (Array.isArray(value)) return value.filter(Boolean).join(', ')
+  return typeof value === 'string' ? value : ''
+}
+
+/** 正整数或 null（0 / 空 / 非法都按「不限制」） */
+function numOrNull(value: any): number | null {
+  const n = Number(value)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 /**
  * 组装供应商扩展配置。
  *
@@ -124,6 +183,36 @@ const buildExtra = () => {
     load_strategy: form.loadStrategy,
     auto_switch_on_rate_limit: form.autoSwitchOnRateLimit,
     custom_headers: parseHeaders(form.customHeaders),
+  }
+  // 多协议端点：只落有值的协议，空值删键（避免把历史端点留成脏数据）
+  const endpoints: Record<string, string> = {}
+  for (const key of ['openai', 'openai-response', 'anthropic']) {
+    const url = (form.endpoints[key] || '').trim()
+    if (url) endpoints[key] = url
+  }
+  if (Object.keys(endpoints).length) extra.endpoints = endpoints
+  else delete extra.endpoints
+  // 额外请求体：合法 JSON 对象才落库（保存前已校验）
+  const extraBody = parseExtraBody()
+  if (extraBody) extra.extra_body = extraBody
+  else delete extra.extra_body
+  // 用量/指标接口：空则删键（后端 metrics_url 为空表示该供应商不支持指标拉取）
+  const metricsUrl = form.metricsUrl.trim()
+  if (metricsUrl) extra.metrics_url = metricsUrl
+  else delete extra.metrics_url
+  // 透传头：逗号/换行分隔，数组落库
+  for (const [field, key] of [['passthroughReq', 'passthrough_request_headers'],
+    ['passthroughResp', 'passthrough_response_headers']] as const) {
+    const list = splitList(form[field])
+    if (list.length) extra[key] = list
+    else delete extra[key]
+  }
+  // 供应商级限流：null / 0 一律删键（不限制就是不写配置）
+  for (const [field, key] of [['maxConcurrency', 'max_concurrency'],
+    ['maxAccounts', 'max_accounts'], ['rpm', 'requests_per_minute']] as const) {
+    const value = form[field]
+    if (value != null && value > 0) extra[key] = value
+    else delete extra[key]
   }
   // 推理设备仅本地 ONNX 有意义：auto 视为默认不落库，避免把 auto 写进 extra
   if (isLocalProvider.value && form.device && form.device !== 'auto') extra.device = form.device
@@ -257,6 +346,10 @@ const resetForm = () => {
     existingKeyCount: 0, existingKeyMask: '',
     authMode: DEFAULT_AUTH_SCHEME, authHeader: 'api-key', authPrefix: '',
     device: 'auto',
+    endpoints: { openai: '', 'openai-response': '', anthropic: '' },
+    extraBodyText: '', passthroughReq: '', passthroughResp: '',
+    maxConcurrency: null, maxAccounts: null, rpm: null,
+    metricsUrl: '',
   })
   apiKeyList.value = []
   localModelPath.value = ''
@@ -268,6 +361,7 @@ const resetForm = () => {
   origExtra.value = {}
   formRoutes.value = []
   routeHint.value = ''
+  proxyCustom.value = false
 }
 
 const openCreate = () => {
@@ -321,6 +415,22 @@ const openEdit = (provider: any) => {
   origExtra.value = (provider.extra && typeof provider.extra === 'object') ? { ...provider.extra } : {}
   // 推理设备回显（仅本地 ONNX 用）：读 extra.device，默认 auto
   form.device = origExtra.value.device || 'auto'
+  // 端点 / 额外请求体 / 透传头 / 限流回显
+  const ep = (origExtra.value.endpoints && typeof origExtra.value.endpoints === 'object')
+    ? origExtra.value.endpoints : {}
+  form.endpoints = {
+    openai: String(ep.openai || ''),
+    'openai-response': String(ep['openai-response'] || ep.responses || ''),
+    anthropic: String(ep.anthropic || ''),
+  }
+  form.extraBodyText = origExtra.value.extra_body && typeof origExtra.value.extra_body === 'object'
+    ? JSON.stringify(origExtra.value.extra_body, null, 2) : ''
+  form.passthroughReq = listToText(origExtra.value.passthrough_request_headers)
+  form.passthroughResp = listToText(origExtra.value.passthrough_response_headers)
+  form.metricsUrl = String(origExtra.value.metrics_url || '')
+  form.maxConcurrency = numOrNull(origExtra.value.max_concurrency)
+  form.maxAccounts = numOrNull(origExtra.value.max_accounts)
+  form.rpm = numOrNull(origExtra.value.requests_per_minute)
   form.authMode = deriveAuthMode(
     provider.authScheme ?? provider.auth_scheme,
     provider.authHeader ?? provider.extra?.auth_header,
@@ -477,6 +587,25 @@ const handleSave = async () => {
   }
   const headerErrors = validateHeadersText(form.customHeaders, t)
   if (headerErrors.length > 0) { message.warning(headerErrors[0]); return }
+  // 用量接口必须是一个 http(s) 地址：写错的话指标拉取会静默失败
+  const metricsUrl = form.metricsUrl.trim()
+  if (metricsUrl && !/^https?:\/\//i.test(metricsUrl)) {
+    message.warning('用量接口要填 http(s) 开头的完整地址')
+    return
+  }
+  // 额外请求体必须是一个 JSON 对象（数组/标量无处可并，直接拦下）
+  if (form.extraBodyText.trim()) {
+    try {
+      const parsed = JSON.parse(form.extraBodyText)
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        message.warning('额外请求体必须是 JSON 对象，例如 {"prompt_cache_key": "${sessionId}"}')
+        return
+      }
+    } catch {
+      message.warning('额外请求体不是合法 JSON')
+      return
+    }
+  }
   // 自定义认证方式必须给出请求头名称，否则等于配了一个空头名
   if (form.authMode === 'custom' && !form.authHeader.trim()) {
     message.warning('请填写自定义认证的请求头名称'); return
@@ -505,7 +634,10 @@ const handleSave = async () => {
     // 顶层 apiKey 不在它的字段表里 —— 早先这里发 apiKey，接口照样 200、前端照样弹「已更新」，
     // 但 Key 一个字节都没落库（用户报的「key 无法修改、无法保存」）。
     if (newApiKeys.length > 0) updateData.credentials = { api_key: newApiKeys.join(',') }
-    if (form.proxyUrl.trim()) updateData.proxy = form.proxyUrl.trim()
+    // 代理必须「空也提交」：表单改成 直连 / 自定义 两态后，选直连的语义是
+    // 「把代理清掉」。以前只在非空时才带 proxy，用户从自定义改回直连永远清不掉，
+    // 后端 body.containsKey("proxy") 才写库，所以空串要显式发出去。
+    updateData.proxy = form.proxyUrl.trim()
     // 管理员可编辑所有字段：始终提交名称与协议
     updateData.name = form.name
     updateData.protocol = form.protocol
@@ -536,6 +668,35 @@ const handleSave = async () => {
   emit('saved')
 }
 
+/** 高级设置折叠态：默认收起，只留「高级」一行，和简洁版式一致 */
+const advancedOpen = ref(false)
+
+/**
+ * 代理模式：表单只有一个 proxyUrl 字段。
+ * 「直连」= 空串（后端按不走代理处理）；「自定义」= 用户填的地址。
+ * 模式必须自己存一份状态：若 getter 直接由 proxyUrl 推导，用户点「自定义」时
+ * 地址还是空串 → 模式又被打回「直连」，输入框永远不出现。
+ */
+const proxyCustom = ref(false)
+const proxyMode = computed({
+  get: () => (proxyCustom.value ? 'custom' : 'none'),
+  set: (v: string) => {
+    proxyCustom.value = v === 'custom'
+    if (v === 'none') form.proxyUrl = ''
+  },
+})
+/** 编辑态回填了代理地址时，自动落到「自定义」 */
+watch(() => form.proxyUrl, (v) => { if (v && v.trim()) proxyCustom.value = true })
+
+/** 弹窗标题：名字还没填时不要渲染成「添加 」这种半截文案 */
+const dialogTitle = computed(() => {
+  if (isEditMode.value) return t('settings.models.editProvider')
+  const name = form.name.trim()
+  return name
+    ? t('settings.models.addProvider', { name })
+    : t('settings.models.addProviderPlain')
+})
+
 const protocolOptions = [
   { label: 'OpenAI', value: 'openai' },
   { label: 'OpenAI Response', value: 'openai-response' },
@@ -547,8 +708,8 @@ const protocolOptions = [
 <template>
   <ReDialog
     v-model="dialogVisible"
-    :title="isEditMode ? t('settings.models.editProvider') : t('settings.models.addProvider', { name: form.name })"
-    width="640px"
+    :title="dialogTitle"
+    width="600px"
     align-center
     append-to-body
     :close-on-click-modal="false"
@@ -562,7 +723,7 @@ const protocolOptions = [
         <ProviderLogo v-else :pid="providerType" :name="form.name" size="sm" />
         <div class="pf-header-meta">
           <span class="pf-header-title">
-            {{ isEditMode ? t('settings.models.editProvider') : t('settings.models.addProvider', { name: form.name }) }}
+            {{ dialogTitle }}
           </span>
           <span v-if="selectedTemplate" class="pf-badge">
             <el-icon :size="11"><Key24Regular /></el-icon>{{ selectedTemplate.name }}
@@ -573,82 +734,65 @@ const protocolOptions = [
 
     <div class="pf-body">
       <!-- 基本信息 -->
-      <section class="pf-card">
-        <header class="pf-card-head">
-          <span class="pf-card-ico"><el-icon :size="16"><Info24Regular /></el-icon></span>
-          <div class="pf-card-title-wrap">
-            <h3 class="pf-card-title">基本信息</h3>
-            <span class="pf-card-sub">供应商身份与接入协议</span>
-          </div>
-        </header>
+      <div class="pf-line">
+        <span class="pf-line-label">{{ t('settings.models.name') }}</span>
+        <div class="pf-line-ctrl">
+          <el-input v-model="form.name" :placeholder="t('settings.models.namePlaceholder')" clearable />
+        </div>
+      </div>
 
-        <el-form label-position="top" class="pf-form">
-          <div class="pf-row">
-            <el-form-item class="pf-col" :label="t('settings.models.name')" required>
-              <el-input v-model="form.name" :placeholder="t('settings.models.namePlaceholder')"
-                clearable />
-            </el-form-item>
-            <el-form-item class="pf-col" :label="t('settings.models.protocol')" required>
-              <ReSelect v-model="form.protocol" class="w-full" :placeholder="t('settings.models.selectProtocol')"
-                :data="protocolOptions" />
-            </el-form-item>
-          </div>
-          <!--
-            ONNX 是纯本地推理，没有远端地址：后端 ai.onnx.base-url 只是占位值，
-            这里不再展示/编辑该字段（填 http 地址对本地推理毫无作用）。
-            真实位置是 model_root —— 绝对路径只读展示，修改入口是「绑定外部模型目录」
-            （走 /api/onnx/external/browse 目录选择器，路径只能选不能填）。
-          -->
-          <el-form-item v-if="isLocalProvider" label="模型根目录（服务器绝对路径）">
-            <div class="pf-onnx-root">
-              <el-input
-                :model-value="providerModelRoot || '尚未绑定模型目录'"
-                readonly
-                class="pf-onnx-root-input"
-              >
-                <template #prefix><el-icon :size="14"><Folder24Regular /></el-icon></template>
-              </el-input>
-              <el-button @click="externalVisible = true">绑定外部模型目录</el-button>
-            </div>
-            <p class="pf-onnx-root-hint">
-              模型文件实际存放位置；通过目录选择器绑定，不能手工填写。
-            </p>
-          </el-form-item>
-          <el-form-item v-else-if="isRouterGroupProvider" label="上游地址（不使用）">
-            <div class="pf-router-group-hint">
-              <p>路由组不是一个真实上游：它没有地址与密钥，自己的行为都来自模型库成员与组内的策略。</p>
-              <p>成员表与策略（路由策略 / 被限流时 / 延迟 / 全忙 / 上下文）在供应商详情页的「路由组」面板里维护。</p>
-            </div>
-          </el-form-item>
-          <el-form-item v-else :label="t('settings.models.apiUrl')" required>
-            <el-input v-model="form.apiUrl"
-              placeholder="https://api.example.com/v1">
-              <template #prefix><el-icon :size="14"><Link24Regular /></el-icon></template>
+      <div class="pf-line">
+        <span class="pf-line-label">{{ t('settings.models.protocol') }}</span>
+        <div class="pf-line-ctrl">
+          <ReSelect v-model="form.protocol" class="w-full" :placeholder="t('settings.models.selectProtocol')"
+            :data="protocolOptions" />
+        </div>
+      </div>
+
+      <!--
+        ONNX 是纯本地推理，没有远端地址：后端 ai.onnx.base-url 只是占位值，
+        这里不再展示/编辑该字段（填 http 地址对本地推理毫无作用）。
+        真实位置是 model_root —— 绝对路径只读展示，修改入口是「绑定外部模型目录」
+        （走 /api/onnx/external/browse 目录选择器，路径只能选不能填）。
+      -->
+      <div v-if="isLocalProvider" class="pf-line">
+        <span class="pf-line-label">模型根目录</span>
+        <div class="pf-line-ctrl">
+          <div class="pf-root">
+            <el-input
+              :model-value="providerModelRoot || '尚未绑定模型目录'"
+              readonly
+              class="pf-root-input"
+            >
+              <template #prefix><el-icon :size="14"><Folder24Regular /></el-icon></template>
             </el-input>
-          </el-form-item>
-        </el-form>
-      </section>
+            <el-button @click="externalVisible = true">绑定目录</el-button>
+          </div>
+          <p class="pf-note">模型文件实际存放位置；通过目录选择器绑定，不能手工填写。</p>
+        </div>
+      </div>
+      <div v-else-if="isRouterGroupProvider" class="pf-line">
+        <span class="pf-line-label">{{ t('settings.models.apiUrl') }}</span>
+        <div class="pf-line-ctrl">
+          <p class="pf-note">
+            路由组没有真实上游：它不占地址与密钥，成员全部来自模型库。
+            成员的顺序与策略（路由策略 / 被限流时 / 延迟 / 全忙 / 上下文）在供应商详情页的「路由组」面板维护。
+          </p>
+        </div>
+      </div>
+      <div v-else class="pf-line">
+        <span class="pf-line-label">{{ t('settings.models.apiUrl') }}</span>
+        <div class="pf-line-ctrl">
+          <el-input v-model="form.apiUrl" placeholder="https://api.example.com/v1" />
+        </div>
+      </div>
 
       <!-- 本地推理（ONNX）：无远程鉴权，凭证即本地模型路径 -->
-      <section v-if="isLocalProvider" class="pf-card">
-        <header class="pf-card-head">
-          <span class="pf-card-ico ico-key"><el-icon :size="16"><Folder24Regular /></el-icon></span>
-          <div class="pf-card-title-wrap">
-            <h3 class="pf-card-title">本地模型路径</h3>
-            <span class="pf-card-sub">填写服务器上的模型文件绝对路径；留空则使用模型根目录</span>
-          </div>
-        </header>
-        <div class="key-list">
-          <div class="auth-block">
-            <div class="auth-block-head">
-              <span class="auth-label">本地模型路径</span>
-              <span class="auth-hint">支持单个绝对路径；多个用逗号分隔</span>
-            </div>
-            <el-input
-              v-model="localModelPath"
-              placeholder="留空 = 使用下方模型根目录"
-              clearable
-            />
+      <template v-if="isLocalProvider">
+        <div class="pf-line">
+          <span class="pf-line-label">本地模型路径</span>
+          <div class="pf-line-ctrl">
+            <el-input v-model="localModelPath" placeholder="留空 = 使用上方模型根目录" clearable />
             <!--
               预览必须给完整绝对路径：后端保存/解析时会把相对值按 user.dir 绝对化，
               这里只显示用户输入的相对值（如 models/onnx）的话，用户既不知道
@@ -656,9 +800,8 @@ const protocolOptions = [
               输入已填时它就是路径原样展示（假定用户填的即绝对路径）；
               留空时显示后端解析出的默认模型根（provider.model_root，已是绝对路径）。
             -->
-            <p class="auth-preview">
-              该路径将作为本地推理的「apikey」保存：
-              <code>{{ previewLocalPath }}</code>
+            <p class="pf-note">
+              该路径将作为本地推理的「apikey」保存：<code>{{ previewLocalPath }}</code>
               <el-button
                 v-if="previewLocalPath && previewLocalPath !== '（留空）'"
                 link
@@ -667,124 +810,74 @@ const protocolOptions = [
                 @click="copyPreviewPath"
               >复制</el-button>
             </p>
-            <p class="auth-preview">
-              未填时的默认模型根（把模型放进这个目录即可被加载）：
-              <code>{{ providerModelRoot || '解析中…' }}</code>
+            <p class="pf-note">
+              未填时的默认模型根（把模型放进这个目录即可被加载）：<code>{{ providerModelRoot || '解析中…' }}</code>
             </p>
           </div>
+        </div>
 
-          <!-- 推理设备（本地模型专属）：云端提供商走远程 API，无 CPU/GPU 之分，故整卡仅本地显示 -->
-          <div class="auth-block">
-            <div class="auth-block-head">
-              <span class="auth-label">推理设备</span>
-              <span class="auth-hint">auto 按本机驱动自动判定；选 gpu 缺 CUDA 组件时自动回退 CPU</span>
-            </div>
+        <!-- 推理设备（本地模型专属）：云端提供商走远程 API，无 CPU/GPU 之分 -->
+        <div class="pf-line">
+          <span class="pf-line-label">推理设备</span>
+          <div class="pf-line-ctrl">
             <el-radio-group v-model="form.device">
               <el-radio-button value="auto">自动</el-radio-button>
               <el-radio-button value="cpu">CPU</el-radio-button>
               <el-radio-button value="gpu">GPU</el-radio-button>
             </el-radio-group>
+            <p class="pf-note">auto 按本机驱动自动判定；选 gpu 缺 CUDA 组件时自动回退 CPU。</p>
           </div>
         </div>
-      </section>
+      </template>
 
       <!-- 账号渠道鉴权：凭据由渠道管理页统一绑定/刷新，表单侧只读回显 + 跳转入口 -->
-      <section v-else-if="isChannelProviderFlag" class="pf-card">
-        <header class="pf-card-head">
-          <span class="pf-card-ico ico-key"><el-icon :size="16"><Key24Regular /></el-icon></span>
-          <div class="pf-card-title-wrap">
-            <h3 class="pf-card-title">账号渠道鉴权</h3>
-            <span class="pf-card-sub">凭据由渠道管理页统一绑定与刷新</span>
-          </div>
-        </header>
-
-        <div class="key-list">
-          <div class="auth-block">
-            <div class="auth-block-head">
-              <span class="auth-label">认证方式</span>
-              <span class="auth-hint">{{ authHint }}</span>
-            </div>
-            <p class="auth-preview">
-              该供应商为账号渠道（OAuth 设备流 / 本地回调），凭据由「渠道管理」页
-              统一绑定、刷新与签到；本表单不采集 API Key。
-            </p>
-            <el-button
-              type="primary"
-              class="pf-channel-jump-btn"
-              @click="emit('goToChannelManagement')"
-            >
-              前往渠道管理页绑定账号
-            </el-button>
+      <div v-else-if="isChannelProviderFlag" class="pf-line">
+        <span class="pf-line-label">账号渠道</span>
+        <div class="pf-line-ctrl">
+          <p class="pf-note">
+            认证方式：{{ authHint }}。凭据由「渠道管理」页统一绑定、刷新与签到，本表单不采集 API Key。
+          </p>
+          <div class="pf-inline">
+            <el-button @click="emit('goToChannelManagement')">前往渠道管理页绑定账号</el-button>
           </div>
 
           <!-- 已绑定账号回显（编辑态） -->
-          <div v-if="channelConnections.length > 0" class="key-exist-hint">
-            <el-icon :size="14"><Key24Regular /></el-icon>
-            <div>
-              已绑定
-              <strong>{{ channelConnections.reduce((n, c) => n + (c.connections?.length ?? 0), 0) }}</strong>
-              个账号
-              <span class="key-exist-tip">（在渠道管理页可刷新 / 签到 / 删除）</span>
-              <ul v-if="channelConnections[0].connections?.length" class="ch-conn-list">
-                <li v-for="conn in channelConnections[0].connections" :key="conn.connectionId">
-                  <span class="ch-conn-label">{{ conn.label || '未命名' }}</span>
-                  <span class="ch-conn-state" :class="{ 'is-valid': conn.status === 'valid', 'is-stale': conn.status !== 'valid' }">
-                    {{ conn.status || '未知' }}
-                  </span>
-                </li>
-              </ul>
-            </div>
+          <div v-if="channelConnections.length > 0" class="pf-note">
+            已绑定
+            <strong>{{ channelConnections.reduce((n, c) => n + (c.connections?.length ?? 0), 0) }}</strong>
+            个账号（在渠道管理页可刷新 / 签到 / 删除）
+            <ul v-if="channelConnections[0].connections?.length" class="ch-conn-list">
+              <li v-for="conn in channelConnections[0].connections" :key="conn.connectionId">
+                <span class="ch-conn-label">{{ conn.label || '未命名' }}</span>
+                <span class="ch-conn-state" :class="{ 'is-valid': conn.status === 'valid', 'is-stale': conn.status !== 'valid' }">
+                  {{ conn.status || '未知' }}
+                </span>
+              </li>
+            </ul>
           </div>
-          <div v-else class="ch-conn-empty">
-            尚无绑定账号，请前往渠道管理页完成绑定。
-          </div>
+          <p v-else class="pf-note">尚无绑定账号，请前往渠道管理页完成绑定。</p>
         </div>
-      </section>
+      </div>
 
       <!-- 路由组没有真实上游：不展示地址 / 鉴权，成员与策略在组内维护 -->
-      <section v-else-if="isRouterGroupProvider" class="pf-card">
-        <header class="pf-card-head">
-          <span class="pf-card-ico ico-select"><el-icon :size="16"><AltRouteOutlined /></el-icon></span>
-          <div class="pf-card-title-wrap">
-            <h3 class="pf-card-title">路由组</h3>
-            <span class="pf-card-sub">成员来自模型库，策略在组内选择</span>
-          </div>
-        </header>
-
-        <div class="key-list">
-          <div class="auth-block">
-            <p class="auth-preview">
-              路由组不是一个独立的上游：它不占有地址与密钥，成员全部来自「已添加的模型库」。
-              选哪个模型看这组自己的策略：被打上「智能 / 按顺序 / 轮流 / 手动」等标签，
-              在这儿只配置它本身不存在的东西。
-            </p>
-            <p class="auth-preview">
-              配置入口：创建或编辑完供应商后，在供应商详情页的「路由组」面板里设置成员、顺序与策略。
-            </p>
-          </div>
+      <div v-else-if="isRouterGroupProvider" class="pf-line">
+        <span class="pf-line-label">组内配置</span>
+        <div class="pf-line-ctrl">
+          <p class="pf-note">
+            路由组不占有地址与密钥，成员全部来自「已添加的模型库」，选哪个模型由组内策略决定。
+          </p>
+          <p class="pf-note">
+            配置入口：创建或编辑完供应商后，在供应商详情页的「路由组」面板里设置成员、顺序与策略。
+          </p>
         </div>
-      </section>
+      </div>
 
       <!-- API 鉴权（远程提供商） -->
-      <section v-else class="pf-card">
-        <header class="pf-card-head">
-          <span class="pf-card-ico ico-key"><el-icon :size="16"><Key24Regular /></el-icon></span>
-          <div class="pf-card-title-wrap">
-            <h3 class="pf-card-title">API 鉴权</h3>
-            <span class="pf-card-sub">支持多 Key 负载均衡与故障转移</span>
-          </div>
-          <el-button v-if="isEditMode && form.existingKeyCount > 0" class="pf-key-count" @click="addApiKey">
-            <el-icon :size="13"><Add24Regular /></el-icon>已有 {{ form.existingKeyCount }} 个
-          </el-button>
-        </header>
-
-        <div class="key-list">
-          <!-- 认证方式：决定 Key 以哪个请求头发出去（Dots 等只认 api-key，不认 Authorization） -->
-          <div class="auth-block">
-            <div class="auth-block-head">
-              <span class="auth-label">认证方式</span>
-              <span class="auth-hint">{{ authHint }}</span>
-            </div>
+      <template v-else>
+        <!-- 认证方式：决定 Key 以哪个请求头发出去（Dots 等只认 api-key，不认 Authorization） -->
+        <div class="pf-line">
+          <span class="pf-line-label">认证方式</span>
+          <div class="pf-line-ctrl">
             <!-- 下拉用 ReSelect（@repo/ui），与全站下拉观感一致；
                  layout="default" 会透传默认插槽，因此可自定义「名称 + 说明」两行选项 -->
             <ReSelect
@@ -801,121 +894,231 @@ const protocolOptions = [
               </el-option>
             </ReSelect>
 
-            <div v-if="form.authMode === 'custom'" class="auth-custom">
-              <el-form-item label="请求头名称">
-                <el-input v-model="form.authHeader" placeholder="api-key" />
-              </el-form-item>
-              <el-form-item label="值前缀">
-                <el-input v-model="form.authPrefix" placeholder="留空表示不加前缀，例如 Bearer 加空格" />
-              </el-form-item>
+            <div v-if="form.authMode === 'custom'" class="pf-pair">
+              <el-input v-model="form.authHeader" placeholder="请求头名称，如 api-key" />
+              <el-input v-model="form.authPrefix" placeholder="值前缀，留空不加前缀" />
             </div>
 
-            <p class="auth-preview">
+            <p class="pf-note">
               实际发送：
               <code v-if="form.authMode === 'bearer'">Authorization: Bearer &lt;你的 Key&gt;</code>
               <code v-else-if="form.authMode === 'none'">（不发送认证头）</code>
               <code v-else>{{ form.authHeader || 'api-key' }}: {{ form.authPrefix }}&lt;你的 Key&gt;</code>
             </p>
           </div>
+        </div>
 
-          <div v-if="isEditMode && form.existingKeyCount > 0" class="key-exist-hint">
-            <el-icon :size="14"><Key24Regular /></el-icon>
-            <div>
+        <div class="pf-line">
+          <span class="pf-line-label">API Key</span>
+          <div class="pf-line-ctrl">
+            <div v-if="isEditMode && form.existingKeyCount > 0" class="pf-note">
               已配置 <strong>{{ form.existingKeyCount }}</strong> 个 Key
               <template v-if="form.existingKeyMask">（{{ form.existingKeyMask }}）</template>
-              <span class="key-exist-tip">留空保留原配置，填写新值则替换</span>
+              ，留空保留原配置，填写新值则替换
             </div>
-          </div>
 
-          <div v-for="(key, index) in apiKeyList" :key="index" class="key-row">
-            <el-input
-              v-model="apiKeyList[index]"
-              placeholder="sk-..."
-              :type="showKey[index] ? 'text' : 'password'"
-              :class="{ 'key-filled': key.trim() }"
-            >
-              <template #prefix><el-icon :size="14"><Key24Regular /></el-icon></template>
-              <template #suffix>
-                <button class="key-eye" type="button" @click="toggleKey(index)" :title="showKey[index] ? '隐藏' : '显示'">
-                  <el-icon :size="15"><Eye24Regular v-if="!showKey[index]" /><EyeOff24Regular v-else /></el-icon>
+            <div class="pf-keys">
+              <div v-for="(key, index) in apiKeyList" :key="index" class="key-row">
+                <el-input
+                  v-model="apiKeyList[index]"
+                  placeholder="sk-..."
+                  :type="showKey[index] ? 'text' : 'password'"
+                  :class="{ 'key-filled': key.trim() }"
+                >
+                  <template #prefix><el-icon :size="14"><Key24Regular /></el-icon></template>
+                  <template #suffix>
+                    <button class="key-eye" type="button" @click="toggleKey(index)" :title="showKey[index] ? '隐藏' : '显示'">
+                      <el-icon :size="15"><Eye24Regular v-if="!showKey[index]" /><EyeOff24Regular v-else /></el-icon>
+                    </button>
+                  </template>
+                </el-input>
+                <button class="key-remove" type="button" @click="removeApiKey(index)" title="删除">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /></svg>
                 </button>
-              </template>
-            </el-input>
-            <button class="key-remove" type="button" @click="removeApiKey(index)" title="删除">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /></svg>
-            </button>
-          </div>
-
-          <div class="key-actions">
-            <button class="add-key-btn" type="button" @click="addApiKey">
-              <el-icon :size="14"><Add24Regular /></el-icon>添加 API KEY
-            </button>
-            <button class="get-key-btn" type="button" :title="t('settings.models.getApiKey')" @click="handleOpenApiKeyUrl">
-              <el-icon :size="14"><Link24Regular /></el-icon>{{ t('settings.models.getApiKey') }}
-            </button>
-          </div>
-
-          <div v-if="testResult" class="test-result" :class="testResult.success ? 'is-success' : 'is-error'">
-            <el-icon :size="15"><CloudCheckmark24Regular v-if="testResult.success" /><CloudArrowDown24Regular v-else /></el-icon>
-            <span>{{ testResult.message }}</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- 高级设置：代理 / Key 策略 / 自定义请求头只属于云 API；
-           ONNX 纯本地推理没有远端连接，这些设置整卡隐藏（用户需求 1） -->
-      <section v-if="!isLocalProvider" class="pf-card">
-        <header class="pf-card-head">
-          <span class="pf-card-ico ico-set"><el-icon :size="16"><Settings24Regular /></el-icon></span>
-          <div class="pf-card-title-wrap">
-            <h3 class="pf-card-title">高级设置</h3>
-            <span class="pf-card-sub">代理、策略与自定义请求头</span>
-          </div>
-        </header>
-        <div class="pf-adv">
-          <el-form-item label="代理地址">
-            <el-input v-model="form.proxyUrl" placeholder="http://127.0.0.1:7890，留空不使用代理" />
-          </el-form-item>
-
-          <el-form-item label="Key 策略">
-            <ReSelect v-model="form.loadStrategy" class="w-full" layout="default" placeholder="选择 Key 轮询策略">
-              <el-option v-for="s in KEY_STRATEGIES" :key="s.name" :label="s.display_name" :value="s.name">
-                <span class="opt-two-line">
-                  <span class="opt-main">{{ s.display_name }}</span>
-                  <span class="opt-sub">{{ s.description }}</span>
-                </span>
-              </el-option>
-            </ReSelect>
-          </el-form-item>
-
-          <div class="pf-switch-row">
-            <div>
-              <span class="pf-switch-label">自动限流</span>
-              <span class="pf-switch-sub">触发限流时自动切换到下一个可用 Key</span>
+              </div>
             </div>
-            <el-switch v-model="form.autoSwitchOnRateLimit" />
+
+            <div class="pf-inline">
+              <button class="pf-add" type="button" @click="addApiKey">
+                <el-icon :size="13"><Add24Regular /></el-icon>添加 Key
+              </button>
+              <button class="pf-link" type="button" :title="t('settings.models.getApiKey')" @click="handleOpenApiKeyUrl">
+                <el-icon :size="13"><Link24Regular /></el-icon>{{ t('settings.models.getApiKey') }}
+              </button>
+            </div>
+
+            <div v-if="testResult" class="test-result" :class="testResult.success ? 'is-success' : 'is-error'">
+              <el-icon :size="15"><CloudCheckmark24Regular v-if="testResult.success" /><CloudArrowDown24Regular v-else /></el-icon>
+              <span>{{ testResult.message }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 高级：请求头 / Key 策略 / 自动限流 / 代理（默认收起，和简洁版式一致）
+           只属于云 API；ONNX 纯本地推理没有远端连接，整块隐藏 -->
+      <div v-if="!isLocalProvider" class="pf-more">
+        <button
+          type="button"
+          class="pf-more-toggle"
+          :aria-expanded="advancedOpen"
+          @click="advancedOpen = !advancedOpen"
+        >
+          <el-icon :size="12" class="pf-more-arrow" :class="{ 'is-open': advancedOpen }">
+            <ChevronDown24Regular />
+          </el-icon>
+          <span>高级</span>
+          <!-- 折叠时的摘要：已配项一目了然，不用逐个展开找 -->
+          <span v-if="!advancedOpen && advancedSummary.length" class="pf-more-chips">
+            <span v-for="item in advancedSummary" :key="item" class="pf-chip">{{ item }}</span>
+          </span>
+          <span v-else-if="!advancedOpen" class="pf-more-hint">请求头 / 端点 / 限流</span>
+        </button>
+
+        <div v-show="advancedOpen" class="pf-more-body">
+          <div class="pf-section">请求</div>
+          <div class="pf-line">
+            <span class="pf-line-label">请求头</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.customHeaders" type="textarea" :rows="3"
+                :placeholder="t('settings.models.customHeadersPlaceholder')" />
+            </div>
           </div>
 
-          <el-form-item :label="t('settings.models.customHeaders')">
-            <el-input v-model="form.customHeaders" type="textarea" :rows="3"
-              :placeholder="t('settings.models.customHeadersPlaceholder')" />
-          </el-form-item>
+          <!-- 多协议端点：同一供应商的 OpenAI / Responses / Anthropic 可以各走各的地址 -->
+          <div class="pf-line">
+            <span class="pf-line-label">端点</span>
+            <div class="pf-line-ctrl">
+              <div class="pf-endpoint">
+                <span class="pf-endpoint-name">OpenAI</span>
+                <el-input v-model="form.endpoints.openai" placeholder="留空跟随上游地址" />
+              </div>
+              <div class="pf-endpoint">
+                <span class="pf-endpoint-name">Responses</span>
+                <el-input v-model="form.endpoints['openai-response']" placeholder="留空跟随上游地址" />
+              </div>
+              <div class="pf-endpoint">
+                <span class="pf-endpoint-name">Anthropic</span>
+                <el-input v-model="form.endpoints.anthropic" placeholder="留空跟随上游地址" />
+              </div>
+              <p class="pf-note">按模型实际协议选地址；三行都留空就用上面的上游地址。</p>
+            </div>
+          </div>
+
+          <!-- 用量/指标接口：部分服务商额外提供带价格、延迟的指标端点（如 OpenRouter /models） -->
+          <div class="pf-line">
+            <span class="pf-line-label">用量接口</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.metricsUrl" placeholder="如 https://openrouter.ai/api/v1/models（留空不拉取）" />
+              <p class="pf-note">填了才会从该地址拉价格、上下文等指标；留空表示这家供应商不支持指标拉取。</p>
+            </div>
+          </div>
+
+          <div class="pf-line">
+            <span class="pf-line-label">额外请求体</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.extraBodyText" type="textarea" :rows="3"
+                placeholder='并入出站 JSON 的字段，例如 {"prompt_cache_key": "${sessionId}"}' />
+              <p class="pf-note">必须是 JSON 对象；会原样并进每次请求体。</p>
+            </div>
+          </div>
+
+          <div class="pf-line">
+            <span class="pf-line-label">透传响应头</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.passthroughResp" placeholder="X-Trace-Id, X-Foo" />
+              <p class="pf-note">上游响应里的这些头带回到调用方（多个用逗号分隔）。</p>
+            </div>
+          </div>
+
+          <div class="pf-line">
+            <span class="pf-line-label">透传请求头</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.passthroughReq" placeholder="X-Tenant-Id" />
+              <p class="pf-note">调用方带来的这些头原样转给上游（多个用逗号分隔）。</p>
+            </div>
+          </div>
+
+          <div class="pf-line">
+            <span class="pf-line-label">Key 策略</span>
+            <div class="pf-line-ctrl">
+              <ReSelect v-model="form.loadStrategy" class="w-full" layout="default" placeholder="选择 Key 轮询策略">
+                <el-option v-for="s in KEY_STRATEGIES" :key="s.name" :label="s.display_name" :value="s.name">
+                  <span class="opt-two-line">
+                    <span class="opt-main">{{ s.display_name }}</span>
+                    <span class="opt-sub">{{ s.description }}</span>
+                  </span>
+                </el-option>
+              </ReSelect>
+            </div>
+          </div>
+
+          <div class="pf-line">
+            <span class="pf-line-label">自动限流</span>
+            <div class="pf-line-ctrl pf-inline">
+              <el-switch v-model="form.autoSwitchOnRateLimit" />
+              <span class="pf-note">触发限流时自动切换到下一个可用 Key</span>
+            </div>
+          </div>
+
+          <div class="pf-section">网络与限流</div>
+
+          <div class="pf-line">
+            <span class="pf-line-label">代理</span>
+            <div class="pf-line-ctrl">
+              <el-radio-group v-model="proxyMode">
+                <el-radio-button value="none">直连</el-radio-button>
+                <el-radio-button value="custom">自定义</el-radio-button>
+              </el-radio-group>
+              <el-input
+                v-if="proxyMode === 'custom'"
+                v-model="form.proxyUrl"
+                placeholder="http://127.0.0.1:7890"
+              />
+              <p v-else class="pf-note">留空即直连上游，不走代理。</p>
+            </div>
+          </div>
+
+          <!-- 供应商级限流：同一个供应商下所有 Key 共用这三项配额 -->
+          <div class="pf-line">
+            <span class="pf-line-label">开发上限</span>
+            <div class="pf-line-ctrl">
+              <el-input-number v-model="form.maxConcurrency" :min="0" :step="1" controls-position="right"
+                placeholder="不限制" class="pf-num" />
+              <p class="pf-note">同一时间最多几个请求打到这家上游；0 或留空 = 不限制。</p>
+            </div>
+          </div>
+
+          <div class="pf-line">
+            <span class="pf-line-label">同时使用的账号数</span>
+            <div class="pf-line-ctrl">
+              <el-input-number v-model="form.maxAccounts" :min="0" :step="1" controls-position="right"
+                placeholder="不限制" class="pf-num" />
+              <p class="pf-note">只启用地前 N 个 Key 轮换；0 或留空 = 全部启用。</p>
+            </div>
+          </div>
+
+          <div class="pf-line">
+            <span class="pf-line-label">每分钟请求数</span>
+            <div class="pf-line-ctrl">
+              <el-input-number v-model="form.rpm" :min="0" :step="1" controls-position="right"
+                placeholder="不限制" class="pf-num" />
+              <p class="pf-note">同一供应商每分钟最多几次请求；0 或留空 = 不限制。</p>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
 
       <!-- 免费渠道：模型目录不在上游，路由表（extra.routes）是本表单维护的模型级配置——
            key 即模型名/模型名前缀，route 按模型命中并覆盖上游地址与凭据 -->
-      <section v-if="isFreeChannelProvider" class="pf-card">
-        <header class="pf-card-head">
-          <span class="pf-card-ico ico-route"><el-icon :size="16"><Settings24Regular /></el-icon></span>
-          <div class="pf-card-title-wrap">
-            <h3 class="pf-card-title">模型路由表</h3>
-            <span class="pf-card-sub">按模型名（key）指定上游 provider / 地址 / Key</span>
-          </div>
-          <el-button class="pf-foot-btn" @click="addRouteRow">
+      <div v-if="isFreeChannelProvider" class="pf-routes">
+        <div class="pf-routes-head">
+          <span class="pf-routes-title">模型路由表</span>
+          <span class="pf-note">按模型名（key）指定上游 provider / 地址 / Key</span>
+          <el-button class="pf-routes-add" link type="primary" @click="addRouteRow">
             <el-icon :size="13"><Add24Regular /></el-icon>添加路由
           </el-button>
-        </header>
+        </div>
         <div class="route-list">
           <!-- 错误提示：重复 key/空 key 等，保存时统一展示 -->
           <div v-if="routeHint" class="route-hint">
@@ -954,16 +1157,16 @@ const protocolOptions = [
             </div>
           </div>
         </div>
-      </section>
+      </div>
     </div>
 
     <template #footer>
       <div class="pf-footer">
         <span v-if="testing" class="pf-testing">连接测试中…</span>
         <div class="pf-footer-btns">
-          <el-button class="pf-foot-btn" @click="dialogVisible = false">取消</el-button>
-          <el-button v-if="!isLocalProvider" class="pf-foot-btn" :loading="testing" @click="handleTestConnection">测试连接</el-button>
-          <el-button class="pf-foot-btn pf-foot-primary" type="primary" @click="handleSave">保存</el-button>
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button v-if="!isLocalProvider" :loading="testing" @click="handleTestConnection">测试连接</el-button>
+          <el-button type="primary" @click="handleSave">保存</el-button>
         </div>
       </div>
     </template>
@@ -1028,216 +1231,121 @@ const protocolOptions = [
 /*
  * 滚动交给外层 .l-dialog__body（LDialog 里已设 flex:1 / min-height:0 / overflow-y:auto）。
  * 这里不要再设 max-height + overflow，否则会形成「双层滚动容器」：
- * .pf-body 被硬卡在 64vh，而三张卡片作为 flex 子项默认 flex-shrink:1 会被压缩，
- * 卡片自身 overflow:hidden 再把内容裁掉（曾导致「添加 API Key」按钮只剩半截、
- * 「自定义请求头」textarea 整块不可见）。
+ * 表单被硬卡在 64vh，卡片自身 overflow:hidden 再把内容裁掉。
+ *
+ * 版式（2026-11-12）：对齐「简洁表单」口径 —— 左侧标签 + 右侧控件同行，
+ * 不再用带图标头的分区卡片；高级项收进「高级」折叠区。
  */
 .pf-body {
-  padding: 4px 4px 8px;
+  padding: 2px 2px 6px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-/* 卡片分区 */
-.pf-card {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-bg-color-overlay);
-  overflow: hidden;
-  /* 禁止被 flex 压缩：卡片高度必须由内容决定 */
-  flex-shrink: 0;
-}
-.pf-card-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 16px;
-  border-bottom: 1px solid var(--el-border-color-light);
-  background: color-mix(in srgb, var(--el-border-color-light) 35%, var(--el-bg-color-overlay));
-}
-.pf-card-ico {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--el-radius-lg, 12px);
-  color: var(--el-color-white);
-  background: var(--el-color-primary);
-  flex-shrink: 0;
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
-}
-.pf-card-ico.ico-key { background: var(--el-color-warning); box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-warning) 30%, transparent); }
-.pf-card-ico.ico-set { background: var(--el-color-info); box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-info) 30%, transparent); }
-.pf-card-ico.ico-route { background: var(--el-color-success); box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-success) 30%, transparent); }
-.pf-card-title-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.pf-card-title {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  margin: 0;
-  letter-spacing: .2px;
-}
-.pf-card-sub { font-size: 11px; color: var(--el-text-color-regular); }
-.pf-key-count {
-  height: 28px;
-  padding: 0 10px;
-  font-size: 11.5px;
-  border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-light);
-  color: var(--el-text-color-regular);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-.pf-key-count:hover { color: var(--el-color-primary); border-color: var(--el-color-primary); }
-
-/*
- * 表单纵向节奏统一用 flex gap 表达，不再用「相邻兄弟加 margin-top」：
- * 后者在 .pf-row 的两列网格内部也会命中，把第二列整体推下 14px（名字 / 协议类型 错位），
- * 而对 .pf-row 之后的「API 地址」又不生效（其前一个兄弟是 .pf-row 而非 .el-form-item），
- * 导致该行完全没有行间距。
- */
-.pf-form {
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.pf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
-.pf-adv { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
-
-.pf-form :deep(.el-form-item) { margin-bottom: 0; margin-top: 0; }
-.pf-form :deep(.el-form-item__label) {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-regular);
-  padding-bottom: 6px;
-  line-height: 1.4;
-}
-.pf-adv :deep(.el-form-item) { margin-bottom: 0; }
-.pf-adv :deep(.el-form-item__label) {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--el-text-color-regular);
-  padding-bottom: 6px;
-  line-height: 1.4;
-}
-
-/* ReSelect（@repo/ui）自带 modern 样式，用 :not(.re-select) 把它排除在本文件的
-   通用输入框覆盖之外，避免两套圆角/边框规则互相打架 */
-.pf-form :deep(.el-input__wrapper),
-.pf-form :deep(.el-textarea__inner),
-.pf-form :deep(.el-select:not(.re-select) .el-select__wrapper),
-.pf-adv :deep(.el-input__wrapper),
-.pf-adv :deep(.el-textarea__inner),
-.pf-adv :deep(.el-select:not(.re-select) .el-select__wrapper) {
-  border-radius: var(--el-radius-lg, 12px);
-  box-shadow: 0 0 0 1px var(--el-border-color-light) inset;
-  background: var(--el-bg-color-overlay);
-  transition: box-shadow 0.18s ease;
-}
-.pf-form :deep(.el-input__prefix),
-.pf-adv :deep(.el-input__prefix) { color: var(--el-text-color-disabled); }
-
-/* 开关行 */
-.pf-switch-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-radius-lg, 12px);
-  background: color-mix(in srgb, var(--el-border-color-light) 25%, var(--el-bg-color-overlay));
-}
-.pf-switch-label { font-size: 12.5px; font-weight: 600; color: var(--el-text-color-primary); display: block; }
-.pf-switch-sub { font-size: 11px; color: var(--el-text-color-regular); display: block; margin-top: 2px; }
-
-/* Key 管理 */
-.key-list { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-
-/* 认证方式 */
-.auth-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-radius-lg, 12px);
-  background: color-mix(in srgb, var(--el-border-color-light) 25%, var(--el-bg-color-overlay));
-}
-.auth-block-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
   gap: 10px;
 }
-.auth-label { font-size: 12.5px; font-weight: 600; color: var(--el-text-color-primary); }
-.auth-hint { font-size: 11px; color: var(--el-text-color-regular); text-align: right; }
-.auth-custom :deep(.el-input__wrapper) {
-  border-radius: var(--el-radius-lg, 12px);
-  box-shadow: 0 0 0 1px var(--el-border-color-light) inset;
-  background: var(--el-bg-color-overlay);
-  transition: box-shadow 0.18s ease;
+
+/* 一行：左标签（右对齐）+ 右控件 */
+.pf-line {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
 }
-/* ReSelect 触发栏铺满容器（组件默认 display:block，这里只保证宽度） */
-.auth-select { width: 100%; }
-.auth-custom { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
-.auth-custom :deep(.el-form-item) { margin-bottom: 0; margin-top: 0; }
-.auth-custom :deep(.el-form-item__label) {
-  font-size: 12px;
-  font-weight: 600;
+.pf-line-label {
+  font-size: 13px;
   color: var(--el-text-color-regular);
-  padding-bottom: 6px;
-  line-height: 1.4;
+  line-height: 32px;
+  text-align: right;
+  white-space: nowrap;
 }
-.auth-preview {
+.pf-line-ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.pf-line-ctrl.pf-inline { flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pf-note {
   margin: 0;
   font-size: 11.5px;
-  color: var(--el-text-color-regular);
   line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
-.auth-preview code {
+.pf-note code {
   font-family: Consolas, Monaco, 'Courier New', monospace;
   font-size: 11px;
   padding: 1px 5px;
-  border-radius: var(--el-radius-md, 8px);
+  border-radius: 4px;
   background: var(--el-fill-color-light);
   color: var(--el-color-primary);
   word-break: break-all;
 }
-
+.pf-note strong { color: var(--el-text-color-primary); }
+/* 并排两张输入（自定义认证头名 / 前缀） */
+.pf-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* 多协议端点：协议名 + 地址一行 */
+.pf-endpoint { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: center; }
+.pf-endpoint-name { font-size: 12px; color: var(--el-text-color-secondary); }
+/* 限流三项：数字框不铺满整行 */
+.pf-num { width: 160px; }
 /* ONNX 模型根目录：只读输入 + 绑定按钮并排 */
-.pf-onnx-root { display: flex; gap: 10px; align-items: stretch; width: 100%; }
-.pf-onnx-root-input { flex: 1; }
-.pf-onnx-root-hint {
-  margin: 6px 0 0;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-  width: 100%;
-}
-.pf-copy-btn { margin-left: 6px; font-size: 11px; }
-.key-exist-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  background: var(--el-color-warning-light-9);
-  border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
-  padding: 10px 12px;
-  border-radius: var(--el-radius-lg, 12px);
-  line-height: 1.6;
-}
-.key-exist-hint > .el-icon { color: var(--el-color-warning); flex-shrink: 0; margin-top: 2px; }
-.key-exist-hint strong { color: var(--el-text-color-primary); }
-.key-exist-tip { color: var(--el-color-warning); }
+.pf-root { display: flex; gap: 8px; align-items: stretch; }
+.pf-root-input { flex: 1; }
 
-.key-row { display: flex; align-items: center; gap: 8px; }
+/* 高级折叠 */
+.pf-more { border-top: 1px solid var(--el-border-color-lighter); padding-top: 6px; }
+.pf-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+}
+.pf-more-toggle:hover { color: var(--el-color-primary); }
+/* 折叠态摘要：已配项用轻量 chip 呈现，扫一眼就知道有没有配过 */
+.pf-more-chips { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; flex-wrap: wrap; }
+.pf-chip {
+  font-size: 11px; line-height: 18px; padding: 0 7px; border-radius: 9px;
+  color: var(--el-color-primary); background: var(--el-color-primary-light-9);
+}
+.pf-more-hint { margin-left: 4px; font-size: 11px; color: var(--el-text-color-disabled); }
+/* 高级区分组标题：请求 / 网络与限流，用上间距与小字号建立层级，不加边框噪音 */
+.pf-section {
+  margin-top: 4px; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+  color: var(--el-text-color-secondary);
+}
+.pf-section::after {
+  content: ''; display: block; margin-top: 6px; height: 1px;
+  background: var(--el-border-color-lighter);
+}
+.pf-more-arrow { transition: transform 0.18s ease; }
+.pf-more-arrow.is-open { transform: rotate(180deg); }
+.pf-more-body { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; }
+
+/* 模型路由表（免费渠道专属） */
+.pf-routes { border-top: 1px solid var(--el-border-color-lighter); padding-top: 8px; }
+.pf-routes-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pf-routes-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
+.pf-routes-add { margin-left: auto; }
+
+
+/* ReSelect（@repo/ui）自带 modern 样式，用 :not(.re-select) 把它排除在本文件的
+   通用输入框覆盖之外，避免两套圆角/边框规则互相打架 */
+.pf-body :deep(.el-input__wrapper),
+.pf-body :deep(.el-textarea__inner),
+.pf-body :deep(.el-select:not(.re-select) .el-select__wrapper) {
+  border-radius: 6px;
+}
+.pf-body :deep(.el-input__prefix) { color: var(--el-text-color-disabled); }
+/* ReSelect 触发栏铺满容器（组件默认 display:block，这里只保证宽度） */
+.auth-select { width: 100%; }
+
+/* Key 管理 */
+.pf-keys { display: flex; flex-direction: column; gap: 6px; }
+.key-row { display: flex; align-items: center; gap: 6px; }
 .key-row .el-input { flex: 1; }
 .key-filled :deep(.el-input__wrapper) {
   box-shadow: 0 0 0 1px var(--el-color-success-light-5) inset;
@@ -1249,7 +1357,7 @@ const protocolOptions = [
   color: var(--el-text-color-disabled);
   display: inline-flex;
   padding: 4px;
-  border-radius: var(--el-radius-md, 8px);
+  border-radius: 4px;
   transition: all 0.15s ease;
 }
 .key-eye:hover { color: var(--el-text-color-primary); background: var(--el-fill-color-light); }
@@ -1261,57 +1369,62 @@ const protocolOptions = [
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--el-radius-md, 8px);
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
 .key-remove:hover { color: var(--el-color-danger); background: var(--el-color-danger-light-9); }
 
-.key-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.add-key-btn {
+/* 添加 Key / 获取 Key：轻量文字按钮，和简洁版式一致 */
+.pf-add {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: 1px dashed var(--el-text-color-disabled);
-  background: transparent;
-  color: var(--el-text-color-regular);
-  border-radius: var(--el-radius-lg, 12px);
-  height: 36px;
-  padding: 0 14px;
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-.add-key-btn:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-  border-style: solid;
-  background: var(--el-color-primary-light-9);
-}
-.get-key-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: none;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px dashed var(--el-border-color);
   background: transparent;
   color: var(--el-text-color-regular);
   font-size: 12px;
+  border-radius: 6px;
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: var(--el-radius-md, 8px);
   transition: all 0.15s ease;
 }
-.get-key-btn:hover { color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
+.pf-add:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.pf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+.pf-link:hover { color: var(--el-color-primary); }
+.pf-copy-btn { margin-left: 6px; font-size: 11px; }
+
+/* 账号渠道：已绑定账号列表 */
+.ch-conn-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ch-conn-list li { display: flex; align-items: center; gap: 6px; }
+.ch-conn-label { color: var(--el-text-color-regular); }
+.ch-conn-state { font-size: 11px; padding: 0 5px; border-radius: 4px; background: var(--el-fill-color); }
+.ch-conn-state.is-valid { color: var(--el-color-success); background: var(--el-color-success-light-9); }
+.ch-conn-state.is-stale { color: var(--el-color-warning); background: var(--el-color-warning-light-9); }
 
 .test-result {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: var(--el-radius-lg, 12px);
+  padding: 8px 10px;
+  border-radius: 6px;
   font-size: 12.5px;
   animation: pf-fade-in 0.25s ease;
   border: 1px solid transparent;
@@ -1346,19 +1459,14 @@ const protocolOptions = [
 }
 .pf-testing { font-size: 12px; color: var(--el-color-primary); }
 .pf-footer-btns { display: flex; justify-content: flex-end; gap: 10px; margin-left: auto; }
-.pf-foot-btn {
-  border-radius: var(--el-radius-lg, 12px);
-  min-width: 76px;
-  cursor: pointer;
-}
 /* 按钮配色回归 Element Plus 默认：此前这里自造了背景色 / 边框色 / 主色阴影，
-   与全局按钮口径不一致（悬停还会整块变色）。只保留圆角与最小宽度。 */
+   与全局按钮口径不一致（悬停还会整块变色）。 */
 
 /* 模型路由表（免费渠道专属：extra.routes 编辑态） */
-.route-list { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.route-list { padding-top: 10px; display: flex; flex-direction: column; gap: 10px; }
 .route-empty {
   text-align: center;
-  padding: 24px 0;
+  padding: 20px 0;
   font-size: 12.5px;
   color: var(--el-text-color-regular);
 }
@@ -1370,14 +1478,14 @@ const protocolOptions = [
   color: var(--el-text-color-regular);
   background: var(--el-color-warning-light-9);
   border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
-  padding: 10px 12px;
-  border-radius: var(--el-radius-lg, 12px);
+  padding: 8px 10px;
+  border-radius: 6px;
   line-height: 1.6;
 }
 .route-hint-icon { color: var(--el-color-warning); flex-shrink: 0; margin-top: 1px; }
 .route-row {
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-radius-lg, 12px);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
   background: var(--el-bg-color-overlay);
   overflow: hidden;
 }

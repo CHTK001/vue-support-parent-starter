@@ -2,12 +2,19 @@
   <div class="svc" data-page="service" :class="{ 'is-focus': focusConsole }">
     <!-- ==================== 00 页头 ==================== -->
     <!-- 统一用 RePageHead（全站共用一份页面头实现） -->
-    <RePageHead title="服务配置">
+    <RePageHead title="服务管理">
       <template #sub>
-        对外服务实例、访问记录与进程运行日志。<b>{{ instances.length }}</b> 个实例 ·
-        <b>{{ runningCount }}</b> 个运行中
+        <b>{{ instances.length }}</b> 个实例 · <b>{{ runningCount }}</b> 个运行中
+        <template v-if="downCount > 0"> · <b class="svc-sub-warn">{{ downCount }}</b> 个启动失败</template>
+        <template v-if="runningPorts"> · 对外端口 {{ runningPorts }}</template>
       </template>
       <template #actions>
+        <!-- 统计窗口：指标带与端口卡共用同一窗口，避免两处口径打架 -->
+        <el-select v-model.number="statsWindowHours" class="svc-select svc-select--fixed" aria-label="统计窗口">
+          <el-option label="近 24 小时" :value="24" />
+          <el-option label="近 7 天" :value="168" />
+          <el-option label="近 30 天" :value="720" />
+        </el-select>
         <!-- 静默轮询的「数据新鲜度」信号：6px 圆点 + 等宽时间戳，不遮罩正在读的那行 -->
         <span class="svc-stamp" :class="{ 'is-live': runtimeLoading }">
           <i class="svc-stamp__dot" aria-hidden="true"></i>更新于 <b>{{ lastSyncText }}</b>
@@ -26,37 +33,29 @@
     <!-- ==================== 00b 状态带（Q1 的唯一答案） ==================== -->
     <section class="svc-band" aria-label="服务健康概览">
       <div class="svc-band__cell">
-        <span class="svc-band__num">{{ runningCount }}<i>/{{ instances.length }}</i></span>
-        <span class="svc-band__label">实例运行中</span>
+        <span class="svc-band__num">{{ formatCompact(instanceCalls) }}<i> 次</i></span>
+        <span class="svc-band__label">请求总数 · 近 {{ statsWindowHours }} 小时</span>
       </div>
-      <div class="svc-band__cell is-warn" v-if="downCount > 0">
-        <span class="svc-band__num">{{ downCount }}</span>
-        <span class="svc-band__label">启动失败</span>
-      </div>
-      <div class="svc-band__cell">
-        <span class="svc-band__num">{{ logs.length }}<i> 条</i></span>
-        <span class="svc-band__label">已加载访问记录</span>
-      </div>
-      <div class="svc-band__cell is-danger" v-if="errorCount > 0">
-        <span class="svc-band__num">{{ errorCount }}<i> 次</i></span>
-        <span class="svc-band__label">{{ errorCountScopeLabel }}</span>
+      <div class="svc-band__cell" :class="{ 'is-danger': instanceErrors > 0 }">
+        <span class="svc-band__num">{{ instanceSuccessRate }}<i v-if="instanceCalls">%</i></span>
+        <span class="svc-band__label">成功率 · 失败 {{ instanceErrors }} 次</span>
       </div>
       <div class="svc-band__cell">
-        <span class="svc-band__num">{{ formatCompact(totalTokens) }}</span>
-        <span class="svc-band__label">Token 合计 · 均耗时 {{ avgLatency }}</span>
+        <span class="svc-band__num">{{ formatCompact(instanceTokens) }}</span>
+        <span class="svc-band__label">Token 合计</span>
+      </div>
+      <div class="svc-band__cell">
+        <span class="svc-band__num">{{ instanceAvgLatency }}</span>
+        <span class="svc-band__label">平均耗时 · 按调用量加权</span>
+      </div>
+      <div class="svc-band__cell" :class="{ 'is-danger': keyStats.atRisk > 0 }">
+        <span class="svc-band__num">{{ keyStats.atRisk }}<i> 把</i></span>
+        <span class="svc-band__label">AppKey 风险</span>
       </div>
     </section>
 
     <!-- ==================== 01 实例端口带 ==================== -->
     <section class="svc-inst" aria-label="服务实例">
-      <div class="svc-sect__head">
-        <span class="svc-sect__no">01</span>
-        <h3 class="svc-sect__title" id="svc-inst-t">服务实例</h3>
-        <div class="svc-sect__extra">
-          <span class="svc-sect__hint">{{ instances.length }} 个 · {{ runningCount }} 个在跑</span>
-        </div>
-      </div>
-
       <!-- 内联错误条：旧数据不清空（实例卡片继续可读） -->
       <div class="svc-alert is-danger" v-if="instError">
         <span class="svc-alert__text">服务实例加载失败：{{ instError }}</span>
@@ -99,11 +98,14 @@
           <span class="svc-tile__state" aria-hidden="true"></span>
           <div class="svc-tile__body">
             <div class="svc-tile__line">
-              <span class="svc-tile__port">:{{ t.port }}</span>
               <b class="svc-tile__name" :title="t.name">{{ t.name }}</b>
+              <span class="svc-badge" :class="statusBadgeClass(t)"><i aria-hidden="true"></i>{{ statusBadgeText(t) }}</span>
+            </div>
+            <div class="svc-tile__portline">
+              <span>:{{ t.port }}</span>
+              <span class="svc-tile__last">最近 {{ t.lastAt ? toClock(t.lastAt) : '—' }}</span>
             </div>
             <div class="svc-tile__meta">
-              <span class="svc-badge" :class="statusBadgeClass(t)"><i aria-hidden="true"></i>{{ statusBadgeText(t) }}</span>
               <span class="svc-tile__protos">
                 <span class="svc-chip is-protocol" v-if="t.enableGpt">GPT</span>
                 <span class="svc-chip is-protocol" v-if="t.enableCc">CC</span>
@@ -112,9 +114,25 @@
               </span>
               <span class="svc-tile__usage">用量 {{ t.logUsage ? '开' : '关' }}</span>
             </div>
+            <!-- 请求量迷你折线：窗口内切 24 个桶，形状可比 -->
+            <div class="svc-tile__spark" v-if="t.spark && t.spark.length" aria-hidden="true">
+              <svg viewBox="0 0 100 26" preserveAspectRatio="none">
+                <polyline :points="sparkPoints(t.spark)" />
+              </svg>
+            </div>
+            <!-- 近 N 小时的真实读数（后端按 instance_id 聚合）；无样本显示「—」 -->
+            <div class="svc-tile__metrics">
+              <span><b>{{ t.calls == null ? '—' : formatCompact(t.calls) }}</b><i>请求</i></span>
+              <span><b>{{ t.tokens == null ? '—' : formatCompact(t.tokens) }}</b><i>Token</i></span>
+              <span :class="{ 'is-err': (t.errors || 0) > 0 }"><b>{{ t.errors == null ? '—' : t.errors }}</b><i>失败</i></span>
+              <span><b>{{ t.p95Ms == null ? '—' : formatLatency(t.p95Ms) }}</b><i>P95</i></span>
+            </div>
           </div>
           <!-- 操作组：阻止冒泡，点「删除」不能同时切换选中 -->
           <div class="svc-tile__acts" @click.stop @keydown.stop>
+            <button class="svc-ico" title="复制接入地址" aria-label="复制接入地址" @click="copyEndpoint(t)">
+              <el-icon><CopyIcon /></el-icon>
+            </button>
             <button class="svc-ico" :disabled="busy[t.id] === true"
                     :title="t.running === true ? '停止该实例' : '启动该实例'"
                     :aria-label="t.running === true ? '停止该实例' : '启动该实例'"
@@ -236,10 +254,22 @@
           <template #access>
             <div class="svc-pane svc-pane--access">
               <div class="svc-toolbar">
-                <el-select v-model="logInstanceId" class="svc-select" @change="onScopeChange">
+                <el-select v-model="logInstanceId" class="svc-select" @change="onScopeChange" aria-label="日志作用域">
                   <el-option label="全部实例" value="" />
                   <el-option v-for="i in instances" :key="i.id" :label="`${i.name} :${i.port}`" :value="i.id" />
                 </el-select>
+                <el-select v-model.number="logHours" class="svc-select svc-select--fixed" aria-label="日志时间窗">
+                  <el-option label="最近 1 小时" :value="1" />
+                  <el-option label="最近 6 小时" :value="6" />
+                  <el-option label="最近 24 小时" :value="24" />
+                  <el-option label="最近 7 天" :value="168" />
+                </el-select>
+                <div class="svc-seg" role="group" aria-label="按结果过滤">
+                  <button class="svc-seg__btn" :class="{ 'is-active': !logOnlyFailed }"
+                          :aria-pressed="!logOnlyFailed" @click="logOnlyFailed = false">全部</button>
+                  <button class="svc-seg__btn" :class="{ 'is-active': logOnlyFailed }"
+                          :aria-pressed="logOnlyFailed" @click="logOnlyFailed = true">仅失败</button>
+                </div>
                 <el-input v-model="logKeyword" class="svc-search" placeholder="过滤端点 / 模型" clearable />
                 <span class="svc-count"><b>{{ filteredLogs.length }}</b> 条</span>
                 <el-button class="svc-btn" @click="loadLogs">刷新</el-button>
@@ -298,6 +328,9 @@
                   <template #col-protocol="{ row }">
                     <span class="svc-chip is-protocol" v-if="row.protocol">{{ protoLabel(row.protocol) }}</span>
                   </template>
+                  <template #col-model="{ row }">
+                    <span class="svc-model" :title="row.model">{{ row.model || '—' }}</span>
+                  </template>
                   <template #col-status="{ row }">
                     <span class="svc-status" :class="httpClass(row.status)">
                       <b>{{ row.status == null || row.status === 0 ? '—' : row.status }}</b><i>{{ httpText(row.status) }}</i>
@@ -344,29 +377,13 @@
         </ReTab>
       </section>
 
-      <!-- ---------- 右栏：台账概览 / 正在排查 ---------- -->
+      <!-- ---------- 右栏：额度风险 / 分组（与定稿「网关控制台」一致） ---------- -->
       <aside class="svc-aside" aria-label="台账概览">
         <section class="svc-sidecard">
           <div class="svc-sidecard__h">
-            <b>台账概览</b>
-            <span>Key · 分组</span>
+            <b>额度风险</b>
+            <span>{{ keyStats.atRisk }} 把待处理</span>
           </div>
-          <div class="svc-metrics">
-            <button class="svc-metric" @click="activeTab = 'keys'">
-              <b>{{ keyStats.total }}</b><i>AppKey</i>
-            </button>
-            <button class="svc-metric" @click="activeTab = 'keys'">
-              <b>{{ keyStats.usable }}</b><i>可用</i>
-            </button>
-            <button class="svc-metric" :class="{ 'is-warn': keyStats.atRisk > 0 }" @click="activeTab = 'keys'">
-              <b>{{ keyStats.atRisk }}</b><i>有风险</i>
-            </button>
-          </div>
-          <div class="svc-kv"><span>已耗 Token</span><b>{{ formatCompact(keyStats.usedTokens) }}</b></div>
-          <div class="svc-kv"><span>分组</span><b>{{ groupStats.total }} 个 · {{ groupStats.models }} 模型</b></div>
-          <div class="svc-kv"><span>分组内成员 Key</span><b>{{ groupStats.keys }}</b></div>
-
-          <!-- 风险清单：名称 + 余量 + 状态三件套；点一行直接跳台账 -->
           <div class="svc-risk" v-if="keyStats.risk && keyStats.risk.length">
             <button v-for="k in keyStats.risk" :key="k.id" class="svc-risk__row" @click="activeTab = 'keys'">
               <span class="svc-risk__name" :title="k.name">{{ k.name }}</span>
@@ -374,31 +391,26 @@
               <i class="svc-risk__tag" :class="'is-' + k.tone">{{ k.statusText }}</i>
             </button>
           </div>
-          <p class="svc-sidecard__note" v-else-if="keyStats.total">
-            没有额度告急或即将到期的 Key。
-          </p>
+          <p class="svc-sidecard__note" v-else-if="keyStats.total">没有额度告急或即将到期的 Key。</p>
+          <p class="svc-sidecard__note" v-else>Key 台账还没有数据。</p>
+          <div class="svc-kv"><span>AppKey 可用</span><b>{{ keyStats.usable }} / {{ keyStats.total }}</b></div>
+          <div class="svc-kv"><span>已耗 Token</span><b>{{ formatCompact(keyStats.usedTokens) }}</b></div>
+          <button class="svc-linkbtn" @click="activeTab = 'keys'">查看 Key 台账 →</button>
         </section>
 
         <section class="svc-sidecard">
           <div class="svc-sidecard__h">
-            <b>正在排查</b>
-            <span class="svc-mono">{{ activeInstance ? ':' + activeInstance.port : '未选中' }}</span>
+            <b>分组</b>
+            <span>{{ groupStats.total }} 个</span>
           </div>
-          <template v-if="activeInstance">
-            <div class="svc-instline">
-              <b>{{ activeInstance.name }}</b>
-              <span class="svc-badge" :class="statusBadgeClass(activeInstance)">
-                <i aria-hidden="true"></i>{{ statusBadgeText(activeInstance) }}
-              </span>
-            </div>
-            <div class="svc-kv"><span>失败请求</span><b>{{ failedForActive }} 次</b></div>
-            <div class="svc-kv"><span>访问记录作用域</span><b>{{ logInstanceId ? '仅该实例' : '全部实例' }}</b></div>
-            <p class="svc-sidecard__note">运行日志是进程级输出，不按实例过滤；用它看启动与上游报错。</p>
-            <button class="svc-linkbtn" @click="activeTab = 'runtime'">打开运行日志 →</button>
-          </template>
-          <p class="svc-sidecard__note" v-else>
-            点上方任一实例卡片，这里会锁定到该实例的端口与失败请求数。
-          </p>
+          <div class="svc-grps" v-if="groupStats.items.length">
+            <button v-for="g in groupStats.items" :key="g.id" class="svc-grps__row" @click="activeTab = 'groups'">
+              <span class="svc-grps__name" :title="g.name">{{ g.name }}</span>
+              <span class="svc-grps__meta">{{ g.models }} 模型 · {{ g.members }} Key</span>
+            </button>
+          </div>
+          <p class="svc-sidecard__note" v-else>还没有分组。</p>
+          <button class="svc-linkbtn" @click="activeTab = 'groups'">查看分组 →</button>
         </section>
       </aside>
     </div>
@@ -446,7 +458,7 @@ import ServiceGroupLedger from './ServiceGroupLedger.vue'
 import {
   Play20Regular, Stop20Regular, Key20Regular, Delete20Regular,
   ArrowMaximize20Regular, ArrowMinimize20Regular,
-  ArrowClockwise20Regular, Add24Regular,
+  ArrowClockwise20Regular, Add24Regular, Copy24Regular,
 } from '@vicons/fluent'
 
 const http = createClient(v2Http, { unwrap: false })
@@ -459,6 +471,7 @@ const FullscreenIcon = ArrowMaximize20Regular
 const MinimizeIcon = ArrowMinimize20Regular
 const RefreshIcon = ArrowClockwise20Regular
 const AddIcon = Add24Regular
+const CopyIcon = Copy24Regular
 
 // ============================================================================
 // §4.3 六个纯函数（无副作用、不碰接口字段、可独立单测）
@@ -521,6 +534,28 @@ function formatCompact(n: unknown): string {
   if (v >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'M'
   if (v >= 1e4) return (v / 1e3).toFixed(1).replace(/\.0$/, '') + 'k'
   return String(Math.round(v))
+}
+
+/**
+ * 请求量分桶序列 → SVG polyline 点串。
+ *
+ * <p>固定 viewBox 100×26、上下各留 2px：后端窗口是 24h/7d/30d 但桶数恒为 24，
+ * 所以三个窗口的折线形状可比，不会因为点多点少而「看起来抖」。</p>
+ *
+ * @param values 桶数组（0 表示该时段没有请求）
+ * @returns {@code "x,y x,y …"}
+ */
+function sparkPoints(values: number[]): string {
+  const list = values && values.length ? values : [0]
+  const max = Math.max(...list, 1)
+  const step = list.length > 1 ? 96 / (list.length - 1) : 96
+  return list
+    .map((v, i) => {
+      const x = (2 + i * step).toFixed(1)
+      const y = (24 - (Math.max(Number(v) || 0, 0) / max) * 20).toFixed(1)
+      return `${x},${y}`
+    })
+    .join(' ')
 }
 
 /** 时间戳 → HH:mm:ss；超过 60s 改为「N 分前 / N 小时前 / N 天前」 */
@@ -592,6 +627,7 @@ function asList(payload: any, key: string): any[] {
 }
 
 function mapInstance(r: any) {
+  const num = (v: any) => (v == null || v === '' || !isFinite(Number(v)) ? null : Number(v))
   return {
     id: r.instanceId ?? r.id,
     name: r.instanceName ?? r.name,
@@ -605,6 +641,16 @@ function mapInstance(r: any) {
     // 误判成「未启动」。这里保留 null，由 statusBadgeClass 走 is-unknown。
     running: toBoolOrNull(r.running),
     enabled: toBoolOrNull(r.enabled),
+    // 近 24 小时聚合（后端按 instance_id 从访问日志算出来）。
+    // 缺字段一律 null：卡片画「—」，不把「没有数据」伪装成 0。
+    calls: num(r.calls),
+    successCalls: num(r.successCalls),
+    errors: num(r.errors),
+    tokens: num(r.tokens),
+    avgLatencyMs: num(r.avgLatencyMs),
+    p95Ms: num(r.p95Ms),
+    spark: Array.isArray(r.spark) ? r.spark.map((v: any) => Number(v) || 0) : null,
+    lastAt: num(r.lastAt),
   }
 }
 
@@ -635,8 +681,9 @@ function mapLog(r: any) {
 // ============================================================================
 const logColumns: ReTableColumn[] = [
   { prop: 'callTime', label: '时间', minWidth: 132, fixed: 'left', slot: 'callTime' },
-  { prop: 'endpoint', label: '端点', minWidth: 190, slot: 'endpoint' },
+  { prop: 'endpoint', label: '端点', minWidth: 170, slot: 'endpoint' },
   { prop: 'protocol', label: '协议', width: 76, slot: 'protocol' },
+  { prop: 'model', label: '模型', minWidth: 112, slot: 'model' },
   { prop: 'status', label: '状态', width: 116, slot: 'status' },
   { prop: 'totalTokens', label: 'Token', width: 118, align: 'right', slot: 'totalTokens' },
   { prop: 'latency', label: '耗时', width: 84, align: 'right', slot: 'latency' },
@@ -693,10 +740,20 @@ function onKeyStats(v: {
  * 两边一有写操作就互相 bump 刷新键，避免「两个页签说法不一致」。
  */
 const groupRefreshKey = ref(0)
-const groupStats = ref({ total: 0, models: 0, keys: 0 })
+const groupStats = ref<{
+  total: number
+  models: number
+  keys: number
+  items: Array<{ id: any; name: string; models: number; members: number }>
+}>({ total: 0, models: 0, keys: 0, items: [] })
 
-function onGroupStats(v: { total: number; models: number; keys: number }) {
-  groupStats.value = v
+function onGroupStats(v: {
+  total: number
+  models: number
+  keys: number
+  items?: Array<{ id: any; name: string; models: number; members: number }>
+}) {
+  groupStats.value = { ...v, items: v.items || [] }
 }
 
 function onGroupChanged() {
@@ -721,6 +778,9 @@ const logsLoading = ref(false)
 const logsError = ref('')
 const logInstanceId = ref<any>('')
 const logKeyword = ref('')
+/** 访问日志时间窗（小时）与「仅失败」过滤：口径与后端 params 一致 */
+const logHours = ref(24)
+const logOnlyFailed = ref(false)
 
 const lastSyncAt = ref(0)
 const lastSyncText = computed(() => toClock(lastSyncAt.value))
@@ -800,6 +860,44 @@ function hasDetail(row: any): boolean {
 // ============================================================================
 const runningCount = computed(() => instances.value.filter((i) => i.running === true).length)
 const downCount = computed(() => instances.value.filter(isDown).length)
+/** 页头副标题里的对外端口：只列正在跑的实例，停了的不该出现在「对外」里 */
+const runningPorts = computed(() =>
+  instances.value.filter((i) => i.running === true && i.port).map((i) => ':' + i.port).join(' / '))
+
+/**
+ * 端口卡统计的窗口（小时）：由后端 `statsWindowHours` 回传，文案与数字同源。
+ */
+const statsWindowHours = ref(24)
+
+/**
+ * 全站汇总：只累加「有数据」的实例。
+ *
+ * <p>后端按 instance_id 从访问日志聚合，缺失字段是 null；用 0 兜底会让
+ * 「没有样本」和「0 次请求」看起来一样，所以成功率为 0 样本时显示「—」。</p>
+ */
+const instanceCalls = computed(() =>
+  instances.value.reduce((s, i) => s + (Number(i.calls) || 0), 0))
+const instanceTokens = computed(() =>
+  instances.value.reduce((s, i) => s + (Number(i.tokens) || 0), 0))
+const instanceErrors = computed(() =>
+  instances.value.reduce((s, i) => s + (Number(i.errors) || 0), 0))
+const instanceSuccessRate = computed(() => {
+  if (!instanceCalls.value) return '—'
+  const ok = Math.max(instanceCalls.value - instanceErrors.value, 0)
+  return ((ok / instanceCalls.value) * 100).toFixed(2)
+})
+const instanceAvgLatency = computed(() => {
+  // 按调用量加权：不加权会让「1 次请求的实例」和「1 万次请求的实例」等权
+  let weight = 0
+  let sum = 0
+  for (const i of instances.value) {
+    const calls = Number(i.calls) || 0
+    if (!calls || i.avgLatencyMs == null) continue
+    weight += calls
+    sum += i.avgLatencyMs * calls
+  }
+  return weight ? formatLatency(sum / weight) : '—'
+})
 const filteredLogs = computed(() => {
   const kw = logKeyword.value.trim().toLowerCase()
   if (!kw) return logs.value
@@ -841,6 +939,8 @@ const emptyAccessText = computed(() => {
   if (!logs.value.length && activeInstance.value && !activeInstance.value.logUsage) {
     return '该实例未开启用量记录'
   }
+  // 作用域是「全部实例」时不能说「该实例」——那是一个不存在的实例
+  if (!logInstanceId.value) return '所选时间窗内没有访问记录'
   return '该实例还没有访问记录'
 })
 const emptyAccessHint = computed(() => {
@@ -848,6 +948,7 @@ const emptyAccessHint = computed(() => {
   if (!logs.value.length && activeInstance.value && !activeInstance.value.logUsage) {
     return '在实例卡片上开启「用量」后才会记录'
   }
+  if (!logInstanceId.value) return '放宽时间窗或关掉「仅失败」再看'
   return '请求打进来后会出现在这里'
 })
 
@@ -1013,6 +1114,8 @@ function applyAutoRefresh() {
 
 function onVisibilityChange() {
   if (document.hidden) return
+  // 回到页面时先补一次实例状态，别让用户对着停更的读数排障
+  loadInstances()
   // 恢复可见时补拉一次，别让用户对着停更的日志排查
   if (runtimeAutoRefresh.value) loadRuntimeLogs()
 }
@@ -1049,9 +1152,11 @@ async function loadInstances() {
   instLoading.value = true
   instError.value = ''
   try {
-    const res = await http.get('/service/instances')
+    const res = await http.get('/service/instances', { params: { hours: statsWindowHours.value } })
     const list = asList(res.data, 'instances').map(mapInstance)
     instances.value = list
+    const hours = Number(res.data?.statsWindowHours)
+    if (isFinite(hours) && hours > 0) statsWindowHours.value = hours
     // 选中的实例被删掉 → 作用域回落到第一个（或清空）
     if (list.length && !list.some((i) => String(i.id) === String(activeId.value))) {
       activeId.value = list[0].id
@@ -1071,13 +1176,17 @@ async function loadInstances() {
 }
 
 async function loadLogs() {
-  if (!logInstanceId.value) { logs.value = []; logsError.value = ''; return }
   logsLoading.value = true
   logsError.value = ''
   try {
-    const res = await http.get('/service/logs', {
-      params: { instanceId: logInstanceId.value, limit: 50 },
-    })
+    // 「全部实例」= 不传 instanceId；早先传空串会被后端当成 eq('')，一条都查不到
+    const params: Record<string, any> = {
+      limit: 100,
+      hours: logHours.value,
+      onlyFailed: logOnlyFailed.value,
+    }
+    if (logInstanceId.value) params.instanceId = logInstanceId.value
+    const res = await http.get('/service/logs', { params })
     logs.value = asList(res.data, 'logs').map(mapLog)
     lastSyncAt.value = Date.now()
   } catch (e: any) {
@@ -1208,6 +1317,38 @@ function openTokens(t: any) {
 }
 
 // ============================================================================
+// 接入地址 / 自动刷新
+// ============================================================================
+
+/**
+ * 复制实例的接入地址（OpenAI 兼容根）。
+ *
+ * @param t 实例
+ */
+async function copyEndpoint(t: any) {
+  const host = (typeof window !== 'undefined' && window.location?.hostname) || '127.0.0.1'
+  const url = `http://${host}:${t.port}/v1`
+  try {
+    await navigator.clipboard.writeText(url)
+    message.success(`已复制接入地址 ${url}`)
+  } catch {
+    message.warning(`接入地址：${url}`)
+  }
+}
+
+/** 服务页自动刷新：10 秒一次，标签页隐藏时跳过（与运行日志的轮询同一口径） */
+let serviceTimer: ReturnType<typeof setInterval> | null = null
+
+function applyServiceAutoRefresh() {
+  if (serviceTimer) { clearInterval(serviceTimer); serviceTimer = null }
+  serviceTimer = setInterval(() => {
+    if (typeof document !== 'undefined' && document.hidden) return
+    loadInstances()
+    if (activeTab.value === 'access') loadLogs()
+  }, 10000)
+}
+
+// ============================================================================
 // 生命周期
 // ============================================================================
 
@@ -1217,10 +1358,15 @@ watch(runtimeAutoRefresh, applyAutoRefresh)
 watch(pollMs, applyAutoRefresh)
 watch(runtimeSource, () => loadRuntimeLogs({ force: true }))
 watch(runtimeLines, () => loadRuntimeLogs({ force: true }))
+// 统计窗口 / 日志窗口 / 失败过滤：换条件即重查，不做「改了不生效」
+watch(statsWindowHours, () => loadInstances())
+watch(logHours, () => loadLogs())
+watch(logOnlyFailed, () => loadLogs())
 
 onMounted(() => {
   loadInstances()
   loadRuntimeLogs({ force: true })
+  applyServiceAutoRefresh()
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', onVisibilityChange)
     document.addEventListener('keydown', onGlobalKey)
@@ -1229,6 +1375,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (runtimeTimer) clearInterval(runtimeTimer)
+  if (serviceTimer) clearInterval(serviceTimer)
   if (calibrateTimer) clearTimeout(calibrateTimer)
   if (kwTimer) clearTimeout(kwTimer)
   if (typeof document !== 'undefined') {

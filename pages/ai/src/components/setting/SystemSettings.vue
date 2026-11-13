@@ -621,8 +621,9 @@ const sidebarItems = computed(() => [
         adminOnly: true,
     },
     {
-        // 菜单管理：sys_menu 的增删改（侧栏菜单 + 按钮权限）。
-        // 只给管理员：写的是全局菜单表，普通用户改会直接影响所有人。
+        // 菜单管理：侧栏菜单的显示 / 隐藏（唯一维护点）。
+        // 清单与侧栏同源（config/sidebarMenu.ts），写的是本地显示偏好，改完即时生效。
+        // 与通用页原来的「菜单显示控制」重复，已删掉那一份；sys_menu 的增删改不在本应用。
         label: '菜单管理',
         path: 'menu-manage',
         icon: AppsListDetail20Regular,
@@ -813,13 +814,71 @@ const goBack = () => {
     router.replace({ name: 'Chat', params: { sessionId: 'new-session' } })
 }
 
-// 监听路由参数变化
+/**
+ * 侧边栏没列出来、但模板里确有分支的页签（服务配置 / Key 台账 / 模型 / 渠道等）。
+ * 必须与模板里 `currentTabValue === '...'` 的取值保持同一份清单，否则会被当成未知页签。
+ */
+const EXTRA_TABS = [
+    'services', 'service-tokens', 'models', 'model-metrics', 'providers', 'channels',
+]
+
+/**
+ * 旧口径 / 手写 URL 的别名。
+ *
+ * <p>典型症状：直接访问 <code>/setting/groups</code> 时模板里没有任何分支命中，
+ * 右侧只剩「系统设置 · 设置」标题，看起来像空壳。真实页签是 <code>session-groups</code>。</p>
+ */
+const TAB_ALIASES: Record<string, string> = {
+    groups: 'session-groups',
+    group: 'session-groups',
+    'session-group': 'session-groups',
+    archive: 'session-archived',
+    archived: 'session-archived',
+    skills: 'skills-source',
+    face: 'face-config',
+    reid: 'reid-config',
+    'image-search': 'image-search-config',
+    ocr: 'ocr-config',
+    paper: 'paper-config',
+    rag: 'rag-config',
+    audio: 'audio-config',
+    layout: 'layout-config',
+    menu: 'menu-manage',
+}
+
+const KNOWN_TAB_PATHS = computed(() => new Set<string>([
+    ...sidebarItems.value.map((item) => item.path),
+    ...EXTRA_TABS,
+]))
+
+/**
+ * 把 URL 里的 tab 归一成模板真有的页签。
+ *
+ * <p>未知页签不留在原地渲染空壳，而是退回默认页签并改写 URL —— 空面板无法提示用户
+ * 该页签不存在，落到「通用设置」至少是可用的。</p>
+ *
+ * @param raw URL 上的 tab 参数
+ * @returns tab 归一结果；redirected=true 表示需要改写路由
+ */
+const resolveTab = (raw?: string | null): { tab: string; redirected: boolean } => {
+    const tab = String(raw ?? '').trim()
+    if (!tab) return { tab: getDefaultTabPath(), redirected: true }
+    if (TAB_ALIASES[tab]) return { tab: TAB_ALIASES[tab], redirected: true }
+    if (KNOWN_TAB_PATHS.value.has(tab)) return { tab, redirected: false }
+    return { tab: getDefaultTabPath(), redirected: true }
+}
+
+// 监听路由参数变化（含直接改 URL / 浏览器前进后退）
 watch(() => route.params.tab, (newPath) => {
     const tabPath = Array.isArray(newPath) ? newPath[0] : (newPath as string)
-    if (tabPath && tabPath !== currentTabValue.value) {
-        currentTabValue.value = tabPath
+    const { tab, redirected } = resolveTab(tabPath)
+    if (tab !== currentTabValue.value) {
+        currentTabValue.value = tab
     }
+    // 别名/未知页签改写成有效 URL；resolveTab 对有效值返回 false，不会自我循环
+    if (redirected) router.replace({ name: 'SystemSettings', params: { tab } })
 })
+
 
 // 进入 providers tab 才拉供应商面板数据（该 tab 数据与设置主表无关，懒加载）
 watch(currentTabValue, (v) => {
@@ -827,12 +886,12 @@ watch(currentTabValue, (v) => {
 }, { immediate: true })
 
 onMounted(() => {
-    if (!route.params.tab) {
-        const defaultTab = getDefaultTabPath()
-        router.replace({ name: 'SystemSettings', params: { tab: defaultTab } })
-    } else {
-        const tabParam = Array.isArray(route.params.tab) ? route.params.tab[0] : (route.params.tab as string)
-        currentTabValue.value = tabParam
+    const raw = Array.isArray(route.params.tab) ? route.params.tab[0] : (route.params.tab as string | undefined)
+    const resolved = resolveTab(raw)
+    currentTabValue.value = resolved.tab
+    if (resolved.redirected) {
+        // 未知/别名页签统一改写 URL，避免停在空壳上
+        router.replace({ name: 'SystemSettings', params: { tab: resolved.tab } })
     }
     // 等待 DOM 提交完成后再启用 Teleport，避免刷新时目标尚未插入 document
     nextTick(() => {
