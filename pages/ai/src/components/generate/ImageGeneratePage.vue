@@ -1562,7 +1562,9 @@ const gridCols = (row: Row) => {
     return 4
   }
   if (row.task.referenceImage) {
-    return 2
+    // 图生图最多两列（参考图占了左栏，结果再多会挤），但只有 1 张时就是 1 列 ——
+    // 无条件给 2 列会在媒体区留一整列空白（结果图 300 + 空 310），卡片看着空。
+    return Math.min(n, 2)
   }
   if (n <= 4) {
     return n
