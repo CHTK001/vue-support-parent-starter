@@ -349,7 +349,7 @@
                       <li class="kb-boot__item">
                         <span class="kb-boot__i">01</span>
                         <div class="kb-boot__body">
-                          <b>放入原文</b>
+                          <b><el-icon class="kb-boot__ico"><UploadFilled /></el-icon>放入原文</b>
                           <span>支持 PDF / Word / Markdown / 纯文本 / 网页，也可以整夹上传。</span>
                           <div class="kb-boot__act">
                             <ReButton v-if="canEditCurrent" type="primary" :icon="Plus"
@@ -362,14 +362,14 @@
                       <li class="kb-boot__item">
                         <span class="kb-boot__i">02</span>
                         <div class="kb-boot__body">
-                          <b>自动切分与向量化</b>
+                          <b><el-icon class="kb-boot__ico"><Connection /></el-icon>自动切分与向量化</b>
                           <span>上传后先切块再索引，状态从「处理中」变成「已索引」才算可用。</span>
                         </div>
                       </li>
                       <li class="kb-boot__item">
                         <span class="kb-boot__i">03</span>
                         <div class="kb-boot__body">
-                          <b>在检索与问答里使用</b>
+                          <b><el-icon class="kb-boot__ico"><ChatDotRound /></el-icon>在检索与问答里使用</b>
                           <span>命中后可在「检索」里看分块，在右栏问答里作为引用被带出。</span>
                         </div>
                       </li>

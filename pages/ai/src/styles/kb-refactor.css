@@ -3769,6 +3769,55 @@ html.dark .kb-tpl__cover {
   color: var(--kb-ink-3);
 }
 
+/* --- 细节层 --- */
+
+/* 空态步骤：标题前给一个小图标，三步各自的「动作」一眼可辨 */
+.kb-boot__body b {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kb-boot__ico {
+  font-size: 14px;
+  color: var(--kb-ink-3);
+}
+
+/* 左栏分组标题：文字 — 计数 — 一条收尾细线，段落边界不用再加粗体 */
+.kb-nav__title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  margin-left: 2px;
+  background: var(--kb-line-soft);
+}
+
+/* 抬头印章：从实心药丸改成描边小票，白底上更利落 */
+.kb-head--inset .kb-stamp {
+  border: 1px solid var(--kb-line);
+  background: color-mix(in srgb, var(--kb-fill) 42%, var(--kb-card));
+}
+
+.kb-head--inset .kb-stamp--warn {
+  border-color: color-mix(in srgb, var(--kb-warn) 26%, var(--kb-line));
+}
+
+.kb-head--inset .kb-stamp--err {
+  border-color: color-mix(in srgb, var(--kb-err) 24%, var(--kb-line));
+}
+
+/* 选中的分栏滑块加一圈极淡的内描边，避免在白底上「浮不起来」 */
+.kb-filter.is-on {
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.1),
+    inset 0 0 0 1px color-mix(in srgb, var(--kb-accent) 16%, transparent);
+}
+
+/* 表头文字加一点重量，和等宽的类型/大小列形成层次 */
+.kb-filelist__head {
+  font-weight: 600;
+}
+
 /* 输入区落成白底，成为右栏唯一的亮面，视线有落点 */
 .kb-ask__input {
   background: var(--kb-card);
