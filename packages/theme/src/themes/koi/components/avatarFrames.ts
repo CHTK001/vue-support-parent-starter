@@ -128,6 +128,8 @@ function toFrame(row: Record<string, unknown>): AvatarFrame {
  * <p>同一页面多个渲染点共用一次请求；失败时保留兜底字典，不抛错。</p>
  */
 export function loadAvatarFrames(): Promise<void> {
+  // 总开关未开：一个请求都不发（开关口径见 isAvatarFrameEnabled）
+  if (!isAvatarFrameEnabled()) return Promise.resolve();
   if (loadPromise) return loadPromise;
   loadPromise = (async () => {
     try {
