@@ -14,7 +14,9 @@
  *       保证新增组件不会意外现身于存量应用。</li>
  * </ul>
  *
- * <p>内置条目的显隐真相仍是 `other.toolbar.<key>` 布尔（`flag`），items 不改变它；
+ * <p>内置条目的显隐真相是「部署侧 master + 用户偏好」两层（见 toolbarPrefs）：
+ * `other.toolbar.<key>`（或功能开关如 `timer.enable`）决定功能是否存在，
+ * 用户偏好决定自己看不看；items 只改变顺序与集合。
  * 业务条件（天气是否启用、能力是否部署、计时器/大屏开关、汇率/台风等后台能力）由 `enabled` 表达。</p>
  */
 import type { Component } from "vue";
@@ -38,6 +40,7 @@ import ReTyphoon from "@repo/theme/koi/layouts/components/Header/components/ReTy
 import ReEnvBadge from "@repo/theme/koi/layouts/components/Header/components/ReEnvBadge.vue";
 import ReAlerts from "@repo/theme/koi/layouts/components/Header/components/ReAlerts.vue";
 import ReNoteEntry from "@repo/theme/koi/layouts/components/Header/components/ReNoteEntry.vue";
+import { isToolbarUserEnabled } from "../toolbarPrefs";
 
 /** 注册表求值上下文（避免各条目自己重复读 getConfig / 能力开关） */
 export interface HeaderItemContext {
@@ -111,7 +114,8 @@ export const HEADER_ITEMS: readonly HeaderItemDef[] = [
     key: "timer",
     component: ReTimer,
     collapsible: false,
-    enabled: (ctx) => !!ctx.timer?.enable,
+    // 部署侧 timer.enable 决定功能是否存在，用户偏好决定自己看不看
+    enabled: (ctx) => !!ctx.timer?.enable && isToolbarUserEnabled("timer"),
   },
   {
     key: "weather",

@@ -893,7 +893,7 @@ export default {
       empty: "Add timezones in Theme Config > Advanced",
       weekday: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
       configTitle: "Timer Config",
-      enableTitle: "Enable Top Timer",
+      enableTitle: "Show Top Timer",
       enableSub: "Worker Driven",
       enableTip: "Display time in Header top-right, hover for multi-timezone view (repo/work Worker)",
       enableDesc: "Multi-timezone clock in Header, hover to view all timezones",

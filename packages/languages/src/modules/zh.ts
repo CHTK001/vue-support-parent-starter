@@ -894,7 +894,7 @@ export default {
       empty: "主题配置-高级 中可添加时区",
       weekday: ["日", "一", "二", "三", "四", "五", "六"],
       configTitle: "计时器配置",
-      enableTitle: "启用顶部计时器",
+      enableTitle: "显示顶部计时器",
       enableSub: "Worker 驱动",
       enableTip: "Header 右上角展示时间，多时区悬停查看（repo/work Worker 驱动）",
       enableDesc: "Header 顶部多时区时间显示，多时区悬停查看",

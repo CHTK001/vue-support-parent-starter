@@ -26,8 +26,8 @@
         >
           <!-- ============ 高级：计时器配置（顶部 tab，@repo/work Worker 驱动） ============ -->
           <template #advanced>
-            <!-- 计时器配置 -->
-            <div class="config-section">
+            <!-- 计时器配置（部署侧 timer.enable 未开时整段不出现） -->
+            <div v-if="timerDeployed" class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Clock /></el-icon>
                 <span class="section-title">{{ t("header.timer.configTitle") }}</span>
@@ -637,7 +637,7 @@ import useGlobalStore from "@repo/pinia/modules/global";
 import {msgSuccess, message} from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { getConfig, setConfig } from "@repo/config";
-import { isToolbarDeployed, isToolbarUserEnabled, setToolbarUserPref } from "../Header/toolbarPrefs";
+import { isToolbarDeployed, isToolbarUserEnabled, setToolbarUserPref, toolbarPrefs } from "../Header/toolbarPrefs";
 import type { OtherConfig, MessageConfig, TimerConfig, AppConfig, AccessibilityConfig, DevToolsConfig, HeatmapConfig, PerformanceConfig, AiChatConfig } from "@repo/config";
 
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
@@ -931,8 +931,14 @@ const appConfig = getConfig();
  * yaml 的 toolbar.<key> 是 master（false 时该行不出现），开关本身只改本机偏好。
  */
 
-/** 顶部计时器：启用开关 / 时区列表（最多 3 个，UTC ±12） */
-const timerEnable = ref(appConfig.other.timer.enable);
+/**
+ * 顶部计时器：启用开关 / 时区列表（最多 3 个，UTC ±12）
+ *
+ * 双开关：部署侧 `timer.enable` 决定计时器是否存在（未开时整段不出现），
+ * 开关本身只写用户偏好，不再改部署配置。
+ */
+const timerDeployed = computed(() => appConfig.other.timer.enable);
+const timerEnable = ref(isToolbarUserEnabled("timer"));
 const timerZones = ref<number[]>([...appConfig.other.timer.zones]);
 /** 最多时区数量 */
 const MAX_TIMER_ZONES = 3;
@@ -996,9 +1002,9 @@ const removeTimerZone = (index: number) => {
   timerZones.value.splice(index, 1);
 };
 
-// 启用开关 / 时区列表变化 → 写回响应式配置（实时联动 Header 计时器）
+// 启用开关 → 只写用户偏好；时区列表仍写配置（属于用户自定义内容）
 watch(timerEnable, (val) => {
-  appConfig.other.timer.enable = val;
+  setToolbarUserPref("timer", !!val);
 });
 watch(
   timerZones,
@@ -1071,11 +1077,15 @@ const USER_CONFIG_FILE_PREFIX = "user-config";
 /** 导出用户配置：appConfig 用户可调部分 + globalStore 界面状态 → JSON 文件 */
 const exportUserConfig = () => {
   const cfg = getConfig();
+  // 顶栏开关现在是「用户偏好」层（localStorage）：导出时把本机偏好合进 toolbar，
+  // 否则导出的只是 yaml master，换机器导入后开关状态会丢。
+  const otherSnapshot = JSON.parse(JSON.stringify(cfg.other));
+  otherSnapshot.toolbar = { ...(otherSnapshot.toolbar ?? {}), ...toolbarPrefs };
   const snapshot = {
     version: 1,
     exportedAt: new Date().toISOString(),
     config: {
-      other: JSON.parse(JSON.stringify(cfg.other)),
+      other: otherSnapshot,
       message: JSON.parse(JSON.stringify(cfg.message)),
       // 与 user-config.v2 持久化切片保持一致：菜单展示 / login 一起导出。
       // login 整片都是后端下发的（品牌文案 + 验证码/滑块/OTP，见 core/setting.ts
@@ -1176,9 +1186,10 @@ const applyImportedConfig = (data: {
   }
 
   // 2. 同步本组件本地 ref（其 watch 会继续写回响应式配置，保证抽屉 UI 一致）
+  //    timerEnable 不再从 timer.enable 取（那是部署 master），用户偏好由上面的
+  //    toolbar 布尔同步统一处理，避免导入把 master 当成用户选择。
   const timer = c.other?.timer as TimerConfig | undefined;
   if (timer) {
-    timerEnable.value = !!timer.enable;
     timerZones.value = (timer.zones ?? []).slice(0, MAX_TIMER_ZONES);
   }
   const msg = c.message as MessageConfig | undefined;
