@@ -2796,6 +2796,27 @@ html.dark .kb {
   flex-shrink: 0;
 }
 
+/* 行内编辑/删除：默认隐去，悬停或键盘聚焦时出现；
+   触屏没有 hover，直接常显，避免点不到。 */
+.kb-entry .kb-ico {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--kb-dur) var(--kb-ease);
+}
+
+.kb-entry:hover .kb-ico,
+.kb-entry:focus-within .kb-ico {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .kb-entry .kb-ico {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 /* ---------- 9.6 徽章 ---------- */
 .kb-badge {
   display: inline-flex;
