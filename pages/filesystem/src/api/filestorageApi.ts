@@ -71,8 +71,14 @@ const QUOTA_KEY = "filestorage.quotaGb";
  */
 export const DEFAULT_SERVER = "http://127.0.0.1:18082";
 
-/** 默认存储桶名称（app.yaml otherConfig.filestorage.bucket 未配置时兜底） */
-export const DEFAULT_BUCKET = "local";
+/**
+ * 默认存储桶名称（app.yaml otherConfig.filestorage.bucket 未配置时兜底）
+ *
+ * <p>取后端 {@code FileStorage} 的默认实现名 {@code default}：当桶名不可解析时
+ * 后端会回落到默认 provider（monitor 部署里是 {@code localFileStorage}）。
+ * 注意 <b>app.yaml 的 bucket 优先级更高</b>，本常量只在两者都没配置时生效。</p>
+ */
+export const DEFAULT_BUCKET = "default";
 
 /** 默认存储配额 GB（app.yaml otherConfig.filestorage.quotaGb 未配置时兜底） */
 export const DEFAULT_QUOTA_GB = 5;
@@ -1856,6 +1862,43 @@ export async function listUploadTasks(): Promise<UploadTaskInfo[]> {
   try {
     return await uploadTaskHttp()
       .get(`${UPLOAD_TASK_BASE}/tasks`)
+      .then<UploadTaskInfo[]>((r) => unwrapTask<UploadTaskInfo[]>(r) ?? []);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取上传任务列表"));
+  }
+}
+
+/**
+ * 查询任务的分片详情（分片级 MD5 / 是否已落盘 / 字节数）。
+ *
+ * @param taskId 任务号
+ * @return 每片 {index, md5, received, size}
+ */
+export async function uploadTaskChunkDetails(
+  taskId: string,
+): Promise<Array<{ index: number; md5: string; received: boolean; size: number }>> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${UPLOAD_TASK_BASE}/task/${taskId}/chunks`)
+      .then<Array<{ index: number; md5: string; received: boolean; size: number }>>(
+        (r) => unwrapTask<Array<{ index: number; md5: string; received: boolean; size: number }>>(r) ?? [],
+      );
+  } catch (e) {
+    throw new Error(toErrorMessage(e, "获取分片详情"));
+  }
+}
+
+/**
+ * 按条数拉取上传任务（list-view 用）。
+ *
+ * @param limit 最多多少条（后端上限 200）
+ * @return 任务快照列表
+ */
+export async function listUploadTasksPaged(limit = 20): Promise<UploadTaskInfo[]> {
+  try {
+    return await uploadTaskHttp()
+      .get(`${UPLOAD_TASK_BASE}/task/list`)
+      .query({ limit })
       .then<UploadTaskInfo[]>((r) => unwrapTask<UploadTaskInfo[]>(r) ?? []);
   } catch (e) {
     throw new Error(toErrorMessage(e, "获取上传任务列表"));

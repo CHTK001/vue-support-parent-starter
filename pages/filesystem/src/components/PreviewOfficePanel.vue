@@ -143,8 +143,26 @@ let officePreset: unknown = null;
  */
 let fileViewerReady = false;
 
+/** file-viewer 依赖的在途加载（并发调用共享同一个 Promise，避免重复 import） */
+let fileViewerLoading: Promise<boolean> | null = null;
+
 /**
- * 懒加载 file-viewer 全套依赖
+ * 懒加载 file-viewer 全套依赖（幂等；并发调用共享同一个 Promise）
+ *
+ * @returns 全部就绪返回 true；任一 import 失败返回 false（调用方改走兜底）
+ */
+function ensureFileViewerLoaded(): Promise<boolean> {
+  if (fileViewerReady) {
+    return Promise.resolve(true);
+  }
+  if (!fileViewerLoading) {
+    fileViewerLoading = loadFileViewer();
+  }
+  return fileViewerLoading;
+}
+
+/**
+ * 真正执行依赖加载
  *
  * <p>并行拉取：vue3 组件、preset-office 渲染器、e-virt-table 选区桥接补丁、
  * 窄表格补列补丁、组件样式。补丁必须在 file-viewer 创建表格实例之前装好，
@@ -153,8 +171,7 @@ let fileViewerReady = false;
  *
  * @returns 全部就绪返回 true；任一 import 失败返回 false（调用方改走兜底）
  */
-async function ensureFileViewerLoaded(): Promise<boolean> {
-  if (fileViewerReady) return true;
+async function loadFileViewer(): Promise<boolean> {
   try {
     const [bridgeOk, fillOk, vueMod, presetMod, cssMod, coreMod] = await Promise.all([
       installEVirtTableSelectionBridge(),
@@ -209,6 +226,69 @@ const viewerOptions = computed(() => ({
 
 /** 加载失败信息（渲染错误时展示，便于定位） */
 const failReason = ref("");
+
+/**
+ * 解析阶段：给用户可读的进度，而不是一句「加载中…」。
+ *
+ * <p>大文档（几十 MB 的 docx / 上万行 xlsx）在浏览器里是「取字节 → 解容器 →
+ * 排版」三段，耗时差异很大；只显示「加载中」会让人以为卡死。</p>
+ */
+const stage = ref<"idle" | "bytes" | "parse" | "layout">("idle");
+
+/** 阶段文案（idle 不展示） */
+const stageText = computed(() => {
+  switch (stage.value) {
+    case "bytes":
+      return "正在读取文件…";
+    case "parse":
+      return "正在解析文档结构…";
+    case "layout":
+      return "正在排版…";
+    default:
+      return "";
+  }
+});
+
+/**
+ * file-viewer 实际使用的文件名（按内容魔数校正过）。
+ *
+ * <p>WPS 家族（.wps/.et/.dps…）名字里没有对应渲染器，必须改名成
+ * docx/xlsx/pptx 才能直渲。校正结果对用户是黑盒——把「识别成了什么」
+ * 显示出来，才能在格式被认错时一眼看出来。</p>
+ */
+const clientName = computed(() => {
+  const bytes = buffer.value ? new Uint8Array(buffer.value) : undefined;
+  return resolveViewerFileName(props.fileName, bytes);
+});
+
+/** 是否发生了「按内容改名」（true = WPS 家族或扩展名说谎） */
+const renamedByContent = computed(() => clientName.value !== props.fileName);
+
+/** 识别出的容器类型（docx / xlsx / pptx / doc / xls / ppt / pdf / 原名后缀） */
+const detectedExt = computed(() => {
+  const name = clientName.value || props.fileName;
+  const dot = name.lastIndexOf(".");
+  return dot > 0 ? name.slice(dot + 1).toLowerCase() : "";
+});
+
+/** 重新解析：清空状态后重走 load()，用于兜底误判或瞬时网络失败 */
+async function retryLoad(): Promise<void> {
+  failReason.value = "";
+  buffer.value = null;
+  fileRef.value = null;
+  stage.value = "idle";
+  await load();
+}
+
+/** 下载原始文件（不经过渲染通道） */
+function downloadOriginal(): void {
+  const url = props.src ? rawBytesUrl(props.src) : "";
+  if (!url) {
+    message.warning("当前没有可用的下载地址");
+    return;
+  }
+  window.open(url, "_blank", "noopener");
+}
 
 /**
  * 可走后端 Word→PDF 转换的 Word 家族扩展名。
@@ -555,6 +635,44 @@ async function copyExcelStats(): Promise<void> {
 }
 
 /**
+ * 取一次原始字节，失败重试一次
+ *
+ * <p>线上实测：预览票据走隧道/反向代理时偶发一次 ECONNRESET 或空响应，
+ * 而 {@link fetchFullRawBytes} 只试一次就直接退 iframe 兜底 —— 表现为
+ * 「同样的文件，这次能直渲、下次一片空白」。这里给一次极短退避重试，
+ * 把瞬时失败与真实不支持区分开。</p>
+ *
+ * @param url 已改写为 raw=true 的地址
+ * @param attempts 总尝试次数（默认 2）
+ * @returns 成功的响应
+ * @throws 全部尝试都失败时抛出最后一次错误
+ */
+async function fetchRawWithRetry(
+  url: string,
+  attempts = 2,
+  headers?: Record<string, string>,
+): Promise<Response> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const r = await fetch(url, headers ? { headers } : undefined);
+      if (r.ok) {
+        return r;
+      }
+      lastError = new Error(`HTTP ${r.status}`);
+    } catch (e) {
+      lastError = e;
+    }
+    if (i < attempts - 1) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 400);
+      });
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("取原始字节失败");
+}
+
+/**
  * 取原始字节用于嗅探（地址经 {@link rawBytesUrl} 改写为 {@code raw=true}）
  *
  * <p>拿不到时返回 undefined：嗅探失败不应阻断原有的兜底流程。</p>
@@ -570,13 +688,38 @@ async function sniffRawBytes(): Promise<Uint8Array | undefined> {
     // WPS 这类它自己渲染不了的文种回来的是预览页 HTML，按原始字节去嗅探魔数
     // 只会读到 "<!DOCTYPE html>"，于是永远判不出 OOXML/OLE2。
     // 必须加 raw=true 才是对象字节。
-    const r = await fetch(rawBytesUrl(props.rawSrc));
-    if (!r.ok) {
-      return undefined;
+    const url = rawBytesUrl(props.rawSrc);
+    // 只取前 64 字节：大文件（几十 MB）整包下来只为读 4 个魔数字节，
+    // 是「打开慢」的大头。服务端支持 Range（206）时只回 64B。
+    const ranged = await fetchRawWithRetry(url, 2, { Range: "bytes=0-63" });
+    if (ranged.status === 206) {
+      const buf = await ranged.arrayBuffer();
+      return new Uint8Array(buf);
     }
-    // 只取前 64 字节即可判定密文头，避免为一个大文件白白拉全量
-    const buf = await r.arrayBuffer();
-    return new Uint8Array(buf.slice(0, 64));
+    // 服务端忽略 Range（200 回整包）时流式读满 64 字节就断开，绝不为嗅探拉全量
+    const reader = ranged.body?.getReader();
+    if (!reader) {
+      const buf = await ranged.arrayBuffer();
+      return new Uint8Array(buf.slice(0, 64));
+    }
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    while (total < 64) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      total += value.length;
+    }
+    await reader.cancel().catch(() => {});
+    const head = new Uint8Array(total);
+    let offset = 0;
+    for (const c of chunks) {
+      const take = Math.min(c.length, 64 - offset);
+      head.set(c.subarray(0, take), offset);
+      offset += take;
+      if (offset >= 64) break;
+    }
+    return head;
   } catch {
     return undefined;
   }
@@ -597,10 +740,7 @@ async function fetchFullRawBytes(): Promise<Uint8Array | undefined> {
   try {
     // 同 {@link sniffRawBytes}：rawSrc 带 preview=true 时服务端只回渲染页，
     // 必须显式 raw=true 才拿到完整对象字节（WPS / Arrow 这类自己解码的文种）。
-    const r = await fetch(rawBytesUrl(props.rawSrc));
-    if (!r.ok) {
-      return undefined;
-    }
+    const r = await fetchRawWithRetry(rawBytesUrl(props.rawSrc));
     return new Uint8Array(await r.arrayBuffer());
   } catch {
     return undefined;
@@ -648,6 +788,9 @@ async function load(): Promise<void> {
     return;
   }
   loading.value = true;
+  stage.value = "bytes";
+  // 与取字节并行预热 file-viewer：首次预览省掉「字节下完再等 JS chunk」的那一段
+  void ensureFileViewerLoaded();
   failReason.value = "";
   buffer.value = null;
   fileRef.value = null;
@@ -757,6 +900,9 @@ async function load(): Promise<void> {
     emit("error");
   } finally {
     loading.value = false;
+    if (failReason.value) {
+      stage.value = "idle";
+    }
   }
 }
 
@@ -766,8 +912,12 @@ async function load(): Promise<void> {
  * @param bytes 原始文档字节（已通过密文 / 损坏校验）
  */
 async function prepareClientRender(bytes: Uint8Array): Promise<void> {
-  const ab = bytes.slice().buffer as ArrayBuffer;
+  // 零拷贝：bytes 覆盖整个底层 ArrayBuffer 时直接复用，避免大文件再复制一份
+  const ab = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
+    ? bytes.buffer as ArrayBuffer
+    : bytes.slice().buffer as ArrayBuffer;
   buffer.value = ab;
+  stage.value = "parse";
   const ready = await ensureFileViewerLoaded();
   if (!ready) {
     // file-viewer 依赖加载失败：按客户端解析失败走兜底
@@ -776,6 +926,7 @@ async function prepareClientRender(bytes: Uint8Array): Promise<void> {
   }
   // 按内容魔数校正文件名（处理「扩展名说谎」的文件），让 file-viewer 选对渲染器
   const viewerName = resolveViewerFileName(props.fileName, bytes);
+  stage.value = "layout";
   fileRef.value = new File([ab], viewerName);
 }
 
@@ -854,6 +1005,7 @@ watch(
 
 /** file-viewer 渲染完成 */
 function onRendered(): void {
+  stage.value = "idle";
   emit("rendered");
   // 客户端原样渲染成功后，静默探测后端 Word→PDF 转换是否可用；
   // 可用才显示「PDF 视图」切换入口（需后台有依赖才会显示）。
@@ -989,6 +1141,15 @@ defineExpose({ wrapRef });
       </template>
       <span v-else class="preview-office-panel__toolbar-hint">选择单元格可查看求和 / 平均值 / 计数等统计</span>
     </div>
+    <!-- 格式识别徽标：WPS 家族（.wps / .et / .dps …）没有同名渲染器，预览前会
+         按内容魔数改名成 docx/xlsx/pptx。改名对用户是黑盒，格式被认错时最难
+         排查，所以把「识别成了什么」显式露出来。 -->
+    <div v-if="renamedByContent && !failReason" class="preview-office-panel__detect">
+      <span class="preview-office-panel__detect-badge">{{ detectedExt.toUpperCase() }}</span>
+      <span class="preview-office-panel__detect-text">
+        已按内容识别为 {{ detectedExt.toUpperCase() }} 并直渲（原名 {{ props.fileName }}）
+      </span>
+    </div>
     <!-- 不再对 wrap 做 transform: scale()：那会连同遮罩与边框一起缩放，
          表现为「缩放时整个弹框都在动」。缩放工具条已按产品要求移除。 -->
     <div ref="wrapRef" class="preview-office-panel__wrap">
@@ -1002,11 +1163,45 @@ defineExpose({ wrapRef });
         @load="onPdfFrameLoad"
       />
       <div v-else-if="loading" class="preview-office-panel__mask">
-        <span class="preview-office-panel__mask-text">加载中…</span>
+        <!-- 骨架 + 阶段文案：单个「加载中…」看不出是卡住还是在解大文件 -->
+        <div class="preview-office-panel__skeleton" aria-hidden="true">
+          <span class="preview-office-panel__skeleton-bar" />
+          <span class="preview-office-panel__skeleton-bar" />
+          <span class="preview-office-panel__skeleton-bar" />
+        </div>
+        <span class="preview-office-panel__mask-text">{{ stageText || "加载中…" }}</span>
       </div>
 
-      <div v-else-if="failReason" class="preview-office-panel__mask">
-        <span class="preview-office-panel__mask-text">{{ failReason }}</span>
+      <div v-else-if="failReason" class="preview-office-panel__mask preview-office-panel__mask--fail">
+        <div class="preview-office-panel__fail">
+          <svg class="preview-office-panel__fail-icon" viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+            <rect x="9" y="6" width="30" height="36" rx="6" fill="none" stroke="currentColor" stroke-width="2" />
+            <path d="M17 21h14M17 28h14M17 35h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          <p class="preview-office-panel__fail-title">这份文件没能直接预览</p>
+          <p class="preview-office-panel__mask-text">{{ failReason }}</p>
+          <div class="preview-office-panel__fail-actions">
+            <button
+              type="button"
+              class="preview-office-panel__btn preview-office-panel__btn--primary"
+              :disabled="loading"
+              @click="retryLoad"
+            >
+              重新解析
+            </button>
+            <button type="button" class="preview-office-panel__btn" @click="downloadOriginal">
+              下载原文件
+            </button>
+            <button
+              v-if="isWordDocument && pdfAvailable === true"
+              type="button"
+              class="preview-office-panel__btn"
+              @click="switchView('pdf')"
+            >
+              用 PDF 视图
+            </button>
+          </div>
+        </div>
       </div>
 
       <component
@@ -1087,6 +1282,160 @@ defineExpose({ wrapRef });
 .preview-office-panel__mask-text {
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+
+/* 格式识别徽标：只在「按内容改名」时出现，一条细线，不抢内容 */
+.preview-office-panel__detect {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color-overlay);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.preview-office-panel__detect-badge {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.preview-office-panel__detect-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 失败态：从「一行灰字」改成可执行卡片（重试 / 下载 / 换 PDF 视图） */
+.preview-office-panel__mask--fail {
+  flex-direction: column;
+}
+
+.preview-office-panel__fail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 520px;
+  margin: 0 16px;
+  padding: 28px 24px;
+  text-align: center;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color-overlay);
+}
+
+.preview-office-panel__fail-icon {
+  color: var(--el-text-color-placeholder);
+}
+
+.preview-office-panel__fail-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.preview-office-panel__fail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.preview-office-panel__btn {
+  padding: 6px 14px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.preview-office-panel__btn:hover:not(:disabled) {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+.preview-office-panel__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preview-office-panel__btn--primary {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+}
+
+.preview-office-panel__btn--primary:hover:not(:disabled) {
+  background: var(--el-color-primary-light-3);
+  border-color: var(--el-color-primary-light-3);
+  color: #fff;
+}
+
+/* 加载骨架：三条宽度递减的占位 + 阶段文案，区分「在解大文件」与「卡死」 */
+.preview-office-panel__skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.preview-office-panel__skeleton-bar {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--el-fill-color-light) 25%,
+    var(--el-fill-color) 37%,
+    var(--el-fill-color-light) 63%
+  );
+  background-size: 400% 100%;
+  animation: fv-skeleton 1.4s ease-in-out infinite;
+}
+
+.preview-office-panel__skeleton-bar:nth-child(1) {
+  width: 220px;
+}
+
+.preview-office-panel__skeleton-bar:nth-child(2) {
+  width: 168px;
+  animation-delay: 0.12s;
+}
+
+.preview-office-panel__skeleton-bar:nth-child(3) {
+  width: 110px;
+  animation-delay: 0.24s;
+}
+
+@keyframes fv-skeleton {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-office-panel__skeleton-bar {
+    animation: none;
+  }
 }
 
 /* ---- Word 家族 PDF 视图切换条 ---- */

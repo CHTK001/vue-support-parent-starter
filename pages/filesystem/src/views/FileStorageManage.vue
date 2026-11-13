@@ -107,6 +107,8 @@ import {
   clearRuntimeFileServerConfig,
   listOneTimeLinks,
   revokeOneTimeLink,
+  listUploadTasksPaged,
+  uploadTaskChunkDetails,
 } from "../api/filestorageApi";
 import type { BucketConfig, CapabilitiesResponse, OneTimeLinkItem, StorageObject, TreeItem } from "../api/filestorageApi";
 import { createFileCollab } from "../api/filestorageApi";
@@ -578,6 +580,7 @@ function isVideoPanelFile(name: string): boolean {
 
 import { extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
 import { parseExpiryToSeconds } from "../utils/expiry";
+import { md5OfBlob } from "../utils/md5";
 import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 import ReDialog from "@repo/ui/re-dialog";
 import ReTable from "@repo/ui/re-table";
@@ -3931,6 +3934,12 @@ interface UploadItem {
   error: string;
   /** 中断句柄：暂停时 abort */
   controller: AbortController | null;
+  /** 文件 MD5（小写 hex，计算完成后有值） */
+  md5: string;
+  /** MD5 计算进度 0-100 */
+  md5Percent: number;
+  /** MD5 计算状态 */
+  md5State: "idle" | "calc" | "done" | "error";
 }
 
 const uploadVisible = ref(false);
@@ -4031,32 +4040,148 @@ function abortAllUploads(): void {
 function addUploadFiles(files: File[]): void {
   const tooLarge: string[] = [];
   const accepted: File[] = [];
+  /* 同名同大小视为重复：以前同一条能被加两次，队列里出现两个一样的任务 */
+  const existing = new Set(uploadItems.value.map((i) => `${i.name}:${i.size}`));
+  const duplicated: string[] = [];
   for (const f of files) {
+    const key = `${f.name}:${f.size}`;
     if (f.size > UPLOAD_MAX_BYTES) {
       tooLarge.push(f.name);
+    } else if (existing.has(key)) {
+      duplicated.push(f.name);
     } else {
+      existing.add(key);
       accepted.push(f);
     }
   }
   if (tooLarge.length) {
     message.error(`超过 500MB 上限：${tooLarge.join("、")}`);
   }
+  if (duplicated.length) {
+    message.warning(`已在队列中，已跳过：${duplicated.join("、")}`);
+  }
   if (!accepted.length) {
     return;
   }
-  uploadItems.value = [
-    ...uploadItems.value,
-    ...accepted.map((f) => ({
-      id: `u${(uploadSeq += 1)}`,
-      name: f.name,
-      size: f.size,
-      file: f,
-      status: "pending" as UploadStatus,
-      percent: 0,
-      error: "",
-      controller: null,
-    })),
-  ];
+  const added: UploadItem[] = accepted.map((f) => ({
+    id: `u${(uploadSeq += 1)}`,
+    name: f.name,
+    size: f.size,
+    file: f,
+    status: "pending" as UploadStatus,
+    percent: 0,
+    error: "",
+    controller: null,
+    md5: "",
+    md5Percent: 0,
+    md5State: "idle" as const,
+  }));
+  uploadItems.value = [...uploadItems.value, ...added];
+  // 入队即算 MD5：与上传并发，不阻塞用户看到队列
+  for (const item of added) {
+    void computeItemMd5(item);
+  }
+}
+
+/**
+ * 计算某一项的 MD5（分片读取，不整包进内存）
+ *
+ * <p>算完写回队列里的**当前**引用（数组会被整体替换，闭包里的旧引用会失效），
+ * 并把结果挂到 {@link UploadItem.md5} 上供 UI 显示与上传后校验。</p>
+ *
+ * @param item 队列项
+ */
+async function computeItemMd5(item: UploadItem): Promise<void> {
+  const id = item.id;
+  const live = findUploadItem(id);
+  if (!live) return;
+  live.md5State = "calc";
+  try {
+    const hex = await md5OfBlob(live.file, (percent) => {
+      const cur = findUploadItem(id);
+      if (cur) cur.md5Percent = percent;
+    });
+    const cur = findUploadItem(id);
+    if (cur) {
+      cur.md5 = hex;
+      cur.md5Percent = 100;
+      cur.md5State = "done";
+    }
+  } catch (e) {
+    console.warn("[upload] MD5 计算失败", e);
+    const cur = findUploadItem(id);
+    if (cur) cur.md5State = "error";
+  }
+}
+
+/**
+ * 复制某一项的 MD5
+ *
+ * @param item 队列项
+ */
+async function copyUploadMd5(item: UploadItem): Promise<void> {
+  if (!item.md5) return;
+  try {
+    await navigator.clipboard.writeText(item.md5);
+    message.success("MD5 已复制");
+  } catch {
+    message.error("复制失败");
+  }
+}
+
+/* ---------- 上传记录（list-view：任务 + 分片详情） ---------- */
+
+/** 上传记录弹框可见 */
+const uploadHistoryVisible = ref(false);
+/** 列表加载中 */
+const uploadHistoryLoading = ref(false);
+/** 任务列表（后端快照原样保留，字段随版本演进也不会丢） */
+const uploadHistoryList = ref<Array<Record<string, unknown>>>([]);
+/** 已展开任务的 id */
+const uploadHistoryExpanded = ref<Record<string, boolean>>({});
+/** 已拉取的分片详情（taskId → 分片数组） */
+const uploadChunkMap = ref<
+  Record<string, Array<{ index: number; md5: string; received: boolean; size: number }>>
+>({});
+
+/** 打开上传记录并拉列表 */
+async function openUploadHistory(): Promise<void> {
+  uploadHistoryVisible.value = true;
+  await loadUploadHistory();
+}
+
+/** 拉取任务列表（list-view 数据源） */
+async function loadUploadHistory(): Promise<void> {
+  uploadHistoryLoading.value = true;
+  try {
+    const list = await listUploadTasksPaged(50);
+    uploadHistoryList.value = list as unknown as Array<Record<string, unknown>>;
+  } catch (e) {
+    message.error((e as Error)?.message ?? "获取上传任务列表失败");
+  } finally {
+    uploadHistoryLoading.value = false;
+  }
+}
+
+/**
+ * 展开 / 收起某个任务的分片详情
+ *
+ * <p>每次展开都重新拉：分片状态是后端实时变化的，缓存反而会显示过期值。</p>
+ *
+ * @param taskId 任务号
+ */
+async function toggleUploadChunks(taskId: string): Promise<void> {
+  if (uploadHistoryExpanded.value[taskId]) {
+    uploadHistoryExpanded.value[taskId] = false;
+    return;
+  }
+  uploadHistoryExpanded.value[taskId] = true;
+  try {
+    const chunks = await uploadTaskChunkDetails(taskId);
+    uploadChunkMap.value = { ...uploadChunkMap.value, [taskId]: chunks };
+  } catch (e) {
+    message.error((e as Error)?.message ?? "获取分片详情失败");
+  }
 }
 
 /** 从队列移除一项（上传中的先中断） */
@@ -5043,6 +5168,27 @@ async function handleDownload(row: StorageObject, key?: string): Promise<void> {
     params: { download: "true" },
   });
   triggerDirectDownload(url, row.name);
+}
+
+/**
+ * 在预览层内下载当前对象。
+ *
+ * <p>给「服务端渲染退回 iframe 后整片空白」留一个逃生口：用户不需要关掉弹层
+ * 再回列表右键下载。包内条目同样按 {@code key/inner} 拼接。</p>
+ */
+async function downloadPreviewObject(): Promise<void> {
+  if (!previewKey.value) {
+    return;
+  }
+  const key = previewInnerPath.value
+    ? `${previewKey.value}/${previewInnerPath.value}`
+    : previewKey.value;
+  try {
+    const url = await resolveObjectUrl(bucket.value, key, { params: { download: "true" } });
+    triggerDirectDownload(url, previewName.value);
+  } catch (e) {
+    message.error((e as Error)?.message ?? "下载失败");
+  }
 }
 
 async function handleExist(row: StorageObject): Promise<void> {
@@ -6689,6 +6835,8 @@ onUnmounted(() => {
         <div class="fs-up__head">
           <el-icon class="fs-up__head-icon" :size="18"><Upload /></el-icon>
           <span class="fs-up__head-title">上传文件</span>
+          <span class="fs-up__head-gap"></span>
+          <button type="button" class="fs-up__link" @click="openUploadHistory">上传记录</button>
         </div>
       </template>
 
@@ -6736,6 +6884,20 @@ onUnmounted(() => {
               <span class="fs-typeicon fs-up__row-icon" v-html="fileSvg(item.name, false)" aria-hidden="true" />
               <span class="fs-up__row-name" :title="item.name">{{ item.name }}</span>
               <span class="fs-up__row-size">{{ formatSize(item.size) }}</span>
+              <!-- MD5：计算中显示百分比，算完显示前 8 位（点一下复制完整值） -->
+              <span
+                v-if="item.md5State === 'calc'"
+                class="fs-up__md5 is-calc"
+                :title="`正在计算 MD5：${item.md5Percent}%`"
+              >MD5 {{ item.md5Percent }}%</span>
+              <button
+                v-else-if="item.md5State === 'done'"
+                type="button"
+                class="fs-up__md5"
+                :title="`MD5 ${item.md5}（点击复制）`"
+                @click.stop="copyUploadMd5(item)"
+              >MD5 {{ item.md5.slice(0, 8) }}</button>
+              <span v-else-if="item.md5State === 'error'" class="fs-up__md5 is-err" title="MD5 计算失败">MD5 —</span>
               <span class="fs-up__row-tail">
                 <template v-if="item.status === 'uploading'">
                   <span class="fs-up__track"><i class="fs-up__fill" :style="{ width: item.percent + '%' }" /></span>
@@ -6778,6 +6940,55 @@ onUnmounted(() => {
           开始上传
         </el-button>
       </template>
+    </ReDialog>
+
+    <!-- ===== 上传记录（list-view：任务 + 分片详情） =====
+         数据来自后端 /upload-task/task/list 与 /task/{id}/chunks：
+         任务级看整文件 MD5 与进度，展开看每片 MD5 / 是否落盘 / 字节数。
+         展开时重新拉取，避免显示过期的分片状态。 -->
+    <ReDialog
+      v-model="uploadHistoryVisible"
+      class="fs-up-dlg fs-uph-dlg"
+      width="760px"
+      :append-to-body="true"
+      destroy-on-close
+    >
+      <template #header>
+        <div class="fs-up__head">
+          <el-icon class="fs-up__head-icon" :size="18"><Tickets /></el-icon>
+          <span class="fs-up__head-title">上传记录</span>
+        </div>
+      </template>
+
+      <div class="fs-uph">
+        <div class="fs-uph__bar">
+          <span>最近 {{ uploadHistoryList.length }} 条任务</span>
+          <span class="fs-up__head-gap"></span>
+          <button type="button" class="fs-up__link" :disabled="uploadHistoryLoading" @click="loadUploadHistory">
+            {{ uploadHistoryLoading ? "刷新中…" : "刷新" }}
+          </button>
+        </div>
+        <ul class="fs-uph__list">
+          <li v-for="t in uploadHistoryList" :key="String(t.taskId)" class="fs-uph__row">
+            <button type="button" class="fs-uph__main" @click="toggleUploadChunks(String(t.taskId))">
+              <span class="fs-uph__name" :title="String(t.fileName)">{{ t.fileName }}</span>
+              <span class="fs-uph__meta">{{ t.state }} · {{ t.receivedChunks }}/{{ t.totalChunks }} 片</span>
+              <span class="fs-uph__md5" :title="String(t.md5 || '')">
+                {{ t.md5 ? String(t.md5).slice(0, 8) : "无 MD5" }}
+              </span>
+              <span class="fs-uph__caret">{{ uploadHistoryExpanded[String(t.taskId)] ? "收起" : "分片" }}</span>
+            </button>
+            <ul v-if="uploadHistoryExpanded[String(t.taskId)]" class="fs-uph__chunks">
+              <li v-for="c in (uploadChunkMap[String(t.taskId)] || [])" :key="c.index" class="fs-uph__chunk">
+                <span class="fs-uph__cidx">#{{ c.index }}</span>
+                <span class="fs-uph__cmd5" :title="c.md5">{{ c.md5 ? c.md5.slice(0, 12) : "—" }}</span>
+                <span>{{ c.received ? formatSize(c.size) : "未到" }}</span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <p v-if="!uploadHistoryList.length && !uploadHistoryLoading" class="fs-uph__empty">还没有上传任务</p>
+      </div>
     </ReDialog>
 
     <!-- ===== 上传目标目录选择 ===== -->
@@ -7173,6 +7384,17 @@ onUnmounted(() => {
             @rendered="onOfficeRendered"
             @fallback="onClientPanelFallback"
           />
+          <!-- 服务端渲染兜底：它返回的 HTML 页可能整片空白（实测 docs 里
+               见到过），给一条可执行的出口，而不是让用户对着白屏关弹层。 -->
+          <div
+            v-if="previewForceServer && !previewError"
+            class="fs-preview__fallback-bar"
+          >
+            <span class="fs-preview__fallback-text">该文件由服务端渲染，若内容空白请下载原文件查看</span>
+            <button type="button" class="fs-preview__fallback-btn" @click="downloadPreviewObject">
+              下载原文件
+            </button>
+          </div>
           <PreviewIframePanel
             v-else-if="!previewError"
             ref="iframePanelRef"
@@ -8182,10 +8404,46 @@ onUnmounted(() => {
   word-break: break-all;
 }
 
+/* 服务端渲染兜底条：给可能空白的 iframe 一个可执行出口 */
+.fs-preview__fallback-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning-dark-2);
+  font-size: 12px;
+}
+
+.fs-preview__fallback-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-preview__fallback-btn {
+  flex: none;
+  padding: 3px 10px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.fs-preview__fallback-btn:hover {
+  background: var(--el-color-warning-light-7);
+}
+
 .fs-preview__error {
   width: 100%;
-  flex: 1;
-  display: flex;
+  flex: 1;  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;

@@ -232,6 +232,152 @@
   color: var(--el-text-color-secondary);
 }
 
+/* MD5：算完是可点的短码（点一下复制完整值），算中是进度，失败显 — */
+.fs-up__md5 {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  line-height: 18px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+
+.fs-up__md5:hover {
+  border-color: var(--el-color-primary-light-5);
+  color: var(--el-color-primary);
+}
+
+.fs-up__md5.is-calc {
+  cursor: default;
+  border-style: dashed;
+}
+
+.fs-up__md5.is-err {
+  cursor: default;
+  color: var(--el-color-danger);
+  border-color: var(--el-color-danger-light-7);
+}
+
+/* 弹框头部右侧留白（放「上传记录」入口） */
+.fs-up__head-gap {
+  flex: 1;
+}
+
+/* ---------- 上传记录（list-view） ---------- */
+.fs-uph {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 62vh;
+  overflow: auto;
+}
+
+.fs-uph__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-uph__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fs-uph__row {
+  border-bottom: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+
+.fs-uph__main {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+
+.fs-uph__main:hover {
+  background: var(--el-fill-color-lighter);
+}
+
+.fs-uph__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fs-uph__meta {
+  flex: none;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-uph__md5 {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 999px;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-uph__caret {
+  flex: none;
+  font-size: 12px;
+  color: var(--el-color-primary);
+}
+
+.fs-uph__chunks {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+}
+
+.fs-uph__chunk {
+  display: flex;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+.fs-uph__cidx {
+  width: 44px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-uph__cmd5 {
+  width: 118px;
+  font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--el-text-color-secondary);
+}
+
+.fs-uph__empty {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
 .fs-up__row-tail {
   flex-shrink: 0;
   display: flex;
