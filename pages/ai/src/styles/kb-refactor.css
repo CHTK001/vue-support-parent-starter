@@ -2818,17 +2818,21 @@ html.dark .kb {
 }
 
 /* ---------- 9.6 徽章 ---------- */
+/* 与详情页的 `.kb-stamp` 同一套几何：1px 描边 + 浅底 + 2px 8px 内距，
+   区别只在徽章多一个状态圆点。 */
 .kb-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid var(--kb-line);
   border-radius: 999px;
   font-size: 11px;
   line-height: 1.5;
   white-space: nowrap;
-  background: var(--kb-fill);
+  background: color-mix(in srgb, var(--kb-fill) 42%, var(--kb-card));
   color: var(--kb-ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .kb-badge i {
@@ -2840,21 +2844,24 @@ html.dark .kb {
 }
 
 .kb-badge--mute {
-  background: var(--kb-fill);
+  background: color-mix(in srgb, var(--kb-fill) 42%, var(--kb-card));
   color: var(--kb-ink-3);
 }
 
 .kb-badge--pub {
+  border-color: color-mix(in srgb, var(--kb-accent) 24%, var(--kb-line));
   background: var(--kb-accent-soft);
   color: var(--kb-accent);
 }
 
 .kb-badge--ok {
+  border-color: color-mix(in srgb, var(--kb-ok) 24%, var(--kb-line));
   background: color-mix(in srgb, var(--kb-ok) 12%, transparent);
   color: var(--kb-ok);
 }
 
 .kb-badge--warn {
+  border-color: color-mix(in srgb, var(--kb-warn) 26%, var(--kb-line));
   background: color-mix(in srgb, var(--kb-warn) 14%, transparent);
   color: var(--kb-warn);
 }
