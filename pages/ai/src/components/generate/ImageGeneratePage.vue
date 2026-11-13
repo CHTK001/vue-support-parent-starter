@@ -3745,14 +3745,13 @@ onUnmounted(() => {
 }
 
 .wg-card-detail > .wg-card-chips {
-  /* 竖排成参数表：宽卡片右侧不再是「一行胶囊 + 大片空白」 */
+  /* 竖排成参数表：右栏是「提示词 + 规格表」一块文字，不再是一行胶囊 + 大片空白 */
   display: flex;
   flex: 0 1 auto;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
   max-width: 340px;
-  margin-left: auto;
   /* 与媒体顶对齐；媒体比参数高时参数不居中，避免和图片抢视觉 */
   align-content: flex-start;
 }
