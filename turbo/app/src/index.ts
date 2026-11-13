@@ -1,19 +1,14 @@
 /**
- * @repo/app —— 统一应用启动器
+ * @repo/app —— 统一应用启动器（Vue）
  *
- * 双框架入口：
+ * <p><b>本入口不含 React</b>：React 实现已移到 {@code @repo/app/react} 子路径，
+ * 避免每个 Vue 应用首屏都下载 react-dom / react-router-dom（dev 实测约 4MB）。</p>
+ *
  *   import { createContextApp } from "@repo/app";
+ *   await createContextApp({ appName: "xxx" }).routes(routeTree).mount("#app");
  *
- *   // Vue（默认）
- *   await createContextApp({ appName: "xxx" })
- *     .routes(routeTree)
- *     .mount("#app");
- *
- *   // React
- *   await createContextApp({ framework: "react", appName: "ai" })
- *     .routes(reactRoutes)
- *     .root(<App />)
- *     .mount("#root");
+ *   // React 应用：
+ *   import { createReactApp } from "@repo/app/react";
  *
  * 通用设计令牌（@repo/theme/styles/tokens.css）由本包统一注入，所有宿主 app 共享；
  * UnoCSS global 模式样式因需 per-app 配置，仍由各应用自行引入。
@@ -39,10 +34,4 @@ export {
   type CreateVueAppOptions,
   type VueAppInstance,
 } from "./createVueApp";
-export {
-  createReactApp,
-  ReactAppBuilder,
-  type CreateReactAppOptions,
-  type ReactAppInstance,
-} from "./createReactApp";
 export { mountApp, type MountAppOptions } from "./mount";

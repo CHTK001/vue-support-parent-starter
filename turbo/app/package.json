@@ -15,6 +15,10 @@
       "types": "./src/App.vue",
       "default": "./src/App.vue"
     },
+    "./react": {
+      "types": "./src/react.ts",
+      "default": "./src/react.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {

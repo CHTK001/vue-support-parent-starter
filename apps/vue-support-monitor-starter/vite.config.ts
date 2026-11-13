@@ -732,6 +732,20 @@ export default createVite({
       "/ms/server": {
         target: apiTarget,
         changeOrigin: true,
+        configure: (proxy) => {
+          // 发布流（/ms/server/release/stream）是长连接 SSE。后端重启/隧道断开时，
+          // http-proxy 会抛出未监听的 error 事件，Node 会把它当成未捕获异常直接退出
+          // dev server，浏览器随即整页 ERR_CONNECTION_REFUSED。这里必须吞掉断流，
+          // 并在响应尚未结束时回一个空 502，让页面自行降级为轮询/重连。
+          proxy.on("error", (err, req, res) => {
+            console.log(`[DBG] PROXY-ERR ${req?.url} ${err.message}`);
+            const response = res as ServerResponse | undefined;
+            if (response && !response.headersSent && !response.writableEnded) {
+              response.statusCode = 502;
+              response.end();
+            }
+          });
+        },
       },
       "/ms/project": {
         target: apiTarget,

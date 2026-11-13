@@ -1,35 +1,27 @@
 /**
- * @repo/app —— 统一入口：createContextApp
+ * @repo/app —— 统一入口：createContextApp（Vue）
  *
- * 双框架统一启动器：按 options.framework 自动分发到 Vue / React 实现。
+ * <p><b>只负责 Vue</b>：React 实现已移到 {@code @repo/app/react} 子路径。
+ * 原因：createReactApp 会 import react-dom / react-router-dom，之前从包根静态导出、
+ * 又被本文件静态 import，导致所有 Vue 应用首屏都要下载解析 react（dev 实测约 4MB，
+ * 生产也会进 vendor chunk）。现在本文件不再引用任何 React 模块。</p>
  *
- *   // Vue（默认，向后兼容）：现有应用无需改动
+ * Vue（默认）：
  *   await createContextApp({ appName: "xxx" })
  *     .routes(routeTree)
  *     .mount("#app");
  *
- *   // React
- *   await createContextApp({ framework: "react", appName: "ai" })
- *     .routes(reactRouteTree)
- *     .root(<App />)
- *     .mount("#root");
- *
- * 内部实现：
- *   - framework === "vue"（默认）→ createVueApp（Vue 渲染层 + pinia/i18n/ElementPlus）
- *   - framework === "react" → createReactApp（React 渲染层 + react-router）
- * 两套实现共用 core 装配（crypto/config/storage/token/http）与鉴权/菜单推导逻辑。
+ * React：见 {@code @repo/app/react}：
+ *   import { createReactApp } from "@repo/app/react";
  */
 import { createVueApp, VueAppBuilder, type VueAppInstance } from "./createVueApp";
-import { createReactApp, ReactAppBuilder, type ReactAppInstance } from "./createReactApp";
 import type { AppInstance, CreateAppOptions, AppFramework } from "./types";
 
 export { default as AppWithRouter } from "./AppWithRouter.vue";
 export { default as SingleApp } from "./SingleApp.vue";
 export { createVueApp, VueAppBuilder } from "./createVueApp";
-export { createReactApp, ReactAppBuilder } from "./createReactApp";
 export type { CreateAppOptions, AppInstance, AppFramework, AppMode } from "./types";
 export type { AppInstaller, CreateVueAppOptions, VueAppInstance } from "./createVueApp";
-export type { CreateReactAppOptions, ReactAppInstance } from "./createReactApp";
 export type { AppContribution } from "./contributions";
 
 /** 向后兼容别名：旧 ContextAppBuilder === VueAppBuilder */
@@ -37,17 +29,17 @@ export const ContextAppBuilder = VueAppBuilder;
 export type ContextAppBuilder = VueAppBuilder;
 
 /**
- * 入口：返回框架对应的链式构建器。
- * 缺省 framework = "vue"（向后兼容，现有 Vue 应用代码无需任何改动）。
+ * 入口：返回 Vue 链式构建器。
  *
- * 重载：framework === "react" 时返回 ReactAppBuilder，否则 VueAppBuilder。
+ * <p>{@code framework: "react"} 不再在本入口分发（会把 react 静态拉进 Vue 应用），
+ * 请改用 {@code import { createReactApp } from "@repo/app/react"}。</p>
  */
-export function createContextApp(options: CreateAppOptions & { framework: "react" }): ReactAppBuilder;
-export function createContextApp(options?: CreateAppOptions): VueAppBuilder;
-export function createContextApp(options: CreateAppOptions = {}): VueAppBuilder | ReactAppBuilder {
+export function createContextApp(options: CreateAppOptions = {}): VueAppBuilder {
   const framework: AppFramework = options.framework ?? "vue";
   if (framework === "react") {
-    return createReactApp(options);
+    throw new Error(
+      '[createContextApp] React 入口已独立：请改用 `import { createReactApp } from "@repo/app/react"`',
+    );
   }
   return createVueApp(options);
 }

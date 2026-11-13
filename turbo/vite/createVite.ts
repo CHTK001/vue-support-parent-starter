@@ -610,6 +610,12 @@ function serveAppPublic(appRoot: string): Plugin {
  *     / `htmlFallbackMiddleware`，避免 `/images/**` 被误写成 `index.html`；
  *   - build：`closeBundle` 把整棵树落到 `<outDir>/images/`。
  *
+ * 同一条链路也接管 `/gen-style/`（生图页的风格缩略图，见
+ * `apps/vue-support-ai-starter/public/gen-style`）。这些图挂在 `@pages/ai` 的页面里，
+ * 而 `pages/ai` 自己 serve 时 `serveAppPublic` 的 appPublic 是 `pages/ai/public`（不存在），
+ * 于是 `/gen-style/*.webp` 会被 htmlFallback 换成 index.html —— `<img>` 拿到一段 HTML，
+ * naturalWidth 恒为 0，下拉里整排缩略图都是碎的（2026-11-12 实测）。
+ *
  * 顺序注意：`configureServer` 钩子（见 vite/dist/node/chunks/node.js `createServer`）在
  * 内部 `baseMiddleware` 注册之前执行，所以中间件拿到的是包含应用 `base` 的原始 URL
  * （如 system-starter 的 `/system/images/bots/wechat.png`），需要先剥掉 `server.config.base`
@@ -617,6 +623,8 @@ function serveAppPublic(appRoot: string): Plugin {
  */
 function serveSharedAiImages(): Plugin {
   const aiImages = path.resolve(WORKSPACE_ROOT, "apps/vue-support-ai-starter/public/images");
+  /** 生图页风格缩略图：与 /images 同一条交接通道，前缀不同 */
+  const aiStyleThumbs = path.resolve(WORKSPACE_ROOT, "apps/vue-support-ai-starter/public/gen-style");
   const MIME: Record<string, string> = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript",
@@ -634,22 +642,22 @@ function serveSharedAiImages(): Plugin {
     ".wasm": "application/wasm",
   };
 
-  /** 安全校验：URL 对应的绝对路径必须在 aiImages 内且是文件 */
-  const resolveAiImageFile = (urlPath: string): string | null => {
-    // aiImages 已经指向 apps/vue-support-ai-starter/public/images，而请求 URL 形如
+  /** 安全校验：URL 对应的绝对路径必须在 root 内且是文件 */
+  const resolveAssetFile = (urlPath: string, prefix: string, root: string): string | null => {
+    // root 已经指向 apps/vue-support-ai-starter/public/images，而请求 URL 形如
     // /images/bots/qq.png：必须先把 /images 这一段吃掉，否则会解析成
     // <public>/images/images/bots/qq.png，dev 下所有图片都 404（2026-11-10 验收实测）。
-    if (!urlPath.startsWith("/images/")) return null;
+    if (!urlPath.startsWith(prefix)) return null;
     let decoded: string;
     try {
-      decoded = decodeURIComponent(urlPath.slice("/images".length));
+      decoded = decodeURIComponent(urlPath.slice(prefix.length));
     } catch {
       return null;
     }
-    // posix.join 会折叠 ../，跨出 aiImages 的路径在此即被规范化
+    // posix.join 会折叠 ../，跨出 root 的路径在此即被规范化
     const relative = `.${path.posix.join("/", decoded)}`;
-    const target = path.resolve(aiImages, relative);
-    if (target === aiImages || !target.startsWith(aiImages + path.sep)) return null;
+    const target = path.resolve(root, relative);
+    if (target === root || !target.startsWith(root + path.sep)) return null;
     if (!fs.existsSync(target) || fs.statSync(target).isDirectory()) return null;
     return target;
   };
@@ -680,20 +688,25 @@ function serveSharedAiImages(): Plugin {
   return {
     name: "serve-shared-ai-images",
     configureServer(server) {
-      if (!fs.existsSync(aiImages)) return;
       server.middlewares.use((req: any, res: any, next: any) => {
         if (req.method !== "GET" && req.method !== "HEAD") return next();
-        const urlPath = (req.url ?? "/").split("?")[0];
-        const target = resolveAiImageFile(stripBase(urlPath, server.config.base));
+        const urlPath = stripBase((req.url ?? "/").split("?")[0], server.config.base);
+        const target =
+          resolveAssetFile(urlPath, "/images/", aiImages) ??
+          resolveAssetFile(urlPath, "/gen-style/", aiStyleThumbs);
         if (!target) return next();
         res.setHeader("Content-Type", MIME[path.extname(target).toLowerCase()] ?? "application/octet-stream");
         fs.createReadStream(target).pipe(res);
       });
     },
     closeBundle() {
-      if (!fs.existsSync(aiImages)) return;
       const outDir = (this.environment.config.build.outDir as string) ?? "dist";
-      copyOverwrite(aiImages, path.join(outDir, "images"));
+      if (fs.existsSync(aiImages)) {
+        copyOverwrite(aiImages, path.join(outDir, "images"));
+      }
+      if (fs.existsSync(aiStyleThumbs)) {
+        copyOverwrite(aiStyleThumbs, path.join(outDir, "gen-style"));
+      }
     },
   } as Plugin;
 }

@@ -616,9 +616,41 @@
 
   window.hideAppLoader = function () {
     var appLoader = document.getElementById(LOADER_CONTAINER_ID);
-    if (appLoader && appLoader.parentNode) {
-      appLoader.parentNode.removeChild(appLoader);
+    if (!appLoader || !appLoader.parentNode) {
+      return;
     }
+    var remove = function () {
+      if (appLoader.parentNode) {
+        appLoader.parentNode.removeChild(appLoader);
+      }
+    };
+    var reduceMotion = false;
+    try {
+      reduceMotion =
+        !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    } catch (error) {
+      reduceMotion = false;
+    }
+    // 直接抽掉会让首屏"啪"地切换：淡出 220ms 更像应用接管。
+    // 动画不可用或用户要求减少动态时立即移除，绝不把整页挡在遮罩后面。
+    if (reduceMotion || typeof appLoader.animate !== "function") {
+      remove();
+      return;
+    }
+    appLoader.style.pointerEvents = "none";
+    try {
+      var fade = appLoader.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 220,
+        easing: "ease-out",
+        fill: "forwards",
+      });
+      fade.onfinish = remove;
+    } catch (error) {
+      remove();
+      return;
+    }
+    // 兜底：动画被冻结（后台标签页 / 自动化）也要移除
+    setTimeout(remove, 400);
   };
 
   var enableOptionalScripts =
