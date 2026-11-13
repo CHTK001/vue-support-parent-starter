@@ -3266,3 +3266,368 @@ html.dark .kb-tpl__cover {
   font-weight: 600;
   margin-right: 6px;
 }
+
+/* ##########  7. 台面增强：文档视图 / 空态 / 排查明细（2026-11-13） ########## */
+
+/* 文档卡片：从「一块白」变成有厚度的台面，行与表头才有依托 */
+.kb-docview__list {
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.05),
+    0 12px 28px -22px rgb(15 23 42 / 0.22);
+}
+
+/* 状态分栏：分段控件（浅槽 + 白色滑块），计数退成安静的等宽数字 */
+.kb-docview__head {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--kb-fill) 42%, var(--kb-card));
+}
+
+.kb-filters {
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--kb-line) 45%, transparent);
+}
+
+.kb-filter {
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  color: var(--kb-ink-2);
+}
+
+.kb-filter:hover {
+  background: color-mix(in srgb, var(--kb-card) 70%, transparent);
+}
+
+.kb-filter.is-on {
+  background: var(--kb-card);
+  color: var(--kb-ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--kb-ink) 12%, transparent);
+}
+
+.kb-filter__n {
+  padding: 0;
+  background: none;
+  font-size: 10.5px;
+  color: var(--kb-ink-3);
+  min-width: 12px;
+  text-align: right;
+}
+
+.kb-filter.is-on .kb-filter__n {
+  background: none;
+  color: var(--kb-accent);
+}
+
+/* 每个分栏带状态点，颜色只承载语义（已索引/待重建/处理中/失败） */
+.kb-filter::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+  flex: none;
+}
+
+.kb-filter[data-k="indexed"]::before { background: var(--kb-ok); opacity: 1; }
+.kb-filter[data-k="stale"]::before { background: var(--kb-warn); opacity: 1; }
+.kb-filter[data-k="parsing"]::before { background: var(--kb-info); opacity: 1; }
+.kb-filter[data-k="failed"]::before { background: var(--kb-err); opacity: 1; }
+
+/* 文件表：表头吸顶、行悬停亮起左侧标尺、数字列等宽 */
+.kb-filelist {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 文件树根节点撑满滚动容器，让「已加载全部文件」这类页脚落到卡片底部 */
+.kb-docview__tree > div {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-filelist__head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--kb-fill) 72%, var(--kb-card));
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  backdrop-filter: blur(4px);
+}
+
+.kb-filelist .file-row {
+  position: relative;
+}
+
+.kb-filelist .file-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--kb-accent);
+  opacity: 0;
+  transition: opacity var(--kb-dur) var(--kb-ease);
+}
+
+.kb-filelist .file-row:hover::before {
+  opacity: 0.9;
+}
+
+.kb-filelist .file-row:hover {
+  background: color-mix(in srgb, var(--kb-accent) 4%, var(--kb-card));
+}
+
+.kb-filelist .file-row > div:nth-child(4) span {
+  font-family: var(--kb-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-filelist .file-row .el-tag {
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-filelist .file-row .el-tag::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 1px;
+}
+
+.kb-filelist__foot {
+  margin-top: auto;
+  border-top: 1px solid var(--kb-line-soft);
+  background: color-mix(in srgb, var(--kb-fill) 30%, var(--kb-card));
+  font-size: 11px;
+}
+
+/* 空卷宗：不再是虚线占位卡，而是一条「上架流程」——上传 → 索引 → 使用 */
+.kb-docview__blank-card {
+  width: min(600px, 100%);
+  padding: 26px 26px 20px;
+  text-align: left;
+  border: 1px solid var(--kb-line);
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--kb-accent) 7%, transparent), transparent 60%),
+    var(--kb-card);
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.05),
+    0 18px 40px -30px rgb(15 23 42 / 0.35);
+}
+
+.kb-docview__blank-eyebrow {
+  margin: 0 0 6px;
+  font-family: var(--kb-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kb-ink-3);
+}
+
+.kb-docview__blank-t {
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.kb-boot {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+}
+
+.kb-boot__item {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--kb-line-soft);
+}
+
+.kb-boot__i {
+  font-family: var(--kb-mono);
+  font-size: 11px;
+  color: var(--kb-ink-3);
+  padding-top: 1px;
+}
+
+.kb-boot__body b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kb-ink);
+}
+
+.kb-boot__body span {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--kb-ink-3);
+}
+
+.kb-boot__act {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kb-sp-2);
+  margin-top: 10px;
+}
+
+.kb-boot__foot {
+  margin: 6px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--kb-line-soft);
+  font-size: 11.5px;
+  color: var(--kb-ink-3);
+}
+
+/* 排查明细：窄右栏里标签定宽、值用等宽字体且可滚动，长模型名不再挤成竖排 */
+.kb-ask__error .kb-ask__diag-list {
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 6px var(--kb-sp-2);
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.kb-ask__error .kb-ask__diag-list > dt {
+  color: var(--kb-ink-3);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.kb-ask__error .kb-ask__diag-list > dd {
+  font-family: var(--kb-mono);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+@media (max-width: 720px) {
+  .kb-docview__blank-card {
+    padding: 20px 18px 16px;
+  }
+
+  .kb-filters {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .kb-ask__error .kb-ask__diag-list {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+}
+
+/* ##########  8. 层次与动效：三栏分工 / 抬头标尺 / 右栏语气（2026-11-13 第二轮） ########## */
+
+/* 左栏退成浅底：导航 / 台面 / 助手三种材质，靠底色而不是再画三条边框来区分 */
+.kb-nav {
+  background: color-mix(in srgb, var(--kb-fill) 52%, var(--kb-card));
+}
+
+.kb-nav__kb.is-on {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kb-accent) 22%, transparent);
+}
+
+/* 抬头标尺：标题左侧一道品牌色短尺，四个视图共用同一套「报头」语言 */
+.kb-title {
+  padding-left: 10px;
+  border-left: 3px solid var(--kb-accent);
+}
+
+.kb-path {
+  padding-left: 12px;
+}
+
+/* 类型列用等宽小字，PDF / MD / DOCX 读起来像档号，而不是普通正文 */
+.kb-filelist .file-row > div:nth-child(3) span {
+  font-family: var(--kb-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--kb-ink-3);
+}
+
+/* 右栏空态：引号做水印，示例条目悬停时向右让出 2px，像被抽出来的一页 */
+.kb-ask__empty .kb-ask__quote {
+  position: relative;
+}
+
+.kb-ask__empty .kb-ask__quote::before {
+  content: "“";
+  position: absolute;
+  left: 0;
+  top: -14px;
+  font-family: Georgia, "Songti SC", serif;
+  font-size: 34px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--kb-accent) 18%, transparent);
+  pointer-events: none;
+}
+
+.kb-ask .kb-ask__quick .re-button.re-button--primary:not(.is-link) {
+  transition:
+    transform var(--kb-dur) var(--kb-ease),
+    border-color var(--kb-dur) var(--kb-ease),
+    background-color var(--kb-dur) var(--kb-ease),
+    color var(--kb-dur) var(--kb-ease);
+}
+
+.kb-ask .kb-ask__quick .re-button.re-button--primary:not(.is-link):hover {
+  transform: translateX(2px);
+}
+
+/* 输入区聚焦时给一圈品牌色光晕，右栏才有「可以开始问」的落点 */
+.kb-ask__input {
+  transition: box-shadow var(--kb-dur) var(--kb-ease), border-color var(--kb-dur) var(--kb-ease);
+}
+
+.kb-ask__input:focus-within {
+  border-color: var(--kb-accent-line);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kb-accent) 10%, transparent);
+}
+
+/* 入场：中栏内容抬 6px 淡入，一次编排而不是满屏微交互 */
+@keyframes kb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.kb-main > * {
+  animation: kb-rise 220ms var(--kb-ease) both;
+}
+
+.kb-main > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-main > * {
+    animation: none;
+  }
+
+  .kb-ask .kb-ask__quick .re-button.re-button--primary:not(.is-link):hover {
+    transform: none;
+  }
+}

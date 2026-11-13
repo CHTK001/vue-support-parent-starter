@@ -31,13 +31,13 @@
       <p class="mt-2 text-sm text-[var(--rm-text-secondary)]">{{ t('knowledge.tree.loading') }}</p>
     </div>
 
-    <div v-else-if="visibleItems.length > 0" class="@container">
+    <div v-else-if="visibleItems.length > 0" class="@container kb-filelist">
       <!-- 表头。
            左栏在「文档 + 智能问答」双栏里只有 ~430px 宽，五列固定宽（90+80+120+160）
            加 4 个 16px 间距需要 514px，会把 1fr 的名称列压成 0 宽 —— 文件名完全看不见。
            这里改成按容器宽度自适应：窄时只留「名称 + 状态」，宽了再逐级放出类型/大小/时间。 -->
       <div
-        class="grid gap-2 px-3 py-2 border-b border-[var(--rm-border-light)] text-xs font-medium text-[var(--rm-text-secondary)] grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]">
+        class="kb-filelist__head grid gap-2 px-3 py-2 border-b border-[var(--rm-border-light)] text-xs font-medium text-[var(--rm-text-secondary)] grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]">
         <div>{{ t('knowledge.tree.colName') }}</div>
         <div>{{ t('knowledge.tree.colStatus') }}</div>
         <div class="hidden @[520px]:block">{{ t('knowledge.tree.colType') }}</div>
@@ -120,7 +120,8 @@
     </div>
 
     <!-- 没有更多数据提示 -->
-    <div v-else-if="!hasMore && visibleItems.length > 0" class="text-center py-3 text-[var(--rm-text-disabled)] text-sm">
+    <div v-else-if="!hasMore && visibleItems.length > 0"
+      class="kb-filelist__foot text-center py-3 text-[var(--rm-text-disabled)] text-sm">
       <p>{{ t('knowledge.tree.allLoaded') }}</p>
     </div>
 
