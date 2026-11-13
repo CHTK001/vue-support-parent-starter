@@ -77,11 +77,11 @@ otherConfig:
   # 开着只会在每次启动留一条 404（同 hotspot 应用的处理）
   avatarFrame:
     enable: false
-  # 壁纸：内置渐变/图案是纯 CSS，不依赖后端，打开即可在个人中心试用；
-  # 自己上传的图片走 /v2/file/upload（bucket=wallpaper），后端未实现时只有上传会失败，
-  # 内置壁纸与参数调节照常可用。
+  # 壁纸：内置渐变/图案是纯 CSS，但主题 store 挂载时仍会拉 /v2/wallpaper/list
+  # 同步服务端目录；监控后端没有该接口，每次启动都会留一条 404。
+  # 本部署先关闭（个人中心不出现壁纸页签）；后端补上 wallpaper 接口后再打开。
   wallpaper:
-    enable: true
+    enable: false
   toolbar:
     # 平台公告接口属 system 服务，监控后端未实现（同 collect 应用）
     announcement:
