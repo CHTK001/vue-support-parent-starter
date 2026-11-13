@@ -3902,6 +3902,51 @@ html.dark .kb-tpl__cover {
   background: var(--kb-fill);
 }
 
+/* 筛选命中 0 条：如实说明是筛选的结果，并给一键回到「全部」 */
+.kb-treeempty {
+  padding: 44px 16px;
+  text-align: center;
+  color: var(--kb-ink-2);
+}
+
+.kb-treeempty p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.kb-treeempty__t {
+  font-weight: 600;
+  color: var(--kb-ink);
+}
+
+.kb-treeempty__d {
+  margin-top: 4px !important;
+  font-size: 11.5px !important;
+  color: var(--kb-ink-3);
+}
+
+.kb-treeempty__act {
+  appearance: none;
+  margin-top: 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--kb-line);
+  border-radius: 999px;
+  background: var(--kb-card);
+  color: var(--kb-accent);
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition:
+    border-color var(--kb-dur) var(--kb-ease),
+    background-color var(--kb-dur) var(--kb-ease);
+}
+
+.kb-treeempty__act:hover {
+  border-color: var(--kb-accent-line);
+  background: var(--kb-accent-soft);
+}
+
 .kb-nav__filter::placeholder {
   color: var(--kb-ink-3);
 }

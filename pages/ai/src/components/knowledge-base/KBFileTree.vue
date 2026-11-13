@@ -122,9 +122,16 @@
       </div>
     </div>
 
-    <!-- 空文件夹：父组件已铺空态卡片时不再重复提示 -->
-    <div v-else-if="!suppressEmpty" class="text-center py-8 text-[var(--rm-text-secondary)]">
-      <p>{{ currentRelativePath ? t('knowledge.tree.folderEmpty') : t('knowledge.tree.empty') }}</p>
+    <!-- 空文件夹：父组件已铺空态卡片时不再重复提示；命中筛选但无结果时如实说明 -->
+    <div v-else-if="!suppressEmpty" class="kb-treeempty">
+      <template v-if="statusFilter && statusFilter !== 'all'">
+        <p class="kb-treeempty__t">{{ t('knowledge.tree.emptyFiltered') }}</p>
+        <p class="kb-treeempty__d">{{ t('knowledge.tree.emptyFilteredHint') }}</p>
+        <button type="button" class="kb-treeempty__act" @click="emit('resetFilter')">
+          {{ t('knowledge.tree.resetFilter') }}
+        </button>
+      </template>
+      <p v-else>{{ currentRelativePath ? t('knowledge.tree.folderEmpty') : t('knowledge.tree.empty') }}</p>
     </div>
 
     <!-- 加载更多指示器 -->
@@ -258,6 +265,7 @@ const emit = defineEmits<{
   chunks: [file: KBFile]
   folderChange: [folderPath: string | null]  // 目录切换事件
   filesLoaded: [files: KBFile[]]  // 文件加载完成事件
+  resetFilter: []  // 筛选无结果时请求父组件切回「全部」
 }>()
 
 const kbStore = useKnowledgeBaseStore()

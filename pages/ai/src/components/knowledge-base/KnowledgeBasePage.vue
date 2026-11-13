@@ -402,6 +402,7 @@
                 <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
                   :status-filter="fileStatusFilter"
                   :suppress-empty="filesForFilter.length === 0 && fileStatusFilter === 'all'"
+                  @reset-filter="fileStatusFilter = 'all'"
                   @view="handleViewFile" @retry="handleRetryFile" @delete="handleDeleteFile"
                   @chunks="handleViewChunks"
                   @folder-change="handleFolderChange" @files-loaded="handleFilesLoaded" />

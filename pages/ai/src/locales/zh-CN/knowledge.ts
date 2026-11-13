@@ -109,6 +109,9 @@ export default {
     folder: '文件夹',
     folderEmpty: '该文件夹为空',
     empty: '暂无文件',
+    emptyFiltered: '当前筛选下没有文件',
+    emptyFilteredHint: '切回「全部」可以查看这个目录的所有文档',
+    resetFilter: '查看全部',
     allLoaded: '已加载全部文件',
     // 右键菜单
     rename: '重命名',
