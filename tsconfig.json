@@ -100,6 +100,7 @@
       "@repo/ui/re-placeholder-picker": ["packages/ui/src/components/RePlaceholderPicker/index.ts"],
       "@repo/ui/re-process-task": ["packages/ui/src/components/ReProcessTask/index.ts"],
       "@repo/ui/re-progress": ["packages/ui/src/components/ReProgress/index.ts"],
+      "@repo/ui/re-progress-dialog": ["packages/ui/src/components/ReProgressDialog/index.ts"],
       "@repo/ui/re-rag-chat": ["packages/ui/src/components/ReRagChat/index.ts"],
       "@repo/ui/re-rag-manager": ["packages/ui/src/components/ReRagManager/index.ts"],
       "@repo/ui/re-relation-graph": ["packages/ui/src/components/ReRelationGraph/index.ts"],

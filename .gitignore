@@ -156,6 +156,10 @@ start-dev*.bat
 run-dev*.ps1
 start-be*.ps1
 *.jpg
+# 上面那条只该挡调试截图：各 app public 下是随包发布的图片资源，
+# 必须能提交（2026-11-12：生图页风格缩略图 *.jpg 被这条规则挡在版本库外，
+# 换机器后整排缩略图全是破图，只剩一个 webp）。
+!apps/*/public/**/*.jpg
 
 # 空文件残留
 **/null
