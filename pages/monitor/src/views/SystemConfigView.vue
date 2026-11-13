@@ -34,6 +34,7 @@ const CARDS: ConfigCard[] = [
     items: [
       { key: "guacd.host", label: "地址", type: "text", placeholder: "124.221.230.112" },
       { key: "guacd.port", label: "端口", type: "number", placeholder: "4822" },
+      { key: "guacd.rdp.security", label: "RDP 安全层", type: "text", placeholder: "nla", hint: "any / rdp / tls / nla / nla-ext / vmconnect；Windows 默认要 NLA，老系统或网关可能要 any" },
     ],
   },
   {
@@ -48,14 +49,16 @@ const CARDS: ConfigCard[] = [
   },
   {
     key: "ssh",
-    title: "SSH 通道",
-    desc: "采集 / 远程执行 / 终端的连接超时",
+    title: "SSH 与连接超时",
+    desc: "连接 / 认证 / 读取超时，以及连接池的空闲回收",
     icon: "Timer",
-    consumer: "SshTimeouts 动态读取 · 保存后热生效，无需重启平台",
+    consumer: "SshTimeouts 与 ConnectionManager 动态读取 · 保存后热生效，无需重启平台",
     items: [
       { key: "ssh.connect.timeout", label: "连接超时（秒）", type: "number", placeholder: "15", hint: "TCP 连接 + SSH 握手上限；高 RTT / 慢链路可调大" },
       { key: "ssh.session.timeout", label: "会话超时（秒）", type: "number", placeholder: "30", hint: "认证与会话建立上限；高负载主机认证慢时调大" },
       { key: "ssh.read.timeout", label: "读取超时（秒）", type: "number", placeholder: "60", hint: "命令执行与输出读取上限；长命令 / 大输出需要更大" },
+      { key: "connection.idle.timeout", label: "空闲回收（秒）", type: "number", placeholder: "300", hint: "连接池里超过这么久没人用的 SSH 连接会被关闭；调大 = 复用更久、调小 = 更省目标机资源" },
+      { key: "connection.sweep.interval", label: "健康检查间隔（秒）", type: "number", placeholder: "60", hint: "多久扫一次连接池（探测失活 + 按空闲回收）；改完下次扫描生效" },
     ],
   },
   {
@@ -122,14 +125,14 @@ const CARDS: ConfigCard[] = [
   {
     key: "ssh-display",
     title: "SSH 终端外观",
-    desc: "TERM 类型 / 字体 / 字号 / 退格（guacd 链路）",
+    desc: "TERM 类型 / 字体 / 字号 / 退格",
     icon: "Document",
-    consumer: "GuacdTunables 读取 · 直连终端用 xterm 侧设置，不走这里",
+    consumer: "TERM 对直连与 guacd 都生效；字体/字号/退格只作用于 guacd 链路（直连用 xterm 侧设置）",
     items: [
-      { key: "ssh.terminal-type", label: "终端类型 TERM", type: "text", placeholder: "xterm-256color", hint: "xterm-256color / xterm / screen-256color / vt100" },
-      { key: "ssh.font-name", label: "字体名", type: "text", placeholder: "monospace", hint: "字母数字与 ._:- 组成" },
-      { key: "ssh.font-size", label: "字号", type: "number", placeholder: "12", hint: "8-40，越界回落 12" },
-      { key: "ssh.backspace", label: "退格键", type: "number", placeholder: "127", hint: "127(DEL) 或 8(BS)，其它回落 127" },
+      { key: "ssh.terminal-type", label: "终端类型 TERM", type: "text", placeholder: "xterm-256color", hint: "xterm-256color / xterm / screen-256color / vt100；直连 PTY 也用它" },
+      { key: "ssh.font-name", label: "字体名", type: "text", placeholder: "monospace", hint: "仅 guacd 链路；直连终端的字体在页面里固定" },
+      { key: "ssh.font-size", label: "字号", type: "number", placeholder: "12", hint: "仅 guacd 链路；8-40，越界回落 12" },
+      { key: "ssh.backspace", label: "退格键", type: "number", placeholder: "127", hint: "仅 guacd 链路；127(DEL) 或 8(BS)，其它回落 127" },
     ],
   },
   {
@@ -150,6 +153,9 @@ const KEYS = CARDS.flatMap(c => c.items.map(i => i.key));
 const FALLBACK: Record<string, string> = {
   "guacd.host": "124.221.230.112",
   "guacd.port": "4822",
+  "guacd.rdp.security": "nla",
+  "connection.idle.timeout": "300",
+  "connection.sweep.interval": "60",
   "guacd.client.host": "127.0.0.1:8848",
   "ssh.connect.timeout": "15",
   "ssh.session.timeout": "30",

@@ -14,6 +14,7 @@
 import { markRaw, type Component } from 'vue';
 import ScFileStorageFilterPanel from './ScFileStorageFilterPanel.vue';
 import ScDiscoveryFilterPanel from './ScDiscoveryFilterPanel.vue';
+import ScFirewallFilterPanel from './ScFirewallFilterPanel.vue';
 import ScGenericFilterPanel from './ScGenericFilterPanel.vue';
 
 /**
@@ -31,6 +32,8 @@ const ALIAS: Record<string, string> = {
 const REGISTRY: Record<string, Component> = {
   'file-storage': markRaw(ScFileStorageFilterPanel),
   'service-discovery': markRaw(ScDiscoveryFilterPanel),
+  firewall: markRaw(ScFirewallFilterPanel),
+  ip: markRaw(ScFirewallFilterPanel),
 };
 
 /**

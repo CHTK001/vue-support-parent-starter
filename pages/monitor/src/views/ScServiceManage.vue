@@ -36,14 +36,11 @@ import {
 } from './service/serviceView';
 import type { ServerNodeView } from '../api';
 import { copyText } from '../utils/clipboard';
-import ShellLedger from './service/shell/ShellLedger.vue';
 import ShellRack from './service/shell/ShellRack.vue';
-import ShellConsole from './service/shell/ShellConsole.vue';
-import SvcShellSwitch from './service/shell/SvcShellSwitch.vue';
 import type {
   ActivityItem,
+  NodeSort,
   SvcShellContext,
-  SvcShellName,
   StatusTab,
   WorkKind,
   WorkTab,
@@ -399,6 +396,17 @@ function onRowDblClick(card: ServiceNodeCard): void {
   openTab(card, 'detail');
 }
 
+/** 左轨排序口径：名称 / 端口 / 状态（异常在前） */
+const sortBy = ref<NodeSort>('name');
+
+/** 切换排序 */
+function setSort(value: NodeSort): void {
+  sortBy.value = value;
+}
+
+/** 状态排序权重：异常最先，其次运行中，最后已停止 */
+const STATUS_ORDER: Record<string, number> = { ERROR: 0, RUNNING: 1, STOPPED: 2 };
+
 /** 左轨按协议分组：空协议归入最后的「未分组」 */
 const protocolGroups = computed(() => {
   const UNGROUPED = '__ungrouped__';
@@ -416,8 +424,32 @@ const protocolGroups = computed(() => {
     running: cards.filter(card => card.status === 'RUNNING').length,
   }));
   groups.sort((a, b) => Number(a.key === UNGROUPED) - Number(b.key === UNGROUPED));
+  const compare = sortComparator(sortBy.value);
+  for (const group of groups) {
+    group.cards = [...group.cards].sort(compare);
+  }
   return groups;
 });
+
+/**
+ * 排序比较器。
+ *
+ * <p>状态排序把异常排在最前：排障时最想知道「哪个出了问题」，按名称排反而要先扫一遍。
+ * 名称与端口都走 `localeCompare(..., 'zh-CN', { numeric: true })`，让 `node-2` 排在
+ * `node-10` 前面。</p>
+ *
+ * @param sort 排序口径
+ */
+function sortComparator(sort: NodeSort): (a: ServiceNodeCard, b: ServiceNodeCard) => number {
+  if (sort === 'status') {
+    return (a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9)
+      || a.name.localeCompare(b.name, 'zh-CN', { numeric: true });
+  }
+  if (sort === 'port') {
+    return (a, b) => (a.port ?? 0) - (b.port ?? 0);
+  }
+  return (a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true });
+}
 
 /** 折叠的协议组 key */
 const collapsedGroups = ref<Set<string>>(new Set());
@@ -669,27 +701,7 @@ function gotoActivity(item: ActivityItem): void {
 /** 当前页签数（Dock 统计用） */
 const tabCount = computed(() => openTabs.value.length);
 
-/* ==================== 外壳：三个方向共用一份状态 ==================== */
-
-/** 已保存的方向；只认三个代号，脏值回落机架 */
-function readShell(): SvcShellName {
-  const saved = localStorage.getItem('svc-shell');
-  return saved === 'ledger' || saved === 'console' || saved === 'rack' ? saved : 'rack';
-}
-
-/**
- * 当前外壳方向（方向对比阶段可切换，选定后固定为常量）。
- *
- * <p>写 localStorage 是为了「切到详情页再回来仍是同一个方向」——对比时最怕
- * 每次刷新都跳回默认值，误以为是排版不稳。</p>
- */
-const shell = ref<SvcShellName>(readShell());
-watch(shell, value => localStorage.setItem('svc-shell', value));
-
-/** 方向 → 外壳组件 */
-const shellComponent = computed(() =>
-  shell.value === 'ledger' ? ShellLedger : shell.value === 'console' ? ShellConsole : ShellRack,
-);
+/* ==================== 外壳：页面状态交给三栏工作台 ==================== */
 
 /** 页签切换：ReTabs 只回传 name，写回页面状态 */
 function setActiveTab(name: string): void {
@@ -707,6 +719,8 @@ const shellCtx = reactive({
   protocolGroups,
   collapsedGroups,
   toggleGroup,
+  sortBy,
+  setSort,
   selectedNodeId,
   activeNodeId,
   activeCard,
@@ -841,8 +855,8 @@ watch(
       class="load-notice"
     />
 
-    <!-- 三栏主体已抽成外壳：A 台账 / B 机架 / C 控制台共用同一份状态与动作 -->
-    <component :is="shellComponent" :ctx="shellCtx" />
+    <!-- 三栏工作台：左栏清单 / 中间工作区 / 右侧检查器，共用同一份状态与动作 -->
+    <ShellRack :ctx="shellCtx" />
 
     <!-- 新增 / 编辑 / 克隆：表单抽屉（与旧页契约一致） -->
     <ScServerFormDrawer
@@ -948,9 +962,6 @@ watch(
         </div>
       </div>
     </Teleport>
-
-    <!-- 方向对比开关：只在探索阶段存在，选定方向后删除 -->
-    <SvcShellSwitch v-model="shell" />
   </div>
 </template>
 

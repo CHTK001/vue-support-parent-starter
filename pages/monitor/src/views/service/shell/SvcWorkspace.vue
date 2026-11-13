@@ -81,7 +81,28 @@ const summaryCard = computed<ServiceNodeCard | undefined>(() => {
       </span>
     </div>
 
+    <!-- 没有页签时给可点的下一步，而不是只留一句说明 -->
+    <div v-if="!props.ctx.openTabs.length" class="sw-empty">
+      <ReIcon name="Files" :size="26" />
+      <p class="sw-empty__title">还没有打开的服务页签</p>
+      <p class="sw-empty__hint">
+        双击左栏任一服务打开详情；过滤器链与 P2P 房间都会以页签方式并排保留，切换不丢上下文。
+      </p>
+      <div class="sw-empty__ops">
+        <button type="button" class="is-primary" @click="props.ctx.vm.openCreate()">
+          <ReIcon name="Plus" :size="13" /><span>新增服务</span>
+        </button>
+        <button type="button" @click="props.ctx.openRoomEntrance()">
+          <ReIcon name="Connection" :size="13" /><span>打开 P2P 房间</span>
+        </button>
+        <button type="button" :disabled="props.ctx.vm.loading" @click="props.ctx.vm.refresh()">
+          <ReIcon name="RefreshRight" :size="13" /><span>刷新列表</span>
+        </button>
+      </div>
+    </div>
+
     <ReTabs
+      v-else
       :model-value="props.ctx.activeTab"
       class="sw-tabs"
       :tabs="props.ctx.openTabs"
@@ -203,5 +224,71 @@ const summaryCard = computed<ServiceNodeCard | undefined>(() => {
 .sw-tabs {
   flex: 1;
   min-height: 0;
+}
+
+/* 空态：一句说明 + 三个真能点的入口，避免整屏空白 */
+.sw-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+}
+
+.sw-empty__title {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.sw-empty__hint {
+  max-width: 420px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.sw-empty__ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.sw-empty__ops button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
+}
+
+.sw-empty__ops button:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+
+.sw-empty__ops button.is-primary {
+  color: var(--el-color-primary-foreground, #fff);
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
+.sw-empty__ops button:disabled {
+  cursor: progress;
+  opacity: 0.55;
 }
 </style>

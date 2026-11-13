@@ -1,15 +1,15 @@
 /**
- * 服务管理 —— 三种外壳共用的上下文契约
+ * 服务管理 —— 工作台的上下文契约
  *
  * <p><b>为什么要有这一层</b>：页面状态（筛选、页签、右键菜单、启停动作）只有一份，
- * 但「怎么摆」要出三个方向对比。若把 30 多个绑定逐个当 props 传给外壳，改一次
- * 状态就要同步三处签名，方向还没比完就已经漂了；反过来把逻辑复制进三个外壳，
- * 行为又必然分叉。</p>
+ * 而工作台拆成「统计条 / 节点清单 / 工作区 / 检查器 / 活动流」几个组件。若把 30 多个
+ * 绑定逐个当 props 传，改一次状态就要同步整条链路；反过来把逻辑复制进组件，行为又
+ * 必然分叉。</p>
  *
- * <p>所以：状态与动作仍住在 {@code ScServiceManage.vue}，用 {@link createSvcShellContext}
- * 收成一个对象交给外壳；外壳只负责摆位与密度，不自己算节点状态，也不直接发请求。</p>
+ * <p>所以：状态与动作仍住在 {@code ScServiceManage.vue}，收成一个对象交给工作台；
+ * 组件只负责摆位与密度，不自己算节点状态，也不直接发请求。</p>
  *
- * <p>外壳读取时可以直接写 {@code ctx.cards} / {@code ctx.activeCard}：上下文用
+ * <p>组件读取时可以直接写 {@code ctx.cards} / {@code ctx.activeCard}：上下文用
  * {@code reactive()} 包了一层，ref 会被自动解包，赋值也会写回原 ref。</p>
  *
  * @author CH
@@ -20,9 +20,6 @@ import type { ReTabsContextItem, ReTabsItem } from '@repo/ui/re-tabs'
 import type { ServerNodeView } from '../../../api/serviceManage'
 import type { ServiceNodeCard } from '../serviceView'
 import type { ServiceNodesVm } from '../useServiceNodes'
-
-/** 外壳代号：台账 / 机架 / 控制台 */
-export type SvcShellName = 'ledger' | 'rack' | 'console'
 
 /** 工作区页签类型：节点详情 / 过滤器链 / P2P 房间 */
 export type WorkKind = 'detail' | 'filter' | 'room'
@@ -47,6 +44,9 @@ export interface StatusTab {
   count: number
   dot: string
 }
+
+/** 左轨排序口径：名称 / 端口 / 状态（异常在前） */
+export type NodeSort = 'name' | 'port' | 'status'
 
 /** 按协议分组后的节点 */
 export interface ProtocolGroup {
@@ -84,6 +84,10 @@ export interface SvcShellContext {
   collapsedGroups: Set<string>
   /** 收起 / 展开协议组 */
   toggleGroup: (key: string) => void
+  /** 左轨排序口径 */
+  sortBy: NodeSort
+  /** 切换排序 */
+  setSort: (value: NodeSort) => void
 
   /* ---------- 选中与动作 ---------- */
   /** 左轨选中的节点 id */

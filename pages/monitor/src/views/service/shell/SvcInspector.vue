@@ -10,10 +10,37 @@
  * 不摆一堆禁用按钮。</p>
  */
 import ReIcon from '@repo/ui/re-icon'
+import { message } from '@repo/core'
+import { copyText } from '../../../utils/clipboard'
 import SvcActivity from './SvcActivity.vue'
 import type { SvcShellProps } from './context'
 
 const props = withDefaults(defineProps<SvcShellProps & { showStats?: boolean }>(), { showStats: true })
+
+/**
+ * 复制一段文本并给出一次反馈。
+ *
+ * <p>检查器里最常用的动作是「把监听地址或访问地址拿走去 curl / 贴工单」，
+ * 之前只能去右键菜单里找，多一步就多一次误操作。</p>
+ *
+ * @param text 要复制的文本
+ * @param label 提示里怎么称呼它
+ */
+async function copy(text: string, label: string): Promise<void> {
+  if (!text) return
+  try {
+    await copyText(text)
+    message.success(`${label}已复制`)
+  } catch (e) {
+    message.error(`复制失败：${(e as Error).message}`)
+  }
+}
+
+/** 在新窗口打开访问地址（模板里拿不到 window，收成方法） */
+function openUrl(url: string): void {
+  if (url) window.open(url, '_blank', 'noopener')
+}
+
 </script>
 
 <template>
@@ -62,6 +89,36 @@ const props = withDefaults(defineProps<SvcShellProps & { showStats?: boolean }>(
         <p v-if="props.ctx.activeCard.reason" class="sin-reason" :title="props.ctx.activeCard.reason">
           {{ props.ctx.activeCard.reason }}
         </p>
+
+        <!-- 地址操作：排障时最常做的一步 -->
+        <div class="sin-addr">
+          <button type="button" @click="copy(props.ctx.activeCard.listenText, '监听地址')">
+            <ReIcon name="CopyDocument" :size="12" /><span>复制监听</span>
+          </button>
+          <button v-if="props.ctx.activeCard.url" type="button" @click="copy(props.ctx.activeCard.url, '访问地址')">
+            <ReIcon name="Link" :size="12" /><span>复制地址</span>
+          </button>
+          <button v-if="props.ctx.activeCard.url" type="button" @click="openUrl(props.ctx.activeCard.url)">
+            <ReIcon name="TopRight" :size="12" /><span>打开</span>
+          </button>
+        </div>
+
+        <!-- 插件链：点任意一环直接进「过滤器链」页签 -->
+        <div v-if="props.ctx.activeCard.chips.length" class="sin-plugins">
+          <span class="sin-sub">插件链 {{ props.ctx.activeCard.chips.length }}</span>
+          <div class="sin-chips">
+            <button
+              v-for="chip in props.ctx.activeCard.chips"
+              :key="chip.key"
+              type="button"
+              :title="`${chip.text}（${chip.type}）`"
+              :class="{ 'is-off': !chip.enabled }"
+              @click="props.ctx.openTab(props.ctx.activeCard, 'filter')"
+            >
+              {{ chip.order }}. {{ chip.text }}
+            </button>
+          </div>
+        </div>
 
         <div class="sin-actions">
           <button
@@ -238,6 +295,76 @@ const props = withDefaults(defineProps<SvcShellProps & { showStats?: boolean }>(
   color: var(--el-color-danger);
   background: var(--el-color-danger-light-9);
   border-radius: 6px;
+}
+
+/* 地址操作：三颗小按钮一行，排在事实表下面 */
+.sin-addr {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sin-addr button {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  height: 24px;
+  padding: 0 7px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  cursor: pointer;
+}
+
+.sin-addr button:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+
+/* 插件链：有顺序，按 order 显示；停用的降透明度 */
+.sin-plugins {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sin-sub {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.sin-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.sin-chips button {
+  max-width: 100%;
+  padding: 1px 6px;
+  overflow: hidden;
+  font: inherit;
+  font-size: 10.5px;
+  color: var(--el-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--el-color-primary-light-9);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.sin-chips button:hover {
+  border-color: var(--el-color-primary-light-5);
+}
+
+.sin-chips button.is-off {
+  color: var(--el-text-color-placeholder);
+  background: var(--el-fill-color);
+  text-decoration: line-through;
 }
 
 .sin-actions {

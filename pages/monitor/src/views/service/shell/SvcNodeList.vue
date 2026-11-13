@@ -30,6 +30,24 @@ const groups = computed(() =>
     ? props.ctx.protocolGroups
     : [{ key: '__all__', protocolText: '全部', cards: props.ctx.vm.visibleCards, running: 0 }],
 )
+
+/**
+ * 键盘上下移动焦点。
+ *
+ * <p>清单动辄几十行，排障时用方向键逐行看比反复点鼠标快；回车仍然沿用「打开详情」
+ * 的既有语义，这里只管焦点。</p>
+ *
+ * @param event 键盘事件
+ * @param delta 1 向下，-1 向上
+ */
+function moveFocus(event: KeyboardEvent, delta: number): void {
+  const root = (event.currentTarget as HTMLElement).closest('.snl')
+  if (!root) return
+  const rows = Array.from(root.querySelectorAll<HTMLElement>('.snl-row'))
+  const index = rows.indexOf(event.currentTarget as HTMLElement)
+  const next = rows[index + delta]
+  next?.focus()
+}
 </script>
 
 <template>
@@ -84,6 +102,8 @@ const groups = computed(() =>
           @click="props.ctx.onRowClick(card)"
           @dblclick="props.ctx.onRowDblClick(card)"
           @keydown.enter.prevent="props.ctx.onRowDblClick(card)"
+          @keydown.down.prevent="moveFocus($event, 1)"
+          @keydown.up.prevent="moveFocus($event, -1)"
           @contextmenu="props.ctx.openCtxMenuFromButton($event, card)"
         >
           <i class="sv-dot snl-dot" :class="props.ctx.stateClassOf(card)" aria-hidden="true" />
@@ -91,6 +111,7 @@ const groups = computed(() =>
           <span class="snl-name sv-ellipsis">
             {{ card.name }}
             <em v-if="props.mode === 'list'" class="snl-name-port sv-mono">{{ card.portText }}</em>
+            <span v-if="card.status === 'ERROR'" class="snl-err" :title="card.reason || '启动失败'">异常</span>
           </span>
 
           <span v-if="props.mode === 'table'" class="snl-proto sv-ellipsis">
@@ -113,11 +134,11 @@ const groups = computed(() =>
 
           <!-- 树状：右端只留端口，名字才有宽度 -->
           <span v-if="props.mode === 'tree'" class="snl-tree-port sv-mono">{{ card.portText }}</span>
-          <!-- 双行：第二行只放协议 + 端口 + 插件数；引擎与后端在详情里看 -->
+          <!-- 双行：第二行只放协议 + 插件数；端口已在名称行，避免同一行重复两遍 -->
           <span v-else-if="props.mode === 'list'" class="snl-meta sv-ellipsis">
             <span class="snl-meta-proto sv-ellipsis">{{ card.protocolText }}</span>
-            <i>{{ card.portText }}</i>
             <i v-if="card.filterCount">· {{ card.filterCount }} 插件</i>
+            <i v-if="card.backendText" class="snl-meta-backend">{{ card.backendText }}</i>
           </span>
 
           <span v-if="props.mode !== 'table'" class="snl-state">
@@ -155,7 +176,16 @@ const groups = computed(() =>
       </div>
     </template>
 
-    <div v-if="!props.ctx.vm.visibleCards.length" class="snl-empty">
+    <!-- 首载骨架：慢网下先给形状，避免「空白 → 一次性出现」 -->
+    <div v-if="props.ctx.vm.loading && !props.ctx.vm.visibleCards.length" class="snl-skeleton">
+      <div v-for="i in 3" :key="i" class="snl-skeleton__row">
+        <i class="snl-skeleton__dot" />
+        <span class="snl-skeleton__line" />
+        <span class="snl-skeleton__line is-short" />
+      </div>
+    </div>
+
+    <div v-else-if="!props.ctx.vm.visibleCards.length" class="snl-empty">
       <ReIcon name="Files" :size="22" />
       <span>{{ props.ctx.vm.filtered ? '没有匹配的服务' : '还没有服务节点' }}</span>
     </div>
@@ -297,6 +327,23 @@ const groups = computed(() =>
   font-style: normal;
   font-weight: 400;
   color: var(--el-text-color-secondary);
+}
+
+/* 异常角标：列表里光靠红点不够，排障要能一眼看到「这条挂了」 */
+.snl-err {
+  flex: none;
+  padding: 0 5px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+  border-radius: 999px;
+}
+
+.snl-meta-backend {
+  flex: none;
+  color: var(--el-color-primary);
 }
 
 .snl-proto {
@@ -447,6 +494,56 @@ const groups = computed(() =>
   padding: 34px 12px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* 骨架行：与真实行同高，加载完成时不跳版 */
+.snl-skeleton {
+  display: flex;
+  flex-direction: column;
+}
+
+.snl-skeleton__row {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) 64px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.snl-skeleton__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--el-fill-color);
+}
+
+.snl-skeleton__line {
+  height: 8px;
+  background: linear-gradient(90deg, var(--el-fill-color) 25%, var(--el-fill-color-light) 37%, var(--el-fill-color) 63%);
+  background-size: 400% 100%;
+  border-radius: 4px;
+  animation: snl-shimmer 1.4s ease infinite;
+}
+
+.snl-skeleton__line.is-short {
+  width: 64px;
+}
+
+@keyframes snl-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snl-skeleton__line {
+    animation: none;
+  }
 }
 
 /* ==================== 表格模式 ==================== */

@@ -17,9 +17,11 @@
  * 复制访问地址、启动/停止/重启节点，仍由父组件发起，本组件只发意图。</p>
  */
 import { computed, ref, watch } from 'vue';
+import { message } from '@repo/core';
 import type { FilterTypeMeta, ServerFilterDescriptor, ServerNodeView } from '../api';
 import ScFilterConfigPanel from './ScFilterConfigPanel.vue';
 import { hasFilterDetail } from '../utils/filterDetail';
+import { copyText } from '../utils/clipboard';
 
 const props = withDefaults(
   defineProps<{
@@ -124,6 +126,19 @@ const configEntries = computed(() =>
   Object.entries(props.node?.config || {}).map(([key, value]) => ({ key, value: String(value) })),
 );
 
+/**
+ * 反向代理的目标后端：`host:port`。
+ *
+ * <p>详情页拿到的是后端原始行（不是清单层的展示对象），所以这里按 config 的两个
+ * 约定键拼一次，而不是复用 `ServiceNodeCard.backendText`——那条在清单层用。</p>
+ */
+const backendText = computed(() => {
+  const config = props.node?.config || {};
+  const host = config.backendHost ?? config.host;
+  const port = config.backendPort ?? config.port;
+  return host && port ? `${host}:${port}` : '';
+});
+
 // ===== 插件配置页 =====
 
 /** 参数草稿（只在配置页内使用） */
@@ -153,6 +168,31 @@ watch(
 /** 提交热更新：把草稿交给父组件发请求 */
 function onApply() {
   emit('apply', props.activeIndex, { ...filterParams.value });
+}
+
+/**
+ * 复制文本并给一次反馈。
+ *
+ * @param text  要复制的文本
+ * @param label 提示里怎么称呼它
+ */
+async function copyWithToast(text: string, label: string): Promise<void> {
+  if (!text) return;
+  try {
+    await copyText(text);
+    message.success(`${label}已复制`);
+  } catch (e) {
+    message.error(`复制失败：${(e as Error).message}`);
+  }
+}
+
+/**
+ * 在新窗口打开访问地址。
+ *
+ * @param url 访问地址
+ */
+function openUrl(url: string): void {
+  if (url) window.open(url, '_blank', 'noopener');
 }
 </script>
 
@@ -313,14 +353,32 @@ function onApply() {
             </div>
             <div class="sdb-spec-item">
               <span>访问</span>
-              <b v-if="node.serverUrl" class="sdb-mono sdb-url">{{ node.serverUrl }}</b>
+              <b
+                v-if="node.serverUrl"
+                class="sdb-mono sdb-url"
+                :title="`${node.serverUrl}（点击打开）`"
+                role="link"
+                tabindex="0"
+                @click="openUrl(node.serverUrl)"
+                @keydown.enter.prevent="openUrl(node.serverUrl)"
+              >{{ node.serverUrl }}</b>
               <b v-else class="sdb-dim">{{ node.status === 'ERROR' ? '启动失败，修复后可用' : '未运行' }}</b>
               <ReButton
                 v-if="node.serverUrl"
                 icon="Copy"
                 layout="square"
                 tip="复制地址"
-                @click="emit('copy-url')"
+                @click="copyWithToast(node.serverUrl, '访问地址')"
+              />
+            </div>
+            <div v-if="backendText" class="sdb-spec-item">
+              <span>目标后端</span>
+              <b class="sdb-mono sv-ellipsis" :title="backendText">{{ backendText }}</b>
+              <ReButton
+                icon="Copy"
+                layout="square"
+                tip="复制后端地址"
+                @click="copyWithToast(backendText, '后端地址')"
               />
             </div>
             <div class="sdb-spec-item">
@@ -720,6 +778,11 @@ function onApply() {
 }
 .sdb-url {
   color: var(--el-color-primary) !important;
+  cursor: pointer;
+}
+
+.sdb-url:hover {
+  text-decoration: underline;
 }
 .sdb-error-text {
   color: var(--el-color-danger) !important;

@@ -15,6 +15,13 @@ import type { SvcShellProps } from './context'
 const props = withDefaults(defineProps<SvcShellProps & { layout?: 'inline' | 'rail' | 'ribbon' }>(), {
   layout: 'inline',
 })
+
+/** 左轨排序选项：排障时最常用「异常优先」，默认仍按名称 */
+const sortOptions = [
+  { label: '按名称', value: 'name' },
+  { label: '按端口', value: 'port' },
+  { label: '异常优先', value: 'status' },
+]
 </script>
 
 <template>
@@ -71,6 +78,16 @@ const props = withDefaults(defineProps<SvcShellProps & { layout?: 'inline' | 'ra
         :data="props.ctx.vm.protocolOptions"
         placeholder="全部协议"
         clearable
+      />
+    </div>
+
+    <!-- 左轨专用：排序。清单只有一列，排序放这里比再开一条工具条省地方 -->
+    <div v-if="props.layout === 'rail'" class="ssb-sort">
+      <ReSelect
+        :model-value="props.ctx.sortBy"
+        aria-label="节点排序"
+        :data="sortOptions"
+        @update:model-value="(v: any) => props.ctx.setSort(v as any)"
       />
     </div>
 
@@ -169,6 +186,12 @@ const props = withDefaults(defineProps<SvcShellProps & { layout?: 'inline' | 'ra
 .ssb-proto {
   flex: none;
   width: 148px;
+}
+
+.ssb-sort {
+  flex: 1 1 100%;
+  order: 7;
+  min-width: 0;
 }
 
 .ssb-ops {
