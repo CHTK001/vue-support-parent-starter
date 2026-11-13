@@ -39,6 +39,23 @@ export interface SseConfig {
   clientId?: string;
   /** 是否携带凭证 */
   withCredentials?: boolean;
+  /**
+   * 连接方法，默认 POST。
+   *
+   * <p>POST 可把 token 放请求头（`x-oauth-token` / `Authorization`），
+   * 不把令牌写进 URL；仅在对接只认 GET 的旧服务时才显式改回 GET。</p>
+   */
+  method?: "GET" | "POST";
+  /** POST 请求体（可选，SSE 建连一般不需要） */
+  body?: string;
+  /**
+   * 自动连接，默认 true。
+   *
+   * <p>与 Socket.IO 对齐：创建服务即建连；但只有拿到 token 时才自动连，
+   * 避免登录页在未登录状态先打一条 401。没有 token 的公开 SSE 仍可通过
+   * {@link SocketTemplate.subscribe} 懒连接。</p>
+   */
+  autoConnect?: boolean;
   /** 自动重连，默认 true */
   reconnection?: boolean;
   /** 重连延迟（毫秒），默认 3000 */
@@ -61,6 +78,8 @@ export function createSseService(config: SseConfig): SocketTemplate {
   const listeners = new Map<string, Set<(data: unknown) => void>>();
   let reconnectAttempts = 0;
   const maxReconnectAttempts = config.reconnectionAttempts ?? 5;
+  /** 连接方法：默认 POST，token 走请求头而不是 URL */
+  const method = config.method ?? "POST";
   /** 多地址负载均衡 / 失败降级选择器 */
   const selector = createUrlSelector({
     urls: config.urls,
@@ -82,7 +101,12 @@ export function createSseService(config: SseConfig): SocketTemplate {
       queryParams.clientId = config.clientId;
     }
 
-    return { url: buildAuthUrl(baseUrl, token, queryParams), baseUrlRaw };
+    // GET 只能把令牌放 query（兼容只认 query 的旧服务）；
+    // POST 放请求头，URL 里不出现令牌。
+    return {
+      url: buildAuthUrl(baseUrl, method === "GET" ? token : undefined, queryParams),
+      baseUrlRaw,
+    };
   };
 
   const connect = () => {
@@ -91,6 +115,7 @@ export function createSseService(config: SseConfig): SocketTemplate {
       return;
     }
 
+    reconnectAttempts = 0;
     abortController = new AbortController();
     const { url, baseUrlRaw } = buildUrl();
     if (!url) {
@@ -99,14 +124,19 @@ export function createSseService(config: SseConfig): SocketTemplate {
       return;
     }
     const token = getSocketToken();
+    const headers: Record<string, string> = { Accept: "text/event-stream" };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+      headers["x-oauth-token"] = token;
+    }
+    if (config.body) {
+      headers["Content-Type"] = "application/json";
+    }
 
     fetchEventSource(url, {
-      method: "GET",
-      headers: {
-        Accept: "text/event-stream",
-        Authorization: token ? `Bearer ${token}` : "",
-        ...(config.query || {}),
-      },
+      method,
+      headers,
+      ...(config.body ? { body: config.body } : {}),
       signal: abortController.signal,
       openWhenHidden: true, // 保持后台连接
 
@@ -233,6 +263,10 @@ export function createSseService(config: SseConfig): SocketTemplate {
     event: string,
     handler: (msg: WsMessage) => void,
   ): (() => void) => {
+    // 懒连接：首次订阅时再建连，避免登录页/无订阅页面空占一条 SSE。
+    if (!abortController) {
+      connect();
+    }
     const key = `${module}_${event}`;
     if (!subscribeHandlers.has(key)) subscribeHandlers.set(key, new Set());
     subscribeHandlers.get(key)!.add(handler);
@@ -258,6 +292,12 @@ export function createSseService(config: SseConfig): SocketTemplate {
       /* 忽略解析异常 */
     }
   });
+
+  // 自动连接：有 token 才自动建连（登录页不先打 401）；无 token 的公开 SSE
+  // 会在首次 subscribe 时懒连接。
+  if (config.autoConnect !== false && getSocketToken()) {
+    connect();
+  }
 
   return {
     protocol: "sse",

@@ -220,6 +220,7 @@ export function createSocketService(config: SocketServiceConfig): SocketTemplate
         path: config.path,
         query: config.query,
         clientId: config.clientId,
+        autoConnect: config.autoConnect,
         reconnection: config.reconnection,
         reconnectionDelay: config.reconnectionDelay,
         reconnectionAttempts: config.reconnectionAttempts,

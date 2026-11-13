@@ -343,7 +343,9 @@ export const defaultAppConfig: AppConfig = {
     // socketio 上下文路径。SocketConfig.context 为必填字段，
     // 缺省值必须与 socket.io 客户端默认值一致，否则协议切到 socketio 时会拼出错误路径。
     context: "/socket.io",
-    path: "/sse",
+    // SSE 连接路径（协议=sse 时生效）。后端 SseSocketController 的端点是
+    // POST /sse/connect；写成 /sse 会稳定 404。只认旧 GET /sse 的部署可在 app.yaml 覆盖。
+    path: "/sse/connect",
     query: {},
     autoConnect: true,
     reconnection: true,

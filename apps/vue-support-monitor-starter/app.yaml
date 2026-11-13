@@ -159,6 +159,13 @@ messageConfig:
 socketConfig:
   # 验收后端已启用 plugin.socket.room（18086 使用 29624），恢复实时推送；
   # dev 代理需同步设置 MS_SOCKET_TARGET 指向该端口。
+  #
+  # 切 SSE（后端需已启用 spring-support-socket-sse-starter 的 POST /sse/connect）：
+  #   enable: true
+  #   protocol: sse
+  #   path: /sse/connect
+  # SSE 的 token 走 x-oauth-token / Authorization 请求头，不再写进 URL；
+  # 当前仍保留 socket.io，等后端 SSE 端点部署并验收后再切。
   enable: true
   protocol: socketio
   context: "/socket.io"
