@@ -266,7 +266,7 @@
                 <span class="kb-nav__doc-name">{{ f.displayName || f.fileName }}</span>
                 <span class="kb-nav__dot" :data-tone="fileTone(f.processingStatus)" />
               </button>
-              <p v-if="filesForFilter.length === 0" class="kb-nav__foot">这个卷宗还没有文档</p>
+              <p v-if="filesForFilter.length === 0 && !treeLoading" class="kb-nav__foot">这个卷宗还没有文档</p>
             </div>
           </div>
 
@@ -358,7 +358,7 @@
               <div class="kb-docview__tree">
                 <!-- 空文档：此前文件树中央只有一行「暂无文件」，而上传入口是工具栏末尾
                      一排 20px 的方形图标，看不出这里是起步点。空态把「上传」变成主按钮。 -->
-                <div v-if="filesForFilter.length === 0 && fileStatusFilter === 'all'" class="kb-docview__blank">
+                <div v-if="filesForFilter.length === 0 && fileStatusFilter === 'all' && !treeLoading" class="kb-docview__blank">
                   <div class="kb-docview__blank-card">
                     <p class="kb-docview__blank-eyebrow">空卷宗 · 从第一篇原文开始</p>
                     <h3 class="kb-docview__blank-t">这个卷宗还没有文档</h3>
@@ -3861,6 +3861,8 @@ function handleFilesLoaded(files: KBFile[]) {
   // 左侧「文档」栏的篇数与状态分栏都从这里取；KBFileTree 内部自行轮询状态，
   // 它每次状态变化都会再 emit 一次 files-loaded，所以这里跟着刷新即可
   loadedFiles.value = files || []
+  // 无论结果是空库还是真列表，加载都结束了，空态覆盖层可以按真实数据判
+  treeLoading.value = false
 }
 
 /**
@@ -4089,6 +4091,15 @@ const reindexing = ref(false)
 
 /** 当前目录下的文件（来自 KBFileTree 的 files-loaded） */
 const loadedFiles = ref<KBFile[]>([])
+
+/**
+ * 文件树是否在加载中（首载 / 切库 / 切回文档页签都会重新拉）。
+ *
+ * <p>空态覆盖层要靠它兜底：文件树在加载时 {@code loadedFiles} 还是空的，
+ * 若直接用「文件数 === 0」判空，用户每次切库都会先看到一秒假的
+ * 「这个卷宗还没有文档」，然后列表才蹦出来。</p>
+ */
+const treeLoading = ref(true)
 
 /**
  * 扁平文件清单（本页自取，不依赖 KBFileTree 是否挂载）。
@@ -4395,6 +4406,11 @@ watch(() => route.query.tab, (tab) => {
 // 切到「关系图谱」页签时才拉图（懒加载，避免拖慢知识库首屏）；
 // 实体 / 关系视图从菜单直开时也要有数据 —— 此前只有 graph 页签会拉，直开会是空表
 watch(activeTab, (tab) => {
+  if (tab === 'files') {
+    // 文件树只在「文档」页签挂载，切回来会重新拉取；点亮加载态，
+    // 空态覆盖层不会在数据到达前抢先出现
+    treeLoading.value = true
+  }
   if (tab === 'graph' && graphView.nodes.length > 0) {
     graphEverMounted.value = true
   }
@@ -4410,6 +4426,9 @@ watch(activeTab, (tab) => {
 
 // 切换知识库时图谱要跟着换；计数走轻量接口，图本身等切页签再拉
 watch(() => store.activeKnowledgeBaseId, () => {
+  // 切库后文件树会重新拉取，先点亮加载态，避免旧库数据残留成「假计数」
+  treeLoading.value = true
+  loadedFiles.value = []
   graphKeyword.value = ''
   graphEntityKeyword.value = ''
   graphRelationKeyword.value = ''
