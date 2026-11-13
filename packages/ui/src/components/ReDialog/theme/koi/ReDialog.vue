@@ -557,19 +557,33 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 </style>
 
 <style lang="scss">
-.koi-dialog-shell .el-dialog__header {
-  margin-right: 0;
-  /* 紧凑 header：大幅降低上下内边距，header 高度由约 48px 降到约 26px */
-  /* 左右 10px（原 20px）：左侧标题组再左移 10px、右侧窗口壳操作区再右移 10px */
-  padding: 3px 10px !important;
-  /* 去除头部底色，并与下方内容留出一点间距 */
-  background: transparent !important;
-  margin-bottom: 8px;
+/**
+ * 顶部 / 底部留白：koi 主题全局给 .el-dialog 四周 16px 内边距，其中顶部由
+ * element.scss 的 --el-dialog-header-padding-top 固定成 16px，是 header 高度的
+ * 第一段来源。弹窗壳（且只有弹窗壳）把上下各压到 4px：普通 el-dialog 保持
+ * 主题口径不变。选择器 2 类 + !important，高于主题的 .el-dialog，能稳定生效。
+ */
+.el-dialog.koi-dialog-shell {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
 }
 
-/* 紧凑 body 内边距 */
+.koi-dialog-shell .el-dialog__header {
+  margin-right: 0;
+  /* 紧凑 header：上下内边距各 2px，避免标题栏再叠一层空白 */
+  /* 左右 10px（原 20px）：左侧标题组再左移 10px、右侧窗口壳操作区再右移 10px */
+  padding: 2px 10px !important;
+  /* 去除头部底色，并与下方内容留出一点间距（4px，原 8px） */
+  background: transparent !important;
+  margin-bottom: 4px;
+}
+
+/* body 内边距：上下 6px（原 8px）。注意 koi 主题把 body 统一置 0
+   （element.scss 的 .el-dialog.koi-dialog-shell .el-dialog__body，
+   权重 3 类 + !important），所以这条只在没有主题 CSS 的宿主里生效；
+   有主题时留白由弹窗内容自己控制，这里保留是为了组件自洽。 */
 .koi-dialog-shell .el-dialog__body {
-  padding: 8px !important;
+  padding: 6px 8px !important;
 }
 
 /* 全屏时内容区放开最大高度，允许铺满整个屏幕 */
@@ -577,11 +591,12 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   max-height: none;
 }
 
-/* 整个弹窗：flex 纵向布局，整体不超过视口高度（头尾固定、中间 body 滚动） */
+/* 整个弹窗：flex 纵向布局，整体不超过视口高度（头尾固定、中间 body 滚动）
+   max-height 由 92vh 提到 94vh：头尾压薄省下的高度之外，再多留 2vh 给内容 */
 .koi-dialog-shell {
   display: flex;
   flex-direction: column;
-  max-height: 92vh;
+  max-height: 94vh;
 }
 .koi-dialog-shell .el-dialog__header {
   flex: 0 0 auto;
@@ -595,14 +610,15 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 .koi-dialog-shell .el-dialog__footer {
   flex: 0 0 auto;
 }
-/* 全屏时铺满，不受 92vh 限制 */
+/* 全屏时铺满，不受 94vh 限制 */
 .koi-dialog-shell.is-fullscreen {
   max-height: 100vh;
 }
 
-/* 紧凑 footer：降低上下内边距，footer 高度由约 47px 降到约 34px */
+/* 紧凑 footer：上下 2px / 4px（原 4px / 6px），左右 12px（原 20px）；
+   footer 高度从约 36px 压到约 32px，按钮行本身不再被空白撑高 */
 .koi-dialog-shell .el-dialog__footer {
-  padding: 4px 20px 6px !important;
+  padding: 2px 12px 4px !important;
 }
 
 /* footer 内按钮统一高度与字重（业务侧传入的 ReButton 默认偏大，弹窗内收窄）。

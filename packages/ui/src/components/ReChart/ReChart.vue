@@ -40,6 +40,7 @@
       class="re-chart__body"
       :data="contextData"
       :height="height"
+      :click-to-expand="contextClickToExpand"
     />
 
     <template v-else>
@@ -186,6 +187,8 @@ interface ReChartShellProps {
   topology?: ReChartTopologyData;
   /** 上下文窗口数据（type="context" 时生效） */
   contextWindow?: ReChartContextData;
+  /** 上下文窗口点击切片是否展开全部清单（默认 true） */
+  contextClickToExpand?: boolean;
   /** 多视图（图标切换）；所有视图的 data 必须同形状，不一致须给 transform */
   views?: ViewPane[];
   /** 初始激活的视图 key；不填取 views 第一项 */
@@ -203,6 +206,7 @@ const props = withDefaults(defineProps<ReChartShellProps>(), {
   autoResize: true,
   views: () => [],
   activeViewKey: undefined,
+  contextClickToExpand: true,
 });
 
 const emit = defineEmits<{

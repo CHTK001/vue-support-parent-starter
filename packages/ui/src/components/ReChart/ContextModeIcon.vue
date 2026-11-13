@@ -10,8 +10,8 @@
  * treemap（大小不等的矩形）与 grid（等大方格）。
  */
 withDefaults(defineProps<{
-  /** area = 上下文地图（treemap）；grid = 方格（点阵） */
-  mode?: 'area' | 'grid';
+  /** area = 上下文地图（treemap）；grid / dots = 方格（点阵） */
+  mode?: 'area' | 'grid' | 'dots';
   size?: number | string;
 }>(), { mode: 'area', size: 16 });
 </script>

@@ -345,6 +345,8 @@ let activeEdgeTimer: number | null = null;
 function applyActiveEdges(eng: FlowGraphEngine | null = engine.value): void {
   if (!eng) return;
   const active = new Set(props.activeEdgeIds ?? []);
+  // 有边在推进时给画布挂聚焦类：其余连线压暗，焦点自己浮出来
+  canvasRef.value?.classList.toggle("flow-edge-focus", active.size > 0);
   eng.getData().edges.forEach((edge) => {
     eng.setEdgeActive(edge.id, active.has(edge.id));
   });
@@ -1424,8 +1426,7 @@ defineExpose({
 :deep(.x6-edge:hover) { cursor: pointer; }
 
 /* 回放/轨迹推进：当前节点到上一个节点之间的连线显示流动虚线 */
-:deep(.flow-edge-active .x6-line),
-:deep(.flow-edge-active .x6-edge-path) {
+:deep(.flow-edge-active .flow-edge-line) {
   stroke: var(--el-color-primary);
   stroke-width: 2;
   stroke-dasharray: 6 4;
@@ -1433,6 +1434,78 @@ defineExpose({
 }
 @keyframes re-flow-edge-dash {
   to { stroke-dashoffset: -10; }
+}
+
+/*
+ * 当前推进的连线上：小鸟把数据包从起点「叼取 → 运送 → 放入」终点。
+ *
+ * 元素由 engine.ts 用原生 DOM 造（连线是 X6 运行时建的，模板里没有位置），
+ * 所以这里只能用 :deep 选中。几何与 ReChart 拓扑图里那套保持一致。
+ *
+ * wing 的 transform-origin 必须配 transform-box: fill-box：SVG 元素默认按
+ * view-box 定位原点，直接写 -2px -1px 会让翅膀绕着画布左上角甩，整只鸟看着在抽搐。
+ */
+:deep(.flow-edge-bird) { pointer-events: none; }
+
+:deep(.flow-bird-body) { fill: var(--el-color-primary); }
+:deep(.flow-bird-torso) { opacity: 0.95; }
+:deep(.flow-bird-tail),
+:deep(.flow-bird-head) { fill: var(--el-color-primary); }
+:deep(.flow-bird-eye) { fill: #fff; }
+
+/* 翅膀：以靠近躯干的一角为轴扇动，0.3s 一个来回，肉眼能明确看出在扑 */
+:deep(.flow-bird-wing) {
+  fill: var(--el-color-primary-light-3);
+  transform-box: fill-box;
+  transform-origin: 12% 88%;
+  animation: re-flow-bird-flap 0.3s ease-in-out infinite alternate;
+}
+@keyframes re-flow-bird-flap {
+  from { transform: rotate(-26deg) scaleY(0.86); }
+  to { transform: rotate(30deg) scaleY(1.08); }
+}
+
+/* 数据包裹：起点躺着的那份、鸟叼着的那份、放入终点的那份共用同一套配色 */
+:deep(.flow-parcel-fill) {
+  fill: var(--el-color-warning);
+  stroke: var(--el-bg-color, #fff);
+  stroke-width: 0.9;
+}
+:deep(.flow-parcel-shine) {
+  fill: var(--el-color-warning-light-5, #fcd34d);
+  opacity: 0.85;
+}
+
+/*
+ * 送达涟漪：包裹落到目标端时扩散一圈，明确「东西已经放进去了」。
+ *
+ * 用描边而不是填充：填充会盖住目标端口，描边只在端口外扩散，不挡视线。
+ */
+:deep(.flow-edge-landing) { pointer-events: none; }
+:deep(.flow-edge-landing-ring) {
+  fill: none;
+  stroke: var(--el-color-warning);
+  stroke-width: 1.4;
+}
+
+/*
+ * 回放聚焦：只要有一条边在推进，其余连线压暗。
+ *
+ * 不压暗的话，一张几十条边的图上「当前走到哪一段」要靠找那条流动虚线，
+ * 眼睛得扫全图；压暗之后焦点自己浮出来。
+ */
+:deep(.flow-edge-focus .x6-edge:not(.flow-edge-active) .flow-edge-line) {
+  opacity: 0.42;
+  transition: opacity 0.2s ease;
+}
+:deep(.flow-edge-focus .x6-edge.flow-edge-active .flow-edge-line) {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--el-color-primary) 55%, transparent));
+}
+
+/* 无障碍：用户要求减少动态效果时，去掉虚线流动与翅膀扇动，只保留静态高亮 */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.flow-edge-active .flow-edge-line) { animation: none; }
+  :deep(.flow-bird-wing) { animation: none; }
 }
 
 /*

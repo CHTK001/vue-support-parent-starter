@@ -461,16 +461,9 @@ const showCloseFab = computed(() => props.headless);
 </template>
 
 <style scoped>
-.re-dialog :deep(.el-dialog__header) {
-  cursor: default;
-  padding: 4px 20px 0 !important;
-  margin-right: 0 !important;
-}
-/* 可拖拽时 header 是原生手柄，给出 move 光标（原生 draggable 自身不设样式） */
-.re-dialog--draggable:not(.re-dialog--fullscreen) :deep(.el-dialog__header) {
-  cursor: move;
-  user-select: none;
-}
+/* 只保留「真正的插槽内容」样式：header 插槽由本组件模板渲染，会带上 scope id。
+   凡是作用在 .el-dialog__header / __body / __footer 上的规则都不能留在这里 ——
+   ElDialog 的根节点是 Teleport，这些选择器在产物里从未命中（见文件末尾非 scoped 块）。 */
 .re-dialog__header-inner {
   display: flex;
   align-items: center;
@@ -486,36 +479,68 @@ const showCloseFab = computed(() => props.headless);
   align-items: center;
   gap: 4px;
 }
-.re-dialog--fullscreen :deep(.el-dialog__body) {
-  height: calc(100vh - 120px);
-  overflow: auto;
+</style>
+
+<!--
+  弹窗本体样式（间距 / 滚动 / 拖拽光标）必须放在「非 scoped」样式块里：
+
+  ElDialog 的根节点是 <Teleport>，Vue 不会把本组件（ReDialog）的 scope id 加到
+  teleport 出去的 .el-dialog 元素上 —— 因此 <style scoped> 里所有
+  :deep(.el-dialog__*) 规则在实际产物体里【从未命中】。headless 布局与间距都依赖
+  这些内部选择器，所以统一在这里用全局选择器书写（以 .re-dialog 前缀限定作用域，
+  不会污染其他弹窗）。koi 主题与 DragLab 的 .ddl-tall.el-dialog 都是这个做法。
+-->
+<style>
+/* ===== 间距：头尾压薄，把高度让给内容 ===== */
+
+/**
+ * 顶部 / 底部留白：Element Plus 原生给 .el-dialog 四周 16px 内边距；koi 主题又把
+ * 顶部固定成 16px（--el-dialog-header-padding-top）。弹窗壳自己把上下各压到 4px：
+ * 2 类 + !important，高于主题的 .el-dialog，能稳定生效。
+ */
+.el-dialog.re-dialog {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
 }
-.re-dialog :deep(.el-dialog__body) {
-  padding: 8px 20px 12px;
+
+.re-dialog .el-dialog__header {
+  cursor: default;
+  /* 上下不留白，标题栏高度只由标题行本身决定；左右交给 .el-dialog 自身的 16px 内边距 */
+  padding: 2px 0 6px !important;
+  margin-right: 0 !important;
 }
-/* 非全屏弹窗：body 超过视口高度时出现滚动条，避免内容被裁切（footer 保持在滚动区外） */
-.re-dialog:not(.re-dialog--fullscreen) :deep(.el-dialog__body) {
-  max-height: calc(84vh - 96px);
+/* 可拖拽时 header 是原生手柄，给出 move 光标（原生 draggable 自身不设样式） */
+.re-dialog--draggable:not(.re-dialog--fullscreen) .el-dialog__header {
+  cursor: move;
+  user-select: none;
+}
+
+/**
+ * body 的内边距交给主题变量（koi 主题统一置 0，由各弹窗内容自行控制），
+ * 这里只补上「内容超高就地滚动」的上限：头尾压薄后内容区从 84vh 提到 88vh。
+ */
+.re-dialog:not(.re-dialog--fullscreen) .el-dialog__body {
+  max-height: calc(88vh - 88px);
   overflow-y: auto;
 }
+.re-dialog--fullscreen .el-dialog__body {
+  height: calc(100vh - 100px);
+  overflow: auto;
+}
+
+/* footer：Element 原生 padding-top 16px，这里压到 6px / 4px；左右仍交给 .el-dialog 的 16px */
+.re-dialog .el-dialog__footer {
+  padding: 6px 0 4px;
+}
+
 /* compact 模式下 footer 按钮进一步缩小（使用共享令牌） */
-.re-dialog--compact :deep(.el-dialog__footer .el-button) {
+.re-dialog--compact .el-dialog__footer .el-button {
   height: var(--rm-compact-btn-height);
   padding: var(--rm-compact-btn-padding);
   font-size: var(--rm-compact-btn-font-size);
 }
-</style>
 
-<!--
-  headless 拖拽热区必须放在「非 scoped」样式块里：
-
-  ElDialog 的根节点是 <Teleport>，Vue 不会把本组件（ReDialog）的 scope id 加到
-  teleport 出去的 .el-dialog 元素上 —— 因此 <style scoped> 里所有 :deep(.el-dialog__*)
-  规则在实际产物体里【从未命中】。headless 布局又依赖这些内部选择器把 header 变成
-  热区，所以这里单独用全局选择器书写（以 .re-dialog--headless 前缀限定作用域，
-  不会污染其他弹窗）。koi 主题与 DragLab 的 .ddl-tall.el-dialog 都是这个做法。
--->
-<style>
+/* ===== headless ===== */
 /* headless 不显示原生 header，但留出 body 顶部留白，避免被 CloseFab 挡住 */
 .re-dialog--headless .el-dialog__header {
   display: none;

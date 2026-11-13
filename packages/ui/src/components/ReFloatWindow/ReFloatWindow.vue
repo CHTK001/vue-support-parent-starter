@@ -188,6 +188,7 @@
  * 最大化、全屏、边缘收起（四条边可选）、对齐辅助线、多实例层级、独占模式、可选持久化。</p>
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import type { CSSProperties } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
   ArrowDown,
@@ -585,7 +586,14 @@ const dragKind = ref<"move" | "resize">("move");
 let moveDx = 0;
 let moveDy = 0;
 
-const windowStyle = computed(() => {
+/**
+ * 窗体几何样式。
+ *
+ * <p>显式标注 {@link CSSProperties}：返回的是几个分支对象，其中
+ * {@code pointerEvents: peek ? "auto" : "none"} 会被推断成 {@code string}，
+ * 直接进 {@code :style} 会报 “not assignable to HTMLAttributes”。</p>
+ */
+const windowStyle = computed<CSSProperties>(() => {
   // z-index 及其它几何样式在这里统一出；拖动中的 transform 由 flushDrag 直接写 DOM
   // （不进响应式调度，避免指针到画面跨帧），所以这里刻意不输出 transform。
   const base: Record<string, string> = { zIndex: String(z.value) };

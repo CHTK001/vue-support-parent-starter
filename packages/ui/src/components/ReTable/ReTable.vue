@@ -3532,11 +3532,78 @@ function syncRowHeightsOfPart(root: HTMLElement, part: "body" | "header"): void 
   }
 }
 
+/** 列宽自愈的重排次数与冷却计时器（防止「重排 → 复核 → 重排」成环） */
+let fixedColumnWidthRecalcCount = 0;
+let fixedColumnWidthRecalcTimer = 0;
+
 function syncFixedRowHeights(): void {
   const root = (vxeTableRef.value as unknown as { $el?: HTMLElement } | null)?.$el;
   if (!root) return;
   syncRowHeightsOfPart(root, "body");
   syncRowHeightsOfPart(root, "header");
+  syncFixedColumnWidths(root);
+}
+
+/**
+ * 固定列浮层的列宽自愈（fixed-left / fixed-right）。
+ *
+ * <p><b>为什么需要</b>：vxe 把固定列渲染成三张独立的表（主 / 固定左 / 固定右），
+ * 表头与表体又各自一张；列宽靠 vxe 各算一遍再对齐。一旦某次重建后两边的列宽没落到
+ * 同一个值，就出现「表头与表体错开几十像素」「加载态左侧多出一条空白带」，
+ * 而且<b>滚一下横向就恢复</b> —— 和行高那组问题的症状是同一类：对齐跑得比 vxe
+ * 的重建尾巴早。行高已经由 {@link syncRowHeightsOfPart} 在这些时间点兜住，
+ * 列宽同样在这里补一次复核。</p>
+ *
+ * <p><b>只量不改</b>：两层列宽一致（绝大多数情况）时一个字节都不写；只有检出差异
+ * 才让 vxe 整体重排一次，并用计数器与 1.5s 冷却封顶，杜绝重排 → 复核 → 重排的循环。</p>
+ */
+function syncFixedColumnWidths(root: HTMLElement): void {
+  if (isFixedRowSyncQuiet()) return;
+  const mainRow = root.querySelector<HTMLElement>(".vxe-table--main-wrapper .vxe-body--row");
+  if (!mainRow) return;
+  const mainCells = Array.from(mainRow.querySelectorAll<HTMLElement>(".vxe-body--column"));
+  if (mainCells.length === 0) return;
+  let drift = false;
+  for (const side of FIXED_ROW_SIDES) {
+    const wrap = root.querySelector<HTMLElement>(`.vxe-table--fixed-${side}-wrapper`);
+    if (!wrap) continue;
+    const headRow = wrap.querySelector<HTMLElement>(".vxe-header--row");
+    const bodyRow = wrap.querySelector<HTMLElement>(".vxe-body--row");
+    if (!headRow || !bodyRow) continue;
+    const heads = Array.from(headRow.querySelectorAll<HTMLElement>(".vxe-header--column"));
+    const cells = Array.from(bodyRow.querySelectorAll<HTMLElement>(".vxe-body--column"));
+    // ① 同一浮层里「表头列宽 == 表体列宽」：不等就是用户看到的那种错位
+    const n = Math.min(heads.length, cells.length);
+    for (let i = 0; i < n; i++) {
+      const hw = heads[i].getBoundingClientRect().width;
+      const bw = cells[i].getBoundingClientRect().width;
+      if (Math.abs(hw - bw) > 1) {
+        drift = true;
+        break;
+      }
+    }
+    // ② 浮层列宽与主表同列一致：左固定对应主表前 N 列，右固定对应末 N 列
+    if (!drift) {
+      const offset = side === "left" ? 0 : mainCells.length - cells.length;
+      for (let i = 0; i < cells.length; i++) {
+        const mw = mainCells[offset + i]?.getBoundingClientRect().width ?? 0;
+        const fw = cells[i].getBoundingClientRect().width;
+        if (mw > 0 && Math.abs(fw - mw) > 1) {
+          drift = true;
+          break;
+        }
+      }
+    }
+    if (drift) break;
+  }
+  if (!drift) return;
+  if (fixedColumnWidthRecalcCount >= 2) return;
+  fixedColumnWidthRecalcCount++;
+  window.clearTimeout(fixedColumnWidthRecalcTimer);
+  fixedColumnWidthRecalcTimer = window.setTimeout(() => {
+    fixedColumnWidthRecalcCount = 0;
+  }, 1500);
+  recalculateVxe();
 }
 
 /**

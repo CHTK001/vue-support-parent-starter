@@ -205,11 +205,269 @@ const READONLY_INTERACTING: Record<string, boolean> = {
   magnetConnectable: false,
 };
 
+/** SVG 命名空间：X6 画布里的元素必须用它创建，否则只当未知 HTML 标签处理 */
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** 小鸟完成一轮「叼取 → 运送 → 放入」的时长（秒） */
+const BIRD_CYCLE_SECONDS = 3.6;
+
+/**
+ * 造一个 SVG 元素并一次性写属性。
+ *
+ * @param tag   标签名
+ * @param attrs 属性表（值为 null/undefined 时跳过）
+ * @returns 建好的元素
+ */
+function svgEl<K extends keyof SVGElementTagNameMap>(
+  tag: K,
+  attrs: Record<string, string | number | undefined | null> = {},
+): SVGElementTagNameMap[K] {
+  const el = document.createElementNS(SVG_NS, tag);
+  Object.entries(attrs).forEach(([k, v]) => {
+    if (v !== null && v !== undefined) {
+      el.setAttribute(k, String(v));
+    }
+  });
+  return el;
+}
+
+/**
+ * 判断连线整体是否「自右向左」。
+ *
+ * <p>{@code rotate="auto"} 会让鸟头始终指向前进方向，左向路径上就成了倒着飞；
+ * 这里取首尾两点判方向，左向时把整只鸟竖向镜像一次，视觉上始终正立。
+ * 拖动节点后路径会变，但两端节点的相对左右关系通常不变，够用。</p>
+ *
+ * @param path 连线可视路径
+ * @returns 终点在起点左侧时返回 true
+ */
+function pointsLeftward(path: SVGPathElement): boolean {
+  try {
+    const total = path.getTotalLength();
+    if (!Number.isFinite(total) || total <= 0) {
+      return false;
+    }
+    const start = path.getPointAtLength(0);
+    const end = path.getPointAtLength(total);
+    return end.x < start.x - 1;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 构造「叼取 → 运送 → 放入」三段式动画。
+ *
+ * <p>一个周期被切成三段，靠 {@code keyTimes} 让运动只占中间一段，两端各留停顿 ——</p>
+ *
+ * <ol>
+ *   <li><b>叼取</b>（0–18%）：鸟停在起点，起点处的包裹原样躺着；约 18% 时包裹消失、
+ *       改由小鸟叼着；</li>
+ *   <li><b>运送</b>（18–78%）：小鸟带着包裹沿连线飞；</li>
+ *   <li><b>放入</b>（78–100%）：鸟停在终点，包裹从鸟身上消失、出现在目标端并停留，
+ *       同时扩散一圈涟漪作为「已送达」的收束；随后整段淡出，进入下一轮。</li>
+ * </ol>
+ *
+ * <p>两端包裹用 {@code keyPoints="0;0"} / {@code "1;1"} 钉在路径首尾，这样节点被拖动、
+ * X6 重算 {@code d} 时它们会自动跟到新的端点，不需要我们记坐标。</p>
+ *
+ * @param trackId 连线 path 的元素 id，供 {@code mpath} 引用
+ * @param seed    用于算相位偏移的稳定字符串（一般传连线 id）
+ * @param flipY   是否竖向镜像（左向连线用）
+ * @returns 挂好动画的 {@code <g>}
+ */
+function buildEdgeBird(trackId: string, seed: string, flipY = false): SVGGElement {
+  const root = svgEl("g", { class: "flow-edge-bird", "aria-hidden": "true" });
+
+  // 相位差：多条线同时推进时小鸟不要齐步走，否则看着像整体抖动
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) % 1000;
+  }
+  const begin = `-${((hash % 360) / 100).toFixed(2)}s`;
+  const dur = `${BIRD_CYCLE_SECONDS}s`;
+
+  // ---- 起点包裹：叼取前躺在源节点这一端 ----
+  const srcParcel = svgEl("g", { class: "flow-edge-parcel flow-edge-parcel-src" });
+  srcParcel.appendChild(pinToEnd(trackId, 0, dur, begin));
+  srcParcel.appendChild(parcelBody());
+  srcParcel.appendChild(fade("1;1;0;0", "0;0.14;0.20;1", dur, begin));
+  root.appendChild(srcParcel);
+
+  // ---- 终点包裹：放入后落在目标节点这一端 ----
+  const dstParcel = svgEl("g", { class: "flow-edge-parcel flow-edge-parcel-dst" });
+  dstParcel.appendChild(pinToEnd(trackId, 1, dur, begin));
+  dstParcel.appendChild(parcelBody());
+  dstParcel.appendChild(fade("0;0;1;1;0", "0;0.76;0.82;0.94;1", dur, begin));
+  root.appendChild(dstParcel);
+
+  // ---- 送达涟漪：包裹落到终点时扩散一圈，明确「东西放进去了」 ----
+  const landing = svgEl("g", { class: "flow-edge-landing" });
+  landing.appendChild(pinToEnd(trackId, 1, dur, begin));
+  const ring = svgEl("circle", { class: "flow-edge-landing-ring", r: 2 });
+  ring.appendChild(svgEl("animate", {
+    attributeName: "r",
+    values: "2;2;13;13",
+    keyTimes: "0;0.82;0.94;1",
+    dur,
+    begin,
+    repeatCount: "indefinite",
+  }));
+  ring.appendChild(svgEl("animate", {
+    attributeName: "opacity",
+    // keyTimes 必须以 1 收尾：不以 1 结尾时 Chromium 把整条动画当非法丢弃，
+    // 表现为「属性一直停在初值」且控制台不报错（实测踩过）。
+    values: "0;0;0.5;0;0",
+    keyTimes: "0;0.82;0.85;0.94;1",
+    dur,
+    begin,
+    repeatCount: "indefinite",
+  }));
+  landing.appendChild(ring);
+  root.appendChild(landing);
+
+  // ---- 小鸟本体：两端停顿 + 中间飞行 ----
+  const carrier = svgEl("g", { class: "flow-edge-carrier" });
+  carrier.appendChild(
+    motionOnPath(trackId, {
+      dur,
+      begin,
+      rotate: true,
+      // 0–18% 停在起点（叼取），18–78% 飞行，78–100% 停在终点（放入）
+      keyPoints: "0;0;1;1",
+      keyTimes: "0;0.18;0.78;1",
+    }),
+  );
+  // 一轮结束回起点是瞬移，用极短的淡出淡入盖掉这一跳
+  carrier.appendChild(fade("0;1;1;0", "0;0.05;0.93;1", dur, begin));
+
+  // 左向连线时整只鸟竖向镜像，否则 rotate="auto" 会把它倒过来飞
+  const visual = svgEl("g", { class: "flow-bird-visual" });
+  if (flipY) {
+    visual.setAttribute("transform", "scale(1,-1)");
+  }
+
+  const body = svgEl("g", { class: "flow-bird-body" });
+  body.appendChild(svgEl("path", { class: "flow-bird-tail", d: "M -8 0 L -13 -4 L -12 0 L -13 4 Z" }));
+  body.appendChild(svgEl("ellipse", { class: "flow-bird-torso", cx: -1, cy: 0, rx: 7, ry: 4.2 }));
+  body.appendChild(
+    svgEl("path", {
+      class: "flow-bird-wing",
+      d: "M -3.5 -1.6 Q 1.5 -9.5 7 -3.4 Q 2 -1.2 -3.5 -1.6 Z",
+    }),
+  );
+  body.appendChild(svgEl("path", { class: "flow-bird-head", d: "M 5.6 -2.2 L 11.4 -0.4 L 5.6 2.2 Z" }));
+  body.appendChild(svgEl("circle", { class: "flow-bird-eye", cx: 4.4, cy: -1.2, r: 0.95 }));
+  visual.appendChild(body);
+
+  // 鸟爪下叼着的包裹：只在运送段可见，与起点/终点包裹的显隐严格衔接
+  const carried = parcelBody();
+  carried.setAttribute("class", "flow-edge-parcel flow-edge-carried");
+  carried.appendChild(fade("0;0;1;1;0;0", "0;0.14;0.21;0.72;0.78;1", dur, begin));
+  visual.appendChild(carried);
+
+  carrier.appendChild(visual);
+  root.appendChild(carrier);
+  return root;
+}
+
+/**
+ * 生成一个沿路径运动、且只覆盖 keyPoints 指定位置段的 {@code animateMotion}。
+ *
+ * @param trackId   连线 path 的 id
+ * @param opts      时长、起始、是否随切线旋转、keyPoints/keyTimes
+ * @returns 已挂好 {@code mpath} 的 animateMotion
+ */
+function motionOnPath(
+  trackId: string,
+  opts: {
+    dur: string;
+    begin: string;
+    rotate?: boolean;
+    keyPoints?: string;
+    keyTimes?: string;
+  },
+): SVGAnimateMotionElement {
+  const motion = svgEl("animateMotion", {
+    dur: opts.dur,
+    begin: opts.begin,
+    repeatCount: "indefinite",
+    ...(opts.rotate ? { rotate: "auto" } : {}),
+    ...(opts.keyPoints ? { keyPoints: opts.keyPoints } : {}),
+    ...(opts.keyTimes ? { keyTimes: opts.keyTimes } : {}),
+  });
+  const mpath = svgEl("mpath", { href: `#${trackId}` });
+  // 旧 Chromium / Safari 只认 xlink:href；两个都写，互不影响
+  mpath.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", `#${trackId}`);
+  motion.appendChild(mpath);
+  return motion;
+}
+
+/**
+ * 把元素钉在路径的首端或末端。
+ *
+ * <p>用 {@code keyPoints="0;0"} 而不是自己算坐标：节点拖动时 X6 会重写连线的
+ * {@code d}，钉在路径上的元素会自动跟到新端点，算出来的坐标则会留在原地。</p>
+ *
+ * @param trackId 连线 path 的 id
+ * @param at      0=首端，1=末端
+ * @param dur     周期
+ * @param begin   起始偏移
+ * @returns animateMotion
+ */
+function pinToEnd(trackId: string, at: 0 | 1, dur: string, begin: string): SVGAnimateMotionElement {
+  return motionOnPath(trackId, {
+    dur,
+    begin,
+    keyPoints: `${at};${at}`,
+    keyTimes: "0;1",
+  });
+}
+
+/**
+ * 一个数据包裹的几何（以自身中心为原点，便于被 animateMotion 直接搬运）。
+ *
+ * @returns {@code <g>}，内含底色块与高光
+ */
+function parcelBody(): SVGGElement {
+  const g = svgEl("g", { class: "flow-edge-parcel-body" });
+  g.appendChild(svgEl("rect", { class: "flow-parcel-fill", x: -3.6, y: -2.8, width: 7.2, height: 5.6, rx: 1.4 }));
+  g.appendChild(svgEl("rect", { class: "flow-parcel-shine", x: -2.4, y: -1.9, width: 4.8, height: 1.4, rx: 0.7 }));
+  return g;
+}
+
+/**
+ * 透明度关键帧。
+ *
+ * @param values   分号分隔的透明度序列
+ * @param keyTimes 分号分隔的时间点（0–1）
+ * @param dur      周期
+ * @param begin    起始偏移
+ * @returns {@code <animate>}
+ */
+function fade(values: string, keyTimes: string, dur: string, begin: string): SVGAnimateElement {
+  return svgEl("animate", {
+    attributeName: "opacity",
+    values,
+    keyTimes,
+    dur,
+    begin,
+    repeatCount: "indefinite",
+  });
+}
+
 export class FlowGraphEngine {
   graph: Graph;
   private opts: FlowEngineOptions;
   /** setData 期间抑制 change 事件，避免上层拿到半成品 */
   private loading = false;
+  /**
+   * 已挂上的小鸟（连线 id → 元素）。
+   *
+   * 必须自己记账：鸟挂在画布顶层的特效层里，不在连线视图容器内，
+   * 用 {@code querySelector} 反查要么扫全图、要么在连线被删后留下孤儿。
+   */
+  private edgeBirds = new Map<string, SVGGElement>();
   private types: FlowNodeTypeDef[];
   /**
    * 本实例建节点用的形状名。
@@ -984,6 +1242,9 @@ export class FlowGraphEngine {
    *
    * <p>只动容器类，不改 flowKind / flowTransfer，避免把「不传递变量」的语义虚线改成实线。</p>
    *
+   * <p>同时在这条线上挂一只叼着数据包的小鸟（见 {@link syncEdgeBird}）：
+   * 流动虚线只说明「这条线是活的」，小鸟才说明「数据此刻正从 A 搬到 B」。</p>
+   *
    * @param id 连线 id
    * @param active true=加高亮动画，false=清除
    */
@@ -993,8 +1254,108 @@ export class FlowGraphEngine {
       return;
     }
     const view = this.graph.findViewByCell(cell);
-    const container = view?.container as HTMLElement | undefined;
-    container?.classList.toggle("flow-edge-active", active);
+    const container = view?.container as SVGGElement | undefined;
+    if (!container) {
+      return;
+    }
+    container.classList.toggle("flow-edge-active", active);
+    // 可视路径在 X6 默认 markup 里没有 class（markup 只在声明了 className 时才加），
+    // 所以这里自己打一个标记，供 CSS 与小鸟定位使用。
+    // 判定依据：命中区 wrap 带 cursor:pointer 且半透明，可视线 line 带 pointer-events:none。
+    const paths = Array.from(container.querySelectorAll("path"));
+    const linePath =
+      paths.find((p) => p.getAttribute("pointer-events") === "none") ??
+      (paths.length > 1 ? paths[paths.length - 1] : paths[0]);
+    if (!linePath) {
+      return;
+    }
+    linePath.classList.add("flow-edge-line");
+    this.syncEdgeBird(container, id as string, active);
+  }
+
+  /**
+   * 画布顶层的特效层（小鸟、落地涟漪都挂这里）。
+   *
+   * <p>为什么不挂在连线视图容器里：那条连线的 {@code zIndex} 是 0，节点是 1，
+   * 鸟飞到两端时正好被节点卡片盖住 —— 而「叼取」和「放入」恰好发生在两端，
+   * 等于最该看见的两个瞬间都看不见。挂到 viewport 末尾就永远压在所有 cell 之上。</p>
+   *
+   * <p>层里是 graph 坐标系，和连线共用同一套 transform，所以 {@code mpath} 引用
+   * 连线自身 path 依然对齐。</p>
+   *
+   * @returns 特效层；画布还没渲染好时返回 null
+   */
+  private fxLayer(): SVGGElement | null {
+    const viewport = this.graph.container?.querySelector(".x6-graph-svg-viewport") as SVGGElement | null;
+    if (!viewport) {
+      return null;
+    }
+    let layer = viewport.querySelector("g.flow-edge-fx") as SVGGElement | null;
+    if (!layer) {
+      layer = document.createElementNS(SVG_NS, "g");
+      layer.setAttribute("class", "flow-edge-fx");
+      layer.setAttribute("aria-hidden", "true");
+      // 新建说明画布被整体重绘过，旧元素全部失效
+      this.edgeBirds.clear();
+    }
+    // 每次调用都移到末尾：X6 新建 cell 时会追加到后面，不重新置顶就会被盖住
+    viewport.appendChild(layer);
+    return layer;
+  }
+
+  /**
+   * 在连线容器上挂/摘「叼取 → 运送 → 放入」的小鸟。
+   *
+   * <p>用 SMIL {@code animateMotion} + {@code mpath} 让小鸟沿连线本身的 path 飞，
+   * 而不是把 path 的 {@code d} 抄一份：X6 在节点拖动、连线重算时会改写 {@code d}，
+   * 抄的那份会立刻脱轨；{@code mpath} 引用的是同一个元素，路径一改小鸟自动跟上。</p>
+   *
+   * <p>系统开了「减少动态效果」时直接不挂：装饰动画不该和用户的无障碍偏好对着干。</p>
+   *
+   * @param container 连线视图容器（{@code <g class="x6-edge">}），只用来定位可视路径
+   * @param id        连线 id，用于生成稳定的 track 元素 id 与相位
+   * @param active    true=挂上，false=摘掉
+   */
+  private syncEdgeBird(container: SVGGElement, id: string, active: boolean): void {
+    if (!active) {
+      this.edgeBirds.get(id)?.remove();
+      this.edgeBirds.delete(id);
+      return;
+    }
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+      this.edgeBirds.get(id)?.remove();
+      this.edgeBirds.delete(id);
+      return;
+    }
+    // 顺带清理已被删除的连线留下的孤儿
+    for (const [key, el] of this.edgeBirds) {
+      if (!el.isConnected || !this.graph.getCellById(key)?.isEdge()) {
+        el.remove();
+        this.edgeBirds.delete(key);
+      }
+    }
+    const alive = this.edgeBirds.get(id);
+    if (alive?.isConnected) {
+      return;
+    }
+    // 必须沿「可视路径」飞：命中区 wrap 的 stroke-width 是 10，沿它飞会明显偏离线，
+    // 而且 wrap 在部分主题里压根不可见（stroke: transparent）。
+    const paths = Array.from(container.querySelectorAll("path"));
+    const track =
+      (container.querySelector("path.flow-edge-line") as SVGPathElement | null) ??
+      (paths.find((p) => p.getAttribute("pointer-events") === "none") as SVGPathElement | undefined) ??
+      (paths.length > 1 ? paths[paths.length - 1] : paths[0]);
+    if (!track) {
+      return;
+    }
+    if (!track.id) {
+      track.id = `flow-edge-track-${id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+    }
+    const bird = buildEdgeBird(track.id, id, pointsLeftward(track));
+    bird.dataset.edge = id;
+    const layer = this.fxLayer();
+    (layer ?? container).appendChild(bird);
+    this.edgeBirds.set(id, bird);
   }
 
   /**

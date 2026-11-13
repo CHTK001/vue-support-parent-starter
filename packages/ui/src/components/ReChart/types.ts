@@ -95,6 +95,11 @@ export interface ReChartProps {
   minHeight?: string;
   /** 显示引擎切换 */
   engineSelector?: boolean;
+  /**
+   * 上下文窗口：点击切片时是否在图下方展开「全部切片」清单（默认 true）。
+   * 置 false 则图只读，不响应点击、也不渲染展开区。
+   */
+  contextClickToExpand?: boolean;
 }
 
 /** 事件：echarts 引擎转发点击 / 悬停 */

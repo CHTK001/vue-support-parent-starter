@@ -266,7 +266,8 @@ if (typeof document !== "undefined") {
 .rm-dialog {
   display: flex;
   flex-direction: column;
-  max-height: 85vh;
+  /* 头尾压薄后，整体上限由 85vh 提到 90vh，内容区再多一些 */
+  max-height: 90vh;
   background: var(--rm-bg);
   border-radius: var(--rm-radius-xl);
   box-shadow: var(--rm-shadow-lg);
@@ -284,7 +285,7 @@ if (typeof document !== "undefined") {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px 0;
+  padding: 10px 14px 0;
   user-select: none;
 }
 .rm-dialog--compact .rm-dialog__header {
@@ -325,7 +326,7 @@ if (typeof document !== "undefined") {
 /* Body */
 .rm-dialog__body {
   flex: 1;
-  padding: 16px 20px;
+  padding: 12px 16px;
   overflow-y: auto;
   color: var(--rm-text-regular);
   font-size: var(--rm-font-md);
@@ -335,7 +336,7 @@ if (typeof document !== "undefined") {
   padding: var(--rm-compact-body-padding);
 }
 .rm-dialog__body--headless {
-  padding-top: 36px;
+  padding-top: 32px;
 }
 .rm-dialog--compact .rm-dialog__body--headless {
   padding-top: var(--rm-compact-body-headless-padding-top);
@@ -347,7 +348,7 @@ if (typeof document !== "undefined") {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding: 0 20px 16px;
+  padding: 0 16px 12px;
 }
 .rm-dialog--compact .rm-dialog__footer {
   padding: var(--rm-compact-footer-padding);
