@@ -551,7 +551,8 @@
                     :sub="item.sub"
                     :tip="item.tip"
                     :description="item.description"
-                    v-model="toolbarConfig[item.key]"
+                    :model-value="isToolbarUserEnabled(item.key)"
+                    @update:model-value="setToolbarUserPref(item.key, $event)"
                   />
                 </div>
               </div>
@@ -599,8 +600,8 @@
               </div>
             </div>
 
-            <!-- 天气配置 -->
-            <div class="config-section">
+            <!-- 天气配置（部署侧 weather.enable 未开时整段不出现） -->
+            <div v-if="weatherDeployed" class="config-section">
               <div class="section-header">
                 <el-icon :size="18" class="section-icon"><Sunny /></el-icon>
                 <span class="section-title">{{ t("themeConfig.sections.weatherConfig") }}</span>
@@ -636,6 +637,7 @@ import useGlobalStore from "@repo/pinia/modules/global";
 import {msgSuccess, message} from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { getConfig, setConfig } from "@repo/config";
+import { isToolbarDeployed, isToolbarUserEnabled, setToolbarUserPref } from "../Header/toolbarPrefs";
 import type { OtherConfig, MessageConfig, TimerConfig, AppConfig, AccessibilityConfig, DevToolsConfig, HeatmapConfig, PerformanceConfig, AiChatConfig } from "@repo/config";
 
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
@@ -906,14 +908,17 @@ const toolbarSwitchList = computed(() => {
   { key: "exchangeRate", label: t("themeConfig.toolbar.exchangeRate.label"), sub: t("themeConfig.toolbar.exchangeRate.sub"), tip: t("themeConfig.toolbar.exchangeRate.tip"), description: t("themeConfig.toolbar.exchangeRate.description") },
   ];
 
+  // 部署侧没开放的开关不列出来：yaml 写 false 等于这个功能没给用户
+  const deployed = all.filter((row) => isToolbarDeployed(row.key));
+
   const declared = (getConfig().other?.toolbar?.items ?? [])
     .filter((item) => item && item.visible !== false)
     .map((item) => String(item.key ?? "").trim());
   // 未配置 / 空数组：沿用固有顺序，抽屉保持原样（向后兼容）
   if (!declared.length) {
-    return all;
+    return deployed;
   }
-  return all.filter((row) =>
+  return deployed.filter((row) =>
     isHeaderFlagKey(row.key) ? declared.includes(row.key) : true,
   );
 });
@@ -921,8 +926,10 @@ const toolbarSwitchList = computed(() => {
 /** 响应式配置单例（直接修改即可实时联动组件开关） */
 const appConfig = getConfig();
 
-/** 工具栏开关 v-model（直接改响应式配置） */
-const toolbarConfig = computed(() => appConfig.other.toolbar);
+/**
+ * 工具栏开关走「用户偏好」层：
+ * yaml 的 toolbar.<key> 是 master（false 时该行不出现），开关本身只改本机偏好。
+ */
 
 /** 顶部计时器：启用开关 / 时区列表（最多 3 个，UTC ±12） */
 const timerEnable = ref(appConfig.other.timer.enable);
@@ -1014,18 +1021,16 @@ watch(messageSocket, (val) => {
 /**
  * 天气配置（抽屉里唯一的天气开关）
  *
- * 头部显示条件是 toolbar.weather && weather.enable，此处按「两者都开」初始化，
- * 切换时同步两个字段，保证开关与顶栏天气图标严格一致（不再出现两个"天气"入口）。
+ * 双开关：部署侧 `weather.enable` 决定天气功能是否存在（未开时整段不出现），
+ * 这里只写用户的显示偏好，不再改部署配置。
  */
-const weatherEnable = ref(
-  appConfig.other.weather.enable && appConfig.other.toolbar.weather !== false,
-);
+const weatherDeployed = computed(() => appConfig.other.weather.enable);
+const weatherEnable = ref(isToolbarUserEnabled("weather"));
 
 /** 首页配置：通过 homeConfig.customLayoutButton 直接绑定到 appConfig.other.home，再由 watch 自动持久化 */
 const homeConfig = computed(() => appConfig.other.home);
 watch(weatherEnable, (val) => {
-  appConfig.other.weather.enable = !!val;
-  appConfig.other.toolbar.weather = !!val;
+  setToolbarUserPref("weather", !!val);
 });
 
 /**
@@ -1158,6 +1163,17 @@ const applyImportedConfig = (data: {
     menu: c.menu as AppConfig["menu"],
     login: c.login as AppConfig["login"],
   });
+
+  // 1.1 顶栏开关现在是「用户偏好」层：导入文件里的 toolbar.<key> 布尔值同步过去，
+  //     否则导入后顶栏不会跟着变化（yaml 值只作为 master）
+  const importedToolbar = c.other?.toolbar as unknown as Record<string, unknown> | undefined;
+  if (importedToolbar && typeof importedToolbar === "object") {
+    for (const [key, value] of Object.entries(importedToolbar)) {
+      if (typeof value === "boolean") {
+        setToolbarUserPref(key, value);
+      }
+    }
+  }
 
   // 2. 同步本组件本地 ref（其 watch 会继续写回响应式配置，保证抽屉 UI 一致）
   const timer = c.other?.timer as TimerConfig | undefined;

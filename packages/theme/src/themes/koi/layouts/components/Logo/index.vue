@@ -47,6 +47,7 @@ import { useBreakpoints } from "@vueuse/core";
 import { breakpointsEnum } from "@repo/utils";
 import settings from "@repo/theme/koi/settings";
 import { getConfig } from "@repo/config";
+import { isToolbarVisible } from "../Header/toolbarPrefs";
 import { resolveAssetUrl } from "@repo/assets";
 import { translateConfigText } from "@repo/languages";
 import fallbackLogoUrl from "@repo/assets/images/logo/logo.svg";
@@ -74,10 +75,9 @@ const titleSize = ref(`${settings.loginTitleSize}px`);
 const logoSize = ref(settings.logoSize);
 const titleAnimate = ref(settings.logoTitleAnimate);
 
-// logo 显示开关（app.yaml other.toolbar.logo；兼容 settings.logoShow）
+// logo 显示开关（yaml master + 用户偏好；兼容 settings.logoShow）
 const showLogo = computed(() => {
-  const cfg = getConfig();
-  return cfg.other.toolbar.logo && settings.logoShow;
+  return isToolbarVisible("logo") && settings.logoShow;
 });
 
 // 品牌名（app.yaml loginConfig.brandName，为空时回退 loginConfig.title）

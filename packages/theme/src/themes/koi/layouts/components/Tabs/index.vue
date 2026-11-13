@@ -92,13 +92,13 @@ import ReTabMenu from "@repo/theme/koi/layouts/components/Tabs/components/ReTabM
 import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
 import { useLayoutTabs } from "@repo/theme/koi/layouts/components/Tabs/useLayoutTabs.ts";
 import useGlobalStore from "@repo/pinia/modules/global";
-import { getConfig } from "@repo/config";
+import { isToolbarVisible } from "../Header/toolbarPrefs";
 
 const globalStore = useGlobalStore();
 const { tabsStyle } = storeToRefs(globalStore);
 
-// 标签页显示图标开关（app.yaml other.toolbar.tabIcon）
-const tabIcon = computed(() => getConfig().other.toolbar.tabIcon);
+// 标签页显示图标开关（yaml master + 用户偏好）
+const tabIcon = computed(() => isToolbarVisible("tabIcon"));
 
 const tabsRootClass = computed(() => {
   if (tabsStyle.value === "google") return "layout-tabs--google";

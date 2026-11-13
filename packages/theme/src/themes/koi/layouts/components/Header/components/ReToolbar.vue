@@ -70,6 +70,7 @@ import {
   type HeaderItemContext,
   type HeaderItemDef,
 } from "./headerItems";
+import { isToolbarVisible } from "../toolbarPrefs";
 import type { ToolbarItemConfig } from "@repo/config";
 import { log } from "@repo/utils";
 
@@ -156,8 +157,8 @@ const renderItems = computed<RenderedItem[]>(() => {
   }
 
   return source.map(({ def, decl }) => {
-    const cfgFlags = cfg as unknown as Record<string, unknown>;
-    const flagOn = def.flag ? cfgFlags[def.flag as string] !== false : true;
+    // 双开关：yaml toolbar.<key> 决定是否部署，用户偏好决定自己看不看
+    const flagOn = def.flag ? isToolbarVisible(def.flag as string) : true;
     const extraOn = def.enabled ? def.enabled(ctx) : true;
     const priority = decl?.priority ?? def.priority ?? "normal";
     const collapsible = def.collapsible ?? true;

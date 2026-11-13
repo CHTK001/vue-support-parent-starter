@@ -4,7 +4,7 @@
       <!-- 左侧菜单展开和折叠图标 -->
       <ReCollapse></ReCollapse>
       <!-- 面包屑（app.yaml other.toolbar.breadcrumb 控制） -->
-      <ReBreadCrumb v-if="showBreadCrumb && toolbarConfig.breadcrumb" class="<md:hidden"></ReBreadCrumb>
+      <ReBreadCrumb v-if="showBreadCrumb && isToolbarVisible('breadcrumb')" class="<md:hidden"></ReBreadCrumb>
     </div>
     <!-- 工具栏（#header-extra 用于注入顶部操作入口，如大屏按钮） -->
     <ReToolbar>
@@ -16,13 +16,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import ReCollapse from "@repo/theme/koi/layouts/components/Header/components/ReCollapse.vue";
 import ReBreadCrumb from "@repo/theme/koi/layouts/components/Header/components/ReBreadCrumb.vue";
 import ReToolbar from "@repo/theme/koi/layouts/components/Header/components/ReToolbar.vue";
-import { getConfig } from "@repo/config";
-
-const toolbarConfig = computed(() => getConfig().other.toolbar);
+import { isToolbarVisible } from "./toolbarPrefs";
 
 withDefaults(
   defineProps<{

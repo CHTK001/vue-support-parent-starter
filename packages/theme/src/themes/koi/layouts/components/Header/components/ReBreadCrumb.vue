@@ -60,6 +60,7 @@ import { computed } from "vue";
 // @ts-ignore
 import { HOME_URL, STATIC_URL } from "@repo/config";
 import { getConfig } from "@repo/config";
+import { isToolbarVisible } from "../toolbarPrefs";
 import { useRoute, useRouter } from "vue-router";
 import { ArrowRight } from "@element-plus/icons-vue";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -70,10 +71,10 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 
-// 面包屑显隐开关（app.yaml other.toolbar）
+// 面包屑显隐开关（yaml master + 用户偏好）
 const breadcrumbConfig = computed(() => ({
-  dropdown: getConfig().other.toolbar.breadcrumbDropdown,
-  icon: getConfig().other.toolbar.breadcrumbIcon,
+  dropdown: isToolbarVisible("breadcrumbDropdown"),
+  icon: isToolbarVisible("breadcrumbIcon"),
 }));
 
 const breadcrumbList = computed(() => {

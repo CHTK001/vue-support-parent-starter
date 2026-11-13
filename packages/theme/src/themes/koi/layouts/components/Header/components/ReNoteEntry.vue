@@ -98,7 +98,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, toRaw } from "vue"
 import { useI18n } from "vue-i18n";
 import { Memo } from "@element-plus/icons-vue";
 import { message, messageBox } from "@repo/core";
-import { getConfig } from "@repo/config";
+import { isToolbarUserEnabled, isToolbarVisible } from "../toolbarPrefs";
 import ReFloatWindow from "@repo/ui/re-float-window";
 import { createCoalescer, createNoteStore } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -142,12 +142,10 @@ interface Note {
 const authStore = useAuthStore();
 const userId = computed(() => String(authStore.loginUser?.userId ?? authStore.loginUser?.id ?? "anonymous"));
 
-/** 顶栏配置 */
-const toolbarConfig = computed(() => getConfig().other?.toolbar);
-/** 开关关闭时不显示悬浮便条（数据仍保存在 IndexedDB 中） */
-const enabled = computed(() => toolbarConfig.value?.quickNote !== false);
-/** 关闭便条是否二次确认（默认开启） */
-const confirmClose = computed(() => toolbarConfig.value?.quickNoteConfirm !== false);
+/** 开关关闭时不显示悬浮便条（数据仍保存在 IndexedDB 中）；yaml master + 用户偏好 */
+const enabled = computed(() => isToolbarVisible("quickNote"));
+/** 关闭便条是否二次确认（默认开启；yaml master + 用户偏好） */
+const confirmClose = computed(() => isToolbarUserEnabled("quickNoteConfirm"));
 
 const notes = ref<Note[]>([]);
 
