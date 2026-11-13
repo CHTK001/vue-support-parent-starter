@@ -438,16 +438,19 @@ watch(() => props.kbId, () => clearTurns())
           <p class="kb-ask__quote">基于本知识库提问，<br />回答会<span>附带引用来源</span></p>
           <p class="kb-ask__hint">检索命中的文档分片将作为引用展示，可点击查看原文</p>
         </div>
-        <div class="kb-ask__quick">
-          <ReButton
-            v-for="q in quickQuestions"
-            :key="q"
-            size="small"
-            round
-            class="!max-w-full"
-            :icon="q.includes('总结') ? ChatLineSquare : q.includes('时间线') ? Promotion : Search"
-            @click="submit(q)"
-          >{{ q }}</ReButton>
+        <div class="kb-ask__quick-group">
+          <p class="kb-ask__quick-label">可以这样问</p>
+          <div class="kb-ask__quick">
+            <ReButton
+              v-for="q in quickQuestions"
+              :key="q"
+              size="small"
+              round
+              class="!max-w-full"
+              :icon="q.includes('总结') ? ChatLineSquare : q.includes('时间线') ? Promotion : Search"
+              @click="submit(q)"
+            >{{ q }}</ReButton>
+          </div>
         </div>
       </div>
 

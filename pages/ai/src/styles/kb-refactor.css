@@ -3617,11 +3617,7 @@ html.dark .kb-tpl__cover {
   outline-offset: 1px;
 }
 
-/* 左栏退成浅底：导航 / 台面 / 助手三种材质，靠底色而不是再画三条边框来区分 */
-.kb-nav {
-  background: color-mix(in srgb, var(--kb-fill) 52%, var(--kb-card));
-}
-
+/* 三栏共用的工作台底色在 §9 统一定义；这里只加选中态描边 */
 .kb-nav__kb.is-on {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kb-accent) 22%, transparent);
 }
@@ -3756,6 +3752,21 @@ html.dark .kb-tpl__cover {
 .kb-ask__hint {
   margin-top: 4px;
   font-size: 11px;
+}
+
+/* 示例提问分组：给三条范例一个真实的分组标签，而不是三个孤立的框 */
+.kb-ask__quick-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.kb-ask__quick-label {
+  margin: 0;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--kb-ink-3);
 }
 
 /* 输入区落成白底，成为右栏唯一的亮面，视线有落点 */
