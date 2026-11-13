@@ -761,9 +761,10 @@
 .kb-stamp {
   font-size: 11px;
   color: var(--kb-ink-2);
-  padding: 3px 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--kb-line);
   border-radius: 999px;
-  background: var(--kb-fill);
+  background: color-mix(in srgb, var(--kb-fill) 42%, var(--kb-card));
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -775,6 +776,7 @@
 
 .kb-stamp--warn {
   background: color-mix(in srgb, var(--kb-warn) 12%, transparent);
+  border-color: color-mix(in srgb, var(--kb-warn) 26%, var(--kb-line));
   color: var(--kb-warn);
 }
 
@@ -782,6 +784,7 @@
 
 .kb-stamp--err {
   background: color-mix(in srgb, var(--kb-err) 10%, transparent);
+  border-color: color-mix(in srgb, var(--kb-err) 24%, var(--kb-line));
   color: var(--kb-err);
 }
 
@@ -1568,21 +1571,6 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--kb-ink);
-}
-
-.kb-docview__blank-d {
-  margin: 0;
-  font-size: 12.5px;
-  line-height: 1.75;
-  color: var(--kb-ink-3);
-}
-
-.kb-docview__blank-acts {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--kb-sp-2);
-  margin: var(--kb-sp-4) 0;
 }
 
 /* 图谱视图 */
@@ -3792,18 +3780,15 @@ html.dark .kb-tpl__cover {
   background: var(--kb-line-soft);
 }
 
-/* 抬头印章：从实心药丸改成描边小票，白底上更利落 */
-.kb-head--inset .kb-stamp {
-  border: 1px solid var(--kb-line);
-  background: color-mix(in srgb, var(--kb-fill) 42%, var(--kb-card));
+/* 印章样式已在 §3 统一为描边小票，抬头不再单独覆盖 */
+
+/* 可点击的「待重建」印章：基础印章现在自带描边，这里用更高特异性保住警示色 */
+.kb-stamp.kb-stamp--act {
+  border-color: color-mix(in srgb, var(--kb-warn) 34%, transparent);
 }
 
-.kb-head--inset .kb-stamp--warn {
-  border-color: color-mix(in srgb, var(--kb-warn) 26%, var(--kb-line));
-}
-
-.kb-head--inset .kb-stamp--err {
-  border-color: color-mix(in srgb, var(--kb-err) 24%, var(--kb-line));
+.kb-stamp.kb-stamp--act:hover {
+  border-color: color-mix(in srgb, var(--kb-warn) 60%, transparent);
 }
 
 /* 选中的分栏滑块加一圈极淡的内描边，避免在白底上「浮不起来」 */
