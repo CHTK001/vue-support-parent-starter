@@ -8,6 +8,12 @@
 /** 饰品槽位：头像挂件 / 昵称牌 */
 export type OrnamentSlot = "avatar" | "nameplate";
 
+/** 获取方式：default 人人可戴，limited 需先领取 */
+export type OrnamentAcquire = "default" | "limited";
+
+/** 动效：减少动态时前端自动静止 */
+export type OrnamentEffect = "none" | "pulse" | "spin" | "glow";
+
 /** 全部槽位（顺序即面板分组顺序） */
 export const ORNAMENT_SLOTS: readonly OrnamentSlot[] = ["avatar", "nameplate"];
 
@@ -41,6 +47,12 @@ export interface Ornament {
   css?: string;
   /** 前景色（字符色 / 昵称文字色） */
   color?: string;
+  /** 获取方式；缺省视为 default */
+  acquire?: OrnamentAcquire;
+  /** 动效；缺省视为 none */
+  effect?: OrnamentEffect;
+  /** 目录级过期时间（ISO 字符串）；空表示永久 */
+  expire?: string | null;
 }
 
 /** 判断任意值是否是合法槽位 */

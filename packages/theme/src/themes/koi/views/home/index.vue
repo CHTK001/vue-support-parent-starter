@@ -28,6 +28,7 @@
             class="koi-avatar-default-frame"
             :style="defaultFrame(56)"
           ></span>
+          <OrnamentBadge :size="16" />
         </div>
         <div class="home-welcome__content">
           <div class="home-welcome__greeting">{{ greetingText }}</div>
@@ -96,6 +97,7 @@ import { defaultAvatarUrl } from "@repo/assets";
 import {getUserPermission, message} from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
 import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
+import OrnamentBadge from "@repo/theme/koi/components/ornaments/OrnamentBadge.vue";
 import HomeLayoutToolbar from "./HomeLayoutToolbar.vue";
 import HomeGridView from "./HomeGridView.vue";
 import CustomLayoutEditor from "./CustomLayoutEditor.vue";
@@ -117,6 +119,8 @@ const {
   spillPx: frameSpill,
   defaultStyle: defaultFrame,
 } = useWornAvatarFrame();
+
+// 头像挂件：由顶栏（ReUser）统一触发同步，这里只读状态渲染
 
 const greetingText = computed(() => {
   return getDayText() || "您好，愿您天天开心，事事如意！";
