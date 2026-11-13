@@ -276,12 +276,6 @@ const currentRelativePath = ref<string | null>(null)
 const currentItems = ref<KBFile[]>([])
 
 /**
- * 按 statusFilter 过滤后的实际渲染列表。
- *
- * <p>「全部」或没有匹配状态时返回原数组本身（同一引用），避免无谓的深拷贝与重渲染。
- * 目录恒保留——它没有 processingStatus，滤掉会让人进不去子目录。</p>
- */
-/**
  * 列头排序状态。
  *
  * <p>空字符串表示沿用后端返回顺序；一旦点过列头，只在本地对当前页排序。
@@ -290,14 +284,42 @@ const currentItems = ref<KBFile[]>([])
 const sortKey = ref<'name' | 'type' | 'size' | 'modified' | ''>('')
 const sortDir = ref<1 | -1>(1)
 
+/** 排序偏好：刷新/切库后仍保留（损坏的值直接忽略，不阻塞文件树） */
+const SORT_STORAGE_KEY = 'kb:file-sort'
+
+function readSortPreference() {
+  try {
+    const raw = localStorage.getItem(SORT_STORAGE_KEY)
+    if (!raw) return
+    const saved = JSON.parse(raw)
+    if (['name', 'type', 'size', 'modified'].includes(saved?.key)) {
+      sortKey.value = saved.key
+      sortDir.value = saved.dir === -1 ? -1 : 1
+    }
+  } catch {
+    /* 偏好损坏时用默认顺序 */
+  }
+}
+
+function saveSortPreference() {
+  try {
+    localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify({ key: sortKey.value, dir: sortDir.value }))
+  } catch {
+    /* 隐私模式/配额满时不阻断操作 */
+  }
+}
+
+readSortPreference()
+
 /** 点列头：同一列反向，换列时名称升序、时间默认最新在前 */
 function toggleSort(key: 'name' | 'type' | 'size' | 'modified') {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 1 ? -1 : 1
-    return
+  } else {
+    sortKey.value = key
+    sortDir.value = key === 'modified' ? -1 : 1
   }
-  sortKey.value = key
-  sortDir.value = key === 'modified' ? -1 : 1
+  saveSortPreference()
 }
 
 /** 列头上的方向标记；未激活时返回空串 */
@@ -306,6 +328,12 @@ function sortMark(key: string) {
   return sortDir.value === 1 ? '↑' : '↓'
 }
 
+/**
+ * 按 statusFilter 过滤后、按列头偏好排序的实际渲染列表。
+ *
+ * <p>「全部」或没有匹配状态时返回原数组本身（同一引用），避免无谓的深拷贝与重渲染。
+ * 目录恒保留——它没有 processingStatus，滤掉会让人进不去子目录。</p>
+ */
 const visibleItems = computed<KBFile[]>(() => {
   const group = STATUS_GROUPS[props.statusFilter || 'all']
   const base = !group

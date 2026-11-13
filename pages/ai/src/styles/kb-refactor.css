@@ -3857,12 +3857,17 @@ html.dark .kb-tpl__cover {
 }
 
 /* 左栏库目录筛选：只在库多时出现，聚焦时与右栏输入区同一套光晕 */
+.kb-nav__search {
+  position: relative;
+  margin: 0 0 6px;
+}
+
 .kb-nav__filter {
   appearance: none;
-  width: calc(100% - 2px);
+  width: 100%;
   height: 26px;
-  margin: 0 0 6px;
-  padding: 0 8px;
+  margin: 0;
+  padding: 0 24px 0 8px;
   border: 1px solid var(--kb-line);
   border-radius: var(--kb-r-sm);
   background: var(--kb-card);
@@ -3872,6 +3877,29 @@ html.dark .kb-tpl__cover {
   transition:
     border-color var(--kb-dur) var(--kb-ease),
     box-shadow var(--kb-dur) var(--kb-ease);
+}
+
+.kb-nav__search-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--kb-ink-3);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.kb-nav__search-clear:hover {
+  color: var(--kb-ink);
+  background: var(--kb-fill);
 }
 
 .kb-nav__filter::placeholder {

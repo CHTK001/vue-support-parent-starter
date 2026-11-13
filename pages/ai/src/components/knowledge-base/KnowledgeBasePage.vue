@@ -140,14 +140,23 @@
             <h2 class="kb-nav__title">知识库<em>{{ store.knowledgeBases.length }}</em></h2>
             <!-- 库目录单独滚动：库多时（实测 15 个）不把下面的「视图 / 维护 / 卷内文档」
                  推出视口。整栏滚动时这三段会一起消失，用户只能滚到很下面才找得回视图入口。 -->
-            <input
-              v-if="store.knowledgeBases.length > 8"
-              v-model="kbFilter"
-              type="search"
-              class="kb-nav__filter"
-              placeholder="筛选知识库"
-              aria-label="筛选知识库"
-            />
+            <div v-if="store.knowledgeBases.length > 8" class="kb-nav__search">
+              <input
+                v-model="kbFilter"
+                type="search"
+                class="kb-nav__filter"
+                placeholder="筛选知识库"
+                aria-label="筛选知识库"
+                @keydown.esc="kbFilter = ''"
+              />
+              <button
+                v-if="kbFilter"
+                type="button"
+                class="kb-nav__search-clear"
+                aria-label="清空筛选"
+                @click="kbFilter = ''"
+              >×</button>
+            </div>
             <div class="kb-nav__kbs">
               <button
                 v-for="k in filteredKnowledgeBases"
