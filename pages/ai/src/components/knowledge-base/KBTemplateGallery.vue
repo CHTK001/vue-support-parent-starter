@@ -54,11 +54,13 @@
               </span>
             </div>
             <div class="flex flex-col gap-2 p-3 flex-1 min-w-0">
-              <b class="text-sm font-medium truncate">{{ t.name }}</b>
-              <p class="text-xs text-[var(--rm-text-secondary)] leading-relaxed line-clamp-2">{{ t.desc }}</p>
+              <b class="kb-tpl__name truncate">{{ t.name }}</b>
+              <p class="kb-tpl__desc line-clamp-2">{{ t.desc }}</p>
               <div class="flex items-center justify-between gap-2 mt-auto flex-wrap">
-                <span v-if="t.dataset" class="text-xs text-[var(--rm-text-disabled)]">{{ t.dataset.docs.length }} 文档 · {{ t.dataset.entities.length }} 实体</span>
-                <span v-else class="text-xs text-[var(--rm-text-disabled)]">预置实体 · 关系结构</span>
+                <span v-if="t.dataset" class="kb-tpl__meta">
+                  <b>{{ t.dataset.docs.length }}</b> 文档 · <b>{{ t.dataset.entities.length }}</b> 实体
+                </span>
+                <span v-else class="kb-tpl__meta">预置实体 · 关系结构</span>
                 <ReButton size="small" round :type="selected?.key === t.key ? 'primary' : 'default'" @click.stop="select(t)">
                   {{ selected?.key === t.key ? '已选模板' : '使用模板' }}
                 </ReButton>
@@ -82,31 +84,31 @@
           <!-- 数据集规模（有完整数据集时展示真实数量） -->
           <div v-if="selected.dataset" class="grid grid-cols-3 gap-2">
             <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
-              <b class="text-sm font-bold">{{ selected.dataset.docs.length }}</b>
-              <span class="text-xs text-[var(--rm-text-secondary)]">文档</span>
+              <b class="kb-tpl__num">{{ selected.dataset.docs.length }}</b>
+              <span class="kb-tpl__label">文档</span>
             </div>
             <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
-              <b class="text-sm font-bold">{{ selected.dataset.entities.length }}</b>
-              <span class="text-xs text-[var(--rm-text-secondary)]">实体</span>
+              <b class="kb-tpl__num">{{ selected.dataset.entities.length }}</b>
+              <span class="kb-tpl__label">实体</span>
             </div>
             <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
-              <b class="text-sm font-bold">{{ selected.dataset.relations.length }}</b>
-              <span class="text-xs text-[var(--rm-text-secondary)]">关系</span>
+              <b class="kb-tpl__num">{{ selected.dataset.relations.length }}</b>
+              <span class="kb-tpl__label">关系</span>
             </div>
           </div>
 
           <div class="grid grid-cols-3 gap-2">
             <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
-              <b class="text-sm font-bold">{{ selected.entityTypes.length }}</b>
-              <span class="text-xs text-[var(--rm-text-secondary)]">类实体</span>
+              <b class="kb-tpl__num">{{ selected.entityTypes.length }}</b>
+              <span class="kb-tpl__label">类实体</span>
             </div>
             <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
-              <b class="text-sm font-bold">{{ selected.relationTypes.length }}</b>
-              <span class="text-xs text-[var(--rm-text-secondary)]">类关系</span>
+              <b class="kb-tpl__num">{{ selected.relationTypes.length }}</b>
+              <span class="kb-tpl__label">类关系</span>
             </div>
             <div class="re-surface re-surface--dense flex flex-col items-center !py-2">
-              <b class="text-sm font-bold">{{ selected.entityTypes.length + selected.relationTypes.length }}</b>
-              <span class="text-xs text-[var(--rm-text-secondary)]">类预置</span>
+              <b class="kb-tpl__num">{{ selected.entityTypes.length + selected.relationTypes.length }}</b>
+              <span class="kb-tpl__label">类预置</span>
             </div>
           </div>
 
@@ -449,3 +451,46 @@ function buildTemplateDocs(t: TemplateItem): Array<{ path: string; content: stri
   ]
 }
 </script>
+
+<style scoped>
+/* 模板卡与右侧读数：名称/描述比列表页小一号，所有数字统一等宽 */
+.kb-tpl__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rm-text);
+}
+
+.kb-tpl__desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--rm-text-secondary);
+}
+
+.kb-tpl__meta {
+  font-size: 11px;
+  color: var(--rm-text-disabled);
+}
+
+.kb-tpl__meta b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 600;
+  color: var(--rm-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-tpl__num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--rm-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-tpl__label {
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--rm-text-secondary);
+}
+</style>
