@@ -3400,6 +3400,41 @@ html.dark .kb-tpl__cover {
   min-height: 0;
 }
 
+/* --- 文件表骨架屏：形状对齐真实表格（名称列 62% 宽 + 状态/类型/大小/时间），
+     加载时不再是一片转圈，而是能看出「这里将出现一张表」的占位 --- */
+.kb-sk {
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--kb-fill) 25%,
+    color-mix(in srgb, var(--kb-fill) 45%, var(--kb-card)) 50%,
+    var(--kb-fill) 75%
+  );
+  background-size: 200% 100%;
+  animation: kb-shimmer 1.5s ease-in-out infinite;
+}
+
+.kb-sk--name {
+  width: 62%;
+}
+
+@keyframes kb-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-sk {
+    animation: none;
+    background: var(--kb-fill);
+  }
+}
+
 /* 文件树根节点撑满滚动容器，让「已加载全部文件」这类页脚落到卡片底部 */
 .kb-docview__tree > div {
   min-height: 100%;

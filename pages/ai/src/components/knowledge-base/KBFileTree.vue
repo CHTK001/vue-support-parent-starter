@@ -23,12 +23,27 @@
       </div>
     </div>
 
-    <!-- 文件/文件夹列表-->
-    <div v-if="isLoading" class="text-center py-8">
-      <el-icon class="animate-spin text-[var(--rm-primary)]" size="32">
-        <Loading />
-      </el-icon>
-      <p class="mt-2 text-sm text-[var(--rm-text-secondary)]">{{ t('knowledge.tree.loading') }}</p>
+    <!-- 文件/文件夹列表：加载中显示与真实表格同构的骨架屏 -->
+    <div v-if="isLoading" class="kb-filelist @container" aria-hidden="true">
+      <div
+        class="grid gap-2 px-3 py-2 border-b border-[var(--rm-border-light)] text-xs font-medium text-[var(--rm-text-secondary)] grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]">
+        <span>{{ t('knowledge.tree.colName') }}</span>
+        <span>{{ t('knowledge.tree.colStatus') }}</span>
+        <span class="hidden @[520px]:inline">{{ t('knowledge.tree.colType') }}</span>
+        <span class="hidden @[720px]:inline">{{ t('knowledge.tree.colSize') }}</span>
+        <span class="hidden @[720px]:inline">{{ t('knowledge.tree.colModified') }}</span>
+      </div>
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="grid gap-2 px-3 py-2.5 border-b border-[var(--rm-border-light)] last:border-b-0 grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]"
+      >
+        <div class="kb-sk kb-sk--name" />
+        <div class="kb-sk" style="width: 46px" />
+        <div class="kb-sk hidden @[520px]:block" style="width: 34px" />
+        <div class="kb-sk hidden @[720px]:block" style="width: 48px" />
+        <div class="kb-sk hidden @[720px]:block" style="width: 76px" />
+      </div>
     </div>
 
     <div v-else-if="visibleItems.length > 0" class="@container kb-filelist">
