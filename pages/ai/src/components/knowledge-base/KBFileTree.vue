@@ -103,6 +103,10 @@
             {{ formatDate(item.uploadedAt) }}
           </span>
         </div>
+
+        <!-- 行内「更多」：右键菜单可发现性差，行悬停时把它放到手边 -->
+        <button type="button" class="kb-rowmore" title="更多操作" aria-label="更多操作"
+          @click.stop="openRowMenu($event, item)">⋯</button>
       </div>
     </div>
 
@@ -996,8 +1000,7 @@ function formatDate(dateString: string | null): string {
 /**
  * 处理右键菜单
  */
-function handleContextMenu(event: MouseEvent, item: KBFile) {
-  event.preventDefault()
+function handleContextMenu(event: MouseEvent, item: KBFile) {  event.preventDefault()
   const isCompletedOrFailed = !item.isDirectory
     && (item.processingStatus === 'uploaded' || item.processingStatus === 'completed' || item.processingStatus === 'failed')
   // 只读公开库：不提供重命名/移动/重试/删除等写操作菜单；分块查看是只读能力，仍保留。
@@ -1019,6 +1022,15 @@ function handleContextMenu(event: MouseEvent, item: KBFile) {
     y: event.clientY,
     item
   }
+}
+
+/**
+ * 行内「更多」按钮：复用右键菜单逻辑。
+ * 右键是隐藏入口，鼠标用户不一定知道；把同一个菜单挂到悬停出现的按钮上，
+ * 菜单内容（重命名/移动/分块/重建/删除）仍由 handleContextMenu 决定，不另开一套。
+ */
+function openRowMenu(event: MouseEvent, item: KBFile) {
+  handleContextMenu(event, item)
 }
 
 /**

@@ -263,35 +263,37 @@
         <main class="kb-main" @scroll="handleScroll">
           <!-- ---- 文档视图：状态分栏 + 文件树（问答并入右栏） ---- -->
           <template v-if="activeTab === 'files'">
-            <header class="kb-head">
-              <div class="kb-head__left">
-                <p class="kb-path">
-                  {{ currentKB?.name }}<span>/</span>文档
-                </p>
-                <h1 class="kb-title">文档</h1>
-              </div>
-              <div class="kb-head__right">
-                <span class="kb-stamp"><b>{{ filesForFilter.length }}</b> 篇</span>
-                <button
-                  v-if="staleFileCount > 0"
-                  type="button"
-                  class="kb-stamp kb-stamp--warn kb-stamp--act"
-                  :disabled="reindexing || !canEditCurrent"
-                  :title="reindexing ? t('knowledge.page.reindexing') : t('knowledge.page.reindexAll')"
-                  @click="handleReindexAllStale"
-                >
-                  <b>{{ staleFileCount }}</b> {{ reindexing ? '重建中…' : '待重建' }}
-                </button>
-                <span v-if="pendingFileCount > 0" class="kb-stamp kb-stamp--warn">
-                  <b>{{ pendingFileCount }}</b> 处理中
-                </span>
-                <span v-if="failedFileCount > 0" class="kb-stamp kb-stamp--err">
-                  <b>{{ failedFileCount }}</b> 失败
-                </span>
-              </div>
-            </header>
-
             <div class="kb-docview__list">
+              <!-- 抬头并入卡片：卷宗名、篇数与状态印章和表格同处一个台面，
+                   不再悬在页面上另起一行 -->
+              <header class="kb-head kb-head--inset">
+                <div class="kb-head__left">
+                  <p class="kb-path">
+                    {{ currentKB?.name }}<span>/</span>文档
+                  </p>
+                  <h1 class="kb-title">文档</h1>
+                </div>
+                <div class="kb-head__right">
+                  <span class="kb-stamp"><b>{{ filesForFilter.length }}</b> 篇</span>
+                  <button
+                    v-if="staleFileCount > 0"
+                    type="button"
+                    class="kb-stamp kb-stamp--warn kb-stamp--act"
+                    :disabled="reindexing || !canEditCurrent"
+                    :title="reindexing ? t('knowledge.page.reindexing') : t('knowledge.page.reindexAll')"
+                    @click="handleReindexAllStale"
+                  >
+                    <b>{{ staleFileCount }}</b> {{ reindexing ? '重建中…' : '待重建' }}
+                  </button>
+                  <span v-if="pendingFileCount > 0" class="kb-stamp kb-stamp--warn">
+                    <b>{{ pendingFileCount }}</b> 处理中
+                  </span>
+                  <span v-if="failedFileCount > 0" class="kb-stamp kb-stamp--err">
+                    <b>{{ failedFileCount }}</b> 失败
+                  </span>
+                </div>
+              </header>
+
               <div class="kb-docview__head">
                 <div class="kb-filters">
                   <button

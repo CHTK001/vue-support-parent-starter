@@ -3536,6 +3536,82 @@ html.dark .kb-tpl__cover {
 
 /* ##########  8. 层次与动效：三栏分工 / 抬头标尺 / 右栏语气（2026-11-13 第二轮） ########## */
 
+/* 文档视图的抬头并入卡片：工作台从「标题 + 卡片」合成一块台面 */
+.kb-docview__list > .kb-head--inset {
+  padding: 13px 14px 10px;
+  border-bottom: 1px solid var(--kb-line-soft);
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--kb-accent) 3.5%, var(--kb-card)),
+      var(--kb-card) 72%
+    );
+}
+
+.kb-head--inset .kb-title {
+  font-size: 17px;
+  border-left-width: 2.5px;
+}
+
+.kb-head--inset .kb-path {
+  font-size: 10.5px;
+}
+
+/* 行内「更多」：把右键菜单搬到手边（默认隐形，悬停才出现） */
+.kb-rowmore {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--kb-line);
+  border-radius: 6px;
+  background: var(--kb-card);
+  color: var(--kb-ink-2);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+  transition:
+    opacity var(--kb-dur) var(--kb-ease),
+    border-color var(--kb-dur) var(--kb-ease),
+    color var(--kb-dur) var(--kb-ease);
+}
+
+/* 按钮压在「修改时间」尾部时，用一段向左的渐隐把日期淡出，
+   而不是让日期被一个白方块硬切掉 */
+.kb-rowmore::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: -1px;
+  bottom: -1px;
+  width: 22px;
+  background: linear-gradient(90deg, transparent, var(--kb-card));
+  pointer-events: none;
+}
+
+.kb-filelist .file-row:hover .kb-rowmore {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.kb-rowmore:hover {
+  color: var(--kb-accent);
+  border-color: var(--kb-accent-line);
+}
+
+.kb-rowmore:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  outline: 2px solid color-mix(in srgb, var(--kb-accent) 40%, transparent);
+  outline-offset: 1px;
+}
+
 /* 左栏退成浅底：导航 / 台面 / 助手三种材质，靠底色而不是再画三条边框来区分 */
 .kb-nav {
   background: color-mix(in srgb, var(--kb-fill) 52%, var(--kb-card));
