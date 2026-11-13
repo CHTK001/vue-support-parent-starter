@@ -159,6 +159,7 @@ watch(() => perf.value.fpsMonitorEnabled, (val) => {
   border-radius: 10px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+  white-space: nowrap;
   transition: all 0.3s ease;
 }
 
@@ -182,13 +183,22 @@ watch(() => perf.value.fpsMonitorEnabled, (val) => {
 
 .perf-overlay--merged { padding: 10px 14px; }
 
+/* 分离：外框让位，每个指标自己成块，否则和底色一致看不出分块 */
 .perf-overlay--split {
-  gap: 4px;
+  gap: 6px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+
   .perf-item {
     background: rgba(15, 23, 42, 0.92);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
     padding: 6px 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(12px);
   }
 }
 
@@ -200,6 +210,7 @@ watch(() => perf.value.fpsMonitorEnabled, (val) => {
   align-items: center;
   gap: 6px;
   font-size: 12px;
+  white-space: nowrap;
 }
 .perf-item__label {
   font-size: 10px;
@@ -212,12 +223,14 @@ watch(() => perf.value.fpsMonitorEnabled, (val) => {
   font-weight: 700;
   font-size: 13px;
   color: #fff;
+  white-space: nowrap;
 }
 
 .perf-overlay--detailed {
   padding: 14px 16px;
-  min-width: 180px;
-  max-width: 340px;
+  width: max-content;
+  min-width: 200px;
+  max-width: 360px;
 
   .perf-detailed {
     display: flex;
@@ -249,6 +262,8 @@ watch(() => perf.value.fpsMonitorEnabled, (val) => {
         font-weight: 700;
         color: #fff;
         text-align: center;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
         small {
           font-size: 10px;
           font-weight: 500;
@@ -293,6 +308,51 @@ watch(() => perf.value.fpsMonitorEnabled, (val) => {
         &.perf-net-dot--online { background: #22c55e; }
       }
     }
+  }
+}
+
+/* 详情 + 水平：指标横排，否则「水平」对详情没有任何效果 */
+.perf-overlay--detailed.perf-overlay--horizontal {
+  max-width: min(92vw, 640px);
+
+  .perf-detailed {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .perf-metric {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 4px 10px;
+    border-bottom: none;
+
+    & + .perf-metric {
+      border-left: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .perf-metric__value {
+      text-align: left;
+    }
+  }
+}
+
+/* 详情 + 分离：每个指标自己成块，和简洁模式的分块观感一致 */
+.perf-overlay--detailed.perf-overlay--split {
+  padding: 0;
+
+  .perf-detailed {
+    gap: 6px;
+  }
+
+  .perf-metric {
+    padding: 6px 10px;
+    border-bottom: none;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(12px);
   }
 }
 </style>

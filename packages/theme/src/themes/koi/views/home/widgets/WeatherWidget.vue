@@ -7,7 +7,9 @@
       </div>
     </div>
 
-    <div class="weather-panel" v-loading="loading">
+    <el-empty v-if="!enabled" description="天气功能未开启" :image-size="54" />
+
+    <div v-else class="weather-panel" v-loading="loading">
     <template v-if="hasWeather">
       <div class="source-publish-time">
         <span :title="`气象数据源发布时间`">发布时间：{{ sourcePublishTime }}</span>
@@ -115,13 +117,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
+import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { Sunny } from "@element-plus/icons-vue";
+import { getConfig } from "@repo/config";
 import { useWeather } from "@repo/theme/composables/useWeather";
 import { subscribeRefresh, unregisterRefresh } from "./refreshRegistry";
 import type { WidgetItem } from "../types";
 
 const props = defineProps<{ widget: WidgetItem }>();
+
+/**
+ * 功能开关：天气被部署侧关掉（other.weather.enable=false 或能力位 false）时，
+ * 已经摆在看板上的天气卡不能再继续请求 —— 否则「关闭」只是藏图标，数据照拉。
+ */
+const enabled = computed(() => {
+  const cfg = getConfig();
+  return cfg.other?.weather?.enable !== false && cfg.other?.capabilities?.weather !== false;
+});
 
 const {
   weatherCode, temp, feelsLike, humidity, windSpeed, windDir,
@@ -154,6 +166,7 @@ watch(hourForecast, () => {
  * 页面挂上 widget 就注册，摘除就注销，不留定时器。
  */
 onMounted(() => {
+  if (!enabled.value) return;
   fetchWeather();
   subscribeRefresh("weather", fetchWeather);
 });

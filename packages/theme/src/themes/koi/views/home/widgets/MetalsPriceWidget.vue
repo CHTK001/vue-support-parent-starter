@@ -12,7 +12,9 @@
       </button>
     </div>
 
-    <div class="mpw__body" v-loading="loading">
+    <el-empty v-if="!enabled" description="贵金属行情未开启" :image-size="54" />
+
+    <div v-else class="mpw__body" v-loading="loading">
       <div v-if="error" class="mpw__error">
         <el-icon :size="28"><CircleCloseFilled /></el-icon>
         <span>数据加载失败</span>
@@ -62,13 +64,22 @@
  */
 import { CaretBottom, CaretTop, CircleCloseFilled, RefreshRight, TrendCharts } from "@element-plus/icons-vue";
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { getConfig } from "@repo/config";
 import { subscribeRefresh, unregisterRefresh } from "./refreshRegistry";
 import type { WidgetItem } from "../types";
 
-defineProps<{ widget: WidgetItem }>();
+const props = defineProps<{ widget: WidgetItem }>();
+
+/** 总开关：没开放时卡片只显示空态，不对三方接口发请求 */
+const enabled = computed(() => getConfig().other?.metals?.enable === true);
 
 /** 刷新图标是否可用（配置显式关闭时才不显示，默认开启） */
 const showRefreshEnabled = computed(() => props.widget.appearance?.showRefresh !== false);
+
+/** 贵金属接口地址 */
+const PRICE_URL = "https://api.gold-api.com/price";
+/** localStorage 里存留的上一档成交价，跨 session 占位 */
+const LAST_METALS_KEY = "koi_home_metals_last_price";
 
 /** 贵金属列表：排好序，决定面板里的视觉顺序（金 → 银 → 铂 → 钯） */
 const METALS = [
@@ -83,10 +94,6 @@ const error = ref(false);
 /** 上一档成交价：本地存留，不对外暴露，只用于计算涨跌 */
 const prevPrice = reactive<Record<string, number>>(lastPricesStore());
 const lastUpdatedAt = ref<Date | null>(null);
-
-const PRICE_URL = "https://api.gold-api.com/price";
-/** localStorage 里存留的上一档成交价，跨 session 占位 */
-const LAST_METALS_KEY = "koi_home_metals_last_price";
 
 const changeLabel = computed(() => {
   /** 没对比基准就留空，避免“实时”类词描述跨 session 的变化 */
@@ -107,8 +114,7 @@ function priceText(v: number | null | undefined): string {
 }
 
 /** 盎司牌价（API 中所有金属都是 USD/盎司）转每克价，按金衡盎司换算 */
-function gramPrice(v: number | null | undefined): number | null {
-  if (v == null) return null;
+function gramPrice(v: number): number {
   return Math.round((v / TROY_OZ_PER_GRAM) * 100) / 100;
 }
 
@@ -180,44 +186,41 @@ function saveLastPrices(p: Record<string, number>): void {
   }
 }
 
-/** 拉取一档价格（从本地存留的上一价算涨跌幅） */
-async function loadMetal(metal: MetalRow): Promise<void> {
-  let res: Response | undefined;
+/** 拉取一档价格（从本地存留的上一价算涨跌幅）；返回是否成功 */
+async function loadMetal(metal: MetalRow): Promise<boolean> {
   try {
-    res = await fetch(`${PRICE_URL}/${metal.symbol}`);
+    const res = await fetch(`${PRICE_URL}/${metal.symbol}`);
+    if (!res.ok) return false;
+    const json = (await res.json()) as {
+      price?: number;
+      symbol?: string;
+      currencySymbol?: string;
+      updatedAt?: string;
+    };
+    const price = json?.price;
+    if (price == null) return false;
+    // 计价单位：API 返回的 currencySymbol（美元 $ → "$/克"）
+    if (json?.currencySymbol) metal.unit = `${json.currencySymbol}/克`;
+    const prev = prevPrice[metal.symbol] ?? null;
+    prevPrice[metal.symbol] = price;
+    metal.price = price;
+    metal.change = prev === null ? null : Math.round(((price - prev) / prev) * 10000) / 100;
+    lastUpdatedAt.value = json?.updatedAt ? new Date(json.updatedAt) : new Date();
+    return true;
   } catch {
-    return;
+    return false;
   }
-  if (!res.ok) return;
-  const json = (await res.json()) as {
-    price?: number;
-    symbol?: string;
-    currencySymbol?: string;
-    updatedAt?: string;
-  };
-  const price = json?.price ?? json?.val?.price;
-  if (price == null) return;
-  // 计价单位：API 返回的 currencySymbol（美元 $ → "$/克"）
-  if (json?.currencySymbol) metal.unit = `${json.currencySymbol}/克`;
-  const prev = prevPrice[metal.symbol] ?? null;
-  prevPrice[metal.symbol] = price;
-  metal.price = price;
-  metal.change = prev === null ? null : Math.round(((price - prev) / prev) * 10000) / 100;
-  lastUpdatedAt.value = json?.updatedAt ? new Date(json.updatedAt) : new Date();
 }
 
-/** 拉取全部四档，并只把成功的结果推入面板 */
+/** 拉取全部四档；只有四档全失败才进入错误态（单档失败保留其余牌价） */
 async function loadAllMetals(): Promise<void> {
   loading.value = true;
   error.value = false;
-  const results = await Promise.allSettled(metals.map((m) => loadMetal(m)));
-  // 只要有一档拒绝（断网/跨域/无应答），就挂上错误态，给出手动重开按钮
-  if (results.some((r) => r.status === "rejected")) {
-    error.value = true;
-  }
+  const results = await Promise.all(metals.map((m) => loadMetal(m)));
+  error.value = results.every((ok) => !ok);
   loading.value = false;
   /** 落盘：当下的一档牌价就是下次打开的对比基准 */
-  saveLastPrices({ ...prevPrice });
+  if (results.some(Boolean)) saveLastPrices({ ...prevPrice });
 }
 
 /** 悬停浮层：露出 API 返回的原始盎司牌价（USD），与面板的每克价互补 */
@@ -227,10 +230,12 @@ function ozTitle(m: MetalRow): string {
 }
 
 async function load(): Promise<void> {
+  if (!enabled.value) return;
   await loadAllMetals();
 }
 
 onMounted(() => {
+  if (!enabled.value) return;
   load();
   subscribeRefresh("metals", load);
 });

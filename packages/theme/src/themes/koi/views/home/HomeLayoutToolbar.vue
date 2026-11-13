@@ -17,22 +17,53 @@
       <span class="home-layout-toolbar__label">自定义布局</span>
     </button>
 
-    <button
-      v-else
-      type="button"
-      class="home-layout-toolbar__btn home-layout-toolbar__btn--save"
-      title="保存布局"
-      aria-label="保存"
-      @click="emit('save')"
-    >
-      <span class="home-layout-toolbar__icon">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-          <path d="M17 5H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-2-2zm-1 10H4V7h10v2H6v2h8V7h.59L17 8.41V15zM6 9h8V7H6v2z" />
-          <path d="M16 16H4v-2h12v2zM6 11h8v2H6v-2z" opacity=".4" />
-        </svg>
-      </span>
-      <span class="home-layout-toolbar__label">保存</span>
-    </button>
+    <template v-else>
+      <button
+        type="button"
+        class="home-layout-toolbar__btn home-layout-toolbar__btn--reset"
+        title="恢复默认布局（清空所有组件）"
+        aria-label="恢复默认"
+        @click="emit('reset')"
+      >
+        <span class="home-layout-toolbar__icon">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path d="M10 4a6 6 0 1 0 5.66 8H14.5a4.5 4.5 0 1 1-4.5-4.5V10l4-3.5L10 3v1z" />
+          </svg>
+        </span>
+        <span class="home-layout-toolbar__label">恢复默认</span>
+      </button>
+
+      <button
+        type="button"
+        class="home-layout-toolbar__btn"
+        title="放弃本次编辑"
+        aria-label="取消"
+        @click="emit('cancel')"
+      >
+        <span class="home-layout-toolbar__icon">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path d="M5.3 5.3 10 10l4.7-4.7 1.4 1.4L11.4 11.4l4.7 4.7-1.4 1.4-4.7-4.7-4.7 4.7-1.4-1.4 4.7-4.7-4.7-4.7z" />
+          </svg>
+        </span>
+        <span class="home-layout-toolbar__label">取消</span>
+      </button>
+
+      <button
+        type="button"
+        class="home-layout-toolbar__btn home-layout-toolbar__btn--save"
+        title="保存布局"
+        aria-label="保存"
+        @click="emit('save')"
+      >
+        <span class="home-layout-toolbar__icon">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path d="M17 5H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-2-2zm-1 10H4V7h10v2H6v2h8V7h.59L17 8.41V15zM6 9h8V7H6v2z" />
+            <path d="M16 16H4v-2h12v2zM6 11h8v2H6v-2z" opacity=".4" />
+          </svg>
+        </span>
+        <span class="home-layout-toolbar__label">保存</span>
+      </button>
+    </template>
   </div>
 </template>
 
@@ -41,12 +72,17 @@
  * 主页布局工具栏按钮
  *
  * - 视图模式：显示「自定义布局」按钮（点击进入编辑模式）
- * - 编辑模式：显示「保存」按钮（点击保存并退出）
+ * - 编辑模式：显示「恢复默认 / 取消 / 保存」三个按钮
+ *
+ * <p>编辑期有 800ms 防抖自动保存，所以「取消」不是简单退出：父组件会先回滚到
+ * 进入编辑时的快照再退出，否则用户点了取消、刷新后改动还在。</p>
  */
 defineProps<{ editMode: boolean }>();
 const emit = defineEmits<{
   (e: "enter-edit"): void;
   (e: "save"): void;
+  (e: "cancel"): void;
+  (e: "reset"): void;
 }>();
 </script>
 
@@ -91,13 +127,22 @@ const emit = defineEmits<{
   background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-fill-color-blank));
 }
 
+.home-layout-toolbar__btn--reset {
+  color: var(--el-color-warning);
+  border-color: color-mix(in srgb, var(--el-color-warning) 40%, var(--el-border-color-lighter));
+}
+
+.home-layout-toolbar__btn--reset:hover {
+  color: var(--el-color-warning);
+  border-color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 6%, var(--el-fill-color-blank));
+}
+
 .home-layout-toolbar__btn--save {
   border-color: var(--el-color-primary);
   background: var(--el-color-primary);
   color: var(--el-color-white, #fff);
-}
-
-.home-layout-toolbar__btn--save:hover {
+}.home-layout-toolbar__btn--save:hover {
   background: color-mix(in srgb, var(--el-color-primary) 88%, white);
   color: var(--el-color-white, #fff);
   border-color: var(--el-color-primary);

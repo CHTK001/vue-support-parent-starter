@@ -95,7 +95,6 @@ export const HEADER_ITEMS: readonly HeaderItemDef[] = [
     key: "quickNote",
     component: ReNoteEntry,
     flag: "quickNote",
-    collapsible: false,
   },
   { key: "dark", component: ReDark, flag: "dark" },
   { key: "language", component: ReLanguage, flag: "language" },

@@ -21,6 +21,7 @@
                   @success="handleAvatarSuccess"
                   @error="handleAvatarError"
                 />
+                <OrnamentBadge :size="22" :offset="6" />
               </div>
             </div>
             <div class="flex flex-justify-between flex-wrap mt-20px p-y-12px">
@@ -330,6 +331,16 @@
               <WallpaperPanel />
             </el-tab-pane>
 
+            <el-tab-pane v-if="ornamentEnabled" name="ornament">
+              <template #label>
+                <span class="flex items-center gap-4px">
+                  <el-icon :size="15"><MagicStick /></el-icon>
+                  <span>饰品</span>
+                </span>
+              </template>
+              <OrnamentPanel />
+            </el-tab-pane>
+
             <el-tab-pane name="third">
               <template #label>
                 <span class="flex items-center gap-4px">
@@ -486,7 +497,7 @@
 <script setup lang="ts" name="minePage">
 // @ts-nocheck
 import { nextTick, onMounted, onUnmounted, reactive, ref, computed, watch, defineAsyncComponent } from "vue";
-import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture, PictureFilled, Document } from "@element-plus/icons-vue";
+import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture, PictureFilled, Document, MagicStick } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo, Http } from "@repo/utils";
 import { getConfig } from "@repo/config";
@@ -494,6 +505,8 @@ import { defaultAvatarUrl } from "@repo/assets";
 import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
 import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
 import WallpaperPanel from "@repo/theme/koi/components/wallpaper/WallpaperPanel.vue";
+import OrnamentPanel from "@repo/theme/koi/components/ornaments/OrnamentPanel.vue";
+import OrnamentBadge from "@repo/theme/koi/components/ornaments/OrnamentBadge.vue";
 import ThirdBindPanel from "./components/ThirdBindPanel.vue";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
@@ -588,6 +601,7 @@ const activeName = ref("first");
 const frameEnabled = computed(() => getConfig()?.other?.avatarFrame?.enable ?? true);
 /** 壁纸开关：默认关闭（与 shared.ts 的默认值一致），关闭时页签不出现 */
 const wallpaperEnabled = computed(() => getConfig()?.other?.wallpaper?.enable === true);
+const ornamentEnabled = computed(() => getConfig()?.other?.ornament?.enable === true);
 const personalConfigEnabled = computed(() => getConfig()?.other?.personalConfig?.enable ?? true);
 
 /** 默认头像（与顶部 ReUser 一致） */

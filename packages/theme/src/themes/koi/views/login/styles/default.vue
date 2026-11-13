@@ -492,5 +492,21 @@ html.dark .login-form-side {
     height: 200px;
   }
 }
+
+/* 减少动态：光斑漂移、主视觉浮动、入场位移全部停掉，内容直接可见 */
+@media (prefers-reduced-motion: reduce) {
+  .orb,
+  .hero-card,
+  .deco-line {
+    animation: none !important;
+  }
+
+  .animate-fade-in-up,
+  .animate-fade-in-right {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
 </style>
 

@@ -44,8 +44,8 @@ export interface UploadedWallpaper {
   createdAt: number;
 }
 
-/** 平铺方式 → background-size / background-repeat */
-const TILE_MAP: Record<WallpaperTile, { size: string; repeat: string }> = {
+/** 平铺方式 → background-size / background-repeat（面板预览与真实图层共用同一张表） */
+export const WALLPAPER_TILE_MAP: Record<WallpaperTile, { size: string; repeat: string }> = {
   none: { size: "cover", repeat: "no-repeat" },
   cover: { size: "cover", repeat: "no-repeat" },
   contain: { size: "contain", repeat: "no-repeat" },
@@ -77,7 +77,7 @@ function clamp(value: number, min: number, max: number): number {
 
 /** 把任意输入归一到合法平铺方式 */
 function normalizeTile(value: unknown): WallpaperTile {
-  if (typeof value === "string" && Object.prototype.hasOwnProperty.call(TILE_MAP, value)) {
+  if (typeof value === "string" && Object.prototype.hasOwnProperty.call(WALLPAPER_TILE_MAP, value)) {
     return value as WallpaperTile;
   }
   return "none";
@@ -156,6 +156,44 @@ export const uploadedWallpapers = ref<UploadedWallpaper[]>(readUploads());
 /** 可选壁纸列表：默认用静态兜底清单，拉到服务端目录后替换 */
 export const wallpaperPresets = ref<WallpaperPreset[]>([...BUILTIN_WALLPAPERS]);
 
+/**
+ * 当前是否有网络
+ *
+ * <p>在线图片壁纸（服务端目录里 url 是 http(s) 的项）离线时既不该出现在面板里，
+ * 也不该继续显示在页面上——否则会留一张裂图或一块空白。</p>
+ */
+export const networkOnline = ref(
+  typeof navigator === "undefined" ? true : navigator.onLine,
+);
+
+/** 当前壁纸是否依赖网络（远程图片） */
+function isRemoteWallpaper(setting: WallpaperSetting = wallpaperSetting): boolean {
+  if (setting.source === "upload") return true;
+  return Boolean(setting.url && /^https?:/i.test(setting.url));
+}
+
+/** 监听网络状态：恢复联网重画，断网时只隐藏图层、不清配置 */
+export function initNetworkWatch(): void {
+  if (typeof window === "undefined") return;
+  const update = () => {
+    const was = networkOnline.value;
+    networkOnline.value = window.navigator.onLine;
+    if (!was && networkOnline.value) {
+      // 恢复联网：允许重新退避重试，并立刻重画
+      loadFailures = 0;
+      commit();
+      return;
+    }
+    if (was && !networkOnline.value && isRemoteWallpaper()) {
+      // 断网：只撤显示，配置仍保留在本地与服务端，联网后恢复
+      document.documentElement.classList.remove("koi-wallpaper-ready");
+    }
+  };
+  window.addEventListener("online", update);
+  window.addEventListener("offline", update);
+  networkOnline.value = window.navigator.onLine;
+}
+
 /** 当前是否真的会显示一层壁纸 */
 export function isWallpaperActive(setting: WallpaperSetting = wallpaperSetting): boolean {
   if (!isWallpaperEnabled()) return false;
@@ -169,7 +207,7 @@ function writeVars(setting: WallpaperSetting): void {
   const style = document.documentElement.style;
   const image = setting.css || (setting.url ? `url(${JSON.stringify(setting.url)})` : "none");
   const darkImage = setting.cssDark || image;
-  const tile = TILE_MAP[setting.tile] ?? TILE_MAP.none;
+  const tile = WALLPAPER_TILE_MAP[setting.tile] ?? WALLPAPER_TILE_MAP.none;
   style.setProperty("--koi-wallpaper-image", image);
   style.setProperty("--koi-wallpaper-image-dark", darkImage);
   style.setProperty("--koi-wallpaper-size", tile.size);
@@ -180,6 +218,28 @@ function writeVars(setting: WallpaperSetting): void {
 }
 
 let applyToken = 0;
+/** 远程图片连续加载失败次数（用于退避重试；到上限后只隐藏，不动配置） */
+let loadFailures = 0;
+let retryTimer = 0;
+
+/**
+ * 远程图片加载失败：隐藏图层并按 5s/15s/45s 退避重试。
+ *
+ * <p>不能像以前那样直接 resetWallpaper() —— 图床被墙、超时、CDN 抖动都会被判成
+ * 「图片失效」，把用户的选择清掉并回写服务端为默认。只有用户主动「恢复默认」
+ * 才该清配置；加载失败最多是暂时看不见。</p>
+ */
+function scheduleRetry(token: number): void {
+  if (typeof window === "undefined") return;
+  if (!networkOnline.value) return;
+  if (loadFailures >= 3) return;
+  const delay = [5000, 15000, 45000][Math.min(loadFailures, 2)];
+  loadFailures += 1;
+  window.clearTimeout(retryTimer);
+  retryTimer = window.setTimeout(() => {
+    if (token === applyToken) commit();
+  }, delay);
+}
 
 /**
  * 挂上壁纸语义类
@@ -203,6 +263,7 @@ function activate(token: number): void {
 function commit(): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
+  if (typeof window !== "undefined") window.clearTimeout(retryTimer);
   const token = ++applyToken;
 
   if (!isWallpaperActive()) {
@@ -220,13 +281,15 @@ function commit(): void {
     const image = new window.Image();
     image.onload = () => {
       if (token !== applyToken) return;
+      loadFailures = 0;
       writeVars(wallpaperSetting);
       activate(token);
     };
     image.onerror = () => {
       if (token !== applyToken) return;
-      // 图片失效（文件被删 / 外链挂了）：退回默认，别留一张全透明的页面
-      resetWallpaper();
+      // 先撤显示、保留配置，再按退避重试；不自动清空用户的选择
+      root.classList.remove("koi-wallpaper-ready");
+      scheduleRetry(token);
     };
     image.src = wallpaperSetting.url;
     return;
@@ -313,6 +376,7 @@ function toPreset(row: Record<string, unknown>): WallpaperPreset | null {
         ? row.sysWallpaperCssDark
         : undefined,
     url,
+    remote: Boolean(url && /^https?:/i.test(url)),
     tile: normalizeTile(row.sysWallpaperTile),
     opacity: clamp(Number(row.sysWallpaperOpacity ?? 1), 0, 1),
     blur: clamp(Number(row.sysWallpaperBlur ?? 0), 0, 24),
@@ -550,3 +614,4 @@ export function initWallpaper(): void {
 }
 
 initWallpaper();
+initNetworkWatch();

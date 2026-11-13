@@ -223,6 +223,11 @@ const form = reactive<FormState>({
   borderRadius: 12,
   showHorizontalScrollbar: false,
   showVerticalScrollbar: false,
+  background: "auto",
+  backgroundColor: "#ffffff",
+  showRefresh: true,
+  customStyle: "",
+  customStyleClass: "",
 });
 
 const customUrl = ref("");
@@ -274,7 +279,9 @@ watch(
     form.background =
       typeof rawBackground === "string" && rawBackground.length > 0 && rawBackground !== "auto" && rawBackground !== "none"
         ? "custom"
-        : rawBackground ?? "auto";
+        : rawBackground === "none" || rawBackground === "auto"
+          ? rawBackground
+          : "auto";
     form.backgroundColor = rawBackground ?? "#ffffff";
     form.showRefresh = props.widget.appearance?.showRefresh ?? true;
     form.customStyle = props.widget.appearance?.style ?? "";

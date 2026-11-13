@@ -65,6 +65,11 @@ function findExistingErudaScript() {
  *
  * <p>注意 `useShadowDom: false`：面板必须留在 document 里，eruda.css 才能生效；
  * 影子根是样式边界，开着它等于放弃主题（见文件头注释）。</p>
+ *
+ * <p><b>不要把 document.body 当 container</b>：eruda 的 `_initContainer` 会
+ * 给 container 写行内 `all: initial` 和 `id="eruda"`。body 被重置后整页样式崩掉，
+ * 设置抽屉直接白屏 —— 这是「开关一拨就白」的根因。这里自建一个宿主节点，
+ * 由 eruda 只重置这个空 div。</p>
  */
 function startEruda() {
   const eruda = (window as any).eruda;
@@ -75,16 +80,42 @@ function startEruda() {
   } catch {
     /* ignore */
   }
+  const host = document.createElement("div");
+  host.id = "eruda";
+  document.documentElement.appendChild(host);
   try {
     eruda.init({
-      container: document.body,
+      container: host,
       useShadowDom: false,
     });
   } catch (err) {
+    host.remove();
     console.warn("[eruda] init 失败", err);
     return;
   }
+  bindEntryButton();
   injectErudaStyles();
+}
+
+/**
+ * 入口按钮加固：显式 type=button，并阻止点击冒泡到 document。
+ *
+ * <p>eruda 的入口按钮是动态插到宿主里的，冒泡会被页面上的全局点击监听（关抽屉、
+ * 路由刷新等）接住，表现为「点一下控制台整页刷新」。这里只在捕获阶段截断冒泡，
+ * 不影响按钮自身的展开/收起。</p>
+ */
+function bindEntryButton() {
+  const btn = document.querySelector<HTMLElement>(".eruda-entry-btn");
+  if (!btn) return;
+  if (btn instanceof HTMLButtonElement) {
+    btn.type = "button";
+  }
+  if ((btn as HTMLElement & { __koiBound?: boolean }).__koiBound) return;
+  (btn as HTMLElement & { __koiBound?: boolean }).__koiBound = true;
+  const stop = (event: Event) => event.stopPropagation();
+  btn.addEventListener("pointerdown", stop, true);
+  btn.addEventListener("click", stop, true);
+  btn.addEventListener("keydown", stop, true);
 }
 
 function loadEruda() {
@@ -115,6 +146,8 @@ function destroyEruda() {
     /* ignore */
   }
   removeErudaStyles();
+  // destroy 正常会带走宿主；初始化失败 / 半初始化时兜底清掉，避免残留空节点
+  document.getElementById("eruda")?.remove();
   if (erudaScriptEl && erudaScriptEl.parentNode) {
     erudaScriptEl.parentNode.removeChild(erudaScriptEl);
   }

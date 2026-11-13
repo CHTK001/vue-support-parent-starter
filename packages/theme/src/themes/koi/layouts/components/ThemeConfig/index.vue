@@ -471,6 +471,22 @@
                    v-model="tabsShown"
                  />
 
+                 <ReSwitch layout="card" v-admin
+                   :title="t('themeConfig.switchBlocks.skeletonCritter.title')"
+                   :sub="t('themeConfig.switchBlocks.skeletonCritter.sub')"
+                   :tip="t('themeConfig.switchBlocks.skeletonCritter.tip')"
+                   :description="t('themeConfig.switchBlocks.skeletonCritter.description')"
+                   v-model="skeletonCritterShown"
+                 />
+
+                 <div class="config-item" v-admin>
+                   <div class="config-label">{{ t("themeConfig.interface.skeletonCritter.label") }}</div>
+                   <el-select v-model="skeletonCritterAnimal" class="config-input">
+                     <el-option :label="t('themeConfig.interface.skeletonCritter.bird')" value="bird" />
+                     <el-option :label="t('themeConfig.interface.skeletonCritter.panda')" value="panda" />
+                   </el-select>
+                 </div>
+
                  <ReSwitch layout="card"
                   :title="t('themeConfig.switchBlocks.grey.title')"
                   :sub="t('themeConfig.switchBlocks.grey.sub')"
@@ -677,6 +693,14 @@ const headerShown = computed({
 const tabsShown = computed({
   get: () => isTabsShown.value,
   set: (v: boolean) => globalStore.setGlobalState("isTabsShown", v),
+});
+const skeletonCritterShown = computed({
+  get: () => globalStore.isSkeletonCritterShown,
+  set: (v: boolean) => globalStore.setGlobalState("isSkeletonCritterShown", v),
+});
+const skeletonCritterAnimal = computed({
+  get: () => globalStore.skeletonCritterAnimal,
+  set: (v: "bird" | "panda") => globalStore.setGlobalState("skeletonCritterAnimal", v),
 });
 
 // 主题模式选项（明亮 / 黑暗 / 自动）→ 胶囊式分段控件
@@ -1069,6 +1093,8 @@ const exportUserConfig = () => {
       headerInverted: globalStore.headerInverted,
       isGrey: globalStore.isGrey,
       isWeak: globalStore.isWeak,
+      isSkeletonCritterShown: globalStore.isSkeletonCritterShown,
+      skeletonCritterAnimal: globalStore.skeletonCritterAnimal,
     },
   };
 
@@ -1159,6 +1185,8 @@ const applyImportedConfig = (data: {
     ["headerInverted", g.headerInverted],
     ["isGrey", g.isGrey],
     ["isWeak", g.isWeak],
+    ["isSkeletonCritterShown", g.isSkeletonCritterShown],
+    ["skeletonCritterAnimal", g.skeletonCritterAnimal],
   ];
   setters.forEach(([key, value]) => {
     if (value !== undefined) globalStore.setGlobalState(key, value);

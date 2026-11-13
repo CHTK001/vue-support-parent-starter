@@ -34,6 +34,8 @@ export interface WallpaperPreset {
   cssDark?: string;
   /** 位图地址；与 css 二选一 */
   url?: string;
+  /** 是否为需要联网加载的远程图片（离线时面板隐藏、图层暂隐） */
+  remote?: boolean;
   /** 选中该壁纸时的推荐值 */
   tile?: WallpaperTile;
   opacity?: number;

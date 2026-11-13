@@ -84,19 +84,33 @@ function destroyWorker() {
 function startFpsLoop() {
   if (rafId) return;
   let lastFrame = 0;
+  let frames = 0;
+  let windowStart = performance.now();
   worker?.postMessage({ type: "heartbeat" });
-  const tick = () => {
-    const now = performance.now();
+  const tick = (now: number) => {
     if (lastFrame > 0) {
       const frameDelta = now - lastFrame;
       // 60fps = 16.67ms; 30fps = 33.33ms. Delta > 16.67 = main thread busy.
       const load = Math.min(100, Math.max(0, Math.round((frameDelta - 16.67) / 16.67 * 100)));
       // 平滑：30% 当前 + 70% 历史，避免跳变
       data.cpu = Math.round(data.cpu * 0.7 + load * 0.3);
-      worker?.postMessage({ type: "cpu", value: data.cpu });
     }
     lastFrame = now;
-    worker?.postMessage({ type: "tick" });
+
+    // rAF 口径：每秒统计真实回调次数，fps = frames * 1000 / 实际耗时。
+    // 不按固定 60 帧折算，也不经过 worker 往返（后台标签页恢复时按窗口重置）。
+    frames += 1;
+    const elapsed = now - windowStart;
+    if (elapsed >= 1000) {
+      if (elapsed <= 2000) {
+        const fps = Math.max(0, Math.min(240, Math.round((frames * 1000) / elapsed)));
+        data.fps = fps;
+        data.fpsHistory = [...data.fpsHistory.slice(-19), fps];
+      }
+      frames = 0;
+      windowStart = now;
+    }
+
     rafId = requestAnimationFrame(tick);
   };
   rafId = requestAnimationFrame(tick);

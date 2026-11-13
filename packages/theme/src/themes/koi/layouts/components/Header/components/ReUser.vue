@@ -15,6 +15,7 @@
             <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(32)"></span>
             <!-- alt：el-image 内部渲染 <img> 但不自带 alt，缺了会命中 axe image-alt -->
             <el-image class="user-avatar" fit="cover" :src="avatar" :alt="userName"></el-image>
+            <OrnamentBadge :size="12" />
           </div>
         </div>
       </template>
@@ -26,9 +27,10 @@
             <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
             <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(36)"></span>
             <el-image class="user-avatar-card" fit="cover" :src="avatar" :alt="userName"></el-image>
+            <OrnamentBadge :size="14" />
           </div>
           <div class="user-info">
-            <div class="user-name">{{ userName }}</div>
+            <div class="user-name" :style="nameplateStyle()">{{ userName }}</div>
             <div class="user-phone">{{ userPhone }}</div>
           </div>
         </div>
@@ -66,7 +68,7 @@
 
 <script setup lang="ts">
 import { message, hasRouter, getRouter } from "@repo/core";
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import { User, Lock, RefreshRight } from "@element-plus/icons-vue";
 import {
@@ -85,6 +87,8 @@ import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import KoiLockScreen from "../../LockScreen/index.vue";
 import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
+import OrnamentBadge from "@repo/theme/koi/components/ornaments/OrnamentBadge.vue";
+import { nameplateStyle, syncOrnaments } from "@repo/theme/koi/components/ornaments/store";
 
 const lockScreenRef = ref<InstanceType<typeof KoiLockScreen> | null>(null);
 
@@ -127,6 +131,11 @@ const {
 } = useWornAvatarFrame();
 // 是否已登录：accessToken 存在即视为登录态（应对 token 过期但路由未拦截的边界场景）
 const isLoggedIn = computed(() => Boolean(userStore.accessToken || userStore.token || getAccessToken()));
+
+// 登录后的全局入口：拉一次饰品目录与我佩戴（开关关闭时内部直接早退，不发请求）
+onMounted(() => {
+  void syncOrnaments();
+});
 
 /** 退出登录 */
 const handleLayout = async () => {

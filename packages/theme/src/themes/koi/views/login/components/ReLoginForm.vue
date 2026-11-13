@@ -53,6 +53,8 @@
         <el-input
           v-model="loginForm.loginName"
           type="text"
+          name="username"
+          autocomplete="username"
           :placeholder="$t('menu.login.form.loginName')"
           size="large"
           class="login-input"
@@ -68,6 +70,8 @@
         <el-input
           v-model="loginForm.password"
           type="password"
+          name="password"
+          autocomplete="current-password"
           :placeholder="$t('menu.login.form.password')"
           show-password
           size="large"
@@ -144,6 +148,13 @@
         />
       </el-form-item>
 
+      <!-- 记住账号密码：勾选且登录成功后才写入本机（凭据专用存储，强制 AES），取消勾选并登录成功即清除 -->
+      <el-form-item class="login-remember-item">
+        <el-checkbox v-model="rememberMe" :disabled="loading">
+          {{ $t("menu.login.remember") }}
+        </el-checkbox>
+      </el-form-item>
+
       <el-form-item class="m-b-0">
         <el-button
           type="primary"
@@ -176,6 +187,12 @@ import { ref, reactive, toRef, computed, onMounted, nextTick, watch } from "vue"
 import type { FormInstance, FormRules } from "element-plus";
 import type { LoginTypeConfig } from "@repo/config";
 import { msgWarning, msgError, getCaptcha, thirdLoginExchange, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting, setActiveBaseUrl, applyActiveBaseUrl, resetActiveBaseUrl } from "@repo/core";
+import {
+  readRememberedLogin,
+  saveRememberedLogin,
+  clearRememberedLogin,
+  saveBrowserCredential,
+} from "@repo/utils";
 import { useRouter } from "vue-router";
 import useUserStore from "@repo/pinia/modules/user";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -283,6 +300,55 @@ const loginForm = reactive<ILoginUser>({
   tenantCode: "",
 });
 
+/**
+ * 是否记住账号密码。
+ *
+ * <p>默认不勾选：没有已保存凭据时不主动落盘，避免共用电脑上悄悄记住口令；
+ * 上次勾选过（本地有凭据）时进入页面会自动勾选并回填。</p>
+ */
+const rememberMe = ref(false);
+
+/**
+ * 把当前登录入口已记住的凭据回填到表单。
+ *
+ * <p>只填空字段：浏览器自动填充或用户已经输入时不被覆盖。</p>
+ */
+const fillRememberedLogin = () => {
+  const saved = readRememberedLogin(activeLoginType.value);
+  if (!saved) {
+    rememberMe.value = false;
+    return;
+  }
+  rememberMe.value = true;
+  if (!loginForm.loginName) loginForm.loginName = saved.loginName;
+  if (!loginForm.password) loginForm.password = saved.password;
+  if (!loginForm.tenantCode && saved.tenantCode) loginForm.tenantCode = saved.tenantCode;
+};
+
+/**
+ * 登录成功后的凭据处理。
+ *
+ * <p>勾选：写入凭据专用加密存储（强制 AES）并请求浏览器密码本保存；
+ * 未勾选：清除该入口之前记住的凭据，下次进入不再回填。</p>
+ *
+ * @param loginName 本次登录账号
+ * @param password  本次登录口令
+ */
+const persistLoginCredential = (loginName: string, password: string) => {
+  const tenantCode = String(loginForm.tenantCode || "").trim().toLowerCase();
+  if (rememberMe.value) {
+    saveRememberedLogin(activeLoginType.value, {
+      loginName,
+      password,
+      ...(tenantCode ? { tenantCode } : {}),
+    });
+    // 浏览器密码本与本机存储是两条独立通道：不支持 / 非 HTTPS 时静默跳过
+    void saveBrowserCredential({ username: loginName, password, displayName: loginName });
+    return;
+  }
+  clearRememberedLogin(activeLoginType.value);
+};
+
 const loginRules: any = reactive<FormRules<ILoginUser>>({
   loginName: [
     { required: true, message: t("menu.login.rules.loginName.required"), trigger: "blur" },
@@ -339,12 +405,16 @@ const handleCaptcha = async () => {
 
 /** 切换登录类型＝换一个后端：旧验证码在新站点上无效，清空并重新拉取 */
 watch(activeLoginType, () => {
+  loginForm.loginName = "";
+  loginForm.password = "";
   loginForm.tenantCode = "";
   loginForm.securityCode = "";
   loginForm.codeKey = "";
   loginForm.captchaPicture = "";
   sliderPassed.value = false;
   sliderRef.value?.reset();
+  // 不同入口的账号口令互不通用：切过去就回填该入口自己记住的那份
+  fillRememberedLogin();
   if (loginConfig.value.captcha) void handleCaptcha();
 });
 
@@ -435,6 +505,8 @@ const consumeThirdLogin = async (redirectParam: string, redirect: string) => {
 // 进入页面加载管理员信息
 onMounted(async () => {
   await loadSettingAndInit();
+  // 上次勾选过「记住账号密码」时回填该入口的账号与口令
+  fillRememberedLogin();
 
   // 三方登录回跳：redirectParam=一次性换票凭证（成功路径），thirdMsg=回调错误提示。
   // 参数由 core 在启动期快照（history 模式守卫 replace 到登录页时不带 query，
@@ -503,12 +575,17 @@ const submitLogin = async (otpCode: string) => {
       password: String(password),
       codeKey,
       securityCode,
+      // 后端若按「记住登录」区分令牌有效期，这里就是它的开关；
+      // 未实现时该字段被忽略，不影响登录
+      isRemembered: rememberMe.value,
       ...(tenantCode ? { tenantCode } : {}),
       ...(otpCode ? { otpCode } : {}),
     });
     applyActiveBaseUrl();
 
     if (userStore?.token) {
+      // 登录已成功：按勾选状态记住 / 清除本机凭据（验证码、OTP 不落盘）
+      persistLoginCredential(loginName, String(password));
       try {
         await initAuthRouter(router);
       } catch (e) {
@@ -565,6 +642,11 @@ const submitLogin = async (otpCode: string) => {
   width: 100%;
 }
 
+.login-remember-item {
+  margin-top: -4px;
+  margin-bottom: 12px;
+}
+
 .login-input {
   :deep(.el-input__wrapper) {
     border: 1px solid var(--el-border-color-lighter) !important;
@@ -573,12 +655,13 @@ const submitLogin = async (otpCode: string) => {
     box-shadow: none !important;
     transition: all 0.3s;
 
+    /* 登录页不做品牌色高亮：hover 与聚焦都保持同一根浅边框，
+       避免点进输入框时边框突然变蓝、再叠一圈光晕。
+       错误态仍按下方 :is-error 规则变红，不影响校验反馈。 */
     &:hover,
     &.is-focus {
-      /* 压过应用级 telemetry.css 的全局聚焦环（--brand-500 + --focus-ring）：
-         登录页聚焦保持统一浅描边，不出现品牌色光圈 */
-      border-color: var(--el-color-primary) !important;
-      box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.1) !important;
+      border-color: var(--el-border-color-lighter) !important;
+      box-shadow: none !important;
     }
   }
 }

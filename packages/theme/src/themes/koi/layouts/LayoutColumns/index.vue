@@ -52,6 +52,7 @@
               <el-image class="column-user-avatar" fit="cover" :src="avatar" :alt="userName"></el-image>
               <div v-if="avatarFrameVisible" class="user-avatar-frame-layer" :style="avatarFrameStyle(36)"></div>
               <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(36)"></span>
+              <OrnamentBadge :size="12" />
             </div>
           </template>
           <div class="user-card-content">
@@ -64,11 +65,12 @@
                 <el-image class="w-36px h-36px rounded-full select-none" :src="avatar" :alt="userName"></el-image>
                 <div v-if="avatarFrameVisible" class="user-avatar-card-layer" :style="avatarFrameStyle(36)"></div>
                 <span v-else class="koi-avatar-default-frame" :style="defaultAvatarFrame(36)"></span>
+                <OrnamentBadge :size="14" />
               </div>
               <div class="user-info">
                 <!-- <div class="user-name">{{ authStore.loginUser?.userName || "无名" }}</div>
                 <div class="user-phone">{{ authStore.loginUser?.phone || "暂无电话" }}</div> -->
-                <div class="user-name">{{ userName || "无名" }}</div>
+                <div class="user-name" :style="nameplateStyle()">{{ userName || "无名" }}</div>
                 <div class="user-phone">{{ userPhone || "暂无电话" }}</div>
               </div>
             </div>
@@ -138,6 +140,8 @@ import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
 import ReColumnSubMenu from "@repo/theme/koi/layouts/components/Menu/ReColumnSubMenu.vue";
 import NavSettingEntry from "@repo/theme/koi/layouts/components/Menu/NavSettingEntry.vue";
 import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
+import OrnamentBadge from "@repo/theme/koi/components/ornaments/OrnamentBadge.vue";
+import { nameplateStyle, syncOrnaments } from "@repo/theme/koi/components/ornaments/store";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import { ref, computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -459,6 +463,8 @@ const initMenu = () => {
 
 onMounted(() => {
   initMenu();
+  // 饰品目录与佩戴（开关关闭时内部直接早退，不发请求）
+  void syncOrnaments();
 });
 
 // 监听路由变化

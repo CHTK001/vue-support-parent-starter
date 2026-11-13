@@ -25,14 +25,12 @@ export type BuiltinWidgetType =
   | "calendar"
   | "custom"
   | "note"
-  | "client-info"
-  | "system-config"
   | "alarm"
   | "bookmark"
   | "quick-access"
   | "weather"
   | "metals"
-  | "machine-info";
+  | "exchange-rate";
 
 /**
  * widget 类型标识。
@@ -391,30 +389,6 @@ const BUILTIN_WIDGETS: WidgetRegistration[] = [
     component: () => import("./widgets/NoteWidget.vue"),
   },
   {
-    type: "client-info",
-    title: "客户端信息",
-    description: "公网 IP、实时 CPU / FPS、浏览器与系统信息",
-    icon: "Monitor",
-    defaultSize: { w: 5, h: 4 },
-    category: "common",
-    environment: "prod",
-    requiredPermission: "user",
-    maxCount: 1,
-    component: () => import("./widgets/ClientInfoWidget.vue"),
-  },
-  {
-    type: "system-config",
-    title: "系统配置",
-    description: "查看当前系统配置（仅管理员可见）",
-    icon: "Setting",
-    defaultSize: { w: 6, h: 5 },
-    category: "admin",
-    environment: "prod",
-    requiredPermission: "admin",
-    maxCount: 1,
-    component: () => import("./widgets/SystemConfigWidget.vue"),
-  },
-  {
     type: "alarm",
     title: "闹钟",
     description: "设置定时提醒，到点推送站内消息",
@@ -475,16 +449,16 @@ const BUILTIN_WIDGETS: WidgetRegistration[] = [
     component: () => import("./widgets/MetalsPriceWidget.vue"),
   },
   {
-    type: "machine-info",
-    title: "本机指标",
-    description: "本机 CPU / 内存 / 电池 / 存储与网络状态",
-    icon: "Monitor",
-    defaultSize: { w: 6, h: 4 },
+    type: "exchange-rate",
+    title: "汇率",
+    description: "主要货币对最新价与周期涨跌幅",
+    icon: "Money",
+    defaultSize: { w: 6, h: 5 },
     category: "common",
     environment: "prod",
     requiredPermission: "user",
     maxCount: 1,
-    component: () => import("./widgets/MachineInfoWidget.vue"),
+    component: () => import("./widgets/ExchangeRateWidget.vue"),
   },
 ];
 

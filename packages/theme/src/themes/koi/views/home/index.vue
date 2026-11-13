@@ -40,8 +40,10 @@
         <HomeLayoutToolbar
           v-if="customLayoutButton"
           :edit-mode="editMode"
-          @enter-edit="editMode = true"
+          @enter-edit="enterEdit"
           @save="saveLayout"
+          @cancel="cancelLayout"
+          @reset="resetLayout"
         />
       </div>
     </div>
@@ -89,7 +91,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { debounce, getDayText } from "@repo/utils";
-import { getConfig } from "@repo/config";
+import { ElMessageBox } from "element-plus";import { getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
 import {getUserPermission, message} from "@repo/core";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -104,7 +106,7 @@ import { useHomeLayout } from "./useHomeLayout";
 import { preloadWidgetComponents } from "./useWidgetLoader";
 import { filterCatalogByPermission } from "./widgets";
 import { useWidgetRefresh } from "./useWidgetRefresh";
-import type { GridPosition, WidgetItem, WidgetType } from "./types";
+import type { GridPosition, WidgetItem, WidgetType, HomeLayoutState } from "./types";
 
 const authStore = useAuthStore();
 
@@ -129,6 +131,9 @@ const customLayoutButton = computed(() => {
 
 const { state, load, save } = useHomeLayout();
 const editMode = ref(false);
+
+/** 进入编辑时的布局快照：取消编辑要回滚到它（编辑期有自动保存，不能只关掉界面） */
+let editSnapshot: HomeLayoutState | null = null;
 
 /** 上次已持久化的布局快照（用于跳过 save() 克隆数组后触发的重复 watch） */
 let lastSavedSnapshot = "";
@@ -199,7 +204,17 @@ const availableCatalog = computed(() =>
       const counted = state.widgets.filter((w) => w.type === item.type).length;
       return { ...item, counted };
     })
-    .filter((item) => item.counted < item.maxCount),
+    .filter((item) => item.counted < item.maxCount)
+    // 数据开关关闭时不列出对应组件：已经摆上的卡片由组件自身显示「未开启」
+    .filter((item) => {
+      const cfg = getConfig();
+      if (item.type === "metals") return cfg.other?.metals?.enable === true;
+      if (item.type === "weather") {
+        return cfg.other?.weather?.enable !== false && cfg.other?.capabilities?.weather !== false;
+      }
+      if (item.type === "exchange-rate") return cfg.other?.capabilities?.exchangeRate !== false;
+      return true;
+    }),
 );
 
 function onGridUpdate(next: GridPosition[]): void {
@@ -328,7 +343,51 @@ function saveLayout(): void {
   // 同步快照基准，避免 save() 克隆数组后 watch 重复触发时误判为有变更
   lastSavedSnapshot = layoutSnapshot();
   editMode.value = false;
+  editSnapshot = null;
   message.success("布局已保存");
+}
+
+/** 进入编辑：先记一份快照，供「取消」回滚（编辑期有 800ms 自动保存） */
+function enterEdit(): void {
+  autoSave.cancel();
+  editSnapshot = {
+    widgets: state.widgets.map((w) => ({ ...w })),
+    grid: state.grid.map((g) => ({ ...g })),
+  };
+  lastSavedSnapshot = layoutSnapshot();
+  editMode.value = true;
+}
+
+/** 取消编辑：回滚到进入时的布局并落盘，避免自动保存把改动留下 */
+function cancelLayout(): void {
+  autoSave.cancel();
+  if (editSnapshot) {
+    save({
+      widgets: editSnapshot.widgets.map((w) => ({ ...w })),
+      grid: editSnapshot.grid.map((g) => ({ ...g })),
+    });
+    lastSavedSnapshot = layoutSnapshot();
+  }
+  editSnapshot = null;
+  editMode.value = false;
+  message.info("已取消编辑");
+}
+
+/** 恢复默认：清空所有组件（二次确认后立即落盘） */
+async function resetLayout(): Promise<void> {
+  try {
+    await ElMessageBox.confirm("将清空当前所有组件并恢复默认布局，确定继续？", "恢复默认", {
+      type: "warning",
+      confirmButtonText: "恢复默认",
+      cancelButtonText: "取消",
+    });
+  } catch {
+    return;
+  }
+  autoSave.cancel();
+  save({ widgets: [], grid: [] });
+  lastSavedSnapshot = layoutSnapshot();
+  message.success("已恢复默认布局");
 }
 
 onMounted(() => {

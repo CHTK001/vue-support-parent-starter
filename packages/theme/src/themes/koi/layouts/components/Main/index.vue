@@ -28,7 +28,21 @@
         再弹回，比直接画内容块更刺眼），所以骨架只保留两张内容卡。
       -->
       <transition name="route-skeleton-fade">
-        <div v-if="routePending" class="route-skeleton" aria-busy="true" aria-label="页面加载中">
+        <div
+          v-if="routePending"
+          class="route-skeleton"
+          :class="{ 'is-leaving': skeletonLeaving }"
+          aria-busy="true"
+          aria-label="页面加载中"
+        >
+          <!-- 小动物以每一根加载条（.rs-bone）为栖木，随机换位置、上上下下地跳；
+               加载完成时由 leaving 触发离场（鸟飞出屏幕 / 熊猫溜走） -->
+          <RouteSkeletonCritter
+            v-if="globalStore.isSkeletonCritterShown"
+            :animal="globalStore.skeletonCritterAnimal"
+            :leaving="skeletonLeaving"
+            class="rs-critter"
+          />
           <div class="rs-card">
             <span class="rs-bone rs-line"></span>
             <span class="rs-bone rs-line"></span>
@@ -54,6 +68,7 @@
 import { ref, watch, provide, onBeforeUnmount, computed } from "vue";
 import { useRouter } from "vue-router";
 import ReMaximize from "@repo/theme/koi/layouts/components/Main/components/ReMaximize.vue";
+import RouteSkeletonCritter from "@repo/theme/koi/layouts/components/Main/components/RouteSkeletonCritter.vue";
 import { useDebounceFn } from "@vueuse/core";
 import Tabs from "@repo/theme/koi/layouts/components/Tabs/index.vue";
 import AnnouncementBar from "@repo/theme/koi/layouts/components/AnnouncementBar/index.vue";
@@ -89,6 +104,13 @@ provide("refresh", refreshCurrentPage);
 const routePending = ref(false);
 let routeTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * 骨架收尾：页面 chunk 就绪后不立刻把骨架抽走 —— 先让小动物自己离场
+ * （鸟飞出屏幕 / 熊猫溜走），卡片同时淡出露出真实页面，等它走完再整体卸载。
+ */
+const skeletonLeaving = ref(false);
+let exitTimer: ReturnType<typeof setTimeout> | null = null;
+
 const clearRouteTimer = () => {
   if (routeTimer) {
     clearTimeout(routeTimer);
@@ -96,25 +118,68 @@ const clearRouteTimer = () => {
   }
 };
 
-const stopBeforeEach = router.beforeEach(() => {
+const clearExitTimer = () => {
+  if (exitTimer) {
+    clearTimeout(exitTimer);
+    exitTimer = null;
+  }
+};
+
+/** 离场时长：与 RouteSkeletonCritter 的 exit 动画对齐（鸟 620ms / 熊猫 260+440ms） */
+const exitMs = computed(() => (globalStore.skeletonCritterAnimal === "panda" ? 720 : 640));
+
+/** 系统是否要求减少动态效果（要求时不做离场，直接收） */
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false);
+
+/**
+ * 路由加载完成：有小动物时先播离场，再卸载骨架；否则立即收起。
+ * 小动物被管理员关掉、或系统要求减少动效时，不额外占用这 0.6s。
+ */
+const finishRoute = () => {
   clearRouteTimer();
+  if (!routePending.value) return;
+  if (!globalStore.isSkeletonCritterShown || prefersReducedMotion()) {
+    clearExitTimer();
+    skeletonLeaving.value = false;
+    routePending.value = false;
+    return;
+  }
+  skeletonLeaving.value = true;
+  clearExitTimer();
+  exitTimer = setTimeout(() => {
+    routePending.value = false;
+    skeletonLeaving.value = false;
+    exitTimer = null;
+  }, exitMs.value);
+};
+
+/** 新导航开始：取消上一轮还没走完的离场，避免骨架被提前收掉 */
+const resetSkeleton = () => {
+  clearRouteTimer();
+  clearExitTimer();
+  skeletonLeaving.value = false;
+};
+
+const stopBeforeEach = router.beforeEach(() => {
+  resetSkeleton();
   routeTimer = setTimeout(() => {
     routePending.value = true;
   }, 120);
 });
 
 const stopAfterEach = router.afterEach(() => {
-  clearRouteTimer();
-  routePending.value = false;
+  finishRoute();
 });
 
 const stopOnError = router.onError(() => {
-  clearRouteTimer();
-  routePending.value = false;
+  finishRoute();
 });
 
 onBeforeUnmount(() => {
   clearRouteTimer();
+  clearExitTimer();
   stopBeforeEach();
   stopAfterEach();
   stopOnError();
@@ -186,6 +251,7 @@ onBeforeUnmount(() => {
 }
 
 /* ===== 路由切换骨架 ===== */
+/* 骨架的定位上下文：小动物是骨架的直接子节点（absolute），要相对这一层定位 */
 .route-skeleton {
   position: absolute;
   inset: 0;
@@ -201,6 +267,19 @@ onBeforeUnmount(() => {
   gap: 12px;
   background: var(--el-bg-color-page);
   pointer-events: none;
+}
+
+/* 小动物是骨架里的绝对定位元素（组件自带 position/top/left），
+   不参与 flex 排版，所以这里不需要给它留高度。 */
+
+/* 收尾：卡片先淡出露出真实页面，小动物留在上层自己飞走/溜走 */
+.route-skeleton.is-leaving {
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+.route-skeleton.is-leaving .rs-card {
+  opacity: 0;
+  transition: opacity 0.16s ease;
 }
 
 .rs-card {

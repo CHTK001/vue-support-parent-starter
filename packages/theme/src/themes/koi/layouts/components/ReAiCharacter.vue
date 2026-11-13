@@ -2,10 +2,16 @@
 // @ts-nocheck
 
 // @ts-nocheck
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { getConfig, getStorageKey } from "@repo/config";
 import { http } from "@repo/core";
-import ReAvatar3D from "@repo/ui/ReAvatar3D";
+/**
+ * 3D 形象按需加载：ReAvatar3D 静态 import 了 three（约 2.7MB 产物）。
+ * 它是布局里常驻挂载的组件，静态引入会把 three 拖进**每个应用的首屏**
+ * （生产 index.html 的 modulepreload 里能看到 lib-three 全量预载）。
+ * 改成异步组件后，只有真正渲染出形象（配置了 ai-character 且可见）才去取 three。
+ */
+const ReAvatar3D = defineAsyncComponent(() => import("@repo/ui/ReAvatar3D"));
 
 const STORAGE_KEY = getStorageKey("ai-character-messages");
 const CONV_ID = "ai-character-default";

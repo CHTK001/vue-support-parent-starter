@@ -13,8 +13,6 @@ body,
  */
 html {
   overflow-x: hidden;
-  /* 预留纵向滚动条槽位：壁纸开关前后内容高度不同，不预留会让内容宽度左右跳 6px */
-  scrollbar-gutter: stable;
 }
 
 body {
