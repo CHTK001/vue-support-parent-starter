@@ -14,6 +14,13 @@
       <template v-if="activeTabObj && activeTabObj.type === 'table'">
         <div class="dbm-toolbar-left dbm-table-toolbar">
           <span class="dbm-table-name">{{ qualified(activeTabObj) }}</span>
+          <ReButton
+            layout="square"
+            icon="ZoomIn"
+            tip="在当前页查找（Ctrl+F）"
+            data-testid="dbm-find-open"
+            @click="openFind"
+          />
           <!-- 显示模式不再在顶栏占一排胶囊：表头 / 行显示开关都收进「表头右键」菜单
                （同一份状态源，不是两份实现）。
                顶栏只留表名与动作，数据区多出一整行高度。 -->
@@ -54,6 +61,27 @@
           data-testid="dbm-toggle-sidebar"
           @click="showSidebar = !showSidebar"
         />
+        <!-- 单元格编辑撤销 / 重做：只对当前页签生效（切页签即清栈）。
+             键盘 Ctrl+Z / Ctrl+Y 走同一个入口，按钮是为了可发现。 -->
+        <span v-if="activeTabObj && activeTabObj.type === 'table'" class="dbm-toolbar-sep" />
+        <template v-if="activeTabObj && activeTabObj.type === 'table'">
+          <ReButton
+            layout="square"
+            icon="RefreshLeft"
+            tip="撤销上一次单元格编辑（Ctrl+Z）"
+            :disabled="!canUndoCell"
+            data-testid="dbm-undo"
+            @click="undoCellEdit"
+          />
+          <ReButton
+            layout="square"
+            icon="RefreshRight"
+            tip="重做（Ctrl+Y / Ctrl+Shift+Z）"
+            :disabled="!canRedoCell"
+            data-testid="dbm-redo"
+            @click="redoCellEdit"
+          />
+        </template>
         <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现。
              表名/模式/动作那簇已上迁到左侧（.dbm-table-toolbar 锚类），
              翻页器也跟上来 —— 网格上方不再留任何工具条。
@@ -429,6 +457,28 @@
               @click="deleteSelectedRows"
             />
           </div>
+          <!-- 当前页查找：只搜已加载的这一页，不改服务端过滤条件。
+               Enter 下一个、Shift+Enter 上一个、Esc 关闭。 -->
+          <div v-if="findOpen" class="dbm-find-bar" data-testid="dbm-find-bar">
+            <ReIcon name="ZoomIn" :size="13" class="dbm-find-icon" />
+            <span class="dbm-find-input-wrap">
+              <ReInput
+                v-model="findQuery"
+                data-testid="dbm-find-input"
+                class="dbm-filter-input"
+                placeholder="在当前页查找（Enter 下一个 / Esc 关闭）"
+                clearable
+                @keyup.enter="onFindEnter"
+                @keyup.esc="closeFind"
+              />
+            </span>
+            <span class="dbm-find-count" data-testid="dbm-find-count">
+              {{ findMatches.length ? `${findCursor + 1}/${findMatches.length}` : "0/0" }}
+            </span>
+            <ReButton layout="square" icon="ArrowUp" tip="上一个（Shift+Enter）" @click="stepFind(-1)" />
+            <ReButton layout="square" icon="ArrowDown" tip="下一个（Enter）" @click="stepFind(1)" />
+            <ReButton layout="square" icon="Close" tip="关闭（Esc）" @click="closeFind" />
+          </div>
           <!-- 行/单元格操作走右键菜单（无操作列）；列可拖拽调序 —— ReTable 默认关闭，控制台这里开 -->
           <!-- 表头右键用 ReTable 的 @header-contextmenu 事件（不是原生 @contextmenu）：
                它把「右键的是哪一列」一起给出来，「设置列宽…」「调整列宽以适应内容」
@@ -449,8 +499,10 @@
             show-selection
             stripe
             size="mini"
-            height="calc(100% - 56px)"
+            :height="findOpen ? 'calc(100% - 92px)' : 'calc(100% - 56px)'"
             :context-menu="gridMenuItems"
+            area-select
+            :area-clip="false"
             @header-contextmenu="onGridHeaderContextMenu"
             @selection-change="onSelectionChange"
             @sort-change="onSortChange"
@@ -485,13 +537,14 @@
                   />
                   <!-- 显式写 NULL：清空输入框保存的是空串（所见即所得），
                        NULL 变成一个需要明确点一下的动作，不再靠「清空」去猜。
-                       数字列没有空串语义，空就是 NULL，不需要这个按钮。
+                       数字列没有空串语义，空就是 NULL，不需要这个按钮；
+                       主键列通常 NOT NULL，给了按钮也是点了必报错，直接不渲染。
                        @mousedown.prevent 必须加：否则按下瞬间输入框先 blur 提交，
                        等 click 到达时编辑器已经关了。 -->
                   <button
-                    v-if="!isNumericCol(col)"
+                    v-if="!isNumericCol(col) && !pkColumns.has(col)"
                     type="button"
-                    class="dbm-cell-null"
+                    class="dbm-cell-null-btn"
                     title="写入 NULL（清空输入框则保存为空字符串）"
                     data-testid="dbm-cell-null"
                     @mousedown.prevent
@@ -521,6 +574,7 @@
                     'dbm-cell-pk': pkColumns.has(col),
                     'dbm-cell-null': isNullCell(value),
                     'dbm-cell-empty': isEmptyStringCell(value),
+                    'dbm-cell-hit': findHit?.row === row && findHit?.column === col,
                   }"
                   :title="cellTitles.get(col) || ''"
                   @click="startEditCell(row, col, value)"
@@ -1011,18 +1065,21 @@
       @select="onTreeMenuSelect"
     />
 
-    <!-- 复制表进度：不可关闭（进度由后端任务快照驱动，中途关掉就再也看不到这次复制的结果） -->
-    <ReProgressDialog
-      v-model="copyDialogVisible"
+    <!-- 复制任务坞：常驻右下角，收起后只留胶囊；任务结论与失败重试都留在里面，不再靠 2 秒 toast -->
+    <DbmCopyDock
+      :open="copyDockOpen"
       :title="copyTitle"
       :subtitle="copySubtitle"
       :snapshot="copySnapshot"
       :steps="copyStepDefs"
       :cancellable="copySnapshot?.cancellable ?? true"
-      :cancel-loading="copyCancelling"
-      cancel-text="取消复制"
+      :cancelling="copyCancelling"
+      :history="copyHistory"
       @cancel="requestCancelCopy"
-      @close="closeCopyDialog"
+      @hide="hideCopyDock"
+      @reopen="copyDockOpen = true"
+      @retry="retryLastCopy"
+      @locate="locateCopyTarget"
     />
 
     <!-- 结构同步（Navicat 复刻：选择源/目标 → 比较 → 差异 → 部署执行，SSE 实时日志） -->
@@ -1565,6 +1622,16 @@
         <pre v-else class="dbm-blob-hex">{{ blobHex }}</pre>
       </div>
       <template #footer>
+        <!-- 长文本 / 二进制列没有格内编辑器，NULL 只能从这里写。
+             与网格里的 NULL 按钮同一语义：显式动作，不靠「清空文本」去猜。 -->
+        <ReButton
+          v-if="!isNullCell(blobRow?.[blobColumn])"
+          type="danger"
+          plain
+          :loading="blobSaving"
+          data-testid="dbm-blob-null"
+          @click="saveBlobNull"
+        >置为 NULL</ReButton>
         <ReButton
           v-if="blobEditing"
           type="primary"
@@ -2212,7 +2279,8 @@ import type { DbTemporalKind } from "../../utils/dbTemporal";
 import { isJdbcFamilyType } from "../../jdbcTypes";
 import ReTable from "@repo/ui/re-table";
 import ReContextMenu from "@repo/ui/re-context-menu";
-import ReProgressDialog from "@repo/ui/re-progress-dialog";
+import DbmCopyDock from "./DbmCopyDock.vue";
+import type { CopyHistoryItem } from "./copyDockTypes";
 import type { ReContextMenuItem } from "@repo/ui/re-context-menu";
 import type { ProgressSnapshot, ProgressStep } from "@repo/ui/re-progress-dialog";
 import { ReFormItem, ReOption, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
@@ -4824,19 +4892,32 @@ function parseEnumValues(): string[] {
 }
 
 // 单元格内联编辑：当前正在编辑的单元格（用行对象引用定位）
-// original 是进入编辑时的原值快照，用于 blur 时「没改就不提交」的判定
-const editingCell = ref<{ row: Record<string, any>; column: string; value: string; original: string } | null>(null);
+// original 是进入编辑时的原值快照，用于 blur 时「没改就不提交」的判定；
+// dirty 记录「用户是否真的动过输入框」—— 光靠值比较区分不了
+// 「NULL 格没动」和「NULL 格里输入后清空」（两者都是 ""）。
+const editingCell = ref<{
+  row: Record<string, any>;
+  column: string;
+  value: string;
+  original: string;
+  dirty: boolean;
+} | null>(null);
 
 /**
  * 回写正在编辑的单元格文本。
  *
- * <p>模板内联箭头函数无法保留 {@code editingCell} 的非空收窄，统一收敛到此处判空后赋值。
+ * <p>只有值真的变了才算 dirty：日期选择器挂载时会同步一次规范化值（null → ""），
+ * 那不是用户输入，不能因此把「没动过」判成「改过」。</p>
  *
  * @param v 输入框回传的新值
  */
 function setEditingCellValue(v: string | number | null | undefined): void {
   if (editingCell.value) {
-    editingCell.value.value = v == null ? "" : String(v);
+    const next = v == null ? "" : String(v);
+    if (next !== editingCell.value.value) {
+      editingCell.value.dirty = true;
+    }
+    editingCell.value.value = next;
   }
 }
 // 主键列集合 + 列类型映射，用于判断可编辑/自增/数字/日期/长文本
@@ -5058,8 +5139,9 @@ async function loadTableMeta(tab: Tab | undefined, force = false): Promise<void>
  * @returns 展示文本
  */
 function formatCellValue(v: unknown) {
-  if (v === null || v === undefined) return "null";
-  if (typeof v === "string" && v.length === 0) return "空字符串";
+  // 口径统一成短标签：网格里 `NULL` / `空串` 各自可辨，又不至于把列挤满
+  if (v === null || v === undefined) return "NULL";
+  if (typeof v === "string" && v.length === 0) return "空串";
   return String(v);
 }
 
@@ -5081,6 +5163,78 @@ function isNullCell(v: unknown): boolean {
  */
 function isEmptyStringCell(v: unknown): boolean {
   return typeof v === "string" && v.length === 0;
+}
+
+// ---------- 当前页查找（Ctrl+F） ----------
+// 只搜「已经取到本地的那一页」：不额外打 /data，也不改变服务端过滤条件。
+// 与 WHERE / 高级筛选是两件事 —— 前者是「在当前结果里找」，后者是「让服务端少返回」。
+const findOpen = ref(false);
+const findQuery = ref("");
+const findCursor = ref(0);
+
+interface FindMatch {
+  rowIndex: number;
+  column: string;
+  row: Record<string, any>;
+}
+
+/** 当前页里命中查询的单元格（按行序、列序） */
+const findMatches = computed<FindMatch[]>(() => {
+  const q = findQuery.value.trim().toLowerCase();
+  if (!q) return [];
+  const out: FindMatch[] = [];
+  tableData.rows.forEach((row, rowIndex) => {
+    for (const column of tableData.columns) {
+      if (formatCellValue(row[column]).toLowerCase().includes(q)) {
+        out.push({ rowIndex, column, row });
+      }
+    }
+  });
+  return out;
+});
+
+/** 当前定位到的命中项（用于高亮） */
+const findHit = computed(() => findMatches.value[findCursor.value] ?? null);
+
+watch(findQuery, () => {
+  findCursor.value = 0;
+});
+
+/** 打开查找条并聚焦输入框 */
+function openFind(): void {
+  findOpen.value = true;
+  void nextTick(() => {
+    document.querySelector<HTMLInputElement>('[data-testid="dbm-find-input"] input')?.focus();
+  });
+}
+
+/** 关闭查找条并清掉高亮 */
+function closeFind(): void {
+  findOpen.value = false;
+  findQuery.value = "";
+  findCursor.value = 0;
+}
+
+/**
+ * 跳到下 / 上一个命中项并把它滚进视野。
+ *
+ * @param step 1=下一个，-1=上一个
+ */
+function stepFind(step: number): void {
+  const total = findMatches.value.length;
+  if (!total) return;
+  findCursor.value = (findCursor.value + step + total) % total;
+  void nextTick(() => {
+    const hit = findHit.value;
+    if (!hit) return;
+    document.querySelectorAll(".vxe-body--row")[hit.rowIndex]
+      ?.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
+}
+
+/** 查找框里的 Enter：Shift 反向 */
+function onFindEnter(e: KeyboardEvent): void {
+  stepFind(e.shiftKey ? -1 : 1);
 }
 
 // ---------- BLOB / 二进制 / 长文本查看器（Navicat 的 Blob Viewer） ----------
@@ -5308,6 +5462,51 @@ async function saveBlob(): Promise<void> {
   }
 }
 
+/**
+ * 把查看器里的这一列写成 NULL。
+ *
+ * <p>长文本 / 二进制列没有格内编辑器，网格里的 NULL 按钮也只在文本编辑器中出现，
+ * 所以这里是它们唯一的 NULL 入口。走与 {@link saveBlob} 同一条单格更新接口。</p>
+ */
+async function saveBlobNull(): Promise<void> {
+  const row = blobRow.value;
+  const tab = activeTabObj.value;
+  if (!row || !tab?.tableName) return;
+  const keys = Object.keys(row);
+  const primaryKey: Record<string, unknown> = {};
+  for (const k of pkColumns.value) {
+    if (keys.includes(k)) primaryKey[k] = row[k];
+  }
+  if (Object.keys(primaryKey).length === 0) {
+    message.error("该表没有主键，无法定位要修改的行");
+    return;
+  }
+  blobSaving.value = true;
+  try {
+    await updateDbCell({
+      tableName: tab.tableName,
+      column: blobColumn.value,
+      newValue: null,
+      primaryKey,
+      database: tab.database || activeDatabase.value,
+      datasourceId: currentDatasourceId.value,
+    });
+    row[blobColumn.value] = null;
+    blobEditing.value = false;
+    blobBase64.value = "";
+    blobText.value = "";
+    blobHex.value = "";
+    blobImageSrc.value = "";
+    blobVisible.value = false;
+    message.success(`已将 ${blobColumn.value} 置为 NULL`);
+    void loadTableData(tab);
+  } catch (e) {
+    message.error(`置为 NULL 失败: ${String((e as Error)?.message ?? e)}`);
+  } finally {
+    blobSaving.value = false;
+  }
+}
+
 /** 字节数组 → base64（分块喂给 btoa，避免超长参数爆栈） */
 function bytesToBase64(bytes: Uint8Array): string {
   let bin = "";
@@ -5318,13 +5517,25 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(bin);
 }
 
-/** 按列类型决定提交值：数字列空串转 null，文本列空串就是空串 */
+/**
+ * 是否字符类型（只有字符类型存在「空串」语义）。
+ *
+ * <p>DATE / DATETIME / JSON / BOOL / BLOB 的「空」只能是 NULL：把空串写进
+ * DATETIME 在 MySQL 严格模式下直接报错，非严格模式会静默写成零日期。</p>
+ */
+const STRING_LIKE_TYPE = /CHAR|TEXT|ENUM|SET/;
+
+function isStringCol(col: string) {
+  return STRING_LIKE_TYPE.test((columnTypes.value.get(col) || "").toUpperCase());
+}
+
+/** 按列类型决定提交值：字符列空串保留，其余类型（含数字）空值一律是 NULL */
 function normalizeCellValue(col: string, raw: string) {
   if (raw === "") {
-    // 数字列存不下空串，空只能落到 NULL；文本列按「编辑器里是什么就写什么」
-    // 处理 —— 以前这里一律转 null，用户清空文本格就等于把值改成 NULL，
-    // 想写空串（'' 与 NULL 在 MySQL 里是两个值）根本没有入口。
-    return isNumericCol(col) ? null : "";
+    // 字符列按「编辑器里是什么就写什么」处理 —— 以前一律转 null，用户清空
+    // 文本格就等于把值改成 NULL，想写空串（'' 与 NULL 在 MySQL 里是两个值）
+    // 没有入口。日期 / JSON / 布尔 / 二进制没有空串语义，仍然落 NULL。
+    return isStringCol(col) ? "" : null;
   }
   const t = (columnTypes.value.get(col) || "").toUpperCase();
   if (/INT|DECIMAL|NUMERIC|FLOAT|DOUBLE/.test(t)) {
@@ -5403,7 +5614,7 @@ function isAutoIncrement(col: string) {
  */
 function startEditCell(row: Record<string, any>, col: string, value: unknown) {
   const text = value === null || value === undefined ? "" : String(value);
-  editingCell.value = { row, column: col, value: text, original: text };
+  editingCell.value = { row, column: col, value: text, original: text, dirty: false };
 }
 
 function cancelCell() {
@@ -5428,12 +5639,15 @@ function cancelCell() {
 function onEditBlur(row: Record<string, any>, col: string) {
   const cell = editingCell.value;
   if (!cell) return;
-  if (normalizeCellValue(col, cell.value) === normalizeCellValue(col, cell.original)) {
-    // 值未变：仅关闭编辑态，等价于取消，绝不打库
-    editingCell.value = null;
+  const unchanged = normalizeCellValue(col, cell.value) === normalizeCellValue(col, cell.original);
+  if (!unchanged || cell.dirty) {
+    // 值变了 → 照常提交；值没变但用户动过（NULL 格里输入后清空）→ 也要提交，
+    // 否则「把 NULL 改成空串」永远没有落库路径。
+    void saveCell(row, col);
     return;
   }
-  void saveCell(row, col);
+  // 完全没动过：仅关闭编辑态，等价于取消，绝不打库
+  editingCell.value = null;
 }
 
 /**
@@ -5452,6 +5666,14 @@ function onEditBlur(row: Record<string, any>, col: string) {
  */
 function onCellEnter(event: KeyboardEvent, row: Record<string, any>, col: string) {
   if (event.isComposing || event.keyCode === 229) return;
+  const cell = editingCell.value;
+  if (!cell) return;
+  // 没动过就直接回车：只关闭编辑器。以前这里无条件提交，NULL 文本格会被
+  // 悄悄写成空串（界面看不出区别，但 IS NULL 查不到了）。
+  if (!cell.dirty) {
+    editingCell.value = null;
+    return;
+  }
   void saveCell(row, col);
 }
 
@@ -5469,10 +5691,133 @@ async function saveCellNull(row: Record<string, any>, col: string) {
   await commitCell(row, col, null);
 }
 
+/**
+ * 提交前的类型校验。
+ *
+ * <p>数字列输入了非数字时，以前会把原串直接发给后端，靠数据库报错再整表刷新 ——
+ * 用户看到的是一条英文 SQL 错误，且刚敲的内容已经丢了。这里先拦一道。</p>
+ *
+ * @param col 列名
+ * @param raw 编辑器原文
+ * @returns 错误文案；null 表示通过
+ */
+function validateCellValue(col: string, raw: string): string | null {
+  if (raw === "" || !isNumericCol(col)) return null;
+  if (Number.isFinite(Number(raw))) return null;
+  return `${col} 是数字列，请输入数字（当前：${raw}）`;
+}
+
 async function saveCell(row: Record<string, any>, col: string) {
   const cell = editingCell.value;
   if (!cell) return;
+  // 兜底：没动过就不提交（Enter / 选择器 commit 之外的新调用方也走这条规则）
+  if (!cell.dirty) {
+    editingCell.value = null;
+    return;
+  }
+  const invalid = validateCellValue(col, cell.value);
+  if (invalid) {
+    // 编辑器保持打开：用户改完还能继续提交，不用重新点格子
+    message.warning(invalid);
+    return;
+  }
   await commitCell(row, col, normalizeCellValue(col, cell.value));
+}
+
+/**
+ * 一次单元格编辑的撤销记录。
+ *
+ * <p>{@code before/after} 存的是**库值**（不是编辑器字符串），撤销时原样写回；
+ * {@code tabId} 用来把撤销栈按页签隔离，切页签后旧记录不再参与。</p>
+ */
+interface CellEditRecord {
+  tabId: string;
+  row: Record<string, any>;
+  column: string;
+  before: unknown;
+  after: unknown;
+}
+
+/** 撤销栈上限：只保留最近 30 次，够用且不会把旧行对象一直吊住 */
+const MAX_CELL_UNDO = 30;
+const cellUndoStack = ref<CellEditRecord[]>([]);
+const cellRedoStack = ref<CellEditRecord[]>([]);
+
+/** 当前页签是否有可撤销 / 可重做的编辑 */
+const canUndoCell = computed(() => {
+  const id = activeTab.value;
+  return !!id && cellUndoStack.value.some(r => r.tabId === id);
+});
+const canRedoCell = computed(() => {
+  const id = activeTab.value;
+  return !!id && cellRedoStack.value.some(r => r.tabId === id);
+});
+
+// 切页签就丢弃撤销栈：记录里的行对象属于上一张表，跨表撤销会按旧主键打到别的数据上
+watch(activeTab, () => {
+  cellUndoStack.value = [];
+  cellRedoStack.value = [];
+  // 查找条也只对当前页签有意义
+  findOpen.value = false;
+  findQuery.value = "";
+  findCursor.value = 0;
+});
+
+/**
+ * 记一次编辑（新的编辑会使重做栈失效）。
+ *
+ * @param record 编辑记录
+ */
+function pushCellHistory(record: CellEditRecord): void {
+  cellUndoStack.value.push(record);
+  if (cellUndoStack.value.length > MAX_CELL_UNDO) {
+    cellUndoStack.value.shift();
+  }
+  cellRedoStack.value = [];
+}
+
+/**
+ * 撤销当前页签最近一次单元格编辑。
+ *
+ * @returns 是否真的撤销了（没有可撤销记录时 false）
+ */
+async function undoCellEdit(): Promise<boolean> {
+  const tabId = activeTab.value;
+  if (!tabId) return false;
+  const index = cellUndoStack.value.map(r => r.tabId).lastIndexOf(tabId);
+  if (index < 0) return false;
+  const record = cellUndoStack.value[index];
+  cellUndoStack.value.splice(index, 1);
+  const ok = await commitCell(record.row, record.column, record.before, { record: false });
+  if (!ok) {
+    cellUndoStack.value.splice(index, 0, record);
+    return false;
+  }
+  cellRedoStack.value.push(record);
+  message.success(`已撤销：${record.column}`);
+  return true;
+}
+
+/**
+ * 重做当前页签最近一次被撤销的编辑。
+ *
+ * @returns 是否真的重做了
+ */
+async function redoCellEdit(): Promise<boolean> {
+  const tabId = activeTab.value;
+  if (!tabId) return false;
+  const index = cellRedoStack.value.map(r => r.tabId).lastIndexOf(tabId);
+  if (index < 0) return false;
+  const record = cellRedoStack.value[index];
+  cellRedoStack.value.splice(index, 1);
+  const ok = await commitCell(record.row, record.column, record.after, { record: false });
+  if (!ok) {
+    cellRedoStack.value.splice(index, 0, record);
+    return false;
+  }
+  cellUndoStack.value.push(record);
+  message.success(`已重做：${record.column}`);
+  return true;
 }
 
 /**
@@ -5481,17 +5826,26 @@ async function saveCell(row: Record<string, any>, col: string) {
  * @param row      行对象
  * @param col      列名
  * @param newValue 归一化后的新值
+ * @param options  record=false 时不写撤销栈（撤销/重做自身走这条）
+ * @returns 是否提交成功
  */
-async function commitCell(row: Record<string, any>, col: string, newValue: unknown) {
+async function commitCell(
+  row: Record<string, any>,
+  col: string,
+  newValue: unknown,
+  options: { record?: boolean } = {},
+): Promise<boolean> {
   editingCell.value = null;
   const tab = activeTabObj.value;
-  if (!tab?.tableName) return;
+  if (!tab?.tableName) return false;
   const pk: Record<string, unknown> = {};
   pkColumns.value.forEach(k => { pk[k] = row[k]; });
   if (Object.keys(pk).length === 0) {
     message.warning("该表无主键，无法定位更新");
-    return;
+    return false;
   }
+  // 撤销要写回的原值：NULL 归一成 null，避免 undefined 序列化丢失
+  const before = row[col] ?? null;
   try {
     const affected = await updateDbCell({
       tableName: tab.tableName,
@@ -5509,14 +5863,19 @@ async function commitCell(row: Record<string, any>, col: string, newValue: unkno
     if (typeof affected === "number" && affected === 0) {
       message.warning(`未找到要更新的行（主键 ${JSON.stringify(pk)}），可能已被他人删除，请刷新后重试`);
       refreshTableData();
-      return;
+      return false;
     }
     message.success(`已更新 ${col}`);
     row[col] = newValue;
+    if (options.record !== false) {
+      pushCellHistory({ tabId: tab.id, row, column: col, before, after: newValue });
+    }
     void silentRefreshTableData(tab);
+    return true;
   } catch (e) {
     message.error(`保存失败: ${String((e as Error)?.message ?? e)}`);
     refreshTableData();
+    return false;
   }
 }
 
@@ -9961,8 +10320,8 @@ interface DbTableClipboard {
 /** 当前剪贴板里的表（空 = 还没复制过） */
 const tableClipboard = ref<DbTableClipboard | null>(null);
 
-/** 进度弹窗显隐（不可关闭：只能等结束或主动取消） */
-const copyDialogVisible = ref(false);
+/** 任务坞显隐（收起后保留胶囊，任务继续跑） */
+const copyDockOpen = ref(false);
 /** 后端推来的最新快照（字段与 ProgressSnapshot 对齐，前端不再翻译） */
 const copySnapshot = ref<ProgressSnapshot | null>(null);
 /** 弹窗标题 / 副标题（首帧快照到达前先铺出来） */
@@ -9972,10 +10331,27 @@ const copySubtitle = ref("");
 const copyCancelling = ref(false);
 /** 当前跟踪的任务 id：全局流里混着别人的任务，按它过滤 */
 const copyTaskId = ref("");
-/** 目标上下文：结束时要刷新目标库的表列表 */
-const copyTarget = ref<{ datasourceId: number; database: string } | null>(null);
+/** 目标上下文：结束时要刷新目标库的表列表，成功后「定位」也用它 */
+const copyTarget = ref<{ datasourceId: number; database: string; table: string } | null>(null);
+/** 最近任务：后端 /copy/tasks 的快照，任务坞里列 5 条，失败能直接重试 */
+const copyHistory = ref<CopyHistoryItem[]>([]);
+/** 最近一次提交参数：失败重试直接复用，不用重走「复制 → 找目标库 → 粘贴」 */
+const lastCopyRequest = ref<{
+  /** 目标数据源 */
+  targetDatasourceId: number;
+  /** 目标库 */
+  database: string;
+  /** 剪贴板里的源表 */
+  clip: DbTableClipboard;
+  /** 目标表名 */
+  targetTable: string;
+  /** 是否覆盖同名表 */
+  overwrite: boolean;
+} | null>(null);
 /** 全局进度流句柄（整页只建一条连接） */
 let copyStreamStop: ReturnType<typeof subscribeDbCopyTasks> | null = null;
+/** 进度看护定时器（SSE 断流 / 后端重启时靠它对台账收敛状态） */
+let copyWatchdog: ReturnType<typeof setInterval> | null = null;
 
 /** 首帧快照到达前先铺出来的三步（与后端步骤键一致） */
 const copyStepDefs: ProgressStep[] = [
@@ -10052,28 +10428,115 @@ async function pasteTableInto(database: string): Promise<void> {
   copyTitle.value = "复制表";
   copySubtitle.value = `${clip.database ? clip.database + "." : ""}${clip.table} → ${database}.${targetTable}`;
   copyCancelling.value = false;
-  copyTarget.value = { datasourceId: targetDatasourceId, database };
-  copyDialogVisible.value = true;
+  copyTarget.value = { datasourceId: targetDatasourceId, database, table: targetTable };
+  lastCopyRequest.value = { targetDatasourceId, database, clip, targetTable, overwrite };
+  copyDockOpen.value = true;
+  void refreshCopyHistory();
   try {
     await submitCopyTask(targetDatasourceId, database, clip, targetTable, overwrite);
   } catch (e) {
     const reason = String((e as Error)?.message ?? e);
     // 缓存清单过期（表是刚在别处建的）时后端会拒绝：这里补一次「确认覆盖 → 重发」，
-    // 否则用户只能看到一句「已存在」，而弹窗里并没有覆盖勾选项
+    // 否则用户只能看到一句「已存在」，而坞里并没有覆盖勾选项
     if (!overwrite && reason.includes("已存在") && (await confirmOverwrite(database, targetTable))) {
       try {
+        lastCopyRequest.value = { targetDatasourceId, database, clip, targetTable, overwrite: true };
         await submitCopyTask(targetDatasourceId, database, clip, targetTable, true);
         return;
       } catch (retryError) {
-        copyDialogVisible.value = false;
-        const retryReason = String((retryError as Error)?.message ?? retryError);
-        message.error(`启动复制失败: ${retryReason}`);
+        showCopyStartFailure(String((retryError as Error)?.message ?? retryError));
         return;
       }
     }
-    copyDialogVisible.value = false;
-    message.error(`启动复制失败: ${reason}`);
+    showCopyStartFailure(reason);
   }
+}
+
+/**
+ * 启动阶段失败：坞不关，就地铺一条 FAILED 快照。
+ *
+ * <p>以前这里是 {@code message.error} 之后把弹窗关掉 —— 原因只活 2 秒，用户想重试得
+ * 从头再走「右键复制 → 找目标库 → 粘贴」。坞里留下条目后，「重试」直接复用
+ * {@link lastCopyRequest}，不用用户重填任何东西。</p>
+ *
+ * @param reason 后端或网络给出的失败原因
+ */
+function showCopyStartFailure(reason: string): void {
+  copyCancelling.value = false;
+  copySnapshot.value = {
+    status: "FAILED",
+    percentage: 0,
+    finished: true,
+    cancellable: false,
+    currentTitle: "复制表",
+    message: `启动复制失败：${reason}`,
+  };
+}
+
+/**
+ * 拉一次最近任务，喂给坞里的「最近任务」区。
+ *
+ * <p>失败静默：这是旁路信息，拉不到就保留上一份，不能因为台账接口抖一下就把
+ * 复制流程的结论盖掉。</p>
+ */
+async function refreshCopyHistory(): Promise<void> {
+  try {
+    const tasks = await fetchDbCopyTasks();
+    copyHistory.value = [...tasks]
+      .sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0))
+      .slice(0, 8)
+      .map(t => ({
+        taskId: t.taskId,
+        subtitle: t.subtitle,
+        status: t.status || "UNKNOWN",
+        message: t.message ?? undefined,
+        finished: t.finished === true,
+      }));
+  } catch {
+    // 旁路信息，拉不到就保持原样
+  }
+}
+
+/**
+ * 重试最近一次提交。
+ *
+ * <p>按 {@code overwrite=true} 重发：失败最常见的原因就是「目标表已存在」，
+ * 用户在坞里点重试就是表态「接受覆盖」；不存在同名表时这个标志无副作用。</p>
+ */
+async function retryLastCopy(): Promise<void> {
+  const req = lastCopyRequest.value;
+  if (!req) {
+    message.info("没有可重试的复制任务");
+    return;
+  }
+  copyTaskId.value = "";
+  copySnapshot.value = null;
+  copyCancelling.value = false;
+  copyTitle.value = "复制表（重试）";
+  copyDockOpen.value = true;
+  try {
+    await submitCopyTask(req.targetDatasourceId, req.database, req.clip, req.targetTable, true);
+  } catch (e) {
+    showCopyStartFailure(String((e as Error)?.message ?? e));
+  }
+}
+
+/**
+ * 定位到目标表：展开目标库、刷新表清单、把该表设为当前选中项。
+ *
+ * <p>目标在另一个数据源上时不猜：直接说清楚要切数据源，避免在错误的连接上
+ * 展开一个同名库。</p>
+ */
+async function locateCopyTarget(): Promise<void> {
+  const target = copyTarget.value;
+  if (!target) return;
+  if (target.datasourceId !== currentDatasourceId.value) {
+    message.info("目标表在另一个数据源上，切换到该数据源后再定位");
+    return;
+  }
+  expandedNodes.value.add("db:" + target.database);
+  await loadTables(target.database);
+  activeTable.value = target.table;
 }
 
 /**
@@ -10126,6 +10589,8 @@ async function submitCopyTask(
   // 任务已经建好再连流：先立 taskId 才能过滤出「自己这一条」，
   // 否则建连瞬间推来的 ready 帧会因为还没有 taskId 被整帧丢掉。
   startCopyStream();
+  // 流只负责「快」：断流或后端重启时由看护对台账收敛结论
+  startCopyWatchdog();
   // 建流与建任务之间差的那几帧由这里补拉：拉到的就是当前完整快照，
   // 不会出现「进度停在 0% 等下一次状态变化」。
   try {
@@ -10159,6 +10624,9 @@ function applyCopySnapshot(task: DbCopyTaskSnapshot): void {
   if (task.subtitle) copySubtitle.value = task.subtitle;
   if (!task.finished) return;
   copyCancelling.value = false;
+  stopCopyWatchdog();
+  // 坞里列最近任务：任务一结束就补一份，失败的那条可以直接点重试
+  void refreshCopyHistory();
   if (task.status === "SUCCESS") {
     const finalMessage = task.message || "复制完成";
     message.success(finalMessage);
@@ -10194,6 +10662,61 @@ function startCopyStream(): void {
 function stopCopyStream(): void {
   copyStreamStop?.close();
   copyStreamStop = null;
+  stopCopyWatchdog();
+}
+
+/**
+ * 进度看护：SSE 是「锦上添花」，不能是唯一信息源。
+ *
+ * <p>实测踩过两种断流：集群隧道丢空闲连接、以及**后端进程被重启**（任务在内存里，
+ * 随进程一起消失）。前一种 SseEmitter 会重连，后一种永远不会再有帧 —— 坞里就会
+ * 停在 25% 一直转。这里每 4 秒对一次台账：任务还在就跟进，任务没了就收敛成
+ * 「状态未知」并给出重试，绝不让进度条假装还在跑。</p>
+ */
+function startCopyWatchdog(): void {
+  stopCopyWatchdog();
+  copyWatchdog = setInterval(() => {
+    void pollCopyTask();
+  }, 4000);
+}
+
+/** 停掉看护（任务结束、离开页面、或新一轮提交时） */
+function stopCopyWatchdog(): void {
+  if (copyWatchdog) {
+    clearInterval(copyWatchdog);
+    copyWatchdog = null;
+  }
+}
+
+/** 对一次台账：任务还在就跟进快照，不在了就收敛成「状态未知」 */
+async function pollCopyTask(): Promise<void> {
+  const taskId = copyTaskId.value;
+  if (!taskId) return;
+  if (copySnapshot.value?.finished) {
+    stopCopyWatchdog();
+    return;
+  }
+  try {
+    const tasks = await fetchDbCopyTasks();
+    const mine = tasks.find(t => t.taskId === taskId);
+    if (mine) {
+      applyCopySnapshot(mine);
+      return;
+    }
+    // 台账里没有了：后端重启（内存任务已丢）或台账滚动淘汰。结论只能给「未知」
+    copySnapshot.value = {
+      ...(copySnapshot.value ?? {}),
+      status: "UNKNOWN",
+      finished: true,
+      cancellable: false,
+      message: "任务已不在台账里（后端可能重启过），请重试",
+    };
+    copyCancelling.value = false;
+    stopCopyWatchdog();
+    void refreshCopyHistory();
+  } catch {
+    // 网络抖动：不改变结论，下一轮再说
+  }
 }
 
 /** 请求取消当前复制任务（后端在批次边界停下） */
@@ -10213,18 +10736,66 @@ async function requestCancelCopy(): Promise<void> {
   }
 }
 
-/** 关掉进度弹窗（组件只在任务结束后才发 close，此时快照已定格） */
-function closeCopyDialog(): void {
-  copyDialogVisible.value = false;
+/** 关掉任务坞的展开态（组件只在结束后才发 hide，此时快照已定格） */
+function hideCopyDock(): void {
+  copyDockOpen.value = false;
 }
 
 /**
- * 光标是否落在「复制粘贴有自己的语义」的控件里。
+ * 读取网格里框选区域的文本（TSV，可直接粘进 Excel）。
  *
- * <p>输入框里的 Ctrl+C 复制的是选中文字、编辑器里的 Ctrl+V 粘贴的是 SQL，
- * 都轮不到「复制整张表」—— 在这些地方拦下来会把编辑器的原生能力一并废掉。</p>
+ * <p>vxe 的区域选择只画一层 overlay（{@code .vxe-table--cell-area}），并且把
+ * 复制实现挂在表格实例的可选方法上（{@code handleCyClAreaEvent}），本仓这套
+ * 构建里并不存在 —— 所以这里按几何关系自己取：把 overlay 的矩形和每个单元格
+ * 的矩形求交。</p>
  *
- * @param target 键盘事件目标
+ * <p>单格点选（1×1）返回 null：Ctrl+C 在那种情况下仍应保持原来的
+ * 「复制整张表」语义，否则用户随手点一下单元格就会改变老习惯。</p>
+ *
+ * @returns TSV 文本；没有多格框选时返回 null
+ */
+function readGridAreaText(): string | null {
+  const main = document.querySelector<HTMLElement>(".vxe-table--cell-area .vxe-table--cell-main-area");
+  if (!main) return null;
+  const area = main.getBoundingClientRect();
+  if (area.width < 2 || area.height < 2) return null;
+  const table = main.closest(".vxe-table");
+  if (!table) return null;
+  const lines: string[] = [];
+  let picked = 0;
+  for (const row of table.querySelectorAll<HTMLElement>(".vxe-body--row")) {
+    const values: string[] = [];
+    for (const cell of row.querySelectorAll<HTMLElement>(".vxe-body--column")) {
+      const r = cell.getBoundingClientRect();
+      const hit = r.right > area.left && r.left < area.right && r.bottom > area.top && r.top < area.bottom;
+      if (!hit) continue;
+      values.push((cell.querySelector<HTMLElement>(".dbm-cell-value, .dbm-cell-blob-text")?.innerText ?? "").trim());
+      picked += 1;
+    }
+    if (values.length) lines.push(values.join("\t"));
+  }
+  return picked >= 2 ? lines.join("\n") : null;
+}
+
+/**
+ * 写剪贴板并提示结果。
+ *
+ * @param text 要复制的文本
+ */
+async function copyGridArea(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    message.success(`已复制选中区域（${text.split("\n").length} 行）`);
+  } catch {
+    message.warning("复制失败：浏览器未授予剪贴板写入权限");
+  }
+}
+
+/**
+ * 判断键盘事件是否落在文本输入控件里（页面级快捷键要给它们让路）。
+ *
+ * @param target 事件目标
+ * @returns 是否在输入类控件里
  */
 function isTextEditingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -10235,6 +10806,7 @@ function isTextEditingTarget(target: EventTarget | null): boolean {
 
 /**
  * Ctrl+C / Ctrl+V：树上选中表后复制该表，在目标库粘贴。
+ * Ctrl+Z / Ctrl+Y（或 Ctrl+Shift+Z）：撤销 / 重做当前页签最近一次单元格编辑。
  *
  * <p>不检查焦点是否在页面上：快捷键挂在 document 上，但过滤掉输入类控件，
  * 所以整页任何空白处按下都有效，和 Navicat 的手感一致。</p>
@@ -10244,13 +10816,39 @@ function isTextEditingTarget(target: EventTarget | null): boolean {
 function onCopyPasteShortcut(e: KeyboardEvent): void {
   if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
   const key = e.key?.toLowerCase();
+  if (key === "z" || key === "y") {
+    // 输入框 / SQL 编辑器里的 Ctrl+Z 是文本撤销，不能抢
+    if (isTextEditingTarget(e.target)) return;
+    const wantRedo = key === "y" || e.shiftKey;
+    if (wantRedo ? !canRedoCell.value : !canUndoCell.value) return;
+    e.preventDefault();
+    void (wantRedo ? redoCellEdit() : undoCellEdit());
+    return;
+  }
+  if (key === "f") {
+    // 输入框 / SQL 编辑器里的 Ctrl+F 是浏览器查找，不抢
+    if (isTextEditingTarget(e.target)) return;
+    if (!activeTabObj.value || activeTabObj.value.type !== "table") return;
+    e.preventDefault();
+    openFind();
+    return;
+  }
   if (key !== "c" && key !== "v") return;
   if (isTextEditingTarget(e.target)) return;
+  if (copyDockOpen.value) return;
+  // 有框选就先复制框选内容（TSV）；单格点选返回 null，继续走「复制整张表」
+  if (key === "c") {
+    const areaText = readGridAreaText();
+    if (areaText) {
+      e.preventDefault();
+      void copyGridArea(areaText);
+      return;
+    }
+  }
   // 页面上正选着文字（比如在只读单元格里拖选了一串值）：这是浏览器自己的复制语义，
   // 抢过来会把「复制选中的那几个字」变成「复制整张表」。
   const selection = window.getSelection?.()?.toString() ?? "";
   if (key === "c" && selection.trim()) return;
-  if (copyDialogVisible.value) return;
   if (key === "c") {
     const tableName = activeTable.value;
     const database = activeDatabase.value;
@@ -10480,6 +11078,15 @@ onBeforeUnmount(() => {
     表页签激活时这里还要吃下「分页条」，允许整体换行（.dbm-pager-bar），
     换行只发生在右侧簇内部 —— 左侧簇与右侧簇的主行对齐不受影响。 */
 .dbm-toolbar-right { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end; min-height: 32px; }
+/* 工具条分组：刷新/侧栏 | 撤销重做 | 表视图设置，用细竖线分隔 */
+.dbm-toolbar-sep {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--el-border-color);
+  opacity: 0.7;
+}
 /* 分页条：表页签激活时跟在右侧簇末尾。高度与相邻 square 按钮 / ReRadio 对齐（32px），
    内部再垂直居中 —— 截图里「共0条/50条页/页码」与旁边图标不同水平线，
    就是因为容器高度 52px 而其它控件 32px，基线错位。 */
@@ -11682,7 +12289,9 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 .dbm-cell-edit__row > :first-child { flex: 1 1 auto; min-width: 0; }
-.dbm-cell-null {
+/* 注意：类名不能叫 .dbm-cell-null —— 那是「值为 NULL 的单元格」已有的类，
+   复用会把每个 NULL 格都渲染成按钮样式（本轮踩过）。 */
+.dbm-cell-null-btn {
   flex: none;
   padding: 1px 6px;
   font-size: 10px;
@@ -11693,7 +12302,7 @@ onBeforeUnmount(() => {
   border-radius: 3px;
   cursor: pointer;
 }
-.dbm-cell-null:hover {
+.dbm-cell-null-btn:hover {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary);
 }
@@ -11955,6 +12564,35 @@ onBeforeUnmount(() => {
   padding: 8px 14px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-extra-light, var(--el-fill-color-light));
+}
+/* 当前页查找：夹在过滤条与网格之间的一条窄栏，只占 32px */
+.dbm-find-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  margin: 0 14px 4px;
+  padding: 0 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-fill-color-light);
+}
+.dbm-find-icon { flex: none; color: var(--el-text-color-secondary); }
+.dbm-find-input-wrap { flex: 1 1 auto; min-width: 0; display: block; }
+.dbm-find-input-wrap :deep(.el-input) { width: 100%; }
+.dbm-find-count {
+  flex: none;
+  min-width: 42px;
+  text-align: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+}
+/* 命中的单元格：暖色底 + 内描边，和「主键/选中」区分开 */
+.dbm-cell-hit {
+  background: var(--el-color-warning-light-7);
+  box-shadow: inset 0 0 0 1px var(--el-color-warning);
+  border-radius: 3px;
 }
 .dbm-filter-label {
   flex: none;

@@ -53,7 +53,7 @@
             v-for="vendor in vendors"
             :key="vendor.vendor"
             placement="bottom-start"
-            :width="336"
+            :width="384"
             trigger="hover"
             popper-class="dpv-pop"
           >
@@ -83,6 +83,41 @@
                 <b>{{ vendor.name }}</b>
                 <span class="dpv-pop__count">{{ credentialsOf(vendor.vendor).length }} 套凭据</span>
               </header>
+
+              <!-- 平台能力：厂商并集只能粗判，这里按平台摊开覆盖率与缺口 -->
+              <div v-if="vendor.platforms.length" class="dpv-pop__plats">
+                <div class="dpv-pop__plats-title">平台能力覆盖</div>
+                <div v-for="platform in vendor.platforms" :key="platform.code" class="dpv-pop__plat">
+                  <span class="dpv-pop__pname" :title="platform.name">{{ platform.name }}</span>
+                  <span class="dpv-pop__pbar">
+                    <i
+                      :class="{ 'is-gap': briefOf(vendor.vendor, platform.code).todo > 0 }"
+                      :style="{ width: `${briefOf(vendor.vendor, platform.code).coverage}%` }"
+                    />
+                  </span>
+                  <span class="dpv-pop__ppct">{{ briefOf(vendor.vendor, platform.code).coverage }}%</span>
+                  <span
+                    class="dpv-pop__pgap"
+                    :class="{ 'is-clear': !briefOf(vendor.vendor, platform.code).todo }"
+                  >
+                    {{
+                      briefOf(vendor.vendor, platform.code).declared
+                        ? briefOf(vendor.vendor, platform.code).todo
+                          ? `${briefOf(vendor.vendor, platform.code).todo} 项待实现`
+                          : '无缺口'
+                        : '未登记'
+                    }}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  class="dpv-pop__more"
+                  @click="openCapabilityMatrix(vendor.vendor)"
+                >
+                  查看完整能力矩阵 →
+                </button>
+              </div>
+
               <div class="dpv-pop__list">
                 <div
                   v-for="item in vendorEffects(vendor.vendor)"
@@ -114,6 +149,18 @@
             <span class="dpv-filter__x">×</span>
           </button>
           <span class="dpv-grow" />
+          <ReButton
+            icon="Grid"
+            size="small"
+            :show-text="true"
+            tip="平台能力矩阵：按平台查看支持 / 待实现的能力位与缺口原因"
+            @click="openCapabilityMatrix()"
+          >
+            平台能力
+            <span v-if="gapPlatformCount" class="dpv-gapbadge" :title="`${gapPlatformCount} 个平台还有待实现能力`">
+              {{ gapPlatformCount }}
+            </span>
+          </ReButton>
           <ReButton
             icon="Connection"
             size="small"
@@ -165,7 +212,22 @@
                 <span class="dpv-cell__body">
                   <span class="dpv-cell__main">{{ vendorLabel(String(row.deviceCredentialVendor || '')) }}</span>
                   <span class="dpv-cell__sub">
-                    {{ platformLabel(String(row.deviceCredentialVendor || ''), row.deviceCredentialPlatformType as string | undefined) }}
+                    <span class="dpv-cell__plat">
+                      {{
+                        platformLabel(
+                          String(row.deviceCredentialVendor || ''),
+                          row.deviceCredentialPlatformType as string | undefined
+                        )
+                      }}
+                    </span>
+                    <span
+                      v-if="briefOf(String(row.deviceCredentialVendor || ''), row.deviceCredentialPlatformType as string | undefined).declared"
+                      class="dpv-cov"
+                      :class="{ 'is-gap': briefOf(String(row.deviceCredentialVendor || ''), row.deviceCredentialPlatformType as string | undefined).todo > 0 }"
+                      :title="coverageTitle(String(row.deviceCredentialVendor || ''), row.deviceCredentialPlatformType as string | undefined)"
+                    >
+                      覆盖 {{ briefOf(String(row.deviceCredentialVendor || ''), row.deviceCredentialPlatformType as string | undefined).coverage }}%
+                    </span>
                   </span>
                 </span>
               </div>
@@ -513,16 +575,32 @@
               :data-cap="cap.key"
             >
               <el-switch
+                v-if="cap.enabledKey"
                 :model-value="capEnabled(cap.key)"
                 size="small"
                 :disabled="!capSupported(cap.key)"
                 @update:model-value="(value: string | number | boolean) => setCapability(cap.key, Boolean(value))"
               />
+              <!-- 门禁记录抽取是全局时间轮任务（按全部凭据扫最近 10 分钟），
+                   不属于单套凭据，因此不给开关，避免出现「拨了也不生效」的假开关 -->
+              <span
+                v-else
+                class="cap-row__global"
+                title="全局任务：由全局时间轮按 10 分钟时间窗抽取，不挂在单套凭据上"
+              >
+                全局
+              </span>
               <span class="cap-row__text">
                 <span class="cap-row__name">{{ cap.name }}</span>
                 <span class="cap-row__desc">{{ cap.desc }}</span>
               </span>
-              <span v-if="!capSupported(cap.key)" class="cap-row__na">当前平台未开通{{ cap.name }}接口</span>
+              <span
+                v-if="!capSupported(cap.key)"
+                class="cap-row__na"
+                :title="capabilityGapNote(cap)"
+              >
+                {{ capabilityGapNote(cap) }}
+              </span>
               <code v-else class="cap-row__code">{{ cap.code }}</code>
             </li>
           </ul>
@@ -651,6 +729,22 @@
         :vendor="taskDrawerVendor"
       />
     </ReDrawer>
+
+    <!-- ==================== 平台能力矩阵抽屉 ==================== -->
+    <ReDrawer v-model="capabilityVisible" title="平台能力矩阵" size="1040px" footer-hidden>
+      <div v-if="capabilityLoading" class="dpv-cap-loading">
+        <span class="dpv-cap-loading__bar" />
+        正在读取平台能力矩阵…
+      </div>
+      <RePlatformCapabilityPanel
+        v-else
+        :vendors="vendors"
+        :matrix="capabilityMatrix"
+        :dictionary="capabilityDictionary"
+        :focus-vendor="capabilityFocusVendor"
+        @create="onCapabilityCreate"
+      />
+    </ReDrawer>
   </div>
 </template>
 
@@ -664,8 +758,8 @@
  * 交互约定：
  *   - 点厂商只切换过滤（点「全部厂商」清空），不重新请求；
  *   - 点凭据行只选中，底部条跟随；每行仍有测试 / 编辑 / 删除；
- *   - 厂商能力用 8 点阵表示（设备 / 通道 / 视频 / 云台 / 事件 / 门禁 / 组织 / 停车），
- *     hover 有完整清单；「同步组织」只在当前厂商（或任一厂商）支持 ORG 时出现。
+ *   - 厂商能力用 12 点阵表示（设备 / 通道 / 视频 / 录像 / 云台 / 事件 / 门禁 / 组织 / 人员 / 抓图 / 指标 / 停车），
+ *     悬停有完整清单与「按平台」的能力覆盖率（厂商并集只能粗判）；
  *
  * 数据仍是一次性全量拉取 + 前端过滤：厂商数、凭据数、启用 / 默认计数在过滤态下
  * 也必须稳定，交给后端过滤会让左栏统计随筛选跳变。
@@ -684,29 +778,35 @@ import ReIcon from '@repo/ui/re-icon'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
+import RePlatformCapabilityPanel from '../components/RePlatformCapabilityPanel.vue'
 import ReVendorTaskPanel from '../components/ReVendorTaskPanel.vue'
 
 import { deviceApi } from '../api/deviceApi'
 import { formatDateTime } from '../utils/deviceFormat'
 import type {
+  CapabilityCell,
   CredentialFieldDescriptor,
   DeviceCapability,
   DeviceVendorDescriptor,
+  PlatformCapabilityMatrix,
   ProviderCredential,
   SyncResult
 } from '../types/device'
 
 const router = useRouter()
 
-/** 能力固定顺序：点阵的列位与 tooltip 文案都按它来；共 9 位 */
+/** 能力固定顺序：厂商胶囊点阵的列位与 tooltip 文案都按它来；共 12 位（6×2 点阵） */
 const CAP_ORDER: DeviceCapability[] = [
   'DEVICE',
   'CHANNEL',
   'MEDIA',
+  'RECORD',
   'PTZ',
   'EVENT',
   'ACCESS',
   'ORG',
+  'PERSON',
+  'CAPTURE',
   'METRIC',
   'PARKING'
 ]
@@ -716,6 +816,16 @@ const vendors = ref<DeviceVendorDescriptor[]>([])
 const credentials = ref<ProviderCredential[]>([])
 const credentialFilter = ref('')
 const loading = ref(false)
+
+/* ==================== 平台能力矩阵（平台 × 能力位，四态） ==================== */
+/** 能力矩阵抽屉：从顶部工具条打开，或从某个厂商的胶囊进入时预选该厂商 */
+const capabilityVisible = ref(false)
+const capabilityFocusVendor = ref('')
+const capabilityLoading = ref(false)
+/** 平台标识（vendor.platform）→ 能力矩阵 */
+const capabilityMatrix = ref<Record<string, PlatformCapabilityMatrix>>({})
+/** 能力位字典（后端给编码 + 展示名） */
+const capabilityDictionary = ref<Array<{ code: DeviceCapability; name: string }>>([])
 
 const dialogVisible = ref(false)
 const submitting = ref(false)
@@ -763,6 +873,7 @@ const form = reactive<FormPayload>({
   deviceCredentialBaseUrl: '',
   deviceCredentialProductCode: '',
   deviceCredentialProjectId: '',
+  deviceCredentialGroupNo: '',
   deviceCredentialOfflineThreshold: 60,
   deviceCredentialIsDefault: false,
   deviceCredentialEnabled: true,
@@ -870,11 +981,29 @@ const CAP_RECIPES: Array<{ key: string; name: string; desc: string; caps: CapKey
 
 const DIAL_CIRC = 2 * Math.PI * 40
 
-/** 当前厂商是否具备某能力位（不具备的开关置灰，且不生成任务） */
+/** 当前平台是否具备某能力位（不具备的开关置灰，且不生成任务） */
 function capSupported(key: CapKey): boolean {
   const row = CAP_ROWS.find((item) => item.key === key)
   if (!row) return false
-  return Boolean(currentVendor.value?.capabilities?.includes(row.capability))
+  return platformCapabilities.value.includes(row.capability)
+}
+
+/**
+ * 能力不可用的原因，直接取能力矩阵的 note。
+ *
+ * <p>比「当前平台未开通X接口」有用：能说清是官方没有（云睿无视频套件）、
+ * 还是接口存在但字段未取证。矩阵还没加载时退回通用文案。</p>
+ *
+ * @param row 能力行
+ * @returns 展示文案
+ */
+function capabilityGapNote(row: CapRow): string {
+  const vendor = form.deviceCredentialVendor
+  const platform = form.deviceCredentialPlatformType
+  const cell: CapabilityCell | undefined =
+    vendor && platform ? capabilityMatrix.value[`${vendor}.${platform}`]?.cells?.[row.capability] : undefined
+  if (cell && (cell.support === 'TODO' || cell.support === 'NO') && cell.note) return cell.note
+  return `当前平台未开放${row.name}接口`
 }
 
 /** 能力开关的当前值 */
@@ -923,14 +1052,19 @@ function recipeCapLabel(key: CapKey): string {
   return CAP_ROWS.find((item) => item.key === key)?.name || key
 }
 
-const enabledCapCount = computed(() => CAP_ROWS.filter((row) => capSupported(row.key) && capEnabled(row.key)).length)
-const supportedCapCount = computed(() => CAP_ROWS.filter((row) => capSupported(row.key)).length)
+/** 按凭据开启的能力行（门禁记录抽取是全局任务，不参与分母） */
+const credentialCapRows = computed(() => CAP_ROWS.filter((row) => row.enabledKey))
 
-/** 第 4 段的「未开启或不支持」清单 */
+const enabledCapCount = computed(() =>
+  credentialCapRows.value.filter((row) => capSupported(row.key) && capEnabled(row.key)).length
+)
+const supportedCapCount = computed(() => credentialCapRows.value.filter((row) => capSupported(row.key)).length)
+
+/** 第 4 段的「未开启或不支持」清单（只列按凭据配的能力） */
 const offTaskNames = computed<string[]>(() =>
-  CAP_ROWS.filter((row) => !capSupported(row.key) || !capEnabled(row.key)).map((row) =>
-    capSupported(row.key) ? row.name : `${row.name}（平台未开放）`
-  )
+  credentialCapRows.value
+    .filter((row) => !capSupported(row.key) || !capEnabled(row.key))
+    .map((row) => (capSupported(row.key) ? row.name : `${row.name}（平台未开放）`))
 )
 
 /* ==================== 任务（第 4 段） ==================== */
@@ -1099,6 +1233,22 @@ const currentVendor = computed(() =>
   vendors.value.find((item) => item.vendor === form.deviceCredentialVendor)
 )
 const currentPlatforms = computed(() => currentVendor.value?.platforms || [])
+/** 当前选中的平台描述符：能力开关必须按平台判断，不能按厂商并集判断 */
+const currentPlatform = computed(() =>
+  currentPlatforms.value.find((item) => item.code === form.deviceCredentialPlatformType)
+)
+/**
+ * 当前平台支持的能力位。
+ *
+ * <p>优先取平台级 capabilities（后端由能力矩阵派生）；旧数据没有该字段时才回退到
+ * 厂商级并集。平台级是空数组也是有效值 —— 那表示该平台一项都还没实现，
+ * 不能因为「空」就退回厂商并集，否则会把别的平台的能力借过来。</p>
+ */
+const platformCapabilities = computed<DeviceCapability[]>(() => {
+  const platform = currentPlatform.value
+  if (platform && Array.isArray(platform.capabilities)) return platform.capabilities
+  return currentVendor.value?.capabilities || []
+})
 
 /** 描述符字段 key → form 属性名（字段名以 deviceCredential 为前缀） */
 const CREDENTIAL_FIELD_BIND: Record<string, string> = {
@@ -1106,6 +1256,7 @@ const CREDENTIAL_FIELD_BIND: Record<string, string> = {
   appSecret: 'deviceCredentialAppSecret',
   productCode: 'deviceCredentialProductCode',
   projectId: 'deviceCredentialProjectId',
+  groupNo: 'deviceCredentialGroupNo',
   baseUrl: 'deviceCredentialBaseUrl'
 }
 
@@ -1287,12 +1438,19 @@ watch(credentialFilter, syncActiveCredential)
 function capabilityLabel(cap: DeviceCapability): string {
   const labels: Record<DeviceCapability, string> = {
     DEVICE: '设备',
+    DEVICE_WRITE: '设备写',
     CHANNEL: '通道',
     MEDIA: '视频',
+    RECORD: '录像',
     PTZ: '云台',
     EVENT: '事件',
     ACCESS: '门禁',
+    ACCESS_WRITE: '门禁写',
     ORG: '组织',
+    ORG_WRITE: '组织写',
+    PERSON: '人员',
+    PERSON_WRITE: '人员写',
+    CAPTURE: '抓图',
     METRIC: '指标',
     PARKING: '停车'
   }
@@ -1305,7 +1463,7 @@ function monogram(name?: string): string {
   return text ? text.slice(0, 1) : '?'
 }
 
-/** 9 点阵的悬浮清单：支持 / 不支持都写清楚，避免只靠颜色猜 */
+/** 12 点阵的悬浮清单：支持 / 不支持都写清楚，避免只靠颜色猜 */
 function capabilityTitle(vendor: DeviceVendorDescriptor): string {
   return CAP_ORDER.map((cap) => `${capabilityLabel(cap)}${vendor.capabilities.includes(cap) ? ' ✓' : ' ✗'}`).join(
     ' · '
@@ -1342,6 +1500,99 @@ function clearVendorFilter(): void {
 }
 
 /* ==================== 数据 ==================== */
+/** 平台能力摘要：覆盖率与缺口数，供厂商 popover 与凭据表复用 */
+interface PlatformBrief {
+  /** 是否在能力矩阵里登记过 */
+  declared: boolean
+  /** 已实现（支持 + 未验证）占「官方支持能力」的百分比 */
+  coverage: number
+  /** 已验证支持格数 */
+  yes: number
+  /** 已实现未验证格数 */
+  unverified: number
+  /** 待实现格数 */
+  todo: number
+}
+
+const EMPTY_BRIEF: PlatformBrief = { declared: false, coverage: 0, yes: 0, unverified: 0, todo: 0 }
+
+/** 平台标识 → 摘要（矩阵不变就不重算） */
+const platformBriefs = computed<Map<string, PlatformBrief>>(() => {
+  const map = new Map<string, PlatformBrief>()
+  for (const [key, entry] of Object.entries(capabilityMatrix.value)) {
+    let yes = 0
+    let unverified = 0
+    let todo = 0
+    for (const cell of Object.values(entry.cells || {})) {
+      if (!cell) continue
+      if (cell.support === 'YES') yes += 1
+      else if (cell.support === 'IMPLEMENTED_UNVERIFIED') unverified += 1
+      else if (cell.support === 'TODO') todo += 1
+    }
+    const supported = yes + unverified + todo
+    map.set(key, {
+      declared: true,
+      coverage: supported ? Math.round(((yes + unverified) / supported) * 100) : 0,
+      yes,
+      unverified,
+      todo
+    })
+  }
+  return map
+})
+
+/** 取某条凭据所属平台的摘要（SDK 直连没有平台矩阵，返回未登记） */
+function briefOf(vendor: string, platform?: string | null): PlatformBrief {
+  if (!vendor || !platform) return EMPTY_BRIEF
+  return platformBriefs.value.get(`${vendor}.${platform}`) || EMPTY_BRIEF
+}
+
+/** 覆盖率悬浮说明：把三档拆开，避免只看一个百分比 */
+function coverageTitle(vendor: string, platform?: string | null): string {
+  const brief = briefOf(vendor, platform)
+  if (!brief.declared) return ''
+  return `能力覆盖 ${brief.coverage}%：已验证支持 ${brief.yes} · 已实现未验证 ${brief.unverified} · 待实现 ${brief.todo}`
+}
+
+/** 顶部工具条的缺口角标：还有待实现能力的平台数 */
+const gapPlatformCount = computed(() => {
+  let count = 0
+  for (const entry of Object.values(capabilityMatrix.value)) {
+    if (Object.values(entry.cells || {}).some((cell) => cell?.support === 'TODO')) count += 1
+  }
+  return count
+})
+
+/** 拉取平台能力矩阵与能力位字典 */
+async function fetchCapabilityMatrix(): Promise<void> {
+  capabilityLoading.value = true
+  try {
+    const [matrix, dictionary] = await Promise.all([
+      deviceApi.listCapabilityMatrix(),
+      deviceApi.listCapabilityDictionary()
+    ])
+    capabilityMatrix.value = matrix || {}
+    capabilityDictionary.value = dictionary || []
+  } catch (err) {
+    capabilityMatrix.value = {}
+    capabilityDictionary.value = []
+    message.warning('平台能力矩阵加载失败：' + errorText(err))
+  } finally {
+    capabilityLoading.value = false
+  }
+}
+
+/**
+ * 打开能力矩阵抽屉。
+ *
+ * @param vendor 预选厂商（从厂商胶囊进入时传入；缺省沿用当前过滤）
+ */
+function openCapabilityMatrix(vendor?: string): void {
+  capabilityFocusVendor.value = vendor || credentialFilter.value || ''
+  capabilityVisible.value = true
+  if (!Object.keys(capabilityMatrix.value).length) void fetchCapabilityMatrix()
+}
+
 async function fetchVendors() {
   try {
     vendors.value = (await deviceApi.listVendors()) || []
@@ -1377,6 +1628,7 @@ function resetForm() {
   form.deviceCredentialBaseUrl = vendors.value[0]?.platforms[0]?.defaultBaseUrl || ''
   form.deviceCredentialProductCode = ''
   form.deviceCredentialProjectId = ''
+  form.deviceCredentialGroupNo = ''
   form.deviceCredentialOfflineThreshold = vendors.value[0]?.defaultOfflineThreshold ?? 60
   form.deviceCredentialIsDefault = false
   form.deviceCredentialEnabled = true
@@ -1437,6 +1689,22 @@ function openCreate(vendor?: string) {
   dialogVisible.value = true
 }
 
+/**
+ * 从能力矩阵卡片直接新增凭据。
+ *
+ * <p>厂商、平台、默认网关与离线阈值一次带过去，用户只需要填 AK/SK。</p>
+ *
+ * @param payload 厂商 + 平台编码
+ */
+function onCapabilityCreate(payload: { vendor: string; platform: string }): void {
+  capabilityVisible.value = false
+  openCreate(payload.vendor)
+  form.deviceCredentialPlatformType = payload.platform
+  form.deviceCredentialBaseUrl =
+    currentPlatforms.value.find((item) => item.code === payload.platform)?.defaultBaseUrl || ''
+  form.deviceCredentialOfflineThreshold = currentVendor.value?.defaultOfflineThreshold ?? 60
+}
+
 function openEdit(row: ProviderCredential) {
   editingCredentialId.value = row.deviceCredentialId || ''
   stepIndex.value = 0
@@ -1452,6 +1720,7 @@ function openEdit(row: ProviderCredential) {
   form.deviceCredentialBaseUrl = row.deviceCredentialBaseUrl || ''
   form.deviceCredentialProductCode = row.deviceCredentialProductCode || ''
   form.deviceCredentialProjectId = row.deviceCredentialProjectId || ''
+  form.deviceCredentialGroupNo = row.deviceCredentialGroupNo || ''
   form.deviceCredentialOfflineThreshold = row.deviceCredentialOfflineThreshold ?? 60
   form.deviceCredentialIsDefault = !!row.deviceCredentialIsDefault
   form.deviceCredentialEnabled = row.deviceCredentialEnabled !== false
@@ -1632,26 +1901,45 @@ async function removeCredential(row: ProviderCredential) {
   }
 }
 
-/** 厂商侧能力位：决定凭据维度同步入口的显隐 */
-function canSyncVendor(vendor: string, kind: 'device' | 'org' | 'person'): boolean {
-  const descriptor = vendors.value.find((item) => item.vendor === vendor)
+/**
+ * 某条凭据所属平台是否支持某个同步方向。
+ *
+ * <p>必须按平台判断：海康同时有云曜与萤石，云曜有组织、萤石没有；
+ * 用厂商并集会让萤石凭据也显示「同步组织」，点了才报错。
+ * 旧描述符缺平台级能力位时回退厂商级，保证兼容。</p>
+ *
+ * @param credential 凭据
+ * @param kind 同步方向
+ * @returns 是否显示该入口
+ */
+function canSync(credential: ProviderCredential, kind: 'device' | 'org' | 'person'): boolean {
+  const descriptor = vendors.value.find((item) => item.vendor === credential.deviceCredentialVendor)
   if (!descriptor) return false
+  const platform = descriptor.platforms.find((item) => item.code === credential.deviceCredentialPlatformType)
+  const caps: DeviceCapability[] =
+    platform && Array.isArray(platform.capabilities) ? platform.capabilities : descriptor.capabilities
   switch (kind) {
-    case 'device': return descriptor.capabilities.includes('DEVICE')
+    case 'device':
+      return caps.includes('DEVICE')
     case 'org':
-    case 'person': return descriptor.capabilities.includes('ORG')
-    default: return false
+      return caps.includes('ORG')
+    case 'person':
+      return caps.includes('PERSON')
+    default:
+      return false
   }
 }
 
-/** 当前凭据身上有能力的入 textBox（device / org / person） */
+/** 当前凭据可用的同步入口（设备 / 组织 / 人员） */
 const syncEntry = computed<{ device: boolean; org: boolean; person: boolean }>(() => {
   const credential = activeCredential.value
-  if (!credential || !credential.deviceCredentialVendor) return { device: false, org: false, person: false }
+  if (!credential || !credential.deviceCredentialVendor) {
+    return { device: false, org: false, person: false }
+  }
   return {
-    device: canSyncVendor(credential.deviceCredentialVendor, 'device'),
-    org: canSyncVendor(credential.deviceCredentialVendor, 'org'),
-    person: canSyncVendor(credential.deviceCredentialVendor, 'person')
+    device: canSync(credential, 'device'),
+    org: canSync(credential, 'org'),
+    person: canSync(credential, 'person')
   }
 })
 
@@ -1699,6 +1987,7 @@ function refreshAll() {
   fetchCredentials()
   fetchTaskStates()
   fetchVendorStats()
+  fetchCapabilityMatrix()
 }
 
 function goLedger() {
@@ -1810,6 +2099,24 @@ onBeforeUnmount(() => {
   font-family: var(--el-font-family-mono, ui-monospace, monospace);
 }
 
+/* 「平台能力」按钮上的缺口角标：数字 = 还有待实现能力的平台数 */
+.dpv-gapbadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--el-color-warning) 18%, transparent);
+  color: var(--el-color-warning-dark-2, var(--el-color-warning));
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
 .dpv-grow {
   flex: 1;
   min-width: 0;
@@ -1911,11 +2218,11 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 
-/* 能力点阵：9 格，亮 = 支持；hover 有完整清单 */
+/* 能力点阵：12 格（6×2），亮 = 支持；hover 有完整清单 */
 .dpv-chip__caps {
   display: grid;
   flex: none;
-  grid-template-columns: repeat(5, 4px);
+  grid-template-columns: repeat(6, 4px);
   gap: 2px;
   margin-left: 2px;
 }
@@ -2125,11 +2432,39 @@ onBeforeUnmount(() => {
 }
 
 .dpv-cell__sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
   font-size: 11px;
   color: var(--el-text-color-secondary);
+}
+
+/* 平台名可截断，覆盖率徽标不参与截断 */
+.dpv-cell__plat {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 平台能力覆盖率：主色实心 = 无缺口，警告色描边 = 还有待实现能力 */
+.dpv-cov {
+  flex: none;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
+  color: var(--el-color-primary);
+  font-size: 9.5px;
+  line-height: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dpv-cov.is-gap {
+  border-color: color-mix(in srgb, var(--el-color-warning) 38%, transparent);
+  background: color-mix(in srgb, var(--el-color-warning) 9%, transparent);
+  color: var(--el-color-warning-dark-2, var(--el-color-warning));
 }
 
 .dpv-mono {
@@ -2600,10 +2935,25 @@ onBeforeUnmount(() => {
   background: var(--el-fill-color);
   border-radius: 5px;
 }
+.cap-row__global {
+  flex: none;
+  padding: 0 7px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 999px;
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-secondary);
+  font-size: 10.5px;
+  line-height: 17px;
+}
+
 .cap-row__na {
   margin-left: auto;
+  max-width: 52%;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cap-count {
@@ -2852,6 +3202,118 @@ onBeforeUnmount(() => {
   margin-left: auto;
   font-size: 11px;
   color: var(--el-text-color-secondary);
+}
+
+/* 平台能力覆盖：一行一个平台，右侧直接写「N 项待实现」 */
+.dpv-pop__plats {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+}
+
+.dpv-pop__plats-title {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.dpv-pop__plat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px 32px auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.dpv-pop__pname {
+  overflow: hidden;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dpv-pop__pbar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--el-fill-color-dark);
+  overflow: hidden;
+}
+
+.dpv-pop__pbar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--el-color-primary);
+}
+
+.dpv-pop__pbar i.is-gap {
+  background: linear-gradient(90deg, var(--el-color-primary-light-5), var(--el-color-warning));
+}
+
+.dpv-pop__ppct {
+  font-size: 10.5px;
+  text-align: right;
+  color: var(--el-text-color-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.dpv-pop__pgap {
+  font-size: 10px;
+  white-space: nowrap;
+  color: var(--el-color-warning-dark-2, var(--el-color-warning));
+}
+
+.dpv-pop__pgap.is-clear {
+  color: var(--el-text-color-placeholder);
+}
+
+.dpv-pop__more {
+  align-self: flex-end;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--el-color-primary);
+  font: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.dpv-pop__more:hover {
+  text-decoration: underline;
+}
+
+/* 能力矩阵抽屉的加载态：抽屉本身已占位，这里只放一条轻量进度条 */
+.dpv-cap-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.dpv-cap-loading__bar {
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--el-color-primary), transparent);
+  background-size: 200% 100%;
+  animation: dpv-cap-loading 1.1s linear infinite;
+}
+
+@keyframes dpv-cap-loading {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dpv-cap-loading__bar {
+    animation: none;
+    background: var(--el-color-primary);
+  }
 }
 .dpv-pop__list {
   display: flex;

@@ -8,8 +8,8 @@
 import { getGlobalSocketService, message } from "@repo/core";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
-import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions } from "@pages/system/api/systemApi";
-import type { SysTenant, TenantDatasourceOption, TenantEndpointInfo } from "@pages/system/api/types";
+import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions, tenantDatasourceCurrent, tenantBackfillDedicatedAccounts } from "@pages/system/api/systemApi";
+import type { SysTenant, TenantDatasourceOption, TenantDatasourceView, TenantAccountBackfillResult, TenantEndpointInfo } from "@pages/system/api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import ReProgressDialog, { type ProgressSnapshot, type ProgressStep } from "@repo/ui/re-progress-dialog";
 import ServiceCatalogPanel from "@pages/system/views/components/ServiceCatalogPanel.vue";
@@ -91,6 +91,11 @@ const form = ref<SysTenant>({ sysTenantStatus: 0, sysTenantDelete: 0 });
  */
 const datasourceOptions = ref<TenantDatasourceOption[]>([]);
 const datasourceLoading = ref(false);
+/** 下拉项加载失败原因；为空表示加载成功。失败时必须让用户看见，不能静默只剩「自填」 */
+const optionsError = ref("");
+/** 编辑时后端回显的「当前实际连接信息」；新增或未登记独立库时为 null */
+const currentView = ref<TenantDatasourceView | null>(null);
+const currentLoading = ref(false);
 
 /** 是否引用了现成实例（-1=平台自身，>0=台账）：地址/端口/账号/口令全部来自实例 */
 const useSharedInstance = computed(() => {
@@ -106,16 +111,105 @@ const sharedEndpoint = computed(() => {
   return { host: option?.host ?? "", port: option?.port ?? null };
 });
 
+/** 实例来源在列表里的展示名：下拉没加载也能给出可读名称，不能显示裸 id */
+function datasourceLabel(id?: number | string | null) {
+  if (id === null || id === undefined || Number(id) === 0) {
+    return "租户自填";
+  }
+  if (Number(id) === -1) {
+    return "平台自身实例";
+  }
+  const option = datasourceOptions.value.find((item) => Number(item.id) === Number(id));
+  return option?.name || `数据源#${id}`;
+}
+
 /** 加载实例来源下拉项；失败时退化为只有「自填」，表单仍可用 */
 async function loadDatasourceOptions() {
   datasourceLoading.value = true;
+  optionsError.value = "";
   try {
     const res = await tenantDatasourceOptions();
     datasourceOptions.value = res?.data ?? [];
-  } catch {
+  } catch (e) {
     datasourceOptions.value = [{ id: 0, name: "由租户自己填写实例信息", type: "manual" }];
+    optionsError.value = (e as Error)?.message || "实例列表加载失败，当前只能使用自填方式";
   } finally {
     datasourceLoading.value = false;
+  }
+}
+
+/** 读取某租户当前生效的连接信息（后端按三路来源解析，失败也回原因） */
+async function loadCurrentDatasource(tenantId?: string) {
+  currentView.value = null;
+  if (!tenantId) {
+    return;
+  }
+  currentLoading.value = true;
+  try {
+    const res = await tenantDatasourceCurrent(tenantId);
+    currentView.value = (res?.data ?? null) as TenantDatasourceView | null;
+  } catch {
+    // 回显失败不影响编辑：用户仍可改配置，保存时后端会再校验一次
+    currentView.value = null;
+  } finally {
+    currentLoading.value = false;
+  }
+}
+
+const backfillLoading = ref(false);
+
+/**
+ * 为存量引用型租户补专用数据库账号。
+ *
+ * <p>后端默认只演练：先拿到「将创建哪些账号、哪些被跳过」，确认后再真正执行。
+ * 执行失败的租户记录不会被改动，仍用实例账号路由，不会因此断服。</p>
+ */
+async function handleBackfillAccounts() {
+  backfillLoading.value = true;
+  let plan: TenantAccountBackfillResult | null = null;
+  try {
+    const res = await tenantBackfillDedicatedAccounts(true, 50);
+    plan = (res?.data ?? null) as TenantAccountBackfillResult | null;
+  } catch (e) {
+    message.error((e as Error)?.message ?? "检查待补账号的租户失败");
+    return;
+  } finally {
+    backfillLoading.value = false;
+  }
+  const items = plan?.items ?? [];
+  const planned = items.filter((item) => item.status === "PLANNED");
+  if (!planned.length) {
+    const skipped = items.filter((item) => item.status === "SKIPPED").length;
+    message.info(
+      plan?.message || (skipped ? `没有可处理的租户（${skipped} 个被跳过）` : "没有需要补账号的租户"),
+    );
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      `将为 ${planned.length} 个租户创建专用数据库账号，只授权到各自的库（账号名形如 t_<租户编码>）。是否继续？`,
+      "补专用账号",
+      { type: "warning", confirmButtonText: "开始执行" },
+    );
+  } catch {
+    return;
+  }
+  backfillLoading.value = true;
+  try {
+    const res = await tenantBackfillDedicatedAccounts(false, planned.length);
+    const result = (res?.data ?? null) as TenantAccountBackfillResult | null;
+    const created = (result?.items ?? []).filter((item) => item.status === "CREATED").length;
+    const failed = (result?.items ?? []).filter((item) => item.status === "FAILED").length;
+    if (failed) {
+      message.warning(`已创建 ${created} 个，失败 ${failed} 个；失败的租户仍用实例账号，详见服务端日志`);
+    } else {
+      message.success(`已为 ${created} 个租户创建专用账号`);
+    }
+    tableRef.value?.reload();
+  } catch (e) {
+    message.error((e as Error)?.message ?? "补账号失败");
+  } finally {
+    backfillLoading.value = false;
   }
 }
 
@@ -191,6 +285,7 @@ function handleAdd() {
     // 0 = 自填，与存量行为一致；要复用平台自身实例或台账实例时在表单里改
     sysTenantDatasourceId: 0,
   };
+  currentView.value = null;
   dialogVisible.value = true;
   void loadDatasourceOptions();
 }
@@ -200,6 +295,9 @@ function handleEdit(row: Record<string, unknown>) {
   form.value = { ...(row as unknown as SysTenant) };
   dialogVisible.value = true;
   void loadDatasourceOptions();
+  // 回显当前实际生效的连接（含「引用的数据源已停用」这类失败原因），
+  // 避免用户对着一个空的下拉猜现在到底连的是哪
+  void loadCurrentDatasource(row.sysTenantId as string | undefined);
 }
 
 /** 下拉列表（新增/编辑弹窗中分配菜单选择用） */
@@ -250,8 +348,19 @@ async function handleSubmit() {
       form.value.sysTenantSqlPassword,
     ].some((v) => String(v ?? "").trim())
   ) {
-    if (!form.value.sysTenantDbname || !form.value.sysTenantSqlUsername || !form.value.sysTenantSqlPassword) {
-      message.warning("独立库信息不完整：库名、数据库账号、数据库口令需同时填写");
+    // 编辑时数据库口令不会回显（后端标记为 WRITE_ONLY），留空表示「不修改」。
+    // 强制重填会让「只改租户名称」也必须知道库口令，等于把编辑功能锁死。
+    const passwordRequired = !isEdit.value;
+    if (
+      !form.value.sysTenantDbname ||
+      !form.value.sysTenantSqlUsername ||
+      (passwordRequired && !form.value.sysTenantSqlPassword)
+    ) {
+      message.warning(
+        passwordRequired
+          ? "独立库信息不完整：库名、数据库账号、数据库口令需同时填写"
+          : "独立库信息不完整：库名与数据库账号需同时填写（口令留空表示不修改）",
+      );
       return;
     }
   }
@@ -562,7 +671,8 @@ async function startProvision(payload: SysTenant) {
     }
     provisionPendingFrames.clear();
     dialogVisible.value = false;
-    if (!provisionSnapshot.value?.finished) {
+    const started = provisionSnapshot.value as ProgressSnapshot | null;
+    if (!started || started.finished !== true) {
       startProvisionPolling();
     }
   } catch (e) {
@@ -736,6 +846,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysTenantUsername", label: "租户账号", width: 140 },
   { prop: "sysTenantCode", label: "租户编码", width: 140 },
   { prop: "sysTenantStatus", label: "状态", width: 100, slot: "status", align: "center" },
+  { prop: "sysTenantDatasourceId", label: "实例来源", width: 150, slot: "datasource" },
   { prop: "sysTenantContact", label: "联系人", width: 110 },
   { prop: "sysTenantPhone", label: "手机号", width: 120 },
   { prop: "createTime", label: "创建时间", width: 170 },
@@ -744,6 +855,8 @@ const columns: ReTableColumn[] = [
 
 onMounted(() => {
   loadSelectOptions();
+  // 表格的「实例来源」列要显示数据源名称，进页就取一次；失败不影响列表本身
+  void loadDatasourceOptions();
   tableRef.value?.reload();
 });
 
@@ -777,6 +890,7 @@ onUnmounted(() => {
     >
       <template #toolbar>
         <ReButton type="primary" icon="Plus" v-admin @click="handleAdd">新增租户</ReButton>
+        <ReButton icon="Lock" :loading="backfillLoading" v-admin @click="handleBackfillAccounts">补专用账号</ReButton>
       </template>
       <template #empty>
         <div class="page-empty">
@@ -794,6 +908,14 @@ onUnmounted(() => {
       <template #status="{ row }">
         <ReTag :type="row.sysTenantStatus === 0 ? 'success' : 'danger'" effect="plain" dot>
           {{ row.sysTenantStatus === 0 ? "启用" : "禁用" }}
+        </ReTag>
+      </template>
+      <template #datasource="{ row }">
+        <ReTag
+          :type="Number(row.sysTenantDatasourceId) > 0 ? 'primary' : Number(row.sysTenantDatasourceId) === -1 ? 'warning' : 'info'"
+          effect="plain"
+        >
+          {{ datasourceLabel(row.sysTenantDatasourceId) }}
         </ReTag>
       </template>
       <template #action="{ row }">
@@ -912,11 +1034,32 @@ onUnmounted(() => {
                   <span v-if="item.host" class="tenant-ds-option-host">
                     {{ item.host }}{{ item.port ? `:${item.port}` : "" }}
                   </span>
+                  <span v-if="item.online === false" class="tenant-ds-option-offline">未连通</span>
                 </el-option>
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
+        <el-alert
+          v-if="optionsError"
+          :title="optionsError"
+          type="warning"
+          show-icon
+          :closable="false"
+          class="tenant-ds-alert"
+        />
+        <div v-if="isEdit && (currentLoading || currentView)" class="tenant-ds-hint">
+          <template v-if="currentLoading">正在读取当前连接信息…</template>
+          <template v-else-if="currentView">
+            当前：{{ currentView.originLabel }}
+            <template v-if="currentView.host">{{ currentView.host }}{{ currentView.port ? `:${currentView.port}` : "" }}</template>
+            <template v-if="currentView.dbName"> / {{ currentView.dbName }}</template>
+            <template v-if="currentView.datasourceName">（{{ currentView.datasourceName }}）</template>
+            <span v-if="currentView.available === false" class="tenant-ds-hint__error">
+              — {{ currentView.problem || "配置不可用" }}
+            </span>
+          </template>
+        </div>
         <el-row v-if="useSharedInstance" :gutter="16">
           <el-col :span="16">
             <el-form-item label="数据库地址">
@@ -960,10 +1103,19 @@ onUnmounted(() => {
           </template>
         </el-row>
         <el-form-item v-if="!useSharedInstance" label="数据库口令">
-          <ReInput layout="modern" v-model="form.sysTenantSqlPassword" type="password" placeholder="明文传入，落库为密文" maxlength="255" show-word-limit />
+          <ReInput
+            layout="modern"
+            v-model="form.sysTenantSqlPassword"
+            type="password"
+            :placeholder="isEdit ? '留空表示不修改现有口令' : '明文传入，落库为密文'"
+            maxlength="255"
+            show-word-limit
+          />
         </el-form-item>
         <div v-if="useSharedInstance" class="tenant-ds-hint">
-          地址与端口取自所选实例；选「平台自身实例」时平台会自动创建 t_&lt;租户编码&gt; 数据库账号并授权。多个租户共用同一实例时，务必各自使用不同的库名。
+          地址与端口取自所选实例；MySQL 实例上平台会为该租户创建 t_&lt;租户编码&gt; 专用数据库账号，
+          并只授权到本租户库（需要实例账号具备建库/建账号权限）；非 MySQL 实例沿用实例账号。
+          多个租户共用同一实例时，务必各自使用不同的库名。
         </div>
         <el-form-item label="备注">
           <ReInput layout="modern" v-model="form.sysTenantRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
@@ -1138,6 +1290,22 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
+/* 台账最近一次连通性探测失败：选中前就能看见，不要等保存后才报错 */
+.tenant-ds-option-offline {
+  float: right;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  color: var(--el-color-warning, #e6a23c);
+  font-size: 12px;
+}
+
+/* 下拉项加载失败提示 */
+.tenant-ds-alert {
+  margin-bottom: 12px;
+}
+
 /* 引用现成实例时，地址与端口只读回显 */
 .tenant-ds-readonly {
   width: 100%;
@@ -1161,6 +1329,12 @@ onUnmounted(() => {
   color: var(--el-text-color-secondary, #909399);
   font-size: 12px;
   line-height: 1.7;
+}
+
+/* 回显里的失败原因：和普通说明区分开，否则「配置不可用」会被当成提示忽略 */
+.tenant-ds-hint__error {
+  color: var(--el-color-danger, #f56c6c);
+  font-weight: 500;
 }
 
 .endpoint-dialog {

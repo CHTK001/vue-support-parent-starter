@@ -580,7 +580,6 @@ export interface SysTenant extends Auditable {
 }
 
 /** 租户库来源下拉项（不含口令） */
-/** 租户库来源下拉项（不含口令） */
 export type TenantDatasourceOptionType = "manual" | "jdbc" | string;
 
 export interface TenantDatasourceOption {
@@ -594,17 +593,17 @@ export interface TenantDatasourceOption {
   host?: string | null;
   /** 实例端口 */
   port?: number | null;
-  /** 实例侧默认库名（仅供参考，租户库名以 sysTenantDbname 为准） */
-  dbName?: string | null;
+  /** 台账里登记的模板库名（仅供参考，租户库名以 sysTenantDbname 为准） */
+  database?: string | null;
   /** 台账最近一次连通性探测结果，null=未探测 */
   online?: boolean | null;
 }
 
 /** 租户库连接信息只读回显 */
 export interface TenantDatasourceView {
-  /** 来源：TENANT_FIELDS / DATASOURCE_HUB / PLATFORM_SELF */
-  origin?: string;
-  /** 来源中文名 */
+  /** 来源：TENANT_FIELDS / DATASOURCE_HUB / PLATFORM_SELF；解析失败时为空 */
+  origin?: string | null;
+  /** 来源中文名（解析失败时为「配置不可用」） */
   originLabel?: string;
   host?: string | null;
   port?: number | null;
@@ -612,6 +611,30 @@ export interface TenantDatasourceView {
   username?: string | null;
   /** 台账数据源名称（仅引用台账时有值） */
   datasourceName?: string | null;
+  /** 连接信息是否可用；false 时看 problem */
+  available?: boolean;
+  /** 不可用原因 */
+  problem?: string | null;
+}
+
+/** 补专用账号：单个租户的处理结果 */
+export interface TenantAccountBackfillItem {
+  tenantId?: string;
+  tenantCode?: string | null;
+  dbName?: string | null;
+  username?: string | null;
+  /** PLANNED / CREATED / SKIPPED / FAILED */
+  status?: string;
+  message?: string;
+}
+
+/** 补专用账号：本次执行结果 */
+export interface TenantAccountBackfillResult {
+  dryRun?: boolean;
+  items?: TenantAccountBackfillItem[];
+  /** 仍待处理的租户数 */
+  remaining?: number;
+  message?: string;
 }
 
 /** 租户-服务关联 */

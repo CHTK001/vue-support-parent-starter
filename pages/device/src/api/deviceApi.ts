@@ -19,6 +19,8 @@ import type {
   DeviceImportRow,
   DeviceImportResult,
   DeviceVendorDescriptor,
+  DeviceCapability,
+  PlatformCapabilityMatrix,
   SyncResult,
   CredentialHealthResult,
   DeviceAlarm,
@@ -282,6 +284,21 @@ export const deviceApi = {
     http.get("/provider/vendors").then(unwrap) as Promise<DeviceVendorDescriptor[]>,
   getVendor: (vendor: string) =>
     http.get(`/provider/vendors/${vendor}`).then(unwrap) as Promise<DeviceVendorDescriptor>,
+
+  // ==================== 平台能力矩阵（平台 × 能力位，四态） ====================
+  /**
+   * 全部平台的能力矩阵：{ 平台标识: { platform, title, cells } }。
+   *
+   * <p>cells 里每个能力格带 support（YES / IMPLEMENTED_UNVERIFIED / TODO / NO）、
+   * apiCount 与 note；前端据此展示「为什么这个平台没有视频」，而不是只靠猜。</p>
+   */
+  listCapabilityMatrix: () =>
+    http.get('/capability/matrix').then(unwrap) as Promise<Record<string, PlatformCapabilityMatrix>>,
+  /** 能力位字典（编码 + 展示名），用于渲染能力矩阵表头与未声明项 */
+  listCapabilityDictionary: () =>
+    http
+      .get('/capability/capabilities')
+      .then(unwrap) as Promise<Array<{ code: DeviceCapability; name: string }>>,
 
   // ==================== 设备离线阈值 ====================
   updateOfflineThreshold: (deviceId: string, threshold: number) =>

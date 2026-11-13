@@ -40,6 +40,7 @@ import type {
   TenantServiceBindRequest,
   TenantDatasourceOption,
   TenantDatasourceView,
+  TenantAccountBackfillResult,
   TenantEndpointInfo,
   SysPost,
   CacheModule,
@@ -787,7 +788,7 @@ export function getTenantEndpoint(sysTenantId: string) {
  * 租户库来源下拉项。
  *
  * <p>由平台代理数据源台账，只含实例级信息（名称/地址/端口），不含口令；
- * 依赖 sys:tenant:get 权限，租户管理员无需数据源中心权限。</p>
+ * 依赖租户域任一读写权限（get/page/save/update），租户管理员无需数据源中心权限。</p>
  */
 export function tenantDatasourceOptions() {
   return http()
@@ -801,6 +802,18 @@ export function tenantDatasourceCurrent(sysTenantId: string) {
     .get("/v2/tenant/datasource/current")
     .query({ sysTenantId })
     .then<ApiResult<TenantDatasourceView | null>>((r) => r.data);
+}
+
+/**
+ * 为存量引用型租户补专用数据库账号。
+ *
+ * <p>默认只演练（{@code dryRun=true}），拿到计划后再带 {@code dryRun=false} 执行。</p>
+ */
+export function tenantBackfillDedicatedAccounts(dryRun = true, limit = 20) {
+  return http()
+    .put("/v2/tenant/datasource/backfill-accounts")
+    .query({ dryRun, limit })
+    .then<ApiResult<TenantAccountBackfillResult>>((r) => r.data);
 }
 
 /** 租户统计 */

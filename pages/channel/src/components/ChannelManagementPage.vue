@@ -149,6 +149,13 @@ const loadError = ref('')
 /** 渠道清单是否已经读到过（区分「还没读到」与「真的没有」） */
 const channelsLoaded = ref(false)
 const channels = ref<ChannelSummary[]>([])
+/**
+ * 首屏补取模型配置失败的渠道（展示名）。
+ *
+ * <p>读不到只是「模型清单可能不全」，不该整页报错；但也不能完全静默：空清单会让人
+ * 以为这个渠道本来没有模型。模型页顶部据此提示，并给出「拉取模型」这条重试路径。</p>
+ */
+const modelConfigErrors = ref<string[]>([])
 
 // 当前选中的渠道 id
 const activeChannel = ref<string>('')
@@ -204,9 +211,13 @@ function builtinKindOf(c?: ChannelSummary): 'chat' | 'image' | '' {
 const channelState = (c?: ChannelSummary): 'online' | 'stale' | 'none' => {
   // ChatClient 免登录渠道（对话 / 文生图）没有连接行：只要 SPI 已注册即可用
   if (builtinKindOf(c)) return 'online'
-  const conns = c?.connections ?? []
-  // 网关托管：凭据在 magpie 里，本地没有连接行，但渠道本身是可用的
+  // 必须和右栏账号区用同一份行：网关托管时那边是网关合成的行，而 c.connections 里
+  // 只有本地旧连接（常常是空的或过期的）。直接读 c.connections 会得到「页头印待刷新、
+  // 卡片印已授权」这种同一屏两套结论。
+  const conns = displayConnections(c)
   if (!conns.length) return c && hostedProviderOf(c.channel) ? 'online' : 'none'
+  // 托管行代表网关里已有该渠道的上游：凭据在网关那边，渠道本身可用
+  if (conns.some((x) => x.hosted)) return 'online'
   return conns.some((x) => x.status === 'valid') ? 'online' : 'stale'
 }
 const channelStateText = (c?: ChannelSummary): string =>
@@ -223,6 +234,7 @@ const connStateText = (conn: ChannelConnectionSummary): string =>
 async function loadChannels() {
   loading.value = true
   loadError.value = ''
+  modelConfigErrors.value = []
   try {
     // /api/channels 只回 AI 账号渠道（AccountChannelAuthManager）；免登录对话 /
     // 文生图渠道走各自 SPI 端点。三路合并后才是完整渠道清单（DuckDuckGo 在此），
@@ -274,7 +286,10 @@ async function loadChannels() {
               model: x.id, enabled: true, alias: x.name, contextWindow: x.contextWindow,
             }))
           }
-        } catch { /* 单渠道模型拉取失败不拖垮整页 */ }
+        } catch {
+          // 单渠道模型拉取失败不拖垮整页，但要在模型页留一条可重试的提示
+          modelConfigErrors.value.push(c.channel)
+        }
       }),
     )
     // 免登录对话 / 文生图渠道的模型由客户端内置，启用状态存在
@@ -301,7 +316,10 @@ async function loadChannels() {
                 if (hit.priceOutput !== undefined) m.priceOutput = hit.priceOutput
               }
             }
-          } catch { /* 单渠道配置读取失败不拖垮整页 */ }
+          } catch {
+            // 单渠道配置读取失败不拖垮整页，但要留痕：模型清单会退回内置默认值
+            modelConfigErrors.value.push(c.channel)
+          }
         }),
     )
     // 当前选中失效时落到第一个业务渠道；网关允许被选中，但它不在左栏列表里。
@@ -914,12 +932,24 @@ async function toggleAutoCheckin(enabled: boolean) {
   }
 }
 
-// 只有切到「支持签到」的渠道才去读开关，其它渠道不产生多余请求
+/**
+ * 支持签到的渠道数。
+ *
+ * <p>自动签到是<b>全局</b>开关（后端按 {@code enable_channel_checkin} 给所有支持签到的
+ * 渠道各签一次）。它以前画在某个渠道的「已授权连接」标题行里，看起来像这个渠道自己的
+ * 设置；现在挪到左栏标题下的页级一行，只有存在可签到渠道时才出现。</p>
+ */
+const checkinChannelCount = computed<number>(
+  () => channels.value.filter((c) => c.supportsCheckin).length,
+)
+
+// 有可签到渠道时才去读全局开关（没有可签到的渠道，这一行也不显示）
 watch(
-  () => activeSummary()?.supportsCheckin,
-  (on) => {
-    if (on) void loadAutoCheckin()
+  checkinChannelCount,
+  (count) => {
+    if (count > 0) void loadAutoCheckin()
   },
+  { immediate: true },
 )
 
 /**
@@ -1710,6 +1740,21 @@ function sourceOfChannel(c?: ChannelSummary): ChannelSource {
 const activeSource = computed<ChannelSource>(() => sourceOfChannel(activeSummary()))
 
 /**
+ * 详情页头「来源」角标的文案。
+ *
+ * <p>左栏角标数的是「网关里接了几条这个渠道的上游」，账号区标题数的是「几个登录账号」。
+ * 两个数字在详情页并排出现、又都不带单位时会被读成同一件事
+ * （「已接入 1」紧挨着「已授权连接 3」）。页头这里把单位写出来。</p>
+ */
+const activeSourceChip = computed<{ label: string; hint: string }>(() => {
+  const src = activeSource.value
+  if (src.key === 'gateway' && typeof src.count === 'number' && src.count > 0) {
+    return { label: `网关 ${src.count} 条上游`, hint: src.hint }
+  }
+  return { label: src.label, hint: src.hint }
+})
+
+/**
  * 当前渠道是否可以看积分。
  *
  * <p>本地有积分实现的渠道看后端能力位 {@code supportsCredit}；由网关承载的
@@ -2358,6 +2403,30 @@ function displayRows(group: RailGroup): RailDisplay[] {
   }
   return items
 }
+
+/**
+ * 左栏当前真正显示出来的行数（不含折叠条本身）。
+ *
+ * <p>以前标题印的是 {@code railRows.length}：它是「业务渠道 + 网关里对不上渠道的上游」，
+ * 上游几十条默认收在折叠条里，于是标题写 51、屏幕上只有 19 行。这里按实际渲染项数，
+ * 收起的组、收起的上游都不计入；展开后数字跟着长。</p>
+ */
+const visibleRailRows = computed<number>(() =>
+  railGroups.value.reduce(
+    (n, group) => n + displayRows(group).filter((item) => item.kind === 'row').length,
+    0,
+  ),
+)
+
+/**
+ * 左栏标题计数的悬浮说明：数字不一致时说清差在哪。
+ */
+const railCountHint = computed<string>(() => {
+  const total = railRows.value.length
+  const shown = visibleRailRows.value
+  if (shown === total) return `共 ${total} 个渠道`
+  return `当前可见 ${shown} 行，共 ${total} 行：收起的组与折叠的网关上游不计入可见数`
+})
 
 /**
  * 一行属于哪个分组：上游行归到「网关」组，其余按来源键。
@@ -3318,7 +3387,9 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
         <div class="chm-rail__head">
           <span>渠道索引</span>
           <span class="chm-rail__head-right">
-            <b>{{ railRows.length }}</b>
+            <b
+              :title="railCountHint"
+            >{{ visibleRailRows }}<template v-if="visibleRailRows !== railRows.length"> / {{ railRows.length }}</template></b>
             <!--
               刷新与详情面板里的图标钮是同一套控件（ReButton square / 24px）：
               以前这里是 20px 自绘原生 button，和面板里 24px 的钮并排差一档，
@@ -3334,6 +3405,24 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               @click="loadChannels"
             />
           </span>
+        </div>
+        <!--
+          全局设置：自动签到对所有支持签到的渠道生效（后端每天 00:30 后各签一次），
+          所以画在页级、不塞进某个渠道的账号区——以前放在「已授权连接」标题行里，
+          看起来像这个渠道自己的开关。没有可签到渠道时整行不出现。
+        -->
+        <div
+          v-if="checkinChannelCount > 0"
+          class="chm-rail__global"
+          title="全局开关：所有支持签到的渠道每天 00:30 后自动签到一次"
+        >
+          <span class="chm-rail__global-label">自动签到<em>全部渠道</em></span>
+          <el-switch
+            size="small"
+            :model-value="autoCheckin"
+            :loading="autoCheckinLoading"
+            @change="(v: boolean | string | number) => toggleAutoCheckin(!!v)"
+          />
         </div>
         <!--
           左栏按「谁实现」分组：网关 / 本机 / 免登录对话 / 文生图。
@@ -3566,16 +3655,17 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <h3>{{ activeSummary()!.displayName || activeChannel }}</h3>
             <span>
               <i>{{ brandOf(activeChannel).method || activeSummary()!.loginMethod || '—' }}</i>
-              <span v-if="activeSummary()!.providerId">· provider {{ activeSummary()!.providerId }}</span>
+              <!--
+                不印后端标识：providerId 是网关侧的实例 id（如 qoder），priority 是
+                路由用的整数（0 也是合法值，看起来像「优先级最低」）。两者对用户
+                都没有可执行的含义，只说明「这行数据来自哪个字段」。
+              -->
               <span
                 class="chm-panel__chip"
                 :class="'is-src-' + activeSource.key"
-                :title="activeSource.hint"
-              >{{ activeSource.label }}</span>
+                :title="activeSourceChip.hint"
+              >{{ activeSourceChip.label }}</span>
               <span class="chm-panel__chip">{{ kindText(activeSummary()) }}</span>
-              <span v-if="activeSummary()!.priority !== undefined" class="chm-panel__chip is-muted">
-                优先级 {{ activeSummary()!.priority }}
-              </span>
               <span class="chm-panel__chip" v-if="activeSummary()!.supportsImage">可出图</span>
               <span class="chm-panel__chip" v-if="activeSummary()!.supportsCheckin">可签到</span>
               <span class="chm-panel__chip is-credit" v-if="creditSupported(activeSummary())">积分</span>
@@ -3624,6 +3714,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               aria-valuemax="100"
             ><i :style="{ width: total.percent + '%' }" /></span>
             <span v-if="total.percent !== null" class="chm-total__pct">{{ total.percent }}%</span>
+            <!--
+              口径写在屏上：这条 pill 是「若干账号按同一单位相加」，卡片是「一个账号」，
+              两个数字本来就不会相等。以前只在悬浮里说明，同屏看 145/400 与两张
+              账单容易当成算错。
+            -->
+            <span v-if="total.counted > 1" class="chm-total__scope">{{ total.counted }} 个账号合计</span>
+            <span v-if="total.skipped > 0" class="chm-total__scope">另 {{ total.skipped }} 个未计入</span>
           </div>
         </div>
 
@@ -3651,7 +3748,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 添加 / 删除账号，不再为免登录渠道提供单独的对话 / 出图操作页。
 
                 网关型渠道（magpie）例外：账号由网关自己托管，这里既不显示
-                「添加账号」也不显示统一账号列表，只保留下面的「已授权连接」。
+                「添加账号」也不显示统一账号列表，只保留下面的「已授权账号」。
               -->
               <div v-if="accountsSupported(activeSummary()) && !hostedOnly(activeSummary())" class="chm-panel__block">
                 <div class="chm-panel__sect-title">
@@ -3677,7 +3774,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     <span v-if="acc.username" class="chm-acc__expire">{{ acc.username }}</span>
                     <div class="chm-acc__actions">
                       <!--
-                        与「已授权连接」卡同一套控件：ReButton square（24px 图标钮 + 悬浮提示）。
+                        与「已授权账号」卡同一套控件：ReButton square（24px 图标钮 + 悬浮提示）。
                         卡片里的动作按钮不做成文字按钮，免得每张卡都被「删除」两个字撑出一块。
                       -->
                       <ReButton layout="square" size="mini" type="danger" icon="Delete"
@@ -3696,27 +3793,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 accountId 引用，连接由渠道自己的授权流程产生。
               -->
               <div v-if="displayConnections(activeSummary()).length" class="chm-panel__block">
-                <div class="chm-panel__sect-title">
+                <div class="chm-panel__sect-title" title="本渠道在这里有几个登录态账号：与页头的「网关 N 条上游」不是同一件事">
                   <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
-                  已授权连接 <i>{{ displayConnections(activeSummary()).length }}</i>
+                  已授权账号 <i>{{ displayConnections(activeSummary()).length }}</i>
                   <!--
-                    自动签到是全局开关（后端 ChannelCheckinTask 读
-                    enable_channel_checkin），开关放这里是因为它只对本区块的
-                    「签到」按钮有意义；写接口仅管理员可调，失败会回滚并提示。
+                    自动签到是全局开关，已挪到左栏标题下的页级一行（对所有渠道生效），
+                    这里不再重复画一个看着像「本渠道设置」的开关。
                   -->
-                  <span
-                    v-if="activeSummary()!.supportsCheckin"
-                    class="chm-auto"
-                    title="全局开关：所有支持签到的渠道每天 00:30 后自动签到一次"
-                  >
-                    自动签到
-                    <el-switch
-                      size="small"
-                      :model-value="autoCheckin"
-                      :loading="autoCheckinLoading"
-                      @change="(v: boolean | string | number) => toggleAutoCheckin(!!v)"
-                    />
-                  </span>
                 </div>
                 <div class="chm-accs">
                   <article
@@ -3903,6 +3986,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 
             <!-- ════════ 模型 / 出图 ════════ -->
             <div v-else-if="tab.name === 'models'" class="chm-panel__tabbody">
+              <!--
+                首屏补取模型配置失败：以前这里是一句空 catch，模型区退回内置默认值，
+                用户看到空清单会以为「这个渠道本来就没有模型」。
+              -->
+              <p v-if="modelConfigErrors.includes(activeChannel)" class="chm-panel__error">
+                模型配置没读到，下面的清单可能不全：点「拉取模型」重新同步上游目录。
+              </p>
               <!--
                 文生图渠道：DuckDuckGo / Trae 没有可配置的模型清单，页面以前只剩一句
                 「未声明内置模型」。这里给一块能直接出图的面板，渠道到底通不通一眼可见。
@@ -4962,10 +5052,6 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   background: color-mix(in srgb, var(--el-color-success, #67c23a) 14%, transparent);
   color: var(--el-color-success, #67c23a);
 }
-.chm-panel__chip.is-muted {
-  background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
-  color: var(--el-text-color-secondary, #909399);
-}
 /* 能力标签：积分（琥珀）/ 任务（靛蓝），与「可签到」的绿色区分开 */
 .chm-panel__chip.is-credit {
   background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 16%, transparent);
@@ -5202,6 +5288,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   color: var(--text-tertiary, #94a3b8);
   font-variant-numeric: tabular-nums;
 }
+/* 合计口径：这条 pill 由几个账号相加（卡片是单账号，两者不必相等） */
+.chm-total__scope {
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+  padding-left: 6px;
+  border-left: 1px solid var(--border-subtle, #eef2f8);
+}
 .chm-panel__switch {
   margin: 0;
   flex: none;
@@ -5265,15 +5358,33 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-panel__sect-title .el-icon {
   color: var(--text-tertiary, #94a3b8);
 }
-/* 自动签到：全局开关，右对齐到标题行末尾 */
-.chm-auto {
-  margin-left: auto;
-  display: inline-flex;
+/* 全局设置行：页级开关（自动签到），与当前选中渠道无关，
+   排在「渠道索引」标题与渠道列表之间 */
+.chm-rail__global {
+  flex: none;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  color: var(--text-tertiary, #94a3b8);
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 8px 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 8px;
+  background: var(--bg-elevated, #f8fafc);
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
   cursor: help;
+}
+.chm-rail__global-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.chm-rail__global-label em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
 }
 .chm-panel__pull {
   margin-left: auto;

@@ -75,16 +75,16 @@ describe("systemWidgets 注册列表", () => {
   });
 
   it("type 与内置目录不冲突", () => {
-    const catalog = getWidgetCatalog(); // 11 条内置（widgets.ts 求值时已自注册）
+    const catalog = getWidgetCatalog(); // 9 条内置（widgets.ts 求值时已自注册）
     const types = systemWidgets.map((w) => w.type);
     expect(new Set(types).size).toBe(types.length);
-    // 内置 type 列表就是 widgets.ts 里 BUILTIN_WIDGETS 的 11 条（注意 'system-config' 也走了
-    // "system-" 前缀，不能按前缀做差异，否则会把内置的 system-config 误排除）
+    // 内置 type 列表就是 widgets.ts 里 BUILTIN_WIDGETS 的 9 条
+    //（client-info / system-config / machine-info 已下线，新增 exchange-rate）
     const builtInTypes = [
-      "calendar", "custom", "note", "client-info", "system-config", "alarm",
-      "bookmark", "quick-access", "weather", "metals", "machine-info",
+      "calendar", "custom", "note", "alarm",
+      "bookmark", "quick-access", "weather", "metals", "exchange-rate",
     ];
-    expect(builtInTypes).toHaveLength(11);
+    expect(builtInTypes).toHaveLength(9);
     expect(catalog.map((w) => w.type)).toEqual(builtInTypes);
     for (const t of types) expect(builtInTypes).not.toContain(t);
   });
@@ -94,12 +94,12 @@ describe("注册表共识", () => {
   beforeEach(() => {
     if (registered) return;
     registered = true;
-    registerWidgets(systemWidgets); // 11 条内置 + 2 条 system 贡献 = 13
+    registerWidgets(systemWidgets); // 9 条内置 + 2 条 system 贡献 = 11
   });
 
   it("登记后目录有、元字段完整", () => {
     const catalog = getWidgetCatalog();
-    expect(catalog).toHaveLength(13);
+    expect(catalog).toHaveLength(11);
     expect(catalog.map((w) => w.type)).toContain("system-userlog");
     expect(catalog.map((w) => w.type)).toContain("system-personal-settings");
 
@@ -157,18 +157,16 @@ describe("注册表共识", () => {
     const catalog = getWidgetCatalog();
     const order = catalog.map((w) => w.category);
     expect(order).toEqual([
-      // 11 条内置
+      // 9 条内置
       "personal", // calendar
       "common", // custom
       "personal", // note
-      "common", // client-info
-      "admin", // system-config
       "personal", // alarm
       "personal", // bookmark
       "common", // quick-access
       "common", // weather
       "common", // metals
-      "common", // machine-info
+      "common", // exchange-rate
       // 2 条 system 贡献（续在最后）
       "admin", // system-userlog
       "personal", // system-personal-settings

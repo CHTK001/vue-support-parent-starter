@@ -16,13 +16,13 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { mount } from "@vue/test-utils";
 import ElementPlus from "element-plus";
 import { registerWidgets } from "@repo/theme/koi/views/home/registry.ts";
-import "@repo/theme/koi/views/home/widgets.ts"; // 11 条内置 widget 自注册
+import "@repo/theme/koi/views/home/widgets.ts"; // 9 条内置 widget 自注册
 import WidgetLibrary from "@repo/theme/koi/views/home/WidgetLibrary.vue";
 import { systemWidgets } from "../widgets/systemWidgets";
 
 describe("WidgetLibrary 面板", () => {
   beforeAll(() => {
-    // 11 条内置 + 2 条 ` @pages/system` 贡献
+    // 9 条内置 + 2 条 ` @pages/system` 贡献
     registerWidgets(systemWidgets);
   });
 
@@ -34,7 +34,7 @@ describe("WidgetLibrary 面板", () => {
     expect(wrapper.find(".widget-library__title").text()).toBe("系统组件");
 
     const systemList = wrapper.findAll(".widget-library__item");
-    expect(systemList).toHaveLength(13); // 11 builtin + 2
+    expect(systemList).toHaveLength(11); // 9 builtin + 2
 
     const titles = systemList.map((i) => i.find(".widget-library__item-title").text());
     expect(titles).toContain("登录日志");

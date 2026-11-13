@@ -175,17 +175,52 @@ export interface DevicePageQuery {
   sortOrder?: 'asc' | 'desc'
 }
 
-/** 厂商能力位（与后端 DeviceCapability 枚举名对齐） */
+/** 厂商能力位（与后端 DeviceCapability 枚举名对齐，16 位全量） */
 export type DeviceCapability =
   | 'DEVICE'
+  | 'DEVICE_WRITE'
   | 'CHANNEL'
   | 'MEDIA'
+  | 'RECORD'
   | 'PTZ'
   | 'EVENT'
   | 'ACCESS'
+  | 'ACCESS_WRITE'
   | 'ORG'
+  | 'ORG_WRITE'
+  | 'PERSON'
+  | 'PERSON_WRITE'
+  | 'CAPTURE'
   | 'METRIC'
   | 'PARKING'
+
+/**
+ * 能力支持度（与后端 DeviceCapabilityMatrix.Support 对齐）。
+ *
+ * <p>只有 yes / implementedUnverified 会派生成平台能力位并显示功能入口；
+ * todo 与 no 一律隐藏，并在能力矩阵里给出原因。</p>
+ */
+export type CapabilitySupport = 'YES' | 'IMPLEMENTED_UNVERIFIED' | 'TODO' | 'NO'
+
+/** 一个能力格的标注 */
+export interface CapabilityCell {
+  /** 支持度 */
+  support: CapabilitySupport
+  /** 该能力对应的官方接口数量（0 表示不适用） */
+  apiCount: number
+  /** 说明：不支持写原因，待实现写依据 */
+  note: string
+}
+
+/** 单个平台的能力矩阵（GET /capability/matrix 的一行） */
+export interface PlatformCapabilityMatrix {
+  /** 平台标识，形如 hikvision.ezviz */
+  platform: string
+  /** 平台展示名 */
+  title: string
+  /** 能力位 → 格子；未出现的表示未声明 */
+  cells: Partial<Record<DeviceCapability, CapabilityCell>>
+}
 
 /** 凭据字段描述 */
 export interface CredentialFieldDescriptor {
@@ -345,6 +380,8 @@ export interface ProviderCredential {
   deviceCredentialProductCode?: string
   /** 云曜项目 ID（ProjectID），云曜平台必填 */
   deviceCredentialProjectId?: string
+  /** 云眸组编号（groupNo），云眸平台注册设备必填 */
+  deviceCredentialGroupNo?: string
   deviceCredentialOfflineThreshold?: number
   deviceCredentialIsDefault?: boolean
   deviceCredentialEnabled?: boolean
