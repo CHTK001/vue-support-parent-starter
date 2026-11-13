@@ -157,7 +157,7 @@ export function portOpen(state: unknown): boolean | null {
 
 /* ==================== 进程图标 ==================== */
 
-/** 常见进程品牌色（关键字命中即取，未命中按名称哈希兜底色） */
+/** 常见进程品牌色（关键字命中即取，未命中用中性灰蓝） */
 const PROCESS_BRAND: Array<[RegExp, string]> = [
   [/java|javaw|corretto|graal/i, "#b07219"],
   [/chrome/i, "#4285f4"],
@@ -167,15 +167,32 @@ const PROCESS_BRAND: Array<[RegExp, string]> = [
   [/doubao/i, "#4f46e5"],
   [/powershell|pwsh|cmd|conhost|windowsterminal/i, "#2b6cb0"],
   [/nginx/i, "#2e9d54"],
-  [/node|npm|pnpm|yarn/i, "#3c873a"],
+  [/\bnode(js)?\b|npm|pnpm|yarn/i, "#3c873a"],
   [/python|py/i, "#3776ab"],
   [/mysqld|mariadb/i, "#00758f"],
   [/redis/i, "#d82c20"],
   [/postgres/i, "#336791"],
+  [/mongod|mongos/i, "#15994e"],
+  [/elastic|kibana|logstash/i, "#b8860b"],
+  [/kafka/i, "#1f2937"],
+  [/rabbitmq|beam\.smp/i, "#ff6600"],
+  [/zookeeper/i, "#5b7c3a"],
+  [/haproxy|envoy|traefik|apache2|httpd/i, "#106da9"],
+  [/tomcat|catalina/i, "#c98a00"],
+  [/php-fpm|php7|php8/i, "#777bb4"],
+  [/dotnet|w3wp/i, "#512bd4"],
+  [/golang|\bgo\b/i, "#00add8"],
+  [/memcached/i, "#5b9bd5"],
+  [/prometheus|grafana|node_exporter/i, "#e6522c"],
+  [/postfix|dovecot|exim|sendmail/i, "#c0533f"],
+  [/named|bind9|dnsmasq|unbound/i, "#2563eb"],
+  [/vsftpd|ftpd|pure-ftpd/i, "#0891b2"],
+  [/xrdp|vnc|novnc/i, "#7c3aed"],
+  [/syncthing/i, "#0891b2"],
   [/explorer/i, "#f0a020"],
   [/docker|containerd/i, "#0db7ed"],
   [/sshd|ssh/i, "#5f6b7a"],
-  [/system|svchost|services|smss|csrss|wininit/i, "#7a869a"],
+  [/system|svchost|services|smss|csrss|wininit|systemd|journald|rsyslog|cron|atd/i, "#6b7280"],
 ];
 
 /** 名称 → 首字母 + 品牌色（哈希兜底，保证任何名字都有稳定颜色） */
@@ -184,9 +201,11 @@ export function logoOf(name: unknown): { letter: string; color: string } {
   for (const [re, color] of PROCESS_BRAND) {
     if (re.test(n)) return { letter: n.charAt(0).toUpperCase() || "?", color };
   }
-  let h = 0;
-  for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0;
-  return { letter: n.charAt(0).toUpperCase() || "?", color: `hsl(${h % 360} 48% 46%)` };
+  const letter = n.charAt(0).toUpperCase() || "?";
+  // 兜底不再按名字哈希取一个随机色相：端口/进程一屏几十行，随机彩块看起来像
+  // 图例错乱，反而盖住了「哪些是同一类」。没识别出来的统一用中性灰蓝，
+  // 靠首字母区分个体、靠底色表达「未知程序」。
+  return { letter, color: "#8792a2" };
 }
 
 /** 服务头像：运行中取品牌色，已停止置灰 */
@@ -205,11 +224,17 @@ export function leadTileOf(
   section: "processes" | "services",
   r: Record<string, any>,
 ): { brand: string; bg: string; glyph: string; letter: string } {
+  const name = String(r?.name ?? "").trim();
+  // 端口行拿不到归属进程时（权限不足 / 采集器不给 pid）不要编一个身份：
+  // 中性「?」块比一个字母更诚实，也避免同一台机器上几十个「未知」各占一个颜色。
+  if (!name) {
+    return { brand: "", bg: "#9aa3ad", glyph: "", letter: "?" };
+  }
   const running = section === "services" ? serviceRunning(r) : true;
-  const brand = running ? processBrandIcon(r?.name) : "";
+  const brand = running ? processBrandIcon(name) : "";
   if (brand) return { brand, bg: "", glyph: "", letter: "" };
-  const logo = section === "processes" ? logoOf(r?.name) : serviceLogo(r);
-  return { brand: "", bg: logo.color, glyph: processGlyph(r?.name), letter: logo.letter };
+  const logo = section === "processes" ? logoOf(name) : serviceLogo(r);
+  return { brand: "", bg: logo.color, glyph: processGlyph(name), letter: logo.letter };
 }
 
 /* ==================== 数值文案 ==================== */

@@ -211,6 +211,14 @@ export function createServerHostRoutes(options: ServerManageRoutesOptions = {}):
           component: () => import("../views/release/ReleaseView.vue"),
           meta: { title: "发布管理", icon: "Box", showLink: true },
         },
+        {
+          // 主机文件：运行本服务的这台机器上的文件存储（上传 / 浏览 / 删除），
+          // 与发布管理的「发布产物」同源，放在同一个分组里。
+          path: "/host-files",
+          name: "ReleaseHostFiles",
+          component: () => import("../views/release/HostFilesView.vue"),
+          meta: { title: "主机文件", icon: "FolderOpened", showLink: true },
+        },
       ],
     },
     {
@@ -286,6 +294,12 @@ export function createServerManageReleaseRoutes(options: ServerManageReleaseRout
           name: "Release",
           component: () => import("../views/release/ReleaseView.vue"),
           meta: { title: "发布管理", icon: "Box", showLink: true, rank: 20 },
+        },
+        {
+          path: "/host-files",
+          name: "ReleaseHostFiles",
+          component: () => import("../views/release/HostFilesView.vue"),
+          meta: { title: "主机文件", icon: "FolderOpened", showLink: true, rank: 21 },
         },
       ],
     },

@@ -130,16 +130,16 @@ const TYPE_LABELS: Record<string, string> = {
   docker: 'Docker 容器',
 };
 
-/** 项目类型默认图标，需与 ProjectsView 的 defaultIconByType 保持一致；`Java` 由 ProjectTypeIcon 绘制。 */
+/** 项目类型默认图标，需与 ProjectsView 的 defaultIconByType 保持一致；品牌标识由 ProjectTypeIcon 绘制。 */
 const TYPE_ICONS: Record<string, string> = {
-  springboot: 'Java',
-  fatjar: 'Box',
-  git: 'GitBranch',
+  springboot: 'BrandSpring',
+  fatjar: 'BrandJava',
+  git: 'BrandGit',
   separated: 'Files',
   model: 'MagicStick',
   static: 'Picture',
-  nginx: 'Connection',
-  docker: 'Ship',
+  nginx: 'BrandNginx',
+  docker: 'BrandDocker',
 };
 
 const typeLabel = computed(() => TYPE_LABELS[props.project.projectType] || props.project.projectType || '未知');

@@ -79,8 +79,11 @@
                     @dblclick="handleViewLog(item)"
                     @contextmenu.prevent.stop="openContextMenu(item, $event)"
                   >
-                    <span class="rail-host__os" :class="[statusKey(item), mediaTone(item)]">
-                      <ProjectTypeIcon :name="displayIcon(item)" :size="15" />
+                    <span
+                      class="rail-host__os"
+                      :class="[statusKey(item), mediaTone(item), { 'is-brand': isBrandIcon(item) }]"
+                    >
+                      <ProjectTypeIcon :name="displayIcon(item)" :size="18" />
                     </span>
                     <span class="rail-host__meta">
                       <b class="rail-host__name">{{ item.projectName }}</b>
@@ -1059,18 +1062,34 @@
               v-model="upgForm.packagePath"
               placeholder="如：/opt/app/releases/app.jar"
               style="width:100%"
+              @input="onUpgPathInput"
             >
               <template #suffix>
                 <button
                   type="button"
                   class="pj-path-browse"
-                  title="从主机文件管理选择产物"
+                  title="从目标主机的文件管理里选择产物"
                   @click="openPackagePicker"
                 >
                   <ReIcon name="Document" :size="14" />
                 </button>
               </template>
             </ReInput>
+            <div class="upg-path-src">
+              <template v-if="upgForm.hostFileKey">
+                <ReIcon name="FolderOpened" :size="12" />
+                <span class="upg-path-src-name" :title="upgForm.hostFileName">
+                  本机文件：{{ upgForm.hostFileName }}
+                </span>
+                <button type="button" class="upg-path-src-clear" @click="onUpgPathInput">清除</button>
+              </template>
+              <template v-else>
+                <ReButton icon="FolderOpened" :show-text="true" @click="hostPickerVisible = true">
+                  从本机文件选
+                </ReButton>
+                <span class="upg-path-src-tip">上传一次，推到任意目标主机，不用每个项目重复传</span>
+              </template>
+            </div>
           </ReFormItem>
           <ReFormItem v-if="upgProject?.projectType === 'separated'" label="部署类型">
             <ReSelect v-model="upgForm.deployType" style="width:100%">
@@ -1218,6 +1237,9 @@
         />
       </div>
     </ReDialog>
+
+    <!-- 本机主机文件选择器：上传一次，推到任意目标主机 -->
+    <HostFilePicker v-model="hostPickerVisible" @select="onHostFilePicked" />
 
     <!-- 项目 Git 仓库：分支 / 提交 / 工作区改动 + 拉取（不可关闭的进度弹窗） -->
     <GitRepositoryDialog ref="gitDialogRef" :project="gitRepoProject" @edit="onGitRepoEdit" />
@@ -1484,6 +1506,9 @@
         <ReButton type="primary" @click="openFailureLog">查看实时日志</ReButton>
       </template>
     </ReDialog>
+
+    <!-- 右下角状态灯：只在有对应能力数据时出现 -->
+    <ReleaseStatusLights v-if="statusLights.length" :items="statusLights" />
   </div>
 </template>
 
@@ -1505,6 +1530,10 @@ import { errorText, toastError } from '../../utils/errors';
 import { downloadHostFile } from '../../api';
 import { releaseSse } from '../../services/releaseRealtime';
 import HostFileManager from '../../components/HostFileManager.vue';
+import HostFilePicker from '../../components/HostFilePicker.vue';
+import ReleaseStatusLights from './ReleaseStatusLights.vue';
+import { upgradeFromHostFile, type ReleaseHostFileItem } from '../../api/releaseHostFile';
+import { getSkywalkingHealth, type SkywalkingHealth } from '../../api/releaseApm';
 import ProjectTypeIcon from '../../components/ProjectTypeIcon.vue';
 import ProjectInfoPanel from '../../components/ProjectInfoPanel.vue';
 import ApmWorkbench from '@pages/apm/src/views/Workbench.vue';
@@ -1937,11 +1966,11 @@ function deployTypeLabel(t?: string): string {
 function defaultIconByType(t: string) {
   switch (t) {
     case 'springboot':
-      return 'Java';
+      return 'BrandSpring';
     case 'fatjar':
-      return 'Box';
+      return 'BrandJava';
     case 'git':
-      return 'GitBranch';
+      return 'BrandGit';
     case 'separated':
       return 'Files';
     case 'model':
@@ -1949,9 +1978,9 @@ function defaultIconByType(t: string) {
     case 'static':
       return 'Picture';
     case 'nginx':
-      return 'Connection';
+      return 'BrandNginx';
     case 'docker':
-      return 'Ship';
+      return 'BrandDocker';
     default:
       return 'Folder';
   }
@@ -3816,6 +3845,8 @@ function openApmWorkbench(item: Project, initialTab = 'services') {
 // ---- 主机路径选择器（项目地址 / 日志地址 / Nginx 目录 / 升级产物） ----
 /** 路径选择器弹框 */
 const pathPickerVisible = ref(false);
+/** 本机主机文件选择器（升级产物） */
+const hostPickerVisible = ref(false);
 /** 正在挑选的字段名 */
 const pathPickerField = ref<'projectPath' | 'logPath' | 'nginxDir' | 'packagePath' | ''>('');
 /** 选择器初始目录 */
@@ -3894,6 +3925,9 @@ function onPathPicked(p: string) {
   // 升级弹框的产物路径单独回填，不污染新建/编辑表单
   if (field === 'packagePath') {
     upgForm.value.packagePath = p;
+    // 手填/远端选择会覆盖本机文件选择，避免两个来源同时生效
+    upgForm.value.hostFileKey = '';
+    upgForm.value.hostFileName = '';
     message.success(`已选择：${p}`);
     return;
   }
@@ -3904,6 +3938,30 @@ function onPathPicked(p: string) {
     form.value.logPath = `${p.replace(/[\\/]+$/, '')}${sep}logs${sep}app.log`;
   }
   message.success(`已选择：${p}`);
+}
+
+/**
+ * 本机主机文件选中：记下 key，真正投放交给后端。
+ *
+ * <p>路径框同步显示主机绝对路径只用于核对；手动改路径会清掉 key，
+ * 避免「看着改了路径、实际还按旧 key 部署」。</p>
+ *
+ * @param item 选中的文件
+ */
+function onHostFilePicked(item: ReleaseHostFileItem) {
+  upgForm.value.hostFileKey = item.key;
+  upgForm.value.hostFileName = item.name;
+  upgForm.value.packagePath = item.hostPath || item.key;
+  message.success(`已选择本机文件：${item.name}`);
+}
+
+/** 手动编辑产物路径：作废已选的本机文件 */
+function onUpgPathInput() {
+  if (!upgForm.value.hostFileKey) {
+    return;
+  }
+  upgForm.value.hostFileKey = '';
+  upgForm.value.hostFileName = '';
 }
 
 /**
@@ -4053,6 +4111,9 @@ const upgForm = ref({
   deployType: '',
   uploadExtract: true,
   uploadTargetDir: '',
+  /** 选中的本机主机文件：非空时走「先推到目标机再升级」，优先于手填路径 */
+  hostFileKey: '',
+  hostFileName: '',
 });
 /**
  * 打开升级弹框：按「该项目自己的默认配置」预填。
@@ -4081,6 +4142,8 @@ async function openUpgradeDialog(item: Project) {
     deployType: item.deployType || '',
     uploadExtract: item.uploadExtract ?? true,
     uploadTargetDir: item.uploadTargetDir || '',
+    hostFileKey: '',
+    hostFileName: '',
   };
   upgHasProjectCfg.value = false;
   try {
@@ -4102,6 +4165,8 @@ async function openUpgradeDialog(item: Project) {
       deployType: base.deployType || item.deployType || '',
       uploadExtract: base.uploadExtract ?? item.uploadExtract ?? true,
       uploadTargetDir: base.uploadTargetDir || item.uploadTargetDir || '',
+      hostFileKey: '',
+      hostFileName: '',
     };
     // 从配置里带出来的产物路径是上一次的，不作为本次默认（避免误升同一个旧包）
     upgForm.value.packagePath = '';
@@ -4144,11 +4209,12 @@ async function executeUpgrade() {
   if (!item || upgRunning.value) return;
   upgRunning.value = true;
   try {
-    await http().put(`${BASE}/upgrade/config?scope=last`).data(upgForm.value);
-    const res = await http()
-      .post(`${BASE}/project/${item.id}/upgrade/run`)
-      .data(upgForm.value);
-    const taskId = unwrapResult<string>(res);
+    const { hostFileKey, hostFileName, ...upgradeCfg } = upgForm.value;
+    await http().put(`${BASE}/upgrade/config?scope=last`).data(upgradeCfg);
+    // 选了本机主机文件：后端先推到目标机 uploads/ 再升级；手填路径走原来的入口
+    const taskId = hostFileKey
+      ? await upgradeFromHostFile(item.id, hostFileKey, upgradeCfg)
+      : unwrapResult<string>(await http().post(`${BASE}/project/${item.id}/upgrade/run`).data(upgradeCfg));
     upgVisible.value = false;
     if (taskId) trackTask(taskId, item.projectName, 'upgrade');
   } catch (e: any) {
@@ -4660,6 +4726,106 @@ const groupedProjects = computed(() =>
   })),
 );
 
+// ---- 右下角状态灯：推送 / Actuator / Arthas ----
+/** 15s 心跳：让「超周期没更新」的黄灯在没有任何推送时也能翻色 */
+const lightsClock = ref(Date.now());
+const lightsTimer = window.setInterval(() => {
+  lightsClock.value = Date.now();
+}, 15000);
+onBeforeUnmount(() => window.clearInterval(lightsTimer));
+
+/** 每项目 Arthas 状态缓存（60s 内不重复探测，避免每次点项目都跑一次远端命令） */
+const arthasLight = reactive<Record<number, { running: boolean; injected: boolean; at: number }>>({});
+
+/** SkyWalking OAP 探测结果（发布级，跟当前发布绑定） */
+const swHealth = ref<SkywalkingHealth>({ enabled: false });
+
+/** 探测一次 OAP；失败保持原值，避免一次网络抖动把灯闪掉 */
+async function loadSkywalkingHealth() {
+  if (!releaseId.value) {
+    return;
+  }
+  swHealth.value = await getSkywalkingHealth(releaseId.value);
+}
+
+/** 60s 刷新一次 OAP 与 Arthas：探测本身有网络成本，别跟着 15s 心跳跑 */
+const oapTimer = window.setInterval(loadSkywalkingHealth, 60000);
+onBeforeUnmount(() => window.clearInterval(oapTimer));
+onMounted(loadSkywalkingHealth);
+
+// 选中项目变化：仅 Java 项目探测 Arthas；取不到（未注入/主机不可达）就不显示这盏灯
+watch(
+  () => metricsProject.value?.id,
+  async (pid) => {
+    if (!pid) return;
+    const item = list.value.find((p) => p.id === pid);
+    if (!item || !isJavaProject(item)) return;
+    const cached = arthasLight[pid];
+    if (cached && Date.now() - cached.at < 60000) return;
+    try {
+      const res = await http().get(`/ms/server/arthas/project/${pid}/status`);
+      const d = unwrapResult<any>(res) || {};
+      arthasLight[pid] = {
+        running: !!d.arthasRunning,
+        injected: !!d.arthasInjected,
+        at: Date.now(),
+      };
+    } catch {
+      // 未注入或主机不可达：保持「无数据」，灯不渲染
+    }
+  },
+  { immediate: true },
+);
+
+/**
+ * 右下角状态灯项。
+ *
+ * <p>口径：绿=最近一次探测正常；黄=超过两个采集周期没更新，或已知 DOWN。
+ * 没有能力数据（没装/没探到）的项直接不返回，避免一排灰灯。</p>
+ */
+const statusLights = computed(() => {
+  // 读一次时钟，让黄灯随超时翻转
+  const now = lightsClock.value;
+  const out: Array<{ key: string; label: string; state: 'ok' | 'warn'; title?: string }> = [];
+  out.push({
+    key: 'push',
+    label: '推送',
+    state: releaseSse.online ? 'ok' : 'warn',
+    title: releaseSse.online ? '实时推送已连接' : '实时推送断开，正在重连',
+  });
+  const item = metricsProject.value;
+  if (item) {
+    const probe = endpointCache[item.id];
+    const at = endpointAt[item.id] || 0;
+    // 口径：没数据 / 超 90s 没更新 / health=DOWN 一律不显示；只有「刚拿到且健康」才亮绿
+    if (probe?.actuator && at && now - at <= 90000
+      && (probe.health || '').toUpperCase() !== 'DOWN') {
+      out.push({
+        key: 'actuator',
+        label: 'Actuator',
+        state: 'ok',
+        title: `健康 ${probe.health || 'UP'} · ${Math.round((now - at) / 1000)}s 前`,
+      });
+    }
+    const arthas = arthasLight[item.id];
+    if (arthas?.injected && arthas.running) {
+      out.push({ key: 'arthas', label: 'Arthas', state: 'ok', title: 'Arthas 已连接' });
+    }
+  }
+  // SkyWalking：没接、连不上都不显示；连上后按耗时给绿/黄
+  const sw = swHealth.value;
+  if (sw.enabled && sw.reachable) {
+    const slow = (sw.elapsedMs || 0) > 800;
+    out.push({
+      key: 'skywalking',
+      label: 'SkyWalking',
+      state: slow ? 'warn' : 'ok',
+      title: `${sw.url || 'OAP'} · ${sw.elapsedMs || 0}ms${slow ? '（偏慢）' : ''}`,
+    });
+  }
+  return out;
+});
+
 // ---- 复制项目到其他服务器 ----
 interface ReleaseOption {
   id: number;
@@ -4739,6 +4905,8 @@ const endpointLoading = ref(false);
 const endpointData = ref<EndpointProbe | null>(null);
 /** 每项目探测结果缓存：同一次停留内反复打开不用重复 SSH */
 const endpointCache = reactive<Record<number, EndpointProbe>>({});
+/** 每项目最近一次拿到端点数据的时间（判断「超周期没更新」的黄灯） */
+const endpointAt = reactive<Record<number, number>>({});
 /** 正在探测的项目（面板显示「探测中」，也防重复请求） */
 const probingIds = reactive<Record<number, boolean>>({});
 
@@ -4761,7 +4929,10 @@ async function probeProject(item: Project, silent = false): Promise<EndpointProb
   try {
     const res = await http().get(`${BASE}/project/${item.id}/endpoints`);
     const data = unwrapResult<EndpointProbe>(res);
-    if (data) endpointCache[item.id] = data;
+    if (data) {
+      endpointCache[item.id] = data;
+      endpointAt[item.id] = Date.now();
+    }
     return data ?? null;
   } catch (e: any) {
     if (!silent) toastError(e, '端点探测失败');
@@ -5223,6 +5394,7 @@ const unsubTaskRefresh = releaseSse.onProjectTask((frame) => {
 const unsubProjectEndpoints = releaseSse.onProjectEndpoints((push) => {
   const pid = Number(push.projectId);
   if (!Number.isFinite(pid)) return;
+  endpointAt[pid] = Date.now();
   endpointCache[pid] = {
     swagger: push.swagger,
     actuator: push.actuator,
@@ -6782,6 +6954,33 @@ onBeforeUnmount(() => {
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 4px;
+}
+/* 产物来源：本机文件已选时的摘要行 / 未选时的入口按钮 */
+.upg-path-src {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.upg-path-src-name {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--el-color-primary);
+}
+.upg-path-src-clear {
+  border: none;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.upg-path-src-tip {
+  color: var(--el-text-color-placeholder);
 }
 .upg-switch {
   display: flex;

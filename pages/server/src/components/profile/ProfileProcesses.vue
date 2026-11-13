@@ -11,7 +11,8 @@
  * @author CH
  * @since 4.0.0.42
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { message } from "@repo/core";
 import {
   fmt1,
   fmtMemory,
@@ -62,6 +63,9 @@ const emit = defineEmits<{
   (e: "refresh"): void;
   (e: "restart", row: Record<string, any>): void;
   (e: "kill", row: Record<string, any>): void;
+  /** 批量动作：一次选择多行时由父级统一确认一次，避免弹 N 个确认框 */
+  (e: "restart-many", rows: Record<string, any>[]): void;
+  (e: "kill-many", rows: Record<string, any>[]): void;
   (e: "analyze"): void;
 }>();
 
@@ -264,7 +268,121 @@ function stateLabelOf(row: Record<string, any> | null | undefined): string {
   return map[key] ? `${map[key]}（${s}）` : s;
 }
 
-/* ==================== 行右键菜单：重启 / 结束 / 内存分析 ==================== */
+/* ==================== 多选：单击 / Shift 区间 / 全选 ==================== */
+
+/**
+ * 已勾选的行（按 pid）。
+ *
+ * <p>用 pid 集合而不是行引用：翻页 / 刷新后行对象会整体换新，持有引用会让
+ * 「已选 3 个」停留在上一页的对象上，接着点批量结束就会打到已经不存在的 pid。</p>
+ */
+const selected = ref<Set<number>>(new Set());
+
+/** Shift 区间的锚点（上一次不带修饰键点中的行） */
+const anchorPid = ref(-1);
+
+/** 已选行的原始数据（批量动作要用命令行等字段） */
+const selectedRows = computed(() => view.value.filter(v => selected.value.has(v.pid)).map(v => v.raw));
+
+/** 本页是否全选 / 部分选中（决定表头复选框的 indeterminate） */
+const allSelected = computed(() => view.value.length > 0 && view.value.every(v => selected.value.has(v.pid)));
+const someSelected = computed(() => !allSelected.value && view.value.some(v => selected.value.has(v.pid)));
+
+/**
+ * 勾选 / 取消一行。
+ *
+ * <p>Shift 走「锚点到当前行的区间」：这是文件管理器与任务管理器的共同习惯，
+ * 也是用户明确要的那个手势。锚点只在非 Shift 点击时移动，否则连续 Shift 会越选越偏。</p>
+ *
+ * @param pid   行 pid
+ * @param shift 是否按住了 Shift
+ */
+function toggleSelect(pid: number, shift: boolean): void {
+  const keys = view.value.map(v => v.pid);
+  const next = new Set(selected.value);
+  if (shift && anchorPid.value >= 0) {
+    const a = keys.indexOf(anchorPid.value);
+    const b = keys.indexOf(pid);
+    if (a >= 0 && b >= 0) {
+      for (let i = Math.min(a, b); i <= Math.max(a, b); i++) next.add(keys[i]);
+      selected.value = next;
+      return;
+    }
+  }
+  if (next.has(pid)) next.delete(pid);
+  else next.add(pid);
+  anchorPid.value = pid;
+  selected.value = next;
+}
+
+/**
+ * 全选 / 清空本页。
+ *
+ * @param checked 表头复选框状态
+ */
+function selectAll(checked: boolean): void {
+  selected.value = checked ? new Set(view.value.map(v => v.pid)) : new Set();
+  anchorPid.value = checked ? (view.value[0]?.pid ?? -1) : -1;
+}
+
+/** 清空选择（切页、刷新、点「清除选择」都走这里） */
+function clearSelection(): void {
+  if (!selected.value.size) return;
+  selected.value = new Set();
+  anchorPid.value = -1;
+}
+
+// 行集合一换（翻页 / 刷新 / 重新检索），选择就必须归零：
+// 留着旧 pid 会让「结束所选」打到上一页那些已经看不到的行。
+watch(() => props.rows, clearSelection);
+
+/* ==================== 复制 ==================== */
+
+/**
+ * 复制文本到剪贴板。
+ *
+ * <p>非安全上下文（http + 非 localhost）没有 navigator.clipboard，回退到
+ * 临时 textarea + execCommand，否则内网 HTTP 部署下所有复制项都静默失效。</p>
+ *
+ * @param text  文本
+ * @param label 提示用的内容名
+ */
+async function copyText(text: string, label: string): Promise<void> {
+  const value = String(text ?? "");
+  if (!value) {
+    message.warning(`${label}为空，没有可复制的内容`);
+    return;
+  }
+  let ok = false;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      ok = true;
+    }
+  } catch {
+    ok = false;
+  }
+  if (!ok) {
+    try {
+      const el = document.createElement("textarea");
+      el.value = value;
+      el.setAttribute("readonly", "");
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      ok = document.execCommand("copy");
+      document.body.removeChild(el);
+    } catch {
+      ok = false;
+    }
+  }
+  if (ok) message.success(`${label}已复制`);
+  else message.warning("复制失败，请用属性框里的命令行手动选择");
+}
+
+/* ==================== 行右键菜单 ==================== */
+
 /** 菜单状态 */
 const ctxMenu = reactive<{ visible: boolean; x: number; y: number; row: Record<string, any> | null }>({
   visible: false,
@@ -273,13 +391,55 @@ const ctxMenu = reactive<{ visible: boolean; x: number; y: number; row: Record<s
   row: null,
 });
 
-/** 菜单项（菜单自身只管展示与定位，确认逻辑委托给父级） */
-const ctxItems: Array<{ label: string; icon: string; danger?: boolean; disabled?: boolean; action: () => void }> = [
-  { label: "显示属性", icon: "View", action: () => rowCommand("props") },
-  { label: "重启进程", icon: "RefreshRight", action: () => rowCommand("restart") },
-  { label: "结束进程", icon: "CircleClose", danger: true, action: () => rowCommand("kill") },
-  { label: "内存分析", icon: "DataAnalysis", action: () => rowCommand("analyze") },
-];
+/** 菜单项：label 为空表示分隔线 */
+interface CtxItem {
+  label: string;
+  icon?: string;
+  danger?: boolean;
+  disabled?: boolean;
+  /** 右侧键位提示（只是说明，实际由宿主/键盘处理） */
+  hint?: string;
+  action: () => void;
+}
+
+/**
+ * 菜单项按当前选择动态生成。
+ *
+ * <p>右键点在一个「已被多选」的行上时，结束/重启作用于整个选择；
+ * 点在未选中的行上则先把选择收成这一行 —— 与资源管理器一致，
+ * 否则用户会以为「我只是右键看看」，结果批量杀了 8 个进程。</p>
+ */
+const ctxItems = computed<CtxItem[]>(() => {
+  const row = ctxMenu.row;
+  const multi = !!row && selected.value.size > 1 && selected.value.has(numOf(row.pid));
+  const n = multi ? selected.value.size : 1;
+  return [
+    { label: "显示属性", icon: "View", hint: "双击", action: () => rowCommand("props") },
+    {
+      label: "重启进程",
+      icon: "RefreshRight",
+      disabled: !row || !canRestart(row),
+      action: () => rowCommand("restart"),
+    },
+    {
+      label: multi ? `结束所选 ${n} 个进程` : "结束进程",
+      icon: "CircleClose",
+      danger: true,
+      action: () => rowCommand("kill"),
+    },
+    { label: "", action: () => undefined },
+    { label: "复制进程名", icon: "CopyDocument", disabled: !row, action: () => rowCommand("copy-name") },
+    { label: "复制 PID", icon: "CopyDocument", disabled: !row, action: () => rowCommand("copy-pid") },
+    {
+      label: "复制命令行",
+      icon: "CopyDocument",
+      disabled: !row || !String(row.command ?? "").trim(),
+      action: () => rowCommand("copy-command"),
+    },
+    { label: "", action: () => undefined },
+    { label: "内存分析", icon: "DataAnalysis", action: () => rowCommand("analyze") },
+  ];
+});
 
 /** 属性弹框状态：行数据单独存一份，弹框打开期间列表刷新不影响已打开的对象 */
 const propsVisible = ref(false);
@@ -293,26 +453,55 @@ function closeRowContextMenu(): void {
 
 function onRowContextMenu(e: MouseEvent, p: ProcView): void {
   e.preventDefault();
+  // 右键落点决定了「动作作用在谁身上」：点在未选中的行上就只选它
+  if (!selected.value.has(p.pid)) {
+    selected.value = new Set([p.pid]);
+    anchorPid.value = p.pid;
+  }
   ctxMenu.visible = true;
   ctxMenu.x = e.clientX;
   ctxMenu.y = e.clientY;
   ctxMenu.row = p.raw;
 }
 
-function rowCommand(cmd: "restart" | "kill" | "analyze" | "props"): void {
-  // 先取出目标行再关菜单：关闭菜单会清空 ctxMenu.row，
-  // 原先「先关后判断」的写法让三个动作全部变成空操作（右键点了没反应）。
+type RowCommand = "restart" | "kill" | "analyze" | "props" | "copy-name" | "copy-pid" | "copy-command";
+
+function rowCommand(cmd: RowCommand): void {
+  // 先取出目标行再关菜单：关闭菜单会清空 ctxMenu.row
   const row = ctxMenu.row;
+  const many = !!row && selected.value.size > 1 && selected.value.has(numOf(row.pid));
+  const rows = many ? selectedRows.value : row ? [row] : [];
   closeRowContextMenu();
   if (!row) return;
-  if (cmd === "restart") emit("restart", row);
-  if (cmd === "kill") emit("kill", row);
-  if (cmd === "analyze") emit("analyze");
-  if (cmd === "props") {
-    propsRow.value = row;
-    propsVisible.value = true;
+  switch (cmd) {
+    case "props":
+      propsRow.value = row;
+      propsVisible.value = true;
+      return;
+    case "restart":
+      if (many) emit("restart-many", rows);
+      else emit("restart", row);
+      return;
+    case "kill":
+      if (many) emit("kill-many", rows);
+      else emit("kill", row);
+      return;
+    case "analyze":
+      emit("analyze");
+      return;
+    case "copy-name":
+      void copyText(String(row.name ?? ""), "进程名");
+      return;
+    case "copy-pid":
+      void copyText(String(numOf(row.pid)), "PID");
+      return;
+    case "copy-command":
+      void copyText(String(row.command ?? ""), "命令行");
+      return;
+    default:
   }
 }
+
 
 /** 菜单已 teleport 到 body，组件外的左键点击与 ESC 也要能关闭 */
 function onDocPointerDown(e: MouseEvent) {
@@ -368,10 +557,49 @@ onBeforeUnmount(() => {
     </template>
 
     <div class="proc-list">
+      <!-- 表头：全选 + 列名。列顺序与行内栅格一一对应，扫读时不必靠猜 -->
+      <div class="proc-head">
+        <label class="proc-check" title="全选本页">
+          <input
+            type="checkbox"
+            :checked="allSelected"
+            :indeterminate.prop="someSelected"
+            aria-label="全选本页进程"
+            @change="selectAll(($event.target as HTMLInputElement).checked)"
+          />
+        </label>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span class="proc-head__l">进程</span>
+        <span class="proc-head__l proc-head__bar">{{ metric === 'cpu' ? 'CPU 占用' : '内存占用' }}</span>
+        <span class="proc-head__r proc-head__val">{{ metric === 'cpu' ? 'CPU%' : '内存' }}</span>
+        <span class="proc-head__r proc-head__pid">PID</span>
+        <span class="proc-head__r proc-head__user">用户</span>
+      </div>
+
+      <!-- 批量条：有选择时才出现，动作与右键菜单同源（都最终落到同一个 emit） -->
+      <div v-if="selected.size" class="proc-batch">
+        <span class="proc-batch__n">已选 <b class="pf-mono">{{ selected.size }}</b> 个</span>
+        <button
+          type="button"
+          class="pf-btn"
+          :disabled="!!busyKey"
+          @click="emit('restart-many', selectedRows)"
+        >重启所选</button>
+        <button
+          type="button"
+          class="pf-btn is-bad"
+          :disabled="!!busyKey"
+          @click="emit('kill-many', selectedRows)"
+        >结束所选</button>
+        <span class="proc-batch__spacer"></span>
+        <button type="button" class="pf-btn" @click="clearSelection">清除选择</button>
+      </div>
+
       <div
         v-for="p in view"
         :key="p.pid"
-        :class="['proc-row', p.tone ? `t-${p.tone}` : '', { open: expandedPid === p.pid }]"
+        :class="['proc-row', p.tone ? `t-${p.tone}` : '', { open: expandedPid === p.pid, picked: selected.has(p.pid) }]"
         @contextmenu.prevent.stop="onRowContextMenu($event, p)"
       >
         <el-popover
@@ -382,7 +610,15 @@ onBeforeUnmount(() => {
           :disabled="!p.raw"
         >
           <template #reference>
-            <div class="proc-main" @click="toggleRow(p.pid)">
+            <div class="proc-main" @click="($event.shiftKey ? toggleSelect(p.pid, true) : toggleRow(p.pid))">
+              <label class="proc-check" @click.stop.prevent="toggleSelect(p.pid, $event.shiftKey)">
+                <input
+                  type="checkbox"
+                  :checked="selected.has(p.pid)"
+                  :aria-label="`选择 ${p.raw.name ?? ''}（PID ${p.pid}）`"
+                  tabindex="-1"
+                />
+              </label>
               <span class="proc-caret">{{ expandedPid === p.pid ? "▾" : "▸" }}</span>
 
               <span v-if="p.tile.brand" class="proc-tile proc-tile--brand" v-html="p.tile.brand"></span>
@@ -391,15 +627,17 @@ onBeforeUnmount(() => {
                 <template v-else>{{ p.tile.letter }}</template>
               </span>
 
-              <span class="proc-name pf-mono pf-ellipsis">{{ p.raw.name || "—" }}</span>
-              <span v-if="isZombie(p.raw)" class="proc-zombie pf-pill t-bad" title="进程已退出，仅剩进程表项等待父进程回收">僵尸</span>
+              <span class="proc-name-cell">
+                <span class="proc-name pf-mono pf-ellipsis">{{ p.raw.name || "—" }}</span>
+                <span v-if="isZombie(p.raw)" class="proc-zombie pf-pill t-bad" title="进程已退出，仅剩进程表项等待父进程回收">僵尸</span>
+              </span>
 
               <span class="proc-bar-wrap">
                 <span class="pf-bar"><i :style="{ width: p.ratio + '%' }" /></span>
               </span>
 
               <b class="proc-val pf-mono">{{ p.valueText }}</b>
-              <span class="proc-pid pf-mono pf-dim">PID {{ p.pid }}</span>
+              <span class="proc-pid pf-mono pf-dim">{{ p.pid }}</span>
               <span class="proc-user pf-dim pf-ellipsis">{{ p.raw.user || "—" }}</span>
             </div>
           </template>
@@ -468,9 +706,14 @@ onBeforeUnmount(() => {
                 :class="c.tone ? `t-${c.tone}` : ''"
                 :style="{ '--child-depth': c._depth ?? 0 }"
               >
-                <span class="proc-child__tile" :style="{ background: leadTileOf('processes', c.raw).bg }">
-                  <template v-if="leadTileOf('processes', c.raw).glyph" v-html="leadTileOf('processes', c.raw).glyph"></template>
-                  <template v-else>{{ leadTileOf('processes', c.raw).letter }}</template>
+                <span
+                  class="proc-child__tile"
+                  :class="{ 'proc-tile--brand': c.tile.brand }"
+                  :style="c.tile.brand ? undefined : { background: c.tile.bg }"
+                >
+                  <template v-if="c.tile.brand" v-html="c.tile.brand"></template>
+                  <template v-else-if="c.tile.glyph" v-html="c.tile.glyph"></template>
+                  <template v-else>{{ c.tile.letter }}</template>
                 </span>
                 <span class="proc-child__name pf-mono pf-ellipsis">{{ c.raw.name || "—" }}</span>
                 <span class="proc-child__pid pf-mono pf-dim">PID {{ c.pid }}</span>
@@ -503,17 +746,23 @@ onBeforeUnmount(() => {
         class="pf-ctx"
         :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }"
         @click.stop
+        @contextmenu.prevent
       >
-        <div
-          v-for="(item, i) in ctxItems"
-          :key="i"
-          class="pf-ctx-item"
-          :class="{ danger: item.danger, disabled: item.disabled }"
-          @click="item.action"
-        >
-          <el-icon><component :is="item.icon" /></el-icon>
-          <span>{{ item.label }}</span>
-        </div>
+        <template v-for="(item, i) in ctxItems" :key="i">
+          <div v-if="!item.label" class="pf-ctx-sep" role="separator"></div>
+          <div
+            v-else
+            class="pf-ctx-item"
+            :class="{ danger: item.danger, disabled: item.disabled }"
+            role="menuitem"
+            :aria-disabled="item.disabled ? 'true' : 'false'"
+            @click="!item.disabled && item.action()"
+          >
+            <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
+            <span class="pf-ctx-item__label">{{ item.label }}</span>
+            <span v-if="item.hint" class="pf-ctx-item__hint">{{ item.hint }}</span>
+          </div>
+        </template>
       </div>
     </Teleport>
 
@@ -570,9 +819,63 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 2px;
 }
+
+/* 表头：与 .proc-main 同一套栅格，列宽必须逐字一致，否则表头会错位 */
+.proc-head {
+  display: grid;
+  grid-template-columns: 18px 14px 28px minmax(96px, 150px) 1fr 82px 76px minmax(60px, 92px);
+  gap: 10px;
+  align-items: center;
+  padding: 2px 8px 4px;
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.proc-head__l { min-width: 0; }
+.proc-head__r { text-align: right; }
+
+/* 批量条：与列表同一底色系，出现时不推开列表高度以外的内容 */
+.proc-batch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding: 5px 8px;
+  border: 1px solid var(--el-color-primary-light-7, #ece9ff);
+  border-radius: 8px;
+  background: var(--el-color-primary-light-9, #f6f4ff);
+  font-size: 12px;
+}
+.proc-batch__n {
+  color: var(--el-text-color-regular, #4a5162);
+}
+.proc-batch__n b {
+  color: var(--el-color-primary, #5a4bd9);
+}
+.proc-batch__spacer {
+  flex: 1;
+}
+
+/* 复选框列：不做自定义皮肤，保留原生键盘可达与高对比 */
+.proc-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.proc-check input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--el-color-primary, #5a4bd9);
+}
 .proc-row {
   border-radius: 8px;
   transition: background 0.14s;
+}
+.proc-row.picked {
+  background: var(--el-color-primary-light-9, #f6f4ff);
+  box-shadow: inset 2px 0 0 var(--el-color-primary, #5a4bd9);
 }
 .proc-row:hover {
   background: var(--el-color-primary-light-9, #f6f4ff);
@@ -604,9 +907,21 @@ onBeforeUnmount(() => {
 .pf-ctx-item.danger { color: var(--el-color-danger); }
 .pf-ctx-item.disabled { opacity: .35; cursor: default; }
 .pf-ctx-item.disabled:hover { background: transparent; }
+.pf-ctx-item__label { flex: 1; min-width: 0; }
+/* 键位提示只做「这里还可以怎么点」的说明，不拦截键盘 */
+.pf-ctx-item__hint {
+  flex: none;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #a8abb2);
+}
+.pf-ctx-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--el-border-color-lighter, #eef0f6);
+}
 .proc-main {
   display: grid;
-  grid-template-columns: 14px 28px minmax(96px, 150px) 1fr 82px 76px minmax(60px, 92px);
+  grid-template-columns: 18px 14px 28px minmax(96px, 150px) 1fr 82px 76px minmax(60px, 92px);
   gap: 10px;
   align-items: center;
   padding: 6px 8px;
@@ -635,6 +950,8 @@ onBeforeUnmount(() => {
 }
 .proc-tile :deep(svg) {
   display: block;
+  width: 18px;
+  height: 18px;
 }
 .proc-glyph {
   display: inline-flex;
@@ -644,6 +961,17 @@ onBeforeUnmount(() => {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--el-text-color-primary, #1f2430);
+}
+/* 名称与「僵尸」标记共用一个栅格单元：标记单独占一格会把后面的列整体挤到下一位，
+   行尾的用户列直接被换行藏掉（表头还会错位）。 */
+.proc-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.proc-name-cell .proc-name {
+  min-width: 0;
 }
 /* 僵尸标记：进程已退出，指标全是 0，必须靠状态点出来 */
 .proc-zombie {
@@ -758,6 +1086,16 @@ onBeforeUnmount(() => {
   font-size: 9.5px;
   font-weight: 700;
 }
+/* 品牌 Logo 是彩色图形，不能压在色块上：换成中性白底 + 细边，与主列表同一口径 */
+.proc-child__tile.proc-tile--brand {
+  background: var(--el-bg-color, #fff);
+  border: 1px solid var(--el-border-color-extra-light, #eef0f6);
+}
+.proc-child__tile :deep(svg) {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
 .proc-child__name {
   min-width: 0;
   flex: 1;
@@ -860,8 +1198,16 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
+  .proc-head {
+    grid-template-columns: 18px 14px 28px 1fr 74px;
+  }
   .proc-main {
-    grid-template-columns: 14px 28px 1fr 74px;
+    grid-template-columns: 18px 14px 28px 1fr 74px;
+  }
+  .proc-head__bar,
+  .proc-head__pid,
+  .proc-head__user {
+    display: none;
   }
   .proc-bar-wrap,
   .proc-pid,

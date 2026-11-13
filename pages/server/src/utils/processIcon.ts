@@ -12,12 +12,16 @@ const CATEGORY: Array<[RegExp, string]> = [
   [/windowsterminal|cmd\.exe|powershell|pwsh|conhost|terminal|putty|bash|zsh|sh$|ssh|telnet/i, "terminal"],
   [/\bcode\b|idea|webstorm|pycharm|goland|phpstorm|rubymine|clion|eclipse|sublime|devenv|notepad\+\+/i, "code"],
   [/mysqld|mariadb|postgres|redis-server|redis\.exe|mongod|oracle|sqlservr|mssql|clickhouse|influxd|memcached/i, "database"],
+  [/kafka|rabbitmq|beam\.smp|activemq|rocketmq|zookeeper/i, "mq"],
+  [/elastic|kibana|logstash|solr/i, "search"],
+  [/haproxy|envoy|traefik|varnish|squid/i, "proxy"],
+  [/postfix|dovecot|exim|sendmail|smtpd/i, "mail"],
   [/java|javaw|jdk|jvm|jre/i, "coffee"],
   [/docker|containerd|dockerd|kube|etcd|container/i, "container"],
-  [/nginx|httpd|apache|tomcat|caddy|traefik/i, "server"],
-  [/node|deno|bun/i, "hex"],
+  [/nginx|httpd|apache|caddy|traefik|tomcat|catalina/i, "server"],
+  [/\bnode(js)?\b|deno|bun/i, "hex"],
   [/python|pythonw|perl|ruby|php|lua/i, "script"],
-  [/svchost|services\.exe|lsass|wininit|csrss|smss|system|registry|kernel|systemd|init\b/i, "gear"],
+  [/svchost|services\.exe|lsass|wininit|csrss|smss|system|registry|kernel|systemd|journald|rsyslog|cron|crond|atd|init\b/i, "gear"],
 ];
 
 /** 分类 → SVG 内部图形（描边 currentColor） */
@@ -34,6 +38,23 @@ const GLYPH: Record<string, string> = {
     '<ellipse cx="12" cy="5" rx="8" ry="3"/>'
     + '<path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/>'
     + '<path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  /* 消息队列：一条管道 + 两端节点，和「数据库的圆柱」「服务器的机架」都不撞 */
+  mq:
+    '<rect x="2.5" y="9" width="4" height="6" rx="1"/>'
+    + '<rect x="17.5" y="9" width="4" height="6" rx="1"/>'
+    + '<path d="M6.5 12h5M12.5 12h5M11.5 9.5 12.5 12l-1 2.5"/>',
+  /* 搜索/日志：放大镜 */
+  search:
+    '<circle cx="10.5" cy="10.5" r="6"/>'
+    + '<path d="M15 15l5 5"/>',
+  /* 反向代理：两条分叉的箭头 */
+  proxy:
+    '<path d="M3 12h5M8 12c4 0 4-6 8-6M8 12c4 0 4 6 8 6"/>'
+    + '<path d="M14 4.5 16.5 6 14 7.5M14 16.5 16.5 18 14 19.5"/>',
+  /* 邮件：信封 */
+  mail:
+    '<rect x="3" y="5.5" width="18" height="13" rx="2"/>'
+    + '<path d="M3.6 6.6 12 13l8.4-6.4"/>',
   coffee:
     '<path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8z"/>'
     + '<path d="M17 9h2a2.5 2.5 0 0 1 0 5h-2"/>'

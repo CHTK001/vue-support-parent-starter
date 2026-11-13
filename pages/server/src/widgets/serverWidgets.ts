@@ -26,28 +26,15 @@
  *   <li>组件默认懒加载（{@code component: () => import(...)}），与内置 widget 一致。</li>
  * </ul>
  */
-import { Warning } from "@element-plus/icons-vue";
 import type { WidgetRegistration } from "@repo/theme/koi/views/home/registry.ts";
 
-/** 主机侧贡献的全部 widget */
-export const serverWidgets: WidgetRegistration[] = [
-  {
-    type: "host-offline",
-    title: "离线主机",
-    description: "不在线的主机列表，重点关注意外下线的资产",
-    icon: "Warning",
-    // 直接给组件：WidgetLibrary 的内置 ICON_MAP 只认 9 个内置图标名，
-    // 模块贡献的图标名不在其中，只传 icon 字符串会静默退化成默认图标
-    iconComponent: Warning,
-    defaultSize: { w: 6, h: 4 },
-    category: "common",
-    environment: "prod",
-    requiredPermission: "user",
-    maxCount: 1,
-    source: "server",
-    component: () => import("./ServerHostOfflineWidget.vue"),
-  },
-];
+/**
+ * 主机侧贡献的全部 widget
+ *
+ * <p>「离线主机」已从首页组件库下线（生产按需再看，避免首页堆监控类卡片），
+ * 数组留空但保留注册入口，后续要加回时直接补条目即可。</p>
+ */
+export const serverWidgets: WidgetRegistration[] = [];
 
 /** 目录项，便于 app 侧单独引用 */
 export { default as ServerHostOfflineWidget } from "./ServerHostOfflineWidget.vue";

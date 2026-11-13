@@ -2,13 +2,14 @@
 /**
  * 进程属性弹框 —— 对齐 Windows 任务管理器「属性」的形式与信息密度。
  *
- * <p>只保留后端真能采集的五个页签：常规 / 性能 / 网络 / 线程 / 环境。
+ * <p>只保留后端真能采集的六个页签：常规 / 性能 / 子进程 / 网络 / 线程 / 环境。
  * 采不到的 Windows 专属页签（.NET 程序集、GPU、Disk、Token、Modules、Handles、Job）
  * 一律不出现——摆一个永远空着的壳比没有更糟。</p>
  *
- * <p>数据来源：常规与性能取进程行本身；网络取 {@code /ms/system/netproc} 按 pid 过滤；
- * 线程取 {@code /process/{pid}/threads}；环境与工作目录取新增的两个端点
- * （POSIX 读 {@code /proc/<pid>}，Windows 无调试权限时返回空表，页面如实说明）。</p>
+ * <p>数据来源：常规与性能取进程行本身；子进程取 {@code /process/{pid}/children}；
+ * 网络取 {@code /ms/system/netproc} 按 pid 过滤；线程取 {@code /process/{pid}/threads}；
+ * 环境与工作目录取 {@code /process/{pid}/env|cwd}（POSIX 读 {@code /proc/<pid>}，
+ * Windows 无调试权限时返回空表，页面如实说明）。</p>
  *
  * @author CH
  * @since 4.0.0.51
@@ -17,10 +18,12 @@ import { computed, reactive, ref, watch } from "vue";
 import ReDialog from "@repo/ui/re-dialog";
 import {
   fetchNetProcesses,
+  fetchProcessChildren,
   fetchProcessCwd,
   fetchProcessEnv,
   fetchProcessThreads,
   type NetProcessInfo,
+  type ProcessInfo,
   type ThreadInfo,
 } from "../../api/hostRuntime";
 import { fmt1, fmtMemory, numOf } from "../../utils/hostProfileUi";
@@ -47,12 +50,13 @@ const emit = defineEmits<{
 }>();
 
 /** 页签标识 */
-type TabKey = "general" | "perf" | "net" | "thread" | "env";
+type TabKey = "general" | "perf" | "children" | "net" | "thread" | "env";
 
 /** 页签定义：顺序与 Windows 属性框一致的常用项对齐，只列可采集的 */
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "general", label: "常规" },
   { key: "perf", label: "性能" },
+  { key: "children", label: "子进程" },
   { key: "net", label: "网络" },
   { key: "thread", label: "线程" },
   { key: "env", label: "环境" },
@@ -70,11 +74,14 @@ const threads = ref<ThreadInfo[]>([]);
 const netRows = ref<NetProcessInfo[]>([]);
 const envRows = ref<Array<{ name: string; value: string }>>([]);
 const cwd = ref("");
+/** 子进程（后端按 ppid 过滤，跨页也拿得到） */
+const childrenRows = ref<ProcessInfo[]>([]);
 
 /** 每个页签的加载/完成状态，切回已加载页签不重复请求 */
 const loading = reactive<Record<TabKey, boolean>>({
   general: false,
   perf: false,
+  children: false,
   net: false,
   thread: false,
   env: false,
@@ -82,11 +89,15 @@ const loading = reactive<Record<TabKey, boolean>>({
 const loaded = reactive<Record<TabKey, boolean>>({
   general: true,
   perf: true,
+  children: false,
   net: false,
   thread: false,
   env: false,
 });
 const loadError = ref("");
+
+/** 环境页签的「取不到」原因：接口通了但没有数据时用它代替一片空白 */
+const envHint = ref("");
 
 /** 目标进程号 */
 const pid = computed(() => numOf(props.row?.pid));
@@ -134,6 +145,12 @@ const memVsPage = computed(() => (pageMax.value.mem > 0 ? (memMb.value / pageMax
 /** 该进程的端口占用（网络页） */
 const myPorts = computed(() => netRows.value.filter(r => numOf(r.pid) === pid.value));
 
+/** 其中真正在「对外服务」的行：TCP 的 LISTEN 与 UDP 的 UNCONN */
+const listeningPorts = computed(() => myPorts.value.filter(r => {
+  const s = String(r.state ?? "").toUpperCase();
+  return s === "LISTEN" || s === "LISTENING" || s === "UNCONN";
+}));
+
 /** 线程状态色：与进程分区里的线程列表保持同一口径 */
 function threadTone(state?: string): string {
   const s = String(state ?? "").toUpperCase();
@@ -152,8 +169,11 @@ function reset(): void {
   threads.value = [];
   netRows.value = [];
   envRows.value = [];
+  childrenRows.value = [];
   cwd.value = "";
   loadError.value = "";
+  envHint.value = "";
+  loaded.children = false;
   loaded.net = false;
   loaded.thread = false;
   loaded.env = false;
@@ -186,16 +206,24 @@ async function loadTab(key: TabKey): Promise<void> {
   try {
     if (key === "thread") {
       threads.value = await fetchProcessThreads(pid.value, props.hostId);
+    } else if (key === "children") {
+      childrenRows.value = await fetchProcessChildren(pid.value, props.hostId);
     } else if (key === "net") {
       const all = await fetchNetProcesses(props.hostId);
       netRows.value = all;
     } else if (key === "env") {
+      // 目录与环境分开取：拿不到工作目录不该连带把环境变量也判成失败。
+      // 两个接口都可能因为「权限不足」返回空值（不是错误），所以这里各自兜住，
+      // 只在确实抛错时把原因写进 hint，让页面说得清「为什么是空的」。
       const [dir, env] = await Promise.all([
-        fetchProcessCwd(pid.value, props.hostId),
-        fetchProcessEnv(pid.value, props.hostId),
+        fetchProcessCwd(pid.value, props.hostId).catch(() => ""),
+        fetchProcessEnv(pid.value, props.hostId).catch(() => [] as Array<{ name: string; value: string }>),
       ]);
       cwd.value = dir || "";
       envRows.value = env || [];
+      if (!cwd.value && !envRows.value.length) {
+        envHint.value = "目标机拒绝读取该进程的 /proc 信息（同用户或 root 才可读），或该平台不提供。";
+      }
     }
     loaded[key] = true;
   } catch (e) {
@@ -287,23 +315,55 @@ async function loadTab(key: TabKey): Promise<void> {
         </div>
       </div>
 
+      <!-- 子进程：后端按 ppid 过滤，跨页也能列全 -->
+      <div v-else-if="tab === 'children'" class="pp-pane">
+        <div class="pp-label">
+          该进程派生的子进程
+          <template v-if="childrenRows.length">（{{ childrenRows.length }} 个）</template>
+        </div>
+        <div v-if="loading.children" class="pp-empty">正在读取子进程…</div>
+        <div v-else-if="!childrenRows.length" class="pp-empty">
+          没有子进程。多数守护进程会立即 fork 后退出父进程，此时父子关系已经断开，属正常现象。
+        </div>
+        <table v-else class="pp-table">
+          <thead>
+            <tr><th>PID</th><th>进程名</th><th>CPU</th><th>内存</th><th>命令行</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in childrenRows" :key="c.pid">
+              <td class="pf-mono">{{ c.pid }}</td>
+              <td class="pf-mono pf-ellipsis" :title="c.name">{{ c.name || "—" }}</td>
+              <td class="pf-mono">{{ c.cpu != null ? `${fmt1(c.cpu)}%` : "—" }}</td>
+              <td class="pf-mono">{{ c.memory != null ? fmtMemory(c.memory) : "—" }}</td>
+              <td class="pf-mono pp-break" :title="c.command">{{ c.command || "—" }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <!-- 网络 -->
       <div v-else-if="tab === 'net'" class="pp-pane">
         <div v-if="loading.net" class="pp-empty">正在读取端口占用…</div>
         <div v-else-if="!myPorts.length" class="pp-empty">该进程当前没有监听或已建立的连接。</div>
-        <table v-else class="pp-table">
-          <thead>
-            <tr><th>协议</th><th>本地地址</th><th>远端地址</th><th>状态</th></tr>
-          </thead>
-          <tbody>
-            <tr v-for="(r, i) in myPorts" :key="`${r.local || r.localAddr}-${i}`">
-              <td class="pf-mono">{{ (r.protocol || r.type || "").toUpperCase() }}</td>
-              <td class="pf-mono">{{ r.local || `${r.localAddr || ""}:${r.localPort ?? ""}` }}</td>
-              <td class="pf-mono">{{ r.remote || (r.remoteAddr ? `${r.remoteAddr}:${r.remotePort ?? ""}` : "—") }}</td>
-              <td class="pf-mono">{{ r.state || "—" }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <template v-else>
+          <!-- 监听行单独先说一句：这是「谁在对外提供服务」，与客户端连出去的连接不是一回事 -->
+          <div class="pp-label">
+            监听 {{ listeningPorts.length }} 个 · 连接 {{ myPorts.length - listeningPorts.length }} 条
+          </div>
+          <table class="pp-table">
+            <thead>
+              <tr><th>协议</th><th>本地地址</th><th>远端地址</th><th>状态</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, i) in myPorts" :key="`${r.local || r.localAddr}-${i}`">
+                <td class="pf-mono">{{ (r.protocol || r.type || "").toUpperCase() }}</td>
+                <td class="pf-mono">{{ r.local || `${r.localAddr || ""}:${r.localPort ?? ""}` }}</td>
+                <td class="pf-mono">{{ r.remote || (r.remoteAddr ? `${r.remoteAddr}:${r.remotePort ?? ""}` : "—") }}</td>
+                <td class="pf-mono">{{ r.state || "—" }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
       </div>
 
       <!-- 线程 -->
@@ -333,7 +393,8 @@ async function loadTab(key: TabKey): Promise<void> {
         <div class="pp-label">环境变量</div>
         <div v-if="loading.env" class="pp-empty">正在读取环境变量…</div>
         <div v-else-if="!envRows.length" class="pp-empty">
-          没有读到环境变量。POSIX 需要读 /proc/&lt;pid&gt;/environ（同用户或 root 才有权限），
+          {{ envHint || "没有读到环境变量。" }}
+          POSIX 需要读 /proc/&lt;pid&gt;/environ（同用户或 root 才有权限），
           Windows 读取其他进程的环境变量需要调试权限，本系统不伪造数据。
         </div>
         <table v-else class="pp-table">

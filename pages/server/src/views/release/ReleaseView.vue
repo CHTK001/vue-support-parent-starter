@@ -110,31 +110,59 @@
         <section class="rel-edit__col rel-edit__col--apm">
           <header class="rel-edit__head">
             <span class="rel-edit__title">APM 注入</span>
+            <el-tooltip
+              content="启用后，该发布下新建/复制的项目自动挂载 agent jar 并上报到集群 OAP；项目级 APM 选项仍优先。"
+              placement="top"
+              :show-after="150"
+            >
+              <span class="apm-tip" aria-label="说明">ⓘ</span>
+            </el-tooltip>
             <span class="apm-chip">SkyWalking</span>
             <span class="rel-edit__note">该发布下新项目默认继承</span>
           </header>
-          <p class="rel-edit__hint">
-            启用后，该发布下新建/复制的项目自动挂载 agent jar，并统一上报到集群 OAP；项目级 APM 选项仍优先。
-          </p>
           <ReForm :model="form" label-position="top" class="rel-edit__form">
             <ReFormItem label="启用状态">
               <div class="sw-toggle">
                 <ReSwitch :model-value="!!form.swEnabled" @change="(v: any) => form.swEnabled = !!v" />
                 <span class="apm-divider-sub">
-                  {{ form.swEnabled ? "新项目将自动带上 -javaagent" : "关闭时发布不下发 APM，项目按自己的配置走" }}
+                  {{ form.swEnabled ? "新项目自动带 -javaagent" : "不注入，项目按自己的配置走" }}
                 </span>
               </div>
             </ReFormItem>
-            <ReFormItem label="agent jar 路径（目标主机绝对路径，留空继承全局）" :required="!!form.swEnabled && !globalFallbackActive">
-              <ReInput v-model="form.swJarPath" placeholder="如 /opt/skywalking/skywalking-agent.jar" style="width:100%" />
+            <ReFormItem label="agent jar 路径" :required="!!form.swEnabled && !globalFallbackActive">
+              <div class="apm-row">
+                <ReInput v-model="form.swJarPath" placeholder="如 /opt/skywalking/skywalking-agent.jar" style="flex:1;min-width:0" />
+                <el-tooltip
+                  content="目标主机上的绝对路径；留空则取全局兜底。Windows 与 Linux 路径不同，跨平台请由发布分别配置。"
+                  placement="top"
+                  :show-after="150"
+                >
+                  <span class="apm-tip" aria-label="说明">ⓘ</span>
+                </el-tooltip>
+              </div>
               <div v-if="swMissingJar" class="apm-warn">
                 已勾选启用，但 agent jar 路径为空：该发布不会注入 agent。
               </div>
             </ReFormItem>
-            <ReFormItem label="service_name 前缀（留空则只取项目名）">
-              <ReInput v-model="form.swServiceNamePrefix" placeholder="如 prod，最终为 prod-项目名" style="width:100%" />
-            </ReFormItem>            <ReFormItem label="OAP 上报地址（collector.backend_service，留空继承全局）" :required="!!form.swEnabled && !globalFallbackActive">
-              <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800；留空用全局兜底" style="width:100%" />
+            <ReFormItem label="service_name 前缀">
+              <div class="apm-row">
+                <ReInput v-model="form.swServiceNamePrefix" placeholder="如 prod，最终为 prod-项目名" style="flex:1;min-width:0" />
+                <el-tooltip content="留空则服务名只取项目名。" placement="top" :show-after="150">
+                  <span class="apm-tip" aria-label="说明">ⓘ</span>
+                </el-tooltip>
+              </div>
+            </ReFormItem>
+            <ReFormItem label="OAP 上报地址" :required="!!form.swEnabled && !globalFallbackActive">
+              <div class="apm-row">
+                <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800" style="flex:1;min-width:0" />
+                <el-tooltip
+                  content="写入 agent 的 collector.backend_service（gRPC 11800）；留空取全局兜底。"
+                  placement="top"
+                  :show-after="150"
+                >
+                  <span class="apm-tip" aria-label="说明">ⓘ</span>
+                </el-tooltip>
+              </div>
               <div v-if="swMissingBackend" class="apm-warn">
                 已勾选启用，但发布与全局都没有 OAP 地址：agent 起来了也上报不到任何后端。
               </div>
@@ -237,46 +265,65 @@
       :close-on-click-modal="false"
     >
       <div class="global-apm">
-        <p class="rel-edit__hint">
-          发布自身填写了 agent / OAP 时优先用发布配置；发布留空的字段才取这里。
-          项目 jvmArgs 里已经声明的 APM 参数优先级最高，不会被覆盖。
-        </p>
         <ReForm label-position="top">
           <ReFormItem label="启用全局兜底">
             <div class="sw-toggle">
               <ReSwitch v-model="globalApmForm.enabled" />
               <span class="apm-divider-sub">
-                {{ globalApmForm.enabled ? "发布留空字段将使用下面的统一配置" : "关闭后只使用发布自身配置" }}
+                {{ globalApmForm.enabled ? "发布留空字段用下面的统一配置" : "只用发布自身配置" }}
               </span>
+              <el-tooltip
+                content="发布自身填了 agent / OAP 时优先用发布配置，留空才取这里；项目 jvmArgs 里已声明的 APM 参数优先级最高，不会被覆盖。"
+                placement="top"
+                :show-after="150"
+              >
+                <span class="apm-tip" aria-label="说明">ⓘ</span>
+              </el-tooltip>
             </div>
           </ReFormItem>
-          <ReFormItem label="OAP 上报地址（collector.backend_service）">
-            <ReInput
-              v-model="globalApmForm.backendService"
-              placeholder="如 oap-vip:11800（单机填 OAP_IP:11800）"
-              style="width:100%"
-            />
-            <div class="apm-divider-sub" style="margin-top:6px">
-              单机填 OAP 的 11800 端口；OAP 集群/聚合填统一 VIP、负载均衡或域名。
-              观测台查询地址仍在「APM 设置 → OAP 地址」（HTTP 12800）。
+          <ReFormItem label="OAP 上报地址">
+            <div class="apm-row">
+              <ReInput
+                v-model="globalApmForm.backendService"
+                placeholder="如 oap-vip:11800（单机填 OAP_IP:11800）"
+                style="flex:1;min-width:0"
+              />
+              <el-tooltip
+                content="写入 collector.backend_service（gRPC 11800）。单机填 OAP 的 IP；集群或聚合填统一 VIP / 负载均衡 / 域名。观测台查询地址另在「APM 设置 → OAP 地址」（HTTP 12800）。"
+                placement="top"
+                :show-after="150"
+              >
+                <span class="apm-tip" aria-label="说明">ⓘ</span>
+              </el-tooltip>
             </div>
           </ReFormItem>
-          <ReFormItem label="agent jar 路径（目标主机绝对路径，可选）">
-            <ReInput
-              v-model="globalApmForm.jarPath"
-              placeholder="如 /opt/skywalking/agent.jar"
-              style="width:100%"
-            />
-            <div class="apm-divider-sub" style="margin-top:6px">
-              仅当发布未填 jar 时使用；不同操作系统路径不同，跨平台请由发布分别配置。
+          <ReFormItem label="agent jar 路径">
+            <div class="apm-row">
+              <ReInput
+                v-model="globalApmForm.jarPath"
+                placeholder="如 /opt/skywalking/agent.jar"
+                style="flex:1;min-width:0"
+              />
+              <el-tooltip
+                content="仅当发布未填 jar 时使用。目标主机绝对路径；不同操作系统路径不同，跨平台请由发布分别配置。"
+                placement="top"
+                :show-after="150"
+              >
+                <span class="apm-tip" aria-label="说明">ⓘ</span>
+              </el-tooltip>
             </div>
           </ReFormItem>
-          <ReFormItem label="service_name 前缀（可选）">
-            <ReInput
-              v-model="globalApmForm.serviceNamePrefix"
-              placeholder="如 prod，最终为 prod-项目名"
-              style="width:100%"
-            />
+          <ReFormItem label="service_name 前缀">
+            <div class="apm-row">
+              <ReInput
+                v-model="globalApmForm.serviceNamePrefix"
+                placeholder="如 prod，最终为 prod-项目名"
+                style="flex:1;min-width:0"
+              />
+              <el-tooltip content="留空则服务名只取项目名。" placement="top" :show-after="150">
+                <span class="apm-tip" aria-label="说明">ⓘ</span>
+              </el-tooltip>
+            </div>
           </ReFormItem>
         </ReForm>
       </div>
@@ -1064,11 +1111,28 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--text-tertiary, #9aa1ad);
 }
-.rel-edit__hint {
-  margin: 0 0 12px;
-  font-size: 12.5px;
-  line-height: 1.65;
-  color: var(--text-secondary, #6b7280);
+/* 输入框 + 说明图标：说明收进 tip，行内只留一个 ⓘ */
+.apm-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.apm-tip {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-tertiary, #9aa1ad);
+  cursor: help;
+  user-select: none;
+}
+.apm-tip:hover {
+  color: var(--el-color-primary, #5a4bd9);
 }
 .rel-edit__form :deep(.el-form-item) {
   margin-bottom: 14px;

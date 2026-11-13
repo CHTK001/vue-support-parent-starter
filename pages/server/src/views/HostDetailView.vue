@@ -1213,6 +1213,59 @@ async function onProfileRestart(row: Record<string, any>): Promise<void> {
   await runProfileAction(`restart-${row.pid}`, restartHostProcess(Number(row.pid), hostId.value));
 }
 
+/**
+ * 批量结束进程（ProfileProcesses @kill-many）。
+ *
+ * <p>只确认一次、逐个下发：N 个确认框会让「刚选好 12 个」变成 12 次点击，
+ * 而失败必须逐条报出来——批量操作最容易出现「一半成功一半失败」却只回显一句成功。</p>
+ *
+ * @param rows 选中的进程行
+ */
+async function onProfileKillMany(rows: Record<string, any>[]): Promise<void> {
+  const list = rows.filter(r => Number(r.pid) > 0);
+  if (!list.length) return;
+  const names = list.slice(0, 3).map(r => `${r.name ?? "?"}(${r.pid})`).join("、");
+  const more = list.length > 3 ? ` 等 ${list.length} 个` : "";
+  if (!await confirmProfileAction(`确定结束 ${list.length} 个进程？${names}${more}。该操作不可恢复。`)) return;
+  let ok = 0;
+  const failed: string[] = [];
+  for (const r of list) {
+    try {
+      await killProcess(Number(r.pid), hostId.value);
+      ok++;
+    } catch {
+      failed.push(`${r.name ?? "?"}(${r.pid})`);
+    }
+  }
+  if (failed.length) message.warning(`已结束 ${ok} 个，失败 ${failed.length} 个：${failed.slice(0, 5).join("、")}`);
+  else message.success(`已结束 ${ok} 个进程`);
+  await loadProfileSection();
+}
+
+/**
+ * 批量重启进程（ProfileProcesses @restart-many）。
+ *
+ * @param rows 选中的进程行
+ */
+async function onProfileRestartMany(rows: Record<string, any>[]): Promise<void> {
+  const list = rows.filter(r => Number(r.pid) > 0);
+  if (!list.length) return;
+  if (!await confirmProfileAction(`确定重启 ${list.length} 个进程？重启会中断它们的现有连接。`)) return;
+  let ok = 0;
+  const failed: string[] = [];
+  for (const r of list) {
+    try {
+      await restartHostProcess(Number(r.pid), hostId.value);
+      ok++;
+    } catch {
+      failed.push(`${r.name ?? "?"}(${r.pid})`);
+    }
+  }
+  if (failed.length) message.warning(`已重启 ${ok} 个，失败 ${failed.length} 个：${failed.slice(0, 5).join("、")}`);
+  else message.success(`已重启 ${ok} 个进程`);
+  await loadProfileSection();
+}
+
 /** 服务启停（ProfileServices @start/@stop/@restart） */
 async function onProfileService(row: Record<string, any>, action: "start" | "stop" | "restart"): Promise<void> {
   const label = action === "start" ? "启动" : action === "stop" ? "停止" : "重启";
@@ -1657,6 +1710,8 @@ function onProfileCommit(kw: string): void {
           @refresh="loadProfileSection"
           @restart="onProfileRestart"
           @kill="onProfileKill"
+          @restart-many="onProfileRestartMany"
+          @kill-many="onProfileKillMany"
         />
 
         <!-- 服务：运行中 / 已停止 双列 -->

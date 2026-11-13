@@ -201,21 +201,18 @@ const strip = computed<StripItem[]>(() => {
                 :disabled="busyKey === `cfg-${r.key}`"
               />
               <button
-                class="pf-btn"
+                class="pf-btn pf-btn--icon"
                 :class="{ 'is-primary': dirty(r) }"
                 :disabled="busyKey === `cfg-${r.key}` || !String(drafts[String(r.key)] ?? '').trim()"
+                :title="dirty(r) ? '应用修改' : '应用'"
+                aria-label="应用"
                 @click="apply(r)"
-              >{{ busyKey === `cfg-${r.key}` ? "…" : "应用" }}</button>
+              >{{ busyKey === `cfg-${r.key}` ? "…" : "✓" }}</button>
             </template>
             <span v-else class="pf-dim">实时只读</span>
           </div>
         </div>
       </template>
-    </div>
-
-    <div class="cfg-note pf-dim">
-      说明：参数集合由目标平台决定——Linux 写 /proc/sys 并持久化到 sysctl.d / limits.d；
-      Windows 写注册表并回读确认，标注「需重启/新会话」的项在重启对应服务或系统后才生效。
     </div>
   </ProfileSectionShell>
 </template>
@@ -361,10 +358,16 @@ const strip = computed<StripItem[]>(() => {
   border-color: var(--el-color-primary-light-5, #b3a9fe);
   background: var(--el-color-primary-light-9, #f6f4ff);
 }
-.cfg-note {
-  margin-top: 8px;
-  font-size: 11px;
-  line-height: 1.65;
+/* 应用按钮收成图标：一行里输入框 + 文字按钮太挤，✓ 与标题提示足够表达 */
+.pf-btn--icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  line-height: 1;
 }
 
 @media (max-width: 900px) {

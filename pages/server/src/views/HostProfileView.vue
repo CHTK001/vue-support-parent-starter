@@ -627,6 +627,66 @@ async function onRestartProcess(row: Record<string, any>): Promise<void> {
   await runAction(`restart-${row.pid}`, restartHostProcess(Number(row.pid), actionHostId()));
 }
 
+/**
+ * 批量结束进程：只确认一次、逐条下发并逐条统计失败。
+ *
+ * @param rows 选中的进程行
+ */
+async function onKillProcessMany(rows: Record<string, any>[]): Promise<void> {
+  const list = rows.filter(r => Number(r.pid) > 0);
+  if (!list.length) return;
+  const brief = list.slice(0, 3).map(r => `${r.name ?? "?"}(${r.pid})`).join("、");
+  const tail = list.length > 3 ? ` 等 ${list.length} 个` : "";
+  if (!await confirmAction(`确定结束 ${list.length} 个进程？${brief}${tail}。该操作不可恢复。`)) return;
+  busyRow.value = "kill-many";
+  let ok = 0;
+  const failed: string[] = [];
+  try {
+    for (const r of list) {
+      try {
+        await killProcess(Number(r.pid), actionHostId());
+        ok++;
+      } catch {
+        failed.push(`${r.name ?? "?"}(${r.pid})`);
+      }
+    }
+  } finally {
+    busyRow.value = "";
+  }
+  if (failed.length) message.warning(`已结束 ${ok} 个，失败 ${failed.length} 个：${failed.slice(0, 5).join("、")}`);
+  else message.success(`已结束 ${ok} 个进程`);
+  await loadSection();
+}
+
+/**
+ * 批量重启进程：同样只确认一次。
+ *
+ * @param rows 选中的进程行
+ */
+async function onRestartProcessMany(rows: Record<string, any>[]): Promise<void> {
+  const list = rows.filter(r => Number(r.pid) > 0);
+  if (!list.length) return;
+  if (!await confirmAction(`确定重启 ${list.length} 个进程？重启会中断它们的现有连接。`)) return;
+  busyRow.value = "restart-many";
+  let ok = 0;
+  const failed: string[] = [];
+  try {
+    for (const r of list) {
+      try {
+        await restartHostProcess(Number(r.pid), actionHostId());
+        ok++;
+      } catch {
+        failed.push(`${r.name ?? "?"}(${r.pid})`);
+      }
+    }
+  } finally {
+    busyRow.value = "";
+  }
+  if (failed.length) message.warning(`已重启 ${ok} 个，失败 ${failed.length} 个：${failed.slice(0, 5).join("、")}`);
+  else message.success(`已重启 ${ok} 个进程`);
+  await loadSection();
+}
+
 /** 服务启停 */
 async function onServiceAction(row: Record<string, any>, action: "start" | "stop" | "restart"): Promise<void> {
   const label = action === "start" ? "启动" : action === "stop" ? "停止" : "重启";
@@ -1192,6 +1252,8 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
             @refresh="loadSection"
             @restart="onRestartProcess"
             @kill="onKillProcess"
+            @restart-many="onRestartProcessMany"
+            @kill-many="onKillProcessMany"
             @analyze="toggleAnalyze"
           />
 

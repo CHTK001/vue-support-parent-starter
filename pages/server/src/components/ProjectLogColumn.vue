@@ -9,9 +9,10 @@
  * <p>自动滚动状态由组件自己维护（用户在日志里上滚即暂停跟随，回到底部恢复），
  * 通过 `v-model:auto-scroll` 暴露给父组件，父组件不需要关心滚动细节。</p>
  */
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import ReIcon from '@repo/ui/re-icon';
 import { http, unwrapResult } from '@repo/utils';
+import { diagnoseReleaseLog, getReleaseAiCapabilities } from '../api/releaseAi';
 
 defineOptions({ name: 'ProjectLogColumn' });
 
@@ -279,6 +280,51 @@ function segments(line: string): { text: string; hit: boolean }[] {
   if (from < line.length) out.push({ text: line.slice(from), hit: false });
   return out.length ? out : [{ text: line, hit: false }];
 }
+
+// ---- AI 排查 ----
+/** 单次送进模型的日志行数上限：够看上下文，又不至于把整份日志塞进去 */
+const AI_LOG_LINES = 300;
+
+/** 宿主是否有可用 AI（没有就不显示入口） */
+const aiAvailable = ref(false);
+const aiOpen = ref(false);
+const aiLoading = ref(false);
+const aiText = ref('');
+const aiError = ref('');
+
+onMounted(async () => {
+  const cap = await getReleaseAiCapabilities();
+  aiAvailable.value = cap.available;
+});
+
+/**
+ * 把当前日志尾部交给模型排查。
+ *
+ * <p>只取尾部：报错与堆栈在最后，头部多是启动流水，喂进去只会稀释上下文。</p>
+ */
+async function runAiDiagnose() {
+  if (aiLoading.value) {
+    return;
+  }
+  const tail = props.lines.slice(-AI_LOG_LINES).join('\n');
+  if (!tail.trim()) {
+    aiError.value = '当前还没有日志内容';
+    aiOpen.value = true;
+    return;
+  }
+  aiOpen.value = true;
+  aiLoading.value = true;
+  aiError.value = '';
+  aiText.value = '';
+  try {
+    const data = await diagnoseReleaseLog(props.title, tail);
+    aiText.value = data?.conclusion || '模型没有返回内容';
+  } catch (e: any) {
+    aiError.value = e?.message || 'AI 排查失败';
+  } finally {
+    aiLoading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -289,6 +335,17 @@ function segments(line: string): { text: string; hit: boolean }[] {
       <span v-if="source" class="log-col-src" :title="`日志来源：${source}（在项目编辑的「日志」里修改）`">{{ source }}</span>
       <span class="log-col-count">{{ lines.length }} 行</span>
       <span class="log-col-actions">
+        <button
+          v-if="aiAvailable"
+          type="button"
+          class="lc-btn"
+          :class="{ 'is-on': aiOpen }"
+          :title="aiLoading ? 'AI 正在排查…' : '让 AI 看最近 300 行日志，给出根因与建议'"
+          :disabled="aiLoading"
+          @click="runAiDiagnose"
+        >
+          <ReIcon name="MagicStick" :size="14" />
+        </button>
         <button
           type="button"
           class="lc-btn"
@@ -366,6 +423,28 @@ function segments(line: string): { text: string; hit: boolean }[] {
     </div>
 
     <div v-if="notice && !searchActive" class="log-notice">{{ notice }}</div>
+
+    <div v-if="aiOpen" class="log-ai">
+      <div class="log-ai-head">
+        <ReIcon name="MagicStick" :size="13" class="log-ai-ic" />
+        <span class="log-ai-title">AI 排查</span>
+        <span class="log-ai-model">最近 {{ Math.min(AI_LOG_LINES, lines.length) }} 行</span>
+        <span class="log-ai-grow"></span>
+        <button type="button" class="lc-btn" title="重新排查" :disabled="aiLoading" @click="runAiDiagnose">
+          <ReIcon name="Refresh" :size="13" />
+        </button>
+        <button type="button" class="lc-btn" title="收起" @click="aiOpen = false">
+          <ReIcon name="Close" :size="13" />
+        </button>
+      </div>
+      <div class="log-ai-body">
+        <span v-if="aiLoading" class="log-ai-loading">模型正在看日志…</span>
+        <span v-else-if="aiError" class="log-ai-err">{{ aiError }}</span>
+        <template v-else>
+          <div v-for="(para, i) in aiText.split('\n')" :key="i" class="log-ai-line">{{ para || ' ' }}</div>
+        </template>
+      </div>
+    </div>
 
     <div ref="boxEl" class="log-container" :class="{ 'is-search': searchActive }" @scroll="onScroll">
       <template v-if="searchActive">
@@ -745,6 +824,56 @@ function segments(line: string): { text: string; hit: boolean }[] {
   background: rgba(210, 153, 34, 0.1);
   border: 1px solid rgba(210, 153, 34, 0.35);
   border-radius: 6px;
+}
+
+/* ---- AI 排查结论：贴在日志上方，长文本自己滚，不挤压日志区 ---- */
+.log-ai {
+  flex: none;
+  margin: 6px 8px 0;
+  border: 1px solid rgba(88, 166, 255, 0.35);
+  border-radius: 6px;
+  background: rgba(88, 166, 255, 0.08);
+}
+.log-ai-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(88, 166, 255, 0.22);
+}
+.log-ai-ic {
+  color: #58a6ff;
+}
+.log-ai-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c9d1d9;
+}
+.log-ai-model {
+  font-size: 11px;
+  color: #8b949e;
+}
+.log-ai-grow {
+  flex: 1;
+}
+.log-ai-body {
+  max-height: 180px;
+  overflow: auto;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #c9d1d9;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.log-ai-line {
+  white-space: pre-wrap;
+}
+.log-ai-loading {
+  color: #8b949e;
+}
+.log-ai-err {
+  color: #f85149;
 }
 
 .log-state {
