@@ -46,7 +46,11 @@
             v-for="(result, index) in searchResults"
             :key="index"
             class="kb-search__result cursor-pointer flex flex-col gap-2"
+            role="button"
+            tabindex="0"
             @click="handleResultClick(result)"
+            @keydown.enter.prevent="handleResultClick(result)"
+            @keydown.space.prevent="handleResultClick(result)"
           >
             <!-- 分数 -->
             <div class="kb-search__head flex items-center justify-between gap-2 flex-wrap">

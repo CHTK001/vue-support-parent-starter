@@ -3989,6 +3989,20 @@ html.dark .kb-tpl__cover {
   background: var(--kb-accent-soft);
 }
 
+/* --- 键盘焦点：新增的可交互控件共用一圈品牌色焦点环 --- */
+.kb-th:focus-visible,
+.kb-treeempty__act:focus-visible,
+.kb-nav__search-clear:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--kb-card),
+    0 0 0 4px color-mix(in srgb, var(--kb-accent) 45%, transparent);
+}
+
+.kb-th:focus-visible {
+  border-radius: 3px;
+}
+
 .kb-nav__filter::placeholder {
   color: var(--kb-ink-3);
 }
@@ -4053,6 +4067,14 @@ html.dark .kb-tpl__cover {
 
 .kb-search__result:hover::before {
   opacity: 0.9;
+}
+
+.kb-search__result:focus-visible {
+  outline: none;
+  border-color: var(--kb-accent-line);
+  box-shadow:
+    0 0 0 2px var(--kb-card),
+    0 0 0 4px color-mix(in srgb, var(--kb-accent) 45%, transparent);
 }
 
 .kb-search__rank {
