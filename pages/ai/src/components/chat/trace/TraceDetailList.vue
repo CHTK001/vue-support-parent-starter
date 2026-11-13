@@ -1,10 +1,13 @@
-<template>
-  <!--
-    轨迹明细：按 系统 / 上下文 / 助手 / 工具 分组列出点事件与区间事件。
+<!--
+  轨迹明细：按 系统 / 上下文 / 助手 / 工具 分组列出点事件与区间事件。
 
-    「用户」一组不在这里：轨迹表记录的是 Agent 执行过程，不含用户输入，
-    用户消息由会话消息接口提供。把两者混在一张表里会让人以为这里也是消息记录。
-  -->
+  「用户」一组不在这里：轨迹表记录的是 Agent 执行过程，不含用户输入，
+  用户消息由会话消息接口提供。
+
+  每一行都是按钮，点开后弹出浮层显示全部正文与元信息（右上角 × 关闭，
+  底部不再放关闭按钮 —— 用户口径 2026-11-13）。
+-->
+<template>
   <div class="trace-detail">
     <div v-if="!hasAny" class="trace-empty">本次运行没有可展示的轨迹明细。</div>
 
@@ -43,7 +46,6 @@
           <pre v-for="(chunk, i) in selected.detail" :key="i" class="td-modal-body">{{ chunk }}</pre>
           <footer class="td-modal-foot">
             <span class="td-modal-count">共 {{ selected.detail.length }} 段</span>
-            <button type="button" class="td-foot-btn" @click="selected = null">关闭</button>
           </footer>
         </section>
       </div>
@@ -52,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import {
   TRACE_GROUPS,
   formatClock,
@@ -76,7 +78,14 @@ interface DetailRow {
   text?: string | null;
   /** 附加标记，如「未闭合」「第2轮」「820ms」 */
   badge?: string;
+  /** 详情浮层里的全部正文（区间事件可能有多个片段） */
+  detail: string[];
+  /** 详情浮层的元信息 */
+  meta: Array<{ label: string; value: string }>;
 }
+
+/** 当前打开详情的行；null = 浮层关闭 */
+const selected = ref<DetailRow | null>(null);
 
 /**
  * 明细行 = 点事件 + 区间事件。
@@ -92,6 +101,8 @@ const rows = computed<DetailRow[]>(() => {
     offsetMs: p.offsetMs,
     label: p.label,
     text: p.toolName ? `${p.toolName}${p.text ? '：' + p.text : ''}` : p.text,
+    detail: p.text ? [String(p.text)] : [],
+    meta: p.toolName ? [{ label: '工具', value: String(p.toolName) }] : [],
   }));
   for (const s of props.model.spans) {
     const badges: string[] = [];
@@ -106,6 +117,12 @@ const rows = computed<DetailRow[]>(() => {
       label: s.toolName || kindLabel(s.kind),
       text: s.texts[s.texts.length - 1] ?? null,
       badge: badges.join(" · ") || undefined,
+      detail: (s.texts || []).filter((t) => !!t).map(String),
+      meta: [
+        ...(s.toolName ? [{ label: '工具', value: String(s.toolName) }] : []),
+        { label: '时长', value: formatDuration(s.durationMs) },
+        ...(s.turn !== null ? [{ label: '轮次', value: `第${s.turn}轮` }] : []),
+      ],
     });
   }
   return out.sort((a, b) => a.time - b.time || a.key.localeCompare(b.key));
@@ -136,7 +153,7 @@ const hasAny = computed(() => rows.value.length > 0);
 .trace-empty {
   padding: 24px 0;
   text-align: center;
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
 }
 
 .detail-group {
@@ -148,55 +165,64 @@ const hasAny = computed(() => rows.value.length > 0);
   align-items: baseline;
   gap: 8px;
   padding-bottom: 4px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .detail-title {
   font-weight: 600;
-  color: #111827;
+  color: var(--el-text-color-primary);
 }
 
 .detail-count {
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
   font-variant-numeric: tabular-nums;
 }
 
 .detail-none {
   padding: 6px 0;
-  color: #9ca3af;
+  color: var(--el-text-color-secondary);
 }
 
 .detail-row {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  width: 100%;
   padding: 3px 0;
-  border-bottom: 1px dashed #f9fafb;
+  border: none;
+  border-bottom: 1px dashed var(--el-border-color-lighter);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.detail-row:hover {
+  background: var(--el-fill-color-light);
 }
 
 .detail-time {
   flex: 0 0 88px;
-  color: #6b7280;
+  color: var(--el-text-color-secondary);
   font-variant-numeric: tabular-nums;
 }
 
 .detail-offset {
   flex: 0 0 60px;
-  color: #9ca3af;
+  color: var(--el-text-color-placeholder);
   font-variant-numeric: tabular-nums;
 }
 
 .detail-kind {
   flex: 0 0 72px;
-  color: #374151;
+  color: var(--el-text-color-regular);
 }
 
 .detail-badge {
   flex: 0 0 auto;
   padding: 0 6px;
   border-radius: 999px;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
   font-size: 11px;
 }
 
@@ -206,6 +232,115 @@ const hasAny = computed(() => rows.value.length > 0);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #111827;
+  color: var(--el-text-color-primary);
+}
+
+.detail-chevron {
+  flex: none;
+  color: var(--el-text-color-placeholder);
+}
+
+/* ===== 详情浮层 ===== */
+.td-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #0f172a 34%, transparent);
+}
+
+.td-modal {
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  padding: 14px 16px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--radius-lg, 14px);
+  background: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-dark);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.td-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.td-modal-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.td-modal-when {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.td-modal-close {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.td-modal-close:hover { background: var(--el-fill-color-light); }
+
+.td-modal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.td-modal-tag {
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  font-size: 11.5px;
+}
+
+.td-modal-body {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter, var(--el-fill-color-light));
+  color: var(--el-text-color-regular);
+  font-family: var(--font-mono, Consolas, monospace);
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.td-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.td-modal-count {
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
 }
 </style>

@@ -136,12 +136,18 @@
           <!-- 模型动作条：输入框上方的「模型此刻在干什么」
                （执行中命令卡可展开；等待用户/思考/生成三种轻量态）。
                答完即整条消失，没有空闲态。
-               编辑消息时隐藏，避免与编辑条叠在一起（与 AiNextTaskPanel 同口径）。 -->
+               编辑消息时隐藏，避免与编辑条叠在一起（与 AiNextTaskPanel 同口径）。
+               「回到底部」箭头放进动作条内左侧（2026-11-13 用户口径：不再挂在动作条外面）。 -->
           <ModelActionBar v-if="!editMode" :kind="actionBarKind"
             :model-name="actionBarModelName" :card="actionBarCard" :progress="actionBarProgressText"
             :pending="actionBarPending" :retry="actionBarRetry"
             @locate="handleActionBarLocate"
-            @approve="handleActionBarApproveAll" />
+            @approve="handleActionBarApproveAll">
+            <template #leading>
+              <ScrollToBottomButton inline :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"
+                :status="processingStatus" @click="handleScrollToBottomClick" />
+            </template>
+          </ModelActionBar>
 
           <div class="w-full flex items-center relative">
 
@@ -159,14 +165,7 @@
                 <SessionWorkspaceButton variant="bar" :workspace-path="currentSession?.workspacePath || null"
                   @change="handleWorkspaceChange" />
               </template>
-              <!-- 回到底部（2026-11-11 用户要求）：不再浮在消息区左上方，
-                   融进输入行，落在「模型名 / 档位」chip 的左侧。
-                   right-actions-before 正是右组第一个位置，与模型 chip 同一基线；
-                   inline 形态把 FAB 的绝对定位与主色实底撤掉（见 ScrollToBottomButton.vue）。 -->
-              <template #right-actions-before>
-                <ScrollToBottomButton inline :show="showScrollToBottomBtn" :is-streaming="shouldButtonBreathe"
-                  :status="processingStatus" @click="handleScrollToBottomClick" />
-              </template>
+              <!-- 回到底部箭头已挪到模型动作条行左侧（2026-11-13），本 slot 不再使用 -->
             </ChatInput>
           </div>
         </div>

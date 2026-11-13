@@ -1073,11 +1073,9 @@ function onMoreNavClick(key: string) {
   handleNavClick(key)
 }
 
-// 当前会话 ID
-const currentSessionId = computed(() => {
-  const sessionId = route.params.sessionId
-  return Array.isArray(sessionId) ? sessionId[0] : sessionId
-})
+// 当前会话 ID：以 store 的 activeSessionId（真实 ID）为准。
+// 路由参数现在是 md5 哈希（用户口径 2026-11-13，不暴露明文 ID），不能直接当会话 ID 用。
+const currentSessionId = computed(() => sessionStore.activeSessionId)
 
 // 图像分组（含子项时的父级）折叠状态。
 //

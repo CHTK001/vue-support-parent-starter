@@ -276,10 +276,14 @@ function handleItemClick(messageId: string) {
 
 .chat-outline-container {
   position: fixed;
-  right: 8px;
+  /* 右侧栏（执行轨迹 / 会话状态）打开时让开它：这类导航挂在本 pane 的
+     包含块里（.chat-pane-content 有 contain: layout），不让开就会压在面板上。
+     宽度由 ChatPage 以 --chat-side-rail-width 下发，未打开时为 0px。 */
+  right: calc(8px + var(--chat-side-rail-width, 0px));
   top: 50%;
   transform: translateY(-50%);
   z-index: 30;
+  transition: right 0.16s ease;
 }
 
 /* —— 竖条指示器 —— */
@@ -439,6 +443,7 @@ function handleItemClick(messageId: string) {
 /* 尊重系统「减少动态效果」偏好 */
 @media (prefers-reduced-motion: reduce) {
   .outline-line,
+  .chat-outline-container,
   .card-fade-enter-active,
   .card-fade-leave-active {
     transition: none;

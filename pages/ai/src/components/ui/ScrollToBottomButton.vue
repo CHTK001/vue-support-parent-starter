@@ -261,6 +261,14 @@ defineExpose({
     animation: none;
     opacity: 1;
     position: relative;
+    /* 清掉 FAB 定位偏移（2026-11-13 用户报障：箭头被右推 24px 压进模型动作条左缘）：
+       基础规则里的 left:24px / bottom:calc(100%+10px) 在 position:static 时被忽略，
+       这里为了给 ::after 圆点做锚点把 position 改回 relative，偏移立刻复活。
+       relative 只用于锚定 ::after，四个偏移必须显式归零。 */
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
 }
 
 .scroll-to-bottom-btn.is-inline.streaming .scroll-icon {

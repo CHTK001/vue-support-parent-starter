@@ -32,6 +32,8 @@ import { createAppRouter, isAdmin, setRouter } from "@repo/core";
 import { registerMenuResolver } from "@repo/pinia";
 import { createPinia } from "pinia";
 import { useAuthStore } from "./stores/auth";
+// 会话 ID 哈希：地址栏不暴露明文会话 ID（用户口径 2026-11-13）
+import { sessionHash, isSessionHash } from "./utils/sessionHash";
 import NProgress from "nprogress";
 
 import "element-plus/dist/index.css";
@@ -406,6 +408,20 @@ function createAiRouter() {
         // 管理员专属路由：非管理员直接回到首页，不暴露管理面
         if (to.matched.some((record) => record.meta?.adminOnly) && !isAdmin()) {
           return { path: "/" };
+        }
+        // 会话 ID 不明文（用户口径 2026-11-13）：/chat/<真实ID> 统一改写成 /chat/<md5>。
+        // 已是 32 位十六进制哈希、或 'new-session' 的不再改写，避免重定向环。
+        if (to.name === "Chat") {
+          const raw = Array.isArray(to.params.sessionId) ? to.params.sessionId[0] : to.params.sessionId;
+          if (raw && raw !== "new-session" && !isSessionHash(raw)) {
+            return {
+              name: "Chat",
+              params: { ...to.params, sessionId: sessionHash(raw) },
+              query: to.query,
+              hash: to.hash,
+              replace: true,
+            };
+          }
         }
       },
     },

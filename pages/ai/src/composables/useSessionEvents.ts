@@ -10,14 +10,13 @@
  */
 
 import { ref, type Ref } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 import { useSessionStore } from "@/stores/session";
 import { apiService } from "@/services/ApiService";
 
 export function useSessionEvents() {
   const sessionStore = useSessionStore();
   const router = useRouter();
-  const route = useRoute();
 
   const windowHidden = ref(false);
   const unsubscribers: Array<() => void> = [];
@@ -26,8 +25,9 @@ export function useSessionEvents() {
   const currentSessionId: Ref<string | undefined> = ref(undefined);
 
   function updateCurrentSessionId() {
-    const sid = route.params.sessionId;
-    currentSessionId.value = Array.isArray(sid) ? sid[0] : sid;
+    // 路由参数现在是 md5 哈希（用户口径 2026-11-13，不暴露明文 ID），
+    // 不能直接当会话 ID 用；以 store 的 activeSessionId（真实 ID）为准。
+    currentSessionId.value = sessionStore.activeSessionId ?? undefined;
   }
 
   function handleVisibilityChange() {

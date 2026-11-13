@@ -1357,6 +1357,33 @@ const removeKnowledgeBase = (kbId: string) => {
 };
 
 /**
+ * 判断模型是否可用于会话对话（2026-11-13 用户报障：会话模型选择器把 ONNX 的
+ * OCR / 版面 / 人脸 / 向量与出图模型也列了出来）。
+ *
+ * <p>后端 /api/providers 对所有模型硬编码 modelType='text'
+ * （ApiProviderController.toProviderModelResponse / routerGroupVirtualModel），
+ * 按 modelType 过滤形同虚设。正确口径按能力声明：capabilities[].task === 'chat'
+ * —— agnes 对话行是 chat，ONNX 行是 ocr / layout / embedding / face_recognition，
+ * 出图行是 image_generation，全部挡掉。</p>
+ *
+ * <p>能力未声明的旧数据（capabilities 空 / null）保守放行：OPENCODE 等行没有
+ * capabilities 列值，但它们就是对话模型，不能把能聊天的挡掉。</p>
+ */
+function isChatCapableModel(model: any): boolean {
+  const caps = model?.capabilities;
+  if (Array.isArray(caps) && caps.length > 0) {
+    return caps.some((c: any) => {
+      if (c && typeof c === 'object' && 'task' in c) {
+        return c.task === 'chat';
+      }
+      // 兼容字符串形态的能力声明
+      return c === 'chat';
+    });
+  }
+  return true;
+}
+
+/**
  * 加载模型列表（带退避重试）。
  *
  * <p>为什么必须重试：`GET /api/providers` 在服务端瞬时故障（重启 / DB 抖动 / 迁移窗口）
@@ -1374,8 +1401,9 @@ const loadModels = async () => {
       models.value = [];
       providers.value = [];
       response.items.forEach(provider => {
-        // 过滤只保留 mode_type 为 'text' 的模型
-        const textModels = provider.models?.filter(model => model.modelType === "text") ?? [];
+        // 只保留可用于会话对话的模型（2026-11-13 口径见 isChatCapableModel）：
+        // 后端把 modelType 全硬编码成 'text'，必须按 capabilities[].task === 'chat' 过滤
+        const textModels = provider.models?.filter(isChatCapableModel) ?? [];
         // 兜底：后端多数只给 modelName，个别供应商给 model，这里统一兜底。
         // 注意**不能**退回 model.id：id 是复合键 `providerId:modelId`（如
         // `1791352877398:laguna-s-2.1`），当名字显示出来就是「前缀不该显示」的

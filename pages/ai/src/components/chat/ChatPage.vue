@@ -7,8 +7,7 @@
         <LiteSplitpanes :split-size="layoutStore.workspaceFullscreen ? 0 : (layoutStore.workspaceVisible ? workspaceSize : 100)"
           :min-size="layoutStore.workspaceFullscreen ? 0 : 30" :max-size="85" :min-pane2-size="320" @resize="onPaneResize" @resized="onPaneResized">
           <template #pane1>
-            <div ref="paneContentRef" class="chat-pane-content"
-              style="height: 100%; display: flex; flex-direction: column;">
+            <div ref="paneContentRef" class="chat-pane-content" :style="paneContentStyle">
               <!-- 页面标题栏 -->
               <PageHeader :hide-window-controls="layoutStore.workspaceVisible">
                 <!-- 会话标题 + 右侧「更多」：点开是会话功能 popover（用户口径 2026-11-13） -->
@@ -99,7 +98,7 @@
                   <!-- 会话面板：主会话和子 Agent 共用同一个 ChatPanel，通过 session 切换 -->
                   <!-- 全屏模式下 ChatPanel 通过 Teleport 搬至浮动容器 -->
                   <Teleport :disabled="teleportDisabled" to="#floating-chat">
-                    <ChatPanel ref="chatPanelRef" :session="panelSession" :readonly="activeTabId !== 'main'"
+                    <ChatPanel v-if="chatPanelReady" ref="chatPanelRef" :session="panelSession" :readonly="activeTabId !== 'main'"
                       :hide-header="activeTabId !== 'main'" :agent-tabs="agentTabs" :active-tab-id="activeTabId"
                       @switch-agent="switchTab"
                       @save-settings="handleSaveSessionSettings"
@@ -198,6 +197,8 @@ import {
 } from "@vicons/material";
 import { PanelRightExpand20Filled, DataUsage20Filled, Timeline20Filled, Globe20Filled } from "@vicons/fluent";
 import { previewUrl } from "@/utils/workspacePreview";
+// 会话 ID 哈希：地址栏不暴露明文会话 ID（用户口径 2026-11-13）
+import { sessionHash, isSessionHash } from "@/utils/sessionHash";
 import WorkspaceHoverCard from "./workspace/WorkspaceHoverCard.vue";
 
 
@@ -296,15 +297,33 @@ async function clearChatFromMenu(): Promise<void> {
 /* ==== 右侧栏宽度拖拽（用户口径 2026-11-13 5.2）====
    轨迹与状态两个面板共用一个宽度：拖左侧热区，夹在 280..(视口-480)，落 localStorage。 */
 const RAIL_WIDTH_KEY = 'ai.chatRailWidth';
+/** 默认宽度 470（用户口径 2026-11-13：会话/执行轨迹的默认框再加 50px，原 420） */
+const RAIL_DEFAULT_WIDTH = 470;
 const railWidth = ref<number>((() => {
   try {
     const saved = Number(localStorage.getItem(RAIL_WIDTH_KEY));
-    return Number.isFinite(saved) && saved >= 280 ? saved : 420;
+    return Number.isFinite(saved) && saved >= 280 ? saved : RAIL_DEFAULT_WIDTH;
   } catch {
-    return 420;
+    return RAIL_DEFAULT_WIDTH;
   }
 })());
 let railDragStart: { x: number; width: number } | null = null;
+
+/**
+ * 右侧栏是否占位（轨迹 / 会话状态任一打开）。
+ *
+ * <p>ChatOutline 是 `position: fixed`，而 `.chat-pane-content` 带 `contain: layout`
+ * —— 它成了固定定位的包含块，于是右侧栏一开，大纲导航也跟着「相对整块 pane」定位，
+ * 直接压在右侧栏上（用户报障 2026-11-13）。这里把右侧栏宽度做成 CSS 变量下发，
+ * 让导航自己让开这一段距离。</p>
+ */
+const sideRailVisible = computed(() => !!(showTracePanel.value || showStatusPanel.value));
+const paneContentStyle = computed(() => ({
+  height: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+  '--chat-side-rail-width': sideRailVisible.value ? `${railWidth.value}px` : '0px',
+}));
 
 function onRailDrag(event: MouseEvent): void {
   if (!railDragStart) return;
@@ -396,6 +415,16 @@ const panelSession = computed(() => {
   // 从子会话列表中查找
   return subSessions.value.find((s) => s.id === activeTabId.value) || null;
 });
+
+/**
+ * 会话是否已就绪（可挂载 ChatPanel / ChatInput）。
+ *
+ * <p>地址栏哈希反查是异步的（用户口径 2026-11-13）：首屏 mainSession 为 null 的
+ * 窗口里若把 ChatInput 挂出来，其「模型列表就绪后无 modelId 就默认选第一个」的
+ * 兜底会抢跑，并把错误模型持久化到会话（实测把 379 的 agnes 写成了
+ * onnx:paddleocrv6-rec）。所以会话没加载完成前先不挂聊天面板。</p>
+ */
+const chatPanelReady = computed(() => !!mainSession.value);
 
 /**
  * 处理子 Agent 创建事件（来自 SSE 全局广播）
@@ -878,6 +907,40 @@ const updateSessionById = async (sessionId: string, data: any) => {
 };
 
 
+/**
+ * 把路由参数解析成真实会话 ID。
+ *
+ * 地址栏现在放的是 md5(会话ID)（用户口径 2026-11-13，不暴露明文 ID）。
+ * 这里用本地会话表 sessionsMap 反查；直开 URL 时侧栏列表可能还没回来，
+ * 短暂等待重试；仍查不到再补拉一次完整会话列表兜底（侧栏默认只装第一页）。
+ * 反查不到返回 null，调用方按「会话不存在」落回新建会话。
+ */
+async function resolveSessionId(routeValue: string): Promise<string | null> {
+  if (!routeValue || routeValue === "new-session") return routeValue || null;
+  // 兼容：仍是明文 ID（旧书签 / 内部传参）直接用
+  if (!isSessionHash(routeValue)) return routeValue;
+  const findByHash = (): string | null => {
+    for (const s of sessionStore.sessionsMap.values()) {
+      if (sessionHash(String(s.id)) === routeValue) return String(s.id);
+    }
+    return null;
+  };
+  let id = findByHash();
+  if (id) return id;
+  for (let i = 0; i < 12 && !id; i++) {
+    await new Promise((r) => setTimeout(r, 250));
+    id = findByHash();
+  }
+  if (id) return id;
+  try {
+    const data: any = await apiService.fetchSessions(0, 500, null);
+    for (const s of data?.items || []) sessionStore.setSession(s);
+    return findByHash();
+  } catch {
+    return null;
+  }
+}
+
 const updateSelectedSession = async (sessionId: string) => {
   // vue-router 的可选参数直开 /chat 时给的是空串（不是 undefined），必须一并按「新建会话」处理
   if (!sessionId || sessionId === 'new-session') {
@@ -886,13 +949,20 @@ const updateSelectedSession = async (sessionId: string) => {
     tabStore.exitPreviewMode();
     return;
   }
-  sessionStore.activeSessionId = sessionId;
-  if (sessionId !== mainSession.value?.id) {
+  // 地址栏是哈希，先反查真实 ID；拿不到就当会话不存在，回新建会话
+  const realId = await resolveSessionId(sessionId);
+  if (!realId) {
+    toast.error(t('common.error.loadFailed'));
+    goChatRoute(null);
+    return;
+  }
+  sessionStore.activeSessionId = realId;
+  if (realId !== mainSession.value?.id) {
     // 切换会话时重置子代理状态到主线程
     activeTabId.value = 'main';
     agentTabs.value = [{ id: 'main', name: t('chat.panel.mainSession'), status: 'completed', loaded: true }];
     subSessions.value = [];
-    await fetchSession(sessionId);
+    await fetchSession(realId);
   }
 };
 

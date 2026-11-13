@@ -31,6 +31,9 @@
            现在把状态、命令与建议串成一张独立紧凑卡（中间夹着目标/建议条，两张卡各自独立）。
            状态在左、动作在右、命令与输出在下方同一条竖轴上。 -->
       <div class="mab-head" role="status" aria-live="polite">
+        <!-- 动作条最左侧插槽（2026-11-13 用户口径：「回到底部」箭头放进动作条内左侧，
+             不再挂在动作条外面）。未传时为空，不影响原有排布。 -->
+        <slot name="leading" />
         <span class="mab-mark" :class="`is-${markKind}`" aria-hidden="true">
           <span v-if="markKind === 'spin' || markKind === 'think'" class="mab-ring"></span>
           <span v-else-if="markKind === 'wait'" class="mab-pulse"></span>
