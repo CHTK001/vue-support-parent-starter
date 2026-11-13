@@ -4429,6 +4429,7 @@ watch(() => store.activeKnowledgeBaseId, () => {
   // 切库后文件树会重新拉取，先点亮加载态，避免旧库数据残留成「假计数」
   treeLoading.value = true
   loadedFiles.value = []
+  inventoryFiles.value = []
   graphKeyword.value = ''
   graphEntityKeyword.value = ''
   graphRelationKeyword.value = ''
