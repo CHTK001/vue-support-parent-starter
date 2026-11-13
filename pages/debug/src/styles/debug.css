@@ -18,7 +18,7 @@
   background: var(--bg-layout);
   color: var(--text-primary);
   font-family: var(--el-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif);
-  font-size: var(--el-font-size-base, 14px);
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -27,16 +27,16 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  min-height: 52px;
-  padding: 8px 16px;
+  gap: 6px;
+  min-height: 46px;
+  padding: 6px 14px;
   background: var(--bg-container);
   border-bottom: 1px solid var(--border-subtle);
   flex: 0 0 auto;
 }
 .debug-hdr__title {
-  margin: 0 8px 0 0;
-  font-size: 15px;
+  margin: 0 6px 0 0;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -53,8 +53,8 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 9px;
-  font-size: 12px;
+  padding: 1px 7px;
+  font-size: 11px;
   line-height: 1.5;
   white-space: nowrap;
   border: 1px solid var(--border-subtle);
@@ -172,9 +172,9 @@
 /* 左：目标轨道（可折叠） */
 .debug-rail {
   display: flex;
-  flex: 0 0 264px;
+  flex: 0 0 232px;
   flex-direction: column;
-  width: 264px;
+  width: 232px;
   min-height: 0;
   overflow: hidden;
   background: var(--bg-container);
@@ -238,12 +238,12 @@
   flex: none;
   align-items: center;
   gap: 6px;
-  padding: 10px 10px 8px 12px;
+  padding: 8px 8px 6px 10px;
   border-bottom: 1px solid var(--border-subtle);
 }
 .debug-railhd__title {
   flex: none;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   color: var(--text-primary);
@@ -284,10 +284,22 @@
 .debug-railfilters {
   display: flex;
   gap: 3px;
-  margin: 8px 10px;
-  padding: 3px;
+  margin: 6px 8px;
+}
+/* 类型筛选改成一条下拉：目标类型通常只有两三种，整行胶囊会把搜索框挤下去 */
+.debug-railfilters .debug-input {
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-subtle);
   background: var(--bg-layout);
-  border-radius: var(--radius-full, 999px);
+  color: var(--text-primary);
+}
+.debug-railfilters .debug-input:focus {
+  outline: none;
+  border-color: var(--brand-500);
 }
 .debug-railchip {
   display: inline-flex;

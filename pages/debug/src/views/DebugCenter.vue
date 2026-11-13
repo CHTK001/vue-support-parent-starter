@@ -4692,11 +4692,8 @@ onBeforeUnmount(() => {
       <span :class="['debug-pill', `debug-pill--${stateTone}`]">
         <i class="debug-dot" />{{ stateLabel }}
       </span>
-      <span :class="['debug-pill', wsConnected ? 'debug-pill--info' : 'debug-pill--muted']" title="CDP 指令通道 WebSocket">
-        <i class="debug-dot" />{{ wsConnected ? "WS 指令" : "WS 断开" }}
-      </span>
-      <span :class="['debug-pill', sseConnected ? 'debug-pill--info' : 'debug-pill--muted']" title="全局 SSE 事件流 /ms/cdp/events">
-        <i class="debug-dot" />{{ sseConnected ? "SSE 已连接" : "SSE 断开" }}
+      <span :class="['debug-pill', wsConnected && sseConnected ? 'debug-pill--info' : 'debug-pill--muted']" title="WS 指令通道 / SSE 事件流">
+        <i class="debug-dot" />通道 {{ wsConnected ? "WS" : "WS×" }} / {{ sseConnected ? "SSE" : "SSE×" }}
       </span>
       <span v-if="status?.port" class="debug-hdr__port">:{{ status.port }}</span>
       <button
@@ -4763,17 +4760,13 @@ onBeforeUnmount(() => {
             <input v-model="targetKeyword" class="debug-input debug-input--block" placeholder="搜索标题 / 地址" />
           </div>
 
-          <!-- 类型筛选 -->
+          <!-- 类型筛选：一条下拉，替代整行胶囊（目标类型通常只有 page / iframe / service_worker 几种） -->
           <div class="debug-railfilters">
-            <button
-              v-for="opt in targetTypeOptions"
-              :key="opt.value"
-              type="button"
-              :class="['debug-railchip', { 'is-active': targetTypeFilter === opt.value }]"
-              @click="targetTypeFilter = opt.value"
-            >
-              <span>{{ opt.label }}</span><b>{{ opt.count }}</b>
-            </button>
+            <select v-model="targetTypeFilter" class="debug-input debug-input--block" aria-label="目标类型筛选">
+              <option v-for="opt in targetTypeOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}（{{ opt.count }}）
+              </option>
+            </select>
           </div>
 
           <!-- 目标列表 -->
