@@ -3818,6 +3818,76 @@ html.dark .kb-tpl__cover {
   font-weight: 600;
 }
 
+/* 可排序列头：默认不抢眼，悬停才露出方向标记 */
+.kb-th {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+
+.kb-th:hover,
+.kb-th.is-on {
+  color: var(--kb-ink);
+}
+
+.kb-th__mark {
+  font-style: normal;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--kb-ink-3);
+  opacity: 0;
+  transition: opacity var(--kb-dur) var(--kb-ease);
+}
+
+.kb-th:hover .kb-th__mark {
+  opacity: 0.6;
+}
+
+.kb-th.is-on .kb-th__mark {
+  opacity: 1;
+  color: var(--kb-accent);
+}
+
+/* 左栏库目录筛选：只在库多时出现，聚焦时与右栏输入区同一套光晕 */
+.kb-nav__filter {
+  appearance: none;
+  width: calc(100% - 2px);
+  height: 26px;
+  margin: 0 0 6px;
+  padding: 0 8px;
+  border: 1px solid var(--kb-line);
+  border-radius: var(--kb-r-sm);
+  background: var(--kb-card);
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--kb-ink);
+  transition:
+    border-color var(--kb-dur) var(--kb-ease),
+    box-shadow var(--kb-dur) var(--kb-ease);
+}
+
+.kb-nav__filter::placeholder {
+  color: var(--kb-ink-3);
+}
+
+.kb-nav__filter:focus {
+  outline: none;
+  border-color: var(--kb-accent-line);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kb-accent) 10%, transparent);
+}
+
+.kb-nav__filter::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
 /* 输入区落成白底，成为右栏唯一的亮面，视线有落点 */
 .kb-ask__input {
   background: var(--kb-card);

@@ -140,9 +140,17 @@
             <h2 class="kb-nav__title">知识库<em>{{ store.knowledgeBases.length }}</em></h2>
             <!-- 库目录单独滚动：库多时（实测 15 个）不把下面的「视图 / 维护 / 卷内文档」
                  推出视口。整栏滚动时这三段会一起消失，用户只能滚到很下面才找得回视图入口。 -->
+            <input
+              v-if="store.knowledgeBases.length > 8"
+              v-model="kbFilter"
+              type="search"
+              class="kb-nav__filter"
+              placeholder="筛选知识库"
+              aria-label="筛选知识库"
+            />
             <div class="kb-nav__kbs">
               <button
-                v-for="k in store.knowledgeBases"
+                v-for="k in filteredKnowledgeBases"
                 :key="k.id"
                 type="button"
                 class="kb-nav__kb"
@@ -164,6 +172,7 @@
                 </span>
                 <span v-if="!k.isActive" class="kb-nav__kb-off">停用</span>
               </button>
+              <p v-if="kbFilter && filteredKnowledgeBases.length === 0" class="kb-nav__foot">没有匹配的知识库</p>
             </div>
             <ReButton link type="primary" size="small" class="!mt-1 !justify-start" @click="backToList">
               ← 返回列表
@@ -3223,6 +3232,20 @@ const dialogForm = reactive({
 const currentKB = computed(() => {
   if (!store.activeKnowledgeBaseId) return null
   return store.knowledgeBases.find(kb => kb.id === store.activeKnowledgeBaseId) || null
+})
+
+/**
+ * 左栏库目录的筛选关键词。
+ *
+ * <p>库多时（本机实测 25 个）靠滚动找人，名字还长得很像；
+ * 只在列表超过 8 个时出现筛选框，少的时候不占位置。</p>
+ */
+const kbFilter = ref('')
+
+const filteredKnowledgeBases = computed(() => {
+  const q = kbFilter.value.trim().toLowerCase()
+  if (!q) return store.knowledgeBases
+  return store.knowledgeBases.filter((kb) => String(kb.name || '').toLowerCase().includes(q))
 })
 
 /**

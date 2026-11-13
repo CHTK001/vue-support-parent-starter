@@ -38,11 +38,23 @@
            这里改成按容器宽度自适应：窄时只留「名称 + 状态」，宽了再逐级放出类型/大小/时间。 -->
       <div
         class="kb-filelist__head grid gap-2 px-3 py-2 border-b border-[var(--rm-border-light)] text-xs font-medium text-[var(--rm-text-secondary)] grid-cols-[minmax(0,1fr)_72px] @[520px]:grid-cols-[minmax(0,1fr)_72px_52px] @[720px]:gap-4 @[720px]:px-4 @[720px]:grid-cols-[minmax(0,1fr)_72px_52px_72px_104px]">
-        <div>{{ t('knowledge.tree.colName') }}</div>
+        <button type="button" class="kb-th flex items-center gap-1" :class="{ 'is-on': sortKey === 'name' }"
+          :aria-label="t('knowledge.tree.colName')" @click="toggleSort('name')">
+          {{ t('knowledge.tree.colName') }}<i class="kb-th__mark">{{ sortMark('name') || '↕' }}</i>
+        </button>
         <div>{{ t('knowledge.tree.colStatus') }}</div>
-        <div class="hidden @[520px]:block">{{ t('knowledge.tree.colType') }}</div>
-        <div class="hidden @[720px]:block">{{ t('knowledge.tree.colSize') }}</div>
-        <div class="hidden @[720px]:block">{{ t('knowledge.tree.colModified') }}</div>
+        <button type="button" class="kb-th hidden @[520px]:flex" :class="{ 'is-on': sortKey === 'type' }"
+          :aria-label="t('knowledge.tree.colType')" @click="toggleSort('type')">
+          {{ t('knowledge.tree.colType') }}<i class="kb-th__mark">{{ sortMark('type') || '↕' }}</i>
+        </button>
+        <button type="button" class="kb-th hidden @[720px]:flex" :class="{ 'is-on': sortKey === 'size' }"
+          :aria-label="t('knowledge.tree.colSize')" @click="toggleSort('size')">
+          {{ t('knowledge.tree.colSize') }}<i class="kb-th__mark">{{ sortMark('size') || '↕' }}</i>
+        </button>
+        <button type="button" class="kb-th hidden @[720px]:flex" :class="{ 'is-on': sortKey === 'modified' }"
+          :aria-label="t('knowledge.tree.colModified')" @click="toggleSort('modified')">
+          {{ t('knowledge.tree.colModified') }}<i class="kb-th__mark">{{ sortMark('modified') || '↕' }}</i>
+        </button>
       </div>
 
       <!-- 文件列表 -->
@@ -269,12 +281,68 @@ const currentItems = ref<KBFile[]>([])
  * <p>「全部」或没有匹配状态时返回原数组本身（同一引用），避免无谓的深拷贝与重渲染。
  * 目录恒保留——它没有 processingStatus，滤掉会让人进不去子目录。</p>
  */
+/**
+ * 列头排序状态。
+ *
+ * <p>空字符串表示沿用后端返回顺序；一旦点过列头，只在本地对当前页排序。
+ * 目录始终排在文件之前，排序不跨越这个分组。</p>
+ */
+const sortKey = ref<'name' | 'type' | 'size' | 'modified' | ''>('')
+const sortDir = ref<1 | -1>(1)
+
+/** 点列头：同一列反向，换列时名称升序、时间默认最新在前 */
+function toggleSort(key: 'name' | 'type' | 'size' | 'modified') {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 1 ? -1 : 1
+    return
+  }
+  sortKey.value = key
+  sortDir.value = key === 'modified' ? -1 : 1
+}
+
+/** 列头上的方向标记；未激活时返回空串 */
+function sortMark(key: string) {
+  if (sortKey.value !== key) return ''
+  return sortDir.value === 1 ? '↑' : '↓'
+}
+
 const visibleItems = computed<KBFile[]>(() => {
   const group = STATUS_GROUPS[props.statusFilter || 'all']
-  if (!group) {
-    return currentItems.value
+  const base = !group
+    ? currentItems.value
+    : currentItems.value.filter((item) => item.isDirectory || group.includes(item.processingStatus))
+  if (!sortKey.value) {
+    return base
   }
-  return currentItems.value.filter((item) => item.isDirectory || group.includes(item.processingStatus))
+  // 目录恒在前：排序只在「目录组 / 文件组」内部生效，避免目录被排到文件后面
+  const dir = sortDir.value
+  const rows = [...base]
+  rows.sort((a, b) => {
+    if (!!a.isDirectory !== !!b.isDirectory) {
+      return a.isDirectory ? -1 : 1
+    }
+    let cmp = 0
+    switch (sortKey.value) {
+      case 'name':
+        cmp = String(a.displayName || '').localeCompare(String(b.displayName || ''), 'zh-Hans-CN', { numeric: true })
+        break
+      case 'type':
+        cmp = String(a.fileExtension || '').localeCompare(String(b.fileExtension || ''), 'en')
+        break
+      case 'size':
+        cmp = Number(a.fileSize || 0) - Number(b.fileSize || 0)
+        break
+      case 'modified':
+        cmp = new Date(a.uploadedAt || 0).getTime() - new Date(b.uploadedAt || 0).getTime()
+        break
+    }
+    if (cmp === 0) {
+      // 同值时按名称兜底，排序结果稳定
+      cmp = String(a.displayName || '').localeCompare(String(b.displayName || ''), 'zh-Hans-CN', { numeric: true })
+    }
+    return cmp * dir
+  })
+  return rows
 })
 
 /**
