@@ -102,3 +102,33 @@ html.dark .login-suspense {
   }
 }
 </style>
+
+<style lang="scss">
+/**
+ * 登录页输入框：聚焦不发光、不换边框。
+ *
+ * <p>monitor 的 app 级 telemetry.css 用 `!important` 给
+ * `.el-input.is-focus .el-input__wrapper` 加了品牌色内描边 + 光晕，
+ * 组件 scoped 规则在构建顺序上可能压不住。这里用非 scoped 的更高特异性
+ * 统一兜底：hover / focus / focus-visible 都保持默认浅边框。</p>
+ *
+ * <p>排除 `.is-error`：校验失败仍要红框，否则用户看不到哪一项错了。</p>
+ */
+.login-page-container {
+  .el-form-item:not(.is-error) .login-input .el-input__wrapper,
+  .el-form-item:not(.is-error) .login-input .el-input__wrapper:hover,
+  .el-form-item:not(.is-error) .login-input .el-input__wrapper.is-focus,
+  .el-form-item:not(.is-error) .login-input .el-input.is-focus .el-input__wrapper {
+    border-color: var(--el-border-color-lighter) !important;
+    box-shadow: none !important;
+  }
+
+  .login-input input,
+  .login-input input:hover,
+  .login-input input:focus,
+  .login-input input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+</style>
