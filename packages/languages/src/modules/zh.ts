@@ -26,6 +26,7 @@ export default {
       sliderTipPuzzle: "将滑块拖到对应的拼图格",
       sliderSuccess: "验证通过",
       sliderRequired: "请先完成滑块验证",
+      remember: "记住账号密码",
       style: "登录页风格",
       styleDesc: "切换不同布局与视觉样式",
       styleOptions: {
@@ -477,6 +478,11 @@ export default {
         label: "组件尺寸",
         placeholder: "请选择组件尺寸",
       },
+      skeletonCritter: {
+        label: "骨架小动物",
+        bird: "小鸟（跳跃）",
+        panda: "小熊猫（上下爬）",
+      },
     },
     switchBlocks: {
       accordion: {
@@ -508,6 +514,12 @@ export default {
         sub: "多标签",
         tip: "控制多标签页栏显示/隐藏",
         description: "隐藏后多标签页栏将不显示",
+      },
+      skeletonCritter: {
+        title: "加载小动物",
+        sub: "路由骨架屏",
+        tip: "骨架屏上随机跳动的小鸟；关掉后骨架只显示静态占位",
+        description: "觉得分心可以关掉；系统开启「减少动态效果」时它也不会跳",
       },
       grey: {
         title: "灰色模式",

@@ -68,6 +68,10 @@ const globalStore = defineStore("global", {
       headerInverted: false,
       isHeaderShown: true,
       isTabsShown: true,
+      /** 路由骨架屏上的小动物：关闭后骨架只留静态占位 */
+      isSkeletonCritterShown: true,
+      /** 骨架小动物形象：bird=小鸟（跳）/ panda=小熊猫（上下爬） */
+      skeletonCritterAnimal: "bird" as "bird" | "panda",
     };
   },
   actions: {

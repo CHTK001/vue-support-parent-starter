@@ -397,7 +397,8 @@ export const defaultAppConfig: AppConfig = {
     capabilities: {
       weather: true,
       location: true,
-      typhoon: true,
+      // 台风默认关闭：没显式开放时既不探测接口，也不显示顶栏入口
+      typhoon: false,
       exchangeRate: true,
       ipLookup: true,
       holiday: true,
@@ -421,12 +422,15 @@ export const defaultAppConfig: AppConfig = {
       tabIcon: true,
       logo: true,
       message: true,
-      quickNote: true,
+      // 顶部便签默认不固定显示：需要时在 app.yaml 里显式打开
+      quickNote: false,
       quickNoteConfirm: true,
       announcement: true,
       weather: true,
-      exchangeRate: true,
-      typhoon: true,
+      // 汇率默认不开启：需要时在 app.yaml 里显式打开
+      exchangeRate: false,
+      // 台风默认不开启：需要时在 app.yaml 里显式打开
+      typhoon: false,
       collapse: true,
       // 空数组 = 沿用框架固有顺序（各 app.yaml 不配该项时行为完全不变）
       items: [],
@@ -444,6 +448,10 @@ export const defaultAppConfig: AppConfig = {
     exchangeRate: {
       // 一篮子主流货币对（USD 为本位，frankfurter 按 from=USD&to=... 一次拉满）
       symbols: ["USD/EUR", "USD/GBP", "USD/JPY", "USD/CNY", "USD/HKD", "USD/SGD"],
+    },
+    // 贵金属行情：默认关闭。数据源是三方 api.gold-api.com，没开放就不该去请求
+    metals: {
+      enable: false,
     },
     bigscreen: {
       enable: false,
@@ -517,6 +525,11 @@ export const defaultAppConfig: AppConfig = {
     // 壁纸：默认关闭。关闭时不渲染壁纸层、个人中心不出现「壁纸」页签，
     // 与没有这段配置时逐字一致；写 enable: true 即开放给用户自选。
     wallpaper: {
+      enable: false,
+    },
+    // 饰品：默认关闭。关闭时不请求目录、不渲染挂件，个人中心无「饰品」页签。
+    // 写 enable: true 即开放给用户佩戴（素材来自服务端目录，无需上传）。
+    ornament: {
       enable: false,
     },
     // 加载动画部署侧接管：默认关闭 —— 不接管时行为与没有这段配置完全一致，

@@ -26,6 +26,7 @@ export default {
       sliderTipPuzzle: "Drag the slider to the matching slot",
       sliderSuccess: "Verified",
       sliderRequired: "Please complete the slider verification first",
+      remember: "Remember username & password",
       style: "Login Style",
       styleDesc: "Switch between different layouts and visual styles",
       styleOptions: {
@@ -476,6 +477,11 @@ export default {
         label: "Component Size",
         placeholder: "Select component size",
       },
+      skeletonCritter: {
+        label: "Skeleton Critter",
+        bird: "Bird (hop)",
+        panda: "Red panda (climb)",
+      },
     },
     switchBlocks: {
       accordion: {
@@ -507,6 +513,12 @@ export default {
         sub: "Multi Tabs",
         tip: "Toggle multi-tab bar visibility",
         description: "Tab bar hides when off",
+      },
+      skeletonCritter: {
+        title: "Loading Critter",
+        sub: "Route Skeleton",
+        tip: "A little bird hopping across the skeleton; off keeps it static",
+        description: "Turn it off if it distracts you; it also stays still under reduced motion",
       },
       grey: {
         title: "Grey Mode",

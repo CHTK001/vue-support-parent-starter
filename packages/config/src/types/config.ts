@@ -572,6 +572,8 @@ export interface OtherConfig {
   weather: WeatherConfig;
   /** 汇率配置（顶栏汇率组件，symbols 决定面板与查询展示的币种对列表） */
   exchangeRate: ExchangeRateConfig;
+  /** 贵金属行情配置（首页「贵金属行情」组件，默认关闭） */
+  metals: MetalsConfig;
   /** 大屏配置（顶栏入口 + 独立路由 URL，开启后顶栏显示大屏图标、菜单注入大屏路由） */
   bigscreen: BigscreenConfig;
   /** 无障碍配置（读屏优化 / 高对比度 / 语音朗读） */
@@ -590,6 +592,8 @@ export interface OtherConfig {
   avatarFrame: AvatarFrameConfig;
   /** 壁纸配置（个人中心自定义背景） */
   wallpaper: WallpaperConfig;
+  /** 饰品配置（个人中心「饰品」页签） */
+  ornament: OrnamentConfig;
   /** 加载动画配置（部署侧接管，默认关闭） */
   loaderConfig: LoaderDeployConfig;
   /** 空状态（ReEmpty）默认样式（主题配置里仅 admin 可改） */
@@ -716,6 +720,20 @@ export interface AvatarFrameConfig {
  */
 export interface WallpaperConfig {
   /** 是否启用壁纸功能（默认 false） */
+  enable: boolean;
+}
+
+/**
+ * 饰品配置（app.yaml `other.ornament`）
+ *
+ * <p>饰品是「小件装扮」：头像挂件、昵称牌等按槽位佩戴的小元素。
+ * 关闭时不请求目录、不渲染任何挂件，个人中心不出现「饰品」页签。</p>
+ *
+ * <p>与壁纸的区别：壁纸作用于整页背景，饰品只挂在头像 / 昵称上，
+ * 因此不需要图片上传链路，素材由服务端目录下发。</p>
+ */
+export interface OrnamentConfig {
+  /** 是否启用饰品功能（默认 false） */
   enable: boolean;
 }
 
@@ -846,6 +864,22 @@ export interface WeatherConfig {
 export interface ExchangeRateConfig {
   /** 关注的币种对列表（如 EUR/USD、USD/CNY），不传取框架默认（一篮子主流货币） */
   symbols: string[];
+}
+
+/**
+ * 贵金属行情配置（app.yaml `other.metals`）
+ *
+ * <p>数据源是三方 {@code api.gold-api.com}，不是本项目后台。关闭后：</p>
+ * <ul>
+ *   <li>首页「贵金属行情」组件库条目不出现；</li>
+ *   <li>已经摆在看板上的卡片只显示「未开启」，不发起任何请求。</li>
+ * </ul>
+ *
+ * <p>默认关闭：没显式开放时不该因为一张卡片就去打三方接口。</p>
+ */
+export interface MetalsConfig {
+  /** 是否启用贵金属行情（默认 false） */
+  enable: boolean;
 }
 
 /**
