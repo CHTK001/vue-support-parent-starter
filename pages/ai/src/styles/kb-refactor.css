@@ -2264,7 +2264,9 @@
 .kb-ask__input {
   position: relative;
   flex-shrink: 0;
-  padding: 10px 12px 12px;
+  /* 输入区落成白底，成为右栏唯一的亮面，视线有落点 */
+  background: var(--kb-card);
+  padding: 8px 12px 10px;
   border-top: 1px solid var(--kb-line-soft);
 }
 
@@ -4022,12 +4024,6 @@ html.dark .kb-tpl__cover {
 
 .kb-nav__filter::-webkit-search-cancel-button {
   -webkit-appearance: none;
-}
-
-/* 输入区落成白底，成为右栏唯一的亮面，视线有落点 */
-.kb-ask__input {
-  background: var(--kb-card);
-  padding: 8px 12px 10px;
 }
 
 /* 左栏分组标题与列表靠同一条基线，避免「视图」和「知识库」两块左右错位 */
