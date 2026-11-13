@@ -236,8 +236,15 @@ import {
   setImpersonateToken,
 } from "@repo/utils";
 import { eduaiApi } from "../../api/eduaiApi";
-import type { FunConfig, StudentOverview } from "../../api/types";
-import { modulesOf, normalizeStage, type PortalModule, type Stage } from "./modules";
+import type { FunModuleConfig, StudentOverview } from "../../api/types";
+import {
+  FIXED_CAPABILITY_CODES,
+  FIXED_CAPABILITY_MODULES,
+  modulesOf,
+  normalizeStage,
+  type PortalModule,
+  type Stage,
+} from "./modules";
 import { providePortalModuleHost } from "./portalHost";
 import PrimaryHome from "./PrimaryHome.vue";
 import JuniorHome from "./JuniorHome.vue";
@@ -344,6 +351,34 @@ const overview = ref<StudentOverview | null>(null);
 const loadError = ref("");
 
 /**
+ * 单次请求的等待上限（毫秒）。
+ *
+ * <p>传输层异常（网关 502/504、连接被中间设备挂住）时 Promise 可能长时间不落定，
+ * 只靠 try/finally 是等不到 settle 的；超过该时长就按失败处理，落到可重试的错误态。</p>
+ */
+const LOAD_TIMEOUT_MS = 20000;
+
+/** 给请求加超时：超时抛错，成功后清除计时器 */
+function withTimeout<T>(task: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(
+      () => reject(new Error(`${label}超时，请检查网络后重试`)),
+      LOAD_TIMEOUT_MS
+    );
+    task.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
+/**
  * 当前是否处于「管理员代入」状态。
  *
  * 必须让管理员一眼看出自己看的是别人的数据：代入态的读写都算在被代入学生头上，
@@ -380,29 +415,39 @@ const stage = computed<Stage>(() => normalizeStage(overview.value?.stage ?? form
 const remoteModules = ref<PortalModule[] | null>(null);
 
 /**
- * 含停用项的全量菜单配置。
+ * 含停用项的门户菜单清单（按学段取）。
  *
  * <p>门户接口 `/fun/modules` 只返回启用项，空结果分不清「从没配过」和「全被停用」；
  * 这里补一份含停用项的清单，用于两件事：判断空结果的真实含义、把停用项从
- * 「全部功能」里也拿掉（否则启停形同虚设）。失败时记为空数组，不影响门户渲染。</p>
+ * 「全部功能」里也拿掉（否则启停形同虚设）。失败时保持 null（未知），
+ * 不要当成「没有停用项」——否则停用过滤会 fail-open。</p>
  */
-const configRows = ref<FunConfig[] | null>(null);
+const configRows = ref<FunModuleConfig[] | null>(null);
+
+/** configRows 对应的学段（换学段要重新拉） */
+let configLevel = "";
+
+/** 当前学段是否已有菜单配置（funModules 返回了行就说明配过） */
+const hasConfig = ref(false);
 
 /**
- * 取全量菜单配置（只请求一次）。
+ * 取某个学段的门户菜单清单（成功才缓存；失败保持 null，下次再试）。
  *
- * @returns 全量配置；接口失败时为空数组
+ * @param level 学段
+ * @returns 该学段的清单；接口失败时为空数组
  */
-async function loadAllConfigs(): Promise<FunConfig[]> {
-  if (configRows.value) {
+async function loadAllConfigs(level: string): Promise<FunModuleConfig[]> {
+  if (configRows.value && configLevel === level) {
     return configRows.value;
   }
+  configLevel = level;
   try {
-    configRows.value = (await eduaiApi.listAllFunConfigs()) ?? [];
+    configRows.value = (await eduaiApi.portalMenu(level)) ?? [];
   } catch {
-    configRows.value = [];
+    // 保持 null：调用方据此区分「没有停用项」与「根本不知道」
+    configRows.value = null;
   }
-  return configRows.value;
+  return configRows.value ?? [];
 }
 
 /**
@@ -414,7 +459,8 @@ async function loadAllConfigs(): Promise<FunConfig[]> {
  * 这里就地列出内置目录的全集，与后台配置取并集，后台没配的也可见。</p>
  *
  * <p>但被管理员停用的入口要从这里排除：停用意味着学生端不该再出现，
- * 否则首页藏了、「全部功能」还留着，启停就形同虚设。</p>
+ * 否则首页藏了、「全部功能」还留着，启停就形同虚设。全量清单拿不到时
+ * 如果已经知道该学段配过菜单，就只列启用项（宁缺不漏）。</p>
  */
 const allModules = computed<PortalModule[]>(() => {
   const builtin = modulesOf(stage.value);
@@ -425,37 +471,26 @@ const allModules = computed<PortalModule[]>(() => {
       seen.add(m.moduleCode);
     }
   }
+  if (configRows.value === null) {
+    // 全量清单未知：配过菜单时只认启用项，避免停用项从这里复现
+    return hasConfig.value ? [...modules.value] : builtin;
+  }
   const off = new Set(
-    (configRows.value ?? [])
+    configRows.value
       .filter((r) => (r.funConfigGradeLevel ?? "") === stage.value && Number(r.enabled ?? 1) !== 1)
       .map((r) => r.moduleCode),
   );
-  return off.size ? builtin.filter((m) => !off.has(m.moduleCode)) : builtin;
+  // 固定能力不受停用影响，始终保留
+  return off.size
+    ? builtin.filter((m) => FIXED_CAPABILITY_CODES.has(m.moduleCode) || !off.has(m.moduleCode))
+    : builtin;
 });
 
-/**
- * 学生端固定能力：只作为「后台从未配置过」时的兜底。
- *
- * <p>它们依赖学生本人的数据（我的试卷/我的答题/我的错题本）。新环境没有菜单配置时
- * 必须保证这三个入口在，否则学生看不到自己的批改与错题。但一旦后台配置了菜单
- * （哪怕是把某一项停用），就完全以配置为准 —— 否则「已停用」会被这里补回来，
- * 启停就形同虚设。</p>
- */
-const STUDENT_FIXED_MODULES: PortalModule[] = [
-  { moduleCode: "my-papers", title: "我的试卷", subtitle: "老师布置·班级共享", icon: "📄", color: "#6366f1", colorTo: "#818cf8" },
-  { moduleCode: "my-records", title: "我的答题", subtitle: "看批改·查得分", icon: "📝", color: "#0ea5e9", colorTo: "#38bdf8" },
-  { moduleCode: "wrongbook", title: "错题本", subtitle: "错题重练·订正", icon: "🗂️", color: "#ef4444", colorTo: "#f87171" },
-];
-
 const modules = computed<PortalModule[]>(() => {
-  // 配过就以配置为准（remoteModules 为空数组 = 后台把该学段的入口全停用了）
-  if (remoteModules.value !== null) {
-    return [...remoteModules.value];
-  }
-  // 完全没配过：内置目录 + 固定能力兜底，保证新环境不空
-  const base = modulesOf(stage.value);
+  // 配置决定普通入口；固定能力（我的试卷/答题/错题本）无论如何都要在
+  const base = remoteModules.value ?? modulesOf(stage.value);
   const have = new Set(base.map((m) => m.moduleCode));
-  return [...base, ...STUDENT_FIXED_MODULES.filter((m) => !have.has(m.moduleCode))];
+  return [...base, ...FIXED_CAPABILITY_MODULES.filter((m) => !have.has(m.moduleCode))];
 });
 
 /**
@@ -499,10 +534,11 @@ watch(
  */
 async function loadModules(level: string) {
   // 全量清单（含停用项）用来识别「全部停用」并过滤「全部功能」，与按学段取启用项并行
-  void loadAllConfigs();
+  void loadAllConfigs(level);
   try {
     const rows = await eduaiApi.funModules(level);
     if (rows?.length) {
+      hasConfig.value = true;
       remoteModules.value = rows.map((r) => ({
         moduleCode: r.moduleCode,
         title: r.moduleName,
@@ -517,8 +553,11 @@ async function loadModules(level: string) {
     }
     // 空结果有两种：后台从没配过（回落内置目录，保证新环境不白屏）
     // 或配过但全部停用（就该一个都不显示）。靠含停用项的全量清单区分。
-    const all = await loadAllConfigs();
+    const all = await loadAllConfigs(level);
     const configured = all.some((r) => (r.funConfigGradeLevel ?? "") === level);
+    if (configured) {
+      hasConfig.value = true;
+    }
     remoteModules.value = configured ? [] : null;
   } catch {
     // 配置拉不到不该让学生端白屏：回落到内置目录
@@ -536,7 +575,7 @@ async function load() {
   // 重试时先清掉上一次的错误：模板据此在「错误态 / 加载中」之间切换
   loadError.value = "";
   try {
-    const me = await eduaiApi.studentMe();
+    const me = await withTimeout(eduaiApi.studentMe(), "读取学生信息");
     if (!me?.bound) {
       needBind.value = true;
       // 已绑定教师档案的账号进学生端时给个提示，避免以为是系统坏了
@@ -560,7 +599,7 @@ async function load() {
     ) {
       openChangePassword(true);
     }
-    overview.value = await eduaiApi.studentOverview();
+    overview.value = await withTimeout(eduaiApi.studentOverview(), "读取学习数据");
     if (overview.value?.stage) {
       await loadModules(stage.value);
     }

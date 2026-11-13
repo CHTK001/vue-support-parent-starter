@@ -72,6 +72,43 @@ export const SENIOR_MODULES: PortalModule[] = [
 ];
 
 /**
+ * 学生端固定能力：不依赖后台配置，首页与「全部功能」始终显示。
+ *
+ * <p>它们依赖学生本人的数据（我的试卷 / 我的答题 / 我的错题本）。配置页把这三项
+ * 锁成不可停用，门户侧无论如何都会补回，两边口径一致。</p>
+ */
+export const FIXED_CAPABILITY_MODULES: PortalModule[] = [
+  { moduleCode: "my-papers", title: "我的试卷", subtitle: "老师布置·班级共享", icon: "📄", color: "#6366f1", colorTo: "#818cf8" },
+  { moduleCode: "my-records", title: "我的答题", subtitle: "看批改·查得分", icon: "📝", color: "#0ea5e9", colorTo: "#38bdf8" },
+  { moduleCode: "wrongbook", title: "错题本", subtitle: "错题重练·订正", icon: "🗂️", color: "#ef4444", colorTo: "#f87171" },
+];
+
+/** 固定能力编码集合（配置页与门户共用同一份） */
+export const FIXED_CAPABILITY_CODES: ReadonlySet<string> = new Set(
+  FIXED_CAPABILITY_MODULES.map((m) => m.moduleCode),
+);
+
+/**
+ * 已经有页面/固定能力的模块编码。
+ *
+ * <p>后台「门户菜单」只给这些入口「停用」，不提供「删除」：删掉后首页虽然没有，
+ * 但「全部功能」会按内置目录补回来，删除与停用的语义会打架；学习进度又是按
+ * moduleCode 关联的，删配置不会删进度，只会留下孤儿数据。</p>
+ */
+export const BUILTIN_MODULE_CODES: ReadonlySet<string> = new Set([
+  ...PRIMARY_MODULES.map((m) => m.moduleCode),
+  ...JUNIOR_MODULES.map((m) => m.moduleCode),
+  ...SENIOR_MODULES.map((m) => m.moduleCode),
+  // 只在后台配置里出现、但学生端已有真实页面的模块
+  "idiom-chain",
+  "hanzi-learn",
+  "poem",
+  "insect",
+  // 学生端固定能力
+  ...FIXED_CAPABILITY_CODES,
+]);
+
+/**
  * 学段归一化：把「PRIMARY / primary / 小学」等写法统一成 {@link Stage}。
  *
  * <p>后端已归一化下发的 stage，但库里存量数据可能是中文（管理员手填班级学段），

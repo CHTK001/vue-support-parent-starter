@@ -467,8 +467,7 @@ const tab = ref<string>("class");
  */
 async function loadTabs(): Promise<void> {
   try {
-    const all = await eduaiApi.listAllFunConfigs();
-    const rows = (all ?? []).filter((r) => (r.funConfigGradeLevel ?? "") === "TEACHER");
+    const rows = (await eduaiApi.portalMenu("TEACHER")) ?? [];
     if (!rows.length) {
       tabs.value = DEFAULT_TABS;
     } else {

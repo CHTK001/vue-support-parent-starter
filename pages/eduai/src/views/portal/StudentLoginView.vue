@@ -64,6 +64,7 @@
               <input
                 v-model="form.account"
                 type="text"
+                name="username"
                 placeholder="请输入学号 / 工号 / 手机号"
                 autocomplete="username"
                 @input="accountError = ''"
@@ -83,6 +84,7 @@
               <input
                 v-model="form.password"
                 :type="showPwd ? 'text' : 'password'"
+                name="password"
                 placeholder="请输入密码"
                 autocomplete="current-password"
                 @input="passwordError = ''"
@@ -116,7 +118,7 @@
                   <path d="M4.5 12.5l5 5L19.5 7" />
                 </svg>
               </span>
-              记住我
+              记住账号密码
             </label>
             <button type="button" class="sl-forgot" @click="onForget">忘记密码？</button>
           </div>
@@ -147,6 +149,12 @@
  * 因此设计稿里的「其他登录方式」整块被移除。</p>
  */
 import { message } from "@repo/core";
+import {
+  clearRememberedLogin,
+  readRememberedLogin,
+  saveRememberedLogin,
+  saveBrowserCredential,
+} from "@repo/utils";
 import { onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
@@ -154,7 +162,7 @@ import mascotBook from "../../assets/mascot-book.png";
 
 const router = useRouter();
 
-const form = reactive({ account: "", password: "", remember: true });
+const form = reactive({ account: "", password: "", remember: false });
 const loading = ref(false);
 const showPwd = ref(false);
 /** 账号字段校验提示；非空即视为该字段报错 */
@@ -234,42 +242,58 @@ function errorText(e: unknown): string {
 }
 
 /**
- * 「记住我」在本地保存的账号键。
+ * 「记住账号密码」在框架 storage 中的登录入口标识。
  *
- * <p>**只存账号，不存口令**：这类页面常出现在机房 / 共用电脑上，
- * 把口令落进 localStorage 等于把它交给下一个使用者。</p>
+ * <p>凭据统一走 {@code @repo/utils} 的登录凭据记忆：由凭据专用 StorageWrapper
+ * 强制 AES 加密（不受宿主全局 storage.encode 开关影响），不再直接往
+ * localStorage 写明文账号（旧版本只记账号，迁移后立即删除旧 key）。</p>
  */
-const REMEMBER_KEY = "eduai.login.account";
+const REMEMBER_ENTRY = "eduai-student";
+
+/** 旧版只记账号的明文 key；仅用于一次性迁移 */
+const LEGACY_REMEMBER_KEY = "eduai.login.account";
 
 /**
- * 读取上次记住的登录账号。
+ * 读取旧版明文账号（迁移用；登录成功后再删除旧 key）。
  *
- * @returns 记住的账号；未记住或存储不可用时返回空串
+ * @returns 旧版记住的账号；没有或存储不可用时返回空串
  */
-function readRememberedAccount(): string {
+function readLegacyAccount(): string {
   try {
-    return localStorage.getItem(REMEMBER_KEY) ?? "";
+    return localStorage.getItem(LEGACY_REMEMBER_KEY) ?? "";
   } catch {
     // 隐身模式 / 存储被禁用：不影响登录，按「没记住」处理
     return "";
   }
 }
 
-/**
- * 按「记住我」的勾选状态写入或清除账号。
- *
- * @param account 本次登录使用的账号
- */
-function writeRememberedAccount(account: string): void {
+/** 删除旧版明文账号（新凭据写入成功后调用） */
+function clearLegacyAccount(): void {
   try {
-    if (form.remember && account) {
-      localStorage.setItem(REMEMBER_KEY, account);
-    } else {
-      localStorage.removeItem(REMEMBER_KEY);
-    }
+    localStorage.removeItem(LEGACY_REMEMBER_KEY);
   } catch {
-    // 写不进去也不该中断登录流程
+    /* 删除失败不影响登录 */
   }
+}
+
+/**
+ * 按「记住账号密码」的勾选状态保存或清除凭据。
+ *
+ * <p>只在登录成功后调用：失败时不落盘，避免把打错的密码记成下一次的默认值。
+ * 勾选时同时请求浏览器密码本保存，浏览器不支持 / 非 HTTPS 会静默跳过。</p>
+ *
+ * @param account  本次登录账号
+ * @param password 本次登录口令
+ */
+function persistRemembered(account: string, password: string): void {
+  if (form.remember && account && password) {
+    saveRememberedLogin(REMEMBER_ENTRY, { loginName: account, password });
+    void saveBrowserCredential({ username: account, password, displayName: account });
+  } else {
+    clearRememberedLogin(REMEMBER_ENTRY);
+  }
+  // 新规则已生效，旧版明文 key 无论如何都不再需要
+  clearLegacyAccount();
 }
 
 /**
@@ -287,8 +311,7 @@ async function submit() {
     passwordError.value = "请输入密码";
     return;
   }
-  // 只要提交就按勾选状态记账号：失败重试时不用重敲，这也正是「记住我」的用处
-  writeRememberedAccount(account);
+  // 记住凭据只在登录成功后落盘（见 persistRemembered），失败时保留上一次的有效凭据
   loading.value = true;
   try {
     const { eduaiApi } = await import("../../api/eduaiApi");
@@ -319,6 +342,8 @@ async function submit() {
     const roles = ((res as { roles?: string[] } | undefined)?.roles ?? []).map((r) => String(r).toUpperCase());
     const ext = (res as { user?: { ext?: { accountType?: string } } } | undefined)?.user?.ext;
     const toStudent = isStudent || looksLikeStudent(account) || roles.includes("STUDENT") || ext?.accountType === "student";
+    // 登录已成功：按勾选状态加密保存 / 清除本机凭据
+    persistRemembered(account, form.password);
     message.success("登录成功");
     await router.push(toStudent ? "/edu/student" : "/edu/teacher");
   } catch (e) {
@@ -338,11 +363,19 @@ function onRegister() {
   message.info("学生账号由学校统一开通，无需自行注册");
 }
 
-// 进入页面就把上次记住的账号填回来（只回填账号，绝不回填口令）
+// 进入页面回填上次记住的凭据；旧版只记账号，迁移后仅回填账号
 onMounted(() => {
-  const saved = readRememberedAccount();
+  const saved = readRememberedLogin(REMEMBER_ENTRY);
   if (saved) {
-    form.account = saved;
+    form.account = saved.loginName;
+    form.password = saved.password;
+    form.remember = true;
+    return;
+  }
+  const legacy = readLegacyAccount();
+  if (legacy) {
+    form.account = legacy;
+    form.remember = true;
   }
 });
 </script>

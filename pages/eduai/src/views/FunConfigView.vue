@@ -34,8 +34,26 @@
       <!-- 左：所见即所配 -->
       <section class="pm-stage">
         <div class="pm-stage__hd">
-          <b>{{ scopeTitle }}</b>
-          <span>{{ isTeacher ? "拖动页签调整顺序；停用的页签不出现" : "拖动卡片调整顺序；停用的入口进下方「已停用」" }}</span>
+          <div class="pm-stage__title">
+            <b>{{ scopeTitle }}</b>
+            <span class="pm-stage__sum">
+              启用 {{ summary.enabled }} · 停用 {{ summary.disabled }} · 自定义 {{ summary.custom }}
+            </span>
+          </div>
+          <div class="pm-stage__act">
+            <el-input
+              v-model="keyword"
+              clearable
+              placeholder="搜索名称 / 编码"
+              :prefix-icon="Search"
+              class="pm-search"
+            />
+            <el-button link type="primary" @click="previewVisible = true">预览</el-button>
+            <el-button v-if="!isGeneric" link type="primary" @click="restoreDefaults">恢复默认</el-button>
+            <el-button v-if="!isTeacher && !isGeneric" link type="primary" @click="openCopy">
+              从其他学段复制
+            </el-button>
+          </div>
         </div>
 
         <div v-if="loading" class="pm-empty">加载中…</div>
@@ -50,7 +68,7 @@
                 ? "生成默认的三项后，再按需启停或调整顺序。"
                 : isGeneric
                   ? "通用模块只给管理端读取，不在学生端/教师端出现。"
-                  : "可以从内置模块目录一次性导入，之后自由增删改。"
+                  : "可以从内置模块目录一次性导入，也可以从其他学段复制。"
             }}
           </p>
           <el-button v-if="isGeneric" type="primary" @click="addItem">添加通用模块</el-button>
@@ -68,17 +86,18 @@
             </div>
             <div class="pv-grid">
               <button
-                v-for="(item, idx) in shown"
+                v-for="(item, idx) in filteredShown"
                 :key="item.key"
                 type="button"
                 class="pvc"
-                :class="{ 'is-sel': isSelected(item) }"
-                draggable="true"
+                :class="{ 'is-sel': isSelected(item), 'is-dirty': item.dirty || item.isNew }"
+                :draggable="!keyword"
                 @dragstart="onDragStart(idx)"
                 @dragover.prevent
                 @drop.prevent="onDrop(idx)"
                 @click="select(item)"
               >
+                <span v-if="item.dirty || item.isNew" class="pvc-dot" title="未保存"></span>
                 <span class="pvc-ic" :style="iconStyle(item)">{{ item.moduleIcon || "✨" }}</span>
                 <span class="pvc-tx">
                   <b>{{ item.moduleName }}</b>
@@ -86,10 +105,19 @@
                 </span>
                 <span class="pvc-grip" aria-hidden="true">⠿</span>
               </button>
-              <button type="button" class="pvc pvc--add" @click="addItem">＋ 添加菜单项</button>
+              <button v-if="!keyword" type="button" class="pvc pvc--add" @click="addItem">＋ 添加菜单项</button>
             </div>
+            <p v-if="keyword && !filteredShown.length" class="pm-filter-empty">
+              没有匹配「{{ keyword }}」的启用入口
+            </p>
             <p class="pv-tip">
-              {{ isGeneric ? "通用模块按编码供管理端读取，不参与门户渲染。" : "这里只预览入口；卡片上的学习统计取学生实时数据。" }}
+              {{
+                keyword
+                  ? "搜索时不能拖动排序；清空搜索后用拖动或右侧「上移/下移」调整。"
+                  : isGeneric
+                    ? "通用模块按编码供管理端读取，不参与门户渲染。"
+                    : "这里只预览入口；卡片上的学习统计取学生实时数据。"
+              }}
             </p>
           </div>
 
@@ -98,24 +126,28 @@
             <div class="pv-head"><b>教师工作台</b><i>老师端顶部页签</i></div>
             <div class="pv-tabs">
               <button
-                v-for="(item, idx) in shown"
+                v-for="(item, idx) in filteredShown"
                 :key="item.key"
                 type="button"
                 class="pv-tab"
                 :class="{ 'is-on': isSelected(item) }"
-                draggable="true"
+                :draggable="!keyword"
                 @dragstart="onDragStart(idx)"
                 @dragover.prevent
                 @drop.prevent="onDrop(idx)"
                 @click="select(item)"
               >
                 <span class="pv-tab__g" aria-hidden="true">⠿</span>{{ item.moduleName }}
+                <span v-if="item.dirty || item.isNew" class="pv-tab__dot" title="未保存"></span>
               </button>
             </div>
             <div class="pv-tpbody">
               <b>{{ selected?.moduleName || "—" }}</b>
               <p>{{ selected?.moduleDesc || "选中一个页签查看说明" }}</p>
             </div>
+            <p v-if="keyword && !filteredShown.length" class="pm-filter-empty">
+              没有匹配「{{ keyword }}」的启用页签
+            </p>
             <p class="pv-tip">教师端页签由系统内置，只支持启停与排序；停用后对应能力从门户隐藏。</p>
           </div>
         </template>
@@ -123,11 +155,13 @@
         <!-- 已停用 -->
         <div class="pm-hidden">
           <div class="pm-hidden__hd">
-            已停用 <b>{{ hidden.length }}</b> · 点击启用
+            已停用 <b>{{ filteredHidden.length }}</b> · 点击启用
           </div>
-          <div v-if="!hidden.length" class="pm-hidden__none">全部入口都在启用中</div>
+          <div v-if="!filteredHidden.length" class="pm-hidden__none">
+            {{ keyword ? "没有匹配的已停用入口" : "全部入口都在启用中" }}
+          </div>
           <button
-            v-for="item in hidden"
+            v-for="item in filteredHidden"
             :key="item.key"
             type="button"
             class="pm-chip"
@@ -144,7 +178,7 @@
       <aside class="pm-insp">
         <template v-if="selected">
           <div class="pm-insp__hd">
-            <b>{{ isTeacher ? "页签设置" : "卡片设置" }}</b>
+            <b>{{ isTeacher ? "页签设置" : isGeneric ? "模块设置" : "卡片设置" }}</b>
             <el-tag :type="selected.enabled === 1 ? 'success' : 'info'" size="small">
               {{ selected.enabled === 1 ? "启用中" : "已停用" }}
             </el-tag>
@@ -153,12 +187,19 @@
           <div class="pm-f pm-f--switch">
             <div>
               <label class="pm-f__label">启用</label>
-              <p class="pm-f__hint">停用只隐藏入口，配置与学习数据都保留</p>
+              <p class="pm-f__hint">
+                {{
+                  isFixedCapability(selected.moduleCode)
+                    ? "固定能力：始终显示，不可停用"
+                    : "停用只隐藏入口，配置与学习数据都保留"
+                }}
+              </p>
             </div>
             <el-switch
               v-model="selected.enabled"
               :active-value="1"
               :inactive-value="0"
+              :disabled="isFixedCapability(selected.moduleCode)"
               @change="markDirty(selected)"
             />
           </div>
@@ -184,14 +225,14 @@
               <span class="pm-emoji" :style="iconStyle(selected)">{{ selected.moduleIcon || "✨" }}</span>
               <el-input
                 v-model="selected.moduleIcon"
-                maxlength="4"
+                maxlength="12"
                 placeholder="emoji，如 🀄"
                 @input="markDirty(selected)"
               />
             </div>
           </div>
 
-          <div v-if="!isTeacher" class="pm-f">
+          <div v-if="!isTeacher && !isGeneric" class="pm-f">
             <label class="pm-f__label">配色</label>
             <div class="pm-f__row">
               <el-color-picker v-model="selected.funConfigColor" @change="markDirty(selected)" />
@@ -202,7 +243,7 @@
             <p class="pm-f__hint">图标底色渐变，只影响学生端卡片</p>
           </div>
 
-          <div v-if="!isTeacher" class="pm-f pm-f--switch">
+          <div v-if="!isTeacher && !isGeneric" class="pm-f pm-f--switch">
             <div>
               <label class="pm-f__label">未完成角标</label>
               <p class="pm-f__hint">小学端卡片右上角显示待完成数</p>
@@ -237,23 +278,77 @@
           </details>
 
           <div class="pm-insp__ft">
-            <el-button v-if="selected.enabled === 1" link type="warning" @click="disable(selected)">
-              停用
-            </el-button>
-            <el-button v-else link type="primary" @click="enable(selected)">启用</el-button>
-            <el-button
-              v-if="!isTeacher && !isBuiltin(selected.moduleCode)"
-              link
-              type="danger"
-              @click="removeItem(selected)"
-            >
-              删除
-            </el-button>
+            <div class="pm-insp__row">
+              <el-button link :disabled="!canMove(selected, -1)" @click="moveItem(selected, -1)">
+                ↑ 上移
+              </el-button>
+              <el-button link :disabled="!canMove(selected, 1)" @click="moveItem(selected, 1)">
+                ↓ 下移
+              </el-button>
+            </div>
+            <div class="pm-insp__row">
+              <el-button
+                v-if="!isFixedCapability(selected.moduleCode) && selected.enabled === 1"
+                link
+                type="warning"
+                @click="disable(selected)"
+              >
+                停用
+              </el-button>
+              <el-button
+                v-else-if="!isFixedCapability(selected.moduleCode)"
+                link
+                type="primary"
+                @click="enable(selected)"
+              >
+                启用
+              </el-button>
+              <el-button v-if="!isTeacher" link @click="duplicateItem(selected)">复制</el-button>
+              <el-button v-if="selected.dirty || selected.isNew" link @click="revertItem(selected)">
+                撤销修改
+              </el-button>
+              <el-button
+                v-if="!isTeacher && !isBuiltin(selected.moduleCode)"
+                link
+                type="danger"
+                @click="removeItem(selected)"
+              >
+                删除
+              </el-button>
+            </div>
           </div>
         </template>
         <div v-else class="pm-insp__empty">左侧选中一个入口后，在这里修改</div>
       </aside>
     </div>
+
+    <!-- 从其他学段复制 -->
+    <el-dialog v-model="copyVisible" title="从其他学段复制" width="min(420px, 92vw)" append-to-body>
+      <p class="pm-copy__tip">只追加目标学段没有的编码；已存在的会跳过，不会覆盖。</p>
+      <el-select v-model="copyFrom" style="width: 100%">
+        <el-option v-for="s in copySources" :key="s.key" :label="s.label" :value="s.key" />
+      </el-select>
+      <p class="pm-copy__count">可追加 {{ copyCandidates.length }} 个入口</p>
+      <template #footer>
+        <el-button @click="copyVisible = false">取消</el-button>
+        <el-button type="primary" :disabled="!copyCandidates.length" @click="applyCopy">追加</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 全屏预览（草稿态） -->
+    <el-dialog v-model="previewVisible" title="门户预览（草稿）" width="min(900px, 94vw)" top="5vh" append-to-body>
+      <PortalMenuPreview
+        :mode="previewMode"
+        :stage="isTeacher || isGeneric ? '' : stageLabel(scope)"
+        :items="previewItems"
+      />
+      <p class="pm-preview__tip">
+        {{ dirty ? "当前是草稿预览，保存后才对学生 / 老师生效。" : "当前配置已保存，与门户实际展示一致。" }}
+      </p>
+      <template #footer>
+        <el-button type="primary" @click="previewVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -268,13 +363,16 @@
  * <p>启停用 enabled 表达：停用只是不进 preview，配置与学习进度全部保留，随时能再启用。
  * 排序用 sortOrder，拖动时重排成 10/20/30…，保存时随行一起提交，不需要额外的排序接口。</p>
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onActivated, onMounted, onUnmounted, ref } from "vue";
+import { onBeforeRouteLeave } from "vue-router";
 import { ElMessageBox } from "element-plus";
-import { RefreshLeft } from "@element-plus/icons-vue";
+import { RefreshLeft, Search } from "@element-plus/icons-vue";
 import { message } from "@repo/core";
+import { errText } from "../api/errorText";
 import { eduaiApi } from "../api/eduaiApi";
 import type { FunConfig } from "../api/types";
-import { modulesOf, stageLabel, type Stage } from "./portal/modules";
+import { BUILTIN_MODULE_CODES, FIXED_CAPABILITY_CODES, modulesOf, stageLabel, type Stage } from "./portal/modules";
+import PortalMenuPreview from "../components/PortalMenuPreview.vue";
 
 /** 配置范围：三个学生学段 + 教师端 + 通用（学段为空的遗留管理端模块） */
 const SCOPES = [
@@ -285,8 +383,7 @@ const SCOPES = [
   { key: "GENERIC", label: "通用" },
 ] as const;
 
-/** 学生端固定能力：这些编码不提供删除，只能停用（删除后门户会按内置目录补回） */
-const FIXED_CAPABILITY_CODES = new Set(["my-papers", "my-records", "wrongbook"]);
+/** 学生端固定能力由 `portal/modules` 统一维护（配置页只负责锁成不可停用） */
 
 /** 教师端页签是系统内置能力，只能启停/排序，不能新增或删除 */
 const TEACHER_DEFAULTS = [
@@ -330,6 +427,19 @@ const saving = ref(false);
 const seeding = ref(false);
 const dirty = ref(false);
 
+/** 搜索关键字：只影响预览与已停用托盘的展示，不改变排序 */
+const keyword = ref("");
+
+/** 从其他学段复制：弹框开关与来源学段 */
+const copyVisible = ref(false);
+const copyFrom = ref<string>("PRIMARY");
+
+/** 全屏预览弹层 */
+const previewVisible = ref(false);
+
+/** 保存/加载时的快照：key → 可编辑字段 JSON，用于「撤销修改」 */
+const snapshot = new Map<string, string>();
+
 /** 拖拽起点（当前 preview 内的下标） */
 const dragFrom = ref<number | null>(null);
 
@@ -367,6 +477,73 @@ const selected = computed<MenuRow | null>(() => {
   return hit ?? shown.value[0] ?? hidden.value[0] ?? null;
 });
 
+/**
+ * 搜索过滤后的启用项。
+ *
+ * <p>搜索时禁用拖动（drop 下标会按过滤后的数组算，和真实顺序对不上），
+ * 排序仍可用右侧的「上移/下移」。</p>
+ */
+const filteredShown = computed(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) {
+    return shown.value;
+  }
+  return shown.value.filter(
+    (r) => r.moduleName.toLowerCase().includes(kw) || r.moduleCode.toLowerCase().includes(kw),
+  );
+});
+
+/** 搜索过滤后的已停用项 */
+const filteredHidden = computed(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  if (!kw) {
+    return hidden.value;
+  }
+  return hidden.value.filter(
+    (r) => r.moduleName.toLowerCase().includes(kw) || r.moduleCode.toLowerCase().includes(kw),
+  );
+});
+
+/** 当前作用域概览：启用 / 停用 / 自定义 */
+const summary = computed(() => ({
+  enabled: shown.value.length,
+  disabled: hidden.value.length,
+  custom: scopeRows.value.filter((r) => !isBuiltin(r.moduleCode)).length,
+}));
+
+/** 可作为复制来源的学段（只支持学生学段之间复制） */
+const copySources = computed(() =>
+  SCOPES.filter((s) => s.key !== scope.value && s.key !== "TEACHER" && s.key !== "GENERIC"),
+);
+
+/** 可追加的入口：来源学段启用中、目标学段没有的编码 */
+const copyCandidates = computed(() => {
+  if (!copyVisible.value) {
+    return [] as MenuRow[];
+  }
+  const target = new Set(scopeRows.value.map((r) => r.moduleCode));
+  return rows.value.filter(
+    (r) => levelOf(r) === copyFrom.value && r.enabled === 1 && !target.has(r.moduleCode),
+  );
+});
+
+/** 全屏预览形态 */
+const previewMode = computed<"student" | "teacher" | "generic">(() =>
+  isTeacher.value ? "teacher" : isGeneric.value ? "generic" : "student",
+);
+
+/** 全屏预览的入口（当前草稿的启用项，按显示顺序） */
+const previewItems = computed(() =>
+  shown.value.map((r) => ({
+    code: r.moduleCode,
+    title: r.moduleName,
+    subtitle: r.funConfigSubtitle,
+    icon: r.moduleIcon,
+    color: r.funConfigColor,
+    colorTo: r.funConfigColorTo,
+  })),
+);
+
 const scopeTitle = computed(() => {
   if (isTeacher.value) {
     return "教师端";
@@ -395,11 +572,17 @@ function countOf(key: string): number {
  * @returns 页面行
  */
 function toRow(c: FunConfig): MenuRow {
+  const code = c.moduleCode ?? "";
+  const level = c.funConfigGradeLevel ?? null;
+  // 固定能力始终按启用显示：门户会强制补回，配置页不能显示成“已停用”。
+  // 库里如果残留 enabled=0，标记为脏，保存一次即可把 1 写回。
+  const fixed = level !== null && level !== "TEACHER" && FIXED_CAPABILITY_CODES.has(code);
+  const fixedDisabled = fixed && Number(c.enabled ?? 1) !== 1;
   return {
     key: `id-${c.configId}`,
     configId: c.configId,
-    moduleCode: c.moduleCode ?? "",
-    funConfigGradeLevel: c.funConfigGradeLevel ?? null,
+    moduleCode: code,
+    funConfigGradeLevel: level,
     moduleName: c.moduleName ?? "",
     moduleDesc: c.moduleDesc ?? "",
     funConfigSubtitle: c.funConfigSubtitle ?? "",
@@ -408,10 +591,10 @@ function toRow(c: FunConfig): MenuRow {
     funConfigColor: c.funConfigColor ?? "#409eff",
     funConfigColorTo: c.funConfigColorTo ?? "#79bbff",
     funConfigShowBadge: Number(c.funConfigShowBadge ?? 0),
-    enabled: Number(c.enabled ?? 1),
+    enabled: fixed ? 1 : Number(c.enabled ?? 1),
     sortOrder: Number(c.sortOrder ?? 0),
     configJson: c.configJson ?? "{}",
-    dirty: false,
+    dirty: fixedDisabled,
     isNew: false,
   };
 }
@@ -422,7 +605,11 @@ async function load(): Promise<void> {
   try {
     const list = await eduaiApi.listAllFunConfigs();
     rows.value = (list ?? []).map(toRow);
-    dirty.value = false;
+    // 记录快照：撤销修改恢复到「最近一次加载/保存」的状态
+    snapshot.clear();
+    rows.value.forEach((r) => snapshot.set(r.key, toSnapshot(r)));
+    // 固定能力库里残留 enabled=0 时会标记为脏，这里如实反映，避免保存按钮不可用
+    dirty.value = rows.value.some((r) => r.dirty || r.isNew);
   } catch {
     message.error("加载菜单配置失败");
   } finally {
@@ -515,7 +702,7 @@ function onDragStart(index: number): void {
 function onDrop(index: number): void {
   const from = dragFrom.value;
   dragFrom.value = null;
-  if (from === null || from === index) {
+  if (from === null || from === index || keyword.value) {
     return;
   }
   const list = [...shown.value];
@@ -524,7 +711,15 @@ function onDrop(index: number): void {
     return;
   }
   list.splice(index, 0, moved);
-  // 只重排启用项；停用项保留原 sortOrder，启用时按当前顺序插回末尾
+  renumber(list);
+}
+
+/**
+ * 按数组顺序重写 sortOrder（10/20/30…），只给真正变化的行打脏标记。
+ *
+ * @param list 已按目标顺序排好的行
+ */
+function renumber(list: MenuRow[]): void {
   list.forEach((row, idx) => {
     const next = (idx + 1) * 10;
     if (row.sortOrder !== next) {
@@ -532,6 +727,39 @@ function onDrop(index: number): void {
       markDirty(row);
     }
   });
+}
+
+/**
+ * 能否向某个方向移动（按启用项全集判断）。
+ *
+ * @param row   菜单行
+ * @param delta -1 上移 / 1 下移
+ * @returns 可移动返回 true
+ */
+function canMove(row: MenuRow, delta: number): boolean {
+  const list = shown.value;
+  const index = list.findIndex((r) => r.key === row.key);
+  const target = index + delta;
+  return index >= 0 && target >= 0 && target < list.length;
+}
+
+/**
+ * 上移 / 下移一位：与拖动共用同一套 sortOrder 重排。
+ *
+ * <p>给触屏与键盘用户一个不依赖 HTML5 拖拽的排序入口。</p>
+ *
+ * @param row   菜单行
+ * @param delta -1 上移 / 1 下移
+ */
+function moveItem(row: MenuRow, delta: number): void {
+  if (!canMove(row, delta)) {
+    return;
+  }
+  const list = [...shown.value];
+  const index = list.findIndex((r) => r.key === row.key);
+  const [moved] = list.splice(index, 1);
+  list.splice(index + delta, 0, moved);
+  renumber(list);
 }
 
 /**
@@ -552,8 +780,248 @@ function enable(row: MenuRow): void {
  * @param row 菜单行
  */
 function disable(row: MenuRow): void {
+  if (isFixedCapability(row.moduleCode)) {
+    message.info("这是学生端的固定能力，始终显示，不能停用");
+    return;
+  }
   row.enabled = 0;
   markDirty(row);
+}
+
+/**
+ * 是否学生端固定能力（我的试卷 / 我的答题 / 错题本）。
+ *
+ * <p>门户会强制补回这三项，所以配置页把它们锁成“始终启用”，
+ * 避免出现「这里显示已停用、学生端仍然有」的错位。</p>
+ *
+ * @param code 模块编码
+ * @returns 固定能力返回 true
+ */
+function isFixedCapability(code: string): boolean {
+  return !isTeacher.value && !isGeneric.value && FIXED_CAPABILITY_CODES.has((code ?? "").trim());
+}
+
+/**
+ * 复制一个菜单项（未保存，可先改编码/名称）。
+ *
+ * @param row 菜单行
+ */
+function duplicateItem(row: MenuRow): void {
+  if (isTeacher.value) {
+    message.info("教师端页签由系统内置，不能复制");
+    return;
+  }
+  const stamp = Date.now().toString(36).slice(-5);
+  const copy: MenuRow = {
+    ...row,
+    key: `new-${stamp}`,
+    configId: undefined,
+    moduleCode: `${row.moduleCode}-c${stamp}`.slice(0, 64),
+    moduleName: `${row.moduleName}副本`.slice(0, 20),
+    sortOrder: Math.max(0, ...scopeRows.value.map((r) => r.sortOrder)) + 10,
+    dirty: true,
+    isNew: true,
+  };
+  rows.value.push(copy);
+  selectedKey.value = copy.key;
+  dirty.value = true;
+}
+
+/**
+ * 可编辑字段快照（撤销修改用）。
+ *
+ * @param row 菜单行
+ * @returns 序列化后的字段
+ */
+function toSnapshot(row: MenuRow): string {
+  return JSON.stringify({
+    moduleCode: row.moduleCode,
+    moduleName: row.moduleName,
+    moduleDesc: row.moduleDesc,
+    funConfigSubtitle: row.funConfigSubtitle,
+    moduleIcon: row.moduleIcon,
+    modulePath: row.modulePath,
+    funConfigColor: row.funConfigColor,
+    funConfigColorTo: row.funConfigColorTo,
+    funConfigShowBadge: row.funConfigShowBadge,
+    enabled: row.enabled,
+    sortOrder: row.sortOrder,
+    configJson: row.configJson,
+  });
+}
+
+/** 重新计算「是否有未保存改动」 */
+function refreshDirty(): void {
+  dirty.value = rows.value.some((r) => r.dirty || r.isNew);
+}
+
+/**
+ * 撤销某行的修改：有快照就恢复字段，未保存的新行直接移除。
+ *
+ * @param row 菜单行
+ */
+function revertItem(row: MenuRow): void {
+  const raw = snapshot.get(row.key);
+  if (!raw) {
+    rows.value = rows.value.filter((r) => r.key !== row.key);
+    selectedKey.value = null;
+    refreshDirty();
+    return;
+  }
+  Object.assign(row, JSON.parse(raw) as Partial<MenuRow>, { dirty: false, isNew: false });
+  refreshDirty();
+}
+
+/** 默认目录：学生端取内置模块目录，教师端取三项内置页签 */
+function defaultCatalog(): {
+  code: string;
+  name: string;
+  sub: string;
+  icon: string;
+  c1: string;
+  c2: string;
+  badge: number;
+  path: string;
+}[] {
+  if (isTeacher.value) {
+    return TEACHER_DEFAULTS.map((d) => ({
+      code: d.code,
+      name: d.name,
+      sub: d.desc,
+      icon: d.icon,
+      c1: "#409eff",
+      c2: "#79bbff",
+      badge: 0,
+      path: d.path,
+    }));
+  }
+  return modulesOf(scope.value).map((m) => ({
+    code: m.moduleCode,
+    name: m.title,
+    sub: m.subtitle,
+    icon: m.icon,
+    c1: m.color,
+    c2: m.colorTo,
+    badge: m.badgeFromIncomplete ? 1 : 0,
+    path: m.route ?? "",
+  }));
+}
+
+/**
+ * 按默认目录造一条未保存的新行。
+ *
+ * @param d 目录项
+ * @returns 新行
+ */
+function rowFromCatalog(d: ReturnType<typeof defaultCatalog>[number]): MenuRow {
+  const stamp = Date.now().toString(36).slice(-5);
+  return {
+    key: `new-${d.code}-${stamp}`,
+    moduleCode: d.code,
+    funConfigGradeLevel: isTeacher.value ? "TEACHER" : scope.value,
+    moduleName: d.name,
+    moduleDesc: isTeacher.value ? d.sub : "",
+    funConfigSubtitle: d.sub,
+    moduleIcon: d.icon,
+    modulePath: d.path,
+    funConfigColor: d.c1,
+    funConfigColorTo: d.c2,
+    funConfigShowBadge: d.badge,
+    enabled: 1,
+    sortOrder: 0,
+    configJson: "{}",
+    dirty: true,
+    isNew: true,
+  };
+}
+
+/**
+ * 恢复默认：把内置入口的名称/图标/配色/顺序重置，自定义入口保留在末尾。
+ */
+async function restoreDefaults(): Promise<void> {
+  if (isGeneric.value) {
+    message.info("通用模块没有默认目录");
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      "将内置入口的名称 / 图标 / 配色 / 顺序恢复为默认，并重新启用？自定义入口不受影响。",
+      "恢复默认",
+      { type: "warning" },
+    );
+  } catch {
+    return;
+  }
+  const catalog = defaultCatalog();
+  const existing = new Map(scopeRows.value.map((r) => [r.moduleCode, r]));
+  const ordered: MenuRow[] = [];
+  const created: MenuRow[] = [];
+  catalog.forEach((d) => {
+    let row = existing.get(d.code);
+    if (!row) {
+      row = rowFromCatalog(d);
+      created.push(row);
+    }
+    row.moduleName = d.name;
+    row.funConfigSubtitle = d.sub;
+    row.moduleIcon = d.icon;
+    if (!isTeacher.value) {
+      row.funConfigColor = d.c1;
+      row.funConfigColorTo = d.c2;
+      row.funConfigShowBadge = d.badge;
+    }
+    row.enabled = 1;
+    markDirty(row);
+    ordered.push(row);
+  });
+  const codes = new Set(catalog.map((d) => d.code));
+  scopeRows.value.filter((r) => !codes.has(r.moduleCode)).forEach((r) => ordered.push(r));
+  renumber(ordered);
+  if (created.length) {
+    rows.value.push(...created);
+  }
+  dirty.value = true;
+  message.info("已套用默认配置，点「保存」生效");
+}
+
+/** 打开「从其他学段复制」弹框 */
+function openCopy(): void {
+  if (isTeacher.value || isGeneric.value) {
+    return;
+  }
+  const first = copySources.value[0];
+  if (!first) {
+    message.info("没有可用的来源学段");
+    return;
+  }
+  copyFrom.value = first.key;
+  copyVisible.value = true;
+}
+
+/** 把来源学段里目标没有的启用项追加到当前学段（未保存） */
+function applyCopy(): void {
+  const list = copyCandidates.value;
+  if (!list.length) {
+    message.info("没有可追加的入口");
+    return;
+  }
+  let order = Math.max(0, ...scopeRows.value.map((r) => r.sortOrder));
+  const seq = Date.now().toString(36).slice(-4);
+  list.forEach((src, index) => {
+    order += 10;
+    rows.value.push({
+      ...src,
+      key: `new-copy-${seq}-${index}`,
+      configId: undefined,
+      funConfigGradeLevel: scope.value,
+      sortOrder: order,
+      dirty: true,
+      isNew: true,
+    });
+  });
+  copyVisible.value = false;
+  dirty.value = true;
+  message.success(`已追加 ${list.length} 个入口，保存后生效`);
 }
 
 /** 新增一个菜单项（未保存，先在右侧编辑）；教师端页签固定，不允许新增 */
@@ -602,11 +1070,7 @@ function isBuiltin(code: string): boolean {
   if (isGeneric.value) {
     return false;
   }
-  const normalized = (code ?? "").trim();
-  return (
-    FIXED_CAPABILITY_CODES.has(normalized) ||
-    modulesOf(scope.value).some((m) => m.moduleCode === normalized)
-  );
+  return BUILTIN_MODULE_CODES.has((code ?? "").trim());
 }
 
 /**
@@ -680,38 +1144,16 @@ async function seedDefaults(): Promise<void> {
   }
   seeding.value = true;
   try {
-    const failed = await saveRows(seeds);
-    if (failed.length) {
-      message.error(`有 ${failed.length} 项生成失败：${failed.join("、")}`);
-    } else {
-      message.success(`已生成 ${seeds.length} 个默认入口`);
-    }
+    await eduaiApi.batchSaveFunConfigs(seeds.map(toPayload));
+    message.success(`已生成 ${seeds.length} 个默认入口`);
     await load();
     selectedKey.value = null;
+  } catch (e) {
+    const text = errText(e);
+    message.error(text ? `生成默认菜单失败：${text}` : "生成默认菜单失败");
   } finally {
     seeding.value = false;
   }
-}
-
-/**
- * 顺序保存一批行，返回失败项名称。
- *
- * <p>用顺序而不是 Promise.all：并发时一条失败会留下「一半已写、一半没写」
- * 且无法点名哪条失败；顺序循环能收集失败项并在页面上说清楚。</p>
- *
- * @param list 待保存的行
- * @returns 失败项名称列表（空数组表示全部成功）
- */
-async function saveRows(list: MenuRow[]): Promise<string[]> {
-  const failed: string[] = [];
-  for (const row of list) {
-    try {
-      await eduaiApi.saveFunConfig(toPayload(row));
-    } catch {
-      failed.push(row.moduleName || row.moduleCode || "未命名");
-    }
-  }
-  return failed;
 }
 
 /**
@@ -722,13 +1164,13 @@ async function saveRows(list: MenuRow[]): Promise<string[]> {
  */
 function toPayload(row: MenuRow): Partial<FunConfig> {
   const payload: Partial<FunConfig> = {
-    moduleCode: row.moduleCode,
+    moduleCode: row.moduleCode.trim(),
     funConfigGradeLevel: row.funConfigGradeLevel,
-    moduleName: row.moduleName,
-    moduleDesc: row.moduleDesc,
-    funConfigSubtitle: row.funConfigSubtitle,
-    moduleIcon: row.moduleIcon,
-    modulePath: row.modulePath,
+    moduleName: row.moduleName.trim(),
+    moduleDesc: row.moduleDesc.trim(),
+    funConfigSubtitle: row.funConfigSubtitle.trim(),
+    moduleIcon: row.moduleIcon.trim(),
+    modulePath: row.modulePath.trim(),
     funConfigColor: row.funConfigColor || null,
     funConfigColorTo: row.funConfigColorTo || null,
     funConfigShowBadge: row.funConfigShowBadge,
@@ -743,10 +1185,10 @@ function toPayload(row: MenuRow): Partial<FunConfig> {
 }
 
 /**
- * 保存所有改动行：字段与排序一起提交，避免多出一个排序接口。
+ * 保存所有改动行：字段与排序一起提交。
  *
- * <p>逐条顺序提交；任意一条失败时重新拉取真实状态并点名失败项 ——
- * 保留未保存的本地编辑再重试会重复插入已经成功的新行（接口只回 boolean，拿不到新 id）。</p>
+ * <p>走后端批量接口（同一事务，全成或全败）：失败时不刷新、不清 dirty，
+ * 本地编辑原样保留，用户可以直接重试，不会出现「一半已存、一半没了」。</p>
  */
 async function saveAll(): Promise<void> {
   const changed = rows.value.filter((r) => r.dirty || r.isNew);
@@ -754,13 +1196,18 @@ async function saveAll(): Promise<void> {
     dirty.value = false;
     return;
   }
-  const bad = changed.find((r) => !r.moduleName.trim());
+  // 先就地 trim：后端按 trim 后的编码入库，本地也要一致，否则保存后按编码回填 id 会匹配不上
+  changed.forEach((r) => {
+    r.moduleCode = r.moduleCode.trim();
+    r.moduleName = r.moduleName.trim();
+  });
+  const bad = changed.find((r) => !r.moduleName);
   if (bad) {
-    message.warning(`「${bad.moduleName || "未命名"}」缺少名称`);
+    message.warning("菜单项缺少名称");
     selectedKey.value = bad.key;
     return;
   }
-  const missingCode = changed.find((r) => !r.moduleCode.trim());
+  const missingCode = changed.find((r) => !r.moduleCode);
   if (missingCode) {
     message.warning(`「${missingCode.moduleName}」缺少模块编码（在「高级」里填写）`);
     selectedKey.value = missingCode.key;
@@ -769,7 +1216,7 @@ async function saveAll(): Promise<void> {
   // 同作用域内编码必须唯一：库里的唯一键只到 module_code + grade_level，
   // 学段为 NULL 的通用行在 MySQL 里不参与唯一性，前端必须自己拦。
   const clash = changed.find((r) => {
-    const code = r.moduleCode.trim().toLowerCase();
+    const code = r.moduleCode.toLowerCase();
     return rows.value.some(
       (o) =>
         o.key !== r.key &&
@@ -796,17 +1243,33 @@ async function saveAll(): Promise<void> {
     return;
   }
 
+  const keepCode = selected.value?.moduleCode;
+  const keepLevel = selected.value?.funConfigGradeLevel ?? "";
   saving.value = true;
   try {
-    const failed = await saveRows(changed);
-    if (failed.length) {
-      message.error(`保存失败：${failed.join("、")}；其余已保存，列表已刷新`);
-      await load();
-      return;
-    }
+    const saved = await eduaiApi.batchSaveFunConfigs(changed.map(toPayload));
+    // 用接口返回的行回填 configId：即使接下来 load() 失败，重试也是 UPDATE 而不是再 INSERT
+    (saved ?? []).forEach((s) => {
+      const level = s.funConfigGradeLevel ?? "";
+      const hit = rows.value.find((r) => r.moduleCode === s.moduleCode && levelOf(r) === level);
+      if (hit) {
+        hit.configId = s.configId;
+        hit.isNew = false;
+        hit.dirty = false;
+      }
+    });
+    dirty.value = false;
     message.success("已保存");
     await load();
-    selectedKey.value = null;
+    if (keepCode) {
+      const hit = rows.value.find((r) => r.moduleCode === keepCode && levelOf(r) === keepLevel);
+      selectedKey.value = hit?.key ?? null;
+    } else {
+      selectedKey.value = null;
+    }
+  } catch (e) {
+    const text = errText(e);
+    message.error(text ? `保存失败：${text}` : "保存失败，请重试");
   } finally {
     saving.value = false;
   }
@@ -842,8 +1305,56 @@ async function removeItem(row: MenuRow): Promise<void> {
   }
 }
 
+/**
+ * 离开页面时拦截未保存修改。
+ *
+ * <p>本页是「批量保存」语义：改了多行但没点保存就切菜单，编辑会静默丢失。
+ * 路由离开走确认框，关标签页走浏览器原生提示。</p>
+ */
+onBeforeRouteLeave(async () => {
+  if (!dirty.value) {
+    return true;
+  }
+  try {
+    await ElMessageBox.confirm("有未保存的修改，确定离开？返回本页后仍可继续保存。", "提示", {
+      type: "warning",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+});
+
+/** 关标签/刷新前提示未保存 */
+function onBeforeUnload(event: BeforeUnloadEvent): void {
+  if (!dirty.value) {
+    return;
+  }
+  event.preventDefault();
+  event.returnValue = "";
+}
+
+/** 首次挂载后跳过第一次 activated（避免和 onMounted 重复请求） */
+let activatedOnce = false;
+
 onMounted(() => {
   void load();
+  window.addEventListener("beforeunload", onBeforeUnload);
+});
+
+onActivated(() => {
+  if (!activatedOnce) {
+    activatedOnce = true;
+    return;
+  }
+  // keepAlive 回页时刷新一次：别的管理员改过配置，旧数据会误导保存
+  if (!dirty.value) {
+    void load();
+  }
+});
+
+onUnmounted(() => {
+  window.removeEventListener("beforeunload", onBeforeUnload);
 });
 </script>
 
@@ -955,17 +1466,40 @@ onMounted(() => {
 }
 .pm-stage__hd {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 10px;
   flex-wrap: wrap;
 }
-.pm-stage__hd b {
+.pm-stage__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.pm-stage__title b {
   font-size: 14px;
   color: var(--el-text-color-primary);
 }
-.pm-stage__hd span {
+.pm-stage__sum {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pm-stage__act {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pm-search {
+  width: 180px;
+}
+.pm-filter-empty {
+  margin: 0;
+  padding: 0 12px 8px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
@@ -1095,6 +1629,16 @@ onMounted(() => {
 .pvc:hover .pvc-grip {
   opacity: 1;
 }
+/* 未保存标记：卡片右上角一个小圆点，拖动手柄只在悬停时出现，两者不抢位置 */
+.pvc-dot {
+  position: absolute;
+  left: 5px;
+  bottom: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-warning);
+}
 .pvc--add {
   border-style: dashed;
   justify-content: center;
@@ -1141,6 +1685,15 @@ onMounted(() => {
   font-size: 11px;
   margin-right: 4px;
   letter-spacing: -1px;
+}
+.pv-tab__dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--el-color-warning);
+  vertical-align: middle;
 }
 .pv-tpbody {
   padding: 14px;
@@ -1295,9 +1848,30 @@ onMounted(() => {
   padding-top: 10px;
   border-top: 1px solid var(--el-border-color-lighter);
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pm-insp__row {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+.pm-copy__tip {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.pm-copy__count {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.pm-preview__tip {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 /* ---------- 窄屏 ---------- */

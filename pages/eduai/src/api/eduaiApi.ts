@@ -647,28 +647,10 @@ export const eduaiApi = {
       .then<boolean>(unwrap),
 
   // 趣味模块配置
-  listFunConfigs: () =>
-    http()
-      .get("/v2/edu/fun/list")
-      .then<FunConfig[]>(unwrap),
   listAllFunConfigs: () =>
     http()
       .get("/v2/edu/fun/list-all")
       .then<FunConfig[]>(unwrap),
-  getFunConfig: (moduleCode: string) =>
-    http()
-      .get(`/v2/edu/fun/detail/${moduleCode}`)
-      .then<FunConfig>(unwrap),
-  toggleFunConfig: (moduleCode: string, enabled: number) =>
-    http()
-      .put(`/v2/edu/fun/toggle/${moduleCode}`)
-      .query({ enabled })
-      .then<boolean>(unwrap),
-  saveFunConfig: (data: Partial<FunConfig>) =>
-    http()
-      .post("/v2/edu/fun/save")
-      .data(data as unknown as Record<string, unknown>)
-      .then<boolean>(unwrap),
   /**
    * 批量保存（后端同一事务，全成或全败）。
    *
