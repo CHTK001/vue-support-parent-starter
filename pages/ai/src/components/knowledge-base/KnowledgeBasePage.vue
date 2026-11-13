@@ -783,9 +783,10 @@
                     </div>
                   </div>
 
-                  <div v-if="graphLegend.length > 0" class="kb-graph__legend">
-                    <span v-for="l in graphLegend" :key="l" class="kb-graph__legend-item">
-                      <i class="kb-graph__legend-dot" :style="{ background: entityColor(l) }" />{{ entityTypeLabel(l) }}
+                  <div v-if="graphLegendStats.length > 0" class="kb-graph__legend">
+                    <span v-for="l in graphLegendStats" :key="l.type" class="kb-graph__legend-item">
+                      <i class="kb-graph__legend-dot" :style="{ background: l.color }" />
+                      {{ l.label }}<b class="kb-graph__legend-n">{{ l.count }}</b>
                     </span>
                   </div>
                 </div>
@@ -2827,22 +2828,27 @@ function goDefaultModels() {
 const selectedGraphNode = ref<{ id: string; name: string; type?: string; degree: number } | null>(null)
 
 /**
- * 图例数据：按当前图谱里实际出现的实体类型生成，不写死类型名。
+ * 图例数据：按当前画布上实际出现的实体类型统计，不写死类型名。
  *
  * <p>参考图左下角图例（蜀 / 刘备 / 诸葛亮…）是按势力或来源分组的；
- * 我们数据里能稳定拿到的是实体类型，先按类型出图例，不编造后端没有的分组字段。</p>
+ * 我们数据里能稳定拿到的是实体类型，先按类型出图例，不编造后端没有的分组字段。
+ * 计数与图例同一来源（过滤后的节点集），保证「图例上的数字」和「画布上的点」一致。</p>
+ *
+ * @returns 每项 { type, count, label, color }，按数量降序
  */
-const graphLegend = computed(() => {
-  const set = new Set<string>()
+const graphLegendStats = computed(() => {
+  const map = new Map<string, number>()
   // 走过滤后的节点集：图例要说明「画布上现在有什么」，
   // 早前直接读 graphView.nodes，实体类型过滤后图例仍显示全部类型，对不上。
   for (const n of graphBaseNodes.value as Array<any>) {
     const t = String(n?.type ?? '').trim()
     if (t) {
-      set.add(t)
+      map.set(t, (map.get(t) ?? 0) + 1)
     }
   }
-  return [...set].sort()
+  return [...map.entries()]
+    .map(([type, count]) => ({ type, count, label: entityTypeLabel(type), color: entityColor(type) }))
+    .sort((a, b) => b.count - a.count)
 })
 
 /**

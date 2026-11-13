@@ -1645,6 +1645,15 @@
   border-radius: 50%;
 }
 
+/* 图例计数：与画布上的节点数同源，等宽避免宽度跳动 */
+.kb-graph__legend-n {
+  margin-left: 3px;
+  font-family: var(--kb-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--kb-ink-3);
+}
+
 /* 空图谱：画布中央给一张可操作的卡片。
    此前空态只有工具栏上一行小字，画布是一整块白 —— 看不出「下一步做什么」，
    而「生成图谱」又只是工具栏末尾一个不带文字的方形图标。 */
