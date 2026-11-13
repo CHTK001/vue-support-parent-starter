@@ -331,54 +331,56 @@
                 <ReButton type="primary" link @click="fileStatusFilter = 'failed'">只看失败</ReButton>
               </div>
 
-              <div v-if="filesForFilter.length === 0 && fileStatusFilter === 'all'" class="kb-docview__blank">
-                <!-- 空文档：此前文件树中央只有一行「暂无文件」，而上传入口是工具栏末尾
-                     一排 20px 的方形图标，看不出这里是起步点。空态把「上传」变成主按钮。 -->
-                <div class="kb-docview__blank-card">
-                  <p class="kb-docview__blank-eyebrow">空卷宗 · 从第一篇原文开始</p>
-                  <h3 class="kb-docview__blank-t">这个卷宗还没有文档</h3>
-                  <!-- 三步是真实的先后顺序（上传 → 索引 → 使用），编号只在这里出现 -->
-                  <ol class="kb-boot">
-                    <li class="kb-boot__item">
-                      <span class="kb-boot__i">01</span>
-                      <div class="kb-boot__body">
-                        <b>放入原文</b>
-                        <span>支持 PDF / Word / Markdown / 纯文本 / 网页，也可以整夹上传。</span>
-                        <div class="kb-boot__act">
-                          <ReButton v-if="canEditCurrent" type="primary" :icon="Plus"
-                            @click="fileUploaderRef?.triggerFileInput?.()">上传文件</ReButton>
-                          <ReButton v-if="canEditCurrent" @click="fileUploaderRef?.triggerFolderInput?.()">上传整个文件夹</ReButton>
-                          <ReButton v-else disabled>只读：无上传权限</ReButton>
-                        </div>
-                      </div>
-                    </li>
-                    <li class="kb-boot__item">
-                      <span class="kb-boot__i">02</span>
-                      <div class="kb-boot__body">
-                        <b>自动切分与向量化</b>
-                        <span>上传后先切块再索引，状态从「处理中」变成「已索引」才算可用。</span>
-                      </div>
-                    </li>
-                    <li class="kb-boot__item">
-                      <span class="kb-boot__i">03</span>
-                      <div class="kb-boot__body">
-                        <b>在检索与问答里使用</b>
-                        <span>命中后可在「检索」里看分块，在右栏问答里作为引用被带出。</span>
-                      </div>
-                    </li>
-                  </ol>
-                  <p class="kb-boot__foot">
-                    想跳过从零开始，可以从「<ReButton type="primary" link @click="showTplGallery = true">模板集</ReButton>」一键建库，
-                    模板会带回文档、实体与关系。
-                  </p>
-                </div>
-              </div>
+              <!-- 空态卡片放在文件树容器内（见下），避免绝对定位盖住工具栏 -->
 
               <div v-if="!canEditCurrent" class="kb-readonly" style="margin: 0 12px 8px">
                 {{ t('knowledge.page.readonlyHint') }}
               </div>
 
               <div class="kb-docview__tree">
+                <!-- 空文档：此前文件树中央只有一行「暂无文件」，而上传入口是工具栏末尾
+                     一排 20px 的方形图标，看不出这里是起步点。空态把「上传」变成主按钮。 -->
+                <div v-if="filesForFilter.length === 0 && fileStatusFilter === 'all'" class="kb-docview__blank">
+                  <div class="kb-docview__blank-card">
+                    <p class="kb-docview__blank-eyebrow">空卷宗 · 从第一篇原文开始</p>
+                    <h3 class="kb-docview__blank-t">这个卷宗还没有文档</h3>
+                    <!-- 三步是真实的先后顺序（上传 → 索引 → 使用），编号只在这里出现 -->
+                    <ol class="kb-boot">
+                      <li class="kb-boot__item">
+                        <span class="kb-boot__i">01</span>
+                        <div class="kb-boot__body">
+                          <b>放入原文</b>
+                          <span>支持 PDF / Word / Markdown / 纯文本 / 网页，也可以整夹上传。</span>
+                          <div class="kb-boot__act">
+                            <ReButton v-if="canEditCurrent" type="primary" :icon="Plus"
+                              @click="fileUploaderRef?.triggerFileInput?.()">上传文件</ReButton>
+                            <ReButton v-if="canEditCurrent" @click="fileUploaderRef?.triggerFolderInput?.()">上传整个文件夹</ReButton>
+                            <ReButton v-else disabled>只读：无上传权限</ReButton>
+                          </div>
+                        </div>
+                      </li>
+                      <li class="kb-boot__item">
+                        <span class="kb-boot__i">02</span>
+                        <div class="kb-boot__body">
+                          <b>自动切分与向量化</b>
+                          <span>上传后先切块再索引，状态从「处理中」变成「已索引」才算可用。</span>
+                        </div>
+                      </li>
+                      <li class="kb-boot__item">
+                        <span class="kb-boot__i">03</span>
+                        <div class="kb-boot__body">
+                          <b>在检索与问答里使用</b>
+                          <span>命中后可在「检索」里看分块，在右栏问答里作为引用被带出。</span>
+                        </div>
+                      </li>
+                    </ol>
+                    <p class="kb-boot__foot">
+                      想跳过从零开始，可以从「<ReButton type="primary" link @click="showTplGallery = true">模板集</ReButton>」一键建库，
+                      模板会带回文档、实体与关系。
+                    </p>
+                  </div>
+                </div>
+
                 <KBFileTree ref="fileTreeRef" :kb-id="store.activeKnowledgeBaseId!" :readonly="!canEditCurrent"
                   :status-filter="fileStatusFilter"
                   :suppress-empty="filesForFilter.length === 0 && fileStatusFilter === 'all'"

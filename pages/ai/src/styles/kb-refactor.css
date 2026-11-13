@@ -3416,7 +3416,12 @@ html.dark .kb-tpl__cover {
   font-size: 11px;
 }
 
-/* 空卷宗：不再是虚线占位卡，而是一条「上架流程」——上传 → 索引 → 使用 */
+/* 空卷宗：不再竖着吊在中间，贴着筛选栏往下排，和抬头连成一段 */
+.kb-docview__blank {
+  align-items: start;
+  justify-items: center;
+  padding-top: 40px;
+}
 .kb-docview__blank-card {
   width: min(600px, 100%);
   padding: 26px 26px 20px;
@@ -3706,4 +3711,64 @@ html.dark .kb-tpl__cover {
   .kb-ask .kb-ask__quick .re-button.re-button--primary:not(.is-link):hover {
     transform: none;
   }
+}
+
+/* ##########  9. 统一三栏材质 / 右栏节奏（2026-11-13 第三轮） ########## */
+
+/* 三栏共用同一种「工作台」底色：左右不再一边灰一边白；
+   中栏的文档卡仍是白纸，靠纸面而不是色差来分层 */
+.kb-cols > .kb-nav,
+.kb-cols > .kb-main,
+.kb-cols > .kb-ask {
+  background: color-mix(in srgb, var(--kb-fill) 58%, var(--kb-card));
+}
+
+/* 中栏收边：原来 24/22 的内边距让卡片像被放在空房间中央 */
+.kb-cols > .kb-main {
+  padding: 16px 16px 20px;
+}
+
+/* 文档卡贴住中栏内边距，不再额外再加一段上边距 */
+.kb-main > .kb-docview__list {
+  margin-top: 0;
+}
+
+/* 右栏：报头与消息区收紧，空态改为贴着报头往下排，不再竖着居中 */
+.kb-ask__head {
+  padding: 12px 14px 10px;
+}
+
+.kb-ask__log {
+  padding: 12px 14px;
+}
+
+.kb-ask__empty {
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 16px 2px 0;
+}
+
+.kb-ask__quote {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.kb-ask__hint {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+/* 输入区落成白底，成为右栏唯一的亮面，视线有落点 */
+.kb-ask__input {
+  background: var(--kb-card);
+  padding: 8px 12px 10px;
+}
+
+/* 左栏分组标题与列表靠同一条基线，避免「视图」和「知识库」两块左右错位 */
+.kb-nav {
+  padding: 12px 8px 12px 12px;
+}
+
+.kb-nav__group {
+  gap: 3px;
 }
