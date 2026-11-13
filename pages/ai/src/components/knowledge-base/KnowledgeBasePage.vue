@@ -39,6 +39,7 @@
       :file-count="overview.totals?.file_count ?? 0"
       :entity-count="overview.totals?.entity_count ?? 0"
       :relation-count="overview.totals?.relation_count ?? 0"
+      :loading="overviewLoading"
       :activities="activities"
       :templates="overviewTemplates"
       :bases="overviewBases"
@@ -3877,6 +3878,15 @@ const overview = ref<{
 }>({})
 
 /**
+ * 总览是否在拉取。
+ *
+ * <p>首载 / 返回列表时 {@code overview} 还是空对象，若直接用「库数 === 0」
+ * 判空，用户会先看到一秒假的「开始创建你的第一个知识库」，然后列表才蹦出来。
+ * 这个开关喂给 KnowledgeOverview：加载中统计格显示「–」、条目区显示骨架。</p>
+ */
+const overviewLoading = ref(true)
+
+/**
  * 空状态里的「教育场景模板」清单。
  *
  * <p><b>这是静态清单，不是接口数据。</b>后端目前没有知识库模板接口
@@ -4002,11 +4012,14 @@ function isKbReady(kb: KnowledgeBase): boolean {
  * 拉取列表页统计。
  */
 async function loadOverview() {
+  overviewLoading.value = true
   try {
     overview.value = (await apiService.fetchKBOverview()) || {}
   } catch (e) {
     // 统计失败不该让列表空掉，退化成 0 展示
     overview.value = {}
+  } finally {
+    overviewLoading.value = false
   }
 }
 

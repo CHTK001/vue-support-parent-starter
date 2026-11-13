@@ -19,19 +19,19 @@
       <!-- ===== 统计带：发丝线分隔的报头，不用卡片堆 ===== -->
       <div class="kb-statband">
         <div class="kb-statband__cell">
-          <span class="kb-statband__num">{{ kbCount }}</span>
+          <span class="kb-statband__num">{{ loading ? '–' : kbCount }}</span>
           <span class="kb-statband__label">知识库</span>
         </div>
         <div class="kb-statband__cell">
-          <span class="kb-statband__num">{{ fileCount }}<i>篇</i></span>
+          <span class="kb-statband__num">{{ loading ? '–' : fileCount }}<i>篇</i></span>
           <span class="kb-statband__label">文档总量</span>
         </div>
         <div class="kb-statband__cell">
-          <span class="kb-statband__num">{{ entityCount }}</span>
+          <span class="kb-statband__num">{{ loading ? '–' : entityCount }}</span>
           <span class="kb-statband__label">实体节点</span>
         </div>
         <div class="kb-statband__cell">
-          <span class="kb-statband__num">{{ relationCount }}</span>
+          <span class="kb-statband__num">{{ loading ? '–' : relationCount }}</span>
           <span class="kb-statband__label">关系连线</span>
         </div>
         <!-- 空库数单独一格：15 个库里 13 个空着时，前四格看不出「哪些其实还没用起来」 -->
@@ -44,16 +44,35 @@
       <div class="kb-grid">
         <!-- ================= 左列：知识库 / 创建引导 / 模板 ================= -->
         <div class="kb-col">
-          <!-- 我的知识库：文献条目（编号 + 宋体名 + 元数据 + 状态徽章） -->
-          <section v-if="bases.length > 0" class="kb-sect">
+          <!-- 我的知识库：文献条目（编号 + 宋体名 + 元数据 + 状态徽章）。
+               loading 且还没有数据时显示骨架行，不提前说「还没有库」 -->
+          <section v-if="bases.length > 0 || loading" class="kb-sect">
             <div class="kb-sect__head">
               <span class="kb-sect__no">01</span>
               <h2 class="kb-sect__title">我的知识库</h2>
               <div class="kb-sect__extra">
-                <span class="kb-badge kb-badge--mute">{{ bases.length }} 个</span>
+                <span v-if="bases.length > 0" class="kb-badge kb-badge--mute">{{ bases.length }} 个</span>
                 <!-- 原先没有搜索入口，15 个同名库只能靠编号认；这里按名称/描述过滤 -->
-                <el-input v-model="kw" :prefix-icon="Search" placeholder="按名称过滤" clearable
+                <el-input v-if="bases.length > 0" v-model="kw" :prefix-icon="Search" placeholder="按名称过滤" clearable
                   class="kb-sect__search" />
+              </div>
+            </div>
+
+            <!-- 加载骨架：行形状对齐真实条目（编号/封面/名称/元数据/右侧徽章与操作） -->
+            <div v-if="loading && bases.length === 0" class="kb-entries" aria-hidden="true">
+              <div v-for="i in 3" :key="i" class="kb-entry">
+                <span class="kb-entry__no"><span class="kb-sk" style="width: 26px; height: 12px; display: block" /></span>
+                <span class="kb-entry__cover"><span class="kb-sk" style="width: 100%; height: 100%; display: block" /></span>
+                <span class="kb-entry__body flex flex-col gap-2 min-w-0">
+                  <span class="kb-sk" style="width: 45%" />
+                  <span class="kb-sk" style="width: 62%" />
+                </span>
+                <span class="kb-entry__side">
+                  <span class="kb-sk" style="width: 44px" />
+                  <span class="kb-sk" style="width: 44px" />
+                  <span class="kb-sk" style="width: 26px; height: 26px; border-radius: 8px" />
+                  <span class="kb-sk" style="width: 26px; height: 26px; border-radius: 8px" />
+                </span>
               </div>
             </div>
 
@@ -106,9 +125,9 @@
           <!-- 创建引导：插画 + 两个主次 CTA -->
           <section class="kb-sect">
             <div class="kb-sect__head">
-              <span class="kb-sect__no">{{ bases.length > 0 ? '02' : '01' }}</span>
+              <span class="kb-sect__no">{{ loading || bases.length > 0 ? '02' : '01' }}</span>
               <h2 class="kb-sect__title">
-                {{ bases.length > 0 ? '继续创建新的知识库' : '开始创建你的第一个知识库' }}
+                {{ loading ? '创建知识库' : bases.length > 0 ? '继续创建新的知识库' : '开始创建你的第一个知识库' }}
               </h2>
             </div>
 
@@ -315,6 +334,8 @@ const props = defineProps<{
   activities: ActivityItem[]
   templates: TemplateItem[]
   bases: BaseItem[]
+  /** 总览数据是否在拉取：加载中统计格显示「–」、条目区显示骨架，不提前说「第一个知识库」 */
+  loading?: boolean
 }>()
 
 /**
