@@ -273,6 +273,40 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/device/src/views/DeviceProviderView.vue"),
         meta: { title: "提供商配置", icon: "SetUp", showLink: true, rank: 12 },
       },
+      // 设备日志 / 门禁记录 / 车闸记录：之前只藏在设备行的右键菜单里，
+      // 现在作为设备管理的独立菜单项常驻；三页都自带设备/时间筛选。
+      {
+        path: "/device/events",
+        name: "DeviceEvents",
+        component: () => import("@pages/device/src/views/DeviceEventLogView.vue"),
+        meta: { title: "设备日志", icon: "Document", showLink: true, rank: 13 },
+      },
+      {
+        path: "/device/access",
+        name: "DeviceAccess",
+        component: () => import("@pages/device/src/views/DeviceAccessRecordView.vue"),
+        meta: { title: "门禁记录", icon: "Door", showLink: true, rank: 14 },
+      },
+      {
+        path: "/device/vehicle-pass",
+        name: "DeviceVehiclePass",
+        component: () => import("@pages/device/src/views/DeviceVehiclePassView.vue"),
+        meta: { title: "车闸记录", icon: "Van", showLink: true, rank: 15 },
+      },
+      // 传感器记录 = 环境指标的历史读数（时序存储）；存储查询 = 直接看时序存储原始行。
+      // 两页共用 plugin.device.timeseries.engine 的引擎，切换 bean/influxdb/redis 后接口不变。
+      {
+        path: "/device/metric-history",
+        name: "DeviceMetricHistory",
+        component: () => import("@pages/device/src/views/DeviceMetricHistoryView.vue"),
+        meta: { title: "传感器记录", icon: "Odometer", showLink: true, rank: 16 },
+      },
+      {
+        path: "/device/series",
+        name: "DeviceSeries",
+        component: () => import("@pages/device/src/views/DeviceSeriesView.vue"),
+        meta: { title: "存储查询", icon: "Coin", showLink: true, rank: 17 },
+      },
       // 独立的「设备分组」页已并入设备资产页左侧树（组织 / 分组 / 厂家 三分支），
       // 分组的新增 / 重命名 / 分配设备 / 删除全部收口在该树的分组右键菜单里。
       // 页面内入口：设备资产页的大屏按钮 / 右键「视频预览」/ 预览页的独立窗口，
@@ -287,6 +321,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
         name: "DeviceScreen",
         component: () => import("@pages/device/src/views/DeviceScreenView.vue"),
         meta: { title: "设备大屏", showLink: false, rank: 14 },
+      },
+      {
+        path: "/device/wall",
+        name: "DeviceWall",
+        component: () => import("@pages/device/src/views/DeviceWallView.vue"),
+        meta: { title: "设备大屏", showLink: false, standalone: true, rank: 14 },
       },
       {
         path: "/device/preview",
@@ -311,10 +351,11 @@ export const monitorRoutes: RouteConfigsTable[] = [
     ],
   },
 
-  // ==================== 远程控制 ====================
-  // WebRTC 远程控制（桌面共享 + 键鼠遥控）：由 @pages/control 的 createControlRoutes 产出
-  // （一级分组父节点 + 叶子页 /control/remote，界面与后端 API 同出 @pages/control）。
-  ...createControlRoutes({ showLink: true }),
+  // ==================== 远程控制（不进菜单） ====================
+  // WebRTC 远程控制（桌面共享 + 键鼠遥控）由 @pages/control 的 createControlRoutes 产出。
+  // 它本质上是「服务管理」里的一个服务（ROOM 协议节点 + 信令地址），不是独立业务入口，
+  // 所以路由保留（工作台等处仍可 push 过去）但不出现在侧边栏菜单里。
+  ...createControlRoutes({ showLink: false }),
 
   // ==================== 账号管理 ====================
   // 统一账号（设备密钥 / 邮箱 / 短信）是「设备资产」的凭据来源，但与设备不是同一种资产：
@@ -329,16 +370,30 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         // 账号管理（账号资产 + 模板管理 + 消息模板）：页面本体、API、隐藏子路由
         // 都在 @account/web（后端项目 spring-support-account-starter/web）里，
-        // 宿主只挂这一条，不再各自维护模板库代码。
+        // 宿主只挂这两条，不再各自维护模板库代码。
         path: "/account-assets",
         name: "AccountAssets",
         component: () => import("@account/web/src/account/views/ScAccountAssets.vue"),
         meta: { title: "账号资产", icon: "Key", showLink: true, rank: 1 },
       },
-      // 模板工作台里的「打印机管理」「调用日志」及设计器/预览用 router.push({name}) 跳转，
-      // 这些路由必须真实存在。showLink:false 保证它们不进侧边栏
-      // （模板管理是账号管理页里的一个视图，不再是独立菜单）。
-      ...templateChildRoutes,
+      // 密钥管理：复用账号资产页的「密钥库」分段（厂商 AccessKey 集中管理，
+      // 阿里云等账号的密钥在此维护），props 直达 SECRET 段，不另维护一套页面。
+      {
+        path: "/secret-assets",
+        name: "SecretAssets",
+        component: () => import("@account/web/src/account/views/ScAccountAssets.vue"),
+        props: { initialSegment: "SECRET" },
+        meta: { title: "密钥管理", icon: "Lock", showLink: true, rank: 2 },
+      },
+      // 模板管理：统一入口（文档模板 + 消息模板，消息模板是其中一种类型），
+      // 挂在账号管理分组下；打印机 / 调用日志 / 设计器 / 预览深链保持可访问但不进侧边栏。
+      {
+        path: "/template",
+        name: "TemplateHome",
+        component: () => import("@account/web/src/template/views/TemplateView.vue"),
+        meta: { title: "模板管理", icon: "MagicStick", showLink: true, rank: 3 },
+      },
+      ...templateChildRoutes.filter((route) => route.name !== "TemplateHome"),
       // 渠道管理：**直接复用** @pages/channel 的完整渠道页（渠道品牌表 / 绑定授权 +
       // SSE 取凭据 / 刷新 / 签到 / 模型开关 / ChatClient / 文生图），
       // 宿主只负责挂路由，不再抄一份 API 与绑定业务（抄两份必然漂）。
@@ -346,7 +401,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
         path: "/channel-assets",
         name: "ChannelAssets",
         component: () => import("@pages/channel/src/components/ChannelManagementPage.vue"),
-        meta: { title: "渠道管理", icon: "Connection", showLink: true, rank: 2 },
+        meta: { title: "渠道管理", icon: "Connection", showLink: true, rank: 4 },
       },
     ],
   },
