@@ -3,21 +3,21 @@
  *
  * <p>这一层是页面唯一的事实来源：统计摘要、协议 / 插件元数据、全局状态订阅、启停、
  * 删改、抽屉开合、降级提示全在这里。模板只读 {@link ServiceNodesVm} 里的状态、
- * 只调这里的函数，自己不算任何东西 —— 否则「自动刷新失败要不要弹 toast」这类判断
+ * 只调这里的函数，自己不算任何东西 —— 否则「后台推送重取失败要不要弹 toast」这类判断
  * 会散进模板，而它出错的症状是「页面偶尔刷出一片红字」，最难查。</p>
  *
  * <p><b>实时口径</b>：页面只建立一条 {@code POST /server/stream} 全局 SSE 长连接，
  * 服务端在节点定义 / 运行态变化时推 {@code changed}，这里收到后静默重取摘要与
- * 当前页；<b>没有短轮询</b>。重连后由服务端状态指纹比对补推一帧，页面无需任何定时器。</p>
+ * 列表首批（滚动分页的 reload 回第 1 批）；<b>没有短轮询</b>。重连后由服务端状态指纹比对补推一帧，页面无需任何定时器。</p>
  *
  * <p><b>分页口径</b>：从 4.0.0.56 起节点列表走服务端分页（{@code GET /server/page}），
- * 前端不再持有全量数组。状态是<b>运行时状态</b>而不是库列，所以过滤 / 排序 / 切片
- * 都在后端装配完视图之后完成（见后端 {@code ServerNodePager}）。因此：</p>
+ * 左栏为<b>滚动触底追加</b>（无底部页码条），前端不持有全量数组。状态是<b>运行时状态</b>
+ * 而不是库列，所以过滤 / 排序 / 切片都在后端装配完视图之后完成（见后端 {@code ServerNodePager}）。因此：</p>
  * <ul>
- *   <li>表格的行由 {@link ServiceNodesVm.loadPage} 按页取，交给 ReTable 的 loader；</li>
+ *   <li>表格的行由 {@link ServiceNodesVm.loadPage} 按页取，交给 ReTable 的 loader，触底追加下一批；</li>
  *   <li>左栏计数与新建表单的重名校验需要「全量」，改由 {@code /server/summary} 一份
- *       轻量摘要提供 —— 不能拿当前页去算，否则翻到第 2 页时总数会变成 20；</li>
- *   <li>启停 / 删除 / 改配置之后，摘要与当前页都要重取。</li>
+ *       轻量摘要提供 —— 不能拿已加载的那批去算，否则滚动加载首批时总数会变成 20；</li>
+ *   <li>启停 / 删除 / 改配置之后，摘要与列表首批都要重取。</li>
  * </ul>
  *
  * @author CH
@@ -57,7 +57,7 @@ export type ServiceSort = 'name' | 'port' | 'status'
 /** 页面可用的全部状态与动作 */
 export interface ServiceNodesVm {
   // ---- 数据 ----
-  /** 统计摘要（全量，不是当前页） */
+  /** 统计摘要（全量，不是当前已加载的那批） */
   summary: ServerNodeSummary
   /** 统计（沿用 NodeStats 口径，模板不必知道后端字段名） */
   stats: NodeStats
@@ -89,9 +89,9 @@ export interface ServiceNodesVm {
   // ---- 动作 ----
   /** ReTable 的远程 loader：按页取节点（后端分页） */
   loadPage: (params: ReTableLoadParams) => Promise<RePageResult>
-  /** 重取摘要 + 当前页（silent 用于自动刷新，不弹 toast、不点亮按钮） */
+  /** 重取摘要 + 列表首批（silent 用于 SSE 推送 / 重连补拉，不弹 toast、不点亮按钮） */
   refresh: (silent?: boolean) => Promise<void>
-  /** 宿主注册「重取当前页」的回调（ReTable 的 reload），摘要是本层自己刷 */
+  /** 宿主注册「重取列表首批」的回调（ReTable 的 reload，滚动模式下回到第 1 批），摘要是本层自己刷 */
   setRowRefresher: (fn: (() => void) | null) => void
   openCreate: () => void
   openEdit: (node: ServerNodeView) => void
@@ -207,11 +207,11 @@ export function useServiceNodes(): ServiceNodesVm {
    * 协议 / 插件元数据是否已经拿到。
    *
    * <p>这两份清单由后端启动时的内置项 + SPI 扫描结果决定，运行期不会变；
-   * 10 秒一轮的自动刷新只该刷节点状态，把元数据也每轮重拉一遍属于空跑。</p>
+   * 全局 SSE 推送触发的重取只该刷节点状态与列表，把元数据每轮重拉一遍属于空跑。</p>
    */
   const metaLoaded = ref(false)
 
-  /** 宿主注册的「重取当前页」回调（ReTable.reload），启停 / 删除后要一起刷 */
+  /** 宿主注册的「重取列表首批」回调（ReTable.reload，滚动模式回到第 1 批），启停 / 删除后要一起刷 */
   let rowRefresher: (() => void) | null = null
 
   const stats = computed<NodeStats>(() => ({
@@ -288,7 +288,7 @@ export function useServiceNodes(): ServiceNodesVm {
   async function refresh(silent = false): Promise<void> {
     if (!silent) loading.value = true
     try {
-      // 元数据只在还没拿到时请求：SSE 推送 / 切回标签页的补拉都只刷摘要
+      // 元数据只在还没拿到时请求：SSE 推送 / 重连补拉都只刷摘要与列表
       const summaryPromise = serverNodeSummary()
       const protocolsPromise = metaLoaded.value ? Promise.resolve(protocols.value) : listProtocols()
       const filtersPromise = metaLoaded.value ? Promise.resolve(filterTypes.value) : listFilterTypes()
@@ -320,14 +320,14 @@ export function useServiceNodes(): ServiceNodesVm {
 
       if (summaryResult.status === 'rejected') {
         if (!silent) message.error(reasonText(summaryResult.reason))
-        // 抛给调用方记一次失败；不再有短轮询的退避调度
+        // 抛给调用方记一次失败；重连补拉会自愈，无需短轮询退避调度
       }
     } catch (e) {
       if (!silent) message.error(reasonText(e))
     } finally {
       if (!silent) loading.value = false
     }
-    // 当前页跟着重取：启停 / 删除后状态与过滤器链都会变
+    // 列表首批跟着重取：启停 / 删除后状态与过滤器链都会变（滚动模式回第 1 批）
     try {
       rowRefresher?.()
     } catch {

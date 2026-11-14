@@ -519,7 +519,7 @@ function reloadAll(): void {
   void vm.refresh();
 }
 
-/** 抽屉动作（启停 / 热更新 / 移除插件）后：刷新摘要 + 当前页 */
+/** 抽屉动作（启停 / 热更新 / 移除插件）后：刷新摘要 + 列表首批 */
 function onChanged(): void {
   void vm.refresh();
 }
