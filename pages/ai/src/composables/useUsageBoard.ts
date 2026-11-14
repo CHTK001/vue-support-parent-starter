@@ -55,6 +55,13 @@ export interface BoardData {
 /** 当前悬停的环形图扇区（null = 没悬停） */
 export interface HoverSlice { name: string; pct: number }
 
+/** 刻度尺上的一天：日期 + 当日 Token / 请求数（刻度高度即当日 Token 强度） */
+export interface SpineDay {
+  date: string;
+  tokens: number;
+  calls: number;
+}
+
 /** treemap 色块的点击详情：自然块（模型级）或「其他 N 项」汇总块（见 {@link TreeMapDetail.members}） */
 export interface TreeMapDetail {
   /** 模型名或「其他 N 项」 */
@@ -90,7 +97,13 @@ export interface TreeMapBlockItem {
   /** 看板调色板色（汇总块用中性灰） */
   color: string;
   /** 汇总块的内部列表：点击时展开的名单 */
-  members?: Array<TreeMapDetail["members"][number]>;
+  members?: Array<NonNullable<TreeMapDetail["members"]>[number]>;
+  requests: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  /** 当前口径费用 */
+  cost: number;
 }
 
 export function useUsageBoard() {
@@ -284,8 +297,28 @@ export function useUsageBoard() {
     { key: "all", label: "全部" },
   ];
 
+  // ---------- 刻度尺与单日下钻（04 侦察时间轴）----------
+  /**
+   * 刻度尺的骨架天数：近 30 天（含今天）。
+   *
+   * <p>刻度尺是页面的主干结构 —— 它回答「这一个月哪几天在烧」，点某一天
+   * 整页下钻到该日。它<b>不随筛选变化</b>（否则一筛选刻度尺就瘦成一根
+   * 三天的柱子，失去时间轴的意义），所以取数走独立窗口。</p>
+   */
+  const SPINE_DAYS = 30;
+  const spineDays = ref<SpineDay[]>([]);
+  /** 下钻到的日期（null = 没下钻）。点刻度尺进入，再点同一天或「返回区间」退出 */
+  const drillDay = ref<string | null>(null);
+  /** 下钻前的筛选状态，退出时原样还原（下钻是临时视角，不该吃掉用户的筛选） */
+  let drillRestore: {
+    filter: string;
+    params: { startTime?: string; endTime?: string };
+    range: [string, string] | null;
+  } | null = null;
+
   // 当前时间范围的人类可读描述（头部副标题）
   const rangeLabel = computed(() => {
+    if (drillDay.value) return `单日 · ${drillDay.value}`;
     const map: Record<string, string> = { today: "今天", "7d": "近 7 天", "30d": "近 30 天", all: "全部时间", custom: "自定义区间" };
     const base = map[activeFilter.value] || "自定义区间";
     const { startTime, endTime } = timeParams.value;
@@ -300,6 +333,9 @@ export function useUsageBoard() {
   }
 
   function setQuickFilter(key: string) {
+    // 用户主动切范围：下钻视角作废，且不还原到旧范围（否则一点「今天」又被弹回下钻前）
+    drillDay.value = null;
+    drillRestore = null;
     activeFilter.value = key;
     customRange.value = null;
     const now = new Date();
@@ -325,6 +361,8 @@ export function useUsageBoard() {
       return;
     }
     activeFilter.value = "custom";
+    drillDay.value = null;
+    drillRestore = null;
     timeParams.value = {
       startTime: `${val[0]} 00:00:00`,
       endTime: `${val[1]} 23:59:59`,
@@ -389,7 +427,7 @@ export function useUsageBoard() {
 
   // ---------- 数据加载 ----------
   const summaryRows = ref<any[]>([]);
-  const trendData = ref<Array<{ date: string; input: number; output: number; cached: number; total: number }>>([]);
+  const trendData = ref<Array<{ date: string; input: number; output: number; cached: number; total: number; calls: number }>>([]);
 
   /** 服务商 id → 中文名。后端 GET /v2/providers 列表回填，未命中兜底原样显示 */
   const providerNameMap = ref<Record<string, string>>({});
@@ -410,6 +448,7 @@ export function useUsageBoard() {
     list: false,
     trend: false,
     modelTrend: false,
+    spine: false,
   });
   /** 各路由最近一次的报错，null 表示该路由正常 */
   const routeErrors = reactive<Record<string, string | null>>({
@@ -418,6 +457,7 @@ export function useUsageBoard() {
     list: null,
     trend: null,
     modelTrend: null,
+    spine: null,
   });
   /** 按路由压缩的“加载中”：驱动顶栏底边 2px 流光条，任一路在飞就亮灯 */
   const refreshing = computed(() => Object.values(routeLoading).some(Boolean));
@@ -431,6 +471,7 @@ export function useUsageBoard() {
     routeErrors.list = null;
     routeErrors.trend = null;
     routeErrors.modelTrend = null;
+    routeErrors.spine = null;
   }
 
   const FAULT_LABELS: Record<string, string> = {
@@ -439,6 +480,7 @@ export function useUsageBoard() {
     list: "明细列表",
     trend: "每日趋势",
     modelTrend: "模型趋势",
+    spine: "刻度尺",
   };
 
   /** 本次拉数失败的路由中文说明；没有则返回 null（一次汇总提醒，不做 N 连弹） */
@@ -570,6 +612,7 @@ export function useUsageBoard() {
       loadList(seq),
       loadTrend(seq),
       loadModelTrend(seq),
+      loadSpine(seq),
     ]);
     // 检查回退到了更晚的版本（本次拉数被覆盖）
     if (loadSeq !== seq) return;
@@ -815,6 +858,128 @@ export function useUsageBoard() {
     openLiveStream();
   }, { deep: true });
 
+  // ==================== 刻度尺（近 30 天）+ 单日下钻 ====================
+
+  /** 刻度尺的取数窗口：近 {@link SPINE_DAYS} 天整天，固定不动（与时间筛选解耦） */
+  function spineWindow(): { startTime: string; endTime: string } {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() - (SPINE_DAYS - 1));
+    return { startTime: `${fmtDate(start)} 00:00:00`, endTime: `${fmtDate(now)} 23:59:59` };
+  }
+
+  /**
+   * 拉刻度尺数据。
+   *
+   * <p>口径：`/usage/trend` 近 30 天按天聚合（后端走日汇总表，一次几十行）。
+   * 骨架必须补齐 30 根 —— 没用量的一天也要留一根空刻度，否则时间轴会「跳日」，
+   * 看起来像那几天不存在，而不是那几天没用。</p>
+   */
+  async function loadSpine(seq: number) {
+    routeLoading.spine = true;
+    try {
+      const res: any = await usageApi.trend(spineWindow());
+      if (loadSeq !== seq) return;
+      const rows: any[] = res?.data || [];
+      const map = new Map<string, SpineDay>();
+      for (const r of rows) {
+        const d = String(r?.date || "").slice(0, 10);
+        if (!d) continue;
+        const cur = map.get(d) || { date: d, tokens: 0, calls: 0 };
+        cur.tokens += Number(r?.totalTokens) || 0;
+        cur.calls += Number(r?.totalCalls) || 0;
+        map.set(d, cur);
+      }
+      const out: SpineDay[] = [];
+      for (let i = SPINE_DAYS - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = fmtDate(d);
+        out.push(map.get(key) || { date: key, tokens: 0, calls: 0 });
+      }
+      spineDays.value = out;
+    } catch (e: any) {
+      routeErrors.spine = e?.message || e;
+    } finally {
+      routeLoading.spine = false;
+    }
+  }
+
+  /**
+   * 刻度尺渲染口径。
+   *
+   * <p>今日那根用实时流的今日增量兜底：日汇总表要等定时任务才落库，当日刻度
+   * 否则永远是 0，一整天看着都像「今天没人用」。</p>
+   */
+  const spineToday = computed(() => fmtDate(new Date()));
+  const spineView = computed<SpineDay[]>(() => {
+    const today = spineToday.value;
+    return spineDays.value.map((d) =>
+      d.date === today
+        ? { ...d, tokens: Math.max(d.tokens, Number(liveTodayTokens.value) || 0) }
+        : d,
+    );
+  });
+  /** 刻度高度的分母：区间内单日最大 Token（含今日实时值），0 时兜底 1 防除零 */
+  const spineMax = computed(() => Math.max(1, ...spineView.value.map((d) => d.tokens)));
+  /** 区间内合计（刻度尺右侧的「30 天总览」读数） */
+  const spineTotal = computed(() => spineView.value.reduce((s, d) => s + d.tokens, 0));
+
+  /**
+   * 该天是否落在当前筛选区间内。
+   *
+   * <p>「全部时间」不在地面上标区间（刻度尺本身只有 30 天，标了反而误导），
+   * 所以全部时间视为整条亮起。</p>
+   */
+  function isSpineInRange(date: string): boolean {
+    const { startTime, endTime } = timeParams.value;
+    const from = startTime ? startTime.slice(0, 10) : "";
+    const to = endTime ? endTime.slice(0, 10) : "";
+    if (!from || !to) return true;
+    return date >= from && date <= to;
+  }
+
+  /**
+   * 点刻度尺某天：整页切到那一天（00:00:00–23:59:59）。
+   *
+   * <p>走 `custom` 而不是新造一个筛选键 —— 时间胶囊、导出文件名、明细查询参数
+   * 全都读 `timeParams`，单日就是最窄的自定义区间，没必要为它开一条特殊分支。
+   * 退出时还原下钻前的筛选，别让临时视角吃掉用户原本的区间。</p>
+   */
+  function selectSpineDay(date: string) {
+    if (!date) return;
+    if (drillDay.value === date) {
+      clearDrill();
+      return;
+    }
+    if (!drillRestore) {
+      drillRestore = {
+        filter: activeFilter.value,
+        params: { ...timeParams.value },
+        range: customRange.value,
+      };
+    }
+    drillDay.value = date;
+    activeFilter.value = "custom";
+    customRange.value = [date, date];
+    timeParams.value = { startTime: `${date} 00:00:00`, endTime: `${date} 23:59:59` };
+    refreshAll();
+  }
+
+  /** 退出下钻：回到下钻前的区间与筛选键 */
+  function clearDrill() {
+    if (!drillDay.value) return;
+    drillDay.value = null;
+    const back = drillRestore;
+    drillRestore = null;
+    if (back) {
+      activeFilter.value = back.filter;
+      timeParams.value = back.params;
+      customRange.value = back.range;
+    }
+    refreshAll();
+  }
+
   // 表面色（用于饼图切片间隔，随主题 / 深色变化）
   const surfaceBg = ref("#ffffff");
   function readSurfaceBg() {
@@ -922,6 +1087,38 @@ export function useUsageBoard() {
   const modelBoard = computed(() => buildBoard(modelDist.value, modelChartType.value));
   const groupBoard = computed(() => buildBoard(groupDist.value, groupChartType.value));
 
+  // ==================== 分布三口径（模型 / 分组 / 应用） ====================
+  /**
+   * 分布面板的口径与指标是**面板自己的**状态，不跟构成图共用。
+   *
+   * <p>共用会让两个面板互相牵着跳（改构成图口径，分布表也跟着变色重排），
+   * 而它们回答的是不同问题：构成图看「面积分布」，分布表看「逐行核对」。</p>
+   */
+  const distScopes = [
+    { key: "model", label: "模型" },
+    { key: "group", label: "分组" },
+    { key: "app", label: "应用" },
+  ] as const;
+  type DistScope = (typeof distScopes)[number]["key"];
+  const distScope = ref<DistScope>("model");
+  const distMetric = ref<ChartType>("token");
+
+  const distRows = computed<DistRow[]>(() => {
+    if (distScope.value === "group") return groupDist.value;
+    if (distScope.value === "app") return appDist.value;
+    return modelDist.value;
+  });
+  /** 当前口径的看板（颜色/占比/汇总），与构成图同一套算法，颜色能对上 */
+  const distBoard = computed(() => buildBoard(distRows.value, distMetric.value));
+  /** 分布列表：按当前指标降序（切「费用」时榜序必须跟着变） */
+  const distSorted = computed<BoardItem[]>(() =>
+    [...distBoard.value.items].sort((a, b) => b.value - a.value),
+  );
+  /** 行的显示名：应用口径是英文键，补中文名；其余原样 */
+  function distName(name: string): string {
+    return distScope.value === "app" ? appLabel(name) : name;
+  }
+
   // ==================== 模型构成 treemap 交互（§6.2 / §6.3 / §6.4 / §6.5） ====================
 
   /**
@@ -938,7 +1135,17 @@ export function useUsageBoard() {
     const items = modelBoard.value.items.filter((it) => Number(it.value) > 0);
     const blocks: TreeMapBlockItem[] = items
       .slice(0, TREEMAP_TOP_N)
-      .map((it) => ({ name: it.name, value: Number(it.value), pct: Number(it.pct), color: it.color }));
+      .map((it) => ({
+        name: it.name,
+        value: Number(it.value),
+        pct: Number(it.pct),
+        color: it.color,
+        requests: it.row.requests,
+        promptTokens: it.row.promptTokens,
+        completionTokens: it.row.completionTokens,
+        totalTokens: it.row.totalTokens,
+        cost: it.row.cost,
+      }));
     const rest = items.slice(TREEMAP_TOP_N);
     if (!rest.length) return { blocks, total: items.length };
     const mk = (fn: (it: BoardItem) => number) =>
@@ -1284,13 +1491,14 @@ export function useUsageBoard() {
         axisPointer: { type: "shadow", shadowStyle: { color: "rgba(0,0,0,0.04)" } },
         valueFormatter: (v: any) => (metric === "token" ? fmtToken(v) : `${currencySymbol.value}${money(v)}`),
       },
-      legend: { type: "scroll", top: 0, icon: "circle" },
-      grid: { left: 60, right: 44, top: 40, bottom: 40, containLabel: false },
+      legend: { type: "scroll", top: 0, icon: "circle", itemWidth: 8, itemHeight: 8, itemGap: 8, textStyle: { fontSize: 10 } },
+      grid: { left: 52, right: 20, top: 28, bottom: 24, containLabel: false },
       xAxis: {
         type: "category",
         data: dates,
         axisLabel: {
           hideOverlap: true,
+          fontSize: 10,
           formatter: (v: string) => (dates.length > 14 ? String(v).slice(5) : v),
         },
         axisTick: { alignWithLabel: true },
@@ -1351,7 +1559,8 @@ export function useUsageBoard() {
 
   const trendOption = computed<EChartsOption>(() => {
     const rows = trendData.value;
-    const dates = rows.map((r) => (r.date.length > 10 ? r.date.slice(11, 16) : r.date));
+    // 单日下钻时后端回的是小时桶（date = "yyyy-MM-dd HH"），轴上标 "HH:00"
+    const dates = rows.map((r) => (r.date.length > 10 ? `${r.date.slice(11, 13)}:00` : r.date));
     const metric = trendMetric.value;
     const isBar = trendChartType.value === "bar";
     const fmt = (v: number) =>
@@ -1398,10 +1607,10 @@ export function useUsageBoard() {
         axisPointer: { type: "line", lineStyle: { type: "dashed" } },
         valueFormatter: (v: any) => fmt(Number(v)),
       },
-      legend: { show: metric === "token", data: ["输入 Token", "输出 Token", "缓存读取"], top: 0 },
-      grid: { left: 56, right: 44, top: 40, bottom: 32 },
-      xAxis: { type: "category", boundaryGap: isBar, data: dates },
-      yAxis: { type: "value", axisLabel: { formatter: (v: number) => fmt(v) } },
+      legend: { show: metric === "token", data: ["输入 Token", "输出 Token", "缓存读取"], top: 0, itemWidth: 14, itemHeight: 8, itemGap: 10, textStyle: { fontSize: 10 } },
+      grid: { left: 50, right: 18, top: 32, bottom: 26 },
+      xAxis: { type: "category", boundaryGap: isBar, data: dates, axisLabel: { fontSize: 10 } },
+      yAxis: { type: "value", axisLabel: { formatter: (v: number) => fmt(v), fontSize: 10 } },
       series,
     };
   });
@@ -1461,7 +1670,7 @@ export function useUsageBoard() {
       tooltip: {
         trigger: "axis",
         confine: true,
-        formatter: (params: any[]) => params
+        formatter: (params: any) => (Array.isArray(params) ? params : [params])
           .map((p: any) => {
             const px = p.seriesName.endsWith("（tok/s）");
             const v = p.value == null ? null : Number(p.value);
@@ -1469,16 +1678,16 @@ export function useUsageBoard() {
           })
           .join("<br/>"),
       },
-      legend: { top: 0, type: "scroll" },
-      grid: { left: 56, right: 44, top: 40, bottom: 32 },
-      xAxis: { type: "category", boundaryGap: false, data: dates.map((d) => (d.length > 10 ? d.slice(11, 16) : d)) },
+      legend: { top: 0, type: "scroll", itemWidth: 14, itemHeight: 8, itemGap: 8, textStyle: { fontSize: 10 } },
+      grid: { left: 44, right: 32, top: 26, bottom: 22 },
+      xAxis: { type: "category", boundaryGap: false, data: dates.map((d) => (d.length > 10 ? d.slice(11, 16) : d)), axisLabel: { fontSize: 10 } },
       yAxis: [
-        { type: "value", name: "ms", position: "left", axisLabel: { formatter: (v: number) => `${v}` } },
+        { type: "value", name: "ms", position: "left", axisLabel: { formatter: (v: number) => `${v}`, fontSize: 10 } },
         {
           type: "value",
           name: "tok/s",
           position: "right",
-          axisLabel: { formatter: (v: number) => `${v}` },
+          axisLabel: { formatter: (v: number) => `${v}`, fontSize: 10 },
           splitLine: { show: true, lineStyle: { type: "dashed", opacity: 0.3 } },
         },
       ],
@@ -1778,7 +1987,9 @@ export function useUsageBoard() {
     stats, statCards, animatedTokens, animatedCalls,
     activeFilter, customRange, timeParams, quickFilters, rangeLabel,
     setQuickFilter, onCustomRange, refreshAll, refreshing, handleExport, exporting,
+    spineView, spineMax, spineTotal, drillDay, selectSpineDay, clearDrill, isSpineInRange,
     modelDist, groupDist, appDist,
+    distScopes, distScope, distMetric, distRows, distBoard, distSorted, distName,
     modelRankTop5, appRankTop5, rankMetric, rankValue, rankBarWidth, rankPct, appLabel,
     liveEnabled, liveState, liveTodayTokens, liveRangeTokens, liveRate, liveLabel,
     boardTabs, modelChartType, groupChartType, modelBoard, groupBoard,

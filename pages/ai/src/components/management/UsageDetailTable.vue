@@ -6,7 +6,7 @@
     模型速率 popover + Token 明细 + 耗时指示 + 费用敏感开关 + 类型/调用标签 +
     ReIpText 等），数据/loader 全部来自 {@code board}（由各变体 {@code reactive(useUsageBoard())} 注入）。</p>
   -->
-  <section class="usage-detail">
+  <section class="usage-detail" :class="{ 'is-compact': compact }">
     <header class="ud-head">
       <div class="ud-title-wrap">
         <h3 class="ud-title">用量明细</h3>
@@ -48,7 +48,7 @@
         row-key="sysAiUsageId"
         :pagination="true"
         :page-size="20"
-        :layout-table="{ minHeight: 0, maxHeight: board.detailTotal > 0 ? 560 : 200 }"
+        :layout-table="layoutTable"
         :loader="board.loadDetailPage"
         :params="board.detailQueryParams"
         :page-sizes="[10, 20, 50]"
@@ -235,7 +235,19 @@ import ReIpText from '@repo/ui/re-ip-text';
 import { Eye24Regular, EyeOff24Regular } from '@vicons/fluent';
 import { computed, ref } from 'vue';
 
-const props = defineProps<{ board: any }>();
+const props = defineProps<{ board: any; compact?: boolean }>();
+
+/**
+ * 表格高度口径。
+ *
+ * <p>普通版按内容定高（最多 560px）；紧凑版（04 侦察时间轴把明细压成
+ * 154px 一屏）改成吃满父容器，让表体在块内滚动，而不是撑破卡片。</p>
+ */
+const layoutTable = computed(() =>
+  props.compact
+    ? { fill: true, minHeight: 0 }
+    : { minHeight: 0, maxHeight: props.board.detailTotal > 0 ? 560 : 200 },
+);
 
 /**
  * 列显隐：13 列在 1280~1600 宽度下必然横滚，给用户一个「只留关心的几列」的出口。
@@ -287,6 +299,23 @@ const visibleColumns = computed(() =>
 .ud-cols-btn { padding: 0 6px; }
 .ud-cols { display: flex; flex-direction: column; gap: 2px; max-height: 320px; overflow-y: auto; }
 .ud-cols :deep(.el-checkbox) { margin-right: 0; height: 26px; }
+
+/* 紧凑模式：块高由父级给定（04 版面 154px），表头收紧、表体在块内滚动 */
+.usage-detail.is-compact { flex: 1 1 auto; min-height: 0; }
+.usage-detail.is-compact .ud-head { padding: 4px 10px 2px; gap: 8px; }
+.usage-detail.is-compact .ud-title { font-size: 12.5px; }
+.usage-detail.is-compact .ud-hint { font-size: 10px; }
+.usage-detail.is-compact .ud-filter { width: 132px; }
+.usage-detail.is-compact .ud-actions { gap: 6px; }
+.usage-detail.is-compact .ud-cost-toggle { margin-left: 2px; font-size: 11px; }
+.usage-detail.is-compact .ud-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 0 2px;
+}
+.usage-detail.is-compact .ud-body > * { flex: 1 1 auto; min-height: 0; }
 
 /* 不再覆盖 vxe 的表格内部样式：固定列是独立渲染的三张表，任何只作用于其中一层的
    边框/内边距/圆角都会让表头与表体错开。外观交给 ReTable 的默认皮肤。 */

@@ -22,6 +22,7 @@ export * from "./modules/userDisplay";
 export * from "./modules/costMs";
 export * from "./modules/dexie";
 export * from "./modules/scheduler";
+export * from "./modules/md5";
 export { default as errorStatus } from "./modules/errorStatus";
 export { default as mittBus } from "./modules/mitt";
 
