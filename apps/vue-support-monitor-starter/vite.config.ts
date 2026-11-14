@@ -222,8 +222,11 @@ function servePreviewShellAssets(): PluginOption {
  */
 const LOCAL_BACKEND = "http://127.0.0.1:8082";
 const apiTarget = process.env.MS_API_TARGET ?? LOCAL_BACKEND;
-// 模板后端：spring-support-template-starter（被 message/eduai 两个后台承载）
-const templateApiTarget = process.env.TEMPLATE_API_TARGET ?? "http://192.168.50.198:18170";
+// 模板接口 /api/template/**：默认跟随业务 API 同源（本机 dev → 127.0.0.1:8082，
+// 沙箱 → MS_API_TARGET 同台后端），因为 monitor 覆盖层已承载模板 controller；
+// 远程环境若确有独立模板后端（spring-support-template-starter，被 message/eduai
+// 承载，如 http://192.168.50.198:18170），用 TEMPLATE_API_TARGET 显式覆盖。
+const templateApiTarget = process.env.TEMPLATE_API_TARGET ?? apiTarget;
 
 /**
  * 由 API 目标推导 socket.io 目标：同主机 + 29612 端口。
@@ -306,20 +309,30 @@ const apiTargetSelfCheck = (): PluginOption => ({
 });
 
 /**
- * 指向**外部**服务的 `/api/**` 前缀：它们的 CORS 口径不归本应用后端管，
- * Origin 必须原样转发，不能被 {@link dropProxyOrigin} 摘掉。
- *
- * <p>目前只有两条（见下方 `server.proxy`）：</p>
- * <ul>
- *   <li>{@code /api/account} → {@code 124.221.230.112:8080}（历史账号服务）</li>
- *   <li>{@code /api/template} → {@code TEMPLATE_API_TARGET}（独立模板后端）</li>
- * </ul>
+ * 历史外部账号服务的前缀（固定外部：124.221.230.112:8080，Origin 原样转发）。
  *
  * <p>末尾的 {@code (?:\/|$|\?)} 不能省：{@code /api/accounts}（统一账号管理，
  * 落在本应用后端）也以 {@code /api/account} 开头，少了它就会让真正的自己人
  * 继续带着 Origin 去撞 CORS。</p>
  */
-const EXTERNAL_API_PATH = /^\/api\/(?:account|template)(?:\/|$|\?)/;
+const EXTERNAL_ACCOUNT_API_PATH = /^\/api\/account(?:\/|$|\?)/;
+
+/** 模板接口前缀 */
+const TEMPLATE_API_PATH = /^\/api\/template(?:\/|$|\?)/;
+
+/**
+ * 模板接口是否打到「独立模板后端」。
+ *
+ * <p>默认（未设置 TEMPLATE_API_TARGET，或它等于 apiTarget）时模板接口落在
+ * 本应用后端（monitor 覆盖层承载模板 controller），必须和 /api/** 一样摘掉
+ * Origin——否则 POST /api/template/add 会被后端 CORS 白名单挡成
+ * 403 Invalid CORS request（GET 不带 Origin 所以读接口全绿、写接口全 403）。</p>
+ *
+ * <p>只有显式把 TEMPLATE_API_TARGET 指到另一台独立模板后端时才保留 Origin，
+ * 由那台服务自己处理 CORS。</p>
+ */
+const isExternalTemplateApi =
+  Boolean(process.env.TEMPLATE_API_TARGET) && process.env.TEMPLATE_API_TARGET !== apiTarget;
 
 /**
  * 该 URL 是否打到**本应用后端**的 `/api/**`。
@@ -328,7 +341,10 @@ const EXTERNAL_API_PATH = /^\/api\/(?:account|template)(?:\/|$|\?)/;
  * @returns 属于本应用后端的 API 返回 true
  */
 function isFirstPartyApi(url: string): boolean {
-  return url.startsWith("/api/") && !EXTERNAL_API_PATH.test(url);
+  if (!url.startsWith("/api/")) return false;
+  if (EXTERNAL_ACCOUNT_API_PATH.test(url)) return false;
+  if (TEMPLATE_API_PATH.test(url)) return !isExternalTemplateApi;
+  return true;
 }
 
 /**
@@ -467,17 +483,17 @@ export default createVite({
     // 文件预览（@file-viewer）资源接入：
     //   - 页面已整体切到 @file-viewer/vue3-full（pages/filesystem 已安装
     //     @file-viewer/preset-all），因此这里 preset 用 "all"，让 copyAssets
-    //     复制全量 worker/wasm/字体，含 archive 的 libarchive worker/wasm。
-    //   - copyAssets 把渲染器 worker/wasm/字体复制到 public（本仓库 publicDir 是工作区根
-    //     public，见 createVite sharedPublic）；vue3-full 组件已把全资产 base 设为 "/"，
-    //     与实际 public/vendor/... 一致。
+    //     覆盖全量 worker/wasm/字体，含 archive 的 libarchive worker/wasm。
     //   - 渲染器注册由 vue3-full 默认 preset-all 与各面板显式 preset 共同完成
     //     （见 PreviewOfficePanel），不注入虚拟模块，避免与自定义 dev HTML 模板中间件互相干扰。
-    // 【资产已作为源码提交 public/vendor（2026-10-24）】：
-    //   - iwork/hangul/wordperfect 及其它渲染器资产全部落盘并入库，
-    //     dev/build 都直接读 public/vendor，插件无需再复制（copyAssets:false）。
+    // 【资产统一维护在根 public/vendor（规范目录，2026-10-24 入库）】：
+    //   - 本仓库 publicDir 是工作区根 public（见 createVite sharedPublic），
+    //     iwork/hangul/wordperfect 及其它渲染器资产全部落盘在根 public/vendor 并入库，
+    //     dev/build 都直接读它，插件无需再复制（copyAssets:false）。
     //   - apply:'build' + copyAssets:false：build 时保留插件的 chunk 分组能力，
     //     但不复制资产（publicDir 会从源码带进 dist/vendor）。
+    //   - 升级渲染器时在根 public 上同步一次（AI 配置会复制进根 vendor），本应用自动生效；
+    //     不要在本应用 public 下再放一份副本。
     //   - dev 由下面 serveFileViewerOfficeWorkers 中间件做兜底（资产已在，正常不触发）。
     {
       ...fileViewerRenderers({ inject: false, preset: "all", copyAssets: false }),
@@ -695,8 +711,8 @@ export default createVite({
         target: apiTarget,
         changeOrigin: true,
       },
-      // 模板模块：template-starter 运行时在 message/eduai（192.168.50.198:18170）
-      // 本侧走 TEMPLATE_API_TARGET 指向的 template 后端（可被 TEMPLATE_API_TARGET 覆盖）
+      // 模板模块：/api/template/** 本机默认转发到 8082（覆盖层已承载模板
+      // controller）；远程环境用 TEMPLATE_API_TARGET 指向独立 template 后端
       "/api/template": {
         target: templateApiTarget,
         changeOrigin: true,
