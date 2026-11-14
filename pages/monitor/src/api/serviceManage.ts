@@ -219,6 +219,56 @@ export const pageServerNodes = (q: ServerNodePageQuery = {}) => {
 export const serverNodeSummary = () =>
   http().get(`${B}/summary`).then(r => unwrapResult<ServerNodeSummary>(r));
 
+// ===== 服务管理全局状态流（POST SSE，替代 10s 短轮询）=====
+
+/** 全局状态流回调 */
+export interface ServerStreamHandlers {
+  /** 收到「节点状态已变更」事件（建连就绪 ready 帧不透传） */
+  onChanged?: (payload: { reason?: string }) => void;
+  /** 连接建立（首次 / 断线重连都会触发，用于重连后补一次重取） */
+  onOpen?: () => void;
+  /** 连接出错（由客户端自动重连，页面不回退到短轮询） */
+  onError?: (e: unknown) => void;
+  /** 连接关闭 */
+  onClose?: () => void;
+}
+
+/**
+ * 订阅服务管理全局状态变更流。
+ *
+ * <p>一条 POST SSE 长连接覆盖整个页面：后端在节点定义 / 运行态发生变化时
+ * 推一帧 {@code changed}，前端收到后静默重取摘要与当前页。相比原先每 10 秒
+ * 打一次 {@code /summary}+{@code /page} 的短轮询，无变化时不产生任何请求，
+ * 多个标签页由服务端广播共用同一份推送。</p>
+ *
+ * <p>建连走 {@code http().post(...).sse(...)}：与全局 {@code /sse/connect} 的
+ * POST 约定一致；鉴权沿用告警流同款 {@code createSseClient}（请求头
+ * {@code Authorization: Bearer} + query 上的 {@code x-oauth-token}）。
+ * 断线由 {@code createSseClient} 自动重连（无次数上限，重连仅重建这条长连接，
+ * 不重新请求数据接口），这里不提供任何轮询兜底。</p>
+ *
+ * @param handlers 事件回调
+ * @returns SSE 客户端句柄，页面卸载时调用 close()
+ */
+export const subscribeServerStream = (handlers: ServerStreamHandlers = {}) =>
+  http().post(`${B}/stream`).sse<{ reason?: string }>({
+    reconnect: true,
+    // 不设有限上限：短轮询已移除，连接若因后端长时间不可用而彻底放弃，页面会永远停在旧状态。
+    // 每次 onopen 成功会把尝试次数清零；重连只重建这一条长连接、不重复请求
+    // /summary|/page，不属于短轮询。5s 退避避免后端不可用时 2s 一次空打。
+    maxReconnectAttempts: Number.MAX_SAFE_INTEGER,
+    reconnectInterval: 5_000,
+    onOpen: () => handlers.onOpen?.(),
+    onError: e => handlers.onError?.(e),
+    onClose: () => handlers.onClose?.(),
+    onMessage: e => {
+      // 只认 changed；建连的 ready 帧与心跳注释帧都不触发重取
+      if (e.event !== 'changed') return
+      const payload = e.data && typeof e.data === 'object' ? e.data : {}
+      handlers.onChanged?.(payload as { reason?: string })
+    },
+  });
+
 export const getServerNode = (id: number) =>
   http().get(`${B}/${id}`).then(r => unwrapResult<ServerNodeView>(r));
 

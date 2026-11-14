@@ -22,7 +22,7 @@
  * 详情 / 配置的所有动作（启停重启、插件热启停、参数热更新、移除插件、复制地址、
  * 深度查看）仍由 {@link ScServerDetailDrawer} 的 embedded 模式承担，本页面只做
  * 「索引 → 页签」的编排，不重造动作层。保留 `/server/page`、`/server/summary`、
- * 4 张统计卡、自动刷新与降级提示、P2P 房间深链、操作日志。</p>
+ * 4 张统计卡、全局 POST SSE 状态推送与降级提示、P2P 房间深链、操作日志。</p>
  *
  * @author CH
  * @since 4.0.0

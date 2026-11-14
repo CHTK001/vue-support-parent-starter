@@ -1,10 +1,14 @@
 /**
  * 服务管理 —— 取数与动作（唯一一份）
  *
- * <p>这一层是页面唯一的事实来源：统计摘要、协议 / 插件元数据、自动刷新、启停、
+ * <p>这一层是页面唯一的事实来源：统计摘要、协议 / 插件元数据、全局状态订阅、启停、
  * 删改、抽屉开合、降级提示全在这里。模板只读 {@link ServiceNodesVm} 里的状态、
  * 只调这里的函数，自己不算任何东西 —— 否则「自动刷新失败要不要弹 toast」这类判断
  * 会散进模板，而它出错的症状是「页面偶尔刷出一片红字」，最难查。</p>
+ *
+ * <p><b>实时口径</b>：页面只建立一条 {@code POST /server/stream} 全局 SSE 长连接，
+ * 服务端在节点定义 / 运行态变化时推 {@code changed}，这里收到后静默重取摘要与
+ * 当前页；<b>没有短轮询</b>。重连后由服务端状态指纹比对补推一帧，页面无需任何定时器。</p>
  *
  * <p><b>分页口径</b>：从 4.0.0.56 起节点列表走服务端分页（{@code GET /server/page}），
  * 前端不再持有全量数组。状态是<b>运行时状态</b>而不是库列，所以过滤 / 排序 / 切片
@@ -23,6 +27,7 @@ import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { message } from '@repo/core'
 import { useRouter } from 'vue-router'
 import type { RePageResult, ReTableLoadParams } from '@repo/ui/re-table'
+import type { SseClient } from '@repo/utils'
 import {
   deleteServerNode,
   listFilterTypes,
@@ -32,12 +37,12 @@ import {
   serverNodeSummary,
   startServerNode,
   stopServerNode,
+  subscribeServerStream,
   type FilterTypeMeta,
   type ProtocolMeta,
   type ServerNodeSummary,
   type ServerNodeView,
 } from '../../api'
-import { createAutoRefresh, DEFAULT_AUTO_REFRESH } from '../../utils/autoRefresh'
 import { confirmThen } from '../../utils/confirmThen'
 import { resolveFilterDetail } from '../../utils/filterDetail'
 import { describeMetaLoad, type MetaLoadNotice } from '../../utils/metaLoad'
@@ -121,18 +126,29 @@ function httpStatusOf(e: unknown): number | undefined {
  * <p>后端失败时抛出的是 {@code {code,msg}} 形态的对象而不是 Error，直接
  * {@code (e as Error).message} 会渲染出 {@code [object Object]}。</p>
  *
- * <p>兜底顺序是「原始 message → 后端 msg → HTTP 状态码 → 未知错误」：
- * 少了状态码这一档，被拦截器清空 message 的 5xx 在页面上只剩「未知错误」，
- * 用户与排查者都看不出是哪一层挂了。</p>
+ * <p>兜底顺序是「原始 message → 后端 msg → 信封内 msg → HTTP 状态码 →
+ * axios 错误码/name → 未知错误」。<b>关键在最后几档</b>：网络错误 / 超时 /
+ * 5xx 被 {@code httpCrypto} 弹过 toast 后会把 {@code error.message} 显式置为
+ * {@code undefined}，只留下 {@code error.code = ERR_NETWORK / ECONNABORTED} /
+ * {@code error.name = CanceledError} 这类标记。旧实现不认这些标记，于是
+ * 「服务列表加载失败：未知错误」——用户与排查者都看不出是断网、超时还是服务端挂了。
+ * 这里把它们如实呈现，且只对真正无从判断的异常才落到「未知错误」。</p>
  *
  * @param e 异常
  */
 export function reasonText(e: unknown): string {
   if (e instanceof Error && e.message) return e.message
-  if (e && typeof e === 'object' && 'msg' in e) {
-    const msg = (e as { msg?: unknown }).msg
+  if (e && typeof e === 'object') {
+    const obj = e as Record<string, unknown>
+    const msg = obj.msg
     if (typeof msg === 'string' && msg) return msg
+    // 响应体信封里的 msg（拦截器 reject 的 AxiosError 上 response.data 仍带后端原文）
+    const envelope = (obj.response as { data?: { msg?: unknown; message?: unknown } } | undefined)?.data
+    const envelopeMsg = envelope?.msg ?? envelope?.message
+    if (typeof envelopeMsg === 'string' && envelopeMsg) return envelopeMsg
   }
+  // HTTP 状态码要排在泛化的 code/name 之前：5xx 的 AxiosError 同时带
+  // status=500 与 code=ERR_BAD_RESPONSE，"HTTP 500（服务端错误）"比后者精确得多
   const status = httpStatusOf(e)
   if (status) {
     if (status === 404) return 'HTTP 404（接口不存在）'
@@ -140,7 +156,24 @@ export function reasonText(e: unknown): string {
     if (status >= 500) return `HTTP ${status}（服务端错误）`
     return `HTTP ${status}`
   }
-  return typeof e === 'string' && e ? e : '未知错误'
+  // message 被清空但 code/name 还在：网络断开、超时、请求取消（无 status 的场景）
+  if (e && typeof e === 'object') {
+    const obj = e as Record<string, unknown>
+    const code = obj.code
+    const name = obj.name
+    if (code === 'ERR_NETWORK') return '网络错误（无法连接服务端）'
+    if (code === 'ECONNABORTED' || code === 'ETIMEDOUT') return '请求超时'
+    if (typeof code === 'string' && code) return `请求失败（${code}）`
+    if (typeof name === 'string' && name && name !== 'Error') return `请求失败（${name}）`
+  }
+  if (typeof e === 'string' && e) return e
+  if (e == null) return '未知错误'
+  try {
+    const text = String(e)
+    return text && text !== '[object Object]' ? text : '未知错误'
+  } catch {
+    return '未知错误'
+  }
 }
 
 /** 空摘要：首屏渲染前用它兜底，避免模板里到处写可选链 */
@@ -249,13 +282,13 @@ export function useServiceNodes(): ServiceNodesVm {
   /**
    * 重取摘要（与元数据）。
    *
-   * @param silent 静默模式：自动刷新用，不弹 toast（后端故障期间每 10 秒一条会把界面糊满），
-   *               也不点亮刷新按钮的转圈——否则每轮轮询都会闪一下，看着像页面在不停重载
+   * @param silent 静默模式：全局 SSE 推送触发时用，不弹 toast（后端故障期间每次推送
+   *               都弹一条会把界面糊满），也不点亮刷新按钮的转圈
    */
   async function refresh(silent = false): Promise<void> {
     if (!silent) loading.value = true
     try {
-      // 元数据只在还没拿到时请求：轮询 / 切回标签页的补拉都只刷摘要
+      // 元数据只在还没拿到时请求：SSE 推送 / 切回标签页的补拉都只刷摘要
       const summaryPromise = serverNodeSummary()
       const protocolsPromise = metaLoaded.value ? Promise.resolve(protocols.value) : listProtocols()
       const filtersPromise = metaLoaded.value ? Promise.resolve(filterTypes.value) : listFilterTypes()
@@ -287,8 +320,7 @@ export function useServiceNodes(): ServiceNodesVm {
 
       if (summaryResult.status === 'rejected') {
         if (!silent) message.error(reasonText(summaryResult.reason))
-        // 抛给 autoRefresh 记一次失败以触发退避
-        throw summaryResult.reason
+        // 抛给调用方记一次失败；不再有短轮询的退避调度
       }
     } catch (e) {
       if (!silent) message.error(reasonText(e))
@@ -327,24 +359,38 @@ export function useServiceNodes(): ServiceNodesVm {
     }
   }
 
-  const autoRefresh = createAutoRefresh(() => refresh(true), DEFAULT_AUTO_REFRESH)
-
   /**
-   * 切回标签页补拉一次，否则用户看到的是几分钟前的状态。
+   * 全局状态流句柄：整页唯一一条 POST SSE 长连接。
+   *
+   * <p>服务端在节点定义 / 运行态变化时推 changed，这里收到后静默重取；
+   * 断线由客户端自动重连，重连后服务端状态指纹比对会补推一帧。<b>没有 setInterval、
+   * 没有 visibilitychange 补拉、没有任何短轮询兜底</b>。</p>
    */
-  function onVisibilityChange(): void {
-    if (document.visibilityState === 'visible') void refresh(true)
-  }
+  let streamClient: SseClient | null = null
+  /** onOpen 首次建连也会触发；首屏已在 onMounted 拉过，跳过这次避免两个相同请求 */
+  let streamOpenedOnce = false
 
   onMounted(() => {
     void refresh()
-    autoRefresh.start()
-    document.addEventListener('visibilitychange', onVisibilityChange)
+    streamClient = subscribeServerStream({
+      onChanged: () => void refresh(true),
+      // 仅重连时静默补一次：断线窗口内可能漏掉状态变化，服务端指纹比对在「无变化」
+      // 时不会补推，这里兜住重连后的数据一致性；首次建连跳过（首屏刚拉过）
+      onOpen: () => {
+        if (!streamOpenedOnce) {
+          streamOpenedOnce = true
+          return
+        }
+        void refresh(true)
+      },
+      // 连接出错交给客户端自动重连，页面不弹 toast、不回退到轮询
+      onError: () => {},
+    })
   })
 
   onUnmounted(() => {
-    autoRefresh.stop()
-    document.removeEventListener('visibilitychange', onVisibilityChange)
+    streamClient?.close()
+    streamClient = null
     rowRefresher = null
   })
 
