@@ -240,12 +240,18 @@ const props = defineProps<{ board: any; compact?: boolean }>();
 /**
  * 表格高度口径。
  *
- * <p>普通版按内容定高（最多 560px）；紧凑版（04 侦察时间轴把明细压成
- * 154px 一屏）改成吃满父容器，让表体在块内滚动，而不是撑破卡片。</p>
+ * <p>普通版按内容定高（最多 560px）；紧凑版吃满父容器，让表体在块内滚动，
+ * 而不是撑破卡片。</p>
+ *
+ * <p>⚠ 紧凑版不能带 {@code minHeight}（哪怕写成 0）：完整版 ReTable 的
+ * {@code hasMinHeight} 只判 {@code !== undefined/null}，命中后直接
+ * {@code fillActive = false}，表格退回「按内容撑开」——20 行 × 51px 全铺在
+ * 块里，被外层 {@code overflow: hidden} 裁掉，连分页条都看不到。这也是
+ * adapter 里特意写过的坑（见 components/ui/ReTable.vue 的 layoutTable 注释）。</p>
  */
 const layoutTable = computed(() =>
   props.compact
-    ? { fill: true, minHeight: 0 }
+    ? { fill: true }
     : { minHeight: 0, maxHeight: props.board.detailTotal > 0 ? 560 : 200 },
 );
 
@@ -305,7 +311,10 @@ const visibleColumns = computed(() =>
 .ud-cols { display: flex; flex-direction: column; gap: 2px; max-height: 320px; overflow-y: auto; }
 .ud-cols :deep(.el-checkbox) { margin-right: 0; height: 26px; }
 
-/* 紧凑模式：块高由父级给定（04 版面 154px），表头收紧、表体在块内滚动 */
+/* 紧凑模式：块高由父级给定（04 版面最低 280px），表头收紧、表体在块内滚动。
+   同时把 ReTable 自带的卡片外壳收掉：外层 .usage-detail 已经是同一张卡片，
+   再叠根容器 12px + 主体区 16px 的上下内边距（共 56px），表体只剩几十像素，
+   分页条会被挤到卡片外面裁掉。 */
 .usage-detail.is-compact { flex: 1 1 auto; min-height: 0; }
 .usage-detail.is-compact .ud-head { padding: 4px 10px 2px; gap: 8px; }
 .usage-detail.is-compact .ud-title { font-size: 12.5px; }
@@ -319,8 +328,31 @@ const visibleColumns = computed(() =>
   flex: 1 1 auto;
   min-height: 0;
   padding: 0 0 2px;
+  /* 尺寸与内容脱钩：这一层是 ReTable 根节点的直接父级，写 contain: size 等于
+     告诉它「高度由 flex 分配、与表格内容无关」。完整版 ReTable 的父链探测
+     （detectParentHeight）按 contain 是否含 size 认出「固定容器」，直接走
+     .re-table--fill 的 height: 100%，不再退回「量到最近滚动容器下沿」的像素补偿。
+     不写的话补偿值从表格上沿量到整页内容下沿，比块内可用高度多出表头那几像素，
+     分页条底边就会被 .usage-detail 的 overflow: hidden 裁掉一条。 */
+  contain: layout size;
 }
 .usage-detail.is-compact .ud-body > * { flex: 1 1 auto; min-height: 0; }
+
+/* 紧凑模式的表格：去外壳留白、去 120px 地板。
+   地板是给「父级高度不确定」的页面兜底的；这里块高由 .usage-detail-wrap 的
+   280px 下限保证，地板反而会跟分页条抢高度——宁可表体少一行，也不能让分页条消失。 */
+.usage-detail.is-compact :deep(.re-table) {
+  --rt-padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.usage-detail.is-compact :deep(.re-table__main) { padding: 0; }
+.usage-detail.is-compact :deep(.re-table__footer) { margin: 4px 0 0; }
+.usage-detail.is-compact :deep(.re-table--fill > .re-table__main > .vxe-table),
+.usage-detail.is-compact :deep(.re-table--fill > .re-table__main > .el-table) {
+  min-height: 0;
+}
 
 /* 不再覆盖 vxe 的表格内部样式：固定列是独立渲染的三张表，任何只作用于其中一层的
    边框/内边距/圆角都会让表头与表体错开。外观交给 ReTable 的默认皮肤。 */

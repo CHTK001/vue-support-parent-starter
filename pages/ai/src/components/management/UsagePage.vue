@@ -8,7 +8,8 @@
 
     <p>版面自下而上收成固定高度的一屏：40 顶栏 / 44 刻度尺 / 64 核心读数 /
     30 派生读数 / 168 构成 + 趋势 / 156 分布 + 每日模型 + 延迟 / 124 双 Top5 +
-    实时 / 154 明细，长内容各块内部滚动，整页不再靠滚动找信息。</p>
+    实时 / 明细（最低 280px，有富余高度时继续长高），长内容各块内部滚动，
+    整体超出视口时整页滚动。</p>
 
     <p>业务数据 100% 来自共享 {@link useUsageBoard}（SSE 实时 / 加载 / 图表 /
     明细 / 单位设置），本文件只负责版面与视觉；treemap 的切片直接复用
@@ -837,7 +838,7 @@ function pctStyle(r: any) {
 /* ============================================================================
    用量管理 —— 侦察时间轴（04）视觉体系
    骨架：40 顶栏 / 44 刻度尺 / 64 核心读数 / 30 派生读数 / 168 构成 + 趋势 /
-   156 分布 + 每日模型 + 延迟 / 124 双 Top5 + 实时 / 154 明细。
+   156 分布 + 每日模型 + 延迟 / 124 双 Top5 + 实时 / 明细（最低 280px + 剩余高度）。
    全部沿用控制台既有的 --el-* / --u-* 令牌（暗色自动跟随），不新造皮肤。
    ============================================================================ */
 .usage-page {
@@ -1412,8 +1413,9 @@ function pctStyle(r: any) {
 .usage-live__v.is-rate { color: var(--u-primary, #165dff); }
 .usage-live__hint { margin: 4px 10px 0; font-size: 9.5px; color: var(--el-text-color-placeholder); }
 
-/* ── 明细：固定 154px，表格内部滚动 ── */
-.usage-detail-wrap { display: flex; height: 154px; min-width: 0; }
+/* ── 明细：最低 280px（表头 + 3 行 + 分页条都在卡片内），父级有富余时继续长高；
+      表体内部滚动 ── */
+.usage-detail-wrap { display: flex; flex: 1 1 280px; min-height: 280px; min-width: 0; }
 .usage-detail-wrap > * { flex: 1 1 auto; min-width: 0; }
 .usage-detail-wrap :deep(.ud-head) { padding: 5px 10px 3px; }
 .usage-detail-wrap :deep(.ud-title) { font-size: 13px; }
