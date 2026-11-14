@@ -57,17 +57,9 @@
          左「库目录 + 文档」/ 中「当前视图」/ 右「问答」常驻，不换页。
          data-kb-ask 仍由「设置 → 显示 → 右侧问答栏宽度」驱动。 -->
     <div v-else class="flex-1 flex flex-col overflow-hidden min-h-0">
-      <!-- 顶栏：命令条（签名元素）+ 当前库身份 + 状态胶囊 + 动作组 -->
+      <!-- 顶栏：当前库身份（印章 + 宋体库名）+ 命令条 + 读数带 + 动作组
+           身份在最左：这是「这是哪个库」的第一落点，搜索在其后。 -->
       <div class="kb-bar">
-        <button type="button" class="kb-cmd" @click="openCommand">
-          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" style="flex-shrink:0">
-            <circle cx="6.8" cy="6.8" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5" />
-            <path d="M10.4 10.4 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-          </svg>
-          <span class="kb-cmd__text">搜索文档、实体、问答记录</span>
-          <kbd class="kb-cmd__kbd">Ctrl K</kbd>
-        </button>
-
         <!-- 身份区：顶栏之前只有裸图标按钮，读者看不出「现在在哪个库」。
              这段只在详情分支（列表由 v-else-if 单独渲染），所以不按 viewMode 分支，
              直接展示当前库；回列表仍在左栏与列表页入口里。 -->
@@ -78,6 +70,15 @@
             <i>档案台</i>
           </span>
         </div>
+
+        <button type="button" class="kb-cmd" @click="openCommand">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" style="flex-shrink:0">
+            <circle cx="6.8" cy="6.8" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5" />
+            <path d="M10.4 10.4 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          <span class="kb-cmd__text">搜索文档、实体、问答记录</span>
+          <kbd class="kb-cmd__kbd">Ctrl K</kbd>
+        </button>
 
         <div class="kb-bar__right">
           <span class="kb-chip kb-chip--ok"><b>{{ filesForFilter.length }}</b> 文档</span>
