@@ -1,223 +1,356 @@
 <template>
   <div class="dsm tel-page sync-tasks">
-    <!-- 页面头：标题 + 生产环境徽标 / 右侧刷新计时 + 刷新按钮 + 新建 -->
-    <div class="dsm-toolbar">
-      <div class="dsm-toolbar-left">
-        <div class="st-page-title">数据同步
-          <span class="st-env-badge">● 生产环境</span>
-        </div>
-        <div class="st-page-sub">管理从数据源到数仓 / 应用的同步任务，监控执行状态与告警</div>
+    <!-- ================= 顶栏：标题 + 环境 + 全局口径 + 时间窗 + 动作 ================= -->
+    <div class="dsm-toolbar v11-hd">
+      <div class="dsm-toolbar-left v11-hd-left">
+        <span class="dsm-title st-page-title">数据同步</span>
+        <span class="st-env-badge">● 生产环境</span>
+        <span class="v11-hd-sum">
+          {{ tasks.length }} 任务 · {{ enabledTaskCount }} 启用 · {{ windowLabel }} {{ windowRuns.length }} 次执行
+          <template v-if="windowFailedCount"> · <b class="v11-danger">{{ windowFailedCount }} 次失败</b></template>
+          <template v-if="windowAvgCost != null"> · 平均 {{ formatCost(windowAvgCost) }}</template>
+        </span>
       </div>
       <div class="dsm-toolbar-right st-head-actions">
+        <div class="v11-seg" role="group" aria-label="统计时间范围">
+          <button
+            v-for="w in WINDOWS" :key="w.key" type="button"
+            class="v11-seg-i" :class="{ on: windowKey === w.key }"
+            @click="windowKey = w.key"
+          >{{ w.label }}</button>
+        </div>
         <span class="st-refreshed">{{ refreshedText || "— 分钟前更新" }}</span>
-        <ReButton :loading="loading" @click="refresh">
-          <template #icon><ReIcon name="Refresh" /></template>刷新
+        <ReButton layout="square" icon="Refresh" tip="刷新" :loading="loading" @click="refresh" />
+        <ReButton @click="bulkImportVisible = true">
+          <template #icon><ReIcon name="Upload" /></template>批量导入
         </ReButton>
         <ReButton type="primary" @click="openCreate">
           <template #icon><ReIcon name="Plus" /></template>新建任务
         </ReButton>
-        <ReButton @click="bulkImportVisible = true">
-          <template #icon><ReIcon name="Upload" /></template>批量导入
-        </ReButton>
       </div>
     </div>
 
-    <!-- ================= 四张 KPI 卡（全部由现有列表字段算出，不新增后端接口） =================
-         ReStatCard 只有 #icon 插槽、没有 #extra，所以 sparkline 不用插槽传入，
-         而是与卡片叠放（父级 relative + svg absolute），避免「插槽不存在被静默丢弃」。-->
-    <section class="st-kpi-row">
-      <div v-for="k in kpiCards" :key="k.key" class="st-kpi-cell">
-        <ReStatCard
-          size="compact" :title="k.title" :value="k.value" :desc="k.desc"
-          :icon="k.icon" :icon-color="k.color"
-        />
-        <svg
-          v-if="k.spark.length > 1" class="st-spark"
-          viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"
-        >
-          <polyline
-            class="st-spark-line" :style="{ stroke: k.color }"
-            :points="sparkPoints(k.spark)"
-          />
-        </svg>
+    <!-- ================= ① 数据流向：所选时间窗内「读了多少、写下多少、多少真正生效」 =================
+         数据全部来自真实执行日志（/datasync/logs 最近若干条）：源表读取 = 读行数合计，
+         写入目标 = 写行数合计，成功任务写入 = 仅成功执行的写行数；差额即丢弃量与失败量。 -->
+    <section class="v11-card v11-flow">
+      <div class="v11-fl-hd">
+        <span class="v11-step">1</span>
+        <div>
+          <b>数据流向</b>
+          <span>{{ windowLabel }}累计行数</span>
+        </div>
+      </div>
+
+      <div v-if="funnelStages.length" class="v11-fl-stages">
+        <template v-for="(s, si) in funnelStages" :key="s.key">
+          <div v-if="si" class="v11-gap">
+            <b class="mono">−{{ funnelGaps[si - 1]?.pct ?? 0 }}%</b>
+            <span>{{ funnelGaps[si - 1]?.label }}</span>
+          </div>
+          <div class="v11-fst" :class="{ last: si === funnelStages.length - 1 }">
+            <div class="v11-fst-l">
+              <span>{{ s.label }}</span>
+              <b class="mono">{{ s.value.toLocaleString() }}</b>
+              <em>{{ s.pct }}%</em>
+            </div>
+            <div class="v11-fbar">
+              <i :style="{ width: s.pct + '%' }" />
+              <u v-if="s.pct < 100" :style="{ width: 100 - s.pct + '%' }" />
+            </div>
+            <div class="v11-fst-n">{{ s.note }}</div>
+          </div>
+        </template>
+      </div>
+      <div v-else-if="windowRuns.length" class="v11-fl-empty">
+        <b>{{ windowLabel }} {{ windowRuns.length }} 次执行<template v-if="windowFailedCount"> · <em class="v11-danger">{{ windowFailedCount }} 次失败</em></template></b>
+        <span>执行记录里没有读到 / 写入行数（历史记录未入库该字段），逐次结果与失败原因见下方执行流水。</span>
+      </div>
+      <div v-else class="v11-fl-empty">所选时间窗内还没有执行记录——等一次定时触发或在右侧「立即执行」。</div>
+
+      <div class="v11-fl-schema">
+        <div class="v11-fsh">
+          <span>目标表写入</span>
+          <b class="mono">{{ hasRowStats ? funnelTotalWrite.toLocaleString() : "—" }}</b>
+        </div>
+        <div v-for="row in targetWriteTop" :key="row.name" class="v11-srow">
+          <span class="v11-bn" :title="row.name">{{ row.short }}</span>
+          <span class="v11-sb"><i :style="{ width: row.pct + '%' }" /></span>
+          <b class="mono">{{ row.text }}</b>
+        </div>
+        <div v-if="!targetWriteTop.length" class="v11-fsh v11-fsh-empty">暂无写入</div>
       </div>
     </section>
 
-    <!-- ================= 失败告警横幅：有失败任务才出现；UI 图里的红色条 =================
-         「×」只隐藏本轮展示（bannerDismissed），不碰数据；刷新/数据变化后恢复显示。
-         全部重试 = 对 failedTasks 逐个 run，最后统一 refresh。-->
-    <section v-if="failedTasks.length && !bannerDismissed" class="st-alert" role="alert">
-      <span class="st-alert-bell" aria-hidden="true">
-        <ReIcon name="Bell" :size="18" />
-      </span>
-      <div class="st-alert-body">
-        <div class="st-alert-title">
-          {{ failedTasks.length }} 个任务最近执行失败
-          <el-tag type="danger" effect="dark" size="small" round>需处理</el-tag>
+    <!-- ================= 主区左列：② 数据链路 + ③ 执行流水 ================= -->
+    <div class="v11-main">
+      <div class="v11-left">
+        <div class="v11-card v11-topo">
+          <div class="v11-c-hd">
+            <span class="v11-step">2</span>
+            <span class="v11-sect-t">数据链路 <span class="v11-num">{{ tasks.length }} 条</span></span>
+            <div class="v11-legend">
+              <span><i class="st-dot success" />正常</span>
+              <span><i class="st-dot running" />运行中</span>
+              <span><i class="st-dot failed" />失败</span>
+              <span><i class="st-dot disabled" />停用</span>
+            </div>
+          </div>
+          <div class="v11-cols"><span>源库 · 源表</span><span>同步任务</span><span>目标表</span></div>
+          <div class="v11-lanes">
+            <div
+              v-for="row in laneRows" :key="row.id"
+              class="v11-lane" :class="{ on: selectedTask?.id === row.id }"
+              role="button" tabindex="0"
+              @click="selectedTaskId = row.id"
+              @keydown.enter="selectedTaskId = row.id"
+            >
+              <div class="v11-n src" :title="sourceFull(row)">
+                <span class="v11-dbp">{{ dsName(row.syncTaskSourceDatasourceId) }}</span>
+                <span class="mono v11-nm">{{ sourceTableName(row) }}</span>
+              </div>
+              <div class="v11-conn" :class="`is-${statusOf(row)}`">
+                <i /><b class="st-dot" :class="statusOf(row)" /><i />
+              </div>
+              <div class="v11-n task">
+                <i class="st-dot" :class="statusOf(row)" />
+                <span :title="row.syncTaskName">{{ row.syncTaskName }}</span>
+                <em class="v11-tag" :class="`t-${writeModeTagType(row.syncTaskWriteMode)}`">{{ modeLabel(row.syncTaskWriteMode) }}</em>
+                <b v-if="laneCostText(row)" class="mono" :class="{ err: statusOf(row) === 'failed' }">{{ laneCostText(row) }}</b>
+              </div>
+              <div class="v11-conn" :class="`is-${statusOf(row)}`">
+                <i /><b class="st-dot" :class="statusOf(row)" /><i />
+              </div>
+              <div class="v11-n dst" :title="`${dsName(row.syncTaskTargetDatasourceId)} · ${row.syncTaskTargetTable}`">
+                <span class="mono v11-nm">{{ row.syncTaskTargetTable || "-" }}</span>
+                <em class="v11-badge-s">{{ targetSchemaOf(row) }}</em>
+              </div>
+            </div>
+            <div v-if="!tasks.length" class="v11-empty-s">还没有同步任务，点右上「新建任务」开始。</div>
+          </div>
+          <div v-if="hiddenLaneCount || disabledLaneNames.length" class="v11-topo-ft">
+            <span v-if="hiddenLaneCount">另有 {{ hiddenLaneCount }} 条链路</span>
+            <span v-if="hiddenLaneCount && disabledLaneNames.length">·</span>
+            <span
+              v-if="disabledLaneNames.length" class="v11-ft-names"
+              :title="disabledLaneNames.join(' / ')"
+            >{{ disabledLaneNames.length }} 条已停用（{{ disabledLaneNames.join(" / ") }}）</span>
+            <button v-if="tasks.length > 5" type="button" class="v11-linkbtn" @click="lanesExpanded = !lanesExpanded">
+              {{ lanesExpanded ? "收起" : "展开全部" }}
+            </button>
+          </div>
         </div>
-        <div class="st-alert-chips">
-          <button
-            v-for="t in failedTasks" :key="t.id" type="button"
-            class="st-alert-chip" :title="`查看 ${t.syncTaskName} 的执行日志`"
-            @click="openLog(t)"
-          >
-            <span class="st-alert-dot" aria-hidden="true" />
-            <span class="st-alert-chip-name">{{ t.syncTaskName }}</span>
-            <span class="st-alert-chip-msg">{{ t.syncTaskLastMessage || "执行失败" }}</span>
-            <ReIcon name="Right" :size="12" />
-          </button>
-        </div>
-      </div>
-      <div class="st-alert-actions">
-        <ReButton :loading="retryingAll" size="small" @click="retryAllFailed">全部重试</ReButton>
-        <button
-          type="button" class="st-alert-close" aria-label="关闭失败提醒"
-          @click="bannerDismissed = true"
-        >
-          <ReIcon name="Close" :size="14" />
-        </button>
-      </div>
-    </section>
 
-    <!-- ================= 状态分段筛选 + 写入模式 / 时间范围下拉 ================= -->
-    <div class="st-filter-bar">
-      <div class="st-segments">
-        <button
-          v-for="seg in STATUS_SEGMENTS" :key="seg.key"
-          class="st-seg" :class="{ on: statusFilter === seg.key }"
-          @click="statusFilter = seg.key"
-        >
-          <span class="st-seg-label">{{ seg.label }}</span>
-          <span class="st-seg-count">{{ segCount(seg.key) }}</span>
-        </button>
-      </div>
-      <div class="st-filter-right">
-        <ReSelect
-          v-model="writeModeFilter" class="st-filter-sel"
-          :options="[{ label: '写入模式：全部', value: 'all' }, ...writeModeOptions]"
-        />
-        <ReSelect
-          v-model="rangeFilter" class="st-filter-sel"
-          :options="RANGE_OPTIONS"
-        />
-        <el-input
-          v-model="nameFilter" class="st-search" placeholder="搜索任务名称…"
-          aria-label="搜索任务名称" clearable
-        >
-          <template #prefix><ReIcon name="Search" :size="14" /></template>
-        </el-input>
-      </div>
-    </div>
-
-    <div class="st-body">
-      <!-- 表格统一 ReTable：默认 vxe 引擎（本页 UI 图契约与可点元素普查也按 vxe DOM 口径）。
-           分页用 ReTable 自带分页（本地数组模式：组件按 page/pageSize 切片、total 取数组长度），
-           toolbar=false 保持本页按钮清单不变。 -->
-      <ReTable
-        :data="filteredTasks" :columns="taskColumns" :loading="loading"
-        :page-size="8" :page-sizes="[8, 20, 50]" :toolbar="false"
-        table-id="monitor-sync-tasks" stripe
-        empty-text="没有符合条件的同步任务"
-      >
-        <template #col-task="{ row }">
-            <div class="st-task-head">
-              <span class="st-dot" :class="statusOf(row)" aria-hidden="true" />
-              <button
-                type="button" class="st-name st-name-btn"
-                :title="`编辑 ${row.syncTaskName}`" @click="openEdit(row)"
+        <!-- ③ 执行流水：24h 密度条 + 按小时分组的事件流，失败行直接给「重试」 -->
+        <div class="v11-card v11-stream">
+          <div class="v11-c-hd">
+            <span class="v11-step">3</span>
+            <span class="v11-sect-t">执行流水 <span class="v11-num">{{ windowLabel }} · 按时间倒序</span></span>
+            <span v-if="runningIds.size" class="v11-live"><i />实时</span>
+            <span class="v11-num v11-ml-auto">最近 {{ recentRuns.length }} 条</span>
+          </div>
+          <div class="v11-h24">
+            <div class="v11-h24-bars">
+              <i
+                v-for="(h, hi) in hourlyBars" :key="hi"
+                :class="{ err: h.failed > 0, run: h.running, empty: h.total === 0 }"
+                :style="{ height: h.h + 'px' }"
+                :title="`${h.label} · ${h.total} 次执行${h.failed ? ` · ${h.failed} 次失败` : ''}`"
+              />
+            </div>
+            <div class="v11-h24-lb">
+              <em v-for="(l, li) in hourLabels" :key="li" class="mono">{{ l }}</em>
+            </div>
+          </div>
+          <div v-if="streamGroups.length" class="v11-tl">
+            <div v-for="g in streamGroups" :key="g.key" class="v11-grp">
+              <div class="v11-gh" :class="{ err: g.failed }">
+                <span class="mono">{{ g.hour }}</span><i />
+                <span class="c">{{ g.events.length }} 次 · {{ g.failed ? `${g.failed} 失败` : "0 失败" }}</span>
+              </div>
+              <div
+                v-for="ev in g.events" :key="ev.id"
+                class="v11-ev" :class="{ err: ev.status !== 'SUCCESS', run: isRunningEv(ev) }"
+                role="button" tabindex="0"
+                @click="selectTaskById(ev.taskId)"
+                @keydown.enter="selectTaskById(ev.taskId)"
               >
-                {{ row.syncTaskName }}
+                <span class="tm mono">{{ timeOf(ev.runTime) }}</span>
+                <span class="st-dot" :class="ev.status === 'SUCCESS' ? 'success' : 'failed'" />
+                <div class="m">
+                  <b>{{ ev.taskName }}</b>
+                  <span class="mono">{{ evMessage(ev) }}</span>
+                </div>
+                <span class="v11-bar" :class="ev.status === 'SUCCESS' ? '' : 'err'">
+                  <i :style="{ width: evBarPct(ev) + '%' }" />
+                </span>
+                <span class="du mono">{{ formatCost(ev.costMs) }}</span>
+                <button
+                  v-if="ev.status !== 'SUCCESS' && ev.taskId"
+                  type="button" class="v11-retry" :title="`重试 ${ev.taskName}`"
+                  @click.stop="runTaskById(ev.taskId)"
+                >重试</button>
+                <button
+                  v-else type="button" class="v11-icobtn" title="查看该任务日志"
+                  @click.stop="openLogById(ev.taskId)"
+                ><ReIcon name="Right" :size="12" /></button>
+              </div>
+            </div>
+            <div v-if="moreRuns" class="v11-more">
+              <span>更早 {{ moreRuns }} 次</span><span>·</span><span>{{ windowLabel }}</span>
+              <button type="button" class="v11-linkbtn" :disabled="runLogsLoading" @click="loadMoreRuns">
+                {{ runLogsLoading ? "加载中…" : "加载更早" }}
               </button>
             </div>
-            <!-- 源 SQL / 路径直接展示在任务名下：长 SQL 由 CSS 单行省略，悬停 title 看全文 -->
-            <div
-              class="st-sub mono st-sub-clip"
-              :title="`${sourceTypeLabel(row)} · ${sourceBrief(row)}`"
-            >{{ sourceTypeLabel(row) }} · {{ sourceBrief(row) }}</div>
-        </template>
-        <template #col-flow="{ row }">
-            <div class="st-flow">
-              <span class="st-flow-chip" :title="sourceFull(row)">
-                <ReIcon name="Coin" :size="12" />{{ sourceTableName(row) }}
-              </span>
-              <ReIcon name="Right" :size="12" class="st-flow-arrow" />
-              <span class="st-flow-chip" :title="dsName(row.syncTaskTargetDatasourceId) + '.' + row.syncTaskTargetTable">
-                <ReIcon name="Grid" :size="12" />{{ row.syncTaskTargetTable || "-" }}
-              </span>
-              <span
-                v-if="targetCount(row) > 1"
-                class="st-flow-more"
-                :title="`共 ${targetCount(row)} 个输出目标，分别写入不同表`"
-              >+{{ targetCount(row) - 1 }}</span>
+          </div>
+          <div v-else class="v11-empty-s v11-stream-empty">
+            所选时间窗内没有执行记录。切换时间范围，或在右侧工作台点「立即执行」。
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= ④ 任务工作台：选中链路的单任务详情 + 待处理 ================= -->
+      <aside class="v11-right">
+        <div v-if="selectedTask" class="v11-card v11-wb">
+          <div class="v11-wb-hd">
+            <span class="v11-step">4</span>
+            <div class="v11-wb-t">
+              <div class="t">
+                {{ selectedTask.syncTaskName }}
+                <em class="v11-tag" :class="`t-${statusTagTone(selectedTask)}`">{{ statusText(selectedTask) }}</em>
+              </div>
+              <div class="s mono">{{ dsName(selectedTask.syncTaskSourceDatasourceId) }}.{{ sourceTableName(selectedTask) }} → {{ selectedTask.syncTaskTargetTable }}</div>
             </div>
-        </template>
-        <template #col-writeMode="{ row }">
-            <div class="st-mode-cell">
-              <el-tag :type="writeModeTagType(row.syncTaskWriteMode)" effect="plain" size="small">
-                {{ modeLabel(row.syncTaskWriteMode) }}
-              </el-tag>
-              <!-- 增量任务标注模式与水位：水位是服务端执行后回写的真实值，悬停可见 -->
-              <el-tag
-                v-if="effectiveSyncMode(row) === 'INCREMENTAL'"
-                type="warning" effect="plain" size="small"
-                :title="`增量字段 ${row.syncTaskIncField || '-'} · 每批 ${row.syncTaskIncBatchSize ?? '不限'} 条 · 水位 ${row.syncTaskLastSeq || '（首跑）'}`"
-              >增量</el-tag>
-            </div>
-        </template>
-        <template #col-cron="{ row }">
-            <template v-if="row.syncTaskCron">
-              <div class="mono st-cron" :title="row.syncTaskCron">{{ cronShort(row.syncTaskCron) }}</div>
-              <div class="st-sub">{{ cronDesc(row.syncTaskCron) }}</div>
-            </template>
-            <span v-else class="st-sub">仅手动</span>
-        </template>
-        <template #col-enabled="{ row }">
-            <!-- EP 2.14 的 el-switch 只认 ariaLabel prop（switch.vue:136 直接 __props.ariaLabel），
-                 写原生 aria-label 会被丢弃 → 开关读不出名字，普查判「没有可访问名」。 -->
-            <el-switch
-              :model-value="row.syncTaskEnabled === 1"
-              :aria-label="`启用 ${row.syncTaskName}`"
-              @change="(value: string | number | boolean) => toggle(row, !!value)"
-            />
-        </template>
-        <template #col-lastRun="{ row }">
-            <template v-if="row.syncTaskLastStatus">
-              <div class="st-last">
-                <el-tag
-                  :type="row.syncTaskLastStatus === 'SUCCESS' ? 'success' : 'danger'"
-                  size="small" effect="light" round
-                >
-                  {{ row.syncTaskLastStatus === 'SUCCESS' ? '成功' : '失败' }}
-                </el-tag>
-                <span class="st-sub mono">{{ row.syncTaskLastRunTime }}</span>
-              </div>
-              <div class="st-sub">
-                读 {{ row.syncTaskLastReadCount ?? 0 }} / 写 {{ row.syncTaskLastWriteCount ?? 0 }} 行
-                · {{ formatCost(row.syncTaskLastCostMs) }}
-              </div>
-              <div v-if="row.syncTaskLastMessage" class="st-msg st-msg-fail" :title="row.syncTaskLastMessage">
-                <ReIcon name="Warning" :size="12" />{{ row.syncTaskLastMessage }}
-              </div>
-            </template>
-            <span v-else-if="row.syncTaskEnabled !== 1" class="st-sub">已停用调度</span>
-            <span v-else class="st-sub">尚未执行</span>
-        </template>
-        <!-- 操作列：统一 ReButton square 纯图标按钮（执行 / 日志 / 编辑 / 删除），
-             tip 即悬浮提示；「日志」打开同步日志弹窗（服务端最近一次 + 本机记录）。 -->
-        <template #col-actions="{ row }">
-            <div class="st-acts">
+            <div class="st-acts v11-wb-acts">
               <ReButton
                 layout="square" icon="VideoPlay" tip="立即执行"
-                :loading="runningId === row.id" :disabled="runningId === row.id"
-                @click="run(row)"
+                :loading="runningId === selectedTask.id" :disabled="runningId === selectedTask.id"
+                @click="run(selectedTask)"
               />
-              <ReButton layout="square" icon="Document" tip="日志" @click="openLog(row)" />
-              <ReButton layout="square" icon="EditPen" tip="编辑" @click="openEdit(row)" />
-              <ReButton layout="square" icon="Delete" type="danger" tip="删除" @click="remove(row)" />
+              <ReButton layout="square" icon="Document" tip="日志" @click="openLog(selectedTask)" />
+              <ReButton layout="square" icon="EditPen" tip="编辑" @click="openEdit(selectedTask)" />
+              <ReButton layout="square" icon="Delete" type="danger" tip="删除" @click="remove(selectedTask)" />
             </div>
-        </template>
-      </ReTable>
+          </div>
+
+          <div class="v11-metrics">
+            <div v-for="m in workbenchMetrics" :key="m.label" class="m">
+              <span>{{ m.label }}</span>
+              <b class="mono">{{ m.value }}<i v-if="m.unit">{{ m.unit }}</i></b>
+            </div>
+          </div>
+
+          <div v-if="selectedTask.syncTaskLastStatus && selectedTask.syncTaskLastStatus !== 'SUCCESS'" class="v11-err">
+            <ReIcon name="WarningFilled" :size="14" />
+            <div>
+              <b class="mono">{{ selectedTask.syncTaskLastMessage || "执行失败" }}</b>
+              <span>{{ selectedTask.syncTaskLastRunTime || "—" }} · 读 {{ selectedTask.syncTaskLastReadCount ?? 0 }} / 写 {{ selectedTask.syncTaskLastWriteCount ?? 0 }} · {{ formatCost(selectedTask.syncTaskLastCostMs) }}</span>
+            </div>
+            <button type="button" class="v11-retry solid" :disabled="runningId === selectedTask.id" @click="run(selectedTask)">重试</button>
+          </div>
+
+          <div class="v11-ch-hd">
+            <div class="v11-sect-t">耗时趋势 <span class="v11-num">近 {{ trendPoints.length }} 次</span></div>
+            <div class="v11-lg"><em class="ok">成功</em><em class="er">失败</em></div>
+          </div>
+          <div v-if="trendPoints.length" class="v11-chart">
+            <div class="v11-plot">
+              <i class="v11-gl" style="top: 0" />
+              <i class="v11-gl" style="top: 50%" />
+              <i class="v11-p95" :style="{ bottom: trendP95Pct + '%' }" />
+              <div class="v11-bars">
+                <span v-for="(p, pi) in trendPoints" :key="pi">
+                  <i class="v11-b" :class="p.status === 'SUCCESS' ? 'ok' : 'er'" :style="{ height: trendBarHeight(p) }" />
+                </span>
+              </div>
+            </div>
+            <div class="v11-yl mono">
+              <span>{{ formatCost(trendMax) }}</span>
+              <span>{{ formatCost(trendMax / 2) }}</span>
+              <span>0</span>
+            </div>
+          </div>
+          <div v-else class="v11-chart-empty">{{ trendLoading ? "加载中…" : "该任务还没有执行记录" }}</div>
+          <div class="v11-xax mono">
+            <span v-for="(l, li) in trendAxis" :key="li">{{ l }}</span>
+          </div>
+
+          <div class="v11-sect"><div class="v11-sect-t">调度与写入</div></div>
+          <div class="v11-kvr">
+            <span>定时表达式</span>
+            <b class="mono" :title="selectedTask.syncTaskCron || '未配置'">{{ selectedTask.syncTaskCron ? cronShort(selectedTask.syncTaskCron) : "仅手动" }}</b>
+            <em>{{ selectedTask.syncTaskCron ? cronDesc(selectedTask.syncTaskCron) || "自定义" : "无调度" }}</em>
+          </div>
+          <div class="v11-kvr">
+            <span>写入模式</span>
+            <b>{{ modeLabel(selectedTask.syncTaskWriteMode) }}</b>
+            <em>批 {{ selectedTask.syncTaskBatchSize ?? "—" }} 行</em>
+          </div>
+          <div class="v11-kvr">
+            <span>同步模式</span>
+            <b>{{ effectiveSyncMode(selectedTask) === "INCREMENTAL" ? "增量" : "全量" }}</b>
+            <em v-if="effectiveSyncMode(selectedTask) === 'INCREMENTAL'">水位 {{ selectedTask.syncTaskLastSeq || "首跑" }}</em>
+            <em v-else>每次全量重灌</em>
+          </div>
+          <div class="v11-kvr">
+            <span>启用调度</span>
+            <b>
+              <el-switch
+                :model-value="selectedTask.syncTaskEnabled === 1"
+                :aria-label="`启用 ${selectedTask.syncTaskName}`"
+                @change="onSelectedEnabled"
+              />
+            </b>
+            <em>{{ selectedTask.syncTaskEnabled === 1 ? "按 cron 自动执行" : "仅手动执行" }}</em>
+          </div>
+
+          <div class="v11-sect">
+            <div class="v11-sect-t">字段映射 <span class="v11-num">{{ mappingSummary }}</span></div>
+            <button type="button" class="v11-linkbtn" @click="openEdit(selectedTask)">全部</button>
+          </div>
+          <div v-if="mappingRows.length" class="v11-map">
+            <div v-for="(m, mi) in mappingRows" :key="mi" :class="{ re: m.renamed }">
+              <span class="mono">{{ m.source }}</span><i>→</i><span class="mono">{{ m.target }}</span>
+            </div>
+          </div>
+          <div v-else class="v11-empty-s">未配置映射，按同名（忽略大小写）自动配对</div>
+
+          <div class="v11-sect">
+            <div class="v11-sect-t">最近执行 <span class="v11-num">{{ recentForSelected.length }} 条</span></div>
+            <button type="button" class="v11-linkbtn" @click="openLog(selectedTask)">全部记录</button>
+          </div>
+          <div v-for="(p, pi) in recentForSelected" :key="pi" class="v11-rr" :class="{ last: pi === recentForSelected.length - 1 }">
+            <span class="mono">{{ shortTime(p.runTime) }}</span>
+            <em class="v11-tag" :class="p.status === 'SUCCESS' ? 't-success' : 't-err'">{{ p.status === "SUCCESS" ? "成功" : "失败" }}</em>
+            <span class="rt mono">{{ formatCost(p.costMs) }}</span>
+          </div>
+          <div v-if="!recentForSelected.length" class="v11-empty-s">暂无执行记录</div>
+        </div>
+        <div v-else class="v11-card v11-wb v11-empty-s v11-wb-empty">
+          还没有同步任务，点右上「新建任务」创建第一条链路。
+        </div>
+
+        <div class="v11-card v11-todo">
+          <div class="v11-todo-hd">
+            <div class="v11-sect-t">待处理 <span class="v11-num">{{ pendingItems.length }}</span></div>
+            <ReButton v-if="failedTasks.length" size="small" :loading="retryingAll" @click="retryAllFailed">全部重试</ReButton>
+          </div>
+          <div
+            v-for="p in pendingItems.slice(0, 4)" :key="p.key"
+            class="v11-ti" :class="{ dim: p.tone === 'muted' }"
+            role="button" tabindex="0"
+            @click="selectedTaskId = p.id"
+            @keydown.enter="selectedTaskId = p.id"
+          >
+            <em class="v11-tag" :class="`t-${p.tone}`">{{ p.tag }}</em>
+            <div><b>{{ p.name }}</b><span>{{ p.note }}</span></div>
+          </div>
+          <div v-if="!pendingItems.length" class="v11-empty-s">没有需要处理的任务</div>
+        </div>
+      </aside>
     </div>
+
+
 
     <ReDialog
       v-model="dialogVisible"
@@ -962,11 +1095,12 @@
  * @since 4.0.0.43
  */
 import { message } from "@repo/core";
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type Component } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
-import { CircleCheck, Document as DocumentIcon, Files, Loading, Upload as UploadIcon, Warning } from "@element-plus/icons-vue";
+import { Document as DocumentIcon, Upload as UploadIcon } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
-import { fetchTableColumns, fetchMonitorTablesQualified, getDatasourceDatabase } from "../../api/manageConsoles";import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
+import { fetchTableColumns, fetchMonitorTablesQualified, getDatasourceDatabase } from "../../api/manageConsoles";
+import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
 import BulkImportDialog from "../../components/sync/BulkImportDialog.vue";
 import ReCron from "@repo/ui/re-cron";
 import ReFilePicker from "@repo/ui/re-file-picker";
@@ -979,6 +1113,9 @@ import {
   fetchLocalFiles,
   fetchSyncTasks,
   fetchSyncTaskLogs,
+  fetchSyncRunLogs,
+  fetchSyncRunLogStats,
+  fetchSyncRunLogTrend,
   fetchSyncWriteModes,
   previewSyncMapping,
   runSyncTask,
@@ -986,9 +1123,11 @@ import {
   validateSyncSource,
   type SyncColumn,
   type SyncFieldMapping,
+  type SyncRunLogStats,
   type SyncTask,
   type SyncTaskPayload,
   type SyncTaskRunLog,
+  type SyncTaskRunLogItem,
   type SyncTaskRunResult,
   type SyncWriteMode,
 } from "../../api/syncTaskApi";
@@ -1591,38 +1730,36 @@ const modeLabel = (code?: string | null): string => {
   return hit ? hit.label : code || "-";
 };
 
-// ==================== KPI / 分段筛选（数据全部来自现有列表字段，不新增后端接口） ====================
+// ==================== 重构后四层视图的状态与真实数据源 ====================
+// 页面结构：① 数据流向漏斗 / ② 数据链路拓扑 / ③ 执行流水 / ④ 单任务工作台。
+// 三层视图共用同一份执行日志（GET /datasync/logs 最近若干条）与任务台账，不新造后端接口。
 
 /** 状态分段：key 对应下面的 statusOf 分类 */
 type StatusKey = "all" | "running" | "success" | "failed" | "disabled";
-const STATUS_SEGMENTS: Array<{ key: StatusKey; label: string }> = [
-  { key: "all", label: "全部" },
-  { key: "running", label: "运行中" },
-  { key: "success", label: "成功" },
-  { key: "failed", label: "失败" },
-  { key: "disabled", label: "已停用" },
+
+/** 时间窗：漏斗 / 流水 / 顶栏口径统一跟随它 */
+const WINDOWS: Array<{ key: "today" | "7d" | "30d"; label: string }> = [
+  { key: "today", label: "今日" },
+  { key: "7d", label: "近 7 日" },
+  { key: "30d", label: "近 30 日" },
 ];
-/** 当前状态分段 */
-const statusFilter = ref<StatusKey>("all");
-/** 写入模式筛选：'all'=全部（空串会被 el-select 当未选择，显示「请选择」而非选项文案） */
-const writeModeFilter = ref("all");
-/** 任务名称搜索（UI 图右上搜索框；e2e 对照的「不匹配即归零」口径同样经过它） */
-const nameFilter = ref("");
-/**
- * 表格统一 ReTable 的列定义（原七个 el-table-column 收敛于此）。
- *
- * <p>七列全部自定义渲染：prop 只作列的稳定标识（列设置 / 持久化按键），
- * 单元格内容一律走 {@code #col-<prop>} 插槽；宽度 / 对齐 / 固定列与 UI 图逐列一致。</p>
- */
-const taskColumns: ReTableColumn[] = [
-  { prop: "task", label: "任务", minWidth: 180 },
-  { prop: "flow", label: "数据流向", minWidth: 180 },
-  { prop: "writeMode", label: "写入模式", width: 100, align: "center" },
-  { prop: "cron", label: "定时", width: 110 },
-  { prop: "enabled", label: "启用", width: 66, align: "center" },
-  { prop: "lastRun", label: "最近执行", minWidth: 176 },
-  { prop: "actions", label: "操作", width: 150, fixed: "right", align: "center" },
-];
+/** 当前时间窗 */
+const windowKey = ref<"today" | "7d" | "30d">("today");
+const windowLabel = computed(() => WINDOWS.find(w => w.key === windowKey.value)?.label ?? "今日");
+/** 当前选中的任务（工作台的输入；默认落在第一条失败任务上） */
+const selectedTaskId = ref<number | null>(null);
+/** 拓扑默认只铺 5 条链路，其余收在「展开全部」里 */
+const lanesExpanded = ref(false);
+/** 跨任务执行日志（最近 N 条，N 由 runLogsLimit 控制） */
+const recentRuns = ref<SyncTaskRunLogItem[]>([]);
+const runLogsLimit = ref(50);
+const runLogsLoading = ref(false);
+/** 执行日志健康度总览（24h 分布来自后端真实落库日志） */
+const runStats = ref<SyncRunLogStats | null>(null);
+/** 选中任务的耗时趋势（后端最近 14 次落盘执行，升序） */
+const trendPoints = ref<Array<{ runTime: string; costMs: number | null; status: string }>>([]);
+const trendLoading = ref(false);
+const trendSeq = ref(0);
 /**
  * 字段映射列（编辑弹窗第 ② 步）：三列全是自定义控件（两个下拉 + 删除按钮），
  * 故每列都配 slot；「操作」列没有对应数据字段，造稳定合成 prop `actions`。
@@ -1634,14 +1771,6 @@ const mappingColumns: ReTableColumn[] = [
   { prop: "source", label: "源字段", slot: "source" },
   { prop: "target", label: "目标字段", slot: "target" },
   { prop: "actions", label: "操作", width: 84, align: "center", slot: "actions" },
-];
-/** 时间范围筛选，默认「全部时间」：默认就按 24 小时裁会让「全部 10」只显示 7 行，计数与表格对不上 */
-const rangeFilter = ref("all");
-const RANGE_OPTIONS = [
-  { label: "全部时间", value: "all" },
-  { label: "近 1 小时", value: "1h" },
-  { label: "近 24 小时", value: "24h" },
-  { label: "近 7 天", value: "7d" },
 ];
 /** 列表最近刷新时刻文本（对应图上的「N 分钟前更新」） */
 const refreshedAt = ref<number>(0);
@@ -1657,8 +1786,6 @@ const refreshedText = computed(() => {
   if (min < 60) return `${min} 分钟前更新`;
   return `${Math.round(min / 60)} 小时前更新`;
 });
-/** 写入模式下拉项（来自字典，附「全部」项已在模板里单独给） */
-const writeModeOptions = computed(() => writeModes.value.map(m => ({ label: m.label, value: m.code })));
 /**
  * 某个目标可选的写入模式。
  *
@@ -1685,68 +1812,11 @@ function statusOf(row: SyncTask): Exclude<StatusKey, "all"> {
   // 启用但从未执行：算「成功」会让成功率虚高，算「失败」会误报，统一归入成功之外的独立态
   return "success";
 }
-/**
- * 各分段计数。
- *
- * <p>计数基数是 {@link baseTasks}（已受写入模式 + 时间范围约束），而不是全量 {@link tasks}：
- * 否则会出现「全部 10」却只列出 7 行 —— 徽标说的和表格给的不是一个数。KPI 卡另走全量口径，
- * 因为它描述的是整体盘子，不该随筛选跳动。</p>
- *
- * @param key 分段
- * @returns 该分段当前可见的任务数
- */
-function segCount(key: StatusKey): number {
-  if (key === "all") return baseTasks.value.length;
-  return baseTasks.value.filter(t => statusOf(t) === key).length;
-}
 /** 解析后端的时间字符串（yyyy-MM-dd HH:mm:ss 或 ISO），无法解析返回 null */
 function parseRunTime(v?: string | null): number | null {
   if (!v) return null;
   const t = Date.parse(v.includes("T") ? v : v.replace(" ", "T"));
   return Number.isNaN(t) ? null : t;
-}
-/** 时间范围对应的毫秒数；null 表示不限时间 */
-function rangeMs(): number | null {
-  if (rangeFilter.value === "all") return null;
-  const h = rangeFilter.value === "1h" ? 1 : rangeFilter.value === "7d" ? 24 * 7 : 24;
-  return h * 3600_000;
-}
-/** 是否落在所选时间范围内（无执行时间的不参与时间过滤，只受状态/模式影响） */
-function inRange(row: SyncTask): boolean {
-  const t = parseRunTime(row.syncTaskLastRunTime);
-  const ms = rangeMs();
-  if (t == null || ms == null) return true;
-  return Date.now() - t <= ms;
-}
-/** 基础集：写入模式 + 时间范围 + 名称搜索三道与状态无关的过滤 */
-const baseTasks = computed(() => tasks.value.filter(row =>
-  (writeModeFilter.value === "all" || row.syncTaskWriteMode === writeModeFilter.value)
-  && inRange(row)
-  && (!nameFilter.value.trim() || (row.syncTaskName || "").toLowerCase().includes(nameFilter.value.trim().toLowerCase())),
-));
-/** 表格实际数据源：基础集再按状态分段收一道（ReTable 自带分页会按 page/pageSize 切片） */
-const filteredTasks = computed(() => baseTasks.value.filter(row =>
-  statusFilter.value === "all" || statusOf(row) === statusFilter.value,
-));
-
-/** 今日成功率：今日有执行记录的任务里成功占比；无今日执行则为 null（显示「—」，不伪造 100%） */
-const todayRate = computed<number | null>(() => {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const t0 = start.getTime();
-  let ok = 0, all = 0;
-  for (const t of tasks.value) {
-    const ts = parseRunTime(t.syncTaskLastRunTime);
-    if (ts == null || ts < t0) continue;
-    all++;
-    if (t.syncTaskLastStatus === "SUCCESS") ok++;
-  }
-  return all ? (ok / all) * 100 : null;
-});
-/** 全量口径计数：KPI 卡描述整体盘子，不随筛选跳动（分段徽标才跟随筛选） */
-function globalCount(key: StatusKey): number {
-  if (key === "all") return tasks.value.length;
-  return tasks.value.filter(t => statusOf(t) === key).length;
 }
 /**
  * Spring 6 段 cron → 中文一句话（定时列第二行，UI 图里的「每 5 分钟」）。
@@ -1791,8 +1861,6 @@ function cronShort(expr?: string | null): string {
 
 /** 失败任务（全量口径：横幅与全部重试的输入，不随筛选跳动） */
 const failedTasks = computed(() => tasks.value.filter(t => statusOf(t) === "failed"));
-/** 横幅本轮是否被手动关闭 */
-const bannerDismissed = ref(false);
 /** 全部重试进行中 */
 const retryingAll = ref(false);
 /**
@@ -1812,115 +1880,6 @@ const retryAllFailed = async (): Promise<void> => {
     retryingAll.value = false;
   }
 };
-/** 失败任务数（全量口径） */
-const failedCount = computed(() => globalCount("failed"));
-/** 已停用任务数 */
-function disabledCountOf(): number {
-  return tasks.value.filter(t => t.syncTaskEnabled !== 1).length;
-}
-
-/** 有执行时间的任务，按执行时间升序（sparkline 的公共输入） */
-function orderedRuns(): Array<{ at: number; ok: boolean }> {
-  const rows: Array<{ at: number | null; ok: boolean }> = tasks.value.map(t => ({
-    at: parseRunTime(t.syncTaskLastRunTime),
-    ok: t.syncTaskLastStatus === "SUCCESS",
-  }));
-  return rows
-    .filter((x): x is { at: number; ok: boolean } => x.at != null)
-    .sort((a, b) => a.at - b.at);
-}
-
-/**
- * KPI 卡的 sparkline 序列。
- *
- * <p><b>口径说明（避免把「无数据」画成「平的 0 值」）</b>：后端只给每个任务的<b>最近一次</b>执行，
- * 没有历史执行表。所以曲线一律取「按最近执行时间升序、累计到当前」这条真实可得的数据，
- * 而不是编一条随机曲线；<b>序列不足 2 点时前端不渲染 svg</b>。结果是：</p>
- * <ul>
- *   <li>今日成功率、失败 / 告警 —— 有多任务执行时间，能画出真实累计曲线；</li>
- *   <li>同步任务数、运行中 —— 后端没有对应的时间序列接口（要历史执行表），
- *       单点画不出趋势，<b>刻意留空</b>而不是补一条假线。要补需后端出统计接口。</li>
- * </ul>
- *
- * @param key 指标键
- * @returns 数值序列（按时间升序）
- */
-function sparkSeries(key: "tasks" | "running" | "rate" | "failed"): number[] {
-  const rows = orderedRuns();
-  if (key === "rate") {
-    // 累计成功率（%）
-    if (!rows.length) return [];
-    const out: number[] = [];
-    let ok = 0;
-    rows.forEach((r, i) => {
-      if (r.ok) ok++;
-      out.push(Math.round((ok / (i + 1)) * 1000) / 10);
-    });
-    return out;
-  }
-  if (key === "failed") {
-    // 累计失败任务数
-    if (!rows.length) return [];
-    const out: number[] = [];
-    let n = 0;
-    rows.forEach(r => {
-      if (!r.ok) n++;
-      out.push(n);
-    });
-    return out;
-  }
-  // tasks / running：后端无历史序列，单点无趋势可言
-  return [];
-}
-/** 生成 sparkline 的 polyline points（宽 120 高 32，自带 y 轴上下留白） */
-function sparkPoints(data: number[]): string {
-  if (data.length < 2) return "";
-  const min = Math.min(...data), max = Math.max(...data);
-  const range = max - min || 1;
-  return data.map((v, i) => {
-    const x = (i / (data.length - 1)) * 120;
-    const y = 30 - ((v - min) / range) * 26;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-}
-interface KpiCard {
-  key: string; title: string; value: string; desc: string;
-  icon: Component; color: string; spark: number[];
-}
-/** 四张 KPI 卡（标题/字段口径保持 e2e 契约：4 卡 + .re-stat-card__title 文案不变） */
-const kpiCards = computed<KpiCard[]>(() => {
-  const enabled = tasks.value.filter(t => t.syncTaskEnabled === 1).length;
-  const disabled = disabledCountOf();
-  const rate = todayRate.value;
-  return [
-    {
-      key: "tasks", title: "同步任务数", value: String(tasks.value.length),
-      desc: `启用 ${enabled} · 停用 ${disabled}`,
-      icon: Files, color: "var(--el-color-primary)",
-      spark: sparkSeries("tasks"),
-    },
-    {
-      key: "running", title: "运行中", value: String(globalCount("running")),
-      desc: `成功 ${globalCount("success")} · 失败 ${failedCount.value}`,
-      icon: Loading, color: "var(--el-color-success)",
-      spark: sparkSeries("running"),
-    },
-    {
-      key: "rate", title: "今日成功率",
-      value: rate == null ? "—" : rate.toFixed(1),
-      desc: rate == null ? "今日暂无执行记录" : "按今日已执行任务统计",
-      icon: CircleCheck, color: "var(--el-color-warning)",
-      spark: sparkSeries("rate"),
-    },
-    {
-      key: "failed", title: "失败 / 告警", value: String(failedCount.value),
-      desc: failedCount.value ? "需人工介入" : "暂无失败任务",
-      icon: Warning, color: "var(--el-color-danger)",
-      spark: sparkSeries("failed"),
-    },
-  ];
-});
-
 /** 写入模式标签色：追加=success / 覆盖=warning / Upsert=primary / 其它=info */
 function writeModeTagType(code?: string | null): "success" | "warning" | "primary" | "info" {
   const c = (code || "").toUpperCase();
@@ -1938,7 +1897,7 @@ function formatCost(ms?: number | null): string {
   if (v < 60_000) return `${(v / 1000).toFixed(2)}s`;
   return `${Math.floor(v / 60_000)}m${Math.round((v % 60_000) / 1000)}s`;
 }
-/** 源类型中文标签（用于卡片化后的「任务」列副标题） */
+/** 源类型中文标签（用于拓扑/工作台的源侧副标题） */
 function sourceTypeLabel(row: SyncTask): string {
   const t = (row.syncTaskSourceType || "JDBC").toUpperCase();
   switch (t) {
@@ -1950,17 +1909,7 @@ function sourceTypeLabel(row: SyncTask): string {
     default: return t;
   }
 }
-/** 源侧摘要（表格「任务」列副标题用的文案）：返回**完整**原文（SQL / 路径），
- *  超长交给 CSS 省略（.st-sub-clip）+ title 悬停看全文 —— JS 硬截会让悬停也拿不到
- *  后半段，长 SQL 一旦需要核对（尤其删除前）就必须能看到全量。 */
-function sourceBrief(row: SyncTask): string {
-  const t = (row.syncTaskSourceType || "JDBC").toUpperCase();
-  if (t === "JDBC") return row.syncTaskSourceSql || "自定义 SQL";
-  if (t === "DIR") return row.syncTaskSourcePath || "目录";
-  if (t === "FILE" || t.startsWith("HTTP")) return row.syncTaskSourcePath || "—";
-  return "—";
-}
-/** 源侧完整描述（数据流向 chip 的 title） */
+/** 源侧完整描述（拓扑节点 / 工作台副标题的 title） */
 function sourceFull(row: SyncTask): string {
   return sourceLabel(row);
 }
@@ -1976,6 +1925,411 @@ function sourceTableName(row: SyncTask): string {
   const seg = p.split(/[\\/]/).filter(Boolean);
   return seg.length ? seg[seg.length - 1] : sourceTypeLabel(row);
 }
+
+// ==================== 四层视图：真实数据聚合 ====================
+
+/** 求和（跳过 null：存量日志行没有计数） */
+function sumNum(values: Array<number | null | undefined>): number {
+  return values.reduce<number>((acc, v) => acc + (v == null ? 0 : Number(v) || 0), 0);
+}
+/** 千分位；null 显示「—」 */
+function fmtNum(v?: number | null): string {
+  return v == null ? "—" : v.toLocaleString();
+}
+/** 百分位（P95 用；空数组返回 null，不伪造 0） */
+function percentile(values: number[], p: number): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
+  return sorted[idx];
+}
+/** 后端时间串统一成 "yyyy-MM-dd HH:mm:ss"（兼容 ISO 的 T 分隔） */
+function normTime(v?: string | null): string {
+  return (v || "").replace("T", " ");
+}
+/** MM-DD HH:mm（工作台「最近执行」用） */
+function shortTime(v?: string | null): string {
+  const s = normTime(v);
+  return s.length >= 16 ? s.slice(5, 16) : s || "—";
+}
+/** HH:mm:ss（流水行时刻） */
+function timeOf(v?: string | null): string {
+  const s = normTime(v);
+  return s.length >= 19 ? s.slice(11, 19) : s || "—";
+}
+
+/** 时间窗起点（今日 = 本地零点；近 N 日 = 当前时刻往前推） */
+const windowStartMs = computed(() => {
+  if (windowKey.value === "today") {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  return Date.now() - (windowKey.value === "7d" ? 7 : 30) * 86400_000;
+});
+/** 某条执行是否落在当前时间窗 */
+function inWindow(runTime?: string | null): boolean {
+  const t = parseRunTime(runTime);
+  return t != null && t >= windowStartMs.value;
+}
+/** 时间窗内的执行记录（漏斗 / 流水 / 顶栏口径的唯一输入） */
+const windowRuns = computed(() => recentRuns.value.filter(r => inWindow(r.runTime)));
+/** 顶栏：启用数 / 失败数 / 平均耗时 */
+const enabledTaskCount = computed(() => tasks.value.filter(t => t.syncTaskEnabled === 1).length);
+const windowFailedCount = computed(() => windowRuns.value.filter(r => r.status !== "SUCCESS").length);
+const windowAvgCost = computed<number | null>(() => {
+  const costs = windowRuns.value.map(r => r.costMs).filter((v): v is number => v != null && Number.isFinite(v));
+  return costs.length ? costs.reduce((a, b) => a + b, 0) / costs.length : null;
+});
+
+/**
+ * 行数口径是否可用：执行日志里的 readCount / writeCount 是「执行结束时解析入库」的，
+ * 存量历史记录没有这两个字段（接口直接不返回）。全为 0 时不能画成「读 0 行、成功率 0%」那种假精度，
+ * 改为降级文案，只报执行次数与失败次数。
+ */
+const hasRowStats = computed(() =>
+  windowRuns.value.some(r => (r.readCount ?? 0) > 0 || (r.writeCount ?? 0) > 0),
+);
+/** ① 漏斗三段：源表读取 → 写入目标 → 成功任务写入（全部来自真实执行日志的读/写行数） */
+const funnelStages = computed(() => {
+  const runs = windowRuns.value;
+  if (!runs.length || !hasRowStats.value) return [];
+  const read = sumNum(runs.map(r => r.readCount));
+  const write = sumNum(runs.map(r => r.writeCount));
+  const okWrite = sumNum(runs.filter(r => r.status === "SUCCESS").map(r => r.writeCount));
+  const okRuns = runs.filter(r => r.status === "SUCCESS").length;
+  const failedRuns = runs.length - okRuns;
+  const srcTaskIds = new Set(runs.map(r => r.taskId).filter((id): id is number => id != null));
+  const srcTables = new Set(
+    [...srcTaskIds].map(id => tasks.value.find(t => t.id === id)).filter((t): t is SyncTask => !!t).map(t => sourceTableName(t)),
+  );
+  const dstTables = new Set(
+    [...srcTaskIds].map(id => tasks.value.find(t => t.id === id)).filter((t): t is SyncTask => !!t).map(t => t.syncTaskTargetTable || "-"),
+  );
+  const pct = (v: number) => (read > 0 ? Math.round((v / read) * 1000) / 10 : 0);
+  return [
+    { key: "read", label: "源表读取", value: read, pct: read > 0 ? 100 : 0, note: `${srcTaskIds.size} 个任务 · ${srcTables.size} 张源表` },
+    { key: "write", label: "写入目标", value: write, pct: pct(write), note: `${dstTables.size} 张目标表 · ${runs.length} 次执行` },
+    { key: "usable", label: "成功任务写入", value: okWrite, pct: pct(okWrite), note: `${okRuns} 次成功 / ${failedRuns} 次失败` },
+  ];
+});
+/** 漏斗两段之间的差额（占读取量百分比；只报真实差额，不做假拆分） */
+const funnelGaps = computed(() => {
+  const [read, write, usable] = funnelStages.value;
+  if (!read || read.value <= 0) return [] as Array<{ pct: number; label: string }>;
+  const loss = (from: number, to: number) => (from > 0 ? Math.round(((from - to) / from) * 1000) / 10 : 0);
+  return [
+    { pct: loss(read.value, write.value), label: "读写差额" },
+    { pct: loss(write.value, usable.value), label: "失败任务写入" },
+  ];
+});
+/** 达到「写入目标」的合计行数（右侧目标表分布的口径） */
+const funnelTotalWrite = computed(() => sumNum(windowRuns.value.map(r => r.writeCount)));
+/** 目标表写入 Top 4（时间窗内按任务的目标表聚合真实写行数） */
+const targetWriteTop = computed(() => {
+  const map = new Map<string, number>();
+  for (const r of windowRuns.value) {
+    const task = tasks.value.find(t => t.id === r.taskId);
+    const name = task?.syncTaskTargetTable || "未知目标";
+    map.set(name, (map.get(name) ?? 0) + (r.writeCount ?? 0));
+  }
+  const rows = [...map.entries()]
+    .map(([name, value]) => ({ name, value }))
+    .filter(r => r.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const max = rows.length ? Math.max(1, rows[0].value) : 1;
+  return rows.slice(0, 4).map(row => ({
+    ...row,
+    short: row.name.includes(".") ? row.name.split(".").pop() || row.name : row.name,
+    pct: Math.round((row.value / max) * 100),
+    text: row.value >= 1000 ? `${(row.value / 1000).toFixed(1)}k` : String(row.value),
+  }));
+});
+
+/** ② 拓扑：任务 → 源表 / 目标表 三联；默认只铺 5 条 */
+const laneRows = computed(() => (lanesExpanded.value ? tasks.value : tasks.value.slice(0, 5)));
+const hiddenLaneCount = computed(() => Math.max(0, tasks.value.length - laneRows.value.length));
+const disabledLaneNames = computed(() => tasks.value.filter(t => t.syncTaskEnabled !== 1).map(t => t.syncTaskName));
+/** 目标表节点的 Schema 徽标（表名带库前缀时取前缀） */
+function targetSchemaOf(row: SyncTask): string {
+  const table = row.syncTaskTargetTable || "";
+  const dot = table.indexOf(".");
+  return dot > 0 ? table.slice(0, dot).toUpperCase() : "TABLE";
+}
+/** 拓扑任务节点的耗时：只给「有信息量」的三种状态；停用 / 未执行已有灰点与标签，不再重复占宽 */
+function laneCostText(row: SyncTask): string {
+  const st = statusOf(row);
+  if (st === "running") return "执行中";
+  if (st === "disabled") return "";
+  if (!row.syncTaskLastStatus) return "";
+  return formatCost(row.syncTaskLastCostMs);
+}
+
+/** ③ 24h 密度条：优先用后端统计的逐小时分布，没有就退回本地最近 24h 桶 */
+const hourlyRows = computed(() => {
+  const stats = runStats.value?.hourly;
+  if (stats && stats.length) {
+    return stats.map(h => ({ label: h.hour, total: h.total, failed: h.failed }));
+  }
+  const now = new Date();
+  const buckets: Array<{ label: string; total: number; failed: number }> = [];
+  for (let i = 23; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 3600_000);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:00`;
+    buckets.push({ label: key, total: 0, failed: 0 });
+  }
+  const idx = new Map(buckets.map((b, i) => [b.label, i]));
+  for (const r of recentRuns.value) {
+    const key = normTime(r.runTime).slice(0, 13) + ":00";
+    const i = idx.get(key);
+    if (i != null) {
+      buckets[i].total++;
+      if (r.status !== "SUCCESS") buckets[i].failed++;
+    }
+  }
+  return buckets;
+});
+const hourlyBars = computed(() => {
+  const rows = hourlyRows.value;
+  const max = Math.max(1, ...rows.map(r => r.total));
+  return rows.map(r => ({
+    label: `${normTime(r.label).slice(11, 16) || r.label}`,
+    total: r.total,
+    failed: r.failed,
+    running: false,
+    h: Math.max(2, Math.round((r.total / max) * 15)),
+  }));
+});
+const hourLabels = computed(() => {
+  const rows = hourlyRows.value;
+  if (!rows.length) return ["00", "04", "08", "12", "16", "20", "23"];
+  const picks = [0, 4, 8, 12, 16, 20, rows.length - 1].filter(i => i < rows.length);
+  return picks.map(i => normTime(rows[i].label).slice(11, 13) || String(i).padStart(2, "0"));
+});
+
+/** 流水按小时分组（时间倒序；组内也倒序） */
+const streamGroups = computed(() => {
+  const groups = new Map<string, SyncTaskRunLogItem[]>();
+  const runs = [...windowRuns.value].sort((a, b) => (parseRunTime(b.runTime) ?? 0) - (parseRunTime(a.runTime) ?? 0));
+  for (const r of runs) {
+    const key = normTime(r.runTime).slice(0, 13);
+    const list = groups.get(key) ?? [];
+    list.push(r);
+    groups.set(key, list);
+  }
+  return [...groups.entries()].map(([key, events]) => ({
+    key,
+    hour: `${key.slice(11, 13)}:00`,
+    failed: events.filter(e => e.status !== "SUCCESS").length,
+    events,
+  }));
+});
+/** 时间窗内最大耗时（流水行进度条的横向口径） */
+const windowMaxCost = computed(() => Math.max(1, ...windowRuns.value.map(r => r.costMs ?? 0)));
+function evBarPct(ev: SyncTaskRunLogItem): number {
+  return Math.min(100, Math.max(3, Math.round(((ev.costMs ?? 0) / windowMaxCost.value) * 100)));
+}
+/** 流水行的附加说明：成功给行数概览；失败优先用任务行的最新错误（仅当这条就是最新一次），
+    存量记录没有读写行数时不再补一行「— → —」噪音 */
+function evMessage(ev: SyncTaskRunLogItem): string {
+  const rows = ev.readCount == null && ev.writeCount == null
+    ? ""
+    : `读 ${ev.readCount ?? "—"} / 写 ${ev.writeCount ?? "—"} 行`;
+  if (ev.status === "SUCCESS") return rows || "执行成功";
+  const task = tasks.value.find(t => t.id === ev.taskId);
+  const msg = task && normTime(task.syncTaskLastRunTime) === normTime(ev.runTime) && task.syncTaskLastMessage
+    ? task.syncTaskLastMessage
+    : "执行失败";
+  return rows ? `${msg} · ${rows}` : msg;
+}
+/** 这条执行对应的任务此刻是否仍在跑（本地标记，后端无 RUNNING 列） */
+function isRunningEv(ev: SyncTaskRunLogItem): boolean {
+  return ev.taskId != null && runningIds.value.has(ev.taskId);
+}
+/** 还有多少更早的执行未加载 */
+const moreRuns = computed(() => Math.max(0, (runStats.value?.total ?? recentRuns.value.length) - recentRuns.value.length));
+
+/** 任务定位三件套（流水行点击 / 重试 / 打开日志都按 id 回查，避免行上带整对象） */
+const selectTaskById = (id?: number | null): void => {
+  if (id != null && tasks.value.some(t => t.id === id)) selectedTaskId.value = id;
+};
+const runTaskById = (id?: number | null): void => {
+  const task = tasks.value.find(t => t.id === id);
+  if (task) void run(task);
+};
+const openLogById = (id?: number | null): void => {
+  const task = tasks.value.find(t => t.id === id);
+  if (task) openLog(task);
+};
+
+/** ④ 工作台：当前选中的任务（默认第一条失败任务，没有就第一条） */
+const selectedTask = computed<SyncTask | null>(() => {
+  const hit = tasks.value.find(t => t.id === selectedTaskId.value);
+  return hit ?? failedTasks.value[0] ?? tasks.value[0] ?? null;
+});
+/** 工作台里的启用开关：改变的是当前选中任务，不依赖行上下文 */
+const onSelectedEnabled = (value: string | number | boolean): void => {
+  const task = selectedTask.value;
+  if (task) void toggle(task, !!value);
+};
+/** 状态文案与色调（拓扑 / 工作台 / 待处理共用一套） */
+function statusText(row: SyncTask): string {
+  const st = statusOf(row);
+  if (st === "running") return "运行中";
+  if (st === "failed") return "失败";
+  if (st === "disabled") return "停用";
+  return row.syncTaskLastStatus ? "成功" : "未执行";
+}
+function statusTagTone(row: SyncTask): string {
+  const st = statusOf(row);
+  if (st === "failed") return "err";
+  if (st === "running") return "info";
+  if (st === "disabled") return "muted";
+  return row.syncTaskLastStatus ? "success" : "muted";
+}
+
+/** 选中任务的耗时趋势（后端最近 14 次落盘执行，升序）；切换任务时旧响应不再覆盖新任务 */
+const loadTrend = async (taskId: number): Promise<void> => {
+  const seq = ++trendSeq.value;
+  trendLoading.value = true;
+  try {
+    const res = await fetchSyncRunLogTrend(taskId, 14);
+    if (seq === trendSeq.value) trendPoints.value = res?.points ?? [];
+  } catch {
+    if (seq === trendSeq.value) trendPoints.value = [];
+  } finally {
+    if (seq === trendSeq.value) trendLoading.value = false;
+  }
+};
+/** 工作台四指标：今日执行 / 成功率 / 平均耗时 / P95（趋势为空时退回任务行的最近一次） */
+const workbenchMetrics = computed(() => {
+  const row = selectedTask.value;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const pts = trendPoints.value;
+  const todayPts = pts.filter(p => (parseRunTime(p.runTime) ?? 0) >= today.getTime());
+  const scope = todayPts.length ? todayPts : pts;
+  if (scope.length) {
+    const ok = scope.filter(p => p.status === "SUCCESS").length;
+    const costs = scope.map(p => p.costMs).filter((v): v is number => v != null && Number.isFinite(v));
+    const avg = costs.length ? costs.reduce((a, b) => a + b, 0) / costs.length : null;
+    const p95 = percentile(costs, 95);
+    return [
+      { label: todayPts.length ? "今日执行" : "近期执行", value: String(scope.length), unit: "次" },
+      { label: "成功率", value: String(Math.round((ok / scope.length) * 100)), unit: "%" },
+      { label: "平均耗时", value: avg == null ? "—" : formatCost(avg), unit: "" },
+      { label: "P95 耗时", value: p95 == null ? "—" : formatCost(p95), unit: "" },
+    ];
+  }
+  if (!row) return [];
+  return [
+    { label: "最近读取", value: fmtNum(row.syncTaskLastReadCount), unit: "行" },
+    { label: "最近写入", value: fmtNum(row.syncTaskLastWriteCount), unit: "行" },
+    { label: "上次耗时", value: formatCost(row.syncTaskLastCostMs), unit: "" },
+    { label: "输出目标", value: String(targetCount(row)), unit: "个" },
+  ];
+});
+const trendMax = computed(() => Math.max(1, ...trendPoints.value.map(p => p.costMs ?? 0)));
+const trendP95Pct = computed(() => {
+  const p95 = percentile(trendPoints.value.map(p => p.costMs ?? 0), 95);
+  if (p95 == null) return 0;
+  return Math.min(100, Math.max(4, Math.round((p95 / trendMax.value) * 100)));
+});
+function trendBarHeight(p: { costMs: number | null }): string {
+  return `${Math.max(4, Math.round(((p.costMs ?? 0) / trendMax.value) * 100))}%`;
+}
+/** 横轴四个日期刻度（首 / 三分位 / 末）：同一天内取时刻，跨天取日期，避免四个刻度都写成同一天 */
+const trendAxis = computed(() => {
+  const pts = trendPoints.value;
+  if (!pts.length) return [] as string[];
+  const idx = [0, Math.floor(pts.length / 3), Math.floor((2 * pts.length) / 3), pts.length - 1];
+  const raw = idx.map(i => shortTime(pts[i]?.runTime)).filter(l => l && l !== "—");
+  if (!raw.length) return [];
+  const sameDay = raw.every(l => l.slice(0, 5) === raw[0].slice(0, 5));
+  return [...new Set(raw.map(l => (sameDay ? l.slice(6, 11) : l.slice(0, 5))))];
+});
+/** 最近 2 次执行（趋势降序前两条） */
+const recentForSelected = computed(() => [...trendPoints.value].reverse().slice(0, 2));
+
+/** 字段映射：任务上存的 JSON 数组（空 = 同名自动配对） */
+const parsedMapping = computed<SyncFieldMapping[]>(() => {
+  const raw = selectedTask.value?.syncTaskColumnMapping;
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr)
+      ? arr.filter((m): m is SyncFieldMapping => !!m && typeof m.source === "string" && typeof m.target === "string")
+      : [];
+  } catch {
+    return [];
+  }
+});
+const mappingRows = computed(() => parsedMapping.value.slice(0, 3).map(m => ({
+  source: m.source,
+  target: m.target,
+  renamed: m.source !== m.target,
+})));
+const mappingSummary = computed(() => {
+  const all = parsedMapping.value;
+  if (!all.length) return "自动配对";
+  const renamed = all.filter(m => m.source !== m.target).length;
+  return `${all.length} 列${renamed ? ` · ${renamed} 列重命名` : ""}`;
+});
+
+/** 待处理：失败 / 运行中 / 停用（全部来自任务台账的真实状态） */
+const pendingItems = computed(() => {
+  const out: Array<{ key: string; id: number; tag: string; tone: string; name: string; note: string }> = [];
+  for (const t of tasks.value) {
+    if (statusOf(t) === "failed") {
+      out.push({
+        key: `f-${t.id}`, id: t.id, tag: "失败", tone: "err", name: t.syncTaskName,
+        note: `${t.syncTaskLastRunTime || "—"}${t.syncTaskLastMessage ? ` · ${t.syncTaskLastMessage}` : ""}`,
+      });
+    }
+  }
+  for (const t of tasks.value) {
+    if (statusOf(t) === "running") {
+      out.push({ key: `r-${t.id}`, id: t.id, tag: "运行中", tone: "info", name: t.syncTaskName, note: "正在执行" });
+    }
+  }
+  for (const t of tasks.value) {
+    if (t.syncTaskEnabled !== 1) {
+      out.push({
+        key: `d-${t.id}`, id: t.id, tag: "停用", tone: "muted", name: t.syncTaskName,
+        note: t.syncTaskLastRunTime ? `最近 ${t.syncTaskLastRunTime}` : "从未执行",
+      });
+    }
+  }
+  return out;
+});
+
+/** 拉执行日志与健康度总览：两条接口互不阻塞，失败静默降级为「暂无记录」 */
+const loadRunFeeds = async (): Promise<void> => {
+  runLogsLoading.value = true;
+  const [logsRes, statsRes] = await Promise.allSettled([
+    fetchSyncRunLogs({ page: 1, pageSize: runLogsLimit.value }),
+    fetchSyncRunLogStats(),
+  ]);
+  if (logsRes.status === "fulfilled") {
+    recentRuns.value = logsRes.value.records ?? [];
+  }
+  if (statsRes.status === "fulfilled") {
+    runStats.value = statsRes.value;
+  }
+  runLogsLoading.value = false;
+  const task = selectedTask.value;
+  if (task) void loadTrend(task.id);
+};
+/** 「加载更早」：每次多取 50 条，取到后重新拉统计 */
+const loadMoreRuns = async (): Promise<void> => {
+  if (runLogsLoading.value) return;
+  runLogsLimit.value += 50;
+  await loadRunFeeds();
+};
+/** 选中任务变化即换趋势（含首次有数据后自动落到默认任务） */
+watch(() => selectedTask.value?.id, id => {
+  if (id != null) void loadTrend(id);
+});
 
 /** 拉数据源台账 */
 const loadDatasources = async () => {
@@ -1996,8 +2350,12 @@ const refresh = async () => {
     // （手动刷新、重试其它任务、日志轮询），清空会把在跑的任务误判成已结束。
     // 执行中的标记只由 run() 的 finally 在本次请求真正返回后移除。
     refreshedAt.value = Date.now();
-    // 新数据进来：横幅按新失败集重算（本轮手动关闭失效）
-    bannerDismissed.value = false;
+    // 选中任务失效（被删 / 首次加载）时落到第一条失败任务，没有失败就落到第一条
+    if (selectedTaskId.value == null || !tasks.value.some(t => t.id === selectedTaskId.value)) {
+      const firstFailed = tasks.value.find(t => t.syncTaskLastStatus && t.syncTaskLastStatus !== "SUCCESS");
+      selectedTaskId.value = (firstFailed ?? tasks.value[0])?.id ?? null;
+    }
+    void loadRunFeeds();
   } catch (e) {
     message.error("加载同步任务失败：" + (e as Error)?.message);
   } finally {
@@ -3147,23 +3505,27 @@ onUnmounted(() => {
    --text-primary/secondary/tertiary 三档文本 / --el-color-* 语义色（主题色联动） */
 /* 页面底沿用 .tel-page 的卡面（背景 / 边框 / 圆角 / 阴影），这里不再覆盖 background：
    之前改成 --bg-page 会让本页变成灰底，与数据源中心等同组页面（白卡面）不一致。
-   纵向 flex 是为了让表格卡吃掉剩余高度（见 .st-body），页面本身不再出滚动条。 */
+   纵向 flex 是为了让四层主区吃掉剩余高度（.v11-main），页面本身不再出滚动条。 */
 .sync-tasks {
   display: flex;
   flex-direction: column;
   padding-bottom: 16px;
 }
-/* 页头 / KPI / 告警 / 筛选条都按内容高度定死，不许被 flex 压缩；
-   只有下面的表格卡吃剩余高度（.st-body）。 */
+/* 顶栏 / 漏斗按内容高度定死，只有主区吃剩余高度 */
 .sync-tasks > * {
   flex: 0 0 auto;
 }
+/* 主区吃掉剩余高度：内部各卡片自己滚（拓扑列表 / 执行流水 / 工作台），页面本身不出滚动条 */
+.sync-tasks > .v11-main {
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .sync-tasks .dsm-toolbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 24px 4px;
+  padding: 0;
 }
 .sync-tasks .dsm-toolbar-left,
 .sync-tasks .dsm-toolbar-right { flex: none; }
@@ -3193,238 +3555,715 @@ onUnmounted(() => {
   color: var(--text-tertiary);
 }
 .st-head-actions { gap: 12px; }
-/* 表格卡吃掉页面剩余高度：这是本页唯一允许伸缩的一块。
-   contain: layout size 是给 ReTable 看的契约声明 —— 它的高度由 flex 分配决定、
-   与内部表格内容无关，因此 ReTable 走 CSS height:100% 路径，
-   不再按「到滚动容器下沿」做像素测量（那条路会把告警条插入前后的旧值写死，
-   实测页面因此多出 175px 溢出滚动）。 */
-.st-body {
-  flex: 1 1 auto;
-  /* 下限：窗口极矮时宁可让 .tel-page 自己出滚动条，也不把表格压成看不见 */
-  min-height: 240px;
-  contain: layout size;
-  margin: 0 24px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  background: var(--bg-container);
-  padding: 0 0 12px;
-  overflow: hidden;
-}
-
-/* 表格统一 ReTable：卡面沿用 .st-body（外层已有边框 / 圆角 / 背景 / 内边距），
-   关掉 ReTable 根自带的卡面样式，避免嵌套后出现双层边框与双重内边距。 */
-.st-body :deep(.re-table) {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  padding: 0;
-}
-
-/* ==================== KPI 卡 ==================== */
-/* 卡面规格交给 ReStatCard，这里只负责四卡等宽排布与卡内 sparkline 的落位 */
-.st-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  padding: 14px 24px 16px;
-}
-.st-spark {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 120px;
-  height: 32px;
-  opacity: 0.85;
-  pointer-events: none;
-}
-.st-kpi-cell { position: relative; min-width: 0; }
-.st-spark-line {
-  fill: none;
-  stroke-width: 1.6;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-/* 四卡在窄屏折成两行；再窄折成一行，避免卡片被压到读不出数字 */
-@media (max-width: 1100px) {
-  .st-kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 620px) {
-  .st-kpi-row { grid-template-columns: 1fr; }
-}
-
-/* ==================== 失败告警横幅（UI 图红色条） ==================== */
-.st-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  margin: 0 24px 16px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--el-color-danger-light-7);
-  background: var(--el-color-danger-light-9);
-}
-.st-alert-bell {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  color: var(--el-color-white);
-  background: var(--el-color-danger);
-}
-.st-alert-body { flex: 1; min-width: 0; }
-.st-alert-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--el-color-danger);
-}
-.st-alert-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-.st-alert-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 5px 6px 5px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--el-color-danger-light-7);
-  background: var(--el-color-white);
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--text-primary);
-}
-.st-alert-chip:hover { border-color: var(--el-color-danger); }
-.st-alert-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--el-color-danger);
-  flex-shrink: 0;
-}
-.st-alert-chip-name { font-weight: 600; white-space: nowrap; }
-.st-alert-chip-msg {
-  color: var(--el-color-danger);
-  font-family: "JetBrains Mono", "Consolas", monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.st-alert-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.st-alert-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-}
-.st-alert-close:hover { color: var(--text-primary); background: var(--el-color-danger-light-8); }
-
-/* ==================== 状态分段筛选 ==================== */
-.st-filter-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 0 24px 12px;
-}
-.st-segments {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px;
-  border-radius: 10px;
-  background: var(--bg-container);
-  border: 1px solid var(--border-subtle);
-  /* 窄屏放不下时横向滚动，而不是把每个按钮压成竖排单字 */
-  flex-wrap: nowrap;
-  max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.st-segments::-webkit-scrollbar { display: none; }
-.st-seg {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--text-secondary);
-  transition: background 0.15s ease, color 0.15s ease;
-  /* 关键：不允许按钮内部文字换行（否则窄屏会一字一行） */
-  white-space: nowrap;
-  flex: none;
-}
-.st-seg:hover { color: var(--text-primary); }
-.st-seg.on {
-  background: var(--el-color-primary);
-  color: var(--el-color-white);
-  font-weight: 600;
-}
-.st-seg-count {
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.75;
-}
-.st-filter-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: none;
-}
-/* 窄屏：筛选条改为两行堆叠，各控件按可用宽度伸缩，不再被压成竖排单字 */
-@media (max-width: 900px) {
-  .st-filter-bar { flex-direction: column; align-items: stretch; }
-  .st-filter-right { flex-wrap: wrap; }
-  .st-filter-right :deep(.st-filter-sel) { width: 148px; }
-  .st-filter-right :deep(.st-search) { width: auto; flex: 1 1 180px; min-width: 0; }
-}
-@media (max-width: 620px) {
-  .st-filter-right :deep(.st-filter-sel) { width: calc(50% - 5px); }
-  .st-filter-right :deep(.st-search) { flex-basis: 100%; }
-}
-/* 必须用 :deep 抬高特异性并落在**后代**上：ReSelect 根同时挂自己的 data-v，
-   父级 data-v 回落属性不保证在它身上（实测 .st-filter-sel[data-v-父] 匹配不上、
-   被 .re-select{width:auto} 压到 46px 只剩箭头）。:deep 编译成
-   `.st-filter-right[data-v-x] .st-filter-sel`，只认父容器的 scope，稳定命中。 */
-.st-filter-right :deep(.st-filter-sel) { width: 168px; flex: none; }
-/* el-input 根（span.el-input）会被 flex 压缩：显式 flex:none 保住 240px（实测曾被压到 84px） */
-.st-filter-right :deep(.st-search) { width: 240px; flex: none; }
 .st-refreshed {
   font-size: 12px;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-/* ==================== 表格行 ==================== */
-.st-task-head {
+/* ==================== V11：四层结构（漏斗 / 拓扑 / 流水 / 工作台） ==================== */
+/* 顶栏：标题 + 环境 + 全局口径 + 时间窗 + 动作 */
+.v11-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 24px 12px;
+}
+.v11-hd-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
+/* 右侧动作条：全局 .dsm-toolbar-right 是 display:block，会把手里的时间窗与按钮
+   竖着摞成两行；这里显式改成单行 flex，装不下才换行。 */
+.v11-hd .st-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: none;
+  margin-left: auto;
+}
+.v11-hd .st-page-title { font-size: 19px; line-height: 1.2; }
+.v11-hd-sum {
+  min-width: 0;
+  flex: 0 1 auto;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.v11-danger { color: var(--el-color-danger); font-weight: 600; }
+.v11-seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-fill);
+}
+.v11-seg-i {
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.v11-seg-i.on {
+  background: var(--bg-container);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.v11-step {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 5px;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  font-size: 10px;
+  font-weight: 700;
+}
+.v11-card {
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.v11-sect-t {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.v11-num {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.v11-ml-auto { margin-left: auto; }
+.v11-linkbtn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--el-color-primary);
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.v11-linkbtn:disabled { color: var(--text-tertiary); cursor: default; }
+.v11-empty-s {
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* 标签（写模式 / 状态 / 待处理）：全走 EP 语义色 */
+.v11-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-style: normal;
+  line-height: 1;
+  white-space: nowrap;
+}
+.v11-tag.t-success {
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success);
+  border-color: var(--el-color-success-light-7);
+}
+.v11-tag.t-warning {
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
+  border-color: var(--el-color-warning-light-7);
+}
+.v11-tag.t-primary {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-7);
+}
+.v11-tag.t-info {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-7);
+}
+.v11-tag.t-err {
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+  border-color: var(--el-color-danger-light-7);
+}
+.v11-tag.t-muted {
+  background: var(--bg-fill);
+  color: var(--text-tertiary);
+  border-color: var(--border-default);
+}
+
+/* ① 漏斗带 */
+.v11-flow {
+  flex: none;
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr) 206px;
+  align-items: center;
+  height: 96px;
+  margin: 0 24px 12px;
+}
+.v11-fl-hd {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding-left: 14px;
+  border-right: 1px solid var(--border-subtle);
+}
+.v11-fl-hd b { display: block; font-size: 12px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.v11-fl-hd span { display: block; margin-top: 2px; font-size: 9px; color: var(--text-tertiary); white-space: nowrap; }
+.v11-fl-stages { display: flex; align-items: center; min-width: 0; padding: 0 12px; }
+.v11-fst { flex: 1; min-width: 0; }
+.v11-fst-l { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.v11-fst-l span { flex: none; font-size: 9px; color: var(--text-tertiary); }
+.v11-fst-l b { margin-left: auto; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); }
+.v11-fst-l em {
+  flex: none;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--bg-fill);
+  color: var(--text-tertiary);
+  font-size: 9px;
+  font-style: normal;
+}
+.v11-fbar {
+  display: flex;
+  height: 7px;
+  margin: 5px 0 4px;
+  border-radius: 3px;
+  background: var(--bg-fill);
+  overflow: hidden;
+}
+.v11-fbar i { display: block; height: 100%; background: var(--brand-gradient); }
+.v11-fbar u {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(135deg, var(--el-color-danger-light-8) 0 3px, transparent 3px 6px);
+}
+.v11-fst .v11-fst-n {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.v11-fst.last .v11-fst-l b { color: var(--el-color-success); }
+.v11-fst.last .v11-fbar i { background: var(--el-color-success); }
+.v11-gap { flex: none; width: 66px; padding-bottom: 6px; text-align: center; }
+.v11-gap b { display: block; color: var(--el-color-danger); font-size: 10px; font-weight: 600; white-space: nowrap; }
+.v11-gap span { display: block; margin-top: 1px; font-size: 9px; color: var(--text-tertiary); white-space: nowrap; }
+.v11-fl-empty { padding: 0 12px; font-size: 11px; line-height: 1.6; color: var(--text-tertiary); }
+.v11-fl-empty b { display: block; font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.v11-fl-empty b em { font-style: normal; }
+.v11-fl-empty span { display: block; margin-top: 2px; }
+.v11-fl-schema {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  padding: 0 14px;
+  border-left: 1px solid var(--border-subtle);
+}
+.v11-fsh {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1px;
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+.v11-fsh b { font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+.v11-fsh-empty { justify-content: flex-start; }
+.v11-srow {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 7px;
+  height: 12px;
+  font-size: 9px;
+}
+.v11-bn {
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.v11-sb { height: 4px; border-radius: 99px; background: var(--bg-fill); overflow: hidden; }
+.v11-sb i { display: block; height: 100%; border-radius: 99px; background: var(--el-color-primary); }
+.v11-srow:nth-child(3) .v11-sb i { background: var(--el-color-success); }
+.v11-srow:nth-child(4) .v11-sb i { background: var(--el-color-warning); }
+.v11-srow:nth-child(5) .v11-sb i { background: var(--brand-500); }
+.v11-srow b { text-align: right; font-weight: 500; color: var(--text-secondary); }
+
+/* 主区：左列（拓扑 + 流水）/ 右栏（工作台 + 待处理） */
+.v11-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 348px;
+  gap: 12px;
+  margin: 0 24px;
+  min-height: 0;
+}
+.v11-left { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.v11-c-hd {
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex: none;
 }
+.v11-legend {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+.v11-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.v11-legend .st-dot { width: 5px; height: 5px; }
+
+/* ② 拓扑 */
+.v11-topo { flex: none; display: flex; flex-direction: column; }
+.v11-cols {
+  display: grid;
+  grid-template-columns: 1fr 30px 1.12fr 30px 1fr;
+  align-items: center;
+  height: 22px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  font-size: 9px;
+  color: var(--text-tertiary);
+  flex: none;
+}
+.v11-cols span:nth-child(1) { grid-column: 1; }
+.v11-cols span:nth-child(2) { grid-column: 3; }
+.v11-cols span:nth-child(3) { grid-column: 5; }
+/* 链路展开后条目变多：列表自己在卡内滚动，不把下方的执行流水挤扁 */
+.v11-lanes { flex: none; padding: 2px 14px; max-height: 300px; overflow-y: auto; }
+.v11-lane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px 1.12fr 30px minmax(0, 1fr);
+  align-items: center;
+  height: 42px;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.v11-lane:last-child { border-bottom: 0; }
+.v11-lane:hover { background: var(--bg-fill); }
+.v11-lane.on { background: linear-gradient(90deg, var(--el-color-primary-light-9), transparent 62%); }
+.v11-lane:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
+.v11-n {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  min-width: 0;
+  padding: 0 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  font-size: 11px;
+}
+.v11-n .v11-nm {
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.v11-n.task {
+  background: var(--bg-container);
+  border-color: var(--border-default);
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+.v11-n.task > span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v11-lane.on .v11-n.task { border-color: var(--el-color-primary-light-7); }
+.v11-n b { flex: none; font-size: 10px; font-weight: 500; color: var(--text-tertiary); }
+.v11-n b.err { color: var(--el-color-danger); }
+.v11-n .v11-dbp {
+  flex: none;
+  max-width: 86px;
+  padding: 1px 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.v11-badge-s {
+  flex: none;
+  padding: 1px 4px;
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 3px;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+}
+.v11-conn { display: flex; align-items: center; gap: 3px; }
+.v11-conn i { flex: 1; display: block; height: 1px; background: var(--border-default); }
+.v11-conn .st-dot { width: 5px; height: 5px; }
+.v11-conn.is-failed i { background: var(--el-color-danger-light-7); }
+.v11-conn.is-running i { background: var(--el-color-primary-light-7); }
+.v11-topo-ft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 9px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  flex: none;
+  overflow: hidden;
+}
+/* 停用任务名会很长：让这一段落按可用宽度省略，不许把「展开全部」顶出卡外 */
+.v11-topo-ft .v11-ft-names {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.v11-topo-ft .v11-linkbtn { flex: none; margin-left: auto; }
+
+/* ③ 流水 */
+.v11-stream { flex: 1; min-height: 230px; display: flex; flex-direction: column; }
+.v11-live { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; color: var(--text-tertiary); }
+.v11-live i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--el-color-success);
+  animation: v11-pulse 1.8s ease-in-out infinite;
+}
+@keyframes v11-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.v11-h24 { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 5px 14px 0; flex: none; }
+.v11-h24-bars { flex: 1; display: flex; align-items: flex-end; gap: 2px; height: 15px; }
+.v11-h24-bars i { flex: 1; display: block; min-height: 2px; border-radius: 1px; background: var(--el-color-primary-light-5); }
+/* 该小时没有执行：保留占位宽度（时间轴位置不变），但不画颜色，
+   否则 24 根 2px 空柱会连成一条假「平线」。 */
+.v11-h24-bars i.empty { background: transparent; }
+.v11-h24-bars i.err { background: var(--el-color-danger); }
+.v11-h24-bars i.run { background: var(--el-color-primary); }
+.v11-h24-lb {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  order: 3;
+  margin-top: 2px;
+  font-size: 9px;
+  color: var(--text-tertiary);
+  flex: none;
+}
+.v11-h24-lb em { font-style: normal; }
+.v11-tl { flex: 1; min-height: 0; padding: 2px 14px 0; overflow-y: auto; }
+.v11-grp { position: relative; }
+.v11-gh { display: flex; align-items: center; gap: 8px; height: 20px; font-size: 9px; color: var(--text-tertiary); }
+.v11-gh .mono { font-weight: 600; color: var(--text-secondary); }
+.v11-gh i { flex: 1; height: 1px; background: var(--border-subtle); }
+.v11-gh.err .mono, .v11-gh.err .c { color: var(--el-color-danger); }
+.v11-ev {
+  display: grid;
+  grid-template-columns: 42px 8px minmax(0, 1fr) 96px 44px 44px;
+  align-items: center;
+  gap: 8px;
+  height: 27px;
+  padding: 0 4px;
+  border-radius: 5px;
+  border-top: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+.v11-ev:hover { background: var(--bg-fill); }
+.v11-ev .tm { font-size: 9px; color: var(--text-tertiary); }
+.v11-ev .st-dot { width: 5px; height: 5px; }
+.v11-ev .m { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.v11-ev .m b {
+  flex: none;
+  max-width: 170px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.v11-ev .m .mono { font-size: 9px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v11-bar { display: block; height: 4px; border-radius: 99px; background: var(--bg-fill); overflow: hidden; }
+.v11-bar i { display: block; min-width: 3px; height: 100%; border-radius: 99px; background: var(--el-color-success); }
+.v11-bar.err { background: var(--el-color-danger-light-8); }
+.v11-bar.err i { background: var(--el-color-danger); }
+.v11-ev .du { font-size: 10px; color: var(--text-secondary); text-align: right; white-space: nowrap; }
+.v11-ev.err { height: 38px; }
+.v11-ev.err .m { flex-direction: column; align-items: flex-start; gap: 1px; }
+.v11-ev.err .m b { max-width: none; color: var(--el-color-danger); }
+.v11-ev.err .m .mono { color: var(--el-color-danger); }
+.v11-ev.run { height: 30px; background: linear-gradient(90deg, var(--el-color-primary-light-9), transparent 60%); }
+.v11-ev.run .du { color: var(--el-color-primary); }
+.v11-icobtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.v11-icobtn:hover { background: var(--bg-container); color: var(--el-color-primary); }
+.v11-retry {
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--el-color-danger-light-7);
+  border-radius: 4px;
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.v11-retry.solid { flex: none; height: 22px; border-color: var(--el-color-danger); background: var(--el-color-danger); color: var(--el-color-white); }
+.v11-retry:disabled { opacity: 0.6; cursor: default; }
+.v11-more {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 6px 4px 0;
+  border-top: 1px dashed var(--border-default);
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+.v11-more .v11-linkbtn { margin-left: auto; }
+.v11-stream-empty { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; }
+
+/* ④ 工作台 */
+.v11-right { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.v11-wb { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 13px 10px; overflow-y: auto; }
+.v11-wb-empty { align-items: center; justify-content: center; text-align: center; }
+.v11-wb-hd {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 0 9px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex: none;
+}
+.v11-wb-t { flex: 1; min-width: 0; }
+.v11-wb-t .t {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.v11-wb-t .s { margin-top: 3px; font-size: 9px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v11-wb-acts { justify-content: flex-end; flex: none; }
+.v11-wb-acts :deep(.rs-btn) { width: 26px; height: 26px; }
+.v11-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 10px; flex: none; }
+.v11-metrics .m { min-width: 0; padding: 6px 7px; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--bg-elevated); }
+.v11-metrics .m span { display: block; font-size: 9px; color: var(--text-tertiary); white-space: nowrap; }
+.v11-metrics .m b {
+  display: block;
+  margin-top: 1px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.v11-metrics .m b i { margin-left: 1px; font-size: 10px; font-style: normal; font-weight: 400; color: var(--text-secondary); }
+.v11-err {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+  padding: 7px 9px;
+  border: 1px solid var(--el-color-danger-light-7);
+  border-radius: 6px;
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+  flex: none;
+}
+.v11-err > div { flex: 1; min-width: 0; }
+.v11-err b { display: block; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v11-err span { display: block; margin-top: 2px; font-size: 9px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v11-ch-hd { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; flex: none; }
+.v11-lg { display: flex; gap: 10px; flex: none; font-size: 9px; color: var(--text-tertiary); }
+.v11-lg em { display: inline-flex; align-items: center; gap: 4px; font-style: normal; white-space: nowrap; }
+.v11-lg em::before { content: ""; display: block; width: 7px; height: 7px; min-width: 7px; border-radius: 2px; background: var(--el-color-success-light-7); }
+.v11-lg em.er::before { background: var(--el-color-danger); }
+.v11-chart { display: flex; gap: 6px; height: 66px; margin-top: 5px; flex: none; }
+.v11-plot { flex: 1; position: relative; border-bottom: 1px solid var(--border-default); }
+.v11-gl { position: absolute; left: 0; right: 0; display: block; height: 1px; background: var(--border-subtle); }
+.v11-p95 { position: absolute; left: 0; right: 0; display: block; border-top: 1px dashed var(--el-color-warning); }
+.v11-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 3px; padding: 0 2px; }
+.v11-bars span { flex: 1; display: flex; align-items: flex-end; height: 100%; }
+.v11-bars .v11-b { display: block; width: 100%; min-height: 2px; border-radius: 2px 2px 0 0; }
+.v11-bars .v11-b.ok { background: var(--el-color-success-light-7); }
+.v11-bars .v11-b.er { background: var(--el-color-danger); }
+.v11-yl { display: flex; flex-direction: column; justify-content: space-between; order: -1; width: 22px; text-align: right; font-size: 9px; color: var(--text-tertiary); }
+.v11-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 66px;
+  margin-top: 5px;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  flex: none;
+}
+.v11-xax { display: flex; justify-content: space-between; margin: 3px 0 0 28px; font-size: 9px; color: var(--text-tertiary); flex: none; }
+.v11-sect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  flex: none;
+}
+.v11-kvr {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  height: 21px;
+  font-size: 10px;
+  flex: none;
+}
+.v11-kvr span { font-size: 9px; color: var(--text-tertiary); white-space: nowrap; }
+.v11-kvr b { font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v11-kvr em { font-size: 9px; font-style: normal; color: var(--text-tertiary); white-space: nowrap; }
+.v11-map { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; flex: none; }
+.v11-map > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 21px;
+  min-width: 0;
+  padding: 0 7px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  font-size: 9px;
+}
+.v11-map > div span { flex: 1; min-width: 0; text-align: center; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v11-map > div i { flex: none; font-style: normal; color: var(--text-tertiary); }
+.v11-map > div.re { border-color: var(--el-color-primary-light-7); background: var(--el-color-primary-light-9); }
+.v11-map > div.re span { color: var(--el-color-primary); }
+.v11-rr {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px 46px;
+  align-items: center;
+  gap: 8px;
+  height: 21px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 9px;
+  color: var(--text-secondary);
+  flex: none;
+}
+.v11-rr.last { border-bottom: 0; }
+.v11-rr .v11-tag { height: 16px; justify-self: start; }
+.v11-rr .rt { text-align: right; color: var(--text-tertiary); }
+.v11-todo { flex: none; padding: 0 12px 6px; }
+.v11-todo-hd { display: flex; align-items: center; justify-content: space-between; height: 30px; }
+.v11-ti {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  border-top: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+.v11-ti:hover { background: var(--bg-fill); }
+.v11-ti .v11-tag { flex: none; height: 16px; }
+.v11-ti > div { display: flex; align-items: baseline; gap: 6px; flex: 1; min-width: 0; }
+.v11-ti b { font-size: 10px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v11-ti span { flex: none; font-size: 9px; color: var(--text-tertiary); white-space: nowrap; }
+.v11-ti.dim { opacity: 0.7; }
+
+/* 窄屏（≤1180）：左右两栏改为上下堆叠。堆叠后内容必然高于一屏，
+   所以主区不再吃定高、交给 .tel-page 自己滚；三块卡片各自封顶 + 内部滚动，
+   否则定高的主区会把两行网格压在一起（实测右栏内容会盖到左栏上）。 */
+@media (max-width: 1180px) {
+  .sync-tasks > .v11-main { flex: 0 0 auto; }
+  .v11-main { grid-template-columns: minmax(0, 1fr); }
+  .v11-left { min-height: 0; }
+  .v11-stream { flex: none; height: auto; max-height: 380px; }
+  .v11-right { flex-direction: row; align-items: stretch; }
+  .v11-wb { flex: 1 1 62%; max-height: 520px; }
+  .v11-todo { flex: 1 1 34%; max-height: 520px; }
+}
+@media (max-width: 980px) {
+  .v11-flow { grid-template-columns: 100px minmax(0, 1fr); height: auto; padding: 8px 0; }
+  .v11-fl-schema { display: none; }
+  .v11-right { flex-direction: column; }
+  .v11-wb, .v11-todo { flex: 0 0 auto; max-height: none; }
+  .v11-wb { max-height: 560px; }
+}
+@media (max-width: 760px) {
+  .v11-hd, .v11-main, .v11-flow, .v11-hd-sum { margin-left: 0; margin-right: 0; }
+  .v11-cols, .v11-lanes { padding: 0 8px; }
+  .v11-ev { grid-template-columns: 38px 8px minmax(0, 1fr) 60px 44px; }
+  .v11-ev .v11-icobtn, .v11-ev .v11-retry { display: none; }
+}
+
+/* ==================== 表格行 ==================== */
 .st-dot {
   width: 8px;
   height: 8px;
@@ -3436,39 +4275,6 @@ onUnmounted(() => {
 .st-dot.success { background: var(--el-color-success); }
 .st-dot.failed { background: var(--el-color-danger); }
 .st-dot.disabled { background: var(--el-border-color); }
-.st-name-btn {
-  border: 0;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
-  text-align: left;
-  font-size: 14px;
-}
-.st-name-btn:hover { color: var(--el-color-primary); }
-
-/* ==================== 数据流向 chip ==================== */
-.st-flow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.st-flow-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 140px;
-  padding: 3px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border-default);
-  background: var(--bg-fill);
-  font-size: 12px;
-  color: var(--text-primary);
-  font-family: "JetBrains Mono", "Consolas", monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.st-flow-arrow { color: var(--text-tertiary); flex-shrink: 0; }
 
 /* 操作列：统一 ReButton square 纯图标按钮（flex nowrap：按钮默认 inline，多个排不下会折行）。
    square 自带 4px 左右外边距，在 st-acts 内清零，由 gap 统一控制 6px 间距。 */
