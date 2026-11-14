@@ -11,6 +11,7 @@
  * - 可最小化为小条（显示 进行中/总数），默认停靠右下角
  * - 标题栏可拖拽，自动限制在视口内
  * - 纯展示组件：任务数据通过 tasks 传入，关闭通过事件回调（通用、不绑定业务）
+ * - 底部可选动作插槽 {@code #actions}：取消 / 重试 / 定位等业务按钮由使用方提供
  *
  * @author CH
  * @since 4.0.0.42
@@ -79,6 +80,7 @@ const opLabel: Record<string, string> = {
   backup: "备份",
   rollback: "回滚",
   install: "安装",
+  copy: "复制",
 };
 
 function opText(t: ProcessTaskData): string {
@@ -426,6 +428,11 @@ const renderPills = computed<{ t: ProcessTaskData; i: number }[]>(() => {
           <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v5M12 16h.01" /></svg>
           <span>{{ activeTask.success ? "操作成功" : "操作失败" }}<template v-if="activeTask.message">：{{ activeTask.message }}</template></span>
         </div>
+
+        <!-- 业务动作（取消 / 重试 / 定位…）：组件不认识业务语义，只留一个位置 -->
+        <div v-if="$slots.actions" class="re-process__actions">
+          <slot name="actions" />
+        </div>
       </div>
     </template>
   </div>
@@ -759,4 +766,11 @@ const renderPills = computed<{ t: ProcessTaskData; i: number }[]>(() => {
 .re-process__result svg { width: 17px; height: 17px; flex-shrink: 0; }
 .re-process__result.is-ok { background: var(--el-color-success-light-9, #f0f9eb); color: var(--el-color-success-dark-2, #529b2e); }
 .re-process__result.is-err { background: var(--el-color-danger-light-9, #fef0f0); color: var(--el-color-danger-dark-2, #c45656); }
+
+/* 业务动作条：按钮样式由使用方在插槽内容上自行决定 */
+.re-process__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
 </style>

@@ -173,6 +173,31 @@
       <!-- 左侧连接树 -->
       <!-- v-show 而非 v-if：保留树的展开状态与滚动位置，切回来不用重新点开 -->
       <div v-show="showSidebar" class="dbm-sidebar" @contextmenu.prevent="onSidebarContextMenu">
+        <!-- 树头部：搜索 + 计数。层级 / 右键菜单 / 懒加载都沿用原实现，
+             搜索只做过滤与自动展开，清空后回到原来的展开状态。 -->
+        <div class="dbm-tree-head">
+          <div class="dbm-tree-search" :class="{ 'is-active': !!treeQuery }">
+            <ReIcon name="Search" :size="13" class="dbm-tree-search__icon" />
+            <input
+              v-model="treeQuery"
+              class="dbm-tree-search__input"
+              type="text"
+              placeholder="搜索库 / 表 / 视图 / 字段"
+              aria-label="搜索库 / 表 / 视图 / 字段"
+              data-testid="dbm-tree-search"
+            />
+            <button
+              v-if="treeQuery"
+              type="button"
+              class="dbm-tree-search__clear"
+              title="清空搜索"
+              aria-label="清空搜索"
+              @click="treeQuery = ''"
+            >
+              <ReIcon name="Close" :size="12" />
+            </button>
+          </div>
+        </div>
         <div class="dbm-tree" @contextmenu.prevent="onSidebarContextMenu">
           <!-- 数据源根节点 -->
           <div
@@ -183,10 +208,12 @@
             <ReIcon :name="expandedNodes.has('root') ? 'ArrowDown' : 'ArrowRight'" :size="12" class="dbm-arrow" />
             <ReIcon name="Connection" :size="15" class="dbm-tree-icon dbm-root-icon" />
             <span class="dbm-tree-label">{{ currentDatasourceName }}</span>
+            <span v-if="databases.length" class="dbm-tree-count">{{ databases.length }}</span>
           </div>
 
           <template v-if="expandedNodes.has('root')">
-            <div v-for="db in databases" :key="db">
+            <template v-for="db in databases" :key="db">
+            <div v-if="treeDbVisible(db)" class="dbm-db-wrap">
               <!-- 库节点 -->
               <div
                 class="dbm-tree-node dbm-db-node"
@@ -194,21 +221,22 @@
                 @click="toggleNode('db:' + db)"
                 @contextmenu.prevent="onDatabaseContextMenu($event, db)"
               >
-                <ReIcon :name="expandedNodes.has('db:' + db) ? 'ArrowDown' : 'ArrowRight'" :size="12" class="dbm-arrow" />
+                <ReIcon :name="treeOpen('db:' + db) ? 'ArrowDown' : 'ArrowRight'" :size="12" class="dbm-arrow" />
                 <ReIcon name="Coin" :size="15" class="dbm-tree-icon dbm-db-icon" />
                 <span class="dbm-tree-label">{{ dbLabel(db) }}</span>
+                <span v-if="tablesByDb[db]" class="dbm-tree-count">{{ tablesOf(db).length + viewsOf(db).length }}</span>
               </div>
 
               <!-- 表 / 视图（挂在本库之下，Navicat 式平铺：分组计数头「表（N）」第九批按需移除，
                    表用 Grid 图标、视图用 View 图标即可区分） -->
-              <div v-if="expandedNodes.has('db:' + db)" class="dbm-tree-children">
+              <div v-if="treeOpen('db:' + db)" class="dbm-tree-children">
                 <!-- 懒加载占位：展开库要等一次网络往返，没有这行时子树是空的，
                      和「这个库确实没表」长得一模一样 -->
                 <div v-if="tablesLoading[db]" class="dbm-tree-loading">
                   <span class="dbm-spinner" />
                   <span>加载表…</span>
                 </div>
-                <template v-for="table in tablesOf(db)" :key="db + '.T.' + table.name">
+                <template v-for="table in treeTables(db)" :key="db + '.T.' + table.name">
                   <div
                     class="dbm-tree-node dbm-table-node"
                     :class="{ active: activeTable === table.name && activeDatabase === db }"
@@ -216,7 +244,7 @@
                     @contextmenu.prevent="onTableContextMenu($event, table.name, db)"
                   >
                     <ReIcon
-                      :name="expandedTables.has(db + '.' + table.name) ? 'ArrowDown' : 'ArrowRight'"
+                      :name="tableOpen(db, table.name) ? 'ArrowDown' : 'ArrowRight'"
                       :size="12"
                       class="dbm-arrow"
                       @click.stop="toggleTable(table.name, db)"
@@ -225,7 +253,7 @@
                     <span class="dbm-tree-label" :title="table.remark || table.name">{{ table.name }}</span>
                     <span v-if="table.remark" class="dbm-tree-remark">{{ table.remark }}</span>
                   </div>
-                  <div v-if="expandedTables.has(db + '.' + table.name)" class="dbm-tree-children">
+                  <div v-if="tableOpen(db, table.name)" class="dbm-tree-children">
                     <div v-if="columnLoading[db + '.' + table.name]" class="dbm-tree-loading dbm-tree-loading--nested">
                       <span class="dbm-spinner" />
                       <span>加载字段…</span>
@@ -324,9 +352,9 @@
                     <div v-else-if="objectErrorOf(db, cat.value)" class="dbm-tree-hint">
                       {{ objectErrorOf(db, cat.value) }}
                     </div>
-                    <ReEmpty v-else-if="!objectsOf(db, cat.value).length" description="无对象" :image-size="24" />
+                    <ReEmpty v-else-if="!treeObjectsOf(db, cat.value).length" :description="treeQuery ? '无匹配对象' : '无对象'" :image-size="24" />
                     <div
-                      v-for="obj in objectsOf(db, cat.value)"
+                      v-for="obj in treeObjectsOf(db, cat.value)"
                       :key="'obj:' + db + ':' + cat.value + ':' + obj.name"
                       class="dbm-tree-node dbm-table-node"
                       @click="openObjectDefinition(cat.value, obj.name, db)"
@@ -344,7 +372,7 @@
                   </div>
                 </template>
 
-                <template v-for="view in viewsOf(db)" :key="db + '.V.' + view.name">
+                <template v-for="view in treeViews(db)" :key="db + '.V.' + view.name">
                   <div
                     class="dbm-tree-node dbm-table-node"
                     :class="{ active: activeTable === view.name && activeDatabase === db }"
@@ -352,7 +380,7 @@
                     @contextmenu.prevent="onTableContextMenu($event, view.name, db, true)"
                   >
                     <ReIcon
-                      :name="expandedTables.has(db + '.' + view.name) ? 'ArrowDown' : 'ArrowRight'"
+                      :name="tableOpen(db, view.name) ? 'ArrowDown' : 'ArrowRight'"
                       :size="12"
                       class="dbm-arrow"
                       @click.stop="toggleTable(view.name, db)"
@@ -361,7 +389,7 @@
                     <span class="dbm-tree-label" :title="view.remark || view.name">{{ view.name }}</span>
                     <span v-if="view.remark" class="dbm-tree-remark">{{ view.remark }}</span>
                   </div>
-                  <div v-if="expandedTables.has(db + '.' + view.name)" class="dbm-tree-children">
+                  <div v-if="tableOpen(db, view.name)" class="dbm-tree-children">
                     <div v-for="col in columnsOf(db, view.name)" :key="col.name" class="dbm-tree-node dbm-column-node">
                       <ReIcon name="Document" :size="13" class="dbm-tree-icon dbm-col-icon" />
                       <span class="dbm-tree-label" :title="col.remark || col.name">{{ col.name }}</span>
@@ -371,6 +399,7 @@
                 </template>
               </div>
             </div>
+            </template>
           </template>
         </div>
       </div>
@@ -393,7 +422,7 @@
                 : tab.type === 'users' ? 'User' : 'Grid'"
               size="12"
             />
-            <span class="dbm-tab-title">{{ tab.title }}</span>
+            <span class="dbm-tab-title" :title="tab.title">{{ tab.title }}</span>
             <ReIcon name="Close" size="12" class="dbm-tab-close" @click.stop="closeTab(tab.id)" />
           </div>
         </div>
@@ -1065,22 +1094,46 @@
       @select="onTreeMenuSelect"
     />
 
-    <!-- 复制任务坞：常驻右下角，收起后只留胶囊；任务结论与失败重试都留在里面，不再靠 2 秒 toast -->
-    <DbmCopyDock
-      :open="copyDockOpen"
-      :title="copyTitle"
-      :subtitle="copySubtitle"
-      :snapshot="copySnapshot"
-      :steps="copyStepDefs"
-      :cancellable="copySnapshot?.cancellable ?? true"
-      :cancelling="copyCancelling"
-      :history="copyHistory"
-      @cancel="requestCancelCopy"
-      @hide="hideCopyDock"
-      @reopen="copyDockOpen = true"
-      @retry="retryLastCopy"
-      @locate="locateCopyTarget"
-    />
+    <!-- 复制实时进度：复用全局过程任务浮层（右下角、可最小化、终端流水），
+         粘贴即出现，成功两秒后自动消失，失败留在原地给「重试」 -->
+    <Teleport to="body">
+      <ReProcessTask
+        v-if="copyProcessTasks.length"
+        :tasks="copyProcessTasks"
+        @close="dismissCopyTask"
+      >
+        <template #actions>
+          <button
+            v-if="copyCanCancel"
+            type="button"
+            class="dbm-copy-act"
+            data-action="copy-dock-cancel"
+            :disabled="copyCancelling"
+            @click="requestCancelCopy"
+          >
+            {{ copyCancelling ? "正在取消…" : "取消复制" }}
+          </button>
+          <button
+            v-if="copyFinished && copySucceeded"
+            type="button"
+            class="dbm-copy-act primary"
+            data-action="copy-dock-locate"
+            @click="locateCopyTarget"
+          >
+            查看目标表
+          </button>
+          <button
+            v-if="copyFinished && !copySucceeded"
+            type="button"
+            class="dbm-copy-act primary"
+            data-action="copy-dock-retry"
+            @click="retryLastCopy"
+          >
+            重试
+          </button>
+        </template>
+      </ReProcessTask>
+    </Teleport>
 
     <!-- 结构同步（Navicat 复刻：选择源/目标 → 比较 → 差异 → 部署执行，SSE 实时日志） -->
     <ReDialog
@@ -1790,59 +1843,13 @@
       @done="onImportDone"
     />
 
-    <!-- 导出向导 -->
-    <ReDialog v-model="exportVisible" title="导出向导" width="560px">
-      <div class="dbm-create-form">
-        <div class="dbm-form-item">
-          <label>目标表</label>
-          <ReInput :model-value="`${exportDatabase}.${exportTable}`" disabled />
-        </div>
-        <div class="dbm-form-item">
-          <label>文件格式</label>
-          <ReSelect v-model="exportFormat" style="width: 100%">
-            <ReOption label="CSV（逗号分隔，Excel 友好）" value="csv" />
-            <ReOption label="TSV（制表符分隔）" value="tsv" />
-            <ReOption label="JSON 数组" value="json" />
-            <ReOption label="XML" value="xml" />
-            <ReOption label="SQL 脚本（可回灌）" value="sql" />
-          </ReSelect>
-        </div>
-        <div class="dbm-form-item">
-          <label>导出范围</label>
-          <ReSelect v-model="exportScope" style="width: 100%">
-            <ReOption label="仅数据" value="data" />
-            <ReOption label="仅结构（建表语句）" value="structure" />
-            <ReOption label="结构 + 数据" value="all" />
-          </ReSelect>
-        </div>
-        <div v-if="exportScope !== 'structure'" class="dbm-form-item">
-          <label>行数上限</label>
-          <ReInputNumber v-model="exportLimit" :min="1" :max="200000" controls-position="right" style="width: 160px" />
-          <span class="dbm-hint">后端硬上限 200000</span>
-        </div>
-        <div v-if="exportScope !== 'structure'" class="dbm-form-item">
-          <label>WHERE 过滤</label>
-          <ReInput v-model="exportWhere" class="dbm-mono" placeholder="留空导出全部；例：status = 1" clearable />
-        </div>
-        <div v-if="exportScope !== 'structure'" class="dbm-form-item">
-          <label>排序</label>
-          <ReSelect v-model="exportOrderBy" filterable clearable placeholder="不排序" style="width: 190px">
-            <ReOption v-for="c in exportColumns" :key="c" :label="c" :value="c" />
-          </ReSelect>
-          <ReSelect v-model="exportOrderDir" style="width: 100px">
-            <ReOption label="升序" value="ASC" />
-            <ReOption label="降序" value="DESC" />
-          </ReSelect>
-        </div>
-        <div v-if="exportFormat !== 'sql' && exportScope === 'structure'" class="dbm-danger-hint">
-          结构只有建表语句，请选 SQL 格式
-        </div>
-      </div>
-      <template #footer>
-        <ReButton @click="exportVisible = false">取消</ReButton>
-        <ReButton type="primary" :loading="exporting" @click="doExport">导出并下载</ReButton>
-      </template>
-    </ReDialog>
+    <!-- 导出向导：三步流程（格式与范围 → 过滤与排序 → 下载），交互全在 DbExportWizard 里 -->
+    <DbExportWizard
+      v-model="exportVisible"
+      :datasource-id="currentDatasourceId"
+      :database="exportDatabase"
+      :table-name="exportTable"
+    />
 
     <!-- 新增外键弹窗 -->
     <ReDialog v-model="fkDialogVisible" title="新增外键" width="560px">
@@ -2279,8 +2286,7 @@ import type { DbTemporalKind } from "../../utils/dbTemporal";
 import { isJdbcFamilyType } from "../../jdbcTypes";
 import ReTable from "@repo/ui/re-table";
 import ReContextMenu from "@repo/ui/re-context-menu";
-import DbmCopyDock from "./DbmCopyDock.vue";
-import type { CopyHistoryItem } from "./copyDockTypes";
+import ReProcessTask from "@repo/ui/re-process-task";
 import type { ReContextMenuItem } from "@repo/ui/re-context-menu";
 import type { ProgressSnapshot, ProgressStep } from "@repo/ui/re-progress-dialog";
 import { ReFormItem, ReOption, ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
@@ -2288,6 +2294,7 @@ import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import CreateTableDialog from "../../components/console/CreateTableDialog.vue";
 import DbUserManagePanel from "../../components/console/DbUserManagePanel.vue";
 import DbImportWizard from "../../components/console/DbImportWizard.vue";
+import DbExportWizard from "../../components/console/DbExportWizard.vue";
 import DbSchemaVersionPanel from "../../components/console/DbSchemaVersionPanel.vue";
 // 数据源下拉走共享件：中文口径与停用项剔除规则全站一份
 import { DatasourceSelect } from "@pages/datasource";
@@ -2340,7 +2347,6 @@ import {
   addDbColumn,
   modifyDbColumn,
   dropDbColumn,
-  exportDbTable,
   DB_OBJECT_CATEGORIES,
   fetchDbObjectSummary,
   fetchDbObjects,
@@ -2717,6 +2723,75 @@ const expandedTables = ref(new Set<string>());
 const tableColumnsCache = reactive<Record<string, DbColumnInfo[]>>({});
 /** 正在拉字段的表（键为 {@link tableNodeKey}），树上给「加载中…」占位 */
 const columnLoading = reactive<Record<string, boolean>>({});
+
+// ==================== 树：搜索过滤 ====================
+/** 侧栏搜索词：命中库 / 表 / 视图 / 字段名与备注 */
+const treeQuery = ref("");
+/** 归一化后的搜索词（空串表示不过滤） */
+function treeKeyword(): string {
+  return treeQuery.value.trim().toLowerCase();
+}
+/** 任一段文本命中搜索词（无搜索词恒命中） */
+function treeHit(...texts: Array<string | undefined | null>): boolean {
+  const q = treeKeyword();
+  if (!q) return true;
+  return texts.some(t => String(t ?? "").toLowerCase().includes(q));
+}
+/**
+ * 搜索中强制展开：只影响渲染，不写回 expandedNodes / expandedTables，
+ * 清空搜索后树回到原来的展开状态。
+ * @param key 节点键（db:xxx）
+ */
+function treeOpen(key: string): boolean {
+  return expandedNodes.value.has(key) || !!treeKeyword();
+}
+/**
+ * 表 / 视图节点是否展开。搜索中只自动展开「字段已加载」的表：
+ * 字段还没拉过的表强行展开是一段空白，反而像加载失败。
+ * @param db 库名
+ * @param table 表或视图名
+ */
+function tableOpen(db: string, table: string): boolean {
+  if (expandedTables.value.has(db + "." + table)) return true;
+  return !!treeKeyword() && columnsOf(db, table).length > 0;
+}
+/**
+ * 库节点是否保留：库名命中则整库保留，否则看库内的表 / 视图 / 已加载字段是否命中
+ * @param db 库名
+ */
+function treeDbVisible(db: string): boolean {
+  if (!treeKeyword()) return true;
+  if (treeHit(db)) return true;
+  return getTablesForDb(db).some(t => treeHit(t.name, t.remark) || columnsOf(db, t.name).some(c => treeHit(c.name, c.remark)));
+}
+/**
+ * 搜索过滤后的表清单（库名命中时不过滤）
+ * @param db 库名
+ */
+function treeTables(db: string): DbTableInfo[] {
+  const list = tablesOf(db);
+  if (treeHit(db)) return list;
+  return list.filter(t => treeHit(t.name, t.remark) || columnsOf(db, t.name).some(c => treeHit(c.name, c.remark)));
+}
+/**
+ * 搜索过滤后的视图清单（库名命中时不过滤）
+ * @param db 库名
+ */
+function treeViews(db: string): DbTableInfo[] {
+  const list = viewsOf(db);
+  if (treeHit(db)) return list;
+  return list.filter(t => treeHit(t.name, t.remark) || columnsOf(db, t.name).some(c => treeHit(c.name, c.remark)));
+}
+/**
+ * 搜索过滤后的对象清单（存储过程 / 函数 / 触发器 / 事件）
+ * @param db 库名
+ * @param category 对象分类
+ */
+function treeObjectsOf(db: string, category: DbObjectCategory): DbObjectInfo[] {
+  const list = objectsOf(db, category);
+  if (treeHit(db)) return list;
+  return list.filter(o => treeHit(o.name, o.definer));
+}
 
 /**
  * 表节点 key
@@ -3718,31 +3793,17 @@ watch(newDbCharset, () => {
 
 // ==================== 导出向导 ====================
 /**
- * 导出对话框（对齐 Navicat）：格式 + 范围 + 过滤条件。
+ * 导出向导的入口状态。
  *
- * <p>导出走后端 {@code /db/export}，不再受「当前页 1000 行」限制；
- * 早期实现只在前端把当前页拼成 CSV，右键导出的表数据实际只有第一页。</p>
+ * <p>格式、内容范围、过滤条件全在 {@code DbExportWizard} 里，这里只记住「导出哪张表」。
+ * 早期这套参数内联在本视图，和导入向导各写一套控件 —— 改一处总忘另一处。</p>
  */
 const exportVisible = ref(false);
 const exportTable = ref("");
 const exportDatabase = ref("");
-const exportFormat = ref<"csv" | "tsv" | "json" | "xml" | "sql">("csv");
-const exportScope = ref<"structure" | "data" | "all">("data");
-const exportWhere = ref("");
-const exportOrderBy = ref("");
-const exportOrderDir = ref<"ASC" | "DESC">("ASC");
-const exportLimit = ref(10000);
-const exporting = ref(false);
-/**
- * 导出对话框里「排序列」的候选。
- *
- * <p>不能复用导入向导的列：两者来自不同的目标表，导出的排序列必须是被导出表的列，
- * 否则下拉里出现的是另一张表的字段，后端会报「未知列」。</p>
- */
-const exportColumns = ref<string[]>([]);
 
 /**
- * 从工具栏/右键打开导出对话框
+ * 从工具栏/右键打开导出向导
  * @param tableName 表名
  * @param database  库名
  */
@@ -3753,39 +3814,7 @@ function openExportDialog(tableName?: string, database?: string): void {
   }
   exportTable.value = tableName;
   exportDatabase.value = database || activeDatabase.value;
-  exportFormat.value = "csv";
-  exportScope.value = "data";
-  exportWhere.value = "";
-  exportOrderBy.value = "";
-  exportOrderDir.value = "ASC";
-  exportLimit.value = 10000;
-  exportColumns.value = columnsOf(exportDatabase.value, tableName).map(c => c.name);
   exportVisible.value = true;
-  // 树节点没展开过就没有列缓存，补一次，否则排序列下拉是空的
-  if (!exportColumns.value.length) {
-    void loadExportColumns();
-  }
-}
-
-/**
- * 补拉导出目标表的列，供排序列下拉使用。
- */
-async function loadExportColumns(): Promise<void> {
-  const table = exportTable.value;
-  const db = exportDatabase.value;
-  if (!table || !db) {
-    return;
-  }
-  try {
-    const columns = await loadTableColumnsCached(db, table);
-    // 请求回来时用户可能已经换了目标表，丢弃过期结果
-    if (exportTable.value === table && exportDatabase.value === db) {
-      exportColumns.value = (columns || []).map(c => c.name);
-    }
-  } catch {
-    // 拿不到列不影响导出本身，排序列留空即可
-    exportColumns.value = [];
-  }
 }
 
 /** 把后端返回的内容落盘为文件 */
@@ -3808,41 +3837,6 @@ const EXPORT_MIME: Record<string, string> = {
   xml: "application/xml",
   sql: "application/sql",
 };
-
-/**
- * 执行导出并下载。
- */
-async function doExport(): Promise<void> {
-  if (!exportTable.value) return;
-  exporting.value = true;
-  try {
-    const result = await exportDbTable({
-      tableName: exportTable.value,
-      format: exportFormat.value,
-      scope: exportScope.value,
-      database: exportDatabase.value,
-      datasourceId: currentDatasourceId.value,
-      limit: exportLimit.value,
-      where: exportWhere.value || undefined,
-      orderBy: exportOrderBy.value || undefined,
-      orderDir: exportOrderDir.value,
-    });
-    if (!result.content) {
-      message.warning("没有可导出的内容");
-      return;
-    }
-    downloadText(result.fileName || `${exportTable.value}.${exportFormat.value}`, result.content,
-      EXPORT_MIME[exportFormat.value] ?? "text/plain");
-    message.success(
-      `已导出 ${result.rowCount} 行${result.truncated ? `（达到上限 ${exportLimit.value} 行，已截断）` : ""}`
-    );
-    exportVisible.value = false;
-  } catch (e) {
-    message.error(`导出失败: ${String((e as Error)?.message ?? e)}`);
-  } finally {
-    exporting.value = false;
-  }
-}
 
 // ==================== 行编辑 ====================
 /** 值 → SQL 字面量：NULL 必须还原为 NULL 关键字，包成 'null' 会把字符串写进库 */
@@ -10320,11 +10314,9 @@ interface DbTableClipboard {
 /** 当前剪贴板里的表（空 = 还没复制过） */
 const tableClipboard = ref<DbTableClipboard | null>(null);
 
-/** 任务坞显隐（收起后保留胶囊，任务继续跑） */
-const copyDockOpen = ref(false);
 /** 后端推来的最新快照（字段与 ProgressSnapshot 对齐，前端不再翻译） */
 const copySnapshot = ref<ProgressSnapshot | null>(null);
-/** 弹窗标题 / 副标题（首帧快照到达前先铺出来） */
+/** 浮层标题 / 副标题（首帧快照到达前先铺出来） */
 const copyTitle = ref("复制表");
 const copySubtitle = ref("");
 /** 取消请求进行中（按钮 loading） */
@@ -10333,8 +10325,8 @@ const copyCancelling = ref(false);
 const copyTaskId = ref("");
 /** 目标上下文：结束时要刷新目标库的表列表，成功后「定位」也用它 */
 const copyTarget = ref<{ datasourceId: number; database: string; table: string } | null>(null);
-/** 最近任务：后端 /copy/tasks 的快照，任务坞里列 5 条，失败能直接重试 */
-const copyHistory = ref<CopyHistoryItem[]>([]);
+/** 成功后自动收起的定时器（失败与取消不自动关，留给用户重试） */
+let copyAutoClose: ReturnType<typeof setTimeout> | null = null;
 /** 最近一次提交参数：失败重试直接复用，不用重走「复制 → 找目标库 → 粘贴」 */
 const lastCopyRequest = ref<{
   /** 目标数据源 */
@@ -10352,6 +10344,8 @@ const lastCopyRequest = ref<{
 let copyStreamStop: ReturnType<typeof subscribeDbCopyTasks> | null = null;
 /** 进度看护定时器（SSE 断流 / 后端重启时靠它对台账收敛状态） */
 let copyWatchdog: ReturnType<typeof setInterval> | null = null;
+/** 成功结论在浮层里停留多久再自动消失 */
+const COPY_AUTO_CLOSE_MS = 2400;
 
 /** 首帧快照到达前先铺出来的三步（与后端步骤键一致） */
 const copyStepDefs: ProgressStep[] = [
@@ -10359,6 +10353,91 @@ const copyStepDefs: ProgressStep[] = [
   { key: "create", title: "创建目标表", description: "在目标库执行建表语句" },
   { key: "data", title: "复制数据", description: "分批搬运行数据" },
 ];
+
+/** 复制是否已结束（快照未到时不结束） */
+const copyFinished = computed(() => {
+  const snap = copySnapshot.value;
+  return snap?.finished === true || (!!snap?.status && snap.status !== "RUNNING");
+});
+
+/** 复制是否成功 */
+const copySucceeded = computed(() => copySnapshot.value?.status === "SUCCESS");
+
+/** 是否还能取消：仍在跑 + 后端没声明不可取消 */
+const copyCanCancel = computed(() => !copyFinished.value && copySnapshot.value?.cancellable !== false);
+
+/** 步骤状态中文标签（后端没给 statusLabel 时的兜底） */
+function copyStepStateLabel(status?: string): string {
+  switch (status) {
+    case "SUCCESS":
+      return "已完成";
+    case "SKIPPED":
+      return "已跳过";
+    case "ERROR":
+    case "FAILED":
+      return "失败";
+    case "CANCELLED":
+      return "已取消";
+    case "RUNNING":
+      return "进行中";
+    default:
+      return "待执行";
+  }
+}
+
+/**
+ * 喂给 {@code ReProcessTask} 的任务数据（同一时刻只有一个复制任务）。
+ *
+ * <p>只做一次字段映射：终端区用后端的描述流水（{@code details}），
+ * 首帧没有流水时退化成「步骤 + 状态」，避免开面板时是一块空黑框。</p>
+ */
+const copyProcessTasks = computed(() => {
+  const snap = copySnapshot.value;
+  if (!snap) {
+    return [];
+  }
+  const steps = snap.steps ?? [];
+  const logs = snap.details?.length
+    ? [...snap.details]
+    : steps.map(step => {
+        const label = step.statusLabel || copyStepStateLabel(step.status);
+        return `[${step.title}] ${label}${step.detail ? " · " + step.detail : ""}`;
+      });
+  const raw = snap.percentage;
+  const percentage =
+    typeof raw === "number" && !Number.isNaN(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0;
+  return [
+    {
+      taskId: snap.taskId || copyTaskId.value || "db-copy",
+      title: copySubtitle.value || copyTitle.value,
+      operation: "copy",
+      phase: snap.status || "RUNNING",
+      currentStep:
+        snap.currentDescription || snap.currentTitle || (copyFinished.value ? "已结束" : "准备中"),
+      progress: percentage,
+      logs,
+      finished: copyFinished.value,
+      success: copySucceeded.value,
+      message: snap.message || "",
+    },
+  ];
+});
+
+/**
+ * 提交前先铺一帧「正在启动」：点击粘贴的那一刻右下角就该出现浮层，
+ * 而不是等后端第一帧（几十到几百毫秒）到达才开始有反馈。
+ */
+function seedCopySnapshot(): void {
+  copySnapshot.value = {
+    status: "RUNNING",
+    percentage: 0,
+    finished: false,
+    cancellable: false,
+    currentTitle: copyTitle.value,
+    currentDescription: "正在启动…",
+    steps: copyStepDefs,
+  };
+}
 
 /**
  * 把一张表放进页面剪贴板（右键二级「复制」与 Ctrl+C 都走这里）。
@@ -10430,14 +10509,13 @@ async function pasteTableInto(database: string): Promise<void> {
   copyCancelling.value = false;
   copyTarget.value = { datasourceId: targetDatasourceId, database, table: targetTable };
   lastCopyRequest.value = { targetDatasourceId, database, clip, targetTable, overwrite };
-  copyDockOpen.value = true;
-  void refreshCopyHistory();
+  seedCopySnapshot();
   try {
     await submitCopyTask(targetDatasourceId, database, clip, targetTable, overwrite);
   } catch (e) {
     const reason = String((e as Error)?.message ?? e);
     // 缓存清单过期（表是刚在别处建的）时后端会拒绝：这里补一次「确认覆盖 → 重发」，
-    // 否则用户只能看到一句「已存在」，而坞里并没有覆盖勾选项
+    // 否则用户只能看到一句「已存在」，因为浮层里并没有覆盖勾选项
     if (!overwrite && reason.includes("已存在") && (await confirmOverwrite(database, targetTable))) {
       try {
         lastCopyRequest.value = { targetDatasourceId, database, clip, targetTable, overwrite: true };
@@ -10453,10 +10531,10 @@ async function pasteTableInto(database: string): Promise<void> {
 }
 
 /**
- * 启动阶段失败：坞不关，就地铺一条 FAILED 快照。
+ * 启动阶段失败：浮层不关，就地铺一条 FAILED 快照。
  *
  * <p>以前这里是 {@code message.error} 之后把弹窗关掉 —— 原因只活 2 秒，用户想重试得
- * 从头再走「右键复制 → 找目标库 → 粘贴」。坞里留下条目后，「重试」直接复用
+ * 从头再走「右键复制 → 找目标库 → 粘贴」。浮层里留下这条失败后，「重试」直接复用
  * {@link lastCopyRequest}，不用用户重填任何东西。</p>
  *
  * @param reason 后端或网络给出的失败原因
@@ -10471,37 +10549,14 @@ function showCopyStartFailure(reason: string): void {
     currentTitle: "复制表",
     message: `启动复制失败：${reason}`,
   };
-}
-
-/**
- * 拉一次最近任务，喂给坞里的「最近任务」区。
- *
- * <p>失败静默：这是旁路信息，拉不到就保留上一份，不能因为台账接口抖一下就把
- * 复制流程的结论盖掉。</p>
- */
-async function refreshCopyHistory(): Promise<void> {
-  try {
-    const tasks = await fetchDbCopyTasks();
-    copyHistory.value = [...tasks]
-      .sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0))
-      .slice(0, 8)
-      .map(t => ({
-        taskId: t.taskId,
-        subtitle: t.subtitle,
-        status: t.status || "UNKNOWN",
-        message: t.message ?? undefined,
-        finished: t.finished === true,
-      }));
-  } catch {
-    // 旁路信息，拉不到就保持原样
-  }
+  // 失败不自动消失：浮层留在原地，用户点「重试」即可原样重发
 }
 
 /**
  * 重试最近一次提交。
  *
  * <p>按 {@code overwrite=true} 重发：失败最常见的原因就是「目标表已存在」，
- * 用户在坞里点重试就是表态「接受覆盖」；不存在同名表时这个标志无副作用。</p>
+ * 用户在浮层里点重试就是表态「接受覆盖」；不存在同名表时这个标志无副作用。</p>
  */
 async function retryLastCopy(): Promise<void> {
   const req = lastCopyRequest.value;
@@ -10513,7 +10568,7 @@ async function retryLastCopy(): Promise<void> {
   copySnapshot.value = null;
   copyCancelling.value = false;
   copyTitle.value = "复制表（重试）";
-  copyDockOpen.value = true;
+  seedCopySnapshot();
   try {
     await submitCopyTask(req.targetDatasourceId, req.database, req.clip, req.targetTable, true);
   } catch (e) {
@@ -10625,22 +10680,14 @@ function applyCopySnapshot(task: DbCopyTaskSnapshot): void {
   if (!task.finished) return;
   copyCancelling.value = false;
   stopCopyWatchdog();
-  // 坞里列最近任务：任务一结束就补一份，失败的那条可以直接点重试
-  void refreshCopyHistory();
   if (task.status === "SUCCESS") {
-    const finalMessage = task.message || "复制完成";
-    message.success(finalMessage);
     const target = copyTarget.value;
     if (target && target.datasourceId === currentDatasourceId.value) {
       void loadTables(target.database);
     }
-    return;
+    // 成功是「一次性通知」：两秒多后自动收起，不留一块常驻面板
+    scheduleCopyAutoClose();
   }
-  if (task.status === "CANCELLED") {
-    message.warning(task.message || "复制已取消");
-    return;
-  }
-  message.error(task.message || "复制失败");
 }
 
 /** 建立全局进度流（一条连接推所有任务，按 taskId 过滤） */
@@ -10713,7 +10760,6 @@ async function pollCopyTask(): Promise<void> {
     };
     copyCancelling.value = false;
     stopCopyWatchdog();
-    void refreshCopyHistory();
   } catch {
     // 网络抖动：不改变结论，下一轮再说
   }
@@ -10736,9 +10782,34 @@ async function requestCancelCopy(): Promise<void> {
   }
 }
 
-/** 关掉任务坞的展开态（组件只在结束后才发 hide，此时快照已定格） */
-function hideCopyDock(): void {
-  copyDockOpen.value = false;
+/**
+ * 关掉浮层（用户点 ✕，或成功后自动收起）。
+ *
+ * <p>运行中被关掉时不再继续跟这个任务：复制本身在服务端跑完，但下一帧快照
+ * 会把这个浮层又弹回来 —— 用户按了关闭就得真的消失。想再看进度只能重新粘贴。</p>
+ */
+function dismissCopyTask(): void {
+  clearCopyAutoClose();
+  stopCopyStream();
+  copyTaskId.value = "";
+  copySnapshot.value = null;
+}
+
+/** 成功后延迟自动收起：结论看一眼就够，不留常驻面板 */
+function scheduleCopyAutoClose(): void {
+  clearCopyAutoClose();
+  copyAutoClose = setTimeout(() => {
+    copyAutoClose = null;
+    copySnapshot.value = null;
+  }, COPY_AUTO_CLOSE_MS);
+}
+
+/** 清掉自动收起定时器 */
+function clearCopyAutoClose(): void {
+  if (copyAutoClose) {
+    clearTimeout(copyAutoClose);
+    copyAutoClose = null;
+  }
 }
 
 /**
@@ -10835,7 +10906,8 @@ function onCopyPasteShortcut(e: KeyboardEvent): void {
   }
   if (key !== "c" && key !== "v") return;
   if (isTextEditingTarget(e.target)) return;
-  if (copyDockOpen.value) return;
+  // 不再因为进度浮层开着就吞掉快捷键：粘贴下一张表本来就该直接开始，
+  // 浮层是被这一下操作驱动的，不是需要先关掉的东西
   // 有框选就先复制框选内容（TSV）；单格点选返回 null，继续走「复制整张表」
   if (key === "c") {
     const areaText = readGridAreaText();
@@ -10985,6 +11057,7 @@ onBeforeUnmount(() => {
   document.removeEventListener("click", onDocumentClickCloseRemark);
   // 复制任务进度流只活在本页：离开时断开，重连由下次进页面时重建
   stopCopyStream();
+  clearCopyAutoClose();
   // 开着事务离开页面就等于把改动留在后端那条连接上，
   // 用户既看不见也关不掉（要等空闲超时才被回收）—— 这里兜底回滚。
   void releaseTxOnUnmount();
@@ -11164,39 +11237,152 @@ onBeforeUnmount(() => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  /* 收敛版：卡片只用「1px 细边 + 一层贴地浅影」划界，不再用 0 0 12px 的扩散投影。
+     两张卡并排时，扩散影会在缝隙里叠成一条灰带，看起来像多了一条分隔线。 */
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 5%, transparent);
   overflow: hidden;
 }
-.dbm-tree { flex: 1; overflow-y: auto; padding: 8px 8px 12px; }
+/* 树头部：搜索框独占一行，与树内容之间用一条更淡的分隔线断开 */
+.dbm-tree-head {
+  flex: none;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: linear-gradient(180deg, var(--el-bg-color) 0%, var(--el-fill-color-extra-light, var(--el-bg-color)) 100%);
+}
+.dbm-tree-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.dbm-tree-search:hover { border-color: var(--el-border-color); }
+.dbm-tree-search:focus-within,
+.dbm-tree-search.is-active {
+  border-color: var(--el-color-primary-light-5);
+  background: var(--el-bg-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+.dbm-tree-search__icon { flex: none; color: var(--el-text-color-placeholder); }
+.dbm-tree-search:focus-within .dbm-tree-search__icon,
+.dbm-tree-search.is-active .dbm-tree-search__icon { color: var(--el-color-primary); }
+.dbm-tree-search__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+.dbm-tree-search__input::placeholder { color: var(--el-text-color-placeholder); }
+.dbm-tree-search__clear {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dbm-tree-search__clear:hover { background: var(--el-fill-color); color: var(--el-color-primary); }
+
+.dbm-tree {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 8px 12px;
+  scrollbar-gutter: stable;
+}
 .dbm-tree-node {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 8px;
   border-radius: var(--el-radius-sm, 6px);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.14s ease, box-shadow 0.14s ease, color 0.14s ease;
 }
 .dbm-tree-node:hover { background: var(--el-fill-color-light); }
-.dbm-tree-node.active { background: var(--el-color-primary-light-9); }
-.dbm-tree-node.active .dbm-tree-label { color: var(--el-color-primary); }
+/* 选中：淡底 + 左侧 2px 主色条，扫一眼就知道当前在哪张表 */
+.dbm-tree-node.active {
+  background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color));
+  box-shadow: inset 2px 0 0 var(--el-color-primary);
+}
+.dbm-tree-node.active .dbm-tree-label { color: var(--el-color-primary); font-weight: 600; }
+.dbm-tree-node.active:hover { background: color-mix(in srgb, var(--el-color-primary) 14%, var(--el-bg-color)); }
 /* 树的三层字重：根（当前数据源）700/14px → 库 600/13px → 表·字段·对象 400。
    早先根是 600、库和表共用 .dbm-tree-node 的 400：库名跟表名一样重，三层认不出层级。
    注意系统字体（微软雅黑）只有 400/700 两档，600 实际渲染成 700 —— 所以根与库的差别
    必须靠字号（14 vs 13）落地，光给 500/600 是看不出来的。 */
-.dbm-tree-root { color: var(--el-text-color-primary); }
-/* 根（数据源）= 树的标题，与工具条 .dbm-table-name 同档 14px/700 */
-.dbm-tree-root .dbm-tree-label { font-weight: 700; font-size: 14px; }
+/* 根节点 = 树的标题：吸顶，滚动长清单时始终知道自己在哪个数据源下 */
+.dbm-tree-root {
+  position: sticky;
+  top: -6px;
+  z-index: 3;
+  color: var(--el-text-color-primary);
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-radius: 0;
+  margin: 0 -8px 4px;
+  padding: 0 16px;
+  min-height: 34px;
+}
+.dbm-tree-root:hover { background: var(--el-fill-color-light); }
+.dbm-tree-root .dbm-tree-label { font-weight: 700; font-size: 14px; letter-spacing: -0.01em; }
 /* 库 = 容器层，13px 加粗；只命中 label，图标/备注不跟着变粗 */
 .dbm-db-node .dbm-tree-label { font-weight: 600; color: var(--el-text-color-primary); }
 /* 字段 = 条目层，比表/视图再降一档字号（12px），否则字段名和表名同重同号分不开 */
+.dbm-column-node { min-height: 26px; }
 .dbm-column-node .dbm-tree-label { font-size: 12px; }
-.dbm-tree-children { padding-left: 14px; }
+/* 缩进导线：每一层子树一根 1px 竖线，深树里能一眼看出「这一行属于谁」 */
+.dbm-tree-children {
+  padding-left: 12px;
+  margin-left: 6px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
 .dbm-tree-icon { flex: none; }
 .dbm-db-icon { color: var(--el-color-warning); }
 .dbm-table-icon { color: var(--el-color-success); }
+/* 行内计数：库的表数 / 根的数据源数，等宽数字 + 圆角药丸，不与名称抢宽度 */
+.dbm-tree-count {
+  flex: none;
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.dbm-tree-node:hover .dbm-tree-count { background: var(--el-fill-color-dark, var(--el-fill-color)); }
+.dbm-tree-node.active .dbm-tree-count {
+  background: var(--el-color-primary-light-8);
+  color: var(--el-color-primary);
+}
 /* 表名 / 视图名优先，备注让位：
-   两者都用 flex-basis:auto 参与自然分配，但备注最多只能吃掉 46% 宽度并省略号截断。
+   两者都用 flex-basis:auto 参与自然分配，但备注最多只能吃掉 40% 宽度并省略号截断。
    早先是标签 flex:1 + min-width:0、备注不设限 —— 备注一长（「提供商接入凭据（AK/SK 等）」）
    就把表名压成一个「device…」，认不出是哪张表。 */
 .dbm-tree-label {
@@ -11211,7 +11397,7 @@ onBeforeUnmount(() => {
 .dbm-tree-remark {
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 46%;
+  max-width: 40%;
   margin-left: 4px;
   font-size: 11px;
   color: var(--el-text-color-placeholder);
@@ -11264,7 +11450,8 @@ onBeforeUnmount(() => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  /* 与左树同一条贴地浅影，两张卡才是同一层平面上的两块板，不是一高一低 */
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--el-text-color-primary) 5%, transparent);
   overflow: hidden;
 }
 
@@ -11281,6 +11468,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
+  flex: none; /* 页签按内容定宽，不参与压缩：长了走截断 + title，而不是把别的页签挤变形 */
   /* 半像素字号（12.5）在 100% 缩放下会被舍入成 12 或 13 不定，页签文字偶尔发虚；
      取 13px 与树里的表名/库名同档（对象名层），也保住比 12px 辅助信息高一档。 */
   font-size: 13px;
@@ -11291,6 +11479,16 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+}
+/* 页签标题上限 168px：库.表 全名经常超过这个宽度，超了就省略号 + 原生 title 提示，
+   页签条一行放得下更多个页签，也不会被一个超长名字撑开。 */
+.dbm-tab-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 168px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .dbm-tab:hover { background: var(--el-fill-color-light); color: var(--el-text-color-primary); }
 .dbm-tab.active { color: var(--el-color-primary); background: var(--el-color-primary-light-9); font-weight: 600; }
@@ -12712,6 +12910,80 @@ onBeforeUnmount(() => {
 
 /* ==================== SQL 编辑器 ==================== */
 .dbm-sql-component { margin-top: 2px; }
+
+/* ==================== 复制任务浮层的动作按钮 ====================
+   浮层本体是 packages/ui 的 ReProcessTask（右下角、可最小化、终端流水），
+   这里只给插槽里的业务动作补样式：取消 / 重试 / 查看目标表。 */
+.dbm-copy-act {
+  flex: 1;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s ease-out, border-color 0.15s ease-out, background-color 0.15s ease-out;
+}
+.dbm-copy-act:hover:not(:disabled) {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+.dbm-copy-act:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.dbm-copy-act.primary {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+}
+.dbm-copy-act.primary:hover:not(:disabled) {
+  background: var(--el-color-primary-light-3);
+  border-color: var(--el-color-primary-light-3);
+  color: #fff;
+}
+
+/* ============================================================
+   视觉增强层：只改观感，不动结构 / 交互 / 验收套件的选择器契约
+   ============================================================ */
+/* 表页签的 hero 表名：左侧一根主色短条做锚点，工具条一眼能找到当前表 */
+.dbm-table-name {
+  position: relative;
+  padding-left: 10px;
+}
+.dbm-table-name::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--el-color-primary);
+}
+/* 页签选中态：补一条底部主色条，与树的选中条同一套语言 */
+.dbm-tab.active { box-shadow: inset 0 -2px 0 var(--el-color-primary); }
+/* 网格：ReTable 自带 13.5px 是半像素字号，100% 缩放下字重会被舍入成 13 / 14 不定，
+   数据行看起来忽粗忽细；这里统一到 13px（与页签、树里的对象名同档）。
+   行高不在这里管 —— vxe 走 32px 内联值，CSS 覆盖不动（见 ReTable 内注释）。 */
+.dbm-table-view :deep(.vxe-table) { font-size: 13px; }
+/* 表头底色不在这里管：ReTable 已用 !important 的 fill-color-lighter → extra-light 渐变，
+   应用层覆写只会变成死代码（实测 background-color 仍是 transparent）。 */
+/* 分页数字与数据源 chip 用等宽数字，翻页时不左右抖 */
+.dbm-pager-bar :deep(.el-pager li) { font-variant-numeric: tabular-nums; }
+.dbm-ds-chip { font-variant-numeric: tabular-nums; }
+/* 树滚动条收细，长清单不抢视线 */
+.dbm-tree::-webkit-scrollbar { width: 8px; height: 8px; }
+.dbm-tree::-webkit-scrollbar-track { background: transparent; }
+.dbm-tree::-webkit-scrollbar-thumb {
+  background: var(--el-border-color);
+  border-radius: 4px;
+}
+.dbm-tree::-webkit-scrollbar-thumb:hover { background: var(--el-text-color-disabled); }
 </style>
 
 <!-- 非 scoped：结构同步弹窗被 ReDialog Teleport 到 body，scoped 的 [data-v] 属性
