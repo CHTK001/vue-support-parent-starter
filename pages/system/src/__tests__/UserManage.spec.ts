@@ -51,6 +51,17 @@ const auth = vi.hoisted(() => ({
 }));
 
 vi.mock("element-plus", () => ({ ElMessage: ep.msg, ElMessageBox: ep.box, ElNotification: ep.notify }));
+/**
+ * ReKit 也要整体换桩：本文件的 element-plus 替身只给了三个消息 API，
+ * 而 ReKit 在**模块作用域**就 import 了 ElRadio / ElSegmented / ElDescriptionsItem……
+ * 不放桩的话页面模块在 import 阶段就崩（Vitest 报 "No ElDescriptionsItem export
+ * is defined on the element-plus mock"），一条用例都跑不起来。
+ */
+vi.mock("@repo/ui/re-kit", () => ({
+  ReRadioGroup: { name: "ReRadioGroup", props: ["modelValue"], template: "<div><slot /></div>" },
+  ReRadio: { name: "ReRadio", props: ["value", "label"], template: "<label><slot /></label>" },
+  ReRadioButton: { name: "ReRadioButton", props: ["value", "label"], template: "<label><slot /></label>" },
+}));
 vi.mock("@element-plus/icons-vue", () => {
   const stub = { name: "IconStub", template: "<i />" };
   return new Proxy({} as Record<string, unknown>, { get: () => stub, has: () => true });

@@ -6,9 +6,9 @@
  * 全部使用 ReXxx modern 组件渲染。
  */
 import { message } from "@repo/core";
-import { computed, nextTick, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
-import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, View, CopyDocument, Iphone, Message, Female, Male, Postcard, Loading } from "@element-plus/icons-vue";
+import { User, Plus, Edit, Delete, Search, Refresh, Key, UserFilled, Upload, Download, More, View, CopyDocument, Iphone, Message, Loading } from "@element-plus/icons-vue";
 import {
   pageForUser,
   saveUser,
@@ -32,6 +32,7 @@ import useAuthStore from "@repo/pinia/modules/auth";
 import ReDialog from "@repo/ui/re-dialog";
 import ReSectionHead from "@repo/ui/re-section-head";
 import ReEmpty from "@repo/ui/re-empty";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 const userStore = useUserStore();
 const authStore = useAuthStore();
@@ -73,8 +74,6 @@ const query = ref<{
 });
 
 const searchFilters = computed(() => [
-  { key: 'sysUserName', label: '用户名称', type: 'input' as const, placeholder: '请输入' },
-  { key: 'sysUserPhone', label: '手机号', type: 'input' as const, placeholder: '请输入' },
   {
     key: 'sysDeptId', label: '部门', type: 'treeselect' as const, placeholder: '请选择',
     options: depts.value,
@@ -92,11 +91,19 @@ const searchFilters = computed(() => [
   },
 ]);
 
+/** 顶部快捷搜索关键词：与筛选面板分离，避免「一框搜人」被展开面板的字段覆盖 */
+const quickKeyword = ref("");
+const quickInputRef = ref<HTMLInputElement>();
+let quickSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** 当前页数据：仅用于本页在线/禁用等即时指标，不做跨页推断 */
+const pageRows = ref<Record<string, unknown>[]>([]);
+
 async function loadUsers({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForUser({
     page,
     pageSize,
-    sysUserName: (params.sysUserName as string) || undefined,
+    sysUserName: quickKeyword.value.trim() || (params.sysUserName as string) || undefined,
     sysUserPhone: (params.sysUserPhone as string) || undefined,
     sysUserStatus: params.sysUserStatus === "" ? undefined : (params.sysUserStatus as number),
     sysDeptId: params.sysDeptId === "" ? undefined : (params.sysDeptId as number),
@@ -106,6 +113,7 @@ async function loadUsers({ page, pageSize, params }: ReTableLoadParams): Promise
   rows.forEach((r) => {
     if (r.sysUserId != null) loadedRowMap.set(r.sysUserId as number, r);
   });
+  pageRows.value = rows;
   total.value = res?.data?.total ?? 0;
   return { total: res?.data?.total ?? 0, data: rows };
 }
@@ -168,6 +176,101 @@ async function loadPosts() {
     console.warn("[user] 岗位列表加载失败", e);
   }
 }
+
+/* ================== 组织架构左栏 ================== */
+const orgTreeRef = ref();
+const orgKeyword = ref("");
+
+/** 部门树关键字过滤：只匹配部门名称，展开父链交由 el-tree 处理 */
+function filterOrgNode(value: string, data: SysDept): boolean {
+  if (!value) return true;
+  return (data.sysDeptName ?? "").toLowerCase().includes(value.toLowerCase());
+}
+
+watch(orgKeyword, (value) => {
+  filterOrgTree(value);
+});
+
+/** el-tree 实例方法在测试桩/未挂载时不存在，统一走可选调用 */
+function filterOrgTree(value: string) {
+  const tree = orgTreeRef.value as { filter?: (keyword: string) => void } | undefined;
+  tree?.filter?.(value);
+}
+
+function setCurrentDept(deptId?: number) {
+  const tree = orgTreeRef.value as { setCurrentKey?: (key: number | null) => void } | undefined;
+  tree?.setCurrentKey?.(deptId ?? null);
+}
+
+/** 按部门收窄列表：q.sysDeptId 与筛选面板共用，切换后回到第一页 */
+function selectDept(deptId?: number) {
+  query.value.sysDeptId = deptId;
+  query.value.page = 1;
+  setCurrentDept(deptId);
+  tableRef.value?.reload();
+}
+
+function onDeptClick(node: SysDept) {
+  selectDept(node.sysDeptId);
+}
+
+watch(
+  () => query.value.sysDeptId,
+  (deptId) => {
+    nextTick(() => setCurrentDept(typeof deptId === "number" ? deptId : undefined));
+  },
+);
+
+/* ================== 顶部快捷搜索 ================== */
+/** 输入即搜：320ms 防抖，避免每个字都打一次分页接口 */
+function onQuickSearch() {
+  if (quickSearchTimer) clearTimeout(quickSearchTimer);
+  quickSearchTimer = setTimeout(() => {
+    quickSearchTimer = null;
+    query.value.page = 1;
+    tableRef.value?.reload();
+  }, 320);
+}
+
+/** 回车立即搜，并清掉待触发的防抖 */
+function applyQuickSearch() {
+  if (quickSearchTimer) {
+    clearTimeout(quickSearchTimer);
+    quickSearchTimer = null;
+  }
+  query.value.page = 1;
+  tableRef.value?.reload();
+}
+
+function clearQuickSearch() {
+  quickKeyword.value = "";
+  applyQuickSearch();
+  quickInputRef.value?.focus();
+}
+
+/** Ctrl/⌘ + K 聚焦快捷搜索，和命令面板的肌肉记忆保持一致 */
+function onGlobalKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    quickInputRef.value?.focus();
+    quickInputRef.value?.select();
+  }
+}
+
+/* ================== 指标条（只用当前页真实数据） ================== */
+const onlineCount = computed(
+  () => pageRows.value.filter((row) => Boolean((row as { online?: unknown }).online)).length,
+);
+const disabledCount = computed(
+  () => pageRows.value.filter((row) => Number(row.sysUserStatus) !== 1).length,
+);
+/** 本页已开启双因子的账号数：状态治理里比"快捷操作"更值得占一格 */
+const totpCount = computed(
+  () => pageRows.value.filter((row) => hasTotp(row as unknown as SysUser)).length,
+);
+const scopeLabel = computed(() =>
+  query.value.sysDeptId ? deptNameOf(query.value.sysDeptId) : "全部部门",
+);
 
 /* ================== 批量删除（ReTable 内置模式回调） ================== */
 function isSelf(user: SysUser): boolean {
@@ -267,13 +370,56 @@ async function handleUnbindTotp(row: Record<string, unknown>) {
   }
 }
 
-/* ================== 用户详情抽屉 ================== */
+/* ================== 用户详情抽屉（成员档案） ================== */
 const detailDrawerVisible = ref(false);
 const detailUser = ref<SysUser | null>(null);
 
 function openDetail(row: Record<string, unknown>) {
   detailUser.value = row as unknown as SysUser;
   detailDrawerVisible.value = true;
+}
+
+/** 头像占位字母：优先昵称，其次账号 */
+function userInitial(user: SysUser | null): string {
+  return ((user?.sysUserNickname || user?.sysUserUsername || "?").charAt(0)).toUpperCase();
+}
+
+/** 详情里展示的在线态：沿用列表行的 online 字段，缺省按离线处理 */
+const detailOnline = computed(() => {
+  const user = detailUser.value as unknown as { online?: unknown } | null;
+  return Boolean(user?.online);
+});
+
+/** 登录次数：后端字段为 sysUserLoginCount，缺省显示 0 */
+const detailLoginCount = computed(() => {
+  const value = (detailUser.value as unknown as Record<string, unknown> | null)?.sysUserLoginCount;
+  return value == null || value === "" ? 0 : value;
+});
+
+/**
+ * 同部门成员胶片条：只取当前页中同部门的行，不额外发请求。
+ * 当前页没有同部门同事时退回当前页全体，保证胶片条始终可用。
+ */
+const detailPeers = computed<SysUser[]>(() => {
+  const current = detailUser.value;
+  if (!current) return [];
+  const rows = pageRows.value as unknown as SysUser[];
+  const sameDept = rows.filter((row) => row.sysDeptId === current.sysDeptId);
+  const source = sameDept.length > 1 ? sameDept : rows;
+  return source.slice(0, 12);
+});
+
+/** 档案里直接进编辑：先收抽屉，避免弹窗叠在抽屉上 */
+function editFromDetail() {
+  if (!detailUser.value) return;
+  const row = detailUser.value as unknown as Record<string, unknown>;
+  detailDrawerVisible.value = false;
+  handleEdit(row);
+}
+
+function resetPwdFromDetail() {
+  if (!detailUser.value) return;
+  openResetPwdDialog(detailUser.value as unknown as Record<string, unknown>);
 }
 
 /** 按部门ID查找部门名称 */
@@ -807,22 +953,28 @@ function resetImportState() {
 }
 
 const columns: ReTableColumn[] = [
-  { prop: "sysUserUsername", label: "账号", minWidth: 200, slot: "username" },
-  { prop: "sysUserNickname", label: "昵称", minWidth: 160, slot: "nickname" },
-  { prop: "contact", label: "联系方式", minWidth: 200, slot: "contact" },
-  { prop: "roles", label: "角色", minWidth: 160, slot: "roles" },
-  { prop: "sysUserStatus", label: "状态", width: 100, slot: "status", align: "center" },
-  { prop: "createTime", label: "创建时间", width: 160 },
-  { prop: "sysUserLastLoginTime", label: "最近登录", minWidth: 160, showOverflowTooltip: true },
-  { prop: "sysUserLastIp", label: "最近 IP", minWidth: 140, slot: "ip" },
-  { prop: "action", label: "操作", width: 180, slot: "action", fixed: "right", align: "center" },
+  { prop: "sysUserUsername", label: "用户", minWidth: 200, slot: "username" },
+  { prop: "roles", label: "角色", minWidth: 150, slot: "roles" },
+  { prop: "contact", label: "联系方式", minWidth: 180, slot: "contact" },
+  { prop: "sysUserLastLoginTime", label: "最近登录", minWidth: 160, slot: "lastLogin" },
+  { prop: "sysUserStatus", label: "状态", width: 84, slot: "status", align: "center" },
+  { prop: "action", label: "操作", width: 168, slot: "action", fixed: "right", align: "center" },
 ];
 
 onMounted(() => {
+  window.addEventListener("keydown", onGlobalKeydown);
   tableRef.value?.reload();
   loadRoles();
   loadDepts();
   loadPosts();
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", onGlobalKeydown);
+  if (quickSearchTimer) {
+    clearTimeout(quickSearchTimer);
+    quickSearchTimer = null;
+  }
 });
 </script>
 
@@ -845,8 +997,100 @@ onMounted(() => {
         @change="handleImportFileSelect"
       />
 
+      <!-- 组织架构：左栏常驻，按部门收窄列表 -->
+      <aside class="user-org">
+        <div class="user-org__head">
+          <span class="user-org__title">组织架构</span>
+          <span class="user-org__total">{{ total }} 人</span>
+        </div>
+        <div class="user-org__filter">
+          <el-icon><Search /></el-icon>
+          <input v-model="orgKeyword" type="text" placeholder="筛选部门" />
+        </div>
+        <div class="user-org__scroll">
+          <button
+            type="button"
+            class="user-org__all"
+            :class="{ 'is-active': !query.sysDeptId }"
+            @click="selectDept(undefined)"
+          >
+            <el-icon><UserFilled /></el-icon>
+            <span>全部用户</span>
+            <em>{{ total }}</em>
+          </button>
+          <el-tree
+            ref="orgTreeRef"
+            class="user-org__tree"
+            :data="depts"
+            :props="{ label: 'sysDeptName', children: 'children' }"
+            node-key="sysDeptId"
+            :expand-on-click-node="false"
+            :highlight-current="true"
+            :filter-node-method="filterOrgNode"
+            default-expand-all
+            @node-click="onDeptClick"
+          />
+        </div>
+        <div class="user-org__foot">点击部门收窄右侧列表</div>
+      </aside>
+
+      <section class="user-main">
+        <!-- 聚光灯搜索：Ctrl/⌘ + K 聚焦，与筛选面板互不覆盖 -->
+        <div class="user-spotlight">
+          <div class="user-spotlight__field">
+            <el-icon class="user-spotlight__icon"><Search /></el-icon>
+            <input
+              ref="quickInputRef"
+              v-model="quickKeyword"
+              class="user-spotlight__input"
+              type="text"
+              placeholder="搜索账号，回车定位成员"
+              @input="onQuickSearch"
+              @keyup.enter="applyQuickSearch"
+            />
+            <button
+              v-if="quickKeyword"
+              type="button"
+              class="user-spotlight__clear"
+              title="清空"
+              @click="clearQuickSearch"
+            >
+              ×
+            </button>
+            <kbd class="user-spotlight__kbd">Ctrl K</kbd>
+          </div>
+          <ReButton type="primary" icon="Plus" @click="handleAdd">添加用户</ReButton>
+        </div>
+
+        <!-- 指标条：数值全部来自本次分页结果，不做跨页推断 -->
+        <div class="user-metrics">
+          <div class="user-metric">
+            <span class="user-metric__label">用户总数</span>
+            <strong class="user-metric__value">{{ total }}</strong>
+            <span class="user-metric__hint">{{ scopeLabel }}</span>
+          </div>
+          <div class="user-metric">
+            <span class="user-metric__label">本页在线</span>
+            <strong class="user-metric__value is-online">{{ onlineCount }}</strong>
+            <span class="user-metric__hint">共 {{ pageRows.length }} 条</span>
+          </div>
+          <div class="user-metric">
+            <span class="user-metric__label">本页禁用</span>
+            <strong class="user-metric__value is-disabled">{{ disabledCount }}</strong>
+            <span class="user-metric__hint">需复核账号</span>
+          </div>
+          <div class="user-metric">
+            <span class="user-metric__label">本页 2FA</span>
+            <strong class="user-metric__value">
+              {{ totpCount }}<span class="user-metric__unit">/ {{ pageRows.length }}</span>
+            </strong>
+            <span class="user-metric__hint">已开启双因子</span>
+          </div>
+        </div>
+
       <ReTable
         ref="tableRef"
+        class="user-table"
         table-id="system-user"
         :loader="loadUsers"
         :columns="columns"
@@ -865,9 +1109,8 @@ onMounted(() => {
         @selection-change="selection = $event"
         @search-reset="handleReset"
       >
-        <!-- 工具栏：页面业务按钮（批量删除由 ReTable 内置工具按钮提供） -->
+        <!-- 工具栏：次级操作（主操作在聚光灯行） -->
         <template #toolbar>
-          <ReButton type="primary" icon="Plus" @click="handleAdd" text>添加</ReButton>
           <ReButton type="primary" icon="Download" @click="handleDownloadTemplate" text>下载模板</ReButton>
           <ReButton type="primary" icon="Upload" @click="showImportDialog = true" text>导入</ReButton>
           <ReButton type="primary" icon="Download" :loading="exporting" @click="handleExport" text>导出</ReButton>
@@ -898,9 +1141,9 @@ onMounted(() => {
         </template>
 
         <template #username="{ row }">
-          <div class="flex items-center gap-2" :data-uid="row.sysUserId">
+          <div class="flex items-center gap-2 user-cell" :data-uid="row.sysUserId">
             <div class="user-cell__avatar">
-              <el-avatar :size="28" :src="row.sysUserAvatar" class="cursor-pointer" @click="triggerAvatarUploadForRow(row)">
+              <el-avatar :size="30" :src="row.sysUserAvatar" class="cursor-pointer" @click="triggerAvatarUploadForRow(row)">
                 <el-icon><User /></el-icon>
               </el-avatar>
               <span
@@ -909,67 +1152,55 @@ onMounted(() => {
                 :title="row.online ? '在线' : '离线'"
               ></span>
             </div>
-            <div class="flex flex-col">
-              <span class="cursor-pointer text-[--el-color-primary]" @click="openDetail(row)">{{ row.sysUserUsername }}</span>
-              <div class="flex gap-1 mt-0.5">
-                <ReTag v-if="isInSystem(row)" type="warning" effect="dark" >内置</ReTag>
-                <el-tag v-if="row.sysUserStatus !== 1" type="danger" effect="plain" >禁用</el-tag>
-                <el-tag v-else type="success" effect="plain" >启用</el-tag>
-                <el-tag v-if="isReadonlyUser(row)" type="info" effect="plain" >只读</el-tag>
+            <div class="user-cell__text">
+              <span class="user-cell__account" @click="openDetail(row)">{{ row.sysUserUsername }}</span>
+              <div class="user-cell__meta">
+                <span class="user-cell__nickname">{{ row.sysUserNickname || '-' }}</span>
+                <ReTag v-if="isInSystem(row)" type="warning" effect="plain" size="small" >内置</ReTag>
+                <ReTag v-if="isReadonlyUser(row)" type="info" effect="plain" size="small" >只读</ReTag>
               </div>
             </div>
             <input ref="rowAvatarInputRef" type="file" accept="image/*" class="visually-hidden-input" @change="handleRowAvatarChange" />
           </div>
         </template>
-        <template #nickname="{ row }">
-          <span v-if="row.sysUserNickname" class="flex items-center gap-1">
-            <!-- 性别沿用国内后台「男蓝女红」的识别习惯，但改走令牌：主题切换/暗色下会自动跟随 -->
-            <el-icon :color="row.sysUserSex === 1 ? 'var(--el-color-danger)' : 'var(--el-color-primary)'">
-              <Female v-if="row.sysUserSex === 1" />
-              <Male v-else />
-            </el-icon>
-            <span>{{ row.sysUserNickname }}</span>
-          </span>
-          <span v-else>-</span>
-        </template>
         <template #contact="{ row }">
-          <div class="flex flex-col gap-0.5 text-xs">
-            <span v-if="row.sysUserPhone" class="flex items-center gap-1">
+          <div class="user-contact">
+            <span v-if="row.sysUserPhone" class="user-contact__row">
               <el-icon><Iphone /></el-icon>
               <span>{{ row.sysUserPhone }}</span>
             </span>
-            <span v-if="row.sysUserEmail" class="flex items-center gap-1">
+            <span v-if="row.sysUserEmail" class="user-contact__row">
               <el-icon><Message /></el-icon>
               <span>{{ row.sysUserEmail }}</span>
             </span>
-            <span v-if="row.sysUserIdCard" class="flex items-center gap-1">
-              <el-icon><Postcard /></el-icon>
-              <span>{{ row.sysUserIdCard }}</span>
-            </span>
-            <span v-if="!row.sysUserPhone && !row.sysUserEmail && !row.sysUserIdCard" class="text-[--el-text-color-secondary]">-</span>
+            <span v-if="!row.sysUserPhone && !row.sysUserEmail" class="user-contact__empty">-</span>
           </div>
         </template>
-        <template #ip="{ row }">
-          <ReIpText
-            v-if="row.sysUserLastIp"
-            :ip="row.sysUserLastIp"
-            :address="row.sysUserLastAddress"
-            third-party-fix
-          />
-          <span v-else class="text-[--el-text-color-secondary]">-</span>
+        <template #lastLogin="{ row }">
+          <div class="user-login">
+            <span class="user-login__time">{{ row.sysUserLastLoginTime || '-' }}</span>
+            <span v-if="row.sysUserLastIp" class="user-login__ip">
+              <ReIpText
+                :ip="row.sysUserLastIp"
+                :address="row.sysUserLastAddress"
+                third-party-fix
+              />
+            </span>
+          </div>
         </template>
         <template #roles="{ row }">
-          <el-tag
-            v-for="role in uniqueUserRoles(row)"
-            :key="role.sysRoleId"
-            type="primary"
-            effect="plain"
-            
-            class="mr-1"
-          >
-            {{ role.sysRoleName }}
-          </el-tag>
-          <span v-if="!row.userRoles?.length" class="text-xs text-[--el-text-color-secondary]">-</span>
+          <div class="user-roles">
+            <ReTag
+              v-for="role in uniqueUserRoles(row)"
+              :key="role.sysRoleId"
+              type="primary"
+              effect="plain"
+              size="small"
+            >
+              {{ role.sysRoleName }}
+            </ReTag>
+            <span v-if="!uniqueUserRoles(row).length" class="user-roles__empty">-</span>
+          </div>
         </template>
         <template #status="{ row }">
           <el-switch
@@ -1001,6 +1232,7 @@ onMounted(() => {
           </div>
         </template>
       </ReTable>
+      </section>
 
     <!-- 用户编辑弹窗 -->
     <ReDialog
@@ -1104,10 +1336,10 @@ onMounted(() => {
             <span>{{ resetPwdUser?.sysUserNickname ?? resetPwdUser?.sysUserUsername }}</span>
           </el-form-item>
           <el-form-item label="重置模式">
-            <el-radio-group v-model="resetPwdMode">
-              <el-radio value="auto">自动生成密码</el-radio>
-              <el-radio value="manual">手动输入密码</el-radio>
-            </el-radio-group>
+            <ReRadioGroup v-model="resetPwdMode">
+              <ReRadio value="auto">自动生成密码</ReRadio>
+              <ReRadio value="manual">手动输入密码</ReRadio>
+            </ReRadioGroup>
           </el-form-item>
           <el-form-item v-if="resetPwdMode === 'manual'" label="新密码" required>
             <ReInput layout="modern" v-model="resetPwdNew" type="password" placeholder="请输入新密码" show-password />
@@ -1209,16 +1441,86 @@ onMounted(() => {
     </ReDialog>
 
 
-    <!-- 用户详情抽屉 -->
+    <!-- 成员档案抽屉（预览 / 编辑入口） -->
     <ReDrawer
       v-model="detailDrawerVisible"
-      title="用户详情"
-      size="500"
+      title="成员档案"
+      size="620"
       :show-window-shell="false"
       :close-on-click-modal="true"
       :footer-hidden="true"
     >
       <template #content v-if="detailUser">
+        <!-- 档案剧场：主角卡 + 关键指标 + 同部门胶片条 -->
+        <div class="profile-hero">
+          <div class="profile-hero__avatar">
+            <el-avatar :size="72" :src="detailUser.sysUserAvatar">{{ userInitial(detailUser) }}</el-avatar>
+            <span class="user-cell__dot" :class="detailOnline ? 'is-online' : 'is-offline'"></span>
+          </div>
+          <div class="profile-hero__main">
+            <div class="profile-hero__name">
+              <span>{{ detailUser.sysUserNickname || detailUser.sysUserUsername }}</span>
+              <ReTag v-if="isInSystem(detailUser)" type="warning" effect="plain">内置</ReTag>
+              <ReTag :type="detailUser.sysUserStatus === 1 ? 'success' : 'danger'" effect="plain">
+                {{ detailUser.sysUserStatus === 1 ? '启用' : '禁用' }}
+              </ReTag>
+              <ReTag v-if="isReadonlyUser(detailUser)" type="info" effect="plain">只读</ReTag>
+            </div>
+            <div class="profile-hero__account">
+              @{{ detailUser.sysUserUsername }} · {{ deptNameOf(detailUser.sysDeptId) }}
+            </div>
+            <div class="profile-hero__roles">
+              <ReTag v-for="r in uniqueUserRoles(detailUser)" :key="r.sysRoleId" type="primary" effect="plain">
+                {{ r.sysRoleName }}
+              </ReTag>
+              <span v-if="!uniqueUserRoles(detailUser).length" class="profile-hero__muted">未分配角色</span>
+            </div>
+          </div>
+          <div class="profile-hero__actions">
+            <ReButton layout="square" type="primary" icon="Edit" tip="编辑资料" @click="editFromDetail" />
+            <ReButton layout="square" type="primary" icon="Key" tip="重置密码" @click="resetPwdFromDetail" />
+          </div>
+        </div>
+
+        <div class="profile-metrics">
+          <div class="profile-metric">
+            <span class="profile-metric__label">最近登录</span>
+            <strong class="profile-metric__value">{{ detailUser.sysUserLastLoginTime || '-' }}</strong>
+          </div>
+          <div class="profile-metric">
+            <span class="profile-metric__label">登录次数</span>
+            <strong class="profile-metric__value">{{ detailLoginCount }}</strong>
+          </div>
+          <div class="profile-metric">
+            <span class="profile-metric__label">最近 IP</span>
+            <strong class="profile-metric__value">{{ detailUser.sysUserLastIp || '-' }}</strong>
+          </div>
+          <div class="profile-metric">
+            <span class="profile-metric__label">创建时间</span>
+            <strong class="profile-metric__value">{{ detailUser.createTime || '-' }}</strong>
+          </div>
+        </div>
+
+        <div v-if="detailPeers.length > 1" class="profile-peers">
+          <div class="profile-peers__head">
+            <span>同部门成员</span>
+            <em>{{ detailPeers.length }}</em>
+          </div>
+          <div class="profile-peers__strip">
+            <button
+              v-for="peer in detailPeers"
+              :key="peer.sysUserId"
+              type="button"
+              class="profile-peer"
+              :class="{ 'is-active': peer.sysUserId === detailUser.sysUserId }"
+              @click="openDetail(peer as unknown as Record<string, unknown>)"
+            >
+              <el-avatar :size="26" :src="peer.sysUserAvatar">{{ userInitial(peer) }}</el-avatar>
+              <span class="profile-peer__name">{{ peer.sysUserNickname || peer.sysUserUsername }}</span>
+            </button>
+          </div>
+        </div>
+
         <div class="detail-section-title">基本信息</div>
         <el-descriptions :column="1" border :label-style="{ width: '110px', fontWeight: 600 }">
           <el-descriptions-item label="账号">{{ detailUser.sysUserUsername }}</el-descriptions-item>
@@ -1265,10 +1567,10 @@ onMounted(() => {
             <ReTag v-else type="info" effect="plain" >未启用</ReTag>
           </el-descriptions-item>
           <el-descriptions-item label="登录次数">
-            {{ (detailUser as unknown as Record<string, unknown>).sysUserLoginCount ?? '-' }}
+            {{ detailLoginCount }}
           </el-descriptions-item>
           <el-descriptions-item label="最后登录时间">
-            {{ (detailUser as unknown as Record<string, unknown>).sysUserLastLoginTime ?? detailUser.sysUserLastAddress ?? '-' }}
+            {{ detailUser.sysUserLastLoginTime || '-' }}
           </el-descriptions-item>
           <el-descriptions-item label="密码最后修改">
             {{ (detailUser as unknown as Record<string, unknown>).sysUserPwdUpdateTime ?? '-' }}
@@ -1342,71 +1644,336 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
-/* ===== 页面骨架 ===== */
+/* ===== 页面骨架：左组织树 + 右工作区 ===== */
 .system-page {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
   gap: 16px;
   padding: 0;
   height: 100%;
+  min-height: 0;
 }
-.system-page__header {
+.user-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+.user-table {
+  flex: 1;
+  min-height: 0;
+  /* 表头/正文字号按工作表密度收一档，与左侧组织树、指标条同一层级 */
+  --rt-header-font-size: 11.5px;
+  --rt-header-font-weight: 600;
+  --rt-font: 12.5px;
+}
+.user-table :deep(.vxe-header--column) {
+  color: var(--text-tertiary);
+  letter-spacing: 0.3px;
+}
+.user-table :deep(.vxe-table--render-default .vxe-header--column) {
+  background: var(--bg-fill) !important;
+}
+/* 行高交给内容：用户列两行、联系方式两行，固定 51px 会把第二行裁掉 */
+.user-table :deep(.vxe-body--row),
+.user-table :deep(.vxe-body--row > .vxe-body--column) {
+  height: auto !important;
+  min-height: 56px;
+}
+.user-table :deep(.vxe-body--row > .vxe-body--column) {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+.user-table :deep(.vxe-body--column .vxe-cell) {
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: 1.45;
+}
+/* ===== 表格单元格内容 ===== */
+.user-contact,
+.user-login {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.user-contact__row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.user-contact__row .el-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+.user-contact__row > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.user-contact__empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.user-login__time {
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+.user-login__ip {
+  overflow: hidden;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.user-roles {
   display: flex;
   flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.user-roles__empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+/* ===== 组织架构左栏 ===== */
+.user-org {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+.user-org__head {
+  display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 2px 4px 10px;
+}
+.user-org__title {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+.user-org__total {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.user-org__filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  margin-bottom: 8px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+}
+.user-org__filter input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12.5px;
+}
+.user-org__filter input::placeholder {
+  color: var(--text-tertiary);
+}
+.user-org__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.user-org__all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  margin-bottom: 2px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background-color 0.18s var(--ease-out), color 0.18s var(--ease-out);
+}
+.user-org__all em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.user-org__all:hover {
+  background: var(--bg-hover);
+}
+.user-org__all.is-active {
+  background: var(--brand-50);
+  color: var(--brand-500);
+  font-weight: 600;
+}
+.user-org__all.is-active em {
+  color: var(--brand-500);
+}
+.user-org__tree {
+  background: transparent;
+  --el-tree-node-hover-bg-color: var(--bg-hover);
+}
+.user-org__tree :deep(.el-tree-node__content) {
+  height: 32px;
+  margin-bottom: 2px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+.user-org__tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
+  background: var(--brand-50);
+  color: var(--brand-500);
+  font-weight: 600;
+}
+.user-org__foot {
+  margin-top: 8px;
+  padding: 8px 4px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+/* ===== 聚光灯搜索 ===== */
+.user-spotlight {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
-/* ===== 统计卡片 ===== */
-.stats-grid {
+.user-spotlight__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out);
+}
+.user-spotlight__field:focus-within {
+  border-color: var(--brand-500);
+  box-shadow: var(--focus-ring);
+}
+.user-spotlight__icon {
+  flex: none;
+  color: var(--text-tertiary);
+  font-size: 15px;
+}
+.user-spotlight__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.user-spotlight__input::placeholder {
+  color: var(--text-tertiary);
+}
+.user-spotlight__clear {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg-fill);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.user-spotlight__clear:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.user-spotlight__kbd {
+  flex: none;
+  padding: 3px 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-fill);
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+/* ===== 指标条（当前页真实数据） ===== */
+.user-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
-.stat-card {
+.user-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 14px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 16px 20px;
-  position: relative;
-  overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s var(--ease-out), transform 0.2s var(--ease-out);
 }
-.stat-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--accent, var(--brand-500));
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-.stat-label {
-  font-size: 12px;
+.user-metric__label {
+  font-size: 11.5px;
   color: var(--text-secondary);
-  font-weight: 500;
-  margin-bottom: 8px;
-  letter-spacing: 0.02em;
 }
-.stat-value {
-  font-size: 28px;
+.user-metric__value {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+  font-size: 22px;
   font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  line-height: 1.1;
-  margin-bottom: 6px;
 }
-.stat-trend {
+.user-metric__value.is-online {
+  color: var(--status-success);
+}
+.user-metric__value.is-disabled {
+  color: var(--status-error);
+}
+.user-metric__unit {
+  margin-left: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.user-metric__hint {
+  overflow: hidden;
   font-size: 11px;
   color: var(--text-tertiary);
-  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.stat-trend.is-up { color: var(--status-success); }
-.stat-trend.is-down { color: var(--status-error); }
 /* ===== 筛选工具栏 ===== */
 .page-toolbar {
   display: flex;
@@ -1482,6 +2049,128 @@ onMounted(() => {
   cursor: not-allowed;
   opacity: 0.5;
 }
+/* ===== 成员档案（预览 / 编辑） ===== */
+.profile-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background:
+    radial-gradient(420px 180px at 0% 0%, var(--brand-50), transparent 72%),
+    var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+.profile-hero__avatar {
+  position: relative;
+  flex: none;
+}
+.profile-hero__main {
+  flex: 1;
+  min-width: 0;
+}
+.profile-hero__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.profile-hero__account {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.profile-hero__roles {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.profile-hero__muted {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.profile-hero__actions {
+  display: flex;
+  gap: 6px;
+}
+.profile-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.profile-metric {
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--bg-fill);
+  border-radius: var(--radius-md);
+}
+.profile-metric__label {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.profile-metric__value {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.profile-peers {
+  margin-top: 12px;
+}
+.profile-peers__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.profile-peers__head em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.profile-peers__strip {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+}
+.profile-peer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 4px 10px 4px 4px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: border-color 0.18s var(--ease-out), background-color 0.18s var(--ease-out);
+}
+.profile-peer:hover {
+  background: var(--brand-50);
+  border-color: var(--brand-100);
+}
+.profile-peer.is-active {
+  background: var(--brand-50);
+  border-color: var(--brand-500);
+}
+.profile-peer__name {
+  font-size: 12px;
+  color: var(--text-primary);
+}
 /* ===== 用户详情 / 画像 ===== */
 .profile-body {
   display: flex;
@@ -1546,6 +2235,44 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+}
+.user-cell {
+  min-width: 0;
+}
+.user-cell__avatar {
+  position: relative;
+  flex: none;
+}
+.user-cell__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.user-cell__account {
+  overflow: hidden;
+  color: var(--brand-500);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.user-cell__account:hover {
+  text-decoration: underline;
+}
+.user-cell__meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 2px;
+}
+.user-cell__nickname {
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .user-cell__dot {
   position: absolute;
@@ -1634,10 +2361,17 @@ onMounted(() => {
   color: var(--text-tertiary);
 }
 /* ===== 响应式 ===== */
+@media (max-width: 1080px) {
+  .system-page { grid-template-columns: minmax(0, 1fr); }
+  /* 窄屏收起组织树，部门仍可在筛选面板里选择 */
+  .user-org { display: none; }
+  .user-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 768px) {
-  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .user-dialog__grid { grid-template-columns: 1fr; }
   .profile-body { flex-direction: column; }
   .profile-left { width: 100%; }
+  .profile-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .user-spotlight__kbd { display: none; }
 }
 </style>
