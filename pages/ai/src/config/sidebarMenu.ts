@@ -2,6 +2,7 @@ import { ref, type Component } from 'vue'
 import {
   AddSquare20Regular, ContactCard20Regular, ChatMultiple24Regular, BookSearch20Regular,
   Apps20Regular, Image20Regular, Person20Regular, ImageSearch20Regular,
+  ImageMultiple20Regular,
   DocumentText20Regular, DesktopSpeaker24Regular, Headphones24Regular, BrainCircuit20Regular,
   DataBarVertical20Regular, PlugConnected20Regular, Fingerprint24Regular,
   ArrowRouting20Regular, Server24Regular,
@@ -203,6 +204,17 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       showKey: 'showImageSearchMenu',
       badge: modelConfig.imageReady ? '' : '未配置',
       badgeTip: '图像特征模型未配置，以图搜图不可用',
+    },
+    {
+      // 图像库：与「以图搜图」同一底库，但定位是**库管理**（台账 / 画布 / 特征空间）。
+      // 检索在「以图搜图」，改库在这里 —— 两个入口并排，和「人脸识别 ↔ 人脸底库」的分工一致。
+      key: 'image-library',
+      label: '图像库',
+      icon: ImageMultiple20Regular,
+      section: '图像',
+      showKey: 'showImageLibraryMenu',
+      badge: modelConfig.imageReady ? '' : '未配置',
+      badgeTip: '图像特征模型未配置，入库与检索都不可用',
     },
     {
       key: 'image-colorize',

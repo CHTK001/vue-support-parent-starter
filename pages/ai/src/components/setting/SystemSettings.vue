@@ -49,7 +49,7 @@
                 </template>
             </PageHeader>
             <div class="flex-1 overflow-hidden flex flex-col w-full" :style="contentMaxWidthStyle">
-                <div class="flex-1 overflow-hidden min-w-0" :class="isModelsTab ? '' : 'py-3'">
+                <div class="flex-1 overflow-hidden min-w-0" :class="isFullHeightTab ? '' : 'py-3'">
                     <!--
                       模型管理（配置中心入口）：与主页「模型管理」(/models) **渲染同一个组件**，
                       两个入口一份实现，杜绝「主页一套、设置里一套」各自漂移。
@@ -74,6 +74,15 @@
                     -->
                     <div v-else-if="currentTabValue === 'channels'" class="channels-tab-host">
                         <ChannelManagementPage />
+                    </div>
+                    <!--
+                      图像库同理：它是「左分组栏 + 中台账/画布 + 右检查器」的三栏工作台，
+                      每一栏各自滚动、靠 height:100% 撑满；套进 ScrollContainer 后父级高度
+                      由内容决定，三栏会一起塌成内容高。这里直接拿整块高度。
+                      与主页 /image-library 是同一个组件（embedded=true 只交出标题栏）。
+                    -->
+                    <div v-else-if="currentTabValue === 'image-library'" class="library-tab-host">
+                        <ImageLibraryPage embedded />
                     </div>
                     <ScrollContainer v-else class="h-full p-4">
                         <!--
@@ -218,14 +227,12 @@
                             <MenuDisplaySettings class="h-full" />
                         </template>
                         <!--
-                          图像底库：以图搜图底库的独立管理页。
+                          图像库（image-library）：以图搜图底库的独立管理页。
                           从「默认模型」页底部提上来 —— 底库需要日常增删，
                           藏在 13 个分组的折叠面板最下方等于没有入口。
+                          已提到 ScrollContainer 之外（见上方 library-tab-host）：
+                          它是三栏工作台，需要确定高度。
                         -->
-                        <template v-else-if="currentTabValue === 'image-library'">
-                            <!-- 面板自带页头与副标题，此处不再重复一段说明文字 -->
-                            <ImageLibraryPanel />
-                        </template>
                         <!--
                           人脸底库：只做**管理**（查看/登记/删除），识别与检索在外侧「人脸识别」页。
                           与「以图搜图（外侧） + 图像底库（设置内）」同一分工 ——
@@ -276,8 +283,8 @@ import CommunityPanel from './CommunityPanel.vue'
 import ScrollContainer from '../ui/ScrollContainer.vue'
 // 菜单管理：与侧栏同源的清单 + 显示/隐藏开关（不嵌 sys_menu 的增删改）
 import MenuDisplaySettings from './MenuDisplaySettings.vue'
-// 以图搜图图像底库管理面板（同一份实现，被「图像底库」tab 复用）
-import ImageLibraryPanel from './ImageLibraryPanel.vue'
+// 图像库整页组件（与主页 /image-library 同一份实现，被「图像库」tab 复用）
+import ImageLibraryPage from '../library/ImageLibraryPage.vue'
 // 人脸底库**管理**面板（识别仍在外侧「人脸识别」页，这里只管底库）
 import FaceLibraryPanel from './FaceLibraryPanel.vue'
 import ReidLibraryPanel from './ReidLibraryPanel.vue'
@@ -776,7 +783,7 @@ const gotoModels = () => router.push({ name: 'Models' })
  * 注意这里必须用 var() 的 **回退值** 写法：满屏时 MainLayout 会把
  * --content-max-width 定义为 none，那时整条 max-width 失效 = 撑满，与原来一致。
  */
-const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics', 'channels', 'models']
+const WIDE_TABS = ['services', 'service-tokens', 'providers', 'model-metrics', 'channels', 'models', 'image-library']
 const contentMaxWidthStyle = computed(() =>
     WIDE_TABS.includes(currentTabValue.value)
         ? {}
@@ -786,8 +793,10 @@ const contentMaxWidthStyle = computed(() =>
 // Teleport 目标就绪标志：确保 #settings-sidebar-portal 已挂载到 DOM
 const portalReady = ref(false)
 
-// 模型管理 tab：内嵌块要自己撑满，外层不使用 ScrollContainer 的 py-3 留白
-const isModelsTab = computed(() => currentTabValue.value === 'models')
+// 整页工作台 tab（模型管理 / 图像库）：内容自己做滚动，外层不加 ScrollContainer 的 py-3 留白
+const isFullHeightTab = computed(
+    () => currentTabValue.value === 'models' || currentTabValue.value === 'image-library',
+)
 
 // 当前标签标题
 const currentTabLabel = computed(() => {
@@ -901,19 +910,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 图像底库 tab 的外层容器：ScrollContainer 已给 p-4，这里只补上下留白与提示文字 */
-.image-library-tab {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-bottom: 24px;
-}
-
-.image-library-hint {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--el-text-color-secondary, #6b7280);
+/* 图像库 tab：三栏工作台（分组栏 / 台账-画布 / 检查器）需要一整块确定高度，
+ * 否则三栏的 height:100% 会退化成内容高、各自滚动也失效。留白交给页面自己，
+ * 这里只负责撑满。 */
+.library-tab-host {
+    height: 100%;
+    min-height: 0;
 }
 
 /* 模型管理 tab：ModelsPage 是双栏工作台，需要一整块确定高度才能让左右各自滚动 */

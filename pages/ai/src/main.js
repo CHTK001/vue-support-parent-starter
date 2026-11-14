@@ -24,7 +24,7 @@ import App from "./App.vue";
 // 路由与守卫统一由 vue 框架提供（@repo/core 的 createAppRouter /
 // setupRouterGuard）。本应用不再自建 createRouter + beforeEach：
 // 登录拦截、白名单、document.title、401 后的跳转都走框架同一套实现。
-import { createAppRouter, isAdmin, setRouter } from "@repo/core";
+import { createAppRouter, isAdmin, setRouter, setupPermissionDirectives } from "@repo/core";
 // 框架登录页（ReLoginForm）登录成功后会走 initAuthRouter → authStore.listRouters，
 // 其中的「菜单 → 路由」解析器由主题注册。本应用使用静态路由、不消费框架菜单，
 // 这里注册一个空解析器即可；否则会抛「菜单解析器未注册」，
@@ -61,6 +61,8 @@ import "./styles/page-title-unify.css";
 import "nprogress/nprogress.css";
 // 组件库统一卡片视觉基线（ReStatCard 风格：re-surface / --hover / --dense）
 import "@repo/ui/surface";
+// 焦点样式全站移除：必须最后引入，才能压过各组件 scoped 的 :focus-visible 规则
+import "./styles/focus-reset.css";
 
 import { apiService } from "@/services/ApiService";
 import { bootstrapFramework, currentToken } from "@/framework/context";
@@ -244,6 +246,14 @@ const routes = [
         name: "ImageSearch",
         meta: { title: "以图搜图", requiresAuth: true },
         component: () => import("./components/search/ImageSearchPage.vue"),
+      },
+      {
+        // 图像库：把「以图搜图」的底库从设置里的一个面板升为独立整页
+        // （台账 / 画布 + 特征空间），与「以图搜图」并列为同一个图像段。
+        path: "image-library",
+        name: "ImageLibrary",
+        meta: { title: "图像库", requiresAuth: true },
+        component: () => import("./components/library/ImageLibraryPage.vue"),
       },
       {
         // OCR 与「以图搜图 / 人脸识别」同属图像类，放在同一段路由里便于对照
@@ -457,6 +467,11 @@ async function bootstrapAndMount() {
   // 注册 Element Plus 全局插件：没有它，所有 <el-* /> 渲染成 0×0 的未解析自定义元素
   // （<el-dialog /> 类直引的组件除外，如 ReDialog 直引 ElDialog）。
   app.use(ElementPlus);
+  // 注册 vue 体系权限指令（v-admin / v-superadmin / v-role / v-perm / v-menu）。
+  // 不注册时模板里的 v-admin 会被 Vue 当成「未解析指令」直接跳过（控制台
+  // Failed to resolve directive: admin），元素对所有人可见 —— GlobalSidebar 的
+  // 「管理员」标签就踩在这里。
+  setupPermissionDirectives(app);
 
   // 初始化全局错误处理器（在 router 挂载后）
   initGlobalErrorHandler(router);

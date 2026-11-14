@@ -240,7 +240,7 @@ export default {
       sessionGroups: '分组管理',
       sessionArchived: '归档管理',
       sessionConfig: '会话配置',
-      imageLibrary: '图像底库',
+      imageLibrary: '图像库',
       faceLibrary: '人脸底库',
       channels: '渠道管理',
       profile: '账户概览',

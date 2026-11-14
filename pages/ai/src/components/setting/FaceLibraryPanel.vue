@@ -42,29 +42,13 @@
       </div>
     </header>
 
-    <!-- ── 统计卡（全库口径：来自服务端 stats，不受检索/筛选影响）── -->
-    <section class="lib-stats">
-      <div class="lib-stat">
-        <el-icon class="lib-stat-icon is-primary"><UserFilled /></el-icon>
-        <span class="lib-stat-label">已登记</span>
-        <strong class="lib-stat-value">{{ stats.total }}</strong>
-      </div>
-      <div class="lib-stat">
-        <el-icon class="lib-stat-icon is-success"><Picture /></el-icon>
-        <span class="lib-stat-label">有图片</span>
-        <strong class="lib-stat-value">{{ stats.withImage }}</strong>
-      </div>
-      <div class="lib-stat">
-        <el-icon class="lib-stat-icon is-warning"><Warning /></el-icon>
-        <span class="lib-stat-label">无图片</span>
-        <strong class="lib-stat-value">{{ stats.total - stats.withImage }}</strong>
-      </div>
-      <div class="lib-stat">
-        <el-icon class="lib-stat-icon is-info"><Postcard /></el-icon>
-        <span class="lib-stat-label">身份证已填</span>
-        <strong class="lib-stat-value">{{ stats.withIdCard }}</strong>
-      </div>
-    </section>
+    <!-- ── 统计（行内迷你口径：来自服务端 stats，不受检索/筛选影响）── -->
+    <div class="fl07-metrics">
+      <span>已登记 <b>{{ stats.total }}</b></span>
+      <span>有图片 <b>{{ stats.withImage }}</b></span>
+      <span>无图片 <b>{{ stats.total - stats.withImage }}</b></span>
+      <span>身份证已填 <b>{{ stats.withIdCard }}</b></span>
+    </div>
 
     <!-- 服务端有条目、但两边都没图：说清原因，别让人以为底库丢了 -->
     <el-alert
@@ -77,23 +61,7 @@
       description="图片优先取服务端登记图（登记时落存的裁剪脸，换浏览器也在）；改造前登记的老数据两边都没有。底库条目本身以服务端为准，1:N 识别不受影响。"
     />
 
-    <!-- ── 登记区（与图像底库的拖放区同版式）──────────────── -->
-    <section class="lib-upload">
-      <div
-        class="lib-drop"
-        :class="{ 'is-drag': false }"
-        @click="openEnroll"
-      >
-        <el-icon class="lib-drop-icon"><UploadFilled /></el-icon>
-        <p class="lib-drop-main">点此登记新人脸</p>
-        <p class="lib-drop-sub">弹出登记表单，支持点击选择或把照片拖进表单</p>
-      </div>
-      <ul class="lib-tips">
-        <li><el-icon><CircleCheck /></el-icon>自动检测并提取特征向量</li>
-        <li><el-icon><CircleCheck /></el-icon>未检出人脸的图片不会入库</li>
-        <li><el-icon><CircleCheck /></el-icon>身份证号必填（展示时脱敏）</li>
-      </ul>
-    </section>
+    <!-- ── 登记入口已收敛到页头「人脸登记入库」按钮，此处不再放大卡 ── -->
 
     <FaceEnrollDialog v-model="enrollVisible" :record="editItem" :group="group" @enrolled="() => load(page)" />
 
@@ -106,30 +74,42 @@
       :group="group"
     />
 
-    <!-- ── 列表区 ─────────────────────────────────────────── -->
+    <!-- ── 分组页签（07 方向：分组 = 顶部横向 Tabs，带人数角标）── -->
+    <div class="fl07-tabs" role="tablist" aria-label="人脸底库分组">
+      <button
+        v-for="g in groupOptions"
+        :key="g"
+        type="button"
+        role="tab"
+        class="fl07-tab"
+        :class="{ 'is-active': g === group }"
+        :aria-selected="g === group ? 'true' : 'false'"
+        @click="group = g"
+        :title="`分组是第一层隔离：不同分组各有一套人脸库`"
+      >
+        {{ g }}
+        <span class="fl07-tab-count">{{ g === group ? total : '' }}</span>
+      </button>
+      <el-select
+        v-model="group"
+        class="fl07-add-tab"
+        filterable
+        allow-create
+        default-first-option
+        placeholder="＋ 分组"
+        title="输入新分组名立即创建（登记落进去即存在）"
+      >
+        <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
+      </el-select>
+    </div>
+
+        <!-- ── 列表区 ─────────────────────────────────────────── -->
     <section class="lib-panel">
       <div class="lib-toolbar">
         <div class="lib-panel-title">
           人脸列表
           <span class="lib-panel-count">共 {{ total }} 条</span>
         </div>
-
-        <!--
-          分组筛选：分组是第一层隔离（每组一套向量库），列表/删除/取图都只作用于它。
-          allow-create 允许直接敲一个新分组名 —— 分组没有独立的「建库」动作，
-          第一次登记落进去即存在。
-        -->
-        <el-select
-          v-model="group"
-          class="lib-filter lib-group-filter"
-          filterable
-          allow-create
-          default-first-option
-          placeholder="选择或输入分组"
-          title="分组是第一层隔离：不同分组各有一套人脸库"
-        >
-          <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
-        </el-select>
 
         <el-input v-model="keyword" placeholder="按姓名/身份证检索（服务端）" clearable class="lib-search"
           @input="commitKeyword()" @keyup.enter="commitKeyword(true)" @clear="commitKeyword(true)">
@@ -161,7 +141,8 @@
       <!-- 网格视图：viewerjs 挂在本容器上，点任意图即可缩放/左右切换 -->
       <div v-if="viewMode === 'grid'" ref="gridRef" v-loading="loading" class="lib-grid">
         <figure v-for="item in visibleItems" :key="item.id" class="lib-cell"
-          :class="{ 'is-selected': selected.has(item.id) }">
+          :class="{ 'is-selected': selected.has(item.id), 'is-active': isActive(item) }"
+          @click="activate(item)">
           <div class="lib-thumb">
             <img v-if="thumbVisible(item)" :src="item.thumb" :alt="item.name" loading="lazy" />
             <div v-else class="fl-thumb-fallback">
@@ -215,7 +196,8 @@
       <!-- 列表视图 -->
       <div v-else-if="viewMode === 'list'" v-loading="loading" class="lib-list">
         <div v-for="item in visibleItems" :key="item.id" class="lib-row"
-          :class="{ 'is-selected': selected.has(item.id) }">
+          :class="{ 'is-selected': selected.has(item.id), 'is-active': isActive(item) }"
+          @click="activate(item)">
           <span class="lib-check is-inline" @click.stop="toggleSelect(item)">
             <el-icon v-if="selected.has(item.id)"><Select /></el-icon>
           </span>
@@ -274,20 +256,20 @@
           row-key="id"
           empty-text="没有符合条件的人脸"
           @sort-change="onTableSort"
+          @row-click="onTableRowClick"
           @selection-change="onTableSelection"
         >
           <template #thumb="{ row }">
-            <img v-if="showFaces && String(row.id)" class="lt-thumb" :src="thumbFor(String(row.id))" alt=""
-              loading="lazy" @click="previewById(String(row.id))" />
+            <!-- 用 hasImage 判，别用 id 判：没有图的条目 id 也在，thumbFor 会给出一个必然 404 的地址，
+                 表格视图是默认视图，破图会直接被看到 -->
+            <img v-if="showFaces && row.hasImage" class="lt-thumb" :src="thumbFor(String(row.id))" alt=""
+              loading="lazy" @click.stop="previewById(String(row.id))" />
             <span v-else class="lt-thumb lt-thumb-empty">
               <el-icon><Hide v-if="!showFaces" /><UserFilled v-else /></el-icon>
             </span>
           </template>
           <template #idCard="{ row }">
             <span class="lt-mono">{{ maskIdCard(String(row.idCard ?? '')) || '—' }}</span>
-          </template>
-          <template #group="{ row }">
-            <span class="lt-group">{{ row.group || 'default' }}</span>
           </template>
           <template #hasImage="{ row }">
             <span v-if="row.hasImage" class="lib-badge is-ok">有图片</span>
@@ -318,6 +300,105 @@
         <span class="lib-pager-text">{{ page }} / {{ pageCount }}</span>
         <el-button :disabled="page >= pageCount || loading" @click="load(page + 1)">下一页</el-button>
       </div>
+
+      <!--
+        右侧常驻档案抽屉（02 方向）：列表负责「找」，抽屉负责「看这个人」。
+        不用 el-drawer —— 那会盖住列表，来回点选要开关两次；
+        常驻一栏点一行换一栏，管一百多条时才是连续的动作。
+      -->
+      <aside class="fl-drawer" :class="{ 'is-empty': !activeRow }" aria-live="polite">
+        <template v-if="activeRow">
+          <header class="fl-drawer-head">
+            <div class="fl-drawer-id">
+              <span class="fl-drawer-name" :title="activeRow.name">{{ activeRow.name || '未命名' }}</span>
+              <span class="fl-drawer-sub">{{ activeRow.group }} · {{ ageBucket(activeRow.age) }}</span>
+            </div>
+            <button type="button" class="fl-drawer-close" title="收起档案" @click="closeActive">
+              <el-icon><Close /></el-icon>
+            </button>
+          </header>
+
+          <div class="fl-drawer-tags">
+            <span v-if="activeRow.hasImage" class="lib-badge is-ok">有图片</span>
+            <span v-else class="lib-badge is-warn">无图片</span>
+            <span v-if="activeRow.restored" class="lib-badge is-repaired">
+              <el-icon><MagicStick /></el-icon>已修复
+            </span>
+          </div>
+
+          <div class="fl-drawer-body">
+            <div class="fl-drawer-figure" @click="previewActive">
+              <!-- 用 hasImage 判：表格行即使没有图，thumb 也是一个待解析地址（恒真），
+                   拿它当条件会给无图条目渲染一张破图 -->
+              <img v-if="showFaces && activeRow.hasImage"
+                :src="thumbFor(activeRow.id)" :alt="activeRow.name" loading="lazy" />
+              <span v-else class="fl-thumb-fallback">
+                <el-icon :size="26"><Hide v-if="!showFaces" /><UserFilled v-else /></el-icon>
+              </span>
+            </div>
+
+            <dl class="fl-metrics">
+              <div class="fl-metric">
+                <dt>年龄段</dt>
+                <dd>{{ ageBucket(activeRow.age) }}</dd>
+              </div>
+              <div class="fl-metric">
+                <dt>颜值</dt>
+                <dd>{{ activeRow.photogenic }}</dd>
+              </div>
+              <div class="fl-metric">
+                <dt>坐标</dt>
+                <dd>{{ activeRow.lat != null || activeRow.lng != null ? '已标注' : '未标注' }}</dd>
+              </div>
+            </dl>
+
+            <h4 class="fl-drawer-title">身份信息</h4>
+            <dl class="fl-fields">
+              <div class="fl-field">
+                <dt>身份证</dt>
+                <dd class="fl-mono">{{ maskIdCard(activeRow.idCard) || '未填写' }}</dd>
+              </div>
+              <div class="fl-field">
+                <dt>性别</dt>
+                <dd>{{ activeRow.gender || '未知' }}</dd>
+              </div>
+              <div class="fl-field">
+                <dt>发型</dt>
+                <dd>{{ activeRow.hair || '—' }}</dd>
+              </div>
+              <div class="fl-field">
+                <dt>登记坐标</dt>
+                <dd class="fl-mono">{{ formatGeo(activeRow) || '—' }}</dd>
+              </div>
+              <div class="fl-field is-block">
+                <dt>备注</dt>
+                <dd>{{ activeRow.note || '—' }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <footer class="fl-drawer-actions">
+            <el-button size="small" @click="openEdit(activeRow)">
+              <el-icon><EditPen /></el-icon>编辑档案
+            </el-button>
+            <el-button v-if="landmarkReady" size="small" @click="openLandmark(activeRow)">
+              <el-icon><Aim /></el-icon>特征点
+            </el-button>
+            <el-button v-if="restoreReady" size="small" :disabled="busy" @click="repairOne(activeRow)">
+              <el-icon><MagicStick /></el-icon>修复
+            </el-button>
+            <el-button size="small" type="danger" plain :disabled="busy" @click="removeOne(activeRow)">
+              <el-icon><Delete /></el-icon>删除
+            </el-button>
+          </footer>
+        </template>
+
+        <div v-else class="fl-drawer-empty">
+          <el-icon :size="22"><Tickets /></el-icon>
+          <p>点选左侧任意一条，这里显示完整档案</p>
+          <span>底库按分组隔离，切分组后档案会跟着换</span>
+        </div>
+      </aside>
     </section>
 
     <!-- ── 批量操作条 ─────────────────────────────────────── -->
@@ -348,9 +429,10 @@
 /**
  * 人脸底库管理面板。
  *
- * <p>版面与 {@link ImageLibraryPanel} 同源（共用 `library-panel.css`），
- * 差别只在业务动作：图像底库的拖放区直接上传入库，人脸登记需要档案字段
- * （身份证已改为必填），故拖放区改为打开登记弹窗。</p>
+ * <p>版面与「图像库」的老面板同源（共用 `library-panel.css`），
+ * 差别只在业务动作：图像库已升级为整页的台账/画布工作台
+ * （{@code components/library/ImageLibraryPage.vue}），人脸登记则仍留在本面板 ——
+ * 拖放区打开登记弹窗而不是直接上传。</p>
  *
  * <p>数据：服务端 `GET /v2/face/list` 权威（每条 `{id, metadata, hasImage}`），
  * 登记图由服务端落存（`GET /v2/face/{id}/image`），本机缩略图优先展示、服务端图兜底，
@@ -363,8 +445,8 @@ import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus';
 import {
-  Aim, CircleCheck, Delete, EditPen, Grid, Hide, MagicStick, Menu, Picture, Postcard, Refresh, Search, Select,
-  Tickets, Upload, UploadFilled, UserFilled, View, Warning, ZoomIn,
+  Aim, Close, Delete, EditPen, Grid, Hide, MagicStick, Menu, Refresh, Search, Select,
+  Tickets, Upload, UserFilled, View, Warning, ZoomIn,
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
@@ -424,7 +506,11 @@ const keyword = ref('')
 /** 已提交的检索词（回车/清空/防抖后生效）：网格与表格共用同一口径 */
 const kwApplied = ref('')
 const statusFilter = ref<'all' | 'thumb' | 'noThumb'>('all')
-const viewMode = ref<'grid' | 'list' | 'table'>('grid')
+/**
+ * 当前视图。默认 **table**（02 方向）：底库的常态是「一百多条要管」，
+ * 满屏可扫的表格 + 右侧常驻档案抽屉比网格更适合；网格/列表仍保留给看图场景。
+ */
+const viewMode = ref<'grid' | 'list' | 'table'>('table')
 const page = ref(1)
 const pageSize = 24
 /** 服务端排序（表格列头点出来的）；空 = 登记顺序 */
@@ -617,6 +703,54 @@ const visibleItems = computed<Row[]>(() => serverItems.value.map(toRow))
 
 const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
 
+/* ── 右侧档案抽屉（02 方向） ───────────────────────────────────── */
+
+/**
+ * 抽屉当前展示的行；null = 没有选中项（抽屉显示引导语）。
+ *
+ * <p>存的是**点选那一刻的行对象**，不是 id 再回查：表格视图的分页/排序由 ReTable
+ * 自己发请求，{@code serverItems} 停在网格/列表那一套页码上，按 id 回查会在
+ * 用户翻到第 2 页后突然查不到人、抽屉变空。行对象只作快照展示，改档案走弹窗，
+ * 不会出现「抽屉里改了一半」的状态。</p>
+ */
+const activeRow = ref<Row | null>(null)
+
+/**
+ * 该行是不是抽屉里正在看的那一条（网格/列表上给出「正在看」态）。
+ *
+ * @param item 展示行
+ * @return 是否正在看
+ */
+function isActive(item: Row): boolean {
+  return activeRow.value?.id === item.id
+}
+
+/**
+ * 点选一行 → 右侧抽屉换成这个人的档案。
+ *
+ * @param item 展示行
+ */
+function activate(item: Row) {
+  activeRow.value = item
+}
+
+/** 收起抽屉（不动列表勾选：那是批量删除用的另一套状态） */
+function closeActive() {
+  activeRow.value = null
+}
+
+/**
+ * 表格行点击 → 打开该行的档案抽屉。
+ *
+ * <p>ReTable 从 cell-click 合成 row-click，行内操作按钮的点击也会冒上来：
+ * 这里只切抽屉，不拦按钮自己的动作，两边互不影响。</p>
+ *
+ * @param row 表格行
+ */
+function onTableRowClick(row: Record<string, unknown>) {
+  activate(asRow(row))
+}
+
 /**
  * 表格行的登记图地址。
  *
@@ -660,6 +794,22 @@ function previewById(id: string) {
 }
 
 /**
+ * 抽屉里点登记图放大。
+ *
+ * <p>表格视图的行是 ReTable 的快照，{@code thumb} 停在加载那一刻的地址；
+ * 这里按 id 现取一次（blob 加载完成就能拿到真地址），网格/列表仍走 viewerjs。</p>
+ */
+function previewActive() {
+  const item = activeRow.value
+  if (!item) return
+  if (viewMode.value === 'table') {
+    previewById(item.id)
+    return
+  }
+  preview(item)
+}
+
+/**
  * 输入防抖提交检索词（300ms）：先本地改输入框，停顿后一次性打服务端。
  *
  * <p>回车/清空立即生效（见模板）——「敲完回车就查」是检索框的通用预期。</p>
@@ -696,6 +846,8 @@ watch(statusFilter, () => {
 // 顺带清掉勾选：跨分组的选中状态既无意义，批量删除还会删到别的组里去。
 watch(group, () => {
   selected.value = new Set()
+  // 换分组 = 换一整套库：右侧档案跟着清掉，免得留着别的组的人
+  activeRow.value = null
   tableRef.value?.clearAllSelection()
   rememberGroups([group.value])
   if (viewMode.value !== 'table') void load(1)
@@ -805,18 +957,19 @@ async function load(target = 1) {
 
 /* ── 表格视图（ReTable · 后端分页/筛选/排序） ──────────────────── */
 
-/** 表格列：缩略图/档案字段/状态/操作；可排序列全部走服务端（sortable='custom'） */
+/**
+ * 表格列（02 方向）：只留「扫一眼就要认人」的 5 列。
+ *
+ * <p>右侧常驻 340px 档案抽屉占掉一栏宽度，再摆 10 列会被横向挤成滚动条；
+ * 年龄/性别/发型/备注/坐标都已在抽屉里，分组由页签与抽屉标明 —— 列上重复只是噪音。
+ * 排序、列显隐、列宽拖拽仍由 ReTable 持久化（table-id 未变，老配置继续生效）。</p>
+ */
 const tableColumns: ReTableColumn[] = [
-  { prop: 'thumb', label: '登记图', width: 76, slot: 'thumb', align: 'center' },
-  { prop: 'name', label: '姓名', minWidth: 130, sortable: 'custom', showOverflowTooltip: true },
-  { prop: 'group', label: '分组', width: 120, slot: 'group', showOverflowTooltip: true },
-  { prop: 'idCard', label: '身份证', width: 170, sortable: 'custom', slot: 'idCard' },
-  { prop: 'age', label: '年龄', width: 80, sortable: 'custom', align: 'center' },
-  { prop: 'gender', label: '性别', width: 80, align: 'center' },
-  { prop: 'hair', label: '发型', width: 100 },
-  { prop: 'note', label: '备注', minWidth: 140, showOverflowTooltip: true },
-  { prop: 'hasImage', label: '登记图', width: 92, sortable: 'custom', slot: 'hasImage', align: 'center' },
-  { prop: 'actions', label: '操作', width: 150, slot: 'actions', fixed: 'right', align: 'center' },
+  { prop: 'thumb', label: '登记图', width: 72, slot: 'thumb', align: 'center' },
+  { prop: 'name', label: '姓名', minWidth: 104, sortable: 'custom', showOverflowTooltip: true },
+  { prop: 'idCard', label: '身份证', width: 140, sortable: 'custom', slot: 'idCard' },
+  { prop: 'hasImage', label: '状态', width: 80, sortable: 'custom', slot: 'hasImage', align: 'center' },
+  { prop: 'actions', label: '操作', width: 104, slot: 'actions', fixed: 'right', align: 'center' },
 ]
 
 /**
@@ -1027,6 +1180,7 @@ async function removeOne(item: Row) {
         return
       }
       registry.remove(item.id, group.value)
+      if (activeRow.value?.id === item.id) activeRow.value = null
       message.success(`已删除：${label}`)
       return
     }
@@ -1034,6 +1188,8 @@ async function removeOne(item: Row) {
     registry.remove(item.id, group.value)
     selected.value.delete(item.id)
     selected.value = new Set(selected.value)
+    // 删掉的正是抽屉里那个人：收起档案，别留一张已不存在的记录
+    if (activeRow.value?.id === item.id) activeRow.value = null
     message.success(`已删除：${label}`)
     await load(page.value)
   } catch (e: any) {
@@ -1061,6 +1217,8 @@ async function removeSelected() {
     }
     message[okCount === ids.length ? 'success' : 'warning'](`已删除 ${okCount}/${ids.length} 条`)
     clearSelection()
+    // 抽屉里那个人若在删除范围内，一并收起（否则会停在一条已不存在的档案上）
+    if (activeRow.value && ids.includes(activeRow.value.id)) activeRow.value = null
     await load(page.value)
   } finally {
     busy.value = false
@@ -1180,20 +1338,374 @@ onBeforeUnmount(() => {
   font-size: var(--rm-font-sm, var(--el-font-size-small));
 }
 
-/* 分组列：等宽字体便于扫读同名分组，颜色降一级避免抢姓名的主体地位 */
-.lt-group {
-  font-family: var(--el-font-family, monospace);
-  font-size: var(--rm-font-sm, var(--el-font-size-small));
-  color: var(--rm-text-secondary, var(--el-text-color-secondary));
-}
-
-/* 分组筛选：比状态筛选宽一点（分组名通常更长），与状态筛选同一视觉规格 */
-.lib-group-filter {
-  width: 160px;
-}
-
 .lt-actions {
   display: inline-flex;
   gap: 4px;
+}
+
+/* ==================== 07 分组页签专属样式 ==================== */
+.fl07-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 12px;
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+}
+
+.fl07-metrics b {
+  margin-left: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--rm-text, var(--el-text-color-primary));
+}
+
+.fl07-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--lib-border, var(--el-border-color-lighter));
+  border-radius: var(--lib-radius, var(--el-radius-lg, 12px));
+  background: var(--lib-surface, var(--el-bg-color-overlay));
+}
+
+.fl07-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--rm-text-regular, var(--el-text-color-regular));
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background var(--lib-transition, 0.2s ease), color var(--lib-transition, 0.2s ease);
+}
+
+.fl07-tab:hover {
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
+  color: var(--rm-text, var(--el-text-color-primary));
+}
+
+.fl07-tab.is-active {
+  background: color-mix(in srgb, var(--rm-primary, var(--el-color-primary)) 12%, transparent);
+  color: var(--rm-primary, var(--el-color-primary));
+  font-weight: 600;
+}
+
+.fl07-tab-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rm-primary, var(--el-color-primary)) 16%, transparent);
+  color: var(--rm-primary, var(--el-color-primary));
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fl07-tab:not(.is-active) .fl07-tab-count {
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+}
+
+.fl07-add-tab {
+  width: 88px;
+  margin-left: 4px;
+}
+
+.fl07-add-tab :deep(.el-select__wrapper) {
+  min-height: 30px;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fl07-add-tab .el-select__placeholder {
+  color: var(--rm-primary, var(--el-color-primary));
+}
+
+/* ==================== 02 方向：列表 + 常驻档案抽屉 ====================
+   面板改成两栏网格：左栏是网格/列表/表格共用的列表位，右栏常驻档案。
+   用 grid 分区而不是再包一层容器，是为了不动三个视图的既有结构 ——
+   图像底库、重识别库与人脸底库共用 library-panel.css，这里只改人脸这一份，
+   别把另外两个面板一起翻掉。 */
+.lib-page .lib-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 16px;
+}
+
+.lib-page .lib-panel > .lib-toolbar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.lib-page .lib-panel > .lib-grid,
+.lib-page .lib-panel > .lib-list,
+.lib-page .lib-panel > .lib-table {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.lib-page .lib-panel > .lib-pager {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.lib-page .lib-panel > .fl-drawer {
+  grid-column: 2;
+  grid-row: 2 / 4;
+}
+
+/* 「正在看」态：比勾选态弱一档 —— 勾选是批量删除的范围，别让两者混成一种颜色 */
+.lib-cell.is-active {
+  border-color: var(--lib-border, var(--el-border-color-lighter));
+  box-shadow: inset 0 -2px 0 var(--rm-primary, var(--el-color-primary));
+}
+
+.lib-row.is-active {
+  border-color: color-mix(in srgb, var(--rm-primary, var(--el-color-primary)) 35%, var(--rm-border, var(--el-border-color-lighter)));
+}
+
+/* ── 档案抽屉 ─────────────────────────────────────────── */
+.fl-drawer {
+  position: sticky;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 160px);
+  padding-left: 16px;
+  border-left: 1px solid var(--rm-border, var(--el-border-color-lighter));
+  overflow-y: auto;
+}
+
+/* 没选人时也给一栏高度：空着的一格若塌成 0，右栏边界会突然跳走 */
+.fl-drawer.is-empty {
+  justify-content: center;
+  min-height: 260px;
+}
+
+.fl-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fl-drawer-id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fl-drawer-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rm-text, var(--el-text-color-primary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-drawer-sub {
+  font-size: 12px;
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+}
+
+.fl-drawer-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--rm-radius-sm, var(--el-radius-sm, 6px));
+  background: transparent;
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--rm-transition, var(--el-transition-duration-fast, 0.2s) ease), color var(--rm-transition, var(--el-transition-duration-fast, 0.2s) ease);
+}
+
+.fl-drawer-close:hover {
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
+  color: var(--rm-text, var(--el-text-color-primary));
+}
+
+.fl-drawer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 20px;
+}
+
+.fl-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 登记图：3:4 证件照比例，点开走 viewerjs 放大（与列表同一条预览路径） */
+.fl-drawer-figure {
+  width: 104px;
+  height: 128px;
+  border: 1px solid var(--rm-border, var(--el-border-color-lighter));
+  border-radius: var(--rm-radius-sm, var(--el-radius-sm, 6px));
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.fl-drawer-figure img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fl-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.fl-metric {
+  padding: 6px 8px;
+  border-radius: var(--rm-radius-sm, var(--el-radius-sm, 6px));
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
+}
+
+.fl-metric dt {
+  font-size: 11px;
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+}
+
+.fl-metric dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rm-text, var(--el-text-color-primary));
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-drawer-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+}
+
+.fl-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.fl-field {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.fl-field dt {
+  flex: 0 0 56px;
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+}
+
+.fl-field dd {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--rm-text-regular, var(--el-text-color-regular));
+  word-break: break-all;
+}
+
+/* 备注是长文本：标题压在上面，不跟内容抢一行 */
+.fl-field.is-block {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fl-field.is-block dt {
+  flex: none;
+}
+
+.fl-mono {
+  font-family: var(--el-font-family, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--rm-border, var(--el-border-color-lighter));
+}
+
+.fl-drawer-actions .el-button {
+  flex: 1 1 auto;
+  min-width: 92px;
+  margin-left: 0;
+}
+
+.fl-drawer-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 36px 8px;
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+  text-align: center;
+}
+
+.fl-drawer-empty p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--rm-text-regular, var(--el-text-color-regular));
+}
+
+.fl-drawer-empty span {
+  font-size: 12px;
+}
+
+/* 窄屏：档案掉到列表下方，横排两栏会把表格挤到只剩滚动条 */
+@media (max-width: 1240px) {
+  .lib-page .lib-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lib-page .lib-panel > .fl-drawer {
+    grid-column: 1;
+    grid-row: auto;
+    position: static;
+    max-height: none;
+    padding: 12px 0 0;
+    border-left: none;
+    border-top: 1px solid var(--rm-border, var(--el-border-color-lighter));
+  }
+
+  .fl-drawer-figure {
+    width: 88px;
+    height: 110px;
+  }
 }
 </style>

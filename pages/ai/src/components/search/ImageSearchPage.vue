@@ -216,7 +216,7 @@
                 {{ searchMode === 'keyword'
                   ? '名称或关键词都没有命中，可换一个词再试'
                   : searched
-                    ? '可由管理员到「系统设置 → 图像底库」补充底图，或放宽上方相似度筛选'
+                    ? '可到侧栏「图像库」补充底图，或放宽上方相似度筛选'
                     : '支持拖拽、点击选择与粘贴，检索结果会显示在这里' }}
               </p>
             </div>
@@ -255,6 +255,7 @@ import {
 } from '@element-plus/icons-vue'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
+import { useRoute } from 'vue-router'
 import { apiService } from '@/services/ApiService'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader } from '@/utils/authImage'
@@ -291,6 +292,7 @@ interface ImageItem {
 const MAX_UPLOAD_EDGE = 1600
 
 const { toast, confirm } = usePopup()
+const route = useRoute()
 
 /**
  * 注意这里只取多值口径（检索范围），底库面板的登记/删除是单组定位，各走各的。
@@ -317,16 +319,26 @@ const searching = ref(false)
 const busy = ref(false)
 const searched = ref(false)
 
-const available = ref(false)
 const activeModel = ref('')
 /**
- * 模型门禁 store：以图搜图「特征模型是否真的配过」的唯一判据。
+ * 模型门禁 store：以图搜图「特征模型是否真的配过」的唯一判据（与侧栏徽标同源）。
  *
- * <p>与后端 {@code /image-search/status} 并用——那个口读数据库原值，
- * 一次性种子行会让「从没配过」也返回 {@code available=true}。
- * store 走设置中心同源的合并视图（{@code origin !== 'SYSTEM_DEFAULT'}）。</p>
+ * <p>store 走设置中心同源的合并视图（{@code origin !== 'SYSTEM_DEFAULT'}）。
+ * 后端 {@code /image-search/status} 读数据库原值，一次性种子行会让
+ * 「从没配过」也返回 {@code available=true}，所以不以它为据。</p>
  */
 const modelConfig = useModelConfigStore()
+
+/**
+ * 是否可用：直接取 store 的 {@code imageReady}，不再维护页面本地副本。
+ *
+ * <p>之前是本地 ref：初始 {@code false}（未知即未配置），load 完成后才翻
+ * {@code true}；运行中被接口报错（isNotConfigured 命中）还会长期置灰、
+ * 不随 store 恢复 —— 于是出现「页面提示未启用，侧栏/更多里却是已开启」的
+ * 口径分裂。现在两侧同一判据：加载完成前同为「未配置」，
+ * 加载完成后同为本配置。</p>
+ */
+const available = computed(() => modelConfig.imageReady)
 const results = ref<ImageItem[]>([])
 const minScore = ref(0)
 /**
@@ -698,7 +710,6 @@ async function runSearch() {
   } catch (e: any) {
     // 失败也要给出耗时：超时/报错时「等了多久」是排查的第一手信息
     elapsedMs.value = Math.round(performance.now() - startedAt)
-    if (isNotConfigured(e)) available.value = false
     toast.error(e?.message || '检索失败')
   } finally {
     searching.value = false
@@ -731,7 +742,6 @@ async function runKeywordSearch() {
     elapsedMs.value = Math.round(performance.now() - startedAt)
   } catch (e: any) {
     elapsedMs.value = Math.round(performance.now() - startedAt)
-    if (isNotConfigured(e)) available.value = false
     toast.error(e?.message || '关键词检索失败')
   } finally {
     searching.value = false
@@ -753,17 +763,10 @@ async function indexCurrent() {
     toast.success('已加入图像底库')
     if (searched.value) await runSearch()
   } catch (e: any) {
-    if (isNotConfigured(e)) available.value = false
     toast.error(e?.message || '入库失败')
   } finally {
     busy.value = false
   }
-}
-
-/** 未配置特征模型时后端返回的提示，用来把右上角状态置灰 */
-function isNotConfigured(error: any): boolean {
-  const msg = String(error?.message || '')
-  return msg.includes('feature_model') || msg.includes('未启用')
 }
 
 async function loadStatus() {
@@ -771,8 +774,9 @@ async function loadStatus() {
   // 那个口会把系统种子 cn-clip-rn50-image 当作「已配置」，与设置中心的
   // 「请选择模型」自相矛盾。
   await modelConfig.load()
-  available.value = modelConfig.imageReady
-  activeModel.value = available.value ? modelConfig.imageFeatureModel : ''
+  // available 是 imageReady 的 computed，store 刷新后自动跟着变；
+  // 这里只回填展示用模型名，不再写 available（页面/侧栏从此单一判据）。
+  activeModel.value = modelConfig.imageReady ? modelConfig.imageFeatureModel : ''
 }
 
 // 查询图换新后要重建查看器，否则 viewerjs 内部仍是上一张图
@@ -801,10 +805,48 @@ watch(available, async (ok) => {
   syncResultViewer()
 })
 
+/**
+ * 从「图像库」跳转过来的预填。
+ *
+ * <p>图像库的「以此图搜同款」只带记录 id（`?imageId=123&group=g`），
+ * 本页按 id 取原图后**立刻跑一次检索** —— 用户点的是「搜同款」，
+ * 停下来等他再选一次图就多了一步。取不到原图（只留缩略图 / 已被清理）
+ * 时明确说出来，而不是静默停在空画布。</p>
+ *
+ * <p>分组一起带过来：底库是按组隔离的，换组检索会得到完全不同的结果集。</p>
+ */
+async function prefillFromLibrary(): Promise<void> {
+  const raw = Array.isArray(route.query.imageId) ? route.query.imageId[0] : route.query.imageId
+  const id = Number(raw)
+  if (!Number.isFinite(id) || id <= 0) {
+    return
+  }
+  const g = Array.isArray(route.query.group) ? route.query.group[0] : route.query.group
+  if (typeof g === 'string' && g.trim()) {
+    setGroups([g.trim()])
+  }
+  if (!available.value) {
+    toast.warning(NOT_READY_MSG)
+    return
+  }
+  try {
+    const blob = await apiService.imageBlob(id)
+    if (!blob) {
+      toast.error('取原图失败：这条记录可能只留了缩略图，或原图已被清理')
+      return
+    }
+    await useImage(new File([blob], `library-${id}.png`, { type: blob.type || 'image/png' }))
+  } catch (e: any) {
+    toast.error(`取原图失败：${e?.message || '未知错误'}`)
+  }
+}
+
 onMounted(async () => {
   await loadStatus()
   // 先拉分组选项再拉列表：否则下拉里只有 default，用户看不到自己已有的分组
   await loadGroups()
+  // 图像库带 id 进来：分组已合并进选项，直接取原图检索
+  await prefillFromLibrary()
 })
 
 onBeforeUnmount(() => {
