@@ -193,7 +193,7 @@ const capabilities = computed<CapabilityChip[]>(() => {
       label: "文件存储",
       status: files ? (files.ok ? "ok" : "error") : "unknown",
       text: files ? (files.ok ? "可用" : "不可用") : "点此检测",
-      hint: files?.detail || "点此运行诊断，检查 localFileStorage 根目录/回收站",
+      hint: files?.detail || "点此运行诊断，检查 default 根目录/回收站",
     },
   ];
 });
@@ -481,10 +481,10 @@ async function runDiagnostics(): Promise<void> {
       // 探桶根而不是 .recycle：回收站目录只在第一次删除时创建，
       // 用它做健康探针会在新部署上稳定误报 404（页面本身已改为先 ensure 再列表）。
       try {
-        await http().get("/fs/localFileStorage").query({ format: "json" });
-        return "localFileStorage 根目录可访问";
+        await http().get("/fs/default").query({ format: "json" });
+        return "default 根目录可访问";
       } catch (e) {
-        throw new Error(probeDetail(e, "/fs/localFileStorage", "文件服务未挂载或桶名不匹配"));
+        throw new Error(probeDetail(e, "/fs/default", "文件服务未挂载或桶名不匹配"));
       }
     }, "/files"),
   ]);
