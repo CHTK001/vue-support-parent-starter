@@ -322,6 +322,15 @@ async function loadList() {
     const res = await listMenuTree();
     list.value = ((res?.data ?? []) as SysMenu[]).map(toVM);
     expandedKeys.value = collectAllKeys(list.value);
+    // 重新绑定当前选中节点：改完图标/名称后详情头与列表保持一致，不留在旧对象上
+    const currentId = current.value?.menuId;
+    if (currentId != null) {
+      const fresh = findById(list.value, currentId);
+      if (fresh) {
+        current.value = fresh;
+        buttonPerms.value = (fresh.children ?? []).filter((c) => c.menuType === 3);
+      }
+    }
   } catch (e) {
     message.error((e as Error)?.message ?? "菜单列表加载失败");
   } finally {
@@ -615,25 +624,79 @@ function findById(nodes: MenuVM[], id: number): MenuVM | null {
   return null;
 }
 
-/** 删除 */
+/** 统计后代节点数（含按钮权限），用于删除分支文案与提示 */
+function countDescendants(node: MenuVM): number {
+  return (node.children ?? []).reduce(
+    (sum, child) => sum + 1 + countDescendants(child),
+    0,
+  );
+}
+
+/** 后序收集节点 id（先子后父）：避免先把父节点摘掉、子节点失去归属 */
+function collectMenuIds(node: MenuVM): number[] {
+  const ids: number[] = [];
+  const walk = (current: MenuVM) => {
+    (current.children ?? []).forEach(walk);
+    if (current.menuId != null) ids.push(current.menuId);
+  };
+  walk(node);
+  return ids;
+}
+
+/**
+ * 删除菜单。
+ *
+ * 有子节点时给出两个分支：
+ *  - 「当前及子节点」：后序删除整棵子树；
+ *  - 「仅当前节点」：只删当前节点，子节点保留（父级被摘掉后由后端按顶层处理）。
+ * 没有子节点时保持原来的单次确认。
+ */
 async function handleDelete(node?: MenuVM) {
   const target = node ?? current.value;
-  if (!target?.menuId) {
+  const menuId = target?.menuId;
+  if (!target || !menuId) {
     message.warning("请先选择菜单");
     return;
   }
-  if (target.children?.length) {
-    message.warning("存在子菜单，请先删除子菜单");
-    return;
-  }
+
+  const descendants = countDescendants(target);
+  let cascade = false;
   try {
-    await ElMessageBox.confirm(`确认删除「${target.menuName}」？`, "提示", { type: "warning" });
-  } catch {
+    if (descendants > 0) {
+      await ElMessageBox.confirm(
+        `「${target.menuName}」下还有 ${descendants} 个子节点，请选择删除方式：`,
+        "删除菜单",
+        {
+          type: "warning",
+          distinguishCancelAndClose: true,
+          confirmButtonText: `当前及 ${descendants} 个子节点`,
+          cancelButtonText: "仅当前节点",
+        },
+      );
+      cascade = true;
+    } else {
+      await ElMessageBox.confirm(`确认删除「${target.menuName}」？`, "提示", { type: "warning" });
+    }
+  } catch (action) {
+    // 「仅当前节点」走的是 cancel；右上角关闭是 close，整体放弃
+    if (action !== "cancel" || descendants === 0) return;
+    cascade = false;
+  }
+
+  const ids = cascade ? collectMenuIds(target) : [menuId];
+  try {
+    for (const id of ids) {
+      await deleteMenu(id);
+    }
+  } catch (e) {
+    message.error((e as Error)?.message ?? "删除失败");
+    loadList();
     return;
   }
-  await deleteMenu(target.menuId);
-  message.success("删除成功");
-  if (current.value?.menuId === target.menuId) {
+
+  message.success(cascade ? `已删除 ${ids.length} 个节点` : "删除成功");
+  const currentId = current.value?.menuId;
+  if (currentId != null && ids.includes(currentId)) {
     current.value = null;
     buttonPerms.value = [];
   }
@@ -858,6 +921,7 @@ const detailItems = computed(() => {
   const items: Array<{ label: string; value: string }> = [
     { label: "菜单名称", value: c.menuName ?? "-" },
     { label: "菜单类型", value: typeLabels[c.menuType ?? 0] ?? "-" },
+    { label: "显示状态", value: c.isVisible === 1 ? "显示" : "隐藏" },
     { label: "路由名称", value: c.name ?? "-" },
     { label: "路由地址", value: c.path ?? "-" },
   ];
@@ -909,26 +973,28 @@ onMounted(() => {
     <div class="menu-tree-card koi-card h-full flex flex-col">
       <div class="koi-card__body">
         <div class="menu-panel-header">
-          <div class="menu-panel-title">
-            <span class="menu-panel-title__icon">
-              <el-icon><MoreFilled /></el-icon>
-            </span>
-            <div>
-              <div class="menu-panel-title__text">菜单管理</div>
-              <div class="menu-panel-title__desc">维护目录、菜单与权限入口</div>
+          <div class="menu-panel-head">
+            <div class="menu-panel-title">
+              <span class="menu-panel-title__icon">
+                <el-icon><MoreFilled /></el-icon>
+              </span>
+              <div class="menu-panel-title__main">
+                <div class="menu-panel-title__text">菜单管理</div>
+              </div>
+            </div>
+            <div class="menu-action-group">
+              <el-tooltip content="新增" placement="top">
+                <el-button type="primary" icon="Plus" circle plain @click="handleAdd()" />
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button type="danger" icon="Delete" circle plain @click="handleDelete()" />
+              </el-tooltip>
+              <el-tooltip content="刷新" placement="top">
+                <el-button type="info" icon="Refresh" circle plain @click="refresh" />
+              </el-tooltip>
             </div>
           </div>
-          <div class="menu-action-group">
-            <el-tooltip content="新增" placement="top">
-              <el-button type="primary" icon="Plus" circle plain @click="handleAdd()" />
-            </el-tooltip>
-            <el-tooltip content="删除" placement="top">
-              <el-button type="danger" icon="Delete" circle plain @click="handleDelete()" />
-            </el-tooltip>
-            <el-tooltip content="刷新" placement="top">
-              <el-button type="info" icon="Refresh" circle plain @click="refresh" />
-            </el-tooltip>
-          </div>
+          <div class="menu-panel-title__desc menu-tree-desc">维护目录、菜单与权限入口</div>
 
           <div class="menu-tree-toolbar">
             <el-input v-model="keyword" placeholder="搜索菜单名称" clearable :prefix-icon="Search" />
@@ -1090,29 +1156,37 @@ onMounted(() => {
         <div class="koi-card__body">
           <div class="menu-panel-header">
             <div class="menu-panel-title">
-              <span class="menu-panel-title__icon is-detail">
-                <el-icon><Edit /></el-icon>
+              <span class="menu-panel-title__icon" :class="current?.menuType === 3 ? 'is-button' : 'is-detail'">
+                <ReIcon v-if="current?.icon" :name="current.icon" :size="17" />
+                <el-icon v-else><Edit /></el-icon>
               </span>
-              <div>
+              <div class="menu-panel-title__main">
                 <div class="menu-panel-title__text">菜单详情</div>
                 <div class="menu-panel-title__desc">{{ current ? current.menuName : '请选择左侧菜单查看配置' }}</div>
               </div>
             </div>
-            <div v-if="current" class="menu-action-group">
-              <el-tooltip content="上移" placement="top"><el-button type="primary" icon="ArrowUp" circle plain @click="handleMove('up')" /></el-tooltip>
-              <el-tooltip content="下移" placement="top"><el-button type="primary" icon="ArrowDown" circle plain @click="handleMove('down')" /></el-tooltip>
-              <el-tooltip content="新增子菜单" placement="top">
-                <el-button type="primary" icon="Plus" circle plain @click="handleAdd(current)" />
-              </el-tooltip>
-              <el-tooltip content="编辑" placement="top">
-                <el-button type="success" icon="Edit" circle plain @click="handleEdit()" />
-              </el-tooltip>
-              <el-tooltip content="删除" placement="top">
-                <el-button type="danger" icon="Delete" circle plain @click="handleDelete()" />
-              </el-tooltip>
-              <el-tooltip content="刷新" placement="top">
-                <el-button type="info" icon="Refresh" circle plain @click="refresh" />
-              </el-tooltip>
+            <div v-if="current" class="menu-detail-head-right">
+              <div class="menu-detail-info">
+                <span><em>路由</em><strong :title="current.path || '-'">{{ current.path || '-' }}</strong></span>
+                <span><em>权限</em><strong :title="current.auth || '-'">{{ current.auth || '-' }}</strong></span>
+                <span><em>按钮</em><strong>{{ buttonPerms.length }} 个</strong></span>
+              </div>
+              <div class="menu-action-group">
+                <el-tooltip content="上移" placement="top"><el-button type="primary" icon="ArrowUp" circle plain @click="handleMove('up')" /></el-tooltip>
+                <el-tooltip content="下移" placement="top"><el-button type="primary" icon="ArrowDown" circle plain @click="handleMove('down')" /></el-tooltip>
+                <el-tooltip content="新增子菜单" placement="top">
+                  <el-button type="primary" icon="Plus" circle plain @click="handleAdd(current)" />
+                </el-tooltip>
+                <el-tooltip content="编辑" placement="top">
+                  <el-button type="success" icon="Edit" circle plain @click="handleEdit()" />
+                </el-tooltip>
+                <el-tooltip content="删除" placement="top">
+                  <el-button type="danger" icon="Delete" circle plain @click="handleDelete()" />
+                </el-tooltip>
+                <el-tooltip content="刷新" placement="top">
+                  <el-button type="info" icon="Refresh" circle plain @click="refresh" />
+                </el-tooltip>
+              </div>
             </div>
           </div>
 
@@ -1120,50 +1194,6 @@ onMounted(() => {
             <!-- 未选中时占位 -->
             <el-empty v-if="!current" description="请选择菜单查看配置" :image-size="120" />
             <template v-else>
-              <!-- Hero 详情头 -->
-              <div class="menu-detail-hero">
-                <span class="menu-detail-hero__icon" :class="nodeClass(current)">
-                  <ReIcon :name="current.icon" :size="18" />
-                </span>
-                <div class="menu-detail-hero__main">
-                  <div class="menu-detail-hero__top">
-                    <span class="menu-detail-hero__title">{{ current.menuName }}</span>
-                    <div class="menu-detail-hero__meta">
-                      <el-tag  effect="light">{{ typeLabels[current.menuType ?? 0] ?? '-' }}</el-tag>
-                      <el-tag  :type="current.isVisible === 1 ? 'primary' : 'warning'" effect="plain">
-                        {{ current.isVisible === 1 ? '显示' : '隐藏' }}
-                      </el-tag>
-                      <el-tag v-if="current.isRemind === 1"  type="warning" effect="plain">脱离菜单</el-tag>
-                      <el-tag v-if="current.isKeepAlive === 1"  type="primary" effect="plain">缓存</el-tag>
-                      <el-tag v-if="isLink(current)"  type="primary" effect="plain">外链</el-tag>
-                      <el-tag v-if="isIframe(current)"  type="success" effect="plain">iframe</el-tag>
-                      <template v-if="current.isTag === 1">
-                        <el-tag
-                          v-if="current.tagName"
-                          
-                          :type="(current.tagType as any) || 'primary'"
-                          effect="light"
-                          round
-                          disable-transitions
-                        >
-                          {{ current.tagName }}
-                        </el-tag>
-                        <span
-                          v-else
-                          class="menu-detail-hero__badge-dot"
-                          :style="{ background: tagTypeColor[current.tagType ?? 'primary'] ?? tagTypeColor.primary }"
-                        />
-                      </template>
-                    </div>
-                  </div>
-                  <div class="menu-detail-hero__info">
-                    <span><em>路由</em><strong>{{ current.path || '-' }}</strong></span>
-                    <span><em>权限</em><strong>{{ current.auth || '-' }}</strong></span>
-                    <span><em>按钮</em><strong>{{ buttonPerms.length }} 个</strong></span>
-                  </div>
-                </div>
-              </div>
-
               <!-- 描述列表 -->
               <el-descriptions class="menu-descriptions" :column="2" border>
                 <el-descriptions-item v-for="item in detailItems" :key="item.label" :label="item.label">
@@ -1755,13 +1785,29 @@ export default defineComponent({
 }
 .menu-tree-card .menu-panel-header {
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 10px;
+}
+/* 左栏标题行：标题在左、三个操作按钮贴右，同一行 */
+.menu-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+.menu-tree-card .menu-panel-head .menu-panel-title {
+  flex: 1;
+  min-width: 0;
 }
 .menu-panel-title {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+.menu-panel-title__main {
   min-width: 0;
 }
 .menu-panel-title__icon {
@@ -1803,6 +1849,10 @@ export default defineComponent({
   line-height: 1.4;
   overflow: hidden;
 }
+/* 左栏说明行：标题行让位给按钮后，说明单独占一行 */
+.menu-tree-desc {
+  max-width: 100%;
+}
 
 /* ==================== 操作按钮（目标站：圆角正方形 + 靠右） ==================== */
 .menu-action-group {
@@ -1811,9 +1861,6 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 6px;
   flex-shrink: 0;
-}
-.menu-tree-card .menu-action-group {
-  align-self: flex-end;
 }
 .menu-action-group :deep(.el-button.is-circle) {
   /* 原 8px 魔法值 → --el-radius-md */
@@ -2043,93 +2090,48 @@ export default defineComponent({
   overflow: auto;
   margin-top: 6px;
 }
-.menu-detail-hero {
+/* 详情头部右侧：路由 / 权限 / 按钮 + 操作按钮 */
+.menu-detail-head-right {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
-  min-height: 72px;
-  padding: 10px 14px;
-  margin-bottom: 10px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-blank);
-  border-radius: var(--el-radius-xl, 16px);
+  min-width: 0;
+  flex-shrink: 0;
 }
-.menu-detail-hero__icon {
-  width: 40px;
-  height: 40px;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  border: 1px solid var(--el-color-primary-light-7);
+.menu-detail-info {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.menu-detail-info span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 220px;
+  padding: 3px 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
   /* 原 8px 魔法值 → --el-radius-md */
   border-radius: var(--el-radius-md, 8px);
-  flex-shrink: 0;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 18px;
 }
-.menu-detail-hero__main {
-  flex: 1;
-  min-width: 0;
-}
-.menu-detail-hero__top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.menu-detail-hero__title {
-  color: var(--el-text-color-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.35;
-  overflow: hidden;
-}
-.menu-detail-hero__meta {
-  display: flex;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-  gap: 6px;
-}
-.menu-detail-hero__badge-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  align-self: center;
-  /* 原 50% → --el-radius-full（圆形点） */
-  border-radius: var(--el-radius-full, 9999px);
-}
-.menu-detail-hero__info {
-  display: grid;
-  grid-template-columns: minmax(120px, 0.9fr) minmax(140px, 1fr) 72px;
-  gap: 10px;
-  margin-top: 8px;
-}
-.menu-detail-hero__info span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.menu-detail-hero__info em {
+.menu-detail-info em {
   color: var(--el-text-color-secondary);
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: 11px;
   font-style: normal;
 }
-.menu-detail-hero__info strong {
+.menu-detail-info strong {
   min-width: 0;
   color: var(--el-text-color-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   overflow: hidden;
-}
-.menu-detail-hero__actions {
-  flex-shrink: 0;
 }
 .menu-descriptions :deep(.el-descriptions__label) {
   width: 108px;
@@ -2397,6 +2399,19 @@ export default defineComponent({
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* 详情头部：窄屏时信息条与操作按钮折行，避免撑破标题 */
+@media (max-width: 1280px) {
+  .menu-detail-card .menu-panel-header {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .menu-detail-head-right {
+    flex-shrink: 1;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
 }
 
 @media (max-width: 768px) {
