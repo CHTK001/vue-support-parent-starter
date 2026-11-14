@@ -2,24 +2,32 @@
 /**
  * 服务管理 —— 协议服务器节点（Server 接口 + ServerFilter 插件）
  *
- * 职责：服务节点的增删改查与启停，过滤器链 / 详情从卡片进入。
+ * 职责：服务节点的增删改查与启停，过滤器链 / 详情在右栏展开。
  *
- * <p>版式按主机资产页的语言重做：统计带 / 筛选带 / 卡片网格三段，段与段、卡与卡
- * 之间统一 2px 缝隙（底色是 `--bg-page`，白卡之间的缝就是那 2px 灰线）。因此这里
- * 不使用圆角与投影 —— 圆角 + 投影会在 2px 的缝里挤出灰边，视觉缝宽就不再是 2px。
- * 页面没有标题头：统计带就是首屏第一段。</p>
+ * <p>版式按发布管理（{@code pages/server} 的「主机文件」）的三列主体：</p>
+ * <ul>
+ *   <li><b>左栏</b>：总览计数与状态筛选（全量口径，来自 {@code /server/summary}）；</li>
+ *   <li><b>中栏</b>：筛选工具条 + ReTable（服务端分页）+ 分页器；</li>
+ *   <li><b>右栏</b>：选中行的详情与过滤器链（复用 {@link ScServerDetailDrawer} 的嵌入模式）。</li>
+ * </ul>
+ *
+ * <p><b>分页</b>：表格用 ReTable 的 {@code loader}（后端分页），前端不持有全量数组，
+ * 也不在本地切片。左栏计数与表单重名校验需要全量规模，所以走一份轻量摘要接口
+ * —— 用当前页去算总数会在翻页后变成 20。</p>
+ *
+ * <p><b>按钮</b>：工具条与操作列统一 {@code ReButton layout="square"} + {@code tip}，
+ * 图标即语义，悬浮给文字，避免表格里塞一排文字按钮把行高撑开。</p>
  *
  * <p>分层不变：</p>
  * <ul>
- *   <li>`service/serviceView.ts`     纯函数：后端行 → 展示对象</li>
- *   <li>`service/useServiceNodes.ts` 取数与动作：状态、自动刷新、启停、抽屉开合</li>
+ *   <li>`service/useServiceNodes.ts` 取数与动作：摘要、自动刷新、启停、抽屉开合</li>
  *   <li>本页面只读 {@link ServiceNodesVm}，自己不算节点状态</li>
  * </ul>
  *
  * @author CH
  * @since 4.0.0
  */
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { message } from '@repo/core';
 import { useRoute } from 'vue-router';
 import { ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plus';
@@ -29,157 +37,257 @@ import ReSelect from '@repo/ui/re-select';
 import ReDrawer from '@repo/ui/re-drawer';
 import ReDialog from '@repo/ui/re-dialog';
 import ReEmpty from '@repo/ui/re-empty';
+import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import { RoomView } from '@pages/room';
 import ScServerFormDrawer from '../components/ScServerFormDrawer.vue';
 import ScServerDetailDrawer from '../components/ScServerDetailDrawer.vue';
 import ScServerOperLogPanel from '../components/ScServerOperLogPanel.vue';
 import { copyText } from '../utils/clipboard';
+import { deriveStatusMeta } from '../utils/nodeList';
+import { listServerNodes, type ServerNodeView } from '../api';
 import { useServiceNodes } from './service/useServiceNodes';
-import { primaryActionOf, stateClassOf, type ServiceNodeCard } from './service/serviceView';
-import type { ServerNodeView } from '../api';
 
 const vm = useServiceNodes();
 const route = useRoute();
 
-/* ==================== 统计带 ==================== */
+/* ==================== 表格 ==================== */
 
-/** 已出现过的协议种类数（统计带副文案用） */
-const protocolKinds = computed(
-  () => new Set(vm.cards.map(card => card.protocolCode).filter(Boolean)).size,
+/** ReTable 实例：动作后重取当前页 */
+const tableRef = ref<{ reload?: () => Promise<unknown> } | null>(null);
+
+/** 右栏当前展示的节点（点行选中，空则右栏给空态） */
+const selectedId = ref<number | null>(null);
+
+/** 搜索框的生效值：输入 320ms 后才打进查询条件，避免每敲一个字打一次请求 */
+const appliedKeyword = ref('');
+
+/** 搜索防抖计时器 */
+let keywordTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(
+  () => vm.keyword,
+  value => {
+    if (keywordTimer) clearTimeout(keywordTimer);
+    keywordTimer = setTimeout(() => {
+      appliedKeyword.value = value.trim();
+      keywordTimer = null;
+    }, 320);
+  },
 );
 
-/** 运行占比（分母为 0 时给 0，不让 NaN 上屏） */
-const runningPct = computed(() => {
-  const total = vm.stats.total;
-  return total ? Math.round((vm.stats.running / total) * 100) : 0;
-});
+/**
+ * 表格查询条件。
+ *
+ * <p>ReTable 会监听它并自动回到第 1 页重取；{@code page / pageSize} 由组件写回，
+ * 这里只放业务条件。</p>
+ */
+const tableParams = computed(() => ({
+  keyword: appliedKeyword.value,
+  protocol: vm.protocol,
+  status: vm.status,
+  sort: vm.sort,
+}));
 
-/* ==================== 筛选与排序 ==================== */
-
-/** 排序口径 */
-const sortBy = ref<'name' | 'port' | 'status'>('name');
-
-/** 排序下拉 */
+/**
+ * 排序下拉。
+ *
+ * <p>排序总有一项生效，所以不需要「全部」，标签里带上「排序：」以免和协议下拉混淆。</p>
+ */
 const sortOptions = [
   { label: '排序：名称', value: 'name' },
   { label: '排序：端口', value: 'port' },
   { label: '排序：状态', value: 'status' },
 ];
 
-/** 协议下拉：首项「全部」，其余来自后端内置 + SPI 元数据 */
-const protocolOptions = computed(() => [
-  { label: '协议：全部', value: '' },
-  ...vm.protocolOptions,
-]);
-
-/** 状态下拉 */
+/**
+ * 状态下拉。
+ *
+ * <p>空值表示不过滤，靠 {@code placeholder} 表达「全部状态」：
+ * Element Plus 在值为空串时显示占位符，塞一个 value='' 的「全部」选项反而点不出来。</p>
+ */
 const statusOptions = [
-  { label: '状态：全部', value: '' },
   { label: '运行中', value: 'RUNNING' },
   { label: '异常', value: 'ERROR' },
   { label: '已停止', value: 'STOPPED' },
 ];
 
-/** 状态排序权重：异常最先，其次运行中，最后已停止 */
-const STATUS_ORDER: Record<string, number> = { ERROR: 0, RUNNING: 1, STOPPED: 2 };
+/* ==================== 展示口径 ==================== */
 
-/**
- * 排序后的可见卡片。
- *
- * <p>名称与端口走 `localeCompare(..., 'zh-CN', { numeric: true })`，让 `node-2`
- * 排在 `node-10` 前面；状态排序把异常排最前，排障时先看到出问题的服务。</p>
- */
-const sortedCards = computed<ServiceNodeCard[]>(() => {
-  const list = [...vm.visibleCards];
-  if (sortBy.value === 'port') {
-    return list.sort((a, b) => (a.port ?? 0) - (b.port ?? 0));
-  }
-  if (sortBy.value === 'status') {
-    return list.sort(
-      (a, b) =>
-        (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9) ||
-        a.name.localeCompare(b.name, 'zh-CN', { numeric: true }),
-    );
-  }
-  return list.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true }));
+/** 运行占比（分母为 0 时给 0，不让 NaN 上屏） */
+const runningPct = computed(() => {
+  const total = vm.summary.total;
+  return total ? Math.round((vm.summary.running / total) * 100) : 0;
 });
 
-/* ==================== 卡片口径 ==================== */
+/** 协议种类数（下拉项去掉「全部」） */
+const protocolKinds = computed(() => vm.protocolOptions.length);
+
+/** 左栏状态筛选项 */
+const statusFilters = computed(() => [
+  { value: '' as const, label: '全部服务', count: vm.statusCounts.all, tone: 'is-all' },
+  { value: 'RUNNING' as const, label: '运行中', count: vm.statusCounts.running, tone: 'is-run' },
+  { value: 'ERROR' as const, label: '异常', count: vm.statusCounts.error, tone: 'is-err' },
+  { value: 'STOPPED' as const, label: '已停止', count: vm.statusCounts.stopped, tone: 'is-stop' },
+]);
 
 /**
- * 过滤器生效比例（环图用）。
+ * 表格行还原成节点视图。
  *
- * <p>没有挂载过滤器时给 0：环画成空环，比画成满环更符合「链上一个都没挂」。</p>
+ * <p>ReTable 的行类型是 {@code Record<string, unknown>}，插槽里拿到的是同一批对象，
+ * 这里只做一次类型还原，避免模板里到处写断言。</p>
  *
- * @param card 展示数据
+ * @param row 表格行
  */
-function filterPct(card: ServiceNodeCard): number {
-  if (!card.filterCount) return 0;
-  return Math.round((card.activeFilterCount / card.filterCount) * 100);
+function rowOf(row: Record<string, unknown>): ServerNodeView {
+  return row as unknown as ServerNodeView;
+}
+
+/**
+ * 监听地址。
+ *
+ * @param node 节点
+ */
+function listenText(node: ServerNodeView): string {
+  return `${node.host || '0.0.0.0'}:${node.port ?? '-'}`;
+}
+
+/**
+ * 反向代理后端：{@code host:port}（没有则空串）。
+ *
+ * @param node 节点
+ */
+function backendText(node: ServerNodeView): string {
+  const config = node.config || {};
+  const host = config.backendHost ?? config.host;
+  const port = config.backendPort ?? config.port;
+  return host && port ? `${host}:${port}` : '';
+}
+
+/**
+ * 「访问 / 后端」列：运行中有访问地址优先显示，否则显示代理后端。
+ *
+ * @param node 节点
+ */
+function endpointText(node: ServerNodeView): string {
+  return node.serverUrl || backendText(node) || '-';
+}
+
+/**
+ * 协议展示名。
+ *
+ * @param node 节点
+ */
+function protocolText(node: ServerNodeView): string {
+  return node.protocolDesc || node.protocol || '-';
+}
+
+/**
+ * 状态点样式（与左栏同一套色）。
+ *
+ * @param node 节点
+ */
+function statusDotClass(node: ServerNodeView): string {
+  const tone = deriveStatusMeta(node).tone;
+  return tone === 'success' ? 'is-run' : tone === 'danger' ? 'is-err' : 'is-stop';
+}
+
+/**
+ * 状态中文文案。
+ *
+ * @param node 节点
+ */
+function statusTextOf(node: ServerNodeView): string {
+  return deriveStatusMeta(node).text;
 }
 
 /** 是否为 P2P 房间协议节点（协议编码可能是 ROOM / room） */
-function isRoomCard(card: ServiceNodeCard): boolean {
-  return String(card.protocolCode || '').trim().toLowerCase() === 'room';
+function isRoomNode(node: ServerNodeView): boolean {
+  return String(node.protocol || '').trim().toLowerCase() === 'room';
 }
 
-/** 按卡片取后端行（动作接口要的是后端行） */
-function nodeOf(card: ServiceNodeCard): ServerNodeView | undefined {
-  return vm.nodes.find(node => node.id === card.id);
-}
-
-/* ==================== 行内动作 ==================== */
+/** 主操作：运行中的能停，异常的给重启，其余能启 */
+type PrimaryAction = 'start' | 'stop' | 'restart';
 
 /**
- * 主操作：运行中的能停，异常的给重启，其余能启。
+ * 取主操作。
  *
- * @param card 展示数据
+ * @param node 节点
  */
-function runPrimary(card: ServiceNodeCard): void {
-  const node = nodeOf(card);
-  if (!node) return;
-  const action = primaryActionOf(card);
+function primaryActionOf(node: ServerNodeView): PrimaryAction {
+  if (node.status === 'RUNNING') return 'stop';
+  if (node.status === 'ERROR') return 'restart';
+  return 'start';
+}
+
+/**
+ * 主操作图标。
+ *
+ * @param node 节点
+ */
+function primaryIconOf(node: ServerNodeView): string {
+  const action = primaryActionOf(node);
+  return action === 'stop' ? 'VideoPause' : action === 'restart' ? 'RefreshRight' : 'VideoPlay';
+}
+
+/**
+ * 主操作提示文案。
+ *
+ * @param node 节点
+ */
+function primaryTipOf(node: ServerNodeView): string {
+  const action = primaryActionOf(node);
+  return action === 'stop' ? '停止服务' : action === 'restart' ? '重启服务' : '启动服务';
+}
+
+/**
+ * 执行主操作。
+ *
+ * @param node 节点
+ */
+function runPrimary(node: ServerNodeView): void {
+  const action = primaryActionOf(node);
   if (action === 'stop') void vm.stop(node);
   else if (action === 'restart') void vm.restart(node);
   else void vm.start(node);
 }
 
-/** 主操作文案 */
-function primaryLabel(card: ServiceNodeCard): string {
-  const action = primaryActionOf(card);
-  return action === 'stop' ? '停止' : action === 'restart' ? '重启' : '启动';
+/** 行点击：展开右栏详情 */
+function onRowClick(row: Record<string, unknown>): void {
+  selectedId.value = rowOf(row).id;
 }
 
-/** 编辑：走表单抽屉（新增 / 编辑 / 克隆共用） */
-function editCard(card: ServiceNodeCard): void {
-  const node = nodeOf(card);
-  if (node) vm.openEdit(node);
-}
-
-/** 删除：vm.remove 内部有二次确认，运行中的实例先停再删 */
-function removeCard(card: ServiceNodeCard): void {
-  const node = nodeOf(card);
-  if (node) void vm.remove(node);
-}
-
-/* ==================== 详情抽屉 ==================== */
-
-/** 详情抽屉开关 */
-const detailVisible = ref(false);
-/** 详情抽屉指向的节点 */
-const detailNodeId = ref<number | null>(null);
+/* ==================== 表格列 ==================== */
 
 /**
- * 打开服务详情（详情与过滤器链在抽屉内分页签切换）。
+ * 列定义。
  *
- * @param card 展示数据
+ * <p>三列主体下中栏还要让出「左栏 214 + 右栏 360」，所以列宽压得比较紧：
+ * 名称与「访问 / 后端」用 minWidth 吃剩余宽度，其余固定 —— 固定列宽在翻页时不会跳动，
+ * 也不会因为某页名字长而把操作列挤出去。</p>
  */
-function openDetail(card: ServiceNodeCard): void {
-  detailNodeId.value = card.id;
-  detailVisible.value = true;
-}
+const columns = computed<ReTableColumn[]>(() => [
+  { prop: 'status', label: '状态', width: 76, slot: 'status' },
+  { prop: 'name', label: '服务', minWidth: 168, slot: 'name', showOverflowTooltip: true },
+  { prop: 'port', label: '监听', width: 126, slot: 'listen' },
+  {
+    prop: 'protocol',
+    label: '协议',
+    width: 92,
+    formatter: row => protocolText(row as unknown as ServerNodeView),
+  },
+  { prop: 'filters', label: '过滤器', width: 58, slot: 'filters', align: 'center' },
+  {
+    prop: 'serverUrl',
+    label: '访问 / 后端',
+    minWidth: 132,
+    slot: 'endpoint',
+    showOverflowTooltip: true,
+  },
+  { prop: 'actions', label: '操作', width: 104, slot: 'actions', align: 'right', fixed: 'right' },
+]);
 
-/* ==================== 卡片「更多」 ==================== */
+/* ==================== 操作日志 ==================== */
 
 /** 操作日志弹框是否可见 */
 const operLogVisible = ref(false);
@@ -187,7 +295,7 @@ const operLogVisible = ref(false);
 const operLogNode = ref<{ id: number; name: string } | null>(null);
 
 /**
- * 复制卡片文本，成功与否都在页面这一层给 toast。
+ * 复制文本，成功与否都在页面这一层给 toast。
  *
  * @param text 文本
  * @param ok   成功提示
@@ -201,57 +309,50 @@ async function copyCardText(text: string, ok: string): Promise<void> {
 /**
  * 打开节点操作日志。
  *
- * <p>只对已持久化的节点开放：{@code node_id} 是非空列，新建但没保存的卡片还没有
- * 可查询的主键。</p>
- *
- * @param card 目标节点卡片
+ * @param node 节点
  */
-function openOperLog(card: ServiceNodeCard): void {
-  if (!card.id) {
+function openOperLog(node: ServerNodeView): void {
+  if (!node.id) {
     message.warning('该服务还未保存，暂无可查询的操作日志');
     return;
   }
-  operLogNode.value = { id: card.id, name: card.name };
+  operLogNode.value = { id: node.id, name: node.name };
   operLogVisible.value = true;
 }
 
 /**
- * 卡片「更多」命令分发。
+ * 行内「更多」命令分发。
  *
  * @param cmd  命令标识
- * @param card 目标节点卡片
+ * @param node 目标节点
  */
-function onCardCommand(cmd: string, card: ServiceNodeCard): void {
+function onRowCommand(cmd: string, node: ServerNodeView): void {
   switch (cmd) {
-    case 'detail':
-      openDetail(card);
+    case 'clone':
+      vm.openClone(node);
       break;
-    case 'clone': {
-      const node = nodeOf(card);
-      if (node) vm.openClone(node);
-      break;
-    }
     case 'oper-log':
-      openOperLog(card);
+      openOperLog(node);
       break;
     case 'room':
-      openRoom(card);
+      openRoom(node);
       break;
     case 'copy-name':
-      void copyCardText(card.name, '服务名称已复制');
+      void copyCardText(node.name, '服务名称已复制');
       break;
     case 'copy-listen':
-      void copyCardText(card.listenText, '监听地址已复制');
+      void copyCardText(listenText(node), '监听地址已复制');
       break;
     case 'copy-url':
-      if (!card.url) {
+      if (!node.serverUrl) {
         message.info('该服务没有访问地址');
         break;
       }
-      void copyCardText(card.url, '访问地址已复制');
+      void copyCardText(node.serverUrl, '访问地址已复制');
       break;
     case 'delete':
-      removeCard(card);
+      if (selectedId.value === node.id) selectedId.value = null;
+      void vm.remove(node);
       break;
     default:
       break;
@@ -267,29 +368,24 @@ const roomId = ref('');
 /** 房间信令地址 */
 const roomServerUrl = ref('');
 
-/** 找一个运行中、且有可连接地址的 ROOM 节点 */
-function findRunningRoom(): ServiceNodeCard | undefined {
-  return vm.cards.filter(isRoomCard).find(card => card.status === 'RUNNING' && !!card.url);
-}
-
 /**
- * 从卡片打开房间工作台。
+ * 从行打开房间工作台。
  *
  * <p>只有运行中的节点才开：没监听就没有信令面，连上去必然失败。</p>
  *
- * @param card 房间节点卡片
+ * @param node 房间节点
  */
-function openRoom(card: ServiceNodeCard): void {
-  if (card.status !== 'RUNNING') {
-    message.warning(`房间节点「${card.name}」未运行，请先启动`);
+function openRoom(node: ServerNodeView): void {
+  if (node.status !== 'RUNNING') {
+    message.warning(`房间节点「${node.name}」未运行，请先启动`);
     return;
   }
-  if (!card.url) {
+  if (!node.serverUrl) {
     message.warning('房间节点没有可用地址（检查监听地址与端口）');
     return;
   }
   roomId.value = '';
-  roomServerUrl.value = card.url;
+  roomServerUrl.value = node.serverUrl;
   roomVisible.value = true;
 }
 
@@ -299,32 +395,52 @@ let deepLinkHandled = false;
 /**
  * 用 `?roomId=` 直接打开房间工作台。
  *
- * <p>必须等节点列表落地：房间信令跑在 ROOM 节点自己的端口上，节点还没取回来时
- * 地址是空的，连过去只会永远「连接中」。</p>
+ * <p>这里单独拉一次全量列表：分页表格只有当前页，而房间节点可能在任意一页，
+ * 拿当前页去找会时灵时不灵。只在带深链参数时发生一次，不影响日常翻页。</p>
  */
-function openDeepLinkRoom(): void {
+async function openDeepLinkRoom(): Promise<void> {
   const id = String(route.query.roomId ?? '');
   if (!id || deepLinkHandled) return;
-  if (vm.loading && !vm.cards.length) return;
   deepLinkHandled = true;
-  const running = findRunningRoom();
-  if (!running) {
-    message.warning(
-      vm.cards.some(isRoomCard)
-        ? '房间节点未运行：先启动 ROOM 节点'
-        : '还没有 ROOM 房间节点：先新建一个协议为 room 的服务',
-    );
-    return;
+  try {
+    const nodes = await listServerNodes();
+    const rooms = nodes.filter(isRoomNode);
+    const running = rooms.find(node => node.status === 'RUNNING' && !!node.serverUrl);
+    if (!running?.serverUrl) {
+      message.warning(
+        rooms.length
+          ? '房间节点未运行：先启动 ROOM 节点'
+          : '还没有 ROOM 房间节点：先新建一个协议为 room 的服务',
+      );
+      return;
+    }
+    roomId.value = id;
+    roomServerUrl.value = running.serverUrl;
+    roomVisible.value = true;
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : '读取 ROOM 节点失败，无法直接进房间');
   }
-  roomId.value = id;
-  roomServerUrl.value = running.url;
-  roomVisible.value = true;
 }
 
-onMounted(openDeepLinkRoom);
+/* ==================== 生命周期 ==================== */
 
-/** 首轮节点列表落地后再处理深链 */
-watch(() => vm.cards.length, () => openDeepLinkRoom());
+onMounted(() => {
+  // 启停 / 删除 / 改配置后由 vm 重取摘要时顺带重取当前页
+  vm.setRowRefresher(() => {
+    void tableRef.value?.reload?.();
+  });
+  void openDeepLinkRoom();
+});
+
+onUnmounted(() => {
+  vm.setRowRefresher(null);
+  if (keywordTimer) clearTimeout(keywordTimer);
+});
+
+/** 手动刷新：摘要 + 当前页一起 */
+function reloadAll(): void {
+  void vm.refresh();
+}
 </script>
 
 <template>
@@ -339,141 +455,203 @@ watch(() => vm.cards.length, () => openDeepLinkRoom());
       class="svc-notice"
     />
 
-    <!-- 统计带：一整张卡，四格用竖线分隔，不在 2px 缝里再叠四张卡 -->
-    <section class="band svc-stats">
-      <div class="stat" style="--accent: var(--brand-500)">
-        <b>服务总数</b>
-        <i>{{ vm.stats.total }}</i>
-        <s>{{ protocolKinds }} 种协议 · {{ vm.stats.plugins }} 个过滤器</s>
-      </div>
-      <div class="stat" style="--accent: var(--status-success)">
-        <b>运行中</b>
-        <i>{{ vm.stats.running }}</i>
-        <s class="up">{{ runningPct }}% 在线</s>
-      </div>
-      <div class="stat" style="--accent: var(--pulse-alarm)">
-        <b>异常</b>
-        <i>{{ vm.stats.error }}</i>
-        <s :class="{ dn: vm.stats.error > 0 }">
-          {{ vm.stats.unknown ? `另有 ${vm.stats.unknown} 个状态未知` : '端口占用 / 启动失败' }}
-        </s>
-      </div>
-      <div class="stat" style="--accent: var(--pulse-offline)">
-        <b>已停止</b>
-        <i>{{ vm.stats.stopped }}</i>
-        <s>手动启动 · 不随进程拉起</s>
-      </div>
-    </section>
-
-    <!-- 筛选带：搜索 / 协议 / 状态 / 排序 + 新建与刷新 -->
-    <section class="band svc-tools">
-      <!-- ReInput 根节点是 display:contents 壳，宽度必须包一层 div 才生效 -->
-      <div class="svc-search">
-        <ReInput
-          v-model="vm.keyword"
-          placeholder="搜索服务名称 / 监听端口 / 后端 / 报错"
-          clearable
-        />
-      </div>
-      <ReSelect v-model="vm.protocol" class="svc-pick" :data="protocolOptions" />
-      <ReSelect v-model="vm.status" class="svc-pick" :data="statusOptions" />
-      <ReSelect v-model="sortBy" class="svc-pick" :data="sortOptions" />
-      <ReButton v-if="vm.filtered" text @click="vm.resetFilters()">重置</ReButton>
-      <span class="svc-gap" />
-      <ReButton type="primary" icon="Plus" @click="vm.openCreate()">新建服务</ReButton>
-      <ReButton icon="Refresh" :loading="vm.loading" @click="vm.refresh()">刷新</ReButton>
-    </section>
-
-    <!-- 卡片网格：两个方向都是 2px，缝里露的是页面底色 -->
-    <section v-if="sortedCards.length" class="svc-grid">
-      <article
-        v-for="card in sortedCards"
-        :key="card.id"
-        class="svc-card"
-        :class="stateClassOf(card)"
-        @dblclick="openDetail(card)"
-      >
-        <div class="svc-card__head">
-          <i class="svc-dot" :class="stateClassOf(card)" aria-hidden="true" />
-          <b class="svc-card__name" :title="card.name">{{ card.name }}</b>
-          <span class="svc-card__listen">{{ card.listenText }}</span>
-        </div>
-
-        <div class="svc-card__body">
-          <div class="svc-ring" :style="{ '--pct': filterPct(card) + '%' }">
-            <em>{{ card.activeFilterCount }}/{{ card.filterCount }}</em>
-          </div>
-          <div class="svc-card__meta">
-            <b>过滤器生效</b>
-            <span>{{ card.filterCount ? `${card.filterCount} 个已挂载` : '链上还没有过滤器' }}</span>
-          </div>
-          <div class="svc-card__state">
-            <span>{{ card.statusText }}</span>
-            <span class="svc-card__state-sub">{{ card.enabledText }}</span>
-          </div>
-        </div>
-
-        <div class="svc-card__tags">
-          <span class="svc-chip">{{ card.protocolText }}</span>
-          <span class="svc-chip">{{ card.engine }}</span>
-          <span
-            v-for="chip in card.chips.slice(0, 4)"
-            :key="chip.key"
-            class="svc-tag"
-            :class="{ 'is-off': !chip.enabled }"
-            :title="`${chip.text} · 第 ${chip.order} 步`"
-          >{{ chip.text }}</span>
-          <span v-if="card.chips.length > 4" class="svc-tag">+{{ card.chips.length - 4 }}</span>
-        </div>
-
-        <div class="svc-card__foot">
-          <span class="svc-mono">{{ card.backendText || '直连 · 无后端' }}</span>
-          <button
-            v-if="isRoomCard(card) && card.status === 'RUNNING'"
-            type="button"
-            class="svc-room"
-            @click.stop="openRoom(card)"
-          >打开房间</button>
-          <span v-else-if="card.reason" class="svc-card__reason" :title="card.reason">
-            {{ card.reason }}
-          </span>
-          <ElDropdown
-            trigger="click"
-            placement="bottom-end"
-            @command="(cmd: string) => onCardCommand(cmd, card)"
-          >
-            <button type="button" class="svc-more" @click.stop>更多</button>
-            <template #dropdown>
-              <ElDropdownMenu>
-                <ElDropdownItem command="detail">查看详情</ElDropdownItem>
-                <ElDropdownItem command="clone">克隆服务</ElDropdownItem>
-                <ElDropdownItem command="oper-log">操作日志</ElDropdownItem>
-                <ElDropdownItem v-if="isRoomCard(card)" command="room">打开房间工作台</ElDropdownItem>
-                <ElDropdownItem command="copy-name" divided>复制名称</ElDropdownItem>
-                <ElDropdownItem command="copy-listen">复制监听地址</ElDropdownItem>
-                <ElDropdownItem command="copy-url" :disabled="!card.url">复制访问地址</ElDropdownItem>
-                <ElDropdownItem command="delete" divided>删除服务</ElDropdownItem>
-              </ElDropdownMenu>
-            </template>
-          </ElDropdown>
-        </div>
-
-        <div class="svc-card__actions" @dblclick.stop>
-          <ReButton
-            class="svc-act"
-            size="small"
-            :loading="vm.actingId === card.id"
-            @click="runPrimary(card)"
-          >{{ primaryLabel(card) }}</ReButton>
-          <ReButton class="svc-act" size="small" @click="editCard(card)">编辑</ReButton>
-          <ReButton class="svc-act" size="small" @click="openDetail(card)">详情</ReButton>
-          <ReButton class="svc-act" size="small" type="danger" @click="removeCard(card)">删除</ReButton>
-        </div>
+    <!-- ============ 第一行：四张独立统计卡（全量口径，来自 /server/summary） ============ -->
+    <section class="svc-stats">
+      <article class="svc-stat">
+        <i class="svc-stat__accent is-all" aria-hidden="true" />
+        <header>服务总数</header>
+        <b class="svc-stat__value">{{ vm.summary.total }}</b>
+        <p>{{ protocolKinds }} 种协议</p>
+      </article>
+      <article class="svc-stat">
+        <i class="svc-stat__accent is-run" aria-hidden="true" />
+        <header>运行中</header>
+        <b class="svc-stat__value">{{ vm.summary.running }}</b>
+        <p>运行占比 {{ runningPct }}%</p>
+      </article>
+      <article class="svc-stat">
+        <i class="svc-stat__accent is-err" aria-hidden="true" />
+        <header>异常</header>
+        <b class="svc-stat__value">{{ vm.summary.error }}</b>
+        <p>{{ vm.summary.error ? '需要重启排障' : '当前无异常' }}</p>
+      </article>
+      <article class="svc-stat">
+        <i class="svc-stat__accent is-stop" aria-hidden="true" />
+        <header>已停止</header>
+        <b class="svc-stat__value">{{ vm.summary.stopped }}</b>
+        <p>{{ vm.summary.plugins }} 个过滤器可用</p>
       </article>
     </section>
 
-    <div v-else class="svc-empty">
-      <ReEmpty :description="vm.filtered ? '没有命中条件的服务，换个关键字或清空筛选' : '还没有服务，先新建一个监听服务'" />
+    <div class="svc-body">
+      <!-- ============ 左栏：筛选与规模 ============ -->
+      <aside class="svc-rail">
+        <section class="svc-card">
+          <header class="svc-card__head">按状态筛选</header>
+          <button
+            v-for="item in statusFilters"
+            :key="item.value || 'all'"
+            type="button"
+            class="svc-filter"
+            :class="{ on: vm.status === item.value }"
+            @click="vm.status = item.value"
+          >
+            <i class="svc-kpi__dot" :class="item.tone" aria-hidden="true" />
+            <span>{{ item.label }}</span>
+            <b>{{ item.count }}</b>
+          </button>
+        </section>
+
+        <section class="svc-card">
+          <header class="svc-card__head">列表说明</header>
+          <ul class="svc-tips">
+            <li>列表走服务端分页，改筛选条件会回到第 1 页。</li>
+            <li>每 10 秒自动同步一次状态，失败会逐轮退避。</li>
+            <li>点选任一行，右侧展开详情与过滤器链。</li>
+          </ul>
+          <p v-if="vm.summary.unknown" class="svc-card__warn">
+            另有 {{ vm.summary.unknown }} 个服务状态未知（历史数据，不是枚举值）
+          </p>
+        </section>
+      </aside>
+
+      <!-- ============ 中栏：筛选 + 表格 ============ -->
+      <section class="svc-main">
+        <div class="svc-toolbar">
+          <!-- ReInput 根节点是 display:contents 壳，宽度必须包一层 div 才生效 -->
+          <div class="svc-search">
+            <ReInput
+              v-model="vm.keyword"
+              placeholder="搜索名称 / 端口 / 后端 / 报错"
+              clearable
+            />
+          </div>
+          <ReSelect
+            v-model="vm.protocol"
+            class="svc-pick"
+            placeholder="全部协议"
+            :data="vm.protocolOptions"
+            clearable
+          />
+          <ReSelect
+            v-model="vm.status"
+            class="svc-pick"
+            placeholder="全部状态"
+            :data="statusOptions"
+            clearable
+          />
+          <ReSelect v-model="vm.sort" class="svc-pick" :data="sortOptions" />
+          <ReButton v-if="vm.filtered" layout="square" icon="RefreshLeft" tip="清空筛选" @click="vm.resetFilters()" />
+          <span class="svc-gap" />
+          <ReButton layout="square" type="primary" icon="Plus" tip="新建服务" @click="vm.openCreate()" />
+          <ReButton layout="square" icon="Refresh" tip="刷新" :loading="vm.loading" @click="reloadAll" />
+        </div>
+
+        <div class="svc-table">
+          <ReTable
+            ref="tableRef"
+            :loader="vm.loadPage"
+            :params="tableParams"
+            :columns="columns"
+            :settings="{ highlightCurrentRow: true }"
+            :config="{ toolbar: { enable: false }, search: false }"
+            row-key="id"
+            empty-text="没有命中条件的服务"
+            height="100%"
+            stripe
+            @row-click="onRowClick"
+          >
+            <template #col-status="{ row }">
+              <span class="svc-state" :class="deriveStatusMeta(rowOf(row)).tone">
+                <i class="svc-kpi__dot" :class="statusDotClass(rowOf(row))" aria-hidden="true" />
+                {{ statusTextOf(rowOf(row)) }}
+              </span>
+            </template>
+
+            <template #col-name="{ row }">
+              <div class="svc-name">
+                <b :title="rowOf(row).name">{{ rowOf(row).name }}</b>
+                <span class="svc-name__sub">#{{ rowOf(row).id }} · {{ rowOf(row).engine || '默认引擎' }}</span>
+              </div>
+            </template>
+
+            <template #col-listen="{ row }">
+              <span class="svc-mono">{{ listenText(rowOf(row)) }}</span>
+            </template>
+
+            <template #col-filters="{ row }">
+              <span class="svc-filters" :class="{ 'is-none': !rowOf(row).filters?.length }">
+                {{ rowOf(row).filters?.length ?? 0 }}
+              </span>
+            </template>
+
+            <template #col-endpoint="{ row }">
+              <span class="svc-mono">{{ endpointText(rowOf(row)) }}</span>
+            </template>
+
+            <template #col-actions="{ row }">
+              <div class="svc-ops" @click.stop>
+                <ReButton
+                  layout="square"
+                  size="mini"
+                  :icon="primaryIconOf(rowOf(row))"
+                  :tip="primaryTipOf(rowOf(row))"
+                  :loading="vm.actingId === rowOf(row).id"
+                  @click="runPrimary(rowOf(row))"
+                />
+                <ReButton
+                  layout="square"
+                  size="mini"
+                  icon="EditPen"
+                  tip="编辑服务"
+                  @click="vm.openEdit(rowOf(row))"
+                />
+                <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string) => onRowCommand(cmd, rowOf(row))">
+                  <ReButton layout="square" size="mini" icon="MoreFilled" tip="更多操作" />
+                  <template #dropdown>
+                    <ElDropdownMenu>
+                      <ElDropdownItem command="clone">克隆服务</ElDropdownItem>
+                      <ElDropdownItem command="oper-log">操作日志</ElDropdownItem>
+                      <ElDropdownItem v-if="isRoomNode(rowOf(row))" command="room">打开房间工作台</ElDropdownItem>
+                      <ElDropdownItem command="copy-name" divided>复制名称</ElDropdownItem>
+                      <ElDropdownItem command="copy-listen">复制监听地址</ElDropdownItem>
+                      <ElDropdownItem command="copy-url" :disabled="!rowOf(row).serverUrl">复制访问地址</ElDropdownItem>
+                      <ElDropdownItem command="delete" divided>删除服务</ElDropdownItem>
+                    </ElDropdownMenu>
+                  </template>
+                </ElDropdown>
+              </div>
+            </template>
+          </ReTable>
+        </div>
+      </section>
+
+      <!-- ============ 右栏：详情 ============ -->
+      <aside class="svc-detail">
+        <div class="svc-detail__head">
+          <span>服务详情</span>
+          <ReButton
+            v-if="selectedId"
+            layout="square"
+            size="mini"
+            icon="Close"
+            tip="关闭详情"
+            @click="selectedId = null"
+          />
+        </div>
+        <div v-if="selectedId" class="svc-detail__body">
+          <ScServerDetailDrawer
+            embedded
+            :node-id="selectedId"
+            :filter-types="vm.filterTypes"
+            @changed="vm.refresh()"
+            @open-detail-page="vm.openDetailPage"
+          />
+        </div>
+        <div v-else class="svc-detail__empty">
+          <ReEmpty description="点选左侧任一服务，查看详情与过滤器链" :image-size="72" />
+        </div>
+      </aside>
     </div>
 
     <!-- 新增 / 编辑 / 克隆：表单抽屉（字段、校验都在里面） -->
@@ -487,21 +665,12 @@ watch(() => vm.cards.length, () => openDeepLinkRoom());
       @saved="vm.refresh()"
     />
 
-    <!-- 详情 / 过滤器链：同一个抽屉内切换 -->
-    <ScServerDetailDrawer
-      v-model="detailVisible"
-      :node-id="detailNodeId"
-      :filter-types="vm.filterTypes"
-      @changed="vm.refresh()"
-      @open-detail-page="vm.openDetailPage"
-    />
-
     <!-- P2P 房间：关闭抽屉即卸载，RoomView 自己 leave 并断开 WebSocket -->
     <ReDrawer v-model="roomVisible" title="P2P 房间" :size="'88%'" :footer-hidden="true" close-only>
       <RoomView :room-id="roomId" :server-url="roomServerUrl" @leave="roomVisible = false" />
     </ReDrawer>
 
-    <!-- 节点操作日志：卡片「更多」进入，只读分页 -->
+    <!-- 节点操作日志：行内「更多」进入，只读分页 -->
     <ReDialog
       v-model="operLogVisible"
       width="960px"
@@ -510,24 +679,22 @@ watch(() => vm.cards.length, () => openDeepLinkRoom());
       destroy-on-close
     >
       <div class="svc-operlog">
-        <ScServerOperLogPanel
-          :node-id="operLogNode?.id ?? null"
-          :node-name="operLogNode?.name"
-        />
+        <ScServerOperLogPanel :node-id="operLogNode?.id ?? null" :node-name="operLogNode?.name" />
       </div>
     </ReDialog>
   </div>
 </template>
 
 <style scoped lang="scss">
-/* 页面底色就是卡片之间的「缝」：所有块间距 2px，不叠圆角与投影 */
+/* 三列主体：左栏 214px / 中栏表格 / 右栏详情 360px，段间 12px（发布管理同口径） */
 .svc {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 12px;
   height: 100%;
   min-height: 0;
-  overflow: auto;
+  padding: 12px;
+  overflow: hidden;
   background: var(--bg-page);
 }
 
@@ -535,168 +702,155 @@ watch(() => vm.cards.length, () => openDeepLinkRoom());
   margin: 0;
 }
 
-.band {
-  flex: none;
-  background: var(--bg-container);
-}
-
-/* ===== 统计带 ===== */
+/* ===== 第一行：四张独立统计卡 ===== */
 .svc-stats {
+  flex: none;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.stat {
+.svc-stat {
   position: relative;
-  padding: 13px 16px 12px;
-  border-left: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px 13px;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 0.18s var(--ease-out, ease);
 
-  &:first-child {
-    border-left: 0;
+  &:hover {
+    box-shadow: var(--shadow-md);
   }
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--accent);
-  }
-
-  b {
-    display: block;
-    font-size: 11.5px;
-    font-weight: 500;
+  header {
+    font-size: 12px;
     color: var(--text-secondary);
-    letter-spacing: 0.02em;
-    margin-bottom: 7px;
   }
 
-  i {
-    display: block;
-    font-size: 25px;
-    font-weight: 700;
-    font-style: normal;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
-    color: var(--text-primary);
-  }
-
-  s {
-    display: block;
-    margin-top: 4px;
-    font-size: 11px;
-    text-decoration: none;
+  p {
+    margin: 0;
+    font-size: 11.5px;
     color: var(--text-tertiary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-
-    &.up {
-      color: var(--status-success);
-      font-weight: 500;
-    }
-
-    &.dn {
-      color: var(--status-error);
-      font-weight: 500;
-    }
   }
 }
 
-/* ===== 筛选带 ===== */
-.svc-tools {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 9px 12px;
+/* 顶部 3px 色条：卡片 overflow:hidden 已经裁掉圆角外的部分 */
+.svc-stat__accent {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--pulse-offline);
+
+  &.is-all {
+    background: var(--brand-500);
+  }
+
+  &.is-run {
+    background: var(--pulse-online);
+  }
+
+  &.is-err {
+    background: var(--pulse-alarm);
+  }
 }
 
-.svc-search {
-  width: 290px;
+.svc-stat__value {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
-.svc-pick {
-  width: 150px;
-}
-
-.svc-gap {
-  flex: 1;
-}
-
-/* ===== 卡片网格 ===== */
-.svc-grid {
+.svc-body {
   flex: 1;
   min-height: 0;
-  align-content: start;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2px;
-  background: var(--bg-page);
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+/* ===== 左栏 ===== */
+.svc-rail {
+  flex: none;
+  width: 214px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .svc-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 13px 15px;
+  gap: 7px;
+  padding: 10px 12px 12px;
   background: var(--bg-container);
-  border-left: 3px solid var(--pulse-offline);
-  cursor: default;
-  transition: background 0.15s var(--ease-out, ease);
-
-  &:hover {
-    background: var(--bg-elevated);
-  }
-
-  &.is-run {
-    border-left-color: var(--pulse-online);
-  }
-
-  &.is-err {
-    border-left-color: var(--pulse-alarm);
-  }
-
-  &.is-stop {
-    border-left-color: var(--pulse-offline);
-  }
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .svc-card__head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.svc-card__name {
-  flex: 1;
-  min-width: 0;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.svc-card__listen {
-  flex: none;
   font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.svc-card__warn {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--status-warning, var(--pulse-alarm));
+}
+
+.svc-tips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11.5px;
+  line-height: 1.5;
   color: var(--text-tertiary);
-  font-family: ui-monospace, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
+
+  li {
+    position: relative;
+    padding-left: 10px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.62em;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--border-strong, var(--text-tertiary));
+    }
+  }
 }
 
 /* 状态点：运行中呼吸，异常闪烁，其余静止（与 koi 的 pdot 口径一致） */
-.svc-dot {
+.svc-kpi__dot {
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--pulse-offline);
+
+  &.is-all {
+    background: var(--brand-500);
+  }
 
   &.is-run {
     background: var(--pulse-online);
@@ -725,161 +879,208 @@ watch(() => vm.cards.length, () => openDeepLinkRoom());
   }
 }
 
-.svc-card__body {
+.svc-filter {
   display: flex;
   align-items: center;
-  gap: 9px;
-}
-
-/* 环图：百分比走 --pct，颜色走 --ring-color（与主机资产的 mini-ring 同构） */
-.svc-ring {
-  flex: none;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: conic-gradient(var(--brand-500) var(--pct), var(--bg-fill) 0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  em {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--bg-container);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-style: normal;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-primary);
-  }
-}
-
-.svc-card__meta {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
 
   b {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
   }
 
-  span {
-    font-size: 10px;
-    color: var(--text-tertiary);
+  &:hover {
+    background: var(--bg-fill);
+  }
+
+  &.on {
+    background: var(--brand-50);
+    border-color: var(--brand-100);
+    color: var(--brand-600);
+    font-weight: 600;
   }
 }
 
-.svc-card__state {
-  margin-left: auto;
+/* ===== 中栏 ===== */
+.svc-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  overflow: hidden;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 筛选带固定一行：空间不够先压搜索框，再压下拉，右侧按钮不换行也不被压缩 */
+.svc-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: nowrap;
+}
+
+.svc-search {
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 300px;
+}
+
+.svc-pick {
+  flex: 0 1 128px;
+  min-width: 100px;
+}
+
+.svc-gap {
+  flex: 1;
+}
+
+.svc-table {
+  flex: 1;
+  min-height: 0;
+  padding: 0 4px 4px;
+}
+
+/* 单元格 */
+.svc-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
+
+  &.danger {
+    color: var(--status-error);
+  }
+
+  &.success {
+    color: var(--status-success);
+  }
+
+  &.info {
+    color: var(--text-secondary);
+  }
 }
 
-.svc-card__state-sub {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--text-tertiary);
-}
-
-.svc-card__tags {
+.svc-name {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+
+  b {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
-.svc-chip {
-  font-size: 10.5px;
-  font-weight: 500;
-  padding: 1px 6px;
+.svc-name__sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.svc-mono {
+  font-family: ui-monospace, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.svc-filters {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 0 6px;
   border-radius: var(--radius-sm);
   background: var(--brand-50);
   border: 1px solid var(--brand-100);
   color: var(--brand-600);
-}
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 
-.svc-tag {
-  font-size: 10.5px;
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-fill);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-
-  &.is-off {
+  &.is-none {
+    background: var(--bg-fill);
+    border-color: var(--border-subtle);
     color: var(--text-tertiary);
-    text-decoration: line-through;
   }
 }
 
-.svc-card__foot {
+.svc-ops {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ===== 右栏 ===== */
+.svc-detail {
+  flex: none;
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-container);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.svc-detail__head {
+  flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-subtle);
-  font-size: 11.5px;
+  padding: 8px 10px 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-secondary);
-  min-height: 20px;
+
+  span {
+    flex: 1;
+  }
 }
 
-.svc-mono {
+.svc-detail__body {
   flex: 1;
-  min-width: 0;
-  font-family: ui-monospace, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* 嵌入正文自己带 14px 内边距与滚动条，这里只给高度参照，避免双重留白 */
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.svc-card__reason {
-  max-width: 55%;
-  color: var(--status-error);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.svc-room {
-  flex: none;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: 11.5px;
-  color: var(--brand-500);
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.svc-more {
-  flex: none;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: 11.5px;
-  color: var(--text-tertiary);
-  cursor: pointer;
-
-  &:hover {
-    color: var(--brand-500);
-  }
+.svc-detail__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
 
 /* 操作日志弹框：面板内部按 100% 高铺开，ReTable 的高度才有参照 */
@@ -890,40 +1091,28 @@ watch(() => vm.cards.length, () => openDeepLinkRoom());
   min-height: 0;
 }
 
-.svc-card__actions {
-  display: flex;
-  gap: 6px;
-
-  .svc-act {
-    flex: 1;
-    min-width: 0;
-  }
-}
-
-.svc-empty {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  padding: 60px 0;
-  background: var(--bg-container);
-}
-
-/* ===== 窄屏 ===== */
-@media (max-width: 1180px) {
+/* ===== 窄屏：先收左栏，再收右栏，中栏始终保住 ===== */
+@media (max-width: 900px) {
   .svc-stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .stat:nth-child(3) {
-    border-left: 0;
+@media (max-width: 1320px) {
+  .svc-detail {
+    width: 320px;
   }
+}
 
-  .svc-search {
-    width: 100%;
+@media (max-width: 1180px) {
+  .svc-rail {
+    display: none;
   }
+}
 
-  .svc-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 980px) {
+  .svc-detail {
+    display: none;
   }
 }
 </style>

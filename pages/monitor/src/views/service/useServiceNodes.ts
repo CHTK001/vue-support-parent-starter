@@ -1,13 +1,20 @@
 /**
  * 服务管理 —— 取数与动作（唯一一份）
  *
- * <p>这一层是页面唯一的事实来源：拉列表、自动刷新、启停、删改、抽屉开合、降级提示
- * 全在这里。模板只读 {@link ServiceNodesVm} 里的状态、只调这里的函数，自己不算任何东西
- * —— 否则「自动刷新失败要不要弹 toast」这类判断会散进模板，而它出错的症状是
- * 「页面偶尔刷出一片红字」，最难查。</p>
+ * <p>这一层是页面唯一的事实来源：统计摘要、协议 / 插件元数据、自动刷新、启停、
+ * 删改、抽屉开合、降级提示全在这里。模板只读 {@link ServiceNodesVm} 里的状态、
+ * 只调这里的函数，自己不算任何东西 —— 否则「自动刷新失败要不要弹 toast」这类判断
+ * 会散进模板，而它出错的症状是「页面偶尔刷出一片红字」，最难查。</p>
  *
- * <p>三个请求（节点 / 协议 / 插件）用 {@code allSettled} 分别落地：任一失败不能让
- * 另外两个的结果一起被丢掉，否则协议下拉会因为插件接口 500 而变空，看起来像没数据。</p>
+ * <p><b>分页口径</b>：从 4.0.0.56 起节点列表走服务端分页（{@code GET /server/page}），
+ * 前端不再持有全量数组。状态是<b>运行时状态</b>而不是库列，所以过滤 / 排序 / 切片
+ * 都在后端装配完视图之后完成（见后端 {@code ServerNodePager}）。因此：</p>
+ * <ul>
+ *   <li>表格的行由 {@link ServiceNodesVm.loadPage} 按页取，交给 ReTable 的 loader；</li>
+ *   <li>左栏计数与新建表单的重名校验需要「全量」，改由 {@code /server/summary} 一份
+ *       轻量摘要提供 —— 不能拿当前页去算，否则翻到第 2 页时总数会变成 20；</li>
+ *   <li>启停 / 删除 / 改配置之后，摘要与当前页都要重取。</li>
+ * </ul>
  *
  * @author CH
  * @since 4.0.0
@@ -15,56 +22,53 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { message } from '@repo/core'
 import { useRouter } from 'vue-router'
+import type { RePageResult, ReTableLoadParams } from '@repo/ui/re-table'
 import {
   deleteServerNode,
   listFilterTypes,
   listProtocols,
-  listServerNodes,
+  pageServerNodes,
   restartServerNode,
+  serverNodeSummary,
   startServerNode,
   stopServerNode,
   type FilterTypeMeta,
   type ProtocolMeta,
+  type ServerNodeSummary,
   type ServerNodeView,
 } from '../../api'
 import { createAutoRefresh, DEFAULT_AUTO_REFRESH } from '../../utils/autoRefresh'
 import { confirmThen } from '../../utils/confirmThen'
 import { resolveFilterDetail } from '../../utils/filterDetail'
 import { describeMetaLoad, type MetaLoadNotice } from '../../utils/metaLoad'
-import {
-  buildProtocolOptions,
-  filterNodes,
-  summarizeNodes,
-  type NodeStats,
-} from '../../utils/nodeList'
-import { toServiceNodeCards, type ServiceNodeCard } from './serviceView'
+import { buildProtocolOptions, type NodeStats } from '../../utils/nodeList'
 
 /** 状态页签取值：空串为「全部」 */
 export type ServiceStatusFilter = '' | 'RUNNING' | 'STOPPED' | 'ERROR'
 
+/** 排序口径：名称 / 端口 / 状态 */
+export type ServiceSort = 'name' | 'port' | 'status'
+
 /** 页面可用的全部状态与动作 */
 export interface ServiceNodesVm {
   // ---- 数据 ----
-  /** 后端原样节点 */
-  nodes: ServerNodeView[]
-  /** 展示数据（未筛选，统计用） */
-  cards: ServiceNodeCard[]
-  /** 展示数据（已筛选） */
-  visibleCards: ServiceNodeCard[]
+  /** 统计摘要（全量，不是当前页） */
+  summary: ServerNodeSummary
+  /** 统计（沿用 NodeStats 口径，模板不必知道后端字段名） */
+  stats: NodeStats
+  /** 各状态计数（左栏筛选用） */
+  statusCounts: { all: number; running: number; stopped: number; error: number }
   /** 协议元数据 */
   protocols: ProtocolMeta[]
   /** 插件元数据 */
   filterTypes: FilterTypeMeta[]
-  /** 统计 */
-  stats: NodeStats
   /** 协议下拉选项（内置 + SPI） */
   protocolOptions: Array<{ label: string; value: string }>
-  /** 各状态计数（页签用） */
-  statusCounts: { all: number; running: number; stopped: number; error: number }
   // ---- 筛选 ----
   keyword: string
   protocol: string
   status: ServiceStatusFilter
+  sort: ServiceSort
   /** 是否有任何生效条件 */
   filtered: boolean
   /** 清空条件 */
@@ -76,15 +80,17 @@ export interface ServiceNodesVm {
   // ---- 抽屉 ----
   formVisible: boolean
   editingNode: ServerNodeView | null
-  detailVisible: boolean
-  detailNodeId: number | null
   existingNames: string[]
   // ---- 动作 ----
+  /** ReTable 的远程 loader：按页取节点（后端分页） */
+  loadPage: (params: ReTableLoadParams) => Promise<RePageResult>
+  /** 重取摘要 + 当前页（silent 用于自动刷新，不弹 toast、不点亮按钮） */
   refresh: (silent?: boolean) => Promise<void>
+  /** 宿主注册「重取当前页」的回调（ReTable 的 reload），摘要是本层自己刷 */
+  setRowRefresher: (fn: (() => void) | null) => void
   openCreate: () => void
   openEdit: (node: ServerNodeView) => void
   openClone: (node: ServerNodeView) => void
-  openDetail: (node: ServerNodeView) => void
   start: (node: ServerNodeView) => Promise<void>
   stop: (node: ServerNodeView) => Promise<void>
   restart: (node: ServerNodeView) => Promise<void>
@@ -109,13 +115,18 @@ export function reasonText(e: unknown): string {
   return typeof e === 'string' && e ? e : '未知错误'
 }
 
+/** 空摘要：首屏渲染前用它兜底，避免模板里到处写可选链 */
+function emptySummary(): ServerNodeSummary {
+  return { total: 0, running: 0, stopped: 0, error: 0, unknown: 0, plugins: 0, names: [] }
+}
+
 /**
  * 建立服务管理页的状态与动作。
  */
 export function useServiceNodes(): ServiceNodesVm {
   const router = useRouter()
 
-  const nodes = ref<ServerNodeView[]>([])
+  const summary = ref<ServerNodeSummary>(emptySummary())
   const protocols = ref<ProtocolMeta[]>([])
   const filterTypes = ref<FilterTypeMeta[]>([])
   const loading = ref(false)
@@ -123,12 +134,11 @@ export function useServiceNodes(): ServiceNodesVm {
 
   const formVisible = ref(false)
   const editingNode = ref<ServerNodeView | null>(null)
-  const detailVisible = ref(false)
-  const detailNodeId = ref<number | null>(null)
 
   const keyword = ref('')
   const protocol = ref('')
   const status = ref<ServiceStatusFilter>('')
+  const sort = ref<ServiceSort>('name')
 
   const notice = ref<MetaLoadNotice>({ show: false, tone: 'warning', text: '' })
 
@@ -140,37 +150,33 @@ export function useServiceNodes(): ServiceNodesVm {
    */
   const metaLoaded = ref(false)
 
-  const stats = computed(() => summarizeNodes(nodes.value))
+  /** 宿主注册的「重取当前页」回调（ReTable.reload），启停 / 删除后要一起刷 */
+  let rowRefresher: (() => void) | null = null
 
-  const cards = computed(() => toServiceNodeCards(nodes.value, filterTypes.value))
-
-  const visibleCards = computed(() => {
-    // 关键字 / 协议走 nodeList 里已被单测锁住的口径（还包含 error 文本，
-    // 排障时能按报错关键字搜），状态再叠一层。命中 id 后再取展示数据，
-    // 保证卡片对象与未筛选时是同一批，避免每帧重建导致选中态抖动。
-    const keep = new Set(
-      filterNodes(nodes.value, { keyword: keyword.value, protocol: protocol.value })
-        .filter(node => !status.value || node.status === status.value)
-        .map(node => node.id),
-    )
-    return cards.value.filter(card => keep.has(card.id))
-  })
-
-  const protocolOptions = computed(() => buildProtocolOptions(protocols.value))
+  const stats = computed<NodeStats>(() => ({
+    total: summary.value.total,
+    running: summary.value.running,
+    stopped: summary.value.stopped,
+    error: summary.value.error,
+    unknown: summary.value.unknown,
+    plugins: summary.value.plugins,
+  }))
 
   const statusCounts = computed(() => ({
-    all: stats.value.total,
-    running: stats.value.running,
-    stopped: stats.value.stopped,
-    error: stats.value.error,
+    all: summary.value.total,
+    running: summary.value.running,
+    stopped: summary.value.stopped,
+    error: summary.value.error,
   }))
+
+  const protocolOptions = computed(() => buildProtocolOptions(protocols.value))
 
   const filtered = computed(
     () => Boolean(keyword.value.trim()) || Boolean(protocol.value) || Boolean(status.value),
   )
 
   const existingNames = computed(() =>
-    nodes.value.filter(node => node.id !== editingNode.value?.id).map(node => node.name),
+    summary.value.names.filter(name => name !== editingNode.value?.name),
   )
 
   /**
@@ -183,7 +189,37 @@ export function useServiceNodes(): ServiceNodesVm {
   }
 
   /**
-   * 拉取列表与元数据。
+   * ReTable 的远程 loader：按页取节点。
+   *
+   * <p>组件会把 {@code page / pageSize} 写回 {@code params}，这里只做参数搬运；
+   * 过滤与排序在后端完成，前端不再二次筛选（否则总数与行数会对不上）。</p>
+   *
+   * @param params ReTable 传入的分页 + 查询参数
+   */
+  async function loadPage(params: ReTableLoadParams): Promise<RePageResult> {
+    const q = (params.params ?? {}) as Record<string, unknown>
+    try {
+      const res = await pageServerNodes({
+        keyword: typeof q.keyword === 'string' ? q.keyword : '',
+        protocol: typeof q.protocol === 'string' ? q.protocol : '',
+        status: typeof q.status === 'string' ? q.status : '',
+        sort: typeof q.sort === 'string' ? q.sort : '',
+        page: params.page,
+        size: params.pageSize,
+      })
+      return {
+        // ServerNodeView 是接口类型，没有索引签名，转成 RePageResult 期望的行类型
+        records: (res?.records ?? []) as unknown as Array<Record<string, unknown>>,
+        total: Number(res?.total ?? 0),
+      }
+    } catch (e) {
+      message.error(reasonText(e))
+      return { records: [], total: 0 }
+    }
+  }
+
+  /**
+   * 重取摘要（与元数据）。
    *
    * @param silent 静默模式：自动刷新用，不弹 toast（后端故障期间每 10 秒一条会把界面糊满），
    *               也不点亮刷新按钮的转圈——否则每轮轮询都会闪一下，看着像页面在不停重载
@@ -191,17 +227,19 @@ export function useServiceNodes(): ServiceNodesVm {
   async function refresh(silent = false): Promise<void> {
     if (!silent) loading.value = true
     try {
-      // 元数据只在还没拿到时请求：轮询 / 切回标签页的补拉都只刷节点状态
-      const nodesPromise = listServerNodes()
+      // 元数据只在还没拿到时请求：轮询 / 切回标签页的补拉都只刷摘要
+      const summaryPromise = serverNodeSummary()
       const protocolsPromise = metaLoaded.value ? Promise.resolve(protocols.value) : listProtocols()
       const filtersPromise = metaLoaded.value ? Promise.resolve(filterTypes.value) : listFilterTypes()
-      const [nodesResult, protocolsResult, filtersResult] = await Promise.allSettled([
-        nodesPromise,
+      const [summaryResult, protocolsResult, filtersResult] = await Promise.allSettled([
+        summaryPromise,
         protocolsPromise,
         filtersPromise,
       ])
 
-      if (nodesResult.status === 'fulfilled') nodes.value = nodesResult.value ?? []
+      if (summaryResult.status === 'fulfilled' && summaryResult.value) {
+        summary.value = summaryResult.value
+      }
       if (protocolsResult.status === 'fulfilled') protocols.value = protocolsResult.value ?? []
       if (filtersResult.status === 'fulfilled') filterTypes.value = filtersResult.value ?? []
       // 两份都拿到了才认「元数据已就绪」；缺一份下轮继续补，避免永久空下拉
@@ -209,25 +247,31 @@ export function useServiceNodes(): ServiceNodesVm {
         protocolsResult.status === 'fulfilled' && filtersResult.status === 'fulfilled'
 
       notice.value = describeMetaLoad({
-        nodesOk: nodesResult.status === 'fulfilled',
+        nodesOk: summaryResult.status === 'fulfilled',
         protocolsOk: protocolsResult.status === 'fulfilled',
         filtersOk: filtersResult.status === 'fulfilled',
-        nodesError: nodesResult.status === 'rejected' ? reasonText(nodesResult.reason) : undefined,
+        nodesError: summaryResult.status === 'rejected' ? reasonText(summaryResult.reason) : undefined,
         protocolsError:
           protocolsResult.status === 'rejected' ? reasonText(protocolsResult.reason) : undefined,
         filtersError:
           filtersResult.status === 'rejected' ? reasonText(filtersResult.reason) : undefined,
       })
 
-      if (nodesResult.status === 'rejected') {
-        if (!silent) message.error(reasonText(nodesResult.reason))
+      if (summaryResult.status === 'rejected') {
+        if (!silent) message.error(reasonText(summaryResult.reason))
         // 抛给 autoRefresh 记一次失败以触发退避
-        throw nodesResult.reason
+        throw summaryResult.reason
       }
     } catch (e) {
       if (!silent) message.error(reasonText(e))
     } finally {
       if (!silent) loading.value = false
+    }
+    // 当前页跟着重取：启停 / 删除后状态与过滤器链都会变
+    try {
+      rowRefresher?.()
+    } catch {
+      // 表格还没挂载或正在销毁：下一轮刷新会补上，不打断摘要刷新
     }
   }
 
@@ -273,6 +317,7 @@ export function useServiceNodes(): ServiceNodesVm {
   onUnmounted(() => {
     autoRefresh.stop()
     document.removeEventListener('visibilitychange', onVisibilityChange)
+    rowRefresher = null
   })
 
   /**
@@ -311,22 +356,21 @@ export function useServiceNodes(): ServiceNodesVm {
   /**
    * 交给模板的统一门面。
    *
-   * <p>用 {@code reactive} 包一层而不是直接返回字面量：模板里访问 {@code vm.cards}
-   * 才会拿到拆开的数组，而不是一个 Ref 对象。类型仍按「值」声明（{@link ServiceNodesVm}），
+   * <p>用 {@code reactive} 包一层而不是直接返回字面量：模板里访问 {@code vm.summary}
+   * 才会拿到拆开的值，而不是一个 Ref 对象。类型仍按「值」声明（{@link ServiceNodesVm}），
    * 与运行时行为一致。</p>
    */
   const vm = reactive({
-    nodes,
-    cards,
-    visibleCards,
+    summary,
+    stats,
+    statusCounts,
     protocols,
     filterTypes,
-    stats,
     protocolOptions,
-    statusCounts,
     keyword,
     protocol,
     status,
+    sort,
     filtered,
     resetFilters,
     loading,
@@ -334,10 +378,12 @@ export function useServiceNodes(): ServiceNodesVm {
     notice,
     formVisible,
     editingNode,
-    detailVisible,
-    detailNodeId,
     existingNames,
+    loadPage,
     refresh,
+    setRowRefresher: (fn: (() => void) | null) => {
+      rowRefresher = fn
+    },
     openCreate: () => {
       editingNode.value = null
       formVisible.value = true
@@ -365,10 +411,6 @@ export function useServiceNodes(): ServiceNodesVm {
         enabled: node.enabled ?? 0,
       }
       formVisible.value = true
-    },
-    openDetail: (node: ServerNodeView) => {
-      detailNodeId.value = node.id
-      detailVisible.value = true
     },
     start: (node: ServerNodeView) => act(node, () => startServerNode(node.id), `服务「${node.name}」已启动`),
     stop: (node: ServerNodeView) => act(node, () => stopServerNode(node.id), `服务「${node.name}」已停止`),

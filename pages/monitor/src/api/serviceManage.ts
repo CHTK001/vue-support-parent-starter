@@ -153,6 +153,72 @@ export interface ServerHotUpdateResult {
 export const listServerNodes = () =>
   http().get(B).then(r => unwrapResult<ServerNodeView[]>(r));
 
+/** 分页查询条件（后端过滤 + 排序 + 切片） */
+export interface ServerNodePageQuery {
+  /** 关键字：名称 / 协议 / 监听 / 后端 / 报错 */
+  keyword?: string;
+  /** 协议编码精确匹配 */
+  protocol?: string;
+  /** 运行状态精确匹配 */
+  status?: string;
+  /** 排序口径：name / port / status */
+  sort?: string;
+  /** 页码，从 1 开始 */
+  page?: number;
+  /** 每页条数，服务端封顶 500 */
+  size?: number;
+}
+
+/** 分页结果（对齐 MyBatis-Plus Page 的字段） */
+export interface ServerNodePage {
+  /** 当前页数据 */
+  records: ServerNodeView[];
+  /** 命中条件的总条数 */
+  total: number;
+  /** 当前页码 */
+  current: number;
+  /** 每页条数 */
+  size: number;
+}
+
+/** 节点统计摘要（左栏计数与新建表单重名校验） */
+export interface ServerNodeSummary {
+  total: number;
+  running: number;
+  stopped: number;
+  error: number;
+  unknown: number;
+  plugins: number;
+  /** 全部节点名称 */
+  names: string[];
+}
+
+/**
+ * 分页查询节点。
+ *
+ * <p>过滤与排序都在后端完成（{@code status} 是运行时状态，库里没有这一列），
+ * 前端只翻页，不在本页做切片。</p>
+ *
+ * @param q 查询条件
+ */
+export const pageServerNodes = (q: ServerNodePageQuery = {}) => {
+  const params: Record<string, string | number> = {};
+  if (q.keyword) params.keyword = q.keyword;
+  if (q.protocol) params.protocol = q.protocol;
+  if (q.status) params.status = q.status;
+  if (q.sort) params.sort = q.sort;
+  if (q.page) params.page = q.page;
+  if (q.size) params.size = q.size;
+  return http()
+    .get(`${B}/page`)
+    .query(params)
+    .then(r => unwrapResult<ServerNodePage>(r));
+};
+
+/** 节点统计摘要（分页后左栏计数不再能从当前页算出） */
+export const serverNodeSummary = () =>
+  http().get(`${B}/summary`).then(r => unwrapResult<ServerNodeSummary>(r));
+
 export const getServerNode = (id: number) =>
   http().get(`${B}/${id}`).then(r => unwrapResult<ServerNodeView>(r));
 
