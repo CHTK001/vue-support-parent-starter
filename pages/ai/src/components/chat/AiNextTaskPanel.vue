@@ -76,8 +76,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { apiService } from '@/services/ApiService'
+import { useSessionStore } from '@/stores/session'
 import type { SessionNextTaskItem, SessionNextTaskState } from '@/services/modules/session-next-task.api'
 
 const props = defineProps<{
@@ -104,14 +105,30 @@ const refreshing = ref(false)
 /** 后端不可用（端点未上线 / 404）时不再反复请求 */
 const unsupported = ref(false)
 
+const sessionStore = useSessionStore()
+
+/** 当前会话 id（空串 = 还没有会话，例如新会话的第一条消息发出前） */
+const currentSessionId = computed(() => (props.sessionId == null ? '' : String(props.sessionId)))
+
 /**
- * 是否渲染整块面板：**没有建议就什么都不显示**。
+ * 本会话是否正在流式回复。
  *
- * 空状态占位（「还没有联想结果…」）随之去掉 —— 挂着一排按钮却没内容，
- * 对用户只是噪音。load() 在首次开启时会自动联想一次，只要联想出结果，
- * 面板就自己出现，不需要用户多点一步。
+ * <p>两条硬规则由它决定：</p>
+ * <ol>
+ *   <li><b>回复期间整块收起</b>：上一轮留下的建议还在输入框上方挂着，
+ *       会让人以为「话还没说完就先把建议给了」——用户实拍报障的正是这个。</li>
+ *   <li><b>回复结束才重新联想</b>：建议必须基于刚结束的这一轮，否则永远是
+ *       第一次联想时的旧内容（用户原话「整个建议是上一个的吧」）。</li>
+ * </ol>
  */
-/** 当前这批建议是否已被用户处理掉（点建议 / 自己发消息），且后端还没生成更新的一代 */
+const streaming = computed(() => {
+  const id = currentSessionId.value
+  return !!id && sessionStore.sessionIsStreaming(id)
+})
+
+/**
+ * 当前这批建议是否已被用户处理掉（点建议 / 自己发消息），且后端还没生成更新的一代
+ */
 const dismissed = computed(() => {
   const sid = props.sessionId == null ? null : String(props.sessionId)
   if (!sid || !state.value) return false
@@ -119,8 +136,19 @@ const dismissed = computed(() => {
   return mark > 0 && (state.value.generatedAt ?? 0) <= mark
 })
 
+/**
+ * 是否渲染整块面板：**没有建议就什么都不显示**。
+ *
+ * 空状态占位（「还没有联想结果…」）随之去掉 —— 挂着一排按钮却没内容，
+ * 对用户只是噪音。load() 在首次开启时会自动联想一次，只要联想出结果，
+ * 面板就自己出现，不需要用户多点一步。
+ */
 const visible = computed(
-  () => !!state.value && (state.value.tasks?.length ?? 0) > 0 && !dismissed.value,
+  () =>
+    !!state.value &&
+    (state.value.tasks?.length ?? 0) > 0 &&
+    !dismissed.value &&
+    !streaming.value,
 )
 
 const pinnedTitle = '该会话已保留开启时的取值，之后设置中心改默认值不会影响它'
@@ -232,9 +260,21 @@ async function onRefresh(): Promise<void> {
   if (!sessionId || refreshing.value) {
     return
   }
+  // 流式期间不联想：此刻会话里还没有这一轮的答案，生成出来的建议必然对不上
+  if (streaming.value) {
+    return
+  }
   refreshing.value = true
   try {
-    state.value = await apiService.refreshSessionNextTask(sessionId)
+    const next = await apiService.refreshSessionNextTask(sessionId)
+    /*
+     * 后端在「这次没联想出任务」时会把**上一次的**结果连同原因一起返回
+     * （SessionNextTaskService.refresh 的保留策略，为了让面板不突然空掉）。
+     * 但这一轮已经结束、上一批建议已被用户这一条消息消费掉，
+     * 再把它们挂回来就是用户报障的「建议还是上一个的」。
+     * 因此：只要带回原因文案，就按「这一轮没有新建议」处理 —— 整块不渲染。
+     */
+    state.value = next.message ? { ...next, tasks: [] } : next
   } catch (error) {
     console.error('[NextTask] 重新联想失败:', error)
   } finally {
@@ -283,7 +323,7 @@ async function load(): Promise<void> {
       writeMark(PENDING_KEY, 0)
     }
     state.value = next?.enabled ? next : null
-    if (next?.enabled && !next.tasks.length && !next.message) {
+    if (next?.enabled && !next.tasks.length && !next.message && !streaming.value) {
       // 首次开启且还没联想过：直接生成一次，用户不用多点一次
       await onRefresh()
     }
@@ -298,6 +338,55 @@ async function load(): Promise<void> {
   }
 }
 
+/**
+ * 回复结束 → 按刚结束的这一轮重新联想。
+ *
+ * <p>后端只在被调用时联想（{@code refresh}），没有「回合结束自动联想」的钩子；
+ * 之前前端也只在「会话里还没有任何建议」时联想一次，于是第一次生成的建议会一直
+ * 挂到下一次手动点「重新联想」——这就是用户看到的「建议还是上一个的」。</p>
+ *
+ * <p>延时是为了让后端先把这一轮最后一条 assistant 消息落库：联想读的是持久化消息，
+ * 抢在前面读会漏掉刚生成的那半段，得到的仍然像上一轮。</p>
+ *
+ * <p><b>这段必须放在下面 {@code immediate: true} 的会话 watch 之前</b>：
+ * 那个 watch 在 setup 阶段同步执行，会调 {@link clearFinishTimer}；若定时器变量
+ * 声明在后面，此时仍处于 TDZ，抛 `Cannot access 'finishTimer' before initialization`，
+ * 整个会话页白屏（实测已踩）。</p>
+ */
+const FINISH_REFRESH_DELAY_MS = 900
+/** 待触发的回合结束联想；切会话/卸载/又开始流式时必须取消 */
+let finishTimer: number | undefined
+
+function clearFinishTimer(): void {
+  if (finishTimer !== undefined) {
+    window.clearTimeout(finishTimer)
+    finishTimer = undefined
+  }
+}
+
+watch(streaming, (now, before) => {
+  clearFinishTimer()
+  // 只在 true → false 时触发；首次求值时 before 为 undefined，不当作「刚结束」
+  if (!before || now) {
+    return
+  }
+  if (!state.value?.enabled || unsupported.value) {
+    return
+  }
+  finishTimer = window.setTimeout(() => {
+    finishTimer = undefined
+    // 先把上一轮的建议摘掉：联想是一次同步模型调用（数秒到十几秒），
+    // 不摘的话这段时间里旧建议照旧挂着，等于「说完了还给我看上一轮的」。
+    // 联想失败时后端会把旧建议连同原因一起返回，页面不会空着。
+    if (state.value) {
+      state.value.tasks = []
+    }
+    void onRefresh()
+  }, FINISH_REFRESH_DELAY_MS)
+})
+
+onUnmounted(clearFinishTimer)
+
 /** 折叠态下把已有结果留在 store 里，切回展开不重新请求 */
 const lastSessionId = computed(() => (props.sessionId == null ? null : String(props.sessionId)))
 
@@ -305,6 +394,7 @@ watch(
   lastSessionId,
   () => {
     collapsed.value = false
+    clearFinishTimer()
     void load()
   },
   { immediate: true },

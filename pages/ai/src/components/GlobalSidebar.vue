@@ -110,18 +110,23 @@
             @dragover.prevent="dragOverGroupId = group.id"
             @dragleave="dragOverGroupId = null"
             @drop.prevent.stop="onDropSessionToGroup(null, group.id)">
-          <!-- 分组标题栏 -->
+          <!-- 分组标题栏
+               「任务列表」（未分组虚拟分组）不参与折叠/右键：没有展开态也没有删除，
+               所以这里只对真实分组挂事件，图标也不显示折叠箭头（2026-11-14 口径）。 -->
           <div
-            class="group-header flex items-center justify-between pl-1 pr-1 py-1 ml-1 mr-0.5 rounded-md cursor-pointer transition-colors duration-200 select-none group text-neutral-600 dark:text-neutral-200"
-            :class="{ 'group-drag-over': dragOverGroupId === group.id }"
-            @click="toggleGroupExpand(group.id)" @contextmenu.prevent="openGroupContextMenu($event, group)">
+            class="group-header flex items-center justify-between pl-1 pr-1 py-1 ml-1 mr-0.5 rounded-md transition-colors duration-200 select-none group text-neutral-600 dark:text-neutral-200"
+            :class="{ 'group-drag-over': dragOverGroupId === group.id, 'cursor-pointer': group.id !== UNGROUPED_ID, 'cursor-default': group.id === UNGROUPED_ID }"
+            @click="group.id === UNGROUPED_ID ? undefined : toggleGroupExpand(group.id)"
+            @contextmenu.prevent="group.id === UNGROUPED_ID ? undefined : openGroupContextMenu($event, group)">
             <div class="flex items-center gap-1.5">
               <span class="relative w-4 h-4 shrink-0 flex items-center justify-center">
-                <FolderOpen16Regular class="absolute inset-0 w-4 h-4 transition-opacity duration-200 group-hover:opacity-0 text-yellow-600" />
+                <FolderOpen16Regular class="absolute inset-0 w-4 h-4 text-yellow-600"
+                  :class="group.id === UNGROUPED_ID ? '' : 'transition-opacity duration-200 group-hover:opacity-0'" />
                 <!-- <svg class="w-3.5 h-3.5 absolute inset-0 transition-opacity duration-200 group-hover:opacity-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
                 </svg> -->
-                <ChevronDown12Regular class="absolute inset-0 w-4 h-4 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                <ChevronDown12Regular v-if="group.id !== UNGROUPED_ID"
+                  class="absolute inset-0 w-4 h-4 transition-all duration-200 opacity-0 group-hover:opacity-100"
                   :class="isGroupExpanded(group.id) ? '' : '-rotate-90'" />
               </span>
               <span class="text-sm font-medium">{{ group.name }}</span>
@@ -153,8 +158,8 @@
             </div>
           </div>
 
-          <!-- 分组内的会话列表 -->
-          <div v-show="isGroupExpanded(group.id)" class="mt-0.5 space-y-0.5">
+          <!-- 分组内的会话列表：任务列表（未分组）没有折叠态，始终展开 -->
+          <div v-show="group.id === UNGROUPED_ID || isGroupExpanded(group.id)" class="mt-0.5 space-y-0.5">
             <!-- 分组内无会话时显示空状态 -->
             <template v-if="getGroupSessions(group.id).length === 0 && !isLoadingGroup(group.id)">
               <div class="text-center text-gray-500 py-6 text-xs">
@@ -175,6 +180,8 @@
                 }"
                 :draggable="!multiSelectMode"
                 @click="onSessionClick(session)"
+                @mouseenter="openSessionHover(session, $event)"
+                @mouseleave="closeSessionHover"
                 @contextmenu.prevent="openSessionContextMenu($event, session)"
                 @dragstart="onSessionDragStart(session, $event)"
                 @dragend="onSessionDragEnd"
@@ -510,6 +517,10 @@
   <!-- 会话右键菜单（与更多菜单保持一致） -->
   <ContextMenu :visible="sessionContextMenu.visible" :x="sessionContextMenu.x" :y="sessionContextMenu.y"
     :items="sessionContextMenuItems" @close="closeSessionContextMenu" />
+
+  <!-- 会话悬停卡：上下文构成 treemap + 用量信息（用户口径 2026-11-14） -->
+  <SessionHoverCard :visible="hoverVisible" :anchor-el="hoverAnchor" :session="hoverSession"
+    @card-enter="keepSessionHover" @card-leave="closeSessionHover" />
 </template>
 
 <script setup lang="ts">
@@ -529,6 +540,7 @@ import { Avatar, ScrollContainer } from './ui'
 import DropdownMenu from './ui/DropdownMenu.vue'
 import DropdownMenuItem from './ui/DropdownMenuItem.vue'
 import ContextMenu, { type ContextMenuItem } from './ui/ContextMenu.vue'
+import SessionHoverCard from './chat/SessionHoverCard.vue'
 import LTooltip from './ui/LTooltip.vue'
 import ReDialog from '@repo/ui/re-dialog';
 // 登出时收掉残留的加载遮罩（closeAll）
@@ -626,6 +638,40 @@ const onSessionClick = (session: any) => {
   }
   selectSession(session)
 }
+
+// ===== 会话悬停卡（上下文 treemap + 用量） =====
+// 悬停 350ms 才出，移开 240ms 后收；鼠标进入卡片本身要取消收起，
+// 否则用户想看清 token 数字时卡片先消失了。
+// 卡片弹在行的右侧（placement="right"）：上下弹会盖住相邻会话行，看不到列表。
+const hoverSession = ref<any>(null)
+const hoverAnchor = ref<HTMLElement | null>(null)
+const hoverVisible = ref(false)
+let hoverShowTimer: ReturnType<typeof setTimeout> | null = null
+let hoverHideTimer: ReturnType<typeof setTimeout> | null = null
+
+function openSessionHover(session: any, event: MouseEvent): void {
+  // 多选态与拖动中不弹：会挡住勾选/拖放落点
+  if (multiSelectMode.value) return
+  if (hoverShowTimer) clearTimeout(hoverShowTimer)
+  if (hoverHideTimer) clearTimeout(hoverHideTimer)
+  const anchor = event.currentTarget as HTMLElement
+  hoverShowTimer = setTimeout(() => {
+    hoverSession.value = session
+    hoverAnchor.value = anchor
+    hoverVisible.value = true
+  }, 350)
+}
+
+function keepSessionHover(): void {
+  if (hoverHideTimer) clearTimeout(hoverHideTimer)
+}
+
+function closeSessionHover(): void {
+  if (hoverShowTimer) clearTimeout(hoverShowTimer)
+  hoverHideTimer = setTimeout(() => {
+    hoverVisible.value = false
+  }, 240)
+}
 const toggleSelect = (session: any) => {
   const cur = selectedSessionIds.value
   selectedSessionIds.value = cur.includes(session.id)
@@ -716,7 +762,7 @@ const groupContextMenuItems = computed<ContextMenuItem[]>(() => {
   const group = groupContextMenu.value.group
   const groups = sessionGroupStore.sortedGroups
   const index = groups.findIndex((g) => g.id === group?.id)
-  if (!group || group.id === UNGROUPED_ID) return []
+  if (!group) return []
   return [
     ...(index > 0 ? [{
       label: t('ui.sidebar.moveGroupUp'),
@@ -742,10 +788,8 @@ const groupContextMenuItems = computed<ContextMenuItem[]>(() => {
   ]
 })
 
-// 打开分组右键菜单
+// 打开分组右键菜单（「任务列表」不挂这个事件，见模板）
 const openGroupContextMenu = (event: MouseEvent, group: SessionGroup) => {
-  // 未分组只做右键菜单不做实际处理（不可重命名/删除）
-  if (group.id === UNGROUPED_ID) return
   groupContextMenu.value = {
     visible: true,
     x: event.clientX,
@@ -996,6 +1040,8 @@ const currentActiveTab = computed(() => {
   if (routeName === 'FaceSearch') return 'face-search'
   if (routeName === 'FaceReid') return 'face-reid'
   if (routeName === 'ImageSearch') return 'image-search'
+  // 图像库：底库管理页（台账/画布/特征空间），与「以图搜图」是两个入口
+  if (routeName === 'ImageLibrary') return 'image-library'
   if (routeName === 'ImageColorize') return 'image-colorize'
   if (routeName === 'Ocr') return 'ocr'
   if (routeName === 'AudioRecognition') return 'audio-recognition'
@@ -1146,11 +1192,8 @@ const getGroupSessionCount = (groupId: string): number => {
   return sessionStore.getGroupTotal(groupIdParam)
 }
 
-// 分组是否展开
+// 分组是否展开（「任务列表」没有折叠态，模板里直接恒展开，不走这里）
 const isGroupExpanded = (groupId: string): boolean => {
-  if (groupId === UNGROUPED_ID) {
-    return sessionGroupStore.isExpanded(UNGROUPED_ID)
-  }
   return sessionGroupStore.isExpanded(groupId)
 }
 
@@ -1395,6 +1438,7 @@ const ROUTE_NAME_BY_TAB: Record<string, string> = {
   'face-search': 'FaceSearch',
   'face-reid': 'FaceReid',
   'image-search': 'ImageSearch',
+  'image-library': 'ImageLibrary',
   'image-colorize': 'ImageColorize',
   ocr: 'Ocr',
   'audio-recognition': 'AudioRecognition',
@@ -1413,7 +1457,12 @@ const ROUTE_NAME_BY_TAB: Record<string, string> = {
   capabilities: 'Capabilities',
 };
 
-/** 需要后读模型配置的菜单（先跳转，门禁检查放后台跑） */
+/** 需要后读模型配置的菜单（先跳转，门禁检查放后台跑）
+ *
+ *  图像库（image-library）**故意不在此列**：它自己就有模型门禁态 —— 没配特征模型时
+ *  页面会渲染一张说明卡和「去配置模型」按钮。在这里再拦一次，用户就永远看不到那张
+ *  卡片、也找不到该配哪个模型，只剩一句 toast 提示。
+ */
 const GATED_TABS = new Set([
   'face-search',
   'face-reid',
@@ -1834,6 +1883,8 @@ onUnmounted(() => {
     clearInterval(tickTimer)
     tickTimer = null
   }
+  if (hoverShowTimer) clearTimeout(hoverShowTimer)
+  if (hoverHideTimer) clearTimeout(hoverHideTimer)
 })
 </script>
 

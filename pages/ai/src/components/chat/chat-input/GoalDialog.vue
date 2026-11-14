@@ -238,8 +238,6 @@ async function togglePause(): Promise<void> {
   outline: none;
 }
 
-.gd-textarea:focus { border-color: var(--el-color-primary); }
-
 .gd-budget {
   display: flex;
   align-items: center;

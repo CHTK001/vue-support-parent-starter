@@ -7,7 +7,7 @@
          由后端在每次流式结束时落库（usedTokens + effectiveContextWindow + breakdown）。
       2. 条目明细：会话消息（文件读取、工具结果、用户输入、历史消息），
          由 GET /v2/sessions/{id}/messages 还原。
-    分类方块图只画 breakdown 真实存在的 5 个键；「文件」「工具结果」是会话内容的
+    分类图只画 breakdown 真实存在的 5 个键；「文件」「工具结果」是会话内容的
     子集，只在明细页签里展开，不重复计入占比 —— 否则同一段 token 会被算两遍。
   -->
   <div class="cw-panel">
@@ -26,72 +26,38 @@
     <div v-if="loading && !tokenStats" class="cw-state">读取上下文用量…</div>
 
     <!--
-      上下文地图：默认画面积图（treemap），可切成方格（等格点阵）。
-      两种画法共用同一份 slices（后端 breakdown + 剩余空间），布局复用 ReChart
-      的 layoutTreemap / assignDots，图标复用 ReChart 导出的 ContextModeIcon，
-      配色沿用本面板的 --el-* 令牌，不写死 hex（需求 4.1 / 4.2 / 4.5）。
+      上下文地图：三种画法都在 ReChart（type="context"）里统一维护——
+      拼贴面积 / 点阵密度 / 水位仪表，共用同一份 slices。
+      这里关掉组件自带的头部、统计与图例（面板已有自己的抬头与分类胶囊），
+      只借它的画布与悬停详情，避免两套标题叠在一起。
     -->
     <template v-else-if="hasBreakdown || hasWindow">
-      <div class="cw-chart" ref="chartRef">
-        <div v-if="viewMode === 'area'" ref="areaRef" class="cw-area" role="group" aria-label="上下文地图">
-          <button
-            v-for="cell in cells"
-            :key="cell.key"
-            type="button"
-            class="cw-cell"
-            :class="{ 'is-active': activeTab === cell.slice.key, 'is-dim': isDimSlice(cell.slice) }"
-            :style="cellStyle(cell)"
-            @mouseenter="onSliceEnter($event, cell.slice)"
-            @mousemove="onPointerMove"
-            @mouseleave="onPointerLeave"
-            @focus="onSliceEnter($event, cell.slice)"
-            @blur="onPointerLeave"
-            @click="pickTab(activeTab === cell.slice.key ? 'all' : cell.slice.key)"
-          >
-            <span v-if="cell.w > 56 && cell.h > 26" class="cw-cell__label">{{ cell.slice.label }}</span>
-            <span v-if="cell.w > 56 && cell.h > 44" class="cw-cell__token">{{ formatTokens(cell.slice.tokens) }}</span>
-          </button>
-        </div>
-
-        <div v-else class="cw-grid" role="group" aria-label="上下文方格">
-          <span
-            v-for="(dot, i) in dots"
-            :key="i"
-            class="cw-grid__dot"
-            :class="{ 'is-free': dot.key === 'free', 'is-dim': hoveredKey !== null && hoveredKey !== dot.key }"
-            :style="{ background: dot.color }"
-            @mouseenter="onDotEnter($event, dot)"
-            @mousemove="onPointerMove"
-            @mouseleave="onPointerLeave"
-            @click="pickTab(activeTab === dot.key ? 'all' : dot.key)"
-          />
-        </div>
-
-        <!-- 悬停详情：取代原生 title，可把分类、token、两种占比一次看全 -->
-        <div
-          v-if="tip.visible && tip.slice"
-          class="cw-tip"
-          :style="{ left: `${tip.x}px`, top: `${tip.y}px` }"
-          role="tooltip"
-        >
-          <span class="cw-tip__title">{{ tip.slice.label }}</span>
-          <span class="cw-tip__row"><i>占用</i><b>{{ formatTokens(tip.slice.tokens) }} token</b></span>
-          <span class="cw-tip__row"><i>占已用</i><b>{{ pctText(tip.slice, usedTokens) }}</b></span>
-          <span class="cw-tip__row"><i>占窗口</i><b>{{ hasWindow ? pctText(tip.slice, contextWindow) : '窗口未登记' }}</b></span>
-          <span class="cw-tip__hint">点击只看这一类</span>
-        </div>
-
-        <!-- 切换图标：截图里在图表右下角，两枚图标按钮 -->
+      <div class="cw-chart">
+        <ReChart
+          type="context"
+          :context-window="chartData"
+          :context-mode="viewMode"
+          :context-chrome="false"
+          :context-click-to-expand="false"
+          height="132px"
+          @context-mode-change="setViewMode"
+          @context-click="onChartClick"
+        />
         <div class="cw-mode-switch" role="tablist" aria-label="上下文窗口画法">
           <button type="button" role="tab" class="cw-mode-btn" :class="{ 'is-active': viewMode === 'area' }"
-            :aria-selected="viewMode === 'area'" title="上下文地图（面积图）" aria-label="上下文地图"
-            @click="viewMode = 'area'">
+            :aria-selected="viewMode === 'area'" title="拼贴面积" aria-label="拼贴面积"
+            @click="setViewMode('area')">
             <ContextModeIcon mode="area" :size="13" />
           </button>
-          <button type="button" role="tab" class="cw-mode-btn" :class="{ 'is-active': viewMode === 'grid' }"
-            :aria-selected="viewMode === 'grid'" title="方格" aria-label="方格"
-            @click="viewMode = 'grid'">
-            <ContextModeIcon mode="grid" :size="13" />
+          <button type="button" role="tab" class="cw-mode-btn" :class="{ 'is-active': viewMode === 'dots' }"
+            :aria-selected="viewMode === 'dots'" title="点阵密度" aria-label="点阵密度"
+            @click="setViewMode('dots')">
+            <ContextModeIcon mode="dots" :size="13" />
+          </button>
+          <button type="button" role="tab" class="cw-mode-btn" :class="{ 'is-active': viewMode === 'gauge' }"
+            :aria-selected="viewMode === 'gauge'" title="水位仪表" aria-label="水位仪表"
+            @click="setViewMode('gauge')">
+            <ContextModeIcon mode="gauge" :size="13" />
           </button>
         </div>
       </div>
@@ -278,12 +244,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { apiService } from "@/services/ApiService";
 import { useSessionStore } from "@/stores/session";
 import { useSessionTokenStats } from "@/composables/useSessionTokenStats";
-import { ContextModeIcon } from "@repo/ui/re-chart";
-import { assignDots, layoutTreemap, type ContextSlice } from "@repo/ui/re-chart";
+import ReChart, { ContextModeIcon } from "@repo/ui/re-chart";
+import type { ContextSlice, ContextViewMode, ReChartContextData } from "@repo/ui/re-chart";
 
 /**
  * 面板只接收会话标识：
@@ -389,194 +355,49 @@ const catRows = computed(() =>
       color: meta.color,
       short: meta.short,
       value,
-      share: chartBase.value > 0 ? (value / chartBase.value) * 100 : 0,
     };
   }).filter((row) => row.value > 0),
 );
 
-const freeShare = computed(() => {
-  if (!hasWindow.value || chartBase.value <= 0) return 0;
-  const free = Math.max(0, contextWindow.value - Math.max(usedTokens.value, breakdownSum.value));
-  return (free / chartBase.value) * 100;
-});
-
-/* ==================== 上下文地图（面积图 / 方格） ==================== */
+/* ==================== 上下文地图（三画法，画布交给 ReChart） ==================== */
 
 /**
- * 当前画法。默认面积图（treemap），与参考图一致；方格式点阵是第二视图。
- * 两个视图共用同一份 slices，切视图不改数据、不重新请求。
+ * 当前画法：拼贴面积 / 点阵密度 / 水位仪表。
+ * 三个视图共用同一份 slices，切视图不改数据、不重新请求。
  */
-const viewMode = ref<'area' | 'grid'>('area');
+const viewMode = ref<ContextViewMode>('area');
 
-/* ==================== 悬停：聚焦同类 + 详情浮层 ==================== */
-
-/** 悬停中的分类键；null = 没有悬停 */
-const hoveredKey = ref<string | null>(null);
-
-/** 图表容器：浮层相对它定位，避免被 area 的 overflow 裁掉 */
-const chartRef = ref<HTMLElement | null>(null);
-
-/** 悬停浮层状态（位置为容器内 px） */
-const tip = reactive({
-  visible: false,
-  x: 0,
-  y: 0,
-  slice: null as ContextSlice | null,
-});
-
-const TIP_WIDTH = 168;
-const TIP_HEIGHT = 104;
+function setViewMode(mode: ContextViewMode) {
+  viewMode.value = mode;
+}
 
 /**
- * 该块是否应虚化。
+ * 交给 ReChart 的窗口快照。
  *
- * 面板里一块就是一个类别，所以「悬停一块」等价于「聚焦这一类」：
- * 其余块退到 0.25，占比大小对比才看得出来（原来所有块同亮度，谁大谁小全靠猜）。
+ * <p>窗口未登记时（只有 breakdown）按构成合计当分母画相对占比，
+ * 不补「剩余」——那等于凭空造一个分母。</p>
  */
-function isDimSlice(slice: ContextSlice): boolean {
-  return hoveredKey.value !== null && slice.key !== hoveredKey.value;
-}
-
-/**
- * 进入某块：记下分类、打开浮层并立刻定位。
- *
- * 键盘聚焦没有指针坐标（FocusEvent），此时只开浮层不定位，
- * 浮层留在上一次位置，保证内容仍可读。
- */
-function onSliceEnter(ev: MouseEvent | FocusEvent, slice: ContextSlice): void {
-  hoveredKey.value = slice.key;
-  tip.slice = slice;
-  tip.visible = true;
-  if (ev instanceof MouseEvent) {
-    onPointerMove(ev);
-  }
-}
-
-function onDotEnter(ev: MouseEvent, dot: { slice: ContextSlice }): void {
-  onSliceEnter(ev, dot.slice);
-}
-
-function onPointerMove(ev: MouseEvent): void {
-  const box = chartRef.value?.getBoundingClientRect();
-  if (!box || !tip.visible) return;
-  tip.x = Math.min(Math.max(6, box.width - TIP_WIDTH - 6), Math.max(6, ev.clientX - box.left + 12));
-  tip.y = Math.min(Math.max(6, box.height - TIP_HEIGHT - 6), Math.max(6, ev.clientY - box.top + 12));
-}
-
-function onPointerLeave(): void {
-  hoveredKey.value = null;
-  tip.visible = false;
-}
-
-/** 占比文案：小于 1% 保留一位小数，否则取整 */
-function pctText(slice: ContextSlice, base: number): string {
-  if (!base || base <= 0) return '0%';
-  const value = (slice.tokens / base) * 100;
-  return `${value > 0 && value < 1 ? value.toFixed(1) : value.toFixed(0)}%`;
-}
-
-/** 面积图容器实测尺寸：treemap 布局需要像素宽高才能切矩形 */
-const areaRef = ref<HTMLElement | null>(null);
-const areaSize = ref({ w: 0, h: 0 });
-
-function syncAreaSize() {
-  const el = areaRef.value;
-  if (!el) {
-    areaSize.value = { w: 0, h: 0 };
-    return;
-  }
-  const box = el.getBoundingClientRect();
-  const next = { w: Math.round(box.width), h: Math.round(box.height) };
-  // 只在真的变了才写：ResizeObserver 每次回调都会读一次，无条件下发会触发多余重算
-  if (next.w !== areaSize.value.w || next.h !== areaSize.value.h) areaSize.value = next;
-}
-
-/**
- * 面积图尺寸跟踪。
- *
- * treemap 是像素布局，容器宽度在右栏拖动 / 抽屉开合 / 切视图时都会变，
- * 因此不能只在 onMounted 量一次：watch 负责「从方格切回面积图」时重新挂载的 DOM，
- * ResizeObserver 负责容器自身的尺寸变化。
- */
-let areaObserver: ResizeObserver | null = null;
-
-function observeArea() {
-  areaObserver?.disconnect();
-  areaObserver = null;
-  syncAreaSize();
-  const el = areaRef.value;
-  if (!el || typeof ResizeObserver === 'undefined') return;
-  areaObserver = new ResizeObserver(syncAreaSize);
-  areaObserver.observe(el);
-}
-
-watch(viewMode, (mode) => {
-  if (mode === 'area') nextTick(observeArea);
-  else areaObserver?.disconnect();
-});
-
-/**
- * 画图切片：breakdown 的 5 个真实分类 + 剩余空间。
- *
- * <p>剩余空间只在窗口已知时补；未知窗口时按构成合计画相对占比，
- * 不补一条「剩余」——那等于凭空造一个分母。</p>
- */
-const chartSlices = computed<ContextSlice[]>(() => {
-  // kind 留空：breakdown 的键（systemPrompt/tools/...）不在 ReChart 的 ContextSliceKind 枚举里，
-  // 配色统一由本面板的 catRows 决定，不借用契约里的默认色表。
-  const out: ContextSlice[] = catRows.value
-    .filter((row) => row.value > 0)
-    .map((row) => ({ key: row.key, label: row.label, tokens: row.value }))
-    .sort((a, b) => b.tokens - a.tokens);
-  if (freeShare.value > 0) {
-    const free = Math.max(0, contextWindow.value - Math.max(usedTokens.value, breakdownSum.value));
-    out.push({ key: 'free', label: '剩余空间', tokens: free, kind: 'free' });
-  }
-  return out;
-});
-
-/** treemap 单元格：key/x/y/w/h/slice，坐标为容器内 px */
-const cells = computed(() => {
-  const { w, h } = areaSize.value;
-  if (!w || !h) return [];
-  return layoutTreemap(chartSlices.value, w, h);
-});
-
-/** 方格视图：固定 24×12=288 格，按占比分配（剩余空间一格一色，不吞掉比例） */
-const dots = computed(() => {
-  const slices = chartSlices.value;
-  const total = slices.reduce((sum, s) => sum + Math.max(0, s.tokens), 0);
-  if (total <= 0) return [] as Array<{ key: string; color: string; title: string; slice: ContextSlice }>;
-  const count = 288;
-  const assignment = assignDots(slices, total, count);
-  const colorOf = (key: string) => {
-    if (key === 'free') return 'var(--el-fill-color)';
-    return catRows.value.find((row) => row.key === key)?.color || 'var(--el-color-primary)';
-  };
-  return assignment.map((index) => {
-    const slice = slices[index];
-    return {
-      key: slice.key,
-      color: colorOf(slice.key),
-      title: `${slice.label} · ${formatTokens(slice.tokens)} token`,
-      slice,
-    };
-  });
-});
-
-/** 单元格定位与底色：绝对定位 + 1px 间隙，避免相邻色块糊成一片 */
-function cellStyle(cell: { x: number; y: number; w: number; h: number; slice: ContextSlice }) {
-  const free = cell.slice.key === 'free';
-  const color = free
-    ? 'repeating-linear-gradient(135deg, var(--el-fill-color) 0 5px, var(--el-fill-color-dark, var(--el-fill-color-darker)) 5px 10px)'
-    : (catRows.value.find((row) => row.key === cell.slice.key)?.color || 'var(--el-color-primary)');
+const chartData = computed<ReChartContextData | null>(() => {
+  const total = chartBase.value;
+  if (total <= 0) return null;
   return {
-    left: `${cell.x + 1}px`,
-    top: `${cell.y + 1}px`,
-    width: `${Math.max(0, cell.w - 2)}px`,
-    height: `${Math.max(0, cell.h - 2)}px`,
-    background: color,
+    used: hasWindow.value ? Math.max(usedTokens.value, breakdownSum.value) : breakdownSum.value,
+    total,
+    // 颜色仍取本面板的 --el-* 令牌（BREAKDOWN_META），ReChart 优先用 slice.color
+    slices: catRows.value.map((row) => ({
+      key: row.key,
+      label: row.label,
+      tokens: row.value,
+      color: row.color,
+    })),
   };
+});
+
+/** 点图元：切换「只看这一类」，与点分类胶囊同一行为 */
+function onChartClick(slice: ContextSlice) {
+  // 「剩余空间」是组件按 total-used 补出来的，没有对应的明细页签，点了不改过滤
+  if (slice.kind === 'free' || slice.key === '__free__') return;
+  pickTab(activeTab.value === slice.key ? 'all' : slice.key);
 }
 
 /** 浮层里正在看的那一条；null = 关闭 */
@@ -964,8 +785,6 @@ function holdLoadingFloor() {
 
 onBeforeUnmount(() => {
   if (floorTimer) clearTimeout(floorTimer);
-  areaObserver?.disconnect();
-  areaObserver = null;
 });
 
 function reload() {
@@ -980,15 +799,6 @@ watch(sessionIdRef, () => {
   activeTab.value = "all";
   reload();
 });
-
-/** 图表区是 v-if 出来的：数据到了才有 DOM，到了再量尺寸并挂 ResizeObserver */
-watch(
-  () => hasBreakdown.value || hasWindow.value,
-  (show) => {
-    if (show) nextTick(observeArea);
-    else areaObserver?.disconnect();
-  },
-);
 </script>
 
 <style scoped>
@@ -1069,155 +879,15 @@ watch(
   padding-left: 12px;
 }
 
-/* ==================== 上下文地图（面积图 / 方格） ====================
-   参考形态：一块固定高度的地图区，右下角两枚图标切画法。
-   面积图用 slice & dice treemap（布局来自 @repo/ui/re-chart 的 layoutTreemap），
-   方格用等格点阵（assignDots），两者共用同一份 slices。 */
+/* ==================== 上下文地图（三画法） ====================
+   画布交给 ReChart（type="context"，contextChrome=false 只留画布）：
+   拼贴面积 / 点阵密度 / 水位仪表共用同一份切片，切换不重新请求。
+   这里只管占位与右下角的画法切换。 */
 .cw-chart {
   position: relative;
   margin: 12px 16px 0;
+  height: 132px;
   min-height: 0;
-}
-
-.cw-area {
-  position: relative;
-  width: 100%;
-  height: 132px;
-  border-radius: var(--el-radius-base, 6px);
-  background: var(--el-fill-color-lighter);
-  overflow: hidden;
-}
-
-.cw-cell {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 2px;
-  padding: 5px 7px;
-  border: 0;
-  border-radius: 5px;
-  overflow: hidden;
-  cursor: pointer;
-  /* 深墨色而非白色：Element 的 warning/success/info 都是中亮度，
-     白字对比度只有 2~3:1（浅色块上的标签几乎看不见），深墨色能到 4.5:1 以上。 */
-  color: color-mix(in srgb, var(--el-color-black, #0f172a) 88%, transparent);
-  text-align: left;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--el-color-white) 30%, transparent);
-  transition: filter var(--el-transition-duration-fast, 0.2s) ease,
-    opacity var(--el-transition-duration-fast, 0.2s) ease,
-    transform var(--el-transition-duration-fast, 0.2s) ease;
-}
-
-.cw-cell:hover {
-  filter: brightness(1.06);
-}
-
-/* 悬停一块时其余块退到 0.25：类别之间的大小对比一眼可读 */
-.cw-cell.is-dim {
-  opacity: 0.25;
-}
-
-.cw-cell.is-active {
-  box-shadow: inset 0 0 0 2px var(--el-text-color-primary);
-}
-
-.cw-cell__label,
-.cw-cell__token {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  line-height: 1.2;
-  /* 深色字 + 浅色浮光：色块明度差异较大时都能压住背景 */
-  text-shadow: 0 1px 0 color-mix(in srgb, var(--el-color-white) 45%, transparent);
-}
-.cw-cell__label {
-  font-size: 11px;
-  font-weight: 600;
-}
-.cw-cell__token {
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.92;
-}
-
-.cw-grid {
-  display: grid;
-  /* 24 列 × 12 行 = 288 格，行高与容器同分，不用 aspect-ratio：
-     等格阵在窄栏里如果用 1:1 方格，行高会撑破 132px 的固定高度并溢出到图例上。 */
-  grid-template-columns: repeat(24, 1fr);
-  grid-template-rows: repeat(12, 1fr);
-  gap: 2px;
-  box-sizing: border-box;
-  width: 100%;
-  height: 132px;
-  padding: 1px;
-  overflow: hidden;
-}
-
-.cw-grid__dot {
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  border-radius: 2px;
-  background: var(--el-color-primary);
-  cursor: pointer;
-  transition: opacity var(--el-transition-duration-fast, 0.2s) ease,
-    transform var(--el-transition-duration-fast, 0.2s) ease;
-}
-.cw-grid__dot.is-free {
-  background: var(--el-fill-color);
-}
-/* 与面积图同一口径：悬停一类时其余格虚化 */
-.cw-grid__dot.is-dim {
-  opacity: 0.18;
-}
-.cw-grid__dot:hover {
-  transform: scale(1.25);
-}
-
-/* 悬停详情浮层：替代原生 title，四行给全（分类 / token / 占已用 / 占窗口） */
-.cw-tip {
-  position: absolute;
-  z-index: 20;
-  width: 168px;
-  padding: 7px 9px;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: var(--el-bg-color-overlay);
-  border: 1px solid var(--el-border-color-light);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--el-color-black) 16%, transparent);
-  pointer-events: none;
-}
-.cw-tip__title {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--el-text-color-primary);
-  word-break: break-all;
-}
-.cw-tip__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-.cw-tip__row i {
-  font-style: normal;
-}
-.cw-tip__row b {
-  color: var(--el-text-color-primary);
-  font-variant-numeric: tabular-nums;
-}
-.cw-tip__hint {
-  font-size: 10px;
-  color: var(--el-color-primary);
 }
 
 /* 画法切换：右下角浮层，两枚图标按钮（选中态用主色描边而不是实底，避免抢色块的视觉） */

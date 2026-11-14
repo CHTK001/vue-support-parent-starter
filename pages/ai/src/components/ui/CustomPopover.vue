@@ -57,6 +57,13 @@ interface Props {
     align?: 'center' | 'start' | 'end'
     /** 与锚点的垂直间距（px），默认 8 */
     offset?: number
+    /**
+     * 弹出方向：auto 上下（默认，按可用空间选上或下）/ right 贴锚点右侧、垂直居中。
+     *
+     * <p>侧栏会话行用 right：上下弹会盖住相邻的会话行，看不到列表本身；
+     * 右侧弹只压住内容区，鼠标从行末横移进卡片也不会经过别的行。</p>
+     */
+    placement?: 'auto' | 'right'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -69,6 +76,7 @@ const props = withDefaults(defineProps<Props>(), {
     matchAnchorWidth: false,
     align: 'center',
     offset: 8,
+    placement: 'auto',
 })
 
 const emit = defineEmits<{
@@ -127,6 +135,41 @@ const updatePosition = () => {
 
     // 边界检查：确保不超出视口左右边界
     const viewportWidth = window.innerWidth
+
+    // 侧向弹出：贴锚点右侧垂直居中；右边放不下就翻到左侧（不留半截在屏幕外）。
+    // 这一支不参与「上/下」判定，否则侧栏会话行的卡片会盖住相邻行。
+    if (props.placement === 'right') {
+        const rightSide = rect.right + spacing
+        const leftSide = rect.left - popoverWidth - spacing
+        let sideLeft = rightSide + popoverWidth > viewportWidth - 10 && leftSide >= 10
+            ? leftSide
+            : rightSide
+        sideLeft = Math.max(10, Math.min(sideLeft, Math.max(10, viewportWidth - popoverWidth - 10)))
+
+        // 先落宽度与横向位置，避免首帧以默认宽度闪动
+        const sideStyle: Record<string, any> = {
+            position: 'fixed',
+            left: `${sideLeft}px`,
+        }
+        if (props.matchAnchorWidth) {
+            sideStyle.width = `${popoverWidth}px`
+        }
+        positionStyle.value = sideStyle
+
+        safeRaf(() => {
+            const actualHeight = popoverElement.offsetHeight
+            // 以锚点垂直中心对齐，再夹进视口；卡片比行高，贴顶会让鼠标一进卡片就掉出可视区
+            let top = rect.top + rect.height / 2 - actualHeight / 2
+            top = Math.max(10, Math.min(top, window.innerHeight - actualHeight - 10))
+            positionStyle.value = {
+                ...sideStyle,
+                top: `${top}px`,
+                bottom: 'auto',
+            }
+        })
+        return
+    }
+
     if (left < 10) {
         left = 10
     } else if (left + popoverWidth > viewportWidth - 10) {

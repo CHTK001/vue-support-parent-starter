@@ -1158,17 +1158,17 @@ const createFileObject = (file: File, fileType: string, isPasted = false) => {
 };
 
 // 打开模型面板
-// 底部模型按钮宽度：自适应内容，但收敛在 [MIN, MAX] 之间——
-// 太短会让模型名被截断、按钮看着像个小方块；太长会挤占发送按钮。用户需求 4.1。
-const MODEL_BUTTON_MIN_WIDTH = 96
-const MODEL_BUTTON_MAX_WIDTH = 400
+// 底部模型按钮宽度：按内容给「最大宽度」——短名字就窄，长名字收敛到 MAX 后省略。
+// 2026-11-14：原先还压了一个 MIN=96 的兜底，短模型名（如 nex-n2.6）也被撑成接近方块，
+// 与「贴合内容」的诉求相反，已去掉；MAX 与 CSS `.model-chip__name` 的 max-width 同口径。
+const MODEL_BUTTON_MAX_WIDTH = 260
 const MODEL_BUTTON_TRANSITION_MS = 200
 let modelOpenTimer: ReturnType<typeof setTimeout> | null = null;
 let modelCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
-function measureModelButtonNaturalWidth(): number {
+function measureModelButtonNaturalWidth(): number | undefined {
   const button = modelButtonRef.value as HTMLElement | null
-  if (!button) return MODEL_BUTTON_MIN_WIDTH
+  if (!button) return undefined
 
   const clone = button.cloneNode(true) as HTMLElement
   clone.classList.remove('is-open')
@@ -1178,8 +1178,8 @@ function measureModelButtonNaturalWidth(): number {
   clone.style.width = 'max-content'
   clone.style.maxWidth = `${MODEL_BUTTON_MAX_WIDTH}px`
   clone.style.left = '-9999px'
-  // 名称 span 平时是 flex-1 + min-w-0（flex-basis:0%），对容器固有宽度贡献为 0，
-  // 直接量会把宽度算小、把模型名截断。这里临时还原为内容宽，量到真实需要的宽度（用户需求 4.1）。
+  // 名称 span 默认 min-width: 0，对容器固有宽度贡献可能被算小、把模型名提前截断。
+  // 这里临时还原为内容宽，量到真实需要的宽度，再由 MAX 收敛（用户需求 4.1）。
   const nameEl = clone.querySelector('.model-name-text') as HTMLElement | null
   if (nameEl) {
     nameEl.style.flex = '0 0 auto'
@@ -1187,9 +1187,15 @@ function measureModelButtonNaturalWidth(): number {
     nameEl.style.overflow = 'visible'
   }
   document.body.appendChild(clone)
-  const width = Math.min(MODEL_BUTTON_MAX_WIDTH, Math.max(MODEL_BUTTON_MIN_WIDTH, clone.getBoundingClientRect().width))
+  const width = Math.min(MODEL_BUTTON_MAX_WIDTH, Math.ceil(clone.getBoundingClientRect().width))
   clone.remove()
-  return width
+  return width > 0 ? width : undefined
+}
+
+// 量不到按钮（未渲染）时清空内联宽度，交给 CSS 自然排版，避免写死一个宽值。
+function applyModelButtonWidth() {
+  const width = measureModelButtonNaturalWidth()
+  modelButtonWidth.value = width == null ? undefined : `${width}px`
 }
 
 function collapseModelButton() {
@@ -1200,11 +1206,11 @@ function collapseModelButton() {
   if (modelCloseTimer) clearTimeout(modelCloseTimer)
 
   modelButtonExpanded.value = false
-  // 宽度自适应模型名内容，收敛在 [MODEL_BUTTON_MIN_WIDTH, MODEL_BUTTON_MAX_WIDTH]（用户需求 4.1）
-  modelButtonWidth.value = `${measureModelButtonNaturalWidth()}px`
+  // 宽度按模型名内容收敛到 MODEL_BUTTON_MAX_WIDTH，不设最小宽度（用户需求 4.1）
+  applyModelButtonWidth()
   modelCloseTimer = setTimeout(() => {
     // 收起后保持同一自适应宽度，不回落到固定宽度
-    modelButtonWidth.value = `${measureModelButtonNaturalWidth()}px`
+    applyModelButtonWidth()
     modelCloseTimer = null
   }, MODEL_BUTTON_TRANSITION_MS)
 }
@@ -1737,7 +1743,7 @@ const handleThinkingLevelSelect = (level: string) => {
 // 提前引用会让 currentThinkingLabel 在初始化前访问 thinkingEnabled（TDZ）。
 // flush:'post' 让回调在 DOM 更新后再量，避免量到旧文本。
 watch([currentModelNameOnly, currentThinkingLabel], () => {
-  modelButtonWidth.value = `${measureModelButtonNaturalWidth()}px`
+  applyModelButtonWidth()
 }, { flush: 'post' })
 
 // MCP 工具选择（仅管理员，会话级持久化）
@@ -2612,9 +2618,9 @@ const handleClickOutside = (e: MouseEvent) => {
 };
 
 onMounted(() => {
-  // 模型名称按钮宽度自适应内容（最小 MODEL_BUTTON_MIN_WIDTH，用户需求 4.1）：挂载后量一次自然宽并置位
+  // 模型名称按钮宽度按内容收敛到最大宽度（不设最小值，用户需求 4.1）：挂载后量一次并置位
   nextTick(() => {
-    modelButtonWidth.value = `${measureModelButtonNaturalWidth()}px`
+    applyModelButtonWidth()
   });
   adjustTextareaHeight();
   loadModels();

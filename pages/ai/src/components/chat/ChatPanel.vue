@@ -208,6 +208,7 @@ import { useLayoutStore } from "@/stores/layout"
 import { useWorkspaceStore } from "@/stores/workspace"
 import { getCurrentTurns, flattenContentsForTimeline } from "@/utils/messageUtils"
 import { getToolActionLabel, getToolIcon, getArgsText } from "@/utils/toolDisplay"
+import { loadInputHistory, rememberInput } from "@/utils/inputHistory"
 import { useStreamResponse } from "@/composables/useStreamResponse"
 import type { InputMessageState, Session, QueuedMessage } from '@/types/session';
 import type { Character } from '@/types/character';
@@ -251,6 +252,17 @@ const authStore = useAuthStore()
 const sessionStore = useSessionStore();
 const layoutStore = useLayoutStore();
 const workspaceStore = useWorkspaceStore();
+
+/**
+ * 本机输入历史（按用户分键，见 utils/inputHistory）。
+ *
+ * <p>与会话消息解耦：用户清空会话后 ↑ 仍能翻到上次发过的内容。登录态是异步
+ * 恢复的，用户名可能晚于挂载才就位，所以跟着 user 变化重读一次。</p>
+ */
+const localInputHistory = ref<string[]>(loadInputHistory(authStore.user?.username))
+watch(() => authStore.user?.username, (name) => {
+  localInputHistory.value = loadInputHistory(name)
+})
 
 // 有壁纸时隐藏底部渐变遮罩（壁纸已有视觉层次，不透明遮罩会像补丁）
 const hasWallpaper = computed(() => !!layoutStore.wallpaperUrl);
@@ -389,9 +401,13 @@ const shouldButtonBreathe = ref(false)
  * 更新滚动按钮显示状态
  */
 const updateScrollButtonVisibility = useDebounceFn(() => {
-  const isAtBottom = scrollContainerRef.value?.isAtBottom
+  // 以容器实测几何判定，不能读 ScrollContainer 的 isAtBottom：
+  // 那个 ref 既没有随滚动更新、也没有 expose，读到的永远是 undefined，
+  // 于是「流式一开始就显示按钮」——用户明明停在底部也看到箭头（2026-11-14 报障）。
+  const el = scrollContainerRef.value?.getScrollElement?.()
+  const atBottom = !el || el.scrollHeight - el.scrollTop - el.clientHeight <= 5
 
-  if (isAtBottom) {
+  if (atBottom) {
     showScrollToBottomBtn.value = false
     shouldButtonBreathe.value = false
     return
@@ -1117,21 +1133,31 @@ async function loadMoreMessages(sessionId: string, beforeMessageId: string) {
 }
 
 /**
- * 历史提示条目（输入框按 ↑ 打开）：当前会话<b>已加载</b>的用户提问，最新在前。
+ * 历史提示条目（输入框按 ↑ 打开）：本机输入历史 + 当前会话<b>已加载</b>的用户提问。
  *
- * <p>数据源就是消息列表本身，不另存一份：用户删消息、切分支、加载上一页，
- * 历史提示要跟着一起变，否则会拿回已经不存在的提问。</p>
+ * <p>2026-11-14 起本机历史（localStorage，见 utils/inputHistory）排在最前：
+ * 用户清空会话消息后仍能翻到上次输入。此前只读消息列表，删消息历史即空。
+ * 会话消息部分随加载/删除实时变化，作为补充分列在后面；同一文本只保留一条。</p>
  */
 const promptHistory = computed(() => {
   const items: Array<{ id: string; text: string }> = []
+  const seen = new Set<string>()
+  for (const text of localInputHistory.value) {
+    const value = text.trim()
+    if (!value || seen.has(value)) continue
+    seen.add(value)
+    items.push({ id: `local-${items.length}`, text: value })
+  }
+  const fromMessages: Array<{ id: string; text: string }> = []
   for (const msg of activeMessages.value) {
     if (msg.role !== 'user') continue
     const text = String(msg.contents?.[0]?.content ?? '').trim()
-    if (!text) continue
-    items.push({ id: String(msg.id), text })
+    if (!text || seen.has(text)) continue
+    seen.add(text)
+    fromMessages.push({ id: String(msg.id), text })
   }
-  // 最新在前：↑ 打开后第一眼看到刚问过的那句
-  return items.reverse()
+  // 会话消息最新在前：↑ 打开后先看到刚问过的那句
+  return items.concat(fromMessages.reverse())
 })
 
 /**
@@ -1731,6 +1757,11 @@ async function copyMessage(message: any) {
 async function handleSendMessage(payload?: InputMessageState) {
   const data = payload;
   if (!data || (!data.content?.trim() && !(data.files?.length))) return;
+
+  // 本机输入历史先落一条：即使随后发送失败、或用户事后清空会话消息，
+  // ↑ 历史提示也还能翻到这次输入。
+  rememberInput(data.content ?? '', authStore.user?.username)
+  localInputHistory.value = loadInputHistory(authStore.user?.username)
 
   try {
     const { content, files, knowledgeBaseIds, think, search, skillNames } = data;
