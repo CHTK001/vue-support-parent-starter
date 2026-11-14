@@ -289,6 +289,17 @@
             网关读不到这个上游的余额时，按这里再查一次。字段表达式如
             <code>$data.total_available / 500000</code>，多段用分号分隔；未验证的接口先点「试查余额」。
           </p>
+          <div class="mg-up__credit-vendors">
+            <p class="mg-up__formhint">
+              常见厂商里，以下厂商<b>官方文档没有余额 / 额度查询端点</b>，不提供预设、不猜地址、不标「支持」（另有多家同类）。
+              若你确实拿到其余额地址，直接在下面「余额地址 + 字段表达式」自配，未验证先点「试查余额」。
+            </p>
+            <ul class="mg-up__vendor-list">
+              <li v-for="v in creditVendorRows" :key="v.id">
+                <code>{{ v.id }}</code><span v-if="v.name !== v.id"> · {{ v.name }}</span> — {{ v.reason }}
+              </li>
+            </ul>
+          </div>
           <div class="mg-up__grid">
             <el-form-item label="查询实现">
               <el-select v-model="credit.kind" clearable placeholder="按表达式自动选">
@@ -600,6 +611,34 @@ const credit = reactive({
   secretKey: '',
   billing: '',
 })
+
+/**
+ * 常见厂商里「不收录」的余额源清单（与 spring-support-ai-starter/README.md
+ * 「厂商余额端点：已收录 / 不收录」表口径一致）：官方文档没有余额 / 额度查询端点，
+ * 因此不提供预设、不猜地址、不标「支持」。此处只作静态参考，引导用户确有余额源时
+ * 在下面「余额地址 + 字段表达式」自配，未验证先点「试查余额」。
+ *
+ * <p>显示名能取 magpie 预设就用，取不到就保持 id，不猜品牌名。kilo 是唯一有代码
+ * 事实的一例：后端 /credit 明确返回「渠道不支持积分查询: kilo」。</p>
+ */
+const CREDIT_VENDOR_NO_ENDPOINT: Array<{ id: string; reason: string }> = [
+  { id: 'zhipu', reason: '官方文档没有余额 / 额度查询端点' },
+  { id: 'zai', reason: '官方文档没有余额 / 额度查询端点' },
+  { id: 'chutes', reason: '官方文档没有余额 / 额度查询端点' },
+  { id: 'fireworks', reason: '官方文档没有余额 / 额度查询端点' },
+  { id: 'helicone', reason: '官方文档没有余额 / 额度查询端点' },
+  { id: '302ai', reason: '官方文档没有余额 / 额度查询端点' },
+  { id: 'hyper', reason: '官方文档没有余额 / 额度查询端点' },
+  { id: 'kilo', reason: '渠道明确不支持积分查询（后端返回「渠道不支持积分查询」）' },
+]
+
+const creditVendorRows = computed(() =>
+  CREDIT_VENDOR_NO_ENDPOINT.map((v) => ({
+    id: v.id,
+    name: magpiePresetOf(v.id)?.name ?? v.id,
+    reason: v.reason,
+  })),
+)
 
 /** 试查结果文案（成功列出每段读数，失败给原因） */
 const creditTestText = computed(() => {
@@ -1639,6 +1678,28 @@ function testAllOk(value: unknown): boolean {
   font-size: 11px;
   line-height: 1.5;
   color: var(--el-text-color-secondary, #909399);
+}
+.mg-up__credit-vendors {
+  margin: 2px 0 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+.mg-up__credit-vendors .mg-up__formhint {
+  margin-top: 0;
+}
+.mg-up__vendor-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--el-text-color-regular, #606266);
+}
+.mg-up__vendor-list code {
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  color: var(--el-color-primary, #409eff);
 }
 
 /* ── 接入方式切换 ── */
