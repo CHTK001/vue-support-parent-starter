@@ -14,6 +14,7 @@ import {
   type AcmeCertificate,
 } from "../../../api/acmeApi";
 import { queryHosts } from "../../../api";
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 export interface AcmeHostPrefill {
   hostId?: number;
@@ -264,15 +265,15 @@ const showEabTip = computed(() => {
       </el-form-item>
 
       <el-form-item label="验证类型" required>
-        <el-radio-group v-model="form.challengeType">
-          <el-radio-button v-for="c in CHALLENGE_TYPES" :key="c.value" :value="c.value">{{ c.label }}</el-radio-button>
-        </el-radio-group>
+        <ReRadioGroup v-model="form.challengeType">
+          <ReRadioButton v-for="c in CHALLENGE_TYPES" :key="c.value" :value="c.value">{{ c.label }}</ReRadioButton>
+        </ReRadioGroup>
       </el-form-item>
 
       <el-form-item v-if="form.challengeType === 'HTTP-01'" label="部署模式" required>
-        <el-radio-group v-model="form.deployMode">
-          <el-radio-button v-for="m in DEPLOY_MODES" :key="m.value" :value="m.value">{{ m.label }}</el-radio-button>
-        </el-radio-group>
+        <ReRadioGroup v-model="form.deployMode">
+          <ReRadioButton v-for="m in DEPLOY_MODES" :key="m.value" :value="m.value">{{ m.label }}</ReRadioButton>
+        </ReRadioGroup>
       </el-form-item>
 
       <template v-if="form.challengeType === 'HTTP-01' && form.deployMode !== 'manual'">

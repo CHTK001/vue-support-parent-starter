@@ -16,6 +16,7 @@ import {
   type NetworkAdapterDetail,
 } from "../api";
 import NetAdapterGlyph from "./NetAdapterGlyph.vue";
+import { ReRadioGroup, ReRadio } from '@repo/ui/re-kit';
 
 const props = defineProps<{
   hostId: number;
@@ -345,10 +346,10 @@ const tableColumns = [
         </el-alert>
 
         <div class="ip-sec-title">IP 设置</div>
-        <el-radio-group v-model="ipv4.dhcp" class="ip-mode">
-          <el-radio :value="true">自动获得 IP 地址（DHCP）</el-radio>
-          <el-radio :value="false">使用下面的 IP 地址</el-radio>
-        </el-radio-group>
+        <ReRadioGroup v-model="ipv4.dhcp" class="ip-mode">
+          <ReRadio :value="true">自动获得 IP 地址（DHCP）</ReRadio>
+          <ReRadio :value="false">使用下面的 IP 地址</ReRadio>
+        </ReRadioGroup>
         <div v-if="!ipv4.dhcp" class="ip-fields">
           <div class="ipf">
             <label>IP 地址</label>
@@ -368,10 +369,10 @@ const tableColumns = [
         </div>
 
         <div class="ip-sec-title">DNS 设置</div>
-        <el-radio-group v-model="ipv4.dnsDhcp" class="ip-mode">
-          <el-radio :value="true">自动获得 DNS 服务器地址</el-radio>
-          <el-radio :value="false">使用下面的 DNS 服务器地址</el-radio>
-        </el-radio-group>
+        <ReRadioGroup v-model="ipv4.dnsDhcp" class="ip-mode">
+          <ReRadio :value="true">自动获得 DNS 服务器地址</ReRadio>
+          <ReRadio :value="false">使用下面的 DNS 服务器地址</ReRadio>
+        </ReRadioGroup>
         <div v-if="!ipv4.dnsDhcp" class="ip-fields">
           <div class="ipf">
             <label>首选 DNS</label>
@@ -461,7 +462,8 @@ const tableColumns = [
   letter-spacing: .4px; text-transform: uppercase; margin-top: 6px;
   padding-bottom: 4px; border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.ip-mode { display: flex; flex-direction: column; gap: 2px; padding: 6px 2px 0; }
+/* 分段单选：class 落在 el-segmented 根上，两个长文案横排，容器窄时整块换行 */
+.ip-mode { padding: 6px 2px 0; max-width: 100%; flex-wrap: wrap; }
 .ip-fields { display: flex; flex-direction: column; gap: 8px; padding: 8px 0 2px; }
 .ipf { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px; font-size: 13px; }
 .ipf > label { color: var(--el-text-color-regular); }

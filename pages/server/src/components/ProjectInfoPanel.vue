@@ -10,12 +10,14 @@
  * 这些动作在页面里已经有确认、任务浮层与错误详情，抽两份迟早会走岔。</p>
  *
  * <p>版式：抬头（身份 + 状态 + 操作）→ 指标条 → 左「项目本体」右「部署与观测」两栏。
- * 列表数据由 basicRows / sourceRows / endpointRows / varSummary 统一给出，
+ * 列表数据由 basicRows / sourceRows / endpointGroups / varSummary 统一给出，
  * 模板只负责排版，避免新增字段时只管一处。</p>
  */
 import { computed } from 'vue';
 import ReIcon from '@repo/ui/re-icon';
 import ProjectTypeIcon from './ProjectTypeIcon.vue';
+import ProjectTopology from './ProjectTopology.vue';
+import { formatSize } from '../utils/hostFileUi';
 
 defineOptions({ name: 'ProjectInfoPanel' });
 
@@ -43,6 +45,12 @@ interface InfoProject {
   uploadTargetDir?: string;
   runtimeProcess?: boolean;
   javaProcess?: boolean;
+  /** 用户自定义图标（优先于类型默认图标） */
+  icon?: string;
+  /** 项目记录创建时间（后端 LocalDateTime → ISO 字符串） */
+  createTime?: string;
+  /** 项目记录最近更新时间（后端 LocalDateTime → ISO 字符串） */
+  updateTime?: string;
 }
 
 /** 端点探测结果（与页面 EndpointProbe 同形） */
@@ -55,7 +63,21 @@ interface EndpointInfo {
   health?: string;
   metricCount?: number;
   metrics?: string[];
+  /** 堆内存已用量（字节）；后端探测拿不到时没有这个字段 */
+  heapUsedBytes?: number;
   message?: string;
+}
+
+/** 拓扑节点（与 ProjectTopology 的 TopoProject 同形） */
+interface TopoNode {
+  id: number;
+  name: string;
+  status: string;
+  pid?: string;
+  port?: number;
+  uptime?: string;
+  typeLabel?: string;
+  java?: boolean;
 }
 
 const props = withDefaults(
@@ -75,6 +97,8 @@ const props = withDefaults(
     apmObservable?: boolean;
     /** 是否支持系统日志（配了日志地址） */
     canLog?: boolean;
+    /** 同一发布下的全部项目（底部部署拓扑卡） */
+    topology?: TopoNode[];
   }>(),
   {
     hostLabel: '',
@@ -84,11 +108,14 @@ const props = withDefaults(
     apmLabel: '',
     apmObservable: false,
     canLog: false,
+    topology: () => [],
   },
 );
 
 const emit = defineEmits<{
   (e: 'action', command: string): void;
+  /** 拓扑卡里点某个节点：切到那个项目的系统信息 */
+  (e: 'topology-open', id: number): void;
 }>();
 
 interface InfoRow {
@@ -106,6 +133,14 @@ interface EndpointRow {
   enabled: boolean;
   action: string;
 }
+/** 观测入口分档：Actuator（进程内只读）→ APM（agent 调用链）→ Arthas（运行时诊断） */
+interface EndpointGroup {
+  key: string;
+  label: string;
+  /** 这一档的能力口径，一行说明它和下一档的区别 */
+  hint: string;
+  rows: EndpointRow[];
+}
 interface ActionItem {
   command: string;
   label: string;
@@ -117,6 +152,8 @@ interface StatItem {
   label: string;
   value: string;
   tone?: string;
+  /** 悬停说明：值被截断或需要补充口径时用 */
+  title?: string;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -143,7 +180,10 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 const typeLabel = computed(() => TYPE_LABELS[props.project.projectType] || props.project.projectType || '未知');
-const typeIcon = computed(() => TYPE_ICONS[props.project.projectType] || 'Folder');
+/** 用户自定义图标优先，其余按类型取；品牌标识由 ProjectTypeIcon 直接绘制 */
+const typeIcon = computed(
+  () => props.project.icon || TYPE_ICONS[props.project.projectType] || 'Folder',
+);
 
 const running = computed(() => props.project.status === 'running');
 const disabled = computed(() => props.project.enabled === false);
@@ -222,27 +262,54 @@ const sourceRows = computed<InfoRow[]>(() => {
   return rows;
 });
 
-const endpointRows = computed<EndpointRow[]>(() => {
-  const rows: EndpointRow[] = [
+/**
+ * 观测入口：按「由浅入深」三档分组 —— Actuator（进程内只读）→ APM（agent 上报的调用链）
+ * → Arthas（attach 到 JVM 做类/方法级诊断）。
+ *
+ * <p>平铺一长条时看不出「什么时候该用哪个」：指标不对先看 Actuator，接口慢了看 APM
+ * 的 span 树，定位到具体方法再看 Arthas。分组本身就是这条排障路径。</p>
+ */
+const endpointGroups = computed<EndpointGroup[]>(() => {
+  const groups: EndpointGroup[] = [
     {
-      name: 'Swagger',
-      text: swaggerState.value.text,
-      tone: swaggerState.value.tone,
-      command: 'swagger',
-      enabled: !!props.endpoint?.swagger,
-      action: props.endpoint?.swagger ? '打开' : '详情',
+      key: 'actuator',
+      label: 'Actuator',
+      hint: '进程内只读：指标、日志级别、请求记录',
+      rows: [
+        {
+          name: 'Swagger',
+          text: swaggerState.value.text,
+          tone: swaggerState.value.tone,
+          command: 'swagger',
+          enabled: !!props.endpoint?.swagger,
+          action: props.endpoint?.swagger ? '打开' : '详情',
+        },
+        {
+          name: 'Actuator',
+          text: actuatorState.value.text,
+          tone: actuatorState.value.tone,
+          command: 'actuator',
+          enabled: !!props.endpoint?.actuator,
+          action: props.endpoint?.actuator ? '打开' : '详情',
+        },
+      ],
     },
-    {
-      name: 'Actuator',
-      text: actuatorState.value.text,
-      tone: actuatorState.value.tone,
-      command: 'actuator',
-      enabled: !!props.endpoint?.actuator,
-      action: props.endpoint?.actuator ? '打开' : '详情',
-    },
+    { key: 'apm', label: 'APM', hint: 'agent 上报的调用链：看一次请求跨了几个服务', rows: [] },
+    { key: 'arthas', label: 'Arthas', hint: 'attach 到 JVM：类加载、方法耗时、线上调试', rows: [] },
   ];
+  // 日志级别与其它端点都依赖 Actuator：可用时才出现，避免点进去只看到「未暴露」
+  if (props.endpoint?.actuator) {
+    groups[0].rows.push({
+      name: '日志管理',
+      text: '热更新级别',
+      tone: 'muted',
+      command: 'actuator-loggers',
+      enabled: true,
+      action: '调整',
+    });
+  }
   if (props.apmLabel) {
-    rows.push({
+    groups[1].rows.push({
       name: 'APM',
       text: props.apmLabel,
       tone: 'ok',
@@ -252,31 +319,82 @@ const endpointRows = computed<EndpointRow[]>(() => {
     });
   }
   if (props.apmObservable) {
-    rows.push({
+    groups[1].rows.push({
       name: '链路追踪',
-      text: '按服务名定位',
+      text: '树状展开',
       tone: 'muted',
       command: 'traces',
       enabled: true,
       action: '打开',
     });
   }
-  return rows;
+  if (props.project.javaProcess) {
+    groups[2].rows.push({
+      name: '诊断终端',
+      text: '类/方法级',
+      tone: 'muted',
+      command: 'arthas',
+      enabled: true,
+      action: '打开',
+    });
+  }
+  // 空档不占位：没接 APM 的项目不该看到一行「APM —」
+  return groups.filter((g) => g.rows.length > 0);
 });
 
-const endpointOk = computed(() => [props.endpoint?.swagger, props.endpoint?.actuator].filter(Boolean).length);
 const pidLabel = computed(() =>
   running.value && props.project.runtimeProcess !== false ? props.project.pid || '—' : '—',
 );
 
+/**
+ * 堆内存文案。
+ *
+ * <p>没探测到就是「—」——0 会被读成「真的只用了 0 字节」，那是另一回事。</p>
+ *
+ * @param bytes 已用堆字节数
+ * @returns 形如 312.4 MB
+ */
+function heapLabel(bytes?: number): string {
+  return bytes && bytes > 0 ? formatSize(bytes) : '—';
+}
+
+/**
+ * 时间戳文案：指标条只有一格宽，用 `MM-DD HH:mm`；完整时间放 title。
+ *
+ * <p>今天的只给时分——「今天 14:32」比「11-14 14:32」快得多，而这一格看的就是
+ * 「刚不刚改过」。</p>
+ *
+ * @param iso 后端给的 ISO 时间
+ * @returns 形如 今天 14:32 / 11-08 16:22；没有值给「—」
+ */
+function stampLabel(iso?: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const now = new Date();
+  const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+    && d.getDate() === now.getDate();
+  if (sameDay) return `今天 ${hm}`;
+  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${hm}`;
+}
+
+/**
+ * 指标条：五行都取真实数据，取不到就给「—」。
+ *
+ * <p>状态已经在抬头那个 chip 上说过了，这里不重复；端口与堆内存只在探测过之后才有，
+ * 没探测过显示「—」而不是 0——0 会被当成「真的占用了 0」。</p>
+ */
 const stats = computed<StatItem[]>(() => [
-  { label: '运行状态', value: statusText.value, tone: statusTone.value },
   { label: '运行时长', value: runtimeLabel.value || '—' },
   { label: 'PID', value: pidLabel.value },
+  { label: '端口', value: props.endpoint?.port ? String(props.endpoint.port) : '—' },
+  { label: '堆内存', value: heapLabel(props.endpoint?.heapUsedBytes) },
   {
-    label: '端点可用',
-    value: props.probing ? '探测中' : `${endpointOk.value} / 2`,
-    tone: props.probing ? 'idle' : undefined,
+    label: '最近更新',
+    value: stampLabel(props.project.updateTime),
+    title: props.project.updateTime ? `项目记录最近更新：${props.project.updateTime}` : '还没有更新记录',
   },
 ]);
 
@@ -307,7 +425,7 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
     <div :class="bodyClass">
       <!-- 抬头：身份 + 状态 + 操作 -->
       <header class="pip-hero">
-        <span class="pip-ic"><ProjectTypeIcon :name="typeIcon" :size="20" /></span>
+        <span class="pip-ic"><ProjectTypeIcon :name="typeIcon" :size="24" /></span>
         <div class="pip-id">
           <h2 class="pip-name" :title="project.projectName">{{ project.projectName }}</h2>
           <div class="pip-meta">
@@ -335,7 +453,7 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
       <div class="pip-kpis">
         <div v-for="s in stats" :key="s.label" class="pip-kpi">
           <span class="pip-kpi-label">{{ s.label }}</span>
-          <span class="pip-kpi-value" :class="s.tone ? `is-${s.tone}` : ''" :title="s.value">{{ s.value }}</span>
+          <span class="pip-kpi-value" :class="s.tone ? `is-${s.tone}` : ''" :title="s.title || s.value">{{ s.value }}</span>
         </div>
       </div>
 
@@ -367,13 +485,20 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
           <section class="pip-card">
             <div class="pip-card-head"><ReIcon name="DataAnalysis" :size="13" />观测入口</div>
             <div class="pip-eps">
-              <div v-for="e in endpointRows" :key="e.name" class="pip-ep">
-                <span class="pip-ep-dot" :class="`is-${e.tone}`"></span>
-                <span class="pip-ep-name">{{ e.name }}</span>
-                <span class="pip-ep-state" :class="`is-${e.tone}`">{{ e.text }}</span>
-                <button type="button" class="pip-link" :disabled="!e.enabled" @click="emit('action', e.command)">
-                  {{ e.action }}
-                </button>
+              <!-- 三档：Actuator → APM → Arthas，由浅入深；空档不占位 -->
+              <div v-for="g in endpointGroups" :key="g.key" class="pip-ep-group">
+                <div class="pip-ep-group-head">
+                  <span class="pip-ep-group-name">{{ g.label }}</span>
+                  <span class="pip-ep-group-hint" :title="g.hint">{{ g.hint }}</span>
+                </div>
+                <div v-for="e in g.rows" :key="e.name" class="pip-ep">
+                  <span class="pip-ep-dot" :class="`is-${e.tone}`"></span>
+                  <span class="pip-ep-name">{{ e.name }}</span>
+                  <span class="pip-ep-state" :class="`is-${e.tone}`">{{ e.text }}</span>
+                  <button type="button" class="pip-link" :disabled="!e.enabled" @click="emit('action', e.command)">
+                    {{ e.action }}
+                  </button>
+                </div>
               </div>
               <p v-if="endpoint?.message" class="pip-msg">{{ endpoint.message }}</p>
               <div v-if="endpoint && (endpoint.port || endpoint.health || endpoint.metricCount)" class="pip-ep-extra">
@@ -400,6 +525,17 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
           </section>
         </div>
       </div>
+
+      <!-- 部署拓扑：这台主机上还挂着谁。紧凑卡只铺前 6 个节点，看全图去「拓扑」页签 -->
+      <ProjectTopology
+        v-if="topology.length"
+        compact
+        :projects="topology"
+        :host-label="hostLabel"
+        :active-id="project.id"
+        @expand="emit('action', 'topology')"
+        @open="(id: number) => emit('topology-open', id)"
+      />
     </div>
   </div>
 </template>
@@ -414,10 +550,10 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
 .pip-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   height: 100%;
   min-height: 0;
-  padding: 14px 16px 18px;
+  padding: 10px 14px 12px;
   overflow: auto;
   background:
     radial-gradient(120% 80% at 100% 0%, color-mix(in srgb, var(--type-1) 7%, transparent) 0%, transparent 55%),
@@ -440,9 +576,9 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
 .pip-hero {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex: none;
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
@@ -453,12 +589,11 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  color: #fff;
-  background: linear-gradient(135deg, var(--type-1), var(--type-2));
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--type-1) 26%, transparent);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--type-1);
+  background: transparent;
 }
 
 .pip-id { min-width: 0; }
@@ -564,16 +699,16 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
 /* ---------------- 指标条 ---------------- */
 .pip-kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
   flex: none;
 }
 .pip-kpi {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
-  padding: 9px 12px;
+  padding: 7px 10px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
@@ -600,20 +735,25 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
 .pip-cols {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  align-items: start;
-  gap: 12px;
+  align-items: stretch;
+  gap: 8px;
 }
 .pip-stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-height: 0;
+}
+/* 两栏等高（stretch）后，各栏内卡片平分高度：左「基本信息/变量摘要」与右
+   「观测入口/源码与投放」逐卡对齐，观测入口不再比基本信息矮一截 */
+.pip-stack > .pip-card {
+  flex: 1;
 }
 .pip-card {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 10px 12px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
@@ -622,7 +762,7 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 7px;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text-secondary);
@@ -631,7 +771,7 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
 .pip-rows {
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 6px;
   margin: 0;
 }
 .pip-row {
@@ -664,13 +804,46 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
 .pip-eps {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+/* 观测入口分档：每档给一个标题 + 一行口径说明，行缩进一档，
+   让「Actuator 指标 → APM 调用链 → Arthas 诊断」这条排障路径在视觉上就是递进的 */
+.pip-ep-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pip-ep-group + .pip-ep-group {
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-subtle);
+}
+.pip-ep-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 11px;
+}
+.pip-ep-group-name {
+  flex: none;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+.pip-ep-group-hint {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pip-ep {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  padding-left: 10px;
   font-size: 12.5px;
 }
 .pip-ep-dot {
@@ -714,8 +887,8 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  margin-top: 10px;
-  padding-top: 9px;
+  margin-top: 6px;
+  padding-top: 6px;
   font-size: 11.5px;
   color: var(--text-tertiary);
   border-top: 1px dashed var(--border-subtle);
@@ -743,22 +916,22 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
   flex-wrap: wrap;
   gap: 14px;
   margin-top: auto;
-  padding-top: 10px;
+  padding-top: 6px;
 }
 
 /* ---------------- 变量 ---------------- */
 .pip-vars {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: minmax(54px, auto);
-  gap: 8px;
+  grid-auto-rows: minmax(48px, auto);
+  gap: 6px;
 }
 .pip-var {
   display: flex;
   align-items: baseline;
   gap: 6px;
   min-width: 0;
-  padding: 9px 10px;
+  padding: 7px 9px;
   font-size: 12px;
   color: var(--text-secondary);
   text-align: left;

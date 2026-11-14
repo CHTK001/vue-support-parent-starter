@@ -564,7 +564,7 @@ onUnmounted(() => {
     v-if="activeTab === 'certs'"
     variant="rhythm"
     no-head
-    title="ACME 证书"
+    title="安全证书"
     :variant-items="[]"
     :filters="[
       { key: 'keyword', kind: 'search', placeholder: '搜索主域名 / SAN', width: 240 },

@@ -18,10 +18,10 @@
 
         <div class="aad-row">
           <span class="aad-label">来源</span>
-          <el-radio-group v-model="source" size="small">
-            <el-radio-button value="url">远程下载</el-radio-button>
-            <el-radio-button value="local">平台本机路径</el-radio-button>
-          </el-radio-group>
+          <ReRadioGroup v-model="source" size="small">
+            <ReRadioButton value="url">远程下载</ReRadioButton>
+            <ReRadioButton value="local">平台本机路径</ReRadioButton>
+          </ReRadioGroup>
         </div>
 
         <label class="aad-field">
@@ -93,6 +93,7 @@ import { computed, ref, watch } from 'vue';
 import { message } from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
 import ReMaskDialog from './ReMaskDialog.vue';
+import { ReRadioGroup, ReRadioButton } from '@repo/ui/re-kit';
 
 type AgentKind = 'arthas' | 'skywalking' | 'platform';
 

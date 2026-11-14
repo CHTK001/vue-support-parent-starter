@@ -1,5 +1,5 @@
 <template>
-  <div class="sl" role="status" aria-live="polite">
+  <div class="sl" :class="{ 'is-inline': inline }" role="status" aria-live="polite">
     <span v-for="it in items" :key="it.key" class="sl-item" :title="it.title || it.label">
       <i class="sl-dot" :class="`is-${it.state}`"></i>
       <span class="sl-label">{{ it.label }}</span>
@@ -9,17 +9,25 @@
 
 <script setup lang="ts">
 /**
- * 发布管理右下角状态灯。
+ * 发布管理状态灯。
  *
  * <p>只显示「有能力数据」的项：没装、探测不到、或从没拿到过结果的一律不渲染，
  * 避免一排灰灯看起来像全挂了。绿=最近一次探测正常，黄=超周期没更新或已知异常。</p>
  *
+ * <p>{@code inline} 用于并进底部指标条：去掉 fixed 定位与浮层阴影，
+ * 变成一行普通的小灯，不再浮在右下角盖住内容。</p>
+ *
  * @author CH
  * @since 4.0.0.52
  */
-defineProps<{
-  items: Array<{ key: string; label: string; state: 'ok' | 'warn'; title?: string }>;
-}>();
+withDefaults(
+  defineProps<{
+    items: Array<{ key: string; label: string; state: 'ok' | 'warn'; title?: string }>;
+    /** 并进指标条时使用（非浮层） */
+    inline?: boolean;
+  }>(),
+  { inline: false },
+);
 </script>
 
 <style scoped>
@@ -39,6 +47,21 @@ defineProps<{
   font-size: 12px;
   color: var(--el-text-color-regular);
   user-select: none;
+}
+/* 并进底部指标条：跟着条内基线走，不占额外高度 */
+.sl.is-inline {
+  position: static;
+  z-index: auto;
+  flex: none;
+  gap: 9px;
+  padding: 0;
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  white-space: nowrap;
 }
 .sl-item {
   display: inline-flex;

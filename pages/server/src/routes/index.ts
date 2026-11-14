@@ -102,11 +102,11 @@ export function createServerManageRoutes(options: ServerManageRoutesOptions = {}
       meta: { title: "远程控制", icon: "Position", showLink: true, activeMenu },
     },
     {
-      // ACME 证书：独立 ACME 后端的账户 / 申请 / 续期 / 下载。
+      // 安全证书：独立 ACME 后端的账户 / 申请 / 续期 / 下载。
       path: "/acme",
       name: "AcmeCert",
       component: () => import("../views/acme/index.vue"),
-      meta: { title: "ACME 证书", icon: "Key", showLink: true, activeMenu },
+      meta: { title: "安全证书", icon: "Key", showLink: true, activeMenu },
     },
   ];
 }
@@ -162,12 +162,12 @@ export function createServerHostRoutes(options: ServerManageRoutesOptions = {}):
           meta: { title: "远程控制", icon: "Position", showLink: false, activeMenu },
         },
         {
-          // ACME 证书：独立 ACME 后端的账户 / 申请 / 续期 / 下载。
+          // 安全证书：独立 ACME 后端的账户 / 申请 / 续期 / 下载。
           // 未并入主机资产右键，保留左侧独立入口。
           path: "/acme",
           name: "AcmeCert",
           component: () => import("../views/acme/index.vue"),
-          meta: { title: "ACME 证书", icon: "Key", showLink: true, activeMenu },
+          meta: { title: "安全证书", icon: "Key", showLink: true, activeMenu },
         },
         {
           // 主机账号：主机登录凭据（口令 / 公钥 / 邮箱 / Token）+ SSH 密钥库。

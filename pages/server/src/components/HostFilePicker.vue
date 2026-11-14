@@ -158,9 +158,9 @@ async function onOpen() {
 async function refresh() {
   loading.value = true;
   try {
-    const data = await listReleaseHostFiles(path.value);
-    const list = data?.items || [];
-    items.value = list.slice().sort((a, b) => {
+    const page = await listReleaseHostFiles({ path: path.value, limit: 500 });
+    // 目录在前、同类按名字排：翻目录时顺序不跳，找文件不靠眼力
+    items.value = (page?.items ?? []).slice().sort((a, b) => {
       if (a.directory !== b.directory) {
         return a.directory ? -1 : 1;
       }
@@ -253,7 +253,7 @@ async function onFilePicked(e: Event) {
   progress.value = 0;
   let taskId = '';
   try {
-    const task = await createUploadTask(file.name, file.size, CHUNK_SIZE);
+    const task = await createUploadTask(file.name, file.size, CHUNK_SIZE, path.value);
     taskId = String(task?.taskId || '');
     if (!taskId) {
       throw new Error('未返回 taskId');

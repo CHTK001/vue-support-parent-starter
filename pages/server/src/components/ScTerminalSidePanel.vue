@@ -1,10 +1,15 @@
 <script setup lang="ts">
 /**
- * 终端右侧小列面板：文件管理 / 命令片段
+ * 终端右侧小列面板：文件管理 / 命令片段 —— 「索引簿」形制
  *
  * <p>终端显示区右侧的一根小列（默认 300px，可拖宽并记忆），内部滚动：文件管理看
  * 「名称 / 大小 / 是否目录」，片段看「名称 / 首行 / 备注 / 体量」。双击或回车把片段
  * 下发到当前终端；双击目录进入。</p>
+ *
+ * <p><b>索引簿（Index Book）</b>：面板像一本通讯录 —— 片段按名称首字分节
+ * （重启 nginx → 重、tail 命令 → T），文件按类型分节（目录 / 脚本 / 配置 / 归档 /
+ * 日志 / 其他）。右缘一根字母索引条，点字即滚到该节，找东西从「滚动」变成「翻页」。
+ * 分组判定全部在 {@link ./terminalPanelGroups} 纯函数层，可单独跑单测。</p>
  *
  * <p>视觉定位：<b>属于终端，而不是属于浏览器</b>。整块用终端的暗面与字符语言 ——
  * 等宽字体、1px 发丝分隔、文本页签 + 下划线指示、裸字形按钮（↑ ⟳ × ↵）、
@@ -21,7 +26,7 @@
  * - 页面级快捷键由外层负责，本组件只处理列表内键盘。
  *
  * @author CH
- * @since 4.0.0.44
+ * @since 4.0.0.58
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { message } from '@repo/core'
@@ -29,6 +34,14 @@ import { getSnippets, sftpList } from '../api'
 import { getTerminalTheme, type TerminalTheme } from '../api/terminalTheme'
 import type { SnippetView } from '../views/snippet/snippetView'
 import { filterSnippets, toSnippetViews } from '../views/snippet/snippetView'
+import {
+  FILE_TYPE_TONE,
+  groupFileEntries,
+  groupSnippetViews,
+  snippetGroupKeys,
+  type PanelFileEntry,
+  type PanelGroup,
+} from './terminalPanelGroups'
 
 const props = withDefaults(
   defineProps<{
@@ -207,6 +220,12 @@ async function loadSnippets(): Promise<void> {
 /** 搜索结果 */
 const search = computed(() => filterSnippets(snippets.value, keyword.value))
 
+/** 索引簿：片段按名称首字分节（组内保持传入顺序，键盘导航顺序跟着组走） */
+const snippetGroups = computed<PanelGroup<SnippetView>[]>(() => groupSnippetViews(search.value))
+
+/** 片段页索引条上的字（按组顺序） */
+const snippetGroupKeysList = computed<string[]>(() => snippetGroupKeys(snippetGroups.value))
+
 /** 双击片段 → 下发到终端执行 */
 function onExecute(v: SnippetView): void {
   if (v.empty) {
@@ -282,7 +301,8 @@ const fileKeyword = ref('')
  * 排序与过滤后的条目。
  *
  * <p>目录优先、再按名称（中文按拼音序）。后端返回的顺序取决于 SFTP 实现，
- * 不同服务端不一致；在客户端统一排一次，同一台机器每次打开看到的顺序才稳定。</p>
+ * 不同服务端不一致；在客户端统一排一次，同一台机器每次打开看到的顺序才稳定。
+ * 索引簿的分组在这一层之上：先排好序，再按类型分节。</p>
  */
 const sortedEntries = computed<FileEntry[]>(() => {
   const kw = fileKeyword.value.trim().toLowerCase()
@@ -295,6 +315,11 @@ const sortedEntries = computed<FileEntry[]>(() => {
     return a.name.localeCompare(b.name, 'zh')
   })
 })
+
+/** 索引簿：文件按类型分节（目录 / 脚本 / 配置 / 归档 / 日志 / 其他） */
+const fileGroups = computed<PanelGroup<FileEntry>[]>(() =>
+  groupFileEntries(sortedEntries.value as PanelFileEntry[]),
+)
 
 /**
  * 加载当前目录。
@@ -450,12 +475,17 @@ function fileKey(e: FileEntry): string {
   return `f:${e.path ?? e.name}`
 }
 
-/** 当前列表里可见的行键（键盘移动的依据） */
+/** 当前列表里可见的行键（键盘移动的依据；按索引簿分组顺序展开） */
 const visibleKeys = computed<string[]>(() => {
-  if (tab.value === 'snippets') return search.value.map(snippetKey)
-  const keys = sortedEntries.value.map(fileKey)
+  const keys: string[] = []
+  if (tab.value === 'snippets') {
+    for (const g of snippetGroups.value) for (const v of g.items) keys.push(snippetKey(v))
+    return keys
+  }
   // 「上一级」行参与键盘导航，否则从第一行按 ↑ 会卡住
-  return fileDir.value === '/' ? keys : ['f:..', ...keys]
+  if (fileDir.value !== '/') keys.push('f:..')
+  for (const g of fileGroups.value) for (const e of g.items) keys.push(fileKey(e))
+  return keys
 })
 
 /**
@@ -553,6 +583,33 @@ function goToCrumb(path: string): void {
   loadFiles()
 }
 
+/* ==================== 索引条（Index Book 签名） ==================== */
+
+/** 当前选中行所在分组的键（索引条高亮；未选中 / 上一级行为空） */
+const activeGroupKey = computed<string>(() => {
+  const k = selectedKey.value
+  if (!k) return ''
+  if (k.startsWith('s:')) {
+    return snippetGroups.value.find(g => g.items.some(v => snippetKey(v) === k))?.key ?? ''
+  }
+  if (k === 'f:..') return ''
+  return fileGroups.value.find(g => g.items.some(e => fileKey(e) === k))?.key ?? ''
+})
+
+/**
+ * 点索引条上的字：滚到该分组的节首。
+ *
+ * <p>只滚列表容器内（bodyEl），与键盘移动同一个查询范围，多终端并存时不会滚错。</p>
+ *
+ * @param key 组键
+ */
+function scrollToGroup(key: string): void {
+  requestAnimationFrame(() => {
+    const el = bodyEl.value?.querySelector<HTMLElement>(`[data-group="${CSS.escape(key)}"]`)
+    el?.scrollIntoView({ block: 'start' })
+  })
+}
+
 /* ==================== 卸载清理 ==================== */
 
 /** 拖动过程中遗留的监听由 startResize 的 mouseup 收尾；组件卸载时再兜一次 */
@@ -648,7 +705,7 @@ onBeforeUnmount(() => {
       <button v-if="keyword" type="button" class="stp-key" title="清空" @click="keyword = ''">×</button>
     </div>
 
-    <!-- 片段列表 -->
+    <!-- 片段列表（索引簿：按名称首字分节，右缘字母索引条） -->
     <div
       v-if="tab === 'snippets'"
       ref="bodyEl"
@@ -671,43 +728,63 @@ onBeforeUnmount(() => {
         <p class="stp-note">{{ keyword ? '没有匹配的片段' : '暂无片段' }}</p>
         <button v-if="keyword" type="button" class="stp-retry" @click="keyword = ''">× 清除搜索</button>
       </template>
-      <div v-else class="stp-list">
-        <div
-          v-for="v in search"
-          :key="v.id"
-          class="stp-row"
-          :class="{ 'is-sel': selectedKey === snippetKey(v) }"
-          :data-row="snippetKey(v)"
-          role="option"
-          :aria-selected="selectedKey === snippetKey(v)"
-          :title="`${v.name}（双击 / Enter 下发）`"
-          tabindex="-1"
-          @click="select($event, snippetKey(v))"
-          @dblclick="onExecute(v)"
-        >
-          <i class="stp-row__g" aria-hidden="true">›</i>
-          <div class="stp-row__main">
-            <span class="stp-row__head">
-              <span class="stp-row__name">{{ v.name }}</span>
-              <span v-if="v.empty" class="stp-tag is-bad">空</span>
-              <span v-else-if="v.remark" class="stp-tag" :title="v.remark">{{ v.remark }}</span>
-              <span v-if="recentIds.includes(v.id)" class="stp-tag is-recent" title="最近下发过">↺</span>
-            </span>
-            <span class="stp-row__sub">{{ v.empty ? '（无正文）' : v.firstLine }}</span>
-            <span class="stp-row__meta">{{ countLabel(v.lines) }} · {{ v.chars }} 字符</span>
-          </div>
-          <button
-            type="button"
-            class="stp-act"
-            :disabled="v.empty"
-            :title="v.empty ? '该片段没有正文' : '下发到终端（Enter）'"
-            @click.stop="onExecute(v)"
-          >↵</button>
+      <template v-else>
+        <div class="stp-scroll">
+          <p class="stp-group-cap" aria-hidden="true">按名称首字分节</p>
+          <template v-for="g in snippetGroups" :key="g.key">
+            <div class="stp-group-head" :data-group="g.key">
+              <span class="stp-group-head__key">{{ g.key }}</span>
+              <span class="stp-group-head__count">{{ g.count }}</span>
+            </div>
+            <div
+              v-for="v in g.items"
+              :key="v.id"
+              class="stp-row"
+              :class="{ 'is-sel': selectedKey === snippetKey(v) }"
+              :data-row="snippetKey(v)"
+              role="option"
+              :aria-selected="selectedKey === snippetKey(v)"
+              :title="`${v.name}（双击 / Enter 下发）`"
+              tabindex="-1"
+              @click="select($event, snippetKey(v))"
+              @dblclick="onExecute(v)"
+            >
+              <i class="stp-row__g" aria-hidden="true">›</i>
+              <div class="stp-row__main">
+                <span class="stp-row__head">
+                  <span class="stp-row__name">{{ v.name }}</span>
+                  <span v-if="v.empty" class="stp-tag is-bad">空</span>
+                  <span v-else-if="v.remark" class="stp-tag" :title="v.remark">{{ v.remark }}</span>
+                  <span v-if="recentIds.includes(v.id)" class="stp-tag is-recent" title="最近下发过">↺</span>
+                </span>
+                <span class="stp-row__sub">{{ v.empty ? '（无正文）' : v.firstLine }}</span>
+                <span class="stp-row__meta">{{ countLabel(v.lines) }} · {{ v.chars }} 字符</span>
+              </div>
+              <button
+                type="button"
+                class="stp-act"
+                :disabled="v.empty"
+                :title="v.empty ? '该片段没有正文' : '下发到终端（Enter）'"
+                @click.stop="onExecute(v)"
+              >↵</button>
+            </div>
+          </template>
         </div>
-      </div>
+        <nav v-if="snippetGroupKeysList.length" class="stp-index" aria-label="按首字翻页">
+          <button
+            v-for="k in snippetGroupKeysList"
+            :key="k"
+            type="button"
+            class="stp-index__key"
+            :class="{ 'is-on': activeGroupKey === k }"
+            :title="`分节 ${k}`"
+            @click="scrollToGroup(k)"
+          >{{ k }}</button>
+        </nav>
+      </template>
     </div>
 
-    <!-- 文件列表（仅 SSH / Telnet 会话：SFTP 通道依赖 SSH） -->
+    <!-- 文件列表（索引簿：按类型分节，右缘字母索引条；仅 SSH / Telnet 会话） -->
     <div
       v-else-if="fileEnabled"
       ref="bodyEl"
@@ -729,51 +806,71 @@ onBeforeUnmount(() => {
         <p class="stp-note">目录为空</p>
         <button type="button" class="stp-retry" @click="refresh">⟳ 重新读取</button>
       </template>
-      <div v-else class="stp-list">
-        <p v-if="!sortedEntries.length && fileKeyword" class="stp-note">没有匹配的文件</p>
-        <!-- 上一级：一直可点，比顶部的 ↑ 更符合「在列表里往上走」的直觉 -->
-        <div
-          v-if="fileDir !== '/'"
-          class="stp-row stp-row--file stp-row--up"
-          :class="{ 'is-sel': selectedKey === 'f:..' }"
-          data-row="f:.."
-          role="option"
-          :aria-selected="selectedKey === 'f:..'"
-          title="回到上一级（双击 / Enter）"
-          tabindex="-1"
-          @click="select($event, 'f:..')"
-          @dblclick="up()"
-        >
-          <span class="stp-row__type is-dir" aria-hidden="true">↑</span>
-          <span class="stp-row__name stp-row__name--file is-dir">上一级</span>
-          <span class="stp-row__meta stp-row__meta--right">..</span>
-          <button type="button" class="stp-act" title="回到上一级（Enter）" @click.stop="up()">↵</button>
+      <template v-else>
+        <div class="stp-scroll">
+          <p v-if="!sortedEntries.length && fileKeyword" class="stp-note">没有匹配的文件</p>
+          <p v-else class="stp-group-cap" aria-hidden="true">按类型分节</p>
+          <!-- 上一级：一直可点，比顶部的 ↑ 更符合「在列表里往上走」的直觉 -->
+          <div
+            v-if="fileDir !== '/'"
+            class="stp-row stp-row--file stp-row--up"
+            :class="{ 'is-sel': selectedKey === 'f:..' }"
+            data-row="f:.."
+            role="option"
+            :aria-selected="selectedKey === 'f:..'"
+            title="回到上一级（双击 / Enter）"
+            tabindex="-1"
+            @click="select($event, 'f:..')"
+            @dblclick="up()"
+          >
+            <span class="stp-row__type is-dir" aria-hidden="true">↑</span>
+            <span class="stp-row__name stp-row__name--file is-dir">上一级</span>
+            <span class="stp-row__meta stp-row__meta--right">..</span>
+            <button type="button" class="stp-act" title="回到上一级（Enter）" @click.stop="up()">↵</button>
+          </div>
+          <template v-for="g in fileGroups" :key="g.key">
+            <div class="stp-group-head stp-group-head--file" :data-group="g.key">
+              <span class="stp-group-head__key">{{ g.label }}</span>
+              <span class="stp-group-head__count">{{ g.count }}</span>
+            </div>
+            <div
+              v-for="e in g.items"
+              :key="e.path ?? e.name"
+              class="stp-row stp-row--file"
+              :class="{ 'is-sel': selectedKey === fileKey(e) }"
+              :data-row="fileKey(e)"
+              role="option"
+              :aria-selected="selectedKey === fileKey(e)"
+              :title="(e.name ?? '') + ' · ' + (e.directory ? '目录（双击 / Enter 进入）' : formatSize(e.size))"
+              tabindex="-1"
+              @click="select($event, fileKey(e))"
+              @dblclick="enter(e)"
+            >
+              <i class="stp-dot" :class="`is-${g.type ? FILE_TYPE_TONE[g.type] : 'faint'}`" aria-hidden="true" />
+              <span class="stp-row__name stp-row__name--file" :class="{ 'is-dir': e.directory }">{{ e.name }}</span>
+              <span class="stp-row__meta stp-row__meta--right">{{ e.directory ? 'DIR' : formatSize(e.size) }}</span>
+              <button
+                v-if="e.directory"
+                type="button"
+                class="stp-act"
+                title="进入目录（Enter）"
+                @click.stop="enter(e)"
+              >↵</button>
+            </div>
+          </template>
         </div>
-        <div
-          v-for="e in sortedEntries"
-          :key="e.path ?? e.name"
-          class="stp-row stp-row--file"
-          :class="{ 'is-sel': selectedKey === fileKey(e) }"
-          :data-row="fileKey(e)"
-          role="option"
-          :aria-selected="selectedKey === fileKey(e)"
-          :title="(e.name ?? '') + ' · ' + (e.directory ? '目录（双击 / Enter 进入）' : formatSize(e.size))"
-          tabindex="-1"
-          @click="select($event, fileKey(e))"
-          @dblclick="enter(e)"
-        >
-          <span class="stp-row__type" :class="{ 'is-dir': e.directory }" aria-hidden="true">{{ e.directory ? '▸' : '·' }}</span>
-          <span class="stp-row__name stp-row__name--file" :class="{ 'is-dir': e.directory }">{{ e.name }}</span>
-          <span class="stp-row__meta stp-row__meta--right">{{ e.directory ? 'DIR' : formatSize(e.size) }}</span>
+        <nav v-if="fileGroups.length" class="stp-index" aria-label="按类型翻页">
           <button
-            v-if="e.directory"
+            v-for="g in fileGroups"
+            :key="g.key"
             type="button"
-            class="stp-act"
-            title="进入目录（Enter）"
-            @click.stop="enter(e)"
-          >↵</button>
-        </div>
-      </div>
+            class="stp-index__key"
+            :class="{ 'is-on': activeGroupKey === g.key }"
+            :title="`${g.label} · ${g.count}`"
+            @click="scrollToGroup(g.key)"
+          >{{ g.key }}</button>
+        </nav>
+      </template>
     </div>
   </aside>
 </template>
@@ -782,6 +879,8 @@ onBeforeUnmount(() => {
 /*
  * 配色全部走 --term-*：外层若把终端主题发布到页面根，面板自动跟随；
  * 现在没有发布，就回落到终端默认深色，保证与终端的暗面一致。
+ * 类型色点（脚本绿 / 配置蓝灰 / 归档琥珀…）是终端暗面里的数据语义色，
+ * 不跟随主题强调色，与 xterm 的 ANSI 色同理。
  */
 .stp {
   --stp-bg: var(--term-bg, #0b0e14);
@@ -791,6 +890,11 @@ onBeforeUnmount(() => {
   --stp-line: color-mix(in srgb, var(--stp-fg) 14%, transparent);
   --stp-accent: var(--term-accent, #6aa1ff);
   --stp-bad: #ff7a7a;
+  /* 文件类型色点（ANSI 语义色） */
+  --stp-dot-script: #3ecf8e;
+  --stp-dot-config: #8fa3bf;
+  --stp-dot-archive: #e5a50a;
+  --stp-dot-log: #6b7280;
 
   position: absolute;
   right: 0;
@@ -985,24 +1089,70 @@ onBeforeUnmount(() => {
 .stp-input::placeholder { color: var(--stp-faint); }
 .stp-input:focus { border-bottom-color: var(--stp-accent); }
 
-/* ---------- 内容区 ---------- */
+/* ---------- 内容区：滚动列 + 右缘索引条 ---------- */
 .stp-body {
   flex: 1;
   min-height: 0;
+  display: flex;
+  outline: none;
+}
+.stp-body:focus-visible { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--stp-accent) 45%, transparent); }
+.stp-scroll {
+  flex: 1;
+  min-width: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   padding-bottom: 8px;
-  outline: none;
 }
-.stp-body:focus-visible { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--stp-accent) 45%, transparent); }
-.stp-body:hover { scrollbar-color: color-mix(in srgb, var(--stp-fg) 28%, transparent) transparent; }
-.stp-body::-webkit-scrollbar { width: 6px; height: 6px; }
-.stp-body::-webkit-scrollbar-track { background: transparent; }
-.stp-body::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }
-.stp-body:hover::-webkit-scrollbar-thumb { background-color: color-mix(in srgb, var(--stp-fg) 28%, transparent); }
-.stp-body::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--stp-fg) 46%, transparent); }
+.stp-scroll:hover { scrollbar-color: color-mix(in srgb, var(--stp-fg) 28%, transparent) transparent; }
+.stp-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.stp-scroll::-webkit-scrollbar-track { background: transparent; }
+.stp-scroll::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 3px; }
+.stp-scroll:hover::-webkit-scrollbar-thumb { background-color: color-mix(in srgb, var(--stp-fg) 28%, transparent); }
+.stp-scroll::-webkit-scrollbar-thumb:hover { background-color: color-mix(in srgb, var(--stp-fg) 46%, transparent); }
+
+/* 右缘索引条：通讯录翻页的字 */
+.stp-index {
+  flex: none;
+  width: 17px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  border-left: 1px solid var(--stp-line);
+  background: color-mix(in srgb, var(--stp-fg) 2.5%, transparent);
+}
+.stp-index__key {
+  flex: none;
+  width: 14px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--stp-faint);
+  font: inherit;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color .12s ease, background .12s ease;
+}
+.stp-index__key:hover { color: var(--stp-fg); background: color-mix(in srgb, var(--stp-fg) 9%, transparent); }
+.stp-index__key.is-on { color: var(--stp-accent); background: color-mix(in srgb, var(--stp-accent) 14%, transparent); }
+.stp-index__key:focus-visible { outline: 1px solid var(--stp-accent); outline-offset: 1px; }
+
+/* 分节说明（一行小字，像书页的眉题） */
+.stp-group-cap {
+  margin: 0;
+  padding: 6px 10px 2px;
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: var(--stp-faint);
+}
 
 /* ---------- 加载态：扫描线 + 闪烁光标 + 三行骨架 ---------- */
 .stp-loading {
@@ -1067,6 +1217,24 @@ onBeforeUnmount(() => {
   transition: color .14s ease, border-color .14s ease;
 }
 .stp-retry:hover { color: var(--stp-fg); border-color: color-mix(in srgb, var(--stp-accent) 50%, transparent); }
+
+/* ---------- 分组头 ---------- */
+.stp-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 10px 2px;
+  font-size: 11px;
+  color: var(--stp-accent);
+}
+.stp-group-head__key { letter-spacing: .08em; }
+.stp-group-head__count {
+  font-size: 9.5px;
+  color: var(--stp-faint);
+  font-variant-numeric: tabular-nums;
+}
+/* 连续两组之间的留白，比行距再松一口气 */
+.stp-group-head + .stp-group-head { padding-top: 9px; }
 
 /* ---------- 行 ---------- */
 .stp-list { display: flex; flex-direction: column; animation: stp-fade .18s ease-out both; }
@@ -1163,13 +1331,28 @@ onBeforeUnmount(() => {
 .stp-act:hover:not(:disabled) { color: var(--stp-accent); border-color: color-mix(in srgb, var(--stp-accent) 45%, transparent); }
 .stp-act:disabled { opacity: .25; cursor: not-allowed; }
 
-/* 文件行：字形 + 名字 + 右侧大小，单行不折 */
+/* 文件行：类型色点 + 名字 + 右侧大小，单行不折 */
 .stp-row--file { align-items: center; padding-top: 4px; padding-bottom: 4px; }
 .stp-row__type { flex: none; width: 10px; text-align: center; color: var(--stp-faint); }
 .stp-row__type.is-dir { color: var(--stp-accent); }
 .stp-row__name--file { flex: 1; min-width: 0; }
 .stp-row__name.is-dir { color: var(--stp-accent); }
 .stp-row__meta--right { margin-top: 0; flex: none; }
+/* 类型色点：目录用强调色，脚本/配置/归档/日志各有 ANSI 语义色 */
+.stp-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  font-style: normal;
+  background: var(--stp-faint);
+}
+.stp-dot.is-accent { background: var(--stp-accent); }
+.stp-dot.is-green { background: var(--stp-dot-script); }
+.stp-dot.is-slate { background: var(--stp-dot-config); }
+.stp-dot.is-amber { background: var(--stp-dot-archive); }
+.stp-dot.is-gray { background: var(--stp-dot-log); }
+.stp-dot.is-faint { background: var(--stp-faint); }
 
 /* 触屏没有 hover：动作按钮常显，否则只能靠双击 */
 @media (hover: none) {

@@ -81,7 +81,7 @@
               <ReInput v-model="form.releaseName" placeholder="如：生产环境发布" style="width:100%" />
             </ReFormItem>
             <ReFormItem label="主机" required>
-              <ReSelect v-model="form.hostId" placeholder="选择主机（仅列出已开启 SSH 的主机）" style="width:100%" filterable :teleported="true" popper-class="host-select-popper">
+              <ReSelect v-model="form.hostId" placeholder="选择主机（仅列出已开启 SSH 或本机的主机）" style="width:100%" filterable :teleported="true" popper-class="host-select-popper">
                 <ReOption v-for="host in selectableHosts" :key="host.id" :label="host.serverHostName" :value="host.id">
                   <span style="float:left">{{ host.serverHostName }}</span>
                   <span style="float:right;color:var(--el-text-color-secondary);font-size:12px">
@@ -89,6 +89,17 @@
                   </span>
                 </ReOption>
               </ReSelect>
+              <!-- 本机：平台所在机器。发布动作本地执行、不经 OpenSSH，因此不受「开启 SSH」限制；
+                   没有本机主机时一键建好并选中，省得先跳去「主机管理」手填一遍 -->
+              <div class="rel-local">
+                <button type="button" class="rel-local__btn" :disabled="addingLocalHost" @click="useLocalHost">
+                  <Monitor style="width:12px;height:12px" />{{ localHostHost ? '选中本机' : '添加本机' }}
+                </button>
+                <span class="rel-local__hint">
+                  <template v-if="localHostHost">本机（{{ localHostHost.serverHostAddress }}）已在列表中，发布动作本地执行</template>
+                  <template v-else>平台所在机器：备份/启停/日志/升级本地执行，不经 SSH</template>
+                </span>
+              </div>
               <div v-if="sshBlockedCount" class="apm-divider-sub" style="margin-top:6px">
                 另有 {{ sshBlockedCount }} 台主机未开启 SSH，未列在上面的选项里：发布模块的备份/启停/日志/升级都走 OpenSSH，
                 这类主机选了也执行不了。需要用到它们时，先到「主机管理」打开「开启 SSH」并确认 OpenSSH 已启动。
@@ -212,10 +223,21 @@
               </el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="产物路径（各主机上的绝对路径，jar / tar.gz / zip；留空则仅重启）">
-            <el-input v-model="batchForm.packagePath" placeholder="/data/apps/app.jar" />
+          <el-form-item label="升级产物（从主机文件选，或直接上传；不选则仅重启）">
+            <div v-if="batchPkg.path" class="batch-pkg">
+              <span class="batch-pkg-name" :title="batchPkg.path">{{ batchPkg.name || batchPkg.path }}</span>
+              <button type="button" class="batch-pkg-clear" @click="clearBatchPkg">清除</button>
+            </div>
+            <div v-else class="batch-pkg-actions">
+              <el-button @click="batchPickerVisible = true">从主机文件选</el-button>
+              <el-button :loading="batchUploading" @click="pickBatchPkg">
+                {{ batchUploading ? `上传中 ${batchUploadPercent}%` : '直接上传' }}
+              </el-button>
+              <input ref="batchFileInput" type="file" style="display:none" @change="onBatchPkgPicked" />
+            </div>
             <div class="batch-tip-sub" style="width:100%; margin-top:2px">
-              批量升级不会上传文件；请先把产物放到各主机对应目录，再填路径。
+              选中或上传后，后端会把同一个包分别推到各目标主机的 uploads/ 再逐个升级；
+              不选产物表示只重启这些项目。
             </div>
           </el-form-item>
         </el-form>
@@ -256,6 +278,9 @@
         </ReButton>
       </template>
     </ReDialog>
+
+    <!-- 批量升级的产物来源：与单项目升级同一套主机文件 -->
+    <HostFilePicker v-model="batchPickerVisible" @select="onBatchPkgSelected" />
 
     <!-- 全局 APM 兜底：发布级留空的字段统一取这里；项目自身 APM 永远优先 -->
     <ReDialog
@@ -340,13 +365,16 @@ import { message } from "@repo/core";
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
-import { Files, Box, ArrowRight, EditPen, Delete, InfoFilled, Top } from '@element-plus/icons-vue';
+import { Files, Box, ArrowRight, EditPen, Delete, InfoFilled, Top, Monitor } from '@element-plus/icons-vue';
 import { http, unwrapResult } from '@repo/utils';
+import { fetchLocalAddress, saveHost } from '../../api';
 import { osIconSvg, osLabel } from '../../utils/osIcon';
 import { trackTask } from '../../utils/processTasks';
 import { toastError } from '../../utils/errors';
 import { releaseSse } from '../../services/releaseRealtime';
 import ProjectOpLogPanel from '../../components/ProjectOpLogPanel.vue';
+import HostFilePicker from '../../components/HostFilePicker.vue';
+import { upgradeFromHostFile, uploadReleaseHostFile } from '../../api/releaseHostFile';
 
 const BASE = '/ms/server/release';
 
@@ -380,6 +408,8 @@ interface Host {
   serverHostOsType?: string;
   /** 1=已开启 SSH；0/null=未开启（发布模块全部动作都走 SSH，未开启的主机不可用） */
   serverHostSshEnabled?: number | null;
+  /** 采集方式：LOCAL=平台所在机器，发布动作本地执行、不经 SSH */
+  serverHostCollectMode?: string | null;
 }
 
 /** 全局 APM 兜底配置（发布留空字段时使用） */
@@ -448,12 +478,13 @@ function isBlank(value?: string): boolean {
 }
 
 /**
- * 主机是否开启 SSH。
+ * 主机是否可被发布使用。
  *
- * <p>口径与后端 {@code ReleaseServiceImpl#resolveSshEnabled} 一致：显式设置取该值，
- * 未设置时非 Windows 视为开启、Windows 视为关闭。</p>
+ * <p>口径与后端 {@code ReleaseServiceImpl#prepare} 一致：本机（collect_mode=LOCAL）主机
+ * 由平台自身在本地执行，<b>不需要</b> OpenSSH；其余主机走 SSH，按「显式设置优先，
+ * 未设置时非 Windows 视为开启、Windows 视为关闭」判定。</p>
  *
- * <p>为什么要在这里挡：发布模块的备份/启停/日志/升级<b>全部</b>走 OpenSSH 远程执行，
+ * <p>为什么要在这里挡：发布模块的备份/启停/日志/升级对远程主机全部走 OpenSSH，
  * 主机没开 SSH 时任何动作都只会得到一句「无法执行发布操作」。与其让用户配完发布、
  * 建完项目、点一次失败一次，不如在选主机这一步就不提供这类主机。</p>
  *
@@ -461,11 +492,71 @@ function isBlank(value?: string): boolean {
  * @returns 是否可被发布使用
  */
 function sshEnabled(h: Host): boolean {
+  if (isLocalHost(h)) {
+    return true;
+  }
   const v = h.serverHostSshEnabled;
   if (v !== null && v !== undefined) {
     return Number(v) === 1;
   }
   return String(h.serverHostOsType || '').toUpperCase() !== 'WINDOWS';
+}
+
+/** 是否为本机主机（平台所在机器，发布动作本地执行） */
+function isLocalHost(h: Host): boolean {
+  return String(h.serverHostCollectMode || '').toUpperCase() === 'LOCAL';
+}
+
+/** 已存在的本机主机（没有时「添加本机」才会真的新建一条） */
+const localHostHost = computed(() => hosts.value.find((h) => isLocalHost(h)) || null);
+
+/** 添加本机中（防连点重复建号） */
+const addingLocalHost = ref(false);
+
+/**
+ * 「添加本机」：已存在本机主机就直接选中，否则按平台地址新建一条 LOCAL 主机。
+ *
+ * <p>地址取服务端首选网卡 IPv4（后端 {@code /local-address}），拿不到时退回 127.0.0.1 ——
+ * 回环地址同样通过后端的「确属本机」校验。采集方式 LOCAL 决定执行通道，
+ * 平台类型由后端按运行机器的 {@code os.name} 覆盖，这里给的值只是必填占位。</p>
+ */
+async function useLocalHost(): Promise<void> {
+  if (localHostHost.value) {
+    form.value.hostId = localHostHost.value.id;
+    message.info(`已选中本机主机（${localHostHost.value.serverHostAddress}）`);
+    return;
+  }
+  if (addingLocalHost.value) return;
+  addingLocalHost.value = true;
+  try {
+    let address = '';
+    try {
+      address = (await fetchLocalAddress()) || '';
+    } catch {
+      address = '';
+    }
+    const created = await saveHost(null, {
+      serverHostName: '本机（服务端）',
+      serverHostAddress: address || '127.0.0.1',
+      serverHostPort: 22,
+      // 后端按本机操作系统覆盖，这里给必填占位
+      serverHostOsType: 'LINUX',
+      serverHostCollectMode: 'LOCAL',
+      serverHostSshEnabled: 1,
+      serverHostRemoteEnabled: 1,
+      serverHostStatus: 1,
+      serverHostDescription: '平台所在机器：发布动作本地执行，不经 SSH',
+    } as any);
+    if (created) {
+      hosts.value = [...hosts.value, created];
+      form.value.hostId = created.id;
+    }
+    message.success('已添加本机主机');
+  } catch (e: any) {
+    toastError(e, '添加本机主机失败');
+  } finally {
+    addingLocalHost.value = false;
+  }
 }
 
 /** 主机下拉可选项：只列开启 SSH 的主机；编辑时保留当前已绑定的那台（便于改配置/查看问题） */
@@ -722,6 +813,65 @@ const batchForm = ref({
   autoRestart: true,
   autoRollback: false,
 });
+/** 批量升级选中的主机文件（key 非空时逐个项目走「先推到目标机再升级」） */
+const batchPkg = ref<{ key: string; name: string; path: string }>({ key: '', name: '', path: '' });
+/** 主机文件选择器可见性 */
+const batchPickerVisible = ref(false);
+/** 直接上传进度 */
+const batchUploading = ref(false);
+const batchUploadPercent = ref(0);
+const batchFileInput = ref<HTMLInputElement | null>(null);
+
+/** 打开浏览器文件选择（批量升级直接上传产物） */
+function pickBatchPkg() {
+  batchFileInput.value?.click();
+}
+
+/**
+ * 主机文件选择器选中：记下 key，逐项目升级时由后端推到各自主机。
+ *
+ * @param item 选中的文件
+ */
+function onBatchPkgSelected(item: { key: string; name: string; hostPath?: string }) {
+  batchPkg.value = { key: item.key, name: item.name, path: item.hostPath || item.key };
+  message.success(`已选择主机文件：${item.name}`);
+}
+
+/**
+ * 直接上传批量升级产物：传进主机文件存储后按路径回填。
+ *
+ * @param e input change
+ */
+async function onBatchPkgPicked(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  batchUploading.value = true;
+  batchUploadPercent.value = 0;
+  try {
+    const item = await uploadReleaseHostFile(file, '', (p) => {
+      batchUploadPercent.value = p;
+    });
+    if (!item) {
+      message.warning('上传完成但没有在主机文件里找到该文件，请到「主机文件」页确认');
+      return;
+    }
+    batchPkg.value = { key: item.key, name: item.name, path: item.hostPath || item.key };
+    message.success(`已上传：${file.name}`);
+  } catch (err: any) {
+    toastError(err, '上传产物失败');
+  } finally {
+    batchUploading.value = false;
+  }
+}
+
+/**
+ * 清空批量升级产物（回到「仅重启」）。
+ */
+function clearBatchPkg() {
+  batchPkg.value = { key: '', name: '', path: '' };
+}
 
 const PROJECT_TYPE_LABELS: Record<string, string> = {
   springboot: 'SpringBoot',
@@ -789,6 +939,7 @@ async function openBatchUpgrade() {
       autoRestart: true,
       autoRollback: false,
     };
+    batchPkg.value = { key: '', name: '', path: '' };
     batchVisible.value = true;
   } finally {
     batchLoading.value = false;
@@ -817,9 +968,38 @@ async function submitBatchUpgrade() {
   }
   batchLoading.value = true;
   try {
+    // 选了主机文件：逐个项目走单项目入口（后端会先把包推到各自主机的 uploads/）
+    if (batchPkg.value.key) {
+      const { packagePath, ...cfg } = batchForm.value;
+      let ok = 0;
+      let fail = 0;
+      for (const id of batchSelected.value) {
+        try {
+          const taskId = await upgradeFromHostFile(id, batchPkg.value.key, cfg);
+          if (taskId) {
+            ok += 1;
+            const p = allProjects.value.find(x => x.id === id);
+            trackTask(taskId, p?.projectName || `项目 ${id}`, 'upgrade');
+          } else {
+            fail += 1;
+          }
+        } catch {
+          fail += 1;
+        }
+      }
+      if (fail === 0) {
+        message.success(`已下发 ${ok} 个项目的升级任务`);
+      } else {
+        message.warning(`已下发 ${ok} 个，${fail} 个触发失败`);
+      }
+      batchVisible.value = false;
+      loadList();
+      return;
+    }
+    // 未选产物：只重启
     const res = await http()
       .post(`${BASE}/project/batch-upgrade`)
-      .data({ projectIds: batchSelected.value, config: { ...batchForm.value } });
+      .data({ projectIds: batchSelected.value, config: { ...batchForm.value, packagePath: '' } });
     const results = unwrapResult<any[]>(res) || [];
     let ok = 0;
     let fail = 0;
@@ -1181,6 +1361,38 @@ onBeforeUnmount(() => {
   line-height: 1.6;
   color: var(--text-secondary, #6b7280);
 }
+/* 本机快捷入口：与主机下拉同一行信息层级，按钮是轻量文字按钮 */
+.rel-local {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.rel-local__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border: 1px solid var(--el-color-primary-light-7, #b3d8ff);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.rel-local__btn:hover:not(:disabled) {
+  border-color: var(--el-color-primary);
+}
+.rel-local__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.rel-local__hint {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
 .apm-preview {
   margin: 0; padding: 12px 14px; width: 100%; box-sizing: border-box;
   font-family: "Cascadia Code", Consolas, monospace; font-size: 11.5px;
@@ -1224,6 +1436,38 @@ onBeforeUnmount(() => {
 }
 .batch-form {
   margin: 0;
+}
+/* 批量升级的产物来源：已选摘要 / 两个入口 */
+.batch-pkg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+}
+.batch-pkg-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.batch-pkg-clear {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.batch-pkg-actions {
+  display: flex;
+  gap: 8px;
 }
 .batch-switches {
   display: flex;
