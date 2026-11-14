@@ -25,18 +25,25 @@
         aria-hidden="true"
       >
         <template v-for="(m, i) in members" :key="'ln' + (m.label || i)">
-          <path
-            :id="`rglive-link-${i}`"
-            class="rglive-link"
-            :d="linkPath(i)"
-            vector-effect="non-scaling-stroke"
-          />
-          <path
-            class="rglive-flow"
-            :class="{ active: i === activeIndex }"
-            :d="linkPath(i)"
-            vector-effect="non-scaling-stroke"
-          />
+          <!--
+            只有「当前正在用的成员」才有线。
+            早先每条成员都画一条静止虚线（flow 的 opacity .22），看起来像两条通道都在走流量；
+            用户口径是「没跑到的模型没有线条」，所以未命中的成员连底图线也不画，
+            只在命中时把 link + flow 一起显示出来。
+          -->
+          <template v-if="i === activeIndex">
+            <path
+              :id="`rglive-link-${i}`"
+              class="rglive-link"
+              :d="linkPath(i)"
+              vector-effect="non-scaling-stroke"
+            />
+            <path
+              class="rglive-flow active"
+              :d="linkPath(i)"
+              vector-effect="non-scaling-stroke"
+            />
+          </template>
         </template>
         <!-- 每条真实路由决策播一次：小鸟沿对应成员的扇出线飞过去 -->
         <g
@@ -429,12 +436,15 @@ onUnmounted(stop)
   stroke-width: 1.6;
   stroke-dasharray: 5 12;
   opacity: 0.22;
-  animation: rglive-dash 1.6s linear infinite;
+  /* 没被命中的成员：虚线保持静止。流动代表「此刻有流量」，
+     所有线一起跑等于告诉用户「每个模型都在回答」，与事实不符。 */
 }
+
 .rglive-flow.active {
   opacity: 1;
   stroke-width: 2.2;
-  animation-duration: 0.65s;
+  /* 只有当前这条（最近一次真实决策命中的）才流动，速度随命中提高 */
+  animation: rglive-dash 0.65s linear infinite;
 }
 @keyframes rglive-dash {
   to { stroke-dashoffset: -17; }
