@@ -24,9 +24,17 @@
         <section class="kw-hero" :class="`kw-hero--${heroScene}`">
           <i class="kw-hero__glow kw-hero__glow--a" aria-hidden="true"></i>
           <i class="kw-hero__glow kw-hero__glow--b" aria-hidden="true"></i>
-          <!-- 天气动画层：两层做视差。仅装饰，场景类决定其背景与动画，默认 opacity:0 不显示 -->
-          <i class="kw-hero__fx kw-hero__fx--far" aria-hidden="true"></i>
-          <i class="kw-hero__fx kw-hero__fx--near" aria-hidden="true"></i>
+          <!-- 天气动画层：云/雾用背景渐变（只装饰），雨/雪用 JS 随机生成的粒子（见 fx） -->
+          <i class="kw-hero__fx kw-hero__fx--far" aria-hidden="true">
+            <span v-for="(c, i) in clouds.far" :key="`cf${i}`" class="kw-cloud" :style="cloudStyle(c)" />
+            <span v-for="(p, i) in fx.rainFar" :key="`rf${i}`" class="kw-drop" :style="dropStyle(p)" />
+            <span v-for="(p, i) in fx.snowFar" :key="`sf${i}`" class="kw-flake" :style="flakeStyle(p)" />
+          </i>
+          <i class="kw-hero__fx kw-hero__fx--near" aria-hidden="true">
+            <span v-for="(c, i) in clouds.near" :key="`cn${i}`" class="kw-cloud" :style="cloudStyle(c)" />
+            <span v-for="(p, i) in fx.rainNear" :key="`rn${i}`" class="kw-drop" :style="dropStyle(p)" />
+            <span v-for="(p, i) in fx.snowNear" :key="`sn${i}`" class="kw-flake" :style="flakeStyle(p)" />
+          </i>
 
           <div class="kw-hero__main">
             <div class="kw-hero__info">
@@ -49,7 +57,7 @@
           <div class="kw-metrics">
             <div v-for="item in metrics" :key="item.label" class="kw-metric">
               <el-tooltip :content="item.tip" placement="top" :show-after="150">
-                <span class="kw-metric__icon" role="img" :aria-label="item.tip"><ReIcon :name="item.icon" size="15" /></span>
+                <span class="kw-metric__icon" role="img" :aria-label="item.tip"><ReIcon :name="item.icon" size="16" /></span>
               </el-tooltip>
               <div class="kw-metric__body">
                 <span class="kw-metric__label">{{ item.label }}</span>
@@ -217,6 +225,167 @@ function wmoToHeroScene(wmo: number | null | undefined): HeroScene {
 
 const heroScene = computed<HeroScene>(() => wmoToHeroScene(weatherCode.value));
 
+/* ==================== 雨 / 雪 粒子（随机动画） ====================
+ * 纯 CSS 的重复渐变只有「均匀的周期感」，看着不像天气。这里用 JS 随机生成粒子：
+ *   - 尺寸 / 下落时长 / 负延迟（让画面一开始就分布在半空）/ 不透明度 / 横向飘移全随机；
+ *   - 粒子只在场景需要时生成一次并缓存（Record 键），scene 不变就不重摇；
+ *   - 雪是正六边形（clip-path），不是小白点；旋转取 0→300°，六边形每 60° 对称，
+ *     跳回 0 的一帧视觉上无缝。
+ */
+interface WeatherParticle {
+  left: number;
+  /** 雨：线长（px） */
+  len?: number;
+  /** 雪：边长直径（px） */
+  size?: number;
+  dur: number;
+  /** 负值 = 已播过一段，开场即分布在中途 */
+  delay: number;
+  opacity: number;
+  /** 雨的横向侧移（px，制造轻微斜风） */
+  sway?: number;
+  /** 雪的中段 / 末段横向漂移 */
+  swayA?: number;
+  swayB?: number;
+}
+
+const rand = (min: number, max: number): number => Math.random() * (max - min) + min;
+
+function makeRain(count: number, o: { lenMin: number; lenMax: number; durMin: number; durMax: number; opMin: number; opMax: number }): WeatherParticle[] {
+  return Array.from({ length: count }, () => ({
+    left: rand(1, 99),
+    len: rand(o.lenMin, o.lenMax),
+    dur: rand(o.durMin, o.durMax),
+    delay: -rand(0, o.durMax),
+    opacity: rand(o.opMin, o.opMax),
+    sway: rand(-12, 12),
+  }));
+}
+
+function makeSnow(count: number, o: { sizeMin: number; sizeMax: number; durMin: number; durMax: number; opMin: number; opMax: number }): WeatherParticle[] {
+  return Array.from({ length: count }, () => ({
+    left: rand(1, 99),
+    size: rand(o.sizeMin, o.sizeMax),
+    dur: rand(o.durMin, o.durMax),
+    delay: -rand(0, o.durMax),
+    opacity: rand(o.opMin, o.opMax),
+    swayA: rand(8, 26),
+    swayB: rand(-26, -8),
+  }));
+}
+
+/** 粒子缓存（雨/雪/云共用；按 key 存一份，避免每次重算都重新摇随机数） */
+const particleBanks: Record<string, unknown[]> = {};
+
+function particleBank<T>(key: string, make: () => T[]): T[] {
+  if (!particleBanks[key]) particleBanks[key] = make();
+  return particleBanks[key] as T[];
+}
+
+/** 当前场景要喷的粒子（近层快而密，远层慢而疏） */
+const fx = computed(() => {
+  const scene = heroScene.value;
+  const isRain = scene === "rain" || scene === "thunder";
+  const isSnow = scene === "snow";
+  return {
+    rainNear: isRain ? particleBank("rainNear", () => makeRain(22, { lenMin: 8, lenMax: 16, durMin: 0.4, durMax: 0.8, opMin: 0.6, opMax: 0.95 })) : [],
+    rainFar: isRain ? particleBank("rainFar", () => makeRain(12, { lenMin: 5, lenMax: 11, durMin: 0.7, durMax: 1.3, opMin: 0.4, opMax: 0.75 })) : [],
+    snowNear: isSnow ? particleBank("snowNear", () => makeSnow(24, { sizeMin: 9, sizeMax: 15, durMin: 2.6, durMax: 4.4, opMin: 0.8, opMax: 1 })) : [],
+    snowFar: isSnow ? particleBank("snowFar", () => makeSnow(16, { sizeMin: 6, sizeMax: 10, durMin: 3.6, durMax: 6.4, opMin: 0.5, opMax: 0.8 })) : [],
+  };
+});
+
+function dropStyle(p: WeatherParticle): Record<string, string> {
+  return {
+    left: `${p.left}%`,
+    height: `${p.len ?? 10}px`,
+    "--dur": `${p.dur}s`,
+    "--delay": `${p.delay}s`,
+    "--drop-op": String(p.opacity),
+    "--sway": `${p.sway ?? 0}px`,
+  };
+}
+
+function flakeStyle(p: WeatherParticle): Record<string, string> {
+  const size = p.size ?? 10;
+  return {
+    left: `${p.left}%`,
+    width: `${size}px`,
+    height: `${size}px`,
+    "--dur": `${p.dur}s`,
+    "--delay": `${p.delay}s`,
+    "--flake-op": String(p.opacity),
+    "--sway-a": `${p.swayA ?? 18}px`,
+    "--sway-b": `${p.swayB ?? -14}px`,
+  };
+}
+
+/* ==================== 云（随机云团，按风飘） ====================
+ * 之前云是「背景渐变 + 左右 ±6% 来回漂」，看着像原地呼吸、也不分层。现在改成云团
+ * 粒子：大小 / 纵向位置 / 透明度 / 速度全随机，统一从左往右飘出画面（像真实的风向），
+ * 用负延迟把相位摊开，任何时刻天上都有云在不同位置。
+ * 云的颜色由场景给（--cloud-color）：晴纯白、阴浅灰白、雨雪雷压成灰蓝（雨云）。
+ */
+interface CloudParticle {
+  top: number;
+  w: number;
+  h: number;
+  dur: number;
+  delay: number;
+  opacity: number;
+}
+
+/** 场景 → 云的团数 / 不透明度 / 基础时长（秒，越小越快） */
+const CLOUD_PRESET: Record<HeroScene, { near: number; far: number; opacity: number; nearDur: [number, number]; farDur: [number, number] }> = {
+  clear: { near: 6, far: 8, opacity: 0.92, nearDur: [26, 40], farDur: [46, 70] },
+  cloudy: { near: 7, far: 9, opacity: 0.86, nearDur: [22, 34], farDur: [38, 58] },
+  fog: { near: 5, far: 7, opacity: 0.55, nearDur: [32, 48], farDur: [52, 78] },
+  rain: { near: 6, far: 8, opacity: 0.8, nearDur: [16, 26], farDur: [30, 46] },
+  snow: { near: 6, far: 8, opacity: 0.85, nearDur: [24, 36], farDur: [40, 60] },
+  thunder: { near: 6, far: 8, opacity: 0.78, nearDur: [12, 20], farDur: [24, 36] },
+};
+
+function makeClouds(count: number, sizeRange: [number, number], durRange: [number, number], windFactor: number, baseOpacity: number): CloudParticle[] {
+  return Array.from({ length: count }, () => {
+    const w = rand(sizeRange[0], sizeRange[1]);
+    const dur = rand(durRange[0], durRange[1]) / windFactor;
+    return {
+      top: rand(2, 62),
+      w,
+      h: w * rand(0.4, 0.58),
+      dur,
+      // 负延迟：一进来就分布在天上不同位置，不用等第一团飘过来
+      delay: -rand(0, dur),
+      opacity: baseOpacity * rand(0.72, 1),
+    };
+  });
+}
+
+const clouds = computed(() => {
+  const preset = CLOUD_PRESET[heroScene.value];
+  // 风速 km/h → 速度因子：无风 0.55×（慢慢飘），30km/h ≈ 2.2×，封顶 2.6×
+  const wind = Math.max(0, Number(windSpeed.value ?? 0));
+  const windFactor = Math.min(2.6, Math.max(0.55, 0.55 + wind / 18));
+  // 风档并入缓存键：风变大后重新摇一批更快的云（0.5 一档，避免每 1km/h 就重摇）
+  const bucket = Math.round(windFactor * 2);
+  const scene = heroScene.value;
+  return {
+    near: particleBank(`cloudNear:${scene}:${bucket}`, () => makeClouds(preset.near, [96, 168], preset.nearDur, windFactor, preset.opacity)),
+    far: particleBank(`cloudFar:${scene}:${bucket}`, () => makeClouds(preset.far, [58, 112], preset.farDur, windFactor, preset.opacity)),
+  };
+});
+
+function cloudStyle(c: CloudParticle): Record<string, string> {
+  return {
+    top: `${c.top}%`,
+    width: `${Math.round(c.w)}px`,
+    height: `${Math.round(c.h)}px`,
+    opacity: String(c.opacity),
+    "--dur": `${c.dur.toFixed(1)}s`,
+    "--delay": `${c.delay.toFixed(1)}s`,
+  };
+}
+
 /** 曲线/滚动/悬浮提示只消费的逐小时字段（部分 app 的 tsconfig 未映射 @repo/theme/*，此处显式收窄） */
 interface HourlyPointLike {
   hour: string;
@@ -248,24 +417,24 @@ function weekTip(item: ForecastDayLike, index: number): string {
   return item.precipProb ? `${base} · 降水概率 ${item.precipProb}%` : base;
 }
 
-/** 三项指标卡（湿度 / 风速 / 体感），图标沿用系统 iconify 前缀约定；tip 为图标悬浮补充信息 */
+/** 三项指标卡（湿度 / 风速 / 体感）：统一用 fluent 的 filled 天气族图标，粗细与天区图标一致 */
 const metrics = computed(() => [
   {
     label: "湿度",
     value: `${humidity.value ?? 0}%`,
-    icon: "fluent:drop-24-regular",
+    icon: "fluent:weather-humidity-24-filled",
     tip: `相对湿度 ${humidity.value ?? 0}% · 今日降水 ${forecast.value[0]?.precip ?? 0}mm`,
   },
   {
     label: "风速",
     value: `${windSpeed.value ?? 0}km/h`,
-    icon: "humbleicons:wind",
+    icon: "fluent:weather-squalls-24-filled",
     tip: `${windDir.value || "无持续风向"} · ${windSpeed.value ?? 0}km/h`,
   },
   {
     label: "体感",
     value: `${feelsLike.value ?? 0}°`,
-    icon: "fluent:temperature-24-regular",
+    icon: "fluent:temperature-24-filled",
     tip: `体感 ${feelsLike.value ?? 0}°C · 实况 ${temp.value ?? 0}°C`,
   },
 ]);
@@ -542,128 +711,99 @@ onBeforeUnmount(() => {
      默认 opacity:0：没命中场景时不渲染任何东西，也不占合成层。 */
   &__fx {
     position: absolute;
-    inset: -30% -20%;
+    inset: 0;
     pointer-events: none;
-    opacity: 0;
-    will-change: transform, opacity;
   }
 
-  /* 场景配色：只做「氛围染色」，底色仍是深色渐变，白字才读得清。
-     色标是按「最浅一档 + 白字 ≥ 4.5:1」反推出来的，不是随手挑的 ——
-     改动前的原设计用 --el-color-primary-light-5(#a0cfff) 收尾，
-     白字实测只有 1.47:1，属于既有缺陷，这里一并修掉。 */
+  /* 远层整体压暗一点：远云更淡、雨雪更稀，形成前后景深 */
+  &__fx--far {
+    opacity: 0.82;
+  }
+
+  /* 场景配色：按真实天色走（天顶深、近地浅），不再一律墨蓝。
+     顶部必须够深：城市名 / 天气描述 / 大温度都是白字，13px 小字要 ≥4.5:1
+     （顶部 #1a6aa8 实测 5.7:1），越往下越亮的地方只放玻璃指标卡。 */
   &--clear {
     background:
-      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, #ffd35c 26%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #0b3a63 0%, #114d80 58%, #16608f 100%);
+      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, #ffd35c 34%, transparent) 0%, transparent 58%),
+      linear-gradient(168deg, #1a6aa8 0%, #2f86c4 46%, #7dc4ed 100%);
   }
 
   &--cloudy {
     background:
-      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 18%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #2f3d4d 0%, #3d4e63 58%, #4c607a 100%);
+      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 20%, transparent) 0%, transparent 58%),
+      linear-gradient(168deg, #3a4d61 0%, #5b7791 52%, #93b0c6 100%);
   }
 
   &--fog {
     background:
-      radial-gradient(130% 100% at 88% -12%, color-mix(in srgb, var(--el-color-white) 16%, transparent) 0%, transparent 60%),
-      linear-gradient(160deg, #3a4147 0%, #485057 58%, #565f66 100%);
+      radial-gradient(130% 100% at 88% -12%, color-mix(in srgb, var(--el-color-white) 18%, transparent) 0%, transparent 60%),
+      linear-gradient(168deg, #4a5158 0%, #6d757d 55%, #a7aeb5 100%);
   }
 
   &--rain {
     background:
       radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 14%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #1a2b3b 0%, #233a4c 58%, #2d4a60 100%);
+      linear-gradient(168deg, #1b2e40 0%, #2b4a63 52%, #4a708c 100%);
   }
 
   &--snow {
     background:
-      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 20%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #26374a 0%, #32485e 58%, #3f5a72 100%);
+      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 22%, transparent) 0%, transparent 58%),
+      linear-gradient(168deg, #2b3e52 0%, #46617a 52%, #8aa6bd 100%);
   }
 
   &--thunder {
     background:
       radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 12%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #161a28 0%, #202438 58%, #2b3148 100%);
+      linear-gradient(168deg, #12151f 0%, #1d2233 52%, #2f3852 100%);
   }
 
-  /* 晴：极慢自转的光束扫过 */
-  &--clear &__fx--far {
-    opacity: 1;
-    background-image: conic-gradient(
-      from 0deg,
-      transparent 0 14deg,
-      color-mix(in srgb, #ffe9a8 22%, transparent) 14deg 19deg,
-      transparent 19deg 46deg
+  /* 晴：右上角一颗太阳（复用 __glow--a 这颗圆形光斑）+ 白云漂移。
+     太阳往外推，只在角上露出一段弧，压不到右边的大温度；
+     云放在主行与指标卡之间的空档（y 46%~64%），两侧各一团。 */
+  &--clear &__glow--a {
+    top: -84px;
+    right: -64px;
+    width: 190px;
+    height: 190px;
+    background: radial-gradient(
+      circle,
+      #fffdf5 0 18%,
+      #ffe9b0 26%,
+      color-mix(in srgb, #ffd35c 62%, transparent) 44%,
+      transparent 70%
     );
-    animation: kw-sun-spin 44s linear infinite;
-  }
-
-  /* 多云 / 阴 / 雾：扁平的雾团横向漂移（雾更扁更淡、云团更立体） */
-  &--cloudy &__fx--far,
-  &--fog &__fx--far {
+    box-shadow: 0 0 76px 28px color-mix(in srgb, #ffd35c 28%, transparent);
     opacity: 1;
-    background-image:
-      radial-gradient(60% 34% at 22% 34%, color-mix(in srgb, var(--el-color-white) 24%, transparent) 0%, transparent 70%),
-      radial-gradient(52% 28% at 68% 62%, color-mix(in srgb, var(--el-color-white) 18%, transparent) 0%, transparent 72%);
-    animation: kw-cloud-drift 26s ease-in-out infinite;
+    animation: kw-sun-breathe 7.5s ease-in-out infinite;
   }
 
-  &--cloudy &__fx--near,
-  &--fog &__fx--near {
-    opacity: 1;
-    background-image: radial-gradient(46% 26% at 46% 70%, color-mix(in srgb, var(--el-color-white) 16%, transparent) 0%, transparent 74%);
-    animation: kw-cloud-drift-rev 19s ease-in-out infinite;
+  /* 云：改成脚本生成的云团粒子（见 clouds / .kw-cloud）——
+     每团大小、纵向位置、透明度、速度都随机，统一从左往右飘出画面（像真实风向），
+     用负延迟把相位摊开。颜色按天气给：晴纯白、阴浅灰白、雾灰白、雨雪雷压成灰蓝。 */
+  &--clear {
+    --cloud-color: #ffffff;
   }
 
-  /* 雾：整体更扁更慢，贴近「霾」而非「云」 */
-  &--fog &__fx--far {
-    opacity: 0.7;
-    animation-duration: 38s;
+  &--cloudy {
+    --cloud-color: #eef4fa;
   }
 
-  &--fog &__fx--near {
-    opacity: 0.6;
-    animation-duration: 30s;
+  &--fog {
+    --cloud-color: #e4eaf0;
   }
 
-  /* 雨 / 雷雨：斜向雨丝，节距 13px，位移取整数倍节距 → 循环无跳变 */
-  &--rain &__fx--near,
-  &--thunder &__fx--near {
-    opacity: 1;
-    background-image: repeating-linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--el-color-white) 34%, transparent) 0 1.5px,
-      transparent 1.5px 13px
-    );
-    animation: kw-fall 0.62s linear infinite;
+  &--rain {
+    --cloud-color: #b6c6d6;
   }
 
-  &--rain &__fx--far,
-  &--thunder &__fx--far {
-    opacity: 1;
-    background-image: repeating-linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--el-color-white) 18%, transparent) 0 1px,
-      transparent 1px 19px
-    );
-    animation: kw-fall-far 1.05s linear infinite;
+  &--snow {
+    --cloud-color: #eaf2fa;
   }
 
-  /* 雪：平铺圆点，位移 = background-size 的高度 → 无跳变 */
-  &--snow &__fx--near {
-    opacity: 1;
-    background-image: radial-gradient(circle, color-mix(in srgb, var(--el-color-white) 92%, transparent) 0 1.7px, transparent 2.2px);
-    background-size: 26px 30px;
-    animation: kw-snow 3.4s linear infinite;
-  }
-
-  &--snow &__fx--far {
-    opacity: 1;
-    background-image: radial-gradient(circle, color-mix(in srgb, var(--el-color-white) 62%, transparent) 0 1.2px, transparent 1.7px);
-    background-size: 41px 47px;
-    animation: kw-snow-far 6.2s linear infinite;
+  &--thunder {
+    --cloud-color: #9fb0c2;
   }
 
   /* 雷雨：雨丝之外，间歇闪电（只闪右上那团光晕，不整屏闪） */
@@ -675,56 +815,38 @@ onBeforeUnmount(() => {
      场景渐变整体再压暗一档；颗粒同时调亮，否则深底上雨丝几乎看不见。 */
   html.dark &--clear {
     background:
-      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, #ffd35c 22%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #0a3252 0%, #0e4570 58%, #135a8c 100%);
+      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, #ffd35c 26%, transparent) 0%, transparent 58%),
+      linear-gradient(168deg, #14567f 0%, #1d6d9f 48%, #4f9ec7 100%);
   }
 
   html.dark &--cloudy {
     background:
-      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 12%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #27333f 0%, #323f4f 58%, #3e4c60 100%);
+      radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 14%, transparent) 0%, transparent 58%),
+      linear-gradient(168deg, #2c3c4c 0%, #3f566c 52%, #6d879e 100%);
   }
 
   html.dark &--fog {
     background:
-      radial-gradient(130% 100% at 88% -12%, color-mix(in srgb, var(--el-color-white) 10%, transparent) 0%, transparent 60%),
-      linear-gradient(160deg, #30363b 0%, #3c4249 58%, #484f57 100%);
+      radial-gradient(130% 100% at 88% -12%, color-mix(in srgb, var(--el-color-white) 12%, transparent) 0%, transparent 60%),
+      linear-gradient(168deg, #363c42 0%, #4a525a 55%, #767f88 100%);
   }
 
   html.dark &--rain {
     background:
       radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 10%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #141f29 0%, #1c2c3a 58%, #243a4b 100%);
+      linear-gradient(168deg, #131f2b 0%, #1b3244 52%, #35526b 100%);
   }
 
   html.dark &--snow {
     background:
       radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 16%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #202c38 0%, #2b3b4c 58%, #384c60 100%);
+      linear-gradient(168deg, #1e2b38 0%, #2c4152 52%, #5b748a 100%);
   }
 
   html.dark &--thunder {
     background:
       radial-gradient(120% 95% at 88% -12%, color-mix(in srgb, var(--el-color-white) 10%, transparent) 0%, transparent 58%),
-      linear-gradient(160deg, #0f1118 0%, #171a24 58%, #212633 100%);
-  }
-
-  /* 深底上颗粒要更实一点才看得见 */
-  html.dark &--rain &__fx--near {
-    background-image: repeating-linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--el-color-white) 46%, transparent) 0 1.5px,
-      transparent 1.5px 13px
-    );
-  }
-
-  html.dark &--rain &__fx--far,
-  html.dark &--thunder &__fx--far {
-    background-image: repeating-linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--el-color-white) 28%, transparent) 0 1px,
-      transparent 1px 19px
-    );
+      linear-gradient(168deg, #0d1016 0%, #141724 52%, #232a3f 100%);
   }
 
   &__main {
@@ -750,6 +872,8 @@ onBeforeUnmount(() => {
     line-height: 1.15;
     text-overflow: ellipsis;
     white-space: nowrap;
+    /* 云会从文字后面飘过，加一层极浅投影保证白字始终读得清 */
+    text-shadow: 0 1px 5px color-mix(in srgb, #0b1f33 42%, transparent);
   }
 
   /* 天区文字一律不低于 90% 白：13px 的描述属于小字，需 ≥4.5:1。
@@ -757,6 +881,7 @@ onBeforeUnmount(() => {
   &__desc {
     font-size: 13px;
     color: color-mix(in srgb, var(--el-color-white) 92%, transparent);
+    text-shadow: 0 1px 4px color-mix(in srgb, #0b1f33 40%, transparent);
   }
 
   &__icon {
@@ -788,6 +913,7 @@ onBeforeUnmount(() => {
     font-weight: 800;
     line-height: 0.95;
     letter-spacing: -1px;
+    text-shadow: 0 2px 8px color-mix(in srgb, #0b1f33 38%, transparent);
   }
 
   &__temp-unit {
@@ -798,80 +924,122 @@ onBeforeUnmount(() => {
   }
 }
 
+/* ==================== 云团（随机飘移） ====================
+   一团云 = 4 个柔边椭圆叠出来的「积云」轮廓，颜色走场景变量 --cloud-color。
+   位移用 transform（不动 left），从左外侧 -200px 一路飘到右侧 620px：
+   两端都在天区之外，循环时不会看到跳变；相位由负延迟摊开。 */
+.kw-cloud {
+  position: absolute;
+  left: 0;
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(46% 58% at 26% 66%, var(--cloud-color, #fff) 0 38%, transparent 76%),
+    radial-gradient(56% 72% at 48% 46%, var(--cloud-color, #fff) 0 40%, transparent 78%),
+    radial-gradient(40% 52% at 72% 64%, var(--cloud-color, #fff) 0 38%, transparent 76%),
+    radial-gradient(72% 46% at 50% 80%, var(--cloud-color, #fff) 0 42%, transparent 80%);
+  pointer-events: none;
+  animation-name: kw-cloud-cross;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--dur, 40s);
+  animation-delay: var(--delay, 0s);
+}
+
+/* ==================== 雨 / 雪 粒子 ====================
+   位置 / 尺寸 / 时长 / 延迟 / 透明度全部由脚本内联（每次挂载随机摇一次），
+   这里只负责形状与关键帧，不写 background-image —— 均匀重复的图案没有天气感。 */
+.kw-drop {
+  position: absolute;
+  top: -16px;
+  width: 1.5px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--el-color-white) 95%, transparent));
+  pointer-events: none;
+  opacity: 0;
+  animation-name: kw-drop-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--dur, 0.5s);
+  animation-delay: var(--delay, 0s);
+}
+
+.kw-flake {
+  position: absolute;
+  top: -26px;
+  background: linear-gradient(160deg, #fff 0%, #dceeff 100%);
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+  pointer-events: none;
+  opacity: 0;
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, #1b2e40 22%, transparent));
+  animation-name: kw-flake-fall;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: var(--dur, 3s);
+  animation-delay: var(--delay, 0s);
+}
+
 /* ==================== 天气动画关键帧 ==================== */
-/* 位移一律取「图案节距的整数倍」，否则循环边界会跳一下 */
-@keyframes kw-fall {
-  from {
-    transform: skewX(-11deg) translateY(-13px);
+/* 雨：从容器上方 18px 落到 260px（盖住整个天区）。不同粒子时长/延迟随机，
+   所以看到的是疏密不一、速度不同的雨，而不是一条整齐推进的扫描线。 */
+@keyframes kw-drop-fall {
+  0% {
+    transform: translate3d(var(--sway, 0px), -18px, 0);
+    opacity: 0;
   }
 
-  to {
-    transform: skewX(-11deg) translateY(13px);
-  }
-}
-
-/* 远层雨：节距 19px（与近层的 13px 不同），位移必须换成 2×19=38px，
-   否则一个周期的位移不是节距整数倍，循环边界会横向跳一下。 */
-@keyframes kw-fall-far {
-  from {
-    transform: skewX(-8deg) translateY(-19px);
+  8% {
+    opacity: var(--drop-op, 0.8);
   }
 
-  to {
-    transform: skewX(-8deg) translateY(19px);
-  }
-}
-
-@keyframes kw-snow {
-  from {
-    transform: translate3d(0, -30px, 0);
-  }
-
-  to {
-    transform: translate3d(0, 30px, 0);
-  }
-}
-
-/* 远层雪：平铺高度 47px → 位移取 2×47=94px */
-@keyframes kw-snow-far {
-  from {
-    transform: translate3d(0, -47px, 0);
-  }
-
-  to {
-    transform: translate3d(0, 47px, 0);
-  }
-}
-
-@keyframes kw-sun-spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes kw-cloud-drift {
-  0%,
   100% {
-    transform: translate3d(-6%, 0, 0);
+    transform: translate3d(var(--sway, 0px), 260px, 0);
+    opacity: 0;
+  }
+}
+
+/* 雪：边落边左右摆。旋转 0→300°，六边形每 60° 对称，跳回 0 的那一帧视觉上无缝 */
+@keyframes kw-flake-fall {
+  0% {
+    transform: translate3d(0, -26px, 0) rotate(0deg);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: var(--flake-op, 0.9);
   }
 
   50% {
-    transform: translate3d(7%, -3%, 0);
+    transform: translate3d(var(--sway-a, 18px), 118px, 0) rotate(150deg);
+  }
+
+  100% {
+    transform: translate3d(var(--sway-b, -14px), 250px, 0) rotate(300deg);
+    opacity: 0;
   }
 }
 
-@keyframes kw-cloud-drift-rev {
+/* 太阳：轻微呼吸（亮度 + 体量），不做旋转 —— 该转的是光束，不是太阳本身 */
+@keyframes kw-sun-breathe {
   0%,
   100% {
-    transform: translate3d(5%, 2%, 0);
+    transform: scale(1);
+    filter: brightness(1);
   }
 
   50% {
-    transform: translate3d(-6%, -2%, 0);
+    transform: scale(1.06);
+    filter: brightness(1.08);
+  }
+}
+
+/* 云：从左外侧飘到右外侧（-200 → 620），两端都在天区之外，循环时看不到跳变 */
+@keyframes kw-cloud-cross {
+  from {
+    transform: translate3d(-200px, 0, 0);
+  }
+
+  to {
+    transform: translate3d(620px, 0, 0);
   }
 }
 
@@ -908,8 +1076,12 @@ onBeforeUnmount(() => {
     animation: none !important;
   }
 
-  .kw-hero__fx {
+  /* 粒子是 JS 摇的、动画写在自己身上，父层的 animation:none 管不到它 */
+  .kw-hero__fx,
+  .kw-drop,
+  .kw-flake {
     opacity: 0 !important;
+    animation: none !important;
   }
 }
 

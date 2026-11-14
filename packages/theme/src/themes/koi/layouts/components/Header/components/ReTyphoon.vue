@@ -57,16 +57,30 @@
     </div>
   </el-popover>
 
-  <ReDialog v-model="detailVisible" title="台风详情" :width="1120" :height="740" headless :footer-hidden="true" :fullscreen="false" destroy-on-close>
+  <ReDialog
+    v-model="detailVisible"
+    title="台风详情"
+    :width="1120"
+    :height="740"
+    resizable
+    :min-width="880"
+    :min-height="640"
+    :footer-hidden="true"
+    :fullscreen="false"
+    destroy-on-close
+  >
     <template #content>
-      <div class="td">
-        <!-- ① 头部：台风标识 + 强度 + 快捷指标 + 关闭 -->
+      <div class="td" :class="`td--${viewMode}`">
+        <!-- ① 头部：台风标识 + 强度 + 多台风切换 + 快捷指标 -->
         <header class="td-head">
           <div class="td-head__brand">
             <span class="td-head__logo" aria-hidden="true">
-              <ReIcon name="mingcute:typhoon-line" :size="26" />
+              <ReIcon name="mingcute:typhoon-line" :size="22" />
             </span>
-            <span class="td-head__name">{{ currentTyphoon?.name || selectedId }}</span>
+            <div class="td-head__titles">
+              <span class="td-head__name">{{ currentTyphoon?.name || selectedId }}</span>
+              <span class="td-head__meta">{{ currentTyphoon?.enname || "-" }} · {{ currentTyphoon?.id || "-" }}</span>
+            </div>
             <ReTag v-if="currentTyphoon?.strong" type="danger" effect="light" round>{{ currentTyphoon.strong }}</ReTag>
 
             <!-- 多台风切换（仅当活跃台风 > 1 时出现） -->
@@ -86,186 +100,275 @@
 
           <div class="td-head__stats">
             <span class="td-stat" title="近中心最大风速">
-              <ReIcon name="ep:wind-power" :size="15" class="td-stat__icon" />
+              <ReIcon name="ep:wind-power" :size="14" class="td-stat__icon" />
               <b>{{ speedValue ?? "-" }}</b><em>m/s</em>
             </span>
             <span class="td-stat" title="中心最低气压">
-              <ReIcon name="ep:odometer" :size="15" class="td-stat__icon" />
+              <ReIcon name="ep:odometer" :size="14" class="td-stat__icon" />
               <b>{{ pressureValue ?? "-" }}</b><em>hPa</em>
             </span>
             <span class="td-stat" title="移动速度">
-              <ReIcon name="ep:position" :size="15" class="td-stat__icon" />
+              <ReIcon name="ep:position" :size="14" class="td-stat__icon" />
               <b>{{ moveSpeedValue ?? "-" }}</b><em>km/h</em>
             </span>
-            <!-- 关闭按钮由 headless ReDialog 右上角悬浮 FAB 提供（与拖拽条同区，避免叠层冲突） -->
+            <!-- 关闭按钮由 ReDialog 标准标题栏提供 -->
           </div>
         </header>
 
-        <!-- ② 主体：左信息面板 + 右路径图/轨迹点 -->
+        <!-- ② 主体：指挥席（左台风目录 + 中路径图 + 右读数栏）/ 全景（满屏海图） -->
         <div class="td-body">
-          <aside class="td-side">
+          <!-- 指挥席 · 左栏：活跃台风目录 -->
+          <aside v-if="viewMode === 'console'" class="td-nav">
+            <header class="td-nav__head">活跃台风 <b>{{ activeList.length }}</b></header>
+            <ul class="td-nav__list">
+              <li
+                v-for="t in activeList"
+                :key="t.id"
+                class="td-nav__item"
+                :class="{ 'is-active': selectedId === t.id }"
+                :title="`${t.name || t.id}${t.strong ? ' · ' + t.strong : ''}`"
+                @click="selectTyphoon(t.id)"
+              >
+                <i class="td-nav__dot" :class="`is-${warningLevelOf(t)}`"></i>
+                <b>{{ t.name || t.id }}</b>
+                <span>{{ t.strong || "未知强度" }}</span>
+                <em>{{ warningTextOf(t) }}</em>
+              </li>
+              <li v-if="!activeList.length" class="td-nav__empty">当前无活跃台风</li>
+            </ul>
+            <div class="td-nav__foot">
+              <span>预计影响</span>
+              <b>{{ currentTyphoon?.impact || currentTyphoon?.movedirection || "-" }}</b>
+            </div>
+          </aside>
+
+          <!-- 中栏：台风路径图（两种模式共用同一个地图实例，只换布局，不重挂载） -->
+          <section class="td-stage">
+            <header class="td-stage__tools">
+              <b class="td-stage__title">台风路径图</b>
+              <div class="td-stage__ops">
+                <!-- 重播：把路径从起点再演一次到「当前时间位置」 -->
+                <el-tooltip content="重播路径动画" placement="top" :show-after="150">
+                  <button
+                    type="button"
+                    class="td-tool-btn"
+                    :class="{ 'is-playing': trackPlaying }"
+                    :aria-label="trackPlaying ? '路径回放中' : '重播路径动画'"
+                    @click="replayTrackAnimation"
+                  >
+                    <ReIcon name="ep:video-play" :size="13" />
+                  </button>
+                </el-tooltip>
+                <!-- 风圈等级开关：逐级显示/隐藏 7、10、12 级风圈 -->
+                <div class="td-ring-ops" role="group" aria-label="风圈等级">
+                  <span v-for="item in RING_LEVELS" :key="item.key" class="td-ring-switch">
+                    <em>{{ item.label }}</em>
+                    <el-switch
+                      v-model="ringVisible[item.key]"
+                      size="small"
+                      :aria-label="`${item.label}风圈`"
+                      style="--el-switch-border-color: var(--el-border-color)"
+                      @change="onViewOptionChange" />
+                  </span>
+                </div>
+                <el-switch
+                  v-model="showTrackPoints"
+                  active-text="显示点位"
+                  inactive-text="仅路线"
+                  inline-prompt
+                  style="--el-switch-border-color: var(--el-border-color)"
+                  @change="onViewOptionChange" />
+              </div>
+
+              <!-- 视图模式：指挥席（三栏 + 时间轴）/ 全景（满屏海图 + 浮动卡片） -->
+              <div class="td-viewmode" role="group" aria-label="视图模式">
+                <button
+                  type="button"
+                  :class="{ 'is-active': viewMode === 'console' }"
+                  :aria-pressed="viewMode === 'console'"
+                  title="指挥席：台风目录 + 路径图 + 读数栏 + 时间轴"
+                  @click="viewMode = 'console'"
+                >指挥席</button>
+                <button
+                  type="button"
+                  :class="{ 'is-active': viewMode === 'immersive' }"
+                  :aria-pressed="viewMode === 'immersive'"
+                  title="全景：满屏海图 + 浮动读数"
+                  @click="viewMode = 'immersive'"
+                >全景</button>
+              </div>
+            </header>
+
+            <div v-loading="detailLoading" class="td-map">
+              <ReMap
+                v-if="mergedPath.length >= 2"
+                ref="reMapRef"
+                :center="mapCenter"
+                :zoom="6"
+                :mapType="MapType.GAODE"
+                :mapTile="MapTile.NORMAL"
+                :map="{}"
+                :mapKey="{}"
+                :showToolbar="false"
+                :coordinateOptions="{ showProjected: false }"
+                @map-initialized="onMapInitialized" />
+
+              <ul class="td-legend" aria-label="路径与风圈图例">
+                <li class="td-legend__item">
+                  <span class="td-legend__dot td-legend__dot--current"></span><span>当前位置</span>
+                </li>
+                <li class="td-legend__item">
+                  <span class="td-legend__line td-legend__line--history"></span><span>历史轨迹</span>
+                </li>
+                <!-- 每家预报机构一条：接口本来就给多条，图例跟着地图一起多起来 -->
+                <li v-for="item in forecastLegend" :key="item.key" class="td-legend__item">
+                  <span class="td-legend__line" :style="item.lineStyle"></span><span>预报·{{ item.name }}</span>
+                </li>
+                <li v-if="ringVisible['12']" class="td-legend__item">
+                  <span class="td-legend__dot td-legend__dot--ring12"></span><span>十二级风圈</span>
+                </li>
+                <li v-if="ringVisible['10']" class="td-legend__item">
+                  <span class="td-legend__dot td-legend__dot--ring10"></span><span>十级风圈</span>
+                </li>
+                <li v-if="ringVisible['7']" class="td-legend__item">
+                  <span class="td-legend__dot td-legend__dot--ring7"></span><span>七级风圈</span>
+                </li>
+              </ul>
+
+              <!-- 回放进度提示：路径正从起点走向当前时间位置 -->
+              <transition name="el-fade-in-linear">
+                <span v-if="trackPlaying" class="td-map__replay">路径回放中 · 从起点到当前位置</span>
+              </transition>
+
+              <!-- 轨迹点列表：图右上角小图标折叠，默认收起 -->
+              <el-tooltip :content="trackListVisible ? '收起轨迹点列表' : '轨迹点列表'" placement="top" :show-after="150">
+                <button
+                  type="button"
+                  class="td-map__toggle"
+                  :class="{ 'is-active': trackListVisible }"
+                  :aria-expanded="trackListVisible"
+                  aria-label="轨迹点列表"
+                  @click="trackListVisible = !trackListVisible"
+                >
+                  <ReIcon name="ep:tickets" :size="15" />
+                </button>
+              </el-tooltip>
+
+              <transition name="el-fade-in-linear">
+                <section v-if="trackListVisible" class="td-track">
+                  <header class="td-track__head">
+                    <span class="td-track__title">轨迹点列表</span>
+                    <span class="td-track__count">{{ trackRows.length }} 个点</span>
+                    <button type="button" class="td-track__close" aria-label="收起" @click="trackListVisible = false">
+                      <ReIcon name="ep:close" :size="13" />
+                    </button>
+                  </header>
+                  <ReTable
+                    :data="trackRows"
+                    :columns="trackColumns"
+                    :pagination="false"
+                    stripe
+                    border
+                    height="228px" />
+                </section>
+              </transition>
+
+              <div v-if="!mergedPath.length && !detailLoading" class="td-map__empty">暂无路径数据</div>
+            </div>
+          </section>
+
+          <!-- 指挥席 · 右栏：读数（跟随时间轴选中时刻） -->
+          <aside v-if="viewMode === 'console'" class="td-data">
             <section class="td-sec">
-              <h4 class="td-sec__title">基本信息</h4>
+              <h6 class="td-sec__title">基本信息 <em>{{ activeKindText }}</em></h6>
               <ul class="td-rows">
-                <li class="td-row"><span class="td-row__label">台风编号</span><b class="td-row__value">{{ currentTyphoon?.id || "-" }}</b></li>
-                <li class="td-row"><span class="td-row__label">英文名</span><b class="td-row__value">{{ currentTyphoon?.enname || "-" }}</b></li>
-                <li class="td-row"><span class="td-row__label">报文时间</span><b class="td-row__value">{{ reportTimeText }}</b></li>
-                <li class="td-row"><span class="td-row__label">中心位置</span><b class="td-row__value">{{ centerText }}</b></li>
-                <li class="td-row"><span class="td-row__label">移动方向</span><b class="td-row__value">{{ currentTyphoon?.movedirection || "-" }}</b></li>
-                <li class="td-row"><span class="td-row__label">预警级别</span><b class="td-row__value">{{ detailWarnText }}</b></li>
+                <li class="td-row"><span>台风编号</span><b>{{ currentTyphoon?.id || "-" }}</b></li>
+                <li class="td-row"><span>英文名</span><b>{{ currentTyphoon?.enname || "-" }}</b></li>
+                <li class="td-row"><span>中心位置</span><b>{{ activeCenterText }}</b></li>
+                <li class="td-row"><span>移动方向</span><b>{{ currentTyphoon?.movedirection || "-" }}</b></li>
+                <li class="td-row"><span>查看时刻</span><b>{{ activeTimeText }}</b></li>
+                <li class="td-row"><span>预警级别</span><b class="is-danger">{{ detailWarnText }}</b></li>
               </ul>
             </section>
 
             <section class="td-sec">
-              <h4 class="td-sec__title">风圈信息</h4>
-              <ul class="td-rows">
-                <li class="td-row">
-                  <span class="td-row__label">七级风圈</span>
-                  <b class="td-row__value" :title="radiusTitle(latestPoint?.r7)">{{ radiusText(latestPoint?.r7) }}</b>
-                </li>
-                <li class="td-row">
-                  <span class="td-row__label">十级风圈</span>
-                  <b class="td-row__value" :title="radiusTitle(latestPoint?.r10)">{{ radiusText(latestPoint?.r10) }}</b>
-                </li>
-                <li class="td-row">
-                  <span class="td-row__label">十二级风圈</span>
-                  <b class="td-row__value" :title="radiusTitle(latestPoint?.r12)">{{ radiusText(latestPoint?.r12) }}</b>
+              <h6 class="td-sec__title">风圈信息</h6>
+              <ul class="td-rings">
+                <li v-for="ring in activeRings" :key="ring.key" :data-key="ring.key" :style="{ '--ring-pct': `${ring.pct}%` }">
+                  <span>{{ ring.label }}</span><b :title="ring.title">{{ ring.text }}</b><i></i>
                 </li>
               </ul>
             </section>
 
             <section class="td-sec">
-              <h4 class="td-sec__title">实时数据</h4>
+              <h6 class="td-sec__title">实时数据</h6>
               <ul class="td-rows">
-                <li class="td-row"><span class="td-row__label">近中心最大风速</span><b class="td-row__value">{{ speedValue ?? "-" }} m/s</b></li>
-                <li class="td-row"><span class="td-row__label">中心最低气压</span><b class="td-row__value">{{ pressureValue ?? "-" }} hPa</b></li>
+                <li class="td-row"><span>近中心最大风速</span><b>{{ activeSpeed ?? "-" }} m/s</b></li>
+                <li class="td-row"><span>中心最低气压</span><b>{{ activePressure ?? "-" }} hPa</b></li>
+              </ul>
+            </section>
+
+            <section class="td-sec td-sec--grow">
+              <h6 class="td-sec__title">预报机构 <em class="is-muted">{{ forecastAgencies.length }}</em></h6>
+              <ul class="td-agencies">
+                <li v-for="a in forecastAgencies" :key="a.key">
+                  <i :style="{ color: a.color }"></i>
+                  <b>{{ a.name }}</b>
+                  <em>{{ a.end }}</em>
+                </li>
+                <li v-if="!forecastAgencies.length" class="td-agencies__empty">暂无预报数据</li>
               </ul>
             </section>
           </aside>
 
-          <div class="td-main">
-            <!-- 台风路径图 -->
-            <section class="td-panel td-panel--map">
-              <header class="td-panel__head">
-                <span class="td-panel__title">台风路径图</span>
-                <div class="td-panel__ops">
-                  <!-- 重播：把路径从起点再演一次到「当前时间位置」 -->
-                  <el-tooltip content="重播路径动画" placement="top" :show-after="150">
-                    <button
-                      type="button"
-                      class="td-panel__btn"
-                      :class="{ 'is-playing': trackPlaying }"
-                      :aria-label="trackPlaying ? '路径回放中' : '重播路径动画'"
-                      @click="replayTrackAnimation"
-                    >
-                      <ReIcon name="ep:video-play" :size="14" />
-                    </button>
-                  </el-tooltip>
-                  <!-- 风圈等级开关：逐级显示/隐藏 7、10、12 级风圈 -->
-                  <div class="td-ring-ops" role="group" aria-label="风圈等级">
-                    <span v-for="item in RING_LEVELS" :key="item.key" class="td-ring-switch">
-                      <em>{{ item.label }}</em>
-                      <el-switch
-                        v-model="ringVisible[item.key]"
-                        size="small"
-                        :aria-label="`${item.label}风圈`"
-                        style="--el-switch-border-color: var(--el-border-color)"
-                        @change="onViewOptionChange" />
-                    </span>
-                  </div>
-                  <el-switch
-                    v-model="showTrackPoints"
-
-                    active-text="显示点位"
-                    inactive-text="仅路线"
-                    inline-prompt
-                    style="--el-switch-border-color: var(--el-border-color)"
-                    @change="onViewOptionChange" />
-                </div>
-              </header>
-              <div v-loading="detailLoading" class="td-map">
-                <ReMap
-                  v-if="mergedPath.length >= 2"
-                  ref="reMapRef"
-                  :center="mapCenter"
-                  :zoom="6"
-                  :mapType="MapType.GAODE"
-                  :mapTile="MapTile.NORMAL"
-                  :map="{}"
-                  :mapKey="{}"
-                  :showToolbar="false"
-                  :coordinateOptions="{ showProjected: false }"
-                  @map-initialized="onMapInitialized" />
-
-                <ul class="td-legend" aria-label="路径与风圈图例">
-                  <li class="td-legend__item">
-                    <span class="td-legend__dot td-legend__dot--current"></span><span>当前位置</span>
-                  </li>
-                  <li class="td-legend__item">
-                    <span class="td-legend__line td-legend__line--history"></span><span>历史轨迹</span>
-                  </li>
-                  <!-- 每家预报机构一条：接口本来就给多条，图例跟着地图一起多起来 -->
-                  <li v-for="item in forecastLegend" :key="item.key" class="td-legend__item">
-                    <span class="td-legend__line" :style="item.lineStyle"></span><span>预报·{{ item.name }}</span>
-                  </li>
-                  <li v-if="ringVisible['12']" class="td-legend__item">
-                    <span class="td-legend__dot td-legend__dot--ring12"></span><span>十二级风圈</span>
-                  </li>
-                  <li v-if="ringVisible['10']" class="td-legend__item">
-                    <span class="td-legend__dot td-legend__dot--ring10"></span><span>十级风圈</span>
-                  </li>
-                  <li v-if="ringVisible['7']" class="td-legend__item">
-                    <span class="td-legend__dot td-legend__dot--ring7"></span><span>七级风圈</span>
-                  </li>
-                </ul>
-
-                <!-- 回放进度提示：路径正从起点走向当前时间位置 -->
-                <transition name="el-fade-in-linear">
-                  <span v-if="trackPlaying" class="td-map__replay">路径回放中 · 从起点到当前位置</span>
-                </transition>
-
-                <!-- 轨迹点列表：图右上角小图标折叠，默认收起 -->
-                <el-tooltip :content="trackListVisible ? '收起轨迹点列表' : '轨迹点列表'" placement="top" :show-after="150">
-                  <button
-                    type="button"
-                    class="td-map__toggle"
-                    :class="{ 'is-active': trackListVisible }"
-                    :aria-expanded="trackListVisible"
-                    aria-label="轨迹点列表"
-                    @click="trackListVisible = !trackListVisible"
-                  >
-                    <ReIcon name="ep:tickets" :size="15" />
-                  </button>
-                </el-tooltip>
-
-                <transition name="el-fade-in-linear">
-                  <section v-if="trackListVisible" class="td-track">
-                    <header class="td-track__head">
-                      <span class="td-track__title">轨迹点列表</span>
-                      <span class="td-track__count">{{ trackRows.length }} 个点</span>
-                      <button type="button" class="td-track__close" aria-label="收起" @click="trackListVisible = false">
-                        <ReIcon name="ep:close" :size="13" />
-                      </button>
-                    </header>
-                    <ReTable
-                      :data="trackRows"
-                      :columns="trackColumns"
-                      :pagination="false"
-
-                      stripe
-                      border
-                      height="228px" />
-                  </section>
-                </transition>
-
-                <div v-if="!mergedPath.length && !detailLoading" class="td-map__empty">暂无路径数据</div>
+          <!-- 全景 · 浮动读数卡（右下） -->
+          <aside v-else class="td-read">
+            <div class="td-read__nums">
+              <div class="td-read__num"><span>风速</span><b>{{ activeSpeed ?? "-" }}</b><em>m/s</em></div>
+              <div class="td-read__num"><span>气压</span><b>{{ activePressure ?? "-" }}</b><em>hPa</em></div>
+              <div class="td-read__num"><span>移速</span><b>{{ moveSpeedValue ?? "-" }}</b><em>km/h</em></div>
+            </div>
+            <div class="td-read__rings">
+              <div v-for="ring in activeRings" :key="ring.key" class="td-read__ring" :data-key="ring.key" :style="{ '--ring-pct': `${ring.pct}%` }">
+                <span>{{ ring.label }}</span><i></i><b :title="ring.title">{{ ring.text }}</b>
               </div>
-            </section>
-          </div>
+            </div>
+            <div class="td-read__foot">
+              <span>{{ activeCenterText }} · {{ activeTimeText }}</span>
+              <ReButton type="primary" @click="openSourceDetail">查看详情</ReButton>
+            </div>
+          </aside>
         </div>
 
-        <!-- ③ 底部：数据更新时间 + 操作 -->
-        <footer class="td-foot">
+        <!-- ③ 时间轴（仅指挥席）：点节点回看该时刻的中心气压/风速/风圈 -->
+        <section v-if="viewMode === 'console'" class="td-time">
+          <header class="td-time__head">
+            <button type="button" class="td-time__play" aria-label="回放路径动画" @click="replayTrackAnimation">
+              <ReIcon name="ep:video-play" :size="11" />回放
+            </button>
+            <span class="td-time__range">{{ timelineRange }}</span>
+            <span class="td-time__tip">点击节点查看该时刻数据</span>
+          </header>
+          <div class="td-time__axis">
+            <button
+              v-for="node in timelineNodes"
+              :key="node.key"
+              type="button"
+              class="td-time__node"
+              :class="[`is-${node.kind}`, { 'is-active': node.time === String(activePoint?.time ?? '') }]"
+              :title="`${node.day} ${node.clock}${node.kind === 'forecast' ? ' · 预报' : ' · 实况'}`"
+              @click="selectedTime = node.time"
+            >
+              <i></i>
+              <b>{{ node.day }}</b>
+              <span>{{ node.clock }}</span>
+            </button>
+            <span v-if="!timelineNodes.length" class="td-time__empty">暂无时间轴数据</span>
+          </div>
+        </section>
+
+        <!-- ④ 底部：数据更新时间 + 操作（仅指挥席） -->
+        <footer v-if="viewMode === 'console'" class="td-foot">
           <span class="td-foot__time">数据更新时间：{{ updateTimeText }}</span>
           <div class="td-foot__actions">
             <ReButton type="primary" @click="openSourceDetail">查看详情</ReButton>
@@ -426,6 +529,7 @@ async function fetchTyphoonDetail(id: string) {
 async function selectTyphoon(id: string) {
   if (!id || id === selectedId.value) return;
   selectedId.value = id;
+  selectedTime.value = "";
   await fetchTyphoonDetail(id);
 }
 
@@ -437,6 +541,7 @@ async function openDetail(id?: string) {
   const target = id ?? activeList.value[0]?.id;
   if (!target) return;
   detailVisible.value = true;
+  selectedTime.value = "";
   await fetchTyphoonDetail(target);
   selectedId.value = target;
 }
@@ -607,6 +712,142 @@ const trackColumns = [
   { prop: "pressure", label: "气压", width: 100 },
   { prop: "strong", label: "级别", minWidth: 112 },
 ];
+
+/* ==================== 详情弹窗：视图模式 / 时间轴 / 读数 ==================== */
+
+/**
+ * 详情弹窗视图模式。
+ * - console：指挥席（左台风目录 + 中路径图 + 右读数栏 + 底部时间轴）
+ * - immersive：全景（路径图铺满 + 右下浮动读数卡）
+ * 两种模式共用同一个 ReMap 实例，只切布局不重挂载（重挂载等于重放动画 + 重新拉瓦片）。
+ */
+const viewMode = ref<"console" | "immersive">("console");
+
+/** 时间轴选中时刻（yyyy-MM-ddTHH:mm）；空串 = 跟随最新实况点 */
+const selectedTime = ref<string>("");
+
+/** 时间轴节点：历史实况 + 主预报通道未来点，按时间升序去重 */
+interface TimelineNode {
+  key: string;
+  time: string;
+  /** 月-日 */
+  day: string;
+  /** 时:分 */
+  clock: string;
+  kind: "history" | "forecast";
+}
+
+function toTimelineNode(p: TrackPoint, kind: TimelineNode["kind"]): TimelineNode {
+  const raw = String(p.time ?? "");
+  const [datePart = "", timePart = ""] = raw.split("T");
+  const [, month = "", day = ""] = datePart.split("-");
+  return {
+    key: `${kind}-${raw}`,
+    time: raw,
+    day: month && day ? `${month}/${day}` : raw,
+    clock: timePart.slice(0, 5) || "--:--",
+    kind,
+  };
+}
+
+const timelineNodes = computed<TimelineNode[]>(() => {
+  const seen = new Set<string>();
+  const nodes: TimelineNode[] = [];
+  const push = (p: TrackPoint, kind: TimelineNode["kind"]) => {
+    if (!p?.time || seen.has(p.time)) return;
+    seen.add(p.time);
+    nodes.push(toTimelineNode(p, kind));
+  };
+  historyPath.value.forEach((p) => push(p, "history"));
+  primaryForecast.value.forEach((p) => push(p, "forecast"));
+  return nodes.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+});
+
+/** 时间轴覆盖范围（首节点 → 末节点） */
+const timelineRange = computed(() => {
+  const nodes = timelineNodes.value;
+  if (!nodes.length) return "暂无时间轴";
+  const first = nodes[0];
+  const last = nodes[nodes.length - 1];
+  return `${first.day} ${first.clock} → ${last.day} ${last.clock}（${nodes.filter((n) => n.kind === "forecast").length} 个预报点）`;
+});
+
+/** 当前查看的轨迹点：时间轴选中优先，否则最新实况点 */
+const activePoint = computed<TrackPoint | undefined>(() => {
+  if (selectedTime.value) {
+    const merged = mergedPath.value;
+    const hit = merged.find((p) => p.time === selectedTime.value);
+    if (hit) return hit;
+  }
+  return latestPoint.value;
+});
+
+/** 当前查看的时刻属于实况还是预报 */
+const activeKindText = computed(() => {
+  const t = String(activePoint.value?.time ?? "");
+  if (t && primaryForecast.value.some((p) => p.time === t)) return "预报";
+  return "实况";
+});
+
+/** 当前查看时刻的中心位置 */
+const activeCenterText = computed(() => {
+  const p = activePoint.value;
+  if (!p || p.lat == null || p.lng == null) return centerText.value;
+  return `${coordText(p.lat, "N", "S")} ${coordText(p.lng, "E", "W")}`;
+});
+
+/** 当前查看时刻的完整时间文本 */
+const activeTimeText = computed(() => {
+  const t = activePoint.value?.time;
+  if (!t) return reportTimeText.value || "-";
+  return showTime(t).slice(0, 16);
+});
+
+/** 当前查看时刻的风速 / 气压（该时刻无观测值时回退实时值） */
+const activeSpeed = computed(() => activePoint.value?.speed ?? speedValue.value);
+const activePressure = computed(() => activePoint.value?.pressure ?? pressureValue.value);
+
+/** 风圈读数条：以 400km 为量程，超出按满格 */
+const RING_SCALE_KM = 400;
+
+interface RingRead {
+  key: "7" | "10" | "12";
+  label: string;
+  text: string;
+  title: string;
+  pct: number;
+}
+
+function toRingRead(key: RingRead["key"], label: string, radii?: [number, number, number, number]): RingRead {
+  const nums = (radii ?? []).map((n) => Number(n) || 0);
+  const max = nums.length ? Math.max(...nums) : 0;
+  return {
+    key,
+    label,
+    text: radiusText(radii),
+    title: radiusTitle(radii),
+    pct: Math.min(100, Math.round((max / RING_SCALE_KM) * 100)),
+  };
+}
+
+const activeRings = computed<RingRead[]>(() => [
+  toRingRead("7", "七级风圈", activePoint.value?.r7),
+  toRingRead("10", "十级风圈", activePoint.value?.r10),
+  toRingRead("12", "十二级风圈", activePoint.value?.r12),
+]);
+
+/** 预报机构清单（右栏/全景浮卡用）：名称 + 线色 + 末点时刻 */
+const forecastAgencies = computed(() =>
+  forecastTracks.value.map((track, index) => {
+    const last = track.points?.[track.points.length - 1];
+    return {
+      key: `${track.name || "未命名"}-${index}`,
+      name: track.name || "未命名机构",
+      color: agencyCssColor(index),
+      end: last?.time ? showTime(last.time).slice(5, 16) : "-",
+    };
+  }),
+);
 
 /** 读取当前主题令牌色（地图矢量样式与图例保持一致） */
 function tokenColor(name: string, fallback: string): string {
@@ -1495,23 +1736,23 @@ onBeforeUnmount(() => { stopWorker(); stopTrackAnimation(); });
   color: var(--el-text-color-secondary);
 }
 
-/* ==================== 详情弹窗（彻底重构：td-*，全部 koi 令牌） ==================== */
+/* ==================== 详情弹窗（指挥席 / 全景双视图，全部 koi 令牌） ==================== */
 .td {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  /* headless ReDialog 顶部预留 44px 透明拖拽条（含右上角悬浮关闭 FAB），内容下移避免遮挡 */
-  padding-top: 44px;
+  gap: 10px;
+  box-sizing: border-box;
   color: var(--el-text-color-primary);
 }
 
-/* ── 头部：标识 + 强度 + 多台风切换 + 快捷指标 + 关闭 ── */
+/* ── 头部：标识 + 强度 + 多台风切换 + 快捷指标 ── */
 .td-head {
   display: flex;
+  flex: none;
   gap: 16px;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 10px;
+  padding-bottom: 9px;
   border-bottom: 1px solid var(--el-border-color-extra-light);
 }
 
@@ -1527,20 +1768,38 @@ onBeforeUnmount(() => { stopWorker(); stopTrackAnimation(); });
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   color: var(--el-color-white);
   background: radial-gradient(circle at 34% 28%, var(--el-color-warning) 0%, var(--el-color-danger) 68%);
   border-radius: 50%;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-danger) 14%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+
+.td-head__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .td-head__name {
   overflow: hidden;
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-head__meta {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -1584,75 +1843,251 @@ onBeforeUnmount(() => { stopWorker(); stopTrackAnimation(); });
 .td-stat {
   display: inline-flex;
   gap: 5px;
-  align-items: center;
-  font-size: 13px;
+  align-items: baseline;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 
   b {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
+    line-height: 1;
     color: var(--el-text-color-primary);
     font-variant-numeric: tabular-nums;
   }
 
   em {
-    font-size: 12px;
+    font-size: 11px;
     font-style: normal;
   }
 }
 
 .td-stat__icon {
+  align-self: center;
   color: var(--el-text-color-placeholder);
 }
 
-/* ── 主体：左信息面板 + 右路径图/轨迹点 ── */
+/* ── 主体：指挥席（目录/地图/读数）· 全景（满屏海图 + 浮卡） ── */
 .td-body {
-  display: flex;
-  gap: 12px;
+  position: relative;
+  display: grid;
+  /* 弹窗只给 max-height（ReDialog 的 height 只是上限），高度由内容自报：
+     这里给地图舞台一个确定高度，head / foot 之外整块交给地图 */
+  flex: none;
+  grid-template-columns: 188px minmax(0, 1fr) 264px;
+  gap: 10px;
   height: 540px;
   min-height: 0;
 }
 
-.td-side {
+.td--immersive .td-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* 左栏：活跃台风目录 */
+.td-nav {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--el-fill-color-lighter), var(--el-bg-color) 46%);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+}
+
+.td-nav__head {
   display: flex;
   flex: none;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 9px 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.12em;
+  border-bottom: 1px solid var(--el-border-color-extra-light);
+
+  b {
+    font-size: 13px;
+    color: var(--el-color-danger);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.td-nav__list {
+  display: flex;
+  flex: 1;
   flex-direction: column;
-  width: 280px;
-  padding: 6px 14px;
+  gap: 4px;
+  min-height: 0;
+  margin: 0;
+  padding: 6px;
   overflow-y: auto;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
+  list-style: none;
   scrollbar-width: thin;
-  scrollbar-color: var(--el-border-color-dark) transparent;
+}
 
-  &::-webkit-scrollbar {
-    width: 6px;
+.td-nav__item {
+  position: relative;
+  padding: 7px 9px 7px 22px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition:
+    background-color var(--el-transition-duration, 0.2s),
+    border-color var(--el-transition-duration, 0.2s);
+
+  b {
+    display: block;
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  &::-webkit-scrollbar-thumb {
-    background: var(--el-border-color-dark);
-    border-radius: var(--el-radius-sm, 6px);
+  span,
+  em {
+    display: block;
+    overflow: hidden;
+    font-size: 11px;
+    font-style: normal;
+    color: var(--el-text-color-secondary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  &::-webkit-scrollbar-track {
-    background: transparent;
+  span {
+    margin-top: 1px;
   }
+
+  em {
+    margin-top: 2px;
+    color: var(--el-text-color-placeholder);
+  }
+
+  &:hover {
+    background: var(--el-fill-color-light);
+  }
+
+  &.is-active {
+    background: color-mix(in srgb, var(--el-color-danger) 7%, transparent);
+    border-color: color-mix(in srgb, var(--el-color-danger) 26%, transparent);
+
+    b {
+      color: var(--el-color-danger);
+    }
+  }
+}
+
+.td-nav__dot {
+  position: absolute;
+  top: 13px;
+  left: 10px;
+  width: 7px;
+  height: 7px;
+  background: var(--el-color-info);
+  border-radius: 50%;
+
+  &.is-white {
+    background: var(--el-color-info-light-3);
+  }
+
+  &.is-blue {
+    background: var(--el-color-primary);
+  }
+
+  &.is-yellow {
+    background: var(--el-color-warning);
+  }
+
+  &.is-orange {
+    background: color-mix(in srgb, var(--el-color-warning) 55%, var(--el-color-danger));
+  }
+
+  &.is-red {
+    background: var(--el-color-danger);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-danger) 18%, transparent);
+  }
+}
+
+.td-nav__empty {
+  padding: 16px 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+}
+
+.td-nav__foot {
+  flex: none;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--el-border-color-extra-light);
+
+  span {
+    display: block;
+    font-size: 10.5px;
+    color: var(--el-text-color-placeholder);
+    letter-spacing: 0.08em;
+  }
+
+  b {
+    display: block;
+    margin-top: 2px;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* 右栏：读数 */
+.td-data {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding-right: 2px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .td-sec {
-  padding: 6px 0;
+  padding: 9px 11px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
 }
 
-.td-sec + .td-sec {
-  border-top: 1px solid var(--el-border-color-lighter);
+.td-sec--grow {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .td-sec__title {
-  margin: 6px 0 2px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.12em;
+
+  em {
+    padding: 1px 6px;
+    font-size: 10.5px;
+    font-style: normal;
+    font-weight: 600;
+    color: var(--el-color-danger);
+    letter-spacing: 0;
+    background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+    border-radius: var(--el-radius-full, 9999px);
+  }
+
+  em.is-muted {
+    color: var(--el-text-color-secondary);
+    background: var(--el-fill-color-light);
+  }
 }
 
 .td-rows {
@@ -1664,75 +2099,127 @@ onBeforeUnmount(() => { stopWorker(); stopTrackAnimation(); });
 .td-row {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: 4px 0;
   border-bottom: 1px solid var(--el-border-color-extra-light);
 
   &:last-child {
     border-bottom: none;
   }
+
+  span {
+    flex: none;
+    font-size: 11.5px;
+    color: var(--el-text-color-secondary);
+  }
+
+  b {
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+
+    &.is-danger {
+      color: var(--el-color-danger);
+    }
+  }
 }
 
-.td-row__label {
-  flex: none;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.td-row__value {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.td-main {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
-}
-
-.td-panel {
+/* 风圈读数条（右栏 / 全景浮卡共用） */
+.td-rings {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  padding: 10px 12px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-lg, 12px);
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 2px 8px;
+    align-items: center;
+    font-size: 11.5px;
+
+    span {
+      color: var(--el-text-color-secondary);
+    }
+
+    b {
+      overflow: hidden;
+      font-weight: 600;
+      text-align: right;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    i {
+      position: relative;
+      display: block;
+      grid-column: 1 / -1;
+      height: 4px;
+      overflow: hidden;
+      background: var(--el-fill-color);
+      border-radius: 2px;
+    }
+
+    i::after {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--ring-pct, 0%);
+      content: "";
+      background: linear-gradient(90deg, var(--el-color-warning), var(--el-color-danger));
+      border-radius: inherit;
+    }
+  }
 }
 
-.td-panel--map {
-  flex: 1;
-}
-
-.td-panel__head {
+.td-agencies {
   display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    font-size: 11.5px;
+  }
+
+  i {
+    flex: none;
+    width: 14px;
+    height: 3px;
+    background: currentcolor;
+    border-radius: 2px;
+  }
+
+  b {
+    flex: 1;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  em {
+    font-style: normal;
+    color: var(--el-text-color-secondary);
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-.td-panel__title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.td-panel__ops {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  justify-content: flex-end;
+.td-agencies__empty {
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
 }
 
 /* 风圈等级开关组：等级文字 + 小开关，窄屏自动换行 */
@@ -1747,7 +2234,7 @@ onBeforeUnmount(() => { stopWorker(); stopTrackAnimation(); });
   display: inline-flex;
   gap: 5px;
   align-items: center;
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1;
   color: var(--el-text-color-secondary);
 
@@ -1757,13 +2244,365 @@ onBeforeUnmount(() => { stopWorker(); stopTrackAnimation(); });
   }
 }
 
+/* ── 中栏：地图舞台（两种视图共用，只换布局不重挂载） ── */
+.td-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 9px 10px 10px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+}
+
+.td-stage__tools {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.td-stage__title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.td-stage__ops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* 视图切换：指挥席 / 全景 */
+.td-viewmode {
+  display: inline-flex;
+  flex: none;
+  gap: 1px;
+  margin-left: auto;
+  padding: 2px;
+  background: var(--el-fill-color);
+  border-radius: var(--el-radius-full, 9999px);
+
+  button {
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    border-radius: var(--el-radius-full, 9999px);
+    transition:
+      background-color var(--el-transition-duration, 0.2s),
+      color var(--el-transition-duration, 0.2s);
+
+    &:hover {
+      color: var(--el-text-color-primary);
+    }
+
+    &.is-active {
+      color: var(--el-color-primary);
+      background: var(--el-bg-color);
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 14%, transparent);
+    }
+  }
+}
+
+/* 全景：地图铺满整个主体，工具栏浮在海图上方 */
+.td--immersive .td-stage {
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+}
+
+.td--immersive .td-stage__tools {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  left: 10px;
+  z-index: 620;
+  margin: 0;
+  padding: 5px 8px;
+  background: color-mix(in srgb, var(--el-bg-color) 88%, transparent);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-full, 9999px);
+  box-shadow: var(--el-box-shadow-light);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.td--immersive .td-map {
+  border-radius: 14px;
+}
+
+/* 全景：浮动工具栏占据顶部，点位开关与轨迹点浮层顺势下移，避免叠在同一处 */
+.td--immersive .td-map__toggle {
+  top: 54px;
+}
+
+.td--immersive .td-track {
+  top: 90px;
+}
+
+/* 全景右下角浮动读数卡 */
+.td-read {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 640;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 296px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--el-bg-color) 86%, transparent);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 16px;
+  box-shadow: var(--el-box-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.td-read__nums {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.td-read__num {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 8px;
+  background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+  border-radius: 10px;
+
+  span {
+    font-size: 10.5px;
+    color: var(--el-text-color-secondary);
+  }
+
+  b {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  em {
+    font-size: 10px;
+    font-style: normal;
+    color: var(--el-text-color-placeholder);
+  }
+}
+
+.td-read__rings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.td-read__ring {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 66px;
+  gap: 8px;
+  align-items: center;
+  font-size: 11.5px;
+
+  span {
+    color: var(--el-text-color-secondary);
+  }
+
+  b {
+    overflow: hidden;
+    font-weight: 600;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  i {
+    position: relative;
+    display: block;
+    height: 4px;
+    overflow: hidden;
+    background: var(--el-fill-color);
+    border-radius: 2px;
+  }
+
+  i::after {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--ring-pct, 0%);
+    content: "";
+    background: linear-gradient(90deg, var(--el-color-warning), var(--el-color-danger));
+    border-radius: inherit;
+  }
+}
+
+.td-read__foot {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ── 时间轴：点节点回看该时刻的中心气压 / 风速 / 风圈 ── */
+.td-time {
+  flex: none;
+  padding: 7px 12px 9px;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+}
+
+.td-time__head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.td-time__play {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+
+  &:hover {
+    background: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  }
+}
+
+.td-time__range {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.td-time__tip {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--el-text-color-placeholder);
+}
+
+.td-time__axis {
+  position: relative;
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+
+  &::before {
+    position: absolute;
+    top: 5px;
+    right: 0;
+    left: 0;
+    height: 1px;
+    content: "";
+    background: var(--el-border-color-lighter);
+  }
+}
+
+.td-time__node {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  min-width: 54px;
+  padding: 0 4px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  background: none;
+  border: none;
+
+  i {
+    z-index: 1;
+    width: 9px;
+    height: 9px;
+    background: var(--el-color-primary);
+    border: 2px solid var(--el-bg-color);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px var(--el-color-primary);
+  }
+
+  b {
+    font-size: 10.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  span {
+    font-size: 10px;
+    color: var(--el-text-color-placeholder);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.is-forecast i {
+    background: var(--el-bg-color);
+    box-shadow: 0 0 0 1px var(--el-color-warning);
+  }
+
+  &.is-forecast span {
+    color: color-mix(in srgb, var(--el-color-warning) 78%, var(--el-text-color-primary));
+  }
+
+  &:hover i {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+  }
+
+  &.is-active i {
+    background: var(--el-color-danger);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-danger) 32%, transparent);
+  }
+
+  &.is-active b {
+    color: var(--el-color-danger);
+  }
+}
+
+.td-time__empty {
+  padding: 6px 4px;
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
+}
+
 /* 重播路径动画按钮（与右侧「显示点位」开关同排） */
-.td-panel__btn {
+.td-tool-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 24px;
+  width: 24px;
+  height: 22px;
   padding: 0;
   color: var(--el-text-color-secondary);
   cursor: pointer;
@@ -1988,19 +2827,21 @@ onBeforeUnmount(() => { stopWorker(); stopTrackAnimation(); });
   /* 预报线没有修饰类：每家机构颜色不同，虚线由 forecastLegend 的行内样式给出 */
 }
 
-/* ── 底部：数据更新时间 + 操作 ── */
+/* ── 底部：数据更新时间 + 操作（仅指挥席） ── */
 .td-foot {
   display: flex;
+  flex: none;
   gap: 16px;
   align-items: center;
   justify-content: space-between;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid var(--el-border-color-extra-light);
 }
 
 .td-foot__time {
-  font-size: 13px;
+  font-size: 11.5px;
   color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .td-foot__actions {
