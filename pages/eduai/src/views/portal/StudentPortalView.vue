@@ -44,11 +44,11 @@
             <el-input v-model="form.studentName" placeholder="如 小明" />
           </el-form-item>
           <el-form-item label="学段" required>
-            <el-radio-group v-model="form.gradeLevel">
-              <el-radio-button value="PRIMARY">小学</el-radio-button>
-              <el-radio-button value="JUNIOR">初中</el-radio-button>
-              <el-radio-button value="SENIOR">高中</el-radio-button>
-            </el-radio-group>
+            <ReRadioGroup v-model="form.gradeLevel">
+              <ReRadioButton value="PRIMARY">小学</ReRadioButton>
+              <ReRadioButton value="JUNIOR">初中</ReRadioButton>
+              <ReRadioButton value="SENIOR">高中</ReRadioButton>
+            </ReRadioGroup>
           </el-form-item>
           <el-form-item label="年级">
             <el-select v-model="form.grade" clearable placeholder="选择年级" style="width: 100%">
@@ -250,6 +250,7 @@ import PrimaryHome from "./PrimaryHome.vue";
 import JuniorHome from "./JuniorHome.vue";
 import SeniorHome from "./SeniorHome.vue";
 import ReDialog from "@repo/ui/re-dialog";
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const router = useRouter();
 const route = useRoute();

@@ -98,10 +98,10 @@
     <ReDialog v-model="createDialogVisible" title="组卷" width="560">
       <el-form :model="createForm" label-width="100">
         <el-form-item label="组卷方式">
-          <el-radio-group v-model="composeMode">
-            <el-radio value="MANUAL">手动组卷</el-radio>
-            <el-radio value="AI">AI 组卷</el-radio>
-          </el-radio-group>
+          <ReRadioGroup v-model="composeMode">
+            <ReRadio value="MANUAL">手动组卷</ReRadio>
+            <ReRadio value="AI">AI 组卷</ReRadio>
+          </ReRadioGroup>
         </el-form-item>
         <el-form-item label="试卷名称" required>
           <el-input v-model="createForm.name" placeholder="请输入试卷名称" />
@@ -342,6 +342,7 @@ import PaperPreview from '../components/paper/PaperPreview.vue';
 import type { PreviewHeader, PreviewQuestion } from '../components/paper/PaperPreview.vue';
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 const pageNo = ref(1);
 const pageSize = ref(20);

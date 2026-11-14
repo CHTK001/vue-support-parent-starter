@@ -15,6 +15,7 @@ import { ref, computed } from "vue";
 import { analyze3dTiles, download3dTiles } from "@/api/tiles3d";
 import { useSelectionStore } from "@/store/selection";
 import type { TilesetSummary } from "@/types";
+import { ReRadioGroup, ReRadioButton } from '@repo/ui/re-kit';
 
 const selection = useSelectionStore();
 
@@ -94,10 +95,10 @@ async function onSubmit() {
   <div class="panel">
     <el-form label-position="top" >
       <el-form-item label="数据源类型">
-        <el-radio-group v-model="sourceType">
-          <el-radio-button value="url">URL</el-radio-button>
-          <el-radio-button value="cesium_ion">Cesium ion</el-radio-button>
-        </el-radio-group>
+        <ReRadioGroup v-model="sourceType">
+          <ReRadioButton value="url">URL</ReRadioButton>
+          <ReRadioButton value="cesium_ion">Cesium ion</ReRadioButton>
+        </ReRadioGroup>
       </el-form-item>
 
       <el-form-item v-if="sourceType === 'url'" label="tileset.json 地址">

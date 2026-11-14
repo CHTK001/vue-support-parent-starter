@@ -8,6 +8,7 @@ import { ref } from "vue";
 import { saveTier, updateTier } from "../api/achievementApi";
 import type { AchievementTier } from "../api/types";
 import ReDialog from "@repo/ui/re-dialog";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 const props = defineProps<{
   visible: boolean;
@@ -80,10 +81,10 @@ async function handleSubmit() {
         <el-input-number v-model="form.sort" :min="0" class="!w-full" />
       </el-form-item>
       <el-form-item label="Status">
-        <el-radio-group v-model="form.status">
-          <el-radio :value="1" class="!text-emerald-500">Active</el-radio>
-          <el-radio :value="0" class="!text-slate-400">Inactive</el-radio>
-        </el-radio-group>
+        <ReRadioGroup v-model="form.status">
+          <ReRadio :value="1" class="!text-emerald-500">Active</ReRadio>
+          <ReRadio :value="0" class="!text-slate-400">Inactive</ReRadio>
+        </ReRadioGroup>
       </el-form-item>
     </el-form>
     <template #footer>

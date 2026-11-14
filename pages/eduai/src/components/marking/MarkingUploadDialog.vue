@@ -15,6 +15,7 @@ import { computed, ref, watch } from 'vue';
 import { Picture, UploadFilled } from '@element-plus/icons-vue';
 import ReDialog from '@repo/ui/re-dialog';
 import type { EduStudent, Paper } from '../../api/types';
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const props = withDefaults(
   defineProps<{
@@ -140,10 +141,10 @@ function start(): void {
   >
     <el-form label-width="88px">
       <el-form-item label="试卷类型">
-        <el-radio-group v-model="form.mode">
-          <el-radio-button value="SELF">自有卷（题库有记录）</el-radio-button>
-          <el-radio-button value="ANY">任意卷（外来试卷）</el-radio-button>
-        </el-radio-group>
+        <ReRadioGroup v-model="form.mode">
+          <ReRadioButton value="SELF">自有卷（题库有记录）</ReRadioButton>
+          <ReRadioButton value="ANY">任意卷（外来试卷）</ReRadioButton>
+        </ReRadioGroup>
       </el-form-item>
       <el-form-item v-if="form.mode === 'SELF'" label="试卷" required>
         <el-select

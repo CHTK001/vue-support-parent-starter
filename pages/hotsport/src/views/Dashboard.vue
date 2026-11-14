@@ -56,14 +56,14 @@
           <span class="panel-sub">{{ trendRangeLabel }} · 每分钟聚合{{ trendRangeMin === 30 ? "（实时推送）" : "" }}</span>
         </div>
         <div class="trend-actions">
-          <el-radio-group v-model="trendRangeMin" size="small" class="trend-range">
-            <el-radio-button :value="5">5m</el-radio-button>
-            <el-radio-button :value="15">15m</el-radio-button>
-            <el-radio-button :value="30">30m</el-radio-button>
-            <el-radio-button :value="60">1h</el-radio-button>
-            <el-radio-button :value="360">6h</el-radio-button>
-            <el-radio-button :value="1440">24h</el-radio-button>
-          </el-radio-group>
+          <ReRadioGroup v-model="trendRangeMin" size="small" class="trend-range">
+            <ReRadioButton :value="5">5m</ReRadioButton>
+            <ReRadioButton :value="15">15m</ReRadioButton>
+            <ReRadioButton :value="30">30m</ReRadioButton>
+            <ReRadioButton :value="60">1h</ReRadioButton>
+            <ReRadioButton :value="360">6h</ReRadioButton>
+            <ReRadioButton :value="1440">24h</ReRadioButton>
+          </ReRadioGroup>
           <el-button text size="small" class="chart-export-btn" title="导出 PNG" @click="exportChart('trend')">
             <el-icon :size="14"><Download /></el-icon>导出
           </el-button>
@@ -278,6 +278,7 @@ import {
   warningColor,
 } from "../styles/chartTheme";
 import type { EChartsOption } from "echarts";
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const router = useRouter();
 
@@ -915,8 +916,8 @@ watch(
   flex-shrink: 0;
 }
 
-.trend-range :deep(.el-radio-button__inner) {
-  padding: 6px 10px;
+.trend-range :deep(.el-segmented__item-label) {
+  padding: 0 2px;
   font-size: 12px;
 }
 

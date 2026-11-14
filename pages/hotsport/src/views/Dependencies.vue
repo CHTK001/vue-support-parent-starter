@@ -12,10 +12,10 @@
         <template v-if="self"> · 当前主机 {{ self.display }}</template>
       </span>
       <div class="view-bar__actions">
-        <el-radio-group v-model="mode" size="small" class="mode-switch">
-          <el-radio-button value="graph">图形</el-radio-button>
-          <el-radio-button value="table">列表</el-radio-button>
-        </el-radio-group>
+        <ReRadioGroup v-model="mode" size="small" class="mode-switch">
+          <ReRadioButton value="graph">图形</ReRadioButton>
+          <ReRadioButton value="table">列表</ReRadioButton>
+        </ReRadioGroup>
         <el-button size="small" round :loading="loading" @click="load">
           <el-icon class="btn-icon"><Refresh /></el-icon>刷新
         </el-button>
@@ -248,6 +248,7 @@ import {
   okColor,
   tooltipStyle,
 } from "../styles/chartTheme";
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const mode = ref<"graph" | "table">("graph");
 const edges = ref<DependencyEdge[]>([]);

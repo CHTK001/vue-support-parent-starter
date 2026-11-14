@@ -421,12 +421,12 @@
       />
       <el-form label-width="100" class="export-form">
         <el-form-item label="导出内容">
-          <el-radio-group v-model="exportMode">
-            <el-radio-button value="paper">试卷版</el-radio-button>
-            <el-radio-button value="answer-sheet">答题卡</el-radio-button>
-            <el-radio-button value="answer-key">参考答案</el-radio-button>
-            <el-radio-button value="answered">已作答卷</el-radio-button>
-          </el-radio-group>
+          <ReRadioGroup v-model="exportMode">
+            <ReRadioButton value="paper">试卷版</ReRadioButton>
+            <ReRadioButton value="answer-sheet">答题卡</ReRadioButton>
+            <ReRadioButton value="answer-key">参考答案</ReRadioButton>
+            <ReRadioButton value="answered">已作答卷</ReRadioButton>
+          </ReRadioGroup>
         </el-form-item>
         <el-form-item label="导出说明">
           <span class="export-tip">逐页生成 A4 PNG，共 {{ pageCount }} 页</span>
@@ -610,6 +610,7 @@ import PaperPreview, { type PaperExportMode } from "../components/paper/PaperPre
 import QuestionMarketDialog from "../components/paper/QuestionMarketDialog.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
 import ReDialog from "@repo/ui/re-dialog";
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 defineOptions({ name: "PaperComposeView" });
 
@@ -1578,7 +1579,7 @@ function onLocateQuestion(q: ComposeQuestion, event: MouseEvent) {
     return;
   }
   const target = event.target as HTMLElement | null;
-  if (target && target.closest("button, input, .compose-row__handle, .el-input-number, .el-radio, .el-checkbox, .el-select")) {
+  if (target && target.closest("button, input, .compose-row__handle, .el-input-number, .el-radio, .el-segmented, .el-checkbox, .el-select")) {
     return;
   }
   const key = q.paperQuestionNo || `Q${q.questionId}`;
@@ -2166,11 +2167,9 @@ onMounted(() => {
   font-size: 13px;
 }
 
-/** 导出弹框选项不换行 */
-.export-form .el-radio-group {
-  display: flex;
+/** 导出弹框的分段选项允许换行（选项多、容器窄时整块折行） */
+.export-form .el-segmented {
   flex-wrap: wrap;
-  gap: 6px;
 }
 
 /* ---------- 三栏布局：左试卷题目 / 中纸张预览 / 右购物车 ----------

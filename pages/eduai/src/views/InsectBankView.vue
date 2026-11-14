@@ -399,11 +399,11 @@
                   <span class="lesson-row__no">第 {{ i + 1 }} 题</span>
                   <span class="lesson-row__answer">
                     正确选项
-                    <el-radio-group v-model="q.answer">
-                      <el-radio-button :value="0">A</el-radio-button>
-                      <el-radio-button :value="1">B</el-radio-button>
-                      <el-radio-button :value="2">C</el-radio-button>
-                    </el-radio-group>
+                    <ReRadioGroup v-model="q.answer">
+                      <ReRadioButton :value="0">A</ReRadioButton>
+                      <ReRadioButton :value="1">B</ReRadioButton>
+                      <ReRadioButton :value="2">C</ReRadioButton>
+                    </ReRadioGroup>
                   </span>
                   <button type="button" class="repeat-row__del" title="删除" @click="guideQuiz.splice(i, 1)">
                     <el-icon><Delete /></el-icon>
@@ -473,6 +473,7 @@ import { knownSpecies } from "../insect/three/registry";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const FACT_ICONS = ["size", "weight", "time", "place", "food", "ability"];
 const HOTSPOT_TONES = ["coral", "sage", "amber", "lavender"];

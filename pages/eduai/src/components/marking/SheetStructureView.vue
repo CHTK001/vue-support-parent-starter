@@ -3,10 +3,10 @@
     <header class="ss-toolbar">
       <div class="ss-toolbar__left">
         <span class="ss-eyebrow">阅卷详情</span>
-        <el-radio-group v-model="mode" size="small" class="ss-mode">
-          <el-radio-button value="layout">版面解析</el-radio-button>
-          <el-radio-button value="original">原始试卷</el-radio-button>
-        </el-radio-group>
+        <ReRadioGroup v-model="mode" size="small" class="ss-mode">
+          <ReRadioButton value="layout">版面解析</ReRadioButton>
+          <ReRadioButton value="original">原始试卷</ReRadioButton>
+        </ReRadioGroup>
         <div v-if="recognizedStudent" class="ss-student">
           卷面识别：<b>{{ recognizedStudent.name || '（姓名未识别）' }}</b>
           <span v-if="recognizedStudent.no">· 学号 {{ recognizedStudent.no }}</span>
@@ -336,6 +336,7 @@ import ReDrawer from "@repo/ui/re-drawer";
 import ReTag from "@repo/ui/re-tag";
 import ReDialog from "@repo/ui/re-dialog";
 import { EditPen, Loading } from '@element-plus/icons-vue';
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const props = defineProps<{
   taskId: string;
@@ -1061,7 +1062,7 @@ defineExpose({ save, saveIfDirty, hasDirty: () => dirty.value });
   color: var(--el-text-color-secondary);
   letter-spacing: 0.08em;
 }
-.ss-mode .el-radio-button__inner {
+.ss-mode :deep(.el-segmented__item-label) {
   font-size: 12px;
 }
 .ss-legend {

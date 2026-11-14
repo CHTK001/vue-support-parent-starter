@@ -399,10 +399,10 @@
                   />
                 </el-form-item>
                 <el-form-item label="状态">
-                  <el-radio-group v-model="stuForm.studentStatus">
-                    <el-radio-button :value="1">在读</el-radio-button>
-                    <el-radio-button :value="0">离校</el-radio-button>
-                  </el-radio-group>
+                  <ReRadioGroup v-model="stuForm.studentStatus">
+                    <ReRadioButton :value="1">在读</ReRadioButton>
+                    <ReRadioButton :value="0">离校</ReRadioButton>
+                  </ReRadioGroup>
                 </el-form-item>
                 <el-form-item label="绑定账号">
                   <el-input
@@ -495,10 +495,10 @@
               </el-select>
             </el-form-item>
             <el-form-item label="状态">
-              <el-radio-group v-model="clsForm.classStatus">
-                <el-radio-button :value="1">启用</el-radio-button>
-                <el-radio-button :value="0">停用</el-radio-button>
-              </el-radio-group>
+              <ReRadioGroup v-model="clsForm.classStatus">
+                <ReRadioButton :value="1">启用</ReRadioButton>
+                <ReRadioButton :value="0">停用</ReRadioButton>
+              </ReRadioGroup>
             </el-form-item>
           </el-form>
         </section>
@@ -559,10 +559,10 @@
               <el-input v-model="teaForm.teacherSubjectCode" placeholder="如 MATH" />
             </el-form-item>
             <el-form-item label="状态">
-              <el-radio-group v-model="teaForm.teacherStatus">
-                <el-radio-button :value="1">在职</el-radio-button>
-                <el-radio-button :value="0">离职</el-radio-button>
-              </el-radio-group>
+              <ReRadioGroup v-model="teaForm.teacherStatus">
+                <ReRadioButton :value="1">在职</ReRadioButton>
+                <ReRadioButton :value="0">离职</ReRadioButton>
+              </ReRadioGroup>
             </el-form-item>
             <el-form-item label="绑定账号">
               <el-input :model-value="teaForm.teacherAccount || '（老师首次进老师端时自行绑定）'" disabled />
@@ -683,6 +683,7 @@ import type { ReTableColumn } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
 import { routeUrl } from "../utils/routeUrl";
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const loading = ref(false);
 const saving = ref(false);
