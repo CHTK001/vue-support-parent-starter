@@ -88,6 +88,7 @@ import { nextAutoSaveDelay, shouldPollCollab } from "../../utils/collabAutosave"
 import { blobToOfficeSnapshot, officeMimeOf } from "../../utils/collabOffice";
 import { snapshotToOfficeBytes } from "../../utils/collabExport";
 import { CollabHubTransport } from "../../utils/collabHubTransport";
+import { localizeOfficeEngine, type OfficeEngineZhHandle } from "../../utils/officeEngineZh";
 
 const props = defineProps<{
   /** 协同文档号 */
@@ -130,7 +131,41 @@ const saveStatusText = ref(`已同步 · v${initialVersion.value}`);
 
 /** 卸载标记 */
 let disposed = false;
-/** 是否已有未保存改动 */
+
+/** 引擎界面汉化句柄（工具栏 / 菜单文案由 office-engine 写死成英文） */
+let zhHandle: OfficeEngineZhHandle | null = null;
+/** 汉化重试定时器：引擎是异步挂载 shadow root 的，挂载完成前拿不到 */
+let zhRetryTimer: number | null = null;
+
+/**
+ * 给引擎界面挂汉化（最多重试 10 次，约 2 秒）
+ *
+ * <p>office-engine 的工具栏与右键菜单文案写死在 bundle 里，没有 locale 开关，
+ * 只能在渲染后按「整串精确匹配」翻译它的 shadow root。引擎挂载是异步的，
+ * 首次可能还没有 shadow root，所以这里轮询重试。</p>
+ *
+ * @param attempt 第几次尝试（内部用）
+ */
+function applyEngineI18n(attempt = 0): void {
+  if (disposed || zhHandle) return;
+  const handle = localizeOfficeEngine(mountRef.value);
+  if (handle) {
+    zhHandle = handle;
+    return;
+  }
+  if (attempt >= 10) return;
+  zhRetryTimer = window.setTimeout(() => applyEngineI18n(attempt + 1), 200);
+}
+
+/** 释放汉化观察器 */
+function disposeEngineI18n(): void {
+  if (zhRetryTimer) {
+    clearTimeout(zhRetryTimer);
+    zhRetryTimer = null;
+  }
+  zhHandle?.dispose();
+  zhHandle = null;
+}/** 是否已有未保存改动 */
 let dirtyFlag = false;
 /** 本轮「首次变脏」的时刻：自动保存最长等待以它为起点 */
 let dirtySince = 0;
@@ -541,6 +576,8 @@ async function initEngine(): Promise<void> {
         ready.value = true;
         observeHub();
         emit("ready");
+        // 引擎挂载完成，shadow root 就位，挂上界面汉化
+        applyEngineI18n();
       },
       onError: (err) => {
         // 引擎自身会渲染错误面板；这里只撤遮罩，避免永远转圈
@@ -623,6 +660,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   disposed = true;
+  disposeEngineI18n();
   stopHubObserver();
   if (pollTimer) clearInterval(pollTimer);
   if (readyFallbackTimer) {

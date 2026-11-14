@@ -32,6 +32,7 @@ import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, react
 import { ElMessageBox } from "element-plus";
 import {
   ArrowLeft,
+  ArrowRight,
   Box,
   CircleCheck,
   Clock,
@@ -581,17 +582,28 @@ function isVideoPanelFile(name: string): boolean {
 import { extensionOf, isClientRenderable, RENDER_SERVER } from "../utils/officeRenderer";
 import { parseExpiryToSeconds } from "../utils/expiry";
 import { md5OfBlob } from "../utils/md5";
+import { scheduleOfficeWarmup } from "../utils/previewWarmup";
 import { CLIENT_DATA_EXTS, CLIENT_PSD_EXTS, fileSvg, fileTypeText, kindOf } from "../utils/fileKind";
 import ReDialog from "@repo/ui/re-dialog";
 import ReTable from "@repo/ui/re-table";
+import { ReRadioGroup, ReRadioButton, ReRadio } from "@repo/ui/re-kit";
 
 /** 排序字段：name 名称 / size 大小 / lastModified 修改时间 */
 type SortKey = "name" | "size" | "lastModified";
 /** 排序方向：asc 升序 / desc 降序 */
 type SortOrder = "asc" | "desc";
 
-/** 视图模式：columns=分栏（macOS Finder 风格，默认）/ details / largeIcons / mediumIcons / smallIcons */
+/** 视图模式：details=详细信息（默认）/ columns=分栏（macOS Finder 风格）/ largeIcons / mediumIcons / smallIcons */
 type ViewMode = "columns" | "details" | "largeIcons" | "mediumIcons" | "smallIcons";
+
+/**
+ * 默认视图模式。
+ *
+ * <p>默认「详细信息」而不是分栏：文件资产页的高频动作是看名字/大小/修改时间，
+ * 分栏把单击目录变成「进下一列」，无法在当前列看到子项属性，也不便于多选核对。
+ * 分栏仍然保留，用户切过去后由界面状态持久化记住。</p>
+ */
+const DEFAULT_VIEW_MODE: ViewMode = "details";
 
 /* ================== 连接 & 状态 ================== */
 
@@ -803,8 +815,8 @@ let loadShowTimer: number | undefined;
 const navLoading = ref(false);
 /** 当前目录加载失败的原因（空串表示无错误）；列表区据此显示真实原因而不是「当前目录为空」 */
 const loadError = ref("");
-/** 视图模式：columns=分栏（默认，macOS Finder 风格）/ largeIcons / mediumIcons / smallIcons / details */
-const viewMode = ref<ViewMode>("columns");
+/** 视图模式：见 {@link DEFAULT_VIEW_MODE}（默认详细信息）/ columns 分栏 / 大中小图标 */
+const viewMode = ref<ViewMode>(DEFAULT_VIEW_MODE);
 /** 排序字段 */
 const sortKey = ref<SortKey>("name");
 /** 排序方向：asc 升序 / desc 降序 */
@@ -1583,6 +1595,116 @@ const canUnzip = computed(() => {
   return !!target && !target.directory && isArchive(target.name);
 });
 
+/* ================== 右侧检查器（选中即看详情） ================== */
+
+/** localStorage：详情栏收起状态（页面级布局偏好） */
+const INSPECTOR_COLLAPSED_KEY = "filestorage.inspector.collapsed";
+
+/**
+ * 详情栏是否收起。
+ *
+ * <p>刻意用全局键而不是按桶的 {@link uiStateKey}：桶换来换去时布局不该跟着跳，
+ * 用户收起一次就是不想再看见它。值是 "1"/"0" 而不是 JSON，读写都不会抛错。</p>
+ */
+const inspectorCollapsed = ref(readInspectorCollapsed());
+
+/**
+ * 读详情栏收起状态
+ *
+ * @return true 表示收起；localStorage 不可用时按展开处理
+ */
+function readInspectorCollapsed(): boolean {
+  try {
+    return localStorage.getItem(INSPECTOR_COLLAPSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 收起 / 展开详情栏并持久化
+ *
+ * @param next true 收起，false 展开
+ */
+function setInspectorCollapsed(next: boolean): void {
+  inspectorCollapsed.value = next;
+  try {
+    localStorage.setItem(INSPECTOR_COLLAPSED_KEY, next ? "1" : "0");
+  } catch { /* ignore */ }
+}
+
+/**
+ * 检查器主体对象：恰好选中一个时展示详情。
+ *
+ * <p>多选与未选分别走汇总与空态，避免「选了一堆却只显示第一个」的误导。
+ * 只读 selected 集合，不新增选择状态，原有单选/Ctrl/Shift 多选逻辑完全复用。</p>
+ */
+const inspectorObject = computed<StorageObject | null>(() =>
+  selectedCount.value === 1 ? selectedObjects.value[0] ?? null : null,
+);
+
+/**
+ * 检查器缩略图直链
+ *
+ * <p>不能直接读 {@link objectThumbUrl}：那张票据表只在大图标视图里批量签发
+ * （见 {@link refreshThumbUrls} 的第一条约束），分栏 / 详细信息视图下恒为空，
+ * 检查器就永远出类型图标。这里按「选中即签一张」的口径自己取图，
+ * 命中同一份 {@code thumbBlobCache} 时与列表共用字节、零额外请求。</p>
+ *
+ * <p>异步回来的结果要按序号丢弃：连点几行时先发的请求可能后到，
+ * 不判序号就会把当前选中项的缩略图换成上一项的。</p>
+ */
+const inspectorThumb = ref<string>("");
+let inspectorThumbSeq = 0;
+
+watch(
+  inspectorObject,
+  async (obj) => {
+    inspectorThumbSeq += 1;
+    const seq = inspectorThumbSeq;
+    if (!obj || obj.directory || kindOf(obj.name) !== "image") {
+      inspectorThumb.value = "";
+      return;
+    }
+    // 大图标视图已经签好了票据：直接用，省掉一次异步
+    const ready = objectThumbUrl(obj.name);
+    if (ready) {
+      inspectorThumb.value = ready;
+      return;
+    }
+    const url = await thumbUrlOf(obj, configStamp.value, imageFilterParams.value).catch(() => "");
+    if (seq === inspectorThumbSeq) inspectorThumb.value = url || "";
+  },
+  // 首帧后再跑：imageFilterParams 在 setup 更靠后处才初始化，同步触发会踩 TDZ
+  { flush: "post" },
+);
+
+/** 检查器的类型文案：文件夹单独说，其余沿用列表的类型口径 */
+const inspectorTypeText = computed<string>(() => {
+  const obj = inspectorObject.value;
+  if (!obj) return "-";
+  return obj.directory ? "文件夹" : fileTypeText(obj.name);
+});
+
+/** 检查器：打开当前选中的目录 */
+function openInspectorDir(): void {
+  const obj = inspectorObject.value;
+  if (obj?.directory) enterDir(obj);
+}
+
+/** 检查器：预览当前选中的文件（与双击行完全同一条预览链路） */
+function previewInspector(): void {
+  const obj = inspectorObject.value;
+  if (obj && !obj.directory) void openPreview(obj);
+}
+
+/** 检查器：只下载当前选中的这一个对象（不借用选中集合，避免影响多选态） */
+function downloadInspector(): void {
+  const obj = inspectorObject.value;
+  if (!obj || obj.directory) return;
+  void smartDownload([fullKey(obj.name)]);
+}
+
 /* ================== 左侧导航（目录树 + 快捷访问）/ 回收站 ================== */
 
 /** 左侧导航视图：all=文件浏览 / recycle=回收站 */
@@ -1595,6 +1717,15 @@ const RECYCLE_DIR = ".recycle";
 const UI_STATE_PREFIX = "filestorage.ui.";
 /** 合法的视图模式白名单（用于校验持久化值，防止旧版本遗留的非法值） */
 const VIEW_MODES: ViewMode[] = ["columns", "details", "largeIcons", "mediumIcons", "smallIcons"];
+/**
+ * 界面状态的数据版本号。
+ *
+ * <p>为什么要版本号：视图默认值从「分栏」改成「详细信息」后，老浏览器里早被
+ * 写下的 {@code viewMode:"columns"} 会让新默认永远看不到——那不是用户选的，
+ * 是旧默认被自动持久化的结果。没有版本号的旧记录一律按「无记录」处理，
+ * 升级后第一次打开才落到新默认；此后用户自己切的视图照常记住。</p>
+ */
+const UI_STATE_SCHEMA = 2;
 /** 合法的排序字段白名单 */
 const SORT_KEYS: SortKey[] = ["name", "size", "lastModified"];
 /** 合法的排序方向 */
@@ -1602,6 +1733,8 @@ const SORT_ORDERS: SortOrder[] = ["asc", "desc"];
 
 /** 单个桶的界面状态 */
 interface BucketUiState {
+  /** 数据版本号（见 {@link UI_STATE_SCHEMA}） */
+  schema?: number;
   /** 视图模式 */
   viewMode?: ViewMode;
   /** 所在目录 */
@@ -1645,6 +1778,7 @@ function readUiState(bucketName: string): BucketUiState {
 function writeUiState(bucketName: string): void {
   try {
     localStorage.setItem(uiStateKey(bucketName), JSON.stringify({
+      schema: UI_STATE_SCHEMA,
       viewMode: viewMode.value,
       currentPath: currentPath.value,
       sortKey: sortKey.value,
@@ -1664,8 +1798,10 @@ function writeUiState(bucketName: string): void {
  */
 function applyUiState(bucketName: string): void {
   const saved = readUiState(bucketName);
-  // 视图模式：白名单校验后恢复上次选择（默认分栏），不整体信任持久化数据
-  viewMode.value = VIEW_MODES.includes(saved.viewMode as ViewMode) ? (saved.viewMode as ViewMode) : "columns";
+  // 视图模式：只有「当前版本写下的记录」才认——旧版本没有 schema 字段，其
+  // viewMode 来自旧的默认值（分栏），不是用户的选择，必须让位给新默认。
+  const trusted = saved.schema === UI_STATE_SCHEMA;
+  viewMode.value = trusted && VIEW_MODES.includes(saved.viewMode as ViewMode) ? (saved.viewMode as ViewMode) : DEFAULT_VIEW_MODE;
   currentPath.value = typeof saved.currentPath === "string" ? saved.currentPath : "";
   sortKey.value = SORT_KEYS.includes(saved.sortKey as SortKey) ? (saved.sortKey as SortKey) : "name";
   sortOrder.value = SORT_ORDERS.includes(saved.sortOrder as SortOrder) ? (saved.sortOrder as SortOrder) : "asc";
@@ -3972,6 +4108,12 @@ const uploadPendingCount = computed(
 /** 是否还有可上传的项 */
 const uploadHasPending = computed(() => uploadPendingCount.value > 0);
 
+/** 失败数量（队列汇总条展示用） */
+const uploadErrorCount = computed(() => uploadItems.value.filter((i) => i.status === "error").length);
+
+/** 队列总字节数（底部汇总展示用） */
+const uploadTotalSize = computed(() => uploadItems.value.reduce((sum, i) => sum + i.size, 0));
+
 /** 上传目标目录展示文本（桶 / 路径） */
 const uploadTargetText = computed(() => {
   const seg = uploadTargetPath.value ? uploadTargetPath.value.split("/") : [];
@@ -5475,6 +5617,10 @@ onMounted(async () => {
   recordHistory(currentPath.value);
   void (async () => {
     await loadObjects();
+    // 列表就绪后在空闲时段预热 Office 预览依赖（chunk 与具体文件无关，
+    // 提前拉好，第一次点「预览」就只剩取字节 + 解析）；
+    // 省流量模式 / 弱网下会自行跳过。
+    scheduleOfficeWarmup();
     if (!autoPreviewKey) return;
     const name = autoPreviewKey.slice(autoPreviewKey.lastIndexOf("/") + 1);
     const row = objects.value.find((o) => o.name === name && !o.directory)
@@ -5769,6 +5915,11 @@ onUnmounted(() => {
             <el-icon :size="15"><Download /></el-icon>下载
           </button>
         </div>
+
+        <!-- 工作区：列表 + 右侧常驻检查器（方案 01「双子栏 · 常驻检查器」）。
+             回收站不给检查器：那页条目来自另一个接口，元数据口径与当前目录不同。 -->
+        <div class="fs-work">
+          <div class="fs-work__main">
 
         <!-- 搜索工具栏整行删除：搜索框已按需求移除，上传/下载并入上方路径栏尾部，
              其余操作仍在右键菜单里。这一行原本是页面唯一的搜索入口，
@@ -6088,6 +6239,127 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+          </div>
+
+          <!-- 右侧检查器：选中即看详情，不离开列表；操作沿用现有预览/下载链路 -->
+          <aside v-if="nav === 'all' && !inspectorCollapsed" class="fs-insp" aria-label="文件详情">
+            <div class="fs-insp__head">
+              <span class="fs-insp__head-title">详情</span>
+              <button
+                type="button"
+                class="fs-insp__fold"
+                title="收起详情栏"
+                aria-label="收起详情栏"
+                @click="setInspectorCollapsed(true)"
+              >
+                <el-icon :size="13"><ArrowRight /></el-icon>
+              </button>
+            </div>
+            <template v-if="inspectorObject">
+              <div class="fs-insp__thumb">
+                <img
+                  v-if="inspectorThumb"
+                  :src="inspectorThumb"
+                  :alt="inspectorObject.name"
+                  decoding="async"
+                />
+                <span
+                  v-else
+                  class="fs-typeicon fs-insp__icon"
+                  v-html="fileSvg(inspectorObject.name, inspectorObject.directory)"
+                  aria-hidden="true"
+                />
+              </div>
+              <div class="fs-insp__name" :title="inspectorObject.name">{{ inspectorObject.name }}</div>
+              <div class="fs-insp__meta">
+                <div class="fs-insp__m"><span>类型</span><b>{{ inspectorTypeText }}</b></div>
+                <div class="fs-insp__m">
+                  <span>大小</span><b>{{ inspectorObject.directory ? '—' : formatSize(inspectorObject.size) }}</b>
+                </div>
+                <div class="fs-insp__m"><span>修改</span><b>{{ formatTime(inspectorObject.lastModified) }}</b></div>
+                <div class="fs-insp__m"><span>位置</span><b :title="currentPath || '/'">{{ currentPath || '/' }}</b></div>
+                <div class="fs-insp__m"><span>存储</span><b :title="bucket">{{ bucket }}</b></div>
+              </div>
+              <div class="fs-insp__acts">
+                <button
+                  v-if="inspectorObject.directory"
+                  type="button"
+                  class="fs-insp__btn is-primary"
+                  title="打开"
+                  aria-label="打开"
+                  data-act="open"
+                  @click="openInspectorDir"
+                ><el-icon :size="15"><FolderOpened /></el-icon></button>
+                <template v-else>
+                  <button
+                    type="button"
+                    class="fs-insp__btn is-primary"
+                    title="预览"
+                    aria-label="预览"
+                    data-act="preview"
+                    @click="previewInspector"
+                  ><el-icon :size="15"><View /></el-icon></button>
+                  <button
+                    type="button"
+                    class="fs-insp__btn"
+                    title="下载"
+                    aria-label="下载"
+                    data-act="download"
+                    @click="downloadInspector"
+                  ><el-icon :size="15"><Download /></el-icon></button>
+                </template>
+                <button
+                  type="button"
+                  class="fs-insp__btn"
+                  title="属性"
+                  aria-label="属性"
+                  data-act="props"
+                  @click="openProperties(inspectorObject)"
+                ><el-icon :size="15"><InfoFilled /></el-icon></button>
+                <button
+                  type="button"
+                  class="fs-insp__btn"
+                  title="取消选择"
+                  aria-label="取消选择"
+                  data-act="clear"
+                  @click="clearSelect"
+                ><el-icon :size="15"><Close /></el-icon></button>
+              </div>
+            </template>
+
+            <template v-else-if="selectedCount > 1">
+              <div class="fs-insp__multi">
+                <b>已选 {{ selectedCount }} 项</b>
+                <span>共 {{ formatSize(selectedSize) }}</span>
+                <small>选中单项可查看缩略图与详细属性</small>
+              </div>
+              <div class="fs-insp__acts">
+                <button
+                  type="button"
+                  class="fs-insp__btn is-primary"
+                  title="下载"
+                  aria-label="下载"
+                  data-act="download"
+                  @click="downloadSelected"
+                ><el-icon :size="15"><Download /></el-icon></button>
+                <button
+                  type="button"
+                  class="fs-insp__btn"
+                  title="取消选择"
+                  aria-label="取消选择"
+                  data-act="clear"
+                  @click="clearSelect"
+                ><el-icon :size="15"><Close /></el-icon></button>
+              </div>
+            </template>
+
+            <div v-else class="fs-insp__empty">
+              <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+              <span>选中文件查看详情</span>
+              <small>缩略图、类型、大小与快捷操作</small>
+            </div>
+          </aside>
+        </div>
         <!-- 状态栏：项数 + 查看方式切换（分栏/详细信息/大图标/中图标/小图标） -->
         <div class="fs-statusbar">
           <!-- 项数口径随筛选切换：过滤态报「命中 / 全目录」两个数，否则用户分不清
@@ -6113,6 +6385,18 @@ onUnmounted(() => {
               :disabled="pageBusy"
               @current-change="onPageChange"
             />
+          </div>
+          <div class="fs-statusbar__views fs-statusbar__insp">
+            <button
+              type="button"
+              class="fs-view-btn"
+              :class="{ 'is-active': !inspectorCollapsed }"
+              :title="inspectorCollapsed ? '显示详情栏' : '隐藏详情栏'"
+              :aria-pressed="!inspectorCollapsed"
+              aria-label="详情栏"
+              data-testid="fs-insp-toggle"
+              @click="setInspectorCollapsed(!inspectorCollapsed)"
+            ><el-icon :size="15"><InfoFilled /></el-icon></button>
           </div>
           <div class="fs-statusbar__views" role="group" aria-label="查看方式">
             <button
@@ -6495,10 +6779,10 @@ onUnmounted(() => {
             <div class="fs-admin__fields">
               <div v-if="admHitAny(ADMIN_LAYOUT_ITEM_TERMS.access)" class="fs-admin__field">
                 <span class="fs-admin__label fs-admin__label--field">访问权限</span>
-                <el-radio-group v-model="adminForm.privateBucket" class="fs-admin__seg">
-                  <el-radio-button :value="false">公共</el-radio-button>
-                  <el-radio-button :value="true">私有</el-radio-button>
-                </el-radio-group>
+                <ReRadioGroup v-model="adminForm.privateBucket" block class="fs-admin__seg">
+                  <ReRadioButton :value="false">公共</ReRadioButton>
+                  <ReRadioButton :value="true">私有</ReRadioButton>
+                </ReRadioGroup>
               </div>
 
               <div v-if="admHitAny(ADMIN_LAYOUT_ITEM_TERMS.buckets)" class="fs-admin__field fs-admin__field--wide">
@@ -6822,11 +7106,12 @@ onUnmounted(() => {
 
     <!-- ===== 上传对话框 =====
          队列式上传：选文件只入队，由「开始上传 / 全部开始」触发；
-         关闭时若还有未完成项先确认，确认后中断全部请求。 -->
+         关闭时若还有未完成项先确认，确认后中断全部请求。
+         版式：左投放区 + 右常驻队列（双栏），配色全部取 koi / Element 令牌。 -->
     <ReDialog
       v-model="uploadVisible"
       class="fs-up-dlg"
-      width="720px"
+      width="920px"
       :append-to-body="true"
       destroy-on-close
       @closed="abortAllUploads"
@@ -6841,100 +7126,148 @@ onUnmounted(() => {
       </template>
 
       <div class="fs-up">
-        <div class="fs-up__bar">
-          <span class="fs-up__bar-label">上传至</span>
-          <span class="fs-up__chip" :title="uploadTargetText">
-            <el-icon :size="15"><Folder /></el-icon>
-            <b>{{ bucket }}</b>
-            <template v-if="uploadTargetPath">
-              <span class="fs-up__chip-sep">/</span>
-              <span class="fs-up__chip-path">{{ uploadTargetPath }}</span>
-            </template>
-          </span>
-          <button type="button" class="fs-up__pick" @click="openUploadDirPicker">
-            <el-icon :size="15"><FolderOpened /></el-icon>更换目录
-          </button>
+        <!-- 左列：投放区 + 上传至 -->
+        <div class="fs-up__pane">
+          <div
+            class="fs-up__drop"
+            :class="{ 'is-active': uploadDropActive }"
+            role="button"
+            tabindex="0"
+            @click="pickFiles"
+            @keydown.enter="pickFiles"
+            @dragover="onUploadDragOver"
+            @dragleave="onUploadDragLeave"
+            @drop="onUploadDrop"
+          >
+            <el-icon class="fs-up__drop-icon" :size="40"><UploadFilled /></el-icon>
+            <p class="fs-up__drop-title">拖拽文件到这里</p>
+            <p class="fs-up__drop-sub">或点击选择文件<br />支持多文件同时上传，单个不超过 500MB</p>
+            <p class="fs-up__drop-hint">JPG / PNG / PDF / DOCX / ZIP 等</p>
+          </div>
+          <input ref="uploadInput" type="file" multiple hidden @change="handleFileChange" />
+
+          <div class="fs-up__target">
+            <span class="fs-up__target-label">上传至</span>
+            <div class="fs-up__target-row">
+              <span class="fs-up__chip" :title="uploadTargetText">
+                <el-icon :size="15"><Folder /></el-icon>
+                <b>{{ bucket }}</b>
+                <template v-if="uploadTargetPath">
+                  <span class="fs-up__chip-sep">/</span>
+                  <span class="fs-up__chip-path">{{ uploadTargetPath }}</span>
+                </template>
+              </span>
+              <button type="button" class="fs-up__pick" title="更换上传目录" @click="openUploadDirPicker">
+                <el-icon :size="15"><FolderOpened /></el-icon>更换
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div
-          class="fs-up__drop"
-          :class="{ 'is-active': uploadDropActive }"
-          role="button"
-          tabindex="0"
-          @click="pickFiles"
-          @keydown.enter="pickFiles"
-          @dragover="onUploadDragOver"
-          @dragleave="onUploadDragLeave"
-          @drop="onUploadDrop"
-        >
-          <el-icon class="fs-up__drop-icon" :size="52"><UploadFilled /></el-icon>
-          <p class="fs-up__drop-title">点击选择文件，或拖拽文件到此处</p>
-          <p class="fs-up__drop-sub">支持多文件同时上传，单个文件不超过 500MB</p>
-          <p class="fs-up__drop-hint">支持 JPG、PNG、PDF、DOCX、ZIP 等格式</p>
-        </div>
-        <input ref="uploadInput" type="file" multiple hidden @change="handleFileChange" />
-
-        <div v-if="uploadItems.length" class="fs-up__queue">
+        <!-- 右列：常驻队列（空态也保留，避免弹框高度跳动） -->
+        <div class="fs-up__body">
           <div class="fs-up__queue-head">
-            <span>待上传文件（{{ uploadItems.length }}）</span>
+            <b>上传队列</b>
+            <span class="fs-up__queue-meta">{{ uploadItems.length }} 个文件 · 并发 {{ UPLOAD_CONCURRENCY }}</span>
             <button type="button" class="fs-up__link" :disabled="!uploadHasPending" @click="startAllUploads">全部开始</button>
           </div>
-          <ul class="fs-up__list">
+
+          <div v-if="!uploadItems.length" class="fs-up__empty">
+            <span>队列为空</span>
+            <small>选择或拖入文件后，每个文件的上传进度会显示在这里</small>
+          </div>
+
+          <ul v-else class="fs-up__list">
             <li v-for="item in uploadItems" :key="item.id" class="fs-up__row" :class="`is-${item.status}`">
               <span class="fs-typeicon fs-up__row-icon" v-html="fileSvg(item.name, false)" aria-hidden="true" />
-              <span class="fs-up__row-name" :title="item.name">{{ item.name }}</span>
-              <span class="fs-up__row-size">{{ formatSize(item.size) }}</span>
-              <!-- MD5：计算中显示百分比，算完显示前 8 位（点一下复制完整值） -->
-              <span
-                v-if="item.md5State === 'calc'"
-                class="fs-up__md5 is-calc"
-                :title="`正在计算 MD5：${item.md5Percent}%`"
-              >MD5 {{ item.md5Percent }}%</span>
-              <button
-                v-else-if="item.md5State === 'done'"
-                type="button"
-                class="fs-up__md5"
-                :title="`MD5 ${item.md5}（点击复制）`"
-                @click.stop="copyUploadMd5(item)"
-              >MD5 {{ item.md5.slice(0, 8) }}</button>
-              <span v-else-if="item.md5State === 'error'" class="fs-up__md5 is-err" title="MD5 计算失败">MD5 —</span>
-              <span class="fs-up__row-tail">
-                <template v-if="item.status === 'uploading'">
-                  <span class="fs-up__track"><i class="fs-up__fill" :style="{ width: item.percent + '%' }" /></span>
-                  <b class="fs-up__pct">{{ item.percent }}%</b>
-                  <button type="button" class="fs-up__row-btn" title="暂停" @click="pauseUploadItem(item)">
-                    <el-icon :size="15"><VideoPause /></el-icon>
-                  </button>
-                </template>
-                <template v-else-if="item.status === 'done'">
-                  <span class="fs-up__done"><el-icon :size="15"><CircleCheck /></el-icon>已完成</span>
-                </template>
-                <template v-else-if="item.status === 'error'">
-                  <span class="fs-up__err" :title="item.error">上传失败</span>
-                  <button type="button" class="fs-up__row-btn" title="重试" @click="retryUploadItem(item)">
-                    <el-icon :size="15"><Refresh /></el-icon>
-                  </button>
-                </template>
-                <template v-else-if="item.status === 'paused'">
-                  <span class="fs-up__paused" title="后端不支持断点续传，继续会从头上传">已暂停</span>
-                  <button type="button" class="fs-up__row-btn" title="继续（从头上传）" @click="startUploadItem(item)">
-                    <el-icon :size="15"><VideoPlay /></el-icon>
-                  </button>
-                </template>
-                <template v-else>
-                  <span class="fs-up__wait">等待中</span>
-                </template>
+              <div class="fs-up__row-main">
+                <div class="fs-up__row-top">
+                  <span class="fs-up__row-name" :title="item.name">{{ item.name }}</span>
+                  <span class="fs-up__row-size">{{ formatSize(item.size) }}</span>
+                  <!-- MD5：计算中显示百分比，算完显示前 8 位（点一下复制完整值） -->
+                  <span
+                    v-if="item.md5State === 'calc'"
+                    class="fs-up__md5 is-calc"
+                    :title="`正在计算 MD5：${item.md5Percent}%`"
+                  >MD5 {{ item.md5Percent }}%</span>
+                  <button
+                    v-else-if="item.md5State === 'done'"
+                    type="button"
+                    class="fs-up__md5"
+                    :title="`MD5 ${item.md5}（点击复制）`"
+                    @click.stop="copyUploadMd5(item)"
+                  >MD5 {{ item.md5.slice(0, 8) }}</button>
+                  <span v-else-if="item.md5State === 'error'" class="fs-up__md5 is-err" title="MD5 计算失败">MD5 —</span>
+                </div>
+                <div class="fs-up__row-bar">
+                  <span class="fs-up__track">
+                    <i
+                      class="fs-up__fill"
+                      :class="`is-${item.status}`"
+                      :style="{ width: (item.status === 'done' ? 100 : item.percent) + '%' }"
+                    />
+                  </span>
+                  <span
+                    class="fs-up__state"
+                    :class="`is-${item.status}`"
+                    :title="item.status === 'error' ? item.error : ''"
+                  >
+                    <template v-if="item.status === 'uploading'">{{ item.percent }}%</template>
+                    <template v-else-if="item.status === 'done'">已完成</template>
+                    <template v-else-if="item.status === 'error'">上传失败</template>
+                    <template v-else-if="item.status === 'paused'">已暂停</template>
+                    <template v-else>等待中</template>
+                  </span>
+                </div>
+              </div>
+              <div class="fs-up__row-acts">
+                <button
+                  v-if="item.status === 'uploading'"
+                  type="button"
+                  class="fs-up__row-btn"
+                  title="暂停"
+                  @click="pauseUploadItem(item)"
+                >
+                  <el-icon :size="15"><VideoPause /></el-icon>
+                </button>
+                <button
+                  v-else-if="item.status === 'paused'"
+                  type="button"
+                  class="fs-up__row-btn"
+                  title="继续（后端不支持断点续传，继续会从头上传）"
+                  @click="startUploadItem(item)"
+                >
+                  <el-icon :size="15"><VideoPlay /></el-icon>
+                </button>
+                <button
+                  v-else-if="item.status === 'error'"
+                  type="button"
+                  class="fs-up__row-btn"
+                  title="重试"
+                  @click="retryUploadItem(item)"
+                >
+                  <el-icon :size="15"><Refresh /></el-icon>
+                </button>
                 <button type="button" class="fs-up__row-btn is-danger" title="移除" @click="removeUploadItem(item)">
                   <el-icon :size="15"><Delete /></el-icon>
                 </button>
-              </span>
+              </div>
             </li>
           </ul>
+
+          <div class="fs-up__queue-foot">
+            <span>已完成 {{ uploadDoneCount }} / {{ uploadItems.length }}</span>
+            <span>待传 {{ uploadPendingCount }}</span>
+            <span v-if="uploadErrorCount">失败 {{ uploadErrorCount }}</span>
+            <span class="fs-up__queue-foot-tail">单文件上限 500MB</span>
+          </div>
         </div>
       </div>
 
       <template #footer>
-        <span class="fs-up__stat">已完成 {{ uploadDoneCount }}/{{ uploadItems.length }}</span>
+        <span class="fs-up__stat">
+          已完成 {{ uploadDoneCount }}/{{ uploadItems.length }} · 总计 {{ formatSize(uploadTotalSize) }} · 并发 {{ UPLOAD_CONCURRENCY }}
+        </span>
         <el-button @click="closeUpload">取消</el-button>
         <el-button type="primary" :icon="Upload" :loading="uploading" :disabled="!uploadHasPending" @click="startAllUploads">
           开始上传
@@ -7042,10 +7375,10 @@ onUnmounted(() => {
     <ReDialog v-model="oneTimeVisible" :title="`创建访问链接 — ${oneTimeTarget?.name ?? ''}`" width="440px" :append-to-body="true" destroy-on-close>
       <el-form label-width="80px">
         <el-form-item label="类型">
-          <el-radio-group v-model="oneTimeType">
-            <el-radio value="once">一次性（访问即销毁）</el-radio>
-            <el-radio value="expiry">限时（有效期内可多次访问）</el-radio>
-          </el-radio-group>
+          <ReRadioGroup v-model="oneTimeType">
+            <ReRadio value="once">一次性（访问即销毁）</ReRadio>
+            <ReRadio value="expiry">限时（有效期内可多次访问）</ReRadio>
+          </ReRadioGroup>
         </el-form-item>
         <el-form-item v-if="oneTimeType === 'expiry'" label="过期时间">
           <div style="display:flex;gap:8px;align-items:center;width:100%">
@@ -7239,18 +7572,25 @@ onUnmounted(() => {
     </ReDialog>
 
     <!-- ===== 预览弹层 =====
-         保留 header 并启用 el-dialog 自带的 draggable：手柄就是 header，只有按住标题栏才拖得动。
+         不允许拖动：内容区要能自由点选（Excel 单元格 / 文档内选字），
+         启用 draggable 后点选常被当成拖拽起点，内容跟着抖。
+         位置固定 top=10px：必须同时关掉 align-center —— koi 主题默认 align-center=true，
+         Element 的 .el-dialog.is-align-center 把 margin 重置成 auto，会让内联的
+         --el-dialog-margin-top（即 top）失效，弹窗按视口垂直居中。
+         宽度写 92vw 而不是 min(1200px, 92vw)：koi 的 dialogWidth 只认 number / 纯数值字符串，
+         CSS 函数会被 parseFloat 成 NaN 后退回 95%。
          内容区（Excel / Word / iframe / Office 组件）不再挂任何 mousedown —— 此前把拖拽接管到
          内容外壳上，导致在 Excel 里点选单元格被当成拖拽起点，单元格跟着抖。
          代价是 header 高度从内容里扣掉，但换来「按哪动哪」，对表格类预览是必需的。 -->
     <ReDialog
       v-model="previewVisible"
       class="fs-preview-dlg fs-content-dlg"
-      width="min(1200px, 92vw)"
-      top="5px"
+      width="92vw"
+      top="10px"
+      :align-center="false"
       :title="previewTitle"
       :show-close="true"
-      :draggable="true"
+      :draggable="false"
       :append-to-body="true"
       :close-on-click-modal="true"
       destroy-on-close
@@ -7385,25 +7725,28 @@ onUnmounted(() => {
             @fallback="onClientPanelFallback"
           />
           <!-- 服务端渲染兜底：它返回的 HTML 页可能整片空白（实测 docs 里
-               见到过），给一条可执行的出口，而不是让用户对着白屏关弹层。 -->
-          <div
-            v-if="previewForceServer && !previewError"
-            class="fs-preview__fallback-bar"
-          >
-            <span class="fs-preview__fallback-text">该文件由服务端渲染，若内容空白请下载原文件查看</span>
-            <button type="button" class="fs-preview__fallback-btn" @click="downloadPreviewObject">
-              下载原文件
-            </button>
-          </div>
-          <PreviewIframePanel
-            v-else-if="!previewError"
-            ref="iframePanelRef"
-            :src="previewFrameSrc"
-            :loading="iframeLoading"
-            :frame-key="iframeKey"
-            @load="onFrameLoad"
-            @error="onFrameError"
-          />
+               见到过），给一条可执行的出口，而不是让用户对着白屏关弹层。
+
+               注意：这里必须用 <template v-else-if> 包住「兜底条 + iframe」，
+               不能把兜底条插在 v-else-if 链中间 —— 那样 PreviewIframePanel 的
+               v-else-if 会挂到兜底条自己的 v-if 上，于是**客户端面板正常时
+               iframe 也会被渲染**（空白 iframe 盖在内容上，表现为整片白屏）。 -->
+          <template v-else-if="!previewError">
+            <div v-if="previewForceServer" class="fs-preview__fallback-bar">
+              <span class="fs-preview__fallback-text">该文件由服务端渲染，若内容空白请下载原文件查看</span>
+              <button type="button" class="fs-preview__fallback-btn" @click="downloadPreviewObject">
+                下载原文件
+              </button>
+            </div>
+            <PreviewIframePanel
+              ref="iframePanelRef"
+              :src="previewFrameSrc"
+              :loading="iframeLoading"
+              :frame-key="iframeKey"
+              @load="onFrameLoad"
+              @error="onFrameError"
+            />
+          </template>
         </div>
       </div>
     </ReDialog>
@@ -7572,6 +7915,240 @@ onUnmounted(() => {
   border-radius: var(--el-radius-xl, 16px);
   background: var(--el-bg-color, #fff);
   overflow: hidden;
+}
+
+/* ── 工作区：列表 + 常驻检查器（双子栏） ──
+ * 列表仍占满剩余宽度并自己滚动；检查器是独立一栏，不覆盖列表、不弹窗。
+ * 宽度随窗口收窄到 1180px 以下时整栏隐藏（宁可没有，也不要挤成一条缝）。 */
+.fs-work {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 14px;
+}
+
+.fs-work__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fs-insp {
+  flex: 0 0 auto;
+  width: 226px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 14px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+
+/* 详情栏标题行：左标题、右收起。收起入口放在栏内，用户视线在哪就能在哪关掉 */
+.fs-insp__head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.fs-insp__head-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-insp__fold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), color var(--el-transition-duration, 0.2s);
+}
+
+.fs-insp__fold:hover {
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+}
+
+.fs-insp__thumb {
+  height: 116px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-fill-color-light);
+}
+
+.fs-insp__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.fs-insp__icon {
+  font-size: 38px;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-insp__name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fs-insp__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.fs-insp__m {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-insp__m b {
+  min-width: 0;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fs-insp__acts {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 操作按钮一律图标：栏宽只有 226px，四个文字按钮会长到两行并把缩略图挤走。
+ * 文案移到 title / aria-label，鼠标悬停有原生提示，读屏也能念出动作名。 */
+.fs-insp__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-regular);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s),
+    color var(--el-transition-duration, 0.2s);
+}
+
+.fs-insp__btn:hover {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-7);
+  color: var(--el-color-primary);
+}
+
+.fs-insp__btn.is-primary {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.fs-insp__btn.is-primary:hover {
+  border-color: var(--el-color-primary-light-3);
+  background: var(--el-color-primary-light-3);
+  color: #fff;
+}
+
+.fs-insp__multi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.fs-insp__multi b {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.fs-insp__multi span {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+.fs-insp__multi small {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-insp__empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.fs-insp__empty svg {
+  color: var(--el-text-color-placeholder);
+  opacity: 0.55;
+}
+
+.fs-insp__empty small {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-text-color-placeholder);
+}
+
+@media (max-width: 1180px) {
+  .fs-insp {
+    display: none;
+  }
+
+  /* 窄屏详情栏本就不出现，底部那个开关也会变成死按钮，一并藏掉。
+   * 用 .fs-statusbar 提高一级特异性：状态栏的 .fs-statusbar__views 在后面才声明
+   * display，同权重会盖掉媒体查询里的 display:none。 */
+  .fs-statusbar .fs-statusbar__insp {
+    display: none;
+  }
 }
 
 /* 内容头 */
@@ -7793,6 +8370,7 @@ onUnmounted(() => {
 .fs-details-row--selected {
   background: var(--el-color-primary-light-9);
   border-color: var(--el-color-primary-light-7);
+  box-shadow: inset 2px 0 0 var(--el-color-primary);
 }
 
 .fs-details-row__name {
@@ -10011,6 +10589,12 @@ onUnmounted(() => {
   gap: 2px;
 }
 
+/* 详情栏开关：与「查看方式」分组之间留一条发丝线，别看起来像第 6 种视图 */
+.fs-statusbar__insp {
+  padding-right: 10px;
+  border-right: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+}
+
 .fs-view-btn {
   width: 28px;
   height: 28px;
@@ -10147,9 +10731,6 @@ onUnmounted(() => {
  * 并把拖拽接管到内容外壳，导致在 Excel 预览里点选单元格被误判为拖拽、单元格抖动。
  * 关闭按钮交回 el-dialog 自带（show-close），不再自绘浮层按钮。 */
 .fs-preview-dlg.el-dialog {
-  border-radius: 14px;
-  overflow: visible; /* 让 ::before 辉光边框不被裁掉 */
-  padding: 0;
   /*
     高度钉成「视口 - 上下各 10px」，让内容真正吃满屏幕：
     此前弹框高度由内容决定，而 iframe 面板固定 65vh、PDF 面板更是能撑到
@@ -10157,52 +10738,20 @@ onUnmounted(() => {
     「弹框只占屏幕一部分、滚动条出现在半空」。
     改成确定高度后，滚动交给各面板内部（flex:1 + min-height:0）。
   */
+  padding: 0;
   height: calc(100vh - 20px);
+  /*
+    上边距必须自己钉死：宿主（monitor 的 telemetry.css）用
+    `.el-dialog { margin-top: 7vh !important }` 统一压弹窗，它会盖掉
+    ReDialog 的 top（内联 --el-dialog-margin-top），把「贴顶 10px」顶成 7vh；
+    再叠加 koi 壳的 94vh 上限，弹层底部就溢出视口、整页多出一条滚动条。
+    双类 + !important 与宿主同权重靠后取胜，恢复「贴顶 10px、满高」。
+  */
+  margin: 10px auto 0 !important;
+  max-height: none;
   display: flex;
   flex-direction: column;
   position: relative;
-}
-
-/* 科技感外框：用 ::before 做渐变描边，::after 做外发光 */
-.fs-preview-dlg.el-dialog::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: 15px;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--el-color-primary, #409eff) 70%, var(--el-color-success, #67c23a)) 0%,
-    var(--el-color-primary, #409eff) 35%,
-    var(--el-color-info, #909399) 65%,
-    color-mix(in srgb, var(--el-color-primary, #409eff) 70%, var(--el-color-success, #67c23a)) 100%
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-.fs-preview-dlg.el-dialog::after {
-  content: "";
-  position: absolute;
-  inset: -8px;
-  border-radius: 20px;
-  background: transparent;
-  box-shadow:
-    0 0 30px color-mix(in srgb, var(--el-color-primary, #409eff) 18%, transparent),
-    0 8px 40px color-mix(in srgb, var(--el-color-primary, #409eff) 10%, transparent);
-  pointer-events: none;
-  z-index: -1;
-  transition: box-shadow 0.3s ease;
-}
-
-.fs-preview-dlg.el-dialog:hover::after {
-  box-shadow:
-    0 0 40px color-mix(in srgb, var(--el-color-primary, #409eff) 28%, transparent),
-    0 12px 50px color-mix(in srgb, var(--el-color-primary, #409eff) 16%, transparent);
 }
 
 /* body 必须能伸缩，否则子面板的 flex:1 拿不到有界高度 */
@@ -10212,62 +10761,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   padding: 0;
-  background:
-    linear-gradient(
-      160deg,
-      color-mix(in srgb, var(--el-color-primary, #409eff) 3%, var(--el-bg-color, #fff)) 0%,
-      var(--el-bg-color, #fff) 100%
-    );
 }
 
-/* 拖拽手柄：科技感渐变标题栏 */
-.fs-preview-dlg .el-dialog__header {
-  cursor: move;
-  user-select: none;
-  margin-right: 0;
-  padding: 12px 16px 11px;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--el-color-primary, #409eff) 10%, var(--el-bg-color, #fff)) 0%,
-      color-mix(in srgb, var(--el-color-success, #67c23a) 6%, var(--el-bg-color, #fff)) 100%
-    );
-
-}
-
-.fs-preview-dlg .el-dialog__title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  letter-spacing: 0.3px;
-}
-
-/* 关闭按钮：悬停主色圆晕 */
-.fs-preview-dlg .el-dialog__headerbtn {
-  top: 8px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
-}
-.fs-preview-dlg .el-dialog__headerbtn:hover {
-  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 10%, transparent);
-  color: var(--el-color-danger, #f56c6c);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-danger, #f56c6c) 30%, transparent);
-}
-.fs-preview-dlg .el-dialog__headerbtn .el-dialog__close {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.fs-preview-dlg .el-dialog__body {
-  /* 见上方同名规则：这里只保留 padding，伸缩相关已在上方声明 */
-  padding: 12px 14px 14px;
-}
+/* 标题栏 / 关闭钮 / 正文留白不再自绘：统一走 koi 弹窗壳的紧凑样式 */
 
 /* ── 全局：Windows 风格类型图标 ──
  * v-html 注入的 svg 不携带 scoped 属性 id，尺寸规则必须放在非 scoped 块；
@@ -10337,38 +10833,9 @@ onUnmounted(() => {
   background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
 }
 
-/* 访问权限分段控件：两段等宽，选中段用主色描边 */
+/* 访问权限分段控件：铺满一行，两段等宽（选中态由 el-segmented 自己画） */
 .fs-admin-dialog .fs-admin__seg {
-  display: flex;
   width: 100%;
-}
-
-.fs-admin-dialog .fs-admin__seg .el-radio-button {
-  flex: 1;
-}
-
-.fs-admin-dialog .el-radio-button__inner {
-  width: 100%;
-  text-align: center;
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-md, 8px) !important;
-  box-shadow: none !important;
-  padding: 8px 12px;
-  background: var(--el-bg-color, #fff);
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-}
-
-.fs-admin-dialog .fs-admin__seg .el-radio-button:first-child .el-radio-button__inner {
-  margin-right: 8px;
-}
-
-.fs-admin-dialog .el-radio-button.is-active .el-radio-button__inner,
-.fs-admin-dialog .el-radio-button__original-radio:checked + .el-radio-button__inner {
-  background: var(--el-color-primary-light-9);
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
-  font-weight: 600;
 }
 
 .fs-admin-dialog .el-input__wrapper,

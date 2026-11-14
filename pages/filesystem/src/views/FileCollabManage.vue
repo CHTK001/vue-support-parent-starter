@@ -336,11 +336,11 @@
       <div class="cm-dialog-body">
         <el-form label-width="90px" label-position="left">
           <el-form-item label="文档类型">
-            <el-radio-group v-model="createForm.type">
-              <el-radio value="excel">表格 Excel</el-radio>
-              <el-radio value="word">文档 Word</el-radio>
-              <el-radio value="text">文本 Text</el-radio>
-            </el-radio-group>
+            <ReRadioGroup v-model="createForm.type">
+              <ReRadio value="excel">表格 Excel</ReRadio>
+              <ReRadio value="word">文档 Word</ReRadio>
+              <ReRadio value="text">文本 Text</ReRadio>
+            </ReRadioGroup>
           </el-form-item>
           <el-form-item label="文件名">
             <el-input
@@ -363,10 +363,10 @@
             <div class="cm-form-file-hint">按「/」分隔层级，例如：项目A/台账/2026</div>
           </el-form-item>
           <el-form-item label="可见性">
-            <el-radio-group v-model="createForm.visibility">
-              <el-radio value="PUBLIC">公开（全员可编辑）</el-radio>
-              <el-radio value="PRIVATE">私有（仅指定用户）</el-radio>
-            </el-radio-group>
+            <ReRadioGroup v-model="createForm.visibility">
+              <ReRadio value="PUBLIC">公开（全员可编辑）</ReRadio>
+              <ReRadio value="PRIVATE">私有（仅指定用户）</ReRadio>
+            </ReRadioGroup>
           </el-form-item>
           <el-form-item v-if="createForm.visibility === 'PRIVATE'" label="授权用户">
             <el-select
@@ -427,10 +427,10 @@
             </div>
           </el-form-item>
           <el-form-item label="可见性">
-            <el-radio-group v-model="accessForm.visibility">
-              <el-radio value="PUBLIC">公开</el-radio>
-              <el-radio value="PRIVATE">私有</el-radio>
-            </el-radio-group>
+            <ReRadioGroup v-model="accessForm.visibility">
+              <ReRadio value="PUBLIC">公开</ReRadio>
+              <ReRadio value="PRIVATE">私有</ReRadio>
+            </ReRadioGroup>
           </el-form-item>
           <el-form-item v-if="accessForm.visibility === 'PRIVATE'" label="授权用户">
             <el-select
@@ -608,6 +608,7 @@ import {
 } from "../api/filestorageApi";
 // 用户列表（选择授权用户）：复用系统用户管理页的分页接口
 import { listUsersForPicker } from "./collabUserApi";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 /* ==================== 基础状态 ==================== */
 

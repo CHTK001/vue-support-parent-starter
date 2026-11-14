@@ -42,6 +42,7 @@ import {
   writeImageBlob,
 } from "../utils/imageSource";
 import ReDialog from "@repo/ui/re-dialog";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -1603,10 +1604,10 @@ watch(
       class="pimg-save-dlg"
       @closed="pendingBlob = null"
     >
-      <el-radio-group v-model="saveMode" :disabled="saving" class="pimg__save-mode">
-        <el-radio value="overwrite">覆盖原文件</el-radio>
-        <el-radio value="new">另存为新文件</el-radio>
-      </el-radio-group>
+      <ReRadioGroup v-model="saveMode" :disabled="saving" class="pimg__save-mode">
+        <ReRadio value="overwrite">覆盖原文件</ReRadio>
+        <ReRadio value="new">另存为新文件</ReRadio>
+      </ReRadioGroup>
       <div class="pimg__save-origin">{{ props.fileName }}</div>
 
       <div v-if="saveMode === 'new'" class="pimg__save-new">

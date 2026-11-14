@@ -5,21 +5,43 @@
  *   1) 上传弹框与目录选择弹框都是 append-to-body，DOM 挂在 body 下；
  *   2) 类名统一 .fs-up* 前缀，与页面其它样式不冲突，挂在全局没有污染风险。
  *
- * 配色一律走 koi / Element Plus 令牌（--el-*），渐变用令牌派生，
- * 不写死任何色值：换主题、切暗色自动跟随。
+ * 版式：双栏 —— 左列投放区 + 上传至，右列常驻队列（队列行按状态着色）。
+ * 配色一律走 koi / Element Plus 令牌（--koi-* / --el-*），
+ * 不写死任何色值：换主题色、切暗色自动跟随。
  */
 
-/* ---------- 弹框骨架 ---------- */
+/* ---------- 弹框骨架：双栏 ---------- */
 .fs-up {
   display: flex;
+  height: min(560px, 66vh);
+  min-height: 380px;
+}
+
+/* 左列：投放区铺满剩余高度，上传至贴在底部 */
+.fs-up__pane {
+  width: 300px;
+  flex: none;
+  display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  padding-right: 18px;
+  border-right: 1px solid var(--el-border-color-lighter);
+}
+
+/* 右列：队列头 + 可滚动列表 + 汇总条 */
+.fs-up__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: 18px;
 }
 
 .fs-up__head {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .fs-up__head-icon {
@@ -32,40 +54,57 @@
   color: var(--el-text-color-primary);
 }
 
-/* ---------- 上传至：标签 + 目录胶囊 + 更换目录 ---------- */
-.fs-up__bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* 弹框头部右侧留白（放「上传记录」入口） */
+.fs-up__head-gap {
+  flex: 1;
 }
 
-.fs-up__bar-label {
-  flex-shrink: 0;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
+/* ---------- 上传至：标签 + 目录胶囊 + 更换目录 ---------- */
+.fs-up__target {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fs-up__target-label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-up__target-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .fs-up__chip {
-  display: inline-flex;
+  flex: 1;
+  display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
-  max-width: 340px;
   height: 34px;
-  padding: 0 12px;
+  padding: 0 10px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-fill-color-light);
-  color: var(--el-text-color-regular);
-  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  font-size: 12.5px;
 }
 
 .fs-up__chip b {
+  flex: none;
+  max-width: 96px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--el-text-color-primary);
   font-weight: 600;
 }
 
 .fs-up__chip-sep {
+  flex: none;
   color: var(--el-text-color-placeholder);
 }
 
@@ -79,18 +118,18 @@
 }
 
 .fs-up__pick {
-  margin-left: auto;
+  flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   height: 34px;
-  padding: 0 12px;
+  padding: 0 10px;
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-radius-md, 8px);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   white-space: nowrap;
   cursor: pointer;
   transition: color var(--el-transition-duration, 0.2s), border-color var(--el-transition-duration, 0.2s);
@@ -108,12 +147,14 @@
 
 /* ---------- 拖拽区 ---------- */
 .fs-up__drop {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 34px 20px 24px;
+  padding: 20px 16px;
+  text-align: center;
   border: 1.5px dashed var(--el-border-color);
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-fill-color-blank);
@@ -136,45 +177,54 @@
 }
 
 .fs-up__drop-icon {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: var(--el-color-primary);
 }
 
 .fs-up__drop-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
 
 .fs-up__drop-sub {
   margin: 0;
-  font-size: 13px;
-  color: var(--el-text-color-regular);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
 }
 
-/* 格式提示靠右，贴住虚线框下沿 */
+/* 格式提示贴住虚线框下沿 */
 .fs-up__drop-hint {
-  align-self: flex-end;
-  margin: 10px 0 0;
-  font-size: 12px;
+  margin: 8px 0 0;
+  font-size: 11px;
   color: var(--el-text-color-placeholder);
 }
 
-/* ---------- 队列 ---------- */
-.fs-up__queue {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
+/* ---------- 队列头 ---------- */
 .fs-up__queue-head {
+  flex: none;
+  height: 38px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-size: 14px;
+  gap: 8px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.fs-up__queue-head b {
+  font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+
+.fs-up__queue-meta {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-up__queue-head .fs-up__link {
+  margin-left: auto;
 }
 
 .fs-up__link {
@@ -192,30 +242,66 @@
   cursor: not-allowed;
 }
 
+/* ---------- 队列列表 ---------- */
 .fs-up__list {
+  flex: 1;
+  min-height: 0;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-md, 8px);
+  overflow-y: auto;
   list-style: none;
 }
 
-.fs-up__row {
+.fs-up__empty {
+  flex: 1;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 18px;
+  text-align: center;
+  border: 1px dashed var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+.fs-up__empty span {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+
+.fs-up__empty small {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+.fs-up__row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  font-size: 13px;
+  padding: 9px 2px;
 }
 
 .fs-up__row + .fs-up__row {
-  border-top: 1px solid var(--el-border-color-extra-light, var(--el-border-color-lighter));
+  border-top: 1px solid var(--el-border-color-lighter);
 }
 
 .fs-up__row-icon {
   flex-shrink: 0;
-  font-size: 26px;
+  font-size: 22px;
+}
+
+.fs-up__row-main {
+  min-width: 0;
+}
+
+.fs-up__row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .fs-up__row-name {
@@ -224,25 +310,95 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-size: 13px;
   color: var(--el-text-color-primary);
 }
 
 .fs-up__row-size {
-  flex-shrink: 0;
+  flex: none;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
   color: var(--el-text-color-secondary);
+}
+
+.fs-up__row-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+}
+
+.fs-up__track {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
+}
+
+.fs-up__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--el-color-primary);
+  transition: width 0.2s linear;
+}
+
+.fs-up__fill.is-done {
+  background: var(--el-color-success);
+}
+
+.fs-up__fill.is-error {
+  background: var(--el-color-danger);
+}
+
+.fs-up__fill.is-paused {
+  background: var(--el-color-warning);
+}
+
+.fs-up__fill.is-pending {
+  background: var(--el-color-info);
+}
+
+/* 状态字：宽度留够「上传失败」，避免进度条逐行错位 */
+.fs-up__state {
+  flex: none;
+  min-width: 46px;
+  text-align: right;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-up__state.is-uploading {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.fs-up__state.is-done {
+  color: var(--el-color-success);
+}
+
+.fs-up__state.is-error {
+  color: var(--el-color-danger);
+}
+
+.fs-up__state.is-paused {
+  color: var(--el-color-warning);
 }
 
 /* MD5：算完是可点的短码（点一下复制完整值），算中是进度，失败显 — */
 .fs-up__md5 {
-  flex-shrink: 0;
-  padding: 1px 7px;
+  flex: none;
+  padding: 1px 6px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 999px;
-  background: transparent;
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-fill-color-light);
   color: var(--el-text-color-secondary);
   font-family: var(--el-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 11px;
-  line-height: 18px;
+  font-size: 10.5px;
+  line-height: 16px;
   letter-spacing: 0.02em;
   cursor: pointer;
 }
@@ -255,17 +411,118 @@
 .fs-up__md5.is-calc {
   cursor: default;
   border-style: dashed;
+  background: transparent;
+  color: var(--el-text-color-placeholder);
 }
 
 .fs-up__md5.is-err {
   cursor: default;
+  background: transparent;
   color: var(--el-color-danger);
   border-color: var(--el-color-danger-light-7);
 }
 
-/* 弹框头部右侧留白（放「上传记录」入口） */
-.fs-up__head-gap {
-  flex: 1;
+/* ---------- 队列汇总条 ---------- */
+.fs-up__queue-foot {
+  flex: none;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+  border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.fs-up__queue-foot-tail {
+  margin-left: auto;
+  color: var(--el-text-color-placeholder);
+}
+
+/* ---------- 行内操作按钮 ---------- */
+.fs-up__row-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.fs-up__row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
+}
+
+.fs-up__row-btn:hover {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.fs-up__row-btn.is-danger:hover {
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+}
+
+.fs-up__row-btn:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
+}
+
+/* ---------- 底部统计（与 el-dialog 的 footer 按钮同行） ---------- */
+.fs-up-dlg .el-dialog__footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fs-up-dlg .el-dialog__footer .el-button + .el-button {
+  margin-left: 0;
+}
+
+.fs-up__stat {
+  margin-right: auto;
+  font-size: 12.5px;
+  line-height: 32px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+}
+
+/* ---------- 窄屏：双栏改上下堆叠 ---------- */
+@media (max-width: 860px) {
+  .fs-up {
+    flex-direction: column;
+    height: auto;
+    max-height: 72vh;
+  }
+
+  .fs-up__pane {
+    width: auto;
+    padding: 0 0 14px;
+    border-right: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+
+  .fs-up__drop {
+    min-height: 132px;
+  }
+
+  .fs-up__body {
+    padding: 14px 0 0;
+  }
+
+  .fs-up__list {
+    max-height: 42vh;
+  }
 }
 
 /* ---------- 上传记录（list-view） ---------- */
@@ -375,95 +632,6 @@
   padding: 24px 0;
   text-align: center;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.fs-up__row-tail {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  min-width: 212px;
-}
-
-.fs-up__track {
-  width: 128px;
-  height: 8px;
-  overflow: hidden;
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-fill-color);
-}
-
-.fs-up__fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3));
-  transition: width 0.2s linear;
-}
-
-.fs-up__pct {
-  width: 38px;
-  text-align: right;
-  font-weight: 600;
-  color: var(--el-color-primary);
-}
-
-.fs-up__done {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--el-color-success);
-}
-
-.fs-up__err {
-  max-width: 110px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--el-color-danger);
-}
-
-.fs-up__paused,
-.fs-up__wait {
-  color: var(--el-text-color-secondary);
-}
-
-.fs-up__row-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: var(--el-radius-sm, 6px);
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  transition: color var(--el-transition-duration, 0.2s), background var(--el-transition-duration, 0.2s);
-}
-
-.fs-up__row-btn:hover {
-  background: var(--el-fill-color-light);
-  color: var(--el-color-primary);
-}
-
-.fs-up__row-btn.is-danger:hover {
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
-}
-
-.fs-up__row-btn:focus-visible {
-  outline: 2px solid var(--el-color-primary);
-  outline-offset: 1px;
-}
-
-/* ---------- 底部统计（与 el-dialog 的 footer 按钮同行） ---------- */
-.fs-up__stat {
-  float: left;
-  font-size: 13px;
-  line-height: 32px;
   color: var(--el-text-color-secondary);
 }
 
