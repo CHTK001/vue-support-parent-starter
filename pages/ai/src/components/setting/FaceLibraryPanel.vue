@@ -1016,7 +1016,20 @@ async function removeOne(item: Row) {
   busy.value = true
   try {
     const ok = await apiService.deleteFace(item.id, group.value)
-    if (!ok) { message.error('删除失败：底库未确认删除'); return }
+    if (!ok) {
+      // 后端返回 false 表示「这次删除没生效」。不要直接报错——先回读一次：
+      // 有些旧实例在「DB 有行、内存快照没有」时会返回 false，但行其实已经删掉了；
+      // 以列表为准再判一次，避免把「已删除」显示成「删除失败」。
+      await load(page.value)
+      const stillThere = visibleItems.value.some((r) => r.id === item.id)
+      if (stillThere) {
+        message.error('删除失败：底库未确认删除')
+        return
+      }
+      registry.remove(item.id, group.value)
+      message.success(`已删除：${label}`)
+      return
+    }
     // 只删本组的本地档案：同一个 id 在别的分组里也是合法记录
     registry.remove(item.id, group.value)
     selected.value.delete(item.id)

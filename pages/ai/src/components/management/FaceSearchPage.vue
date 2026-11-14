@@ -492,13 +492,13 @@ const faceUnregisteredLabels = computed(() =>
  * </ul>
  */
 const faceGateTitle = computed(() => {
-  if (faceMissing.value.length) return '人脸识别未启用'
+  if (modelConfig.faceMissing.length) return '人脸识别未启用'
   if (faceUnregistered.value.length) return '人脸识别未启用（模型未注册）'
   return '人脸识别状态未知'
 })
 
 const faceGateDesc = computed(() => {
-  if (faceMissing.value.length) {
+  if (modelConfig.faceMissing.length) {
     return `还需配置${faceMissingLabels.value}。请到「系统设置 → 默认模型 → 人脸识别」中选择模型，保存后立即生效。`
   }
   if (faceUnregistered.value.length) {

@@ -235,8 +235,8 @@
                             <FaceLibraryPanel />
                         </template>
                         <!--
-                          重识别库：只做**管理**（查看/删除观测），观测与轨迹在外侧「人脸重识别」页。
-                          与「人脸识别（外侧） + 人脸底库（设置内）」同一分工。
+                          重识别库：与人脸底库同构 —— 只做**库管理**（导入/删除/分组），
+                          每行两套向量（人脸 + ReID）。观测在人脸重识别页，结果不写库。
                         -->
                         <template v-else-if="currentTabValue === 'reid-library'">
                             <ReidLibraryPanel />
