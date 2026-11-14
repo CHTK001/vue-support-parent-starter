@@ -37,10 +37,12 @@ const props = withDefaults(
     filterTypes: FilterTypeMeta[];
     /** 嵌入 ReTabs 工作区时去掉抽屉外壳，直接渲染详情 / 配置视图 */
     embedded?: boolean;
-    /** 嵌入模式初始视图：'filter' 用于「过滤器链」页签，直接进入插件配置页 */
+    /** 嵌入模式初始视图：'filter' 用于「过滤器配置」页签，直接进入插件配置页 */
     initialView?: 'detail' | 'filter';
+    /** 嵌入 filter 视图时初始配置哪个过滤器（链上下标） */
+    initialIndex?: number;
   }>(),
-  { embedded: false, initialView: 'detail' },
+  { embedded: false, initialView: 'detail', initialIndex: 0 },
 );
 
 const emit = defineEmits<{
@@ -134,6 +136,8 @@ async function loadEmbedded() {
   if (props.nodeId == null || embeddedLoaded.value === props.nodeId) return;
   embeddedLoaded.value = props.nodeId;
   view.value = props.initialView || 'detail';
+  // 配置页签直接落在指定的过滤器环上，而不是每次都从第 0 环开始
+  activeIndex.value = props.initialIndex ?? 0;
   await load();
 }
 
@@ -228,7 +232,9 @@ async function onApplyParams(index: number, params: Record<string, string>) {
     message.success('插件参数已热更新，服务未中断');
     await load();
     emit('changed');
-    view.value = 'detail';
+    // 嵌入在「过滤器配置」页签里时留在配置页（页签本身就是这个插件的配置界面，
+    // 跳回详情反而把用户从正在调的表单里踢出去）；抽屉模式维持原行为回详情看结果
+    if (!props.embedded) view.value = 'detail';
   } catch (e) {
     message.error((e as Error).message);
   } finally {
