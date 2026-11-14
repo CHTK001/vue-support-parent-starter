@@ -1,7 +1,7 @@
 <template>
-  <div class="ws-root" data-page="world-sim">
-    <!-- ============ 左侧：世界列表 ============ -->
-    <aside class="ws-list">
+  <div class="ws-root" :class="{ 'left-folded': leftCollapsed, 'right-folded': rightCollapsed }" data-page="world-sim">
+    <!-- ============ 左侧：世界列表（可折叠） ============ -->
+    <aside class="ws-list" :class="{ collapsed: leftCollapsed }">
       <div class="ws-list-head">
         <div class="ws-search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -12,6 +12,9 @@
         </div>
         <button class="ws-add" type="button" title="创建一个新世界，其余交给 AI" @click="openCreateWorld">
           <el-icon><Plus /></el-icon>
+        </button>
+        <button class="ws-fold-btn" type="button" data-role="fold-left" title="收起世界列表" @click="leftCollapsed = true">
+          <el-icon><Fold /></el-icon>
         </button>
       </div>
 
@@ -61,36 +64,91 @@
 
     <!-- ============ 中间：台本 ============ -->
     <section class="ws-chat">
+      <!-- 侧栏收起后留在舞台边缘的展开把手 -->
+      <button v-show="leftCollapsed" class="ws-edge ws-edge-left" type="button" data-role="unfold-left"
+        title="展开世界列表" @click="leftCollapsed = false">
+        <el-icon><Expand /></el-icon>
+      </button>
+      <button v-show="rightCollapsed" class="ws-edge ws-edge-right" type="button" data-role="unfold-right"
+        title="展开右侧栏" @click="rightCollapsed = false">
+        <el-icon><Expand /></el-icon>
+      </button>
       <template v-if="currentWorld">
-        <!-- 台头：世界名 / 时代 / 时间 / 天气 / 观测 -->
+        <!-- 台头：世界信息一层；幕次状态、进度、切场与幕次操作全收在第二层，
+             舞台里不再重复「第 N 幕 / 共 M 幕 / AI 正在编写」，正文吃满高度 -->
         <header class="ws-chat-head">
-          <div class="ws-chat-title-wrap">
-            <span class="ws-chat-name">{{ currentWorld.name }}</span>
-            <el-tag size="small" effect="plain">{{ currentWorld.era || '现代' }}</el-tag>
-            <span class="ws-chat-time">{{ currentWorld.timeLabel || '第 1 天 上午' }}</span>
-            <span v-if="currentWorld.weather" class="ws-chat-weather">{{ currentWorld.weather }}</span>
+          <div class="ws-head-top">
+            <div class="ws-chat-title-wrap">
+              <span class="ws-chat-name">{{ currentWorld.name }}</span>
+              <el-tag size="small" effect="plain">{{ currentWorld.era || '现代' }}</el-tag>
+              <span class="ws-chat-time">{{ currentWorld.timeLabel || '第 1 天 上午' }}</span>
+              <span v-if="currentWorld.weather" class="ws-chat-weather">{{ currentWorld.weather }}</span>
+            </div>
+            <div class="ws-chat-head-actions">
+              <button class="ws-auto" type="button" :class="{ on: autoWatch }" :title="autoWatch ? '停止自动观看' : '让世界自己演下去'"
+                @click="toggleAutoWatch" data-role="auto-watch">
+                <span class="ws-auto-dot"></span>
+                {{ autoWatch ? '自动观看中' : '自动观看' }}
+              </button>
+              <button class="ws-auto" type="button" :class="{ on: autoEvolve }"
+                :title="autoEvolve ? '停止自动演化' : '让 AI 自己往下演，你只管看'" @click="toggleAutoEvolve"
+                data-role="auto-evolve">
+                <span class="ws-auto-dot"></span>
+                {{ autoEvolve ? '自演化中' : '自动演化' }}
+              </button>
+              <button class="ws-chat-adv" type="button" :disabled="advancing" title="推进时间，生成世界动态"
+                @click="advance()">
+                <el-icon v-if="!advancing"><VideoPlay /></el-icon>
+                <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
+                <span class="ws-adv-text">推进时间</span>
+              </button>
+              <button class="ws-chat-set" type="button" title="世界设置" aria-label="世界设置" @click="openWorldEdit">
+                <el-icon><MoreFilled /></el-icon>
+              </button>
+            </div>
           </div>
-          <div class="ws-chat-head-actions">
-            <button class="ws-auto" type="button" :class="{ on: autoWatch }" :title="autoWatch ? '停止自动观看' : '让世界自己演下去'"
-              @click="toggleAutoWatch" data-role="auto-watch">
-              <span class="ws-auto-dot"></span>
-              {{ autoWatch ? '自动观看中' : '自动观看' }}
-            </button>
-            <button class="ws-auto" type="button" :class="{ on: autoEvolve }"
-              :title="autoEvolve ? '停止自动演化' : '让 AI 自己往下演，你只管看'" @click="toggleAutoEvolve"
-              data-role="auto-evolve">
-              <span class="ws-auto-dot"></span>
-              {{ autoEvolve ? '自演化中' : '自动演化' }}
-            </button>
-            <button class="ws-chat-adv" type="button" :disabled="advancing" title="推进时间，生成世界动态"
-              @click="advance()">
-              <el-icon v-if="!advancing"><VideoPlay /></el-icon>
-              <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
-              <span class="ws-adv-text">推进时间</span>
-            </button>
-            <button class="ws-chat-set" type="button" title="世界设置" aria-label="世界设置" @click="openWorldEdit">
-              <el-icon><MoreFilled /></el-icon>
-            </button>
+
+          <!-- 幕次状态条：只在幕次视图出现；对话视图保持原来的单行台头 -->
+          <div v-if="currentAct" class="ws-head-status" data-role="act-status">
+            <div class="ws-act-head-main">
+              <span class="ws-act-head-no">第 {{ currentAct.actNo }} 幕</span>
+              <h2 class="ws-act-head-title" :title="actTitleOf(currentAct)">{{ actTitleOf(currentAct) }}</h2>
+              <span class="ws-tag" :class="actStageTone(actStage)">{{ actStageName(actStage) }}</span>
+              <span class="ws-status-meter" :title="`进度 ${actProgress(currentAct)}%`">
+                <i :style="{ width: actProgress(currentAct) + '%' }"></i>
+              </span>
+              <span class="ws-status-num">{{ actProgress(currentAct) }}%</span>
+              <span class="ws-status-total">共 {{ acts.length }} 幕</span>
+              <span v-if="actProcessing" class="ws-status-busy" data-role="act-busy" :title="actBusyText">
+                <span class="ws-spin"><el-icon><Loading /></el-icon></span>{{ actBusyText }}
+              </span>
+            </div>
+
+            <div class="ws-head-status-right">
+              <!-- 切场：从舞台底部搬上来，一屏一场的导航不再占正文高度 -->
+              <div v-if="storyScenes.length > 1" class="ws-status-pager" data-role="cue-nav">
+                <button class="ws-cue-arrow" type="button" :disabled="cueIndex <= 0"
+                  title="上一场（←）" @click="stepCue(-1)">‹</button>
+                <span class="ws-pager-n">{{ cueIndex + 1 }} / {{ storyScenes.length }}</span>
+                <button class="ws-cue-arrow" type="button" :disabled="cueIndex >= storyScenes.length - 1"
+                  title="下一场（→）" @click="stepCue(1)">›</button>
+              </div>
+              <div class="ws-act-head-ops">
+                <button class="btn ghost ws-act-back" type="button" data-role="back-to-conv"
+                  title="退出幕次视图，回到可以观演、可以介入的对话视图"
+                  @click="backToConversation">
+                  回到对话
+                </button>
+                <button class="btn ghost" type="button" data-role="open-script" @click="openScript">
+                  看剧本
+                </button>
+                <button v-for="btn in availablePipeline" :key="btn.label" class="btn ws-act-stage-btn"
+                  :class="{ primary: btn.primary }"
+                  type="button" :disabled="actProcessing" @click="actPipelineAction(btn)">
+                  {{ btn.label }}
+                </button>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -107,7 +165,7 @@
               @click="selectAct(a)"
             >
               <span class="ws-frame-no">第 {{ a.actNo }} 幕</span>
-              <span class="ws-frame-name">{{ a.title || '未命名幕次' }}</span>
+              <span class="ws-frame-name" :title="actTitleOf(a)">{{ actTitleOf(a) }}</span>
               <span class="ws-frame-foot">
                 <span class="ws-stage-dot" :class="actStageTone(a.stage)"></span>
                 <span class="ws-frame-stage">{{ actStageName(a.stage) }}</span>
@@ -127,38 +185,9 @@
           </div>
         </div>
 
-        <!-- 舞台：当前幕次的演出（正文只读） -->
-        <div ref="msgBoxRef" class="ws-stage">
+        <!-- 舞台：当前幕次的演出（正文只读）。幕次状态已上移到台头，这里只放画面 -->
+        <div ref="msgBoxRef" class="ws-stage" :class="{ 'is-act': !!currentAct }">
           <template v-if="currentAct && actDetail">
-            <div class="ws-act-head">
-              <div class="ws-act-head-main">
-                <span class="ws-act-head-no">第 {{ currentAct.actNo }} 幕</span>
-                <h2 class="ws-act-head-title">{{ actDetail.act?.title || '未命名幕次' }}</h2>
-                <span class="ws-tag" :class="actStageTone(actDetail.act?.stage)">{{ actStageName(actDetail.act?.stage) }}</span>
-              </div>
-              <div class="ws-act-head-ops">
-                <button class="btn ghost ws-act-back" type="button" data-role="back-to-conv"
-                  title="退出幕次视图，回到可以观演、可以介入的对话视图"
-                  @click="backToConversation">
-                  回到对话
-                </button>
-                <button class="btn ghost" type="button" @click="showScript = !showScript">
-                  {{ showScript ? '收起剧本' : '看剧本' }}
-                </button>
-                <button v-for="btn in availablePipeline" :key="btn.label" class="btn ws-act-stage-btn"
-                  :class="{ primary: btn.primary }"
-                  type="button" :disabled="actProcessing" @click="actPipelineAction(btn)">
-                  {{ btn.label }}
-                </button>
-              </div>
-            </div>
-
-            <!-- 编剧 / 素材进行中 -->
-            <div v-if="actProcessing" class="ws-stage-hint">
-              <span class="ws-spin"><el-icon><Loading /></el-icon></span>
-              <span>{{ actBusyText }}</span>
-            </div>
-
             <!-- 演出正文（视频优先：分镜视频连播，没有视频才用文字演出） -->
             <div v-if="playVideos.length" class="ws-film" data-role="film">
               <div class="ws-film-stage">
@@ -203,10 +232,8 @@
 
             <!-- 演出正文：一屏一场，剧照铺满舞台，台词排成人物气泡 -->
             <article v-if="storyScenes.length && (!playVideos.length || showTextPlay)" class="ws-play" data-role="play">
-              <section v-if="cueScene" :key="cueIndex" class="ws-cue"
-                :class="{ 'no-photo': !cueScene.image, expanded: cueExpanded(cueIndex) }" :data-cue="cueIndex">
+              <section v-if="cueScene" :key="cueIndex" class="ws-cue" :data-cue="cueIndex">
                 <img v-if="cueScene.image" class="ws-cue-img" :src="imageSrc(cueScene.image)" :alt="cueScene.title" draggable="false" />
-                <div class="ws-cue-veil"></div>
 
                 <header class="ws-cue-head">
                   <span class="ws-cue-no">{{ cueScene.no }}</span>
@@ -238,19 +265,6 @@
                     @click="toggleNarr(cueIndex)">{{ narrExpanded(cueIndex) ? '收起' : '展开' }}</button>
                 </footer>
               </section>
-
-              <!-- 场次导航：一屏一场，点圆点翻场；舞台获得焦点时支持 ←/→ -->
-              <nav v-if="storyScenes.length > 1" class="ws-cue-nav" data-role="cue-nav">
-                <button class="ws-cue-arrow" type="button" :disabled="cueIndex <= 0"
-                  title="上一场（←）" @click="stepCue(-1)">‹</button>
-                <button v-for="(s, i) in storyScenes" :key="i" class="ws-cue-dot"
-                  :class="{ active: i === cueIndex }" type="button"
-                  :title="`第 ${i + 1} 场：${s.title}`" :aria-label="`第 ${i + 1} 场`"
-                  @click="gotoCue(i)"></button>
-                <button class="ws-cue-arrow" type="button" :disabled="cueIndex >= storyScenes.length - 1"
-                  title="下一场（→）" @click="stepCue(1)">›</button>
-                <span class="ws-cue-keys" aria-hidden="true"><kbd>←</kbd><kbd>→</kbd> 切场</span>
-              </nav>
             </article>
 
             <!-- 还没演出：等 AI 写 -->
@@ -272,16 +286,7 @@
               </button>
             </div>
 
-            <!-- 剧本原文（折叠） -->
-            <div v-if="showScript && actDetail.script" class="ws-act-script">
-              <div class="ws-script-head">
-                <span>剧本 act{{ currentAct.actNo }}.json</span>
-                <button class="ws-act-script-close ws-mini" type="button" @click="showScript = false">✕</button>
-              </div>
-              <pre class="ws-script-body ws-script-item">{{ actDetail.script }}</pre>
-            </div>
-
-            <!-- 素材区已按验收要求移除：舞台不再展示素材清单，只保留演出正文 -->
+            <!-- 剧本改为弹框查看：舞台不再内联展示接口原文 -->
           </template>
 
           <!-- 未选幕次：现场对话 -->
@@ -349,11 +354,25 @@
           </template>
         </div>
 
-        <!-- 底部：演出幕次只读；对话视图只留「观演」，不提供介入输入的输入框 -->
-        <div v-if="!currentAct" class="ws-input">
+        <!-- 底部演员轨 + 脚灯条：幕次视图只读，对话视图只留「观演」，没有介入输入的输入框 -->
+        <div class="ws-input" :class="{ 'is-act': !!currentAct }" data-role="cast-track">
+          <div class="ws-track">
+            <span class="ws-track-k">演员</span>
+            <button v-for="n in trackNpcs" :key="'tk-' + n.id" class="ws-track-chip"
+              :class="{ on: n.sceneId != null && n.sceneId === currentSceneId, off: n.isActive === false }"
+              type="button" :data-track-npc="n.id"
+              :title="(n.displayName || '角色') + ' · 微调人设与演员模型'"
+              @click="openNpcEdit(n)">
+              <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" />
+              <span class="ws-track-name">{{ n.displayName }}</span>
+              <span v-if="n.modelOverride" class="ws-track-model" :title="'演员模型：' + n.modelOverride">模型</span>
+            </button>
+            <span v-if="!trackNpcs.length" class="ws-track-empty">还没有角色。世界设置里可以让 AI 造几个。</span>
+            <span class="ws-track-grow"></span>
+          </div>
           <div class="ws-watch-bar">
             <span class="ws-watch-hint">{{ readingOnly ? '只读账号：' : '' }}你只能看。角色与关系可微调，剧情由 AI 推进。</span>
-            <button class="btn primary" type="button" :disabled="spectating || !canSpectate"
+            <button v-if="!currentAct" class="btn primary" type="button" :disabled="spectating || !canSpectate"
               :title="canSpectate ? '让 AI 在这个场景继续演一段' : '先在场景页签里选一个场景'"
               @click="spectate">
               <el-icon v-if="!spectating"><VideoPlay /></el-icon>
@@ -377,12 +396,16 @@
       </div>
     </section>
 
-    <!-- ============ 右侧：人物 / 关系 / 编年 / 舞台 ============ -->
-    <aside class="ws-side">
+    <!-- ============ 右侧：人物 / 关系 / 编年 / 舞台（可折叠） ============ -->
+    <aside class="ws-side" :class="{ collapsed: rightCollapsed }">
       <div class="ws-side-tabs">
         <button v-for="tab in sideTabs" :key="tab.key" type="button"
           :class="{ active: sideTab === tab.key }" @click="sideTab = tab.key">
           {{ tab.label }}
+        </button>
+        <button class="ws-side-fold" type="button" data-role="fold-right" title="收起右侧栏"
+          @click="rightCollapsed = true">
+          <el-icon><Fold /></el-icon>
         </button>
       </div>
 
@@ -512,11 +535,11 @@
         <div class="ws-form-sec">舞台出片</div>
         <div class="ws-field">
           <label class="ws-label">舞台出片</label>
-           <el-radio-group v-model="mediaForm.mediaMode" data-role="media-mode-create">
-            <el-radio-button value="text">纯文字</el-radio-button>
-            <el-radio-button value="image">场景图 + 文字</el-radio-button>
-            <el-radio-button value="video">AI 生成视频</el-radio-button>
-          </el-radio-group>
+           <ReRadioGroup v-model="mediaForm.mediaMode" data-role="media-mode-create">
+            <ReRadioButton value="text">纯文字</ReRadioButton>
+            <ReRadioButton value="image">场景图 + 文字</ReRadioButton>
+            <ReRadioButton value="video">AI 生成视频</ReRadioButton>
+          </ReRadioGroup>
           <span class="ws-hint">{{ MEDIA_MODE_HINT[mediaForm.mediaMode] }}</span>
         </div>
         <div class="ws-form-sec">导演与演员</div>
@@ -571,11 +594,11 @@
         <div class="ws-form-sec">舞台出片</div>
         <div class="ws-field">
           <label class="ws-label">舞台出片（这个世界的每一幕）</label>
-          <el-radio-group v-model="mediaForm.mediaMode" data-role="media-mode">
-            <el-radio-button value="text">纯文字演出</el-radio-button>
-            <el-radio-button value="image">场景图 + 文字</el-radio-button>
-            <el-radio-button value="video">AI 生成视频</el-radio-button>
-          </el-radio-group>
+          <ReRadioGroup v-model="mediaForm.mediaMode" data-role="media-mode">
+            <ReRadioButton value="text">纯文字演出</ReRadioButton>
+            <ReRadioButton value="image">场景图 + 文字</ReRadioButton>
+            <ReRadioButton value="video">AI 生成视频</ReRadioButton>
+          </ReRadioGroup>
           <span class="ws-hint">{{ MEDIA_MODE_HINT[mediaForm.mediaMode] }}</span>
         </div>
         <div v-if="mediaForm.mediaMode === 'video'" class="ws-field">
@@ -585,6 +608,14 @@
             <el-option v-for="m in mediaForm.videoModels" :key="m" :label="m" :value="m" />
           </el-select>
           <span class="ws-hint">选哪个模型，决定了是文生视频还是图生视频；未配置时按场景图自动走图生视频。</span>
+        </div>
+        <div v-if="mediaForm.mediaMode === 'image'" class="ws-field">
+          <label class="ws-label">生图模型</label>
+          <el-select v-model="mediaForm.imageModel" clearable filterable allow-create
+            style="width: 100%" placeholder="留空则由 AI 自动挑一个可用的生图模型">
+            <el-option v-for="m in mediaForm.imageModels" :key="m" :label="m" :value="m" />
+          </el-select>
+          <span class="ws-hint">场景图由这个模型画；与导演模型的文本生成分开配置，留空自动挑一个可用的生图模型。</span>
         </div>
         <div class="ws-form-sec">导演与演员</div>
         <div class="ws-field">
@@ -635,11 +666,11 @@
       <div class="ws-form">
         <div class="ws-field">
           <label class="ws-label">数量</label>
-          <el-radio-group v-model="npcCreateForm.count">
-            <el-radio-button :value="1">1 个</el-radio-button>
-            <el-radio-button :value="2">2 个</el-radio-button>
-            <el-radio-button :value="3">3 个</el-radio-button>
-          </el-radio-group>
+          <ReRadioGroup v-model="npcCreateForm.count">
+            <ReRadioButton :value="1">1 个</ReRadioButton>
+            <ReRadioButton :value="2">2 个</ReRadioButton>
+            <ReRadioButton :value="3">3 个</ReRadioButton>
+          </ReRadioGroup>
         </div>
         <div class="ws-field">
           <label class="ws-label">倾向（可留空）</label>
@@ -733,13 +764,68 @@
         <el-button type="primary" @click="confirmEditRel">保存</el-button>
       </template>
     </ReDialog>
+
+    <!-- ============ 看剧本：结构化弹框，舞台和内联区都不再直接摊接口原文 ============ -->
+    <ReDialog v-model="showScript" width="760" append-to-body class="ws-dialog ws-script-dialog">
+      <template #header>
+        <span class="ws-dlg-title">第 {{ currentAct?.actNo }} 幕剧本 · {{ actTitleOf(currentAct) }}</span>
+      </template>
+
+      <div v-if="scriptView" class="ws-script-view" data-role="script-view">
+        <div class="ws-script-ov">
+          <h3 class="ws-script-title">{{ scriptView.title }}</h3>
+          <p v-if="scriptView.description" class="ws-script-desc">{{ scriptView.description }}</p>
+          <div v-if="scriptView.meta" class="ws-script-meta">{{ scriptView.meta }}</div>
+        </div>
+
+        <section v-for="(s, i) in scriptView.scenes" :key="'sc-' + i" class="ws-script-scene">
+          <header class="ws-script-scene-head">
+            <span class="ws-script-scene-no">第 {{ i + 1 }} 场</span>
+            <h4 class="ws-script-scene-name">{{ s.name }}</h4>
+            <span v-if="s.where && s.where !== s.name" class="ws-script-where">{{ s.where }}</span>
+          </header>
+          <p v-if="s.desc" class="ws-script-scene-desc">{{ s.desc }}</p>
+          <div v-if="s.cast" class="ws-script-cast">在场：{{ s.cast }}</div>
+          <div v-for="(l, li) in s.lines" :key="'ln-' + li" class="ws-script-line">
+            <span class="ws-script-who">{{ l.speaker }}</span>
+            <span class="ws-script-say">{{ l.text }}</span>
+          </div>
+        </section>
+
+        <section v-if="scriptView.transitions.length" class="ws-script-block">
+          <h4 class="ws-script-block-title">过场</h4>
+          <p v-for="(t, i) in scriptView.transitions" :key="'tr-' + i" class="ws-script-trans">{{ t }}</p>
+        </section>
+
+        <section v-if="scriptView.props.length" class="ws-script-block">
+          <h4 class="ws-script-block-title">道具</h4>
+          <div class="ws-script-props">
+            <span v-for="(p, i) in scriptView.props" :key="'pp-' + i" class="ws-script-prop">{{ p }}</span>
+          </div>
+        </section>
+      </div>
+
+      <div v-else-if="scriptFallback" class="ws-script-view">
+        <MarkdownContent :content="scriptFallback" />
+      </div>
+
+      <div v-else class="ws-script-empty" data-role="script-empty">
+        <p>这一幕还没有剧本。</p>
+        <p class="sub">让 AI 按当前世界写这一幕，写完会自动进素材与演出。</p>
+        <el-button type="primary" :loading="actProcessing" @click="generateScript">让 AI 写这一幕</el-button>
+      </div>
+
+      <template #footer>
+        <el-button @click="showScript = false">关闭</el-button>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { MoreFilled, Plus, VideoPlay, Loading } from '@element-plus/icons-vue'
+import { MoreFilled, Plus, VideoPlay, Loading, Fold, Expand } from '@element-plus/icons-vue'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ReDialog from '@repo/ui/re-dialog'
@@ -761,6 +847,7 @@ import type {
   WorldMessage,
   WorldStory,
 } from '@/services/modules/world-sim.api'
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const ERA_OPTIONS = ['现代', '古代', '未来', '奇幻', '武侠', '赛博朋克', '末日', '蒸汽朋克']
 /** 每个时代对应的前缀名，用户不留名时自动组成世界名称 */
@@ -792,7 +879,7 @@ const REL_TAGS = ['好友', '挚友', '恋人', '家人', '同事', '宿敌', '�
 /** 三种舞台形态互斥，选中哪个就只产出哪种；文案随选中项切换，避免用户误以为会同时出图 */
 const MEDIA_MODE_HINT: Record<string, string> = {
   text: '只出文字演出：AI 写剧本直接上演，不生成图片和视频，出幕最快',
-  image: '每个场景配一张 AI 场景图，图文一起演出',
+  image: '每个场景生成一张 AI 图，直接铺满舞台当背景，台词浮在画面上',
   video: '按分镜逐段生成后连播；图生视频指 AI 先画好场景图，再让图动起来',
 }
 
@@ -856,6 +943,9 @@ const spectating = ref(false)
 const autoWatch = ref(false)
 const worldKw = ref('')
 const sideTab = ref<'cast' | 'relations' | 'timeline' | 'stage'>('cast')
+/** 左右两栏折叠：把整块宽度让给舞台；折叠后舞台边缘留一个展开把手 */
+const leftCollapsed = ref(false)
+const rightCollapsed = ref(false)
 
 const createVisible = ref(false)
 const editVisible = ref(false)
@@ -903,12 +993,17 @@ const sceneForm = reactive({ name: '', description: '' })
  * - mediaMode = text：只出文字演出，整幕不建任何生成任务（最快，也不产生出图费用）；
  * - mediaMode = image：只出场景图，舞台用图文演出；
  * - mediaMode = video：素材阶段让 AI 出视频，舞台按分镜连播。
- * videoModel 留空时由后端自动挑一个可用视频模型。
+ * videoModel / imageModel 留空时由后端自动挑一个可用的对应类型模型；
+ * 生图模型（imageModel）与文本侧模型分开配置，避免出图时借用导演/演员的对话模型。
  */
-const mediaForm = reactive<{ mediaMode: 'text' | 'video' | 'image'; videoModel: string; videoModels: string[] }>({
+const mediaForm = reactive<{
+  mediaMode: 'text' | 'video' | 'image'; videoModel: string; imageModel: string; videoModels: string[]; imageModels: string[]
+}>({
   mediaMode: 'video',
   videoModel: '',
+  imageModel: '',
   videoModels: [],
+  imageModels: [],
 })
 /** 导演/演员模型候选项（来自文本模型列表，供世界设置与 NPC 微调的下拉用） */
 const directorModels = ref<string[]>([])
@@ -973,6 +1068,12 @@ const videoSrc = (url: string | null | undefined): string =>
 const sceneNpcs = computed(() => {
   if (currentSceneId.value == null) return npcs.value.filter((n) => n.sceneId == null)
   return npcs.value.filter((n) => n.sceneId === currentSceneId.value)
+})
+
+/** 底部演员轨：在场角色排前面，其余按原顺序；点一下就进微调 */
+const trackNpcs = computed(() => {
+  const here = new Set(sceneNpcs.value.map((n) => n.id))
+  return [...npcs.value].sort((a, b) => Number(here.has(b.id)) - Number(here.has(a.id)))
 })
 
 /** 对话视图（没在挑某一幕）才允许观演：幕次视图的正文是只读的演出稿 */
@@ -1374,31 +1475,51 @@ function openWorldEdit() {
 
 /** 读 sim 分组设置：出片方式与视频模型（读不到就用默认：出视频、自动挑模型） */
 async function loadMediaSettings() {
+  let flat: Record<string, any> = {}
   try {
     const s: any = await apiService.fetchGroupSettings('sim')
     // 该出口回的是双层信封 {success, data:{field->value}}（部分封装还会再包一层 {code,data}），
     // 直接在外层找 media_mode 永远找不到，界面就会一直停在默认的「生成视频」。
-    const flat: Record<string, any> = s?.data?.data ?? s?.data ?? s ?? {}
-    const mode = String(flat.media_mode ?? flat.mediaMode ?? '').trim()
-    mediaForm.mediaMode = mode === 'text' || mode === 'image' ? mode : 'video'
-    mediaForm.videoModel = String(flat.video_model ?? flat.videoModel ?? '').trim()
+    flat = s?.data?.data ?? s?.data ?? s ?? {}
   } catch {
     // 设置读不到不该挡住世界设置面板：保持默认值
   }
-  if (!mediaForm.videoModels.length) void loadVideoModels()
+  // 先拿到可用的视频 / 图片模型，再决定默认形态：
+  // 有生图模型就别把世界停在没有视频模型的「生成视频」上，否则舞台永远出不来背景图。
+  if (!mediaForm.videoModels.length || !mediaForm.imageModels.length) await loadMediaModels()
+  const raw = String(flat.media_mode ?? flat.mediaMode ?? '').trim()
+  const hasVideo = mediaForm.videoModels.length > 0
+  const hasImage = mediaForm.imageModels.length > 0
+  if (raw === 'text' || raw === 'image') {
+    mediaForm.mediaMode = raw
+  } else if (raw === 'video') {
+    // 明确选了视频就尊重；只有确认「一个视频模型都没有、但能出图」时才退到场景图
+    mediaForm.mediaMode = mediaModelsReady.value && !hasVideo && hasImage ? 'image' : 'video'
+  } else {
+    mediaForm.mediaMode = hasImage ? 'image' : hasVideo ? 'video' : 'text'
+  }
+  mediaForm.videoModel = String(flat.video_model ?? flat.videoModel ?? '').trim()
+  mediaForm.imageModel = String(flat.image_model ?? flat.imageModel ?? '').trim()
 }
 
-/** 可选视频模型：只列当前确实有视频实现（能建任务）的模型 */
-async function loadVideoModels() {
-  try {
-    const list = await apiService.fetchGenerateModels('video') as any
-    const rows = Array.isArray(list) ? list : (list?.data ?? list?.list ?? [])
-    mediaForm.videoModels = rows
+/** 模型清单是否真的取到过：取不到时不能把「空列表」当成「没有该能力」 */
+const mediaModelsReady = ref(false)
+
+/** 可选生成模型：视频用于分镜连播，图片用于舞台背景；只列当前确实有实现的 */
+async function loadMediaModels() {
+  const namesOf = (res: any): string[] => {
+    const rows = Array.isArray(res) ? res : (res?.data ?? res?.list ?? [])
+    return (Array.isArray(rows) ? rows : [])
       .map((m: any) => (typeof m === 'string' ? m : (m?.model ?? m?.name ?? '')))
       .filter((x: string) => Boolean(x))
-  } catch {
-    mediaForm.videoModels = []
   }
+  const [video, image] = await Promise.all([
+    apiService.fetchGenerateModels('video').catch(() => null),
+    apiService.fetchGenerateModels('image').catch(() => null),
+  ])
+  if (video) mediaForm.videoModels = namesOf(video)
+  if (image) mediaForm.imageModels = namesOf(image)
+  mediaModelsReady.value = Boolean(video || image)
 }
 
 /** 可选对话模型（导演/演员下拉）：从供应商模型里挑能 chat 的，只留名字去重 */
@@ -1426,6 +1547,7 @@ async function saveMediaSettings() {
   const payload: Record<string, string> = { media_mode: mediaForm.mediaMode }
   // 纯文字形态不需要视频模型；提交空串会把别人配好的模型清掉，所以干脆不带这个键
   if (mediaForm.mediaMode === 'video') payload.video_model = mediaForm.videoModel || ''
+  if (mediaForm.mediaMode === 'image') payload.image_model = mediaForm.imageModel || ''
   await apiService.updateGroupSettings('sim', payload)
 }
 
@@ -1998,6 +2120,17 @@ function actProgress(v?: Record<string, any>) {
   return Math.min(100, Number(v?.progress ?? 0))
 }
 
+/**
+ * 幕次标题：act 行在「AI 编剧前」只有占位名，真正由 AI 起的标题写在演出稿里。
+ * 胶片条与台头都以 AI 标题为准，观众才看得见这一幕叫什么，而不是一排「未命名幕次」。
+ */
+function actTitleOf(a?: { actNo?: number; title?: string } | null) {
+  const own = String(a?.title || '').trim()
+  if (own && own !== '未命名幕次') return own
+  const story = stories.value.find((s) => s.actNo === a?.actNo)
+  return String(story?.title || '').trim() || own || '待 AI 编剧'
+}
+
 /** 幕次所在阶段（来自当前选中的幕次行） */
 const actStage = computed(() => actDetail.value?.act?.stage ?? currentAct.value?.stage)
 
@@ -2036,11 +2169,18 @@ async function loadStories() {
 
 async function openCreateAct() {
   if (!currentWorldId.value) return
+  if (actProcessing.value) return
   try {
     const a = await apiService.createWorldAct(currentWorldId.value) as WorldAct
     await loadActs()
     await selectAct(a)
-    message.success(`已创建第 ${a.actNo} 幕，接下来交给 AI`)
+    if (readingOnly.value) {
+      message.success(`已创建第 ${a.actNo} 幕`)
+      return
+    }
+    // 新建即交给 AI：不再留一幕「未命名幕次」空壳，编剧写完标题、素材与演出会一路跟上
+    message.success(`已新建第 ${a.actNo} 幕，AI 正在写`)
+    await actPipelineAction({ action: 'advance', label: '生成剧本' })
   } catch (e: any) {
     message.error(e?.message || '创建幕次失败')
   }
@@ -2064,10 +2204,104 @@ async function fetchActDetail(actNo: number) {
   try {
     const d = await apiService.fetchWorldActDetail(currentWorldId.value, actNo) as WorldActDetail
     actDetail.value = d
-    showScript.value = false
   } catch (e: any) {
     message.error(e?.message || '获取幕次详情失败')
   }
+}
+
+/* ---------------- 剧本（弹框） ---------------- */
+
+/** 剧本原文 → 结构化视图用的 JSON（解析失败返回 null，交给 Markdown 兜底） */
+const scriptParsed = computed<Record<string, any> | null>(() => {
+  const raw = String(actDetail.value?.script ?? '').trim()
+  if (!raw) return null
+  try {
+    const json = JSON.parse(raw)
+    return json && typeof json === 'object' ? json as Record<string, any> : null
+  } catch {
+    return null
+  }
+})
+
+/** 解析失败时的兜底：去掉代码围栏后按 Markdown 看，不直接摊 JSON 接口原文 */
+const scriptFallback = computed(() => {
+  const raw = String(actDetail.value?.script ?? '').trim()
+  if (!raw) return ''
+  return raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
+})
+
+function npcNameOf(id: any) {
+  return npcs.value.find((n) => String(n.id) === String(id))?.displayName || ''
+}
+
+/**
+ * 剧本弹框的结构化内容：概述 + 分场（画面描述、在场、台词）+ 过场 + 道具。
+ * 台词说话人可能只在 text 前缀里，能拆就拆，不把「曹操：……」整句塞进姓名字段。
+ */
+const scriptView = computed(() => {
+  const j = scriptParsed.value
+  if (!j) return null
+  const scenes = Array.isArray(j.scenes) ? j.scenes : []
+  const sceneNameById = (id: any) =>
+    scenes.find((s: any) => String(s?.sceneId) === String(id))?.name || ''
+  const meta: string[] = []
+  if (j.worldTime) meta.push(`时间：${j.worldTime}`)
+  if (j.weather) meta.push(`天气：${j.weather}`)
+  return {
+    title: String(j.title || '未命名剧本'),
+    description: String(j.description || ''),
+    meta: meta.join(' · '),
+    scenes: scenes.map((s: any) => {
+      const castIds = Array.isArray(s?.npcs) ? s.npcs.map(npcNameOf).filter(Boolean) : []
+      const cast = String(s?.cast || '').trim() || castIds.join('、')
+      const lines = (Array.isArray(s?.lines) ? s.lines : [])
+        .map((l: any) => {
+          const say = String(l?.text || '').trim()
+          let who = String(l?.speaker || '').trim()
+          if (!who) {
+            const m = say.match(/^\s*([^：:]{1,12})[：:]\s*(.+)$/)
+            if (m) return { speaker: m[1].trim(), text: m[2].trim() }
+          }
+          return { speaker: who || '旁白', text: say }
+        })
+        .filter((l: any) => l.text)
+      return {
+        name: String(s?.name || '场景'),
+        where: String(s?.stageName || '') || (s?.sceneId != null ? sceneNameById(s.sceneId) : ''),
+        desc: String(s?.desc || ''),
+        cast,
+        lines,
+      }
+    }),
+    transitions: (Array.isArray(j.transitions) ? j.transitions : [])
+      .map((t: any) => String(t?.text || '').trim())
+      .filter(Boolean),
+    props: (Array.isArray(j.props) ? j.props : [])
+      .map((p: any) => String(p?.name || '').trim())
+      .filter(Boolean),
+  }
+})
+
+/** 看剧本：详情里还没有剧本时先补拉一次，再开弹框（空剧本弹框里给「让 AI 写」） */
+async function openScript() {
+  if (!currentAct.value) return
+  if (!actDetail.value?.script) {
+    await fetchActDetail(currentAct.value.actNo as number)
+  }
+  showScript.value = true
+}
+
+/** 弹框里直接让 AI 写这一幕：走同一条幕次管线，写完弹框里的结构化剧本自动刷新 */
+async function generateScript() {
+  if (!currentAct.value) return
+  // 管线只在编剧/布景/出演阶段可推进；已可重播的幕次直接告诉观众去看，不发无效请求
+  if (!['writing', 'props_ok', 'playing'].includes(String(actStage.value ?? ''))) {
+    message.info('这一幕已经演完了，关掉弹框点「重播」或直接新建下一幕')
+    return
+  }
+  await actPipelineAction({ action: 'advance', label: '生成剧本' })
+  await fetchActDetail(currentAct.value.actNo as number)
+  showScript.value = true
 }
 
 /** 幕次阶段操作 */
@@ -2272,6 +2506,7 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
    令牌口径与全应用统一：颜色走 --el-*，圆角走 --el-radius-*，过渡走
    var(--el-transition-duration-fast, 0.2s)。本页为「台本」三栏布局：
    左=世界，中=幕次胶片条 + 舞台，右=人物/关系/编年/舞台。
+   舞台的「剧场暗黑」定版覆盖见文件末尾（必须置于末尾才能覆盖早期同选择器规则）。
    ============================================================================ */
 .ws-root {
   display: flex;
@@ -2297,7 +2532,10 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
   padding: 12px 12px 10px;
 }
 .ws-search {
+  /* flex:1 的默认 min-width 是 auto，输入框的固有宽度会把这一行撑出左栏，
+     折叠把手被顶到 .ws-chat 底下变成点不到（z 序被聊天面板盖住）。必须显式 0。 */
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2334,9 +2572,6 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
 }
 .ws-add:hover { background: var(--el-color-primary-light-8); }
 .ws-add:active { transform: scale(0.94); }
-.ws-add:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
 .ws-list-body { flex: 1; overflow-y: auto; padding: 2px 6px 8px; }
 
 .ws-conv {
@@ -2352,9 +2587,6 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
 }
 .ws-conv:hover { background: var(--el-fill-color-light); }
 .ws-conv.active { background: var(--el-color-primary-light-9); }
-.ws-conv:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
 .ws-conv-avatar { flex-shrink: 0; }
 .ws-conv-main { flex: 1; min-width: 0; }
 .ws-conv-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -2625,20 +2857,6 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
   flex-direction: column;
   gap: 14px;
 }
-.ws-act-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  /* 长幕次滚到一半也能点到「回到对话」：头部吸顶，且用舞台底色盖住下方正文。
-     -18px 抵消 .ws-stage 的 padding-top，否则吸顶后会留一条缝让正文从上方露出。 */
-  position: sticky;
-  top: -18px;
-  z-index: 3;
-  padding-bottom: 8px;
-  background: var(--el-fill-color);
-}
 .ws-act-back { color: var(--el-color-primary); }
 .ws-act-head-main { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 .ws-act-head-no { font-size: 11.5px; color: var(--el-color-primary); }
@@ -2673,17 +2891,6 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
 .btn.primary:hover:not(:disabled) { background: var(--el-color-primary-light-3); color: var(--el-color-white); }
 .btn.ghost { border-color: transparent; background: transparent; color: var(--el-text-color-secondary); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-.ws-stage-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: var(--el-radius-md, 8px);
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-size: 12.5px;
-}
 
 /* ---- 舞台放映：分镜视频连播 ---- */
 /* 尺寸都收在舞台这一栏里：竖屏按高度约束，横屏按宽度约束，不撑破台本三栏 */
@@ -2806,19 +3013,15 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
   gap: 10px;
   min-height: 400px;
   max-height: 620px;
-  padding: 58px 22px 18px;
+  /* 台头在幕次视图里是流内元素（见文件末尾 .ws-stage.is-act 覆盖），
+     58px 的上内边距只会在台头上方留一条空白带，收到 6px */
+  padding: 6px 22px 18px;
   border-radius: 14px;
   overflow: hidden;
   background: #12161f;
   color: #fff;
   isolation: isolate;
   animation: ws-cue-in 0.32s ease;
-}
-/* 没剧照时用舞台渐变兜底：形态是 image 但这一场没出图，也不能塌成一条 */
-.ws-cue.no-photo {
-  background:
-    radial-gradient(120% 90% at 50% 0%, rgba(120, 140, 255, 0.35), transparent 62%),
-    linear-gradient(160deg, #1b2233 0%, #10141c 60%, #0b0e14 100%);
 }
 .ws-cue-img {
   position: absolute;
@@ -2829,19 +3032,8 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
   object-fit: cover;
   pointer-events: none;
 }
-.ws-cue-veil {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    180deg,
-    rgba(8, 10, 16, 0.62) 0%,
-    rgba(8, 10, 16, 0.12) 32%,
-    rgba(8, 10, 16, 0.55) 70%,
-    rgba(8, 10, 16, 0.9) 100%
-  );
-}
-.ws-cue > *:not(.ws-cue-img):not(.ws-cue-veil) { position: relative; z-index: 2; }
+/* 剧照上不放遮幕：台词气泡与旁白各自带底色，再叠一层只会把整块画面压成黑 */
+.ws-cue > *:not(.ws-cue-img) { position: relative; z-index: 2; }
 
 .ws-cue-head {
   position: absolute;
@@ -2889,7 +3081,6 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
 .ws-cue-cast {
   display: flex;
   flex-direction: column;
-  gap: 8px;
   min-height: 0;
   flex: 0 1 auto;
   overflow-y: auto;
@@ -3003,35 +3194,7 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
 }
 .ws-cue-narr-more:hover { color: #fff; }
 
-/* 一屏一场的翻页：圆点表示进度，箭头翻上/下一场 */
-.ws-cue-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 2px 0;
-}
-/* 键盘提示：只在多场时可用的轻量说明，不抢圆点的注意力 */
-.ws-cue-keys {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: 8px;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-}
-.ws-cue-keys kbd {
-  min-width: 16px;
-  padding: 0 4px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  background: var(--el-fill-color-light);
-  font-family: inherit;
-  font-size: 10px;
-  line-height: 15px;
-  text-align: center;
-}
+/* 一屏一场的翻页：翻页已上移到台头，舞台里只保留箭头样式给台头复用 */
 .ws-cue-arrow {
   width: 24px;
   height: 24px;
@@ -3048,33 +3211,16 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
 }
 .ws-cue-arrow:hover:not(:disabled) { color: var(--el-color-primary); border-color: var(--el-color-primary); }
 .ws-cue-arrow:disabled { opacity: 0.35; cursor: default; }
-.ws-cue-dot {
-  width: 8px;
-  height: 8px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--el-border-color);
-  cursor: pointer;
-  transition: width 0.16s ease, background 0.16s ease;
-}
-.ws-cue-dot:hover { background: var(--el-text-color-placeholder); }
-.ws-cue-dot.active {
-  width: 20px;
-  border-radius: 4px;
-  background: var(--el-color-primary);
-}
 
 @keyframes ws-cue-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
 @media (max-width: 720px) {
-  .ws-cue { min-height: 440px; padding: 54px 14px 14px; }
+  .ws-cue { min-height: 440px; padding: 6px 14px 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ws-cue { animation: none; }
-  .ws-cue-dot { transition: none; }
 }
 
 /* ---- 舞台空态 ---- */
@@ -3104,33 +3250,7 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
 .ws-stage-empty-sub { margin: 0 0 6px; font-size: 12.5px; }
 
 /* ---- 剧本 / 素材 ---- */
-.ws-act-script {
-  border-radius: var(--el-radius-md, 8px);
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
-  overflow: hidden;
-}
-.ws-script-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color);
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.ws-script-body {
-  margin: 0;
-  padding: 10px;
-  max-height: 260px;
-  overflow: auto;
-  font-size: 12px;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: var(--el-text-color-regular);
-}
+/* ---- 剧本：已改为弹框查看（见文件末尾 .ws-script-* 覆盖），舞台不再内联接口原文 ---- */
 .ws-mini {
   width: 20px;
   height: 20px;
@@ -3582,4 +3702,658 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
     border-bottom: 1px solid var(--el-border-color-lighter);
   }
 }
+
+/* ============================================================================
+   剧场暗黑 · 沉浸舞台（第一套定版）
+   —— 覆盖块必须位于 <style> 末尾，才能压过前面同选择器规则。
+   DOM 与选择器不变（验收脚本依赖）；只重写舞台的视觉，全部走 koi 变量
+   （--el-* 与 color-mix），浅色主题=暖幕剧场，深色主题=聚光黑场。
+   ============================================================================ */
+.ws-stage {
+  background:
+    radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--el-color-warning) 9%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg, var(--el-fill-color-dark) 0%, var(--el-fill-color) 55%, var(--el-bg-color) 100%);
+}
+.ws-chat-head {
+  background: linear-gradient(180deg, var(--el-bg-color) 0%, var(--el-fill-color-light) 100%);
+  position: relative;
+}
+.ws-chat-head::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--el-color-primary-light-5), transparent);
+  opacity: 0.5;
+}
+.ws-reel {
+  background: linear-gradient(180deg, var(--el-fill-color-light), var(--el-bg-color));
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+/* 场次翻页箭头：台头深底上的样式见文件末尾 */
+.ws-cue-arrow:hover:not(:disabled) { color: var(--el-color-primary); border-color: var(--el-color-primary-light-5); }
+/* 台词作者：主色提词器 */
+.ws-cue-who { color: var(--el-color-primary-light-3); }
+/* 旁白前缀：暖金提灯色 */
+.ws-cue-narr-k { color: var(--el-color-warning); }
+/* 台词与旁白容器：玻璃暗幕 */
+.ws-cue-bubble {
+  background: color-mix(in srgb, var(--el-bg-color) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 55%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--el-color-black) 12%, transparent);
+}
+.ws-cue-narr {
+  background: color-mix(in srgb, var(--el-bg-color) 76%, transparent);
+  border-color: color-mix(in srgb, var(--el-border-color) 50%, transparent);
+}
+.ws-cue-in {
+  border-color: color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 9%, transparent);
+  color: var(--el-text-color-regular);
+}
+.ws-cue-ava { box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 22%, transparent); }
+.ws-stage-empty-art {
+  background: color-mix(in srgb, var(--el-color-warning) 8%, var(--el-fill-color-light));
+  border-radius: 50%;
+}
+/* 底部观演控制轨：像舞台脚灯 */
+.ws-watch-bar {
+  border-top: 1px solid color-mix(in srgb, var(--el-color-primary) 22%, transparent);
+  padding-top: 8px;
+}
+/* 演出正文文字：跟随主题，不留硬编码白 */
+.ws-cue-say { color: var(--el-text-color-primary); text-shadow: none; }
+.ws-cue-no, .ws-cue-title { color: var(--el-text-color-primary); }
+.ws-cue-count { color: var(--el-text-color-secondary); }
+.ws-cue-where { color: var(--el-text-color-secondary); }
+
+/* ============================================================================
+   剧场暗黑 v2 —— 与 UI 图对齐：整个舞台区都是深色沉浸（不只是正文块）。
+   左右栏保持 koi 浅色；舞台容器用 koi 变量混合出深色，浅色/深色主题都能看。
+   ============================================================================ */
+.ws-stage {
+  background:
+    radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--el-color-warning) 12%, transparent) 0%, transparent 55%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--el-color-black) 78%, var(--el-bg-color)) 0%,
+      color-mix(in srgb, var(--el-color-black) 88%, var(--el-bg-color)) 60%,
+      color-mix(in srgb, var(--el-color-black) 94%, var(--el-bg-color)) 100%);
+}
+/* 幕次标题在台头状态条上：深底白字 */
+.ws-act-head-title { color: var(--el-color-white); }
+.ws-act-head-no { color: var(--el-color-primary-light-5); }
+/* 空态：深底白字 */
+.ws-stage-empty-title { color: var(--el-color-white); }
+.ws-stage-empty-sub { color: color-mix(in srgb, var(--el-color-white) 68%, transparent); }
+.ws-stage-empty-art {
+  background: color-mix(in srgb, var(--el-color-warning) 16%, transparent);
+  border-radius: 50%;
+  color: var(--el-color-warning);
+}
+/* 场次键盘提示、观演提示在深底上的颜色 */
+/* 底部观演轨：深色上的脚灯 */
+.ws-watch-bar {
+  border-top: 1px solid color-mix(in srgb, var(--el-color-primary) 38%, transparent);
+  background: color-mix(in srgb, var(--el-color-black) 80%, transparent);
+  padding-top: 8px;
+}
+.ws-watch-hint { color: color-mix(in srgb, var(--el-color-white) 64%, transparent); }
+.ws-watch-bar .btn.primary {
+  border-color: var(--el-color-warning);
+  background: var(--el-color-warning);
+  color: var(--el-color-white);
+}
+.ws-watch-bar .btn.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--el-color-warning) 84%, var(--el-color-white));
+  color: var(--el-color-white);
+}
+
+/* ============================================================================
+   时间轴胶片台（第 1 套）
+   —— 结构：场记板式台头 + 贯穿的胶片带（带齿孔） + 深色舞台 + 底部演员轨。
+   与「剧场暗黑」定版是同一套主题变量口径，只换骨架：胶片带成为页面的第一视觉，
+   舞台吃满剩余高度，角色不再只藏在右栏，而是常驻舞台脚下的演员轨。
+   ============================================================================ */
+/* ---- 1. 台头：一块深色场记板，与胶片带连成一条 ---- */
+.ws-chat-head {
+  height: 50px;
+  background: color-mix(in srgb, var(--el-color-black) 90%, var(--el-bg-color));
+  border-bottom: 0;
+}
+.ws-chat-head::after { display: none; }
+.ws-chat-name { color: var(--el-color-white); }
+.ws-chat-time { color: color-mix(in srgb, var(--el-color-white) 62%, transparent); }
+.ws-chat-head :deep(.el-tag) {
+  background: color-mix(in srgb, var(--el-color-white) 10%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-white) 22%, transparent);
+  color: color-mix(in srgb, var(--el-color-white) 88%, transparent);
+}
+.ws-chat-weather {
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 16%, transparent);
+}
+.ws-auto {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--el-color-white) 22%, transparent);
+  color: color-mix(in srgb, var(--el-color-white) 78%, transparent);
+}
+.ws-auto:hover {
+  border-color: color-mix(in srgb, var(--el-color-warning) 60%, transparent);
+  color: var(--el-color-white);
+}
+.ws-auto.on {
+  background: color-mix(in srgb, var(--el-color-success) 20%, transparent);
+  border-color: var(--el-color-success);
+  color: color-mix(in srgb, var(--el-color-success) 42%, var(--el-color-white));
+}
+.ws-chat-set { color: color-mix(in srgb, var(--el-color-white) 70%, transparent); }
+.ws-chat-set:hover {
+  background: color-mix(in srgb, var(--el-color-white) 12%, transparent);
+  color: var(--el-color-white);
+}
+
+/* ---- 2. 胶片带：上下齿孔 + 一格一幕，当前幕是暖色放映头 ---- */
+.ws-reel {
+  position: relative;
+  gap: 12px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--el-color-black) 86%, var(--el-bg-color));
+  border-bottom: 1px solid color-mix(in srgb, var(--el-color-primary) 26%, transparent);
+}
+.ws-reel::before,
+.ws-reel::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 5px;
+  border-radius: 2px;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--el-color-white) 16%, transparent) 0 9px,
+    transparent 9px 19px
+  );
+}
+.ws-reel::before { top: 4px; }
+.ws-reel::after { bottom: 4px; }
+.ws-reel-track { gap: 7px; padding-bottom: 0; }
+.ws-frame {
+  width: 132px;
+  padding: 7px 9px;
+  border-radius: var(--el-radius-md, 8px);
+  background: color-mix(in srgb, var(--el-color-white) 6%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-white) 14%, transparent);
+}
+.ws-frame:hover {
+  border-color: color-mix(in srgb, var(--el-color-warning) 60%, transparent);
+  transform: translateY(-1px);
+}
+.ws-frame.active {
+  background: color-mix(in srgb, var(--el-color-warning) 20%, transparent);
+  border-color: var(--el-color-warning);
+  box-shadow:
+    0 0 0 1px var(--el-color-warning) inset,
+    0 4px 16px color-mix(in srgb, var(--el-color-warning) 22%, transparent);
+}
+.ws-frame-no { color: color-mix(in srgb, var(--el-color-white) 52%, transparent); }
+.ws-frame.active .ws-frame-no { color: var(--el-color-warning); }
+.ws-frame-name { color: var(--el-color-white); }
+.ws-frame-stage { color: color-mix(in srgb, var(--el-color-white) 62%, transparent); }
+.ws-frame-progress { color: color-mix(in srgb, var(--el-color-white) 46%, transparent); }
+.ws-frame-add {
+  color: color-mix(in srgb, var(--el-color-white) 60%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-white) 20%, transparent);
+}
+.ws-frame-add:hover { color: var(--el-color-warning); border-color: var(--el-color-warning); }
+.ws-reel-count { color: color-mix(in srgb, var(--el-color-white) 50%, transparent); }
+.ws-act-create {
+  color: color-mix(in srgb, var(--el-color-white) 66%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-white) 24%, transparent);
+}
+.ws-act-create:hover { color: var(--el-color-warning); border-color: var(--el-color-warning); }
+
+/* ---- 3. 底部演员轨：常驻，角色就在舞台脚下 ---- */
+.ws-input {
+  gap: 6px;
+  padding: 8px 16px 10px;
+  background: color-mix(in srgb, var(--el-color-black) 92%, var(--el-bg-color));
+  border-top: 1px solid color-mix(in srgb, var(--el-color-primary) 24%, transparent);
+}
+.ws-track {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ws-track::-webkit-scrollbar { height: 0; }
+.ws-track-k {
+  flex-shrink: 0;
+  margin-right: 2px;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: color-mix(in srgb, var(--el-color-white) 40%, transparent);
+}
+.ws-track-chip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 2px;
+  border: 1px solid color-mix(in srgb, var(--el-color-white) 14%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--el-color-white) 5%, transparent);
+  color: color-mix(in srgb, var(--el-color-white) 74%, transparent);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: border-color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-track-chip:hover {
+  border-color: var(--el-color-warning);
+  color: var(--el-color-white);
+}
+.ws-track-chip.on {
+  border-color: color-mix(in srgb, var(--el-color-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
+  color: var(--el-color-white);
+}
+.ws-track-chip.off { opacity: 0.45; }
+.ws-track-name {
+  max-width: 82px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ws-track-model {
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 9.5px;
+  line-height: 1.6;
+  background: color-mix(in srgb, var(--el-color-warning) 24%, transparent);
+  color: var(--el-color-warning);
+}
+.ws-track-empty { font-size: 11.5px; color: color-mix(in srgb, var(--el-color-white) 40%, transparent); }
+.ws-track-grow { flex: 1; min-width: 8px; }
+.ws-watch-bar { padding-top: 2px; border-top: 0; background: transparent; }
+/* 幕次视图不再需要这行说明：状态与操作都在台头，底部只留演员轨 */
+.ws-input.is-act .ws-watch-bar { display: none; }
+
+/* ============================================================================
+   布局腾挪（第 1 套续改）
+   1) 左右两栏可折叠，舞台边缘留展开把手；
+   2) 台头拆两层：世界信息在上，幕次状态/进度/切场/幕次操作在下，正文吃满高度；
+   3) 幕次视图舞台全出血，生图直接当背景；看剧本改为结构化弹框。
+   ============================================================================ */
+
+/* ---- 1. 左右折叠 ---- */
+.ws-list,
+.ws-side {
+  transition: width var(--el-transition-duration, 0.3s) ease;
+}
+.ws-list.collapsed,
+.ws-side.collapsed {
+  width: 0;
+  overflow: hidden;
+}
+.ws-list.collapsed { border-right-color: transparent; }
+.ws-side.collapsed { border-left-color: transparent; }
+/* 宽度收拢后内容立即隐藏，避免 0 宽度时文字挤出边框 */
+.ws-list.collapsed > *,
+.ws-side.collapsed > * {
+  opacity: 0;
+  pointer-events: none;
+}
+.ws-fold-btn {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--el-text-color-placeholder);
+  cursor: pointer;
+  transition: color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-fold-btn:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+.ws-fold-btn :deep(.el-icon) { font-size: 15px; }
+/* 右栏折叠按钮：四个页签等分后单独占一格，不与页签抢宽度 */
+.ws-side-tabs .ws-side-fold {
+  flex: 0 0 34px;
+  border-bottom: 0;
+  border-left: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-placeholder);
+}
+.ws-side-tabs .ws-side-fold:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+/* 舞台两侧的展开把手：竖条贴在边缘，不参与布局 */
+.ws-chat { position: relative; }
+.ws-edge {
+  position: absolute;
+  top: 50%;
+  z-index: 7;
+  width: 16px;
+  height: 62px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  border: 1px solid color-mix(in srgb, var(--el-color-white) 16%, transparent);
+  background: color-mix(in srgb, var(--el-color-black) 72%, transparent);
+  color: color-mix(in srgb, var(--el-color-white) 78%, transparent);
+  cursor: pointer;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease,
+    color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-edge-left { left: 0; border-left: 0; border-radius: 0 8px 8px 0; }
+.ws-edge-right { right: 0; border-right: 0; border-radius: 8px 0 0 8px; }
+.ws-edge:hover { background: var(--el-color-warning); color: var(--el-bg-color); }
+.ws-edge :deep(.el-icon) { font-size: 13px; }
+
+/* ---- 2. 台头两层：世界信息 + 幕次状态条 ---- */
+.ws-chat-head {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  height: auto;
+  padding: 0;
+}
+.ws-head-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  height: 50px;
+  padding: 0 12px 0 16px;
+}
+.ws-head-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 12px 7px 16px;
+  border-top: 1px solid color-mix(in srgb, var(--el-color-white) 9%, transparent);
+  background: color-mix(in srgb, var(--el-color-black) 84%, var(--el-bg-color));
+}
+.ws-head-status .ws-act-head-main {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  gap: 8px;
+}
+.ws-head-status .ws-act-head-title {
+  min-width: 0;
+  max-width: 34%;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-head-status .ws-tag {
+  flex: none;
+  background: color-mix(in srgb, var(--el-color-white) 12%, transparent);
+  color: color-mix(in srgb, var(--el-color-white) 88%, transparent);
+}
+.ws-status-meter {
+  flex: none;
+  width: 76px;
+  height: 4px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--el-color-white) 14%, transparent);
+  overflow: hidden;
+}
+.ws-status-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--el-color-warning);
+  transition: width var(--el-transition-duration, 0.3s) ease;
+}
+.ws-status-num {
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--el-color-white) 62%, transparent);
+}
+.ws-status-total {
+  flex: none;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--el-color-white) 42%, transparent);
+}
+.ws-status-busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  max-width: 220px;
+  font-size: 11.5px;
+  color: var(--el-color-warning);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ws-head-status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.ws-status-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.ws-status-pager .ws-cue-arrow {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--el-radius-sm, 6px);
+  border-color: color-mix(in srgb, var(--el-color-white) 18%, transparent);
+  color: color-mix(in srgb, var(--el-color-white) 72%, transparent);
+  font-size: 13px;
+}
+.ws-status-pager .ws-cue-arrow:hover:not(:disabled) {
+  color: var(--el-color-warning);
+  border-color: var(--el-color-warning);
+}
+.ws-status-pager .ws-cue-arrow:disabled { opacity: 0.3; }
+.ws-pager-n {
+  min-width: 34px;
+  text-align: center;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--el-color-white) 64%, transparent);
+}
+.ws-head-status .ws-act-head-ops { gap: 6px; flex-wrap: nowrap; }
+.ws-head-status .btn {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.ws-head-status .btn.ghost {
+  color: color-mix(in srgb, var(--el-color-white) 74%, transparent);
+  border-color: transparent;
+}
+.ws-head-status .btn.ghost:hover:not(:disabled) {
+  color: var(--el-color-white);
+  background: color-mix(in srgb, var(--el-color-white) 10%, transparent);
+}
+.ws-head-status .ws-act-stage-btn:not(.primary) {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--el-color-white) 20%, transparent);
+  color: color-mix(in srgb, var(--el-color-white) 84%, transparent);
+}
+.ws-head-status .ws-act-stage-btn:not(.primary):hover:not(:disabled) {
+  border-color: var(--el-color-warning);
+  color: var(--el-color-warning);
+}
+.ws-head-status .btn.primary {
+  background: var(--el-color-warning);
+  border-color: var(--el-color-warning);
+  color: var(--el-color-white);
+}
+.ws-head-status .btn.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--el-color-warning) 84%, var(--el-color-white));
+  color: var(--el-color-white);
+}
+/* 三栏都在时台头第二行很挤：先让次要数字退场，标题和操作始终看得见 */
+@media (max-width: 1400px) {
+  .ws-status-total { display: none; }
+}
+@media (max-width: 1280px) {
+  .ws-status-num { display: none; }
+  .ws-head-status .ws-act-head-title { max-width: 26%; }
+}
+
+/* ---- 3. 幕次舞台全出血：生图铺满整个内容区当背景 ---- */
+.ws-stage.is-act {
+  padding: 0;
+  gap: 0;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--el-color-black) 90%, var(--el-bg-color));
+}
+.ws-stage.is-act .ws-play { flex: 1; min-height: 0; gap: 0; }
+.ws-stage.is-act .ws-cue {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  /* 内容超出时从头顺排并滚动：配合上面 justify-content: flex-end 会把首行甩到卡片外，
+     末行（旁白）也会被压成半行 */
+  justify-content: flex-start;
+  overflow-y: auto;
+  border-radius: 0;
+  padding-bottom: 22px;
+  animation: none;
+}
+/* 台词与旁白按自然高度排版：宁可滚动，也不能让 flex 把旁白压扁截断 */
+.ws-stage.is-act .ws-cue-head,
+.ws-stage.is-act .ws-cue-cast,
+.ws-stage.is-act .ws-cue-narr {
+  flex-shrink: 0;
+}
+/* 大屏上台词不横跨整块屏：居中一栏，两侧留给画面 */
+.ws-stage.is-act .ws-cue-cast,
+.ws-stage.is-act .ws-cue-narr {
+  width: 100%;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* 不满一屏时仍贴底，保留原来的舞台字幕感 */
+.ws-stage.is-act .ws-cue-cast { margin-top: auto; }
+.ws-stage.is-act .ws-cue-head { padding: 14px 24px; }
+/* 视频与空态仍留边距：它们不是背景，贴边会顶到台头 */
+.ws-stage.is-act .ws-film {
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px 20px;
+}
+.ws-stage.is-act .ws-stage-empty { margin: auto; padding: 20px; }
+/* 有分镜视频时舞台恢复滚动：视频不是背景，别把正文挤成一条 */
+.ws-stage.is-act:has(.ws-film) {
+  padding: 16px 20px;
+}
+.ws-stage.is-act:has(.ws-film) .ws-play { flex: none; }
+.ws-stage.is-act:has(.ws-film) .ws-cue {
+  flex: none;
+  min-height: 400px;
+  border-radius: 14px;
+}
+
+/* ---- 4. 看剧本：结构化弹框 ---- */
+.ws-script-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.ws-script-ov {
+  border-left: 3px solid var(--el-color-warning);
+  padding-left: 10px;
+}
+.ws-script-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ws-script-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--el-text-color-regular);
+}
+.ws-script-meta { margin-top: 6px; font-size: 11.5px; color: var(--el-text-color-placeholder); }
+.ws-script-scene {
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-lighter, var(--el-fill-color-light));
+}
+.ws-script-scene-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ws-script-scene-no { flex: none; font-size: 11.5px; color: var(--el-color-primary); }
+.ws-script-scene-name {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.ws-script-where { font-size: 11.5px; color: var(--el-text-color-placeholder); }
+.ws-script-scene-desc {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--el-text-color-regular);
+}
+.ws-script-cast { margin-top: 6px; font-size: 11.5px; color: var(--el-text-color-secondary); }
+.ws-script-line {
+  display: flex;
+  gap: 8px;
+  margin-top: 7px;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+.ws-script-who { flex: none; min-width: 54px; font-weight: 600; color: var(--el-color-primary); }
+.ws-script-say { color: var(--el-text-color-primary); white-space: pre-wrap; }
+.ws-script-block { border-top: 1px dashed var(--el-border-color-lighter); padding-top: 10px; }
+.ws-script-block-title { margin: 0 0 6px; font-size: 12px; color: var(--el-text-color-secondary); }
+.ws-script-trans {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--el-text-color-regular);
+}
+.ws-script-props { display: flex; flex-wrap: wrap; gap: 6px; }
+.ws-script-prop {
+  padding: 1px 8px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color);
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+.ws-script-empty { padding: 24px 8px; text-align: center; color: var(--el-text-color-secondary); }
+.ws-script-empty p { margin: 0 0 6px; font-size: 13px; }
+.ws-script-empty .sub { margin-bottom: 12px; font-size: 12px; color: var(--el-text-color-placeholder); }
 </style>
