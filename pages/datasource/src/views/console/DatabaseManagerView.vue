@@ -4170,13 +4170,12 @@ const tableColumns = computed<Column[]>(() => {
       // 表头补充行（注释 / 类型）参与「自适应列宽」测宽：只量字段名的话，
       // 双击拖拽手柄后补充行仍会被省略号截断，看着像没生效。
       headerFitLines: () => headerFitLinesFor(col),
-      // 默认宽度 130：与改动前完全一致（以前只写 minWidth: 130，vxe 在没有显式宽度时
-      // 正是按 minWidth 排版，所以观感不变）。
-      // 但下限必须放到 60，否则「调整列宽以适应内容」永远只能缩到 130 ——
-      // 一个只存 1 的 id 列也占 130，那条菜单项等于摆设。
-      // 现在：默认还是 130，用户主动适应内容才允许更窄。
-      width: 130,
-      minWidth: 60,
+      // 列宽只给下限、不写死 width：无显式宽度时 vxe 按 minWidth 排版（130 = 历史默认观感），
+      // 横向余量由这些未定宽列吸收，视口变宽时跟着长；写死 width 的列不参与这一步。
+      // 代价是「适应内容」只能在 minWidth 之上收窄（60 的下限会让默认排版也变成 60，
+      // 两者只能取一个，这里取与全库一致的写法）。
+      // 本页其余列定义（索引 / 外键面板、查询结果列）也都是只写 minWidth 的口径。
+      minWidth: 130,
       showOverflowTooltip: true,
       sortable: "custom" as const,
       ...(fixedCols.has(col) ? { fixed: "left" as const } : {}),
@@ -9551,7 +9550,8 @@ function openColWidthDialog(): void {
     .map(col => ({
       prop: col,
       label: headerLabel(col),
-      width: current[col] ?? tableColumns.value.find(c => c.prop === col)?.width ?? COL_WIDTH_MIN,
+      // 列定义不再写死 width，回填时按 minWidth（vxe 无显式宽度时正是按它排版）
+      width: current[col] ?? tableColumns.value.find(c => c.prop === col)?.minWidth ?? COL_WIDTH_MIN,
     }));
   colWidthDialogVisible.value = true;
 }
