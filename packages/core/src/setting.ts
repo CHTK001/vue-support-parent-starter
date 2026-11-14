@@ -13,7 +13,7 @@
  * http 响应头 x-response-version 触发），版本变化后重新拉取设置，
  * 并执行已注册的 onConfigHotReload 回调。
  */
-import { getConfig, applyConfig, CONFIG_VERSION_CHANGE_EVENT, getRemoteSettingList, hasRemoteSettingFetched, normalizeTopKey, REMOTE_INJECTABLE_TOP_KEYS, REMOTE_INJECTABLE_PATH_PREFIXES, safeSetDotted } from "@repo/config";
+import { getConfig, applyConfig, CONFIG_VERSION_CHANGE_EVENT, getRemoteSettingList, hasRemoteSettingFetched, normalizeTopKey, REMOTE_INJECTABLE_TOP_KEYS, REMOTE_INJECTABLE_PATH_PREFIXES, safeSetDotted, isDeploymentCapabilityOff } from "@repo/config";
 import { getApiHttp, getDefaultSetting, type SettingItem } from "./api";
 import { applyHttpCodecSettings } from "./httpCodecRuntime";
 import { log, getAccessToken } from "@repo/utils";
@@ -88,6 +88,8 @@ export function mergeDefaultSetting(items: SettingItem[]): void {
     // ① sysSettingCode 即点号配置路径（如 other.avatarFrame.enable），前端零改动即可接入新开关
     const code = String((item as Record<string, unknown>).sysSettingCode ?? "");
     if (code.includes(".")) {
+      // 部署侧显式 false 的能力位：远程设置不得再打开（与 loader 的硬关闭同一份名单）
+      if (isDeploymentCapabilityOff(code)) return;
       // <b>修复原型链污染</b>：原实现按点号逐层下钻，下钻读的是继承链属性，
       // 于是 sysSettingCode="__proto__.isAdmin" 会把游标指向 Object.prototype，
       // 最后一行直接写到<b>全局原型</b>上 —— 之后所有对象都凭空多出 isAdmin，

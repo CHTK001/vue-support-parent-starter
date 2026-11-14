@@ -104,7 +104,14 @@ function normalize(list: Announcement[] | null | undefined): Announcement[] {
 
 // 显隐开关（app.yaml other.toolbar.announcement，缺省显示）。
 // 后端未实现平台公告接口的独立应用关掉它，可避免 403 被 http 拦截器判为会话失效。
-const enabled = computed(() => getConfig().other?.toolbar?.announcement !== false);
+// 兼容两种写法：`announcement: false` 与 `announcement: { enable: false }`
+// （后者与其它能力开关一致，历史 yaml 里两种都出现过）。
+const enabled = computed(() => {
+  const raw = getConfig().other?.toolbar?.announcement as unknown;
+  if (raw === false) return false;
+  if (raw && typeof raw === "object" && (raw as { enable?: unknown }).enable === false) return false;
+  return true;
+});
 
 /** 当前 position 下去重后的公告 */
 const filtered = computed(() => {

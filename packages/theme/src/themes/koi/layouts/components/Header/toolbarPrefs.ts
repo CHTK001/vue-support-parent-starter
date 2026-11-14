@@ -54,7 +54,13 @@ function persist(): void {
  */
 export function isToolbarDeployed(key: string): boolean {
   const toolbar = getConfig()?.other?.toolbar as unknown as Record<string, unknown> | undefined;
-  return toolbar?.[key] !== false;
+  const value = toolbar?.[key];
+  if (value === false) return false;
+  // 兼容能力开关写法 `{ enable: false }`（如 announcement）
+  if (value && typeof value === "object" && (value as { enable?: unknown }).enable === false) {
+    return false;
+  }
+  return true;
 }
 
 /**

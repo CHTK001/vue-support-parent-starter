@@ -581,6 +581,36 @@ export function deepMerge<T extends Record<string, unknown>>(
   return result as T;
 }
 
+/**
+ * 部署侧能力位注册表
+ *
+ * <p>记录「应用自己的 app.yaml 显式写 false 的能力路径」。远程配置合并优先级
+ * 最高，但这类能力位只有部署侧知道本应用后端是否实现，因此远程设置不得再打开。
+ * 由 {@code loadConfig} 在合并后写入，供 {@code core/setting.ts} 的远程设置刷新
+ * 再次应用时跳过同一批路径。</p>
+ */
+const deploymentCapabilityOff = new Set<string>();
+
+/**
+ * 重写「被部署侧否决」的能力路径集合
+ *
+ * @param paths 应用 yaml 显式写 false 的能力路径
+ */
+export function setDeploymentCapabilityOff(paths: Iterable<string>): void {
+  deploymentCapabilityOff.clear();
+  for (const path of paths) deploymentCapabilityOff.add(path);
+}
+
+/**
+ * 某个能力路径是否被部署侧显式关闭
+ *
+ * @param path 点号路径（如 other.avatarFrame.enable）
+ * @returns 部署侧写死 false 时为 true
+ */
+export function isDeploymentCapabilityOff(path: string): boolean {
+  return deploymentCapabilityOff.has(path);
+}
+
 /** 从默认值 + yaml 解析结果得到最终配置（纯函数，不依赖任何响应式状态） */
 export function mergeAppConfig(
   defaults: AppConfig,

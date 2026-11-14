@@ -84,8 +84,7 @@ otherConfig:
     enable: false
   toolbar:
     # 平台公告接口属 system 服务，监控后端未实现（同 collect 应用）
-    announcement:
-      enable: false
+    announcement: false
   # 文件资产（pages/filesystem / FileStorageManage）指向的文件服务器。
   #
   # 它是**后端进程内的一个 HTTP 服务**（FileStorageServerFilter），监听在后端所在机器。

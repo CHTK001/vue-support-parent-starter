@@ -26,7 +26,7 @@ import {
   type AppConfig,
   type DeepPartial,
 } from "./config";
-import { deepMerge } from "./shared";
+import { deepMerge, setDeploymentCapabilityOff } from "./shared";
 import {
   REMOTE_INJECTABLE_PATH_PREFIXES,
   REMOTE_INJECTABLE_TOP_KEYS,
@@ -46,6 +46,73 @@ import {
  */
 function warnRejectedRemoteKey(path: string, reason: string): void {
   console.warn(`[config] 已拒绝远程配置项 "${path}"：${reason}`);
+}
+
+/**
+ * 部署侧能力开关：应用自己的 app.yaml / env yaml 有能力最终否决远程设置。
+ *
+ * <p>这些键回答的是「<b>本应用</b>的后端 / 三方到底提不提供这个能力」，
+ * 只有部署侧知道答案：写 {@code false} 等于声明「本应用没有这个能力」，
+ * 此时 {@code /v2/setting/default} 里的同名开关键（如 {@code AvatarFrameOpen}）
+ * 不得把它重新打开，否则前端会去请求本应用后端根本没实现的接口（404），
+ * 与「开关没开时一个请求都不发」的口径相悖。</p>
+ *
+ * <p>只保护这一小组能力位，不改动通用优先级（远程仍可调品牌、登录、菜单等）；
+ * 应用不写 {@code false} 时完全保持原行为（远程为主）。</p>
+ */
+const DEPLOYMENT_CAPABILITY_PATHS = [
+  "other.avatarFrame.enable",
+  "other.wallpaper.enable",
+  "other.ornament.enable",
+  "other.weather.enable",
+  "other.timer.enable",
+  "other.bigscreen.enable",
+] as const;
+
+/**
+ * 按点号路径读值（只认自有属性，不进入原型链）
+ *
+ * @param root 根对象
+ * @param dottedPath 点号路径
+ * @returns 值；路径不存在时为 undefined
+ */
+function readDotted(root: unknown, dottedPath: string): unknown {
+  let cur: unknown = root;
+  for (const seg of dottedPath.split(".")) {
+    if (!cur || typeof cur !== "object") return undefined;
+    if (!Object.prototype.hasOwnProperty.call(cur, seg)) return undefined;
+    cur = (cur as Record<string, unknown>)[seg];
+  }
+  return cur;
+}
+
+/**
+ * 把「应用 yaml 显式写 false」的能力位重新压回 false。
+ *
+ * <p>远程配置合并优先级最高，但上面这组能力位由部署侧定调：只要应用自己的
+ * {@code app.yaml} / {@code app.{env}.yaml} 显式写了 {@code false}，就以 false 为准。
+ * 共享的 {@code app.example.yaml} 不算部署决定，不纳入判断。</p>
+ *
+ * @param target 合并后的配置（原地修改）
+ * @param sources 应用级配置来源（app / env）
+ */
+function applyDeploymentCapabilityOff(
+  target: Record<string, unknown>,
+  sources: Array<Partial<AppConfig> | undefined>,
+): void {
+  const offPaths: string[] = [];
+  for (const path of DEPLOYMENT_CAPABILITY_PATHS) {
+    const explicitlyOff = sources.some((src) => readDotted(src, path) === false);
+    if (!explicitlyOff) continue;
+    offPaths.push(path);
+    safeSetDotted(target, path, false, {
+      topKeyAllowlist: REMOTE_INJECTABLE_TOP_KEYS,
+      pathPrefixAllowlist: REMOTE_INJECTABLE_PATH_PREFIXES,
+      normalizeTopKey,
+    });
+  }
+  // 登录后 core 会再次合并 /v2/setting/default，需要同一份名单把远程值挡回去
+  setDeploymentCapabilityOff(offPaths);
 }
 
 /** 环境变量（默认取 import.meta.env，便于测试注入） */
@@ -232,6 +299,8 @@ export async function loadConfig(
       (acc, partial) => deepMerge(acc, partial as unknown as Record<string, unknown>),
       defaultAppConfig as unknown as Record<string, unknown>,
     );
+    // ⑤.1 部署侧能力位：应用自己的 yaml 显式写 false 时，远程不得再打开
+    applyDeploymentCapabilityOff(merged as Record<string, unknown>, [appPartial, envPartial]);
     applyConfig(merged as unknown as Partial<AppConfig>);
 
     return getConfig();

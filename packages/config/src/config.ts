@@ -25,7 +25,7 @@ import {
 import { DEFAULT_MENU_ICON } from "./constants";
 
 // 重新导出框架无关的纯函数 / 纯数据，保持对外导出不变（向后兼容所有 vue apps）
-export { parseAppYaml, normalizeTopKey, getDefaultConfig } from "./shared";
+export { parseAppYaml, normalizeTopKey, getDefaultConfig, setDeploymentCapabilityOff, isDeploymentCapabilityOff } from "./shared";
 export { defaultAppConfig } from "./shared";
 import type {
   AppConfig,
