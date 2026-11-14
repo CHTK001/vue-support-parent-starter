@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   // Phase 5 subagent will populate this file (session/search/group related)
 
   // ── bot store ──

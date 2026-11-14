@@ -1,4 +1,4 @@
-﻿import { defineConfig } from "vite";
+import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { fileViewerRenderers } from "@file-viewer/vite-plugin";
 import UnoCSS from "unocss/vite";

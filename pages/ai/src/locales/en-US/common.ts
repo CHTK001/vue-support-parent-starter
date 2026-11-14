@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   // ── Operation Results ──
   saveSuccess: 'Saved successfully',
   saveFailed: 'Save failed',

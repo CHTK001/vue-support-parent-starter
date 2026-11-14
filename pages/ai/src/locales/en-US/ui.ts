@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   // ── 登录页 ──
   login: {
     welcome: 'Welcome back, please log in to your account',

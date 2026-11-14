@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <!-- 最小化悬浮窗（右下角） -->
   <div
     v-if="minimized"

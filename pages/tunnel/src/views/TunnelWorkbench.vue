@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 /**
  * 内网穿透隧道工作台（@pages/tunnel）
  *

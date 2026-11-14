@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   status: {
     stopped: 'Stopped',
     error: 'Error',

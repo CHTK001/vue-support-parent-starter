@@ -1,4 +1,4 @@
-﻿<template>
+<template>
 
   <!-- 输入区域。
        满屏时输入块贴底（justify-end，底部留 pb-6 呼吸感），上方标题/打字机自然顶上去；
