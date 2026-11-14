@@ -11,6 +11,16 @@ import { http, unwrapResult } from "@repo/utils";
 
 const BASE = "/ms/server/release";
 
+/**
+ * Actuator 读取的超时（ms）。
+ *
+ * <p>全局默认 10s 是给普通接口的。这里读的是目标主机上那个 JVM 的运行时数据：
+ * 后端要向主机进程发一次命令再把结果带回来，health 就要 5~9s，threaddump /
+ * startup / conditions 更高。用默认 10s 会超时落到兜底值（status=0），
+ * 前端只能显示「不可达」，把一条慢接口误报成故障。</p>
+ */
+const ACTUATOR_TIMEOUT_MS = 40000;
+
 /** 一条日志级别记录（后端已把 loggers 原始 JSON 压成这个结构） */
 export interface ActuatorLoggerRow {
   name: string;
@@ -69,7 +79,10 @@ export interface ActuatorLogLevelResult {
  * @returns 读取结果
  */
 export const fetchActuator = async (projectId: number, path: string): Promise<ActuatorPayload> => {
-  const res = await http().get(`${BASE}/project/${projectId}/actuator`).query({ path });
+  const res = await http()
+    .get(`${BASE}/project/${projectId}/actuator`)
+    .query({ path })
+    .timeout(ACTUATOR_TIMEOUT_MS);
   return (unwrapResult<ActuatorPayload>(res) || {
     endpoint: path,
     url: "",
@@ -94,7 +107,8 @@ export const setActuatorLogLevel = async (
 ): Promise<ActuatorLogLevelResult> => {
   const res = await http()
     .post(`${BASE}/project/${projectId}/actuator/log-level`)
-    .data({ name, level });
+    .data({ name, level })
+    .timeout(ACTUATOR_TIMEOUT_MS);
   return (unwrapResult<ActuatorLogLevelResult>(res) || {
     logger: name,
     level,

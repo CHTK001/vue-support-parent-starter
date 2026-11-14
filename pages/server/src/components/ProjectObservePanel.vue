@@ -260,10 +260,15 @@
           <div class="obs-other-head">
             <span class="mono">/actuator/{{ otherEndpoint }}</span>
             <span class="obs-grow"></span>
-            <span class="obs-count">HTTP {{ otherStatus }} · {{ otherElapsed }}ms</span>
+            <span v-if="loading" class="obs-count">读取中…</span>
+            <span v-else class="obs-count">HTTP {{ otherStatus }} · {{ otherElapsed }}ms</span>
           </div>
           <div v-if="otherMessage" class="obs-warn">{{ otherMessage }}</div>
-          <pre class="obs-json">{{ otherBody || '（空返回）' }}</pre>
+          <!-- 这些端点是「向目标主机的进程要数据」，绝非毫秒级：health 就要几秒，
+               threaddump/startup 更高。没有读取中状态时，用户看到的是上一轮残留的
+               HTTP 200 和「（空返回）」，会误判成端点坏了。 -->
+          <div v-if="loading" class="obs-empty">读取中…（数据取自目标主机进程，通常 5–20 秒）</div>
+          <pre v-else class="obs-json">{{ otherBody || '（空返回）' }}</pre>
         </template>
       </section>
     </div>
@@ -905,6 +910,11 @@ const otherMessage = ref('');
 async function openOther(endpoint: string) {
   otherEndpoint.value = endpoint;
   loading.value = true;
+  // 换端点先清掉上一个端点的状态，避免读取期间把旧状态当成新结果
+  otherStatus.value = 0;
+  otherElapsed.value = 0;
+  otherMessage.value = '';
+  otherBody.value = '';
   try {
     const payload = await fetchActuator(props.projectId, endpoint);
     currentUrl.value = payload.url || '';
