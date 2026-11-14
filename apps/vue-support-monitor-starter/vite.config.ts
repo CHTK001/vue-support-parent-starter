@@ -272,8 +272,8 @@ const apmTarget = process.env.APM_TARGET ?? apiTarget;
 //   显式覆盖：FS_API_TARGET=http://<host>:<port> pnpm dev
 //
 // 默认跟着 API 走同一套后端（本机 8082）。该后端内嵌 FileStorageServerFilter，
-// 存储 Bean 名 = localFileStorage，与 app.yaml 的 otherConfig.filestorage.bucket 一致，
-// 所以两者必须指向同一套服务，否则 /localFileStorage 探测直接 502。
+// 存储 Bean 名 = default，与 app.yaml 的 otherConfig.filestorage.bucket 一致，
+// 所以两者必须指向同一套服务，否则 /default 探测直接 502。
 // 要用独立文件服务器（例如 198:18080 的 system-api，Bean 名 = local）时，
 // 显式给 FS_API_TARGET 并把 bucket 一起改。
 const fileStorageTarget = process.env.FS_API_TARGET ?? apiTarget;
@@ -388,7 +388,7 @@ function dropProxyOrigin(): PluginOption {
           // 于是 403 Invalid CORS request —— 表现为「下拉选了新级别但什么都没发生」。
           url.startsWith("/actuator") ||
           isFirstPartyApi(url) ||
-          /^\/(fs|localFileStorage|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
+          /^\/(fs|default|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
         ) {
           delete req.headers.origin;
         }
@@ -835,6 +835,14 @@ export default createVite({
         target: apiTarget,
         changeOrigin: true,
       },
+      // 供应商管理（/api/providers，spring-support-ai-starter）同样在 monitor 后端自身。
+      // **必须显式声明**：下面 /api 的缺省目标是 127.0.0.1:8080（本机没有进程），
+      // 漏了这条时 AI 控制台的供应商列表与「余额 / 用量」端点
+      // （/api/providers/{id}/credit）一律 502，余额面板永远读不到数 —— 与 /api/channels 同一个坑。
+      "/api/providers": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
       "/api/account": {
         target: "http://124.221.230.112:8080",
         changeOrigin: true,
@@ -846,11 +854,11 @@ export default createVite({
       },
       // 文件存储服务器（FileStorageServerFilter，随监控后端同进程启动）。
       // 后端在 198，本机没有这个进程，所以必须走代理；请求前缀是桶名
-      // （localFileStorage / local / ot / config 等），逐个列前缀最稳妥
+      // （default / local / ot / config 等），逐个列前缀最稳妥
       // （Vite proxy 的 key 用字符串前缀匹配最可靠，RegExp 形式在 v8 下有兼容坑）。
       // 嵌入式形态挂载在应用端口 + path-prefix（默认 /fs），因此 /fs 同源代理到 API。
       "/fs": { target: apiTarget, changeOrigin: true },
-      "/localFileStorage": { target: fileStorageTarget, changeOrigin: true },
+      "/default": { target: fileStorageTarget, changeOrigin: true },
       "/local": { target: fileStorageTarget, changeOrigin: true },
       "/ot": { target: fileStorageTarget, changeOrigin: true },
       "/config": { target: fileStorageTarget, changeOrigin: true },

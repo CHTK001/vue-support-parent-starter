@@ -75,7 +75,8 @@ export const DEFAULT_SERVER = "http://127.0.0.1:18082";
  * 默认存储桶名称（app.yaml otherConfig.filestorage.bucket 未配置时兜底）
  *
  * <p>取后端 {@code FileStorage} 的默认实现名 {@code default}：当桶名不可解析时
- * 后端会回落到默认 provider（monitor 部署里是 {@code localFileStorage}）。
+ * 后端会回落到默认 provider（monitor 部署里也是 {@code default}，见
+ * MonitorFileStorageGatewayConfig#BUCKET 与 application.yml 的 default-provider）。
  * 注意 <b>app.yaml 的 bucket 优先级更高</b>，本常量只在两者都没配置时生效。</p>
  */
 export const DEFAULT_BUCKET = "default";

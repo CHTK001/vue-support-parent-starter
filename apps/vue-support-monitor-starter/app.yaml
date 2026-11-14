@@ -90,18 +90,18 @@ otherConfig:
   # 它是**后端进程内的一个 HTTP 服务**（FileStorageServerFilter），监听在后端所在机器。
   # 前端本地跑时本机没有这个进程，所以**不在这里写死远端地址**：留空让页面回退到
   # window.location.origin（本机 8848），由 vite.config.ts 的 fileStorageTarget 代理
-  # 把 /local / /localFileStorage 等前缀转发到远端文件服务器（默认 198:18080）。
+  # 把 /local / /default 等前缀转发到远端文件服务器（默认 198:18080）。
   # 这样全程同源，不依赖后端 CORS 白名单，也不受本机无进程影响。
   #   需要直连别的文件服务器时：页面「服务器设置」写入 localStorage.filestorage.server，
   #   或部署侧（198 自带的 app.yaml）再显式填远端地址。
   # 桶名 = 目标文件服务的 FileStorage Bean 名，必须与 FS_API_TARGET 指向的服务一致：
-  #   18080（system-api）→ local ；18082（监控内嵌）→ localFileStorage
+  #   18080（system-api）→ local ；18082（监控内嵌）→ default
   # 本应用（monitor）的「打开文件管理器」深度入口直开的是**监控内嵌**文件服务
-  # （FileStorageServerFilter，Bean 名 localFileStorage，随节点监听在 28080 等端口），
-  # 故主桶名必须是 localFileStorage。此前写死 local，点开即落到不存在的桶（实测 404），
-  # service-types-live F1 用例据此断言深度入口 pathname 必须为 /localFileStorage。
+  # （FileStorageServerFilter，Bean 名 default，随节点监听在 28080 等端口），
+  # 故主桶名必须是 default。此前写死 local，点开即落到不存在的桶（实测 404），
+  # service-types-live F1 用例据此断言深度入口 pathname 必须为 /default。
   filestorage:
-    bucket: localFileStorage
+    bucket: default
     quotaGb: 5
 
 # 站内消息（顶栏铃铛）

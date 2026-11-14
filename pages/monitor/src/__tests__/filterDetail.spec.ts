@@ -11,7 +11,7 @@
  *      **可区分的** 两种提示，而不是笼统一句「打不开」。
  *   3. bucket 缺省随部署配置（otherConfig.filestorage.bucket），未配置时兜底 local——
  *      与 pages/filesystem 的 resolveBucket 口径一致。写死 local 会让 monitor 部署
- *      （桶名 localFileStorage）打开到不存在的桶，页面表现为 404。
+ *      （桶名 default）打开到不存在的桶，页面表现为 404。
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { setConfig } from "@repo/core";
@@ -174,12 +174,12 @@ describe("node 型入口的默认桶名随部署配置（otherConfig.filestorage
     setConfig({ other: { filestorage: { bucket: "" } } } as never);
   });
 
-  it("配置了 localFileStorage 时深度入口 URL 用该桶（monitor 部署的真实形态）", () => {
-    setConfig({ other: { filestorage: { bucket: "localFileStorage" } } } as never);
+  it("配置了 default 时深度入口 URL 用该桶（monitor 部署的真实形态）", () => {
+    setConfig({ other: { filestorage: { bucket: "default" } } } as never);
     const t = resolveFilterDetail(nodeMeta, { params: {} }, {
       serverUrl: "http://127.0.0.1:19080",
     });
-    expect(t?.kind === "node" && t.url).toBe("http://127.0.0.1:19080/localFileStorage");
+    expect(t?.kind === "node" && t.url).toBe("http://127.0.0.1:19080/default");
   });
 
   it("未配置时兜底 local（与 pages/filesystem 的 DEFAULT_BUCKET 对齐）", () => {
@@ -190,7 +190,7 @@ describe("node 型入口的默认桶名随部署配置（otherConfig.filestorage
   });
 
   it("实例参数显式 bucket 仍最高优先（盖过部署配置）", () => {
-    setConfig({ other: { filestorage: { bucket: "localFileStorage" } } } as never);
+    setConfig({ other: { filestorage: { bucket: "default" } } } as never);
     const t = resolveFilterDetail(nodeMeta, { params: { bucket: "media" } }, {
       serverUrl: "http://127.0.0.1:19080",
     });

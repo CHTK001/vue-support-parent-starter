@@ -210,7 +210,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 与「主机管理」平级的独立分组：文件服务器(FileStorageServerFilter)可由
   // monitor 的 MonitorFileStorageGatewayConfig 随应用启动，也是本机验收场景
   // （FS_API_TARGET=http://127.0.0.1:8082 指向同进程 8082）。
-  // 开发环境（pnpm dev）通过 Vite 的 /fs、/localFileStorage、/local、/ot、
+  // 开发环境（pnpm dev）通过 Vite 的 /fs、/default、/local、/ot、
   // /config、/recycle 前缀代理转发，目标由 FS_API_TARGET 决定（见 vite.config.ts）。
   {
     path: "/grp-file",

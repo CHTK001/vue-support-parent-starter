@@ -22,7 +22,7 @@ const DEFAULT_BUCKET = 'local';
  * 解析当前部署的主存储桶名。
  *
  * <p>桶名 = 容器中 FileStorage Bean 名，随部署而变（monitor 后端的本地桶叫
- * {@code localFileStorage}，而模板默认是 {@code local}）。此前写死 {@code local}，
+ * {@code default}，而模板默认是 {@code local}）。此前写死 {@code local}，
  * 在 monitor 部署下「打开文件管理器」会落到一个不存在的桶（实测 404）。
  * 取值口径与 pages/filesystem 的 {@code resolveBucket} 一致：部署配置
  * {@code otherConfig.filestorage.bucket} 优先，{@link #DEFAULT_BUCKET} 只做兜底。</p>
