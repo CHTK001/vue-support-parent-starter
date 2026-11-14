@@ -11,10 +11,6 @@
     "./*.ts": "./src/*.ts",
     "./api/*": "./src/api/*.ts"
   },
-  "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
   "dependencies": {
     "vue": "catalog:",
     "element-plus": "catalog:",
@@ -33,9 +29,6 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "catalog:",
-    "@vue/test-utils": "^2.4.0",
-    "jsdom": "^24.0.0",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

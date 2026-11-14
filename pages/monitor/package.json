@@ -33,12 +33,10 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "catalog:",
-    "@vue/test-utils": "^2.4.0",
     "esbuild": "^0.28.1",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:",
     "vue-tsc": "catalog:"
   }
 }

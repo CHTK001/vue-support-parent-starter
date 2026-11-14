@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit",
     "preview": "vite preview",
-    "test": "vitest run",
     "clean": "rimraf dist"
   },
   "main": "./src/index.ts",
@@ -32,7 +31,6 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:",
     "vue-tsc": "catalog:"
   }
 }

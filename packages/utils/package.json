@@ -60,7 +60,6 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint src --ext .ts,.tsx",
-    "test": "vitest run",
     "clean": "rimraf dist"
   },
   "dependencies": {
@@ -78,7 +77,6 @@
     "@types/crypto-js": "^4.2.2",
     "fake-indexeddb": "^6.2.5",
     "rimraf": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

@@ -7,8 +7,6 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest",
     "clean": "rimraf dist"
   },
   "main": "./src/index.ts",
@@ -33,13 +31,10 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "catalog:",
-    "@vue/test-utils": "^2.4.0",
     "esbuild": "^0.28.1",
-    "jsdom": "^24.0.0",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:",
     "vue-tsc": "catalog:"
   }
 }

@@ -8,8 +8,6 @@
     "build": "vue-tsc --noEmit",
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.vue",
-    "test": "vitest run",
-    "test:watch": "vitest",
     "clean": "rimraf dist"
   },
   "main": "src/index.ts",
@@ -91,7 +89,6 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:",
     "vue-tsc": "catalog:"
   }
 }

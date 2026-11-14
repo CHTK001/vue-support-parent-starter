@@ -65,7 +65,6 @@
     "sass": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:",
     "vue-tsc": "catalog:"
   }
 }

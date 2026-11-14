@@ -68,7 +68,6 @@ catalog:
   vite: ^8.2.0
   "@vitejs/plugin-vue": ^6.0.10
   vue-tsc: ^2.2.0
-  vitest: ^3.0.0
   js-cookie: ^3.0.5
   leaflet: ^1.9.4
   leaflet-ant-path: ^1.3.0
@@ -115,7 +114,6 @@ catalog:
   axios: ^1.7.9
   hls.js: ^1.7.4
   flv.js: ^1.6.2
-  "@playwright/test": ^1.64.1
   "@types/node": ^22.10.0
   cross-env: ^7.0.3
   "@pureadmin/utils": ^3.0.0
@@ -123,7 +121,6 @@ catalog:
   # 任何版本。当前最新稳定版是 0.1.6-alpha.1（@latest），alpha 阶段不写 ^ 范围。
   "@techui/scifi": 0.1.6-alpha.1
   lodash-es: ^4.17.21
-  playwright: ^1.64.1
   sass: ^1.80.0
   "@iconify/json": ^2.2.271
   "@iconify-icons/ri": ^1.2.10
