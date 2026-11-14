@@ -573,6 +573,50 @@ html.dark .svc {
   overflow-x: auto;               /* 列被挤时横向滚，不压缩列宽 */
 }
 .svc-tablewrap.is-busy { opacity: 0.55; pointer-events: none; }
+
+/* 横向滚动条：自己画。
+   中栏 414–686px 装 746px 的 7 列，必然溢出；vxe 把 body 内层的原生滚动条关了，
+   留给用户的 .vxe-table--scroll-x-handle 在 Windows Fluent 滚动条下「不滚不显形」，
+   于是「耗时」被裁掉却没有任何「还能往右」的线索。
+   这里在 handle 这条 18px 横条上画一条常驻的轨道 + 滑块：
+   位置/宽度由页面按 scrollLeft 算好，写成 --svc-xbar-left / --svc-xbar-w
+   （见 ServiceManagementPage.vue 的 paintLogScrollbar）。 */
+.svc-table .vxe-table--scroll-x-handle {
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--svc-ink-3) 72%, transparent),
+      color-mix(in srgb, var(--svc-ink-3) 72%, transparent)
+    ),
+    linear-gradient(
+      color-mix(in srgb, var(--svc-rule-strong) 90%, transparent),
+      color-mix(in srgb, var(--svc-rule-strong) 90%, transparent)
+    );
+  background-repeat: no-repeat, no-repeat;
+  background-size: var(--svc-xbar-w, 0px) 6px, 100% 4px;
+  background-position: var(--svc-xbar-left, 0px) center, 0 center;
+  border-radius: 3px;
+}
+
+/* 鼠标悬停时滑块加深一档，提示这里可以点/拖 */
+.svc-table .vxe-table--scroll-x-handle:hover {
+  background-image:
+    linear-gradient(var(--svc-ink-3), var(--svc-ink-3)),
+    linear-gradient(var(--svc-rule-strong), var(--svc-rule-strong));
+}
+/* 固定列与滚动区之间留一道分隔，免得中间列滚到边缘时和状态列糊在一起 */
+.svc-table .vxe-table--fixed-right-wrapper { box-shadow: -6px 0 8px -6px color-mix(in srgb, var(--svc-ink-3) 45%, transparent); }
+
+/* 时间列：上下两行各占一行。
+   这两行此前没有任何样式（b / i 是行内元素，中文可在任意字符间断行）：
+   132px 列宽下 "11-14 19:01:11" 之后正好还能塞进副行日期的第一个字，
+   于是行尾多出一枚孤零零的斜体「1」，日期才折到第二行 —— 看起来像时间被裁了一截。
+   这里固定成列向 flex，副行去斜体、降一档字号。 */
+.svc-time {
+  display: flex; flex-direction: column; gap: 1px;
+  line-height: 1.3; min-width: 0;
+}
+.svc-time__main { font-weight: 700; font-variant-numeric: tabular-nums; }
+.svc-time__sub { font-style: normal; font-size: 11.5px; color: var(--svc-ink-3); }
 /* 顶部 2px 扫描条：替代 v-loading 遮罩，旧数据保持可读 */
 .svc-scanline {
   position: absolute; top: 0; left: 0; right: 0; height: 2px; z-index: 3;

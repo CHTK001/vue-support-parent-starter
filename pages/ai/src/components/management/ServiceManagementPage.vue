@@ -301,7 +301,9 @@
                 <button class="svc-alert__act" @click="loadLogs">重试</button>
               </div>
 
-              <div class="svc-tablewrap" :class="{ 'is-busy': logsLoading }">
+              <div ref="logTableEl" class="svc-tablewrap" :class="{ 'is-busy': logsLoading }"
+                   :style="{ '--svc-xbar-left': xbarLeft + 'px', '--svc-xbar-w': xbarWidth + 'px' }"
+                   @pointerdown="onXbarPointerDown">
                 <!-- 顶部 2px 扫描条替代 v-loading 遮罩：旧数据保持可读 -->
                 <span class="svc-scanline" v-if="logsLoading" aria-hidden="true"></span>
 
@@ -745,16 +747,23 @@ function mapLog(r: any) {
 }
 
 // ============================================================================
-// §4.1 访问日志列：9 列 → 6 列常驻，来源IP/方法/userId/logId 下沉到行悬浮详情
+// §4.1 访问日志列：9 列 → 7 列常驻，来源IP/方法/userId/logId 下沉到行悬浮详情
+//
+// 中栏在三栏布局里只有 400–530px（1280/1440 视口），7 列最小宽合计仍会超出，
+// 所以两侧各钉一列：
+//   · 时间  fixed:'left'  —— 看日志先看时间
+//   · 状态  fixed:'right' —— 502 判断链路通不通，绝不能被横向滚动推到看不见
+// 中间 5 列在剩下的宽度里横向滚动。列宽按「够放内容的最小值」压过一轮，
+// 把需要滚动的距离从 808→746 收窄，窄屏下不至于一滚就丢掉端点。
 // ============================================================================
 const logColumns: ReTableColumn[] = [
   { prop: 'callTime', label: '时间', minWidth: 132, fixed: 'left', slot: 'callTime' },
-  { prop: 'endpoint', label: '端点', minWidth: 170, slot: 'endpoint' },
-  { prop: 'protocol', label: '协议', width: 76, slot: 'protocol' },
-  { prop: 'model', label: '模型', minWidth: 112, slot: 'model' },
-  { prop: 'status', label: '状态', width: 116, slot: 'status' },
-  { prop: 'totalTokens', label: 'Token', width: 118, align: 'right', slot: 'totalTokens' },
-  { prop: 'latency', label: '耗时', width: 84, align: 'right', slot: 'latency' },
+  { prop: 'endpoint', label: '端点', minWidth: 150, slot: 'endpoint' },
+  { prop: 'protocol', label: '协议', width: 68, slot: 'protocol' },
+  { prop: 'model', label: '模型', minWidth: 100, slot: 'model' },
+  { prop: 'totalTokens', label: 'Token', width: 104, align: 'right', slot: 'totalTokens' },
+  { prop: 'latency', label: '耗时', width: 76, align: 'right', slot: 'latency' },
+  { prop: 'status', label: '状态', width: 116, fixed: 'right', slot: 'status' },
 ]
 
 // ============================================================================
@@ -1028,6 +1037,77 @@ const errorCount = computed(() => logs.value.filter((r) => {
   const n = Number(r.status)
   return isFinite(n) && n >= 400
 }).length)
+
+/**
+ * 访问日志表的横向滚动条：自己画一条。
+ *
+ * <p>vxe 把滚动容器藏在表格内部（.vxe-table--body-inner-wrapper），并且把它的原生
+ * 滚动条关掉了；留给用户的那条 .vxe-table--scroll-x-handle 在 Windows 的
+ * Fluent 滚动条下不滚就不显形。结果是：中栏只有 414px、7 列要 746px，
+ * 右边的「耗时」永远被裁掉，用户却看不到任何「还能往右」的线索。</p>
+ *
+ * <p>做法：量出 scrollLeft/scrollWidth，把滑块的位置与宽度写成 CSS 变量挂在
+ * .svc-tablewrap 上，由 handle 的 background 画出来 —— 不用往 vxe 的 DOM 里
+ * 塞节点，位置天然对齐表格可视宽度。溢出消失时宽度归零，条自然不见。</p>
+ */
+const logTableEl = ref<HTMLElement | null>(null)
+const xbarLeft = ref(0)
+const xbarWidth = ref(0)
+let logTableResizeObserver: ResizeObserver | null = null
+let logScrollEl: HTMLElement | null = null
+
+function paintLogScrollbar() {
+  const inner = logScrollEl
+  if (!inner) { xbarWidth.value = 0; xbarLeft.value = 0; return }
+  const cw = inner.clientWidth
+  const sw = inner.scrollWidth
+  if (!cw || sw <= cw + 1) { xbarWidth.value = 0; xbarLeft.value = 0; return }
+  // 滑块最短 40px：列多时按比例会被压成一根线，反而看不出可拖
+  const w = Math.max(Math.round(cw * (cw / sw)), 40)
+  const maxLeft = cw - w
+  xbarWidth.value = w
+  xbarLeft.value = Math.round((inner.scrollLeft / (sw - cw)) * maxLeft)
+}
+
+function onLogTableScroll() { paintLogScrollbar() }
+
+/** 点/拖 handle 那 18px 横条即横向定位（原生滚动条不显形时的兜底操作） */
+function onXbarPointerDown(e: PointerEvent) {
+  const inner = logScrollEl
+  const handle = (e.target as HTMLElement | null)?.closest('.vxe-table--scroll-x-handle') as HTMLElement | null
+  if (!inner || !handle || inner.scrollWidth <= inner.clientWidth + 1) return
+  const rect = handle.getBoundingClientRect()
+  const max = inner.scrollWidth - inner.clientWidth
+  const seek = (clientX: number) => {
+    const ratio = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1)
+    inner.scrollLeft = Math.round(ratio * max)
+  }
+  seek(e.clientX)
+  const move = (ev: PointerEvent) => seek(ev.clientX)
+  const up = () => {
+    window.removeEventListener('pointermove', move)
+    window.removeEventListener('pointerup', up)
+  }
+  window.addEventListener('pointermove', move)
+  window.addEventListener('pointerup', up)
+  e.preventDefault()
+}
+
+function bindLogScrollEl() {
+  const inner = logTableEl.value?.querySelector('.vxe-table--body-inner-wrapper') as HTMLElement | null
+  if (inner !== logScrollEl) {
+    logScrollEl?.removeEventListener('scroll', onLogTableScroll)
+    logScrollEl = inner
+    logScrollEl?.addEventListener('scroll', onLogTableScroll, { passive: true })
+  }
+  // 表格是懒渲染的：首帧量到的 scrollWidth 还等于 clientWidth，光看外壳尺寸不会重算。
+  // 所以连滚动容器一起观察 —— 列一铺开它就变形，那时才量得准。
+  if (inner && logTableResizeObserver) {
+    logTableResizeObserver.observe(inner)
+  }
+  paintLogScrollbar()
+}
+
 /** 失败计数的口径必须写清：只看当前作用域这 50 条，不是全量历史 */
 const errorCountScopeLabel = computed(() =>
   logInstanceId.value ? '该实例失败请求' : '全部实例失败请求')
@@ -1529,7 +1609,24 @@ onMounted(() => {
   }
 })
 
+/* 滚动条：表格挂载 / 换实例 / 换时间窗 / 切页签 / 分页 / 窗口缩放后都要重画。
+   ResizeObserver 盯的是表格外壳 —— 三栏比例随视口变化，滑块长度就得跟着变。 */
+watch([logTableEl, filteredLogs, activeTab], () => nextTick(bindLogScrollEl), { flush: 'post' })
+watch(logTableEl, (el) => {
+  logTableResizeObserver?.disconnect()
+  if (!el) {
+    logScrollEl?.removeEventListener('scroll', onLogTableScroll)
+    logScrollEl = null
+    return
+  }
+  if (!logTableResizeObserver) logTableResizeObserver = new ResizeObserver(() => paintLogScrollbar())
+  logTableResizeObserver.observe(el)
+  bindLogScrollEl()
+})
+
 onUnmounted(() => {
+  logTableResizeObserver?.disconnect()
+  logTableResizeObserver = null
   if (runtimeTimer) clearInterval(runtimeTimer)
   if (serviceTimer) clearInterval(serviceTimer)
   if (calibrateTimer) clearTimeout(calibrateTimer)
