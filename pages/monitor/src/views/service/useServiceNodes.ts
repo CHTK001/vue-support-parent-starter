@@ -99,10 +99,31 @@ export interface ServiceNodesVm {
 }
 
 /**
+ * 取异常上的 HTTP 状态码。
+ *
+ * <p>5xx 时 {@code httpCrypto} 的响应拦截器会先弹「服务器错误」并把
+ * {@code error.message} 清空（避免调用方再弹一次原始英文），于是这里的
+ * {@code instanceof Error && e.message} 判定会落空。状态码要单独捞出来。</p>
+ *
+ * @param e 异常
+ */
+function httpStatusOf(e: unknown): number | undefined {
+  if (!e || typeof e !== 'object') return undefined;
+  const direct = (e as { status?: unknown }).status;
+  if (typeof direct === 'number') return direct;
+  const response = (e as { response?: { status?: unknown } }).response;
+  return response && typeof response.status === 'number' ? response.status : undefined;
+}
+
+/**
  * 把任意异常压成一句可展示的短文本。
  *
  * <p>后端失败时抛出的是 {@code {code,msg}} 形态的对象而不是 Error，直接
  * {@code (e as Error).message} 会渲染出 {@code [object Object]}。</p>
+ *
+ * <p>兜底顺序是「原始 message → 后端 msg → HTTP 状态码 → 未知错误」：
+ * 少了状态码这一档，被拦截器清空 message 的 5xx 在页面上只剩「未知错误」，
+ * 用户与排查者都看不出是哪一层挂了。</p>
  *
  * @param e 异常
  */
@@ -111,6 +132,13 @@ export function reasonText(e: unknown): string {
   if (e && typeof e === 'object' && 'msg' in e) {
     const msg = (e as { msg?: unknown }).msg
     if (typeof msg === 'string' && msg) return msg
+  }
+  const status = httpStatusOf(e)
+  if (status) {
+    if (status === 404) return 'HTTP 404（接口不存在）'
+    if (status === 401 || status === 403) return `HTTP ${status}（未登录或无权限）`
+    if (status >= 500) return `HTTP ${status}（服务端错误）`
+    return `HTTP ${status}`
   }
   return typeof e === 'string' && e ? e : '未知错误'
 }
