@@ -2,8 +2,10 @@
 /**
  * 配置管理（sys_setting）
  *
- * 纯卡片视图：按分组渲染卡片，点击卡片进入该分组配置页；每个配置一行，
- * 左右结构（左图标 / 名称+描述 / 值编辑，校验失败显示在底部），支持行拖拽排序。
+ * 主从三栏（方案 02「指挥台」）：
+ *   左 → 分组导航（按分类分段，可搜索）
+ *   中 → 当前分组的配置清单（ReTable，支持行拖拽排序）
+ *   右 → 配置检查器（常驻，点选清单行即显示属性，无页面跳转）
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
@@ -14,8 +16,6 @@ import {
   Clock,
   View,
   Hide,
-  ArrowLeft,
-  ArrowRight,
   Folder,
   Document,
   Connection,
@@ -31,8 +31,6 @@ import {
   DataLine,
   SwitchButton,
   EditPen,
-  Grid,
-  Menu,
   Search,
 } from "@element-plus/icons-vue";
 import {
@@ -67,18 +65,40 @@ const props = withDefaults(defineProps<{ mode?: "manage" | "product" }>(), {
 /** 产品级系统配置：隐藏配置定义的新增/删除/拖拽排序 */
 const isProduct = computed(() => props.mode === "product");
 
-/* ================== 分组导航 ================== */
+/* ================== 分组导航 / 选中项 ================== */
 
-/** 当前进入的分组；null 表示分组卡片网格 */
+/** 当前分组（左栏选中项）：中栏清单与右栏检查器都跟着它走 */
 const activeGroup = ref<string | null>(null);
+
+/** 清单里选中的配置项（右栏检查器的数据源） */
+const selectedSetting = ref<SysSetting | null>(null);
 
 /** 分组详情 ReTable 实例（模板 ref，用于改值/排序后 reload） */
 const detailTableRef = ref<{ reload: () => Promise<void> } | null>(null);
 
+/** 左栏点击分组：换组后清掉旧选中，让中栏重新加载（loader 会落到该组首项） */
 async function openGroup(g: string) {
+  if (activeGroup.value === g) return;
   activeGroup.value = g;
-  if (!allSettings.value.length) await loadAll();
-  setTimeout(() => detailTableRef.value?.reload(), 0);
+  selectedSetting.value = null;
+  await detailTableRef.value?.reload();
+}
+
+/** 中栏点行 → 右栏检查器（操作列按钮已 .stop，不会误触） */
+function selectRow(row: Record<string, unknown>) {
+  selectedSetting.value = row as unknown as SysSetting;
+}
+
+/**
+ * 行是否选中。
+ *
+ * <p>ReTable 没有透出 rowClassName，vxe 引擎下 highlightCurrentRow 也不生效，
+ * 所以选中态由 info 单元格自己带：模板里给包裹元素加 is-selected，样式用
+ * :has(.is-selected) 反穿到整行背景。</p>
+ */
+function isSelectedRow(row: Record<string, unknown>): boolean {
+  const id = selectedSetting.value?.sysSettingId;
+  return Boolean(id) && String(row.sysSettingId) === String(id);
 }
 
 /* ================== 分组图标 / 描述 ================== */
@@ -131,16 +151,16 @@ function groupAccent(g: string): string {
   return groupAccentMap[g] ?? "primary";
 }
 
-/* ================== 分类筛选 / 视图切换 / 分组搜索 ================== */
+/* ================== 分类分段 / 分组搜索 ================== */
 
 /**
  * 分类定义。
  *
- * <p>分组是平铺的（15 个），直接铺开很难扫读；按语义收成几档后，
- * 「配置」这类高频分组能一眼定位。</p>
+ * <p>分组是平铺的（12 个），直接铺开很难扫读；按语义收成几档后，
+ * 「配置」这类高频分组能一眼定位。三栏版里不再有筛选行，
+ * 分类直接落成左栏的分段标题 —— 少一层交互，分组名与归属同时可见。</p>
  */
 const CATEGORY_LIST = [
-  { key: "all", label: "全部" },
   { key: "basic", label: "基础配置" },
   { key: "integration", label: "第三方集成" },
   { key: "message", label: "消息通知" },
@@ -148,7 +168,7 @@ const CATEGORY_LIST = [
   { key: "content", label: "内容协议" },
 ];
 
-/** 分组 -> 分类 key；未登记的分组归入「基础配置」，避免出现无处安放的卡片 */
+/** 分组 -> 分类 key；未登记的分组归入「基础配置」，避免出现无处安放的分组 */
 const groupCategoryMap: Record<string, string> = {
   default: "basic",
   config: "basic",
@@ -168,42 +188,26 @@ function groupCategory(g: string): string {
   return groupCategoryMap[g] ?? "basic";
 }
 
-/** 当前分类筛选键 */
-const activeCategory = ref<string>("all");
-
-/** 卡片网格 / 列表视图 */
-const viewMode = ref<"grid" | "list">("grid");
-
-/** 顶栏分组搜索关键词 */
+/** 左栏分组搜索关键词（同时匹配分组 code 与展示名） */
 const groupKeyword = ref<string>("");
 
-/** 筛选后的分组：先按分类，再按关键词（同时匹配分组 code 与展示名） */
-const visibleGroups = computed(() => {
+/** 左栏导航：按分类分段，空分类不渲染 */
+const navSections = computed(() => {
   const kw = groupKeyword.value.trim().toLowerCase();
-  return groups.value.filter((g) => {
-    if (activeCategory.value !== "all" && groupCategory(g.group) !== activeCategory.value) {
-      return false;
-    }
-    if (!kw) {
-      return true;
-    }
-    return g.group.toLowerCase().includes(kw) || groupName(g.group).toLowerCase().includes(kw);
-  });
+  const matched = groups.value.filter(
+    (g) => !kw || g.group.toLowerCase().includes(kw) || groupName(g.group).toLowerCase().includes(kw),
+  );
+  return CATEGORY_LIST.map((c) => ({
+    key: c.key,
+    label: c.label,
+    groups: matched.filter((g) => groupCategory(g.group) === c.key),
+  })).filter((s) => s.groups.length);
 });
 
-/** 某分类下的分组数（筛选行上的计数，空分类不展示） */
-function categoryCount(key: string): number {
-  if (key === "all") {
-    return groups.value.length;
-  }
-  return groups.value.filter((g) => groupCategory(g.group) === key).length;
-}
-
-/** 清空筛选与搜索，回到「全部」 */
-function clearGroupFilter(): void {
-  activeCategory.value = "all";
-  groupKeyword.value = "";
-}
+/** 当前分组的配置项数量（中栏标题上显示） */
+const activeGroupCount = computed(
+  () => groups.value.find((g) => g.group === activeGroup.value)?.items.length ?? 0,
+);
 
 /** 单个配置项的图标（按值类型） */
 const settingIconMap: Record<string, unknown> = {
@@ -234,6 +238,22 @@ async function loadAll() {
     allSettings.value = [];
   } finally {
     groupLoading.value = false;
+  }
+  await ensureActiveGroup();
+}
+
+/** 数据到位后保证「左栏总有选中项」：没有或已消失就落到第一个分组，并让中栏重载 */
+async function ensureActiveGroup() {
+  const list = groups.value;
+  if (!list.length) {
+    activeGroup.value = null;
+    selectedSetting.value = null;
+    return;
+  }
+  if (!activeGroup.value || !list.some((g) => g.group === activeGroup.value)) {
+    activeGroup.value = list[0].group;
+    selectedSetting.value = null;
+    await detailTableRef.value?.reload();
   }
 }
 
@@ -286,6 +306,9 @@ async function loadDetail(): Promise<RePageResult> {
     (item): item is SysSetting & Record<string, unknown> =>
       typeof item === 'object' && item !== null,
   );
+  // 选中项跟着清单走：换组、刷新、删除后都要落到一个仍然存在的对象上
+  const currentId = selectedSetting.value?.sysSettingId;
+  selectedSetting.value = data.find((d) => d.sysSettingId === currentId) ?? data[0] ?? null;
   return { total: items.length, data };
 }
 
@@ -334,12 +357,12 @@ function handleAdd() {
   dialogVisible.value = true;
 }
 
-function handleEdit(row: Record<string,unknown>) {
+function handleEdit(row: SysSetting) {
   isEdit.value = true;
   editRevealSensitive.value = false;
   form.value = {
-    ...(row as unknown as SysSetting),
-    sysSettingValueType: normType((row as SysSetting).sysSettingValueType),
+    ...row,
+    sysSettingValueType: normType(row.sysSettingValueType),
   };
   dialogVisible.value = true;
 }
@@ -376,8 +399,8 @@ async function handleSubmit() {
   }
 }
 
-async function handleDelete(row: Record<string,unknown>) {
-  const setting = row as unknown as SysSetting;
+async function handleDelete(row: SysSetting) {
+  const setting = row;
   await ElMessageBox.confirm(`确认删除配置「${setting.sysSettingName}」？`, "提示", { type: "warning" });
   await deleteSetting(setting.sysSettingId!);
   message.success("删除成功");
@@ -417,6 +440,46 @@ async function toggleSensitive(row: SysSetting) {
   }
 }
 
+/* ================== 右侧检查器 ================== */
+
+/** 选中项的明文（未解密时为空串，模板按是否敏感决定显示掩码） */
+const selectedRevealed = computed(() => {
+  const id = selectedSetting.value?.sysSettingId;
+  return id ? (revealedMap.value[id] ?? "") : "";
+});
+
+/** 选中项是否已解密显示 */
+const selectedIsRevealed = computed(() => Boolean(selectedRevealed.value));
+
+/** 检查器里的「所属分组」文本：展示名 + code，两处信息一次给全 */
+const selectedGroupText = computed(() => {
+  const g = selectedSetting.value?.sysSettingGroup;
+  if (!g) return "-";
+  return `${groupName(g)}（${g}）`;
+});
+
+/** 检查器里的「当前值」：敏感项默认掩码，解密后显示明文 */
+const selectedValueText = computed(() => {
+  const s = selectedSetting.value;
+  if (!s) return "-";
+  if (isSensitive(s)) return selectedRevealed.value || "••••••••";
+  return s.sysSettingValue || "-";
+});
+
+/** 检查器头部与底部的动作都从「当前选中」出发，空选中时直接不响应 */
+function editSelected() {
+  if (selectedSetting.value) handleEdit(selectedSetting.value);
+}
+function historyOfSelected() {
+  if (selectedSetting.value) openHistory(selectedSetting.value);
+}
+function deleteSelected() {
+  if (selectedSetting.value) void handleDelete(selectedSetting.value);
+}
+function toggleSelectedSensitive() {
+  if (selectedSetting.value) void toggleSensitive(selectedSetting.value);
+}
+
 /* ================== 变更历史 ================== */
 
 const historyDrawerVisible = ref(false);
@@ -437,8 +500,8 @@ const operationMap: Record<string, { label: string; type: string }> = {
   ROLLBACK: { label: "回滚", type: "info" },
 };
 
-async function openHistory(row: Record<string,unknown>) {
-  historySetting.value = row as unknown as SysSetting;
+async function openHistory(row: SysSetting) {
+  historySetting.value = row;
   historyPage.value = 1;
   historyDrawerVisible.value = true;
   await loadHistory();
@@ -627,209 +690,264 @@ onMounted(() => {
 <template>
   <div class="system-page">
 
-    <!-- ============ 分组卡片网格 ============ -->
-    <div v-if="!activeGroup" v-loading="groupLoading" class="group-view">
-      <div class="group-topbar">
-        <div class="group-topbar__lead">
-          <div class="group-topbar__icon">
-            <el-icon :size="18"><Tools /></el-icon>
+    <!-- ============ 左栏：分组导航 ============ -->
+    <aside class="config-nav" aria-label="配置分组">
+      <div class="pane-hd">
+        <span class="pane-hd__title">配置分组</span>
+        <span class="pane-hd__count">{{ groups.length }}</span>
+      </div>
+
+      <div class="config-nav__search">
+        <el-input
+          v-model="groupKeyword"
+          placeholder="搜索分组名称 / 编码"
+          clearable
+          :prefix-icon="Search"
+          size="small"
+        />
+      </div>
+
+      <div v-loading="groupLoading" class="config-nav__body">
+        <template v-if="navSections.length">
+          <div v-for="sec in navSections" :key="sec.key" class="nav-sec">
+            <div class="nav-sec__label">
+              {{ sec.label }}
+              <span class="nav-sec__count">{{ sec.groups.length }}</span>
+            </div>
+            <button
+              v-for="g in sec.groups"
+              :key="g.group"
+              type="button"
+              class="group-nav__item"
+              :class="[{ 'is-active': activeGroup === g.group }, `is-${groupAccent(g.group)}`]"
+              :aria-current="activeGroup === g.group ? 'true' : undefined"
+              :title="groupDesc(g.group)"
+              @click="openGroup(g.group)"
+            >
+              <span class="group-nav__icon" aria-hidden="true">
+                <el-icon :size="15"><component :is="groupIcon(g.group)" /></el-icon>
+              </span>
+              <span class="group-nav__name">{{ groupName(g.group) }}</span>
+              <span class="group-nav__count">{{ g.items.length }}</span>
+            </button>
           </div>
-          <div class="group-topbar__titles">
-            <h2 class="group-topbar__title">配置管理</h2>
-            <p class="group-topbar__sub">集中管理系统参数、连接与各类服务</p>
-          </div>
-        </div>
-        <div class="group-topbar__right">
-          <ReInput
-            v-model="groupKeyword"
-            class="group-topbar__search"
-            prefix-icon="Search"
-            placeholder="搜索配置分组…"
-            clearable
-          />
-          <span class="group-chip"><b>{{ groups.length }}</b> 个分组</span>
-          <span class="group-chip"><b>{{ totalSettings }}</b> 个配置项</span>
+        </template>
+
+        <!-- 搜索无结果 / 完全没有配置项：两种空态分开说，避免误判成数据问题 -->
+        <div v-else-if="!groupLoading" class="config-nav__empty">
+          <p>{{ groups.length ? "没有匹配的分组" : "暂无配置项" }}</p>
           <ReButton
-            layout="square"
-            icon="Refresh"
-            tip="刷新"
-            :loading="groupLoading"
-            @click="loadAll"
-          />
+            v-if="groups.length"
+            type="primary"
+            text
+            icon="RefreshLeft"
+            @click="groupKeyword = ''"
+          >
+            清除搜索
+          </ReButton>
+          <ReButton v-else type="primary" text icon="Refresh" @click="refreshAll">重新加载</ReButton>
         </div>
       </div>
 
-      <!-- 分类筛选行 + 视图切换 -->
-      <div class="group-filterbar group-topbar">
-        <div class="group-filterbar__cats">
-          <button
-            v-for="c in CATEGORY_LIST"
-            :key="c.key"
-            type="button"
-            class="group-cat"
-            :class="{ 'is-active': activeCategory === c.key }"
-            :aria-pressed="activeCategory === c.key"
-            @click="activeCategory = c.key"
-          >
-            {{ c.label }}
-            <span v-if="categoryCount(c.key)" class="group-cat__count">{{ categoryCount(c.key) }}</span>
-          </button>
-        </div>
-        <div class="group-filterbar__views">
-          <button
-            type="button"
-            class="group-viewbtn"
-            :class="{ 'is-active': viewMode === 'grid' }"
-            title="卡片视图"
-            aria-label="卡片视图"
-            @click="viewMode = 'grid'"
-          >
-            <el-icon :size="16"><Grid /></el-icon>
-          </button>
-          <button
-            type="button"
-            class="group-viewbtn"
-            :class="{ 'is-active': viewMode === 'list' }"
-            title="列表视图"
-            aria-label="列表视图"
-            @click="viewMode = 'list'"
-          >
-            <el-icon :size="16"><Menu /></el-icon>
-          </button>
-        </div>
+      <div class="config-nav__foot">
+        <span>共 {{ totalSettings }} 项配置</span>
+        <ReButton layout="square" icon="Refresh" tip="刷新" :loading="groupLoading" @click="refreshAll" />
       </div>
+    </aside>
 
-      <div v-if="!groupLoading && visibleGroups.length" class="group-grid" :class="`is-${viewMode}`">
-        <div
-          v-for="g in visibleGroups"
-          :key="g.group"
-          class="group-card"
-          :class="`is-${groupAccent(g.group)}`"
-          role="button"
-          :tabindex="0"
-          :aria-label="`进入「${groupName(g.group)}」配置`"
-          @click="openGroup(g.group)"
-          @keydown.enter="openGroup(g.group)"
-          @keydown.space.prevent="openGroup(g.group)"
-        >
-          <div class="group-card__top">
-            <div class="group-card__icon">
-              <el-icon :size="26"><component :is="groupIcon(g.group)" /></el-icon>
-            </div>
-            <span class="group-card__count">{{ g.items.length }} 项</span>
-          </div>
-
-          <div class="group-card__body">
-            <div class="group-card__title">{{ groupName(g.group) }}</div>
-            <code class="group-card__code">{{ g.group }}</code>
-            <p class="group-card__desc">{{ groupDesc(g.group) }}</p>
-          </div>
-
-          <div class="group-card__foot">
-            <span class="group-card__enter">进入配置</span>
-            <el-icon class="group-card__arrow"><ArrowRight /></el-icon>
-          </div>
-        </div>
-      </div>
-
-      <!-- 筛选/搜索后为空：与「后端确实没有配置项」区分开，避免误导成数据问题 -->
-      <el-empty
-        v-else-if="!groupLoading && groups.length"
-        description="没有匹配的配置分组"
+    <!-- ============ 中栏：配置清单 ============ -->
+    <section class="config-main" aria-label="配置清单">
+      <!-- 中栏表格即「清单卡片」：表格贴卡片边，内边距交由工具栏与单元格承担 -->
+      <ReTable
+        ref="detailTableRef"
+        class="config-table"
+        table-id="setting-detail"
+        :loader="loadDetail"
+        :columns="detailColumns"
+        :pagination="false"
+        :layout-table="{ fill: true }"
+        row-key="sysSettingId"
+        :row-draggable="!isProduct"
+        @row-click="selectRow"
+        @row-sort="handleRowSort"
       >
-        <ReButton type="primary" text icon="Refresh" @click="clearGroupFilter">清除筛选</ReButton>
-      </el-empty>
-
-      <el-empty v-else-if="!groupLoading" description="暂无配置项">
-        <ReButton type="primary" text icon="Refresh" @click="loadAll">重新加载</ReButton>
-      </el-empty>
-    </div>
-
-    <!-- ============ 分组配置详情 ============ -->
-    <ReTable
-      v-else
-      ref="detailTableRef"
-      table-id="setting-detail"
-      :loader="loadDetail"
-      :columns="detailColumns"
-      :pagination="false"
-      row-key="sysSettingId"
-      :row-draggable="!isProduct"
-      @row-sort="handleRowSort"
-    >
-      <template #toolbar>
-        <ReButton text icon="ArrowLeft" @click="activeGroup = null">返回分组</ReButton>
-        <span class="detail-title">
-          <el-icon><component :is="groupIcon(activeGroup!)" /></el-icon>
-          {{ groupName(activeGroup!) }}
-        </span>
-        <!-- 主操作改实底（去掉 text）：工具栏里只有一个主动作，实底才能一眼认出「新增」 -->
-        <ReButton v-if="!isProduct" type="primary" icon="Plus" v-admin @click="handleAdd">新增配置项</ReButton>
-        <ReButton type="success" text icon="Download" :loading="exporting" @click="handleSettingExport(activeGroup!)">
-          导出本组
-        </ReButton>
-        <ReButton
-          v-if="activeGroup === 'smtp'"
-          type="warning"
-          text
-          icon="Promotion"
-          :loading="emailChecking"
-          @click="handleEmailCheck"
-        >
-          邮箱检测
-        </ReButton>
-      </template>
-
-      <!--
-        可操作空态：分组详情里一个配置项都没有时，el-empty 只能干看着。
-        这里给出「新建 + 刷新」两个出口，让用户不用退回分组列表就能继续。
-        复用 refreshAll（而不是新造 reload）：它同时刷卡片全量与本表，
-        正是「刷新」在这里该做的事。
-        page-empty 系列样式在 pages/system/src/styles/system-page.css 里全局提供，本页不重复定义。
-      -->
-      <template #empty>
-        <div class="page-empty">
-          <span class="page-empty__icon"><ReIcon name="Tools" :size="22" /></span>
-          <span class="page-empty__title">该分组还没有配置项</span>
-          <span class="page-empty__desc">配置项是一个可被代码读取的参数，例如站点标题、连接地址、邮件开关；先建一条再改值。</span>
-          <span class="page-empty__actions">
-            <ReButton v-if="!isProduct" type="primary" icon="Plus" v-admin @click="handleAdd">新增配置项</ReButton>
-            <ReButton icon="Refresh" @click="refreshAll">刷新</ReButton>
+        <template #toolbar>
+          <span class="config-main__title">
+            <span class="config-main__icon" aria-hidden="true">
+              <el-icon :size="15"><component :is="activeGroup ? groupIcon(activeGroup) : Tools" /></el-icon>
+            </span>
+            <span class="config-main__name">{{ activeGroup ? groupName(activeGroup) : "配置清单" }}</span>
+            <code v-if="activeGroup" class="config-main__code">{{ activeGroup }}</code>
+            <span class="config-main__count">{{ activeGroupCount }} 项</span>
           </span>
-        </div>
-      </template>
+          <!-- 主操作给实底：工具栏里只有一个主动作，实底才能一眼认出「新增」 -->
+          <ReButton v-if="!isProduct" type="primary" icon="Plus" v-admin @click="handleAdd">新增配置项</ReButton>
+          <ReButton
+            type="success"
+            text
+            icon="Download"
+            :loading="exporting"
+            :disabled="!activeGroup"
+            @click="handleSettingExport(activeGroup!)"
+          >
+            导出本组
+          </ReButton>
+          <ReButton
+            v-if="activeGroup === 'smtp'"
+            type="warning"
+            text
+            icon="Promotion"
+            :loading="emailChecking"
+            @click="handleEmailCheck"
+          >
+            邮箱检测
+          </ReButton>
+        </template>
 
-      <template #info="{ row }">
-        <div class="d-info">
-          <el-icon class="d-info__icon" :size="20">
-            <component :is="settingIcon(row)" />
-          </el-icon>
-          <div class="d-info__text">
-            <div class="d-info__name">
-              {{ settingLabel(row) }}
-              <code v-if="row.sysSettingCode" class="d-info__code">{{ row.sysSettingCode }}</code>
+        <!--
+          可操作空态：分组详情里一个配置项都没有时，el-empty 只能干看着。
+          这里给出「新建 + 刷新」两个出口，让用户不用退回分组列表就能继续。
+          复用 refreshAll（而不是新造 reload）：它同时刷分组全量与本表，
+          正是「刷新」在这里该做的事。
+          page-empty 系列样式在 pages/system/src/styles/system-page.css 里全局提供，本页不重复定义。
+        -->
+        <template #empty>
+          <div class="page-empty">
+            <span class="page-empty__icon"><ReIcon name="Tools" :size="22" /></span>
+            <span class="page-empty__title">该分组还没有配置项</span>
+            <span class="page-empty__desc">配置项是一个可被代码读取的参数，例如站点标题、连接地址、邮件开关；先建一条再改值。</span>
+            <span class="page-empty__actions">
+              <ReButton v-if="!isProduct" type="primary" icon="Plus" v-admin @click="handleAdd">新增配置项</ReButton>
+              <ReButton icon="Refresh" @click="refreshAll">刷新</ReButton>
+            </span>
+          </div>
+        </template>
+
+        <template #info="{ row }">
+          <div class="c-item" :class="{ 'is-selected': isSelectedRow(row) }">
+            <span class="c-item__icon" aria-hidden="true">
+              <el-icon :size="16"><component :is="settingIcon(row)" /></el-icon>
+            </span>
+            <div class="c-item__text">
+              <div class="c-item__name">
+                <span class="c-item__label">{{ settingLabel(row) }}</span>
+                <el-tag v-if="isSensitive(row)" size="small" type="warning" effect="plain" round>敏感</el-tag>
+                <el-tag v-if="row.sysSettingInSystem === 1" size="small" type="info" effect="plain" round>内置</el-tag>
+              </div>
+              <div class="c-item__meta">
+                <code class="c-item__code">{{ row.sysSettingCode || "-" }}</code>
+                <span class="c-item__sep" aria-hidden="true">·</span>
+                <span>{{ typeLabel(row.sysSettingValueType) }}</span>
+              </div>
             </div>
-            <div class="d-info__desc">{{ row.sysSettingRemark || typeLabel(row.sysSettingValueType) }}</div>
+          </div>
+        </template>
+
+        <template #value="{ row }">
+          <div v-if="isSensitive(row)" class="sensitive-box">
+            <code class="sensitive-box__text">{{ revealedMap[row.sysSettingId] ?? "••••••••" }}</code>
+            <el-button link type="primary" @click.stop="toggleSensitive(row)">
+              <el-icon><component :is="revealedMap[row.sysSettingId] ? Hide : View" /></el-icon>
+            </el-button>
+          </div>
+          <span v-else class="value-readonly">{{ row.sysSettingValue || "—" }}</span>
+        </template>
+
+        <template #action="{ row }">
+          <ReButton layout="square" type="primary" icon="Edit" tip="编辑" v-admin @click.stop="handleEdit(row)" />
+          <ReButton layout="square" type="info" icon="Clock" tip="变更历史" @click.stop="openHistory(row)" />
+          <ReButton v-if="!isProduct" layout="square" type="danger" icon="Delete" tip="删除" v-admin @click.stop="handleDelete(row)" />
+        </template>
+      </ReTable>
+    </section>
+
+    <!-- ============ 右栏：配置检查器 ============ -->
+    <aside class="config-insp" aria-label="配置检查器">
+      <div class="pane-hd">
+        <span class="pane-hd__title">配置检查器</span>
+        <span v-if="selectedSetting" class="config-insp__tools">
+          <ReButton layout="square" type="info" icon="Clock" tip="变更历史" @click="historyOfSelected" />
+          <ReButton
+            v-if="!isProduct"
+            layout="square"
+            type="danger"
+            icon="Delete"
+            tip="删除配置"
+            v-admin
+            @click="deleteSelected"
+          />
+        </span>
+      </div>
+
+      <div v-if="selectedSetting" class="config-insp__body">
+        <div class="insp-hero">
+          <span class="insp-hero__icon" aria-hidden="true">
+            <el-icon :size="20"><component :is="settingIcon(selectedSetting)" /></el-icon>
+          </span>
+          <div class="insp-hero__text">
+            <div class="insp-hero__name">{{ settingLabel(selectedSetting) }}</div>
+            <code class="insp-hero__code">{{ selectedSetting.sysSettingCode || "-" }}</code>
           </div>
         </div>
-      </template>
 
-      <template #value="{ row }">
-        <div v-if="isSensitive(row)" class="sensitive-box">
-          <code class="sensitive-box__text">{{ revealedMap[row.sysSettingId] ?? "••••••••" }}</code>
-          <el-button link type="primary"  @click.stop="toggleSensitive(row)">
-            <el-icon><component :is="revealedMap[row.sysSettingId] ? Hide : View" /></el-icon>
-          </el-button>
+        <dl class="insp-list">
+          <div class="insp-row">
+            <dt>当前值</dt>
+            <dd><code class="insp-val">{{ selectedValueText }}</code></dd>
+          </div>
+          <div class="insp-row">
+            <dt>值类型</dt>
+            <dd>{{ typeLabel(selectedSetting.sysSettingValueType) }}</dd>
+          </div>
+          <div class="insp-row">
+            <dt>所属分组</dt>
+            <dd>{{ selectedGroupText }}</dd>
+          </div>
+          <div class="insp-row">
+            <dt>默认值</dt>
+            <dd><code class="insp-val">{{ selectedSetting.sysSettingDefaultValue || "-" }}</code></dd>
+          </div>
+          <div class="insp-row">
+            <dt>敏感配置</dt>
+            <dd>{{ isSensitive(selectedSetting) ? "是，列表默认掩码" : "否" }}</dd>
+          </div>
+          <div class="insp-row">
+            <dt>系统内置</dt>
+            <dd>{{ selectedSetting.sysSettingInSystem === 1 ? "是" : "否" }}</dd>
+          </div>
+          <div class="insp-row">
+            <dt>校验规则</dt>
+            <dd><code class="insp-val">{{ selectedSetting.sysSettingValidate || "-" }}</code></dd>
+          </div>
+          <div class="insp-row">
+            <dt>备注</dt>
+            <dd>{{ selectedSetting.sysSettingRemark || "-" }}</dd>
+          </div>
+        </dl>
+
+        <div class="insp-actions">
+          <ReButton v-if="!isProduct" type="primary" icon="Edit" v-admin @click="editSelected">
+            编辑配置
+          </ReButton>
+          <ReButton
+            v-if="isSensitive(selectedSetting)"
+            :type="selectedIsRevealed ? 'info' : 'warning'"
+            :icon="selectedIsRevealed ? 'Hide' : 'View'"
+            @click="toggleSelectedSensitive"
+          >
+            {{ selectedIsRevealed ? "隐藏明文" : "解密查看" }}
+          </ReButton>
         </div>
-        <span v-else class="value-readonly">{{ row.sysSettingValue || "—" }}</span>
-      </template>
+        <p v-if="isSensitive(selectedSetting)" class="insp-hint">
+          明文 10 秒后自动隐藏；请勿在截图或日志中留存。
+        </p>
+      </div>
 
-      <template #action="{ row }">
-        <ReButton layout="square" type="primary" icon="Edit" tip="编辑" v-admin @click.stop="handleEdit(row)" />
-        <ReButton layout="square" type="info" icon="Clock" tip="变更历史" @click.stop="openHistory(row)" />
-        <ReButton v-if="!isProduct" layout="square" type="danger" icon="Delete" tip="删除" v-admin @click.stop="handleDelete(row)" />
-      </template>
-    </ReTable>
+      <div v-else class="config-insp__empty">
+        <span class="config-insp__empty-icon"><ReIcon name="Tools" :size="22" /></span>
+        <p>在左侧选择分组，再点选清单里的配置项，这里会常驻显示它的完整属性。</p>
+      </div>
+    </aside>
 
 
     <!-- 新增/编辑弹窗 -->
@@ -1033,386 +1151,475 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
+/* 三栏之间只留 4px：面板靠 1px 描边分界，不靠间距建立层级。
+   全局 system-page.css 给的是纵向 flex，这里改成横向（scoped 选择器权重更高，无需 !important）。 */
 .system-page {
   position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-direction: row;
+  gap: 4px;
   padding: 0;
-  height: 100%;
+  height: calc(100vh - 100px);
+  min-height: 0;
 }
 
-.detail-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-/* ============ 分组卡片网格 ============ */
-.group-view {
-  flex: 1;
+/* ============ 栏位骨架 ============
+   左右两栏都是「卡片 + 头部 + 内部滚动」：卡片只描边不投影，
+   高度吃满页面，滚动发生在栏内部，页面本身不再滚。 */
+.config-nav,
+.config-insp {
   display: flex;
   flex-direction: column;
-  gap: 16px;
   min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-bg-color);
+}
+.config-nav {
+  flex: 0 0 232px;
+}
+.config-insp {
+  flex: 0 0 316px;
+}
+
+.pane-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 0 0 44px;
+  height: 44px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.pane-hd__title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--el-text-color-regular);
+}
+.pane-hd__count {
+  padding: 0 7px;
+  font-size: 11px;
+  font-family: var(--el-font-family-monospace, monospace);
+  line-height: 18px;
+  color: var(--el-text-color-secondary);
+  border-radius: var(--el-radius-full, 9999px);
+  background: var(--el-fill-color-light);
+}
+
+/* ---- 左栏：搜索 + 分段导航 ---- */
+.config-nav__search {
+  padding: 8px 10px 4px;
+}
+.config-nav__body {
+  flex: 1;
+  min-height: 0;
+  padding: 0 6px 8px;
   overflow: auto;
 }
-
-/* ---- 分类筛选行 + 视图切换（koi 令牌，亮暗色自适应） ---- */
-.group-filterbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+.nav-sec + .nav-sec {
+  margin-top: 4px;
 }
-.group-filterbar__cats {
+.nav-sec__label {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-/* 分类项：胶囊，激活项为主色实底（与参考图一致） */
-.group-cat {
-  display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 14px;
-  border: 1px solid var(--el-border-color-lighter);
-  /* 原 6px 魔法值 → --el-radius-sm */
-  border-radius: var(--el-radius-sm, 6px);
-  background: var(--el-bg-color);
-  color: var(--el-text-color-regular);
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-  outline: none;
-  transition:
-    background-color var(--el-transition-duration-fast, 0.2s),
-    color var(--el-transition-duration-fast, 0.2s),
-    border-color var(--el-transition-duration-fast, 0.2s);
-}
-.group-cat:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
-}
-/* 键盘可达：原生 button 也得有焦点环，否则 Tab 过去看不出焦点落在哪 */
-.group-cat:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-.group-cat.is-active {
-  /* 原 #fff → --el-color-white：跟着主题走，暗色下不再写死纯白 */
-  color: var(--el-color-white);
-  background: var(--el-color-primary);
-  border-color: var(--el-color-primary);
-}
-.group-cat__count {
-  font-size: 12px;
-  opacity: 0.75;
-}
-.group-filterbar__views {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.group-viewbtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid transparent;
-  /* 原 6px 魔法值 → --el-radius-sm */
-  border-radius: var(--el-radius-sm, 6px);
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  outline: none;
-  transition:
-    background-color var(--el-transition-duration-fast, 0.2s),
-    color var(--el-transition-duration-fast, 0.2s);
-}
-.group-viewbtn:hover {
-  color: var(--el-color-primary);
-  background: var(--el-fill-color-light);
-}
-.group-viewbtn:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-.group-viewbtn.is-active {
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-}
-
-/* 顶栏分组搜索框宽度 */
-.group-topbar :deep(.group-topbar__search) {
-  width: 200px;
-}
-
-/* 列表视图：单列紧凑行，卡片结构不变只压扁高度 */
-.group-grid.is-list {
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-.group-grid.is-list .group-card {
-  display: grid;
-  grid-template-columns: 48px 1fr auto;
-  align-items: center;
-  padding: 12px 16px;
-}
-.group-grid.is-list .group-card__icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--el-radius-md, 8px);
-}
-.group-grid.is-list .group-card__body {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.group-grid.is-list .group-card__code {
-  margin-top: 0;
-}
-.group-grid.is-list .group-card__desc {
-  margin-top: 0;
-  -webkit-line-clamp: 1;
-}
-.group-grid.is-list .group-card__foot {
-  padding-top: 0;
-  padding-left: 16px;
-  border-top: none;
-  border-left: 1px solid var(--el-border-color-lighter);
-}
-
-/* 响应式：窄屏下筛选项与视图切换换行 */
-@media (max-width: 768px) {
-  .group-topbar :deep(.group-topbar__search) {
-    width: 100%;
-  }
-  .group-filterbar {
-    justify-content: flex-start;
-  }
-}
-
-/* 顶部卡片（与首页欢迎 / 系统配置 hero 统一为白色圆角卡片） */
-.group-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 18px;
-  border: 1px solid var(--el-border-color-lighter);
-  /* 原 18px 魔法值 → --el-radius-xl（16px 档） */
-  border-radius: var(--el-radius-xl, 16px);
-  background: var(--el-bg-color);
-}
-.group-topbar__lead {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-.group-topbar__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  /* 原 11px 魔法值 → --el-radius-md（8px 档） */
-  border-radius: var(--el-radius-md, 8px);
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  border: 1px solid var(--el-color-primary-light-8);
-}
-.group-topbar__title {
-  margin: 0;
-  font-size: 17px;
+  padding: 8px 8px 4px;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--el-text-color-primary);
+  letter-spacing: 0.4px;
+  color: var(--el-text-color-placeholder);
 }
-.group-topbar__sub {
-  margin: 2px 0 0;
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
+.nav-sec__count {
+  font-size: 10.5px;
+  font-weight: 500;
+  font-family: var(--el-font-family-monospace, monospace);
 }
-.group-topbar__right {
+
+/* 分组行：图标用分组强调色，选中态统一回主色底（与设计稿 navrow.on 一致） */
+.group-nav__item {
+  --nav-accent: var(--el-color-primary);
+  --nav-soft: var(--el-color-primary-light-9);
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.group-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  /* 原 999px 魔法值 → --el-radius-full */
-  border-radius: var(--el-radius-full, 9999px);
-  font-size: 12.5px;
+  width: 100%;
+  height: 38px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-md, 8px);
+  background: transparent;
   color: var(--el-text-color-regular);
-  background: var(--el-fill-color-light);
-  b {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: var(--el-text-color-primary);
-  }
-}
-
-.group-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(264px, 1fr));
-  gap: 18px;
-}
-
-.group-card {
-  --card-accent: var(--el-color-primary);
-  --card-accent-soft: var(--el-color-primary-light-9);
-  --card-accent-border: var(--el-color-primary-light-5);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid var(--el-border-color-lighter);
-  /* 原 18px 魔法值 → --el-radius-xl（16px 档） */
-  border-radius: var(--el-radius-xl, 16px);
-  background: var(--el-bg-color);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
   cursor: pointer;
   outline: none;
-  transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+  transition:
+    background-color var(--el-transition-duration-fast, 0.2s),
+    border-color var(--el-transition-duration-fast, 0.2s),
+    color var(--el-transition-duration-fast, 0.2s);
 }
-.group-card:hover {
-  border-color: var(--card-accent-border);
-  box-shadow: var(--el-box-shadow-light);
-  transform: translateY(-3px);
+.group-nav__item:hover {
+  background: var(--el-fill-color-light);
 }
-/* 键盘可达：卡片是可点区域，Tab 聚焦时必须有可见焦点环（与 hover 浮起同权重，后声明者胜） */
-.group-card:focus-visible {
-  border-color: var(--el-color-primary-light-5);
+/* 键盘可达：原生 button 也得有焦点环，否则 Tab 过去看不出焦点落在哪 */
+.group-nav__item:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
-
-.group-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.group-nav__item.is-active {
+  background: var(--el-color-primary-light-9);
+  border-color: var(--el-color-primary-light-8);
 }
-.group-card__icon {
+.group-nav__item.is-primary {
+  --nav-accent: var(--el-color-primary);
+  --nav-soft: var(--el-color-primary-light-9);
+}
+.group-nav__item.is-success {
+  --nav-accent: var(--el-color-success);
+  --nav-soft: var(--el-color-success-light-9);
+}
+.group-nav__item.is-warning {
+  --nav-accent: var(--el-color-warning);
+  --nav-soft: var(--el-color-warning-light-9);
+}
+.group-nav__item.is-danger {
+  --nav-accent: var(--el-color-danger);
+  --nav-soft: var(--el-color-danger-light-9);
+}
+.group-nav__item.is-info {
+  --nav-accent: var(--el-color-info);
+  --nav-soft: var(--el-color-info-light-9);
+}
+.group-nav__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
-  /* 原 15px 魔法值 → --el-radius-lg（12px 档） */
-  border-radius: var(--el-radius-lg, 12px);
-  color: var(--card-accent);
-  background: var(--card-accent-soft);
-  transition: transform 0.22s ease;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--el-radius-sm, 6px);
+  color: var(--nav-accent);
+  background: var(--nav-soft);
 }
-.group-card:hover .group-card__icon {
-  transform: scale(1.07);
-}
-.group-card__count {
-  padding: 3px 10px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  /* 原 999px 魔法值 → --el-radius-full */
-  border-radius: var(--el-radius-full, 9999px);
-  background: var(--el-fill-color-light);
-}
-
-.group-card__body {
+.group-nav__name {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.group-card__title {
-  font-size: 15.5px;
+.group-nav__item.is-active .group-nav__name {
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+.group-nav__count {
+  font-size: 10.5px;
+  font-family: var(--el-font-family-monospace, monospace);
+  color: var(--el-text-color-placeholder);
+}
+.group-nav__item.is-active .group-nav__count {
+  color: var(--el-color-primary);
+}
+
+.config-nav__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 8px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
+}
+.config-nav__empty p {
+  margin: 0;
+}
+
+.config-nav__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 0 0 38px;
+  padding: 0 10px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ============ 中栏：清单卡片 ============
+   ReTable 自己就是卡片：圆角与左右两栏对齐，根容器内边距归零，
+   工具栏行单独留 padding —— 表格线才会真正贴到卡片边。 */
+.config-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.config-table {
+  flex: 1 1 auto;
+  min-height: 0;
+  --rt-radius: var(--el-radius-md, 8px);
+  --rt-padding: 0;
+}
+.config-table :deep(.re-table__main) {
+  padding: 0;
+}
+/* 工具栏行只保留内边距与底部分隔线；margin-bottom 归零，表格紧贴工具栏 */
+.config-table :deep(.re-table__toolbar-row) {
+  margin-bottom: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.config-main__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.config-main__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--el-radius-sm, 6px);
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.config-main__name {
+  font-size: 13px;
   font-weight: 700;
   color: var(--el-text-color-primary);
 }
-.group-card__code {
-  display: inline-block;
-  margin-top: 5px;
-  padding: 1px 7px;
+.config-main__code {
+  padding: 1px 6px;
   font-size: 11px;
   color: var(--el-text-color-secondary);
-  /* 原 6px 魔法值 → --el-radius-sm */
-  border-radius: var(--el-radius-sm, 6px);
-  background: var(--el-fill-color);
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-fill-color-light);
 }
-.group-card__desc {
-  display: -webkit-box;
-  margin: 10px 0 0;
+.config-main__count {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 行内「配置」单元格：图标 + 名称（含敏感/内置标签）+ 编码 · 类型 */
+.c-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.c-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--el-radius-sm, 6px);
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.c-item__text {
+  min-width: 0;
+}
+.c-item__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.c-item__label {
   overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.c-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+.c-item__code {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.c-item__sep {
+  color: var(--el-border-color);
+}
+
+/* 选中行：info 单元格带 is-selected，反穿到整行底色。
+   ReTable 未透出 rowClassName，vxe 下 highlightCurrentRow 也不生效，
+   所以选中态只能这样落到行上；两套引擎各兜一条。 */
+.config-table :deep(.vxe-body--row:has(.is-selected) > .vxe-body--column) {
+  background-color: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
+}
+.config-table :deep(.vxe-body--row:has(.is-selected) > .vxe-body--column:first-child) {
+  box-shadow: inset 2px 0 0 var(--el-color-primary);
+}
+.config-table :deep(.el-table__row:has(.is-selected) > td) {
+  background-color: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
+}
+.config-table :deep(.el-table__row:has(.is-selected) > td:first-child) {
+  box-shadow: inset 2px 0 0 var(--el-color-primary);
+}
+
+/* ============ 右栏：配置检查器 ============ */
+.config-insp__tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.config-insp__body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px 16px;
+  overflow: auto;
+}
+.insp-hero {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.insp-hero__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--el-radius-md, 8px);
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+}
+.insp-hero__text {
+  min-width: 0;
+}
+.insp-hero__name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+}
+.insp-hero__code {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 属性行：标签在上、值在下（与设计稿 insp-row 一致），值允许换行不截断 */
+.insp-list {
+  margin: 0;
+}
+.insp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.insp-row:last-child {
+  border-bottom: none;
+}
+.insp-row dt {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--el-text-color-secondary);
+}
+.insp-row dd {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  word-break: break-all;
+}
+.insp-val {
+  padding: 1px 6px;
+  font-family: var(--el-font-family-monospace, monospace);
+  font-size: 11.5px;
+  border-radius: var(--el-radius-xs, 4px);
+  background: var(--el-fill-color-light);
+}
+.insp-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.insp-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+}
+.config-insp__empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 20px;
   font-size: 12.5px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  text-align: center;
 }
-
-.group-card__foot {
+.config-insp__empty p {
+  margin: 0;
+}
+.config-insp__empty-icon {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-.group-card__enter {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--card-accent);
-}
-.group-card__arrow {
-  color: var(--card-accent);
-  transition: transform 0.22s ease;
-}
-.group-card:hover .group-card__arrow {
-  transform: translateX(4px);
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--el-radius-full, 9999px);
+  color: var(--el-text-color-placeholder);
+  background: var(--el-fill-color-light);
 }
 
-/* 强调色映射（深浅色自适应） */
-.group-card.is-primary { --card-accent: var(--el-color-primary); --card-accent-soft: var(--el-color-primary-light-9); --card-accent-border: var(--el-color-primary-light-5); }
-.group-card.is-success { --card-accent: var(--el-color-success); --card-accent-soft: var(--el-color-success-light-9); --card-accent-border: var(--el-color-success-light-5); }
-.group-card.is-warning { --card-accent: var(--el-color-warning); --card-accent-soft: var(--el-color-warning-light-9); --card-accent-border: var(--el-color-warning-light-5); }
-.group-card.is-danger { --card-accent: var(--el-color-danger); --card-accent-soft: var(--el-color-danger-light-9); --card-accent-border: var(--el-color-danger-light-5); }
-.group-card.is-info { --card-accent: var(--el-color-info); --card-accent-soft: var(--el-color-info-light-9); --card-accent-border: var(--el-color-info-light-5); }
-/* ============ 详情每行 ============ */
-.d-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+/* 窄屏：先压缩两侧栏，再纵向堆叠（三栏硬挤会把检查器压成一条） */
+@media (max-width: 1180px) {
+  .config-nav {
+    flex-basis: 208px;
+  }
+  .config-insp {
+    flex-basis: 264px;
+  }
 }
-.d-info__icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--el-color-primary);
-}
-.d-info__text {
-  min-width: 0;
-}
-.d-info__name {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  word-break: break-all;
-}
-.d-info__code {
-  margin-left: 6px;
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--el-text-color-secondary);
-}
-.d-info__desc {
-  margin-top: 2px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  word-break: break-all;
+@media (max-width: 1024px) {
+  .system-page {
+    flex-direction: column;
+    height: auto;
+  }
+  .config-nav,
+  .config-insp {
+    flex: none;
+    max-height: 300px;
+  }
+  .config-main {
+    min-height: 460px;
+  }
 }
 
 /* 敏感掩码 */
@@ -1517,11 +1724,7 @@ onMounted(() => {
 /* 尊重系统「减少动态效果」偏好：把本页自己的过渡一并关掉
    （ReTable 的过渡由插件自带的同名媒体查询处理） */
 @media (prefers-reduced-motion: reduce) {
-  .group-cat,
-  .group-viewbtn,
-  .group-card,
-  .group-card__icon,
-  .group-card__arrow {
+  .group-nav__item {
     transition: none;
   }
 }

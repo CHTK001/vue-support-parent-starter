@@ -126,10 +126,10 @@ function mountPage() {
   });
 }
 
-/** 卡片先行：挂载后点击第一个分组卡片，进入详情表格 */
+/** 左栏先行：挂载后点第一个分组，进入该组清单 */
 async function enterGroup(wrapper: ReturnType<typeof mountPage>) {
   await settle(wrapper);
-  await wrapper.find(".group-card").trigger("click");
+  await wrapper.find(".group-nav__item").trigger("click");
   await settle(wrapper);
 }
 
