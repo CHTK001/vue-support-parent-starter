@@ -75,7 +75,7 @@ import { computed, defineAsyncComponent, inject, onActivated, onBeforeUnmount, o
 // TableColumnCtx 是 element-plus 对 el-table 列对象的正式导出类型。
 // 模板上 @row-contextmenu / @cell-contextmenu / @cell-click 的形参必须与它一致，
 // 否则 vue-tsc 报 TS2322（此前这里写的是 any）。
-import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon, ElSelect, ElOption, type TableColumnCtx } from "element-plus";
+import { ElTable, ElTableColumn, ElPagination, ElButton, ElPopover, ElInput, ElCheckbox, ElCheckboxGroup, ElTooltip, ElIcon, ElSelect, ElOption, ElCollapseTransition, type TableColumnCtx } from "element-plus";
 import { Menu, Delete, Edit, Check, Select, Search, ArrowUp, ArrowDown, View, Grid, Rank } from "@element-plus/icons-vue";
 import { useDataSource, type ReDataSource } from "@repo/core";
 import ReEmpty from "../ReEmpty/ReEmpty.vue";
@@ -1284,12 +1284,25 @@ const searchEnabled = computed(() => {
 const searchAreaVisible = computed(() => searchEnabled.value || (props.showSearch && !!parentSlots.search));
 /** searchGap > 0 时搜索区渲染为独立卡片样式（与表格之间露出间距） */
 const searchSeparated = computed(() => (props.searchGap ?? 0) > 0);
-const searchGapStyle = computed(() => (
-  { 
-    marginBottom: `${props.searchGap ?? 0}px` ,
-    borderRadius: "16px"
-    }
-  ));
+/**
+ * 搜索区整体是否收起（只在内置搜索模式成立）。
+ *
+ * <p>{@code #search} 插槽模式下标题行常驻、只有正文收起，所以不能动这块的间距，
+ * 否则「展开/收起」按钮所在的那一行会被下边的表格贴住。</p>
+ */
+const searchAreaCollapsed = computed(() => searchEnabled.value && !searchVisible.value);
+/**
+ * 搜索区间距：收起时归零。
+ *
+ * <p>折叠动画只压 max-height，元素自身的 margin 不在动画里 —— 若留着
+ * {@code searchGap}（两卡模式是 16px），收起后会悬着一条空白，看起来像表格
+ * 「掉下去 16px」。间距跟 {@code .re-table__search} 的 margin-bottom transition 一起
+ * 走，收起动作才是整块一起收。</p>
+ */
+const searchGapStyle = computed(() => ({
+  marginBottom: searchAreaCollapsed.value ? "0px" : `${props.searchGap ?? 0}px`,
+  borderRadius: "16px",
+}));
 function onSearchModelUpdate(value: Record<string, unknown>): void {
   emit("update:searchModel", value);
 }
@@ -5317,7 +5330,15 @@ function measureViewportFillHeight(): number | null {
   let bottom: number;
   let scrollTop = 0;
   if (scroller) {
-    bottom = scroller.getBoundingClientRect().bottom;
+    /**
+     * 滚动容器的 {@code rect.bottom} 是<b>边框外沿</b>，包含 padding-bottom。
+     * 直接拿它当内容下沿，表格会多吃一个 padding（koi 布局的 {@code .main-content}
+     * 是 {@code padding: 8px}，实测每页都多出 8px，主区就此多一条纵向滚动条）。
+     * 减掉内边距与下边框，得到的才是内容区下沿。
+     */
+    const cs = getComputedStyle(scroller);
+    const inset = (parseFloat(cs.paddingBottom) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+    bottom = scroller.getBoundingClientRect().bottom - inset;
     scrollTop = scroller.scrollTop;
   } else if (typeof window !== "undefined") {
     bottom = window.innerHeight;
@@ -5349,10 +5370,82 @@ function ancestorHasSpareRoom(start: HTMLElement): boolean {
 }
 /** 高度观察器句柄 */
 let fillObserver: ResizeObserver | null = null;
+/** 一帧最多量一次的调度句柄（RO 回调只排帧，不直接量） */
+let fillMeasureFrame = 0;
+/** 父容器判定的拖尾定时器 */
+let parentDetectTimer: ReturnType<typeof setTimeout> | undefined;
+/** 上一次父容器判定的时间戳 */
+let lastParentDetectAt = 0;
+/**
+ * 父容器重判定的最小间隔（ms）。
+ *
+ * <p>{@link detectParentHeight} 要读一串 {@code getComputedStyle}、走一遍祖先链
+ * （{@link ancestorHasSpareRoom}）、再找最近滚动容器，是这条链上最贵的一段。
+ * 而「父链有没有确定高度」在同一个页面里几乎是常量：搜索区折叠、分页条增减、
+ * 窗口拖动都只改「表格元素盒高」，不改父链的判定结论。每次尺寸变化都重判，
+ * 等于在动画的每一帧里反复强制样式计算，主线程就被这段读操作占满了。</p>
+ */
+const PARENT_DETECT_GAP_MS = 200;
+
+function cancelFillMeasure(): void {
+  if (fillMeasureFrame) {
+    cancelAnimationFrame(fillMeasureFrame);
+    fillMeasureFrame = 0;
+  }
+  if (parentDetectTimer) {
+    clearTimeout(parentDetectTimer);
+    parentDetectTimer = undefined;
+  }
+}
+
+function runFillMeasure(): void {
+  fillMeasureFrame = 0;
+  const now = typeof performance !== "undefined" ? performance.now() : 0;
+  // 父容器判定：限流 + 拖尾。动画期间落在这条分支上的帧只量表格盒高，
+  // 不再逐帧 getComputedStyle；动画结束后的最后一帧补一次完整判定。
+  if (now - lastParentDetectAt >= PARENT_DETECT_GAP_MS) {
+    lastParentDetectAt = now;
+    detectParentHeight();
+    if (parentDetectTimer) {
+      clearTimeout(parentDetectTimer);
+      parentDetectTimer = undefined;
+    }
+  } else if (!parentDetectTimer) {
+    parentDetectTimer = setTimeout(() => {
+      parentDetectTimer = undefined;
+      lastParentDetectAt = typeof performance !== "undefined" ? performance.now() : 0;
+      detectParentHeight();
+      measureFillHeight();
+    }, PARENT_DETECT_GAP_MS);
+  }
+  // 表格盒高必须逐帧跟：vxe 的 body 高度由这个值驱动，动画期间不跟会出现
+  // 「底部留一条空白、结束时再跳一下」。它只读一次 rect，代价很低。
+  measureFillHeight();
+  // 遮罩只在加载中出现，非加载态一次都不用量（它要读两个 rect + 写 CSS 变量）
+  if (dataLoading.value || props.loading) measureLoadingMask();
+  // 布局切换（v-if）会换掉表格元素，旧引用已失效：重新 observe 才能继续跟随。
+  // 对已观察的元素重复 observe 是空操作，代价可忽略。
+  const el = fillTableEl(mainRef.value);
+  if (el) fillObserver?.observe(el);
+}
+
+/**
+ * 把尺寸变化合并到下一帧再量。
+ *
+ * <p>ResizeObserver 的回调在「本帧布局之后、绘制之前」派发：在回调里直接读 rect
+ * 会拿到刚算好的布局，但随后写回高度又让布局失效 —— 同一帧被迫再排一次。
+ * 折叠动画每帧都会触发 RO，于是每帧两次布局，看着就是卡顿。
+ * 排到 rAF 里量的是上一帧的稳定尺寸，写回也落在下一帧的布局之前，一帧只排一次。</p>
+ */
+function scheduleFillMeasure(): void {
+  if (fillMeasureFrame) return;
+  fillMeasureFrame = requestAnimationFrame(runFillMeasure);
+}
 
 function stopFillObserver(): void {
   fillObserver?.disconnect();
   fillObserver = null;
+  cancelFillMeasure();
 }
 
 function startFillObserver(): void {
@@ -5371,16 +5464,8 @@ function startFillObserver(): void {
    * 「表格元素盒高」，不改变 root 盒高。原来只观察 root，等于这些场景永远不再重测。</p>
    */
   fillObserver = new ResizeObserver(() => {
-    detectParentHeight();
-    measureFillHeight();
-    // 表格盒高 / 表体上沿变了（fill 高度、表头换行、伸缩...）：遮罩的上沿用
-    // 的是 JS 量出的静止值，跟手的表体直角走同一套坐标轴；住在原地上等 loading
-    // 才开始重测是不行的——遮住上沿的更好，等于锁死了表体高度。
-    measureLoadingMask();
-    // 布局切换（v-if）会换掉表格元素，旧引用已失效：重新 observe 才能继续跟随。
-    // 对已观察的元素重复 observe 是空操作，代价可忽略。
-    const el = fillTableEl(mainRef.value);
-    if (el) fillObserver?.observe(el);
+    // 回调里只排帧，不读布局（见 scheduleFillMeasure 的说明）
+    scheduleFillMeasure();
   });
   if (rootRef.value) fillObserver.observe(rootRef.value);
   const tableEl = fillTableEl(mainRef.value);
@@ -6753,37 +6838,49 @@ const iconSelect = Select;
     }"
     :style="rootStyle"
   >
-    <!-- 内置搜索区（search 开启内置 ReSearch；或 showSearch=true 配合 #search 插槽） -->
+    <!-- 内置搜索区（search 开启内置 ReSearch；或 showSearch=true 配合 #search 插槽）
+         显隐走 el-collapse-transition（同 ReSearch 的折叠做法）：max-height 过渡，
+         不再直接 v-show 硬切。外层容器常驻，只折叠真正的那块内容 ——
+         内置搜索模式折整块 ReSearch，#search 插槽模式只折正文、标题行保留（展开/收起按钮在那）。 -->
     <div
       v-if="searchAreaVisible"
-      v-show="!searchEnabled || searchVisible"
       class="re-table__search"
       :style="searchGapStyle"
     >
       <template v-if="searchEnabled">
-        <div v-show="searchVisible">
-          <ReSearch
-            :filters="searchConfig.filters ?? []"
-            :model-value="searchModel ?? {}"
-            :title="searchConfig.title ?? '搜索'"
-            :max="searchConfig.max ?? 0"
-            :btn-mode="searchConfig.btnMode ?? 'icon'"
-            :filter-visible="searchVisible"
-            :show-search-btn="searchConfig.showSearchBtn ?? true"
-            :show-reset-btn="searchConfig.showResetBtn ?? true"
-            :show-batch-delete-btn="false"
-            :show-batch-select-btn="false"
-            @update:model-value="onSearchModelUpdate"
-            @update:filter-visible="searchVisible = $event"
-            @search="onBuiltinSearch"
-            @reset="onBuiltinSearchReset"
-          >
-            <!-- 搜索条左侧导航插槽：把顶部页签 / 切换菜单合并进来 -->
-            <template v-if="$slots['search-nav']" #nav>
-              <slot name="search-nav" />
-            </template>
-          </ReSearch>
-        </div>
+        <ElCollapseTransition>
+          <div v-show="searchVisible">
+            <ReSearch
+              :filters="searchConfig.filters ?? []"
+              :model-value="searchModel ?? {}"
+              :title="searchConfig.title ?? '搜索'"
+              :max="searchConfig.max ?? 0"
+              :btn-mode="searchConfig.btnMode ?? 'icon'"
+              :filter-visible="searchVisible"
+              :show-search-btn="searchConfig.showSearchBtn ?? true"
+              :show-reset-btn="searchConfig.showResetBtn ?? true"
+              :show-batch-delete-btn="false"
+              :show-batch-select-btn="false"
+              @update:model-value="onSearchModelUpdate"
+              @update:filter-visible="searchVisible = $event"
+              @search="onBuiltinSearch"
+              @reset="onBuiltinSearchReset"
+            >
+              <!-- 搜索条左侧导航插槽：把顶部页签 / 切换菜单合并进来 -->
+              <template v-if="$slots['search-nav']" #nav>
+                <slot name="search-nav" />
+              </template>
+              <!-- 「搜索」徽标左侧插槽：页面放标题色条，与徽标并排 -->
+              <template v-if="$slots['search-title-prefix']" #title-prefix>
+                <slot name="search-title-prefix" />
+              </template>
+              <!-- 搜索条右上插槽：页面放「标题 · 条数」「导出」等口径信息 -->
+              <template v-if="$slots['search-title-extra']" #title-extra>
+                <slot name="search-title-extra" />
+              </template>
+            </ReSearch>
+          </div>
+        </ElCollapseTransition>
       </template>
       <template v-else>
         <div v-if="showSearchTitle" class="re-table__search-bar">
@@ -6796,9 +6893,11 @@ const iconSelect = Select;
             <el-icon class="re-table__search-toggle-icon"><ArrowUp v-if="searchVisible" /><ArrowDown v-else /></el-icon>
           </div>
         </div>
-        <div v-show="searchVisible" class="re-table__search-body">
-          <slot name="search" />
-        </div>
+        <ElCollapseTransition>
+          <div v-show="searchVisible" class="re-table__search-body">
+            <slot name="search" />
+          </div>
+        </ElCollapseTransition>
       </template>
     </div>
 
@@ -7478,6 +7577,10 @@ const iconSelect = Select;
           模板里的 `pagination` 会直接解析成 props.pagination，绕过分组配置，
           表现为「配了 config.pagination.enable=false 但分页照旧渲染」。
         -->
+        <!-- 分页区左侧插槽：页面放「范围 · 查询时间」这类列表口径 -->
+        <div v-if="$slots['pagination-extra']" class="re-table__pagination-extra">
+          <slot name="pagination-extra" />
+        </div>
         <div v-if="paginationCfg.enable && !isScrollPaging" class="re-table__pagination">
           <RePagination
             layout="modern"
@@ -7872,6 +7975,9 @@ const iconSelect = Select;
 }
 .re-table__search {
   margin-bottom: 8px;
+  /* 收起时 searchGap 归零（见 searchGapStyle），间距与 max-height 一起过渡：
+     否则折叠动画只压高度，收起完成后间距突然消失，表格会跳一下 */
+  transition: margin-bottom var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
 /* ============ 默认表格视觉增强 ============
    只作用于 .re-table 内的 vxe-table，全部走 koi / element-plus 令牌，亮暗自适应：
@@ -7908,6 +8014,22 @@ const iconSelect = Select;
      overflow:visible，方角会直接戳到圆角外面 —— 视觉上就是「表格没有圆角」。
      element 的 el-table 自带 overflow:hidden，所以那边看不出问题。 */
   overflow: hidden;
+}
+/**
+ * 外框描边跟着圆角走。
+ *
+ * <p>vxe 的表格外框不是元素的 border，而是盖在表格上的
+ * {@code .vxe-table--border-line}（absolute + inset 0 + 1px 实线 border 的直角矩形）。
+ * 根容器为了裁掉方角开了 {@code overflow: hidden}，那条直角框线在四个角上被
+ * 圆角裁掉一截 —— 看到的就是「圆角处边框断了、四条边在离角几像素的地方消失」。</p>
+ *
+ * <p>给它同一份圆角，1px 描边就会沿着圆弧画完；裁剪半径与它自身半径一致，
+ * 不会多裁。</p>
+ */
+.re-table .vxe-table .vxe-table--border-line {
+  /* 不写 inherit：边框线挂在 --render-default 里面，中间隔了一层 0 圆角的容器，
+     inherit 拿到的会是 0。直接给与根容器相同的半径。 */
+  border-radius: calc(var(--rt-radius) + 2px);
 }
 /* 行高：两套引擎本来就一致（同一页并排实测 element 59 / vxe 59），
    所以这里不需要"把 vxe 压到 element 的值"——那个"vxe 比 element 高 8px"的说法
@@ -8144,7 +8266,10 @@ const iconSelect = Select;
    padding: var(--rt-padding, 12px);
    border: 1px solid var(--el-border-color-lighter);
    */
-  transition: box-shadow var(--rt-duration, 200ms) var(--rt-ease, ease);
+  /* margin-bottom 与折叠动画同步：收起时 searchGap 归零（见 searchGapStyle），
+     间距若瞬时消失会在动画第一帧就把表格顶上去 16px */
+  transition: box-shadow var(--rt-duration, 200ms) var(--rt-ease, ease),
+    margin-bottom var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
 .re-table--separated > .re-table__main {
   background: var(--rt-bg);
@@ -8394,7 +8519,9 @@ const iconSelect = Select;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: var(--rt-gap);
+  /* 表格内容区比脚行的留白值钱：与表格之间 8px 已经足够分开两块区域，
+     12px 在「一屏 10 行」的页面上换掉的就是半行数据。 */
+  margin-top: var(--rt-gap-sm);
   gap: var(--rt-gap);
   flex-wrap: wrap;
   /* ⚠ 抬成高于表格固定列浮层的一层。
@@ -8411,7 +8538,10 @@ const iconSelect = Select;
   /* 抵消根容器内边距，让分页行保持在原来的容器边缘位置 */
   margin-left: calc(var(--rt-padding, 12px) * 1);
   margin-right: calc(var(--rt-padding, 12px) * 1);
-  margin-bottom: calc(var(--rt-padding, 12px) * 1);
+  /* 下留白减半：根容器自身已有 padding-bottom: 12px，这层再叠 12px 等于分页行下面
+     空出 24px，比表格上方的留白还厚。6px 足够把分页行从卡片底边上托起来，
+     省下的 6px 在 fill 模式下直接变成表体高度。 */
+  margin-bottom: calc(var(--rt-padding, 12px) / 2);
 }
 .re-table__toolbar {
   display: flex;
@@ -8425,8 +8555,8 @@ const iconSelect = Select;
 /* ============ 分页条（与表格同一套视觉语言） ============
    旧样式问题：总数在左、页码在右但都是 30px 方块 + 4px 小圆角，
    和 12px 圆角 + 44px 行高 + 柔和投影的新表格明显不搭。
-   现在：左侧「共 N 条」次要文字，右侧 32px 胶囊页码（选中为主色实心），
-   尺寸跟随 default/compact（34/30），全部走令牌，暗色自动适配。 */
+   现在：左侧「共 N 条」次要文字，右侧胶囊页码（选中为主色实心），
+   整行跟随档位 default 32 / compact 28 / mini 24，全部走令牌，暗色自动适配。 */
 .re-table__pagination {
   display: flex;
   align-items: center;
@@ -8436,10 +8566,23 @@ const iconSelect = Select;
   order: 0;
   position: relative;
   z-index: 1;
-  /* 脚行高度：把原先 12px 的上下留白收小（表格内容区的空间很贵），
-     分页本身的 32px + 胶囊内 4px 已足够把按钮托齐。 */
-  padding: 6px 0;
+  /* 脚行高度：整行 = 胶囊（30px 按钮 + 上下各 1px 内衬）= 32px，与同排右侧的
+     方块工具按钮（32）严格同高。此前是 2px 外衬 + 4px 胶囊内衬 + 32px 按钮 = 44px，
+     多出来的 12px 在 fill 模式下就是「半行数据」——表格内容区比页脚留白值钱。 */
+  padding: 0;
   font-size: 13px;
+}
+/* 分页区左侧的自定义口径（范围 / 查询时间 / 导出等）：
+   与分页同 order（DOM 顺序在分页之后），margin-right:auto 把它和分页一起留在左侧，
+   工具区仍靠右 */
+.re-table__pagination-extra {
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
 }
 /*
  * 分页本体样式全部来自 RePagination（layout=modern），此处只做两件事：
@@ -8473,14 +8616,28 @@ const iconSelect = Select;
  */
 .re-table .re-table__pagination .rm-pager {
   margin-right: auto;
+  /* 胶囊内衬 4px → 1px：页码按钮压到 30 之后，整行 = 30 + 2 = 32，与同排右侧的
+     方块工具按钮（32）严格同高。RePagination 的 Modern 是 scoped 样式
+     （.rm-pager[data-v] 权重 (0,2,0)），这里用 3 个类压过它，不依赖注入顺序。 */
+  padding: 1px 4px;
+}
+/* 页码 / 每页条数按钮 32 → 30：省下的 2px 让整行落在 32 上（胶囊 1px 内衬各一边），
+   与右侧方块按钮、与表格右下角分页行的高度刻度对齐。
+   ⚠ 只作用于默认档：Modern 的 scoped 选择器权重是 (0,2,0)，small 档
+   `.rm-pager--small .rm-pager__btn[data-v]` 为 (0,3,0)，本文件非 scoped 要压过它必须
+   叠到 4 个类 —— 那样就会把紧凑/迷你档的 28/24 一起吃掉。所以用 :where() 把
+   「非紧凑 / 非迷你」这段选择器降成 0 权重，只保留 4 个类的权重来赢 scoped。 */
+.re-table:where(:not(.re-table--compact, .re-table--mini)) .re-table__pagination .rm-pager .rm-pager__btn,
+.re-table:where(:not(.re-table--compact, .re-table--mini)) .re-table__pagination .rm-pager .rm-pager__size-btn {
+  height: 30px;
 }
 .re-table .re-table__pagination .rm-pager__btn--active {
   font-weight: 600;
 }
 /* 分页行右侧工具按钮（列设置 / 表格设置 / 刷新）是 ReButton square：默认 30，
-   而分页的页码按钮与「每页条数」触发器是 32/30 的 Modern 族。截图对照（运行记录页）：
-   右侧三颗方块按钮比页码矮 2px 同一行看着错位。这里把分页行里的 square 统一抬到 32，
-   与页码按钮同高。图标仍 14 不变。
+   而分页行整行是 32（页码按钮 30 + 胶囊上下各 1px 内衬）。截图对照（运行记录页）：
+   右侧三颗方块按钮比整行矮 2px、同一行看着错位。这里把分页行里的 square 统一抬到 32，
+   与分页行同高。图标仍 14 不变。
    权重 (0,4,0)+类名双保：ReButton Square 是 scoped（.rs-btn--size-default[data-v] 为 (0,2,0)），
    按注入顺序后插入者胜并不可靠，故用 .re-table 祖选择器 + 双类提到 (0,4,0)。
    紧凑模式（small）下分页 28、方块 28，天然对齐不动。 */
@@ -8500,6 +8657,17 @@ const iconSelect = Select;
   border-radius: 8px;
   font-size: 12px;
 }
+/* 紧凑 / 迷你档的胶囊内衬归零：按钮 28/24 自身就是整行高度，与这两档的方块按钮
+   （28/24）同高。默认档的 1px 内衬只服务于「30 + 2 = 32」那条刻度。 */
+.re-table--compact .re-table__pagination .rm-pager,
+.re-table--mini .re-table__pagination .rm-pager {
+  padding: 0 4px;
+}
+/* 「每页条数」触发器在 Modern 里只有迷你档有 24px 规则，small 档仍是 30 ——
+   比同档页码（28）高 2px，会把紧凑模式的胶囊整行顶到 30。这里补齐 small 档。 */
+.re-table--compact .re-table__pagination .rm-pager__size-btn {
+  height: 28px;
+}
 /* ============ 滚动分页状态条（替代页码菜单的位置） ============
    可点击（触底事件的兜底：页面滚动 / 视图卡片布局没有 vxe 内滚，触底永远不会来），
    但视觉上是次要信息文字，不做大按钮——主交互是滚动本身，按钮只是保底通道。
@@ -8511,8 +8679,10 @@ const iconSelect = Select;
   order: 0;
   position: relative;
   z-index: 1;
-  /* 与 .re-table__pagination 同口径缩减：状态条的按钮只需 30px 左右。 */
-  padding: 6px 0;
+  /* 状态条是次要文字按钮，不跟页码胶囊强对齐：胶囊是 32（按钮 30 + 内衬 1），
+     这里是 26 + 上下各 2px = 30。两者都是「表格底边下方的一行点缀」，
+     高度差 2px 在同排没有方块按钮时不构成错位感（实测 /#/upload-tasks 紧凑档）。 */
+  padding: 2px 0;
 }
 .re-table__scroll-status {
   display: inline-flex;

@@ -753,7 +753,6 @@ onMounted(() => {
       :loader="loadDetail"
       :columns="detailColumns"
       :pagination="false"
-      :layout-table="{ minHeight: 0 }"
       row-key="sysSettingId"
       :row-draggable="!isProduct"
       @row-sort="handleRowSort"
