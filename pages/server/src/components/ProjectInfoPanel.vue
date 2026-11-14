@@ -318,10 +318,12 @@ const endpointGroups = computed<EndpointGroup[]>(() => {
       action: props.apmObservable ? '观测' : '—',
     });
   }
-  if (props.apmObservable) {
+  // 链路追踪：接了 APM 就展开 span 树；没接但有 Actuator 时回退读请求记录，
+  // 口径与右键「观测与诊断 → APM 观测 → 链路追踪」一致，面板不把可用入口藏起来
+  if (props.apmObservable || props.endpoint?.actuator) {
     groups[1].rows.push({
       name: '链路追踪',
-      text: '树状展开',
+      text: props.apmObservable ? '树状展开' : '请求记录',
       tone: 'muted',
       command: 'traces',
       enabled: true,
@@ -735,19 +737,29 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
 .pip-cols {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  /* 两行由两栏共享：左「基本信息/变量摘要」与右「观测入口/源码与投放」逐卡对齐，
+     观测入口和基本信息严格同高（flex 平分只能让每栏内部相等，跨栏会差几像素） */
+  grid-template-rows: auto auto;
   align-items: stretch;
   gap: 8px;
 }
 .pip-stack {
-  display: flex;
-  flex-direction: column;
+  grid-row: span 2;
+  display: grid;
+  grid-template-rows: subgrid;
   gap: 8px;
   min-height: 0;
 }
-/* 两栏等高（stretch）后，各栏内卡片平分高度：左「基本信息/变量摘要」与右
-   「观测入口/源码与投放」逐卡对齐，观测入口不再比基本信息矮一截 */
-.pip-stack > .pip-card {
-  flex: 1;
+/* 老内核没有 subgrid 时退回整栏平分，至少不会塌掉 */
+@supports not (grid-template-rows: subgrid) {
+  .pip-stack {
+    display: flex;
+    flex-direction: column;
+  }
+  .pip-stack > .pip-card {
+    flex: 1;
+    min-height: 0;
+  }
 }
 .pip-card {
   display: flex;
@@ -953,7 +965,9 @@ const bodyClass = computed(() => ['pip-body', `type-${props.project.projectType 
 
 /* ---------------- 响应式 ---------------- */
 @media (max-width: 900px) {
-  .pip-cols { grid-template-columns: minmax(0, 1fr); }
+  /* 单栏时不再共享行，两栏各自成列，避免 subgrid 轨道错位 */
+  .pip-cols { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .pip-stack { grid-row: auto; display: flex; flex-direction: column; }
   .pip-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

@@ -31,6 +31,9 @@
                 <button type="button" class="rail-tool" title="刷新列表" :disabled="loading" @click="loadList">
                   <ReIcon name="Refresh" :size="12" />
                 </button>
+                <button type="button" class="rail-tool" title="绑定本机（该发布动作在本机执行，不经 SSH）" :disabled="bindingLocal" @click="bindLocalHost">
+                  <ReIcon name="Monitor" :size="12" />
+                </button>
                 <button type="button" class="rail-tool is-primary" title="新增项目" @click="openCreateDialog">
                   <ReIcon name="Plus" :size="12" />
                 </button>
@@ -1525,7 +1528,7 @@ import type { ReTabsItem, ReTabsContextItem } from '@repo/ui/re-tabs';
 import ReRailSplit, { readRailWidth } from '@repo/ui/re-rail-split';
 import { trackTask, type ProcessTask } from '../../utils/processTasks';
 import { errorText, toastError } from '../../utils/errors';
-import { downloadHostFile } from '../../api';
+import { downloadHostFile, fetchLocalAddress, saveHost } from '../../api';
 import { releaseSse } from '../../services/releaseRealtime';
 import HostFileManager from '../../components/HostFileManager.vue';
 import HostFilePicker from '../../components/HostFilePicker.vue';
@@ -1625,6 +1628,11 @@ const releaseHostId = ref(0);
 const releaseHostLabel = ref('');
 /** 发布绑定的主机平台（LINUX / WINDOWS），传给文件管理器决定分隔符 */
 const hostPlatform = ref('LINUX');
+
+/** 主机列表（本机入口用；识别 LOCAL 采集方式的主机） */
+const hosts = ref<any[]>([]);
+/** 「绑定本机」进行中标记，防止连点 */
+const bindingLocal = ref(false);
 
 // ---- 状态分组 / 筛选 / 搜索（纯前端，不额外发请求） ----
 type StatusKey = 'running' | 'stopped' | 'disabled' | 'ready';
@@ -2078,8 +2086,9 @@ async function loadHostOs() {
     // 路径选择器要用它打开该主机的文件管理，先记住
     releaseHostId.value = rel.hostId;
     const hostRes = await http().get('/ms/server/host');
-    const hosts = unwrapResult<any[]>(hostRes) || [];
-    const host = hosts.find((h) => h.id === rel.hostId);
+    const hostsAll = unwrapResult<any[]>(hostRes) || [];
+    hosts.value = hostsAll;
+    const host = hostsAll.find((h) => h.id === rel.hostId);
     if (host) {
       releaseHostLabel.value = String(host.serverName || host.serverHostName || host.name || '');
       const os = String(host.serverHostOsType || '').toUpperCase();
@@ -2090,6 +2099,70 @@ async function loadHostOs() {
     }
   } catch (e) {
     // 识别失败保持默认 linux
+  }
+}
+
+/** 主机是否本机（采集方式 LOCAL：平台所在机器，不经 SSH 执行） */
+function isLocalHost(h: any): boolean {
+  return String(h?.serverHostCollectMode || '').toUpperCase() === 'LOCAL';
+}
+
+/**
+ * 「绑定本机」：把当前发布的主机绑到平台所在机器。
+ *
+ * <p>已存在本机主机就直接回填；否则按后端 {@code /local-address} 首选用网卡地址
+ * （拿不到退回 127.0.0.1）新建一条 LOCAL 主机，再用发布更新接口把 hostId/hostIp
+ * 绑到该主机。采集方式决定执行通道，平台类型由后端按运行机器 {@code os.name} 覆盖。
+ * 成功后重拉主机信息并刷新项目列表（项目详情里的发布主机显示随之更新）。</p>
+ */
+async function bindLocalHost() {
+  if (bindingLocal.value) return;
+  bindingLocal.value = true;
+  try {
+    let host = hosts.value.find(isLocalHost) || null;
+    if (!host) {
+      let address = '';
+      try {
+        address = (await fetchLocalAddress()) || '';
+      } catch {
+        address = '';
+      }
+      host = await saveHost(null, {
+        serverHostName: '本机（服务端）',
+        serverHostAddress: address || '127.0.0.1',
+        serverHostPort: 22,
+        serverHostOsType: 'LINUX', // 占位，后端按本机 OS 覆盖
+        serverHostCollectMode: 'LOCAL',
+        serverHostSshEnabled: 1,
+        serverHostRemoteEnabled: 1,
+        serverHostStatus: 1,
+        serverHostDescription: '平台所在机器：发布动作本地执行，不经 SSH',
+      } as any);
+      hosts.value = [...hosts.value, host];
+    }
+    if (!host) {
+      toastError(new Error('未创建成功'), '绑定本机失败');
+      return;
+    }
+    const relRes = await http().get(`${BASE}/list`);
+    const releases = unwrapResult<any[]>(relRes) || [];
+    const rel = releases.find((r) => r.id === releaseId.value);
+    await http()
+      .put(`${BASE}/${releaseId.value}`)
+      .data({
+        hostId: host.id,
+        hostIp: host.serverHostAddress,
+        releaseName: rel?.releaseName ?? null,
+      } as any);
+    releaseHostId.value = host.id;
+    releaseHostLabel.value = String(host.serverHostName || host.serverHostAddress || '');
+    hostPlatform.value = String(host.serverHostOsType || 'LINUX').toUpperCase() === 'WINDOWS' ? 'WINDOWS' : 'LINUX';
+    message.success(`已绑定本机（${host.serverHostAddress}），发布动作本地执行`);
+    loadList();
+  } catch (e: any) {
+    toastError(e, '绑定本机失败');
+  } finally {
+    bindingLocal.value = false;
   }
 }
 
