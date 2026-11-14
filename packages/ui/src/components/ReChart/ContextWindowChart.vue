@@ -1,5 +1,5 @@
 <template>
-  <div ref="rootRef" class="re-chart-context" :style="{ height }">
+  <div ref="rootRef" class="re-chart-context" :class="{ 'is-compact': !chrome }" :style="{ height }">
     <div v-if="!vm" class="re-chart-context__empty">
       <span class="re-chart-context__empty-title">暂无可展示的上下文数据</span>
       <span class="re-chart-context__empty-desc">
@@ -8,8 +8,8 @@
     </div>
 
     <template v-else>
-      <!-- 头部：来源 + 实时徽标 + 两种画法切换 -->
-      <header class="re-chart-context__head">
+      <!-- 头部：来源 + 实时徽标 + 三种画法切换（宿主自带抬头时整块不渲染） -->
+      <header v-if="chrome" class="re-chart-context__head">
         <div class="re-chart-context__source">
           <span class="re-chart-context__source-name">{{ sourceName }}</span>
           <span v-if="sourceGroup" class="re-chart-context__source-group">{{ sourceGroup }}</span>
@@ -34,7 +34,7 @@
       </header>
 
       <!-- 统计区 -->
-      <div class="re-chart-context__stats">
+      <div v-if="chrome" class="re-chart-context__stats">
         <div class="re-chart-context__stat">
           <span class="re-chart-context__stat-label">已用</span>
           <span class="re-chart-context__stat-value">{{ formatTokens(vm.used) }}</span>
@@ -79,8 +79,8 @@
           @mousemove="onPointerMove"
           @focus="onSliceEnter($event, cell.slice)"
           @blur="onPointerLeave"
-          @click="onSliceClick"
-          @keydown.enter="onSliceClick"
+          @click="onSliceClick(cell.slice)"
+          @keydown.enter="onSliceClick(cell.slice)"
         >
           <span
             v-if="cell.w > 64 && cell.h > 30"
@@ -98,7 +98,7 @@
 
       <!-- 画法 B：点阵图（200 格，同一份数据） -->
       <div
-        v-else
+        v-else-if="viewMode === 'dots'"
         class="re-chart-context__dots"
         :class="{ 'is-dimmed': !!hoveredKey }"
         :aria-label="`${DOT_COUNT} 格点阵，每格约 ${perDotText} tokens`"
@@ -117,12 +117,55 @@
           :style="{ background: dot.color }"
           @mouseenter="dot.slice && onSliceEnter($event, dot.slice)"
           @mousemove="onPointerMove"
-          @click="onSliceClick"
+          @click="onSliceClick(dot.slice)"
         />
       </div>
 
+      <!--
+        画法 C：水位仪表。
+        左罐从底往上按占用堆叠、剩余留空；右侧给一个主读数 + 前几类占比。
+        和面积图/点阵图看的是同一份 slices，只是把「还剩多少」摆到最前面。
+      -->
+      <div v-else class="re-chart-context__gauge" @mouseleave="onPointerLeave">
+        <div
+          class="re-chart-context__gauge-tank"
+          role="img"
+          :aria-label="`已用 ${percentText}%，窗口 ${formatTokens(vm.total)}`"
+        >
+          <span
+            v-for="s in sortedSlices"
+            :key="s.key"
+            class="re-chart-context__gauge-seg"
+            :class="{
+              'is-free': s.kind === 'free',
+              'is-dim': isDimSlice(s),
+              'is-active': hoveredKey === s.key,
+              'is-clickable': clickToExpand,
+            }"
+            :data-key="s.key"
+            :style="{ flexGrow: s.tokens, background: sliceColor(s) }"
+            @mouseenter="onSliceEnter($event, s)"
+            @mousemove="onPointerMove"
+            @click="onSliceClick(s)"
+          />
+        </div>
+        <div class="re-chart-context__gauge-side">
+          <div class="re-chart-context__gauge-read">
+            <b>{{ percentText }}%</b>
+            <span>已用 {{ formatTokens(vm.used) }} / {{ formatTokens(vm.total) }}</span>
+          </div>
+          <ul class="re-chart-context__gauge-rows">
+            <li v-for="row in gaugeRows" :key="row.key">
+              <i :style="{ background: row.color }" />
+              <span>{{ row.label }}</span>
+              <b>{{ row.pct }}%</b>
+            </li>
+          </ul>
+        </div>
+      </div>
+
       <!-- 图例 -->
-      <footer class="re-chart-context__legend">
+      <footer v-if="chrome" class="re-chart-context__legend">
         <span
           v-for="item in legend"
           :key="item.kind"
@@ -183,14 +226,16 @@
 /**
  * 上下文窗口（ReChart type="context"）。
  *
- * 同一份 `{ used, total, slices }` 数据的**两种画法**，切换按钮在头部：
+ * 同一份 `{ used, total, slices }` 数据的**三种画法**，切换按钮在头部：
  *  - `area`：面积图，每块面积 ∝ token 占比（自实现 slice & dice treemap，
  *    不引第三方布局库；宽度用 ResizeObserver 实测，块大小随容器变）；
  *  - `dots`：点阵图，200 格固定总量，每格代表 0.5%，颜色与面积图完全一致，
- *    所以两种画法看的是同一件事，只是细粒度不同。
+ *    所以两种画法看的是同一件事，只是细粒度不同；
+ *  - `gauge`：水位仪表，左侧竖向罐体按占用堆叠、右侧给主读数与前几类占比，
+ *    把「还剩多少」摆到最前面。
  *
  * 剩余空间：`total - used` 在面板内部补齐（见 normalizeContextWindow），
- * 保证两种画法的格子/面积总和都等于窗口总量。
+ * 保证三种画法的格子/面积/水位总和都等于窗口总量。
  *
  * 交互口径：
  *  - 悬停某块时，**同类别**的块保持清晰、其余类别虚化（便于看清「这一组占了多少」）；
@@ -198,9 +243,9 @@
  *    小块（尺寸不足不显示标签）同样能看全；
  *  - `clickToExpand`（默认开）点击任意块即在图下方摊开全部切片清单，不弹对话框。
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import ContextModeIcon from "./ContextModeIcon.vue";
-import type { ContextSlice, ReChartContextData } from "./types";
+import type { ContextSlice, ContextViewMode, ReChartContextData } from "./types";
 import {
   assignDots,
   formatTokens,
@@ -221,16 +266,44 @@ const props = withDefaults(
      * 关掉后图只读：不响应点击，也没有展开区。
      */
     clickToExpand?: boolean;
+    /** 初始画法；宿主传新值时跟随切换（受控），切换时另发 mode-change */
+    mode?: ContextViewMode;
+    /** 是否渲染自带的头部 / 统计 / 图例（默认 true）；宿主自带抬头时置 false */
+    chrome?: boolean;
   }>(),
-  { height: "100%", clickToExpand: true },
+  { height: "100%", clickToExpand: true, mode: "area", chrome: true },
 );
 
-/** 两种画法 */
-const MODES = [
-  { key: "area" as const, label: "面积图" },
-  { key: "dots" as const, label: "点阵图" },
+const emit = defineEmits<{
+  /** 切换画法（受控用法下由宿主写回 mode） */
+  (e: "mode-change", mode: ContextViewMode): void;
+  /** 点了某个切片（宿主可据此过滤明细；是否展开仍由 clickToExpand 决定） */
+  (e: "context-click", slice: ContextSlice): void;
+}>();
+
+/** 三种画法：拼贴面积 / 点阵密度 / 水位仪表 */
+const MODES: Array<{ key: ContextViewMode; label: string }> = [
+  { key: "area", label: "拼贴面积" },
+  { key: "dots", label: "点阵密度" },
+  { key: "gauge", label: "水位仪表" },
 ];
-const viewMode = ref<"area" | "dots">("area");
+
+/** 受控 + 非受控两用：宿主传 mode 就跟随，点击时一律发事件 */
+const innerMode = ref<ContextViewMode>(props.mode);
+watch(
+  () => props.mode,
+  (mode) => {
+    if (mode) innerMode.value = mode;
+  },
+);
+const viewMode = computed<ContextViewMode>({
+  get: () => innerMode.value,
+  set: (mode) => {
+    if (innerMode.value === mode) return;
+    innerMode.value = mode;
+    emit("mode-change", mode);
+  },
+});
 
 /** 点阵固定格数：200 格 = 每格 0.5%，肉眼可数又不至于糊成一片 */
 const DOT_COUNT = 200;
@@ -266,22 +339,27 @@ const expanded = ref(false);
 const rootRef = ref<HTMLElement | null>(null);
 
 /** 悬停块所属类别：同类别的块保持清晰，其余虚化 */
-const hoveredKind = computed<string | null>(() => {
+/** 悬停中的那一块本身（拿不到 key 时视为没有命中） */
+const hoveredSlice = computed<ContextSlice | null>(() => {
   const key = hoveredKey.value;
   if (!key) return null;
-  const hit = (vm.value?.slices ?? []).find((s) => s.key === key);
-  return hit ? (hit.kind ?? "other") : null;
+  return (vm.value?.slices ?? []).find((s) => s.key === key) ?? null;
 });
 
 /**
  * 该切片是否应虚化。
  *
- * 只虚化**不同类别**的块：同一组（同 kind）的块一起保持清晰，
+ * 给了 kind 的按**类别**分组：同一组（同 kind）的块一起保持清晰，
  * 才能回答「这一组总共占了多少」，而不是只剩鼠标下那一块孤零零地亮着。
+ * 没给 kind 的宿主（每个切片本身就是一类，比如控制台的五个构成项）
+ * 按**单块**处理：悬停一块，其余全部虚化。
  */
 function isDimSlice(slice?: ContextSlice | null): boolean {
-  if (!hoveredKey.value || !slice) return false;
-  return (slice.kind ?? "other") !== (hoveredKind.value ?? "other");
+  const hovered = hoveredSlice.value;
+  if (!hovered || !slice) return false;
+  if (slice.key === hovered.key) return false;
+  if (hovered.kind && slice.kind) return slice.kind !== hovered.kind;
+  return true;
 }
 
 /** 悬停浮层：位置相对组件根节点，避免被父级 overflow 裁掉 */
@@ -318,7 +396,9 @@ function onPointerLeave(): void {
   tip.visible = false;
 }
 
-function onSliceClick(): void {
+function onSliceClick(slice?: ContextSlice | null): void {
+  // 先发事件：宿主可能要用它过滤明细（面板点一下只看这一类），与是否展开无关
+  if (slice) emit("context-click", slice);
   if (!props.clickToExpand) return;
   expanded.value = !expanded.value;
 }
@@ -364,31 +444,41 @@ function cellStyle(cell: { x: number; y: number; w: number; h: number; slice: Co
     height: `${cell.h}px`,
     // 底色提到 22%：浅色类（橙/青）在 16% 时几乎与白底同色，
     // 叠加下面按亮度压深的文字色，11px 标签才看得清。
-    background: free ? "var(--el-fill-color, #eef2f7)" : withAlpha(color, 0.22),
-    borderColor: free ? "var(--el-border-color-light, #dbe2ea)" : withAlpha(color, 0.55),
+    background: free ? "var(--el-fill-color, #eef2f7)" : tint(color, 22),
+    borderColor: free
+      ? "var(--el-border-color-light, #dbe2ea)"
+      : tint(color, 55),
     color: free ? "var(--el-text-color-secondary, #94a3b8)" : readableTextColor(color),
   };
 }
 
-/** #rrggbb + alpha → rgba()（不引 color 库，本图颜色全是固定 hex） */
-function withAlpha(hex: string, alpha: number): string {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex);
-  if (!m) return hex;
+/**
+ * 透明淡染：hex 直接算 rgba（jsdom 与其它的计算属性都认），
+ * 宿主传 `var(--el-color-*)` 时取不到通道值，退回 `color-mix` 让浏览器算。
+ */
+function tint(color: string, pct: number): string {
+  const rgb = hexToRgb(color);
+  if (!rgb) return `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${(pct / 100).toFixed(2)})`;
+}
+
+/** #rrggbb → 通道值；不是 hex（如 CSS 变量）时返回 null */
+function hexToRgb(color: string): [number, number, number] | null {
+  const m = /^#([0-9a-f]{6})$/i.exec(color.trim());
+  if (!m) return null;
   const n = parseInt(m[1], 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
 /**
  * 文字色：直接用品类色会「浅色底 + 浅色字」糊成一片（橙 #f59e0b 最明显）。
  *
- * 按感知亮度把颜色压深到 0.42 以内，再往墨蓝方向混一点，
- * 这样同一套配色在 22% 透明底上仍有足够对比度。
+ * hex 按感知亮度压深到 0.42 以内再往墨蓝混一点；宿主给的 CSS 变量取不到 RGB，
+ * 统一往墨蓝方向混 72%——中亮度的橙/青被压深、深色不变，浅底上仍有足够对比度。
  */
-function readableTextColor(hex: string): string {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex);
-  if (!m) return "var(--el-text-color-primary, #1f2937)";
-  const n = parseInt(m[1], 16);
-  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+function readableTextColor(color: string): string {
+  const rgb = hexToRgb(color);
+  if (!rgb) return `color-mix(in srgb, ${color} 72%, #0f172a)`;
   const lum = (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255;
   const factor = lum > 0.42 ? 0.42 / Math.max(lum, 0.01) : 1;
   // 15 ≈ #0f172a 的通道值，用来抵消压深后偏灰的问题
@@ -445,6 +535,27 @@ const legend = computed(() => {
     }));
 });
 
+/**
+ * 水位仪表右侧读数：类别聚合后取前三，其余并成一行。
+ * 窄栏（约 300px）里五行会挤成一条，三行 + 合计才看得清。
+ */
+const gaugeRows = computed(() => {
+  const rows = legend.value;
+  if (rows.length <= 4) {
+    return rows.map((r) => ({ key: r.kind, label: r.label, color: r.color, pct: r.pct }));
+  }
+  const rest = rows.slice(3);
+  return [
+    ...rows.slice(0, 3).map((r) => ({ key: r.kind, label: r.label, color: r.color, pct: r.pct })),
+    {
+      key: "__rest__",
+      label: `其余 ${rest.length} 类`,
+      color: "var(--el-text-color-placeholder, #cbd5e1)",
+      pct: rest.reduce((sum, r) => sum + r.pct, 0),
+    },
+  ];
+});
+
 /* ==================== 尺寸实测 ==================== */
 
 let observer: ResizeObserver | null = null;
@@ -481,6 +592,21 @@ onBeforeUnmount(() => {
   min-width: 0;
   font-size: 13px;
   color: var(--el-text-color-primary, #1f2937);
+}
+
+/* 宿主自带抬头/图例时只留画布：去掉 260px 的最小高度与块间距，
+   高度完全由宿主给（控制台右栏是 132px，不能凭空撑高） */
+.re-chart-context.is-compact {
+  min-height: 0;
+  gap: 0;
+}
+
+/* 紧凑模式（宿主只留画布）下三个视图都不得自带最小高度：
+   控制台右栏给的是 132px，160px 的下限会直接顶出容器 */
+.re-chart-context.is-compact .re-chart-context__area,
+.re-chart-context.is-compact .re-chart-context__dots,
+.re-chart-context.is-compact .re-chart-context__gauge {
+  min-height: 0;
 }
 
 /* ---- 头部 ---- */
@@ -681,6 +807,105 @@ onBeforeUnmount(() => {
 }
 .re-chart-context__dot:hover {
   transform: scale(1.25);
+}
+
+/* ---- 水位仪表 ---- */
+.re-chart-context__gauge {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 10px;
+  min-height: 116px;
+  min-width: 0;
+}
+.re-chart-context__gauge-tank {
+  flex: 0 0 44px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--el-fill-color-lighter, #f8fafc);
+  box-shadow: inset 0 0 0 1px var(--el-border-color-extra-light, #eef2f7);
+}
+.re-chart-context__gauge-seg {
+  flex-basis: 0;
+  min-height: 2px;
+  border-radius: 4px;
+  transition: opacity 0.18s ease, flex-grow 0.3s ease, box-shadow 0.18s ease;
+}
+/* 剩余空间只是底噪：看得见罐子有多空，但不该抢已用的色 */
+.re-chart-context__gauge-seg.is-free {
+  opacity: 0.3;
+}
+.re-chart-context__gauge-seg.is-dim {
+  opacity: 0.16;
+}
+.re-chart-context__gauge-seg.is-active {
+  box-shadow: inset 0 0 0 1.5px var(--el-bg-color, #fff);
+}
+.re-chart-context__gauge-seg.is-clickable {
+  cursor: pointer;
+}
+.re-chart-context__gauge-side {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+}
+.re-chart-context__gauge-read {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.re-chart-context__gauge-read b {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.re-chart-context__gauge-read span {
+  font-size: 11px;
+  color: var(--el-text-color-secondary, #94a3b8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.re-chart-context__gauge-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.re-chart-context__gauge-rows li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--el-text-color-regular, #64748b);
+  min-width: 0;
+}
+.re-chart-context__gauge-rows i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+.re-chart-context__gauge-rows span {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.re-chart-context__gauge-rows b {
+  color: var(--el-text-color-primary, #1f2937);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- 图例 ---- */

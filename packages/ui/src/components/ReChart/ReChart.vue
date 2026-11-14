@@ -34,13 +34,46 @@
       :theme="theme"
     />
 
-    <!-- 内置视图 2：上下文窗口（面积图 / 点阵图，同一份数据的两种画法） -->
+    <!-- 内置视图 2：上下文窗口（拼贴面积 / 点阵密度 / 水位仪表，同一份数据的三种画法） -->
     <ContextWindowChart
       v-else-if="activeType === 'context'"
       class="re-chart__body"
       :data="contextData"
       :height="height"
       :click-to-expand="contextClickToExpand"
+      :mode="contextMode"
+      :chrome="contextChrome"
+      @mode-change="(m) => emit('context-mode-change', m)"
+      @context-click="(s) => emit('context-click', s)"
+    />
+
+    <!-- 内置视图 3：关系星图（分组聚簇 + 连线，节点大小 = 权重） -->
+    <AtlasChart
+      v-else-if="activeType === 'atlas'"
+      class="re-chart__body"
+      :data="atlasData"
+      :height="height"
+      :theme="theme"
+      :zoomable="zoomable"
+      @select="(p) => emit('select', { type: 'atlas', ...p })"
+    />
+
+    <!-- 内置视图 4：权限轨道（同心弧量表，弧长 = 覆盖率） -->
+    <OrbitChart
+      v-else-if="activeType === 'orbit'"
+      class="re-chart__body"
+      :data="orbitData"
+      :height="height"
+      @select="(p) => emit('select', { type: 'orbit', ...p })"
+    />
+
+    <!-- 内置视图 5：热力矩阵（行 × 列 的强度分档网格） -->
+    <MatrixChart
+      v-else-if="activeType === 'matrix'"
+      class="re-chart__body"
+      :data="matrixData"
+      :height="height"
+      @select="(p) => emit('select', { type: 'matrix', ...p })"
     />
 
     <template v-else>
@@ -109,10 +142,10 @@
  * ```
  *
  * - {@link type} 决定图类型（line/area/bar/pie/donut/radar/funnel/scatter/gauge/
- *   sankey/heatmap/custom/flow/topology/context）；
+ *   sankey/heatmap/custom/flow/topology/context/atlas/orbit/matrix）；
  * - {@link engine} 默认 echarts，可切 d3；
  * - {@link type==='flow'} 固定走 G6（复刻官方 fund-flow 资金流向图），engine 被忽略；
- * - {@link type==='topology' | 'context'} 走内置自绘面板，engine 被忽略；
+ * - {@link type==='topology' | 'context' | 'atlas' | 'orbit' | 'matrix'} 走内置自绘面板，engine 被忽略；
  * - ECharts 是同步轻量路径（复用 ReEcharts 的主题注入 / 暗黑 / resize）；
  * - d3 / G6 经 {@link ReAsync} 异步按需 import，带统一骨架与错误重试。
  *
@@ -146,8 +179,17 @@ import ReAsync from "../ReAsync";
 import ReEcharts from "../ReEcharts";
 import TopologyChart from "./TopologyChart.vue";
 import ContextWindowChart from "./ContextWindowChart.vue";
+import AtlasChart from "./AtlasChart.vue";
+import OrbitChart from "./OrbitChart.vue";
+import MatrixChart from "./MatrixChart.vue";
 import { buildEchartsOption, type ChartSimpleSeries } from "./engines/echarts";
-import { isContextWindowData, isTopologyData } from "./contract";
+import {
+  isAtlasData,
+  isContextWindowData,
+  isMatrixData,
+  isOrbitData,
+  isTopologyData,
+} from "./contract";
 import type {
   ReChartType,
   ReChartEngine,
@@ -157,6 +199,12 @@ import type {
   ViewPane,
   ReChartTopologyData,
   ReChartContextData,
+  ReChartAtlasData,
+  ReChartOrbitData,
+  ReChartMatrixData,
+  ReChartSelectPayload,
+  ContextViewMode,
+  ContextSlice,
 } from "./types";
 
 /** 面板自身声明的 props（数据/尺寸/主题统一声明，并向实际引擎透传） */
@@ -189,6 +237,18 @@ interface ReChartShellProps {
   contextWindow?: ReChartContextData;
   /** 上下文窗口点击切片是否展开全部清单（默认 true） */
   contextClickToExpand?: boolean;
+  /** 上下文窗口画法：拼贴面积 / 点阵密度 / 水位仪表 */
+  contextMode?: ContextViewMode;
+  /** 上下文窗口是否渲染自带头部 / 统计 / 图例（默认 true）；宿主自带抬头时置 false */
+  contextChrome?: boolean;
+  /** 关系星图数据（type="atlas" 时生效） */
+  atlas?: ReChartAtlasData;
+  /** 星图是否显示图内缩放控件（type="atlas" 时生效） */
+  zoomable?: boolean;
+  /** 权限轨道数据（type="orbit" 时生效） */
+  orbit?: ReChartOrbitData;
+  /** 热力矩阵数据（type="matrix" 时生效） */
+  matrix?: ReChartMatrixData;
   /** 多视图（图标切换）；所有视图的 data 必须同形状，不一致须给 transform */
   views?: ViewPane[];
   /** 初始激活的视图 key；不填取 views 第一项 */
@@ -207,6 +267,8 @@ const props = withDefaults(defineProps<ReChartShellProps>(), {
   views: () => [],
   activeViewKey: undefined,
   contextClickToExpand: true,
+  contextMode: "area" as ContextViewMode,
+  contextChrome: true,
 });
 
 const emit = defineEmits<{
@@ -216,6 +278,12 @@ const emit = defineEmits<{
   (e: "mouseout", params: unknown): void;
   /** 视图切换（多视图时触发） */
   (e: "view-change", payload: { key: string; type: ReChartType }): void;
+  /** 上下文窗口：切换画法（受控时由宿主写回 contextMode） */
+  (e: "context-mode-change", mode: ContextViewMode): void;
+  /** 上下文窗口：点了某个切片 */
+  (e: "context-click", slice: ContextSlice): void;
+  /** 内置图形（星图 / 轨道 / 矩阵）：点了节点、环或单元格 */
+  (e: "select", payload: ReChartSelectPayload): void;
 }>();
 
 /* ==================== 多视图（图标切换） ==================== */
@@ -276,6 +344,21 @@ function resolvePaneData(pane: ViewPane, type: ReChartType): unknown {
     warnOnce(pane.key, type, "{ used, total, slices }");
     return null;
   }
+  if (type === "atlas") {
+    if (isAtlasData(raw)) return raw;
+    warnOnce(pane.key, type, "{ nodes }");
+    return null;
+  }
+  if (type === "orbit") {
+    if (isOrbitData(raw)) return raw;
+    warnOnce(pane.key, type, "{ center, rings }");
+    return null;
+  }
+  if (type === "matrix") {
+    if (isMatrixData(raw)) return raw;
+    warnOnce(pane.key, type, "{ rows, columns, values }");
+    return null;
+  }
   return raw;
 }
 
@@ -306,6 +389,36 @@ const contextData = computed<ReChartContextData | null>(() => {
     return isContextWindowData(resolved) ? resolved : null;
   }
   return isContextWindowData(props.contextWindow) ? props.contextWindow : null;
+});
+
+/** 关系星图最终数据 */
+const atlasData = computed<ReChartAtlasData | null>(() => {
+  const pane = activePane.value;
+  if (pane && activeType.value === "atlas") {
+    const resolved = resolvePaneData(pane, "atlas");
+    return isAtlasData(resolved) ? resolved : null;
+  }
+  return isAtlasData(props.atlas) ? props.atlas : null;
+});
+
+/** 权限轨道最终数据 */
+const orbitData = computed<ReChartOrbitData | null>(() => {
+  const pane = activePane.value;
+  if (pane && activeType.value === "orbit") {
+    const resolved = resolvePaneData(pane, "orbit");
+    return isOrbitData(resolved) ? resolved : null;
+  }
+  return isOrbitData(props.orbit) ? props.orbit : null;
+});
+
+/** 热力矩阵最终数据 */
+const matrixData = computed<ReChartMatrixData | null>(() => {
+  const pane = activePane.value;
+  if (pane && activeType.value === "matrix") {
+    const resolved = resolvePaneData(pane, "matrix");
+    return isMatrixData(resolved) ? resolved : null;
+  }
+  return isMatrixData(props.matrix) ? props.matrix : null;
 });
 
 function switchView(key: string) {

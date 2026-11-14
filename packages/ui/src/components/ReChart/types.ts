@@ -27,7 +27,10 @@ export type ReChartType =
   | "custom" // 完全由 option 决定，type 只作标注
   | "flow" // 资金流/流线图（G6，独立于 echarts/d3）
   | "topology" // 链路拓扑（自绘 SVG：连线流动动画 + 在用线路高亮 + 小鸟搬运）
-  | "context"; // 上下文窗口（同一份数据的两种画法：面积图 / 点阵图）
+  | "context" // 上下文窗口（同一份数据的两种画法：面积图 / 点阵图）
+  | "atlas" // 关系星图（自绘：分组聚簇 + 连线，节点大小 = 权重）
+  | "orbit" // 权限轨道（自绘：同心弧量表，弧长 = 覆盖率）
+  | "matrix"; // 热力矩阵（自绘：行 × 列 的强度分档网格）
 
 /** 聚合面板使用的渲染引擎 */
 export type ReChartEngine = "echarts" | "d3";
@@ -100,6 +103,13 @@ export interface ReChartProps {
    * 置 false 则图只读，不响应点击、也不渲染展开区。
    */
   contextClickToExpand?: boolean;
+  /** 上下文窗口：画法（受控时可配合 `mode-change` 事件双向切换） */
+  contextMode?: ContextViewMode;
+  /**
+   * 上下文窗口：是否渲染组件自带的头部 / 统计 / 图例（默认 true）。
+   * 宿主已经有自己的标题与图例时置 false，只留画布，避免两套抬头叠在一起。
+   */
+  contextChrome?: boolean;
 }
 
 /** 事件：echarts 引擎转发点击 / 悬停 */
@@ -188,13 +198,27 @@ export interface ReChartTopologyData {
 /** 上下文切片类别（决定配色） */
 export type ContextSliceKind = "file" | "image" | "tool" | "turn" | "prompt" | "free" | "other";
 
+/**
+ * 上下文窗口的画法：
+ *  - `area`：拼贴面积（treemap，面积 ∝ token）；
+ *  - `dots`：点阵密度（等同格点阵，看「碎了还是整着」）；
+ *  - `gauge`：水位仪表（竖向罐体 + 读数，看「还剩多少」）。
+ */
+export type ContextViewMode = "area" | "dots" | "gauge";
+
 /** 上下文窗口的一个切片（一个对象/工具/文件占用的 token） */
 export interface ContextSlice {
   key: string;
   label: string;
   /** 占用 token 数 */
   tokens: number;
+  /** 类别（决定契约色表）；宿主有自己的分类体系时可只给 color */
   kind?: ContextSliceKind;
+  /**
+   * 自定义颜色：hex 或 CSS 变量（如 `var(--el-color-primary)`）。
+   * 给了就优先于 kind 色表，宿主自带配色时才不会和旁边的图例对不上。
+   */
+  color?: string;
 }
 
 /** 上下文窗口数据（type="context" 的唯一合法形状） */
@@ -213,4 +237,148 @@ export interface ReChartContextData {
     /** 状态文案，等于 "实时" 时显示实时徽标 */
     status?: string;
   };
+}
+
+/* ==================== 关系星图（atlas） ==================== */
+
+/** 星图节点状态：正常 / 高亮 / 停用 / 只读 */
+export type AtlasNodeState = "idle" | "active" | "off" | "readonly";
+
+/** 星图节点：一个对象（角色、主机、服务……）在关系图里的一颗星 */
+export interface AtlasNode {
+  id: string;
+  /** 主标题（节点内第一行） */
+  label: string;
+  /** 次标题（编码、地址等，节点内第二行） */
+  detail?: string;
+  /**
+   * 分组键：同一个 kind 的节点聚成一簇，并共用一种颜色。
+   * 不填时全部归入「默认」簇。
+   */
+  kind?: string;
+  /** 权重（如用户数、菜单数），决定节点直径；不填按同组中位数 */
+  weight?: number;
+  /** 节点状态，默认 idle */
+  state?: AtlasNodeState;
+  /** 角标（节点内最多展示 1 条） */
+  meta?: string[];
+  /** 可选：0~100 的相对坐标；不填由面板按分组自动布局 */
+  x?: number;
+  /** 可选：0~100 的相对坐标；不填由面板按分组自动布局 */
+  y?: number;
+}
+
+/** 星图连线：两颗星之间的关系 */
+export interface AtlasEdge {
+  /** 起点节点 id */
+  from: string;
+  /** 终点节点 id */
+  to: string;
+  /** 连线上的标注 */
+  label?: string;
+  /** 虚线（派生、复制等非直接关系） */
+  dashed?: boolean;
+  /** 高亮（当前生效的关系） */
+  active?: boolean;
+}
+
+/** 星图分组：决定图例顺序与编号 */
+export interface AtlasGroup {
+  key: string;
+  label: string;
+}
+
+/** 关系星图数据（type="atlas" 的唯一合法形状） */
+export interface ReChartAtlasData {
+  nodes: AtlasNode[];
+  /** 连线；不填只画星 */
+  edges?: AtlasEdge[];
+  /** 分组定义；不填按节点 kind 首次出现顺序自动生成 */
+  groups?: AtlasGroup[];
+  /** 图例下方的一行说明 */
+  note?: string;
+}
+
+/* ==================== 权限轨道（orbit） ==================== */
+
+/** 轨道的一环：一圈弧 = 一个维度的覆盖率 */
+export interface OrbitRing {
+  key: string;
+  /** 环名（图例与弧端读数用） */
+  label: string;
+  /** 覆盖率 0~100 */
+  percent: number;
+  /** 弧色，缺省按环序取令牌梯次 */
+  color?: string;
+  /** 弧尾读数（如 "42 / 91"） */
+  value?: string;
+  /** 补充说明（图例第二行） */
+  detail?: string;
+}
+
+/** 轨道外缘的卫星标注：挂在某一环的角度上 */
+export interface OrbitSatellite {
+  id: string;
+  label: string;
+  /** 挂在哪一环（OrbitRing.key）；不填按最外环 */
+  ring?: string;
+  /** 角度，0 = 正上方，顺时针（度） */
+  angle?: number;
+  /** 读数 */
+  value?: string;
+}
+
+/** 权限轨道数据（type="orbit" 的唯一合法形状） */
+export interface ReChartOrbitData {
+  /** 圆心信息 */
+  center: { label: string; detail?: string; caption?: string };
+  /** 由内到外的环 */
+  rings: OrbitRing[];
+  /** 外缘卫星标注 */
+  satellites?: OrbitSatellite[];
+  /** 图例下方的一行说明 */
+  note?: string;
+}
+
+/* ==================== 热力矩阵（matrix） ==================== */
+
+/** 矩阵的行 / 列轴项 */
+export interface MatrixAxisItem {
+  key: string;
+  label: string;
+  /** 次标题（编码等） */
+  detail?: string;
+}
+
+/** 热力矩阵数据（type="matrix" 的唯一合法形状） */
+export interface ReChartMatrixData {
+  rows: MatrixAxisItem[];
+  columns: MatrixAxisItem[];
+  /**
+   * 强度矩阵：`values[行下标][列下标]`，取值 0~levels。
+   * `null` 表示不适用（画斜纹底，不参与图例统计）。
+   */
+  values: (number | null)[][];
+  /** 分档上限，默认 4（0 = 无权限，4 = 完全） */
+  levels?: number;
+  /** 高亮列（如当前选中的对象） */
+  activeColumn?: string;
+  /** 高亮行 */
+  activeRow?: string;
+  /** 左上角轴名 */
+  cornerLabel?: string;
+  /** 图例下方的一行说明 */
+  note?: string;
+}
+
+/** 内置图形（星图 / 轨道 / 矩阵）选中事件载荷 */
+export interface ReChartSelectPayload {
+  /** 来自哪个内置图形 */
+  type: "atlas" | "orbit" | "matrix";
+  /** 星图节点 id / 轨道环 key */
+  id?: string;
+  /** 矩阵命中的行 key */
+  rowKey?: string;
+  /** 矩阵命中的列 key */
+  columnKey?: string;
 }

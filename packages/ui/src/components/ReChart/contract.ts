@@ -12,7 +12,10 @@
 import type {
   ContextSlice,
   ContextSliceKind,
+  ReChartAtlasData,
   ReChartContextData,
+  ReChartMatrixData,
+  ReChartOrbitData,
   ReChartTopologyData,
 } from "./types";
 
@@ -45,6 +48,43 @@ export function isContextWindowData(raw: unknown): raw is ReChartContextData {
   );
 }
 
+/* ==================== 星图 / 轨道 / 矩阵 ==================== */
+
+/**
+ * 关系星图形状判定。
+ *
+ * 只认 `nodes` 数组（`edges` / `groups` 可选）：字段改名一律视为形状不符。
+ */
+export function isAtlasData(raw: unknown): raw is ReChartAtlasData {
+  if (!raw || typeof raw !== "object") return false;
+  const d = raw as ReChartAtlasData;
+  return Array.isArray(d.nodes);
+}
+
+/**
+ * 权限轨道形状判定。
+ *
+ * 要求 `center` 为对象且 `rings` 为数组；`rings` 可以为空（渲染空态环），
+ * 但整个字段缺失说明上游给的不是这个形状。
+ */
+export function isOrbitData(raw: unknown): raw is ReChartOrbitData {
+  if (!raw || typeof raw !== "object") return false;
+  const d = raw as ReChartOrbitData;
+  return !!d.center && typeof d.center === "object" && Array.isArray(d.rings);
+}
+
+/**
+ * 热力矩阵形状判定。
+ *
+ * 三个数组缺一不可；`values` 的行列数是否对齐由面板自行裁剪，
+ * 这里只认「有这三个数组」这一层形状。
+ */
+export function isMatrixData(raw: unknown): raw is ReChartMatrixData {
+  if (!raw || typeof raw !== "object") return false;
+  const d = raw as ReChartMatrixData;
+  return Array.isArray(d.rows) && Array.isArray(d.columns) && Array.isArray(d.values);
+}
+
 /* ==================== 配色 ==================== */
 
 /** 切片类别 → 颜色（浅色底、深色描边由面板自行处理） */
@@ -61,8 +101,9 @@ const KIND_COLOR: Record<ContextSliceKind, string> = {
 /** 未识别 kind 时的兜底序列（按 key 稳定取色，避免每次重排都换色） */
 const FALLBACK_COLORS = ["#6366f1", "#ec4899", "#14b8a6", "#f97316", "#a855f7", "#0ea5e9"];
 
-/** 取切片颜色：优先 kind，其次按 key 稳定哈希兜底 */
+/** 取切片颜色：优先宿主显式 color，其次 kind 色表，最后按 key 稳定哈希兜底 */
 export function sliceColor(slice: ContextSlice): string {
+  if (slice.color) return slice.color;
   if (slice.kind && KIND_COLOR[slice.kind]) return KIND_COLOR[slice.kind];
   let hash = 0;
   for (const ch of slice.key) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;

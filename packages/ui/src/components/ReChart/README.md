@@ -8,6 +8,14 @@
 | `sankey` | `echarts` 或 `d3` | 桑基/流线图，传 `sankey.nodes` + `sankey.links` |
 | `pie` / `scatter` / `gauge` / `custom` | `echarts` | 需直接传完整 `option` |
 | `flow` | `@antv/g6`（固定） | 资金流/决策流线图，传 `data` 树结构 |
+| `topology` | 自绘 SVG | 链路拓扑：连线流动 + 在用线路高亮 + 小鸟搬运 |
+| `context` | 自绘 | 上下文窗口：面积 / 点阵 / 水位三种画法 |
+| `atlas` | 自绘 | 关系星图：分组聚簇 + 连线，节点大小 = 权重 |
+| `orbit` | 自绘 SVG | 权限轨道：同心弧量表，弧长 = 覆盖率 |
+| `matrix` | 自绘 | 热力矩阵：行 × 列 的强度分档网格 |
+
+> 自绘类型（topology / context / atlas / orbit / matrix）的配色全部取 koi 令牌
+> （`--brand-*` / `--bg-*` / `--text-*` / `--status-*`），亮暗主题自动跟随，不写死色值。
 
 ## 快速上手
 
@@ -27,6 +35,34 @@
 
 <!-- 资金流线图（G6，复用官方 fund-flow 示例） -->
 <ReChart type="flow" height="480px" :data="flowTree" />
+
+<!-- 关系星图：同 kind 聚成一簇，weight 决定节点直径 -->
+<ReChart type="atlas" height="420px" :atlas="{
+  groups: [{ key: 'core', label: '管理核心' }, { key: 'biz', label: '业务角色' }],
+  nodes: [
+    { id: 'r1', label: '超级管理员', detail: 'SUPER_ADMIN', kind: 'core', weight: 91, state: 'active' },
+    { id: 'r2', label: '内容管理员', detail: 'CONTENT_ADMIN', kind: 'biz', weight: 42 },
+  ],
+  edges: [{ from: 'r1', to: 'r2', label: '派生', dashed: true }],
+}" />
+
+<!-- 权限轨道：一圈一个维度，弧长 = 覆盖率 -->
+<ReChart type="orbit" height="420px" :orbit="{
+  center: { label: '内容管理员', detail: 'CONTENT_ADMIN', caption: '03 / 10' },
+  rings: [
+    { key: 'menu', label: '菜单权限', percent: 46, value: '42 / 91' },
+    { key: 'data', label: '数据范围', percent: 75 },
+  ],
+}" />
+
+<!-- 热力矩阵：values[row][col] 取 0~levels，null = 不适用 -->
+<ReChart type="matrix" height="420px" :matrix="{
+  rows: [{ key: 'r1', label: '内容管理员', detail: 'CONTENT_ADMIN' }],
+  columns: [{ key: 'c1', label: '监控中心' }, { key: 'c2', label: '内容中心' }],
+  values: [[2, 4]],
+  levels: 4,
+  activeColumn: 'c1',
+}" />
 ```
 
 ## 引擎切换
@@ -69,7 +105,13 @@ ECharts 是同步轻量路径；d3 与 G6 引擎经 `ReAsync` 异步按需 `impo
 components/ReChart/
 ├── index.ts                 # 主题化导出 + 类型再导出
 ├── ReChart.vue              # 聚合面板（echarts 同步；d3/g6 走 ReAsync）
-├── types.ts                 # 通用 props / 数据结构
+├── types.ts                 # 通用 props / 各数据结构的契约类型
+├── contract.ts              # 形状校验 + 公共几何 / 配色
+├── TopologyChart.vue        # 内置：链路拓扑
+├── ContextWindowChart.vue   # 内置：上下文窗口
+├── AtlasChart.vue           # 内置：关系星图
+├── OrbitChart.vue           # 内置：权限轨道
+├── MatrixChart.vue          # 内置：热力矩阵
 ├── engines/
 │   ├── echarts.ts           # 通用 type → EChartsOption 构建
 │   └── D3Chart.vue          # d3-sankey 渲染引擎
@@ -82,6 +124,7 @@ components/ReChart/
 
 - `@ready="{ engine, instance }"`（echarts 引擎就绪）
 - `@click` / `@mouseover` / `@mouseout`（echarts 引擎转发）
+- `@select="{ type, id?, rowKey?, columnKey? }"`（星图节点 / 轨道环 / 矩阵行·列·单元格）
 
 ## 安装与验证
 

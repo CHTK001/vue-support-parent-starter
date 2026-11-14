@@ -26,7 +26,7 @@ export const component = themed.component;
 export { themed as install };
 export default component;
 
-/** 上下文窗口「面积图 / 方格」切换图标：宿主面板可单独引用来做自己的切换条 */
+/** 上下文窗口画法切换图标（拼贴面积 / 点阵密度 / 水位仪表）：宿主面板可单独引用来做自己的切换条 */
 export { default as ContextModeIcon } from "./ContextModeIcon.vue";
 
 export type {
@@ -44,11 +44,26 @@ export type {
   ReChartTopologyData,
   ContextSlice,
   ContextSliceKind,
+  ContextViewMode,
   ReChartContextData,
+  AtlasNode,
+  AtlasNodeState,
+  AtlasEdge,
+  AtlasGroup,
+  ReChartAtlasData,
+  OrbitRing,
+  OrbitSatellite,
+  ReChartOrbitData,
+  MatrixAxisItem,
+  ReChartMatrixData,
+  ReChartSelectPayload,
 } from "./types";
 export {
   isTopologyData,
   isContextWindowData,
+  isAtlasData,
+  isOrbitData,
+  isMatrixData,
   normalizeContextWindow,
   formatTokens,
   sliceColor,

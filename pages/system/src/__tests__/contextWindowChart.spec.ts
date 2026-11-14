@@ -73,6 +73,33 @@ describe("上下文窗口交互", () => {
     wrapper.unmount();
   });
 
+  it("没给 kind 的宿主：悬停一块，其余全部虚化", async () => {
+    // 控制台面板的五个构成项各自就是一类，不传 kind；此时按单块分组
+    const wrapper = mountChart({
+      contextWindow: {
+        used: 400_000,
+        total: 1_000_000,
+        slices: [
+          { key: "systemPrompt", label: "系统提示词", tokens: 120_000, color: "var(--el-color-primary)" },
+          { key: "tools", label: "工具定义", tokens: 80_000, color: "var(--el-color-danger)" },
+          { key: "history", label: "对话消息", tokens: 200_000, color: "var(--el-color-warning)" },
+        ],
+      } satisfies ReChartContextData,
+    });
+    await nextTick();
+    await nextTick();
+
+    // 3 个切片 + 自动补出的剩余空间
+    expect(wrapper.findAll(".re-chart-context__cell").length).toBe(4);
+    await wrapper.find('[data-key="tools"]').trigger("mouseenter");
+    await nextTick();
+
+    expect(wrapper.findAll(".re-chart-context__cell.is-dim").length).toBe(3);
+    expect(wrapper.find('[data-key="tools"]').classes()).not.toContain("is-dim");
+
+    wrapper.unmount();
+  });
+
   it("块内文字色被压深（不是浅色品类色），保证对比度", async () => {
     const wrapper = mountChart();
     await nextTick();
@@ -138,6 +165,78 @@ describe("上下文窗口交互", () => {
     await wrapper.find('[data-key="f1"]').trigger("click");
     await nextTick();
     expect(wrapper.find(".re-chart-context__detail").exists()).toBe(false);
+
+    wrapper.unmount();
+  });
+
+  it("三种画法可切换：图标发 mode-change，受控 prop 决定画布", async () => {
+    const wrapper = mountChart();
+    await nextTick();
+    await nextTick();
+
+    const btns = wrapper.findAll(".re-chart-context__switch-btn");
+    expect(btns.length).toBe(3);
+
+    await btns[1].trigger("click");
+    await nextTick();
+    expect(wrapper.emitted("context-mode-change")?.[0]).toEqual(["dots"]);
+    expect(wrapper.find(".re-chart-context__area").exists()).toBe(false);
+    // 点阵固定 200 格，每格 0.5%
+    expect(wrapper.findAll(".re-chart-context__dot").length).toBe(200);
+
+    // 受控：宿主改 prop 后跟随（面板的三枚按钮走这条路）
+    await wrapper.setProps({ contextMode: "gauge" });
+    await nextTick();
+    expect(wrapper.find(".re-chart-context__gauge").exists()).toBe(true);
+    expect(wrapper.find(".re-chart-context__dots").exists()).toBe(false);
+
+    wrapper.unmount();
+  });
+
+  it("水位画法：罐体按切片堆叠，右侧给主读数与前几类占比", async () => {
+    const wrapper = mountChart({ contextMode: "gauge" });
+    await nextTick();
+    await nextTick();
+
+    // 4 个真实切片 + 自动补出的剩余空间
+    expect(wrapper.findAll(".re-chart-context__gauge-seg").length).toBe(5);
+
+    const rows = wrapper.findAll(".re-chart-context__gauge-rows li");
+    expect(rows.length).toBeGreaterThan(0);
+    // 窄栏最多三行 + 汇总，不能把五行挤成一条
+    expect(rows.length).toBeLessThanOrEqual(4);
+
+    const text = wrapper.text();
+    expect(text).toContain("已用");
+    expect(text).toContain("40%");
+    expect(text).toContain("剩余空间");
+
+    wrapper.unmount();
+  });
+
+  it("contextChrome=false：只留画布，不渲染自带头部 / 统计 / 图例", async () => {
+    const wrapper = mountChart({ contextChrome: false, height: "132px" });
+    await nextTick();
+    await nextTick();
+
+    expect(wrapper.find(".re-chart-context__head").exists()).toBe(false);
+    expect(wrapper.find(".re-chart-context__stats").exists()).toBe(false);
+    expect(wrapper.find(".re-chart-context__legend").exists()).toBe(false);
+    // 画布还在，且紧凑模式不再顶 260px 的下限
+    expect(wrapper.findAll(".re-chart-context__cell").length).toBe(5);
+    expect(wrapper.find(".re-chart-context").classes()).toContain("is-compact");
+
+    wrapper.unmount();
+  });
+
+  it("点击切片发 context-click（宿主据此过滤明细）", async () => {
+    const wrapper = mountChart({ contextClickToExpand: false });
+    await nextTick();
+    await nextTick();
+
+    await wrapper.find('[data-key="f1"]').trigger("click");
+    const payload = wrapper.emitted("context-click")?.[0]?.[0] as { key?: string } | undefined;
+    expect(payload?.key).toBe("f1");
 
     wrapper.unmount();
   });

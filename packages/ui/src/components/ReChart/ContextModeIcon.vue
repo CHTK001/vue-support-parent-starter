@@ -10,8 +10,8 @@
  * treemap（大小不等的矩形）与 grid（等大方格）。
  */
 withDefaults(defineProps<{
-  /** area = 上下文地图（treemap）；grid / dots = 方格（点阵） */
-  mode?: 'area' | 'grid' | 'dots';
+  /** area = 上下文地图（treemap）；grid / dots = 方格（点阵）；gauge = 水位罐 */
+  mode?: 'area' | 'grid' | 'dots' | 'gauge';
   size?: number | string;
 }>(), { mode: 'area', size: 16 });
 </script>
@@ -27,6 +27,13 @@ withDefaults(defineProps<{
       <rect x="1" y="10.5" width="6.5" height="4.5" rx="1" fill="currentColor" opacity=".55" />
       <rect x="8.5" y="10.5" width="6.5" height="4.5" rx="1" fill="currentColor" opacity=".28"
         stroke="currentColor" stroke-dasharray="1.5 1.5" />
+    </template>
+    <template v-else-if="mode === 'gauge'">
+      <!-- 水位罐：罐体轮廓 + 从底往上的两段水位 + 顶部余量 -->
+      <rect x="4" y="1.5" width="8" height="13" rx="2.6" stroke="currentColor" stroke-width="1"
+        opacity=".45" />
+      <rect x="5.6" y="8.4" width="4.8" height="4.6" rx="1.2" fill="currentColor" opacity=".55" />
+      <rect x="5.6" y="5" width="4.8" height="2.6" rx="1.2" fill="currentColor" opacity=".38" />
     </template>
     <template v-else>
       <g fill="currentColor" opacity=".55">
