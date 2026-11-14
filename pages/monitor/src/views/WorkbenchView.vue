@@ -205,7 +205,6 @@ const diagSummary = computed(() => {
 const headDescription = computed(
   () => `资产健康 · 最近更新 ${lastRefresh.value || "—"}`,
 );
-const remoteStatus = computed(() => checkOf("remote")?.ok);
 
 function stampClock(): void {
   const d = new Date();
@@ -551,13 +550,7 @@ async function copyDiagnostics(): Promise<void> {
   else ElMessage.warning("复制失败，请手动选择文本");
 }
 
-function openRemote(): void {
-  if (checkOf("remote") && !checkOf("remote")!.ok) {
-    openDiagnostics();
-    return;
-  }
-  router.push("/control/remote");
-}
+/** 远控已收进「服务管理」（ROOM 协议节点），工作台不再保留跳转入口 */
 
 /** 回到前台补一次数据，避免看到切走前的旧值 */
 function onVisibility(): void {
@@ -849,14 +842,6 @@ onBeforeUnmount(() => {
             @click="checkAllHosts"
           >一键连通性检测</ReButton>
           <ReButton class="quick-tile" icon="RefreshRight" show-text :loading="loading" @click="fetchAll()">刷新概览</ReButton>
-          <ReButton
-            class="quick-tile"
-            icon="Position"
-            show-text
-            :disabled="remoteStatus === false"
-            :title="remoteStatus === false ? '远控模块未挂载，点“运行诊断”查看原因' : '打开设备远程控制'"
-            @click="openRemote"
-          >远程控制</ReButton>
           <ReButton class="quick-tile" icon="Cpu" show-text @click="router.push('/monitor/server')">监控大屏</ReButton>
           <ReButton class="quick-tile" icon="Bell" show-text @click="router.push('/alarms')">告警中心</ReButton>
           <ReButton class="quick-tile" icon="Monitor" show-text @click="router.push('/assets')">主机资产</ReButton>
