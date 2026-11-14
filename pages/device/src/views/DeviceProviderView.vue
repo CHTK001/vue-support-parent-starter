@@ -184,14 +184,20 @@
             :data="tableRows"
             :columns="columns"
             :loading="loading"
-            :pagination="false"
+            :pagination="true"
+            :page-size="20"
+            :page-sizes="[10, 20, 50, 100]"
             :toolbar="false"
             row-key="deviceCredentialId"
             :layout-table="{ fill: true }"
-            :settings="{ border: false, highlightCurrentRow: true }"
+            :settings="{ highlightCurrentRow: true }"
             stripe
             @row-click="onRowClick"
           >
+            <template #col-rowNo="{ row }">
+              <span class="dpv-no">{{ rowIndexOf(row) }}</span>
+            </template>
+
             <template #col-credential="{ row }">
               <div class="dpv-cred">
                 <div class="dpv-cred__top">
@@ -368,12 +374,13 @@
               <span>{{ activeCredential.deviceCredentialOfflineThreshold ?? '—' }} 秒</span>
             </span>
             <span class="dpv-grow" />
+            <!-- 底部动作条：全部收成同一套「小方形图标按钮 + tip」，
+                 与凭据行的操作列同款；不再混用文字按钮和方形按钮。 -->
             <span class="dpv-foot__tools">
               <ReButton
                 v-if="syncEntry.device"
                 layout="square"
                 size="small"
-                type="primary"
                 icon="Refresh"
                 :loading="credSyncLoading('device')"
                 tip="同步设备"
@@ -383,7 +390,6 @@
                 v-if="syncEntry.org"
                 layout="square"
                 size="small"
-                type="primary"
                 icon="Grid"
                 :loading="credSyncLoading('org')"
                 tip="同步组织"
@@ -393,32 +399,42 @@
                 v-if="syncEntry.person"
                 layout="square"
                 size="small"
-                type="primary"
                 icon="User"
                 :loading="credSyncLoading('person')"
                 tip="同步人员"
                 @click="syncCredential('person')"
               />
+              <span class="dpv-foot__tools-sep" />
+              <ReButton
+                layout="square"
+                size="small"
+                icon="Connection"
+                :loading="testingId === activeCredential.deviceCredentialId"
+                tip="测试连接"
+                @click="testCredential(activeCredential)"
+              />
+              <ReButton
+                layout="square"
+                size="small"
+                icon="EditPen"
+                tip="编辑凭据"
+                @click="openEdit(activeCredential)"
+              />
+              <ReButton
+                layout="square"
+                size="small"
+                icon="Setting"
+                tip="编辑能力"
+                @click="openCapability(activeCredential)"
+              />
+              <ReButton
+                layout="square"
+                size="small"
+                icon="Plus"
+                tip="新增凭据（沿用当前厂商）"
+                @click="openCreate(activeCredential.deviceCredentialVendor)"
+              />
             </span>
-            <ReButton
-              icon="Connection"
-              size="small"
-              :show-text="true"
-              :loading="testingId === activeCredential.deviceCredentialId"
-              @click="testCredential(activeCredential)"
-            >
-              测试连接
-            </ReButton>
-            <ReButton size="small" @click="openEdit(activeCredential)">编辑</ReButton>
-            <ReButton
-              v-if="activeCredential"
-              icon="Setting"
-              size="small"
-              :show-text="true"
-              @click="openCapability(activeCredential)"
-            >
-              编辑能力
-            </ReButton>
           </template>
 
           <template v-else>
@@ -429,6 +445,9 @@
             <span class="dpv-foot__item">厂商 {{ vendors.length }}</span>
             <span class="dpv-grow" />
             <span class="dpv-foot__hint">点选一条凭据，在这里查看 AK / SK / Base URL 与阈值</span>
+            <ReButton icon="Plus" size="small" :show-text="true" type="primary" @click="openCreate()">
+              新增凭据
+            </ReButton>
           </template>
         </footer>
         </div>
@@ -1400,6 +1419,7 @@ const tableRows = computed<Array<Record<string, unknown>>>(
 )
 
 const columns: ReTableColumn[] = [
+  { prop: 'rowNo', label: '序号', slot: 'rowNo', width: 66, align: 'center' },
   { prop: 'deviceCredentialName', label: '凭据名称', slot: 'credential', minWidth: 230 },
   { prop: 'deviceCredentialVendor', label: '厂商 / 平台', slot: 'vendor', minWidth: 190 },
   { prop: 'deviceCredentialAppKey', label: 'AK', slot: 'ak', minWidth: 160 },
@@ -1419,6 +1439,14 @@ const columns: ReTableColumn[] = [
 
 function asCredential(row: Record<string, unknown>): ProviderCredential {
   return row as unknown as ProviderCredential
+}
+
+/** 行的全局序号：按当前筛选后的顺序连续编号（分页后仍然连续） */
+function rowIndexOf(row: Record<string, unknown>): number {
+  const index = filteredCredentials.value.findIndex(
+    (item) => item.deviceCredentialId === row.deviceCredentialId
+  )
+  return index < 0 ? 0 : index + 1
 }
 
 function onRowClick(row: Record<string, unknown>): void {
@@ -2039,7 +2067,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 10px 0 12px;
+  /* 与「设备资产」对齐：页面级不再自加内距，四周留白交给宿主，块间只留 8px */
+  padding: 0;
   box-sizing: border-box;
   color: var(--el-text-color-primary);
 }
@@ -2048,7 +2077,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  gap: 10px;
+  gap: 8px;
   min-height: 0;
 }
 
@@ -2059,8 +2088,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex: none;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px 8px;
+  gap: 6px;
+  padding: 8px 10px 6px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
@@ -2333,7 +2362,7 @@ onBeforeUnmount(() => {
   flex: none;
   align-items: center;
   gap: 7px;
-  padding: 9px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
@@ -2392,6 +2421,25 @@ onBeforeUnmount(() => {
 
 .dpv-table :deep(.re-table__main) {
   padding: 0;
+}
+
+/* 序号列：右侧一条竖向分隔线，和凭据名称形成左右两区 */
+.dpv-no {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 26px;
+  padding-right: 10px;
+  border-right: 1px solid var(--el-border-color-lighter);
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 名称列左侧留白，接住序号列的分隔线 */
+.dpv-cred {
+  padding-left: 10px;
 }
 
 .dpv-cred__top {
@@ -2488,6 +2536,7 @@ onBeforeUnmount(() => {
 /* 空态：与门禁记录的 ghost 卡同一套（虚线 + 浅底 + 图标块） */
 .dpv-ghost {
   display: flex;
+  height: 95%;
   flex-direction: column;
   align-items: center;
   gap: 7px;
@@ -2529,8 +2578,8 @@ onBeforeUnmount(() => {
   flex: none;
   align-items: center;
   gap: 9px;
-  min-height: 42px;
-  padding: 6px 12px;
+  min-height: 40px;
+  padding: 5px 10px;
   border-top: 1px solid var(--el-border-color-lighter);
   background: var(--el-fill-color-lighter, #fafafa);
   font-size: 12px;
@@ -2566,13 +2615,22 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/** 凭据维度的同步入口：与 AK / SK 行分组的内联按钮组 */
+/** 凭据维度的动作条：与行内操作列同款小方形图标按钮，统一高度/圆角/tip */
 .dpv-foot__tools {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   padding: 0 6px;
   border-left: 1px solid var(--el-border-color-lighter);
+}
+
+.dpv-foot__tools-sep {
+  flex: none;
+  width: 1px;
+  height: 14px;
+  margin: 0 2px;
+  background: var(--el-border-color);
 }
 .dpv-foot__item--url .dpv-mono {
   overflow: hidden;

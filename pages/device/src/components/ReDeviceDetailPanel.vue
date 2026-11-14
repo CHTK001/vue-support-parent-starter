@@ -127,10 +127,10 @@
                     :value="ch.no"
                   />
                 </el-select>
-                <el-radio-group v-model="streamType" size="small" @change="reloadStream">
-                  <el-radio-button label="main">主码流</el-radio-button>
-                  <el-radio-button label="sub">子码流</el-radio-button>
-                </el-radio-group>
+                <ReRadioGroup v-model="streamType" size="small" @change="reloadStream">
+                  <ReRadioButton label="main">主码流</ReRadioButton>
+                  <ReRadioButton label="sub">子码流</ReRadioButton>
+                </ReRadioGroup>
                 <el-select v-model="videoProtocol" placeholder="协议" style="width: 105px" @change="reloadStream">
                   <el-option label="HLS" value="hls" />
                   <el-option label="FLV" value="flv" />
@@ -320,6 +320,7 @@ import type {
   Preset,
   TimelineItem
 } from '../types/device'
+import { ReRadioGroup, ReRadioButton } from '@repo/ui/re-kit';
 
 const props = defineProps<{
   device: DeviceInfo | null

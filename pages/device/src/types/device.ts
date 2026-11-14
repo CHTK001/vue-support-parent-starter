@@ -115,6 +115,35 @@ export interface DeviceMetric {
   deviceMetricCollectedAt?: string
 }
 
+/** 时序引擎信息（plugin.device.timeseries.engine） */
+export interface DeviceSeriesEngineInfo {
+  engine: string
+  available: boolean
+  /** 不可用原因；可用时为空串 */
+  reason: string
+  retentionDays: number
+  defaultLimit: number
+  maxLimit: number
+}
+
+/**
+ * 设备时序点（传感器 / 门禁 / 车闸共用）
+ *
+ * key / value 的口径按分类不同，见 {@code DeviceSeriesCategory} 的枚举说明。
+ * time 为后端 LocalDateTime 的 ISO 文本（不带时区）。
+ */
+export interface DeviceSeriesPoint {
+  category: string
+  deviceId: string
+  channel?: string | null
+  key: string
+  name?: string | null
+  value?: string | null
+  unit?: string | null
+  time?: string | null
+  extra?: Record<string, string>
+}
+
 /** 标签字典行（显示名 + 颜色） */
 export interface DeviceTagOption {
   value: string

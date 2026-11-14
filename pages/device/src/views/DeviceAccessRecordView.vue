@@ -14,51 +14,6 @@
       />
     </section>
 
-    <!-- 筛选与操作 -->
-    <section class="dar-filter">
-      <div class="dar-field dar-field--device">
-        <ReSelect v-model="filters.deviceId" placeholder="全部门禁设备" clearable :options="deviceOptions" />
-      </div>
-      <div class="dar-field dar-field--range">
-        <el-date-picker
-          v-model="filters.range"
-          type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-          value-format="YYYY-MM-DD HH:mm:ss"
-          :shortcuts="RANGE_SHORTCUTS"
-          style="width: 100%"
-        />
-      </div>
-      <div class="dar-field">
-        <ReSelect v-model="filters.eventType" placeholder="全部事件" clearable :options="eventTypeOptions" />
-      </div>
-      <el-segmented v-model="filters.direction" :options="directionSegments" class="dar-seg" />
-      <el-segmented v-model="filters.verdict" :options="verdictSegments" class="dar-seg" />
-      <div class="dar-field dar-field--search">
-        <ReInput v-model="filters.keyword" placeholder="搜索人员 / 卡号 / 门..." clearable prefix-icon="Search" />
-      </div>
-      <span class="dar-filter__meta">
-        {{ filteredRows.length }} / {{ rows.length }} 条
-        <template v-if="inCount || outCount">
-          · 进 {{ inCount }} / 出 {{ outCount }}
-        </template>
-      </span>
-      <ReButton icon="Search" :show-text="true" type="primary" :loading="loading" @click="query">查询</ReButton>
-      <div class="dar-ops">
-        <ReButton icon="RefreshRight" layout="square" tip="重新拉取记录" :loading="loading" @click="query" />
-        <ReButton
-          icon="Download"
-          layout="square"
-          tip="导出当前筛选（CSV）"
-          :disabled="!filteredRows.length"
-          @click="exportCsv"
-        />
-        <ReButton icon="Delete" layout="square" tip="重置筛选条件" @click="resetFilters" />
-      </div>
-    </section>
-
     <!-- 门禁点位：选定单台设备时出现，可就地远程开门 -->
     <section v-if="filters.deviceId && doors.length" class="dar-panel">
       <header class="dar-panel__head">
@@ -105,37 +60,51 @@
       </div>
     </section>
 
-    <!-- 门禁记录 -->
-    <section class="dar-panel dar-panel--fill">
-      <header class="dar-panel__head">
-        <span class="dar-panel__bar" />
-        <span>门禁记录</span>
-        <span class="dar-panel__count">{{ filteredRows.length }}</span>
-        <span class="dar-panel__hint">
-          {{ rangeLabel }}<template v-if="lastQueryAt"> · 查询于 {{ lastQueryAt }}</template>
-        </span>
-        <div class="dar-panel__ops">
-          <ReButton icon="RefreshRight" layout="square" tip="重新拉取记录" :loading="loading" @click="query" />
-        </div>
-      </header>
-
+    <!-- 门禁记录：筛选走 ReTable 自带 ReSearch，标题色条与口径信息都放进搜索条 -->
+    <section class="dar-panel dar-panel--plain dar-panel--fill">
       <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="query" />
 
       <ReTable
-        v-if="filteredRows.length"
         :data="tableData"
         :columns="columns"
+        :search="searchConfig"
+        v-model:search-model="searchModel"
         engine="element"
         table-id="device-access-records"
         row-key="rid"
+        :loading="loading"
+        empty-text="所选条件下没有门禁记录"
         :pagination="true"
         :page-size="20"
         :page-sizes="[10, 20, 50, 100]"
         :toolbar="false"
         :layout-table="{ fill: 'auto' }"
-        :settings="{ border: false }"
         style="width: 100%"
+        @search="query"
+        @search-reset="resetFilters"
       >
+        <!-- 「搜索」左侧色条（原来的面板标题条） -->
+        <template #search-title-prefix>
+          <span class="rec-bar" />
+        </template>
+        <!-- 搜索条右侧：页面标题 + 条数 + 导出 -->
+        <template #search-title-extra>
+          <span class="rec-title">门禁记录</span>
+          <span class="rec-meta">{{ filteredRows.length }} 条</span>
+          <ReButton
+            icon="Download"
+            layout="square"
+            tip="导出当前筛选（CSV）"
+            :disabled="!filteredRows.length"
+            @click="exportCsv"
+          />
+        </template>
+        <!-- 分页左侧：进 / 出、范围与查询时间 -->
+        <template #pagination-extra>
+          <span class="rec-meta">
+            进 {{ inCount }} / 出 {{ outCount }} · {{ rangeLabel }}<template v-if="lastQueryAt"> · 查询于 {{ lastQueryAt }}</template>
+          </span>
+        </template>
         <template #col-photo="{ row }">
           <el-image
             v-if="row.photoUrl"
@@ -182,21 +151,6 @@
           </span>
         </template>
       </ReTable>
-
-      <!-- 空态也用卡：与提供商页同一套呈现规则 -->
-      <article v-else class="dar-ghost">
-        <span class="dar-ghost__icon"><el-icon><Lock /></el-icon></span>
-        <span class="dar-ghost__title">
-          {{ accessDevices.length ? '所选条件下没有门禁记录' : '还没有可查询的门禁设备' }}
-        </span>
-        <span class="dar-ghost__text">
-          {{
-            accessDevices.length
-              ? '换个时间段 / 事件类型，或清空关键字再查一次；门禁设备离线时也会查不到记录。'
-              : '门禁类型（门禁一体机 / 门口机）的设备接入后，这里的记录与远程开门才会出现。'
-          }}
-        </span>
-      </article>
     </section>
   </div>
 </template>
@@ -205,10 +159,10 @@
 /**
  * 门禁记录 —— 门禁/门口机设备的通行记录与远程开门。
  *
- * 数据来自 device-starter 的 `/api/device/access/*`：
- *   - GET  /records?deviceId=&start=&end=  实时向设备侧要记录（yyy-MM-dd HH:mm:ss），不落库；
- *   - POST /unlock?deviceId=&doorId=       远程开门。
- * 记录按设备返回，所以「全部门禁设备」= 逐台拉取后按时间合并，单台失败不拖垮整页。
+ * 记录读时序存储（`/api/device/series/access`）：门禁抽取任务与 webhook 推送
+ * 落库的同时写一份时序点（key=卡号或人员，value=事件类型，extra 带门点/方向/抓拍），
+ * 因此这里查的是「已落库的记录」，不再逐台实时向设备侧拉。
+ * 远程开门仍走 `/api/device/access/unlock`。
  * 事件类型由厂商自由文本给出，这里按关键字归一成「正常通行 / 异常」两档做统计与筛选。
  *
  * @author CH
@@ -219,17 +173,15 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { CircleCheck, Lock, Picture, Tickets, Warning } from '@element-plus/icons-vue'
 
 import ReButton from '@repo/ui/re-button'
-import ReInput from '@repo/ui/re-input'
-import ReSelect from '@repo/ui/re-select'
 import ReStatCard from '@repo/ui/re-stat-card'
 import ReTable from '@repo/ui/re-table'
-import type { ReTableColumn } from '@repo/ui/re-table'
+import type { ReTableColumn, ReTableSearchConfig } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
 
 import deviceApi from '../api/deviceApi'
-import type { DeviceCategory, DeviceDoor, DeviceInfo } from '../types/device'
+import type { DeviceCategory, DeviceDoor, DeviceInfo, DeviceSeriesPoint } from '../types/device'
 import type { DirectionKey } from '../utils/accessDirection'
-import { directionOf, rawDirection } from '../utils/accessDirection'
+import { directionOf } from '../utils/accessDirection'
 
 /** 门禁相关设备类别：门禁一体机 / 门口机 */
 const ACCESS_CATEGORIES: DeviceCategory[] = ['accessControl', 'intercom']
@@ -256,30 +208,6 @@ const ABNORMAL_KEYWORDS = [
  * 取值归一与「进/出/未标注」口径放在 @/utils/accessDirection，设备详情
  * 「门禁」页签复用同一份，避免两处映射不一致。
  */
-
-const RANGE_SHORTCUTS = [
-  {
-    text: '近 1 小时',
-    value: () => {
-      const end = new Date()
-      return [new Date(end.getTime() - 3600 * 1000), end]
-    },
-  },
-  {
-    text: '今日',
-    value: () => {
-      const end = new Date()
-      return [new Date(end.getFullYear(), end.getMonth(), end.getDate()), end]
-    },
-  },
-  {
-    text: '近 7 天',
-    value: () => {
-      const end = new Date()
-      return [new Date(end.getTime() - 7 * 24 * 3600 * 1000), end]
-    },
-  },
-]
 
 /** 表格行（记录 + 归一后的展示字段） */
 interface AccessRow {
@@ -325,6 +253,77 @@ const filters = reactive<{
   direction: 'all',
   keyword: '',
 })
+
+/**
+ * ReSearch 的筛选值 ↔ 页面 filters 的双向桥。
+ *
+ * <p>筛选逻辑（分段计数、区间文案、关键词匹配）都读 filters，不想为了换控件再抄一份；
+ * 这里只做键名映射，ReTable 改动模型时写回 filters。</p>
+ */
+const searchModel = computed<Record<string, unknown>>({
+  get: () => ({
+    deviceId: filters.deviceId,
+    range: filters.range,
+    eventType: filters.eventType,
+    direction: filters.direction,
+    verdict: filters.verdict,
+    keyword: filters.keyword,
+  }),
+  set: (value) => {
+    filters.deviceId = String(value.deviceId ?? '')
+    filters.range = (value.range as [string, string] | null) ?? null
+    filters.eventType = String(value.eventType ?? '')
+    filters.direction = String(value.direction ?? 'all')
+    filters.verdict = String(value.verdict ?? 'all')
+    filters.keyword = String(value.keyword ?? '')
+  },
+})
+
+/** 内置搜索区：设备 / 时间走时序查询，事件 / 方向 / 结果 / 关键词在页面侧过滤 */
+const searchConfig = computed<ReTableSearchConfig>(() => ({
+  title: '筛选',
+  filters: [
+    {
+      key: 'deviceId',
+      label: '设备',
+      type: 'select',
+      placeholder: '全部门禁设备',
+      options: deviceOptions.value,
+    },
+    { key: 'eventType', label: '事件', type: 'select', placeholder: '全部事件', options: eventTypeOptions.value },
+    {
+      key: 'direction',
+      label: '方向',
+      type: 'select',
+      placeholder: '全部方向',
+      options: [
+        { label: '全部方向', value: 'all' },
+        { label: '进', value: 'in' },
+        { label: '出', value: 'out' },
+        { label: '未标注', value: 'unknown' },
+      ],
+    },
+    {
+      key: 'verdict',
+      label: '结果',
+      type: 'select',
+      placeholder: '全部结果',
+      options: [
+        { label: '全部结果', value: 'all' },
+        { label: '正常通行', value: 'ok' },
+        { label: '异常', value: 'bad' },
+      ],
+    },
+    { key: 'keyword', label: '关键词', type: 'input', placeholder: '人员 / 卡号 / 门' },
+    {
+      key: 'range',
+      label: '时间',
+      type: 'daterange',
+      // 日期组件默认近 350px，会溢出 220px 的网格把右侧按钮盖住，强制收进格子
+      attrs: { style: 'width: 100%' },
+    },
+  ],
+}))
 
 /** 门禁类设备（含带门点的设备，避免类别没配上就查不了） */
 const accessDevices = computed(() =>
@@ -376,31 +375,6 @@ const filteredRows = computed(() =>
     return true
   }),
 )
-
-/** 方向分片（带计数）：全部 / 进 / 出 / 未标注 */
-const directionSegments = computed(() => {
-  const base = baseRows.value
-  return [
-    { label: `全部 ${base.length}`, value: 'all' },
-    { label: `进 ${base.filter((r) => r.direction === 'in').length}`, value: 'in' },
-    { label: `出 ${base.filter((r) => r.direction === 'out').length}`, value: 'out' },
-    {
-      label: `未标注 ${base.filter((r) => r.direction !== 'in' && r.direction !== 'out').length}`,
-      value: 'unknown',
-    },
-  ]
-})
-
-/** 结果分片（带计数）：全部 / 正常 / 异常 */
-const verdictSegments = computed(() => {
-  const base = baseRows.value
-  const bad = base.filter((r) => r.abnormal).length
-  return [
-    { label: `全部 ${base.length}`, value: 'all' },
-    { label: `正常 ${base.length - bad}`, value: 'ok' },
-    { label: `异常 ${bad}`, value: 'bad' },
-  ]
-})
 
 const okCount = computed(() => filteredRows.value.filter((r) => !r.abnormal).length)
 const badCount = computed(() => filteredRows.value.filter((r) => r.abnormal).length)
@@ -476,11 +450,21 @@ function defaultRange(): [string, string] {
   return [fmtLocal(start), fmtLocal(end)]
 }
 
-/** 查询用的时间区间：没选就用「今日」 */
+/** 查询用的时间区间：没选就用「今日」；ReSearch 的日期区间只给日期，这里补时分秒 */
 function effectiveRange(): [string, string] {
   const r = filters.range
-  if (r && r[0] && r[1]) return [r[0], r[1]]
+  if (r && r[0] && r[1]) return [dayStart(r[0]), dayEnd(r[1])]
   return defaultRange()
+}
+
+/** 日期补 00:00:00 */
+function dayStart(value: string): string {
+  return value.length === 10 ? `${value} 00:00:00` : value
+}
+
+/** 日期补 23:59:59 */
+function dayEnd(value: string): string {
+  return value.length === 10 ? `${value} 23:59:59` : value
 }
 
 /** 后端给的时间可能是 ISO，也可能是 'yyyy-MM-dd HH:mm:ss'，统一成后者 */
@@ -498,35 +482,38 @@ function errText(e: unknown): string {
   return (e as { msg?: string })?.msg || (e instanceof Error ? e.message : String(e))
 }
 
-function toRow(rec: Record<string, unknown>, device?: DeviceInfo): AccessRow {
-  const doorId = String(rec.doorId ?? '')
+/**
+ * 时序点 → 表格行。
+ *
+ * <p>时序口径：key=卡号（无卡号时是人员姓名）、value=事件类型；
+ * 门点/方向/抓拍在 extra 里。</p>
+ *
+ * @param point 时序点
+ * @returns 表格行
+ */
+function toRow(point: DeviceSeriesPoint): AccessRow {
+  const extra = point.extra || {}
+  const device = allDevices.value.find((d) => d.deviceInfoId === point.deviceId)
+  const doorId = String(extra.doorId ?? point.channel ?? '')
   const door = (device?.doors || []).find((d) => String(d.deviceDoorNo) === doorId)
-  const time = fmtTime(rec.time)
-  const dir = directionOf(rawDirection(rec))
+  const time = fmtTime(point.time)
+  const cardNo = String(extra.cardNo ?? '') || (point.key === 'unknown' ? '' : point.key)
+  const userName = String(extra.userName ?? point.name ?? '') || (point.key === 'unknown' ? '—' : point.key)
+  const dir = directionOf(extra.direction)
   return {
-    rid: `${device?.deviceInfoId || 'x'}-${time}-${doorId}-${String(rec.cardNo ?? '')}`,
+    rid: `${point.deviceId}-${time}-${doorId}-${cardNo}`,
     time,
-    deviceId: device?.deviceInfoId || '',
+    deviceId: point.deviceId,
     deviceName: device?.deviceInfoName || '—',
     doorName: door?.deviceDoorName || (doorId ? `门 ${doorId}` : '—'),
-    userName: String(rec.userName ?? '') || '—',
-    cardNo: String(rec.cardNo ?? '') || '—',
-    eventType: String(rec.eventType ?? ''),
-    abnormal: isAbnormal(String(rec.eventType ?? '')),
+    userName,
+    cardNo: cardNo || '—',
+    eventType: String(point.value ?? ''),
+    abnormal: isAbnormal(String(point.value ?? '')),
     direction: dir.key,
     directionLabel: dir.label,
-    photoUrl: photoOf(rec),
+    photoUrl: String(extra.photoUrl ?? '') || '',
   }
-}
-
-/** 抓拍地址：后端统一给 photoUrl，兼容各厂商原始字段名 */
-function photoOf(rec: Record<string, unknown>): string {
-  const keys = ['photoUrl', 'pictureURL', 'pictureUrl', 'imageUrl', 'picUrl']
-  for (const key of keys) {
-    const v = rec[key]
-    if (typeof v === 'string' && v) return v
-  }
-  return ''
 }
 
 async function loadDevices(): Promise<void> {
@@ -554,39 +541,21 @@ async function loadDoors(deviceId?: string): Promise<void> {
   }
 }
 
-/** 拉取记录：单台直接查，全部则逐台并行后合并 */
+/** 拉取记录：走时序存储（key=卡号或人员，value=事件类型，extra 带门点/方向/抓拍） */
 async function query(): Promise<void> {
   loading.value = true
   loadError.value = ''
   try {
-    const targets = filters.deviceId
-      ? [filters.deviceId]
-      : accessDevices.value.map((d) => d.deviceInfoId)
-    if (!targets.length) {
-      rows.value = []
-      lastQueryAt.value = new Date().toLocaleTimeString()
-      return
-    }
     const [start, end] = effectiveRange()
-    const results = await Promise.allSettled(
-      targets.map((id) => deviceApi.queryAccessRecords(id, start, end)),
-    )
-    const collected: AccessRow[] = []
-    const failures: string[] = []
-    results.forEach((r, i) => {
-      const device = allDevices.value.find((d) => d.deviceInfoId === targets[i])
-      if (r.status === 'fulfilled') {
-        const list = (r.value as Record<string, unknown>[]) || []
-        list.forEach((rec) => collected.push(toRow(rec, device)))
-      } else {
-        failures.push(`${device?.deviceInfoName || targets[i]}：${errText(r.reason)}`)
-      }
+    const list = await deviceApi.queryAccessSeries({
+      deviceId: filters.deviceId || undefined,
+      start,
+      end,
+      limit: 1000,
+      order: 'desc',
     })
-    collected.sort((a, b) => (a.time < b.time ? 1 : a.time > b.time ? -1 : 0))
-    rows.value = collected
+    rows.value = (list || []).map((point) => toRow(point))
     lastQueryAt.value = new Date().toLocaleTimeString()
-    if (failures.length && !collected.length) loadError.value = failures.join('；')
-    else if (failures.length) ElMessage.warning(`部分设备拉取失败：${failures.join('；')}`)
   } catch (e: unknown) {
     rows.value = []
     loadError.value = errText(e)
@@ -660,6 +629,7 @@ function exportCsv(): void {
   ElMessage.success(`已导出 ${filteredRows.value.length} 条记录`)
 }
 
+/** 重置筛选：回到「全部门禁设备 + 今日」（设备变化由 watch 触发重查） */
 function resetFilters(): void {
   filters.deviceId = ''
   filters.range = null
@@ -667,6 +637,7 @@ function resetFilters(): void {
   filters.verdict = 'all'
   filters.direction = 'all'
   filters.keyword = ''
+  loadError.value = ''
 }
 
 /** 切换设备：点位跟着刷新，记录也重查（记录本来就是按设备取的） */
@@ -688,7 +659,7 @@ onMounted(async () => {
 .dar {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
   min-height: 100%;
   color: var(--el-text-color-primary);
 }
@@ -696,71 +667,12 @@ onMounted(async () => {
 .dar-kpis {
   flex: none;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.dar-filter {
-  flex: none;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
-}
-.dar-field {
-  width: 160px;
-}
-.dar-seg {
-  flex: none;
-}
-.dar-field--device {
-  width: 210px;
-}
-.dar-field--range {
-  width: 360px;
-}
-.dar-field--search {
-  width: 220px;
-}
-.dar-field :deep(.el-input),
-.dar-field :deep(.el-select) {
-  width: 100%;
-}
-.dar-filter__meta {
-  margin-left: auto;
-  font-size: 12.5px;
-  color: var(--el-text-color-secondary);
-}
-.dar-ops {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-left: 10px;
-  border-left: 1px solid var(--el-border-color-lighter);
-}
-@media (max-width: 1100px) {
-  .dar-field,
-  .dar-field--device,
-  .dar-field--range,
-  .dar-field--search {
-    width: 100%;
-  }
-  .dar-filter__meta {
-    margin-left: 0;
-  }
-  .dar-ops {
-    padding-left: 0;
-    border-left: none;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
 }
 
 .dar-panel {
-  padding: 14px 16px;
+  padding: 10px 12px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
@@ -772,18 +684,26 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
 }
+/* 表格面板不画卡面：ReTable 自己就是一张卡，外面再套白底会变成两层边 */
+.dar-panel--plain {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
 .dar-panel__head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
-  font-size: 14px;
+  margin-bottom: 8px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
 .dar-panel__bar {
   width: 6px;
-  height: 16px;
+  height: 15px;
   border-radius: 999px;
   background: var(--el-color-primary);
 }
@@ -799,6 +719,29 @@ onMounted(async () => {
 }
 .dar-panel__ops {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 搜索条里的页面标题与口径（原记录面板标题行的内容） */
+.rec-bar {
+  display: inline-block;
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--el-color-primary);
+}
+.rec-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+}
+.rec-meta {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
 }
 
 .dar-doors {
@@ -899,47 +842,5 @@ onMounted(async () => {
 }
 .dar-verdict.is-bad {
   color: var(--el-color-danger);
-}
-
-/* 空态卡 */
-.dar-ghost {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 28px 16px;
-  border-style: dashed;
-  border-width: 1px;
-  border-color: var(--el-border-color);
-  border-radius: var(--el-radius-xl, 16px);
-  background: color-mix(in srgb, var(--el-text-color-primary) 2%, transparent);
-  text-align: center;
-}
-.dar-ghost__icon {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  font-size: 20px;
-  color: var(--el-text-color-placeholder);
-  background: color-mix(in srgb, var(--el-text-color-primary) 6%, transparent);
-}
-.dar-ghost__title {
-  font-size: 14px;
-  font-weight: 600;
-}
-.dar-ghost__text {
-  max-width: 460px;
-  font-size: 12.5px;
-  line-height: 1.7;
-  color: var(--el-text-color-secondary);
-}
-
-.dar-panel :deep(.el-table th.el-table__cell) {
-  background: transparent !important;
-  color: var(--el-text-color-secondary);
-  font-weight: 600;
 }
 </style>

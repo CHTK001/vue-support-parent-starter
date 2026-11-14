@@ -35,7 +35,6 @@
       :columns="eventColumns"
       engine="element"
       :layout-table="{ maxHeight: 500 }"
-      :settings="{ border: false }"
       style="width:100%"
       :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >

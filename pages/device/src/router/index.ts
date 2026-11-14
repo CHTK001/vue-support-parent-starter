@@ -123,6 +123,20 @@ export const deviceRoutes: RouteConfigsTable[] = [
     }
   },
   {
+    // 设备大屏独立页：台账「设备大屏」页签里的「新标签打开」跳到这里，
+    // 宿主把它注册为 standalone（无侧边栏/页签栏），整屏只有画面墙。
+    path: '/device/wall',
+    name: 'DeviceWall',
+    component: () => import('../views/DeviceWallView.vue'),
+    meta: {
+      title: '设备大屏',
+      showLink: false,
+      keepAlive: false,
+      isVisible: '0',
+      rank: 15
+    }
+  },
+  {
     path: '/device/vehicle',
     name: 'DeviceVehicle',
     component: () => import('../views/DeviceVehicleView.vue'),
@@ -162,6 +176,20 @@ export const deviceRoutes: RouteConfigsTable[] = [
     }
   },
   {
+    // 设备日志：按设备拉取事件；之前只在台账右键页签里出现，补一个可直达的路由
+    path: '/device/events',
+    name: 'DeviceEvents',
+    component: () => import('../views/DeviceEventLogView.vue'),
+    meta: {
+      title: '设备日志',
+      icon: 'Document',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 17
+    }
+  },
+  {
     path: '/device/access',
     name: 'DeviceAccess',
     component: () => import('../views/DeviceAccessRecordView.vue'),
@@ -185,6 +213,21 @@ export const deviceRoutes: RouteConfigsTable[] = [
       keepAlive: true,
       isVisible: '1',
       rank: 17
+    }
+  },
+  {
+    // 传感器记录：环境指标的历史读数，落点是时序引擎（plugin.device.timeseries.engine）。
+    // 与「设备详情 → 环境指标」（最新快照）互补：一个看现在，一个看趋势。
+    path: '/device/metric-history',
+    name: 'DeviceMetricHistory',
+    component: () => import('../views/DeviceMetricHistoryView.vue'),
+    meta: {
+      title: '传感器记录',
+      icon: 'Odometer',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 18
     }
   },
 ]
@@ -238,6 +281,11 @@ export const deviceMenus = [
         path: '/device/person',
         name: 'DevicePerson',
         meta: { title: '人员管理', icon: 'User', isVisible: '1' }
+      },
+      {
+        path: '/device/metric-history',
+        name: 'DeviceMetricHistory',
+        meta: { title: '传感器记录', icon: 'Odometer', isVisible: '1' }
       }
     ]
   }

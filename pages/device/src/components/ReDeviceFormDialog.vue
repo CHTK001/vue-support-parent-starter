@@ -94,15 +94,15 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="接入方式" prop="authType">
-            <el-radio-group v-model="form.authType" @change="onAuthTypeChange">
-              <el-radio-button
+            <ReRadioGroup v-model="form.authType" @change="onAuthTypeChange">
+              <ReRadioButton
                 v-for="auth in authTypes"
                 :key="auth.code"
                 :label="auth.code"
               >
                 {{ auth.name }}
-              </el-radio-button>
-            </el-radio-group>
+              </ReRadioButton>
+            </ReRadioGroup>
           </el-form-item>
         </el-col>
       </el-row>
@@ -308,7 +308,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { message } from '@repo/core'
 import type { FormInstance, FormRules } from 'element-plus'
 import ReDialog from '@repo/ui/re-dialog'
-import { ReRadio, ReRadioGroup } from '@repo/ui/re-kit'
+import { ReRadio, ReRadioGroup, ReRadioButton } from '@repo/ui/re-kit';
 import { deviceApi } from '../api/deviceApi'
 import ReOrgTreeSelect from '../components/ReOrgTreeSelect.vue'
 import { CATEGORY_OPTIONS, getSubCategoryOptions } from '../utils/deviceCategory'

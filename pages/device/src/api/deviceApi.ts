@@ -25,6 +25,8 @@ import type {
   CredentialHealthResult,
   DeviceAlarm,
   DeviceMetric,
+  DeviceSeriesPoint,
+  DeviceSeriesEngineInfo,
   TopologyNode,
   TopologyEdge
 } from '../types/device'
@@ -116,6 +118,19 @@ export const deviceApi = {
   /** 立即采集一次，返回写入行数 */
   collectMetrics: (deviceId: string) =>
     http.post(`/metrics/${deviceId}/collect`).then(unwrap) as Promise<number>,
+  /** 历史读数（传感器记录）：走时序引擎，按节点与时间窗查询 */
+  metricHistory: (deviceId: string, params: Record<string, unknown>) =>
+    http.get(`/metrics/${deviceId}/history`).query(params).then(unwrap) as Promise<DeviceSeriesPoint[]>,
+
+  // ==================== 时序存储（传感器 / 门禁 / 车闸） ====================
+  /** 当前时序引擎（bean / influxdb / redis）与可用原因 */
+  seriesEngine: () => http.get("/series/engine").then(unwrap) as Promise<DeviceSeriesEngineInfo>,
+  /** 门禁通行记录（时序口径：key=卡号或人员，value=事件类型） */
+  queryAccessSeries: (params: Record<string, unknown>) =>
+    http.get("/series/access").query(params).then(unwrap) as Promise<DeviceSeriesPoint[]>,
+  /** 车闸过车记录（时序口径：key=车牌号，value=进出方向） */
+  queryVehicleSeries: (params: Record<string, unknown>) =>
+    http.get("/series/vehicle").query(params).then(unwrap) as Promise<DeviceSeriesPoint[]>,
 
   // ==================== 组织 ====================
   syncOrg: () => http.post("/org/sync").then(unwrap),

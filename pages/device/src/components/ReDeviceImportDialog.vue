@@ -2,8 +2,11 @@
 /**
  * 台账导入弹窗。
  *
- * <p>给用户一个 Excel 导入入口：选文件（支持拖拽）、选模式（新增/更新/新增更新）、干模拟，
- * 使用 {@code deviceApi.importDevices} 逐行校验后写库，最后展示逐行结果（创建/更新/跳过/错误）。</p>
+ * <p>两段式：先按「干模拟」校验并展示逐行预览，确认无误后再真正写库。
+ * 之前只有一个确认按钮，点了只出预览、永远不写库，看起来就是「导入无效」。</p>
+ *
+ * <p>模式与干模拟开关是弹窗自己的状态，会随 confirm 事件一起交给父组件，
+ * 不再出现「界面上选了更新、后端仍按新增跑」的错位。</p>
  *
  * @author CH
  * @since 4.0.0.42
@@ -20,35 +23,55 @@ import type { DeviceImportResult } from '../types/device'
 const visible = defineModel<boolean>({ default: false })
 
 const props = defineProps<{
-  /** 导入模式 */
+  /** 初始导入模式 */
   mode?: 'create' | 'update' | 'upsert'
-  /** 干模拟 */
+  /** 初始干模拟 */
   dryRun?: boolean
-  /** 导入结果 */
+  /** 导入结果；null/undefined 表示还没跑过 */
   result?: DeviceImportResult
+  /** 父组件正在请求（干模拟或写库） */
+  loading?: boolean
 }>()
 
 const emit = defineEmits<{
-  /** 上传确认（参数为选中的文件） */
-  confirm: [file: File]
+  /** 上传确认：文件 + 当前模式/干模拟 */
+  confirm: [file: File, payload: { mode: 'create' | 'update' | 'upsert'; dryRun: boolean }]
   /** 下载模板 */
   download: []
+  /** 重新选择文件（父组件清空上一次结果） */
+  reset: []
   /** 弹窗关闭（已选文件重置） */
   closed: []
 }>()
 
-const mode = ref(props.mode || 'create')
+const mode = ref<'create' | 'update' | 'upsert'>(props.mode || 'create')
 const dryRun = ref(props.dryRun ?? true)
 const fileInput = ref<HTMLInputElement | null>(null)
 const file = ref<File | null>(null)
-const importing = ref(false)
 const dragging = ref(false)
+/** 本次结果是否来自干模拟：是 → 预览态，可继续「确认写入」 */
+const ranDryRun = ref(false)
+/** 最近一次请求是不是干模拟；等结果真的回来再落到 ranDryRun，写库失败时仍停在预览态 */
+const requestedDryRun = ref(false)
 
-/** 显示态：等待导入 / 结果页 */
-const status = computed<'upload' | 'done'>(() => (props.result ? 'done' : 'upload'))
+watch(
+  () => props.result,
+  () => {
+    ranDryRun.value = requestedDryRun.value
+  }
+)
+
+/** 显示态：上传 / 干模拟预览 / 写库完成 */
+const status = computed<'upload' | 'preview' | 'done'>(() => {
+  if (!props.result) return 'upload'
+  return ranDryRun.value ? 'preview' : 'done'
+})
+
+/** 父组件请求中或本地刚触发，按钮统一进 loading */
+const busy = computed<boolean>(() => Boolean(props.loading))
 
 /** 有文件才能确认导入 */
-const canConfirm = computed<boolean>(() => !!file.value && !importing.value && !props.result)
+const canConfirm = computed<boolean>(() => !!file.value && !busy.value && !props.result)
 
 /** 逐行结果的状态标签 */
 const rowType: Record<string, 'success' | 'primary' | 'info' | 'danger'> = {
@@ -78,35 +101,50 @@ function openFilePicker() {
   fileInput.value?.click()
 }
 
-/** 确认导入（交父组件写库） */
-async function onConfirm() {
-  if (!file.value || importing.value) return
-  importing.value = true
-  try {
-    emit('confirm', file.value)
-  } finally {
-    importing.value = false
-  }
+/** 第一段：干模拟（或用户取消勾选干模拟时直接写库） */
+function onConfirm() {
+  if (!file.value || busy.value) return
+  requestedDryRun.value = dryRun.value
+  emit('confirm', file.value, { mode: mode.value, dryRun: dryRun.value })
+}
+
+/** 第二段：预览通过后真正写库 */
+function onWrite() {
+  if (!file.value || busy.value) return
+  dryRun.value = false
+  requestedDryRun.value = false
+  emit('confirm', file.value, { mode: mode.value, dryRun: false })
+}
+
+/** 重新选择：清空文件与父组件上一次结果 */
+function onReset() {
+  file.value = null
+  ranDryRun.value = false
+  requestedDryRun.value = false
+  emit('reset')
 }
 
 /** 弹窗关闭：重置文件，通知父组件 */
 function onClosed() {
   file.value = null
+  ranDryRun.value = false
+  requestedDryRun.value = false
   emit('closed')
 }
 
-/** 弹窗跟随显隐关一下也清文件 */
-watch(
-  () => props.result,
-  () => {
-    // 结果返回后，弹窗保持打开等待用户确认关闭
-  }
-)
-
+/** 每次打开都回到初始状态，避免沿用上一次的文件/模式 */
 watch(
   () => visible.value,
-  (val) => {
-    if (!val) onClosed()
+  (value) => {
+    if (value) {
+      file.value = null
+      ranDryRun.value = false
+      requestedDryRun.value = false
+      mode.value = props.mode || 'create'
+      dryRun.value = props.dryRun ?? true
+    } else {
+      onClosed()
+    }
   }
 )
 </script>
@@ -147,7 +185,7 @@ watch(
       </div>
 
       <div class="dt__opts">
-        <div class="dt__opt" v-for="o in [{ value: 'create', label: '新建账台' }, { value: 'update', label: '更新账台' }, { value: 'upsert', label: '新增/更新' }]" :key="o.value">
+        <div class="dt__opt" v-for="o in [{ value: 'create', label: '新建台账' }, { value: 'update', label: '更新台账' }, { value: 'upsert', label: '新增/更新' }]" :key="o.value">
           <input v-model="mode" type="radio" :id="`mode-${o.value}`" :value="o.value" />
           <label :for="`mode-${o.value}`">{{ o.label }}</label>
         </div>
@@ -158,8 +196,20 @@ watch(
       </div>
     </div>
 
-    <!-- 已完成：逐行结果 -->
+    <!-- 预览 / 完成：逐行结果 -->
     <div v-else class="dt">
+      <div class="dt__preview">
+        <ReTag v-if="status === 'preview'" type="warning" effect="plain" size="small">干模拟</ReTag>
+        <ReTag v-else type="success" effect="plain" size="small">已写入</ReTag>
+        <span v-if="status === 'preview' && (props.result?.errorCount ?? 0) === 0">
+          校验通过，点「确认写入」才会真正写库。
+        </span>
+        <span v-else-if="status === 'preview'">
+          有 {{ props.result?.errorCount ?? 0 }} 行错误：修正文件后点「重新选择」再导一次。
+        </span>
+        <span v-else>本次导入已结束，关闭弹窗后列表会自动刷新。</span>
+      </div>
+
       <ReScrollbar height="260">
         <table v-if="props.result?.rows.length" class="dt__table">
           <thead>
@@ -194,10 +244,34 @@ watch(
 
     <template #footer>
       <ReButton @click="onClosed">关闭</ReButton>
-      <ReButton v-if="status === 'upload'" icon="Ok" :show-text="true" type="primary"
-        :loading="importing" :disabled="!canConfirm" @click="onConfirm">
+
+      <!-- 第一段：上传 + 干模拟 -->
+      <ReButton
+        v-if="status === 'upload'"
+        icon="Ok"
+        :show-text="true"
+        type="primary"
+        :loading="busy"
+        :disabled="!canConfirm"
+        @click="onConfirm"
+      >
         确认导入
       </ReButton>
+
+      <!-- 第二段：预览通过后真正写库 -->
+      <template v-else-if="status === 'preview'">
+        <ReButton icon="RefreshLeft" :show-text="true" :disabled="busy" @click="onReset">重新选择</ReButton>
+        <ReButton
+          v-if="(props.result?.errorCount ?? 0) === 0"
+          icon="Upload"
+          :show-text="true"
+          type="primary"
+          :loading="busy"
+          @click="onWrite"
+        >
+          确认写入
+        </ReButton>
+      </template>
     </template>
   </ReDialog>
 </template>
@@ -216,6 +290,7 @@ watch(
 .dt__del:hover { color: var(--el-color-danger); background: var(--el-color-danger-light-9); }
 .dt__opts { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
 .dt__opt { display: flex; gap: 5px; align-items: center; color: var(--el-text-color-regular); }
+.dt__preview { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11.5px; color: var(--el-text-color-secondary); }
 .dt__empty { padding: 24px 0; text-align: center; color: var(--el-text-color-placeholder); }
 .dt__summ { padding: 10px 0 4px; color: var(--el-text-color-regular); }
 .dt__summ b { color: var(--el-color-primary); }

@@ -43,9 +43,35 @@
             <button type="button" class="da-tool" title="导入台账" @click="openImport">
               <ReIcon name="Upload" :size="12" />
             </button>
-            <button type="button" class="da-tool is-primary" title="新增设备" @click="openCreate">
-              <ReIcon name="Plus" :size="12" />
-            </button>
+            <el-popover
+              v-model:visible="addPopVisible"
+              placement="bottom-end"
+              :width="200"
+              trigger="click"
+              popper-class="da-add-pop"
+            >
+              <template #reference>
+                <button type="button" class="da-tool is-primary" title="添加" aria-label="添加设备或分组">
+                  <ReIcon name="Plus" :size="12" />
+                </button>
+              </template>
+              <div class="da-add">
+                <button type="button" class="da-add__item" @click="addDeviceFromMenu">
+                  <ReIcon name="Monitor" :size="14" />
+                  <span class="da-add__text">
+                    <b>添加设备</b>
+                    <small>登记一台设备或同步厂商台账</small>
+                  </span>
+                </button>
+                <button type="button" class="da-add__item" @click="addGroupFromMenu">
+                  <ReIcon name="FolderOpened" :size="14" />
+                  <span class="da-add__text">
+                    <b>添加分组</b>
+                    <small>在设备分组树里新建一个分组</small>
+                  </span>
+                </button>
+              </div>
+            </el-popover>
           </div>
           <ReInput v-model="keyword" placeholder="搜索名称 / 编码 / IP" clearable class="da-search" />
           <div class="da-filters">
@@ -94,17 +120,9 @@
           </div>
         </div>
 
-        <!-- 左侧树：上方切换维度（组织 / 分组 / 厂家），下面只显示当前维度的树 -->
+        <!-- 左侧树：上方切换维度（组织 / 分组 / 厂家），下面只显示当前维度的树。
+             新增设备 / 新增分组已收到左栏顶部的「+」弹出菜单，这里不再重复放操作行。 -->
         <ReScrollbar v-show="!railCollapsed" class="da-tree">
-          <div class="da-tree__ops">
-            <button type="button" class="da-tree__op" title="新建分组" @click="openGroupCreate(null)">
-              <ReIcon name="Plus" :size="12" />
-            </button>
-            <button type="button" class="da-tree__op" title="刷新" :disabled="loading" @click="fetchAll">
-              <ReIcon :name="loading ? 'Loading' : 'RefreshRight'" :size="12" />
-            </button>
-          </div>
-
           <!-- 维度切换：一次只显示一个维度，避免三棵树同时摊开 -->
           <div class="da-tree__modes">
             <button
@@ -591,6 +609,19 @@
               :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
               :filter="tabOf(tab.name)?.topoFilter || null"
             />
+
+            <!-- ============ 设备大屏（页签内的画面墙） ============ -->
+            <div v-else-if="tabKindOf(tab.name) === 'wall'" class="da-wall">
+              <div class="da-wall__bar">
+                <span class="da-wall__bar-title">设备大屏</span>
+                <span class="da-wall__bar-hint">左侧选画面源，右侧拼墙；拖拽可换位</span>
+                <span class="da-wall__bar-gap" />
+                <ReButton icon="TopRight" size="small" :show-text="true" @click="openWallInNewTab">
+                  新标签打开
+                </ReButton>
+              </div>
+              <ReDevicePlayPanel mode="wall" :device="null" :devices="rows" :vendors="vendors" />
+            </div>
           </template>
 
           <template #empty>
@@ -603,9 +634,6 @@
         </ReTabs>
       </section>
     </div>
-
-    <!-- 设备大屏：页内播放台，左侧可拖拽画面源，右侧拼墙 -->
-    <ReDeviceWallPlayer v-model="wallVisible" :devices="rows" :vendors="vendors" />
 
     <!-- 新增 / 编辑 -->
     <ReDeviceFormDialog
@@ -679,9 +707,11 @@
       v-model="importVisible"
       :mode="importMode"
       :dry-run="importDryRun"
-      :result="importResult"
+      :result="importResult ?? undefined"
+      :loading="importRunning"
       @confirm="confirmImport"
       @download="downloadImportTemplate"
+      @reset="resetImport"
       @closed="refreshAll"
     />
 
@@ -699,19 +729,19 @@
       <div class="space-y-4">
         <div>
           <div class="text-sm mb-2">布局</div>
-          <el-radio-group v-model="videoLayout">
-            <el-radio-button :value="1">1×1</el-radio-button>
-            <el-radio-button :value="4">2×2</el-radio-button>
-            <el-radio-button :value="9">3×3</el-radio-button>
-            <el-radio-button :value="16">4×4</el-radio-button>
-          </el-radio-group>
+          <ReRadioGroup v-model="videoLayout">
+            <ReRadioButton :value="1">1×1</ReRadioButton>
+            <ReRadioButton :value="4">2×2</ReRadioButton>
+            <ReRadioButton :value="9">3×3</ReRadioButton>
+            <ReRadioButton :value="16">4×4</ReRadioButton>
+          </ReRadioGroup>
         </div>
         <div>
           <div class="text-sm mb-2">打开方式</div>
-          <el-radio-group v-model="videoOpenMode">
-            <el-radio value="current">当前页</el-radio>
-            <el-radio value="new">新窗口</el-radio>
-          </el-radio-group>
+          <ReRadioGroup v-model="videoOpenMode">
+            <ReRadio value="current">当前页</ReRadio>
+            <ReRadio value="new">新窗口</ReRadio>
+          </ReRadioGroup>
         </div>
         <el-checkbox v-model="videoRemind">打开后提示（remind=true）</el-checkbox>
         <div class="text-xs text-el-text-secondary">
@@ -814,7 +844,6 @@ import ReDeviceImportDialog from '../components/ReDeviceImportDialog.vue'
 import ReDeviceTagEditor from '../components/ReDeviceTagEditor.vue'
 import ReDeviceDetailPanel from '../components/ReDeviceDetailPanel.vue'
 import ReDevicePlayPanel from '../components/ReDevicePlayPanel.vue'
-import ReDeviceWallPlayer from '../components/ReDeviceWallPlayer.vue'
 import DeviceChannelView from '../views/DeviceChannelView.vue'
 import DeviceAlarmView from '../views/DeviceAlarmView.vue'
 import DeviceEventLogView from '../views/DeviceEventLogView.vue'
@@ -833,6 +862,7 @@ import {
   statusMeta
 } from '../utils/deviceFormat'
 import { mergeTagOptions, parseTags } from '../utils/deviceTag'
+import { ReRadio, ReRadioButton, ReRadioGroup } from '@repo/ui/re-kit'
 import type {
   DeviceGroupNode,
   DeviceInfo,
@@ -866,8 +896,6 @@ const selection = ref<DeviceInfo[]>([])
 
 /** 台账视图：B 版默认卡片台账，可切回表格 */
 const viewMode = ref<'card' | 'table'>('card')
-/** 设备大屏播放台 */
-const wallVisible = ref(false)
 
 /* ==================== 左侧分组列 ==================== */
 const railCollapsed = ref(false)
@@ -1147,7 +1175,7 @@ function groupParentIdOf(groupId: string): string | undefined {
 const ASSETS_TAB = 'assets'
 
 /** 页签类别 */
-type WorkTabKind = 'assets' | 'detail' | 'alarms' | 'play' | 'channels' | 'events' | 'topo'
+type WorkTabKind = 'assets' | 'detail' | 'alarms' | 'play' | 'channels' | 'events' | 'topo' | 'wall'
 
 /**
  * 工作区页签：比 ReTabsItem 多带业务上下文。
@@ -2245,25 +2273,43 @@ function openCreate(): void {
   formVisible.value = true
 }
 
+/**
+ * 左栏顶部「+」弹出菜单。
+ *
+ * <p>原来「新增设备」在工具栏、「新建分组 + 刷新」在树上方，两处重叠且占掉一整行；
+ * 现在合并成一个弹出菜单，两个动作都在同一处，树区顶部直接空出来。</p>
+ */
+const addPopVisible = ref(false)
+
+function addDeviceFromMenu(): void {
+  addPopVisible.value = false
+  openCreate()
+}
+
+function addGroupFromMenu(): void {
+  addPopVisible.value = false
+  openGroupCreate(null)
+}
+
 /** 导入弹窗（Excel 台账导入） */
 const importVisible = ref(false)
 const importMode = ref<'create' | 'update' | 'upsert'>('create')
 const importDryRun = ref(true)
-const importResult = ref<DeviceImportResult>({
-  total: 0,
-  createCount: 0,
-  updateCount: 0,
-  skipCount: 0,
-  errorCount: 0,
-  rows: []
-})
+const importRunning = ref(false)
+/** null = 还没跑过；有值才展示逐行结果 */
+const importResult = ref<DeviceImportResult | null>(null)
 
 /** 打开导入弹窗 */
 function openImport(): void {
-  importResult.value = { total: 0, createCount: 0, updateCount: 0, skipCount: 0, errorCount: 0, rows: [] }
+  importResult.value = null
   importMode.value = 'create'
   importDryRun.value = true
   importVisible.value = true
+}
+
+/** 清空上一次结果，回到选文件那一步 */
+function resetImport(): void {
+  importResult.value = null
 }
 
 /** 下载导入模板 */
@@ -2280,16 +2326,27 @@ async function downloadImportTemplate() {
   URL.revokeObjectURL(a.href)
 }
 
-/** 确认导入（失败时先 dryRun 再真实导入） */
-/** 确认导入：干模拟 / 写库都保留弹窗展示逐行结果，用户关闭时再刷新（@closed 已绑定 refreshAll） */
-async function confirmImport(file: File): Promise<void> {
-  // 首次只读校验（干模拟），用户关弹窗 = 一次 refreshAll
+/**
+ * 导入台账：干模拟与正式写库共用同一个入口。
+ *
+ * <p>模式与 dryRun 由导入弹窗在 confirm 事件里带过来，父组件不再用一份
+ * 从未同步的本地状态，避免「界面选更新、后端按新增跑」。</p>
+ *
+ * @param file    Excel 文件
+ * @param payload 模式与是否干模拟
+ */
+async function confirmImport(
+  file: File,
+  payload: { mode: 'create' | 'update' | 'upsert'; dryRun: boolean }
+): Promise<void> {
+  importRunning.value = true
   try {
-    const res = await deviceApi.importDevices(file, { mode: importMode.value, dryRun: importDryRun.value })
+    const res = await deviceApi.importDevices(file, payload)
     importResult.value = res as unknown as DeviceImportResult
-    if (importResult.value.errorCount === 0) importDryRun.value = false
   } catch (err) {
     message.error('导入失败：' + errorText(err))
+  } finally {
+    importRunning.value = false
   }
 }
 
@@ -2803,9 +2860,21 @@ function refreshAll() {
   fetchAll()
 }
 
-/** 设备大屏：页内弹出播放台（左侧拖拽画面源组合），不再跳独立路由 */
+/** 设备大屏：工作区页签（左侧拖拽画面源组合），不再用弹窗 */
 function goScreen() {
-  wallVisible.value = true
+  openWorkTab({
+    name: 'wall',
+    kind: 'wall',
+    label: '设备大屏',
+    hint: '画面墙',
+    icon: 'DataBoard',
+  })
+}
+
+/** 全浏览器打开大屏：独立路由不渲染侧边栏/页签，只留画面墙 */
+function openWallInNewTab(): void {
+  const href = router.hasRoute('DeviceWall') ? router.resolve({ name: 'DeviceWall' }).href : '/device/wall'
+  window.open(new URL(href, window.location.href).href, '_blank', 'noopener')
 }
 
 /** 设备告警：工作区页签（固定一个入口，重复点只切过去） */
@@ -2866,10 +2935,39 @@ async function exportDevices() {
   }
 }
 
+/**
+ * 统一错误文案。
+ *
+ * <p>旧实现只认 response.data.message 与 Error.message，遇到后端 500（空包体）、
+ * 被拦截器以字符串 reject、或网络错误时只会显示「未知错误」，无法定位。
+ * 这里把「后端 msg/error → HTTP 状态 → 网络错误码」逐级摊开。</p>
+ *
+ * @param err 任意异常
+ * @returns 可读原因
+ */
 function errorText(err: unknown): string {
-  return (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-    || (err as Error)?.message
-    || '未知错误'
+  if (!err) return '未知错误（无错误对象）'
+  if (typeof err === 'string') return err
+  const e = err as {
+    response?: { status?: number; data?: unknown }
+    code?: string
+    msg?: string
+    message?: string
+  }
+  const body = e.response?.data
+  const fromBody =
+    typeof body === 'string'
+      ? body
+      : (body as { msg?: string; message?: string; error?: string } | undefined)?.msg
+        || (body as { message?: string } | undefined)?.message
+        || (body as { error?: string } | undefined)?.error
+  if (fromBody) return String(fromBody)
+  if (e.code === 'ERR_NETWORK') return '网络异常：请确认后端已启动、代理地址可达'
+  if (e.code === 'ERR_CANCELED') return '请求已取消'
+  if (e.msg) return e.msg
+  if (e.message) return e.message
+  if (e.response?.status) return `服务端错误（HTTP ${e.response.status}）`
+  return '未知错误'
 }
 
 onMounted(async () => {
@@ -2979,6 +3077,10 @@ onMounted(async () => {
   white-space: nowrap;
 }
 .da-rail__count {
+  /* 「0/0」是一个读数，不能折行：不锁一行时窄栏里会变成「0」上面「/0」下面，
+     标题行被撑高一倍，整条头部跟着松一口 */
+  flex: none;
+  white-space: nowrap;
   font-size: 11px;
   color: var(--el-text-color-secondary);
   font-family: var(--el-font-family-mono, monospace);
@@ -2986,6 +3088,45 @@ onMounted(async () => {
 }
 .da-rail__count i { font-style: normal; opacity: 0.55; }
 .da-rail__gap { flex: 1; }
+
+/* ============ 设备大屏页签 ============ */
+.da-wall {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.da-wall__bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  background: var(--el-bg-color);
+}
+
+.da-wall__bar-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.da-wall__bar-hint {
+  font-size: 11.5px;
+  color: var(--el-text-color-secondary);
+}
+
+.da-wall__bar-gap {
+  flex: 1;
+}
+
+.da-wall > :deep(.dpw) {
+  flex: 1;
+  min-height: 0;
+}
 
 .da-tool {
   display: inline-flex;
@@ -3112,28 +3253,54 @@ onMounted(async () => {
   min-height: 0;
   padding: 8px 6px;
 }
-.da-tree__ops {
+/* 顶部「+」弹出菜单：两个添加入口，紧凑两行，不再占树区一行 */
+.da-add {
   display: flex;
-  gap: 4px;
-  justify-content: flex-end;
-  padding: 0 4px 6px;
+  flex-direction: column;
+  gap: 0;
 }
-.da-tree__op {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
+
+.da-add__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
   border-radius: 6px;
   background: transparent;
-  color: var(--el-text-color-secondary);
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
-.da-tree__op:hover { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
-.da-tree__op.is-on { color: var(--el-color-primary); }
-.da-tree__op:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.da-add__item:hover {
+  background: var(--el-fill-color-light);
+}
+
+.da-add__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.da-add__text b {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* 说明文字必须能换行：之前 nowrap + 窄弹层，文字直接溢出到弹层外面 */
+.da-add__text small {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--el-text-color-secondary);
+  white-space: normal;
+  word-break: break-word;
+}
 
 .da-tree__item {
   display: flex;
@@ -3197,8 +3364,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px 6px 12px;
+  /* 固定 39px 并让内容垂直居中：与右栏底部信息条同高、同一条基线 */
+  height: 39px;
+  padding: 0 10px 0 12px;
   border-top: 1px solid var(--el-border-color-lighter);
+  box-sizing: border-box;
 }
 .da-rail__row { flex: 1; min-width: 0; }
 .da-foot__sum {
@@ -3251,7 +3421,9 @@ onMounted(async () => {
   gap: 8px;
   height: 100%;
   min-height: 0;
-  padding: 10px;
+  /* 底部不留内距：底部信息条要落到卡面内沿，和左栏页脚条同一条基线
+     （左栏页脚 852~891、右栏信息条 852~891，两侧读数才在同一水平线） */
+  padding: 10px 10px 0;
   background: var(--el-bg-color);
   /* 上方是白色页签条，卡面顶边与它直接相接：顶角做方，只留底部两个圆角，
      避免「上面一条直的、下面一张圆角卡」两种轮廓在同一个面板里打架 */
@@ -3271,13 +3443,17 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 10px;
   height: 46px;
-  padding: 0 12px;
+  /* 未选中时这条只是台账概览，没有底色，所以左右内距归零：
+     概览文字与下面的列表左边缘对齐，右侧视图切换贴齐列表右边缘。
+     选中后整条变浅蓝底，才需要内距把文字从底色里让开。 */
+  padding: 0;
   border: 1px solid transparent;
   background: transparent;
   border-radius: 10px;
-  transition: background 0.16s ease, border-color 0.16s ease;
+  transition: background 0.16s ease, border-color 0.16s ease, padding 0.16s ease;
 }
 .da-batch.is-batch {
+  padding: 0 12px;
   border-color: var(--el-color-primary-light-7);
   background: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
 }
@@ -3736,8 +3912,10 @@ onMounted(async () => {
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 8px 4px;
-  min-height: 40px;
+  /* 高度与左栏页脚条一致（39px），两侧的信息落在同一条水平线上 */
+  padding: 0 4px;
+  height: 39px;
+  min-height: 39px;
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -3768,4 +3946,12 @@ onMounted(async () => {
 .da-bar__item b { color: var(--el-text-color-primary); }
 .da-bar__gap { flex: 1; }
 .da-bar__hint { font-size: 12px; color: var(--el-text-color-secondary); }
+</style>
+
+<style>
+/* 「+」弹出层被 teleport 到 body，scoped 选择器够不到它的内边距；
+   这里只收这一层的留白，不碰任何全局 popover 默认值。 */
+.da-add-pop.el-popover.el-popper {
+  --el-popover-padding: 8px;
+}
 </style>

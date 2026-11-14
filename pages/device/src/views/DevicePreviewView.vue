@@ -1619,6 +1619,7 @@ watch([wall, layout, protocol], persistWall, { deep: true })
 
 .dpv-ghost {
   flex: 1;
+  height: 100%;
   min-height: 160px;
   display: flex;
   flex-direction: column;

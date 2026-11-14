@@ -15,12 +15,12 @@
     </header>
 
     <div v-show="toolbarVisible" class="screen-toolbar">
-      <el-radio-group v-model="category" size="small">
-        <el-radio-button value="all">全部</el-radio-button>
-        <el-radio-button v-for="(label, key) in CATEGORY_LABELS" :key="key" :value="key">
+      <ReRadioGroup v-model="category" size="small">
+        <ReRadioButton value="all">全部</ReRadioButton>
+        <ReRadioButton v-for="(label, key) in CATEGORY_LABELS" :key="key" :value="key">
           {{ label }}
-        </el-radio-button>
-      </el-radio-group>
+        </ReRadioButton>
+      </ReRadioGroup>
       <el-checkbox v-model="onlineOnly" size="small">仅在线</el-checkbox>
       <el-checkbox v-model="locatedOnly" size="small">仅已定位</el-checkbox>
     </div>
@@ -107,6 +107,7 @@ import ReDialog from '@repo/ui/re-dialog'
 import { deviceApi } from '../api/deviceApi'
 import { CATEGORY_LABELS, getCategoryLabel } from '../utils/deviceCategory'
 import type { DeviceInfo } from '../types/device'
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const router = useRouter()
 const devices = ref<DeviceInfo[]>([])
@@ -169,9 +170,9 @@ onMounted(load)
   justify-content: space-between;
 }
 .screen-title {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
 }
 .screen-sub {
   font-size: 12px;
@@ -215,7 +216,7 @@ onMounted(load)
   border: 1px solid var(--el-border-color-lighter);
 }
 .stat-card strong {
-  font-size: 22px;
+  font-size: 18px;
 }
 .stat-card.online strong {
   color: var(--el-color-success);

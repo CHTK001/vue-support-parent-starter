@@ -140,7 +140,6 @@
         :loading="loading"
         :pagination="false"
         :toolbar="false"
-        :settings="{ border: false }"
         style="width: 100%"
       >
         <template #col-task="{ row }">

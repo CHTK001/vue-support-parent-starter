@@ -19,7 +19,6 @@
       engine="element"
       :loading="loading"
       :layout-table="{ minHeight: 0 }"
-      :settings="{ border: false }"
       style="width: 100%"
       :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
     >

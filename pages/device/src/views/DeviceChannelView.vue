@@ -62,7 +62,6 @@
         :page-sizes="[10, 20, 50, 100]"
         :toolbar="false"
         :layout-table="{ fill: 'auto' }"
-        :settings="{ border: false }"
         style="width: 100%"
       >
         <template #col-deviceChannelNo="{ row }">
