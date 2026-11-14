@@ -556,6 +556,13 @@ function openUrl(url: string): void {
   font-family: ui-monospace, SFMono-Regular, monospace;
   font-size: 12px;
 }
+/* 后端地址过长时单行省略：原先依赖 service-kit.css 里的全局 .sv-ellipsis，
+   那份 CSS 随服务管理旧外壳一起删掉了，这里补成本组件的局部样式 */
+.sv-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .sdb-empty {
   padding: 16px;
   text-align: center;
