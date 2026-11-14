@@ -1983,6 +1983,20 @@ export function useUsageBoard() {
     return String(v).replace("T", " ").slice(0, 19);
   }
 
+  /**
+   * 当前区间是否真的有用量数据。
+   *
+   * <p>三个口径任一非零即认为有数据：KPI 统计快照、明细总数、刻度尺总量。
+   * 全为 0 时页面不再铺满一整面 0 和空图，而是收敛成一块整页空态。</p>
+   */
+  const hasAnyUsage = computed(
+    () =>
+      Number(stats.totalCalls) > 0 ||
+      Number(stats.totalTokens) > 0 ||
+      Number(stats.totalCost) > 0 ||
+      detailTotal.value > 0,
+  );
+
   return {
     stats, statCards, animatedTokens, animatedCalls,
     activeFilter, customRange, timeParams, quickFilters, rangeLabel,
@@ -2003,7 +2017,7 @@ export function useUsageBoard() {
     trendData, trendOption, trendMetric, trendChartType,
     latencyDates, latencyModelCount, latencyOption,
     detailRecords, detailLoading, detailTotal, detailModelFilter, costVisible,
-    detailColumns, detailQueryParams, loadDetailPage,
+    detailColumns, detailQueryParams, loadDetailPage, hasAnyUsage,
     fmtToken, formatNumber, money, formatLatency, formatSpeed,
     speedColor, speedTitle, decodeWindowMs, decodeWindowColor, getFirstColor, getTotalColor,
     formatTypeLabel, typeTagType, callModeLabel, callModeTag, cacheRatePct, cacheRateText,

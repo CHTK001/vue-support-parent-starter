@@ -253,9 +253,14 @@ const layoutTable = computed(() =>
  * 列显隐：13 列在 1280~1600 宽度下必然横滚，给用户一个「只留关心的几列」的出口。
  *
  * <p>状态只活在本组件（不写 localStorage）：明细表是排查用的临时视图，
- * 下次进来回到「全列」比记住上次的裁剪更可预期。</p>
+ * 下次进来回到默认列组比记住上次的裁剪更可预期。</p>
+ *
+ * <p>04 版底部明细先不铺满 13 列：端点 / 强度 / 请求 IP / 调用类型这类诊断字段
+ * 默认收起，留在「列」弹层里按需打开，主表先保证 9 列读得清。</p>
  */
-const hiddenProps = ref<string[]>([]);
+const hiddenProps = ref<string[]>(
+  props.compact ? ['endpoint', 'strength', 'ip', 'callType'] : [],
+);
 const isColVisible = (prop: string) => !hiddenProps.value.includes(prop);
 function setColVisible(prop: string, visible: boolean): void {
   if (visible) {

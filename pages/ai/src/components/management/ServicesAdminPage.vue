@@ -24,6 +24,8 @@ import ServiceManagementPage from './ServiceManagementPage.vue'
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
-  padding: 16px 20px 28px;
+  /* 外侧留白收到 8px：三栏内部已经是 2px 间距、卡面靠 1px 描边分界，
+     外层再留 16/20/28 会在四周空出一圈，整页看起来像嵌在画布里 */
+  padding: 8px;
 }
 </style>

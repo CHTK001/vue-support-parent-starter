@@ -550,21 +550,22 @@ onUnmounted(() => {
       </div>
 
       <div ref="boardRef" class="rt-board">
+        <!--
+          连线口径：每个入站 Key、每个上游成员都有一条底图实线（.rt-link），表示「这条通道存在」；
+          只有此刻真有流量的那条再叠成流动虚线（hot / bad），实线变虚线代表请求正在走这条通道。
+          其余成员保持静止实线——静止不等于有流量，所以不做流动动画。
+        -->
         <svg class="rt-links" :width="svgW" :height="svgH" aria-hidden="true">
-          <path
-            v-for="(d, i) in inPaths"
-            :key="`in-link-${i}`"
-            class="rt-link"
-            :class="{ hot: isKeyHot(inboundKeys[i]) }"
-            :d="d"
-          />
-          <path
-            v-for="(d, i) in upPaths"
-            :key="`up-link-${i}`"
-            class="rt-link"
-            :class="{ hot: isUpstreamHot(upstreams[i], i), bad: isUpstreamFailed(upstreams[i], i) }"
-            :d="d"
-          />
+          <template v-for="(d, i) in inPaths" :key="`in-link-${i}`">
+            <path class="rt-link" :class="{ hot: isKeyHot(inboundKeys[i]) }" :d="d" />
+          </template>
+          <template v-for="(d, i) in upPaths" :key="`up-link-${i}`">
+            <path
+              class="rt-link"
+              :class="{ hot: isUpstreamHot(upstreams[i], i), bad: isUpstreamFailed(upstreams[i], i) }"
+              :d="d"
+            />
+          </template>
         </svg>
 
         <div>
@@ -1103,7 +1104,8 @@ onUnmounted(() => {
   fill: none;
   stroke: var(--u-border);
   stroke-width: 1.4;
-  transition: stroke 0.2s;
+  opacity: 0.85;
+  transition: stroke 0.2s, opacity 0.2s;
 }
 .rt-link.hot {
   stroke: var(--u-primary);

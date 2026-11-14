@@ -133,6 +133,8 @@
       <span v-else class="usage-spine__hint">点某一天下钻</span>
     </section>
 
+    <!-- 当前区间有用量时铺满整版式；无用量时收敛成一块整页空态（见下方 v-else） -->
+    <template v-if="board.hasAnyUsage">
     <!-- ── 核心读数：四格横带，Token 格带输入/输出迷你环 ── -->
     <section class="usage-kpis">
       <article
@@ -478,10 +480,32 @@
       </article>
     </section>
 
-    <!-- ── 明细（13 列，内部滚动） ── -->
+    <!-- ── 明细（默认 9 列，其余在「列」里按需打开，内部滚动） ── -->
     <div class="usage-detail-wrap">
       <UsageDetailTable :board="board" compact />
     </div>
+    </template>
+    <section v-else class="usage-page__empty usage-card" aria-live="polite">
+      <div class="usage-page__empty-box">
+        <span class="usage-page__empty-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19V5M4 19h16" />
+            <path d="M7 15l3-4 3 2 4-6" />
+          </svg>
+        </span>
+        <h2 v-if="board.refreshing" class="usage-page__empty-title">正在加载用量数据…</h2>
+        <h2 v-else class="usage-page__empty-title">
+          {{ (board.routeErrors.list || board.routeErrors.statistics) ? '用量数据加载失败' : '当前区间暂无用量记录' }}
+        </h2>
+        <p v-if="board.refreshing" class="usage-page__empty-desc">正在汇总当前区间的 Token、费用与延迟。</p>
+        <p v-else-if="board.routeErrors.list || board.routeErrors.statistics" class="usage-page__empty-desc">点「重新加载」再试一次，或切换时间范围。</p>
+        <p v-else class="usage-page__empty-desc">近 30 天的用量会在这里卷成时间轴；发起一次对话或接口调用后即可看到 Token、费用、模型分布与延迟。</p>
+        <div v-if="!board.refreshing" class="usage-page__empty-actions">
+          <el-button size="small" @click="board.refreshAll">重新加载</el-button>
+          <el-button v-if="board.activeFilter !== 'all'" size="small" type="primary" plain @click="board.setQuickFilter('all')">查看全部区间</el-button>
+        </div>
+      </div>
+    </section>
 
     <!-- treemap click detail dialog: node level for natural blocks, member list for aggregate blocks (6.1) -->
     <ReDialog
@@ -1137,6 +1161,55 @@ function pctStyle(r: any) {
 .usage-empty--sm :deep(.el-empty) { padding: 0; }
 .usage-empty--sm :deep(.el-empty__image) { width: 40px; }
 .usage-empty--sm :deep(.el-empty__description p) { margin: 4px 0 0; font-size: 11px; }
+
+/* ── 整页空态：当前区间没有用量时，不铺一整面 0 和空图，收敛成一块引导面板 ── */
+.usage-page > .usage-page__empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.usage-page__empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  max-width: 420px;
+}
+.usage-page__empty-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  color: var(--u-primary, #165dff);
+  background: var(--u-primary-weak, rgba(22, 93, 255, 0.1));
+}
+.usage-page__empty-ico svg { width: 26px; height: 26px; }
+.usage-page__empty-title {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--el-text-color-primary);
+}
+.usage-page__empty-desc {
+  margin: 0;
+  max-width: 380px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+}
+.usage-page__empty-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
 
 /* ── 构成 + 趋势 ── */
 .usage-mid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.14fr); gap: 8px; height: 168px; }

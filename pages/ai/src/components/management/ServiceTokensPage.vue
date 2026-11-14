@@ -14,9 +14,10 @@
       <span class="kt-note">模型范围 = 分组清单 ∩ 限定模型；额度按时间 / 次数 / 余额三选一</span>
     </template>
 
-    <!-- .svc 提供设计层令牌（svc-refactor.css 全部挂在 .svc 作用域下） -->
+    <!-- .svc 提供设计层令牌（svc-refactor.css 全部挂在 .svc 作用域下）。
+         弹窗里的「去创建分组」在独立页没有分组台账，回退到服务配置页即是入口 -->
     <div class="svc">
-      <ServiceKeyLedger :refresh-key="refreshKey" @stats="onStats" />
+      <ServiceKeyLedger :refresh-key="refreshKey" @stats="onStats" @open-groups="goBack" />
     </div>
   </RePage>
 </template>

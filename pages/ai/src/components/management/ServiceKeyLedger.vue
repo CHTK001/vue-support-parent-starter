@@ -66,6 +66,17 @@
           </div>
         </template>
 
+        <!-- 所属分组：Key 的模型范围与额度都跟着分组走，未绑定 = 待补 -->
+        <template #col-group="{ row }">
+          <span
+            class="svc-chip svc-gchip"
+            :class="{ 'is-warn': !row.groupName }"
+            :title="row.groupName
+              ? `可用模型 = 分组「${row.groupName}」的模型清单 ∩ 本 Key 的限定模型`
+              : '未绑定分组：可用模型只受本 Key 的限定模型约束，建议编辑后归组'"
+          >{{ row.groupName || '未绑定' }}</span>
+        </template>
+
         <!-- 绑定模型：台面上最多露两个，其余收进 +N 的悬浮清单 -->
         <template #col-models="{ row }">
           <div class="svc-models" v-if="row.models.length">
@@ -179,18 +190,30 @@
             <el-input v-model="form.name" placeholder="如：博客机器人 / 前端生产" maxlength="40" show-word-limit />
           </el-form-item>
 
-          <!-- 分组：可选。绑定分组后可用模型自动收窄到分组清单，分组改了 Key 跟着变 -->
-          <el-form-item label="所属分组">
+          <!-- 分组：必填。绑定分组后可用模型自动收窄到分组清单，分组改了 Key 跟着变；
+               只有读不到分组清单的账号（分组接口仅管理员可读）才降级为「先放着」 -->
+          <el-form-item label="所属分组" required>
             <el-select
               v-if="groupOptions.length"
               v-model="form.groupId"
               class="svc-form__wide"
-              clearable
-              placeholder="不绑定分组（仅受下面的限定模型约束）"
+              :loading="groupsLoading"
+              placeholder="选择分组（可用模型与额度归属）"
             >
               <el-option v-for="g in groupOptions" :key="g.id" :label="g.name" :value="g.id" />
             </el-select>
-            <span v-else class="svc-form__hint">暂无分组（或当前账号无权读取分组清单）</span>
+            <template v-else>
+              <span class="svc-form__hint">
+                {{ groupsLoading ? '正在读取分组清单…'
+                  : '还没有分组：Key 的模型范围与额度都归属分组，请先建一个分组再回来签发' }}
+              </span>
+              <el-button v-if="!groupsLoading" class="svc-form__act" size="small" @click="goGroups">
+                去创建分组
+              </el-button>
+            </template>
+            <span class="svc-form__hint" v-if="groupOptions.length">
+              没有合适的分组？<button type="button" class="svc-linkbtn is-inline" @click="goGroups">去创建分组 →</button>
+            </span>
           </el-form-item>
 
           <!-- 限定模型：候选来自「模型管理」，留空表示随分组 -->
@@ -409,9 +432,24 @@ const emit = defineEmits<{
     usedTokens: number
     /** 风险清单（最多 3 行）：父级右栏直接展示，避免两处各算一次额度口径 */
     risk: Array<{ id: any; name: string; remainText: string; statusText: string; tone: string }>
+    /** 账页摘要（全部 Key）：右栏列表与「三栏同屏」用，字段与表内同源 */
+    items: Array<{
+      id: any
+      name: string
+      shortKey: string
+      remainText: string
+      remainPct: number
+      tone: string
+      statusText: string
+      statusCls: string
+      groupName: string
+      models: string[]
+    }>
   }): void
   /** 台账发生写操作（新建 / 编辑 / 删除）：父级据此刷新分组台账的成员数 */
   (e: 'changed'): void
+  /** 弹窗里「去创建分组」：父级把分组台账切到前台（本组件只管关掉自己的弹窗） */
+  (e: 'open-groups'): void
 }>()
 
 const AddIcon = Add24Regular
@@ -562,6 +600,7 @@ const modelGroups = ref<Array<{ key: string; label: string; models: string[] }>>
 const modelsLoading = ref(false)
 const modelError = ref('')
 const groupOptions = ref<Array<{ id: number; name: string }>>([])
+const groupsLoading = ref(false)
 
 // ============================================================================
 // 行映射：把接口字段摊平成模板直接可读的「账页字段」
@@ -682,13 +721,14 @@ function decorate(r: any) {
 }
 
 const columns = computed<ReTableColumn[]>(() => [
-  { prop: 'name', label: 'AppKey', minWidth: 188, slot: 'key' },
-  { prop: 'models', label: '可用模型', minWidth: 190, slot: 'models' },
-  { prop: 'quotaType', label: '配额方式', width: 132, slot: 'quota' },
-  { prop: 'remain', label: '余量', minWidth: 200, slot: 'remain' },
-  { prop: 'lastUsedAt', label: '最近使用', width: 104, slot: 'last' },
-  { prop: 'status', label: '状态', width: 96, slot: 'status' },
-  { prop: 'actions', label: '操作', width: 186, slot: 'actions' },
+  { prop: 'name', label: 'AppKey', minWidth: 168, slot: 'key' },
+  { prop: 'groupName', label: '分组', minWidth: 118, slot: 'group' },
+  { prop: 'models', label: '可用模型', minWidth: 150, slot: 'models' },
+  { prop: 'quotaType', label: '配额方式', width: 112, slot: 'quota' },
+  { prop: 'remain', label: '余量', minWidth: 172, slot: 'remain' },
+  { prop: 'lastUsedAt', label: '最近使用', width: 96, slot: 'last' },
+  { prop: 'status', label: '状态', width: 88, slot: 'status' },
+  { prop: 'actions', label: '操作', width: 170, slot: 'actions' },
 ])
 
 const filteredRows = computed(() => {
@@ -747,6 +787,18 @@ async function load() {
         statusText: r.statusText,
         tone: r.tone,
       })),
+      items: rows.value.map((r) => ({
+        id: r.id,
+        name: r.name,
+        shortKey: shortKey(r.key),
+        remainText: r.remainText,
+        remainPct: r.remainPct,
+        tone: r.tone,
+        statusText: r.statusText,
+        statusCls: r.statusCls,
+        groupName: r.groupName,
+        models: r.models,
+      })),
     })
   } catch (e: any) {
     // 旧数据不清空：接口抖一下不该让整页变白
@@ -800,10 +852,17 @@ async function loadModels() {
 
 /**
  * 分组候选：{@code /v2/groups} 带 {@code @Permission("admin")}，非管理员会 403。
- * 拿不到就静默降级 —— 分组只是「批量收窄模型」的便利项，Key 不绑分组照样能用。
+ *
+ * <p>Key 与分组是绑定关系（模型范围、额度归属都挂在分组上），所以弹窗里这一项是必填；
+ * 但读不到分组清单的普通账号不该被彻底挡住 —— 拿不到时候选项为空，提交时按「未分组」放行，
+ * 页面在台账里用警告 chip 标出待归组的 Key。</p>
+ *
+ * @param force 新建分组后回到本弹窗时用：跳过缓存重取，否则下拉里看不到刚建的那个
  */
-async function loadGroups() {
-  if (groupOptions.value.length) return
+async function loadGroups(force = false) {
+  if (groupsLoading.value) return
+  if (!force && groupOptions.value.length) return
+  groupsLoading.value = true
   try {
     const res = await groupApi.list()
     groupOptions.value = asList(pick(res)).map((g: any) => ({
@@ -811,7 +870,10 @@ async function loadGroups() {
       name: String(g.groupName ?? g.name ?? `分组 ${g.groupId ?? g.id}`),
     })).filter((g) => isFinite(g.id))
   } catch {
-    groupOptions.value = []
+    // 已经有清单时保留旧值：接口抖一下不该把下拉清空
+    if (!groupOptions.value.length) groupOptions.value = []
+  } finally {
+    groupsLoading.value = false
   }
 }
 
@@ -846,7 +908,7 @@ function pickQuota(type: string) {
 function openCreate() {
   editing.value = null
   loadModels()
-  loadGroups()
+  loadGroups(true)
   form.value = createForm()
   showForm.value = true
 }
@@ -854,7 +916,7 @@ function openCreate() {
 function openEdit(row: any) {
   editing.value = row
   loadModels()
-  loadGroups()
+  loadGroups(true)
   const next = createForm(row)
   // 限定模型只回显「模型管理里真有的」编码，免得下拉里冒出已下线的模型；
   // 清单还没加载完（size=0）时先原样保留。
@@ -867,10 +929,24 @@ function openEdit(row: any) {
   showForm.value = true
 }
 
+/**
+ * 弹窗里「去创建分组」：关掉本弹窗，把分组台账交给父级切到前台。
+ * 分组必须先存在，Key 才有可绑的归属 —— 让用户自己去别处找入口是最容易放弃的一步。
+ */
+function goGroups() {
+  showForm.value = false
+  emit('open-groups')
+}
+
 async function submit() {
   const f = form.value
   if (!f.name.trim()) {
     message.warning('请填写名称')
+    return
+  }
+  // 能读到分组清单时，归属必须落在某个分组上；读不到（非管理员 403）才按未分组放行
+  if (!f.groupId && groupOptions.value.length) {
+    message.warning('请选择所属分组')
     return
   }
   if (f.quotaType === 'time' && !f.expireTime) {

@@ -22,7 +22,28 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 
 import RePageHead from '@/components/ui/RePageHead.vue';
 import ReTable from '@repo/ui/re-table';
+import type { ReTableColumn } from '@repo/ui/re-table';
 import { channelHealthApi, type ChannelHealthSummary } from '@/services/javaApi';
+
+/**
+ * 通道列表列配置。
+ *
+ * <p>原写法用 {@code <ReTableColumn>} 子节点声明列，但 ReTable 并不提供该子组件：
+ * 模板里会退化成未解析的 {@code <retablecolumn>} 原生元素，控制台报
+ * 「Failed to resolve component: ReTableColumn」，表格只剩表体行、没有任何表头与
+ * 单元格。ReTable 的列只认 {@code columns} 数组 + {@code #col-<prop>} 插槽，
+ * 这里按该约定重写。</p>
+ */
+const healthColumns: ReTableColumn[] = [
+  { prop: 'providerId', label: '供应商', minWidth: 130, showOverflowTooltip: true },
+  { prop: 'channel', label: '渠道', minWidth: 100, showOverflowTooltip: true },
+  { prop: 'label', label: '连接标签', minWidth: 150, showOverflowTooltip: true },
+  { prop: 'state', label: '状态', width: 110, align: 'center', slot: 'state' },
+  { prop: 'probe', label: '探针结果', width: 200, align: 'center', slot: 'probe' },
+  { prop: 'consecutiveFailures', label: '连续失败', width: 100, align: 'center', slot: 'failures' },
+  { prop: 'averageLatency', label: '平均延迟', width: 120, align: 'center', slot: 'latency' },
+  { prop: 'actions', label: '操作', width: 340, align: 'center', slot: 'actions' },
+];
 
 const loading = ref(false);
 const probing = ref(false);
@@ -200,57 +221,45 @@ onUnmounted(stopPoll);
     <div class="ch-table-wrap">
       <ReTable
         :data="states"
+        :columns="healthColumns"
         :loading="loading"
         stripe
         :border="false"
         class="ch-table"
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
-        <ReTableColumn prop="providerId" label="供应商" min-width="130" show-overflow-tooltip />
-        <ReTableColumn prop="channel" label="渠道" min-width="100" show-overflow-tooltip />
-        <ReTableColumn prop="label" label="连接标签" min-width="150" show-overflow-tooltip />
-        <ReTableColumn label="状态" width="110" align="center">
-          <template #default="{ row }">
-            <span class="ch-status" :class="stateStyle(row.state).class">
-              <i class="ch-status__dot" :style="{ background: stateStyle(row.state).dot }" />
-              {{ stateStyle(row.state).label }}
+        <template #col-state="{ row }">
+          <span class="ch-status" :class="stateStyle(row.state).class">
+            <i class="ch-status__dot" :style="{ background: stateStyle(row.state).dot }" />
+            {{ stateStyle(row.state).label }}
+          </span>
+        </template>
+        <template #col-probe="{ row }">
+          <div class="ch-probe">
+            <span class="ch-probe__status">{{ row.lastProbeStatus ?? '—' }}</span>
+            <span class="ch-probe__latency" :title="formatLatency(row.lastProbeLatency)">
+              {{ formatLatency(row.lastProbeLatency) }} · {{ relative(row.lastProbeAt) }}
             </span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="探针结果" width="200" align="center">
-          <template #default="{ row }">
-            <div class="ch-probe">
-              <span class="ch-probe__status">{{ row.lastProbeStatus ?? '—' }}</span>
-              <span class="ch-probe__latency" :title="formatLatency(row.lastProbeLatency)">
-                {{ formatLatency(row.lastProbeLatency) }} · {{ relative(row.lastProbeAt) }}
-              </span>
-            </div>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="连续失败" width="100" align="center">
-          <template #default="{ row }">
-            <span :class="{ 'is-critical': row.consecutiveFailures && row.consecutiveFailures >= 3 }">
-              {{ row.consecutiveFailures ?? 0 }}
-            </span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="平均延迟" width="120" align="center">
-          <template #default="{ row }">
-            {{ formatLatency(row.averageLatency) }}
-          </template>
-        </ReTableColumn>
-        <ReTableColumn label="操作" width="340" align="center">
-          <template #default="{ row }">
-            <el-button class="ch-op" :loading="probingId === row.connectionId" @click="probe(row.connectionId)">
-              探针
-            </el-button>
-            <el-select class="ch-op" v-model="row.intervalSeconds" placeholder="全局"
-              @change="updateInterval(row, $event)">
-              <el-option v-for="o in INTERVAL_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
-            </el-select>
-            <el-button class="ch-op ch-op--danger" @click="resetState(row)">重置</el-button>
-          </template>
-        </ReTableColumn>
+          </div>
+        </template>
+        <template #col-failures="{ row }">
+          <span :class="{ 'is-critical': row.consecutiveFailures && row.consecutiveFailures >= 3 }">
+            {{ row.consecutiveFailures ?? 0 }}
+          </span>
+        </template>
+        <template #col-latency="{ row }">
+          {{ formatLatency(row.averageLatency) }}
+        </template>
+        <template #col-actions="{ row }">
+          <el-button class="ch-op" :loading="probingId === row.connectionId" @click="probe(row.connectionId)">
+            探针
+          </el-button>
+          <el-select class="ch-op" v-model="row.intervalSeconds" placeholder="全局"
+            @change="updateInterval(row, $event)">
+            <el-option v-for="o in INTERVAL_OPTIONS" :key="o.value" :label="o.label" :value="o.value" />
+          </el-select>
+          <el-button class="ch-op ch-op--danger" @click="resetState(row)">重置</el-button>
+        </template>
       </ReTable>
     </div>
   </div>

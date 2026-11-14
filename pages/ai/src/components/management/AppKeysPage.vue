@@ -126,29 +126,22 @@
     <ReDialog v-model="logsDialogVisible" title="AppKey 充值/消费流水" width="700px" append-to-body>
       <ReTable
         :data="topupLogs"
+        :columns="topupLogColumns"
         :loading="logsLoading"
         border
         :layout-table="{ minHeight: 0 }"
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
       >
-        <ReTableColumn prop="createdAt" label="流水时间" min-width="160" align="center" />
-        <ReTableColumn prop="type" label="类型" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="topupTypeTag(row.type)" size="small">
-              {{ topupTypeLabel(row.type) }}
-            </el-tag>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn prop="amount" label="金额(元)" min-width="110" align="right">
-          <template #default="{ row }">
-            <span :class="row.amount >= 0 ? 'charge-green' : 'charge-red'">
-              {{ row.amount > 0 ? '+' : '' }}{{ row.amount }}
-            </span>
-          </template>
-        </ReTableColumn>
-        <ReTableColumn prop="balanceBefore" label="变动前余额" min-width="110" align="right" />
-        <ReTableColumn prop="balanceAfter" label="变动后余额" min-width="110" align="right" />
-        <ReTableColumn prop="remark" label="备注" min-width="160" />
+        <template #col-type="{ row }">
+          <el-tag :type="topupTypeTag(row.type)" size="small">
+            {{ topupTypeLabel(row.type) }}
+          </el-tag>
+        </template>
+        <template #col-amount="{ row }">
+          <span :class="row.amount >= 0 ? 'charge-green' : 'charge-red'">
+            {{ row.amount > 0 ? '+' : '' }}{{ row.amount }}
+          </span>
+        </template>
       </ReTable>
       <template #footer>
         <el-button @click="logsDialogVisible = false">关闭</el-button>
@@ -184,6 +177,24 @@ const appKeyColumns: ReTableColumn[] = [
   { prop: 'totalCost', label: '累计费用', width: 110, align: 'right' },
   { prop: 'createTime', label: '创建时间', minWidth: 160 },
   { prop: 'actions', label: '操作', width: 220, fixed: 'right', align: 'center', slot: 'actions' },
+];
+
+/**
+ * 充值/消费流水列配置。
+ *
+ * <p>原先写成 {@code <ReTableColumn>} 子节点 —— 但 ReTable 并没有这个子组件，
+ * 模板里会退化成未解析的 {@code <retablecolumn>} 原生元素：控制台报
+ * 「Failed to resolve component: ReTableColumn」，流水弹窗打开后表头与单元格全空
+ * （只有一行行占位）。ReTable 的唯一列来源是 {@code columns} + {@code #col-<prop>}
+ * 插槽，这里按同一约定声明。</p>
+ */
+const topupLogColumns: ReTableColumn[] = [
+  { prop: 'createdAt', label: '流水时间', minWidth: 160, align: 'center' },
+  { prop: 'type', label: '类型', width: 100, align: 'center', slot: 'type' },
+  { prop: 'amount', label: '金额(元)', minWidth: 110, align: 'right', slot: 'amount' },
+  { prop: 'balanceBefore', label: '变动前余额', minWidth: 110, align: 'right' },
+  { prop: 'balanceAfter', label: '变动后余额', minWidth: 110, align: 'right' },
+  { prop: 'remark', label: '备注', minWidth: 160 },
 ];
 
 const loading = ref(false);

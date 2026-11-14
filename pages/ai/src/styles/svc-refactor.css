@@ -76,8 +76,12 @@
   --svc-tile-h: 64px;     /* 实例瓦片最小高 */
 
   display: flex; flex-direction: column;
-  gap: var(--svc-sp-4);
+  /* 页头与三联屏之间只留 2px：这一页是密集控制台，卡与卡之间靠描边分界，
+     不再用 12/16px 的空隙拉散信息 */
+  gap: 2px;
   width: 100%; min-width: 0;
+  /* 撑满宿主给的可用高度：三联屏据此拿弹性高度，不再写死 100vh - 固定值 */
+  min-height: 100%;
   font-family: var(--svc-sans);
   color: var(--svc-ink);
 }
@@ -524,8 +528,22 @@ html.dark .svc {
 
 /* 访问日志：表格区吃满面板剩余高度。
    否则表格短时（无记录 / 记录少）面板下方会留一大块突兀空白；
-   让表格容器填满后，空白被收进表格区域，看起来是「一张更高的表」而非缺口。 */
-.svc-pane--access .svc-tablewrap { flex: 1 1 auto; min-height: 0; }
+   让表格容器填满后，空白被收进表格区域，看起来是「一张更高的表」而非缺口。
+   只把外层容器拉高还不够 —— ReTable 卡片自身是内容高度，会浮在顶部，
+   下面仍旧是一片白底，所以卡片和它的主体也要跟着拉满。 */
+.svc-pane--access .svc-tablewrap {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column;
+}
+.svc-pane--access .svc-tablewrap > .re-table {
+  flex: 1 1 auto;
+  display: flex; flex-direction: column;
+}
+.svc-pane--access .svc-tablewrap .re-table__main {
+  flex: 1 1 auto;
+  display: flex; flex-direction: column;
+}
+.svc-pane--access .svc-tablewrap .vxe-table { flex: 1 1 auto; }
 
 /* Key 台账面板：吃满剩余高度；内边距与日志面板对齐 */
 .svc-pane--keys { padding: var(--svc-sp-4) var(--svc-sp-4) var(--svc-sp-3); }
@@ -540,10 +558,9 @@ html.dark .svc {
 
 /* 焦点模式：端口带 / 状态带 / 右栏整块退场，控制台吃满。
    用 display:none 而非透明度 —— 半残的 grid 在实测里极易算出 0 高度。 */
-.svc.is-focus .svc-band,
-.svc.is-focus .svc-inst,
-.svc.is-focus .svc-aside { display: none; }
-.svc.is-focus .svc-work { grid-template-columns: minmax(0, 1fr); }
+.svc.is-focus .svc-rail,
+.svc.is-focus .svc-right { display: none; }
+.svc.is-focus .svc-tri { grid-template-columns: minmax(0, 1fr); }
 .svc.is-focus .svc-pane--console { max-height: none; }
 .svc.is-focus .svc-console { max-height: none; }
 
@@ -631,6 +648,9 @@ html.dark .svc {
 /* ############################################################################
    8. 运行日志控制台
    ############################################################################ */
+/* 作用域提示条只在聚焦（整屏看日志）时出现：三联屏里中栏标题已写明实例与端口 */
+.svc-mid .svc-scope { display: none; }
+.svc.is-focus .svc-mid .svc-scope { display: flex; }
 /* 作用域提示条：明确「这份进程日志对应哪个实例」，且声明它不按实例过滤 */
 .svc-scope {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
@@ -767,7 +787,8 @@ html.dark .svc {
 }
 .svc-console__empty { color: var(--svc-console-debug); }
 .svc-console__empty {
-  min-height: 210px;
+  /* 撑满控制台可视高度：窄窄一条 210px 的空态会让下面留一大片黑 */
+  min-height: max(210px, calc(100% - 32px));
   margin: var(--svc-sp-4);
   border: 1px dashed var(--svc-console-rule);
   border-radius: var(--svc-r-md);
@@ -799,10 +820,10 @@ html.dark .svc {
 .svc-alert__act:hover { color: var(--svc-accent-hover); }
 .svc-alert__act:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 2px; border-radius: 2px; }
 
-/* 实例空态：虚线框 + 引导 CTA */
+/* 实例空态：实例区已经是卡，卡内不再套一层虚线框，空态直接撑满卡身居中 */
 .svc-inst .svc-empty {
-  border: 1px dashed var(--svc-rule-strong); border-radius: var(--svc-r-md);
-  background: var(--svc-surface-2); padding: var(--svc-sp-5) var(--svc-sp-4);
+  border: 0; background: transparent;
+  padding: var(--svc-sp-5) var(--svc-sp-4);
 }
 
 /* 骨架：一次高亮扫过，1.4s 线性（不用遮罩转圈） */
@@ -853,7 +874,10 @@ html.dark .svc {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--svc-accent) 40%, var(--svc-rule-strong)) inset;
 }
 .svc .el-input__wrapper.is-focus, .svc .el-select__wrapper.is-focused {
-  box-shadow: 0 0 0 3px var(--svc-accent-ring), 0 0 0 1px var(--svc-accent) inset !important;
+  /* 聚焦不再描一圈边框：3px 环 + 1px 强调边是全页唯一会跳出来的描边，
+     和「卡面靠 1px 细线分界」的口径打架；聚焦只把底色提到卡面白。 */
+  background: var(--svc-surface);
+  box-shadow: 0 0 0 1px var(--svc-rule-strong) inset !important;
 }
 .svc .el-input__inner { font-family: var(--svc-sans); font-size: 12px; color: var(--svc-ink); }
 .svc .el-select__selected-item { font-size: 12px; }
@@ -877,39 +901,22 @@ html.dark .svc {
   .svc-tile { transform: none; }
 }
 
-/* ≤1180：右栏收窄；控制台不再需要窄 min */
-@media (max-width: 1180px) {
-  .svc-work { grid-template-columns: minmax(0, 1fr) 268px; }
-  .svc-console { max-height: clamp(280px, 40vh, 520px); }
-}
-
-/* ≤1020：右栏落到主面板下方，两张卡并排 */
-@media (max-width: 1020px) {
-  .svc-work { grid-template-columns: minmax(0, 1fr); }
-  .svc-aside { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-/* ≤900：状态带 2 列；控件行整宽；命中区 44px；隐藏聚焦入口 */
+/* ≤900：控件行整宽；触控目标 44px；隐藏聚焦入口 */
 @media (max-width: 900px) {
-  .svc-aside { grid-template-columns: minmax(0, 1fr); }
-  .svc-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .svc-toolbar .svc-sect__extra { width: 100%; justify-content: flex-start; }
   .svc-select, .svc-search, .svc-select--fixed { width: 100%; flex: 1 1 140px; }
   .svc-ico { width: 44px; height: 44px; }        /* 触控目标 */
   .svc-ico .el-icon { font-size: 17px; }
-  .svc-tile { min-height: 84px; }
   .svc-seg__btn { height: 32px; padding: 0 12px; }
   /* focus 模式在单列下失去意义，直接禁用入口 */
   .svc-pane--console .svc-ico[aria-pressed] { display: none; }
 }
 
-/* ≤720：状态带 2 列；区块标题换行；端口缩回 18px；日志槽收窄 */
+/* ≤720：页头动作换行；日志槽收窄；三栏已在上方落成一列 */
 @media (max-width: 720px) {
   .svc-head { align-items: flex-start; }
   .svc-head__actions { width: 100%; flex-wrap: wrap; }
   .svc-stamp { order: 3; }
-  .svc-tile__port { font-size: 18px; }
-  .svc-tile__name { max-width: 160px; font-size: 14px; }
   .svc-line { grid-template-columns: 32px 40px minmax(0, 1fr); }
   .svc-line__no { padding-right: 8px; font-size: 10px; }
 }
@@ -969,6 +976,12 @@ html.dark .svc {
 .svc-key__token:hover { color: var(--svc-accent); }
 .svc-key__token:hover .el-icon { opacity: 1; }
 .svc-key__token:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 2px; border-radius: 2px; }
+
+/* 分组列：Key 的归属。长名字单行省略；未绑定走警告色 —— 绑定是签发前提 */
+.svc-gchip {
+  display: inline-block; max-width: 100%; line-height: 17px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* 可用模型：台面上最多两个 chip，其余收进悬浮清单 */
 .svc-models { display: flex; align-items: center; gap: 4px; overflow: hidden; }
@@ -1051,6 +1064,9 @@ html.dark .svc {
   display: block; width: 100%; margin-top: 4px;
   font-size: 11.5px; line-height: 1.55; color: var(--svc-ink-3);
 }
+/* 分组缺失时的跳转：提示行下面单独一行，别和标签挤同一行 */
+.svc-form__act { margin-top: 6px; }
+.svc-form__hint .svc-linkbtn.is-inline { padding: 0; font-size: inherit; vertical-align: baseline; }
 
 /* 到期快捷预设：一组可点的 chip（把「算日期」这件事从用户手里拿走） */
 .svc-presets { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; width: 100%; margin-top: 6px; }
@@ -1120,4 +1136,299 @@ button.svc-chip.is-act:focus-visible { outline: 2px solid var(--svc-accent); out
 @media (max-width: 900px) {
   .svc-pane--groups .svc-models .svc-chip { max-width: 132px; }
   .svc-grp__desc { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+}
+
+/* ############################################################################
+   13. 三联屏（G 方案）：左「指标 + 实例」/ 中「日志工作区」/ 右「台账 + 尾部」
+   ----------------------------------------------------------------------------
+   四块工作区（访问日志 / 运行日志 / Key 台账 / 分组）互不替代：排障时要同时看
+   「日志里错在哪」和「是不是 Key 额度没了」。页签强迫来回切，切一次丢一次上下文。
+   改成三栏同屏并读：
+     · 左栏 288px：六个汇总读数 + 实例清单（选中项带折线）+ 底部实例动作；
+     · 中栏：唯一可变的主区，只在「访问日志 / 运行日志」之间二选一；
+     · 右栏 320px：AppKey 台账（含余量尺）、运行日志尾部、分组。
+   台账的增删改仍在完整账页里做，通过右栏「管理台账」打开弹层。
+   三栏高度锁到视口，各栏内部自己滚 —— 页签消失后不该再让整页滚。
+   ############################################################################ */
+/* 页头卡：RePageHead 自带的是「浅灰通栏 + 细边」，落在本页和三栏卡面
+   （白底 + 描边 + 1px 阴影）不是一套观感，这里把它对齐成同一张卡。
+   选择器重复类名是为了压过组件 scoped 样式（.re-page__head[data-v-x]，同为 2 类）。 */
+.svc .re-page__head.re-page__head {
+  background: var(--svc-surface);
+  border-color: var(--svc-rule);
+  border-radius: var(--svc-r-md);
+  box-shadow: var(--svc-shadow-1);
+}
+
+.svc-tri {
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr) 320px;
+  gap: 2px;
+  /* 高度由 .svc 的 flex 分配：页头 + 三栏正好吃满宿主可用高度，
+     小屏时靠 min-height 兜底交给外层滚动（不再用 100vh - 固定值猜页头高度） */
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 560px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.svc-rail,
+.svc-right {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 0; min-height: 0;
+}
+
+/* ── 左栏：汇总读数 ── */
+.svc-metrics--rail { grid-template-columns: repeat(2, minmax(0, 1fr)); flex-shrink: 0; }
+.svc-metrics--rail .svc-metric { padding: 7px 9px; cursor: default; }
+.svc-metrics--rail .svc-metric b { font-size: 17px; }
+.svc-metrics--rail .svc-metric.is-danger b { color: var(--svc-danger); }
+
+/* 实例区卡面：与中栏、右栏卡同一套底/边/圆角/阴影；卡内分标题条、清单、动作条 */
+.svc-inst {
+  display: flex; flex-direction: column; min-height: 0;
+  flex: 1 1 auto;
+  background: var(--svc-surface);
+  border: 1px solid var(--svc-rule);
+  border-radius: var(--svc-r-md);
+  box-shadow: var(--svc-shadow-1);
+  overflow: hidden;
+}
+.svc-inst .svc-rail__head { padding: 8px 12px 7px; }
+.svc-inst .svc-rail__list { padding: 8px 10px; }
+.svc-inst .svc-rail__acts { padding: 8px 10px; }
+/* 空态撑满清单区：卡已经成型，空白别只堆在底部 */
+.svc-inst .svc-rail__list > .svc-empty { flex: 1 1 auto; }
+
+.svc-rail__head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--svc-sp-2);
+  padding-bottom: 6px; border-bottom: 1px solid var(--svc-rule); flex-shrink: 0;
+}
+.svc-rail__head b {
+  font-family: var(--svc-serif); font-size: 13px; font-weight: 700; color: var(--svc-ink);
+}
+.svc-rail__head span {
+  font-family: var(--svc-mono); font-size: 10.5px; color: var(--svc-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 实例清单：一列排到底，超出由这一栏自己滚（中栏与右栏不动） */
+.svc-rail__list {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  overflow-y: auto; overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+.svc-rail__list .svc-tiles { display: flex; flex-direction: column; gap: 2px; }
+.svc-rail__list .svc-tile {
+  min-height: 0; padding: 9px 10px 10px 12px; gap: 8px; align-items: stretch;
+}
+.svc-rail__list .svc-tile__name { font-size: 13px; max-width: 100%; }
+.svc-rail__list .svc-tile__line .svc-badge { margin-left: auto; }
+.svc-rail__list .svc-tile__line { flex-wrap: wrap; row-gap: 4px; }
+.svc-rail__list .svc-tile__portline { font-size: 11px; }
+.svc-rail__list .svc-tile__metrics { gap: 4px; padding-top: 6px; }
+.svc-rail__list .svc-tile__metrics b { font-size: 11.5px; }
+.svc-rail__list .svc-tile__spark { margin-top: 0; }
+
+.svc-rail__acts {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;
+  padding-top: var(--svc-sp-2); border-top: 1px solid var(--svc-rule); flex-shrink: 0;
+}
+.svc-railbtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  height: 30px; padding: 0 6px;
+  border: 1px solid var(--svc-rule-strong); border-radius: var(--svc-r-sm);
+  background: var(--svc-surface); color: var(--svc-ink-2);
+  font-family: var(--svc-sans); font-size: 11.5px; cursor: pointer;
+  transition: border-color var(--svc-dur-fast) ease, color var(--svc-dur-fast) ease, background-color var(--svc-dur-fast) ease;
+}
+.svc-railbtn:hover:not(:disabled) { border-color: var(--svc-accent); color: var(--svc-accent); background: var(--svc-accent-soft); }
+.svc-railbtn:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 1px; }
+.svc-railbtn:disabled { opacity: 0.45; cursor: not-allowed; }
+.svc-railbtn.is-danger:hover:not(:disabled) { border-color: var(--svc-danger); color: var(--svc-danger); background: var(--svc-danger-soft); }
+.svc-railbtn .el-icon { font-size: 13px; }
+
+/* ── 中栏：日志工作区 ── */
+.svc-mid {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
+  background: var(--svc-surface); box-shadow: var(--svc-shadow-1); overflow: hidden;
+}
+.svc-mid__head {
+  display: flex; align-items: center; gap: var(--svc-sp-3);
+  padding: 8px 14px; flex-shrink: 0;
+  border-bottom: 1px solid var(--svc-rule); background: var(--svc-surface-2);
+}
+.svc-mid__title { display: flex; align-items: baseline; gap: 6px; min-width: 0; flex: 1; }
+.svc-mid__title b {
+  font-family: var(--svc-serif); font-size: 13.5px; font-weight: 700; color: var(--svc-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-mid__port { font-family: var(--svc-mono); font-size: 11.5px; font-weight: 650; color: var(--svc-ink-2); }
+.svc-mid__stat {
+  font-style: normal; font-family: var(--svc-mono); font-size: 10.5px; color: var(--svc-ink-3);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.svc-seg--solid .svc-seg__btn { height: 26px; padding: 0 11px; font-size: 12px; }
+
+.svc-mid__foot {
+  display: flex; align-items: center; gap: var(--svc-sp-3); flex-shrink: 0;
+  padding: 6px 14px; border-top: 1px solid var(--svc-rule); background: var(--svc-surface-2);
+  font-size: 10.5px; color: var(--svc-ink-3);
+}
+.svc-mid__footline { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svc-mid__footline b { font-family: var(--svc-mono); font-size: 10px; margin-right: 4px; }
+.svc-mid__raw { color: var(--svc-ink-2); }
+.svc-mid__footmeta { font-family: var(--svc-mono); white-space: nowrap; color: var(--svc-ink-3); }
+
+/* ── 右栏：台账 ── */
+.svc-right__keys { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.svc-keys {
+  display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto;
+  overflow-y: auto; margin: 0 -4px; padding: 0 4px;
+}
+.svc-keyrow {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 7px 4px; border: 0; border-bottom: 1px solid var(--svc-rule);
+  background: transparent; text-align: left; font: inherit; color: inherit;
+  cursor: pointer; border-radius: var(--svc-r-sm);
+}
+.svc-keyrow:last-child { border-bottom: 0; }
+.svc-keyrow:hover { background: var(--svc-accent-soft); }
+.svc-keyrow:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: -2px; }
+.svc-keyrow__top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.svc-keyrow__name {
+  flex: 1 1 auto; min-width: 0; font-size: 12px; font-weight: 600; color: var(--svc-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-keyrow__status { font-style: normal; font-size: 10px; color: var(--svc-ink-3); white-space: nowrap; }
+.svc-keyrow__status.is-ok { color: var(--svc-success); }
+.svc-keyrow__status.is-down { color: var(--svc-danger); }
+.svc-keyrow__status.is-stopped { color: var(--svc-ink-3); }
+.svc-keyrow__token {
+  font-family: var(--svc-mono); font-size: 9.5px; color: var(--svc-ink-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-keyrow__gauge {
+  height: 4px; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--svc-ink-3) 16%, transparent);
+}
+.svc-keyrow__gauge i {
+  display: block; height: 100%; border-radius: inherit; background: var(--svc-ink-3);
+  transition: width var(--svc-dur) var(--svc-ease);
+}
+.svc-keyrow__gauge.is-ok i { background: var(--svc-success); }
+.svc-keyrow__gauge.is-warn i { background: var(--svc-warning); }
+.svc-keyrow__gauge.is-danger i { background: var(--svc-danger); }
+.svc-keyrow__meta { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.svc-keyrow__meta b {
+  font-family: var(--svc-mono); font-size: 11px; font-weight: 650; color: var(--svc-ink-2);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.svc-keyrow__meta i {
+  font-style: normal; font-size: 9.5px; color: var(--svc-ink-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-sidecard__foot {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--svc-sp-2);
+  padding-top: 7px; border-top: 1px solid var(--svc-rule); flex-shrink: 0;
+}
+.svc-riskflag { font-size: 10.5px; color: var(--svc-danger); white-space: nowrap; }
+
+.svc-right__tail { flex-shrink: 0; }
+.svc-tail {
+  display: flex; flex-direction: column; gap: 2px;
+  font-family: var(--svc-mono); font-size: 9.5px; line-height: 1.6;
+  overflow: hidden;
+}
+.svc-tail__line { display: flex; gap: 6px; min-width: 0; }
+.svc-tail__line > i { font-style: normal; width: 26px; flex-shrink: 0; color: var(--svc-ink-3); }
+.svc-tail__line > span {
+  flex: 1 1 auto; min-width: 0; color: var(--svc-ink-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-tail__line.is-error > i, .svc-tail__line.is-error > span { color: var(--svc-danger); }
+.svc-tail__line.is-warn > i, .svc-tail__line.is-warn > span { color: var(--svc-warning); }
+
+/* 分组多时只让清单自己滚，不把右栏顶出可视区 */
+.svc-right > .svc-sidecard:last-child { flex-shrink: 0; }
+.svc-right > .svc-sidecard:last-child .svc-grps { max-height: 132px; overflow-y: auto; }
+
+/* ── 台账弹层：关闭时只藏起来，不卸载（右栏 stats 依赖它常驻拉数） ── */
+.svc-sheet {
+  position: fixed; inset: 0; z-index: 3000;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(15, 22, 32, 0.42);
+  visibility: hidden; opacity: 0; pointer-events: none;
+  transition: opacity var(--svc-dur-fast) ease, visibility var(--svc-dur-fast) ease;
+}
+.svc-sheet.is-open { visibility: visible; opacity: 1; pointer-events: auto; }
+.svc-sheet__panel {
+  display: flex; flex-direction: column; overflow: hidden;
+  width: min(1120px, calc(100vw - 48px));
+  /* 高度跟着内容走（台账表自身 maxHeight 520），只在视口不够时封顶，
+     避免空表时下半屏留一大片白 */
+  max-height: min(760px, calc(100vh - 64px));
+  border: 1px solid var(--svc-rule); border-radius: var(--svc-r-md);
+  background: var(--svc-surface); box-shadow: var(--svc-shadow-3);
+  transform: translateY(6px); transition: transform var(--svc-dur-fast) ease;
+}
+.svc-sheet.is-open .svc-sheet__panel { transform: none; }
+.svc-sheet__head {
+  display: flex; align-items: baseline; gap: 10px; flex-shrink: 0;
+  padding: 12px 16px; border-bottom: 1px solid var(--svc-rule); background: var(--svc-surface-2);
+}
+.svc-sheet__head b { font-family: var(--svc-serif); font-size: 15px; font-weight: 700; color: var(--svc-ink); }
+.svc-sheet__sub { font-family: var(--svc-mono); font-size: 10.5px; color: var(--svc-ink-3); }
+.svc-sheet__head .svc-ico { margin-left: auto; align-self: center; }
+.svc-sheet__body {
+  position: relative;
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+  padding: 12px 16px 14px; overflow: auto;
+}
+/* 未激活的台账：不可见且退出文档流，两张表不会互相挤压高度。
+   opacity 必须一起上：visibility 可被子元素 visibility:visible 覆盖回去
+   （ReTable 内部就有），只写 visibility 会看到另一张表的空态透出来。 */
+.svc-sheet__body > .is-sheet-hidden {
+  position: absolute; inset: 0;
+  visibility: hidden; opacity: 0; pointer-events: none; overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .svc-sheet, .svc-sheet__panel, .svc-keyrow__gauge i { transition: none; }
+}
+
+/* ############################################################################
+   14. 响应式（必须排在 §13 之后）
+   ----------------------------------------------------------------------------
+   同权重选择器按源码顺序生效：§13 里的 .svc-tri 基底写在文件后段，
+   把响应式规则放在 §13 之前会被它整条覆盖（实测 1280/1024 都还停在 288/320）。
+   因此这里统一收口。
+   ############################################################################ */
+
+/* ≤1280：三栏各收一档，日志区仍是最宽的一列 */
+@media (max-width: 1280px) {
+  .svc-tri { grid-template-columns: 264px minmax(0, 1fr) 296px; }
+}
+
+/* ≤1120：三栏落成一列，高度交还给外层滚动 */
+@media (max-width: 1120px) {
+  .svc-tri {
+    grid-template-columns: minmax(0, 1fr);
+    flex: none; height: auto; min-height: 0;
+    gap: 2px;
+  }
+  /* 两栏壳在单列下只剩「分组的容器」，故拆掉壳让卡片直接排进网格 */
+  .svc-rail, .svc-right { display: contents; }
+  .svc-rail__list { overflow: visible; }
+  .svc-mid { min-height: 520px; }
+  .svc-right__keys { min-height: 0; }
+}
+
+/* ≤720：左栏读数两列、页头动作换行 */
+@media (max-width: 720px) {
+  .svc-tri { gap: 2px; }
+  .svc-mid { min-height: 440px; }
 }

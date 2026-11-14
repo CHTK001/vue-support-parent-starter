@@ -66,10 +66,10 @@
           <el-input v-model="form.name" placeholder="如：前端调用令牌" />
         </el-form-item>
         <el-form-item label="令牌类型">
-          <el-radio-group v-model="form.type">
-            <el-radio value="permanent">永久</el-radio>
-            <el-radio value="temporary">临时</el-radio>
-          </el-radio-group>
+          <ReRadioGroup v-model="form.type">
+            <ReRadio value="permanent">永久</ReRadio>
+            <ReRadio value="temporary">临时</ReRadio>
+          </ReRadioGroup>
         </el-form-item>
         <el-form-item label="过期时间" v-if="form.type === 'temporary'">
           <el-date-picker
@@ -109,6 +109,7 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 const props = defineProps<{
   /** 当前选中的服务实例 ID；为空时不加载（无实例/未选中） */

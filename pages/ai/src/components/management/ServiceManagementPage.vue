@@ -9,7 +9,7 @@
         <template v-if="runningPorts"> · 对外端口 {{ runningPorts }}</template>
       </template>
       <template #actions>
-        <!-- 统计窗口：指标带与端口卡共用同一窗口，避免两处口径打架 -->
+        <!-- 统计窗口：左栏 6 格读数与实例折线共用同一窗口，避免两处口径打架 -->
         <el-select v-model.number="statsWindowHours" class="svc-select svc-select--fixed" aria-label="统计窗口">
           <el-option label="近 24 小时" :value="24" />
           <el-option label="近 7 天" :value="168" />
@@ -30,32 +30,46 @@
       </template>
     </RePageHead>
 
-    <!-- ==================== 00b 状态带（Q1 的唯一答案） ==================== -->
-    <section class="svc-band" aria-label="服务健康概览">
-      <div class="svc-band__cell">
-        <span class="svc-band__num">{{ formatCompact(instanceCalls) }}<i> 次</i></span>
-        <span class="svc-band__label">请求总数 · 近 {{ statsWindowHours }} 小时</span>
-      </div>
-      <div class="svc-band__cell" :class="{ 'is-danger': instanceErrors > 0 }">
-        <span class="svc-band__num">{{ instanceSuccessRate }}<i v-if="instanceCalls">%</i></span>
-        <span class="svc-band__label">成功率 · 失败 {{ instanceErrors }} 次</span>
-      </div>
-      <div class="svc-band__cell">
-        <span class="svc-band__num">{{ formatCompact(instanceTokens) }}</span>
-        <span class="svc-band__label">Token 合计</span>
-      </div>
-      <div class="svc-band__cell">
-        <span class="svc-band__num">{{ instanceAvgLatency }}</span>
-        <span class="svc-band__label">平均耗时 · 按调用量加权</span>
-      </div>
-      <div class="svc-band__cell" :class="{ 'is-danger': keyStats.atRisk > 0 }">
-        <span class="svc-band__num">{{ keyStats.atRisk }}<i> 把</i></span>
-        <span class="svc-band__label">AppKey 风险</span>
-      </div>
-    </section>
+    <!-- ==================== 三联屏：左指标与实例 / 中日志 / 右台账 ==================== -->
+    <div class="svc-tri">
+      <aside class="svc-rail" aria-label="实例与指标">
+        <!-- 近 N 小时汇总：格子只做读数，不带任何强调底色 -->
+        <section class="svc-metrics svc-metrics--rail" aria-label="服务健康概览">
+          <div class="svc-metric">
+            <b>{{ formatCompact(instanceCalls) }}</b>
+            <i>请求 · 近 {{ statsWindowHours }}h</i>
+          </div>
+          <div class="svc-metric" :class="{ 'is-danger': instanceErrors > 0 }">
+            <b>{{ instanceSuccessRate }}<template v-if="instanceCalls">%</template></b>
+            <i>成功率 · 失败 {{ instanceErrors }}</i>
+          </div>
+          <div class="svc-metric">
+            <b>{{ formatCompact(instanceTokens) }}</b>
+            <i>Token 合计</i>
+          </div>
+          <div class="svc-metric">
+            <b>{{ instanceAvgLatency }}</b>
+            <i>平均耗时</i>
+          </div>
+          <div class="svc-metric">
+            <b>{{ instanceP95 }}</b>
+            <i>P95 · 最慢实例</i>
+          </div>
+          <div class="svc-metric" :class="{ 'is-danger': keyStats.atRisk > 0 }">
+            <b>{{ keyStats.atRisk }}</b>
+            <i>AppKey 风险</i>
+          </div>
+        </section>
 
-    <!-- ==================== 01 实例端口带 ==================== -->
-    <section class="svc-inst" aria-label="服务实例">
+        <!-- 实例区自成一张卡：与汇总读数、中栏日志、右栏台账同一套卡面，
+             否则实例清单直接铺在页底色上，和其余两块不像一组 -->
+        <section class="svc-inst" aria-label="服务实例">
+        <div class="svc-rail__head">
+          <b>服务实例</b>
+          <span>{{ runningCount }} / {{ instances.length }} 运行中</span>
+        </div>
+
+        <div class="svc-rail__list" aria-label="服务实例列表">
       <!-- 内联错误条：旧数据不清空（实例卡片继续可读） -->
       <div class="svc-alert is-danger" v-if="instError">
         <span class="svc-alert__text">服务实例加载失败：{{ instError }}</span>
@@ -84,7 +98,7 @@
         </el-button>
       </div>
 
-      <!-- 端口卡横排：端口是运维认实例的第一锚点，故放在最前 -->
+      <!-- 实例卡：一列排开，选中项展开 24 桶折线；动作收到左栏底部 -->
       <div v-else class="svc-tiles">
         <div v-for="t in instances" :key="t.id"
             class="svc-tile"
@@ -115,7 +129,7 @@
               <span class="svc-tile__usage">用量 {{ t.logUsage ? '开' : '关' }}</span>
             </div>
             <!-- 请求量迷你折线：窗口内切 24 个桶，形状可比 -->
-            <div class="svc-tile__spark" v-if="t.spark && t.spark.length" aria-hidden="true">
+            <div class="svc-tile__spark" v-if="isActive(t) && t.spark && t.spark.length" aria-hidden="true">
               <svg viewBox="0 0 100 26" preserveAspectRatio="none">
                 <polyline :points="sparkPoints(t.spark)" />
               </svg>
@@ -128,38 +142,48 @@
               <span><b>{{ t.p95Ms == null ? '—' : formatLatency(t.p95Ms) }}</b><i>P95</i></span>
             </div>
           </div>
-          <!-- 操作组：阻止冒泡，点「删除」不能同时切换选中 -->
-          <div class="svc-tile__acts" @click.stop @keydown.stop>
-            <button class="svc-ico" title="复制接入地址" aria-label="复制接入地址" @click="copyEndpoint(t)">
-              <el-icon><CopyIcon /></el-icon>
-            </button>
-            <button class="svc-ico" :disabled="busy[t.id] === true"
-                    :title="t.running === true ? '停止该实例' : '启动该实例'"
-                    :aria-label="t.running === true ? '停止该实例' : '启动该实例'"
-                    @click="toggleInstance(t)">
-              <el-icon><component :is="t.running === true ? StopIcon : PlayIcon" /></el-icon>
-            </button>
-            <button class="svc-ico" title="Key 台账（全局共用）" aria-label="打开 Key 台账" @click="openTokens(t)">
-              <el-icon><KeyIcon /></el-icon>
-            </button>
-            <button class="svc-ico svc-ico--danger" :disabled="t.running === true || busy[t.id] === true"
-                    :title="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
-                    :aria-label="t.running === true ? '请先停止该服务实例，再删除' : '删除该实例'"
-                    @click="deleteInstance(t)">
-              <el-icon><DeleteIcon /></el-icon>
-            </button>
-          </div>
         </div>
       </div>
-    </section>
+        </div>
 
-    <div class="svc-work">
-      <!-- ---------- 主工作区 ---------- -->
-      <section class="svc-main" aria-label="实例详情工作区">
-        <ReTab :tabs="logTabs" v-model="activeTab" variant="underline" stretch class="svc-rtab">
-          <!-- ═══ tab 1 运行日志 ═══ -->
-          <template #runtime>
-            <div class="svc-pane svc-pane--console">
+        <!-- 底部动作：跟着列表里的选中项走，不在每张卡上重复四个图标 -->
+        <div class="svc-rail__acts" v-if="activeInstance">
+          <button class="svc-railbtn" :disabled="busy[activeInstance.id] === true"
+                  @click="toggleInstance(activeInstance)">
+            <el-icon><component :is="activeInstance.running === true ? StopIcon : PlayIcon" /></el-icon>
+            {{ activeInstance.running === true ? '停止' : '启动' }}
+          </button>
+          <button class="svc-railbtn" @click="copyEndpoint(activeInstance)">
+            <el-icon><CopyIcon /></el-icon>复制地址
+          </button>
+          <button class="svc-railbtn is-danger"
+                  :disabled="activeInstance.running === true || busy[activeInstance.id] === true"
+                  :title="activeInstance.running === true ? '请先停止该实例，再删除' : '删除该实例'"
+                  @click="deleteInstance(activeInstance)">
+            <el-icon><DeleteIcon /></el-icon>删除
+          </button>
+        </div>
+        </section>
+      </aside>
+
+      <!-- ---------- 中：日志工作区（访问日志 / 运行日志 二元切换） ---------- -->
+      <section class="svc-mid" aria-label="日志工作区">
+        <header class="svc-mid__head">
+          <div class="svc-mid__title">
+            <b>{{ activeInstance ? activeInstance.name : '全部实例' }}</b>
+            <span class="svc-mid__port" v-if="activeInstance">:{{ activeInstance.port }}</span>
+            <i class="svc-mid__stat" v-if="activeTab === 'access'">{{ logHoursLabel }} · {{ filteredLogs.length }} 条</i>
+            <i class="svc-mid__stat" v-else>{{ runtimeLogLines.length }} 行 · {{ runtimeSource === 'out' ? 'stdout' : 'stderr' }}</i>
+          </div>
+          <div class="svc-seg svc-seg--solid" role="tablist" aria-label="工作区切换">
+            <button class="svc-seg__btn" role="tab" :aria-selected="activeTab === 'access'"
+                    :class="{ 'is-active': activeTab === 'access' }" @click="activeTab = 'access'">访问日志</button>
+            <button class="svc-seg__btn" role="tab" :aria-selected="activeTab === 'runtime'"
+                    :class="{ 'is-active': activeTab === 'runtime' }" @click="activeTab = 'runtime'">运行日志</button>
+          </div>
+        </header>
+
+        <div class="svc-pane svc-pane--console" v-if="activeTab === 'runtime'">
               <div class="svc-toolbar">
                 <el-select v-model="runtimeSource" class="svc-select svc-select--fixed">
                   <el-option label="标准输出" value="out" />
@@ -247,12 +271,9 @@
               <!-- 静默跟随：用户上滚后不硬拽回底，浮出「N 行新日志」药丸 -->
               <button v-show="!pinned && pendingLines > 0" class="svc-jump"
                       @click="jumpToBottom">↓ {{ pendingLines }} 行新日志</button>
-            </div>
-          </template>
+        </div>
 
-          <!-- ═══ tab 2 访问日志 ═══ -->
-          <template #access>
-            <div class="svc-pane svc-pane--access">
+        <div class="svc-pane svc-pane--access" v-else>
               <div class="svc-toolbar">
                 <el-select v-model="logInstanceId" class="svc-select" @change="onScopeChange" aria-label="日志作用域">
                   <el-option label="全部实例" value="" />
@@ -354,48 +375,67 @@
                   </template>
                 </ReTable>
               </div>
-            </div>
-          </template>
+        </div>
 
-          <!-- ═══ tab 3 Key 台账（全局：AppKey 不绑实例，任何端口都认） ═══ -->
-          <template #keys>
-            <div class="svc-pane svc-pane--keys">
-              <ServiceKeyLedger :refresh-key="keyRefreshKey" @stats="onKeyStats" @changed="onKeyChanged" />
-            </div>
-          </template>
-
-          <!-- ═══ tab 4 分组（模型的收纳盒：分组清单 ∩ Key 限定模型 = 可用模型） ═══ -->
-          <template #groups>
-            <div class="svc-pane svc-pane--groups">
-              <ServiceGroupLedger
-                :refresh-key="groupRefreshKey"
-                @stats="onGroupStats"
-                @changed="onGroupChanged"
-              />
-            </div>
-          </template>
-        </ReTab>
+        <footer class="svc-mid__foot">
+          <span class="svc-mid__footline">
+            运行日志最近一条
+            <template v-if="lastRuntimeLine">
+              <b :class="levelClass(lastRuntimeLine.level)">{{ levelText(lastRuntimeLine.level) }}</b>
+              <span class="svc-mid__raw">{{ lastRuntimeText }}</span>
+            </template>
+            <template v-else>{{ lastRuntimeText }}</template>
+          </span>
+          <span class="svc-mid__footmeta">
+            {{ runtimePath ? midTruncate(runtimePath, 12, 18) : '日志文件未生成' }} · {{ runtimeTruncated ? '已截断' : '未截断' }}
+          </span>
+        </footer>
       </section>
 
-      <!-- ---------- 右栏：额度风险 / 分组（与定稿「网关控制台」一致） ---------- -->
-      <aside class="svc-aside" aria-label="台账概览">
-        <section class="svc-sidecard">
+      <!-- ---------- 右：AppKey 台账 / 运行日志尾部 / 分组 ---------- -->
+      <aside class="svc-right" aria-label="台账与尾部">
+        <section class="svc-sidecard svc-right__keys">
           <div class="svc-sidecard__h">
-            <b>额度风险</b>
-            <span>{{ keyStats.atRisk }} 把待处理</span>
+            <b>AppKey 台账</b>
+            <span>{{ keyStats.total }} 把 · {{ keyStats.usable }} 可用</span>
           </div>
-          <div class="svc-risk" v-if="keyStats.risk && keyStats.risk.length">
-            <button v-for="k in keyStats.risk" :key="k.id" class="svc-risk__row" @click="activeTab = 'keys'">
-              <span class="svc-risk__name" :title="k.name">{{ k.name }}</span>
-              <span class="svc-risk__val">{{ k.remainText }}</span>
-              <i class="svc-risk__tag" :class="'is-' + k.tone">{{ k.statusText }}</i>
+          <div class="svc-keys" v-if="keyStats.items.length">
+            <button v-for="k in keyStats.items" :key="k.id" class="svc-keyrow" @click="openSheet('keys')">
+              <span class="svc-keyrow__top">
+                <b class="svc-keyrow__name" :title="k.name">{{ k.name }}</b>
+                <i class="svc-keyrow__status" :class="k.statusCls">{{ k.statusText }}</i>
+              </span>
+              <span class="svc-keyrow__token">{{ k.shortKey }}</span>
+              <span class="svc-keyrow__gauge" :class="'is-' + k.tone">
+                <i :style="{ width: k.remainPct + '%' }"></i>
+              </span>
+              <span class="svc-keyrow__meta">
+                <b>{{ k.remainText }}</b>
+                <i>{{ k.groupName || '未分组' }} · {{ k.models.length ? k.models.join(' / ') : '不限模型' }}</i>
+              </span>
             </button>
           </div>
-          <p class="svc-sidecard__note" v-else-if="keyStats.total">没有额度告急或即将到期的 Key。</p>
-          <p class="svc-sidecard__note" v-else>Key 台账还没有数据。</p>
-          <div class="svc-kv"><span>AppKey 可用</span><b>{{ keyStats.usable }} / {{ keyStats.total }}</b></div>
-          <div class="svc-kv"><span>已耗 Token</span><b>{{ formatCompact(keyStats.usedTokens) }}</b></div>
-          <button class="svc-linkbtn" @click="activeTab = 'keys'">查看 Key 台账 →</button>
+          <p class="svc-sidecard__note" v-else-if="keyLoaded">Key 台账还没有数据。</p>
+          <p class="svc-sidecard__note" v-else>Key 台账加载中…</p>
+          <div class="svc-sidecard__foot">
+            <span class="svc-riskflag" v-if="keyStats.atRisk">{{ keyStats.atRisk }} 把需处理</span>
+            <button class="svc-linkbtn" @click="openSheet('keys')">管理台账 →</button>
+          </div>
+        </section>
+
+        <section class="svc-sidecard svc-right__tail">
+          <div class="svc-sidecard__h">
+            <b>运行日志尾部</b>
+            <span>{{ runtimeSource }} · {{ runtimeAutoRefresh ? pollMs / 1000 + 's' : '手动' }}</span>
+          </div>
+          <div class="svc-tail" v-if="runtimeTail.length">
+            <div v-for="(l, i) in runtimeTail" :key="i" class="svc-tail__line" :class="levelClass(l.level)">
+              <i>{{ levelText(l.level) }}</i>
+              <span>{{ l.raw }}</span>
+            </div>
+          </div>
+          <p class="svc-sidecard__note" v-else>{{ runtimeExists === false ? '日志文件尚未生成。' : '暂无日志输出。' }}</p>
+          <button class="svc-linkbtn" @click="activeTab = 'runtime'">打开运行日志 →</button>
         </section>
 
         <section class="svc-sidecard">
@@ -404,35 +444,66 @@
             <span>{{ groupStats.total }} 个</span>
           </div>
           <div class="svc-grps" v-if="groupStats.items.length">
-            <button v-for="g in groupStats.items" :key="g.id" class="svc-grps__row" @click="activeTab = 'groups'">
+            <button v-for="g in groupStats.items" :key="g.id" class="svc-grps__row" @click="openSheet('groups')">
               <span class="svc-grps__name" :title="g.name">{{ g.name }}</span>
               <span class="svc-grps__meta">{{ g.models }} 模型 · {{ g.members }} Key</span>
             </button>
           </div>
           <p class="svc-sidecard__note" v-else>还没有分组。</p>
-          <button class="svc-linkbtn" @click="activeTab = 'groups'">查看分组 →</button>
+          <button class="svc-linkbtn" @click="openSheet('groups')">管理分组 →</button>
         </section>
       </aside>
     </div>
 
+    <!-- 台账弹层：两个台账常驻挂载（关着也照常拉数、回传 stats），
+         只是不可见时不做命中与读屏，打开后同一份实例直接可见 —— 不重新挂载。 -->
+    <div class="svc-sheet" :class="{ 'is-open': sheet !== '' }" :aria-hidden="sheet === ''"
+         :inert="sheet === ''" @click.self="closeSheet">
+      <div class="svc-sheet__panel" role="dialog" aria-modal="true"
+           :aria-label="sheet === 'keys' ? 'AppKey 台账' : '分组台账'">
+        <header class="svc-sheet__head">
+          <b>{{ sheet === 'keys' ? 'AppKey 台账' : '分组台账' }}</b>
+          <span class="svc-sheet__sub">
+            {{ sheet === 'keys' ? `${keyStats.total} 把 · ${keyStats.usable} 可用` : `${groupStats.total} 个分组` }}
+          </span>
+          <button class="svc-ico" aria-label="关闭" @click="closeSheet">✕</button>
+        </header>
+        <div class="svc-sheet__body">
+          <!-- 两个台账都常驻挂载（右栏 stats 靠它们回传），未激活的那个只做
+               不可见 + 退出文档流，不卸载、不 display:none，避免 el-table 零宽塌陷 -->
+          <ServiceKeyLedger :class="{ 'is-sheet-hidden': sheet !== 'keys' }" :refresh-key="keyRefreshKey"
+                            @stats="onKeyStats" @changed="onKeyChanged"
+                            @open-groups="openSheet('groups')" />
+          <ServiceGroupLedger :class="{ 'is-sheet-hidden': sheet !== 'groups' }" :refresh-key="groupRefreshKey"
+                              @stats="onGroupStats" @changed="onGroupChanged" />
+        </div>
+      </div>
+    </div>
+
     <!-- 新建实例对话框 -->
     <ReDialog v-model="showCreateDialog" title="新建服务实例" width="min(500px, 92vw)" append-to-body>
-      <el-form :model="newInstance" label-width="100px">
-        <el-form-item label="名称">
-          <el-input v-model="newInstance.name" placeholder="如：我的AGNES服务" />
-        </el-form-item>
-        <el-form-item label="端口">
-          <ReNumberInput v-model="newInstance.port" :min="8000" :max="9999" />
-        </el-form-item>
-        <el-form-item label="协议开关">
-          <el-checkbox v-model="newInstance.enableGpt">GPT (OpenAI兼容)</el-checkbox>
-          <el-checkbox v-model="newInstance.enableCc">CC (Claude兼容)</el-checkbox>
-          <el-checkbox v-model="newInstance.enableGemini">Gemini兼容</el-checkbox>
-        </el-form-item>
-        <el-form-item label="记录用量">
-          <el-switch v-model="newInstance.logUsage" />
-        </el-form-item>
-      </el-form>
+      <div class="svc">
+        <el-form :model="newInstance" label-width="100px" class="svc-form">
+          <!-- 名称 / 端口是后端唯一真校验的两项，星号不能省：没有标记时用户会先点「创建」再吃一次报错 -->
+          <el-form-item label="名称" required>
+            <el-input v-model="newInstance.name" placeholder="如：我的AGNES服务" maxlength="40" show-word-limit />
+          </el-form-item>
+          <el-form-item label="端口" required>
+            <ReNumberInput v-model="newInstance.port" :min="8000" :max="9999" />
+            <span class="svc-form__hint">8000–9999，同一台机器上不可重复</span>
+          </el-form-item>
+          <!-- 协议不是必填项（可以全关，实例只做端口占位），但至少一个才有客户端能用 -->
+          <el-form-item label="协议开关">
+            <el-checkbox v-model="newInstance.enableGpt">GPT (OpenAI兼容)</el-checkbox>
+            <el-checkbox v-model="newInstance.enableCc">CC (Claude兼容)</el-checkbox>
+            <el-checkbox v-model="newInstance.enableGemini">Gemini兼容</el-checkbox>
+            <span class="svc-form__hint">至少开一个，否则没有客户端能对接</span>
+          </el-form-item>
+          <el-form-item label="记录用量">
+            <el-switch v-model="newInstance.logUsage" />
+          </el-form-item>
+        </el-form>
+      </div>
       <template #footer>
         <el-button @click="showCreateDialog = false">取消</el-button>
         <el-button type="primary" :loading="creating" @click="createInstance">创建</el-button>
@@ -449,14 +520,12 @@ import { createClient, v2Http } from '@/framework/context'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
-import ReTab from '@repo/ui/re-tab'
-import type { ReTabItem } from '@repo/ui/re-tab'
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 import RePageHead from '@/components/ui/RePageHead.vue'
 import ServiceKeyLedger from './ServiceKeyLedger.vue'
 import ServiceGroupLedger from './ServiceGroupLedger.vue'
 import {
-  Play20Regular, Stop20Regular, Key20Regular, Delete20Regular,
+  Play20Regular, Stop20Regular, Delete20Regular,
   ArrowMaximize20Regular, ArrowMinimize20Regular,
   ArrowClockwise20Regular, Add24Regular, Copy24Regular,
 } from '@vicons/fluent'
@@ -465,7 +534,6 @@ const http = createClient(v2Http, { unwrap: false })
 
 const PlayIcon = Play20Regular
 const StopIcon = Stop20Regular
-const KeyIcon = Key20Regular
 const DeleteIcon = Delete20Regular
 const FullscreenIcon = ArrowMaximize20Regular
 const MinimizeIcon = ArrowMinimize20Regular
@@ -700,7 +768,19 @@ const flashId = ref<any>(null)
 const showCreateDialog = ref(false)
 const creating = ref(false)
 const activeId = ref<any>(null)
-const activeTab = ref('access')
+/** 中栏只有两块工作区：访问日志与运行日志。Key / 分组移到右栏与台账弹层 */
+const activeTab = ref<'access' | 'runtime'>('access')
+/**
+ * 台账弹层：'keys' | 'groups' | ''（关闭）。
+ * 两个台账组件常驻挂载（不因关闭而卸载），右栏才有 stats 可读。
+ */
+const sheet = ref<'' | 'keys' | 'groups'>('')
+function openSheet(which: 'keys' | 'groups') {
+  sheet.value = which
+}
+function closeSheet() {
+  sheet.value = ''
+}
 
 /**
  * 页签：前两个按实例看日志，第三个是全局 Key 台账。
@@ -722,7 +802,21 @@ const keyStats = ref<{
   atRisk: number
   usedTokens: number
   risk: Array<{ id: any; name: string; remainText: string; statusText: string; tone: string }>
-}>({ total: 0, usable: 0, atRisk: 0, usedTokens: 0, risk: [] })
+  items: Array<{
+    id: any
+    name: string
+    shortKey: string
+    remainText: string
+    remainPct: number
+    tone: string
+    statusText: string
+    statusCls: string
+    groupName: string
+    models: string[]
+  }>
+}>({ total: 0, usable: 0, atRisk: 0, usedTokens: 0, risk: [], items: [] })
+/** 台账至少回传过一次 stats 才敢说「没有数据」，避免把加载中写成空态 */
+const keyLoaded = ref(false)
 
 function onKeyStats(v: {
   total: number
@@ -730,8 +824,21 @@ function onKeyStats(v: {
   atRisk: number
   usedTokens: number
   risk?: Array<{ id: any; name: string; remainText: string; statusText: string; tone: string }>
+  items?: Array<{
+    id: any
+    name: string
+    shortKey: string
+    remainText: string
+    remainPct: number
+    tone: string
+    statusText: string
+    statusCls: string
+    groupName: string
+    models: string[]
+  }>
 }) {
-  keyStats.value = { ...v, risk: v.risk || [] }
+  keyStats.value = { ...v, risk: v.risk || [], items: v.items || [] }
+  keyLoaded.value = true
 }
 
 /**
@@ -766,12 +873,13 @@ function onKeyChanged() {
   groupRefreshKey.value += 1
 }
 
-const logTabs = computed<ReTabItem[]>(() => [
-  { name: 'access', label: '访问日志', badge: logs.value.length || '' },
-  { name: 'keys', label: 'Key 台账', badge: keyStats.value.total || '' },
-  { name: 'groups', label: '分组', badge: groupStats.value.total || '' },
-  { name: 'runtime', label: '运行日志', badge: runtimeLogLines.value.length || '' },
-])
+/** 中栏标题上的窗口文案：与下拉选项同源，不另写一份数字映射 */
+const logHoursLabel = computed(() => {
+  const h = logHours.value
+  if (h === 1) return '最近 1 小时'
+  if (h === 168) return '最近 7 天'
+  return `最近 ${h} 小时`
+})
 
 const logs = ref<any[]>([])
 const logsLoading = ref(false)
@@ -898,6 +1006,18 @@ const instanceAvgLatency = computed(() => {
   }
   return weight ? formatLatency(sum / weight) : '—'
 })
+/**
+ * 汇总 P95：取「最慢的那个实例」。
+ * 加权平均会把 10 个健康实例的 P95 摊平成一个好看的数字，
+ * 运维要的是「现在最差的一路有多慢」，所以这里取最大值并标明口径。
+ */
+const instanceP95 = computed(() => {
+  const vals = instances.value
+    .map((i) => Number(i.p95Ms))
+    .filter((n) => isFinite(n) && n > 0)
+  if (!vals.length) return '—'
+  return formatLatency(Math.max(...vals))
+})
 const filteredLogs = computed(() => {
   const kw = logKeyword.value.trim().toLowerCase()
   if (!kw) return logs.value
@@ -1012,6 +1132,22 @@ const filteredRuntimeLines = computed(() => {
     if (kw && !String(l.raw ?? '').toLowerCase().includes(kw)) return false
     return true
   })
+})
+
+/** 右栏「运行日志尾部」：只看最后 6 行，完整内容留给中栏控制台 */
+const runtimeTail = computed(() => runtimeLogLines.value.slice(-6))
+
+/** 中栏页脚那一行：最近一条运行日志的级别 + 单行摘要 */
+const lastRuntimeLine = computed(() => runtimeLogLines.value[runtimeLogLines.value.length - 1] || null)
+const lastRuntimeText = computed(() => {
+  const l = lastRuntimeLine.value
+  if (!l) {
+    if (runtimeDenied.value) return runtimeDenied.value
+    if (runtimeLoaded.value && runtimeExists.value === false) return '日志文件尚未生成'
+    return '暂无日志输出'
+  }
+  const s = String(l.raw ?? '').trim().replace(/\s+/g, ' ')
+  return s.length > 76 ? s.slice(0, 76) + '…' : s
 })
 function clearRuntimeFilter() {
   levelFilter.value = 'all'
@@ -1129,6 +1265,11 @@ function toggleFocus() {
 }
 
 function onGlobalKey(e: KeyboardEvent) {
+  if (e.key === 'Escape' && sheet.value !== '') {
+    e.preventDefault()
+    closeSheet()
+    return
+  }
   if (e.key === 'Escape' && focusConsole.value) {
     e.preventDefault()
     toggleFocus()
@@ -1138,6 +1279,7 @@ function onGlobalKey(e: KeyboardEvent) {
   const tag = (t?.tagName || '').toLowerCase()
   if (tag === 'input' || tag === 'textarea' || tag === 'select' || t?.isContentEditable) return
   if (e.ctrlKey || e.metaKey || e.altKey) return
+  if (sheet.value !== '') return
   if (e.key === 'f' || e.key === 'F') {
     e.preventDefault()
     toggleFocus()
@@ -1279,11 +1421,25 @@ async function createInstance() {
     message.warning('请填写实例名称')
     return
   }
+  // 端口是后端唯一真校验的必填项：范围与占用都在提交前先拦，省一次「创建失败」
+  const port = Number(newInstance.value.port)
+  if (!Number.isFinite(port) || port < 8000 || port > 9999) {
+    message.warning('端口需在 8000–9999 之间')
+    return
+  }
+  if (instances.value.some((i) => Number(i.port) === port)) {
+    message.warning(`端口 ${port} 已被其他实例占用`)
+    return
+  }
+  if (!newInstance.value.enableGpt && !newInstance.value.enableCc && !newInstance.value.enableGemini) {
+    message.warning('至少启用一个协议，否则没有客户端能对接')
+    return
+  }
   creating.value = true
   try {
     await http.post('/service/instances', {
       name,
-      port: newInstance.value.port,
+      port,
       openai: newInstance.value.enableGpt,
       cc: newInstance.value.enableCc,
       gemini: newInstance.value.enableGemini,
@@ -1309,7 +1465,7 @@ async function createInstance() {
 
 function openTokens(t: any) {
   // 台账是全局的：这里只把「正在排查的实例」定住，Key 列表本身不按实例过滤
-  activeTab.value = 'keys'
+  openSheet('keys')
   if (activeId.value == null || String(activeId.value) !== String(t.id)) {
     activeId.value = t.id
     logInstanceId.value = t.id
