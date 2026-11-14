@@ -598,6 +598,75 @@ export interface OtherConfig {
   loaderConfig: LoaderDeployConfig;
   /** 空状态（ReEmpty）默认样式（主题配置里仅 admin 可改） */
   emptyState: EmptyStateConfig;
+  /** 多标签页栏（app.yaml other.tabsBar） */
+  tabsBar: TabsBarConfig;
+}
+
+/**
+ * 多标签页栏配置（app.yaml `other.tabsBar`）。
+ *
+ * <p>这里只放「部署侧能定调、用户也能改」的项：yaml 给默认值，
+ * 主题配置抽屉里改的是本机用户偏好（存 localStorage，与主题色同一档），
+ * 两者合起来才是运行时口径（见 theme 的 {@code Tabs/tabsSettings.ts}）。</p>
+ *
+ * <p>四个行为各自独立，写 false 即整体关掉该行为，与没有这段配置时逐字一致：</p>
+ * <ul>
+ *   <li>{@code inactiveDimmed}：未激活页签置灰（与激活页签拉开对比）；</li>
+ *   <li>{@code wheelSwitch}：鼠标停在页签栏上滚动滚轮即切换页签
+ *       （关闭时滚轮只做横向滚动）；</li>
+ *   <li>{@code sleep}：未激活页签在延迟到达后释放组件（停止内存占用），
+ *       再次点击时按全新页面挂载 —— <b>未保存的表单会丢</b>，需要保活的路由写进 exclude；</li>
+ *   <li>{@code memoryTip}：悬浮页签显示该页签的内存占用（估算值，仅 Chromium 有采样）。</li>
+ * </ul>
+ */
+export interface TabsBarConfig {
+  /** 未激活页签置灰（默认 true） */
+  inactiveDimmed: boolean;
+  /**
+   * 页签最小宽度（px，默认 96）。
+   *
+   * <p>短标题（两个字）不至于缩成一个小方块，长标题仍按 max-width 220px 省略。
+   * 写 0 表示不限制（宽度完全由标题决定）。</p>
+   */
+  minWidth: number;
+  /** 滚轮切换页签（默认 true；关闭时滚轮保持横向滚动） */
+  wheelSwitch: boolean;
+  /** 未激活页签自动休眠（释放组件内存） */
+  sleep: TabsSleepConfig;
+  /** 悬浮显示页签内存占用（估算） */
+  memoryTip: TabsMemoryTipConfig;
+}
+
+/**
+ * 页签自动休眠配置（app.yaml `other.tabsBar.sleep`）。
+ *
+ * <p>休眠 = 把该页签的组件名从 keep-alive 的 include 里摘掉，Vue 随即卸载组件、
+ * 释放其中一切状态（表格数据、表单草稿、定时器）。用户再次点开时按新页面挂载。</p>
+ *
+ * <p>这是「用状态换内存」的取舍：默认开着，但延迟给到 5 分钟，
+ * 且固定页签（isAffix=1）与 exclude 命中的路由永不休眠。</p>
+ */
+export interface TabsSleepConfig {
+  /** 是否启用（默认 true） */
+  enable: boolean;
+  /**
+   * 切走后多久休眠（毫秒，默认 300000 = 5 分钟）。
+   *
+   * <p>写 0 表示切走即休眠；上限 1 小时（超过按 1 小时算，避免写错单位导致永不触发）。</p>
+   */
+  delay: number;
+  /**
+   * 常驻路由（path 前缀匹配，如 {@code /ai/chat}），命中的页签不参与休眠。
+   *
+   * <p>用于「切走就丢状态代价太大」的页面：长对话、长表单、正在跑任务的页面。</p>
+   */
+  exclude: string[];
+}
+
+/** 页签内存悬浮提示配置（app.yaml `other.tabsBar.memoryTip`） */
+export interface TabsMemoryTipConfig {
+  /** 是否显示（默认 true） */
+  enable: boolean;
 }
 
 /**

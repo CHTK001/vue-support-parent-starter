@@ -385,6 +385,16 @@ export default {
     closeAll: "关闭所有",
     affix: "固定标签",
     unaffix: "取消固定",
+    /** 休眠标记的无障碍文案 */
+    sleeping: "已休眠",
+    /** 悬浮提示：休眠 */
+    sleepingHint: "已休眠（组件已释放，点击重新加载）",
+    /** 悬浮提示：内存估算 */
+    memoryHint: "估算内存 {size}",
+    /** 右键菜单 */
+    sleepNow: "立即休眠",
+    /** 悬浮提示：不支持内存采样（非 Chromium） */
+    memoryUnsupported: "当前浏览器不支持内存采样",
   },
   themeConfig: {
     title: "主题配置",
@@ -474,6 +484,9 @@ export default {
         google: "谷歌风格",
         plain: "简约风格",
       },
+      tabsMinWidth: {
+        label: "页签最小宽度",
+      },
       dimension: {
         label: "组件尺寸",
         placeholder: "请选择组件尺寸",
@@ -514,6 +527,30 @@ export default {
         sub: "多标签",
         tip: "控制多标签页栏显示/隐藏",
         description: "隐藏后多标签页栏将不显示",
+      },
+      tabsInactiveDimmed: {
+        title: "未激活页签置灰",
+        sub: "页签栏",
+        tip: "未激活的页签降低不透明度，当前页更醒目",
+        description: "关闭后所有页签颜色一致，仅靠底纹区分当前页",
+      },
+      tabsWheelSwitch: {
+        title: "滚轮切换页签",
+        sub: "页签栏",
+        tip: "在页签栏上滚动鼠标滚轮切换上一个/下一个页签",
+        description: "关闭后滚轮回到原生横向滚动",
+      },
+      tabsSleepEnabled: {
+        title: "未激活页签自动休眠",
+        sub: "省内存",
+        tip: "切走的页签延迟释放组件内存（表格数据、表单草稿会丢失），点回来重新加载",
+        description: "固定页签与部署配置里的常驻路由永不休眠",
+      },
+      tabsMemoryTip: {
+        title: "悬浮显示内存占用",
+        sub: "估算值",
+        tip: "鼠标悬停页签时显示该页面的内存估算值（仅 Chromium 内核可采样）",
+        description: "用于对比哪个页面更重，不能当精确值引用",
       },
       skeletonCritter: {
         title: "加载小动物",

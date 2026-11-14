@@ -757,3 +757,37 @@ other:
     enable: true
     layout: "el"
     hairline: "plot"
+  # 多标签页栏（app.yaml other.tabsBar）
+  #
+  # 四个行为各自独立，写 false 即整体关掉该行为（与没有这段配置时逐字一致）。
+  # 这里给的是部署侧默认值；主题配置抽屉里改的是本机用户偏好（存 localStorage，
+  # 与主题色同一档，刷新/重登保持，不影响其他账号），两者合起来才是运行时口径。
+  tabsBar:
+    # 未激活页签置灰：与激活页签拉开对比（颜色弱化 + 降透明度）
+    inactiveDimmed: true
+    # 页签最小宽度（px）。短标题不至于缩成小方块，长标题仍按 max-width 220px 省略；
+    # 写 0 表示不限制（宽度完全由标题决定）
+    minWidth: 96
+    # 滚轮切换页签：鼠标停在页签栏上滚动滚轮即切到上/下一个页签
+    # 关闭后滚轮恢复横向滚动（ReScrollNav 的原有行为）
+    wheelSwitch: true
+    # 未激活页签自动休眠（释放组件内存）
+    #
+    # 休眠 = 把该页签的组件名从 keep-alive 的 include 里摘掉，Vue 随即卸载组件、
+    # 释放其中一切状态（表格数据、表单草稿、定时器）。再次点开时按新页面挂载。
+    # 这是「用状态换内存」的取舍：固定页签（isAffix=1）与 exclude 命中的路由永不休眠。
+    sleep:
+      # 是否启用自动休眠
+      enable: true
+      # 切走后多久休眠（毫秒，默认 300000 = 5 分钟；0=切走即休眠；上限 1 小时）
+      delay: 300000
+      # 常驻路由（path 前缀匹配），命中的页签不参与休眠
+      # 例：- /ai/chat（长对话）  - /collect/design（正在跑任务的设计页）
+      exclude: []
+    # 悬浮页签显示该页签的内存占用（估算值）
+    #
+    # 口径：激活期间采样 performance.memory 的 JS 堆增量，取峰值作为该页签的估算内存。
+    # 只有 Chromium 系浏览器暴露 performance.memory；其它浏览器悬浮显示「不支持采样」，
+    # 不会报错。估算值包含同期其它页签与框架自身的分配，仅供参考，不能当精确值。
+    memoryTip:
+      enable: true

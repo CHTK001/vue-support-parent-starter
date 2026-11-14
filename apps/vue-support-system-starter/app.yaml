@@ -86,6 +86,22 @@ otherConfig:
       settings: true
   weather:
     enable: true
+  # 多标签页栏（other.tabsBar）：默认值见 app.example.yaml，这里只写本应用需要覆盖的
+  tabsBar:
+    # 未激活页签置灰
+    inactiveDimmed: true
+    # 页签最小宽度（px）
+    minWidth: 96
+    # 滚轮切换页签
+    wheelSwitch: true
+    # 未激活页签自动休眠（释放组件内存；切回重新挂载，未保存的表单会丢）
+    sleep:
+      enable: true
+      delay: 300000
+      exclude: []
+    # 悬浮页签显示内存占用（估算值，仅 Chromium 有采样）
+    memoryTip:
+      enable: true
 
 # 布局配置
 layoutConfig:

@@ -550,6 +550,22 @@ export const defaultAppConfig: AppConfig = {
       layout: "el",
       hairline: "plot",
     },
+    // 多标签页栏：四个行为默认全开（置灰 / 滚轮切换 / 休眠 / 内存提示）。
+    // 休眠延迟给到 5 分钟并把固定页签排除在外 —— 切走就丢状态的代价太大，
+    // 需要保活的路由请在 app.yaml 的 sleep.exclude 里按 path 前缀声明。
+    tabsBar: {
+      inactiveDimmed: true,
+      minWidth: 96,
+      wheelSwitch: true,
+      sleep: {
+        enable: true,
+        delay: 300000,
+        exclude: [],
+      },
+      memoryTip: {
+        enable: true,
+      },
+    },
   },
 };
 

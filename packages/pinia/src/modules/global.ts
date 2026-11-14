@@ -72,6 +72,21 @@ const globalStore = defineStore("global", {
       isSkeletonCritterShown: true,
       /** 骨架小动物形象：bird=小鸟（跳）/ panda=小熊猫（上下爬） */
       skeletonCritterAnimal: "bird" as "bird" | "panda",
+      // ===== 多标签页栏的用户偏好 =====
+      // undefined = 跟随 app.yaml 的 other.tabsBar（部署侧默认值），
+      // 用户在主题配置里改过才落盘 —— 换部署配置时未改过的项自动跟着变。
+      /** 未激活页签置灰 */
+      tabsInactiveDimmed: undefined as boolean | undefined,
+      /** 页签最小宽度（px） */
+      tabsMinWidth: undefined as number | undefined,
+      /** 滚轮切换页签 */
+      tabsWheelSwitch: undefined as boolean | undefined,
+      /** 未激活页签自动休眠 */
+      tabsSleepEnabled: undefined as boolean | undefined,
+      /** 休眠延迟（毫秒） */
+      tabsSleepDelay: undefined as number | undefined,
+      /** 悬浮显示页签内存占用 */
+      tabsMemoryTip: undefined as boolean | undefined,
     };
   },
   actions: {

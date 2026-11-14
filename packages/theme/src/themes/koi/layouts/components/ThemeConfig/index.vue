@@ -471,6 +471,56 @@
                    v-model="tabsShown"
                  />
 
+                 <!-- 页签栏行为：部署侧 other.tabsBar 是默认值，这里存的是本机用户偏好 -->
+                 <ReSwitch layout="card"
+                   :title="t('themeConfig.switchBlocks.tabsInactiveDimmed.title')"
+                   :sub="t('themeConfig.switchBlocks.tabsInactiveDimmed.sub')"
+                   :tip="t('themeConfig.switchBlocks.tabsInactiveDimmed.tip')"
+                   :description="t('themeConfig.switchBlocks.tabsInactiveDimmed.description')"
+                   :model-value="tabsBar.inactiveDimmed.value"
+                   @update:model-value="tabsBar.setPref('tabsInactiveDimmed', $event)"
+                 />
+
+                 <ReSwitch layout="card"
+                   :title="t('themeConfig.switchBlocks.tabsWheelSwitch.title')"
+                   :sub="t('themeConfig.switchBlocks.tabsWheelSwitch.sub')"
+                   :tip="t('themeConfig.switchBlocks.tabsWheelSwitch.tip')"
+                   :description="t('themeConfig.switchBlocks.tabsWheelSwitch.description')"
+                   :model-value="tabsBar.wheelSwitch.value"
+                   @update:model-value="tabsBar.setPref('tabsWheelSwitch', $event)"
+                 />
+
+                 <ReSwitch layout="card"
+                   :title="t('themeConfig.switchBlocks.tabsSleepEnabled.title')"
+                   :sub="t('themeConfig.switchBlocks.tabsSleepEnabled.sub')"
+                   :tip="t('themeConfig.switchBlocks.tabsSleepEnabled.tip')"
+                   :description="t('themeConfig.switchBlocks.tabsSleepEnabled.description')"
+                   :model-value="tabsBar.sleepEnabled.value"
+                   @update:model-value="tabsBar.setPref('tabsSleepEnabled', $event)"
+                 />
+
+                 <div class="config-item">
+                   <div class="config-label">{{ t("themeConfig.interface.tabsMinWidth.label") }}</div>
+                   <ReInputNumber
+                     layout="card"
+                     :min="TAB_MIN_WIDTH_RANGE.min"
+                     :max="TAB_MIN_WIDTH_RANGE.max"
+                     :step="8"
+                     suffix="px"
+                     v-model="tabsMinWidthModel"
+                     class="config-input"
+                   />
+                 </div>
+
+                 <ReSwitch layout="card"
+                   :title="t('themeConfig.switchBlocks.tabsMemoryTip.title')"
+                   :sub="t('themeConfig.switchBlocks.tabsMemoryTip.sub')"
+                   :tip="t('themeConfig.switchBlocks.tabsMemoryTip.tip')"
+                   :description="t('themeConfig.switchBlocks.tabsMemoryTip.description')"
+                   :model-value="tabsBar.memoryTip.value"
+                   @update:model-value="tabsBar.setPref('tabsMemoryTip', $event)"
+                 />
+
                  <ReSwitch layout="card" v-admin
                    :title="t('themeConfig.switchBlocks.skeletonCritter.title')"
                    :sub="t('themeConfig.switchBlocks.skeletonCritter.sub')"
@@ -654,6 +704,7 @@ import ReSettingEmptyState from "./components/ReSettingEmptyState.vue";
 import ReSettingHeatmap from "./components/ReSettingHeatmap.vue";
 import ReSettingPerformance from "./components/ReSettingPerformance.vue";
 import { isHeaderFlagKey } from "@repo/theme/koi/layouts/components/Header/components/headerKeys";
+import { TAB_MIN_WIDTH_RANGE, useTabsBarSettings } from "@repo/theme/koi/layouts/components/Tabs/tabsSettings";
 import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, HomeFilled, Connection, Loading } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
@@ -695,6 +746,17 @@ const headerShown = computed({
 const tabsShown = computed({
   get: () => isTabsShown.value,
   set: (v: boolean) => globalStore.setGlobalState("isTabsShown", v),
+});
+
+/** 页签栏行为（app.yaml other.tabsBar 默认 + 本机用户偏好） */
+const tabsBar = useTabsBarSettings();
+
+/** 页签最小宽度：数字框可能给 null（清空），落盘时按「跟随部署默认」处理 */
+const tabsMinWidthModel = computed({
+  get: () => tabsBar.minWidth.value,
+  set: (value: number | null | undefined) => {
+    tabsBar.setPref("tabsMinWidth", value == null ? undefined : value);
+  },
 });
 const skeletonCritterShown = computed({
   get: () => globalStore.isSkeletonCritterShown,

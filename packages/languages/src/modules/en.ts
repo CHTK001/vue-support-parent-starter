@@ -383,7 +383,12 @@ export default {
     closeOther: "Close Other",
     closeAll: "Close All",
     affix: "Affix Tab",
-    unaffix: "Unfix Tab"
+    unaffix: "Unfix Tab",
+    sleeping: "Asleep",
+    sleepingHint: "Asleep (released from memory, click to reload)",
+    memoryHint: "Estimated memory {size}",
+    sleepNow: "Sleep now",
+    memoryUnsupported: "Memory sampling is not supported in this browser"
   },
   themeConfig: {
     title: "Theme Config",
@@ -473,6 +478,9 @@ export default {
         google: "Google",
         plain: "Plain",
       },
+      tabsMinWidth: {
+        label: "Tab Min Width",
+      },
       dimension: {
         label: "Component Size",
         placeholder: "Select component size",
@@ -513,6 +521,30 @@ export default {
         sub: "Multi Tabs",
         tip: "Toggle multi-tab bar visibility",
         description: "Tab bar hides when off",
+      },
+      tabsInactiveDimmed: {
+        title: "Dim Inactive Tabs",
+        sub: "Tab Bar",
+        tip: "Lower the opacity of inactive tabs so the current one stands out",
+        description: "Off keeps every tab the same color, current tab marked by fill only",
+      },
+      tabsWheelSwitch: {
+        title: "Wheel Switches Tabs",
+        sub: "Tab Bar",
+        tip: "Scroll the wheel over the tab bar to switch to the previous/next tab",
+        description: "Off restores the native horizontal scroll",
+      },
+      tabsSleepEnabled: {
+        title: "Auto-Sleep Inactive Tabs",
+        sub: "Save Memory",
+        tip: "Release a tab's component memory after you leave it (table data and drafts are lost); it reloads when you come back",
+        description: "Affixed tabs and the deployment's persistent routes never sleep",
+      },
+      tabsMemoryTip: {
+        title: "Show Memory On Hover",
+        sub: "Estimate",
+        tip: "Show the estimated memory of a page when hovering its tab (Chromium only)",
+        description: "Use it to compare which page is heavier, not as an exact figure",
       },
       skeletonCritter: {
         title: "Loading Critter",

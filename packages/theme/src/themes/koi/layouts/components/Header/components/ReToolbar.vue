@@ -109,6 +109,7 @@ const itemContext = computed<HeaderItemContext>(() => {
     timer: cfg.other.timer,
     weather: cfg.other.weather,
     bigscreen: cfg.other.bigscreen,
+    message: cfg.message,
     capability: isCapabilityEnabled,
   };
 });

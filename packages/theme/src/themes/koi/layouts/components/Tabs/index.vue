@@ -2,8 +2,10 @@
   <div
     ref="rootRef"
     class="layout-tabs-bar layout-tabs"
-    :class="tabsRootClass"
+    :class="[tabsRootClass, { 'is-inactive-dimmed': settings.inactiveDimmed.value }]"
+    :style="{ '--tab-min-width': `${settings.minWidth.value}px` }"
     @contextmenu.prevent="handleTabsMenuParent($event)"
+    @wheel="handleWheel"
   >
     <ReScrollNav
       ref="scrollNavRef"
@@ -37,12 +39,17 @@
           v-for="(item, index) in tabList"
           :key="item.path"
           class="layout-tabs-bar__item"
-          :class="{ 'is-active': activeTab === item.path, 'has-close': getClosable(item) }"
+          :class="{
+            'is-active': activeTab === item.path,
+            'has-close': getClosable(item),
+            'is-sleeping': sleep.isSleeping(item.path),
+          }"
           :data-tab-index="index"
           :data-tab-path="item.path"
           role="tab"
           :tabindex="activeTab === item.path ? 0 : -1"
           :aria-selected="activeTab === item.path"
+          :title="getTabTitle(item.path)"
           @click="handleTabClick(item.path)"
           @contextmenu.stop.prevent="handleTabsMenuChildren(item.path, $event)"
         >
@@ -57,6 +64,13 @@
               height="16"
               class="m-l-4px"
             />
+            <!-- 休眠标记：该页签组件已卸载（内存已释放），点回来会重新挂载 -->
+            <span
+              v-if="sleep.isSleeping(item.path)"
+              class="layout-tabs-bar__sleep-dot"
+              :aria-label="t('tabs.sleeping')"
+              role="img"
+            ></span>
           </div>
         </div>
       </div>
@@ -86,16 +100,22 @@
 
 <script setup lang="ts">
 import { Close } from "@element-plus/icons-vue";
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import ReTabMenu from "@repo/theme/koi/layouts/components/Tabs/components/ReTabMenu.vue";
 import type { ReScrollNavExpose } from "@repo/ui/re-scroll-nav";
 import { useLayoutTabs } from "@repo/theme/koi/layouts/components/Tabs/useLayoutTabs.ts";
+import { useTabsBarSettings } from "@repo/theme/koi/layouts/components/Tabs/tabsSettings.ts";
+import { useTabsSleep, TABS_SLEEP_KEY } from "@repo/theme/koi/layouts/components/Tabs/useTabsSleep.ts";
+import { useTabsMemory } from "@repo/theme/koi/layouts/components/Tabs/useTabsMemory.ts";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { isToolbarVisible } from "../Header/toolbarPrefs";
 
 const globalStore = useGlobalStore();
 const { tabsStyle } = storeToRefs(globalStore);
+
+// 页签栏行为（app.yaml 默认 + 本机用户偏好）
+const settings = useTabsBarSettings();
 
 // 标签页显示图标开关（yaml master + 用户偏好）
 const tabIcon = computed(() => isToolbarVisible("tabIcon"));
@@ -131,6 +151,95 @@ const {
   handleTabsMenuParent,
   handleTabsMenuChildren
 } = useLayoutTabs(getTrackEl, { tabMenuRef, scrollNavRef });
+
+// 自动休眠：未激活页签延迟释放组件内存（固定页签与 exclude 命中除外）
+const sleep = useTabsSleep({
+  activePath: activeTab,
+  enabled: computed(() => settings.sleepEnabled.value),
+  delay: computed(() => settings.sleepDelay.value),
+  exclude: computed(() => settings.sleepExclude.value),
+});
+
+// 右键菜单与页面共用同一个休眠实例（各建一份会让休眠标记闪失）
+provide(TABS_SLEEP_KEY, sleep);
+
+// 内存采样：悬浮提示用（估算值）
+const memory = useTabsMemory(
+  activeTab,
+  computed(() => settings.memoryTip.value),
+);
+
+/**
+ * 页签 title 属性：休眠中 / 有内存数据时说明一句，没有就只给标题。
+ *
+ * <p>原生 title 是这里唯一不需要自建浮层的提示方式 —— 页签数量多、
+ * 切换频繁，自建 popover 会在拖拽换序、滚动时留下残影。</p>
+ */
+const memoryText = computed<Record<string, string>>(() => {
+  if (!settings.memoryTip.value) return {};
+  const map: Record<string, string> = {};
+  for (const item of tabList.value ?? []) {
+    const text = memory.formatMemory(item.path);
+    if (text) map[item.path] = text;
+  }
+  return map;
+});
+
+function getTabTitle(path: string): string {
+  const item = (tabList.value ?? []).find((tab) => tab.path === path);
+  const title = getMenuLanguage(item?.title) || String(item?.title ?? "");
+  const parts = [title];
+  if (sleep.isSleeping(path)) parts.push(t("tabs.sleepingHint"));
+  if (settings.memoryTip.value) {
+    const text = memoryText.value[path];
+    // 支持采样但还没攒到数据时不提示（新页签两秒内就是这种状态）；
+    // 浏览器不支持采样时明确说一句，免得用户以为功能坏了
+    if (text) parts.push(t("tabs.memoryHint", { size: text }));
+    else if (!memory.supported.value) parts.push(t("tabs.memoryUnsupported"));
+  }
+  return parts.filter(Boolean).join(" · ");
+}
+
+/**
+ * 滚轮切换页签（other.tabsBar.wheelSwitch）。
+ *
+ * <p>只处理纵向滚轮（{@code deltaY}）：触控板横向滑动的 deltaX 本来就是
+ * ReScrollNav 的原生横向滚动，抢过来反而别扭。关闭时直接返回，
+ * 滚轮回落到 ReScrollNav 的横向滚动。</p>
+ *
+ * <p>节流用一个滚轮手势的冷却：一次触控板滑动会连发几十个 wheel 事件
+ * （deltaY 都是小数），不加冷却会一口气跳过五六个页签。</p>
+ */
+const WHEEL_COOLDOWN = 220;
+let lastWheelAt = 0;
+
+function handleWheel(event: WheelEvent): void {
+  if (!settings.wheelSwitch.value) return;
+  if (event.deltaY === 0) return;
+  const list = tabList.value ?? [];
+  if (list.length < 2) return;
+  const now = Date.now();
+  if (now - lastWheelAt < WHEEL_COOLDOWN) {
+    event.preventDefault();
+    return;
+  }
+  lastWheelAt = now;
+  const index = list.findIndex((item) => item.path === activeTab.value);
+  if (index < 0) return;
+  // 循环：最后一个向下滚回到第一个，与浏览器标签栏一致
+  const next = (index + (event.deltaY > 0 ? 1 : -1) + list.length) % list.length;
+  const target = list[next];
+  if (!target?.path) return;
+  // 阻止页面跟着滚：页签栏在页面顶部，滚轮默认会把内容滚走
+  event.preventDefault();
+  handleTabClick(target.path);
+}
+
+defineExpose({
+  /** 供设置面板 / 右键菜单使用 */
+  sleep,
+  memory,
+});
 
 /**
  * 关闭按钮相对「标签右边缘」的内缩距离（px）。
@@ -318,7 +427,9 @@ watch(
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
-  min-width: 0;
+  /* 页签最小宽度由 other.tabsBar.minWidth 注入（0=不限制）。
+     短标题（两个字）不至于缩成一个小方块；长标题仍受 max-width 省略。 */
+  min-width: var(--tab-min-width, 0);
   max-width: 220px;
   height: 32px;
   margin-top: 0;
@@ -336,8 +447,39 @@ watch(
   border: none;
   transition:
     color 0.15s ease,
+    opacity 0.15s ease,
     border-color 0.15s ease,
     background-color 0.15s ease;
+}
+
+/*
+ * 未激活页签置灰（other.tabsBar.inactiveDimmed）。
+ *
+ * 只降不透明度、不换色：三种 tabsStyle 的未激活色本来就不同（plain 用
+ * text-color-regular），统一改成某个颜色会在某一种风格下变成「比激活还深」。
+ * 悬停时回到 1 —— 用户指向的页签必须是清楚的。
+ */
+.layout-tabs-bar.is-inactive-dimmed .layout-tabs-bar__item:not(.is-active) {
+  opacity: 0.68;
+}
+
+.layout-tabs-bar.is-inactive-dimmed .layout-tabs-bar__item:not(.is-active):hover {
+  opacity: 1;
+}
+
+/* 休眠标记：很小的实心点，靠 aria-label 给读屏说明 */
+.layout-tabs-bar__sleep-dot {
+  flex-shrink: 0;
+  width: 4px;
+  height: 4px;
+  margin-left: 4px;
+  background-color: var(--el-text-color-placeholder);
+  border-radius: 50%;
+}
+
+.layout-tabs-bar__item.is-sleeping .layout-tabs-bar__title {
+  /* 休眠页签的标题略淡：提示「点回来会重新加载」，与已挂载的页签一眼可辨 */
+  color: var(--el-text-color-secondary);
 }
 
 .layout-tabs-bar__label {

@@ -28,6 +28,14 @@
           <ReIcon :name="isAffixed ? 'koi-unpinned' : 'koi-pinned'" class="m-r-5px icon-bounce"></ReIcon>
           {{ isAffixed ? $t("tabs.unaffix") : $t("tabs.affix") }}
         </div>
+        <!-- 立即休眠：把该页签的组件缓存摘掉（释放内存），点回来按新页面挂载 -->
+        <div
+          @click="handleSleepTab()"
+          class="tab-menu-item"
+          v-if="canSleep"
+        >
+          <el-icon size="16" class="m-r-5px"><Moon class="icon-bounce" /></el-icon>{{ $t("tabs.sleepNow") }}
+        </div>
       </div>
     </Teleport>
   </div>
@@ -36,7 +44,7 @@
 <script setup lang="ts">
 import { inject, nextTick, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Remove } from "@element-plus/icons-vue";
+import { Moon, Remove } from "@element-plus/icons-vue";
 import ReIcon from "@repo/ui/components/ReIcon/theme/koi/ReIcon.vue";
 import ReFullScreen from "@repo/theme/koi/layouts/components/Header/components/ReFullScreen.vue";
 import useTabsStore from "@repo/pinia/modules/tabs";
@@ -44,6 +52,7 @@ import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import { resolveKeepAliveName } from "../keepAliveName";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { HOME_URL } from "@repo/config";
+import { TABS_SLEEP_KEY, type TabsSleepHandle } from "../useTabsSleep";
 
 const route = useRoute();
 const router = useRouter();
@@ -356,6 +365,31 @@ const handleAffixTab = () => {
   // 切换固定状态：isAffix === "1" 表示固钉，isAffix === "0" 表示取消固钉
   const newIsAffix = isAffixed.value ? "0" : "1";
   tabsStore.replaceIsAffix(choosePath.value, newIsAffix);
+};
+
+/** 页签休眠能力（由页签栏 provide，见 useTabsSleep 的 TABS_SLEEP_KEY 注释） */
+const tabsSleep = inject(TABS_SLEEP_KEY, null);
+
+/**
+ * 是否显示「立即休眠」。
+ *
+ * <p>只有「可关闭 + 有 keep-alive 缓存 + 当前不在前台」的页签才有东西可释放：
+ * 固定页签、没开缓存的页面休眠了也不省内存，菜单里干脆不出现。
+ * 当前页签自己也不能休眠（休眠 = 卸载正在看的页面，等同于刷新）。</p>
+ */
+const canSleep = computed(() => {
+  if (!tabsSleep || !choosePath.value) return false;
+  if (choosePath.value === route.fullPath) return false;
+  const tab = tabsStore.tabList.find((item: any) => item.path === choosePath.value);
+  if (!tab || tab.isAffix === "1") return false;
+  if (tabsSleep.isSleeping(choosePath.value)) return false;
+  return Boolean(tab.isKeepAlive);
+});
+
+/** 立即休眠选中的页签 */
+const handleSleepTab = () => {
+  if (!choosePath.value || !tabsSleep) return;
+  tabsSleep.sleepNow(choosePath.value);
 };
 
 /** 组件对外暴露 */
