@@ -4,8 +4,8 @@
  *
  * <p>版式：<b>左服务列表 / 右 Tab 工作区</b> 双栏（没有常驻第三栏）。</p>
  * <ul>
- *   <li><b>左栏</b>：服务索引。ReTable 后端分页（{@code GET /server/page}），
- *       单行自定义列承载状态点 / 名称 / 协议·端口 / 过滤器数；右键弹出该服务的动作菜单。</li>
+ *   <li><b>左栏</b>：服务索引。ReTable 后端分页（{@code GET /server/page}，
+ *       滚动触底追加、无底部页码条），单行自定义列承载状态点 / 名称 / 协议·端口 / 过滤器数；右键弹出该服务的动作菜单。</li>
  *   <li><b>右键「配置 ▸」二级菜单</b>：列出<b>该服务实际挂载</b>的 ServerFilter
  *       （来自行数据 {@code filters[]}），点一个就在右侧开一个该过滤器的配置 Tab。</li>
  *   <li><b>右栏</b>：ReTabs 多标签工作区。固定一个「概览」Tab（{@link ScServerDetailDrawer}
@@ -52,9 +52,9 @@ import { useServiceNodes } from './service/useServiceNodes';
 const vm = useServiceNodes();
 const route = useRoute();
 
-/* ==================== 左栏：服务列表（ReTable 后端分页） ==================== */
+/* ==================== 左栏：服务列表（ReTable 后端滚动分页） ==================== */
 
-/** ReTable 实例：动作后重取当前页 */
+/** ReTable 实例：动作后重取当前批（滚动模式下 reload 会重置回第 1 批） */
 const tableRef = ref<{ reload?: () => Promise<unknown> } | null>(null);
 
 /** 搜索框生效值：输入 320ms 后才进查询条件，避免每敲一个字打一次请求 */
@@ -90,8 +90,8 @@ const sortOptions = [
 /**
  * 左栏单行：一个自定义列吃掉整宽，表头隐藏。
  *
- * <p>用 ReTable 而非手写列表，是为了继续吃它成熟的后端分页 / 自动刷新 / 右键菜单
- * 定位能力；单列 + {@code showHeader:false} + {@code compact} 让它在窄左栏里看起来
+ * <p>用 ReTable 而非手写列表，是为了继续吃它成熟的后端分页（滚动触底追加）/ SSE 状态推送 /
+ * 右键菜单定位能力；单列 + {@code showHeader:false} + {@code compact} 让它在窄左栏里看起来
  * 就是一行行服务卡，不带表格感。</p>
  */
 const columns = computed<ReTableColumn[]>(() => [
@@ -602,7 +602,7 @@ function tabCtx(name: string): ServiceTab | undefined {
           </button>
         </div>
 
-        <!-- 服务列表：ReTable 后端分页 + 右键动态菜单（含「配置 ▸」二级菜单） -->
+        <!-- 服务列表：ReTable 后端滚动分页（触底追加、无底部页码条） + 右键动态菜单（含「配置 ▸」二级菜单） -->
         <div class="svm-list">
           <ReTable
             ref="tableRef"
@@ -611,7 +611,7 @@ function tabCtx(name: string): ServiceTab | undefined {
             :columns="columns"
             :context-menu="buildContextMenu"
             :settings="{ highlightCurrentRow: true, compact: true }"
-            :config="{ toolbar: { enable: false }, search: false, pagination: { pageSize: 20 } }"
+            :config="{ toolbar: { enable: false }, search: false, pagination: { pageSize: 20, mode: 'scroll', modePersist: false } }"
             :layout-table="{ showHeader: false, fill: true }"
             row-key="id"
             empty-text="没有命中条件的服务"
