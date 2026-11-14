@@ -405,11 +405,13 @@ function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
     :class="{ 'koi-search--bordered': bordered }"
     :style="containerStyle"
   >
-    <!-- 顶部条：左侧（导航 slot + 徽标）+ 右上折叠切换 -->
+    <!-- 顶部条：左侧（导航 slot + 标题色条 slot + 徽标）+ 右侧（口径 slot + 折叠切换） -->
     <div class="koi-search__topbar">
       <div class="koi-search__topbar-left">
         <!-- 左侧导航插槽：调用方把页签 / 切换菜单放进来，与「搜索」徽标并排 -->
         <slot name="nav" />
+        <!-- 「搜索」徽标左侧插槽：调用方放标题色条之类的装饰 -->
+        <slot name="title-prefix" />
         <div class="koi-search__badge">
           <span class="koi-search__badge-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
@@ -420,18 +422,22 @@ function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
           <span>{{ title }}</span>
         </div>
       </div>
-      <button
-        v-if="hasOverflow"
-        type="button"
-        class="koi-search__expand"
-        :class="{ 'koi-search__expand--expanded': localExpanded }"
-        @click="toggleExpand"
-      >
-        <span>{{ localExpanded ? "收起" : "展开" }}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
+      <div class="koi-search__topbar-right">
+        <!-- 右上插槽：调用方放「标题 · 条数」「导出」等口径与工具 -->
+        <slot name="title-extra" />
+        <button
+          v-if="hasOverflow"
+          type="button"
+          class="koi-search__expand"
+          :class="{ 'koi-search__expand--expanded': localExpanded }"
+          @click="toggleExpand"
+        >
+          <span>{{ localExpanded ? "收起" : "展开" }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- 内容行：字段（左）随过滤区收放，操作按钮（右）常驻，否则隐藏后没有还原入口 -->
@@ -632,6 +638,14 @@ function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
   flex-shrink: 0;
   max-width: 100%;
 }
+/* 顶部条右侧：页面插槽（标题 · 条数 / 导出）+ 折叠切换 */
+.koi-search__topbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  min-width: 0;
+}
 .koi-search__badge {
   display: inline-flex;
   align-items: center;
@@ -700,6 +714,13 @@ function filterLoader(filter: SearchFilter): ReSelectLoader | undefined {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  /* 兜底：任何子控件（尤其日期区间）不得溢出格子压到右侧的操作按钮 */
+  overflow: hidden;
+}
+/* 日期类控件默认撑满格子：ElDatePicker 的 daterange 默认近 350px，
+   比网格列宽（220px 起）大，溢出就会盖住右侧搜索/重置按钮 */
+.koi-search__field :deep(.el-date-editor) {
+  width: 100%;
 }
 .koi-search__field-label {
   font-size: 13px;
