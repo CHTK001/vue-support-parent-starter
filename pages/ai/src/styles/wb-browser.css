@@ -762,11 +762,6 @@ html.dark .wb-nav-btn--close:active:not(:disabled) {
   border-color: var(--el-color-primary-300);
 }
 
-.wb-address:focus-within {
-  border-color: var(--wb-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wb-accent) 12%, transparent);
-}
-
 .wb-address[aria-disabled="true"] {
   opacity: 0.35;
   pointer-events: none;

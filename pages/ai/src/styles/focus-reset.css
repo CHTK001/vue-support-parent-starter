@@ -1,0 +1,48 @@
+/* ============================================================================
+   焦点样式统一移除（全站收口）
+   ----------------------------------------------------------------------------
+   口径：输入框聚焦的边框、按钮与可点卡片的焦点环，一律不要。
+   这里一处收口，不改各组件里上百条 :focus-visible / :focus-within 规则
+   （它们全部被本块压掉，靠 !important 赢过 scoped 选择器）。
+
+   两条排除是有原因的，别随手删：
+   - 输入类控件（.el-input__wrapper / .el-select__wrapper / .el-textarea__inner）
+     的 box-shadow 就是它那 1px 边框，所以第 2 条把它们排除，再由第 3 条把
+     「聚焦态」还原成普通边框；不排除的话输入框一聚焦整块边框会消失。
+   - 对话框 / 抽屉 / 弹层 / 卡片的 box-shadow 是投影，聚焦时不能跟着清零，
+     否则弹层会看起来被拍平。
+   ========================================================================== */
+
+/* 1. 任何元素都不再画 outline 焦点环（含输入框、按钮、可点卡片、svc / kb 系列） */
+:focus,
+:focus-visible,
+:focus-within {
+  outline: none !important;
+}
+
+/* 2. :focus-visible / :focus-within 上的焦点光环清零（输入与投影容器除外） */
+:focus-visible,
+:focus-within:not(.el-input):not(.el-input__wrapper):not(.el-input-number):not(.el-select):not(.el-select__wrapper):not(.el-textarea):not(.el-textarea__inner):not(.el-dialog):not(.el-drawer):not(.el-message-box):not(.el-popover):not(.el-card):not(.el-popper) {
+  box-shadow: none !important;
+}
+
+/* 3. Element 输入类控件：聚焦回到普通静止态，不换色、不加 4px 光环。
+   规则 3 的兜底值就是 Element 默认那 1px 内阴影边框。
+
+   为什么选择器前面要再挂一层祖先类（.el-input / .el-select / .el-textarea）：
+   packages/ui 的 shared/re-inputs.css 里有一组同特异性的聚焦规则
+   （`.el-textarea__inner:focus` 等），而它是被 ReKit 按需 import 的，
+   实际样式表顺序排在本文件之后 —— 平手时后者胜，textarea 聚焦就会冒出
+   `0 0 0 4px` 主色光环（实测只有 textarea 中招，input/select 那两条选择器
+   写法不同、碰巧没撞上）。抬一级特异性把口子焊死，与本文件加载顺序无关。
+
+   焦点态的边框与投影必须**等于静止态**：静止态的描边/投影由 re-inputs.css
+   定义成 --rm-input-rest-border / --rm-input-rest-shadow 两个令牌，
+   这里直接复用，避免两边各写一份、谁后加载谁赢。 */
+.el-input .el-input__wrapper.is-focus,
+.el-select .el-select__wrapper.is-focus,
+.el-select .el-select__wrapper.is-focused,
+.el-textarea .el-textarea__inner:focus {
+  border-color: var(--rm-input-rest-border, var(--el-input-border-color, var(--el-border-color))) !important;
+  box-shadow: var(--rm-input-rest-shadow, 0 0 0 1px var(--el-input-border-color, var(--el-border-color)) inset) !important;
+}

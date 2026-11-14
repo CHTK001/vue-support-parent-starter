@@ -322,13 +322,9 @@ body {
   background: var(--selection-bg);
 }
 
-/* 统一焦点环：键盘可达性 + 与体系 --focus-ring 一致。
-   鼠标点击不显示（:focus-visible 只在键盘操作时命中）。 */
-:focus-visible {
-  outline: 2px solid var(--brand-500);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
+/* 焦点环已全站移除：不再给任何元素画 outline。
+   收口在 styles/refactor.css 末尾的「焦点样式统一移除」块里，
+   这里保留说明位，避免后来人再往全局加回焦点环。 */
 
 * {
   scrollbar-width: thin;

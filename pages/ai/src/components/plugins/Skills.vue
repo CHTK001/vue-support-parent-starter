@@ -294,14 +294,14 @@
         <!-- 安装 Skill 对话框 -->
         <ReDialog :close-on-click-modal="true" v-model="showInstallDialog" :title="t('plugins.skills.installTitle')" width="760px" align-center destroy-on-close>
             <div class="install-dialog-body">
-                <el-radio-group v-model="installMode" class="install-mode-group mb-4">
-                    <el-radio-button label="upload">
+                <ReRadioGroup v-model="installMode" block class="install-mode-group mb-4">
+                    <ReRadioButton label="upload">
                         <el-icon class="mr-1"><UploadOutlined /></el-icon>{{ t('plugins.skills.modeUpload') }}
-                    </el-radio-button>
-                    <el-radio-button label="search">
+                    </ReRadioButton>
+                    <ReRadioButton label="search">
                         <el-icon class="mr-1"><SearchOutlined /></el-icon>{{ t('plugins.skills.modeSearch') }}
-                    </el-radio-button>
-                </el-radio-group>
+                    </ReRadioButton>
+                </ReRadioGroup>
 
                 <!-- 上传 ZIP -->
                 <div v-if="installMode === 'upload'">
@@ -527,6 +527,7 @@ import ReDialog from '@repo/ui/re-dialog'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import SkillDetailDialog from './SkillDetailDialog.vue'
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 interface SkillManifest {
     name: string
@@ -1599,36 +1600,10 @@ onMounted(async () => {
 }
 
 /* ===== 安装弹窗：模式与检索结果 ===== */
+/* 模式切换现在是 ReRadioGroup 的默认形态（el-segmented）：容器只负责铺满一行，
+   选中块的底色 / 滑块 / 抬起投影都由 el-segmented 自己画 */
 .install-mode-group {
     width: 100%;
-    display: flex;
-    padding: 3px;
-    /* 原值 11px：不属六档，11 距 sm(6px)/md(8px)/lg(12px) 中 lg 更近（差 1px） */
-    border-radius: var(--el-radius-lg, 12px);
-    background: var(--el-fill-color-light);
-}
-.install-mode-group :deep(.el-radio-button) {
-    flex: 1;
-}
-.install-mode-group :deep(.el-radio-button__inner) {
-    width: 100%;
-    border: none;
-    background: transparent;
-    box-shadow: none !important;
-    /* 原值 9px：不属六档，9 距 sm(6px)/md(8px) 中 md 更近（差 1px） */
-    border-radius: var(--el-radius-md, 8px) !important;
-    padding: 8px 0;
-    font-weight: 600;
-    transition:
-        background-color var(--el-transition-duration-fast, 0.2s) ease,
-        color var(--el-transition-duration-fast, 0.2s) ease;
-}
-/* 选中项从凹槽里「抬起」，投影在这里是功能必需的（不是卡片投影）：
-   去掉就分不清选中的是哪个模式 */
-.install-mode-group :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-    background: var(--el-bg-color);
-    color: var(--el-color-primary);
-    box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
 }
 
 .catalog-results {
@@ -2058,7 +2033,6 @@ onMounted(async () => {
    固定在中间档（background-position 停在 50%），占位块仍可见；
    其余过渡一律关掉 —— 它们都只影响观感，不承载任何信息。 */
 @media (prefers-reduced-motion: reduce) {
-    .install-mode-group :deep(.el-radio-button__inner),
     .upload-demo :deep(.el-upload-dragger),
     .catalog-item,
     .catalog-card,

@@ -417,18 +417,6 @@ body,
   z-index: 1;
 }
 
-/* 全局焦点环（可访问性） */
-.el-button:focus-visible,
-.el-input__wrapper.is-focus,
-.el-select__wrapper.is-focused {
-  outline: none;
-}
-a:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
 /* 统一过渡节奏 */
 .el-button,
 .el-input__wrapper,
@@ -578,16 +566,12 @@ html.dark *::-webkit-scrollbar-thumb:hover {
   font-weight: 600;
   letter-spacing: 0.01em;
 }
-.el-button:focus-visible {
-  box-shadow: 0 0 0 3px var(--el-color-primary-light-9);
-}
 .el-button--default {
   background: var(--color-surface);
   border-color: var(--color-surface-border);
   color: var(--color-text);
 }
-.el-button--default:hover,
-.el-button--default:focus {
+.el-button--default:hover {
   color: var(--color-primary);
   border-color: var(--color-primary-300);
   background: var(--color-primary-50);
@@ -598,8 +582,7 @@ html.dark *::-webkit-scrollbar-thumb:hover {
   border-color: var(--color-primary);
   color: #fff;
 }
-.el-button--primary:hover,
-.el-button--primary:focus {
+.el-button--primary:hover {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
   color: #fff;
@@ -669,15 +652,13 @@ html.dark *::-webkit-scrollbar-thumb:hover {
 .el-textarea__inner:hover {
   border-color: var(--color-primary-300);
 }
-.el-input__wrapper.is-focus,
-.el-select__wrapper.is-focused {
-  box-shadow:
-    0 0 0 1px var(--color-primary) inset,
-    0 0 0 3px var(--color-primary-100);
-}
-.el-textarea__inner:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-100);
+/* 聚焦不换色：把 Element 的焦点描边色设成与普通边框同一个变量值。
+   这里只改颜色变量，不写 focus 选择器，所以没有任何「聚焦样式」。 */
+.el-input,
+.el-select,
+.el-textarea {
+  --el-input-focus-border-color: var(--color-input-border);
+  --el-select-input-focus-border-color: var(--color-input-border);
 }
 .el-input__inner {
   color: var(--color-text);
@@ -792,8 +773,7 @@ html.dark *::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary-50);
   color: var(--color-primary);
 }
-.el-select-dropdown__item.selected,
-.el-dropdown-menu__item:focus {
+.el-select-dropdown__item.selected {
   color: var(--color-primary);
   font-weight: 700;
 }

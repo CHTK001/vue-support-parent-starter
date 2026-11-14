@@ -161,12 +161,13 @@ export const characterApi: CharacterApi = {
     const raw = await this._request(`/roles${params}`);
     // 后端返回数组，映射字段名到前端期望格式
     const list = Array.isArray(raw) ? raw : (raw?.items || []);
-    // 通用助手（id=1）头像：产品自带 logo，不走上传链路 —— 后端 avatar 字段
+    // 通用助手（code=general-assistant）头像：产品自带 logo，不走上传链路 —— 后端 avatar 字段
     // 存的是接口路径且 1.svg 只是首字占位图，这里统一换成产品 logo。
+    // 只认 code：种子角色会占用小主键，按 id 判定会把普通角色头像换成产品 logo。
     const logo = characterApi.genericAssistantLogo();
     const items = list.map((item: any) => {
       const mapped = mapRoleItem(item);
-      if (String(mapped.id) === '1' || mapped.code === 'general-assistant') {
+      if (mapped.code === 'general-assistant') {
         mapped.avatarUrl = logo;
       }
       return mapped;
@@ -203,9 +204,9 @@ export const characterApi: CharacterApi = {
 
   async fetchCharacter(this: ApiContext, characterId: string) {
     const raw = await this._request(`/roles/${characterId}`);
-    // 后端字段名映射到前端期望格式；通用助手头像同样换产品 logo（与列表同口径）
+    // 后端字段名映射到前端期望格式；通用助手头像同样换产品 logo（与列表同口径，只认 code）
     const mapped = mapRoleItem(raw);
-    if (String(mapped.id) === '1' || mapped.code === 'general-assistant') {
+    if (mapped.code === 'general-assistant') {
       mapped.avatarUrl = characterApi.genericAssistantLogo();
     }
     return mapped;

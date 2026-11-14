@@ -9,6 +9,17 @@
  */
 @import "./modern-vars.css";
 
+/* 输入盒「静止态」的描边与柔和投影，收敛成令牌。
+   聚焦态必须原样还原成这两个值（全站口径：聚焦不加光环），
+   pages/ai/src/styles/focus-reset.css 第 3 条直接引用它们，
+   避免两处各写一份、谁加载更晚谁赢。 */
+:root {
+  --rm-input-rest-border: var(--rm-border);
+  --rm-input-rest-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
 /* ============ 输入盒（el-input / el-select / el-date-editor / el-cascader / el-input-number） ============ */
 .el-input__wrapper,
 .el-input-number .el-input__wrapper,
@@ -22,11 +33,9 @@
   height: auto !important;
   padding: 4px 12px !important;
   background: color-mix(in srgb, var(--rm-bg) 94%, transparent) !important;
-  border: 1px solid var(--rm-border) !important;
+  border: 1px solid var(--rm-input-rest-border) !important;
   border-radius: var(--rm-radius) !important;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  box-shadow: var(--rm-input-rest-shadow) !important;
   transition: border-color var(--rm-transition), box-shadow var(--rm-transition-slow), background var(--rm-transition);
 }
 
@@ -84,13 +93,11 @@
 /* ============ textarea ============ */
 .el-textarea__inner {
   background: color-mix(in srgb, var(--rm-bg) 94%, transparent) !important;
-  border: 1px solid var(--rm-border) !important;
+  border: 1px solid var(--rm-input-rest-border) !important;
   border-radius: var(--rm-radius) !important;
   color: var(--rm-text);
   font-weight: 400;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--rm-bg) 60%, transparent),
-    0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  box-shadow: var(--rm-input-rest-shadow) !important;
   transition: border-color var(--rm-transition), box-shadow var(--rm-transition-slow);
 }
 

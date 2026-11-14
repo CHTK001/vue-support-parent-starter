@@ -20,11 +20,11 @@
         <!-- 时间设置：对应后端 schedule 对象（kind=cron / kind=every） -->
         <el-form-item :label="t('scheduler.edit.timeLabel')" required class="time-setting-item">
           <div class="time-mode-wrapper">
-            <el-radio-group v-model="timeMode" class="time-mode-tabs">
-              <el-radio-button value="preset">{{ t('scheduler.edit.modePreset') }}</el-radio-button>
-              <el-radio-button value="every">{{ t('scheduler.edit.modeEvery') }}</el-radio-button>
-              <el-radio-button value="cron">{{ t('scheduler.edit.modeCron') }}</el-radio-button>
-            </el-radio-group>
+            <ReRadioGroup v-model="timeMode" class="time-mode-tabs">
+              <ReRadioButton value="preset">{{ t('scheduler.edit.modePreset') }}</ReRadioButton>
+              <ReRadioButton value="every">{{ t('scheduler.edit.modeEvery') }}</ReRadioButton>
+              <ReRadioButton value="cron">{{ t('scheduler.edit.modeCron') }}</ReRadioButton>
+            </ReRadioGroup>
 
             <!-- 常用调度：GET /api/cron/jobs/cron-presets -->
             <div v-if="timeMode === 'preset'" class="schedule-panel">
@@ -64,24 +64,24 @@
 
         <!-- 执行目标：新建会话 / 指定会话（metadata.conversation_id） -->
         <el-form-item :label="t('scheduler.edit.targetLabel')" prop="targetMode">
-          <el-radio-group v-model="form.targetMode" :disabled="isEdit">
-            <el-radio-button value="new_conversation">
+          <ReRadioGroup v-model="form.targetMode" :disabled="isEdit">
+            <ReRadioButton value="new_conversation">
               <span class="flex items-center gap-1">
                 <el-icon :size="14">
                   <AddCircleOutlineRound />
                 </el-icon>
                 {{ t('scheduler.edit.newSession') }}
               </span>
-            </el-radio-button>
-            <el-radio-button value="existing_conversation">
+            </ReRadioButton>
+            <ReRadioButton value="existing_conversation">
               <span class="flex items-center gap-1">
                 <el-icon :size="14">
                   <LogInRound />
                 </el-icon>
                 {{ t('scheduler.edit.existingSession') }}
               </span>
-            </el-radio-button>
-          </el-radio-group>
+            </ReRadioButton>
+          </ReRadioGroup>
         </el-form-item>
 
         <!-- 已有会话时需要选择会话ID -->
@@ -154,6 +154,7 @@ import { apiService } from '../../services/ApiService'
 import { agentApi } from '@/services/javaApi'
 import ReDialog from '@repo/ui/re-dialog'
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const { t } = useI18n()
 /** 三种调度输入模式，全部落到后端 schedule 的两种 kind 上 */

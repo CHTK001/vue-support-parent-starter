@@ -154,10 +154,6 @@
   box-shadow: 0 0 0 1px #cbd5e1 inset;
 }
 
-.el-input__wrapper.is-focus {
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3) inset;
-}
-
 .el-input__inner {
   height: 36px;
   font-size: 14px;
@@ -179,10 +175,6 @@
 
 .el-select__wrapper:hover {
   box-shadow: 0 0 0 1px #cbd5e1 inset;
-}
-
-.el-select__wrapper.is-focused {
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3) inset;
 }
 
 .el-select__placeholder {

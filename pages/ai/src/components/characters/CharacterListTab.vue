@@ -227,14 +227,14 @@ const handleFileSelect = async (event: Event) => {
 }
 
 /**
- * 通用助手判定：id=1（code=general-assistant）系统内置，不可删除。
+ * 通用助手判定：code=general-assistant 系统内置，不可删除。
  *
- * id 可能数字/字符串，后端 code 同样可作为第二判据（mapRoleItem 原样透传 code），
- * 任一命中即保护 —— 新建/导入流程万一复用 id=1 也不会漏网。
+ * 只认 code，不认主键：种子角色（如三国角色库）自增主键同样会占用小 id，
+ * 按 id 判定会把普通角色误标成「通用」。mapRoleItem 已原样透传 code。
  */
 function isGenericAssistant(character: any): boolean {
   if (!character) return false
-  return String(character.id) === '1' || character.code === 'general-assistant'
+  return character.code === 'general-assistant'
 }
 </script>
 

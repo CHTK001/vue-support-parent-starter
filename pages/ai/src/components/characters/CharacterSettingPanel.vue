@@ -665,8 +665,9 @@ const emit = defineEmits(['update:data', 'update:tab', 'saved'])
 
 // 响应式数据
 const isSimpleStyle = computed(() => props.simple)
+// 只按 code 认内置通用助手：主键会被种子角色占用，按 id 判定会误伤（见 CharacterListTab 同口径）
 const isGenericAssistant = computed(() =>
-  String(characterForm.id) === '1' || props.data?.code === 'general-assistant' || props.data?.sysAiRoleCode === 'general-assistant'
+  props.data?.code === 'general-assistant' || props.data?.sysAiRoleCode === 'general-assistant'
 )
 const pageLoading = ref(false)
 

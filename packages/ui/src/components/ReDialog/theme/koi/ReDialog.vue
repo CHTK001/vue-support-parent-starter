@@ -870,6 +870,8 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 .el-dialog.koi-dialog-shell {
   padding-top: 4px !important;
   padding-bottom: 4px !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
 }
 
 .koi-dialog-shell .el-dialog__header {
