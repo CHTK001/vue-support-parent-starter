@@ -273,7 +273,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/device/src/views/DeviceProviderView.vue"),
         meta: { title: "提供商配置", icon: "SetUp", showLink: true, rank: 12 },
       },
-      // 设备日志 / 门禁记录 / 车闸记录：之前只藏在设备行的右键菜单里，
+      // 设备日志 / 门禁记录 / 过车记录：之前只藏在设备行的右键菜单里，
       // 现在作为设备管理的独立菜单项常驻；三页都自带设备/时间筛选。
       {
         path: "/device/events",
@@ -291,21 +291,15 @@ export const monitorRoutes: RouteConfigsTable[] = [
         path: "/device/vehicle-pass",
         name: "DeviceVehiclePass",
         component: () => import("@pages/device/src/views/DeviceVehiclePassView.vue"),
-        meta: { title: "车闸记录", icon: "Van", showLink: true, rank: 15 },
+        meta: { title: "过车记录", icon: "Van", showLink: true, rank: 15 },
       },
-      // 传感器记录 = 环境指标的历史读数（时序存储）；存储查询 = 直接看时序存储原始行。
-      // 两页共用 plugin.device.timeseries.engine 的引擎，切换 bean/influxdb/redis 后接口不变。
+      // 传感器记录 = 环境指标的历史读数（时序存储）。
+      // 引擎由 plugin.device.timeseries.engine 决定（bean/influxdb/redis），页面接口不变。
       {
         path: "/device/metric-history",
         name: "DeviceMetricHistory",
         component: () => import("@pages/device/src/views/DeviceMetricHistoryView.vue"),
         meta: { title: "传感器记录", icon: "Odometer", showLink: true, rank: 16 },
-      },
-      {
-        path: "/device/series",
-        name: "DeviceSeries",
-        component: () => import("@pages/device/src/views/DeviceSeriesView.vue"),
-        meta: { title: "存储查询", icon: "Coin", showLink: true, rank: 17 },
       },
       // 独立的「设备分组」页已并入设备资产页左侧树（组织 / 分组 / 厂家 三分支），
       // 分组的新增 / 重命名 / 分配设备 / 删除全部收口在该树的分组右键菜单里。
@@ -376,13 +370,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@account/web/src/account/views/ScAccountAssets.vue"),
         meta: { title: "账号资产", icon: "Key", showLink: true, rank: 1 },
       },
-      // 密钥管理：复用账号资产页的「密钥库」分段（厂商 AccessKey 集中管理，
-      // 阿里云等账号的密钥在此维护），props 直达 SECRET 段，不另维护一套页面。
+      // 密钥管理：独立的密钥页（只管密钥本身）。账号表单引用密钥时按类型挑选；
+      // 不再复用账号资产页的分段，避免两处维护同一批密钥且密钥没有类型。
       {
         path: "/secret-assets",
         name: "SecretAssets",
-        component: () => import("@account/web/src/account/views/ScAccountAssets.vue"),
-        props: { initialSegment: "SECRET" },
+        component: () => import("@account/web/src/account/views/ScSecretAssets.vue"),
         meta: { title: "密钥管理", icon: "Lock", showLink: true, rank: 2 },
       },
       // 模板管理：统一入口（文档模板 + 消息模板，消息模板是其中一种类型），
