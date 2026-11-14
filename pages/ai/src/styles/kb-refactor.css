@@ -9,36 +9,46 @@
      - 签名：印章（库名首字）+ 读数带（数字等宽、段间细线）+ 命令条（Ctrl/⌘+K）
      - 处理过程可见：进度 + 当前步骤 + 失败原因 + 原地重试
      - 字：标题与答案首句用宋体，数字等宽对齐，正文黑体；只用系统字体，零外网依赖
-     - 色：暖白纸 + 单一朱红强调，状态色压暗；暗色是灯下的旧纸，不是黑后台
-     - 面：2–3px 直角、一根细线分层，不用卡片阴影与药丸
+     - 色：全部取 koi / Element 令牌（--el-*），跟随用户主题色与明暗，本文件不写色值
+     - 面：面板浮在页面上，三栏之间 2px 缝隙即分栏线；无卡片阴影、无药丸
 
-   §1 定义纸本令牌，§11 是表面与字的定版覆盖层；中间各节是骨架与交互，
-   除 §11 明确改写的属性外不要动。
+   §1 只做「台账用语 → koi 令牌」的语义映射，§11 是表面与字的定版覆盖层；
+   中间各节是骨架与交互，除 §11 明确改写的属性外不要动。
    ========================================================================== */
 
 /* ############################################################################
-   1. 设计令牌（由 koi tokens.css 派生，此处不定义品牌色本体）
+   1. 设计令牌（全部取 koi / Element 令牌，本节不出现任何色值）
    ############################################################################ */
 .kb {
-  /* 纸本口径：暖白纸面 + 朱红单一强调 + 细线分隔。
-     颜色不跟品牌蓝走：这里是「案头台账」，不是后台表单。 */
-  --kb-ink: #191512;
-  --kb-ink-2: #4a443d;
-  --kb-ink-3: #8a8378;
-  --kb-card: #fffdf8;
-  --kb-canvas: #f8f5ef;
-  --kb-fill: #f2ede4;
-  --kb-hover: #f6f2ea;
-  --kb-line: #e4ded3;
-  --kb-line-soft: #efeae1;
-  --kb-accent: #b23a2e;
-  --kb-accent-soft: #fbede9;
-  --kb-accent-line: color-mix(in srgb, #b23a2e 34%, #e4ded3);
+  /* 语义别名：左边是台账用语，右边是 koi 令牌。
+     换肤（用户在主题设置里选的色）与明暗切换都由令牌层负责，这里不参与；
+     要改色改的是 --el-* 那一层，别在这加 hex。 */
+  --kb-ink: var(--el-text-color-primary);
+  --kb-ink-2: var(--el-text-color-regular);
+  --kb-ink-3: var(--el-text-color-secondary);
 
-  --kb-ok: #4a7c59;
-  --kb-warn: #a9711b;
-  --kb-err: #9e3b3b;
-  --kb-info: #6b7f8c;
+  --kb-card: var(--el-bg-color);
+  --kb-canvas: var(--el-bg-color-page);
+  --kb-fill: var(--el-fill-color-light);
+  --kb-hover: var(--el-fill-color-light);
+
+  /* 两级细线：结构线（单元格 / 输入框边）一级，分隔线（行间 / 段间）一级。
+     koi 的 extra-light 在白底上几乎看不见，台账靠线分层，所以最低取到 lighter。 */
+  --kb-line: var(--el-border-color-light);
+  --kb-line-soft: var(--el-border-color-lighter);
+
+  --kb-accent: var(--el-color-primary);
+  /* 强调面上的字（印章 / 主按钮）：暗色下白字仍然成立，无需单独覆盖 */
+  --kb-on-accent: var(--el-color-white);
+  --kb-accent-soft: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
+  --kb-accent-line: color-mix(in srgb, var(--el-color-primary) 34%, var(--kb-line));
+
+  /* 状态色：Element 原色当底（点、竖条、进度段），当 12px 文字用时往里掺
+     一点正文色压深 —— success / warning 的原色直接当小字在纸上会发虚。 */
+  --kb-ok: color-mix(in srgb, var(--el-color-success) 78%, var(--el-text-color-primary));
+  --kb-warn: color-mix(in srgb, var(--el-color-warning) 70%, var(--el-text-color-primary));
+  --kb-err: color-mix(in srgb, var(--el-color-danger) 84%, var(--el-text-color-primary));
+  --kb-info: color-mix(in srgb, var(--el-color-info) 85%, var(--el-text-color-primary));
 
   --kb-serif: "Source Han Serif SC", "Noto Serif SC", "Songti SC", SimSun, serif;
   --kb-mono: "SFMono-Regular", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
@@ -50,10 +60,10 @@
   --kb-sp-5: 24px;
   --kb-sp-6: 32px;
 
-  /* 圆角收小：纸面上不该出现药丸和圆卡片，直角 + 细线才是台账的语法 */
-  --kb-r-sm: 2px;
-  --kb-r-md: 3px;
-  --kb-r-lg: 4px;
+  /* 圆角取 koi 三档：4 / 6 / 8。纸面上不出现胶囊，也不用直角切边 */
+  --kb-r-sm: var(--el-radius-xs);
+  --kb-r-md: var(--el-radius-sm);
+  --kb-r-lg: var(--el-radius-md);
 
   --kb-dur: 160ms;
   --kb-ease: var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
@@ -2295,7 +2305,7 @@
   position: fixed;
   inset: 0;
   z-index: 6000;
-  background: color-mix(in srgb, var(--overlay-bg, rgba(15, 18, 33, 0.45)) 80%, transparent);
+  background: var(--el-overlay-color-lighter);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -2307,10 +2317,10 @@
   width: min(560px, 92vw);
   display: flex;
   flex-direction: column;
-  background: var(--bg-container, #fff);
-  border: 1px solid var(--border-default, #e6e8ee);
-  border-radius: var(--radius-xl, 16px);
-  box-shadow: var(--shadow-lg, 0 24px 48px rgba(15, 18, 33, 0.22));
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-radius-xl);
+  box-shadow: var(--el-box-shadow-dark);
   overflow: hidden;
   animation: kbc-in 180ms var(--ease-out, ease-out) both;
 }
@@ -2322,12 +2332,12 @@
 
 .kbc-input {
   border: 0;
-  border-bottom: 1px solid var(--border-subtle, #f0f2f7);
+  border-bottom: 1px solid var(--el-border-color-lighter);
   padding: 14px 16px;
   font-size: 14px;
   font-family: inherit;
   background: none;
-  color: var(--text-primary, #17191f);
+  color: var(--el-text-color-primary);
 }
 
 .kbc-input:focus { outline: none; }
@@ -2345,7 +2355,7 @@
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-tertiary, #8b8f9c);
+  color: var(--el-text-color-placeholder);
 }
 
 .kbc-row {
@@ -2359,20 +2369,20 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--el-radius-sm);
   text-align: left;
 }
 
 .kbc-row:hover,
 .kbc-row.is-active {
-  background: var(--bg-hover, #f5f7fb);
+  background: var(--el-fill-color-light);
 }
 
 .kbc-row__title {
   flex: 1;
   min-width: 0;
   font-size: 13px;
-  color: var(--text-primary, #17191f);
+  color: var(--el-text-color-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2381,7 +2391,7 @@
 .kbc-row__hint {
   flex-shrink: 0;
   font-size: 10.5px;
-  color: var(--text-tertiary, #8b8f9c);
+  color: var(--el-text-color-placeholder);
   font-family: var(--kb-mono, monospace);
 }
 
@@ -2389,41 +2399,24 @@
   padding: 18px;
   text-align: center;
   font-size: 12.5px;
-  color: var(--text-tertiary, #8b8f9c);
+  color: var(--el-text-color-placeholder);
 }
 
 .kbc-foot {
   display: flex;
   gap: 14px;
   padding: 8px 14px;
-  border-top: 1px solid var(--border-subtle, #f0f2f7);
+  border-top: 1px solid var(--el-border-color-lighter);
   font-size: 10.5px;
-  color: var(--text-tertiary, #8b8f9c);
+  color: var(--el-text-color-placeholder);
   font-family: var(--kb-mono, monospace);
 }
 
 /* ############################################################################
    5. 暗色
    ############################################################################ */
-html.dark .kb {
-  /* 暗色不做「黑后台」，做灯下的旧纸：暖黑底 + 砖红，仍是纸本那一套关系 */
-  --kb-ink: #ebe4d8;
-  --kb-ink-2: #b0a696;
-  --kb-ink-3: #7d7568;
-  --kb-card: #1c1915;
-  --kb-canvas: #141210;
-  --kb-fill: #241f1a;
-  --kb-hover: #221d18;
-  --kb-line: #35302a;
-  --kb-line-soft: #262119;
-  --kb-accent: #d4685a;
-  --kb-accent-soft: color-mix(in srgb, #d4685a 16%, transparent);
-  --kb-accent-line: color-mix(in srgb, #d4685a 40%, #35302a);
-  --kb-ok: #7fa77f;
-  --kb-warn: #d3a04a;
-  --kb-err: #d07070;
-  --kb-info: #93a5b0;
-}
+/* 暗色不由本文件定义：--kb-* 全部指向 --el-* 令牌，koi 的 html.dark 一翻，
+   三栏、纸面、细线、状态色一起跟着变。这里刻意留空，避免再出一份暗色色板。 */
 
 /* ############################################################################
    6. 响应式
@@ -2996,7 +2989,7 @@ html.dark .kb {
 
 .kb-cta--primary .kb-cta__ico {
   background: var(--kb-accent);
-  color: var(--text-inverse, #fff);
+  color: var(--kb-on-accent);
 }
 
 .kb-cta__t {
@@ -4153,21 +4146,35 @@ html.dark .kb-tpl__cover {
 }
 
 /* ############################################################################
-   11. 纸本（2026-11-14 定版：表面与字）
+   11. 台账（2026-11-14 定版：表面与字）
    ----------------------------------------------------------------------------
    三栏骨架、视图切换、检索、问答逻辑全部沿用上面的规则，本节只改「面」和「字」：
-     · 面：暖白纸 + 暖工作台；分层靠纸面与细线，不靠色块、阴影、药丸
-     · 色：全库只有朱红一种强调（印章 / 选中脊 / 引用序号），状态色一律压暗
+     · 面：面板 --el-bg-color 浮在 --el-bg-color-page 上，三栏之间留 2px 缝，
+       缝隙就是唯一的分隔线；不再两侧各画一根 1px 边框（双线太吵）
+     · 色：全库只取 koi 令牌，强调色 = --el-color-primary（跟随用户主题色），
+       状态色用 --el-color-success/warning/danger 掺正文色压深
      · 字：标题与答案首段用宋体，数字一律等宽对齐，正文仍是黑体
-     · 圆角：2–3px。纸面上没有胶囊，也没有圆卡片
+     · 圆角：--el-radius-xs/sm/md = 4/6/8。纸面上没有胶囊，也没有直角切边
    本节是末层覆盖：以后要调，改这里或回改对应原规则，不要再往后追加同层覆盖。
    ############################################################################ */
 
-/* ---------- 11.1 台面：纸是暖的，一处白一处暖灰就够分层 ---------- */
+/* ---------- 11.1 台面：面板浮在页面上，2px 缝隙即分栏线 ---------- */
+.kb-cols {
+  gap: 2px;
+  background: var(--kb-canvas);
+}
+
 .kb-cols > .kb-nav,
 .kb-cols > .kb-main,
 .kb-cols > .kb-ask {
-  background: var(--kb-canvas);
+  background: var(--kb-card);
+}
+
+/* 缝隙已经分开了三栏，两侧的 1px 边框全部撤掉 */
+.kb-cols > .kb-nav,
+.kb-cols > .kb-ask {
+  border-right-width: 0;
+  border-left-width: 0;
 }
 
 .kb-docview__list {
@@ -4191,16 +4198,16 @@ html.dark .kb-tpl__cover {
   gap: 18px;
   padding: 12px 20px 11px;
   border-bottom-color: var(--kb-line);
-  background: var(--kb-canvas);
+  background: var(--kb-card);
 }
 
 /* 印章是全库唯一的饱和面，也是唯一允许的白字 */
 .kb-bar__seal {
   width: 32px;
   height: 32px;
-  border-radius: 3px;
+  border-radius: var(--kb-r-sm);
   background: var(--kb-accent);
-  color: #fffefb;
+  color: var(--kb-on-accent);
   font-family: var(--kb-serif);
   font-size: 18px;
   font-weight: 600;
@@ -4302,7 +4309,7 @@ html.dark .kb-tpl__cover {
   font-size: 9.5px;
   font-weight: 400;
   letter-spacing: 0.16em;
-  color: #a79e90;
+  color: var(--el-text-color-placeholder);
 }
 
 .kb-nav__title em {
@@ -4323,12 +4330,12 @@ html.dark .kb-tpl__cover {
 }
 
 .kb-nav__kb.is-on {
-  background: var(--kb-card);
+  background: var(--kb-accent-soft);
   box-shadow: none;
 }
 
 .kb-nav__doc.is-on {
-  background: var(--kb-card);
+  background: var(--kb-accent-soft);
 }
 
 /* 卷宗脊收成 2px：它是量尺，不是进度条 */
@@ -4336,7 +4343,7 @@ html.dark .kb-tpl__cover {
   width: 2px;
   height: 26px;
   border-radius: 0;
-  background: var(--kb-line-soft);
+  background: var(--el-fill-color);
 }
 
 .kb-nav__spine::after {
@@ -4387,7 +4394,7 @@ html.dark .kb-tpl__cover {
 
 .kb-stamp {
   padding: 2px 7px;
-  border-radius: 2px;
+  border-radius: var(--kb-r-sm);
   background: none;
 }
 
@@ -4432,7 +4439,7 @@ html.dark .kb-tpl__cover {
 .kb-statrow__k {
   font-size: 10px;
   letter-spacing: 0.1em;
-  color: #a79e90;
+  color: var(--el-text-color-placeholder);
 }
 
 .kb-statrow__v {
@@ -4490,7 +4497,7 @@ html.dark .kb-tpl__cover {
 
 .kb-filter__n {
   font-size: 10px;
-  color: #a79e90;
+  color: var(--el-text-color-placeholder);
 }
 
 .kb-filter.is-on .kb-filter__n {
@@ -4505,7 +4512,7 @@ html.dark .kb-tpl__cover {
   font-family: var(--kb-mono);
   font-size: 9.5px;
   letter-spacing: 0.14em;
-  color: #a79e90;
+  color: var(--el-text-color-placeholder);
 }
 
 .kb-filelist .file-row {
@@ -4513,7 +4520,7 @@ html.dark .kb-tpl__cover {
 }
 
 .kb-filelist .file-row:hover {
-  background: #fdf9f2;
+  background: var(--el-fill-color-light);
 }
 
 .kb-filelist .file-row::before {
@@ -4525,7 +4532,7 @@ html.dark .kb-tpl__cover {
 
 .kb-filelist .file-row .el-tag {
   border-color: transparent;
-  border-radius: 2px;
+  border-radius: var(--kb-r-sm);
   background: none;
 }
 
@@ -4624,7 +4631,7 @@ html.dark .kb-tpl__cover {
   font-family: var(--kb-mono);
   font-size: 9.5px;
   letter-spacing: 0.16em;
-  color: #a79e90;
+  color: var(--el-text-color-placeholder);
 }
 
 .kb-ask__q {
@@ -4734,37 +4741,12 @@ html.dark .kb-tpl__cover {
 }
 
 .kb-suggest__item {
-  border-radius: 2px;
+  border-radius: var(--kb-r-sm);
 }
 
-/* ---------- 11.8 暗色：同一套关系，换成灯下的旧纸 ---------- */
-html.dark .kb-cols > .kb-nav,
-html.dark .kb-cols > .kb-main,
-html.dark .kb-cols > .kb-ask,
-html.dark .kb-ask__input {
-  background: var(--kb-canvas);
-}
-
-html.dark .kb-docview__list,
-html.dark .kb-nav__kb.is-on,
-html.dark .kb-nav__doc.is-on,
-html.dark .kb-filelist__head {
-  background: var(--kb-card);
-}
-
-html.dark .kb-bar__seal {
-  color: #171310;
-}
-
-html.dark .kb-filelist .file-row:hover {
-  background: #221d18;
-}
-
-html.dark .kb-nav__title,
-html.dark .kb-statrow__k,
-html.dark .kb-filelist__head {
-  color: var(--kb-ink-3);
-}
+/* ---------- 11.8 暗色：没有单独一层---------- */
+/* 上面每条规则都取 --kb-*，而 --kb-* 指向 --el-*：koi 的 html.dark 一翻，
+   面板、页底、细线、状态色、选中底一起变，这里不需要（也不该）再写一份暗色覆盖。 */
 
 /* ---------- 11.9 窄屏：纸本的边距按比例收，线条一根不减 ---------- */
 /* 这条必须写在 §11 末尾：上面的定版规则与 §6 的同名规则特异性相同，
