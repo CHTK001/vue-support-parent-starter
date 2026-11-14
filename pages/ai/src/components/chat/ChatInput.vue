@@ -300,6 +300,8 @@ import { resolvePromptFormIcon } from '@/utils/promptFormIcons';
 
 /** 内置兜底形态标识：build 恒存，形态列表取不到时也要有东西可选 */
 const FORM_KEY_BUILD = 'build';
+/** 历史默认形态值：不是合法形态 key，读取时一律按 build 归一 */
+const LEGACY_RUN_MODE_NORMAL = 'normal';
 import ThinkingEffortPopover from './chat-input/ThinkingEffortPopover.vue';
 import GoalDialog from './chat-input/GoalDialog.vue';
 import ModelSelectorPanel from './chat-input/ModelSelectorPanel.vue';
@@ -840,7 +842,12 @@ const localThinkingEffort = ref<string>('none'); // 'none' | 'low' | 'medium' | 
 const runModeButtonRef = ref<any>(null);
 const runModePopoverVisible = ref(false);
 
-const currentRunMode = computed(() => props.config?.runMode || FORM_KEY_BUILD);
+const currentRunMode = computed(() => {
+  const mode = props.config?.runMode;
+  // 历史值 'normal' 不是形态 key（形态只有 build / plan 及角色自定义 key）。
+  // 直接透传会让浮层按 key 匹配不到任何项，这里统一按默认形态 build 处理。
+  return !mode || mode === LEGACY_RUN_MODE_NORMAL ? FORM_KEY_BUILD : mode;
+});
 
 /**
  * 可切换的形态列表，来自角色配置（/v2/prompt-forms）。
@@ -869,11 +876,9 @@ const activeForm = computed(() =>
 );
 
 const runModeLabel = computed(() => {
-  // 参考图口径：形态名用英文（Build / Plan），与模型档位的英文标签同一行风格。
-  // 自定义形态仍用后端给的 formName，避免把用户自建的名字吞掉。
-  if (currentRunMode.value === FORM_KEY_BUILD) return 'Build';
-  if (currentRunMode.value === 'plan') return 'Plan';
-  return activeForm.value?.label || FORM_KEY_BUILD;
+  // 与浮层同一来源：后端给的 formName（「构建 / 规划」或角色自定义名称）。
+  // 不再把 build / plan 硬编码成英文，否则选中后 chip 与浮层的名字会不一致。
+  return activeForm.value?.label || t('chat.input.runModeFormBuild');
 });
 
 /** 拉取形态列表；失败时保持空数组，由上面的降级分支兜底 */

@@ -126,6 +126,31 @@ const userSelectedThinkingEffort = useStorage<string>('userSelectedThinkingEffor
 // 新增：用户选择的知识库 ID 列表（刷新页面后从 localStorage 恢复）
 const userSelectedKnowledgeBaseIds = useStorage<string[]>('userSelectedKnowledgeBaseIds', []);
 
+/**
+ * 形态（runMode）默认值。
+ *
+ * <p>形态 key 由后端 sys_ai_prompt_form 定义：内置 build / plan，可自定义扩展。
+ * 早期这里默认 'normal'，但 'normal' 不是形态 key —— 形态浮层按 key 匹配不到
+ * 任何一项（chip 只能靠「取第一个」兜底显示），后端也查不到 build 形态提示词
+ * （'normal' 能通过 key 格式校验，不会被归一成 build）。</p>
+ */
+const FORM_KEY_BUILD = 'build';
+/** 历史默认值，读取旧数据时按 build 归一 */
+const LEGACY_RUN_MODE_NORMAL = 'normal';
+
+/**
+ * 归一化形态 key：空值与历史值 'normal' 按 build 处理，自定义形态原样保留。
+ *
+ * @param mode 会话设置中的形态 key
+ * @returns 可传给 ChatInput 与后端的形态 key
+ */
+const normalizeRunMode = (mode?: string | null): string => {
+  if (!mode || mode === LEGACY_RUN_MODE_NORMAL) {
+    return FORM_KEY_BUILD;
+  }
+  return mode;
+};
+
 const inputMessage = ref({
   content: "",
   files: []
@@ -183,7 +208,8 @@ const currentSession = ref<any>({
     referencedKbs: userSelectedKnowledgeBaseIds.value,
     modelName: null,
     thinkingEffort: userSelectedThinkingEffort.value,
-    runMode: 'normal',
+    // 形态 key 必须是后端定义的 build / plan，不能用历史值 'normal'
+    runMode: FORM_KEY_BUILD,
     maxTokensLimit: null
   }
 })
@@ -450,7 +476,7 @@ const chatInputConfig = computed(() => ({
   knowledgeBaseIds: currentSession.value?.settings?.referencedKbs || [],
 
   // 运行模式
-  runMode: currentSession.value?.settings?.runMode || 'normal',
+  runMode: normalizeRunMode(currentSession.value?.settings?.runMode),
 
   // 工作目录路径
   workspacePath: currentSession.value?.workspacePath || null,
