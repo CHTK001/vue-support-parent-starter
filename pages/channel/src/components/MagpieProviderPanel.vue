@@ -327,6 +327,28 @@
               />
             </el-form-item>
           </div>
+          <div class="mg-up__grid">
+            <el-form-item label="Access Key">
+              <el-input
+                v-model="credit.accessKey"
+                type="password"
+                show-password
+                spellcheck="false"
+                :placeholder="creditSaved?.hasAccessKey ? '已配置，留空表示不改' : '可留空（仅 AK/SK 签名厂商需要）'"
+                maxlength="512"
+              />
+            </el-form-item>
+            <el-form-item label="Secret Key">
+              <el-input
+                v-model="credit.secretKey"
+                type="password"
+                show-password
+                spellcheck="false"
+                :placeholder="creditSaved?.hasSecretKey ? '已配置，留空表示不改' : '可留空（仅 AK/SK 签名厂商需要）'"
+                maxlength="512"
+              />
+            </el-form-item>
+          </div>
           <el-form-item label="计费口径">
             <el-select v-model="credit.billing" clearable placeholder="按表达式里的币种">
               <el-option value="usd" label="usd（美元）" />
@@ -574,6 +596,8 @@ const credit = reactive({
   expression: '',
   tokenHeader: '',
   token: '',
+  accessKey: '',
+  secretKey: '',
   billing: '',
 })
 
@@ -779,6 +803,8 @@ function applyCredit(saved: AccountCreditConfig | null): void {
   credit.expression = String(saved?.expression ?? '')
   credit.tokenHeader = String(saved?.tokenHeader ?? '')
   credit.token = ''
+  credit.accessKey = ''
+  credit.secretKey = ''
   credit.billing = String(saved?.billing ?? '')
 }
 
@@ -790,7 +816,7 @@ function applyCredit(saved: AccountCreditConfig | null): void {
 function hasCreditInput(): boolean {
   return !!(credit.kind.trim() || credit.method.trim() || credit.url.trim()
     || credit.expression.trim() || credit.tokenHeader.trim() || credit.token.trim()
-    || credit.billing.trim())
+    || credit.accessKey.trim() || credit.secretKey.trim() || credit.billing.trim())
 }
 
 /**
@@ -812,6 +838,8 @@ async function saveCreditIfNeeded(providerId: string): Promise<void> {
       tokenHeader: credit.tokenHeader.trim(),
       billing: credit.billing.trim(),
       token: credit.token.trim(),
+      accessKey: credit.accessKey.trim(),
+      secretKey: credit.secretKey.trim(),
       status: 1,
     })
     creditSaved.value = saved
@@ -840,6 +868,8 @@ async function testCredit(): Promise<void> {
       tokenHeader: credit.tokenHeader.trim(),
       billing: credit.billing.trim(),
       token: credit.token.trim(),
+      accessKey: credit.accessKey.trim(),
+      secretKey: credit.secretKey.trim(),
     })
   } catch (e: any) {
     creditTest.value = { error: e?.message ?? String(e) }

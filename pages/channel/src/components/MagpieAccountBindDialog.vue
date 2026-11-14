@@ -42,9 +42,9 @@
           <span class="mab__option-meta">{{ optionMeta(providers[0]!) }}</span>
         </section>
 
-        <!-- 纯 API Key 上游没有登录流程：先说清原因，按钮置灰，不发注定 400 的请求 -->
+        <!-- 纯 API Key 上游没有登录流程：先说清原因，按钮置灰，不发注定 400 的请求
         <p v-if="picked && !signable" class="mab__blocked">{{ blockedReason }}</p>
-
+ -->
         <div v-if="prompt" class="mab__ask">
           <p class="mab__ask-title">{{ prompt.message || '请填写' }}</p>
           <el-select

@@ -974,6 +974,14 @@ export interface AccountCreditConfig {
   createdAt?: number
   /** 写入时用：令牌明文；留空或掩码表示不修改 */
   token?: string
+  /** 写入时用：Access Key 明文（AK/SK 签名类余额接口用）；留空或掩码表示不修改 */
+  accessKey?: string
+  /** 写入时用：Secret Key 明文（AK/SK 签名类余额接口用）；留空或掩码表示不修改 */
+  secretKey?: string
+  /** 是否已配置 Access Key（服务端不回明文） */
+  hasAccessKey?: boolean
+  /** 是否已配置 Secret Key（服务端不回明文） */
+  hasSecretKey?: boolean
 }
 
 /** 一次余额试查的结果（{@code /api/accounts/credit-configs/test}） */
