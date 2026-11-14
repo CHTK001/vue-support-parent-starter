@@ -15,6 +15,7 @@ import { markRaw, type Component } from 'vue';
 import ScFileStorageFilterPanel from './ScFileStorageFilterPanel.vue';
 import ScDiscoveryFilterPanel from './ScDiscoveryFilterPanel.vue';
 import ScFirewallFilterPanel from './ScFirewallFilterPanel.vue';
+import ScMappingFilterPanel from './ScMappingFilterPanel.vue';
 import ScGenericFilterPanel from './ScGenericFilterPanel.vue';
 
 /**
@@ -34,6 +35,11 @@ const REGISTRY: Record<string, Component> = {
   'service-discovery': markRaw(ScDiscoveryFilterPanel),
   firewall: markRaw(ScFirewallFilterPanel),
   ip: markRaw(ScFirewallFilterPanel),
+  // 映射类：后端下发的 type 是大写（URL-MAPPING / SHELL-URL-MAPPING），两种写法都收
+  'url-mapping': markRaw(ScMappingFilterPanel),
+  'URL-MAPPING': markRaw(ScMappingFilterPanel),
+  'shell-url-mapping': markRaw(ScMappingFilterPanel),
+  'SHELL-URL-MAPPING': markRaw(ScMappingFilterPanel),
 };
 
 /**
@@ -67,4 +73,10 @@ export function hasDedicatedFilterPanel(type?: string | null): boolean {
   return Boolean(REGISTRY[normalizeFilterType(type)]);
 }
 
-export { ScFileStorageFilterPanel, ScDiscoveryFilterPanel, ScGenericFilterPanel };
+export {
+  ScFileStorageFilterPanel,
+  ScDiscoveryFilterPanel,
+  ScFirewallFilterPanel,
+  ScMappingFilterPanel,
+  ScGenericFilterPanel,
+};
