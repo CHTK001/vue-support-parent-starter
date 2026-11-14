@@ -172,10 +172,6 @@ defineExpose({ open })
   outline: none;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
-.tc-search-input:focus {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 14%, transparent);
-}
 .tc-search-clear {
   position: absolute;
   right: 10px;

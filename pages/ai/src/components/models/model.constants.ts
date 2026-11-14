@@ -251,8 +251,11 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 
   // ===== 本地推理 =====
   { id: 'ollama', name: 'Ollama', description: '本地 Ollama 模型', protocol: 'openai', defaultApiUrl: 'http://localhost:11434/v1', keywords: ['llama', 'qwen2.5'] },
-  // 注意：ONNX 不提供 HTTP 模板。后端始终注入 id='onnx' 的虚拟提供者（模型来自
-  // ModelRegistry），通过「绑定外部目录」选择服务器本地模型目录加载，不使用 API 地址/API Key。
+  // ONNX 也必须由用户自己添加（2026-11-14 用户口径：启动时凭空多出一行是错的）。
+  // 它是纯本地推理：没有 API 地址与 Key，模型来自模型注册表——通过「绑定目录」
+  // 选择服务器上的模型目录（POST /api/onnx/external），表单里地址与鉴权整块不适用。
+  // 落库时 platform 由名称反推成 onnx，后端统一把 id 也落成 'onnx'。
+  { id: 'onnx', name: 'ONNX 本地推理', description: '本地 ONNX 模型（OCR / 人脸 / 向量 / 版面分析），模型文件放在服务器上', protocol: 'openai', keywords: ['onnx', '本地推理', '离线', 'ocr', 'local'] },
 
   // ===== NewAPI =====
   { id: 'newapi', name: 'NewAPI', description: '国产 API 聚合平台，支持 GPT、Claude、DeepSeek 等数十个模型', protocol: 'openai', defaultApiUrl: 'https://newapi.io', keywords: ['newapi', 'newapi.io', 'apihub'] },

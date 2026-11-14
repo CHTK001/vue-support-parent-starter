@@ -3,12 +3,13 @@ import { message } from "@repo/core";
 import { ref, reactive, watch, computed } from 'vue'
 
 import {
-  Add24Regular, Link24Regular, Eye24Regular, EyeOff24Regular,
+  Add24Regular, Link24Regular, Eye24Regular, EyeOff24Regular, Delete24Regular,
   Info24Regular, Key24Regular, ChevronDown24Regular, CloudCheckmark24Regular,
-  CloudArrowDown24Regular, Folder24Regular,
+  CloudArrowDown24Regular, Folder24Regular, Search24Regular, BranchFork24Regular,
 } from '@vicons/fluent'
 import { useI18n } from 'vue-i18n'
 import ReSelect from '@repo/ui/re-select'
+import ReInputNumber from '@repo/ui/re-input-number'
 import ReDialog from '@repo/ui/re-dialog'
 import ProviderLogo from './ProviderLogo.vue'
 import OnnxExternalDialog from './OnnxExternalDialog.vue'
@@ -17,6 +18,7 @@ import { adminApi } from '@/framework/context'
 import { KEY_STRATEGIES, AUTH_SCHEMES, DEFAULT_AUTH_SCHEME, deriveAuthMode, isChannelProvider, CHANNEL_PROVIDER_IDS } from './model.constants'
 import { parseHeaders, validateHeadersText, resolveProviderBrand, headersToText } from './model.utils'
 import { channelApi, type ChannelSummary } from '@/services/javaApi'
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const { t } = useI18n()
 
@@ -28,6 +30,48 @@ const providerId = ref('')
 const providerType = ref('')
 const testing = ref(false)
 const testResult = ref<null | { success: boolean; message: string }>(null)
+
+// API 地址 suffix 的「检测协议」：对同一地址按 4 种协议各发一次只读探测；
+// 判定口径：只要不是 404 都算该协议形态被支持（405/401 等也显示可用）
+const detectVisible = ref(false)
+const detecting = ref(false)
+// 探测请求序号：重开表单 / 换供应商时自增，迟到的旧结果据此丢弃
+const detectSeq = ref(0)
+// 上一轮探测用的地址：地址一改，结果就该作废
+const detectUrl = ref('')
+const detectRows = ref<{ protocol: string; label: string; icon: string; ok: boolean; message: string; url?: string }[]>([])
+const detectFoot = ref('')
+/**
+ * 检测结果行状态，三档分开看：
+ * <ul>
+ *   <li>{@code ok} 任意非 404 响应（含 401/403/405/429/5xx）—— 端点存在、协议形态对；</li>
+ *   <li>{@code na} 404 —— 该地址下没有此协议的模型列表端点，是正常结论，不是故障；</li>
+ *   <li>{@code bad} 连不上 —— DNS/拒连/TLS/超时等网络异常，这才是真异常。</li>
+ * </ul>
+ */
+function detectRowState(row: { ok: boolean; message: string }): 'ok' | 'na' | 'bad' {
+  if (row.ok) {
+    return 'ok'
+  }
+  return String(row.message || '').includes('404') ? 'na' : 'bad'
+}
+const DETECT_STATE_LABEL: Record<'ok' | 'na' | 'bad', string> = { ok: '可用', na: '不支持', bad: '连不上' }
+
+/**
+ * 余额查询方式（extra.credit_kind）。
+ *
+ * <p>{@code auto} 不落库：后端按「厂商官方 → OpenAI 官方 → new-api → sub2api」
+ * 自动回落，第一条查到数的胜出。其余值直接指定唯一实现，并可覆盖地址与字段表达式。
+ * 实现在 datasearch-starter 的 credit SPI 里，与渠道管理页共用同一套口径。</p>
+ */
+const CREDIT_KINDS = [
+  { value: 'auto', label: '自动识别（推荐）', short: '自动' },
+  { value: 'new-api', label: 'new-api / one-api 中转站', short: 'new-api' },
+  { value: 'sub2api', label: 'sub2api 中转站', short: 'sub2api' },
+  { value: 'host', label: '厂商官方（DeepSeek / Moonshot / 硅基流动 / OpenRouter）', short: '厂商官方' },
+  { value: 'openai', label: 'OpenAI 官方', short: 'OpenAI' },
+  { value: 'expression', label: '自定义地址 + 字段表达式', short: '自定义' },
+]
 const apiKeyList = ref<string[]>([])
 const showKey = ref<Record<number, boolean>>({})
 
@@ -66,6 +110,11 @@ const form = reactive({
   passthroughResp: '',
   // 用量/指标接口（extra.metrics_url）：拉价格、延迟等指标数据的端点
   metricsUrl: '',
+  // 余额查询口径（extra.credit_kind / credit_url / credit_expression）：auto 不落库，
+  // 由后端按厂商与地址自动回落；选了具体实现才写这三个键
+  creditKind: 'auto',
+  creditUrl: '',
+  creditExpression: '',
   // 供应商级限流（extra.max_concurrency / max_accounts / requests_per_minute），null = 不限制
   maxConcurrency: null as number | null,
   maxAccounts: null as number | null,
@@ -133,6 +182,10 @@ const advancedSummary = computed(() => {
   if (splitList(form.passthroughResp).length) parts.push('透传响应头')
   if (splitList(form.passthroughReq).length) parts.push('透传请求头')
   if (form.metricsUrl.trim()) parts.push('用量接口')
+  if (form.creditKind && form.creditKind !== 'auto') {
+    const hit = CREDIT_KINDS.find((k) => k.value === form.creditKind)
+    parts.push(`余额 ${hit ? hit.short : form.creditKind}`)
+  }
   if (proxyMode.value === 'custom') parts.push('自定义代理')
   if (form.maxConcurrency) parts.push(`并发 ${form.maxConcurrency}`)
   if (form.maxAccounts) parts.push(`账号 ${form.maxAccounts}`)
@@ -200,6 +253,15 @@ const buildExtra = () => {
   const metricsUrl = form.metricsUrl.trim()
   if (metricsUrl) extra.metrics_url = metricsUrl
   else delete extra.metrics_url
+  // 余额查询口径：auto 不落库（后端按厂商与地址自动回落），选了实现才写键
+  if (form.creditKind && form.creditKind !== 'auto') extra.credit_kind = form.creditKind
+  else delete extra.credit_kind
+  const creditUrl = form.creditUrl.trim()
+  if (creditUrl) extra.credit_url = creditUrl
+  else delete extra.credit_url
+  const creditExpression = form.creditExpression.trim()
+  if (creditExpression) extra.credit_expression = creditExpression
+  else delete extra.credit_expression
   // 透传头：逗号/换行分隔，数组落库
   for (const [field, key] of [['passthroughReq', 'passthrough_request_headers'],
     ['passthroughResp', 'passthrough_response_headers']] as const) {
@@ -350,6 +412,7 @@ const resetForm = () => {
     extraBodyText: '', passthroughReq: '', passthroughResp: '',
     maxConcurrency: null, maxAccounts: null, rpm: null,
     metricsUrl: '',
+    creditKind: 'auto', creditUrl: '', creditExpression: '',
   })
   apiKeyList.value = []
   localModelPath.value = ''
@@ -362,6 +425,16 @@ const resetForm = () => {
   formRoutes.value = []
   routeHint.value = ''
   proxyCustom.value = false
+  // 检测协议结果是「这一次地址」的探测记录：换一家供应商还留着上一家的结果
+  // 会让人以为新地址已经测过（实测：重开编辑弹框仍显示旧的四行）。
+  detectSeq.value++ // 使仍在飞行中的旧探测请求作废
+  detectVisible.value = false
+  detecting.value = false
+  detectRows.value = []
+  detectFoot.value = ''
+  detectUrl.value = ''
+  // 每次打开表单都从折叠态开始：上一家的「高级」展开状态不该带到新供应商
+  advancedOpen.value = false
 }
 
 const openCreate = () => {
@@ -428,6 +501,9 @@ const openEdit = (provider: any) => {
   form.passthroughReq = listToText(origExtra.value.passthrough_request_headers)
   form.passthroughResp = listToText(origExtra.value.passthrough_response_headers)
   form.metricsUrl = String(origExtra.value.metrics_url || '')
+  form.creditKind = String(origExtra.value.credit_kind || 'auto')
+  form.creditUrl = String(origExtra.value.credit_url || '')
+  form.creditExpression = String(origExtra.value.credit_expression || '')
   form.maxConcurrency = numOrNull(origExtra.value.max_concurrency)
   form.maxAccounts = numOrNull(origExtra.value.max_accounts)
   form.rpm = numOrNull(origExtra.value.requests_per_minute)
@@ -465,8 +541,67 @@ const openEdit = (provider: any) => {
 defineExpose({ openCreate, openFromTemplate, openEdit })
 
 const addApiKey = () => apiKeyList.value.push('')
-const removeApiKey = (index: number) => apiKeyList.value.splice(index, 1)
+/** 行内删除：多行直接删掉该行，只剩一行时清空内容（永远保留一个输入框） */
+const removeApiKeyAt = (index: number) => {
+  if (apiKeyList.value.length > 1) {
+    apiKeyList.value.splice(index, 1)
+    // showKey 是按下标记的：删中间一行后整体前移，避免显隐状态错位
+    const next: Record<number, boolean> = {}
+    Object.keys(showKey.value).forEach((k) => {
+      const i = Number(k)
+      if (i < index) next[i] = showKey.value[i]
+      else if (i > index) next[i - 1] = showKey.value[i]
+    })
+    showKey.value = next
+  } else if (apiKeyList.value.length === 1) {
+    apiKeyList.value[0] = ''
+  }
+}
 const toggleKey = (i: number) => { showKey.value[i] = !showKey.value[i] }
+
+/** 检测协议：对同一 API 地址按 OpenAI / Responses / Claude / Gemini 四种形态各探测一次。
+ *  判定口径（与后端一致）：只要不是 404 都算「该地址支持此协议形态」 */
+const openDetectProtocol = async () => {
+  if (!form.apiUrl?.trim()) {
+    message.warning(t('settings.models.apiUrlFirst'))
+    return
+  }
+  const seq = ++detectSeq.value
+  detectUrl.value = form.apiUrl.trim()
+  detectVisible.value = true
+  detecting.value = true
+  detectRows.value = []
+  detectFoot.value = ''
+  const auth = resolvedAuth.value
+  try {
+    const res: any = await adminApi.post('/api/providers/detect-protocol', {
+      apiUrl: form.apiUrl.trim(),
+      apiKey: form.apiKey.trim() || undefined,
+      proxy: form.proxyUrl.trim() || undefined,
+      auth_scheme: auth.authScheme,
+      auth_header: auth.authHeader,
+      auth_prefix: auth.authPrefix,
+    })
+    // 探测期间换了供应商 / 重开了表单：这是上一次请求的迟到结果，直接丢弃
+    if (seq !== detectSeq.value) return
+    const data = res?.data ?? res
+    detectRows.value = ((data?.results || []) as any[]).map((x: any) => ({
+      protocol: x.protocol,
+      label: x.label,
+      icon: x.icon,
+      ok: !!x.ok,
+      message: x.message || '',
+      url: x.url || '',
+    }))
+    detectFoot.value = data?.foot || ''
+  } catch (error: any) {
+    if (seq !== detectSeq.value) return
+    detectRows.value = []
+    detectFoot.value = error?.response?.data?.message || error?.message || '检测失败'
+  } finally {
+    if (seq === detectSeq.value) detecting.value = false
+  }
+}
 
 const handleTestConnection = async () => {
   if (!form.apiUrl.trim()) {
@@ -688,6 +823,22 @@ const proxyMode = computed({
 /** 编辑态回填了代理地址时，自动落到「自定义」 */
 watch(() => form.proxyUrl, (v) => { if (v && v.trim()) proxyCustom.value = true })
 
+/**
+ * 地址一改动，上一轮检测结果立刻作废。
+ *
+ * <p>检测结果对应的是「那次探测的地址」，地址换了还留着四行旧结论，
+ * 用户会以为新地址已经测过。地址改回原值不恢复旧结果 —— 重新点一次更可靠。</p>
+ */
+watch(() => form.apiUrl, (v) => {
+  if (!detectVisible.value) return
+  if ((v || '').trim() === detectUrl.value) return
+  detectSeq.value++
+  detectVisible.value = false
+  detecting.value = false
+  detectRows.value = []
+  detectFoot.value = ''
+})
+
 /** 弹窗标题：名字还没填时不要渲染成「添加 」这种半截文案 */
 const dialogTitle = computed(() => {
   if (isEditMode.value) return t('settings.models.editProvider')
@@ -697,11 +848,19 @@ const dialogTitle = computed(() => {
     : t('settings.models.addProviderPlain')
 })
 
+/** 协议的中文名：头部副标题用，避免直接显示 openai-response 这种内部值 */
+const protocolLabel = computed(
+  () => protocolOptions.find((o) => o.value === form.protocol)?.label || form.protocol,
+)
+
 const protocolOptions = [
-  { label: 'OpenAI', value: 'openai' },
-  { label: 'OpenAI Response', value: 'openai-response' },
-  { label: 'Gemini', value: 'gemini' },
-  { label: 'Anthropic Claude', value: 'anthropic' },
+  { label: 'OpenAI', value: 'openai', icon: 'openai' },
+  { label: 'OpenAI Response', value: 'openai-response', icon: 'openai-response' },
+  { label: 'Gemini', value: 'gemini', icon: 'gemini' },
+  { label: 'Anthropic Claude', value: 'anthropic', icon: 'anthropic' },
+  // System one 是决策协议（POST /v1/systemone，utils 侧实现是 DecisionsClient），
+  // 与对话协议并列出现在「这个供应商按什么协议说话」这一层。
+  { label: 'System one', value: 'system-one', icon: 'systemone' },
 ]
 </script>
 
@@ -709,7 +868,7 @@ const protocolOptions = [
   <ReDialog
     v-model="dialogVisible"
     :title="dialogTitle"
-    width="600px"
+    width="700px"
     align-center
     append-to-body
     :close-on-click-modal="false"
@@ -725,6 +884,10 @@ const protocolOptions = [
           <span class="pf-header-title">
             {{ dialogTitle }}
           </span>
+          <!-- 副标题：一眼看清「哪家 / 什么协议 / 打哪个地址」，不用往表单里找 -->
+          <span class="pf-header-sub">
+            {{ protocolLabel }}<template v-if="form.apiUrl.trim()"> · {{ form.apiUrl.trim() }}</template>
+          </span>
           <span v-if="selectedTemplate" class="pf-badge">
             <el-icon :size="11"><Key24Regular /></el-icon>{{ selectedTemplate.name }}
           </span>
@@ -735,17 +898,32 @@ const protocolOptions = [
     <div class="pf-body">
       <!-- 基本信息 -->
       <div class="pf-line">
-        <span class="pf-line-label">{{ t('settings.models.name') }}</span>
+        <span class="pf-line-label"><span class="pf-req">*</span>{{ t('settings.models.name') }}</span>
         <div class="pf-line-ctrl">
           <el-input v-model="form.name" :placeholder="t('settings.models.namePlaceholder')" clearable />
         </div>
       </div>
 
-      <div class="pf-line">
-        <span class="pf-line-label">{{ t('settings.models.protocol') }}</span>
+      <!-- 本地推理（ONNX）没有对话协议可选：不走上游 HTTP，模型由本地注册表提供 -->
+      <div v-if="!isLocalProvider" class="pf-line">
+        <span class="pf-line-label"><span class="pf-req">*</span>{{ t('settings.models.protocol') }}</span>
         <div class="pf-line-ctrl">
-          <ReSelect v-model="form.protocol" class="w-full" :placeholder="t('settings.models.selectProtocol')"
-            :data="protocolOptions" />
+          <el-segmented v-model="form.protocol" :options="protocolOptions" block class="pf-seg">
+            <template #default="{ item }">
+              <el-tooltip :content="item.label" placement="top" :show-after="120">
+                <span class="pf-proto-icon">
+                  <!-- OpenAI Response = OpenAI 家族：openai logo 右下角挂一个 R 小标 -->
+                  <span v-if="item.icon === 'openai-response'" class="pf-proto-stack">
+                    <ProviderLogo pid="openai" :name="item.label" :size="18" />
+                    <i class="pf-proto-badge">R</i>
+                  </span>
+                  <!-- System one（决策协议）用通用「分支」图标，不再用 S1 文字块 -->
+                  <el-icon v-else-if="item.icon === 'systemone'" :size="18"><BranchFork24Regular /></el-icon>
+                  <ProviderLogo v-else :pid="item.icon" :name="item.label" :size="18" />
+                </span>
+              </el-tooltip>
+            </template>
+          </el-segmented>
         </div>
       </div>
 
@@ -781,9 +959,36 @@ const protocolOptions = [
         </div>
       </div>
       <div v-else class="pf-line">
-        <span class="pf-line-label">{{ t('settings.models.apiUrl') }}</span>
+        <span class="pf-line-label"><span class="pf-req">*</span>{{ t('settings.models.apiUrl') }}</span>
         <div class="pf-line-ctrl">
-          <el-input v-model="form.apiUrl" placeholder="https://api.example.com/v1" />
+          <el-input v-model="form.apiUrl" placeholder="https://api.example.com/v1" clearable>
+    <template #suffix>
+      <el-tooltip content="检测协议" placement="top" :show-after="200">
+        <el-button class="pf-detect-btn" text size="small" :loading="detecting" @click="openDetectProtocol">
+          <el-icon :size="14"><Search24Regular /></el-icon>
+        </el-button>
+      </el-tooltip>
+    </template>
+  </el-input>
+
+  <!-- 检测协议：结果直接内联在地址框下方，四个协议各一行（标准端点 + 状态）。
+       状态三档：可用（非 404 响应）/ 不支持（404，没有该协议的模型列表端点）/ 连不上（网络异常）。 -->
+  <div v-if="detectVisible" class="pf-detect">
+    <div v-if="detecting && detectRows.length === 0" class="pf-detect-empty">正在检测…</div>
+    <div v-for="row in detectRows" :key="row.protocol" class="pf-detect-row" :class="'is-' + detectRowState(row)">
+      <span v-if="row.icon === 'openai-response'" class="pf-proto-stack">
+        <ProviderLogo pid="openai" :name="row.label" :size="18" />
+        <i class="pf-proto-badge">R</i>
+      </span>
+      <el-icon v-else-if="row.icon === 'systemone'" :size="18"><BranchFork24Regular /></el-icon>
+      <ProviderLogo v-else :pid="row.icon" :name="row.label" :size="18" />
+      <span class="pf-detect-name">{{ row.label }}</span>
+      <span class="pf-detect-url">{{ row.url }}</span>
+      <span class="pf-detect-state">{{ DETECT_STATE_LABEL[detectRowState(row)] }}</span>
+      <span class="pf-detect-msg">{{ row.message }}</span>
+    </div>
+    <p v-if="detectFoot && detectRows.length" class="pf-detect-foot">{{ detectFoot }}</p>
+  </div>
         </div>
       </div>
 
@@ -820,11 +1025,11 @@ const protocolOptions = [
         <div class="pf-line">
           <span class="pf-line-label">推理设备</span>
           <div class="pf-line-ctrl">
-            <el-radio-group v-model="form.device">
-              <el-radio-button value="auto">自动</el-radio-button>
-              <el-radio-button value="cpu">CPU</el-radio-button>
-              <el-radio-button value="gpu">GPU</el-radio-button>
-            </el-radio-group>
+            <ReRadioGroup v-model="form.device">
+              <ReRadioButton value="auto">自动</ReRadioButton>
+              <ReRadioButton value="cpu">CPU</ReRadioButton>
+              <ReRadioButton value="gpu">GPU</ReRadioButton>
+            </ReRadioGroup>
             <p class="pf-note">auto 按本机驱动自动判定；选 gpu 缺 CUDA 组件时自动回退 CPU。</p>
           </div>
         </div>
@@ -923,7 +1128,6 @@ const protocolOptions = [
                   v-model="apiKeyList[index]"
                   placeholder="sk-..."
                   :type="showKey[index] ? 'text' : 'password'"
-                  :class="{ 'key-filled': key.trim() }"
                 >
                   <template #prefix><el-icon :size="14"><Key24Regular /></el-icon></template>
                   <template #suffix>
@@ -932,8 +1136,14 @@ const protocolOptions = [
                     </button>
                   </template>
                 </el-input>
-                <button class="key-remove" type="button" @click="removeApiKey(index)" title="删除">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /></svg>
+                <!-- 每个 Key 行自带一个删除按钮：多行删本行，只剩一行时清空内容 -->
+                <button
+                  class="key-remove"
+                  type="button"
+                  :title="apiKeyList.length > 1 ? '删除这个 Key' : '清空这个 Key'"
+                  @click="removeApiKeyAt(index)"
+                >
+                  <el-icon :size="14"><Delete24Regular /></el-icon>
                 </button>
               </div>
             </div>
@@ -1014,6 +1224,24 @@ const protocolOptions = [
             </div>
           </div>
 
+          <!-- 余额：给提供商详情的「余额与用量」用，每个 Key 各查一次 -->
+          <div class="pf-line">
+            <span class="pf-line-label">余额</span>
+            <div class="pf-line-ctrl">
+              <ReSelect v-model="form.creditKind" class="w-full" layout="default" placeholder="自动识别">
+                <el-option v-for="k in CREDIT_KINDS" :key="k.value" :label="k.label" :value="k.value" />
+              </ReSelect>
+              <template v-if="form.creditKind !== 'auto'">
+                <el-input v-model="form.creditUrl" placeholder="余额接口地址（留空用该方式的默认地址）" />
+                <el-input v-model="form.creditExpression"
+                  placeholder="字段表达式：前一段剩余、后一段已用，如 $data.total_available; $data.total_used" />
+              </template>
+              <p class="pf-note">
+                决定「提供商详情 → 余额与用量」怎么查：每个 Key 单独查一次，前一段算剩余、后一段算已用，总量是两者之和。
+              </p>
+            </div>
+          </div>
+
           <div class="pf-line">
             <span class="pf-line-label">额外请求体</span>
             <div class="pf-line-ctrl">
@@ -1066,10 +1294,10 @@ const protocolOptions = [
           <div class="pf-line">
             <span class="pf-line-label">代理</span>
             <div class="pf-line-ctrl">
-              <el-radio-group v-model="proxyMode">
-                <el-radio-button value="none">直连</el-radio-button>
-                <el-radio-button value="custom">自定义</el-radio-button>
-              </el-radio-group>
+              <ReRadioGroup v-model="proxyMode">
+                <ReRadioButton value="none">直连</ReRadioButton>
+                <ReRadioButton value="custom">自定义</ReRadioButton>
+              </ReRadioGroup>
               <el-input
                 v-if="proxyMode === 'custom'"
                 v-model="form.proxyUrl"
@@ -1083,7 +1311,7 @@ const protocolOptions = [
           <div class="pf-line">
             <span class="pf-line-label">开发上限</span>
             <div class="pf-line-ctrl">
-              <el-input-number v-model="form.maxConcurrency" :min="0" :step="1" controls-position="right"
+              <ReInputNumber v-model="form.maxConcurrency" :min="0" :step="1" controls-position="right"
                 placeholder="不限制" class="pf-num" />
               <p class="pf-note">同一时间最多几个请求打到这家上游；0 或留空 = 不限制。</p>
             </div>
@@ -1092,7 +1320,7 @@ const protocolOptions = [
           <div class="pf-line">
             <span class="pf-line-label">同时使用的账号数</span>
             <div class="pf-line-ctrl">
-              <el-input-number v-model="form.maxAccounts" :min="0" :step="1" controls-position="right"
+              <ReInputNumber v-model="form.maxAccounts" :min="0" :step="1" controls-position="right"
                 placeholder="不限制" class="pf-num" />
               <p class="pf-note">只启用地前 N 个 Key 轮换；0 或留空 = 全部启用。</p>
             </div>
@@ -1101,7 +1329,7 @@ const protocolOptions = [
           <div class="pf-line">
             <span class="pf-line-label">每分钟请求数</span>
             <div class="pf-line-ctrl">
-              <el-input-number v-model="form.rpm" :min="0" :step="1" controls-position="right"
+              <ReInputNumber v-model="form.rpm" :min="0" :step="1" controls-position="right"
                 placeholder="不限制" class="pf-num" />
               <p class="pf-note">同一供应商每分钟最多几次请求；0 或留空 = 不限制。</p>
             </div>
@@ -1187,7 +1415,18 @@ const protocolOptions = [
   gap: 12px;
 }
 .pf-header-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+/* 头部副标题：协议 + 上游地址，长地址截断，避免把标题挤成两行 */
+.pf-header-sub {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  max-width: 460px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .pf-header-title {
+  text-align: left;
   font-size: 14px;
   font-weight: 700;
   color: var(--el-text-color-primary);
@@ -1246,16 +1485,17 @@ const protocolOptions = [
 /* 一行：左标签（右对齐）+ 右控件 */
 .pf-line {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-columns: 110px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
 }
 .pf-line-label {
   font-size: 13px;
   color: var(--el-text-color-regular);
-  line-height: 32px;
+  line-height: 20px;
+  padding-top: 6px;
   text-align: right;
-  white-space: nowrap;
+  white-space: normal;
 }
 .pf-line-ctrl {
   display: flex;
@@ -1287,6 +1527,15 @@ const protocolOptions = [
 .pf-endpoint-name { font-size: 12px; color: var(--el-text-color-secondary); }
 /* 限流三项：数字框不铺满整行 */
 .pf-num { width: 160px; }
+/* 必填标记：只在真正会挡住保存的字段上出现 */
+.pf-req { color: var(--el-color-danger); margin-right: 4px; }
+/* 协议分段器：四个协议一行铺满，比下拉少一次点击 */
+.pf-seg { width: 100%; }
+.pf-seg :deep(.el-segmented__item-label) {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+}
+/* 输入框聚焦不弹高亮：相关样式已全部移除，聚焦前后视觉一致 */
 /* ONNX 模型根目录：只读输入 + 绑定按钮并排 */
 .pf-root { display: flex; gap: 8px; align-items: stretch; }
 .pf-root-input { flex: 1; }
@@ -1347,9 +1596,6 @@ const protocolOptions = [
 .pf-keys { display: flex; flex-direction: column; gap: 6px; }
 .key-row { display: flex; align-items: center; gap: 6px; }
 .key-row .el-input { flex: 1; }
-.key-filled :deep(.el-input__wrapper) {
-  box-shadow: 0 0 0 1px var(--el-color-success-light-5) inset;
-}
 .key-eye {
   border: none;
   background: transparent;
@@ -1397,7 +1643,26 @@ const protocolOptions = [
   border-color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
-.pf-link {
+/* 「添加 Key」旁的纯图标删除按钮 */
+.pf-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.pf-remove:hover {
+  color: var(--el-color-danger);
+  border-color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}.pf-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1520,4 +1785,53 @@ const protocolOptions = [
   transition: all 0.15s ease;
 }
 .pf-foot-btn-delete:hover { background: var(--el-color-danger-light-9); }
+.pf-proto-icon { display: inline-flex; align-items: center; justify-content: center; }
+/* OpenAI Response：openai logo + 右下角 R 小标（同一品牌家族，只是 Responses 变体） */
+.pf-proto-stack { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.pf-proto-badge {
+  position: absolute; right: -5px; bottom: -5px;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 11px; height: 11px; padding: 0 2px; border-radius: 6px;
+  background: var(--el-fill-color-blank); color: var(--el-color-primary);
+  border: 1px solid var(--el-color-primary-light-5);
+  font-size: 8px; line-height: 1; font-weight: 700; font-style: normal;
+}
+/* 选中态底色是主题色：图标统一反白，彩色品牌图才不会糊在蓝底上 */
+.pf-seg :deep(.el-segmented__item.is-selected .pf-proto-icon img) {
+  filter: brightness(0) invert(1);
+}
+.pf-seg :deep(.el-segmented__item.is-selected) .pf-proto-icon .avatar-auto {
+  color: #fff;
+  background: transparent !important;
+}
+/* 选中态的小标反过来：白底蓝字，压在主题色底上依然看得清 */
+.pf-seg :deep(.el-segmented__item.is-selected) .pf-proto-badge {
+  background: #fff;
+  color: var(--el-color-primary);
+  border-color: #fff;
+}
+.pf-detect-btn { border: none; padding: 0 4px; }
+.pf-detect { display: flex; flex-direction: column; gap: 8px; }
+.pf-detect-empty { padding: 12px 0; color: var(--el-text-color-secondary); }
+.pf-detect-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border: 1px solid var(--el-border-color-lighter); border-radius: 8px;
+}
+.pf-detect-row.is-ok { border-color: var(--el-color-success-light-5); background: var(--el-color-success-light-9); }
+/* 404 是正常结论（这个地址就是没有该协议的端点），用中性色，不要报警色 */
+.pf-detect-row.is-na { border-color: var(--el-border-color-lighter); background: var(--el-fill-color-lighter); }
+.pf-detect-row.is-bad { border-color: var(--el-color-danger-light-5); background: var(--el-color-danger-light-9); }
+.pf-detect-name { font-size: 13px; font-weight: 600; min-width: 128px; }
+.pf-detect-url { font-size: 11px; color: var(--el-text-color-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-detect-state { font-size: 12px; padding: 1px 8px; border-radius: 999px; color: #fff; flex: none; }
+.pf-detect-row.is-ok .pf-detect-state { background: var(--el-color-success); }
+.pf-detect-row.is-na .pf-detect-state { background: var(--el-text-color-secondary); }
+.pf-detect-row.is-bad .pf-detect-state { background: var(--el-color-danger); }
+.pf-detect-msg { font-size: 12px; color: var(--el-text-color-secondary); }
+.pf-detect-foot { margin: 10px 0 0; font-size: 12px; color: var(--el-text-color-secondary); }
+</style>
+
+<style>
+/* 弹框在 body 下（teleport），scoped 打不到，这里非 scoped 限定 .provider-modal。
+   聚焦相关样式已全部删除，聚焦前后不改变描边与颜色。 */
 </style>

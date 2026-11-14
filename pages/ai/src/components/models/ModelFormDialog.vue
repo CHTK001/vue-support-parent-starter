@@ -115,14 +115,9 @@
                   <span class="cap-label"><el-icon class="mr-1"><DocumentText24Regular /></el-icon>{{ t('settings.providerDetail.pdf') }}</span>
                 </el-checkbox-button>
               </el-checkbox-group>
-              <!-- 勾了「图片」→ 输入图片的细化：单次最多几张（留空=不限制）、能否拿图当参考。
-                   紧贴能力勾选行展开，不再单独占一个表单项 -->
+              <!-- 勾了「图片」只表示「能读图」：多模态理解模型不需要填张数上限，
+                   这里只留「支持参考图」；张数属于下面「图像生成参数」区的事，不重复问 -->
               <div v-if="hasImageIn" class="img-extra">
-                <span class="img-extra-field">
-                  <span class="img-extra-label">张数</span>
-                  <ReNumberInput v-model="form.config.imageInputCount" :min="1" :max="16"
-                    :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
-                </span>
                 <span class="img-extra-field">
                   <span class="img-extra-label">支持参考图</span>
                   <el-switch v-model="form.config.imageReference" />
@@ -147,14 +142,8 @@
                   <span class="cap-label"><el-icon class="mr-1"><DocumentText24Regular /></el-icon>{{ t('settings.providerDetail.pdf') }}</span>
                 </el-checkbox-button>
               </el-checkbox-group>
-              <!-- 勾了「图片」→ 输出图片的细化：单次生成最多几张（留空=不限制） -->
-              <div v-if="hasImageOut" class="img-extra">
-                <span class="img-extra-field">
-                  <span class="img-extra-label">张数</span>
-                  <ReNumberInput v-model="form.config.imageOutputCount" :min="1" :max="8"
-                    :placeholder="t('settings.providerDetail.modelDefault')" controls-position="right" class="num-input" />
-                </span>
-              </div>
+              <!-- 勾了「图片」即可，不再问输出张数：能否一次出多张由下面的
+                   「图像生成参数 · 输出张数」决定，理解类模型没有这个概念 -->
             </el-form-item>
             <el-form-item :label="t('settings.providerDetail.advancedFeatures')" prop="config.features" class="mb-2">
               <el-checkbox-group v-model="form.config.features">
@@ -267,10 +256,10 @@
           <!-- 图片识别 -->
           <div v-else-if="form.modelType === 'image_cv'" class="me-group">
             <el-form-item label="识别模式">
-              <el-radio-group v-model="form.config.cvMode">
-                <el-radio-button value="classify">图像分类</el-radio-button>
-                <el-radio-button value="detect">目标检测</el-radio-button>
-              </el-radio-group>
+              <ReRadioGroup v-model="form.config.cvMode">
+                <ReRadioButton value="classify">图像分类</ReRadioButton>
+                <ReRadioButton value="detect">目标检测</ReRadioButton>
+              </ReRadioGroup>
             </el-form-item>
             <el-form-item label="置信度阈值">
               <ReNumberInput v-model="form.config.cvConfidence" :min="0" :max="1" :step="0.05"
@@ -281,11 +270,11 @@
           <!-- 检测 -->
           <div v-else-if="form.modelType === 'detection'" class="me-group">
             <el-form-item label="检测类型">
-              <el-radio-group v-model="form.config.cvMode">
-                <el-radio-button value="object">目标检测</el-radio-button>
-                <el-radio-button value="classify">图像分类</el-radio-button>
-                <el-radio-button value="defect">缺陷检测</el-radio-button>
-              </el-radio-group>
+              <ReRadioGroup v-model="form.config.cvMode">
+                <ReRadioButton value="object">目标检测</ReRadioButton>
+                <ReRadioButton value="classify">图像分类</ReRadioButton>
+                <ReRadioButton value="defect">缺陷检测</ReRadioButton>
+              </ReRadioGroup>
             </el-form-item>
             <el-form-item label="置信度阈值">
               <ReNumberInput v-model="form.config.cvConfidence" :min="0" :max="1" :step="0.05"
@@ -327,11 +316,11 @@
               </el-checkbox-group>
             </el-form-item>
             <el-form-item label="检测方向" prop="config.ocrDetectDirection">
-              <el-radio-group v-model="form.config.ocrDetectDirection">
-                <el-radio-button value="horizontal">横向</el-radio-button>
-                <el-radio-button value="vertical">竖向</el-radio-button>
-                <el-radio-button value="auto">自动</el-radio-button>
-              </el-radio-group>
+              <ReRadioGroup v-model="form.config.ocrDetectDirection">
+                <ReRadioButton value="horizontal">横向</ReRadioButton>
+                <ReRadioButton value="vertical">竖向</ReRadioButton>
+                <ReRadioButton value="auto">自动</ReRadioButton>
+              </ReRadioGroup>
             </el-form-item>
           </div>
 
@@ -496,6 +485,7 @@ import {
   deriveFetchedModelConfig,
 } from './model.utils'
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const props = defineProps<{
   provider: any
@@ -527,9 +517,8 @@ const currentType = computed(() => modelTypeOptions.find((o) => o.value === form
 const currentTypeIcon = computed(() => currentType.value?.icon)
 const currentTypeLabel = computed(() => currentType.value?.label || '')
 
-/** 输入 / 输出能力里勾了「图片」→ 展开张数与参考图的细化配置项 */
+/** 输入能力里勾了「图片」→ 展开「支持参考图」这一项（输出侧不再有细化项） */
 const hasImageIn = computed(() => (form.value.config?.inputCapabilities || []).includes('image'))
-const hasImageOut = computed(() => (form.value.config?.outputCapabilities || []).includes('image'))
 
 const form = ref<any>({
   modelName: '',
@@ -1101,14 +1090,12 @@ const handleSave = async () => {
 .me-body :deep(.el-select__wrapper.is-focused) {
   box-shadow: 0 0 0 1px var(--el-color-primary) inset, 0 0 0 3px var(--el-color-primary-light-9);
 }
-.me-body :deep(.el-checkbox-button:first-child .el-checkbox-button__inner),
-.me-body :deep(.el-radio-button:first-child .el-radio-button__inner) {
+.me-body :deep(.el-checkbox-button:first-child .el-checkbox-button__inner) {
   /* 原值 10px → lg 档，与外层控件圆角一致 */
   border-top-left-radius: var(--el-radius-lg, 12px);
   border-bottom-left-radius: var(--el-radius-lg, 12px);
 }
-.me-body :deep(.el-checkbox-button:last-child .el-checkbox-button__inner),
-.me-body :deep(.el-radio-button:last-child .el-radio-button__inner) {
+.me-body :deep(.el-checkbox-button:last-child .el-checkbox-button__inner) {
   /* 原值 10px → lg 档，与外层控件圆角一致 */
   border-top-right-radius: var(--el-radius-lg, 12px);
   border-bottom-right-radius: var(--el-radius-lg, 12px);

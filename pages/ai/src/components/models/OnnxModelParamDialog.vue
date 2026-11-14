@@ -12,11 +12,11 @@
       <!-- 推理设备 -->
       <div class="omp-field">
         <div class="omp-label">推理设备</div>
-        <el-radio-group v-model="device">
-          <el-radio-button v-for="opt in deviceOptions" :key="opt" :value="opt">
+        <ReRadioGroup v-model="device">
+          <ReRadioButton v-for="opt in deviceOptions" :key="opt" :value="opt">
             {{ optLabel(opt) }}
-          </el-radio-button>
-        </el-radio-group>
+          </ReRadioButton>
+        </ReRadioGroup>
         <p class="omp-hint">
           当前实际解析为 <b>{{ resolvedDevice || 'cpu' }}</b>。auto 表示按本机驱动与 CUDA 原生库自动判定；
           选择 gpu 但本机缺少 onnxruntime_gpu 构件时会自动回退 CPU。
@@ -76,6 +76,7 @@ import { Delete } from '@element-plus/icons-vue'
 import { adminApi } from '@/framework/context'
 import { useI18n } from 'vue-i18n'
 import ReDialog from '@repo/ui/re-dialog'
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

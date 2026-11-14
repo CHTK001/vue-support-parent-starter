@@ -66,7 +66,7 @@
               <span class="mw-item-tail">
                 <span class="mw-item-status" :class="enabledOf(p) > 0 ? 'on' : 'off'"></span>
                 <button
-                  v-if="canWrite && p.id !== 'agent' && p.id !== 'onnx'"
+                  v-if="canWrite && p.id !== 'agent'"
                   class="mw-item-del"
                   type="button"
                   title="删除供应商"
@@ -208,8 +208,10 @@ const clearProviderSelection = () => {
 }
 
 // 删除供应商（后端级联删除模型与连接）
+// ONNX 供应商由用户自己添加（platform=onnx），因此和其它供应商一样可删；
+// 只有内置的 Agent 供应商不能删。
 const handleDeleteProvider = async (p: any) => {
-  if (!p || p.id === 'agent' || p.id === 'onnx') return
+  if (!p || p.id === 'agent') return
   const modelCount = Array.isArray(p.models) ? p.models.length : 0
   const ok = await confirm(
     '删除供应商',

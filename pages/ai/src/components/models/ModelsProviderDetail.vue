@@ -1,6 +1,13 @@
 <template>
-  <div class="h-full overflow-auto detail-scroll">
-    <div class="px-5 py-4">
+  <!--
+    07 版式（左供应商列表 / 右模型区 / 余额吸底）：
+    右栏自身是「头 + 滚动模型区 + 吸底余额条」三段式。
+    余额条挂在滚动区**外面**，滚多少模型它都贴在底边；
+    以前它挂在滚动内容末尾，模型一多就滚没了。
+  -->
+  <div class="detail-shell">
+    <div class="flex-1 min-h-0 overflow-auto detail-scroll">
+      <div class="px-5 py-4">
       <!-- 供应商头部 -->
       <section class="d-band">
         <div class="d-band-logo">
@@ -77,7 +84,7 @@
         </el-button>
       </div>
 
-      <!-- 模型卡片网格（路由组没有自己的模型行，整块不渲染） -->
+      <!-- 模型区（路由组没有自己的模型行，整块不渲染） -->
       <template v-else-if="!isRouterGroup">
         <div class="d-section-head">
           <!-- 第一行：标题 + 计数 + 搜索 + 批量工具栏 -->
@@ -86,6 +93,34 @@
             <span class="d-section-count">
               {{ filteredModels.length }}/{{ models.length }}
             </span>
+            <!--
+              视图切换：列表（密排，一屏看十几行）/ 卡片（指标 6 格，一眼比较参数）。
+              同一份 filteredModels、同一套筛选与批量选择，只是排版不同。
+            -->
+            <div class="view-switch" role="group" aria-label="模型视图">
+              <button
+                type="button"
+                class="view-btn"
+                :class="{ 'is-on': viewMode === 'list' }"
+                title="列表视图"
+                aria-label="列表视图"
+                :aria-pressed="viewMode === 'list'"
+                @click="viewMode = 'list'"
+              >
+                <el-icon :size="15"><ViewListOutlined /></el-icon>
+              </button>
+              <button
+                type="button"
+                class="view-btn"
+                :class="{ 'is-on': viewMode === 'card' }"
+                title="卡片视图"
+                aria-label="卡片视图"
+                :aria-pressed="viewMode === 'card'"
+                @click="viewMode = 'card'"
+              >
+                <el-icon :size="15"><GridViewOutlined /></el-icon>
+              </button>
+            </div>
             <!-- 搜索框：支持模型名 / 类型 / 子类型 / 能力关键词 -->
             <el-input
               v-model="modelSearch"
@@ -127,11 +162,11 @@
           <!-- 第二行：状态 / 类型 / 上下文大小筛选 -->
           <div class="d-head-filters">
             <div class="filter-group">
-              <el-radio-group v-model="statusFilter" size="small">
-                <el-radio-button value="">全部</el-radio-button>
-                <el-radio-button value="active">已启用</el-radio-button>
-                <el-radio-button value="inactive">已停用</el-radio-button>
-              </el-radio-group>
+              <ReRadioGroup v-model="statusFilter" size="small">
+                <ReRadioButton value="">全部</ReRadioButton>
+                <ReRadioButton value="active">已启用</ReRadioButton>
+                <ReRadioButton value="inactive">已停用</ReRadioButton>
+              </ReRadioGroup>
             </div>
             <div class="filter-group">
               <!--
@@ -163,6 +198,106 @@
         </div>
         <div v-if="filteredModels.length === 0" class="ctx-no-match">
           {{ t('common.contextSize.noMatch') }}
+        </div>
+        <!--
+          列表视图：与卡片同一份 filteredModels / 筛选 / 批量选择，换成密排行。
+          列宽用 grid + minmax 收放，右栏再窄就整块横向滚动 —— 不看窗口宽度
+          （左栏占 264px，窗口 1024 时右栏只剩 700 可用）。
+        -->
+        <div v-else-if="viewMode === 'list'" class="model-list">
+          <div class="ml-head">
+            <span></span>
+            <span>模型</span>
+            <span>能力</span>
+            <span>输入 / 输出</span>
+            <span class="ml-c-price">价格</span>
+            <span class="ml-c-speed">速度</span>
+            <span class="ml-c-sw">启用</span>
+            <span></span>
+          </div>
+          <div
+            v-for="model in filteredModels"
+            :key="getModelId(model)"
+            class="ml-row"
+            :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-off': !model.isActive }"
+          >
+            <span class="ml-c-check">
+              <el-checkbox
+                v-if="canWrite"
+                :model-value="selected.includes(getModelId(model))"
+                title="选择该模型"
+                @change="toggleSelect(model)"
+              />
+            </span>
+
+            <span class="ml-name">
+              <ProviderLogo
+                v-if="!getModelAvatar(model) || avatarFailed.has(getModelId(model))"
+                :pid="getModelChannelBrand(model) || getProviderIcon(provider)"
+                :name="getModelChannelBrand(model) || provider?.name"
+                :size="22"
+                class="ml-logo"
+              />
+              <Avatar
+                v-else
+                class="ml-logo"
+                :src="getModelAvatar(model)"
+                :name="getModelDisplayName(model.modelName)"
+                type="assistant"
+                :round="false"
+                fit="contain"
+                @error="avatarFailed.add(getModelId(model))"
+              />
+              <span
+                class="ml-name-text"
+                :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)"
+              >{{ model.alias || getModelDisplayName(model.modelName) }}</span>
+              <span v-if="model.external" class="ml-badge">外部目录</span>
+            </span>
+
+            <!-- 能力：与卡片同一组图标胶囊（图标 + 悬停 tip），列的宽度不够时折叠成 +N -->
+            <span v-if="!capabilityItems(model).length" class="ml-cell ml-caps-empty" title="未配置输入/输出能力">—</span>
+            <ModelTagStrip
+              v-else
+              :tags="capabilityItems(model)"
+              :max="3"
+              :icon-size="15"
+              :popover-width="200"
+            />
+
+            <span class="ml-cell" :title="listMeta(model).ioTitle">{{ listMeta(model).io }}</span>
+            <span class="ml-cell ml-c-price" :title="listMeta(model).priceTitle">{{ listMeta(model).price }}</span>
+            <span class="ml-cell ml-c-speed" :title="listMeta(model).speedTitle">{{ listMeta(model).speed }}</span>
+
+            <span class="ml-c-sw">
+              <el-switch
+                v-model="model.isActive"
+                :disabled="!canWrite || model.hasNativeId === false"
+                :title="!canWrite
+                  ? '启用状态由管理员维护'
+                  : (model.hasNativeId === false ? t('settings.providerDetail.modelToggleUnavailable') : '')"
+                @change="handleToggle(model)"
+              />
+            </span>
+
+            <span class="ml-actions">
+              <button
+                v-if="canWrite && !isLocalProvider"
+                class="mc-btn"
+                :title="model.hasNativeId === false ? '该模型无原生记录，暂无法测试' : '测试延迟'"
+                :disabled="model.testing || model.hasNativeId === false"
+                @click="testLatency(model)"
+              >
+                <el-icon :size="15"><Timer /></el-icon>
+              </button>
+              <button v-if="canWrite" class="mc-btn" :title="t('common.edit')" @click="handleEdit(model)">
+                <el-icon :size="15"><SettingsOutlined /></el-icon>
+              </button>
+              <button v-if="canWrite" class="mc-btn danger" :title="t('common.delete')" @click="handleDelete(model)">
+                <el-icon :size="15"><RemoveCircleOutlineRound /></el-icon>
+              </button>
+            </span>
+          </div>
         </div>
         <div v-else class="model-grid">
           <article v-for="model in filteredModels" :key="model.id" class="mc"
@@ -213,27 +348,26 @@
               </span>
             </div>
 
-            <!-- 能力：输入种类 → 输出种类（所有类型统一展示） -->
-            <div class="mc-caps">
-              <span class="mc-cap-group">
-                <el-icon v-for="(k, i) in model.config?.inputCapabilities || []" :key="'in-'+i"
-                  class="cap-i" :class="'kind-'+k" :size="14">
-                  <component :is="KIND_ICONS[k]" />
-                </el-icon>
-                <el-icon class="cap-arrow" :size="11"><ArrowRight24Regular /></el-icon>
-                <el-icon v-for="(k, i) in model.config?.outputCapabilities || []" :key="'out-'+i"
-                  class="cap-i" :class="'kind-'+k" :size="14">
-                  <component :is="KIND_ICONS[k]" />
-                </el-icon>
-              </span>
+            <!--
+              能力：输入 / 输出能力合成一条图标带（图标 + 悬停 tip）。
+              以前拆成「输入 → 输出」两组用箭头连起来，图标一多就换行、
+              把卡片撑高；而且同一项能力在列表视图里也要能对齐，
+              所以两种视图统一走 capabilityItems()。
+            -->
+            <div v-if="capabilityItems(model).length" class="mc-caps">
+              <ModelTagStrip
+                :tags="capabilityItems(model)"
+                :max="8"
+                :icon-size="15"
+                :popover-width="200"
+              />
             </div>
 
             <!-- 参数与官方指标：手填值优先，缺失回退指标表（sys_ai_model_metrics）。
-                 恒定 6 格：输入 / 输出（文生图换成 张数 / 参考图）、价格、速度、智能、全知。
-                 缺值一律显示 —；每格都带一条恒定占位的副行（首字 TTFT / HLE 放副行），
+                 恒定 4 格：输入 / 输出（文生图换成 张数 / 参考图）、价格、速度。
+                 缺值一律显示 —；每格都带一条恒定占位的副行（首字 TTFT 放副行），
                  所以同一栏里每张卡的格数、格高完全相同 —— 这是卡片等高的前提。
-                 曾经只有前四项恒定、其余「有数据才占位」，格数在 4~10 之间浮动，
-                 flex 换行行数跟着变，claude-fable-5 多一格「全知」就比邻卡高一行。 -->
+                 曾经有智能 / 全知两格，多数模型缺采占「—」，噪音大于信息，已删除。 -->
             <div class="mc-meta">
               <span
                 v-for="(item, mi) in cardMeta(model)"
@@ -297,7 +431,20 @@
           </article>
         </div>
       </template>
+
+      <!--
+        余额与用量：只有配了上游地址的远程供应商才有可查的余额（路由组没有上游、
+        ONNX 是本地推理，两者都不查）。compact 形态由宿主贴在本栏底边，
+        所以它不在滚动区里，而是下面那段独立节点。
+      -->
     </div>
+    </div>
+
+    <ProviderCreditPanel
+      v-if="showCreditPanel && provider?.providerId"
+      compact
+      :provider-id="provider.providerId"
+    />
 
     <!-- 弹窗 -->
     <ModelFormDialog
@@ -323,7 +470,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { message } from '@repo/core'
 import Avatar from '../ui/Avatar.vue'
@@ -331,10 +478,10 @@ import CardAvatar from '../ui/CardAvatar.vue'
 import {
   SettingsOutlined, RemoveCircleOutlineRound, ScienceOutlined,
   PlusOutlined, LinkOutlined, EditOutlined, DeleteOutlined,
-  SearchOutlined,
+  SearchOutlined, ViewListOutlined, GridViewOutlined,
 } from '@vicons/material'
 import {
-  TextT24Regular, Image24Regular, ArrowRight24Regular,
+  TextT24Regular, Image24Regular, DocumentText24Regular,
   WrenchScrewdriver24Regular, LightbulbFilament24Regular, Box16Regular,
   Speaker224Regular, Video24Regular, Group24Regular, Scan24Regular,
   Folder24Regular,
@@ -354,10 +501,12 @@ import ModelFetchDialog from './ModelFetchDialog.vue'
 import ModelTagStrip from './ModelTagStrip.vue'
 import RouterGroupPanel from './RouterGroupPanel.vue'
 import RouterGroupLiveView from './RouterGroupLiveView.vue'
+import ProviderCreditPanel from './ProviderCreditPanel.vue'
 import {
   LOCAL_PROVIDER_IDS, MODEL_SUBTYPE_LABELS, MODEL_SUBTYPE_OPTIONS,
   MODEL_TYPE_ICON, MODEL_TYPE_KIND, MODEL_TYPE_OPTIONS,
 } from './model.constants'
+import { ReRadioGroup, ReRadioButton } from '@repo/ui/re-kit';
 
 const props = defineProps<{
   provider: any
@@ -401,6 +550,33 @@ const statusFilter = ref('')
 
 /** 类型筛选：modelType 值 */
 const typeFilter = ref('')
+
+/**
+ * 模型区视图：列表 / 卡片。
+ *
+ * <p>两种视图吃同一份 {@link filteredModels} 与同一套筛选、批量选择，
+ * 只是排版不同：列表一屏看十几行、便于逐行比较参数；卡片把输入/输出/价格/速度
+ * 摊成指标格，一眼比较。选择写进 localStorage —— 这是一条长期偏好，
+ * 不该每次切供应商都回到默认。默认列表（07 版式本身是表格版）。</p>
+ */
+type ModelViewMode = 'list' | 'card'
+const VIEW_MODE_KEY = 'ai.modelManage.viewMode'
+const readViewMode = (): ModelViewMode => {
+  try {
+    return localStorage.getItem(VIEW_MODE_KEY) === 'card' ? 'card' : 'list'
+  } catch {
+    // 隐私模式 / 存储被禁用时退回默认值，不让读存储影响首屏
+    return 'list'
+  }
+}
+const viewMode = ref<ModelViewMode>(readViewMode())
+watch(viewMode, (mode) => {
+  try {
+    localStorage.setItem(VIEW_MODE_KEY, mode)
+  } catch {
+    // 写失败只是记不住偏好，无需提示
+  }
+})
 
 /** 批量选中的模型 id */
 const selected = ref<string[]>([])
@@ -506,12 +682,22 @@ const filteredModels = computed(() => {
 /**
  * 是否为 ONNX 本地推理供应商。
  *
- * <p>ONNX 供应商已物化进 provider 表，可编辑；仅「删除」对它屏蔽——
- * 它由模型注册表驱动，下次启动会被重新物化。</p>
+ * <p>ONNX 供应商由用户自己在「添加供应商」里添加（platform=onnx），可编辑、
+ * 可删除；它的模型来自模型注册表（用户绑定的本地目录 + 内置本地模型），
+ * 不走上游 HTTP 请求。</p>
+ *
+ * <p>判定与后端 {@code ApiProviderController#isOnnxRow} 同口径：标识是 onnx，
+ * <strong>或</strong> platform 含 onnx。<b>不能只认写死的 id</b>——标识被改过的
+ * 行平台仍是 onnx，只按 id 判会让它显示吸底余额条（拿去查一个本地推理地址，
+ * 必然没数），同时丢掉模型目录那一栏。{@code mapProvider} 会把 platform
+ * 覆盖成品牌，所以 rawPlatform 优先。</p>
  */
-const isOnnx = computed(
-  () => props.provider?.id === 'onnx' || props.provider?.provider_id === 'onnx',
-)
+const isOnnx = computed(() => {
+  const p: any = props.provider
+  if (!p) return false
+  if (p.id === 'onnx' || p.provider_id === 'onnx') return true
+  return /onnx/i.test(String(p.rawPlatform || p.platform || ''))
+})
 
 /**
  * 是否为路由组供应商。
@@ -523,6 +709,20 @@ const isOnnx = computed(
 const isRouterGroup = computed(
   () => props.provider?.rawPlatform === ROUTER_GROUP_PLATFORM
     || props.provider?.platform === ROUTER_GROUP_PLATFORM,
+)
+
+/**
+ * 是否显示「余额与用量」面板。
+ *
+ * <p>只有配了上游地址的远程供应商才有可查的余额：路由组没有自己的上游，
+ * ONNX 是本地推理，地址为空时后端也会直接回「未配置上游地址」，所以整块不渲染，
+ * 不留一个点了必然没数的区块。余额接口回传脱敏后的 Key 列表，按 admin 权限保护，
+ * 非管理员整块不出现（否则请求必然 403）。</p>
+ */
+const showCreditPanel = computed(
+  () => canWrite.value && !isOnnx.value && !isRouterGroup.value
+    && (!!String(props.provider?.apiUrl || '').trim()
+      || !!String(props.provider?.extra?.credit_url || '').trim()),
 )
 
 /** 路由组供应商的平台标识（与后端 ProviderRouteTargets.ROUTER_GROUP_PLATFORM 一致） */
@@ -551,18 +751,15 @@ const onnxModelRoot = computed(() => String(props.provider?.model_root || '').tr
  * 「删除供应商」按钮是否可删。
  *
  * 必须与 ModelsPage.handleDeleteProvider 的早退守卫
- * `if (!p || p.id === 'agent' || p.id === 'onnx') return` **完全一致**，
+ * `if (!p || p.id === 'agent') return` **完全一致**，
  * 否则按钮可见可点、点了却静默什么都不做（真死按钮）。
  *
- * 实测（2026-10-07 逐按钮 sweep，dist 生产形态）：/models 选中内置
- * `Agent` 供应商后，头部「删除」按钮 visible=true、disabled=false，
- * 点击后 muts=0、无弹窗、无 toast、无接口请求 —— 纯静默无操作。
- * 侧栏的删除图标（ModelsPage `v-if="p.id !== 'agent' && p.id !== 'onnx'"`）
- * 早就做了双供应商判断，只有这里漏了 `agent`，现已补齐。
+ * ONNX 供应商由用户自己添加（platform=onnx），因此可删；删除后后端级联清掉
+ * 其模型镜像与运行时推理设备覆盖。只有内置的 Agent 供应商不可删。
  */
 const canDelete = computed(() => {
   const id = props.provider?.id ?? props.provider?.provider_id
-  return canWrite.value && !isOnnx.value && id !== 'agent'
+  return canWrite.value && id !== 'agent'
 })
 
 const getLableName = (type: string) => {
@@ -671,7 +868,11 @@ const cardMeta = (model: any) => {
   const out = numOrNull(cfg.maxOutputTokens)
   const pIn = numOrNull(mt.price_input_per_musd)
   const pOut = numOrNull(mt.price_output_per_musd)
-  const speed = numOrNull(mt.output_speed_tps)
+  // 速度优先本机实测平均（avg_output_speed_tps，每轮对话后回写），
+  // 其次官方指标源（output_speed_tps）。官方只收录部分模型，自建通道往往只有实测值。
+  const observedSpeed = numOrNull(mt.avg_output_speed_tps)
+  const officialSpeed = numOrNull(mt.output_speed_tps)
+  const speed = observedSpeed ?? officialSpeed
 
   // ① 输入 / ② 输出 / ③ 价格 / ④ 速度：**四项恒定渲染**，没有数据就显示 —。
   //
@@ -749,35 +950,17 @@ const cardMeta = (model: any) => {
     label: '速度',
     value: speed != null ? `${humanDecimal(speed)} t/s` : EMPTY,
     title: [
-      speed != null ? `输出速度（token/秒）：${humanDecimal(speed)}` : '输出速度：指标源未采集',
+      speed != null
+        ? `${observedSpeed != null ? '本机实测平均输出速度' : '官方输出速度'}（token/秒）：${humanDecimal(speed)}`
+        : '输出速度：暂无数据（该模型对话一轮后会自动回填实测速度）',
       ttftSec != null ? `首字延迟（TTFT，官方中位）：${ttftSec.toFixed(2)}s` : '首字延迟：指标源未采集',
     ].join('；'),
     sub: ttftSec != null ? `首字 ${Math.round(ttftSec * 1000)}ms` : '',
   })
 
-  // ⑤ 智能：Artificial Analysis 智能指数，HLE 得分折成副行（同为跑分维度）。
-  const idx = numOrNull(mt.intelligence_index)
-  const hle = numOrNull(mt.hle_score)
-  items.push({
-    label: '智能',
-    value: idx != null ? humanDecimal(idx) : EMPTY,
-    title: [
-      idx != null ? `智能指数（Artificial Analysis）：${humanDecimal(idx)}` : '智能指数：指标源未采集',
-      hle != null ? `HLE（Humanity's Last Exam）：${(hle * 100).toFixed(1)}%` : 'HLE：指标源未采集',
-    ].join('；'),
-    sub: hle != null ? `HLE ${(hle * 100).toFixed(1)}%` : '',
-  })
-
-  // ⑥ 全知：知识准确-幻觉指数。到这里恒定为 6 格，缺值一律显示 —。
-  const omni = numOrNull(mt.omniscience_index)
-  items.push({
-    label: '全知',
-    value: omni != null ? humanDecimal(omni) : EMPTY,
-    title: omni != null
-      ? `全知指数（知识准确-幻觉，Artificial Analysis）：${humanDecimal(omni)}`
-      : '全知指数：指标源未采集',
-    sub: '',
-  })
+  // ⑤⑥ 智能 / 全知：Artificial Analysis 跑分与知识准确-幻觉指数。用户反馈这类
+  //    指标噪音大于信息（多数模型缺采，显示「—」占格），已删除，卡片恒定 4 格。
+  //    如需看智能维度，去「模型指标」页的智能指数排行与性价比象限。
 
   return items
 }
@@ -903,13 +1086,93 @@ const modelTags = (model: any) => {
   return tags
 }
 
-// 能力种类 → 图标（输入/输出流可视化）
-const KIND_ICONS: Record<string, any> = {
+/**
+ * 能力种类的图标 / 中文名 / 配色。
+ *
+ * <p>key 与模型表单里「输入能力 / 输出能力」的勾选项一一对应
+ * （text / image / audio / video / pdf），vector 留给向量化模型。
+ * 图标与表单勾选项同源，避免「表单里是文档图标、卡片里换成别的」。</p>
+ */
+const CAP_ICONS: Record<string, any> = {
   text: TextT24Regular,
   image: Image24Regular,
   audio: Speaker224Regular,
   video: Video24Regular,
+  pdf: DocumentText24Regular,
   vector: Group24Regular,
+}
+const CAP_LABELS: Record<string, string> = {
+  text: '文本',
+  image: '图片',
+  audio: '音频',
+  video: '视频',
+  pdf: 'PDF',
+  vector: '向量',
+}
+/** ModelTagStrip 的 kind-* 配色语义：对话 / 视觉 / 音频 / 视频 / 文档 / 向量 */
+const CAP_KINDS: Record<string, string> = {
+  text: 'chat',
+  image: 'vision',
+  audio: 'audio',
+  video: 'video',
+  pdf: 'doc',
+  vector: 'vector',
+}
+
+/**
+ * 能力图标条的数据：输入能力在前、输出能力在后，排成一行。
+ *
+ * <p>tooltip 里带方向（「输入 · 图片」/「输出 · 文本」）—— 同一个「图片」
+ * 既可能是能读图、也可能是能生图，只写种类会分不清。图标本身按种类配色，
+ * 方向靠顺序与 tip 表达，不额外加箭头（箭头在多图标换行时会把行撑高）。</p>
+ *
+ * @param model 模型行
+ * @returns 图标条标签列表；无能力时为空数组（调用方据此不渲染）
+ */
+const capabilityItems = (model: any) => {
+  const cfg = model?.config || {}
+  const items: Array<{ key: string; label: string; icon: any; kind: string }> = []
+  const push = (dir: '输入' | '输出', prefix: string, keys: any) => {
+    for (const raw of Array.isArray(keys) ? keys : []) {
+      const key = String(raw || '').trim()
+      if (!key) continue
+      items.push({
+        key: `${prefix}:${key}`,
+        label: `${dir} · ${CAP_LABELS[key] || key}`,
+        icon: CAP_ICONS[key] || TextT24Regular,
+        kind: CAP_KINDS[key] || 'info',
+      })
+    }
+  }
+  push('输入', 'in', cfg.inputCapabilities)
+  push('输出', 'out', cfg.outputCapabilities)
+  return items
+}
+
+/**
+ * 列表视图的三列短值：输入/输出、价格、速度。
+ *
+ * <p>与卡片指标区同一套取数口径（{@link cardMeta}），只是把四格压成三个单元格：
+ * 文生图没有 token 概念，前两格本来就不是「输入/输出」，所以合并成一格
+ * 「张数 · 参考图」。标题（title）沿用 cardMeta 的完整说明，悬停可看单位与来源。</p>
+ *
+ * @param model 模型行
+ * @returns 三个单元格的文本与悬停说明
+ */
+const listMeta = (model: any) => {
+  const meta = cardMeta(model)
+  const [first, second, price, speed] = meta
+  const isImage = model?.modelType === 'image'
+  return {
+    io: isImage
+      ? `${first?.value || '—'} · ${second?.value || '—'}`
+      : `${first?.value || '—'} / ${second?.value || '—'}`,
+    ioTitle: [first?.title, second?.title].filter(Boolean).join('；'),
+    price: price?.value || '—',
+    priceTitle: price?.title || '',
+    speed: speed?.value || '—',
+    speedTitle: speed?.title || '',
+  }
 }
 
 const handleAdd = () => {
@@ -1141,9 +1404,19 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 </script>
 
 <style scoped>
+/* 详情壳：头（在外层）之外，右栏正好是「滚动模型区 + 吸底余额条」两段。
+   height:100% + min-height:0 是让滚动区真的能滚（flex 子项默认 min-height:auto，
+   不加这条，模型一多会把整页顶出去而不是在框内滚动）。 */
+.detail-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
 /* 详情滚动区：垂直滚动即可；内容（超长模型名 / 极窄窗口下的卡片网格）一律不产生横向滚动条。
    背景：模型管理里超长文字（如 NewAPI 模板描述）曾把整页顶出水平滚动条（用户需求 1）。 */
-.detail-scroll { scrollbar-gutter: stable both-edges; overflow-x: hidden; }
+.detail-scroll { flex: 1; min-height: 0; scrollbar-gutter: stable both-edges; overflow-x: hidden; }
 
 /* 供应商头部：实色表面 + 发丝描边 + 极淡投影。
    不用渐变：这一版把「彩色」全部留给模型卡片的顶部色带与指标块，
@@ -1242,6 +1515,37 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   background: var(--el-border-color-lighter);
 }
 
+/* 视图切换：两个方形图标按钮，选中的那个浮一层白底（与页签同语义）。
+   放在标题/计数右边，不抢搜索框与批量工具栏的位置。 */
+.view-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--border-subtle, var(--color-surface-border));
+}
+.view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  color: var(--color-text-gray);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.view-btn:hover { color: var(--color-primary); }
+.view-btn.is-on {
+  color: var(--color-primary);
+  background: var(--color-surface, #fff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+}
+
 /* 模型搜索框 */
 .model-search-input { width: 210px; }
 
@@ -1312,6 +1616,94 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   font-size: 13px;
   color: var(--color-text-disabled);
 }
+
+/* ===== 列表视图 =====
+   与卡片视图吃同一份 filteredModels / 筛选 / 批量选择，换成一行一个模型：
+   勾选 · 名称与 logo · 能力图标条 · 输入输出 · 价格 · 速度 · 启用开关 · 操作。
+
+   列宽用 minmax 让中间两列吃掉多余宽度，其余给固定值（数字列要能上下对齐）；
+   右栏再窄就整块横向滚动，而不是把名称压成「…」（模型名是识别主键，
+   压完就分不清同前缀的几行）。 */
+.model-list {
+  border: 1px solid var(--border-subtle, var(--color-surface-border));
+  border-radius: var(--radius-lg, 12px);
+  background: var(--color-surface);
+  overflow-x: auto;
+}
+.ml-head,
+.ml-row {
+  display: grid;
+  grid-template-columns: 26px minmax(150px, 2fr) minmax(112px, 1.2fr) 88px 78px 68px 48px 92px;
+  align-items: center;
+  gap: 8px;
+  min-width: 700px;
+  padding: 0 12px;
+}
+.ml-head {
+  height: 34px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-gray);
+  background: var(--bg-elevated, #f8fafc);
+  border-bottom: 1px solid var(--border-subtle, var(--color-surface-border));
+  border-radius: var(--radius-lg, 12px) var(--radius-lg, 12px) 0 0;
+}
+.ml-row {
+  min-height: 46px;
+  border-bottom: 1px solid var(--border-subtle, var(--color-surface-border));
+  transition: background 0.15s ease;
+}
+.ml-row:last-child { border-bottom: none; }
+.ml-row:hover { background: var(--el-fill-color-lighter); }
+.ml-row.is-selected { background: color-mix(in srgb, var(--color-primary) 4%, transparent); }
+.ml-row.is-off .ml-name-text { color: var(--color-text-gray); }
+
+.ml-c-check { display: inline-flex; align-items: center; justify-content: center; }
+.ml-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ml-logo {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+}
+.ml-name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.ml-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 9%, transparent);
+}
+.ml-cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--color-text-gray);
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.ml-c-price { text-align: right; }
+.ml-c-speed { text-align: right; }
+.ml-c-sw { display: inline-flex; justify-content: center; }
+.ml-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 1px; }
 
 /* 模型卡片 */
 .model-grid {
@@ -1419,17 +1811,10 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
    统一由 ModelTagStrip 以「图标 + tooltip」渲染，不再占用文字宽度。 */
 
 /* 能力行不再预留固定高度：无输入/输出能力的模型（如部分 ONNX 卡片）
-   过去会空出一条 24px 的占位带，是「空白很大」的一部分来源。 */
-.mc-caps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px;}
-.mc-cap-group { display: inline-flex; align-items: center; gap: 2px; color: var(--color-primary); }
-.mc-cap-group.dim { color: var(--color-text-disabled); font-size: 12px; }
-.cap-i { color: var(--color-primary); }
-.cap-i.kind-text { color: var(--color-primary); }
-.cap-i.kind-image { color: var(--el-color-warning); }
-.cap-i.kind-audio { color: var(--el-color-info); }
-.cap-i.kind-video { color: var(--el-color-danger); }
-.cap-i.kind-vector { color: var(--el-color-success); }
-.cap-arrow { color: var(--color-text-disabled); }
+   过去会空出一条 24px 的占位带，是「空白很大」的一部分来源。
+   现在整条能力带由 ModelTagStrip 渲染（图标 + 悬停 tip）。 */
+.mc-caps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px; }
+/* 旧的「输入 → 输出」双组与箭头样式已随能力带改造移除 */
 /* .mc-feature 已随「其它标签」改造移除：特性改由 ModelTagStrip 以图标 + tooltip 渲染 */
 
 /* 指标区：等宽色块，恒定 6 格。
@@ -1574,6 +1959,8 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   .mc,
   .mc::before,
   .mc-btn,
+  .ml-row,
+  .view-btn,
   .batch-toolbar,
   .ctx-tag {
     transition: none;

@@ -135,9 +135,10 @@ const handleEditProvider = () => {
   if (currentProvider.value) formRef.value.openEdit(currentProvider.value)
 }
 
-// 删除供应商（与 ModelsPage.handleDeleteProvider 同守卫：agent/onnx 不可删）
+// 删除供应商（与 ModelsPage.handleDeleteProvider 同守卫：只有内置 Agent 不可删；
+// ONNX 由用户自己添加，可删）
 const handleDeleteProvider = async (p: any) => {
-  if (!p || p.id === 'agent' || p.id === 'onnx') return
+  if (!p || p.id === 'agent') return
   const modelCount = Array.isArray(p.models) ? p.models.length : 0
   const ok = await confirm(
     '删除供应商',

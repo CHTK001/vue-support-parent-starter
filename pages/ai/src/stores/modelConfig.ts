@@ -8,6 +8,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getAccessToken } from '@repo/utils'
 import { toMergedMap, isFieldConfigured, configuredValue, getItem, type MergedMapLike, type MergedSettingItem } from '../utils/modelConfigStatus'
+import { MODEL_REQUIRED_FIELDS } from '../config/modelRequiredFields'
 
 /** 可被选为默认模型的注册 id 集合，来自 /api/providers（仅前端发货用的原始字段）。 */
 interface RegisteredOnnxModel {
@@ -20,23 +21,32 @@ interface RegisteredOnnxModel {
   external?: boolean
 }
 
-const FACE_REQUIRED = ['detector_model', 'feature_model'] as const
-const IMAGE_REQUIRED = ['default_image_feature_model'] as const
-const COLORIZE_REQUIRED = ['colorize_model'] as const
+/*
+ * 必选模型清单本体在 config/modelRequiredFields.ts：
+ * 「设置 → 默认模型」的分组/字段徽标与本 store 的门禁读同一份，
+ * 避免出现「页面说必选、门禁其实不拦」或反过来的两套口径。
+ */
+
+/** 人脸识别必需项：检测 + 特征，两项都配齐才能建库/识别。 */
+const FACE_REQUIRED = MODEL_REQUIRED_FIELDS.face.fields
+/** 以图搜图必需项：默认图像特征模型。 */
+const IMAGE_REQUIRED = MODEL_REQUIRED_FIELDS.image_search.fields
+/** 图像上色必需项：上色模型（同组的分类/检测/描述/超分都是「留空关闭」）。 */
+const COLORIZE_REQUIRED = MODEL_REQUIRED_FIELDS.image.fields
 /**
  * 音频识别必需项：ASR 默认模型。
  *
  * <p>只要求 default_model 一项：provider 缺省时后端走 whisper 本地推理，
  * 密钥/地址仅云端 ASR 才需要，作为必需门禁会把「本地 whisper」也一并挡掉。
  */
-const ASR_REQUIRED = ['default_model'] as const
+const ASR_REQUIRED = MODEL_REQUIRED_FIELDS.asr.fields
 /**
  * 语音合成必需项：TTS 默认模型。
  *
  * <p>与 ASR 同口径：provider 缺省时后端回落配置文件 {@code ai.tts.provider}，
  * 密钥/地址仅云端 TTS 才需要，作为必需门禁会把「本地合成」也一并挡掉。
  */
-const TTS_REQUIRED = ['default_model'] as const
+const TTS_REQUIRED = MODEL_REQUIRED_FIELDS.tts.fields
 /**
  * OCR 必需项：文字检测 + 文字识别。
  *
@@ -44,7 +54,7 @@ const TTS_REQUIRED = ['default_model'] as const
  * 任一有值，OCR 管线即视为可用。前端同口径：任一已配即视为 ocReady，避免用户
  * 只要配置一项就被卡在门外的情况。</p>
  */
-const OCR_REQUIRED = ['detector_model', 'recognizer_model'] as const
+const OCR_REQUIRED = MODEL_REQUIRED_FIELDS.ocr.fields
 
 export const useModelConfigStore = defineStore('modelConfig', () => {
   const faceReady = ref(false)

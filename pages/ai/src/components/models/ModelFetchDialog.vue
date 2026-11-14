@@ -72,70 +72,103 @@
         </el-icon>
       </div>
       <div v-else class="pb-4">
-        <div v-if="filtered.length > 0">
-          <ul class="fetch-list">
-            <li v-for="model in filtered" :key="model.modelName" class="fetch-row"
-              :class="{ 'is-picked': isSelected(model) }">
-              <!-- 多选：默认不勾，用户逐条勾选后「录入选中」批量落库 -->
-              <el-checkbox
-                class="fetch-check"
-                :model-value="isSelected(model)"
-                @change="toggleRow(model)"
-              />
-              <!-- 通道徽标：放在行首（勾选框之后、模型名之前），用户扫一眼就能看出
-                   这一行走哪个上游通道；尺寸压到 20px 与 30px 行高成比例 -->
-              <ProviderLogo
-                v-if="channelBrand(model)"
-                :pid="channelBrand(model)"
-                :name="model.provider"
-                :size="20"
-                class="fetch-brand"
-              />
-              <div class="fetch-main">
-                <div class="fetch-id">
-                  <span class="fetch-name">{{ model.modelName }}</span>
-                  <!-- 价格 / 免费：上游 pricing 经后端归一成每百万 token 美元 -->
-                  <span
-                    v-if="modelPriceOf(model).known"
-                    class="fetch-price"
-                    :class="{ 'is-free': modelPriceOf(model).free }"
-                  >
-                    {{ priceText(model) }}
-                  </span>
-                  <!--
-                    行内标签统一走 ModelTagStrip（图标 + tooltip）：
-                    类型 / 细分类型 / 来源（本地·云 API）/ 管线角色（检测·识别·矫正）/ 特性。
-                  -->
-                  <ModelTagStrip :tags="rowTags(model)" :max="2" />
+        <div v-if="groups.length > 0" class="fetch-groups">
+          <!--
+            按「输入模态」分组：一行只归一个组（组键是它完整的输入集合，如 文本+图片），
+            多模态模型不会被并进纯文本组里；组内按模型名自然排序，找起来不用从上往下扫。
+            组标题右边的数字是当前筛选结果里该组的条数。
+          -->
+          <section v-for="group in groups" :key="group.key" class="fetch-group">
+            <header class="fetch-group-head">
+              <el-icon class="fetch-group-icon" :class="`kind-${group.key}`" :size="13">
+                <component :is="group.icon" />
+              </el-icon>
+              <span class="fetch-group-label">{{ group.label }}</span>
+              <span class="fetch-group-count">{{ group.rows.length }}</span>
+            </header>
+            <ul class="fetch-list">
+              <li v-for="model in group.rows" :key="model.modelName" class="fetch-row"
+                :class="{ 'is-picked': isSelected(model) }"
+                @click="toggleRow(model)">
+                <!-- 多选：默认不勾，用户逐条勾选后「录入选中」批量落库。
+                     整行可点：点行内任意空白处就是勾上/取消，不必非要点中那个小方块；
+                     方块自己 .stop，否则 change 与冒泡会各勾一次、等于没点。 -->
+                <el-checkbox
+                  class="fetch-check"
+                  :model-value="isSelected(model)"
+                  @click.stop
+                  @change="toggleRow(model)"
+                />
+                <!-- 模型行图标：模型自身 logo → 上游通道品牌 → 供应商 logo → 首字。
+                     只画通道徽标时，取不到通道的行是空白，用户看到的就是「没有模型图标」。 -->
+                <ModelRowLogo
+                  class="fetch-brand"
+                  :model="model"
+                  :provider="currentProvider"
+                  :size="20"
+                />
+                <div class="fetch-main">
+                  <div class="fetch-id">
+                    <span class="fetch-name">{{ model.modelName }}</span>
+                    <!-- 价格 / 免费：上游 pricing 经后端归一成每百万 token 美元 -->
+                    <span
+                      v-if="modelPriceOf(model).known"
+                      class="fetch-price"
+                      :class="{ 'is-free': modelPriceOf(model).free }"
+                    >
+                      {{ priceText(model) }}
+                    </span>
+                    <!--
+                      行内标签统一走 ModelTagStrip（图标 + tooltip）：
+                      类型 / 细分类型 / 来源（本地·云 API）/ 管线角色（检测·识别·矫正）/ 特性。
+                    -->
+                    <ModelTagStrip :tags="rowTags(model)" :max="2" />
+                  </div>
+                  <!-- 输入 → 输出模态 + 上游规格并排：
+                       模态与模型管理卡片 / 会话页选择面板同一口径（中间必须有箭头）；
+                       规格（上下文 / 输出上限 / 知识截止 / 家族 / 缓存价 / 开源·附件）
+                       全部来自上游 /models 的真实字段，缺哪项就不画哪项，不编造。 -->
+                  <div class="fetch-meta">
+                    <span
+                      v-if="ioOf(model).input.length || ioOf(model).output.length"
+                      class="fetch-io"
+                      :title="ioTitleOf(model)"
+                    >
+                      <el-icon v-for="(k, i) in ioOf(model).input" :key="'fio-in-' + i"
+                        class="io-i" :class="'kind-' + k" :size="12">
+                        <component :is="MODALITY_ICON[k] || DocumentText24Regular" />
+                      </el-icon>
+                      <el-icon class="io-arrow" :size="10"><ArrowRight24Regular /></el-icon>
+                      <el-icon v-for="(k, i) in ioOf(model).output" :key="'fio-out-' + i"
+                        class="io-i" :class="'kind-' + k" :size="12">
+                        <component :is="MODALITY_ICON[k] || DocumentText24Regular" />
+                      </el-icon>
+                    </span>
+                    <!-- 规格条：整条 title 里给出原始数值与其余字段（发布日期、最后更新、
+                         缓存写入价、任务清单），列表里只留一眼能读的短标签 -->
+                    <span
+                      v-if="specsOf(model).length"
+                      class="fetch-specs"
+                      :title="specTitleOf(model)"
+                    >
+                      <template v-for="(spec, i) in specsOf(model)" :key="'fs-' + i">
+                        <span v-if="i" class="spec-sep">·</span>
+                        <span class="spec-item">{{ spec }}</span>
+                      </template>
+                    </span>
+                  </div>
+                  <!-- 行内小字描述：后端 description 优先（ONNX 本地行自带真实描述），
+                       云端上游目录不带描述时按 task 推类型说明，都没有则不渲染 -->
+                  <div v-if="describeFetchRow(model)" class="fetch-desc">
+                    {{ describeFetchRow(model) }}
+                  </div>
                 </div>
-                <!-- 输入 → 输出模态：与模型管理卡片 / 会话页选择面板同一口径，
-                     中间一定要有箭头，否则两个图标并排看不出谁进谁出 -->
-                <span
-                  v-if="ioOf(model).input.length || ioOf(model).output.length"
-                  class="fetch-io"
-                  :title="ioTitleOf(model)"
-                >
-                  <el-icon v-for="(k, i) in ioOf(model).input" :key="'fio-in-' + i"
-                    class="io-i" :class="'kind-' + k" :size="12">
-                    <component :is="MODALITY_ICON[k] || DocumentText24Regular" />
-                  </el-icon>
-                  <el-icon class="io-arrow" :size="10"><ArrowRight24Regular /></el-icon>
-                  <el-icon v-for="(k, i) in ioOf(model).output" :key="'fio-out-' + i"
-                    class="io-i" :class="'kind-' + k" :size="12">
-                    <component :is="MODALITY_ICON[k] || DocumentText24Regular" />
-                  </el-icon>
-                </span>
-                <!-- 行内小字描述：后端 description 优先（ONNX 本地行自带真实描述），
-                     云端上游目录不带描述时按 task 推类型说明，都没有则不渲染 -->
-                <div v-if="describeFetchRow(model)" class="fetch-desc">
-                  {{ describeFetchRow(model) }}
-                </div>
-              </div>
-              <el-button link type="primary" @click="handleSelect(model)">
-                {{ t('settings.providerDetail.select') }}
-              </el-button>
-            </li>
-          </ul>
+                <el-button link type="primary" @click.stop="handleSelect(model)">
+                  {{ t('settings.providerDetail.select') }}
+                </el-button>
+              </li>
+            </ul>
+          </section>
         </div>
         <!-- 拉取失败时显示错误信息，并提供「重新拉取」按钮（Connection 失败等可恢复错误） -->
         <ReErrorBar
@@ -174,7 +207,7 @@ import ReDialog from '@repo/ui/re-dialog'
 import ReErrorBar from '@repo/ui/re-error-bar'
 import ReEmpty from '@/components/ui/ReEmpty.vue'
 import {
-  describeFetchRow, sourceBadgeFor, taskHintForName, resolveProviderBrand,
+  describeFetchRow, sourceBadgeFor, taskHintForName,
   deriveFetchedModelConfig, modelPriceOf, inferModelType,
 } from './model.utils'
 import {
@@ -193,7 +226,7 @@ import { Loading, Download } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
 import { message } from '@repo/core'
 import ModelTagStrip from './ModelTagStrip.vue'
-import ProviderLogo from './ProviderLogo.vue'
+import ModelRowLogo from './ModelRowLogo.vue'
 
 const emit = defineEmits<{
   /** 逐条挑一个模型 → 预填表单 */
@@ -366,6 +399,152 @@ const filtered = computed(() => {
   const term = searchName.value.toLowerCase()
   return fetched.value.filter((m) => m.modelName.toLowerCase().includes(term))
 })
+
+/** 输入模态的展示顺序，同时是「具体程度」顺序：越靠后越具体（文本 → 向量） */
+const GROUP_PRIORITY = ['text', 'image', 'audio', 'video', 'file', 'vector']
+
+/** 输入模态短名：组标题用它拼成「文本 + 图片输入」 */
+const GROUP_LABELS: Record<string, string> = {
+  text: '文本',
+  image: '图片',
+  audio: '音频',
+  video: '视频',
+  file: '文件',
+  vector: '向量',
+}
+
+/** 分组图标：与行内「输入 → 输出」的模态图标同一套 */
+const GROUP_ICONS: Record<string, any> = {
+  text: TextT24Regular,
+  image: Image24Regular,
+  audio: Speaker224Regular,
+  video: Video24Regular,
+  file: DocumentText24Regular,
+  vector: Folder24Regular,
+}
+
+/**
+ * 一行的输入模态集合（按 {@link GROUP_PRIORITY} 排好序）。
+ *
+ * <p>按「能吃什么输入」分组，不是按主项归类：视觉模型（文本 + 图片）自成一组，
+ * 不会被并进纯文本组里、让人以为它只吃文字；上游没给模态时 {@link ioOf}
+ * 已按类型兜底成文本，所以这里一定有组可归。</p>
+ *
+ * @param m 上游模型行
+ * @returns 模态键列表，至少一项
+ */
+const groupInputsOf = (m: any): string[] => {
+  const inputs = ioOf(m).input
+  const known = GROUP_PRIORITY.filter((key) => inputs.includes(key))
+  return known.length ? known : ['text']
+}
+
+/** 组内按模型名自然排序（claude-3-9 在 claude-3-10 前面，大小写不敏感） */
+const sortByName = (rows: any[]) =>
+  [...rows].sort((a, b) =>
+    fetchRowName(a).localeCompare(fetchRowName(b), undefined, { numeric: true, sensitivity: 'base' }))
+
+/**
+ * 当前筛选结果按输入模态分组。
+ *
+ * @returns 组列表：同级里「输入种类少」的在前，同模态下按模型名排序
+ */
+const groups = computed(() => {
+  const bucket = new Map<string, { inputs: string[]; rows: any[] }>()
+  for (const m of filtered.value) {
+    const inputs = groupInputsOf(m)
+    const key = inputs.join('+')
+    const hit = bucket.get(key)
+    if (hit) hit.rows.push(m)
+    else bucket.set(key, { inputs, rows: [m] })
+  }
+  // 组序：先按最具体的那个模态（文本组在最前、向量组在最后），再按输入种类数
+  const rank = (inputs: string[]) => GROUP_PRIORITY.indexOf(inputs[inputs.length - 1])
+  return [...bucket.entries()]
+    .sort((a, b) => rank(a[1].inputs) - rank(b[1].inputs)
+      || a[1].inputs.length - b[1].inputs.length)
+    .map(([key, value]) => ({
+      key,
+      label: `${value.inputs.map((k) => GROUP_LABELS[k] || k).join(' + ')}输入`,
+      icon: GROUP_ICONS[value.inputs[value.inputs.length - 1]] || TextT24Regular,
+      rows: sortByName(value.rows),
+    }))
+})
+
+/** 宽松布尔：上游元数据有 boolean / 字符串 / 数字三种形态 */
+const flagOn = (value: any): boolean =>
+  value === true || value === 'true' || value === 1 || value === '1'
+
+/**
+ * 窗口 / 上限一类的数：1M / 128K / 800，无值返回空串。
+ *
+ * @param value 上游原始值
+ * @returns 紧凑文案；不是正数时为空串
+ */
+const fmtWindow = (value: any): string => {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n <= 0) return ''
+  if (n >= 1_000_000) return `${Math.round(n / 100_000) / 10}M`
+  if (n >= 1000) return `${Math.round(n / 1000)}K`
+  return String(n)
+}
+
+/**
+ * 行内规格条：只挑一眼能读、且上游真的给了的字段。
+ *
+ * <p>上游 {@code /models} 的 {@code metrics} 已由后端提到行顶层
+ * （{@code context_window} / {@code max_tokens} / {@code knowledge} / {@code family} /
+ * {@code price_cache_hit_per_musd} / {@code open_weights} / {@code attachment}）。
+ * 缺失项直接不画——空着比编一个默认值可信。</p>
+ *
+ * @param m 上游模型行
+ * @returns 规格文案列表（可能为空）
+ */
+const specsOf = (m: any): string[] => {
+  const specs: string[] = []
+  const context = fmtWindow(m?.context_window ?? m?.contextWindow)
+  if (context) specs.push(`${context} 上下文`)
+  const maxOutput = fmtWindow(m?.max_tokens ?? m?.maxTokens)
+  if (maxOutput) specs.push(`${maxOutput} 输出`)
+  const knowledge = String(m?.knowledge ?? '').trim()
+  if (knowledge) specs.push(`知识截止 ${knowledge}`)
+  const family = String(m?.family ?? '').trim()
+  if (family) specs.push(family)
+  const cacheHit = Number(m?.price_cache_hit_per_musd ?? NaN)
+  if (Number.isFinite(cacheHit) && cacheHit > 0) specs.push(`缓存 $${cacheHit}/M`)
+  if (flagOn(m?.open_weights ?? m?.config?.open_weights)) specs.push('开源权重')
+  if (flagOn(m?.attachment ?? m?.config?.attachment)) specs.push('支持附件')
+  return specs
+}
+
+/**
+ * 规格条的悬停明细：原始数值 + 列表里没位置放的字段。
+ *
+ * @param m 上游模型行
+ * @returns 多行合并成一行、以 · 分隔；无任何字段时为空串
+ */
+const specTitleOf = (m: any): string => {
+  const parts: string[] = []
+  const push = (label: string, value: any) => {
+    const text = value === null || value === undefined ? '' : String(value).trim()
+    if (text) parts.push(`${label} ${text}`)
+  }
+  push('上下文', m?.context_window ?? m?.contextWindow)
+  push('最大输出', m?.max_tokens ?? m?.maxTokens)
+  push('知识截止', m?.knowledge)
+  push('发布日期', m?.release_date)
+  push('最后更新', m?.last_updated)
+  push('缓存命中 $/M', m?.price_cache_hit_per_musd)
+  push('缓存写入 $/M', m?.price_cache_write_per_musd)
+  push('家族', m?.family)
+  const tasks = Array.isArray(m?.tasks) ? m.tasks.filter((task: any) => typeof task === 'string') : []
+  if (tasks.length) parts.push(`任务 ${tasks.join(', ')}`)
+  if (flagOn(m?.open_weights)) parts.push('开源权重')
+  if (flagOn(m?.attachment)) parts.push('支持附件')
+  if (flagOn(m?.reasoning)) parts.push('推理')
+  if (flagOn(m?.tool_call)) parts.push('函数调用')
+  return parts.join(' · ')
+}
 
 const getLableName = (type: string) => {
   switch (type) {
@@ -679,22 +858,6 @@ const fetchTypeBadge = (m: any): { label: string; kind: string } | null => {
 
 /** 来源徽标：整场弹窗同一个供应商，算一次即可 */
 const fetchSourceBadge = computed(() => sourceBadgeFor(providerId.value))
-
-/**
- * 通道徽标（免费渠道行专属）：路由表节点里的 upstream provider 经
- * {@link resolveProviderBrand} 解析成品牌 id，交给 ProviderLogo 出图标。
- *
- * <p>路由的 provider  field 就是品牌 id（openai / kilo / openrouter），
- * 不是协议名，所以必须把 `name` 也喂成 route provider，否则 'openai'
- * 这类值会被 resolveProviderBrand 按协议拦截、赛成 'custom'。</p>
- *
- * @param m 上游模型行
- * @returns 品牌 id（没有 route provider 时返回空，不渲染徽标）
- */
-const channelBrand = (m: any): string => {
-  if (!m?.provider) return ''
-  return resolveProviderBrand({ ...m, name: m.provider, provider: m.provider, base_url: m.baseUrl }) || ''
-}
 
 /** 管线角色（检测/识别/矫正）→ 图标 */
 const HINT_ICONS: Record<string, any> = {
@@ -1027,6 +1190,34 @@ const doImport = async (rows: any[], isAll: boolean) => {
   border-radius: var(--el-radius-lg, 12px);
   overflow: hidden;
 }
+/* 按输入模态分组：每组一个标题 + 一个圆角列表，组间留 14px（与 koi 间距档一致） */
+.fetch-groups { display: flex; flex-direction: column; gap: 14px; }
+.fetch-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.fetch-group-label { line-height: 16px; }
+.fetch-group-count {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 8px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+/* 分组图标沿用「输入 → 输出」的模态配色，同一模态在标题和行里同一个颜色 */
+.fetch-group-icon.kind-text { color: var(--el-color-primary); }
+.fetch-group-icon.kind-image { color: var(--el-color-warning); }
+.fetch-group-icon.kind-audio { color: var(--el-color-info); }
+.fetch-group-icon.kind-video { color: var(--el-color-danger); }
+.fetch-group-icon.kind-file { color: var(--el-color-info); }
+.fetch-group-icon.kind-vector { color: var(--el-color-success); }
 .fetch-row {
   display: flex;
   align-items: center;
@@ -1034,6 +1225,8 @@ const doImport = async (rows: any[], isAll: boolean) => {
   padding: 8px 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   transition: background 0.15s ease;
+  /* 整行可点：勾选/取消直接点行，不必瞄准小方块 */
+  cursor: pointer;
 }
 .fetch-row:last-child { border-bottom: none; }
 .fetch-row:hover { background: var(--el-fill-color-light); }
@@ -1045,6 +1238,24 @@ const doImport = async (rows: any[], isAll: boolean) => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 模态 + 上游规格同一行：放不下就折行，不靠省略号藏信息 */
+.fetch-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.fetch-specs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  line-height: 18px;
+  color: var(--el-text-color-secondary);
+}
+.fetch-specs .spec-sep { color: var(--el-text-color-placeholder); }
 /* 输入 → 输出模态：图标 + 中间箭头，与模型管理卡片 / 会话页选择面板同一口径 */
 .fetch-io {
   display: inline-flex;

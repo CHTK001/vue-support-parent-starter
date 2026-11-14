@@ -26,24 +26,23 @@
       >
         <template v-for="(m, i) in members" :key="'ln' + (m.label || i)">
           <!--
-            只有「当前正在用的成员」才有线。
-            早先每条成员都画一条静止虚线（flow 的 opacity .22），看起来像两条通道都在走流量；
-            用户口径是「没跑到的模型没有线条」，所以未命中的成员连底图线也不画，
-            只在命中时把 link + flow 一起显示出来。
+            每条成员都画底图连线（组节点 → 成员行），否则「路由和模型之间」整片没有线；
+            命中的那条在底图之上再叠一条流动虚线：连线由实线变虚线，
+            代表此刻真有请求沿这条通道走到该模型；其余成员保持静止实线，不伪造流量。
           -->
-          <template v-if="i === activeIndex">
-            <path
-              :id="`rglive-link-${i}`"
-              class="rglive-link"
-              :d="linkPath(i)"
-              vector-effect="non-scaling-stroke"
-            />
-            <path
-              class="rglive-flow active"
-              :d="linkPath(i)"
-              vector-effect="non-scaling-stroke"
-            />
-          </template>
+          <path
+            :id="`rglive-link-${i}`"
+            class="rglive-link"
+            :class="{ active: i === activeIndex }"
+            :d="linkPath(i)"
+            vector-effect="non-scaling-stroke"
+          />
+          <path
+            v-if="i === activeIndex"
+            class="rglive-flow active"
+            :d="linkPath(i)"
+            vector-effect="non-scaling-stroke"
+          />
         </template>
         <!-- 每条真实路由决策播一次：小鸟沿对应成员的扇出线飞过去 -->
         <g
@@ -63,6 +62,12 @@
             <path class="rglive-bird-wing" d="M10 12.5c2-4.2 6.1-5.4 9.7-3.1-1 3.9-4.3 6.1-8 5.8" />
             <circle class="rglive-bird-eye" cx="20.5" cy="11.2" r=".8" />
             <path class="rglive-bird-tail" d="m5.4 14-3.4-1.4 1.6 3.2" />
+            <!-- 嘴里叼着的 token：这次请求的载荷，随小鸟一起送到被选中的模型 -->
+            <g class="rglive-bird-token" transform="translate(26.4 5.4)">
+              <circle class="rglive-bird-token-face" cx="5.2" cy="5.2" r="5.2" />
+              <circle class="rglive-bird-token-ring" cx="5.2" cy="5.2" r="2.7" />
+              <path class="rglive-bird-token-mark" d="M3.6 4.2h3.2M5.2 4.2v3.4" />
+            </g>
           </g>
         </g>
       </svg>
@@ -115,9 +120,10 @@
 /**
  * 路由组实时决策视图。
  *
- * <p>左侧是组节点（组名 + 策略徽标），右侧是成员列表，中间用扇出连线连起来；
- * 连线上的流动虚线表示「这条通道可用」，当后端记录到最近一次真实路由决策时，
- * 对应那条连线变黄并在成员行显示「回答中 / 命中」，失败会标红。</p>
+ * <p>左侧是组节点（组名 + 策略徽标），右侧是成员列表，中间用扇出连线连起来：
+ * 每个成员都有一条实线（组 → 成员的通道），当后端记录到最近一次真实路由决策时，
+ * 命中那条连线由实线变流动虚线并高亮，同时有一只小鸟叼着 token 沿这条线飞到该成员，
+ * 失败会标红。</p>
  *
  * <p>数据是真实的：决策来自 {@code GET /api/providers/{id}/router-group/live}
  * （内存快照，进程重启清空）；没有请求时只保留静态流动，不伪造选中。</p>
@@ -429,6 +435,12 @@ onUnmounted(stop)
   stroke: var(--el-border-color);
   stroke-width: 1;
   opacity: 0.8;
+  transition: stroke 0.25s ease, opacity 0.25s ease;
+}
+/* 命中的那条：底图保留一层淡黄，上面叠流动虚线（实线 → 虚线） */
+.rglive-link.active {
+  stroke: var(--el-color-warning);
+  opacity: 0.28;
 }
 .rglive-flow {
   fill: none;
@@ -436,8 +448,7 @@ onUnmounted(stop)
   stroke-width: 1.6;
   stroke-dasharray: 5 12;
   opacity: 0.22;
-  /* 没被命中的成员：虚线保持静止。流动代表「此刻有流量」，
-     所有线一起跑等于告诉用户「每个模型都在回答」，与事实不符。 */
+  /* 只有命中的成员才渲染虚线；静止虚线不流动，避免看起来每条通道都在走流量 */
 }
 
 .rglive-flow.active {
@@ -490,6 +501,27 @@ onUnmounted(stop)
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+/* 叼着的 token：一枚小金币，失败时褪成灰色 */
+.rglive-bird-token-face {
+  fill: #f4c453;
+  stroke: #c08f24;
+  stroke-width: .7;
+}
+.rglive-bird-token-ring {
+  fill: none;
+  stroke: #c08f24;
+  stroke-width: .7;
+  opacity: .65;
+}
+.rglive-bird-token-mark {
+  fill: none;
+  stroke: #7a5410;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+.rglive-bird-flight.failed .rglive-bird-token-face { fill: #c9cdd4; stroke: #9aa0a8; }
+.rglive-bird-flight.failed .rglive-bird-token-ring { stroke: #9aa0a8; }
+.rglive-bird-flight.failed .rglive-bird-token-mark { stroke: #6b7078; }
 .rglive-bird-flight.failed .rglive-bird-body { fill: #8c3a3a; stroke: #6b2020; }
 .rglive-bird-flight.failed .rglive-bird-wing { fill: #bd5a50; stroke: #6b2020; }
 @keyframes rglive-bird-flap {
