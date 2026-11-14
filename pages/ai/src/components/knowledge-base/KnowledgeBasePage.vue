@@ -1355,7 +1355,6 @@ const kbViewKeyFromQuery = (value: unknown): KBViewKey | null =>
     : null
 const activeTab = ref<KBViewKey>('files')  // 当前激活的 Tab
 const viewMode = ref<'list' | 'detail'>('list')  // 视图模式：列表或详情
-const searchKeyword = ref('')  // 知识库搜索关键词
 const detailRefreshing = ref(false)  // 详情页头「刷新」进行中
 
 /* ============================================================================
@@ -2131,12 +2130,17 @@ function handleOverviewCreate(p: { name: string; description: string; isPublic: 
 }
 
 /**
- * 总览页搜索：写入既有关键词，交给原有过滤逻辑。
+ * 总览页搜索：写入左栏筛选关键词，交给同一套过滤逻辑。
+ *
+ * <p>此前写的是一个独立的 searchKeyword，但它只被一份重复声明的
+ * filteredKnowledgeBases 读取 —— 那份重复声明直接把整个 SFC 编译打断
+ * （Identifier 'filteredKnowledgeBases' has already been declared），
+ * 知识库页 500 白屏。搜索统一走 kbFilter。</p>
  *
  * @param kw 关键词
  */
 function handleOverviewSearch(kw: string) {
-  searchKeyword.value = kw
+  kbFilter.value = kw
 }
 
 /** 是否展示「从模板创建」页（覆盖列表视图） */
@@ -3278,20 +3282,6 @@ function isOwnerKb(kb: KnowledgeBase | null | undefined): boolean {
 
 /** 当前详情库是否可写（非 owner 的公开库只读） */
 const canEditCurrent = computed(() => isOwnerKb(currentKB.value))
-
-/**
- * 过滤后的知识库列表（支持搜索）
- */
-const filteredKnowledgeBases = computed(() => {
-  if (!searchKeyword.value || !searchKeyword.value.trim()) {
-    return store.knowledgeBases
-  }
-  const keyword = searchKeyword.value.toLowerCase().trim()
-  return store.knowledgeBases.filter(kb =>
-    kb.name?.toLowerCase().includes(keyword) ||
-    kb.description?.toLowerCase().includes(keyword)
-  )
-})
 
 // ========== Methods ==========
 
@@ -4487,13 +4477,17 @@ onMounted(async () => {
       const tabFromQuery = kbViewKeyFromQuery(route.query.tab)
       if (tabFromQuery) activeTab.value = tabFromQuery
       // refreshFileList 已在 handleSelectKB 中调用,无需重复
-    } else {
-      // 如果 ID 无效,显示列表视图
-      viewMode.value = 'list'
     }
-  } else {
-    // 默认显示列表视图
-    viewMode.value = 'list'
+  }
+
+  // 知识库的默认界面就是三栏档案台（UI 图口径），不再先落一层列表页：
+  // URL 上没有库 ID 时，沿用本次会话选过的库，否则取第一个启用库。
+  // 一个库都没有（首次使用）才留列表页 —— 新建入口在那里，进来也没东西可看。
+  if (viewMode.value === 'list' && store.knowledgeBases.length > 0) {
+    const preferred = store.knowledgeBases.find(k => k.id === store.activeKnowledgeBaseId)
+      ?? store.knowledgeBases.find(k => k.isActive !== false)
+      ?? store.knowledgeBases[0]
+    if (preferred) await handleSelectKB(preferred)
   }
 
   // 关键优化:检查是否有上传任务，按需启动轮询

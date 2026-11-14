@@ -32,8 +32,8 @@
   --kb-fill: var(--el-fill-color-light);
   --kb-hover: var(--el-fill-color-light);
 
-  /* 两级细线：结构线（单元格 / 输入框边）一级，分隔线（行间 / 段间）一级。
-     koi 的 extra-light 在白底上几乎看不见，台账靠线分层，所以最低取到 lighter。 */
+  /* 两级细线：结构线（单元格 / 输入框边 / 分栏）一级，分隔线（行间 / 段间）一级。
+     对应 UI 图的 --line / --line2：纸本的层次全靠这两根线，别再加第三档。 */
   --kb-line: var(--el-border-color-light);
   --kb-line-soft: var(--el-border-color-lighter);
 
@@ -4747,6 +4747,115 @@ html.dark .kb-tpl__cover {
 /* ---------- 11.8 暗色：没有单独一层---------- */
 /* 上面每条规则都取 --kb-*，而 --kb-* 指向 --el-*：koi 的 html.dark 一翻，
    面板、页底、细线、状态色、选中底一起变，这里不需要（也不该）再写一份暗色覆盖。 */
+
+/* ############################################################################
+   12. 散件补齐：模板里用了、样式表里一直没有的类
+   ----------------------------------------------------------------------------
+   这些类名此前只出现在 SFC 的模板里，没有任何规则命中 —— 检索面板、
+   过滤空态、统计带警示格全靠 Element 默认样式撑着，和纸本台账不是一套皮。
+   补在这里而不是各自 SFC 的 scoped 块里，是为了让「一个设计层」这句话成立：
+   改版只改 kb-refactor.css，不用回头翻 10 个组件找同一处线宽。
+   ############################################################################ */
+
+/* ---------- 12.1 检索视图（中栏） ---------- */
+/* 面板本体只负责纵向排布，卡片语言交给下面的 box / result */
+.kb-search__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kb-sp-4);
+  height: 100%;
+  min-height: 0;
+}
+
+/* 查询区：一张顶到边的纸，和结果卡同一档线宽与圆角 */
+.kb-search__box {
+  flex-shrink: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--kb-line);
+  border-radius: var(--kb-r-md);
+  background: var(--kb-card);
+}
+
+/* 输入框 + 提交键同行；收窄时由 flex-wrap 落到第二行 */
+.kb-search__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--kb-sp-2);
+  flex-wrap: wrap;
+}
+
+/* 结果区自己滚：顶栏与查询区常驻，滚的是命中列表 */
+.kb-search__results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kb-sp-2);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 卡片首行：左侧分数徽标，右侧序号；窄屏时序号换行也不掉出卡片 */
+.kb-search__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--kb-sp-2);
+  flex-wrap: wrap;
+}
+
+.kb-search__scores {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 来源文件：比正文低一档，它是「这段从哪来」的注脚 */
+.kb-search__file {
+  display: flex;
+  align-items: center;
+  gap: var(--kb-sp-2);
+  font-size: 11.5px;
+  color: var(--kb-ink-3);
+}
+
+/* ---------- 12.2 总览页的过滤与空态 ---------- */
+/* 区段头里的过滤框：按名字找库，宽度只够放一个库名 */
+.kb-sect__search {
+  width: 148px;
+}
+
+/* 过滤后一个都不剩：虚线框，别看着像「加载失败」 */
+.kb-nohit {
+  padding: 14px 16px;
+  border: 1px dashed var(--kb-line);
+  border-radius: var(--kb-r-md);
+  background: var(--kb-card);
+  font-size: 12.5px;
+  color: var(--kb-ink-3);
+  text-align: center;
+}
+
+/* 空库格：它不是错误，是「还没用起来」，走 warning 不着红 */
+.kb-statband__cell--warn {
+  background: color-mix(in srgb, var(--kb-warn) 6%, var(--kb-card));
+}
+
+.kb-statband__cell--warn .kb-statband__num {
+  color: var(--kb-warn);
+}
+
+/* ---------- 12.3 左栏待重建行 ---------- */
+/* 与「待处理失败」同一套行版式，只把文件名换成 warning 色：
+   同一栏里两段并列，靠色区分「要补做」和「出错了」 */
+.kb-failrow--stale .kb-failrow__name {
+  color: var(--kb-warn);
+}
+
+/* ---------- 12.4 图标方钮 ---------- */
+/* ReSquareButton 自带皮肤，这里只保证它在顶栏 flex 行里不被压扁 */
+.kb-btn {
+  flex: none;
+}
 
 /* ---------- 11.9 窄屏：纸本的边距按比例收，线条一根不减 ---------- */
 /* 这条必须写在 §11 末尾：上面的定版规则与 §6 的同名规则特异性相同，
