@@ -48,6 +48,13 @@ export interface TunnelRecord {
   autoStart: boolean;
   /** 启用 */
   enabled: boolean;
+  /**
+   * 当前运行该隧道的实例控制地址（如 `http://127.0.0.1:8083`）
+   *
+   * 只由启动成功的实例写入、停止时清空，用户编辑时忽略；多实例共享同一存储
+   * 目录时据此判断「这条隧道正被谁运行着」。
+   */
+  owner?: string;
   /** 备注 */
   remark: string;
   /** 创建时间 */
