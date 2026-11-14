@@ -149,7 +149,12 @@ const EXACT_ASSETS: Record<string, string> = {
 
 /** 前缀映射：共享 public 目录下的资源（本应用 publicDir 是自己目录，故单独挂载） */
 const PREFIX_ASSETS: Array<[string, string]> = [
+  // @file-viewer 渲染器资产与 wasm 都统一维护在根 public（规范目录，见下方
+  // frameworkSharedAssets 注释）：dev 由这里按前缀回源，build 由 closeBundle 同步，
+  // 不复制进本应用 public。Office 预览的 /vendor/** 同样回源根 public/vendor——
+  // 本应用 publicDir 只有 /images 等自有内容，不再持有 vendor 副本。
   ['/wasm/', path.join(SHARED_PUBLIC_DIR, 'wasm')],
+  ['/vendor/', path.join(SHARED_PUBLIC_DIR, 'vendor')],
   // 图片不再在此回源：`/images/**` 的唯一源就是本应用自己的 public/images
   // （models / providers / bots / 二维码全在里面），由 Vite 的 publicDir 直接服务。
   // 2026-11-11 去掉 `['/images/', 根 public/images]` 这条映射：此前根目录与 app 目录
@@ -252,6 +257,9 @@ function resolveSharedAsset(url: string): string | null {
  * 这里补齐框架 createApp 启动所需的共享资源：
  * dev 由中间件按 URL 直接读取工作区文件；build 在 closeBundle 同步进 dist，
  * 保证部署后 `/apps/{appName}/app.yaml`、`/wasm/crypto-wasm.*` 约定仍然可用。
+ * 根 public 同时是本仓库 @file-viewer 资产的规范目录（monitor/filestorage 的
+ * publicDir、本应用 fileViewerRenderers 的 copyAssets 都指向它，见其注释），
+ * 升级渲染器时在本应用 dev/build 复制一次即可，无需逐 app 同步。
  * （`/images/**` 不走这里：它是本应用 publicDir 的原生内容。）
  */
 function frameworkSharedAssets(): PluginOption {
@@ -421,8 +429,16 @@ export default defineConfig({
       resolvers: [ElementPlusResolver()],
       dts: path.resolve(WORKSPACE_ROOT, 'pages/ai/src/types/components.d.ts'),
     }),
-    // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel
-    fileViewerRenderers({ inject: false, preset: 'office', copyAssets: true }) as PluginOption,
+    // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel。
+    // publicDir 覆盖为仓库根 public（规范目录，与 monitor/filestorage 共用同一份，
+    // 见 createVite sharedPublic 注释）：dev 启动时资产直接复制进根 public/vendor，
+    // 不再写本应用 public；baseDir 锚定 vendor 子目录，与各 app 读取的 /vendor/** 一致。
+    // 渲染器升级时在这里复制一次，其它 app 自动生效。
+    fileViewerRenderers({
+      inject: false,
+      preset: 'office',
+      copyAssets: { publicDir: path.join(WORKSPACE_ROOT, 'public'), baseDir: 'vendor' },
+    }) as PluginOption,
   ],
   optimizeDeps: {
     // 与 createVite 一致：ol-echarts 走默认导入 echarts，交给预打包会在
