@@ -79,6 +79,12 @@ const pageFixture = {
   },
 };
 
+const ReChartStub = {
+  name: "ReChartStub",
+  props: ["type", "atlas", "orbit", "matrix", "height", "zoomable"],
+  template: '<div class="re-chart-stub" :data-type="type" />',
+};
+
 function mountPage() {
   return mount(RoleManage, {
     global: {
@@ -92,6 +98,7 @@ function mountPage() {
         ReTag: ReTagStub,
         ReDialog: ReDialogStub,
         ReDrawer: ReDrawerStub,
+        ReChart: ReChartStub,
         ...elementPlusLayoutStubs(),
       },
     },
@@ -166,5 +173,67 @@ describe("RoleManage 角色管理页面（扩展）", () => {
     expect(text).toContain("本部门及以下");
     expect(text).toContain("仅本人数据");
     expect(text).toContain("自定义部门");
+  });
+
+  it("指挥台：星图入口在 ReTable 工具栏左侧，弹窗里给星图开启图内缩放；轨道常驻右侧详情", async () => {
+    const wrapper = mountPage();
+    await settle(wrapper);
+
+    // 视图切换已取消，星图不在右侧栏
+    expect(wrapper.find(".role-deck-tab").exists()).toBe(false);
+    expect(wrapper.find(".deck-side__atlas").exists()).toBe(false);
+    expect(wrapper.find(".deck-side__orbit .re-chart-stub").attributes("data-type")).toBe("orbit");
+    // 弹窗默认关闭
+    expect(wrapper.find(".re-dialog-stub").exists()).toBe(false);
+
+    // 工具栏左侧按钮 → 打开星图弹窗
+    const atlasBtn = wrapper.findAll(".re-table-stub button").find((b) => b.text().includes("授权星图"));
+    expect(atlasBtn).toBeTruthy();
+    await atlasBtn!.trigger("click");
+    await wrapper.vm.$nextTick();
+    const dialog = wrapper.find(".re-dialog-stub");
+    expect(dialog.exists()).toBe(true);
+    expect(dialog.find(".re-chart-stub").attributes("data-type")).toBe("atlas");
+    // 缩放由星图组件自己提供（zoomable），弹窗层只有标题和说明
+    const chart = dialog.findAllComponents({ name: "ReChartStub" })[0];
+    expect(chart!.props("zoomable")).toBe(true);
+
+    // 点节点 → 联动右侧详情并收起弹窗
+    const vm = wrapper.vm as unknown as {
+      onAtlasSelect: (payload: { type: string; id?: string }) => void;
+    };
+    vm.onAtlasSelect({ type: "atlas", id: "2" });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find(".deck-side").text()).toContain("内容管理员");
+  });
+
+  it("指挥台：KPI 取真实角色快照，详情面板跟随选中角色", async () => {
+    api.getRoleMenu.mockResolvedValue({ data: [] });
+    const wrapper = mountPage();
+    await settle(wrapper);
+
+    // pageFixture 两个角色、全部启用 → 第一格 KPI 就是 2
+    expect(wrapper.find(".deck-kpi__value").text()).toBe("2");
+    expect(wrapper.text()).toContain("平均覆盖率");
+
+    // 默认选中快照第一个角色（超级管理员）
+    expect(wrapper.find(".deck-side").text()).toContain("超级管理员");
+    expect(wrapper.find(".deck-side").text()).toContain("全部数据");
+
+    const vm = wrapper.vm as unknown as {
+      onRowClick: (row: Record<string, unknown>) => void;
+    };
+    vm.onRowClick({
+      sysRoleId: 2,
+      sysRoleName: "内容管理员",
+      sysRoleCode: "CONTENT",
+      sysRoleStatus: 1,
+      sysRoleDataScope: 3,
+    });
+    await wrapper.vm.$nextTick();
+
+    const side = wrapper.find(".deck-side").text();
+    expect(side).toContain("内容管理员");
+    expect(side).toContain("本部门及以下");
   });
 });

@@ -14,7 +14,6 @@ import {
   Edit,
   Delete,
   Search,
-  Refresh,
   Menu as MenuIcon,
   DocumentCopy,
   Key,
@@ -30,6 +29,16 @@ const EditIcon = Edit;
 const DeleteIcon = Delete;
 /** ReIcon 的 default 已是异步组件，不能当函数调用（`m.default()` 会抛 not a function） */
 const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default));
+/**
+ * ReChart 的默认导出是 defineThemeComponent 异步壳，本身已是异步组件；
+ * 这里再包一层 defineAsyncComponent，保证「清单」视图下（默认视图）不会去加载图表运行时。
+ */
+const ReChart = defineAsyncComponent(() => import("@repo/ui/re-chart"));
+import type {
+  ReChartAtlasData,
+  ReChartOrbitData,
+  ReChartSelectPayload,
+} from "@repo/ui/re-chart";
 import {
   pageForRole,
   saveRole,
@@ -61,6 +70,12 @@ const query = ref<{
   page: 1,
   pageSize: 10,
 });
+
+/**
+ * 搜索区默认收起：指挥台顶部已有 KPI 与视图切换，常驻搜索会把表体压到 3 行。
+ * 用户点工具栏的「显示搜索」再展开，筛选逻辑不变。
+ */
+const searchVisible = ref(false);
 
 async function loadRoles({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForRole({
@@ -103,7 +118,7 @@ function handleAdd() {
   dialogVisible.value = true;
 }
 
-function handleEdit(row: Record<string, unknown>) {
+function handleEdit(row: SysRole | Record<string, unknown>) {
   isEdit.value = true;
   copyFromRoleId.value = null;
   form.value = { ...(row as unknown as SysRole) };
@@ -152,7 +167,7 @@ async function handleSubmit() {
       }
     }
     dialogVisible.value = false;
-    tableRef.value?.reload();
+    refreshAll();
   } catch (e) {
     message.error((e as Error)?.message ?? "保存失败");
   } finally {
@@ -160,19 +175,19 @@ async function handleSubmit() {
   }
 }
 
-async function handleDelete(row: Record<string, unknown>) {
+async function handleDelete(row: SysRole | Record<string, unknown>) {
   const role = row as unknown as SysRole;
   await ElMessageBox.confirm(`确认删除角色「${role.sysRoleName}」？`, "提示", { type: "warning" });
   await deleteRole(role.sysRoleId!);
   message.success("删除成功");
-  tableRef.value?.reload();
+  refreshAll();
 }
 
-async function handleStatus(row: Record<string, unknown>) {
+async function handleStatus(row: SysRole | Record<string, unknown>) {
   const role = row as unknown as SysRole;
   await updateRole({ ...role, sysRoleStatus: role.sysRoleStatus === 1 ? 0 : 1 });
   message.success(role.sysRoleStatus === 1 ? "已启用" : "已停用");
-  tableRef.value?.reload();
+  refreshAll();
 }
 
 const permVisible = ref(false);
@@ -349,7 +364,7 @@ watch(permSearchText, () => {
     : collectKeysToDepth(menuTree.value, 2);
 });
 
-async function openPermDialog(row: Record<string, unknown>) {
+async function openPermDialog(row: SysRole | Record<string, unknown>) {
   const role = row as unknown as SysRole;
   currentRole.value = role;
   permVisible.value = true;
@@ -402,7 +417,7 @@ async function handleSavePerm() {
     });
     message.success("权限已更新");
     permVisible.value = false;
-    tableRef.value?.reload();
+    refreshAll();
   } catch (e) {
     message.error((e as Error)?.message ?? "保存失败");
   } finally {
@@ -416,7 +431,7 @@ function handleReset() {
 }
 
 /* ================== 角色复制 ================== */
-function handleCopy(row: Record<string, unknown>) {
+function handleCopy(row: SysRole | Record<string, unknown>) {
   const role = row as unknown as SysRole;
   isEdit.value = false;
   copyFromRoleId.value = role.sysRoleId ?? null;
@@ -436,7 +451,7 @@ const usersLoading = ref(false);
 const roleUsers = ref<SysUser[]>([]);
 const currentRoleName = ref("");
 
-async function openRoleUsers(row: Record<string, unknown>) {
+async function openRoleUsers(row: SysRole | Record<string, unknown>) {
   const role = row as unknown as SysRole;
   currentRoleName.value = role.sysRoleName ?? "";
   usersDrawerVisible.value = true;
@@ -452,15 +467,333 @@ async function openRoleUsers(row: Record<string, unknown>) {
   }
 }
 
+/* ================== 指挥台：授权态势（真实数据，不造样例） ================== */
+/**
+ * 口径：
+ *  - 星图节点 = 角色（快照取角色分页的前 60 个），节点权重 = 该角色已授权菜单数，
+ *    按数据范围聚簇；星图常驻在右侧栏，点节点弹 ReDialog 看角色档案；
+ *  - 轨道环 = 已选角色在各一级菜单目录下的授权覆盖率（弧长 = 覆盖比例），
+ *    常驻在右侧角色详情下方；
+ *
+ * 态势数据失败只降级为「暂无可展示」，不影响主列表的增删改查。
+ */
+interface MenuDir {
+  key: string;
+  label: string;
+  ids: number[];
+  total: number;
+}
+
+/** 授权态势快照（角色分页大页 + 菜单树 + 逐角色菜单 ID） */
+const rolesForChart = ref<SysRole[]>([]);
+const menuTreeAll = ref<SysMenu[]>([]);
+const roleMenuIds = ref<Record<number, number[]>>({});
+const analyticsLoading = ref(false);
+/** 已选角色 ID；角色详情、轨道、星图高亮共用这一份 */
+const selectedRoleId = ref<number | null>(null);
+/** 来自列表行的角色（可能不在快照内，如被筛选后翻页） */
+const roleCache = ref<Record<number, SysRole>>({});
+
+/** 可授权项：非按钮、非「只注册路由」的菜单节点 */
+function collectGrantableIds(nodes: SysMenu[], acc: number[] = []): number[] {
+  nodes.forEach((node) => {
+    if (node.sysMenuId != null && node.sysMenuType !== 3 && node.sysMenuRemind !== 1) {
+      acc.push(node.sysMenuId);
+    }
+    if (node.children?.length) collectGrantableIds(node.children, acc);
+  });
+  return acc;
+}
+
+/** 一级菜单目录：菜单树的根节点，列宽 = 该目录下可授权项总数 */
+const menuDirs = computed<MenuDir[]>(() =>
+  menuTreeAll.value
+    .filter((node) => node.sysMenuType !== 3 && node.sysMenuRemind !== 1 && node.sysMenuId != null)
+    .map((node) => {
+      const ids = collectGrantableIds([node]);
+      return {
+        key: String(node.sysMenuId),
+        label: node.sysMenuTitle || node.sysMenuName || "未命名目录",
+        ids,
+        total: ids.length,
+      };
+    })
+    .filter((dir) => dir.total > 0),
+);
+
+const EMPTY_ID_SET: ReadonlySet<number> = new Set<number>();
+
+/** 全部可授权菜单（所有一级目录的并集），用于覆盖率分母 */
+const menuUniverse = computed<ReadonlySet<number>>(() => {
+  const set = new Set<number>();
+  menuDirs.value.forEach((dir) => dir.ids.forEach((id) => set.add(id)));
+  return set;
+});
+
+/** 角色 → 已授权菜单集合（只保留可授权项，滤掉半选父链里的非可授权节点） */
+const roleAuthSets = computed<Map<number, Set<number>>>(() => {
+  const universe = menuUniverse.value;
+  const map = new Map<number, Set<number>>();
+  Object.entries(roleMenuIds.value).forEach(([id, ids]) => {
+    map.set(Number(id), new Set(ids.filter((menuId) => universe.has(menuId))));
+  });
+  return map;
+});
+
+function authSetOf(role: SysRole | null): ReadonlySet<number> {
+  if (role?.sysRoleId == null) return EMPTY_ID_SET;
+  return roleAuthSets.value.get(role.sysRoleId) ?? EMPTY_ID_SET;
+}
+
+function authorizedCount(role: SysRole | null): number {
+  return authSetOf(role).size;
+}
+
+function dirHitCount(role: SysRole | null, dir: MenuDir): number {
+  const set = authSetOf(role);
+  return dir.ids.reduce((sum, id) => (set.has(id) ? sum + 1 : sum), 0);
+}
+
+const scopeMeta = [
+  { key: "scope-all", label: "全部数据", short: "全部" },
+  { key: "scope-dept", label: "本部门数据", short: "本部门" },
+  { key: "scope-child", label: "本部门及以下", short: "本部门及以下" },
+  { key: "scope-self", label: "仅本人数据", short: "仅本人" },
+  { key: "scope-custom", label: "自定义部门", short: "自定义" },
+];
+
+function scopeOf(role: SysRole | null) {
+  const index = Math.min(scopeMeta.length, Math.max(1, role?.sysRoleDataScope ?? 1)) - 1;
+  return scopeMeta[index];
+}
+
+/** 顶部 KPI：总数 / 启用 / 菜单覆盖 / 平均覆盖率 */
+const stats = computed(() => {
+  const roles = rolesForChart.value;
+  const universe = menuUniverse.value;
+  const covered = new Set<number>();
+  let ratioSum = 0;
+  roles.forEach((role) => {
+    const set = authSetOf(role);
+    set.forEach((id) => covered.add(id));
+    ratioSum += universe.size ? set.size / universe.size : 0;
+  });
+  return {
+    total: roles.length,
+    enabled: roles.filter((role) => role.sysRoleStatus === 1).length,
+    builtin: roles.filter((role) => role.sysRoleInSystem === 1).length,
+    readonly: roles.filter((role) => role.sysRoleReadonly === 1).length,
+    coveredMenus: covered.size,
+    totalMenus: universe.size,
+    avgCoverage: roles.length ? Math.round((ratioSum / roles.length) * 100) : 0,
+  };
+});
+
+const kpis = computed(() => [
+  {
+    key: "total",
+    label: "角色总数",
+    value: String(stats.value.total),
+    hint: `${stats.value.enabled} 个启用`,
+    fill: stats.value.total ? Math.round((stats.value.enabled / stats.value.total) * 100) : 0,
+  },
+  {
+    key: "menus",
+    label: "已覆盖菜单",
+    value: String(stats.value.coveredMenus),
+    hint: `共 ${stats.value.totalMenus} 项可授权`,
+    fill: stats.value.totalMenus
+      ? Math.round((stats.value.coveredMenus / stats.value.totalMenus) * 100)
+      : 0,
+  },
+  {
+    key: "coverage",
+    label: "平均覆盖率",
+    value: `${stats.value.avgCoverage}%`,
+    hint: "按角色授权菜单占比均值",
+    fill: stats.value.avgCoverage,
+  },
+  {
+    key: "protect",
+    label: "内置 / 只读",
+    value: `${stats.value.builtin} / ${stats.value.readonly}`,
+    hint: "内置角色不可删除",
+    fill: stats.value.total
+      ? Math.round(((stats.value.builtin + stats.value.readonly) / stats.value.total) * 100)
+      : 0,
+  },
+]);
+
+/** 当前选中的角色：优先列表行对象，其次态势快照 */
+const selectedRole = computed<SysRole | null>(() => {
+  const id = selectedRoleId.value;
+  if (id == null) return null;
+  return roleCache.value[id] ?? rolesForChart.value.find((role) => role.sysRoleId === id) ?? null;
+});
+
+/** 图表聚焦角色：详情选中的角色必须在快照内，否则回落到快照第一个 */
+const chartRole = computed<SysRole | null>(() => {
+  const id = selectedRoleId.value;
+  return rolesForChart.value.find((role) => role.sysRoleId === id) ?? rolesForChart.value[0] ?? null;
+});
+
+const sideAuthCount = computed(() => authorizedCount(selectedRole.value));
+const sideCoverage = computed(() => {
+  const total = stats.value.totalMenus;
+  return total ? Math.round((sideAuthCount.value / total) * 100) : 0;
+});
+
+/** 星图：角色为星、数据范围为簇、已授权菜单数为权重 */
+const atlasData = computed<ReChartAtlasData>(() => ({
+  groups: scopeMeta.map((scope) => ({ key: scope.key, label: scope.label })),
+  nodes: rolesForChart.value.map((role) => ({
+    id: String(role.sysRoleId),
+    label: role.sysRoleName || "未命名角色",
+    detail: role.sysRoleCode,
+    kind: scopeOf(role).key,
+    weight: authorizedCount(role),
+    state:
+      role.sysRoleStatus !== 1 ? "off" : role.sysRoleReadonly === 1 ? "readonly" : "active",
+    meta: [scopeOf(role).short],
+  })),
+  note: `共 ${rolesForChart.value.length} 个角色 · 节点大小 = 已授权菜单数`,
+}));
+
+/** 轨道：已选角色在各级目录下的覆盖率 */
+const orbitData = computed<ReChartOrbitData>(() => {
+  const role = chartRole.value;
+  return {
+    center: {
+      label: role?.sysRoleName || "未选择角色",
+      detail: role?.sysRoleCode,
+      caption: role ? `${authorizedCount(role)} / ${stats.value.totalMenus} 项授权` : undefined,
+    },
+    rings: menuDirs.value.map((dir) => {
+      const hit = dirHitCount(role, dir);
+      return {
+        key: dir.key,
+        label: dir.label,
+        percent: dir.total ? Math.round((hit / dir.total) * 100) : 0,
+        value: `${hit} / ${dir.total}`,
+      };
+    }),
+    note: role ? `数据范围：${scopeOf(role).label}` : "在左侧选中角色后查看其权限覆盖",
+  };
+});
+
+/** 星图弹窗：从工具栏按钮打开，缩放控件在星图内部（AtlasChart 的 zoomable） */
+const atlasDialogVisible = ref(false);
+
+function openAtlasDialog() {
+  atlasDialogVisible.value = true;
+}
+
+/** 星图节点点击：联动右侧详情（弹窗里点完顺手收起） */
+function onAtlasSelect(payload: ReChartSelectPayload) {
+  if (payload.id == null) return;
+  const roleId = Number(payload.id);
+  if (!Number.isFinite(roleId)) return;
+  selectRole(roleId);
+}
+
+function onDialogAtlasSelect(payload: ReChartSelectPayload) {
+  onAtlasSelect(payload);
+  atlasDialogVisible.value = false;
+}
+
+function selectRole(id: number | string) {
+  const roleId = Number(id);
+  if (!Number.isFinite(roleId)) return;
+  selectedRoleId.value = roleId;
+}
+
+function onRowClick(row: Record<string, unknown>) {
+  const role = row as unknown as SysRole;
+  if (role?.sysRoleId != null) {
+    roleCache.value[role.sysRoleId] = role;
+    selectRole(role.sysRoleId);
+  }
+}
+
+function deckRowClass({ row }: { row: Record<string, unknown> }): string {
+  const role = row as unknown as SysRole;
+  return role?.sysRoleId != null && role.sysRoleId === selectedRoleId.value ? "is-picked" : "";
+}
+
+/** 逐角色拉菜单：控制并发，避免一次性打 60 个请求被网关限流 */
+async function mapLimit<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await worker(items[index]);
+    }
+  });
+  await Promise.all(runners);
+  return results;
+}
+
+/** 授权态势快照：角色大页 + 菜单树 + 逐角色菜单 ID（并发拉取，失败只降级） */
+async function loadAnalytics() {
+  analyticsLoading.value = true;
+  try {
+    const [roleRes, menuRes] = await Promise.all([
+      pageForRole({ page: 1, pageSize: 200 }),
+      listMenuTree(),
+    ]);
+    // 逐角色取菜单是多请求，快照最多取前 60 个角色，KPI 与图形口径保持一致
+    const roles = ((roleRes?.data?.data ?? []) as SysRole[]).slice(0, 60);
+    menuTreeAll.value = (menuRes?.data ?? []) as SysMenu[];
+    rolesForChart.value = roles;
+    const ids = roles
+      .map((role) => role.sysRoleId)
+      .filter((id): id is number => typeof id === "number");
+    const menus = await mapLimit(ids, 6, (id) =>
+      getRoleMenu(id)
+        .then((res) => (res?.data ?? []) as number[])
+        .catch(() => [] as number[]),
+    );
+    const next: Record<number, number[]> = {};
+    ids.forEach((id, index) => {
+      next[id] = menus[index] ?? [];
+    });
+    roleMenuIds.value = next;
+    if (selectedRoleId.value == null && ids.length) selectedRoleId.value = ids[0];
+  } catch {
+    // 态势数据失败不影响主列表；图表各自回落空态
+  } finally {
+    analyticsLoading.value = false;
+  }
+}
+
+/** 列表与态势一起刷新（增删改 / 分配权限后保持两处一致） */
+function refreshAll() {
+  tableRef.value?.reload?.();
+  void loadAnalytics();
+}
+
+/**
+ * 清单列。
+ *
+ * <p>指挥台的作业区只有 ~660px（右侧常驻详情占了近三分之一），8 列全铺会
+ * 让 fixed-right 操作列盖住「系统 / 备注 / 创建时间」，且横向滚动条落在
+ * 卡片外看不见。故清单只留「身份 + 状态 + 操作」四列，其余档案字段
+ * （排序 / 系统 / 备注 / 创建时间）统一由右侧详情承担 —— 表格是索引，
+ * 详情才是档案例。</p>
+ *
+ * <p>操作列 5 枚方块按钮（分配权限 / 编辑 / 复制 / 用户 / 删除）实测需要
+ * 240px，且不留 fixed 也能整列可见，因此不再 fixed。</p>
+ */
 const columns: ReTableColumn[] = [
-  { prop: "sysRoleName", label: "角色名称", minWidth: 220, slot: "roleName" },
-  { prop: "sysRoleCode", label: "角色编码", minWidth: 140 },
-  { prop: "sysRoleSort", label: "排序", width: 80, align: "center" },
-  { prop: "sysRoleStatus", label: "状态", width: 100, slot: "status", align: "center" },
-  { prop: "sysRoleInSystem", label: "系统", width: 80, slot: "system", align: "center" },
-  { prop: "sysRoleRemark", label: "备注", minWidth: 160, showOverflowTooltip: true },
-  { prop: "createTime", label: "创建时间", width: 170 },
-  { prop: "action", label: "操作", width: 340, slot: "action", fixed: "right" },
+  { prop: "sysRoleName", label: "角色名称", minWidth: 170, slot: "roleName" },
+  { prop: "sysRoleCode", label: "角色编码", minWidth: 132, showOverflowTooltip: true },
+  { prop: "sysRoleStatus", label: "状态", width: 96, slot: "status", align: "center" },
+  { prop: "action", label: "操作", width: 234, slot: "action" },
 ];
 
 /**
@@ -478,77 +811,188 @@ const roleUserColumns: ReTableColumn[] = [
 
 onMounted(() => {
   tableRef.value?.reload();
+  void loadAnalytics();
 });
 </script>
 
 <template>
-  <div class="system-page">
-      <ReTable
-        ref="tableRef"
-        table-id="system-role"
-        :loader="loadRoles"
-        :columns="columns"
-        :pagination="true"
-        :params="query"
-        row-key="sysRoleId"
-        v-model:page="query.page"
-        v-model:page-size="query.pageSize"
-        :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
-        :search-gap="16"
-        v-model:search-model="query"
-        @search-reset="handleReset"
-      >
-        <template #toolbar>
-          <!-- C：工具栏主操作改为实心主色按钮（去掉 text），文案点明实体「角色」，避免与其他新增动作歧义 -->
-          <ReButton type="primary" icon="Plus" @click="handleAdd">新增角色</ReButton>
-        </template>
-        <!-- A：可操作空态。ReTable 未提供 #empty 时会回落到原生 el-empty，这里提供时接管 -->
-        <template #empty>
-          <div class="page-empty">
-            <span class="page-empty__icon">
-              <ReIcon name="UserFilled" size="22" />
-            </span>
-            <span class="page-empty__title">还没有角色</span>
-            <span class="page-empty__desc">角色把「菜单权限 + 数据范围」打包后授予用户，是权限体系的最小单元。</span>
-            <span class="page-empty__actions">
-              <ReButton type="primary" icon="Plus" @click="handleAdd">新增角色</ReButton>
-              <!-- 复用已有 handleReset（清空筛选 + 回到第一页重新拉取），不新增函数 -->
-              <ReButton icon="Refresh" @click="handleReset">重置筛选</ReButton>
-            </span>
+  <div class="role-deck">
+    <section class="deck-kpis" aria-label="角色概览">
+      <article v-for="kpi in kpis" :key="kpi.key" class="deck-kpi">
+        <span class="deck-kpi__label">{{ kpi.label }}</span>
+        <strong class="deck-kpi__value">{{ kpi.value }}</strong>
+        <span class="deck-kpi__hint">{{ kpi.hint }}</span>
+        <span class="deck-kpi__meter"><i :style="{ width: kpi.fill + '%' }" /></span>
+      </article>
+    </section>
+
+    <div class="deck-main">
+      <section class="deck-work">
+        <ReTable
+          ref="tableRef"
+          table-id="system-role"
+          :loader="loadRoles"
+          :columns="columns"
+          :pagination="true"
+          :params="query"
+          row-key="sysRoleId"
+          v-model:page="query.page"
+          v-model:page-size="query.pageSize"
+          :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
+          v-model:search-visible="searchVisible"
+          :search-gap="16"
+          v-model:search-model="query"
+          :row-class-name="deckRowClass"
+          @row-click="onRowClick"
+          @search-reset="handleReset"
+        >
+          <template #toolbar>
+            <!-- 工具栏左侧：只留图标 + tip，把横向空间让给表格内容 -->
+            <ReButton layout="square" icon="Share" tip="授权星图" @click="openAtlasDialog" />
+            <ReButton layout="square" type="primary" icon="Plus" tip="新增角色" @click="handleAdd" />
+          </template>
+          <!-- A：可操作空态。ReTable 未提供 #empty 时会回落到原生 el-empty，这里提供时接管 -->
+          <template #empty>
+            <div class="page-empty">
+              <span class="page-empty__icon">
+                <ReIcon name="UserFilled" size="22" />
+              </span>
+              <span class="page-empty__title">还没有角色</span>
+              <span class="page-empty__desc">角色把「菜单权限 + 数据范围」打包后授予用户，是权限体系的最小单元。</span>
+              <span class="page-empty__actions">
+                <ReButton type="primary" icon="Plus" @click="handleAdd">新增角色</ReButton>
+                <!-- 复用已有 handleReset（清空筛选 + 回到第一页重新拉取），不新增函数 -->
+                <ReButton icon="Refresh" @click="handleReset">重置筛选</ReButton>
+              </span>
+            </div>
+          </template>
+          <template #roleName="{ row }">
+            <div class="flex items-center gap-2">
+              <el-icon :size="16" color="var(--el-color-primary)"><UserFilled /></el-icon>
+              <span>{{ row.sysRoleName }}</span>
+              <ReTag v-if="row.sysRoleInSystem === 1" type="warning" effect="plain" >内置</ReTag>
+              <ReTag v-if="row.sysRoleReadonly === 1" type="info" effect="plain" >只读</ReTag>
+            </div>
+          </template>
+          <template #status="{ row }">
+            <!-- 内置角色不允许显示切换按钮（连 disabled 状态也不显示，避免误操作） -->
+            <!-- B：状态标签统一为 plain + dot（内置角色恒为启用，故用 success 点亮） -->
+            <ReTag v-if="row.sysRoleInSystem === 1" type="success" effect="plain" dot>已启用</ReTag>
+            <el-switch
+              v-else
+              :model-value="row.sysRoleStatus === 1"
+              @update:model-value="() => handleStatus(row)"
+            />
+          </template>
+          <template #action="{ row }">
+            <div class="flex items-center gap-2">
+              <ReButton layout="square" type="primary" icon="Key" tip="分配权限" @click="openPermDialog(row)" />
+              <ReButton layout="square" type="primary" icon="Edit" tip="编辑" @click="handleEdit(row)" />
+              <ReButton layout="square" type="success" icon="DocumentCopy" tip="复制" @click="handleCopy(row)" />
+              <ReButton layout="square" type="info" icon="User" tip="用户" @click="openRoleUsers(row)" />
+              <ReButton v-if="row.sysRoleInSystem !== 1" layout="square" type="danger" icon="Delete" tip="删除" @click="handleDelete(row)" />
+            </div>
+          </template>
+        </ReTable>
+      </section>
+
+      <aside class="deck-side" aria-label="角色详情与授权态势">
+        <section class="deck-side__card">
+          <template v-if="selectedRole">
+            <div class="deck-side__head">
+              <div class="deck-side__title">
+                <span
+                  class="deck-side__dot"
+                  :class="selectedRole.sysRoleStatus === 1 ? 'is-on' : 'is-off'"
+                  aria-hidden="true"
+                />
+                <span class="deck-side__name">{{ selectedRole.sysRoleName || "未命名角色" }}</span>
+              </div>
+              <code class="deck-side__code">{{ selectedRole.sysRoleCode || "-" }}</code>
+              <div class="deck-side__tags">
+                <ReTag v-if="selectedRole.sysRoleInSystem === 1" type="warning" effect="plain">内置</ReTag>
+                <ReTag v-if="selectedRole.sysRoleReadonly === 1" type="info" effect="plain">只读</ReTag>
+                <ReTag v-if="selectedRole.sysRoleStatus !== 1" type="danger" effect="plain">已停用</ReTag>
+              </div>
+            </div>
+
+            <dl class="deck-side__facts">
+              <div>
+                <dt>数据范围</dt>
+                <dd>{{ scopeOf(selectedRole).label }}</dd>
+              </div>
+              <div>
+                <dt>已授权菜单</dt>
+                <dd>{{ sideAuthCount }}<small> / {{ stats.totalMenus }}</small></dd>
+              </div>
+              <div>
+                <dt>覆盖率</dt>
+                <dd>{{ sideCoverage }}<small>%</small></dd>
+              </div>
+              <div>
+                <dt>排序</dt>
+                <dd>{{ selectedRole.sysRoleSort ?? 0 }}</dd>
+              </div>
+              <div v-if="selectedRole.createTime">
+                <dt>创建时间</dt>
+                <dd class="is-time">{{ selectedRole.createTime }}</dd>
+              </div>
+              <div v-if="selectedRole.sysRoleRemark" class="is-wide">
+                <dt>备注</dt>
+                <dd>{{ selectedRole.sysRoleRemark }}</dd>
+              </div>
+            </dl>
+
+            <!-- 轨道常驻在详情下方：环长 = 该角色在一级目录下的覆盖率 -->
+            <div class="deck-side__orbit">
+              <div class="deck-side__orbit-head">
+                <span class="deck-side__orbit-title">权限轨道</span>
+                <span class="deck-side__orbit-hint">环长 = 目录覆盖率</span>
+              </div>
+              <ReChart type="orbit" :orbit="orbitData" />
+            </div>
+
+            <div class="deck-side__actions">
+              <ReButton layout="square" type="primary" icon="Key" tip="分配权限" @click="openPermDialog(selectedRole)" />
+              <ReButton layout="square" icon="Edit" tip="编辑" @click="handleEdit(selectedRole)" />
+              <ReButton layout="square" icon="User" tip="用户" @click="openRoleUsers(selectedRole)" />
+            </div>
+          </template>
+
+          <div v-else class="deck-side__placeholder">
+            <ReIcon name="UserFilled" size="22" />
+            <span>点击左侧任意角色查看授权详情</span>
           </div>
-        </template>
-        <template #roleName="{ row }">
-          <div class="flex items-center gap-2">
-            <el-icon :size="16" color="var(--el-color-primary)"><UserFilled /></el-icon>
-            <span>{{ row.sysRoleName }}</span>
-            <ReTag v-if="row.sysRoleInSystem === 1" type="warning" effect="plain" >内置</ReTag>
-            <ReTag v-if="row.sysRoleReadonly === 1" type="info" effect="plain" >只读</ReTag>
-          </div>
-        </template>
-        <template #status="{ row }">
-          <!-- 内置角色不允许显示切换按钮（连 disabled 状态也不显示，避免误操作） -->
-          <!-- B：状态标签统一为 plain + dot（内置角色恒为启用，故用 success 点亮） -->
-          <ReTag v-if="row.sysRoleInSystem === 1" type="success" effect="plain" dot>已启用</ReTag>
-          <el-switch
-            v-else
-            :model-value="row.sysRoleStatus === 1"
-            @update:model-value="() => handleStatus(row)"
+        </section>
+      </aside>
+    </div>
+
+    <!-- 授权星图：工具栏入口打开大图，缩放控件在星图内部 -->
+    <ReDialog
+      v-model="atlasDialogVisible"
+      title="授权星图"
+      width="880"
+      layout="modern"
+      compact
+      destroy-on-close
+      :close-on-click-modal="true"
+      :footer-hidden="true"
+    >
+      <div class="atlas-dialog">
+        <p class="atlas-dialog__hint">节点大小 = 已授权菜单数，颜色 = 覆盖率；点击节点选中该角色</p>
+        <div class="atlas-dialog__canvas">
+          <ReChart
+            v-if="rolesForChart.length"
+            type="atlas"
+            height="100%"
+            :zoomable="true"
+            :atlas="atlasData"
+            @select="onDialogAtlasSelect"
           />
-        </template>
-        <template #system="{ row }">
-          <ReTag v-if="row.sysRoleInSystem === 1" type="warning" effect="plain" >内置</ReTag>
-          <span v-else class="text-xs text-[--el-text-color-secondary]">-</span>
-        </template>
-        <template #action="{ row }">
-          <div class="flex items-center gap-2">
-            <ReButton layout="square" type="primary" icon="Key" tip="分配权限" @click="openPermDialog(row)" />
-            <ReButton layout="square" type="primary" icon="Edit" tip="编辑" @click="handleEdit(row)" />
-            <ReButton layout="square" type="success" icon="DocumentCopy" tip="复制" @click="handleCopy(row)" />
-            <ReButton layout="square" type="info" icon="User" tip="用户" @click="openRoleUsers(row)" />
-            <ReButton v-if="row.sysRoleInSystem !== 1" layout="square" type="danger" icon="Delete" tip="删除" @click="handleDelete(row)" />
-          </div>
-        </template>
-      </ReTable>
+          <div v-else class="atlas-dialog__empty">暂无授权态势数据</div>
+        </div>
+      </div>
+    </ReDialog>
 
     <!-- 角色编辑弹窗 -->
     <ReDialog
@@ -754,29 +1198,343 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
-.system-page {
+.role-deck {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  min-height: 100%;
   padding: 0;
-  height: 100%;
+  color: var(--text-primary);
 }
-.system-page__header {
+
+/* ==================== 指挥台：KPI ==================== */
+.deck-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.deck-kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px 15px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-container);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.deck-kpi__label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+.deck-kpi__value {
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.deck-kpi__hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.deck-kpi__meter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--bg-fill);
+}
+.deck-kpi__meter i {
+  display: block;
+  height: 100%;
+  background: var(--brand-500);
+  transition: width 0.35s ease;
+}
+
+/* ==================== 指挥台：主区 ==================== */
+.deck-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  /* 左：表格；右：角色详情（星图在工具栏弹窗里） */
+  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.deck-work {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 列表选中行（ReTable 的行在组件内部，需 :deep 穿透） */
+:deep(.el-table__row.is-picked > td) {
+  background: var(--brand-50);
+}
+:deep(.vxe-body--row.is-picked) {
+  background: var(--brand-50);
+}
+
+/* ==================== 指挥台：右侧角色详情 ==================== */
+.deck-side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.deck-side__card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-container);
+  box-shadow: var(--shadow-sm);
+}
+.deck-side__head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.deck-side__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.deck-side__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.deck-side__dot.is-on {
+  background: var(--status-success);
+}
+.deck-side__dot.is-off {
+  background: var(--status-error);
+}
+.deck-side__name {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.deck-side__code {
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+.deck-side__tags {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
+  margin-top: 6px;
 }
-.system-page__title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+.deck-side__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
 }
-.system-page__subtitle {
-  margin-top: 4px;
+.deck-side__facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.deck-side__facts > div.is-wide {
+  grid-column: 1 / -1;
+}
+.deck-side__facts dt {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+.deck-side__facts dd {
+  margin: 0;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.deck-side__facts dd small {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+/* 创建时间是长数字串，按 13px 粗体会把两列网格挤到换行，单独降档 */
+.deck-side__facts dd.is-time {
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+/* 轨道：常驻详情下方，用同一套 koi 令牌，不另起皮肤 */
+.deck-side__orbit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  min-height: 0;
+  overflow: hidden;
+}
+.deck-side__orbit-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.deck-side__orbit-title {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+.deck-side__orbit-hint {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+/* 侧栏只有 300px：画布收到 140px、图例压成两列，详情 + 轨道一屏放下且不出滚动条 */
+.deck-side__orbit :deep(.re-chart-orbit) {
+  min-height: 0;
+  gap: 4px;
+}
+.deck-side__orbit :deep(.re-chart-orbit__body) {
+  gap: 4px;
+}
+.deck-side__orbit :deep(.re-chart-orbit__stage) {
+  width: 130px;
+  min-width: 0;
+  margin: 0;
+}
+/* 圆心只留角色名；编码与总数在上面档案区已有，这里再放会压到内环 */
+.deck-side__orbit :deep(.re-chart-orbit__center-detail),
+.deck-side__orbit :deep(.re-chart-orbit__center-caption) {
+  display: none;
+}
+.deck-side__orbit :deep(.re-chart-orbit__center-label) {
+  font-size: 10.5px;
+}
+.deck-side__orbit :deep(.re-chart-orbit__legend) {
+  min-width: 0;
+  max-width: none;
+  flex: 1 1 0;
+  gap: 2px;
+}
+.deck-side__orbit :deep(.re-chart-orbit__item) {
+  gap: 5px;
+  padding: 2px 4px;
+}
+.deck-side__orbit :deep(.re-chart-orbit__dot) {
+  width: 6px;
+  height: 6px;
+}
+.deck-side__orbit :deep(.re-chart-orbit__name) {
+  font-size: 10.5px;
+}
+.deck-side__orbit :deep(.re-chart-orbit__desc),
+.deck-side__orbit :deep(.re-chart-orbit__num span) {
+  display: none;
+}
+.deck-side__orbit :deep(.re-chart-orbit__num b) {
+  font-size: 11px;
+}
+/* 数据范围一行在档案区已有，底部说明不再重复 */
+.deck-side__orbit :deep(.re-chart-orbit__note) {
+  display: none;
+}
+.deck-side__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  /* 详情卡吃满高度：操作按钮沉到底部 */
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.deck-side__placeholder {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 200px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+/* 星图弹窗：一句说明 + 固定高度画布（缩放控件在图内） */
+.atlas-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.atlas-dialog__hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.atlas-dialog__canvas {
+  display: flex;
+  flex-direction: column;
+  height: 520px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-container);
+}
+.atlas-dialog__canvas :deep(.re-chart) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.atlas-dialog__empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 1180px) {
+  .deck-main {
+    grid-template-columns: minmax(0, 1fr);
+    /* 窄屏单列：右侧栏落到表格下方，按内容高度走 */
+    grid-template-rows: auto;
+  }
+  .atlas-dialog__canvas {
+    height: 420px;
+  }
+}
+@media (max-width: 820px) {
+  .deck-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-kpi__meter i {
+    transition: none;
+  }
 }
 
 /* 表格外壳（1px 描边 / 卡片圆角 / 卡片投影 / focus-within 转主色）
