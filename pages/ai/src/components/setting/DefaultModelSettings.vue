@@ -24,31 +24,40 @@
         <section v-for="group in displayGroups" :key="group.group" :ref="setGroupRef(group.group)"
           v-show="!fieldSearch || groupMatchesSearch(group)" class="dms-group">
           <SettingsCard :title="group.groupName" :subtitle="groupSubtitle(group)">
-      <!-- 模型字段 + 常驻字段：统一走 FieldControl 控件发射器（组件化） -->
-      <SettingsRow
-        v-for="item in visibleFields(group)"
-        :key="item.field"
-        :label="getFieldLabel(item)"
-        :description="item.description"
-        :tip="getFieldTip(item)"
-        :risk="getFieldRisk(item, group.group)"
-        :risk-tip="getFieldRiskTip(item, group.group)"
-      >
-        <FieldControl
-          :item="item"
-          :value="getFieldValue(group.group, item.field)"
-          :is-model-field="isModelField(group.group, item.field)"
-          :is-enum-field="isEnumField(item)"
-          :is-prompt-field="isPromptField(item.field)"
-          :model-row="getFieldModelRow(group.group, item.field)"
-          :model-display="modelFieldDisplay(group.group, item.field)"
-          :options="optionsOf(item)"
-          :step="numberStep(group.group, item.field)"
-          :precision="numberPrecision(group.group, item.field)"
-          @change="updateFieldValue(group.group, item.field, $event)"
-          @pick-model="openModelDialog(group.group, item.field)"
-        />
-      </SettingsRow>
+            <!-- 分组必选口径：含必选模型 / 全部选配 / 无需模型（口径见 config/modelRequiredFields.ts） -->
+            <template #actions>
+              <el-tooltip :content="groupRequirementTip(group)" placement="top" :show-after="150">
+                <span class="dms-req" :class="`is-${groupRequirement(group)}`">{{ groupRequirementText(group) }}</span>
+              </el-tooltip>
+            </template>
+            <!-- 模型字段 + 常驻字段：统一走 FieldControl 控件发射器（组件化） -->
+            <SettingsRow
+              v-for="item in visibleFields(group)"
+              :key="item.field"
+              :label="getFieldLabel(item)"
+              :description="item.description"
+              :tip="getFieldTip(item)"
+              :badge="modelFieldBadge(group.group, item.field)"
+              :badge-tone="modelFieldBadgeTone(group.group, item.field)"
+              :risk="getFieldRisk(item, group.group)"
+              :risk-tip="getFieldRiskTip(item, group.group)"
+              :readout="fieldReadout(group.group, item)"
+            >
+              <FieldControl
+                :item="item"
+                :value="getFieldValue(group.group, item.field)"
+                :is-model-field="isModelField(group.group, item.field)"
+                :is-enum-field="isEnumField(item)"
+                :is-prompt-field="isPromptField(item.field)"
+                :model-row="getFieldModelRow(group.group, item.field)"
+                :model-display="modelFieldDisplay(group.group, item.field)"
+                :options="optionsOf(item)"
+                :step="numberStep(group.group, item.field)"
+                :precision="numberPrecision(group.group, item.field)"
+                @change="updateFieldValue(group.group, item.field, $event)"
+                @pick-model="openModelDialog(group.group, item.field)"
+              />
+            </SettingsRow>
 
       <!-- 向量库配置：仅 RAG 组 + 管理员（描述器驱动的动态表单，保存到全局层）。
            后端 /v2/rag/options.vectorStorageOptions 返回每个 SPI 的字段声明，
@@ -82,8 +91,11 @@
             :label="getFieldLabel(item)"
             :description="item.description"
             :tip="getFieldTip(item)"
+            :badge="modelFieldBadge(group.group, item.field)"
+            :badge-tone="modelFieldBadgeTone(group.group, item.field)"
             :risk="getFieldRisk(item, group.group)"
             :risk-tip="getFieldRiskTip(item, group.group)"
+            :readout="fieldReadout(group.group, item)"
           >
             <!-- usage_sync_providers 多选（逐字段特判，其余走 FieldControl） -->
             <el-select v-if="item.field === 'usage_sync_providers'"
@@ -145,11 +157,12 @@ import FieldControl from './dms/FieldControl.vue'
 import GroupNavRail from './dms/GroupNavRail.vue'
 import ModelPickerDialog from './dms/ModelPickerDialog.vue'
 import VectorStorageConfig from './dms/VectorStorageConfig.vue'
-import ImageLibraryPanel from './ImageLibraryPanel.vue'
 import { isAdmin } from '@repo/core'
 import { MODEL_SUBTYPE_LABELS } from '@/components/models/model.constants'
 import { deriveModelTraits } from '@/components/models/model.utils'
 import { TYPE_LABELS, findPickedModel, mapProviderModel, resolveModelMeta } from '@/components/models/modelMeta'
+import { requiredFieldsOf, requiredGroupOf, isRequiredModelField, resolveGroupRequirement } from '@/config/modelRequiredFields'
+import { enumLabel } from './dms/enumLabels'
 
 // Element Plus 组件导入
 import {
@@ -340,6 +353,13 @@ const dirtyFields = reactive({})
 // 模型数据
 const models = ref([])
 const providers = ref([])
+/**
+ * /api/providers 里是否还有 ONNX 本地推理供应商。
+ *
+ * <p>这个供应商允许被用户从模型管理里删掉；删掉之后本页不得再把磁盘上的本地
+ * 模型换个「ONNX 本地推理」的名义挂回选择器（见 {@link loadLocalModels}）。</p>
+ */
+const onnxProviderPresent = ref(false)
 
 // Usage Parser SPI 列表
 const usageParsers = ref([])
@@ -395,7 +415,9 @@ const groupMatchesSearch = (group) => {
         const label = String(getFieldLabel(item) || '').toLowerCase()
         const desc = String(item.description || '').toLowerCase()
         const name = String(item.field || '').toLowerCase()
-        return label.includes(q) || desc.includes(q) || name.includes(q)
+        // 当前值也参与匹配：直接输模型名/阈值就能定位到所属分组（「方便直接查询」）
+        const readout = fieldReadout(group.group, item).toLowerCase()
+        return label.includes(q) || desc.includes(q) || name.includes(q) || readout.includes(q)
     })
 }
 
@@ -761,6 +783,67 @@ const isPromptField = (field) => {
  * 后端已不再读取该字段，这里同步隐藏，避免旧库残留行继续以设置项形态出现。</p>
  */
 const ENGINE_FIELDS = ['rag_embedding_model']
+
+/**
+ * 「真正在选模型」的字段判定。
+ *
+ * <p>与 {@link isModelField} 分开：后者还兼管「这一行直接显示、不走高级折叠」的判定
+ * （protocol-server 的端口、global 的用量开关都靠它返回 true），那些不是模型槽位，
+ * 挂「必选/选配」徽标会误导。</p>
+ */
+const isModelValueField = (field) =>
+    Boolean(field) && String(field).toLowerCase().includes('model') && !ENGINE_FIELDS.includes(String(field))
+
+/**
+ * 分组当前真正渲染出来的模型字段。
+ *
+ * <p>徽标与门禁按同一批字段推导：拆分组页面可能用 fields 白名单只放行部分字段，
+ * 按后端定义算会把没渲染的必选项也算进来，徽标就说谎了。</p>
+ */
+const displayedModelFields = (group) =>
+    modelFields(group)
+        .filter((item) => isModelValueField(item.field))
+        .map((item) => item.field)
+
+/** 分组必选三态：required=含必选模型 / optional=全部选配 / none=无需模型 */
+const groupRequirement = (group) => resolveGroupRequirement(group.group, displayedModelFields(group))
+
+const GROUP_REQUIREMENT_TEXT = {
+    required: '含必选模型',
+    optional: '全部选配',
+    none: '无需模型',
+}
+
+/** 分组徽标文案 */
+const groupRequirementText = (group) => GROUP_REQUIREMENT_TEXT[groupRequirement(group)]
+
+/**
+ * 分组徽标的悬浮说明：必选组列出必选项，其余解释清楚为什么不用配。
+ *
+ * <p>只列「当前渲染出来」的必选项：白名单页（如人脸重识别）里必选模型不在本页，
+ * 就不会出现在这份清单里。</p>
+ */
+const groupRequirementTip = (group) => {
+    const state = groupRequirement(group)
+    if (state === 'none') return '本分组没有模型配置项，无需选择模型'
+    if (state === 'optional') return '本分组的模型都可留空：留空走默认兜底，或直接关闭对应能力'
+    const spec = requiredGroupOf(group.group)
+    const required = requiredFieldsOf(group.group)
+    const labels = (group.items || [])
+        .filter((item) => required.includes(item.field))
+        .map((item) => getFieldLabel(item))
+    const anyOf = spec?.anyOf ? '（任一即可）' : ''
+    return `${spec?.capability || '该能力'}需配置${anyOf}：${labels.join(' / ')}`
+}
+
+/** 模型字段徽标文案（必选 / 选配）；非模型字段返回空，不挂徽标 */
+const modelFieldBadge = (group, field) => {
+    if (!isModelValueField(field)) return ''
+    return isRequiredModelField(group, field) ? '必选' : '选配'
+}
+
+/** 模型字段徽标底色：必选红、选配灰 */
+const modelFieldBadgeTone = (group, field) => (isRequiredModelField(group, field) ? 'danger' : 'muted')
 
 // 获取字段中文标签
 const getFieldLabel = (item) => {
@@ -1223,6 +1306,74 @@ const modelFieldDisplay = (group, field) => {
 }
 
 /**
+ * 枚举值的可读中文（与 FieldControl 同源，见 dms/enumLabels.ts）。
+ * 只读行与下拉控件必须同源：控件显示英文 key、只读行却显示中文，
+ * 两头对不上，用户会以为值被改过。
+ */
+
+/** 布尔值的可读文案（'true'/'false' → 开启/关闭） */
+const boolReadout = (value) => {
+    const v = String(value ?? '').toLowerCase()
+    if (v === 'true') return '开启'
+    if (v === 'false') return '关闭'
+    return ''
+}
+
+/**
+ * 字段当前值的来源后缀（与 fieldMeta.origin / overridden 同口径）。
+ *
+ * @param group 分组名
+ * @param field 字段名
+ * @return 「本人设置」「继承全局」「系统默认」；读不到元数据时为空串
+ */
+const fieldSourceOf = (group, field) => {
+    const meta = fieldMeta[group]?.[field]
+    if (!meta) return ''
+    if (meta.origin === 'USER') return '本人设置'
+    if (meta.origin === 'SYSTEM_DEFAULT') return '系统默认'
+    // origin=GLOBAL 且 overridden=false → 管理员配过全局值，当前生效值来自继承
+    if (meta.overridden === false || meta.origin === 'GLOBAL') return '继承全局'
+    return ''
+}
+
+/**
+ * 当前值只读行文案：当前：{值}（{来源}）。
+ *
+ * <p>与控件同源但独立展示：控件在空值/系统默认时可能只露一个空的输入框，
+ * 这一行把「未配置」「继承全局」这类状态也亮出来 —— 参考重识别配置顶部
+ * 直接把当前生效值亮出来的做法，让每个配置项都能一眼查到当前值。</p>
+ *
+ * <p>冠以「当前：」是因为这一行的值可能与控件里正在编辑但未保存的草稿不同：
+ * 不带前缀时，同一行出现两个不同的值会被误读为控件坏了。</p>
+ *
+ * @param group 分组名
+ * @param item 字段定义
+ */
+const fieldReadout = (group, item) => {
+    const field = item.field
+    const value = getFieldValue(group, field)
+    const meta = fieldMeta[group]?.[field]
+    const isModel = isModelField(group, field)
+    const isEmpty = value === '' || value === null || value === undefined || String(value).trim() === ''
+    const isSysDefault = meta?.origin === 'SYSTEM_DEFAULT'
+
+    let display
+    if (isModel) {
+        // 模型字段：系统内置默认的种子值不算有效配置（与 modelFieldDisplay 同口径）
+        display = isEmpty || isSysDefault ? '未配置' : String(value)
+    } else if (item.valueType === 'BOOLEAN') {
+        display = isEmpty ? '未配置' : boolReadout(value)
+    } else if (isEnumField(item)) {
+        display = isEmpty ? '未配置' : enumLabel(String(value))
+    } else {
+        display = isEmpty ? '未配置' : String(value)
+    }
+
+    const source = fieldSourceOf(group, field)
+    return `当前：${display}${source ? `（${source}）` : ''}`
+}
+
+/**
  * ONNX / 本地推理管线的模型槽位（人脸、OCR、版面、图片 CV）。
  *
  * <p>这类字段的值必须写**裸模型名**：后端 FaceClientManager / OCR 管线用
@@ -1350,17 +1501,24 @@ const filteredProviders = computed(() => {
 })
 
 /**
- * 把「本地推理模型」并入可选列表。
+ * 把「本地推理模型」并入可选列表（兜底）。
  *
- * <p>为什么必须并入：模型选择器的候选只来自 /api/providers，而该接口里
- * {@code provider_id=onnx} 的 models 恒为 0（实测），因为本地模型并不登记在
- * {@code sys_ai_provider_model} —— 它在 deeplearning 的 ModelRegistry 里。
- * 结果是 embedding 字段点开弹框只有一句「没有匹配『嵌入』类型的模型」，
- * 27 个可用模型（/v2/rag/options.embeddingModels）一个都选不到。</p>
+ * <p>候选的主来源是 {@code /api/providers}：模型管理里 ONNX 供应商名下的模型行
+ * 由后端 {@code OnnxProviderMaterializer} 镜像（外部目录 + 已就绪的内置模型），
+ * 带类型 / 能力 / 来源，正常部署下选择器只靠它就能选全。</p>
  *
- * <p>挂在 onnx 提供商下、值形如 {@code onnx:bge-large-zh-embedding}，与后端
- * {@code resolveEmbeddingEngineByModel} 能识别的「本地模型 → onnx 引擎」一致
- * （后端会剥掉 {@code provider:} 前缀后再匹配）。</p>
+ * <p>并入只用于兜底：旧后端或镜像尚未同步时 {@code /api/providers} 里 onnx 的
+ * models 可能为空，而 deeplearning 的 ModelRegistry 已经有可用模型
+ * （{@code /v2/rag/options} 的 embeddingModels / ocrModels）。不兜底的话
+ * embedding / ocr 字段点开弹框只有一句「没有匹配『嵌入』类型的模型」。
+ * 值与后端 {@code resolveEmbeddingEngineByModel} 能识别的「本地模型 → onnx 引擎」
+ * 一致（后端会剥掉 {@code provider:} 前缀后再匹配）。</p>
+ *
+ * <p><b>只在 ONNX 供应商还在时才并入。</b>本地模型列表来自 ModelRegistry
+ * （扫描服务器磁盘上的模型文件），与「用户有没有开启本地推理」无关；用户把
+ * ONNX 供应商从模型管理里删掉后，这里若照旧并入，选择器就会凭空多出一个
+ * 「ONNX 本地推理」分组——删了还能选到 onnx 模型（实测报障）。要恢复本地推理，
+ * 回模板库重新添加 ONNX 供应商即可。</p>
  */
 const loadLocalModels = async () => {
     try {
@@ -1369,6 +1527,11 @@ const loadLocalModels = async () => {
         // 向量库描述器：RAG 组「向量库配置」动态表单的数据源（与本地模型共用一次请求）
         if (Array.isArray(data.vectorStorageOptions)) {
             vectorStorageOptions.value = data.vectorStorageOptions
+        }
+        // 描述器必须照常落下（与 ONNX 供应商无关），所以这里单独 return，不是整段跳过
+        if (!onnxProviderPresent.value) {
+            console.info('[设置] 未配置 ONNX 本地推理供应商，不并入本地模型')
+            return
         }
         const local = []
         const collect = (items, task) => {
@@ -1430,6 +1593,10 @@ const loadModels = () => {
             const providersBody = await adminApi.get('/api/providers')
             // adminApi 可能已解包为数组，也可能返回 {data}，两种形态都要兼容
             const providersData = Array.isArray(providersBody) ? providersBody : providersBody?.data || []
+            // ONNX 本地推理供应商是否还在：删掉它之后不再把本地模型挂回选择器
+            onnxProviderPresent.value = providersData.some(
+                (p) => p.provider_id === 'onnx' || p.platform === 'onnx',
+            )
 
             providersData.forEach((provider) => {
                 // ONNX 本地提供商：模型描述来自各门户注册表，但必须先「绑定本地目录」
@@ -1458,8 +1625,8 @@ const loadModels = () => {
             console.error('获取模型列表失败:', error)
             notify.error('加载模型列表失败', error)
         } finally {
-            // 本地推理模型独立并入：/api/providers 的 onnx 分支恒为空，
-            // 不并入的话 embedding / ocr 字段在弹框里无任何可选项。
+            // 本地推理模型兜底并入（供应商不存在时自动跳过），
+            // 避免旧后端 onnx 模型行未镜像时 embedding / ocr 字段无候选。
             await loadLocalModels()
             modelsLoadPromise = null
         }
@@ -1847,6 +2014,31 @@ onMounted(async () => {
 .dms-groupstate[data-state='off'] {
   color: var(--el-text-color-disabled);
   background: var(--el-fill-color-light);
+}
+
+/* 分组必选口径徽标（含必选模型 / 全部选配 / 无需模型）：
+   放标题行右侧，红色只给「含必选」，其余两态都用灰阶，避免整页五颜六色 */
+.dms-req {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  padding: 1px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: help;
+}
+.dms-req.is-required {
+  color: var(--el-color-danger, #f56c6c);
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 12%, transparent);
+}
+.dms-req.is-optional {
+  color: var(--el-text-color-secondary, #909399);
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.dms-req.is-none {
+  color: var(--el-text-color-placeholder, #a8abb2);
+  background: var(--el-fill-color-lighter, #fafafa);
 }
 
 /* 关注视口内分组卡片高亮（配合滚动跟随） */

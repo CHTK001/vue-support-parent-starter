@@ -14,7 +14,7 @@
             :disabled="!tipOverflows" :open-delay="150">
             <el-icon class="set-row-tip"><QuestionFilled /></el-icon>
           </el-tooltip>
-          <span v-if="badge" class="set-row-badge">{{ badge }}</span>
+          <span v-if="badge" class="set-row-badge" :class="badgeTone ? `is-${badgeTone}` : ''">{{ badge }}</span>
           <el-tooltip v-if="risk" :content="riskTip" placement="top" :show-after="120">
             <span class="set-row-risk" :class="`is-${risk}`" role="img" :aria-label="riskTip" />
           </el-tooltip>
@@ -24,6 +24,9 @@
           :title="!$slots.description && description ? description : undefined">
           <slot name="description">{{ description }}</slot>
         </span>
+        <!-- 当前值只读行：让「这一项现在生效的值」不靠控件也能一眼查到。
+             复用 SettingsRow 而非各页各造一套，来源文案（继承全局/本人设置/未配置）由调用页拼好。 -->
+        <span v-if="readout" class="set-row-readout">{{ readout }}</span>
       </div>
       <div v-if="$slots.default" class="set-row-control" :style="controlStyle">
         <slot />
@@ -49,6 +52,14 @@ const props = defineProps<{
   label?: string
   description?: string
   badge?: string
+  /**
+   * 徽标底色：`danger` 红（必选/必填）、`muted` 灰（选配/中性）。
+   *
+   * <p>留空走主色，保持已有调用方（字段继承、向量库必填）的观感不变。</p>
+   */
+  badgeTone?: 'danger' | 'muted'
+  /** 当前值只读行文案（如「0.60（继承全局）」），留空不显示 */
+  readout?: string
   /** 标签过长时改用 tip 气泡承载完整文案（留空则不启用） */
   tip?: string
   /**
@@ -205,6 +216,16 @@ const controlStyle = computed(() => {
   color: var(--el-color-primary);
   background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
+/* 必选/必填：红底红字，与「风险红点」同色系但不闪烁（不是告警，是口径说明） */
+.set-row-badge.is-danger {
+  color: var(--el-color-danger, #f56c6c);
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 12%, transparent);
+}
+/* 选配：灰底灰字，只做口径提示，视觉上让位于必选 */
+.set-row-badge.is-muted {
+  color: var(--el-text-color-secondary, #909399);
+  background: var(--el-fill-color-light, #f5f7fa);
+}
 /*
   说明文字：过长时折叠成 N 行（默认 3 行）。
   不折叠的话，长说明会在固定宽度里堆成一大段，把行撑得很高、
@@ -219,6 +240,16 @@ const controlStyle = computed(() => {
   line-clamp: var(--set-row-desc-lines, 3);
   overflow: hidden;
   /* 中文长串（例如一长串字段名）没有空格可断行，默认会撑破容器 */
+  overflow-wrap: anywhere;
+}
+
+/* 当前值只读行：次级字号 + 主色值，与说明区分开，一眼可查当前生效值 */
+.set-row-readout {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
+  /* 值本身用主色加重：扫一眼先看到「是什么」，来源括号留次级 */
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 

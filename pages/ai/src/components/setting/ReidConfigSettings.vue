@@ -679,6 +679,14 @@ const models = ref<any[]>([])
 const providers = ref<any[]>([])
 let modelsLoadPromise: Promise<void> | null = null
 
+/**
+ * /api/providers 里是否还有 ONNX 本地推理供应商。
+ *
+ * <p>本页的候选同样以「模型管理里已登记的条目」为准：ONNX 供应商被删掉之后，
+ * 引擎清单兜底不得再把它名下的模型挂回选择器（见 {@link mergeEngineModels}）。</p>
+ */
+const onnxProviderPresent = ref(false)
+
 const pickerVisible = ref(false)
 const pickerField = ref('')
 const pickerSelected = ref('')
@@ -693,15 +701,13 @@ const ENGINE_LIST_BY_SUBTYPE: Record<string, { key: string; label: string }> = {
 /**
  * 加载候选模型。
  *
- * <p>候选来自两处，缺一不可：</p>
- * <ul>
- *   <li>{@code /api/providers}：已登记在模型管理里的条目，带 logo 与展示名；</li>
- *   <li>{@code /v2/face/models}：<b>引擎真正能加载的模型清单</b>（{@code FaceDetector.listModels()}
- *       与 {@code FeatureExtractor} 的注册表视图）。很多人脸模型（{@code scrfd-face-detector}、
- *       {@code arc-face} 等）只登记在 ModelRegistry 里，权重未绑定外部目录时不出现在
- *       {@code /api/providers}，只问一边会让「人脸检测模型」弹框里一个候选都没有 ——
- *       用户看着空清单，无从配置。</li>
- * </ul>
+ * <p>主来源是 {@code /api/providers}：模型管理里登记的条目，带 logo 与展示名。</p>
+ *
+ * <p>兜底来源是 {@code /v2/face/models}：<b>引擎真正能加载的模型清单</b>
+ * （{@code FaceDetector.listModels()} 与 {@code FeatureExtractor} 的注册表视图），
+ * 用于补上只登记在 ModelRegistry、还没进模型管理的那些人脸模型。兜底只在
+ * ONNX 本地推理供应商仍然存在时生效 —— 这些模型归属该供应商，供应商被删掉
+ * 就代表不再启用本地推理（见 {@link #onnxProviderPresent}）。</p>
  *
  * <p>两处按<b>裸模型名</b>去重：人脸分组的值必须写裸模型名（后端用 ModelRegistry 的裸 key
  * 查会话），带 {@code providerId:} 前缀的复合键登记时会报「模型未注册」。</p>
@@ -712,6 +718,10 @@ const loadModels = () => {
     try {
       const body = await adminApi.get('/api/providers')
       const data = Array.isArray(body) ? body : body?.data || []
+      // ONNX 本地推理供应商是否还在：删掉它之后不再把引擎清单挂回选择器
+      onnxProviderPresent.value = data.some(
+        (p: any) => p?.provider_id === 'onnx' || p?.platform === 'onnx',
+      )
       const all: any[] = []
       const provs: any[] = []
       for (const p of data) {
@@ -748,8 +758,14 @@ const loadModels = () => {
         }
       }
 
-      // 引擎清单兜底：补上只登记在 ModelRegistry、未进模型管理的那些模型
-      await mergeEngineModels(all, provs)
+      // 引擎清单兜底：补上只登记在 ModelRegistry、未进模型管理的那些模型。
+      // 只在 ONNX 供应商还在时兜底：本地引擎模型在业务上归属该供应商，删掉供应商
+      // 就代表不再启用本地推理，这里不得凭空把模型挂回去。
+      if (onnxProviderPresent.value) {
+        await mergeEngineModels(all, provs)
+      } else {
+        console.info('[ReID 配置] 未配置 ONNX 本地推理供应商，不并入引擎清单')
+      }
       models.value = all
       providers.value = provs
     } catch (e) {
@@ -763,6 +779,10 @@ const loadModels = () => {
 
 /**
  * 把引擎清单里缺的模型补进候选。
+ *
+ * <p>调用前提：{@code /api/providers} 里仍有 ONNX 本地推理供应商
+ * （{@link #onnxProviderPresent}）。这些模型挂在 onnx 名下，供应商不存在时
+ * 再补进来就等于「删了还能选到」。</p>
  *
  * @param all   已收集的候选行（就地追加）
  * @param provs 已收集的供应商分组（就地追加/合并）
