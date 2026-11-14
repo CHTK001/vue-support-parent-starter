@@ -27,6 +27,7 @@ import {
   Cellphone,
   Brush,
   Lock,
+  Key,
   Files,
   DataLine,
   SwitchButton,
@@ -118,12 +119,56 @@ const groupDescMap: Record<string, string> = {
   sms: "内部短信服务（阿里云 / 腾讯云），用于通知与短信验证码投递",
 };
 
+/**
+ * 第三方登录 / 集成渠道的分组 code。
+ *
+ * <p>这些分组在库里是按渠道 code 平铺的（alipay / dingtalk / wechat…），
+ * 之前只有 gitee / github / google / oidc / sso 落了分类，其余十来个渠道
+ * 全部落到「基础配置」里，跟「默认配置 / 系统配置」混在一起，分段标题还
+ * 显示着「第三方集成」却只有 5 个 —— 一键补全，新增渠道时只加这里。</p>
+ */
+const THIRD_PARTY_GROUPS = new Set([
+  "alipay",
+  "dingtalk",
+  "douyin",
+  "feishu",
+  "gitee",
+  "github",
+  "google",
+  "microsoft",
+  "oidc",
+  "qq",
+  "sso",
+  "taobao",
+  "wechat",
+  "wechat_enterprise",
+  "wechat_mp",
+  "weibo",
+]);
+
 const groupNameMap: Record<string, string> = {
   default: "默认配置",
   config: "系统配置",
   userAgreement: "用户协议",
   smtp: "邮件服务",
   sms: "短信服务",
+  /* 第三方登录 / 集成：库里存的是渠道 code，界面上要给中文名，否则一列英文扫不动 */
+  alipay: "支付宝登录",
+  dingtalk: "钉钉登录",
+  douyin: "抖音登录",
+  feishu: "飞书登录",
+  gitee: "Gitee 登录",
+  github: "GitHub 登录",
+  google: "Google 登录",
+  microsoft: "微软登录",
+  oidc: "OIDC 单点登录",
+  qq: "QQ 登录",
+  sso: "单点登录",
+  taobao: "淘宝登录",
+  wechat: "微信登录",
+  wechat_enterprise: "企业微信登录",
+  wechat_mp: "微信公众号登录",
+  weibo: "微博登录",
 };
 function groupName(g: string): string {
   if (g.startsWith("startup")) return "启动参数";
@@ -131,10 +176,12 @@ function groupName(g: string): string {
 }
 function groupIcon(g: string): unknown {
   if (g.startsWith("startup")) return Cpu;
+  if (THIRD_PARTY_GROUPS.has(g)) return Key;
   return groupIconMap[g] ?? Folder;
 }
 function groupDesc(g: string): string {
   if (g.startsWith("startup")) return "后端启动采集参数（内置）";
+  if (THIRD_PARTY_GROUPS.has(g)) return "第三方登录渠道凭据（AppID / 应用密钥 / 回调地址）";
   return groupDescMap[g] ?? "该分组下的配置项";
 }
 
@@ -172,11 +219,6 @@ const CATEGORY_LIST = [
 const groupCategoryMap: Record<string, string> = {
   default: "basic",
   config: "basic",
-  gitee: "integration",
-  github: "integration",
-  google: "integration",
-  oidc: "integration",
-  sso: "integration",
   sms: "message",
   smtp: "message",
   userAgreement: "content",
@@ -185,6 +227,7 @@ const groupCategoryMap: Record<string, string> = {
 /** 分组归类：startup- 前缀优先判为启动参数（一个前缀抵 5 个分组） */
 function groupCategory(g: string): string {
   if (g.startsWith("startup")) return "startup";
+  if (THIRD_PARTY_GROUPS.has(g)) return "integration";
   return groupCategoryMap[g] ?? "basic";
 }
 
@@ -222,6 +265,20 @@ const settingIconMap: Record<string, unknown> = {
 };
 function settingIcon(row: SysSetting): unknown {
   return settingIconMap[normType(row.sysSettingValueType)] ?? Tools;
+}
+
+/**
+ * 值文本切成「可断行片段」。
+ *
+ * <p>回调地址、Webhook 这类长 URL 没有任何空格，`word-break: break-all`
+ * 会把 `.../alipay/callback` 劈成 `.../alipay/ca` + `llback`，读起来像被截断。
+ * 这里只在 URL 分隔符（/ ? # & =）之后补断点，换行点就落在路径层级上。</p>
+ */
+function valueSegments(value?: string | null): string[] {
+  const text = (value ?? "").trim();
+  if (!text) return ["—"];
+  // 零宽断点：按 lookbehind 切在分隔符之后，字符一个不丢
+  return text.split(/(?<=[/?#&=])/).filter(Boolean);
 }
 
 /* ================== 全量数据 ================== */
@@ -777,7 +834,10 @@ onMounted(() => {
               <el-icon :size="15"><component :is="activeGroup ? groupIcon(activeGroup) : Tools" /></el-icon>
             </span>
             <span class="config-main__name">{{ activeGroup ? groupName(activeGroup) : "配置清单" }}</span>
-            <code v-if="activeGroup" class="config-main__code">{{ activeGroup }}</code>
+            <!-- 没有中文名时 groupName 会回退成编码，此时再挂一枚同样的编码标签就是纯重复 -->
+            <code v-if="activeGroup && groupName(activeGroup) !== activeGroup" class="config-main__code">
+              {{ activeGroup }}
+            </code>
             <span class="config-main__count">{{ activeGroupCount }} 项</span>
           </span>
           <!-- 主操作给实底：工具栏里只有一个主动作，实底才能一眼认出「新增」 -->
@@ -835,8 +895,11 @@ onMounted(() => {
                 <el-tag v-if="row.sysSettingInSystem === 1" size="small" type="info" effect="plain" round>内置</el-tag>
               </div>
               <div class="c-item__meta">
-                <code class="c-item__code">{{ row.sysSettingCode || "-" }}</code>
-                <span class="c-item__sep" aria-hidden="true">·</span>
+                <!-- 编码为空时不占位：否则每行都顶一个「- ·」，读起来像缺数据 -->
+                <template v-if="row.sysSettingCode">
+                  <code class="c-item__code">{{ row.sysSettingCode }}</code>
+                  <span class="c-item__sep" aria-hidden="true">·</span>
+                </template>
                 <span>{{ typeLabel(row.sysSettingValueType) }}</span>
               </div>
             </div>
@@ -850,7 +913,7 @@ onMounted(() => {
               <el-icon><component :is="revealedMap[row.sysSettingId] ? Hide : View" /></el-icon>
             </el-button>
           </div>
-          <span v-else class="value-readonly">{{ row.sysSettingValue || "—" }}</span>
+          <span v-else class="value-readonly"><template v-for="(seg, i) in valueSegments(row.sysSettingValue)" :key="i">{{ seg }}<wbr /></template></span>
         </template>
 
         <template #action="{ row }">
@@ -1636,7 +1699,8 @@ onMounted(() => {
 .value-readonly {
   font-size: 13px;
   color: var(--el-text-color-regular);
-  word-break: break-all;
+  /* 断点由模板里的 <wbr> 提供（URL 层级），这里只兜底极长的不可断词 */
+  overflow-wrap: anywhere;
 }
 
 .setting-na {
