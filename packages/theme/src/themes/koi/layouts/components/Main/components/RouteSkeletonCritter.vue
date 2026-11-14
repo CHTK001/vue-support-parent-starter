@@ -56,8 +56,9 @@
  * hop 随机换一根跳过去（含纵向）；climb 只挑纵向最近的一两根，沿骨头爬上去/爬下来，
  * 不跳、不起弧、也不扬尘。</p>
  *
- * <p><b>为什么用 Web Animations API</b>：落点每次都不同，距离、高度、时长要按两点算；
- * WAAPI 可以把每次移动写成一次性 transform 动画，落点写回内联样式，只走合成层。
+ * <p><b>为什么用 Web Animations API</b>：落点每次都不同，距离、时长要按两点算
+ * （高度恒定，见 {@link HOP_ARC}）；WAAPI 可以把每次移动写成一次性 transform 动画，
+ * 落点写回内联样式，只走合成层。
  * 动画结束即 cancel，不在元素上累积 Animation。</p>
  *
  * <p><b>停表条件</b>：页签隐藏（document.hidden）与 prefers-reduced-motion 都不动；
@@ -69,6 +70,16 @@ defineOptions({ name: "RouteSkeletonCritter" });
 
 /** 栖木选择器：骨架里所有加载条 */
 const PERCH_SELECTOR = ".rs-bone";
+
+/**
+ * 跳的固定高度（px）。
+ *
+ * <p>不能按距离缩放：短跳 10px、长跳 30px 时，同一只鸟一会儿轻点一下、
+ * 一会儿又弹很高，观感像在抖而不是在跳。取 10 的上限来自最上面一根骨头——
+ * 它离骨架顶边只有约 11px 的余量（骨架 padding 12 + 卡片边框 1 + 卡片 padding 16
+ * 减去鸟身 24），再高就会顶出骨架、压到上面的页签。</p>
+ */
+const HOP_ARC = 10;
 
 const props = withDefaults(
   defineProps<{
@@ -286,9 +297,10 @@ function move() {
       { transform: `translate(${target.x}px, ${target.y}px) rotate(0deg)`, offset: 1 },
     ];
   } else {
-    // 跳：抛物线 + 起跳侧倾
+    // 跳：固定高度的抛物线 + 起跳侧倾
     const topY = Math.min(from.y, target.y);
-    const arc = Math.max(4, Math.min(30, 10 + dist * 0.12, topY + 6));
+    // 高度恒定，不随距离变；只留顶部余量兜底，保证鸟不会跳出骨架
+    const arc = Math.min(HOP_ARC, Math.max(0, topY + 6));
     const tilt = dx >= 0 ? 6 : -6;
     duration = Math.round(300 + Math.min(dist * 0.9, 360));
     easing = "cubic-bezier(.34,.15,.56,1)";
