@@ -162,7 +162,7 @@ import { MODEL_SUBTYPE_LABELS } from '@/components/models/model.constants'
 import { deriveModelTraits } from '@/components/models/model.utils'
 import { TYPE_LABELS, findPickedModel, mapProviderModel, resolveModelMeta } from '@/components/models/modelMeta'
 import { requiredFieldsOf, requiredGroupOf, isRequiredModelField, resolveGroupRequirement } from '@/config/modelRequiredFields'
-import { enumLabel } from './dms/enumLabels'
+import { enumLabel, isEnumDefinition, parseEnumOptions } from './dms/enumLabels'
 
 // Element Plus 组件导入
 import {
@@ -1213,17 +1213,6 @@ const shouldShowField = (group, field) => {
     return true
 }
 
-// 从描述中解析枚举选项
-const parseEnumOptions = (description) => {
-    if (!description) return []
-    // 匹配括号里的内容，用 / 分隔的选项
-    const match = description.match(/[（(]([^）)]+)[）)]/)
-    if (!match) return []
-    const optionsStr = match[1]
-    // 用 / 分隔，每个选项可能还有中文描述，取第一个部分
-    return optionsStr.split('/').map(opt => opt.trim().split(' ')[0]).filter(opt => opt && opt.length < 50)
-}
-
 /**
  * 取值被固定的字段：只允许一个选项，其它一律删除。
  *
@@ -1237,12 +1226,10 @@ const optionsOf = (item) => {
     return parseEnumOptions(item.description)
 }
 
-// 判断是否是枚举字段
+// 判断是否是枚举字段（描述里必须真的列了 ASCII 取值，见 dms/enumLabels.ts）
 const isEnumField = (item) => {
-    if (item.valueType !== 'STRING') return false
     if (item.field in FIXED_OPTIONS) return true
-    const options = parseEnumOptions(item.description)
-    return options.length >= 2 && options.length <= 10
+    return isEnumDefinition(item)
 }
 
 // 获取字段值

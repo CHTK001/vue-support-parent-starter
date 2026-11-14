@@ -157,6 +157,7 @@ import { useLanguage } from '@/composables/useLanguage'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
 import FieldControl from './dms/FieldControl.vue'
+import { isEnumDefinition, parseEnumOptions } from './dms/enumLabels'
 import ModelPickerDialog from './dms/ModelPickerDialog.vue'
 import { mapProviderModel, findPickedModel } from '@/components/models/modelMeta'
 import { useModelConfigStore } from '@/stores/modelConfig'
@@ -419,12 +420,10 @@ const compressionOptions = (item: SettingDefinitionItem) => {
   return parseEnumOptions(item.description)
 }
 
-/** 是否枚举字（STRING 且描述里带多个可选值，固定项优先） */
+/** 是否枚举字（STRING 且描述里带多个可选值，固定项优先；判定口径见 dms/enumLabels.ts） */
 const isEnumField = (item: SettingDefinitionItem) => {
-  if (item.valueType !== 'STRING') return false
   if (item.field in COMPRESSION_FIXED_OPTIONS) return true
-  const options = parseEnumOptions(item.description)
-  return options.length >= 2 && options.length <= 10
+  return isEnumDefinition(item)
 }
 
 /** 压缩模型字段的 el-input 只读态回显（已选/继承全局/未配置） */
@@ -634,17 +633,6 @@ const pickGroups = (response: any) => {
   if (Array.isArray(first)) return first
   if (Array.isArray(first?.data)) return first.data
   return []
-}
-
-/** 从描述中解析枚举选项（「压缩模式（all/treshold）」 → [all, treshold]） */
-const parseEnumOptions = (description: string) => {
-  if (!description) return []
-  const match = description.match(/[（(]([^）)]+)[）)]/)
-  if (!match) return []
-  return match[1]
-    .split('/')
-    .map((opt: string) => opt.trim().split(' ')[0])
-    .filter((opt: string) => opt && opt.length < 50)
 }
 
 // 原始设置备份，用于对比是否有改动
