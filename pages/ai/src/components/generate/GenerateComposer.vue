@@ -53,6 +53,11 @@
            上下间距由注入方自己的 margin 承担 -->
       <slot name="reference"></slot>
 
+      <!-- 风格缩略图轨（生图）：由外部注入，常驻在输入框内、参考图之下。
+           一排缩略图就是全部风格，点图即换，不必先开弹层再选；
+           轨道只有一行、超宽时横向滚动，不挤压提示词的高度。 -->
+      <slot name="style-rail"></slot>
+
       <!-- 文件列表显示区域 -->
       <div class="file-list flex flex-wrap gap-2 mb-3" v-if="uploadFiles.length > 0">
         <FileItem v-for="file in uploadFiles" :key="file.id" :name="file.displayName" :type="file.fileType"
@@ -110,9 +115,17 @@
         :accept="getFileExtensionsFromType('TEXT').join(',')" @change="handleFileSelect">
       <input type="file" ref="imageInputRef" style="display: none" multiple
         :accept="getFileExtensionsFromType('IMAGE').join(',')" @change="handleImageSelect">
+
+      <!-- 参数轨（生图）：画幅 / 尺寸 / 张数（视频为时长），由外部注入。
+           独立成行、和底部工具条分开：参数决定「这次出图怎么出」，
+           工具条是「用什么模型、对提示词做什么、发出去」。 -->
+      <div v-if="$slots['param-rail']" class="param-rail w-full">
+        <slot name="param-rail"></slot>
+      </div>
+
       <div class="input-actions w-full flex justify-between">
         <div class="tools left-tools flex gap-0.5 items-center">
-          <!-- 生图参数芯片：由外部注入（模型 / 分辨率 / 比例 / 张数 / 风格） -->
+          <!-- 通用工具条插槽：生图页把模型芯片放这里，和优化 / 参考图 / 发送同一行 -->
           <slot name="buttons"></slot>
           <!-- 提示词优化：把当前输入交给大模型扩写成完整提示词，结果由外部回填 -->
           <button
@@ -211,6 +224,11 @@ import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
 import { isAdmin } from '@repo/core';
 import ReDialog from '@repo/ui/re-dialog';
+// 斜杠命令面板与模型选择面板：模板里按 <CommandPicker> / <ModelSelectorPanel> 使用，
+// 漏了这两行会静默降级成未解析自定义元素（控制台 Failed to resolve component），
+// 表现是「输入 / 或点模型按钮，弹层永远不出现」。ChatInput 里是同样的引入方式。
+import CommandPicker from '../chat/chat-input/CommandPicker.vue';
+import ModelSelectorPanel from '../chat/chat-input/ModelSelectorPanel.vue';
 
 /** File object managed by ChatInput (created via createFileObject) */
 interface ChatFile {
@@ -363,6 +381,11 @@ const props = defineProps({
   },
   // 当前选中的风格 key，用于面板内高亮
   styleValue: { type: String, default: '' },
+  // 输入历史（↑↓ 在输入框里翻）：由父级提供，最新的在前
+  history: {
+    type: Array as PropType<ReadonlyArray<string>>,
+    default: () => []
+  },
   buttons: { type: Object as PropType<Record<string, boolean>>, default: () => ({}) },
   class: { type: String, default: '' },
   sessionId: { type: [String, Number], default: null },
@@ -411,6 +434,83 @@ const inputContent = computed({
   set: (value) => emit('update:value', value)
 });
 
+/* ===== 输入历史（2026-11-14）=====
+   输入框内按 ↑↓ 直接翻本机发送过的提示词（父级给这份列表，最新在前）：
+   ↑ 往更早翻，↓ 往新翻；翻到最新一条再按 ↓ 回到正在写的那段草稿。
+   只有「空输入框 / 光标在整篇开头」时 ↑ 才接管，否则会抢掉正常的光标移动；
+   一旦开始翻历史（historyIndex >= 0），↑↓ 始终翻历史，直到用户接着打字。 */
+const historyIndex = ref(-1)
+/** 进入翻历史前的草稿：一路 ↓ 回到这里 */
+const historyDraft = ref('')
+/** 程序写入历史文本期间为 true：onUpdate 据此区分「用户打字」与「翻历史」 */
+let writingHistory = false
+
+/** 结束翻历史状态（用户继续打字 / 发送 / 清空后调用） */
+const resetHistoryBrowse = () => {
+  historyIndex.value = -1
+  historyDraft.value = '';
+}
+
+/** 光标是否在整篇文档的最前面（含空文档） */
+const isCaretAtStart = () => {
+  const ed = editor.value
+  if (!ed) return true
+  const { selection } = ed.state
+  if (!selection.empty) return false
+  const { $from } = selection
+  return $from.parentOffset === 0 && $from.index(0) === 0
+}
+
+/**
+ * 把一段纯文本写成编辑器草稿。
+ *
+ * <p>按行拆成段落再插入：直接 insertContent 一段带 \n 的字符串会被当 HTML 解析，
+ * 换行被吞成空格，翻回来的历史就成了「压平」的一行。</p>
+ *
+ * @param text 纯文本（可含换行）
+ */
+const setDraftText = (text: string) => {
+  if (!editor.value) return
+  writingHistory = true
+  try {
+    const paragraphs = text.split(/\r?\n/).map((line) =>
+      line ? { type: 'paragraph', content: [{ type: 'text', text: line }] } : { type: 'paragraph' },
+    )
+    editor.value.chain().focus().clearContent().insertContent(paragraphs).run()
+    editor.value.commands.focus('end')
+    editorContent.value = editor.value.getText()
+  } finally {
+    writingHistory = false
+  }
+}
+
+/**
+ * 在历史里翻一格。
+ *
+ * @param delta +1 = 更早（↑），-1 = 更新（↓）
+ */
+const moveHistory = (delta: number) => {
+  const len = props.history.length
+  if (!len) return
+  if (historyIndex.value < 0) {
+    // 第一次按 ↑：记住当前草稿，再跳到最新的一条
+    historyDraft.value = editorContent.value
+    historyIndex.value = 0
+    setDraftText(props.history[0])
+    return
+  }
+  const next = historyIndex.value + delta
+  if (next < 0) {
+    // 已经是最新一条，再 ↓ 就回到自己刚写的那段
+    resetHistoryBrowse()
+    setDraftText(historyDraft.value || '')
+    return
+  }
+  if (next >= len) return
+  historyIndex.value = next
+  setDraftText(props.history[next])
+}
+
 // Tiptap 编辑器内容同步
 watch(editorContent, (val) => {
   if (inputContent.value !== val) {
@@ -448,6 +548,11 @@ const parseCommandTags = (text: string): string => {
 };
 
 watch(() => props.value, (val) => {
+  // 外部把草稿清空（发送成功后父级会清）时，翻历史状态一并结束，
+  // 否则下一次 ↑ 会从上一次翻到的那条继续往上，而不是从最新一条开始。
+  if (!val) {
+    resetHistoryBrowse()
+  }
   if (editor.value && editor.value.getText() !== val) {
     // 将纯文本中的 \n 转换为 <br>，确保 setContent 作为 HTML 解析时保留换行
     const htmlContent = parseCommandTags(val).replace(/\n/g, '<br>');
@@ -1184,6 +1289,8 @@ const submit = () => {
   if (!content.trim()) {
     return;
   }
+  // 发送后历史游标归零：下一次 ↑ 从最新一条开始，而不是接着上一次的位置
+  resetHistoryBrowse();
   emit('submit', content.trim());
 };
 
@@ -1481,6 +1588,23 @@ onMounted(() => {
               return true;
             }
           }
+          // 输入历史：↑ 往更早翻（空输入框 / 光标在开头时接管），↓ 往新翻。
+          // 组合键不接管：Shift+↑ 选字、Ctrl+↑ 跳段这些语义要保留。
+          if ((event.key === 'ArrowUp' || event.key === 'ArrowDown')
+            && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey
+            && props.history.length) {
+            const browsing = historyIndex.value >= 0
+            if (event.key === 'ArrowUp' && (browsing || isCaretAtStart())) {
+              event.preventDefault();
+              moveHistory(1);
+              return true;
+            }
+            if (event.key === 'ArrowDown' && browsing) {
+              event.preventDefault();
+              moveHistory(-1);
+              return true;
+            }
+          }
           // Shift+Enter 换行，Enter 发送消息
           if (event.key === 'Enter' && !event.shiftKey) {
             // 与发送按钮相同的禁用条件
@@ -1506,6 +1630,10 @@ onMounted(() => {
       },
       onUpdate: ({ editor: ed }) => {
         editorContent.value = ed.getText();
+        // 用户接着打字（不是翻历史触发的写入）就结束翻历史状态
+        if (!writingHistory) {
+          resetHistoryBrowse();
+        }
         checkCommandTrigger();
         checkAtTrigger();
         nextTick(() => {
@@ -1716,6 +1844,23 @@ defineExpose({ insertText, insertBadge, clearDraft });
   position: relative;
 }
 
+/* 参数轨：一行放画幅 / 尺寸 / 张数（视频为时长），窄窗横向滚动，不换行。
+   与上方提示词留 6px、与下方工具条留 2px，让「输入」和「参数」各成一段。 */
+.param-rail {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 6px 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.param-rail::-webkit-scrollbar {
+  display: none;
+}
+
 /* 命令徽标样式 */
 :deep(.command-badge) {
   display: inline;
@@ -1749,20 +1894,27 @@ defineExpose({ insertText, insertBadge, clearDraft });
 }
 
 
-/* 窄窗防溢出（与 ChatInput 同款，2026-10-09 实测 420px 下 scrollW 540 > 373）：
-   左右两组作为整体换行，不隐藏任何按钮；右组 margin-left:auto 保证换行后仍贴右。 */
+/* 底部工具条始终一行：左右两组都不换行，左组内容超宽时横向滚动（滚动条隐藏）。
+   右组 margin-left:auto 保证仍贴右。 */
 .input-actions {
-  flex-wrap: wrap;
-  row-gap: 4px;
+  flex-wrap: nowrap;
   justify-content: flex-start;
 }
 
 .left-tools {
   display: flex;
   align-items: center;
-  /* 参数 chips 很宽（实测组内 min-content 540px），组内也要换行才能整体收进卡片 */
-  flex-wrap: wrap;
+  /* 参数 chips 很宽（实测组内 min-content 540px），一行放不下就横向滚动，不换行 */
+  flex-wrap: nowrap;
   row-gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.left-tools::-webkit-scrollbar {
+  display: none;
 }
 
 :deep(.el-button+.el-button) {

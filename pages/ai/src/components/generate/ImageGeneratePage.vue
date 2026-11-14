@@ -365,158 +365,241 @@
             -->
             <div class="wg-card-body">
               <!-- 媒体 -->
-              <div v-if="row.kind === 'result'" class="wg-card-media">
-              <!--
-                参考图（源）→ 结果：图生图不是「两张同等的图」。
-                源图固定窄档、缩到结果的一半宽，并配一行说明文字；
-                结果图保持与其他记录同一尺寸，读者一眼先看到成片，再回看它改自哪张。
-                早先两者等大并排（各 240px），源图和成品互相抢视觉，
-                卡片看着像「两张作品」而不是「一次改造」。
-              -->
-              <template v-if="row.task.referenceImage">
-                <figure class="wg-ref-src">
-                  <span class="wg-ref-frame">
-                    <img
-                      v-if="!mediaFailed(row.task.referenceImage)"
-                      :src="mediaSrc(row.task.referenceImage)"
-                      alt="参考图"
-                      loading="lazy"
-                      :style="{ aspectRatio: refRatioOf(row.task) }"
-                    />
-                    <!-- 参考图字节已不在磁盘上：给明确文案，别留一块看不懂的空白 -->
-                    <div
-                      v-else
-                      class="wg-media-lost"
-                      :style="{ aspectRatio: refRatioOf(row.task) }"
-                      role="img"
-                      aria-label="参考图已丢失"
-                    >
-                      参考图已丢失
-                    </div>
-                  </span>
-                  <figcaption class="wg-ref-caption">参考图</figcaption>
-                </figure>
-                <span class="wg-flow" aria-hidden="true">
-                  <WgIcon :d="ICONS.arrowRight" />
-                  <span class="wg-flow-label">{{ row.task.type === 'video' ? '图生视频' : '图生图' }}</span>
-                </span>
-              </template>
-
-              <!-- 结果网格：点击进 viewerjs 预览 -->
-              <div class="wg-grid" :style="{ '--wg-cols': gridCols(row) }" v-viewer="viewerOptions">
-                <figure
-                  v-for="(entry, idx) in row.items"
-                  :key="entry.key"
-                  class="wg-thumb"
-                  :class="{ 'is-lead': isLead(row, idx), 'is-loaded': loadedImages.has(entry.key) }"
-                >
-                  <video
-                    v-if="row.task.type === 'video' && !mediaFailed(entry.url)"
-                    :src="mediaVideoSrc(entry.url)"
-                    class="wg-media"
-                    controls
-                    preload="metadata"
-                    @loadeddata="markLoaded(entry.key)"
-                  />
-                  <div
-                    v-else-if="row.task.type === 'video'"
-                    class="wg-media-lost is-video"
-                    role="img"
-                    aria-label="视频已丢失"
-                  >
-                    视频已丢失
-                  </div>
-                  <!--
-                    decoding="async" 让解码不占主线程，配合 loading="lazy" 只解可见区的那几张。
-                    结果图现在走后端字节流地址（不再内联 base64），懒加载才真正起作用：
-                    内联时 30 张图的 base64 已经全在内存里，lazy 只是空转。
-                    is-loaded 只做透明度过渡，不加装饰投影（见 .wg-thumb）。
-                  -->
-                  <img
-                    v-else-if="!mediaFailed(entry.url)"
-                    :src="mediaSrc(entry.url)"
-                    class="wg-media"
-                    :alt="row.task.prompt"
-                    loading="lazy"
-                    decoding="async"
-                    @load="markLoaded(entry.key)"
-                  />
-                  <!-- 字节已丢失：这条记录仍然要留（可删除 / 可重试），但不能只给一张空白 -->
-                  <div v-else class="wg-media-lost" role="img" aria-label="原图已丢失">原图已丢失</div>
-
-                  <figcaption class="wg-thumb-actions">
-                    <button
-                      v-if="row.task.type === 'image'"
-                      type="button"
-                      class="wg-icon"
-                      aria-label="查看大图"
-                      title="查看大图"
-                      @click.stop="zoom($event)"
-                    >
-                      <WgIcon :d="ICONS.zoom" />
-                    </button>
-                    <button
-                      type="button"
-                      class="wg-icon"
-                      aria-label="下载"
-                      title="下载"
-                      @click.stop="download(entry.url, row.task.type)"
-                    >
-                      <WgIcon :d="ICONS.download" />
-                    </button>
-                    <button
-                      type="button"
-                      class="wg-icon"
-                      :class="{ 'is-on': isFavorite(row.task.taskId) }"
-                      :aria-label="isFavorite(row.task.taskId) ? '取消收藏' : '收藏'"
-                      :title="isFavorite(row.task.taskId) ? '取消收藏' : '收藏'"
-                      @click.stop="toggleFavorite(row.task.taskId)"
-                    >
-                      <WgIcon :d="ICONS.star" />
-                    </button>
-                    <!--
-                      「更多」：把生成结果送去两个底库（需求：图像生成图片上加「更多」：
-                      添加到人脸库、图像库）。只对图片开放——视频没有提特征的意义；
-                      复用与 ImageSearchPage「加入图像底库」同一套 index 接口口径。
-                    -->
-                    <el-dropdown
-                      v-if="row.task.type === 'image'"
-                      trigger="click"
-                      @command="(cmd) => onMoreCommand(cmd, entry, row)"
-                    >
-                      <button
-                        type="button"
-                        class="wg-icon"
-                        aria-label="更多"
-                        title="更多"
-                        :disabled="moreBusy"
-                        @click.stop
+              <div
+                v-if="row.kind === 'result'"
+                class="wg-card-media"
+                :class="{ 'is-ref-peer': isRefPeer(row) }"
+              >
+                <!--
+                  参考图（源）→ 结果：图生图不是「两张同等的图」。
+                  源图默认固定窄档、缩到结果的一半宽，并配一行说明文字；
+                  结果图保持与其他记录同一尺寸，读者一眼先看到成片，再回看它改自哪张。
+                  只有 1 张结果时例外：源图与结果同尺度并排（is-ref-peer），
+                  因为这时「改自哪张」就是这张卡片唯一的读法，缩成窄条反而读不出对应关系。
+                -->
+                <template v-if="row.task.referenceImage">
+                  <figure class="wg-ref-src">
+                    <span class="wg-ref-frame">
+                      <img
+                        v-if="!mediaFailed(row.task.referenceImage)"
+                        :src="mediaSrc(row.task.referenceImage)"
+                        alt="参考图"
+                        loading="lazy"
+                        :style="{ aspectRatio: refRatioOf(row.task) }"
+                      />
+                      <!-- 参考图字节已不在磁盘上：给明确文案，别留一块看不懂的空白 -->
+                      <div
+                        v-else
+                        class="wg-media-lost"
+                        :style="{ aspectRatio: refRatioOf(row.task) }"
+                        role="img"
+                        aria-label="参考图已丢失"
                       >
-                        <WgIcon :d="ICONS.dots" />
-                      </button>
-                      <template #dropdown>
-                        <el-dropdown-menu>
-                          <el-dropdown-item command="face" :disabled="moreBusy"
-                            >添加到人脸库</el-dropdown-item
-                          >
-                          <el-dropdown-item command="image" :disabled="moreBusy"
-                            >添加到图像库</el-dropdown-item
-                          >
-                        </el-dropdown-menu>
-                      </template>
-                    </el-dropdown>
-                  </figcaption>
-                </figure>
-              </div>
-            </div>
+                        参考图已丢失
+                      </div>
+                    </span>
+                    <figcaption class="wg-ref-caption">参考图</figcaption>
+                  </figure>
+                  <span class="wg-flow" aria-hidden="true">
+                    <WgIcon :d="ICONS.arrowRight" />
+                    <span class="wg-flow-label">{{ row.task.type === 'video' ? '图生视频' : '图生图' }}</span>
+                  </span>
+                </template>
 
-            <!-- 进行中：占位块，按目标尺寸保持比例，并按结果网格同一套算法封顶宽度 -->
+                <!--
+                  结果网格：点击进 viewerjs 预览。
+                  张数超过 4 时这一块同时是 hover 浮层的触发区，悬停展开全部结果；
+                  其余张数下浮层直接禁用（disabled），不产生任何浮层与额外节点。
+                -->
+                <el-popover
+                  :disabled="resultLayout(row) !== 'fan'"
+                  trigger="hover"
+                  placement="top-start"
+                  :width="440"
+                  :show-after="120"
+                  :hide-after="220"
+                  :persistent="false"
+                  :popper-style="{ padding: '10px' }"
+                >
+                  <template #reference>
+                    <div
+                      class="wg-grid"
+                      :class="`is-${resultLayout(row)}`"
+                      :style="{ '--wg-cols': gridCols(row) }"
+                      v-viewer="viewerOptions"
+                    >
+                      <figure
+                        v-for="(entry, idx) in row.items"
+                        :key="entry.key"
+                        class="wg-thumb"
+                        :class="{
+                          'is-lead': isLead(row, idx),
+                          'is-fan-card': isFanCard(row, idx),
+                          'is-fan-hidden': isFanHidden(row, idx),
+                          'is-loaded': loadedImages.has(entry.key),
+                        }"
+                        :style="thumbStyle(row, idx)"
+                      >
+                        <video
+                          v-if="row.task.type === 'video' && !mediaFailed(entry.url)"
+                          :src="mediaVideoSrc(entry.url)"
+                          class="wg-media"
+                          controls
+                          preload="metadata"
+                          @loadeddata="markLoaded(entry.key)"
+                        />
+                        <div
+                          v-else-if="row.task.type === 'video'"
+                          class="wg-media-lost is-video"
+                          role="img"
+                          aria-label="视频已丢失"
+                        >
+                          视频已丢失
+                        </div>
+                        <!--
+                          decoding="async" 让解码不占主线程，配合 loading="lazy" 只解可见区的那几张。
+                          结果图现在走后端字节流地址（不再内联 base64），懒加载才真正起作用：
+                          内联时 30 张图的 base64 已经全在内存里，lazy 只是空转。
+                          is-loaded 只做透明度过渡，不加装饰投影（见 .wg-thumb）。
+                        -->
+                        <img
+                          v-else-if="!mediaFailed(entry.url)"
+                          :src="mediaSrc(entry.url)"
+                          class="wg-media"
+                          :alt="row.task.prompt"
+                          loading="lazy"
+                          decoding="async"
+                          @load="markLoaded(entry.key)"
+                        />
+                        <!-- 字节已丢失：这条记录仍然要留（可删除 / 可重试），但不能只给一张空白 -->
+                        <div v-else class="wg-media-lost" role="img" aria-label="原图已丢失">原图已丢失</div>
+
+                        <figcaption class="wg-thumb-actions">
+                          <button
+                            v-if="row.task.type === 'image'"
+                            type="button"
+                            class="wg-icon"
+                            aria-label="查看大图"
+                            title="查看大图"
+                            @click.stop="zoom($event)"
+                          >
+                            <WgIcon :d="ICONS.zoom" />
+                          </button>
+                          <button
+                            type="button"
+                            class="wg-icon"
+                            aria-label="下载"
+                            title="下载"
+                            @click.stop="download(entry.url, row.task.type)"
+                          >
+                            <WgIcon :d="ICONS.download" />
+                          </button>
+                          <button
+                            type="button"
+                            class="wg-icon"
+                            :class="{ 'is-on': isFavorite(row.task.taskId) }"
+                            :aria-label="isFavorite(row.task.taskId) ? '取消收藏' : '收藏'"
+                            :title="isFavorite(row.task.taskId) ? '取消收藏' : '收藏'"
+                            @click.stop="toggleFavorite(row.task.taskId)"
+                          >
+                            <WgIcon :d="ICONS.star" />
+                          </button>
+                          <!--
+                            「更多」：把生成结果送去两个底库（需求：图像生成图片上加「更多」：
+                            添加到人脸库、图像库）。只对图片开放——视频没有提特征的意义；
+                            复用与 ImageSearchPage「加入图像底库」同一套 index 接口口径。
+                          -->
+                          <el-dropdown
+                            v-if="row.task.type === 'image'"
+                            trigger="click"
+                            @command="(cmd) => onMoreCommand(cmd, entry, row)"
+                          >
+                            <button
+                              type="button"
+                              class="wg-icon"
+                              aria-label="更多"
+                              title="更多"
+                              :disabled="moreBusy"
+                              @click.stop
+                            >
+                              <WgIcon :d="ICONS.dots" />
+                            </button>
+                            <template #dropdown>
+                              <el-dropdown-menu>
+                                <el-dropdown-item command="face" :disabled="moreBusy"
+                                  >添加到人脸库</el-dropdown-item
+                                >
+                                <el-dropdown-item command="image" :disabled="moreBusy"
+                                  >添加到图像库</el-dropdown-item
+                                >
+                              </el-dropdown-menu>
+                            </template>
+                          </el-dropdown>
+                        </figcaption>
+                      </figure>
+
+                      <!-- 扇开只露主图 + 三张，余下的张数收进角标；悬停看全部 -->
+                      <span v-if="fanHiddenCount(row)" class="wg-fan-count"
+                        >+{{ fanHiddenCount(row) }}</span
+                      >
+                    </div>
+                  </template>
+
+                  <!--
+                    悬停浮层：全部结果按小格铺开（一次生成 6–10 张时，扇开只是示意，
+                    真正要逐张看的是这里）。只放看图 / 下载 / 收藏，底库入库仍在主图的操作条上。
+                  -->
+                  <div class="wg-fan-all">
+                    <figure v-for="item in row.items" :key="`fan-${item.key}`" class="wg-fan-cell">
+                      <video
+                        v-if="row.task.type === 'video' && !mediaFailed(item.url)"
+                        :src="mediaVideoSrc(item.url)"
+                        class="wg-fan-media"
+                        controls
+                        preload="metadata"
+                      />
+                      <img
+                        v-else-if="!mediaFailed(item.url)"
+                        :src="mediaSrc(item.url)"
+                        class="wg-fan-media"
+                        :alt="row.task.prompt"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <div v-else class="wg-fan-lost">原图已丢失</div>
+                      <figcaption class="wg-fan-cell-actions">
+                        <button
+                          type="button"
+                          class="wg-icon"
+                          aria-label="下载"
+                          title="下载"
+                          @click.stop="download(item.url, row.task.type)"
+                        >
+                          <WgIcon :d="ICONS.download" />
+                        </button>
+                        <button
+                          type="button"
+                          class="wg-icon"
+                          :class="{ 'is-on': isFavorite(row.task.taskId) }"
+                          :aria-label="isFavorite(row.task.taskId) ? '取消收藏' : '收藏'"
+                          :title="isFavorite(row.task.taskId) ? '取消收藏' : '收藏'"
+                          @click.stop="toggleFavorite(row.task.taskId)"
+                        >
+                          <WgIcon :d="ICONS.star" />
+                        </button>
+                      </figcaption>
+                    </figure>
+                  </div>
+                </el-popover>
+              </div>
+
+              <!-- 进行中：占位块，按目标尺寸保持比例，宽度与出图后的结果块同一套算法 -->
               <div v-else-if="row.kind === 'running'" class="wg-card-media">
                 <div
                   class="wg-generating"
                   :style="{
                     aspectRatio: aspectOf(row.task.size),
-                    maxWidth: generatingMaxWidth(row),
+                    width: placeholderWidth(row),
                   }"
                 >
                   <span class="wg-spark"><WgIcon :d="ICONS.sparkle" /></span>
@@ -545,7 +628,7 @@
                 <div
                   class="wg-void"
                   :class="row.task.status === 'CANCELED' ? 'is-canceled' : 'is-failed'"
-                  :style="{ aspectRatio: aspectOf(row.task.size), maxWidth: generatingMaxWidth(row) }"
+                  :style="{ aspectRatio: aspectOf(row.task.size), width: placeholderWidth(row) }"
                 >
                   <span class="wg-void-icon">
                     <WgIcon :d="row.task.type === 'video' ? ICONS.video : ICONS.image" />
@@ -566,27 +649,27 @@
               <div class="wg-card-detail">
                 <p class="wg-card-title" :title="row.task.prompt">{{ row.task.prompt || '（无提示词）' }}</p>
                 <div class="wg-card-chips">
-                <span class="wg-pill wg-pill-model">
-                  <em class="wg-pill-label">模型</em>
-                  <img v-if="modelLogo(row.task.model)" :src="modelLogo(row.task.model)!" alt="" class="wg-logo" />
-                  <span>{{ modelLabel(row.task.model) }}</span>
-                </span>
-                <span v-if="row.task.size" class="wg-pill">
-                  <em class="wg-pill-label">尺寸</em>
-                  <span>{{ row.task.size }}<template v-if="ratioOf(row.task.size)"> · {{ ratioOf(row.task.size) }}</template></span>
-                </span>
-                <span v-if="row.task.type === 'image' && (row.task.count ?? 1) > 1" class="wg-pill">
-                  <em class="wg-pill-label">张数</em>
-                  <span>{{ row.task.count }} 张</span>
-                </span>
-                <span v-if="row.task.type === 'video' && row.task.duration" class="wg-pill">
-                  <em class="wg-pill-label">时长</em>
-                  <span>{{ row.task.duration }}s</span>
-                </span>
-                <span v-if="row.task.type === 'image' && row.task.style" class="wg-pill">
-                  <em class="wg-pill-label">风格</em>
-                  <span>{{ styleName(row.task.style) }}</span>
-                </span>
+                  <span class="wg-pill wg-pill-model">
+                    <em class="wg-pill-label">模型</em>
+                    <img v-if="modelLogo(row.task.model)" :src="modelLogo(row.task.model)!" alt="" class="wg-logo" />
+                    <span>{{ modelLabel(row.task.model) }}</span>
+                  </span>
+                  <span v-if="row.task.size" class="wg-pill">
+                    <em class="wg-pill-label">尺寸</em>
+                    <span>{{ row.task.size }}<template v-if="ratioOf(row.task.size)"> · {{ ratioOf(row.task.size) }}</template></span>
+                  </span>
+                  <span v-if="row.task.type === 'image' && (row.task.count ?? 1) > 1" class="wg-pill">
+                    <em class="wg-pill-label">张数</em>
+                    <span>{{ row.task.count }} 张</span>
+                  </span>
+                  <span v-if="row.task.type === 'video' && row.task.duration" class="wg-pill">
+                    <em class="wg-pill-label">时长</em>
+                    <span>{{ row.task.duration }}s</span>
+                  </span>
+                  <span v-if="row.task.type === 'image' && row.task.style" class="wg-pill">
+                    <em class="wg-pill-label">风格</em>
+                    <span>{{ styleName(row.task.style) }}</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -631,12 +714,13 @@
           v-model:style-panel-open="stylePanelOpen"
           :busy="submitting || hasRunningTask"
           :placeholder="placeholder"
-          :allow-reference="!!currentConfig?.referenceImage"
+          :allow-reference="referenceSupported"
           allow-optimize
           :optimizing="optimizing"
-          :allow-style-panel="styleSupported"
+          :allow-style-panel="styleSupported && styleRailEnabled"
           :style-items="stylePanelItems"
           :style-value="style"
+          :history="promptHistory"
           @submit="onComposerSubmit"
           @pick-reference="pickReference"
           @optimize="onOptimize"
@@ -667,11 +751,88 @@
             </figure>
           </template>
 
-          <!-- 参数芯片：模型 / 分辨率 / 比例 / 时长 / 张数 / 风格 -->
+          <!-- 风格轨：一排缩略图，点图即换风格；默认不显示，由工具条上的风格开关控制。
+               与 @ 风格面板共用同一份 styleOptions / styleThumb，不另存第二份数据。 -->
+          <template #style-rail>
+            <div
+              v-if="mediaType === 'image' && ((styleRailEnabled && styleSupported) || referenceSupported)"
+              class="wg-style-rail"
+            >
+              <span class="wg-style-rail-label">
+                <template v-if="styleRailEnabled && styleSupported">风格<template v-if="style"> · {{ styleLabel }}</template></template>
+                <template v-else>参考图</template>
+              </span>
+              <div class="wg-style-rail-list" role="group" aria-label="风格与参考图">
+                <template v-if="styleRailEnabled && styleSupported">
+                <!-- 「无风格」排最前：风格是一个可取消的附加项，不能选上去就下不来 -->
+                <button
+                  type="button"
+                  class="wg-rail-style"
+                  :class="{ 'is-active': !style }"
+                  :aria-pressed="!style"
+                  title="无风格"
+                  @click="pickStyle('')"
+                >
+                  <span class="wg-rail-thumb is-none" aria-hidden="true">
+                    <WgIcon :d="ICONS.close" />
+                  </span>
+                  <span class="wg-rail-style-name">无风格</span>
+                </button>
+                <button
+                  v-for="item in styleOptions"
+                  :key="item.key || 'none'"
+                  type="button"
+                  class="wg-rail-style"
+                  :class="{ 'is-active': style === item.key }"
+                  :aria-pressed="style === item.key"
+                  :title="item.prompt ? `${item.name} · ${item.prompt}` : item.name"
+                  @click="pickStyle(item.key)"
+                >
+                  <span class="wg-rail-thumb">
+                    <img
+                      v-if="styleThumb(item.key)"
+                      :src="mediaSrc(styleThumb(item.key))"
+                      :alt="item.name"
+                      loading="lazy"
+                      @error="markStyleThumbFailed(item.key)"
+                    />
+                    <!-- 没有对应缩略图的风格：按 key 固定的色块 + 名字占位，不拿别的风格的图冒充 -->
+                    <span v-else class="wg-style-fallback" :style="styleFallbackStyle(item.key)">{{ item.name }}</span>
+                  </span>
+                  <span class="wg-rail-style-name">{{ item.name }}</span>
+                </button>
+                <!--
+                  添加参考图：风格是「往提示词里加什么」，参考图是「照着什么画」，
+                  两者都是出图的附加条件，放在同一条轨上，用户不必先去工具条里找图标。
+                  模型不支持图生图时不显示（能力见 sys_ai_provider_model_capabilities）。
+                -->
+                </template>
+                <button
+                  v-if="referenceSupported"
+                  type="button"
+                  class="wg-rail-style is-add"
+                  aria-label="添加参考图"
+                  title="添加参考图"
+                  @click="pickReference"
+                >
+                  <span class="wg-rail-thumb is-add" aria-hidden="true">
+                    <WgIcon :d="ICONS.image" />
+                  </span>
+                  <span class="wg-rail-style-name">参考图</span>
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <!--
+            工具条左组：模型。和优化 / 参考图 / 发送排在同一行 ——
+            「用什么模型、对提示词做什么、发出去」本来就是一串动作，拆成两行要来回找。
+          -->
           <template #buttons>
-            <PickerPopover v-model:show="modelOpen" :width="340" @update:show="(v) => { modelOpen = v; if (!v) modelKeyword = '' }">
+            <span class="wg-rail-group">
+              <PickerPopover v-model:show="modelOpen" :width="340" @update:show="(v) => { modelOpen = v; if (!v) modelKeyword = '' }">
               <template #trigger="{ toggle }">
-                <button type="button" class="wg-chip is-strong" title="创作模型" @click="toggle">
+                <button type="button" class="wg-chip is-strong is-toolbar" title="创作模型" @click="toggle">
                   <img v-if="modelLogo(model)" :src="modelLogo(model)!" alt="" class="wg-logo" />
                   <span>{{ modelLabel(model) }}</span>
                   <WgIcon :d="ICONS.chevron" />
@@ -705,16 +866,105 @@
                   <span>Esc 关闭</span>
                 </div>
               </div>
-            </PickerPopover>
+              </PickerPopover>
+            </span>
+            <!-- 风格开关：默认关闭。是否可开由模型能力决定（styleSupported），
+                 开启后风格轨才显示；与模型芯片同排，不另起一行。 -->
+            <button
+              v-if="mediaType === 'image' && styleSupported"
+              type="button"
+              class="wg-chip is-toolbar wg-style-switch"
+              :class="{ 'is-strong': styleRailEnabled }"
+              role="switch"
+              :aria-checked="styleRailEnabled"
+              aria-label="风格开关"
+              title="风格：开启后显示风格缩略图"
+              @click="styleRailEnabled = !styleRailEnabled"
+            >
+              <WgIcon :d="ICONS.sparkle" />
+              <span>风格</span>
+            </button>
+          </template>
 
-            <!-- 分辨率 + 比例 -->
-            <PickerPopover v-if="sizes.length" v-model:show="sizeOpen" :width="300">
-              <template #trigger="{ toggle }">
-                <button type="button" class="wg-chip" title="分辨率与比例" @click="toggle">
-                  <span>{{ size || sizes[0] }}<template v-if="activeRatio"> · {{ activeRatio }}</template></span>
-                  <WgIcon :d="ICONS.chevron" />
-                </button>
-              </template>
+          <!--
+            参数轨：张数 / 画幅 / 尺寸（视频为时长）。
+            参数常驻、点一下就改，不必先开弹层再选；弹层只留给需要细选的部分
+            （完整的分辨率与比例列表、跳着改张数）。
+          -->
+          <template #param-rail>
+            <!-- 张数前置到分辨率 UI 之前：与「尺寸」同款的安静值按钮，
+                 点开是模型支持的全部档位（不再用 − n + 连点）。 -->
+            <template v-if="mediaType === 'image'">
+              <span class="wg-rail-group">
+                <span class="wg-rail-label">
+                  <WgIcon :d="ICONS.stack" class="wg-rail-label-icon" />
+                  张数
+                </span>
+                <PickerPopover v-model:show="countOpen" :width="260">
+                  <template #trigger="{ toggle }">
+                    <button type="button" class="wg-rail-value" title="张数" @click="toggle">
+                      <span>{{ count }} 张</span>
+                      <WgIcon :d="ICONS.chevron" />
+                    </button>
+                  </template>
+                  <div class="wg-menu">
+                    <p class="wg-menu-title">张数</p>
+                    <div class="wg-seg">
+                      <button
+                        v-for="n in countOptions"
+                        :key="n"
+                        type="button"
+                        class="wg-seg-item"
+                        :class="{ 'is-active': count === n }"
+                        :aria-pressed="count === n"
+                        @click="count = n; countOpen = false"
+                      >
+                        {{ n }} 张
+                      </button>
+                    </div>
+                  </div>
+                </PickerPopover>
+              </span>
+            </template>
+
+            <template v-if="sizes.length">
+              <!-- 张数与分辨率之间用竖线分段；视频态没有张数，就不留这条空线 -->
+              <span v-if="mediaType === 'image'" class="wg-rail-sep" aria-hidden="true"></span>
+              <!-- 画幅：把分辨率按方向归成 方 / 横 / 竖 三段，点一段就切到该方向的第一档。
+                   只有一种方向时不显示（一个按钮的分段没有选择意义）。 -->
+              <span v-if="aspectGroups.length > 1" class="wg-rail-group">
+                <span class="wg-rail-label">画幅</span>
+                <span class="wg-rail-seg" role="group" aria-label="画幅">
+                  <button
+                    v-for="g in aspectGroups"
+                    :key="g.key"
+                    type="button"
+                    class="wg-rail-seg-item"
+                    :class="{ 'is-active': activeAspect === g.key }"
+                    :aria-pressed="activeAspect === g.key"
+                    :title="`${g.label}图 ${g.ratio}`"
+                    @click="pickAspect(g.key)"
+                  >
+                    <span class="wg-ratio-box" :style="ratioBoxStyle(g.ratio)" aria-hidden="true"></span>
+                    <span>{{ g.label }}</span>
+                  </button>
+                </span>
+              </span>
+
+              <!-- 精确尺寸：点开是完整的分辨率 + 比例列表（同一方向常有 1K / 2K 多档） -->
+              <PickerPopover v-model:show="sizeOpen" :width="300">
+                <template #trigger="{ toggle }">
+                  <button type="button" class="wg-rail-value" title="分辨率与比例" @click="toggle">
+                    <span
+                      v-if="activeRatio"
+                      class="wg-ratio-box"
+                      :style="ratioBoxStyle(activeRatio)"
+                      aria-hidden="true"
+                    ></span>
+                    <span>{{ size || sizes[0] }}<template v-if="activeRatio"> · {{ activeRatio }}</template></span>
+                    <WgIcon :d="ICONS.chevron" />
+                  </button>
+                </template>
               <div class="wg-menu">
                 <p class="wg-menu-title">分辨率</p>
                 <div class="wg-seg">
@@ -726,7 +976,14 @@
                     :class="{ 'is-active': size === item }"
                     @click="size = item"
                   >
-                    {{ resolutionLabel(item) }}
+                    <!-- 每个分辨率前面带它自身的比例框：同是 1K，方图/横图/竖图一眼分得开 -->
+                    <span
+                      v-if="ratioOf(item)"
+                      class="wg-ratio-box"
+                      :style="ratioBoxStyle(ratioOf(item))"
+                      aria-hidden="true"
+                    ></span>
+                    <span>{{ resolutionLabel(item) }}</span>
                   </button>
                 </div>
                 <template v-if="ratios.length">
@@ -748,19 +1005,20 @@
                 </template>
               </div>
             </PickerPopover>
+            </template>
 
-            <!-- 时长（视频） -->
-            <PickerPopover
-              v-if="mediaType === 'video' && durations.length"
-              v-model:show="durationOpen"
-              :width="300"
-            >
-              <template #trigger="{ toggle }">
-                <button type="button" class="wg-chip" title="时长" @click="toggle">
-                  <span>{{ duration || durations[0] }}s</span>
-                  <WgIcon :d="ICONS.chevron" />
-                </button>
-              </template>
+            <!-- 时长（视频）：与图像的分辨率同一条参数轨，点开是模型支持的离散档位 -->
+            <template v-if="mediaType === 'video' && durations.length">
+              <span class="wg-rail-sep" aria-hidden="true"></span>
+              <span class="wg-rail-group">
+                <span class="wg-rail-label">时长</span>
+                <PickerPopover v-model:show="durationOpen" :width="300">
+                  <template #trigger="{ toggle }">
+                    <button type="button" class="wg-rail-value" title="时长" @click="toggle">
+                      <span>{{ duration || durations[0] }}s</span>
+                      <WgIcon :d="ICONS.chevron" />
+                    </button>
+                  </template>
               <div class="wg-menu">
                 <p class="wg-menu-title">时长</p>
                 <!--
@@ -785,90 +1043,9 @@
                   </button>
                 </div>
               </div>
-            </PickerPopover>
-
-            <!-- 张数 -->
-            <PickerPopover v-if="mediaType === 'image'" v-model:show="countOpen" :width="180">
-              <template #trigger="{ toggle }">
-                <button type="button" class="wg-chip" title="张数" @click="toggle">
-                  <span>{{ count }} 张</span>
-                  <WgIcon :d="ICONS.chevron" />
-                </button>
-              </template>
-              <div class="wg-menu">
-                <p class="wg-menu-title">张数</p>
-                <button
-                  v-for="n in countOptions"
-                  :key="n"
-                  type="button"
-                  class="wg-menu-item"
-                  :class="{ 'is-active': count === n }"
-                  @click="count = n; countOpen = false"
-                >
-                  <span class="wg-menu-text"><span class="wg-menu-name">{{ n }} 张</span></span>
-                  <WgIcon v-if="count === n" :d="ICONS.check" class="wg-menu-check" />
-                </button>
-                <div class="wg-menu-foot">
-                  <span>↑↓ 导航</span>
-                  <span>Enter 选择</span>
-                  <span>Esc 关闭</span>
-                </div>
-              </div>
-            </PickerPopover>
-
-            <!-- 风格：仅模型声明支持 style 时展示；缩略图只取真正用过该风格的图 -->
-            <PickerPopover
-              v-if="mediaType === 'image' && styleSupported"
-              v-model:show="styleOpen"
-              :width="360"
-              :max-height="560"
-            >
-              <template #trigger="{ toggle }">
-                <button
-                  type="button"
-                  class="wg-chip"
-                  :class="{ 'is-strong': !!style }"
-                  title="风格模板"
-                  @click="toggle"
-                >
-                  <img
-                    v-if="style && styleThumb(style)"
-                    :src="mediaSrc(styleThumb(style))!"
-                    alt=""
-                    class="wg-style-chip-thumb"
-                    @error="markStyleThumbFailed(style)"
-                  />
-                  <span>{{ styleLabel }}</span>
-                  <WgIcon :d="ICONS.chevron" />
-                </button>
-              </template>
-              <div class="wg-menu">
-                <p class="wg-menu-title">风格</p>
-                <div class="wg-style-grid">
-                  <button
-                    v-for="item in styleOptions"
-                    :key="item.key || 'none'"
-                    type="button"
-                    class="wg-style"
-                    :class="{ 'is-active': style === item.key }"
-                    :aria-pressed="style === item.key"
-                    @click="pickStyle(item.key); styleOpen = false"
-                  >
-                    <span class="wg-style-thumb">
-                      <img
-                        v-if="styleThumb(item.key)"
-                        :src="mediaSrc(styleThumb(item.key))"
-                        :alt="item.name"
-                        loading="lazy"
-                        @error="markStyleThumbFailed(item.key)"
-                      />
-                      <span v-else class="wg-style-fallback">{{ item.name }}</span>
-                    </span>
-                    <span class="wg-style-name">{{ item.name }}</span>
-                  </button>
-                </div>
-              </div>
-            </PickerPopover>
+                </PickerPopover>
+              </span>
+            </template>
           </template>
         </GenerateComposer>
 
@@ -892,6 +1069,8 @@ import { useLibraryGroups } from '@/composables/useLibraryGroups'
 import type { GenerateModel, GenerateTask, GenerateTaskStatus } from '../../services/modules/generate.api'
 import { isInlineMedia, resolveReferenceImage } from '../../services/modules/generate.api'
 import { createAuthImageLoader, downloadAuthenticatedFile } from '../../utils/authImage'
+import { loadInputHistory, rememberInput } from '../../utils/inputHistory'
+import { useAuthStore } from '../../stores/auth'
 /*
  * 内联媒体（后端存下来的字节）没有请求头可带，只能 fetch + blob 加载。
  * withBaseUrl: false —— 出图媒体地址后端下发时就已含 /v2 前缀，再拼一次就是 /v2/v2/...。
@@ -963,6 +1142,9 @@ const ICONS: Record<string, string> = {
   star: 'M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z',
   grid: 'M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z',
   list: 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5',
+  // 张数：叠起来的画框（Heroicons rectangle-stack），表达「这一组有几张」
+  stack:
+    'M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3',
   dots: 'M12 6h.01M12 12h.01M12 18h.01', // 「更多」菜单：三点竖排（round 线帽下 h.01 渲染成圆点）
   image:
     'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Z',
@@ -1059,6 +1241,17 @@ const STYLE_TEMPLATES: ReadonlyArray<StyleTemplate> = [
   { key: 'product', name: '商业产品', prompt: '商业产品摄影，干净背景，专业棚拍布光，高细节' },
   { key: 'sketch', name: '铅笔线稿', prompt: '铅笔素描线稿，单色，明暗排线，纸张质感' },
   { key: 'pixel', name: '像素怀旧', prompt: '像素艺术，8-bit 复古游戏风，有限色板' },
+  // 2026-11-14 扩充：原有 8 种集中在「写实 / 动漫 / 平面插画」，缺油画、水彩这类
+  // 传统画种，也缺 3D、微缩这类近两年常见的出图方向，用户可选项偏窄。
+  // 新风格暂未配缩略图，面板里用按 key 固定的色块 + 风格名占位（不拿别的风格的图冒充）。
+  { key: 'oil', name: '油画厚涂', prompt: '古典油画，厚涂笔触，画布肌理，暖调侧光，油料光泽' },
+  { key: 'watercolor', name: '水彩晕染', prompt: '水彩画，湿画法晕染，颜色自然扩散，留白与纸纹' },
+  { key: 'cinematic', name: '电影剧照', prompt: '电影剧照，宽银幕构图，戏剧性布光，胶片颗粒与冷调色' },
+  { key: 'render3d', name: '3D 渲染', prompt: '三维渲染，PBR 材质，柔和全局光照，干净背景，高精度细节' },
+  { key: 'guofeng', name: '国潮工笔', prompt: '中国工笔画，细线勾勒，矿物颜料上色，云纹与金线装饰' },
+  { key: 'lowpoly', name: '低多边形', prompt: '低多边形三维艺术，几何切面，简洁配色，等距视角' },
+  { key: 'vaporwave', name: '蒸汽波', prompt: '蒸汽波美学，粉紫渐变，网格地平线，复古故障与光泽质感' },
+  { key: 'isometric', name: '等距微缩', prompt: '等距微缩场景，玩具模型质感，移轴效果，精致小世界' },
 ]
 
 /**
@@ -1073,14 +1266,29 @@ const STYLE_TEMPLATES: ReadonlyArray<StyleTemplate> = [
  * 页面里 8 格有 7 格是破图。webp 不在忽略名单里，能跟着提交走。
  *
  * 表里没有对应文件的 key（模型管理里自配的风格）会退到「真用过该风格」的生成结果，
- * 都没有时用风格名占位——配错图比没图更误导。
+ * 都没有时用按 key 固定的色块 + 风格名占位 —— 配错图比没图更误导。
  */
 const STYLE_THUMBS: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(
-    ['photo', 'anime', 'ink', 'cyber', 'clay', 'product', 'sketch', 'pixel'].map((key) => [
-      key,
-      `${import.meta.env.BASE_URL}gen-style/${key}.webp`,
-    ]),
+    [
+      'photo',
+      'anime',
+      'ink',
+      'cyber',
+      'clay',
+      'product',
+      'sketch',
+      'pixel',
+      // 2026-11-14 新增的 8 种：同一主体、同一套出图口径补的缩略图
+      'oil',
+      'watercolor',
+      'cinematic',
+      'render3d',
+      'guofeng',
+      'lowpoly',
+      'vaporwave',
+      'isometric',
+    ].map((key) => [key, `${import.meta.env.BASE_URL}gen-style/${key}.webp`]),
   ),
 )
 
@@ -1186,6 +1394,24 @@ const sortOrder = ref<'newest' | 'oldest'>('newest')
 const viewStyle = ref<'list' | 'grid'>('list')
 const favorites = ref<string[]>(readFavorites())
 
+const authStore = useAuthStore()
+
+/**
+ * 生图提示词历史（输入框 ↑↓ 切换）。
+ *
+ * <p>与会话页共用 utils/inputHistory 的存储实现，但用 `generate` 分组：
+ * 会话里是追问，生图这边是画面描述，混在一个列表里翻起来很乱。
+ * 按用户分键，同一浏览器多账号不串内容；清空历史记录不影响这里。</p>
+ */
+const promptHistory = ref<string[]>(loadInputHistory(authStore.user?.username, 'generate'))
+
+watch(
+  () => authStore.user?.username,
+  (name) => {
+    promptHistory.value = loadInputHistory(name, 'generate')
+  },
+)
+
 const canvasRef = ref<HTMLElement | null>(null)
 const composerRef = ref<HTMLElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -1212,7 +1438,6 @@ const modelOpen = ref(false)
 const sizeOpen = ref(false)
 const durationOpen = ref(false)
 const countOpen = ref(false)
-const styleOpen = ref(false)
 
 /** 模型弹层里的检索词：模型多了以后，会话侧同样是先给检索框再列模型 */
 const modelKeyword = ref('')
@@ -1259,15 +1484,39 @@ const styleOptions = computed<ReadonlyArray<StyleTemplate>>(() => {
 /** 当前模型是否支持风格：风格是拼进提示词的描述，默认支持，仅模型显式声明 false 时才关闭 */
 const styleSupported = computed(() => currentConfig.value?.style !== false)
 
+/**
+ * 当前模型是否支持参考图（图生图）。
+ *
+ * <p>风格轨上的「参考图」格与工具条图标共用这一个判断：模型不支持时两处一起消失，
+ * 免得入口点开发现选不了。</p>
+ */
+const referenceSupported = computed(() => !!currentConfig.value?.referenceImage)
+
 /** @ 风格面板是否打开 */
 const stylePanelOpen = ref(false)
 
 /**
+ * 风格开关：默认关闭。
+ *
+ * 是否显示开关由模型能力 styleSupported 决定（模型显式声明 style=false 时连开关都不给）；
+ * 开启后风格轨与 @ 风格面板才一起出现。风格轨里的「添加参考图」是独立的图生图入口，
+ * 不受这个开关影响。关闭时清掉已选风格并收起面板，免得「关了风格」却仍把描述拼进提示词。
+ */
+const styleRailEnabled = ref(false)
+
+watch(styleRailEnabled, (on) => {
+  if (!on) {
+    style.value = ''
+    stylePanelOpen.value = false
+  }
+})
+
+/**
  * @ 风格面板的风格项。
  *
- * 缩略图与描述都从 styleOptions 取，与芯片弹层共用同一份数据 ——
+ * 缩略图与描述都从 styleOptions 取，与风格轨共用同一份数据 ——
  * 两处各维护一份必然漂移（之前「风格缩略图和文字对不上」就是这么来的）。
- * 无风格项（key 为空）不进面板：面板是「加一个风格」，去掉风格用芯片上的无风格。
+ * 无风格项（key 为空）不进面板：面板是「加一个风格」，去掉风格用风格轨最左侧的无。
  */
 const stylePanelItems = computed(() =>
   styleOptions.value
@@ -1320,6 +1569,84 @@ const ratios = computed(() => {
 })
 
 const activeRatio = computed(() => ratioOf(size.value))
+
+/**
+ * 画幅分组：把该模型支持的分辨率按宽高关系归成 方 / 横 / 竖 三段。
+ *
+ * <p>模型的分辨率列表常同时混着 "1024x1024"、"1280x720"、"768x1280" 这类
+ * 不同方向的档位，逐条列出来要点好几次才知道哪个是竖图。按方向归组后
+ * 轨道上只留三段，点「竖」就直接切到该方向的第一档；组内还有 1K / 2K
+ * 多档时由精确尺寸入口继续选。</p>
+ *
+ * <p>只有一种方向时不返回分组（一个按钮的分段没有选择意义，模板里也就不渲染）。</p>
+ */
+interface AspectGroup {
+  key: 'square' | 'landscape' | 'portrait'
+  label: string
+  ratio: string
+  size: string
+}
+
+const aspectGroups = computed<AspectGroup[]>(() => {
+  const groups: AspectGroup[] = []
+  const push = (key: AspectGroup['key'], label: string, size: string) => {
+    const ratio = ratioOf(size)
+    if (!ratio) {
+      return
+    }
+    // 同一方向的多个档位只留第一个：分段按钮表达「我要这个方向」，档位交给精确尺寸
+    if (groups.some((item) => item.key === key)) {
+      return
+    }
+    groups.push({ key, label, ratio, size })
+  }
+  for (const item of sizes.value) {
+    const matched = /^(\d+)\s*[x×*]\s*(\d+)$/i.exec(item.trim())
+    if (!matched) {
+      continue
+    }
+    const w = Number(matched[1])
+    const h = Number(matched[2])
+    if (w === h) {
+      push('square', '方', item)
+    } else if (w > h) {
+      push('landscape', '横', item)
+    } else {
+      push('portrait', '竖', item)
+    }
+  }
+  // 固定 方 / 横 / 竖 的顺序，避免跟着模型配置的排列来回跳
+  const order: AspectGroup['key'][] = ['square', 'landscape', 'portrait']
+  return order.map((key) => groups.find((item) => item.key === key)!).filter(Boolean)
+})
+
+/** 当前分辨率所属的画幅分组：不在任何组（如模型只给了一种方向之外的尺寸）时返回空串 */
+const activeAspect = computed(() => {
+  const current = sizes.value.find((item) => item === size.value)
+  if (!current) {
+    return ''
+  }
+  return (
+    aspectGroups.value.find((item) => item.size === current)?.key
+      ?? aspectGroups.value.find((item) => ratioOf(current) === item.ratio)?.key
+      ?? ''
+  )
+})
+
+/**
+ * 点画幅分段：切到该方向的第一档。
+ *
+ * <p>如果当前尺寸已经是这个方向（只是档位不同，例如 1K 横图 → 2K 横图），
+ * 也仍切到该方向的第一档 —— 分段按钮的语义是「选这个方向」，不是「在档位间循环」。</p>
+ *
+ * @param key 方向分组 key
+ */
+const pickAspect = (key: AspectGroup['key']) => {
+  const hit = aspectGroups.value.find((item) => item.key === key)
+  if (hit) {
+    size.value = hit.size
+  }
+}
 
 const modelLabel = (value: string) => {
   if (!value) {
@@ -1548,60 +1875,106 @@ const voidRecordCount = computed(
 const hasVoidRecords = computed(() => voidRecordCount.value > 0)
 
 /**
- * 结果网格列数（写进 --wg-cols）。
+ * 结果的排法（按张数分四档，不看有没有参考图）。
  *
- * 按张数换排法，而不是一路平铺：
- *   1 张  1 列       2 张  2 列       3 张  3 列       4 张  4 列
- *   5 张  4 列 + 首张占 2×2（左侧一张大图，右侧 2×2）
- *   6 张  3 列 ×2    7 张起 3 列
- * 有参考图时结果区被压缩，固定 2 列（4 张即 2×2），与 UI 图卡片 1 一致。
+ *   1 张      single  按真实比例单张展示，不套方框
+ *   2 张      pair    一行两列
+ *   3–4 张    quad    2×2
+ *   5 张起    fan     主图 + 扇开，悬停弹出全部
+ *
+ * 参考图只改「源图怎么摆」，不改结果本身的排法：
+ * 只有 1 张结果时源图与结果同尺度并排（is-ref-peer），多张时源图退到左侧窄轨。
  */
-const gridCols = (row: Row) => {
-  const n = row.items.length
-  if (n === 0) {
-    return 4
+type ResultLayout = 'single' | 'pair' | 'quad' | 'fan'
+
+const resultLayout = (row: Row): ResultLayout => {
+  const n = row.items.length || row.task.count || 1
+  if (n <= 1) {
+    return 'single'
   }
-  if (row.task.referenceImage) {
-    // 图生图最多两列（参考图占了左栏，结果再多会挤），但只有 1 张时就是 1 列 ——
-    // 无条件给 2 列会在媒体区留一整列空白（结果图 300 + 空 310），卡片看着空。
-    return Math.min(n, 2)
+  if (n === 2) {
+    return 'pair'
   }
   if (n <= 4) {
-    return n
+    return 'quad'
   }
-  if (n === 5) {
-    return 4
-  }
-  return 3
+  return 'fan'
 }
 
-/** 拼图主角：仅 5 张时的第一张，占 2×2 格 */
-const isLead = (row: Row, index: number) =>
-  !row.task.referenceImage && row.items.length === 5 && index === 0
+/**
+ * 结果网格列数（写进 --wg-cols）。
+ * 单张 1 列、其余一律 2 列：2 张即一行，3–4 张即 2×2。
+ */
+const gridCols = (row: Row) => (resultLayout(row) === 'single' ? 1 : 2)
+
+/** 有参考图且结果只有 1 张：源图不再缩成窄轨，与结果同尺度并排 */
+const isRefPeer = (row: Row) =>
+  Boolean(row.task.referenceImage) && resultLayout(row) === 'single'
+
+/** 扇开主图：张数超过 4 时的第一张，完整展示 */
+const isLead = (row: Row, index: number) => resultLayout(row) === 'fan' && index === 0
+
+/** 扇开露头的卡片数量：主图之外最多再露三张，其余收进 +N 角标 */
+const FAN_PEEK = 3
 
 /**
- * 进行中占位块的宽度上限。
+ * 当前视图下真正露头的张数。
+ * 网格视图一列只有 360px，主图 + 三张露头会挤到卡片外，所以那里一张都不露（=0），
+ * 只留主图 + 角标；列表视图按 FAN_PEEK 露三张。
+ */
+const fanPeek = () => (viewStyle.value === 'grid' ? 0 : FAN_PEEK)
+
+const isFanCard = (row: Row, index: number) =>
+  resultLayout(row) === 'fan' && index > 0 && index <= fanPeek()
+
+/**
+ * 扇开里被收起来的张数（模板里用它的真假决定是否出 +N）。
+ * 与 isFanCard / isFanHidden 共用 fanPeek，角标数字和实际露出的张数才对得上。
+ */
+const fanHiddenCount = (row: Row) =>
+  resultLayout(row) === 'fan' ? Math.max(0, row.items.length - 1 - fanPeek()) : 0
+
+const isFanHidden = (row: Row, index: number) =>
+  resultLayout(row) === 'fan' && index > fanPeek()
+
+/** 扇开的错位：越靠右转得越多、落得越低，形成一叠照片的手感 */
+const fanCardStyle = (index: number) => ({
+  zIndex: 20 - index,
+  transform: `translateY(${(index - 1) * 14}px) rotate(${3 + (index - 1) * 4}deg)`,
+})
+
+/**
+ * 缩略图的附加样式：单张按真实比例给高度，扇开给错位；
+ * 其余情况返回空值，不使用内联样式。
+ */
+const thumbStyle = (row: Row, index: number) => {
+  if (resultLayout(row) === 'single') {
+    return { aspectRatio: aspectOf(row.task.size) }
+  }
+  return isFanCard(row, index) ? fanCardStyle(index) : undefined
+}
+
+/**
+ * 进行中 / 失败占位块的宽度。
  *
- * 占位块是 .wg-card-media 的 flex:1 子项，本身不限宽：不限就会被拉到整行宽度，
- * 再叠加 aspect-ratio（如 1024x1024 → 1/1）就成了一整屏高的渐变色块。
- * 这里用与 .wg-grid 相同的封顶公式，宽度按**即将到达的张数**算：
- * 等待态占多宽，出图后就占多宽，不会出现「等待时铺满屏幕、出图后缩成一小块」的反差。
+ * 占位块的宽度必须和「出图后那一块」一致，否则同一张卡片在等待 → 出图时宽度会跳：
+ * 单张 = 一列，2–4 张 = 两列，5 张起 = 主图 + 三张露头（与 .wg-grid 的 max-width 同一个公式）。
+ * 所以这里给的是**宽度**而不是宽度上限：占位块没有图片内容，不写死宽度就会被内容
+ * （一行「生成中…」文字）撑成一个窄块，等图出来了再变成两列宽。
  *
- * 不能直接调 gridCols —— 它读的是已到结果数，等待时恒为 0 而返回 4 列，
- * 会让单张任务凭空占 4 格宽。
+ * 不能直接调 gridCols —— 它读的是已到结果数，等待时恒为 0 而返回 1 列，
+ * 但多张任务出图后是两列，等待时先按两列的宽度才不跳。
  *
  * @param row 当前卡片行
- * @return 可直接写进 style 的 max-width 值
+ * @return 可直接写进 style.width 的值
  */
-const generatingMaxWidth = (row: Row) => {
+const placeholderWidth = (row: Row) => {
   const n = Math.max(1, row.task.count ?? 1)
-  const cols = row.task.referenceImage
-    ? Math.min(n, 2)
-    : n <= 4
-      ? n
-      : n === 5
-        ? 4
-        : 3
+  if (n > 4) {
+    // 主图 + 三张露头：每张 110px 宽、压掉 46px，合计 192px 露在右侧
+    return 'calc(var(--wg-thumb) + var(--wg-fan-peek))'
+  }
+  const cols = n <= 1 ? 1 : 2
   return `calc(${cols} * var(--wg-thumb) + ${cols - 1} * 10px)`
 }
 
@@ -1769,10 +2142,10 @@ const onDurationPick = (value: number) => {
 }
 
 /**
- * 点风格芯片：只记下选中的风格 key。
+ * 点风格轨上的缩略图：只记下选中的风格 key。
  *
- * 不再把风格描述写进输入框 —— 输入条本身已有风格选择器（芯片 + @ 面板），
- * 用户能看到的「选中了哪个风格」就是芯片上的缩略图 + 文字；
+ * 不再把风格描述写进输入框 —— 输入条本身已有风格选择器（常驻缩略图轨 + @ 面板），
+ * 用户能看到的「选中了哪个风格」就是轨上高亮的那张缩略图 + 标签上的名字；
  * 描述文本在提交时由 onComposerSubmit 统一拼到提示词最前面，避免输入区
  * 出现一段风格文案、还容易与用户手打的文字重复或冲突。
  *
@@ -1783,7 +2156,7 @@ const pickStyle = (key: string) => {
 }
 
 /**
- * @ 面板里选中：只记下风格 key（用于芯片高亮与提交时拼接），
+ * @ 面板里选中：只记下风格 key（用于风格轨高亮与提交时拼接），
  * 不再往输入框写任何文字 —— 风格描述由提交端统一拼到提示词最前面。
  *
  * @param key 风格 key
@@ -1832,6 +2205,29 @@ const markStyleThumbFailed = (key: string | undefined) => {
 
 /** 渲染用缩略图：失败过的 key 一律返回空串，让模板走占位分支 */
 const styleThumb = (key: string) => (failedStyleThumbs.has(key) ? '' : stylePreview(key))
+
+/**
+ * 无缩略图风格的占位色相。
+ *
+ * <p>按 key 做一次简单散列落到 0~359：同一个风格每次打开都是同一块颜色，
+ * 不会忽蓝忽绿。它只是占位底色，不宣称「这就是该风格的样子」——
+ * 拿别的风格的成图冒充，比一块中性的色块更误导。</p>
+ *
+ * @param key 风格 key
+ * @return 色相角
+ */
+const styleHue = (key: string) => {
+  let hash = 0
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) % 360
+  }
+  return hash
+}
+
+/** 占位块的内联样式：只暴露色相变量，具体渐变与文字样式在 .wg-style-fallback 里 */
+const styleFallbackStyle = (key: string) => ({
+  '--wg-style-hue': String(styleHue(key || 'none')),
+})
 
 const switchMedia = (value: 'image' | 'video') => {
   // 切换类型是「跳转」而非「调节某个开关」，选完应当收起弹层
@@ -2840,6 +3236,10 @@ const onComposerSubmit = async (text: string) => {
       referenceHeight: referenceMeta.value?.originalHeight || undefined,
     })
     tasks.value.unshift(task)
+    // 记进本机输入历史（↑↓ 可翻回）：只存用户手打的那段，不存拼接后的风格描述，
+    // 回填时风格仍由风格轨负责，避免描述在提示词里出现两遍。
+    rememberInput(withStyle, authStore.user?.username, 'generate')
+    promptHistory.value = loadInputHistory(authStore.user?.username, 'generate')
     // 记住本次提交：创建接口只保证「记录已入库」便返回 200，上游是否受理要到轮询才知道
     // （限流、队列满、Key 失效都发生在入库之后的异步提交里）。没有这层监听的话，
     // 失败只会表现为卡片静默翻成「失败」——用户若提交后切走或看别的标签就完全察觉不到。
@@ -2964,6 +3364,9 @@ onUnmounted(() => {
      宽卡片里留出一大片空白（实测 1200px 卡里右侧空 500px+），
      拉到 300px 让图占住左栏，卡片不再看着「内容挤在左边」。 */
   --wg-thumb: 300px;
+  /* 扇开时三张露头卡片占的横向宽度：110 − 46（压边）= 64 × 3。
+     进行中 / 失败占位块的宽度上限也用这个值，保证等待态与出图后一样宽。 */
+  --wg-fan-peek: 192px;
 }
 
 .wg-main {
@@ -3034,10 +3437,6 @@ onUnmounted(() => {
   background: var(--color-input-bg);
   color: var(--color-text-gray);
   transition: border-color 0.2s;
-}
-
-.wg-search:focus-within {
-  border-color: var(--color-primary);
 }
 
 .wg-search .wg-svg {
@@ -3293,6 +3692,7 @@ onUnmounted(() => {
 /* 页脚按键提示：与会话面板的 hintNavigate / hintSelect / hintClose 同一行文 */
 .wg-menu-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin-top: 4px;
@@ -3325,6 +3725,9 @@ onUnmounted(() => {
 }
 
 .wg-seg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 10px;
   border: 1px solid var(--color-surface-border);
   border-radius: var(--r-sm);
@@ -3384,70 +3787,257 @@ onUnmounted(() => {
   border-radius: calc(var(--r-sm) / 4);
 }
 
-.wg-style-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 4px 0;
-}
+/* ---------- 参数轨（模型 / 画幅 / 尺寸 / 张数） ---------- */
 
-.wg-style {
-  display: flex;
-  flex-direction: column;
+/* 轨上的一组：小标签 + 控件。标签 12px 灰字，控件 26px 高，比工具条的 34px 芯片轻一档，
+   因为参数轨是常驻的，太重会盖过提示词本身。 */
+.wg-rail-group {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
   gap: 6px;
-  padding: 6px;
+}
+
+.wg-rail-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-gray);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.wg-rail-label-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* 组与组之间的细竖线：参数多时靠它分段，比每组都加边框安静 */
+.wg-rail-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 16px;
+  background: var(--color-surface-border);
+}
+
+/* 画幅分段：方 / 横 / 竖 三段连成一体，选中段用主色底 */
+.wg-rail-seg {
+  display: inline-flex;
+  overflow: hidden;
   border: 1px solid var(--color-surface-border);
-  border-radius: var(--r-sm);
-  background: var(--color-surface);
+  border-radius: var(--r-pill);
+  background: var(--color-secondary-surface);
+}
+
+.wg-rail-seg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 9px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-gray);
+  font-size: 12px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.wg-style:hover,
-.wg-style.is-active {
+.wg-rail-seg-item:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.wg-rail-seg-item.is-active {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+/* 精确尺寸 / 时长：一个安静的值按钮，点开才见完整档位 */
+.wg-rail-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: var(--color-secondary-surface);
+  color: var(--color-text-gray);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.wg-rail-value:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.wg-rail-value .wg-svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* 张数：与「尺寸」同款的安静值按钮，点开是模型支持的全部档位（.wg-rail-value 已有样式） */
+
+/* 工具条里的模型芯片：与相邻的 28px 图标按钮同高，一行才不参差 */
+.wg-chip.is-toolbar {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.wg-chip.is-toolbar .wg-svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* 风格开关：默认灰底；开启用主色描边 + 浅底，与旁边常驻实心的模型芯片区分，
+   不抢模型芯片这个更重要的信息。状态由 .is-strong 切换。 */
+.wg-style-switch.is-strong {
   border-color: var(--color-primary);
+  background: var(--color-primary-50);
+  color: var(--color-primary);
+  font-weight: 500;
 }
 
-.wg-style.is-active {
+/* ---------- 风格轨（输入框内常驻的一排缩略图） ---------- */
+
+.wg-style-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 0;
+}
+
+.wg-style-rail-label {
+  flex: 0 0 auto;
+  max-width: 96px;
+  overflow: hidden;
+  color: var(--color-text-gray);
+  font-size: 12px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 超过一行就横向滚：风格数量由模型配置决定，轨道不能把提示词挤没 */
+.wg-style-rail-list {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.wg-rail-style {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 48px;
+  padding: 3px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.wg-rail-style:hover {
+  background: var(--color-surface-hover);
+}
+
+.wg-rail-style.is-active {
+  border-color: var(--color-primary);
   background: var(--color-primary-50);
 }
 
-.wg-style-thumb {
+.wg-rail-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  width: 42px;
   aspect-ratio: 1 / 1;
-  border-radius: var(--r-sm);
+  border-radius: calc(var(--r-sm) / 1.5);
   background: var(--color-secondary-surface);
 }
 
-.wg-style-thumb img {
+.wg-rail-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.wg-style-fallback {
-  padding: 0 4px;
+/* 「无风格」：虚线空框 + 叉，一眼是「不加风格」而不是某张图 */
+.wg-rail-thumb.is-none {
+  border: 1px dashed var(--color-surface-border);
   color: var(--color-text-gray);
-  font-size: 12px;
-  text-align: center;
 }
 
-.wg-style-name {
+.wg-rail-thumb.is-none .wg-svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 「添加参考图」：同款虚线空框 + 图片图标 —— 和「无风格」并排也看得出一个是「不要风格」，
+   一个是「加一张参考图」，不会混成同一类 */
+.wg-rail-thumb.is-add {
+  border: 1px dashed var(--color-surface-border);
+  color: var(--color-text-gray);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.wg-rail-thumb.is-add .wg-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.wg-rail-style.is-add:hover .wg-rail-thumb.is-add {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* 轨上占位色块只有 42px，12px 的风格名放不下，缩到 10px 两字一行 */
+.wg-rail-thumb .wg-style-fallback {
+  padding: 0 2px;
+  font-size: 10px;
+}
+
+.wg-rail-style-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-text-gray);
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wg-rail-style.is-active .wg-rail-style-name {
+  color: var(--color-primary);
+}
+
+.wg-style-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 6px;
+  /* 色相来自 key：同一风格稳定同色；两条叠色只是让色块有层次，不指向任何具体画面 */
+  background:
+    radial-gradient(circle at 28% 18%, hsl(var(--wg-style-hue, 220) 62% 68% / 0.55), transparent 62%),
+    linear-gradient(140deg, hsl(var(--wg-style-hue, 220) 52% 52% / 0.22), hsl(var(--wg-style-hue, 220) 46% 38% / 0.12));
   color: var(--color-text);
   font-size: 12px;
+  line-height: 1.35;
   text-align: center;
-}
-
-/* 风格芯片上的小缩略图：选中风格后用真实风格图 + 文字一起展示 */
-.wg-style-chip-thumb {
-  flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
-  border-radius: calc(var(--r-sm) / 2);
-  object-fit: cover;
 }
 
 /* ---------- 画布与卡片 ---------- */
@@ -3478,6 +4068,7 @@ onUnmounted(() => {
 */
 .wg-media-btn:focus-visible,
 .wg-chip:focus-visible,
+.wg-rail-value:focus-visible,
 .wg-view:focus-visible,
 .wg-menu-item:focus-visible,
 .wg-seg-item:focus-visible,
@@ -3863,6 +4454,21 @@ onUnmounted(() => {
   letter-spacing: 0.02em;
 }
 
+/*
+ * 02 First Cell：结果只有 1 张时源图不缩成窄轨，
+ * 与结果同尺度并排 —— 只有一张成片时，「改自哪张」值得和成品一样大。
+ *
+ * 两侧都按 1:1:0 参与伸缩、共享同一个 max-width：
+ * 卡片够宽时各占 --wg-thumb（源图 = 成片），窄档（网格视图）里等比一起缩，
+ * 不会出现「源图被 flex 撑住、成片被压小」导致一对比就不成对的情况。
+ */
+.wg-card-media.is-ref-peer .wg-ref-src {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  max-width: var(--wg-thumb);
+}
+
 /* 「源 → 成片」的连接：图标与模式名上下排，说明这一对是生成关系而不是并列的图 */
 .wg-flow {
   display: flex;
@@ -3899,12 +4505,147 @@ onUnmounted(() => {
 }
 
 /*
- * 拼图主角：张数为 5 时第一张占 2×2 格，
- * 形成「左边一张大图 + 右侧 2×2」的排法。
+ * 单张：按真实比例展示（比例由 thumbStyle 写进 .wg-thumb 的内联 aspect-ratio），
+ * 不套方框 —— 16:9 的成片裁成正方形等于丢掉画面两端。
  */
-.wg-thumb.is-lead {
-  grid-column: span 2;
-  grid-row: span 2;
+/*
+ * 单张要给一个确定的宽度基准。
+ * 这一档的 <img> 是绝对定位（见下方 is-single .wg-media），网格里没有任何内容撑宽，
+ * 只写 max-width 时实测宽度塌成 0（图片整块不显示）；带参考图时也只分到一半（150px）。
+ * 定宽后列表 300px、网格视图 150px；列窄时仍由 .wg-grid 的 flex-shrink 等比缩。
+ */
+.wg-grid.is-single {
+  grid-template-columns: minmax(0, 1fr);
+  width: var(--wg-thumb);
+  max-width: var(--wg-thumb);
+}
+
+/*
+ * 单张不裁剪：.wg-thumb 用内联 aspect-ratio 定高，媒体绝对铺满这一块。
+ * 不给媒体设 aspect-ratio/height，是为了不让图片的固有尺寸反过来撑高卡片（真实比例由 .wg-thumb 说了算）。
+ */
+.wg-grid.is-single .wg-media,
+.wg-grid.is-single .wg-media-lost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.wg-grid.is-single .wg-media {
+  object-fit: contain;
+}
+
+/*
+ * 主图 + 扇开（张数 > 4）。
+ * 第一张按标准尺寸完整展示，后面三张错位叠在右侧，露出窄边示意「还有更多」；
+ * 悬停整块由 el-popover 展开全部结果（.wg-fan-all）。
+ */
+.wg-grid.is-fan {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  /* 与进行中 / 失败占位块同一宽度：主图 + 三张露头 */
+  max-width: calc(var(--wg-thumb) + var(--wg-fan-peek));
+}
+
+.wg-grid.is-fan .wg-thumb.is-lead {
+  flex: 0 0 var(--wg-thumb);
+  /* 主图在最前：后面三张压边 46px 藏在它下面，只露出各自右侧的一窄条，
+     主图本身不被遮住（漏出的部分比主图更「薄」，读法仍是「一张成片 + 还有几张」）。 */
+  z-index: 30;
+}
+
+.wg-grid.is-fan .wg-thumb.is-fan-card {
+  flex: 0 0 110px;
+  margin-left: -46px;
+  border: 2px solid var(--el-bg-color);
+  background: var(--el-bg-color);
+  /* 阴影落在右侧以外，避免在主图下面糊出一圈黑边 */
+  box-shadow: 4px 3px 14px color-mix(in srgb, var(--el-color-black) 14%, transparent);
+}
+
+/* 露头的那几张只负责示意：窄条里点不准，操作收进浮层 */
+.wg-grid.is-fan .wg-thumb.is-fan-card .wg-thumb-actions {
+  display: none;
+}
+
+.wg-grid.is-fan .wg-thumb.is-fan-hidden {
+  display: none;
+}
+
+/* 收起来的张数：压在最后一张露头卡片上，纯展示不参与点击 */
+.wg-fan-count {
+  position: absolute;
+  right: 8px;
+  bottom: 10px;
+  z-index: 40;
+  padding: 2px 8px;
+  border-radius: var(--el-border-radius-round, 999px);
+  background: color-mix(in srgb, var(--el-color-black) 62%, transparent);
+  color: var(--el-color-white);
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* 浮层里的全部结果：等格小图铺开，一次生成 6–10 张时逐张看这里 */
+.wg-fan-all {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.wg-fan-cell {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: calc(var(--size-dialog-rounded-radius) - 6px);
+  background: var(--color-secondary-surface);
+}
+
+.wg-fan-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.wg-fan-lost {
+  display: flex;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-gray);
+  font-size: 11px;
+}
+
+.wg-fan-cell-actions {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+
+.wg-fan-cell:hover .wg-fan-cell-actions {
+  opacity: 1;
+}
+
+.wg-fan-cell-actions .wg-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.wg-fan-cell-actions .wg-icon .wg-svg {
+  width: 13px;
+  height: 13px;
 }
 
 /*
@@ -3915,6 +4656,10 @@ onUnmounted(() => {
  */
 .wg-list.is-grid {
   --wg-thumb: 150px;
+  /* 紧凑档不扇开：一列只有 360px，主图 + 三张露头放不下，
+     露头会挤出卡片右边界，所以这里只留主图 + 「+N」角标（见 fanPeek）。
+     露头宽度归零，进行中 / 失败占位块的封顶宽度也跟着回到主图宽。 */
+  --wg-fan-peek: 0px;
   display: grid;
   align-items: start;
   gap: 16px;
@@ -3974,6 +4719,13 @@ onUnmounted(() => {
 .wg-list.is-grid .wg-ref-src {
   width: 84px;
 }
+
+/* 只有一张结果时源图与结果同尺度（02 First Cell），不跟着收窄。
+   这里不再单独指定宽度：上面 is-ref-peer 用 1:1:0 共享伸缩，
+   窄列里两张图一起等比缩小，硬写 --wg-thumb 反而会撑破 360px 的列。 */
+
+/* 网格视图里扇开整组收起（fanPeek() = 0）：主图 + 角标，全部结果走悬停浮层。
+   宽度不用另写规则：--wg-fan-peek 归零后 .wg-grid.is-fan 的 max-width 就是主图宽。 */
 
 .wg-list.is-grid .wg-ref-caption,
 .wg-list.is-grid .wg-flow-label {
@@ -4087,11 +4839,13 @@ onUnmounted(() => {
 }
 
 /* 进行中占位块。
-   宽度上限由模板内联 max-width 给（generatingMaxWidth，与 .wg-grid 同一套封顶公式），
-   这里只管形状与配色；不限宽的话 flex:1 会把它拉满整行，叠加 aspect-ratio 就是整屏色块。 */
+   宽度由模板内联 width 给（placeholderWidth，与 .wg-grid 同一套公式），
+   这里只管形状与配色。max-width:100% 是窄卡片里的兜底：
+   两列宽度（610px）在网格视图的 320px 列里放不下，夹到卡片宽为止。 */
 .wg-generating {
   display: flex;
-  flex: 1;
+  flex: 0 0 auto;
+  max-width: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -4224,15 +4978,14 @@ onUnmounted(() => {
 }
 
 /* 无产物占位块。
-   几何（宽度上限）由模板内联 max-width 给，与 .wg-grid / .wg-generating 同一套封顶公式；
+   几何（宽度）由模板内联 width 给，与 .wg-grid / .wg-generating 同一套公式——
+   2 张失败就是两列宽、5 张起就是主图 + 露头宽，和出图后的那一块同尺寸；
    这里只管形状与配色。用边框而不是投影承载边界，卡片基线不加装饰投影。
    底纹是极淡的斜向条纹，与参考图区的斜线朝向一致，视觉上属于同一族。 */
 .wg-void {
   display: flex;
-  /* 与 .wg-thumb 同宽，占位块才和真结果在同一列里视觉对齐；
-     宽度上限仍由模板内联 max-width 给（多图 / 带参考图时封顶）。 */
   flex: 0 0 auto;
-  width: var(--wg-thumb);
+  max-width: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
