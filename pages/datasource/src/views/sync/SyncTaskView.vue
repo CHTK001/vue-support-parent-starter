@@ -170,7 +170,7 @@
               </div>
               <div
                 v-for="ev in g.events" :key="ev.id"
-                class="v11-ev" :class="{ err: ev.status !== 'SUCCESS', run: isRunningEv(ev) }"
+                class="v11-ev" :class="{ err: ev.status !== 'SUCCESS', run: isRunningEv(ev), gone: !taskExists(ev.taskId) }"
                 role="button" tabindex="0"
                 @click="selectTaskById(ev.taskId)"
                 @keydown.enter="selectTaskById(ev.taskId)"
@@ -186,12 +186,12 @@
                 </span>
                 <span class="du mono">{{ formatCost(ev.costMs) }}</span>
                 <button
-                  v-if="ev.status !== 'SUCCESS' && ev.taskId"
+                  v-if="ev.status !== 'SUCCESS' && taskExists(ev.taskId)"
                   type="button" class="v11-retry" :title="`重试 ${ev.taskName}`"
                   @click.stop="runTaskById(ev.taskId)"
                 >重试</button>
                 <button
-                  v-else type="button" class="v11-icobtn" title="查看该任务日志"
+                  v-else-if="taskExists(ev.taskId)" type="button" class="v11-icobtn" title="查看该任务日志"
                   @click.stop="openLogById(ev.taskId)"
                 ><ReIcon name="Right" :size="12" /></button>
               </div>
@@ -2150,8 +2150,15 @@ function isRunningEv(ev: SyncTaskRunLogItem): boolean {
 const moreRuns = computed(() => Math.max(0, (runStats.value?.total ?? recentRuns.value.length) - recentRuns.value.length));
 
 /** 任务定位三件套（流水行点击 / 重试 / 打开日志都按 id 回查，避免行上带整对象） */
+const taskExists = (id?: number | null): boolean => id != null && tasks.value.some(t => t.id === id);
 const selectTaskById = (id?: number | null): void => {
-  if (id != null && tasks.value.some(t => t.id === id)) selectedTaskId.value = id;
+  if (id == null) return;
+  if (tasks.value.some(t => t.id === id)) {
+    selectedTaskId.value = id;
+    return;
+  }
+  // 执行记录还在、任务已被删掉：给出明确反馈，别让点击看起来毫无反应
+  message.warning("该执行记录所属的任务已被删除");
 };
 const runTaskById = (id?: number | null): void => {
   const task = tasks.value.find(t => t.id === id);
@@ -3199,14 +3206,21 @@ const submit = async () => {
       cron: form.cron.trim() ? form.cron.trim() : null,
       enabled: form.enabled ? 1 : 0,
     };
+    let savedId: number | null = editingId.value ?? null;
     if (editingId.value) {
       await updateSyncTask(editingId.value, payload);
     } else {
-      await createSyncTask(payload);
+      // 新建后把工作台切到刚建的任务：否则右边还停在上一个选中/默认失败任务上，
+      // 用户会以为没建成功，接着点「立即执行」还会误跑别的任务（验收实测踩到）。
+      const created = await createSyncTask(payload);
+      savedId = created?.id ?? null;
     }
     message.success("已保存");
     dialogVisible.value = false;
     await refresh();
+    // 后端若没回传新任务 id，按任务名兜底（名称是用户刚填的，唯一性由用户保证）
+    if (savedId == null) savedId = tasks.value.find(t => t.syncTaskName === payload.name)?.id ?? null;
+    if (savedId != null) selectedTaskId.value = Number(savedId);
   } catch (e) {
     message.error("保存失败：" + (e as Error)?.message);
   } finally {
@@ -4021,6 +4035,10 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .v11-ev:hover { background: var(--bg-fill); }
+/* 执行记录所属任务已被删除：保留历史（如实展示），但明确不可点 */
+.v11-ev.gone { cursor: default; }
+.v11-ev.gone:hover { background: transparent; }
+.v11-ev.gone .m b { color: var(--text-tertiary); }
 .v11-ev .tm { font-size: 9px; color: var(--text-tertiary); }
 .v11-ev .st-dot { width: 5px; height: 5px; }
 .v11-ev .m { display: flex; align-items: center; gap: 7px; min-width: 0; }
