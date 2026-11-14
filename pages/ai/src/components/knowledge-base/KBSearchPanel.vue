@@ -6,7 +6,7 @@
     <div class="kb-search__box shrink-0">
       <div class="flex flex-col gap-3">
         <div class="kb-search__row items-start">
-          <el-input
+          <ReInput
             v-model="searchForm.query"
             :placeholder="t('knowledge.search.contentPlaceholder')"
             clearable
@@ -21,7 +21,7 @@
         <div class="flex items-center gap-4 flex-wrap">
           <div class="flex-1 min-w-[220px] flex items-center gap-3">
             <span class="text-sm text-[var(--rm-text-secondary)] shrink-0">{{ t('knowledge.search.resultCount') }}</span>
-            <el-slider v-model="searchForm.topK" :min="1" :max="20" :step="1" show-input class="flex-1" />
+            <ReInputNumber v-model="searchForm.topK" :min="1" :max="20" :step="1" suffix="条" class="w-32 shrink-0" />
           </div>
         </div>
       </div>
@@ -153,6 +153,8 @@ import { apiService } from '@/services/ApiService'
 import { highlightText } from './searchHighlight'
 import ReButton from '@repo/ui/re-button'
 import ReSquareButton from '@repo/ui/re-button'
+import ReInput from '@repo/ui/re-input'
+import ReInputNumber from '@repo/ui/re-input-number'
 import ReTag from '@/components/ui/ReTag.vue'
 
 /** 检索结果条目 */

@@ -29,15 +29,15 @@
                 @click="openWebDialog" />
 
             <!-- 上传任务按钮(仅在有任务时显示；角标显示队列数量) -->
-            <el-badge v-if="uploadTasks.length > 0" :value="uploadTasks.length" :max="99" class="kb-up-badge">
+            <ReBadge v-if="uploadTasks.length > 0" :value="uploadTasks.length" :max="99" class="kb-up-badge">
                 <ReSquareButton layout="square" class="kb-btn" :icon="Upload" tip="上传任务"
                     @click="emit('show-upload-task')" />
-            </el-badge>
+            </ReBadge>
         </div>
 
         <!-- 新建文件夹对话框 -->
         <ReDialog v-model="showCreateFolderDialog" :title="t('knowledge.upload.newFolderTitle')" :width="400" :close-on-click-modal="false">
-            <el-input
+            <ReInput
                 v-model="newFolderName"
                 :placeholder="t('knowledge.upload.folderNamePlaceholder')"
                 @keyup.enter="confirmCreateFolder"
@@ -77,20 +77,21 @@
                 </div>
 
                 <div class="mt-4">
-                    <el-radio-group v-model="conflictMode" class="flex flex-col gap-3">
-                        <el-radio value="overwrite" size="large">
+                    <!-- layout="el"：两行「标题 + 说明」竖排，用原生单选样式，由页面 flex-col gap-3 控制间距 -->
+                    <ReRadioGroup v-model="conflictMode" layout="el" class="flex flex-col gap-3">
+                        <ReRadio value="overwrite" size="large">
                             <div class="flex flex-col">
                                 <span class="font-medium">{{ t('knowledge.upload.conflictOverwrite') }}</span>
                                 <span class="text-xs text-[var(--rm-text-secondary)]">{{ t('knowledge.upload.conflictOverwriteDesc') }}</span>
                             </div>
-                        </el-radio>
-                        <el-radio value="keep-both" size="large">
+                        </ReRadio>
+                        <ReRadio value="keep-both" size="large">
                             <div class="flex flex-col">
                                 <span class="font-medium">{{ t('knowledge.upload.conflictKeepBoth') }}</span>
                                 <span class="text-xs text-[var(--rm-text-secondary)]">{{ t('knowledge.upload.conflictKeepBothDesc') }}</span>
                             </div>
-                        </el-radio>
-                    </el-radio-group>
+                        </ReRadio>
+                    </ReRadioGroup>
                 </div>
             </div>
 
@@ -105,8 +106,8 @@
         <!-- 新建 Markdown 文档 -->
         <ReDialog v-model="showMarkdownDialog" title="新建 Markdown 文档" :width="560" :close-on-click-modal="false">
             <div class="flex flex-col gap-3">
-                <el-input v-model="mdName" placeholder="文件名（无需扩展名，自动补 .md）" @keyup.enter="confirmMarkdown" />
-                <el-input
+                <ReInput v-model="mdName" placeholder="文件名（无需扩展名，自动补 .md）" @keyup.enter="confirmMarkdown" />
+                <ReInput
                     v-model="mdContent"
                     type="textarea"
                     :rows="12"
@@ -127,13 +128,13 @@
         <!-- 从网页导入 -->
         <ReDialog v-model="showWebDialog" title="从网页导入" :width="520" :close-on-click-modal="false">
             <div class="flex flex-col gap-3">
-                <el-input v-model="webUrl" placeholder="https://example.com/article" @keyup.enter="confirmWebImport" />
+                <ReInput v-model="webUrl" placeholder="https://example.com/article" @keyup.enter="confirmWebImport" />
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-[var(--rm-text-secondary)]">最多抓取页数</span>
                     <ReNumberInput v-model="webMaxPages" :min="1" :max="50" controls-position="right" size="small" />
                     <span class="text-xs text-[var(--rm-text-disabled)]">1 = 只抓当前页；&gt;1 按同域链接展开</span>
                 </div>
-                <el-input v-model="webDir" placeholder="保存目录（默认 web）" />
+                <ReInput v-model="webDir" placeholder="保存目录（默认 web）" />
                 <div class="text-xs text-[var(--rm-text-disabled)]">
                     正文会落成 Markdown 并立即建立索引；仅允许公网地址（内网地址会被拒绝）
                 </div>
@@ -164,9 +165,12 @@ import type { UploadTask } from '@/stores/fileUpload'
 import type { KBFile } from '@/stores/knowledgeBase'
 import ReDialog from '@repo/ui/re-dialog'
 import ReSquareButton from '@repo/ui/re-button'
+import ReInput from '@repo/ui/re-input'
+import ReBadge from '@repo/ui/re-badge'
 import ReButton from '@/components/ui/ReButton.vue'
 import { knowledgeBaseApi } from '@/services/modules/knowledge-base.api'
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
+import { ReRadioGroup, ReRadio } from '@repo/ui/re-kit'
 
 /**
  * 上传冲突信息

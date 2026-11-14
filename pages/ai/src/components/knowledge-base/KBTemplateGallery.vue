@@ -9,7 +9,11 @@
         <p class="text-xs text-[var(--rm-text-secondary)] mt-0.5">选择预置模板，自动生成文档、实体类型与关系结构</p>
       </div>
 
-      <el-input v-model="keyword" class="!w-72 max-w-full" clearable placeholder="搜索模板名称、关键词" :prefix-icon="Search" />
+      <ReInput v-model="keyword" class="!w-72 max-w-full" clearable placeholder="搜索模板名称、关键词">
+        <template #prefix>
+          <el-icon><Search /></el-icon>
+        </template>
+      </ReInput>
     </header>
 
     <!-- ===== 主体：左卡片网格 + 右详情（唯一滚动容器） ===== -->
@@ -131,7 +135,7 @@
 
           <div>
             <div class="text-xs text-[var(--rm-text-secondary)] font-medium mb-1.5">知识库名称</div>
-            <el-input v-model="kbName" placeholder="知识库名称" @keyup.enter="onCreate" />
+            <ReInput v-model="kbName" placeholder="知识库名称" @keyup.enter="onCreate" />
           </div>
 
           <div class="flex gap-2 flex-wrap">
@@ -217,6 +221,7 @@
 import { computed, ref, watch } from 'vue'
 import { ArrowLeft, Search } from '@element-plus/icons-vue'
 import ReDialog from '@repo/ui/re-dialog'
+import ReInput from '@repo/ui/re-input'
 import ReCard from '@/components/ui/ReCard.vue'
 import ReTag from '@/components/ui/ReTag.vue'
 import ReButton from '@/components/ui/ReButton.vue'

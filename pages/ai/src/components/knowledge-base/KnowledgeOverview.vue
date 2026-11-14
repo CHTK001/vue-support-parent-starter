@@ -53,8 +53,12 @@
               <div class="kb-sect__extra">
                 <span v-if="bases.length > 0" class="kb-badge kb-badge--mute">{{ bases.length }} 个</span>
                 <!-- 原先没有搜索入口，15 个同名库只能靠编号认；这里按名称/描述过滤 -->
-                <el-input v-if="bases.length > 0" v-model="kw" :prefix-icon="Search" placeholder="按名称过滤" clearable
-                  class="kb-sect__search" />
+                <ReInput v-if="bases.length > 0" v-model="kw" placeholder="按名称过滤" clearable
+                  class="kb-sect__search">
+                  <template #prefix>
+                    <el-icon><Search /></el-icon>
+                  </template>
+                </ReInput>
               </div>
             </div>
 
@@ -226,13 +230,13 @@
           <label class="kb-label block mb-1.5">
             {{ t('knowledge.page.kbName') }}<i class="kb-req">*</i>
           </label>
-          <el-input v-model="form.name" :placeholder="t('knowledge.page.kbNamePlaceholder')" maxlength="255" show-word-limit @keyup.enter="submit" />
+          <ReInput v-model="form.name" :placeholder="t('knowledge.page.kbNamePlaceholder')" maxlength="255" show-word-limit @keyup.enter="submit" />
           <p class="kb-hint">2-20 个字，创建后可在设置中修改</p>
         </div>
 
         <div>
           <label class="kb-label block mb-1.5">描述</label>
-          <el-input v-model="form.description" type="textarea" :rows="2" resize="none"
+          <ReInput v-model="form.description" type="textarea" :rows="2" resize="none"
             placeholder="简单描述这个知识库的用途，例如收集课文、试卷与知识点" />
         </div>
 
@@ -291,6 +295,7 @@ import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, Edit, Delete, Document, Select, Grid, UploadFilled, Search } from '@element-plus/icons-vue'
 import ReDialog from '@repo/ui/re-dialog'
+import ReInput from '@repo/ui/re-input'
 import ReButton from '@/components/ui/ReButton.vue'
 import ReEmpty from '@/components/ui/ReEmpty.vue'
 import heroIllustration from '@/assets/kb/kb-empty-hero.png'

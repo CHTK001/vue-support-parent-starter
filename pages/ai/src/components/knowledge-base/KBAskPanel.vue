@@ -33,6 +33,8 @@ import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import KBFilePreview from './KBFilePreview.vue'
 import ReButton from '@/components/ui/ReButton.vue'
 import ReSquareButton from '@repo/ui/re-button'
+import ReInput from '@repo/ui/re-input'
+import ReSkeleton from '@repo/ui/re-skeleton'
 import ReTag from '@/components/ui/ReTag.vue'
 
 // 关系图谱使用 G6 内核的 ReRelationGraph（@repo/ui 已提供）。
@@ -472,7 +474,7 @@ watch(() => props.kbId, () => clearTurns())
 
         <!-- 回答 -->
         <div class="mt-3">
-          <el-skeleton v-if="turn.loading" :rows="3" animated />
+          <ReSkeleton v-if="turn.loading" :rows="3" animated />
           <template v-else>
             <div
               class="kb-ask__a"
@@ -553,7 +555,7 @@ watch(() => props.kbId, () => clearTurns())
 
     <!-- 输入框 -->
     <div class="kb-ask__input">
-      <el-input
+      <ReInput
         v-model="question"
         type="textarea"
         :rows="2"

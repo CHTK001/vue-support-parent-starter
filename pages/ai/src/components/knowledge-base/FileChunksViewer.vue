@@ -41,7 +41,7 @@
             end: Math.min(totalChunks, currentPage * pageSize),
           }) }}
         </div>
-        <el-pagination
+        <RePagination
           v-model:current-page="currentPage"
           :page-size="pageSize"
           :total="totalChunks"
@@ -71,6 +71,7 @@ import { useKnowledgeBaseStore } from '@/stores/knowledgeBase'
 import { usePopup } from '@/composables/usePopup'
 import { apiService } from '@/services/ApiService'
 import ReDialog from '@repo/ui/re-dialog'
+import RePagination from '@repo/ui/re-pagination'
 import ReEmpty from '@/components/ui/ReEmpty.vue'
 
 /** 组件属性 */

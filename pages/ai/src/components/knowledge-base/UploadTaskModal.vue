@@ -21,7 +21,10 @@
 
         <!-- 进度条 -->
         <div v-if="task.processingStatus === 'uploading' || task.processingStatus === 'processing'" class="mt-2">
-          <el-progress :percentage="task.progressPercentage" :stroke-width="6" />
+          <div class="flex items-center gap-2">
+            <ReProgress :progress="(task.progressPercentage ?? 0) / 100" :height="6" class="flex-1" />
+            <span class="text-xs text-[var(--rm-text-secondary)] tabular-nums shrink-0">{{ Math.round(task.progressPercentage ?? 0) }}%</span>
+          </div>
           <div v-if="task.currentStep" class="mt-1 text-xs text-[var(--rm-text-secondary)]">
             {{ task.currentStep }}
           </div>
@@ -63,6 +66,7 @@ import { useI18n } from 'vue-i18n'
 import { Document } from '@element-plus/icons-vue'
 import type { KBFile } from '@/stores/knowledgeBase'
 import ReDialog from '@repo/ui/re-dialog'
+import ReProgress from '@repo/ui/re-progress'
 import ReTag from '@/components/ui/ReTag.vue'
 import ReButton from '@/components/ui/ReButton.vue'
 import ReEmpty from '@/components/ui/ReEmpty.vue'

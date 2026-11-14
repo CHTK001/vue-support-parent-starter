@@ -19,6 +19,7 @@ import { marked } from 'marked'
 import type { KBFile } from '@/stores/knowledgeBase'
 import { apiService } from '@/services/ApiService'
 import ReDialog from '@repo/ui/re-dialog'
+import { ReAlert } from '@repo/ui/re-kit'
 import ReTag from '@/components/ui/ReTag.vue'
 import ReButton from '@/components/ui/ReButton.vue'
 
@@ -130,7 +131,7 @@ watch(() => [props.path, props.file?.relativePath], () => { if (visible.value) l
 <template>
   <ReDialog v-model="visible" :title="fileName" :width="820" :close-on-click-modal="false">
     <div v-loading="loading" class="kb max-h-[68vh] overflow-auto">
-      <el-alert v-if="errorText" type="error" :closable="false" :title="errorText" class="mb-3" />
+      <ReAlert v-if="errorText" type="error" :closable="false" :title="errorText" class="mb-3" />
       <template v-else>
         <!-- 阅读稿纸：正文收在 760px 内，长行不再横跨整个弹窗 -->
         <div class="kb-read">

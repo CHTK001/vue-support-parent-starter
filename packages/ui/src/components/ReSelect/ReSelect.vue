@@ -44,6 +44,9 @@ defineOptions({ name: "ReSelect", inheritAttrs: true });
 
 const model = defineModel<string | number | (string | number)[] | null>({ default: "" });
 
+/** 内层 el-select 实例：只为对外暴露 focus()（default 布局），不参与其它逻辑 */
+const elSelectRef = ref<InstanceType<typeof ElSelect> | null>(null);
+
 const props = withDefaults(
   defineProps<{
     /** 静态选项数组；传函数则等价于 loader，走远程加载（与 ReTree / ReTable 同一口径） */
@@ -500,6 +503,8 @@ async function reload(): Promise<void> {
 }
 
 defineExpose({
+  /** 聚焦到内层 el-select（default 布局）；非 default 布局时无操作 */
+  focus: () => elSelectRef.value?.focus?.(),
   reload,
   clearCache,
   get loading(): boolean {
@@ -567,6 +572,7 @@ defineExpose({
   <!-- 默认 / card / table 布局 -->
   <ElSelect
     v-else
+    ref="elSelectRef"
     v-model="model"
     v-bind="$attrs"
     :placeholder="placeholder"

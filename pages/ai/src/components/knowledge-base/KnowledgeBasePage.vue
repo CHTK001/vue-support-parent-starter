@@ -99,19 +99,13 @@
           <span v-if="failedFileCount > 0" class="kb-chip kb-chip--err">
             <b>{{ failedFileCount }}</b> 失败
           </span>
-          <el-tooltip content="刷新" placement="bottom" :show-after="200">
-            <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" :loading="detailRefreshing"
-              @click="refreshDetail" />
-          </el-tooltip>
+          <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="detailRefreshing"
+            @click="refreshDetail" />
           <!-- 逐条编辑 / 删除在列表页的条目右键区，这里只针对「当前库」 -->
-          <el-tooltip content="设置" placement="bottom" :show-after="200">
-            <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Setting"
-              :disabled="!canEditCurrent" @click="handleMenuAction('settings')" />
-          </el-tooltip>
-          <el-tooltip content="删除知识库" placement="bottom" :show-after="200">
-            <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete"
-              :disabled="!canEditCurrent" @click="handleDeleteFromDetail" />
-          </el-tooltip>
+          <ReSquareButton layout="square" class="kb-btn" type="primary" :icon="Setting" tip="设置"
+            :disabled="!canEditCurrent" @click="handleMenuAction('settings')" />
+          <ReSquareButton layout="square" class="kb-btn" type="danger" :icon="Delete" tip="删除知识库"
+            :disabled="!canEditCurrent" @click="handleDeleteFromDetail" />
         </div>
       </div>
 
@@ -693,8 +687,11 @@
 
                 <div class="kb-toolbar__grow" />
 
-                <el-input v-model="graphKeyword" :prefix-icon="Search" placeholder="按实体名过滤" clearable
-                  style="width: 180px" />
+                <ReInput v-model="graphKeyword" placeholder="按实体名过滤" clearable style="width: 180px">
+                  <template #prefix>
+                    <el-icon><Search /></el-icon>
+                  </template>
+                </ReInput>
                 <ReButton size="small"
                   :type="graphTypeFilter.length === 1 && graphTypeFilter[0] === 'person' ? 'primary' : 'default'"
                   @click="togglePersonOnly">只看人物</ReButton>
@@ -702,16 +699,16 @@
                   type="primary" plain @click="showAllGraph">
                   显示全部（{{ graphNodes.length }}/{{ graphView.nodes.length }}）
                 </ReButton>
-                <el-select v-model="graphTypeFilter" ref="graphTypeFilterRef" multiple collapse-tags collapse-tags-tooltip
-                  :max-collapse-tags="2" clearable placeholder="实体类型" style="width: 168px">
-                  <el-option v-for="s in entityTypeStats" :key="s.type" :label="`${s.label} (${s.count})`" :value="s.type">
+                <ReSelect v-model="graphTypeFilter" ref="graphTypeFilterRef" multiple collapse-tags
+                  collapse-tags-tooltip :max-collapse-tags="2" clearable placeholder="实体类型" style="width: 168px">
+                  <ReOption v-for="s in entityTypeStats" :key="s.type" :label="`${s.label} (${s.count})`" :value="s.type">
                     <span class="flex items-center gap-2">
                       <i class="kb-dot" :style="{ background: s.color }" />
                       <span>{{ s.label }}</span>
                       <span class="kb-dot__n">{{ s.count }}</span>
                     </span>
-                  </el-option>
-                </el-select>
+                  </ReOption>
+                </ReSelect>
                 <div class="kb-actions">
                   <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
                   <ReSquareButton layout="square" v-if="ragReady" class="kb-btn" type="primary" :icon="Refresh"
@@ -724,7 +721,7 @@
 
               <!-- 生成图谱的真实结果：抽取链路失败时如实列出失败的知识点与原因，
                    并给出可行动的入口，而不是弹一句「已生成 0 个实体」 -->
-              <el-alert
+              <ReAlert
                 v-if="graphFailures.length > 0"
                 class="mb-2"
                 type="error"
@@ -745,7 +742,7 @@
                 <ReButton type="primary" link size="small" @click="goDefaultModels">
                   去设置默认模型
                 </ReButton>
-              </el-alert>
+              </ReAlert>
 
               <div class="kb-graphview__canvas">
                 <div v-loading="graphLoading" class="kb-graph__canvas kb-graph__stage" style="height: 100%">
@@ -843,8 +840,11 @@
 
             <div class="kb-view">
               <div class="kb-toolbar">
-                <el-input v-model="graphEntityKeyword" :prefix-icon="Search" placeholder="按名称过滤" clearable
-                  style="width: 200px" />
+                <ReInput v-model="graphEntityKeyword" placeholder="按名称过滤" clearable style="width: 200px">
+                  <template #prefix>
+                    <el-icon><Search /></el-icon>
+                  </template>
+                </ReInput>
                 <div class="kb-toolbar__grow" />
                 <div class="kb-actions">
                   <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
@@ -877,7 +877,7 @@
                     </div>
                   </template>
                   <template #col-type="{ row }">
-                    <el-tag size="small" :type="entityTagType(row.type)">{{ entityTypeLabel(row.type) }}</el-tag>
+                    <ReTag size="small" :type="entityTagType(row.type)">{{ entityTypeLabel(row.type) }}</ReTag>
                   </template>
                   <template #col-actions="{ row }">
                     <ReSquareButton layout="square" class="kb-btn" size="small" type="primary" :icon="Edit" tip="编辑" @click="openEntityForm(row)" />
@@ -910,7 +910,7 @@
                   </template>
                 </ReTable>
                 <div class="pagination-wrapper">
-                  <el-pagination
+                  <RePagination
                     v-model:current-page="entityPage"
                     v-model:page-size="entityPageSize"
                     :page-sizes="[10, 20, 50]"
@@ -938,8 +938,11 @@
 
             <div class="kb-view">
               <div class="kb-toolbar">
-                <el-input v-model="graphRelationKeyword" :prefix-icon="Search" placeholder="按实体名/关系类型过滤" clearable
-                  style="width: 220px" />
+                <ReInput v-model="graphRelationKeyword" placeholder="按实体名/关系类型过滤" clearable style="width: 220px">
+                  <template #prefix>
+                    <el-icon><Search /></el-icon>
+                  </template>
+                </ReInput>
                 <div class="kb-toolbar__grow" />
                 <div class="kb-actions">
                   <ReSquareButton layout="square" class="kb-btn" :icon="Refresh" tip="刷新" :loading="graphLoading" @click="loadGraph" />
@@ -981,7 +984,7 @@
                     </div>
                   </template>
                   <template #col-text="{ row }">
-                    <el-tag size="small" :type="relationTagType(row.text)">{{ row.text }}</el-tag>
+                    <ReTag size="small" :type="relationTagType(row.text)">{{ row.text }}</ReTag>
                   </template>
                   <template #col-actions="{ row }">
                     <ReSquareButton layout="square" class="kb-btn" size="small" type="danger" :icon="Delete" tip="删除" @click="handleDeleteRelation(row)" />
@@ -1011,7 +1014,7 @@
                   </template>
                 </ReTable>
                 <div class="pagination-wrapper">
-                  <el-pagination
+                  <RePagination
                     v-model:current-page="relationPage"
                     v-model:page-size="relationPageSize"
                     :page-sizes="[10, 20, 50]"
@@ -1045,22 +1048,20 @@
     <div class="kb flex flex-col gap-4">
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">名称<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
-        <el-input v-model="entityForm.name" maxlength="128" />
+        <ReInput v-model="entityForm.name" maxlength="128" />
       </div>
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">类型</label>
-        <el-select v-model="entityForm.type" class="!w-full">
-          <el-option v-for="t in ENTITY_TYPE_OPTIONS" :key="t.value" :label="t.label" :value="t.value" />
-        </el-select>
+        <ReSelect v-model="entityForm.type" :data="ENTITY_TYPE_OPTIONS" class="!w-full" />
       </div>
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">说明</label>
-        <el-input v-model="entityForm.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
+        <ReInput v-model="entityForm.description" type="textarea" :rows="3" maxlength="500" show-word-limit />
       </div>
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">图片地址</label>
         <div class="flex items-center gap-2">
-          <el-input v-model="entityForm.logo" maxlength="512" placeholder="https://… 或 /kb-images/….png；清空即移除图片" />
+          <ReInput v-model="entityForm.logo" maxlength="512" placeholder="https://… 或 /kb-images/….png；清空即移除图片" />
           <img v-if="entityForm.logo.trim()" :src="entityForm.logo.trim()" alt=""
             class="w-10 h-10 rounded-md object-cover border border-[var(--rm-border)] shrink-0" @error="($event.target as HTMLImageElement).style.visibility = 'hidden'" />
         </div>
@@ -1078,21 +1079,17 @@
     <div class="kb flex flex-col gap-4">
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">源实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
-        <el-select v-model="relationForm.source" filterable allow-create default-first-option
-          placeholder="输入或选择已有实体名" class="!w-full">
-          <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
-        </el-select>
+        <ReSelect v-model="relationForm.source" :data="relationNodeOptions" filterable allow-create
+          default-first-option placeholder="输入或选择已有实体名" class="!w-full" />
       </div>
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">关系类型<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
-        <el-input v-model="relationForm.type" placeholder="如 镇守 / 结义 / 放走" maxlength="32" />
+        <ReInput v-model="relationForm.type" placeholder="如 镇守 / 结义 / 放走" maxlength="32" />
       </div>
       <div>
         <label class="block text-xs font-medium text-[var(--rm-text-secondary)] mb-1.5">目标实体<i class="not-italic text-[var(--rm-danger)] ml-0.5">*</i></label>
-        <el-select v-model="relationForm.target" filterable allow-create default-first-option
-          placeholder="输入或选择已有实体名" class="!w-full">
-          <el-option v-for="n in graphView.nodes" :key="n.id" :label="n.text" :value="n.text" />
-        </el-select>
+        <ReSelect v-model="relationForm.target" :data="relationNodeOptions" filterable allow-create
+          default-first-option placeholder="输入或选择已有实体名" class="!w-full" />
       </div>
       <p class="text-xs text-[var(--rm-text-disabled)] leading-relaxed">
         源/目标填了库里没有的名字时，会自动建一个「其它」类型的占位实体；源与目标相同会被拒绝。
@@ -1114,12 +1111,12 @@
         <span class="kb-label">
           {{ t('knowledge.page.kbName') }}<i class="kb-req">*</i>
         </span>
-        <el-input v-model="dialogForm.name" :placeholder="t('knowledge.page.kbNamePlaceholder')" maxlength="255" show-word-limit />
+        <ReInput v-model="dialogForm.name" :placeholder="t('knowledge.page.kbNamePlaceholder')" maxlength="255" show-word-limit />
       </div>
 
       <div class="kb-field">
         <span class="kb-label">{{ t('common.description') }}</span>
-        <el-input v-model="dialogForm.description" type="textarea" :rows="3" :placeholder="t('knowledge.page.descriptionPlaceholder')"
+        <ReInput v-model="dialogForm.description" type="textarea" :rows="3" :placeholder="t('knowledge.page.descriptionPlaceholder')"
           maxlength="2000" show-word-limit resize="none" />
       </div>
 
@@ -1128,7 +1125,7 @@
         <div class="kb-sec__title">网址采集</div>
         <div class="kb-field">
           <span class="kb-label">网址</span>
-          <el-input v-model="dialogForm.sourceUrl" placeholder="https://example.com/  留空表示不启用" clearable />
+          <ReInput v-model="dialogForm.sourceUrl" placeholder="https://example.com/  留空表示不启用" clearable />
           <p v-if="dialogForm.sourceUrl" class="kb-hint">
             创建时会立即抓取该网址：只允许 http/https 的公网地址，内网与云元数据地址会被拒绝。
           </p>
@@ -1315,6 +1312,10 @@ import { apiService } from '@/services/ApiService'
 import { api } from '@/framework/context'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ReDialog from '@repo/ui/re-dialog'
+import ReInput from '@repo/ui/re-input'
+import ReSelect from '@repo/ui/re-select'
+import RePagination from '@repo/ui/re-pagination'
+import { ReAlert, ReOption } from '@repo/ui/re-kit'
 import ReButton from '@/components/ui/ReButton.vue'
 // 仓库标准的正方形图标按钮（layout="square" 且内建 el-tooltip）：
 // 工具栏 / 表格操作列的「纯图标 + 悬浮提示」统一用它，避免各处再包一层 el-tooltip。
@@ -1871,6 +1872,17 @@ const ENTITY_TYPE_OPTIONS = [
 
 const entityForm = reactive({ id: '', name: '', type: 'other', description: '', logo: '' })
 const relationForm = reactive({ source: '', type: '', target: '' })
+
+/**
+ * 关系表单「源 / 目标实体」下拉候选。
+ *
+ * <p>走 ReSelect 的 {@code data} 而不是 el-option 子节点：ReSelect 内部给 el-select 绑了
+ * filter-method（远程检索用），Element Plus 一旦拿到 filter-method 就不再内置过滤，
+ * 子节点选项的搜索框会「打字没反应」。data 形态由 ReSelect 自己按关键词过滤，搜索才有效。</p>
+ */
+const relationNodeOptions = computed(() =>
+  graphView.nodes.map((n) => ({ label: n.text, value: n.text })),
+)
 
 /**
  * 实体类型 → 中文标签。

@@ -97,14 +97,14 @@
             <LTooltip v-if="(item.processingStatus === 'processing' || item.processingStatus === 'pending') && item.currentStep"
               :content="item.currentStep"
               placement="top">
-              <el-tag :type="getStatusType(item.processingStatus)" class="truncate max-w-full">
+              <ReTag :type="getStatusType(item.processingStatus)" class="truncate max-w-full">
                 {{ getStatusDisplayText(item) }}
-              </el-tag>
+              </ReTag>
             </LTooltip>
             <!-- 其他状态直接显示 -->
-            <el-tag v-else :type="getStatusType(item.processingStatus)">
+            <ReTag v-else :type="getStatusType(item.processingStatus)">
               {{ getStatusDisplayText(item) }}
-            </el-tag>
+            </ReTag>
           </template>
           <span v-else class="text-xs text-[var(--rm-text-disabled)]">-</span>
         </div>
@@ -174,7 +174,7 @@
 
     <!-- 重命名对话框 -->
     <ReDialog v-model="showRenameDialog" :title="t('knowledge.tree.renameTitle')" :width="400" :close-on-click-modal="false">
-      <el-input v-model="renameForm.newName" :placeholder="t('knowledge.tree.newNamePlaceholder')" @keyup.enter="confirmRename" />
+      <ReInput v-model="renameForm.newName" :placeholder="t('knowledge.tree.newNamePlaceholder')" @keyup.enter="confirmRename" />
       <template #footer>
         <ReButton type="default" @click="showRenameDialog = false">{{ t('common.cancel') }}</ReButton>
         <ReButton type="primary" @click="confirmRename" :loading="renameLoading">{{ t('common.ok') }}</ReButton>
@@ -194,17 +194,17 @@
         </div>
 
         <!-- 文件夹树 -->
-        <el-tree :data="folderTreeData" :props="{ label: 'displayName', children: 'children' }" node-key="id"
+        <ReTree :data="folderTreeData" :props="{ label: 'displayName', children: 'children' }" node-key="id"
           highlight-current @node-click="selectTargetFolder" class="mt-2">
-          <template #default="{ node, data }">
+          <template #label="{ elNode }">
             <span class="flex items-center gap-2">
               <el-icon>
                 <Folder />
               </el-icon>
-              {{ node.label }}
+              {{ elNode.label }}
             </span>
           </template>
-        </el-tree>
+        </ReTree>
       </div>
       <template #footer>
         <ReButton type="default" @click="showMoveDialog = false">{{ t('common.cancel') }}</ReButton>
@@ -226,6 +226,9 @@ import { apiService } from '@/services/ApiService'
 import ContextMenu, { type ContextMenuItem } from '@/components/ui/ContextMenu.vue'
 import LTooltip from '@/components/ui/LTooltip.vue'
 import ReDialog from '@repo/ui/re-dialog'
+import ReInput from '@repo/ui/re-input'
+import ReTree from '@repo/ui/re-tree'
+import ReTag from '@/components/ui/ReTag.vue'
 import ReButton from '@/components/ui/ReButton.vue'
 
 // 导入文件图标
