@@ -76,6 +76,20 @@ const REPO_ALIAS_ENTRIES = [
  */
 const FS_SERVER = process.env.FS_SERVER || "http://127.0.0.1:18080";
 
+/**
+ * @file-viewer 渲染器资产统一走仓库根 public（规范目录）。
+ *
+ * <p>此前本应用用自己的 public 目录，每次 dev 启动都让插件把同一批
+ * worker/wasm/字体（约 27MB）复制一份进 apps/.../public —— 与根 public/vendor
+ * 完全重复（字节级一致，2026-11 核对），且升级渲染器要两处同步。
+ * 现 publicDir 直接指向根 public：dev/build 都读同一份资产，无复制、无重复。</p>
+ *
+ * <p>根 public/vendor 是 @file-viewer 资产的唯一规范副本（monitor 的
+ * copyAssets:false 同样只读它），升级渲染器时在根上跑一次
+ * `pnpm dev`（AI 配置会把资产复制进根 vendor）或手动同步即可，本应用无需任何操作。</p>
+ */
+const ROOT_PUBLIC_DIR = path.resolve(root, "../..", "public");
+
 /** UnoCSS 内联配置：与 turbo/vite/createVite.ts 共享基线一致，供 @repo/app 的 virtual:uno.css 入口解析 */
 function unoConfig(): UnoConfig {
   return {
@@ -98,10 +112,15 @@ function unoConfig(): UnoConfig {
 
 export default defineConfig({
   root,
+  // publicDir 指向仓库根 public：@file-viewer 渲染器资产（vendor/wasm）与
+  // loader.js 等共享文件的规范目录，见上方 ROOT_PUBLIC_DIR 注释。
+  publicDir: ROOT_PUBLIC_DIR,
   plugins: [
     vue(),
     UnoCSS(unoConfig()),
-    // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel
+    // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel。
+    // 资产写入目标即 publicDir（根 public/vendor），dev/build 由 Vite 直接从源码服务，
+    // 应用本身不再持有副本。
     fileViewerRenderers({ inject: false, preset: "all", copyAssets: true }),
   ],
   resolve: {
@@ -147,11 +166,10 @@ export default defineConfig({
       "/local": { target: FS_SERVER, changeOrigin: true },
     },
     watch: {
-      // @file-viewer 插件每次 dev 启动都会 rm+cp 把渲染器资源写入 public/vendor
-      // （约 27MB，含 17MB 的 ppt 字体）。Windows 下 chokidar 会对这些仍在写入
-      // 的大文件建 fs.watch 句柄，触发 EBUSY 并使 dev server 进程直接崩溃。
-      // public/vendor 是插件生成的只读资产，监听其变化没有意义，故排除。
-      // public/wasm 同理（CAD LibreDWG 等大 WASM，Windows watch 同样 EBUSY）。
+      // 共享根 public 里由 @file-viewer 插件 / 手动同步写入的渲染器资源
+      // （public/vendor 约 27MB，含 17MB 的 ppt 字体；public/wasm 含 CAD 大文件）。
+      // Windows 下 chokidar 会对这些仍在写入的大文件建 fs.watch 句柄，触发 EBUSY
+      // 并使 dev server 进程直接崩溃。这些是只读资产，监听其变化没有意义，故排除。
       ignored: [
         (p: string) =>
           /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
