@@ -6,7 +6,7 @@
  * 使用方式与 default 主题对齐（v-model 控制显隐），
  * 额外支持 koi 专属能力：showWindowShell / fullscreen / footerHidden。
  */
-import { ref, toRefs, computed, watch, onMounted, onUnmounted, onBeforeUnmount, type Component } from "vue";
+import { ref, toRefs, computed, watch, onMounted, onUnmounted, onBeforeUnmount, type Component, type CSSProperties } from "vue";
 import { ElDialog, ElButton } from "element-plus";
 import { Aim } from "@element-plus/icons-vue";
 import { useKoiWindowShell } from "./useKoiWindowShell";
@@ -108,6 +108,27 @@ const props = withDefaults(
      * 壳内的弹窗与浮层再按正常顺序往上叠，两种构建形态就一致了。</p>
      */
     zIndex?: number;
+    /**
+     * 是否允许从四条边 / 四个角缩放（默认 false）。
+     *
+     * <p>开启后弹窗第一次被缩放时会从 overlay 的居中流转成 `position: fixed` 自由定位，
+     * 之后可按八个方向「对边固定」拉伸；关闭弹窗后恢复默认尺寸（要跨开合记忆尺寸就传
+     * {@link resizeStorageKey}）。全屏状态下热区不渲染。</p>
+     */
+    resizable?: boolean;
+    /** 缩放下限宽度（px，低于 320 按 320 算） */
+    minWidth?: number;
+    /** 缩放下限高度（px，低于 200 按 200 算） */
+    minHeight?: number;
+    /** 缩放上限宽度（px，0/未传按视口宽度） */
+    maxWidth?: number;
+    /** 缩放上限高度（px，0/未传按视口高度） */
+    maxHeight?: number;
+    /**
+     * 尺寸记忆 key：传了才把缩放后的宽高写进 localStorage（`koi-dialog-size:<key>`），
+     * 下次打开按记忆尺寸居中显示。不传即每次打开回到默认尺寸。
+     */
+    resizeStorageKey?: string;
   }>(),
   {
     title: "ReDialog",
@@ -144,6 +165,13 @@ const props = withDefaults(
     compact: false,
     // 默认不传：交给 Element Plus 自动分配，等同于修复前的行为
     zIndex: undefined,
+    // 缩放能力 opt-in：默认关闭，避免影响既有弹窗的居中/尺寸行为
+    resizable: false,
+    minWidth: 320,
+    minHeight: 200,
+    maxWidth: 0,
+    maxHeight: 0,
+    resizeStorageKey: "",
   },
 );
 
@@ -157,7 +185,7 @@ const visible = defineModel<boolean>({ default: false });
 const localOpen = ref(false);
 watch(visible, (v) => { localOpen.value = v; }, { immediate: true });
 
-const { loading, width } = toRefs(props);
+const { loading, width, height } = toRefs(props);
 const confirmLoading = ref(loading);
 
 const {
@@ -183,6 +211,16 @@ const {
 watch(localOpen, (v) => {
   visible.value = v;
 });
+
+/**
+ * ElDialog 挂载标记：koi 壳默认 destroy-on-close，而 Element Plus 关闭后只销毁
+ * 弹窗内容，遮罩（.el-overlay）用 v-show 控制、会一直留在 body —— 项目里弹窗
+ * 实例多，开一轮下来每只弹窗都在 DOM 里攒一个空遮罩。这里在关闭动画结束后
+ * 把整个 ElDialog 卸载，遮罩随实例一起销毁；需要保留内部状态的使用方显式传
+ * :destroy-on-close="false"，此时不走卸载、维持原行为。
+ */
+const elMounted = ref(false);
+watch(localOpen, (v) => { if (v) elMounted.value = true; }, { immediate: true });
 
 const dialogFullscreen = computed(() => windowFullscreen.value);
 
@@ -258,13 +296,30 @@ function onDocumentMouseUp(): void {
 /** 弹窗打开期间才监听 document 上的 mouseup（关闭即摘，避免常驻全局监听） */
 watch(visible, (open) => {
   if (typeof document === "undefined") return;
-  if (open) document.addEventListener("mouseup", onDocumentMouseUp);
-  else document.removeEventListener("mouseup", onDocumentMouseUp);
+  if (open) {
+    document.addEventListener("mouseup", onDocumentMouseUp);
+    // 记忆尺寸：只有显式传 resizeStorageKey 才恢复，且按视口重新居中
+    const stored = props.resizable ? readSize() : null;
+    if (stored) {
+      const { minW, minH, maxW, maxH } = resizeBounds();
+      freeRect.value = centerRect(
+        clampValue(stored.width, minW, maxW),
+        clampValue(stored.height, minH, maxH),
+      );
+    }
+  } else {
+    document.removeEventListener("mouseup", onDocumentMouseUp);
+  }
 });
 
 onBeforeUnmount(() => {
   if (typeof document !== "undefined") {
     document.removeEventListener("mouseup", onDocumentMouseUp);
+    document.removeEventListener("pointermove", onResizeMove);
+    document.removeEventListener("pointerup", onResizeEnd);
+    document.removeEventListener("pointercancel", onResizeEnd);
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
   }
 });
 
@@ -272,15 +327,231 @@ const windowWidth = ref(window.innerWidth);
 
 const dialogWidth = computed(() => {
   if (dialogFullscreen.value) return "100%";
+  // 缩放后的尺寸是精确 px（已按视口钳制过），不再走响应式百分比兜底
+  if (freeRect.value) return `${freeRect.value.width}px`;
   if (windowWidth.value < 600) return "90%";
-  const numericWidth = typeof width.value === "number" ? width.value : Number.parseFloat(String(width.value)) || windowWidth.value;
+  const numericWidth = typeof width.value === "number" ? width.value : Number.parseFloat(String(width.value));
+  // CSS 函数（min() / clamp() / calc()）没有可解析的数值，交给浏览器自己算。
+  // 旧写法 parseFloat 得 NaN 后回落 windowWidth，会让 min(500px, 92vw) 这类声明
+  // 被误判成「比视口还宽」而整条变成 95%，弹窗在桌面端铺满一屏。
+  if (Number.isNaN(numericWidth)) return width.value;
   if (numericWidth > windowWidth.value) return "90%";
   if (numericWidth > windowWidth.value * 0.95) return "95%";
   return width.value;
 });
 
+/* ==================== 边缘 / 四角缩放 ==================== */
+
+type ResizeDir = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
+
+/** 八个热区：四条边 + 四个角（模板 v-for 渲染） */
+const RESIZE_DIRS: ResizeDir[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
+
+/** 缩放时给 body 的光标（拖出弹窗范围也保持手感一致） */
+const RESIZE_CURSOR: Record<ResizeDir, string> = {
+  n: "ns-resize",
+  s: "ns-resize",
+  e: "ew-resize",
+  w: "ew-resize",
+  ne: "nesw-resize",
+  sw: "nesw-resize",
+  nw: "nwse-resize",
+  se: "nwse-resize",
+};
+
+/**
+ * 自由尺寸：非空时弹窗脱离 overlay 的居中流，按 left/top/width/height 定位。
+ *
+ * <p>为什么必须脱离居中流：`align-center` 把 `.el-dialog` 放在 `display:flex` 的容器里当
+ * flex item，此时 `left/top` 完全不生效，只有右下角能对准指针；西/北边一拖就是反方向漂。
+ * 转成 `position: fixed` 后八个方向才能做到「对边固定、被拖边跟手」。</p>
+ */
+const freeRect = ref<{ left: number; top: number; width: number; height: number } | null>(null);
+
+const isResizing = ref(false);
+
+/**
+ * 缩放下限兜底：再小弹窗头部（标题 + 壳操作）和 footer 按钮会挤成一团。
+ * 业务传的 minWidth / minHeight 只可能把下限抬高，不会被压得更低。
+ */
+const RESIZE_FLOOR = { width: 320, height: 200 };
+
+function clampValue(v: number, min: number, max: number): number {
+  return Math.min(Math.max(v, min), Math.max(min, max));
+}
+
+/** 弹窗根元素（.el-dialog） */
+function dialogEl(): HTMLElement | null {
+  return (dialogInstance.value?.dialogContentRef?.$el as HTMLElement | undefined) ?? null;
+}
+
+function viewportSize(): { width: number; height: number } {
+  return {
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight,
+  };
+}
+
+/** 尺寸持久化 key（传了 resizeStorageKey 才记忆） */
+const resizeStoreKey = computed(() => (props.resizeStorageKey ? `koi-dialog-size:${props.resizeStorageKey}` : ""));
+
+function saveSize(size: { width: number; height: number }): void {
+  if (!resizeStoreKey.value) return;
+  try {
+    localStorage.setItem(resizeStoreKey.value, JSON.stringify(size));
+  } catch {
+    /* 隐私模式 / 配额满：留不下就按默认尺寸打开 */
+  }
+}
+
+function readSize(): { width: number; height: number } | null {
+  if (!resizeStoreKey.value) return null;
+  try {
+    const raw = localStorage.getItem(resizeStoreKey.value);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { width?: unknown; height?: unknown };
+    if (typeof parsed?.width === "number" && typeof parsed?.height === "number") {
+      return { width: parsed.width, height: parsed.height };
+    }
+  } catch {
+    /* 脏数据当没存过 */
+  }
+  return null;
+}
+
+/** 按尺寸在视口居中摆放（记忆尺寸恢复时用） */
+function centerRect(width: number, height: number): { left: number; top: number; width: number; height: number } {
+  const vp = viewportSize();
+  return {
+    left: Math.max(0, Math.round((vp.width - width) / 2)),
+    top: Math.max(0, Math.round((vp.height - height) / 2)),
+    width,
+    height,
+  };
+}
+
+/** 当前尺寸的合法区间（视口 + 业务上下限；视口比下限还小时让视口赢，避免弹窗比屏幕还宽） */
+function resizeBounds(): { minW: number; minH: number; maxW: number; maxH: number } {
+  const vp = viewportSize();
+  const maxW = Math.min(props.maxWidth || vp.width, vp.width);
+  const maxH = Math.min(props.maxHeight || vp.height, vp.height);
+  return {
+    minW: Math.min(Math.max(RESIZE_FLOOR.width, props.minWidth || 0), maxW),
+    minH: Math.min(Math.max(RESIZE_FLOOR.height, props.minHeight || 0), maxH),
+    maxW,
+    maxH,
+  };
+}
+
+let resizeDir: ResizeDir = "e";
+let resizeStart = { x: 0, y: 0, left: 0, top: 0, width: 0, height: 0 };
+
+function onResizeStart(e: PointerEvent, dir: ResizeDir): void {
+  if (!props.resizable || dialogFullscreen.value || e.button !== 0) return;
+  const el = dialogEl();
+  if (!el) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  const rect = el.getBoundingClientRect();
+  // 先归零 el-dialog 的拖拽位移：进入自由定位后 left/top 是唯一坐标来源，
+  // 留着 useDraggable 的 transform 会和 left/top 叠加，缩放时整块弹窗反向漂
+  dialogInstance.value?.resetPosition?.();
+  freeRect.value = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+  resizeDir = dir;
+  resizeStart = { x: e.clientX, y: e.clientY, ...freeRect.value };
+  isResizing.value = true;
+  document.body.style.userSelect = "none";
+  document.body.style.cursor = RESIZE_CURSOR[dir];
+  document.addEventListener("pointermove", onResizeMove);
+  document.addEventListener("pointerup", onResizeEnd);
+  document.addEventListener("pointercancel", onResizeEnd);
+}
+
+function onResizeMove(e: PointerEvent): void {
+  if (!isResizing.value) return;
+  const vp = viewportSize();
+  const { minW, minH, maxW, maxH } = resizeBounds();
+  const dx = e.clientX - resizeStart.x;
+  const dy = e.clientY - resizeStart.y;
+  // 拖动前弹窗的对边（西/北边缩放时它固定不动）；先按视口收一次，
+  // 弹窗此前被拖出视口时也能把对边拉回可见区
+  const right = Math.min(resizeStart.left + resizeStart.width, vp.width);
+  const bottom = Math.min(resizeStart.top + resizeStart.height, vp.height);
+
+  let { left, top, width, height } = resizeStart;
+
+  // 东/南边：左上角固定，宽高跟手，且不越出视口
+  if (resizeDir.includes("e")) {
+    width = clampValue(resizeStart.width + dx, minW, Math.min(maxW, vp.width - left));
+  }
+  if (resizeDir.includes("s")) {
+    height = clampValue(resizeStart.height + dy, minH, Math.min(maxH, vp.height - top));
+  }
+  // 西/北边：对边固定，先按位移算宽高，再反推 left/top
+  if (resizeDir.includes("w")) {
+    width = clampValue(resizeStart.width - dx, minW, Math.min(maxW, right));
+    left = right - width;
+  }
+  if (resizeDir.includes("n")) {
+    height = clampValue(resizeStart.height - dy, minH, Math.min(maxH, bottom));
+    top = bottom - height;
+  }
+
+  freeRect.value = { left, top, width, height };
+  emit("resize", { width, height });
+}
+
+function onResizeEnd(): void {
+  if (!isResizing.value) return;
+  isResizing.value = false;
+  document.body.style.userSelect = "";
+  document.body.style.cursor = "";
+  document.removeEventListener("pointermove", onResizeMove);
+  document.removeEventListener("pointerup", onResizeEnd);
+  document.removeEventListener("pointercancel", onResizeEnd);
+  if (freeRect.value) {
+    saveSize({ width: freeRect.value.width, height: freeRect.value.height });
+    emit("resize-end", { width: freeRect.value.width, height: freeRect.value.height });
+  }
+}
+
+/** 弹窗根元素的自由定位样式（非缩放态返回 undefined，交回 ElDialog 自己管） */
+const shellStyle = computed<CSSProperties | undefined>(() => {
+  const rect = freeRect.value;
+  if (!rect || dialogFullscreen.value) return undefined;
+  return {
+    position: "fixed",
+    left: `${rect.left}px`,
+    top: `${rect.top}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+    // 内联覆盖 element 的 --el-dialog-margin-top 与 koi 壳的 94vh 上限
+    margin: "0",
+    maxHeight: "none",
+  };
+});
+
+/** 内容区：自由尺寸下放开 height 上限，让中间剩余空间自己撑开并内部滚动 */
+const contentWrapperStyle = computed<CSSProperties>(() => {
+  if (freeRect.value && !dialogFullscreen.value) return { maxHeight: "none" };
+  return dialogFullscreen.value || !height ? { height: "auto" } : { maxHeight: height + "px" };
+});
+
 function handleResize() {
   windowWidth.value = window.innerWidth;
+  // 视口变小后把自由尺寸的弹窗拉回可见区（否则会整块落在视口外，再也抓不到）
+  const rect = freeRect.value;
+  if (!rect) return;
+  const vp = viewportSize();
+  const nextWidth = Math.min(rect.width, vp.width);
+  const nextHeight = Math.min(rect.height, vp.height);
+  freeRect.value = {
+    width: nextWidth,
+    height: nextHeight,
+    left: clampValue(rect.left, 0, vp.width - nextWidth),
+    top: clampValue(rect.top, 0, vp.height - nextHeight),
+  };
 }
 
 onMounted(() => window.addEventListener("resize", handleResize));
@@ -303,6 +574,10 @@ const emit = defineEmits<{
   (e: "open"): void;
   (e: "close"): void;
   (e: "closed"): void;
+  /** 缩放过程中持续触发（自由尺寸，px） */
+  (e: "resize", payload: { width: number; height: number }): void;
+  /** 缩放结束（松手）时触发，可用于业务侧持久化 */
+  (e: "resize-end", payload: { width: number; height: number }): void;
 }>();
 
 function koiClose() {
@@ -336,15 +611,30 @@ function koiQuickClose() {
   visible.value = false;
 }
 
+/** ElDialog 关闭动画结束：卸载整个弹窗（含遮罩），并把 closed 转发给业务 */
+function handleDialogClosed() {
+  if (props.destroyOnClose) elMounted.value = false;
+  // 关掉即回到默认尺寸（要跨开合记忆尺寸请传 resizeStorageKey）
+  freeRect.value = null;
+  emit("closed");
+}
+
 defineExpose({ koiOpen, koiClose, koiQuickClose });
 </script>
 
 <template>
   <ElDialog
     ref="dialogInstance"
+    v-if="elMounted || !destroyOnClose"
     v-bind="$attrs"
     class="koi-dialog-shell"
-    :class="{ 'is-headless': headless, 'koi-dialog-compact': compact }"
+    :class="{
+      'is-headless': headless,
+      'koi-dialog-compact': compact,
+      'is-resizing': isResizing,
+      'koi-dialog-free': !!freeRect,
+    }"
+    :style="shellStyle"
     v-model="localOpen"
     :title="title"
     :width="dialogWidth"
@@ -364,7 +654,7 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     :show-close="!headless && showClose && (!!$slots.header || !showWindowShell)"
     @open="emit('open')"
     @close="emit('close')"
-    @closed="emit('closed')"
+    @closed="handleDialogClosed"
   >
     <!-- 业务自定义 header 优先：直接放进 ElDialog 的 #header，避免 ElDialog
          再按 title 渲染一层默认标题，造成双 header。 -->
@@ -408,12 +698,24 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
     />
     <div
       class="dialog-content-wrapper"
-      :style="dialogFullscreen || !height ? { height: 'auto' } : { maxHeight: height + 'px' }"
+      :style="contentWrapperStyle"
     >
       <slot name="content">
         <slot></slot>
       </slot>
     </div>
+    <!-- 边缘 / 四角缩放热区：resizable 开启且非全屏时才渲染（全屏没有缩放语义） -->
+    <template v-if="resizable && !dialogFullscreen">
+      <div
+        v-for="dir in RESIZE_DIRS"
+        :key="dir"
+        class="koi-dialog-resize"
+        :class="`koi-dialog-resize--${dir}`"
+        role="separator"
+        :aria-label="`缩放弹窗（${dir}）`"
+        @pointerdown="onResizeStart($event, dir)"
+      />
+    </template>
     <!-- 底部区域三态：未传=仅业务 #footer 插槽时渲染；false=渲染自带按钮；true=整个不渲染 -->
     <template
       v-if="footerHidden === false || (footerHidden !== true && !!$slots.footer)"
@@ -443,7 +745,9 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 <style lang="scss" scoped>
 .koi-dialog-custom-header {
   position: relative;
-  top: -4px;
+  /* 不再上移 4px：header 上下已压到 2px，再 -4px 会让标题中心比 header 中线高 4~5px，
+     表现为「左侧名称偏上/偏中」。与右侧关闭按钮同用 header 中线对齐。 */
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -570,12 +874,32 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
 
 .koi-dialog-shell .el-dialog__header {
   margin-right: 0;
-  /* 紧凑 header：上下内边距各 2px，避免标题栏再叠一层空白 */
-  /* 左右 10px（原 20px）：左侧标题组再左移 10px、右侧窗口壳操作区再右移 10px */
-  padding: 2px 10px !important;
+  /* header 留白：上下 8px、左右 14px（左右内缩让标题/关闭钮不顶到弹框两端，
+     与正文内容保持同一水平缩进） */
+  padding: 8px 14px !important;
   /* 去除头部底色，并与下方内容留出一点间距（4px，原 8px） */
   background: transparent !important;
   margin-bottom: 4px;
+}
+
+/**
+ * 关闭按钮垂直居中（自定义 header 场景）。
+ *
+ * <p>Element 把 headerbtn 放在 header 里，但 top 取
+ * --el-dialog-header-padding-top（16px），而弹窗壳的 header 是上下 8px，
+ * 按钮因此比标题栏中心低约 8px。</p>
+ *
+ * <p>header 原本是 static，按钮实际以 .el-dialog 为包含块；设为 relative 后
+ * 按 header 中线对齐，横向仍贴 header 右缘（right:0 = 原来的 dialog 内容右缘）。</p>
+ */
+.koi-dialog-shell .el-dialog__header {
+  position: relative;
+}
+
+.koi-dialog-shell .el-dialog__headerbtn {
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
 }
 
 /* body 内边距：上下 6px（原 8px）。注意 koi 主题把 body 统一置 0
@@ -690,5 +1014,106 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.06),
     0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/**
+ * 自由定位时抹掉 el-dialog 的上外边距。
+ *
+ * <p>居中态 el-dialog 靠 `margin: <top> auto` 定位（Element 的
+ * `--el-dialog-margin-top`，宿主应用常改写为 `margin-top: 7vh !important`，
+ * 例如 monitor 的 telemetry.css）。八向缩放进入自由定位后坐标只由 left/top 决定，
+ * 这条 `!important` 的 margin 会把整块弹窗再往下推 7vh —— 表现为"一按缩放边，
+ * 弹窗就跳下一截"，同时可能把南边热区推出视口、再也抓不到。</p>
+ *
+ * <p>内联 `margin: 0` 压不住 `!important`，所以用更高的特异度在全局样式里覆盖：
+ * 3 类选择器 > 宿主的 `.el-dialog`，两边都是 important 时由特异度决胜。</p>
+ */
+.el-dialog.koi-dialog-shell.koi-dialog-free {
+  margin: 0 !important;
+}
+
+/**
+ * 边缘 / 四角缩放热区。
+ *
+ * <p>热区贴在弹窗<b>内缘</b>（不向外偏移）：`.koi-dialog-shell` 是 `overflow: hidden`，
+ * 向外扩的部分会被直接裁掉，等于没有热区。四条边各 5px、四个角 12px，
+ * 尺寸与 WindowsLayout 的口径一致（那里是死代码，算法已迁到这里）。</p>
+ *
+ * <p>z-index 20 高于 headless 的 44px 拖拽条（6）与 CloseFab：顶部 5px 归"缩放"，
+ * 往下仍是"拖动"，两个手势不打架。</p>
+ */
+.koi-dialog-resize {
+  position: absolute;
+  z-index: 20;
+  touch-action: none;
+
+  &--n {
+    top: 0;
+    right: 12px;
+    left: 12px;
+    height: 5px;
+    cursor: ns-resize;
+  }
+
+  &--s {
+    right: 12px;
+    bottom: 0;
+    left: 12px;
+    height: 5px;
+    cursor: ns-resize;
+  }
+
+  &--e {
+    top: 12px;
+    right: 0;
+    bottom: 12px;
+    width: 5px;
+    cursor: ew-resize;
+  }
+
+  &--w {
+    top: 12px;
+    bottom: 12px;
+    left: 0;
+    width: 5px;
+    cursor: ew-resize;
+  }
+
+  &--ne {
+    top: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    cursor: nesw-resize;
+  }
+
+  &--nw {
+    top: 0;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    cursor: nwse-resize;
+  }
+
+  &--se {
+    right: 0;
+    bottom: 0;
+    width: 12px;
+    height: 12px;
+    cursor: nwse-resize;
+  }
+
+  &--sw {
+    bottom: 0;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    cursor: nesw-resize;
+  }
+}
+
+/* 缩放中：关掉弹窗自身的过渡，避免尺寸变化比指针慢半拍 */
+.koi-dialog-shell.is-resizing {
+  transition: none !important;
 }
 </style>

@@ -516,6 +516,27 @@ const showCloseFab = computed(() => props.headless);
 }
 
 /**
+ * 关闭按钮垂直居中。
+ *
+ * <p>Element 把 headerbtn 放在 .el-dialog__header 里，但 top 用的是
+ * --el-dialog-header-padding-top（16~18px），而本组件把 header 上下压到 2px/6px，
+ * 于是按钮中心比标题栏中心低约 9px（实测：43px 双行 header，按钮中心 61 vs 53）。</p>
+ *
+ * <p>根因是 header 原为 static，按钮的定位包含块其实是 .el-dialog。这里把 header
+ * 设为包含块，按钮按 header 中线对齐；right 归 0（header 右缘 = 原来的 dialog
+ * 内容右缘），横向位置不变。</p>
+ */
+.el-dialog.re-dialog .el-dialog__header {
+  position: relative;
+}
+
+.el-dialog.re-dialog .el-dialog__headerbtn {
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+}
+
+/**
  * body 的内边距交给主题变量（koi 主题统一置 0，由各弹窗内容自行控制），
  * 这里只补上「内容超高就地滚动」的上限：头尾压薄后内容区从 84vh 提到 88vh。
  */

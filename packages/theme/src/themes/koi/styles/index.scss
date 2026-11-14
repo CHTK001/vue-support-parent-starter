@@ -6,6 +6,8 @@
 @use "./wallpaper.scss";
 // 统一圆角（编排化视觉）
 @use "./radius.scss";
+// popover 全局版式（内边距 4px + 圆角）
+@use "./popover.scss";
 // 进度条配置
 @use "./nprogress.scss";
 // element配置

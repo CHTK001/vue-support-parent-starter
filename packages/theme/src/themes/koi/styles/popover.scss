@@ -1,0 +1,20 @@
+/**
+ * popover 全局版式（内边距 + 圆角）
+ *
+ * <p>弹层里的内容（指标清单、变量清单、表单、标签组）本身就带内边距，Element 的
+ * 默认 12px 会在外面再套一层，弹层看着比内容大一整圈、悬停时一闪一大块。
+ * 统一收到 4px，只留视觉呼吸位；圆角沿用圆角令牌的 md 档（8px），
+ * 与内部面板 / 卡片同一套层级，不再出现「弹层 4px 圆角、里面 8px」的错位。</p>
+ *
+ * <p>为什么写在 .el-popover 元素上而不是 :root：Element 把 --el-popover-padding
+ * 定义在 :root（特异性 0,1,0），写在同层只能依赖「主题晚于 Element 加载」的序关系；
+ * 落在元素上（0,2,0）与加载顺序无关，一定覆盖。圆角同理，
+ * Element 自己在 .el-popover 上本地定义过 4px，必须双类加权才能压住（见 radius.scss）。</p>
+ *
+ * <p>只影响默认弹层：纯文本弹层走 .is-plain 的 --el-popover-padding-large（18px），
+ * 文字不会贴边；tooltip 不走 .el-popover，不受影响。</p>
+ */
+.el-popover.el-popover {
+  --el-popover-padding: 10px;
+  --el-popover-border-radius: var(--el-radius-md, 12px);
+}
