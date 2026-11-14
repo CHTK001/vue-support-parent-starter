@@ -459,26 +459,34 @@ function reloadAll(): void {
     <section class="svc-stats">
       <article class="svc-stat">
         <i class="svc-stat__accent is-all" aria-hidden="true" />
-        <header>服务总数</header>
-        <b class="svc-stat__value">{{ vm.summary.total }}</b>
+        <header>
+          <span>服务总数</span>
+          <b class="svc-stat__value">{{ vm.summary.total }}</b>
+        </header>
         <p>{{ protocolKinds }} 种协议</p>
       </article>
       <article class="svc-stat">
         <i class="svc-stat__accent is-run" aria-hidden="true" />
-        <header>运行中</header>
-        <b class="svc-stat__value">{{ vm.summary.running }}</b>
+        <header>
+          <span>运行中</span>
+          <b class="svc-stat__value">{{ vm.summary.running }}</b>
+        </header>
         <p>运行占比 {{ runningPct }}%</p>
       </article>
       <article class="svc-stat">
         <i class="svc-stat__accent is-err" aria-hidden="true" />
-        <header>异常</header>
-        <b class="svc-stat__value">{{ vm.summary.error }}</b>
+        <header>
+          <span>异常</span>
+          <b class="svc-stat__value">{{ vm.summary.error }}</b>
+        </header>
         <p>{{ vm.summary.error ? '需要重启排障' : '当前无异常' }}</p>
       </article>
       <article class="svc-stat">
         <i class="svc-stat__accent is-stop" aria-hidden="true" />
-        <header>已停止</header>
-        <b class="svc-stat__value">{{ vm.summary.stopped }}</b>
+        <header>
+          <span>已停止</span>
+          <b class="svc-stat__value">{{ vm.summary.stopped }}</b>
+        </header>
         <p>{{ vm.summary.plugins }} 个过滤器可用</p>
       </article>
     </section>
@@ -686,14 +694,15 @@ function reloadAll(): void {
 </template>
 
 <style scoped lang="scss">
-/* 三列主体：左栏 214px / 中栏表格 / 右栏详情 360px，段间 12px（发布管理同口径） */
+/* 三列主体：左栏 214px / 中栏表格 / 右栏详情 360px
+   页边距交给宿主（App 的 .main 已有 20/24），这里不再叠一层 padding；段间 10px 与设备资产同档 */
 .svc {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   height: 100%;
   min-height: 0;
-  padding: 12px;
+  padding: 0;
   overflow: hidden;
   background: var(--bg-page);
 }
@@ -707,15 +716,15 @@ function reloadAll(): void {
   flex: none;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .svc-stat {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 12px 14px 13px;
+  gap: 3px;
+  padding: 9px 12px 9px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -728,13 +737,17 @@ function reloadAll(): void {
   }
 
   header {
-    font-size: 12px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11.5px;
     color: var(--text-secondary);
   }
 
   p {
     margin: 0;
-    font-size: 11.5px;
+    font-size: 11px;
     color: var(--text-tertiary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -763,9 +776,9 @@ function reloadAll(): void {
 }
 
 .svc-stat__value {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 1.15;
+  line-height: 1.05;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
 }
@@ -775,7 +788,7 @@ function reloadAll(): void {
   min-height: 0;
   display: flex;
   align-items: stretch;
-  gap: 12px;
+  gap: 10px;
 }
 
 /* ===== 左栏 ===== */
@@ -784,7 +797,7 @@ function reloadAll(): void {
   width: 214px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   overflow: auto;
   padding-right: 2px;
 }
@@ -792,8 +805,8 @@ function reloadAll(): void {
 .svc-card {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 10px 12px 12px;
+  gap: 6px;
+  padding: 8px 10px 10px;
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -929,7 +942,7 @@ function reloadAll(): void {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--border-subtle);
   flex-wrap: nowrap;
 }
@@ -1055,7 +1068,7 @@ function reloadAll(): void {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px 8px 12px;
+  padding: 6px 8px 6px 10px;
   border-bottom: 1px solid var(--border-subtle);
   font-size: 12px;
   font-weight: 600;
