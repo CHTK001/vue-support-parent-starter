@@ -42,6 +42,9 @@
           <span class="mab__option-meta">{{ optionMeta(providers[0]!) }}</span>
         </section>
 
+        <!-- 纯 API Key 上游没有登录流程：先说清原因，按钮置灰，不发注定 400 的请求 -->
+        <p v-if="picked && !signable" class="mab__blocked">{{ blockedReason }}</p>
+
         <div v-if="prompt" class="mab__ask">
           <p class="mab__ask-title">{{ prompt.message || '请填写' }}</p>
           <el-select
@@ -117,6 +120,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import ReDialog from '@repo/ui/re-dialog'
 import { channelApi, type MagpieProvider, type MagpieSigninPrompt, type MagpieSigninSession } from '../channelApi'
+import { MAGPIE_KEY_ONLY_REASON, isMagpiePluginManaged, magpieCanSignin } from '../magpieSignin'
 
 const props = withDefaults(
   defineProps<{
@@ -186,27 +190,38 @@ function iconOf(provider: MagpieProvider): string {
   return typeof dataUrl === 'string' ? dataUrl : ''
 }
 
-/** 上游副信息：凭据与账号数 */
+/**
+ * 上游副信息：凭据、账号数，以及「这条上游能不能登录」。
+ *
+ * <p>纯 API Key 上游也在这里列出来（它确实是这个渠道的账号来源），
+ * 但要先说明它只能改 Key：否则用户会选中它、点「开始添加」，拿到的只是一句
+ * 网关的 400。</p>
+ *
+ * @param provider 上游实例
+ * @returns 一行副信息
+ */
 function optionMeta(provider: MagpieProvider): string {
   const bits: string[] = []
   bits.push(provider.hasKey ? '已配置凭据' : '未配置凭据')
   const accounts = Number(provider.pluginAccounts ?? 0)
   if (accounts > 0) bits.push(`${accounts} 个账号`)
+  if (!magpieCanSignin(provider)) bits.push('只能改 Key')
   return bits.join(' · ')
 }
 
-/** 是否插件接管的 provider：与上游面板同一套判定 */
-function isPluginManaged(provider: MagpieProvider): boolean {
-  const move = provider.move as Record<string, unknown> | undefined
-  const state = move?.state ?? (provider as Record<string, unknown>).moveState
-  if (String(state ?? '') === 'plugin') return true
-  const account = (provider as Record<string, unknown>).account as Record<string, unknown> | undefined
-  const logins = Array.isArray(account?.logins) ? account.logins : []
-  if (logins.some((row) => String((row as Record<string, unknown>)?.agent ?? '').startsWith('plugin:'))) {
-    return true
-  }
-  return String((provider as Record<string, unknown>).chat ?? '').startsWith('plugin://')
-}
+/** 当前选中的上游 */
+const picked = computed<MagpieProvider | undefined>(() =>
+  props.providers.find((p) => String(p.id ?? '') === pickedId.value),
+)
+
+/** 当前选中的上游能不能登录 */
+const signable = computed<boolean>(() => magpieCanSignin(picked.value))
+
+/** 不能登录时给出的说明（讲原因与下一步，不透出网关原文） */
+const blockedReason = computed<string>(() => {
+  const id = String(picked.value?.id ?? '').trim()
+  return id ? `「${id}」${MAGPIE_KEY_ONLY_REASON}` : MAGPIE_KEY_ONLY_REASON
+})
 
 const running = computed(() => {
   const state = session.value?.state
@@ -217,7 +232,7 @@ const running = computed(() => {
 const finished = computed(() => session.value?.state === 'done')
 
 const canStart = computed(
-  () => !!pickedId.value && !!props.connectionId && !starting.value && !prompt.value,
+  () => !!pickedId.value && !!props.connectionId && !starting.value && !prompt.value && signable.value,
 )
 
 const stateText = computed(() => {
@@ -273,6 +288,11 @@ async function start(): Promise<void> {
     error.value = '网关连接不可用，请刷新后再试'
     return
   }
+  // 纯 API Key 上游：网关没有登录实现，发过去只会 400。这里直接给结论，不打无用的请求。
+  if (!magpieCanSignin(provider)) {
+    error.value = blockedReason.value
+    return
+  }
   starting.value = true
   error.value = ''
   promptError.value = ''
@@ -281,7 +301,7 @@ async function start(): Promise<void> {
   promptValue.value = ''
   session.value = null
   try {
-    if (!isPluginManaged(provider)) {
+    if (!isMagpiePluginManaged(provider)) {
       await launchSignin({ agent: id })
       return
     }
@@ -487,6 +507,17 @@ onBeforeUnmount(stopPoll)
   margin: 0;
   font-size: 12px;
   color: var(--el-color-danger, #dc2626);
+}
+/* 纯 API Key 上游：不是错误，是「这条路本来就不存在」，用提示色而不是红色 */
+.mab__blocked {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary, #475569);
+  background: var(--el-color-warning-light-9, #fdf6ec);
+  border: 1px solid var(--el-color-warning-light-7, #faecd8);
 }
 .mab__empty {
   display: flex;

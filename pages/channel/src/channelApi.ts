@@ -664,11 +664,12 @@ export const channelApi = {
   /**
    * POST /api/channels/{channel}/providers/{action} —— 上游分项动作。
    *
-   * <p>{@code action} 仅 {@code detect} / {@code models} / {@code test}。</p>
+   * <p>{@code action} 取 {@code detect} / {@code models} / {@code test}，以及网关
+   * 自己的启停端点 {@code on} / {@code off}（请求体只要 {@code provider.id}）。</p>
    */
   magpieProviderAction: (
     channel: string,
-    action: 'detect' | 'models' | 'test',
+    action: 'detect' | 'models' | 'test' | 'on' | 'off',
     body: { connectionId?: string; label?: string; provider: Record<string, unknown> },
   ) =>
     unwrapPayload<{ ok: boolean; channel: string; result: Record<string, unknown> }>(
@@ -789,6 +790,30 @@ export const channelApi = {
         ...(user ? { user } : {}),
       }),
     ),
+  /**
+   * GET /api/accounts/credit-configs —— 我们自己的上游余额查询配置。
+   *
+   * <p>网关读不到余额的上游在这里配「去哪查、取哪个字段」；令牌只进不出，
+   * 读接口只回 {@code hasToken}。</p>
+   */
+  creditConfigs: () =>
+    unwrapPayload<AccountCreditConfig[]>(apiHttp.get('/api/accounts/credit-configs')),
+  /** GET /api/accounts/credit-configs/kinds —— 可用的查询实现标识 */
+  creditConfigKinds: () =>
+    unwrapPayload<string[]>(apiHttp.get('/api/accounts/credit-configs/kinds')),
+  /** PUT /api/accounts/credit-configs/{providerId} —— 新增 / 覆盖一条余额配置 */
+  saveCreditConfig: (providerId: string, body: Partial<AccountCreditConfig>) =>
+    unwrapPayload<AccountCreditConfig>(
+      apiHttp.put(`/api/accounts/credit-configs/${encodeURIComponent(providerId)}`).data(body),
+    ),
+  /** DELETE /api/accounts/credit-configs/{providerId} —— 删除余额配置 */
+  deleteCreditConfig: (providerId: string) =>
+    unwrapPayload<boolean>(
+      apiHttp.delete(`/api/accounts/credit-configs/${encodeURIComponent(providerId)}`),
+    ),
+  /** POST /api/accounts/credit-configs/test —— 按当前内容试查一次（不落库） */
+  testCreditConfig: (body: Partial<AccountCreditConfig> & { providerId: string }) =>
+    unwrapPayload<CreditTestResult>(apiHttp.post('/api/accounts/credit-configs/test').data(body)),
 }
 
 /**
@@ -860,8 +885,38 @@ export interface MagpieProvider {
   anthropic?: string
   /** Gemini 协议基址 */
   gemini?: string
-  /** 该上游的模型（magpie 下发对象数组 {@code [{id,name}]}，也兼容字符串数组） */
-  models?: Array<string | { id?: string; name?: string }>
+  /**
+   * 该上游的模型目录。
+   *
+   * <p>magpie 下发对象数组，每个条目带 {@code on}（该模型此刻在网关是否启用）、
+   * {@code context}、{@code rate}、{@code list}（每百万 token 的输入/输出价）；
+   * 也兼容历史版本的纯 id 字符串数组。</p>
+   */
+  models?: Array<
+    | string
+    | {
+        id?: string
+        name?: string
+        /** 该模型在网关里是否启用（{@code provider.models} 的开关） */
+        on?: boolean
+        /** 上下文窗口（token） */
+        context?: number
+        /** 计费倍率 */
+        rate?: number
+        /** 每百万 token 的价目表 */
+        list?: { input?: number; output?: number; cache_read?: number; cache_write?: number }
+        /** 上游标价为 0 */
+        zero?: boolean
+      }
+  >
+  /** 整条上游是否停用（magpie 的 {@code provider.off}，启停走 {@code /api/provider/on|off}） */
+  off?: boolean
+  /** 网关该上游当前启用的模型数（magpie 的 {@code exposed}） */
+  exposed?: number
+  /** 该上游不提供任何模型（magpie 的 {@code noModels}） */
+  noModels?: boolean
+  /** 只用「同族最佳」模型（magpie 的 {@code bestInFamily}） */
+  bestInFamily?: boolean
   /**
    * 品牌图标的 data URL（后端从 magpie 管理面取回并内联）。
    *
@@ -887,6 +942,54 @@ export interface MagpieProviderList {
   providers?: MagpieProvider[]
   /** {@code ok=false} 时的原因 */
   message?: string
+}
+
+/**
+ * 上游余额查询配置（{@code /api/accounts/credit-configs}）。
+ *
+ * <p>网关读不到余额的上游，按这里的地址与字段表达式再查一次；主键就是
+ * 网关里的 provider id。{@code token} 只进不出，读接口只回 {@code hasToken}。</p>
+ */
+export interface AccountCreditConfig {
+  /** 上游 provider id（网关里的标识） */
+  providerId: string
+  /** 查询实现标识（expression / new-api / sub2api / openai / host），空表示按表达式回落 */
+  kind?: string
+  /** 余额接口地址 */
+  url?: string
+  /** HTTP 方法（GET / POST / PUT） */
+  method?: string
+  /** 令牌请求头名，空按 Authorization */
+  tokenHeader?: string
+  /** 字段表达式，多段用分号分隔（如 {@code $data.total_available / 500000}） */
+  expression?: string
+  /** 计费币种口径（usd / cny），空时由表达式币种前缀决定 */
+  billing?: string
+  /** 状态：1 启用 / 0 停用 */
+  status?: number
+  remark?: string
+  /** 是否已配置令牌（服务端不回明文） */
+  hasToken?: boolean
+  updatedAt?: number
+  createdAt?: number
+  /** 写入时用：令牌明文；留空或掩码表示不修改 */
+  token?: string
+}
+
+/** 一次余额试查的结果（{@code /api/accounts/credit-configs/test}） */
+export interface CreditTestResult {
+  /** 主余额（第一段） */
+  amount?: number
+  /** 币种（USD / CNY；百分比口径为 %） */
+  currency?: string
+  /** 命中的实现标识 */
+  source?: string
+  /** 多段读数 */
+  parts?: Array<{ label?: string; amount?: number; currency?: string }>
+  /** 原始响应（截断） */
+  raw?: string
+  /** 失败原因；为空表示查到了 */
+  error?: string
 }
 
 /**
@@ -981,6 +1084,17 @@ export interface MagpieQuota {
   user?: string
   balance?: string | number
   windows?: Array<Record<string, unknown>>
+  /** 读不到额度时网关给的原因（上游 4xx、上游已下线查询接口等） */
+  error?: string
+  /** 上游自己都不给读数时，网关指出的网页地址（如 SiliconFlow 余额在云控制台） */
+  seeAt?: string
+  /** 这张卡最后一次成功读取的时间 */
+  readAt?: string
+  /**
+   * 读数来源。{@code spi} 表示网关查不到时由宿主自建的余额源接管；
+   * 网关自己给的卡不带这个字段，页面据此标「自建」，免得把两套数字当成同一来源。
+   */
+  source?: string
   /** 签到状态（管理面独有） */
   checkin?: Record<string, unknown>
   [key: string]: unknown

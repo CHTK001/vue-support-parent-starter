@@ -61,7 +61,14 @@
                 插件
               </span>
             </td>
-            <td class="is-id" :title="String(p.id ?? '')">{{ p.id }}</td>
+            <td class="is-id" :title="String(p.id ?? '')">
+              {{ p.id }}
+              <span
+                v-if="creditConfigs[String(p.id ?? '')]"
+                class="mg-up__tag"
+                title="已配置自建余额查询：网关读不到余额时按它查"
+              >余额自建</span>
+            </td>
             <td>{{ protocolText(p) }}</td>
             <td>
               <span class="mg-up__tag" :class="{ 'is-off': !p.hasKey }">
@@ -72,7 +79,7 @@
             <td>{{ (p.models ?? []).length }}</td>
             <td class="is-actions">
               <button
-                v-if="signinEnabled"
+                v-if="signinEnabled && canSignin(p)"
                 type="button"
                 class="mg-up__link"
                 :disabled="busyId === p.id"
@@ -112,7 +119,7 @@
                   <button type="button" class="mg-up__link" :disabled="focusQuotaLoading" @click="loadFocusQuota(String(p.id))">
                     刷新积分
                   </button>
-                  <button v-if="signinEnabled" type="button" class="mg-up__link is-primary" :disabled="busyId === p.id" @click="openSignin(p)">
+                  <button v-if="signinEnabled && canSignin(p)" type="button" class="mg-up__link is-primary" :disabled="busyId === p.id" @click="openSignin(p)">
                     ＋ 绑定账号
                   </button>
                 </div>
@@ -135,7 +142,12 @@
                   </div>
                 </div>
                 <p v-else-if="!focusQuotaLoading" class="mg-up__formhint">
-                  这个上游还没有账号。点「＋ 绑定账号」发起登录，登录完成后账号与积分会出现在这里。
+                  <template v-if="canSignin(p)">
+                    这个上游还没有账号。点「＋ 绑定账号」发起登录，登录完成后账号与积分会出现在这里。
+                  </template>
+                  <template v-else>
+                    这个上游用 API Key 接入，网关里没有它的登录方式：换 Key 请点「编辑」改凭据，不需要绑定账号。
+                  </template>
                 </p>
               </div>
             </td>
@@ -262,6 +274,77 @@
             />
           </el-form-item>
         </template>
+
+        <button type="button" class="mg-up__more" @click="creditOpen = !creditOpen">
+          <span>
+            {{ creditOpen
+              ? '收起余额查询'
+              : (creditSaved ? '余额查询：已配置（网关读不到时用）' : '余额查询：网关读不到时用（一般不用填）') }}
+          </span>
+          <span aria-hidden="true">{{ creditOpen ? '▴' : '▾' }}</span>
+        </button>
+
+        <template v-if="creditOpen">
+          <p class="mg-up__formhint">
+            网关读不到这个上游的余额时，按这里再查一次。字段表达式如
+            <code>$data.total_available / 500000</code>，多段用分号分隔；未验证的接口先点「试查余额」。
+          </p>
+          <div class="mg-up__grid">
+            <el-form-item label="查询实现">
+              <el-select v-model="credit.kind" clearable placeholder="按表达式自动选">
+                <el-option v-for="k in creditKinds" :key="k" :value="k" :label="k" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="请求方法">
+              <el-select v-model="credit.method" clearable placeholder="GET">
+                <el-option value="GET" label="GET" />
+                <el-option value="POST" label="POST" />
+                <el-option value="PUT" label="PUT" />
+              </el-select>
+            </el-form-item>
+          </div>
+          <el-form-item label="余额地址">
+            <el-input v-model="credit.url" placeholder="https://…/api/usage/token" maxlength="1024" />
+          </el-form-item>
+          <el-form-item label="字段表达式">
+            <el-input
+              v-model="credit.expression"
+              placeholder="$data.user_quota.total_available / 500000"
+              maxlength="512"
+            />
+          </el-form-item>
+          <div class="mg-up__grid">
+            <el-form-item label="令牌请求头">
+              <el-input v-model="credit.tokenHeader" placeholder="可留空（默认 Authorization）" maxlength="64" />
+            </el-form-item>
+            <el-form-item label="令牌">
+              <el-input
+                v-model="credit.token"
+                type="password"
+                show-password
+                spellcheck="false"
+                :placeholder="creditSaved?.hasToken ? '已配置，留空表示不改' : '可留空（公开接口）'"
+              />
+            </el-form-item>
+          </div>
+          <el-form-item label="计费口径">
+            <el-select v-model="credit.billing" clearable placeholder="按表达式里的币种">
+              <el-option value="usd" label="usd（美元）" />
+              <el-option value="cny" label="cny（人民币）" />
+            </el-select>
+          </el-form-item>
+          <div class="mg-up__credit-test">
+            <ReButton :loading="creditTesting" :disabled="!form.id.trim()" @click="testCredit()">
+              试查余额
+            </ReButton>
+            <span v-if="creditTest" class="mg-up__formhint" :class="{ 'is-error': !!creditTest.error }">
+              {{ creditTestText }}
+            </span>
+            <button v-if="creditSaved" type="button" class="mg-up__link is-danger" @click="removeCredit()">
+              删除余额配置
+            </button>
+          </div>
+        </template>
       </el-form>
 
       <template #footer>
@@ -364,9 +447,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
 import { MAGPIE_PRESETS, magpiePresetOf, type MagpiePreset } from '../magpiePresets'
+import { magpieCanSignin as canSignin, isMagpiePluginManaged as isPluginManaged } from '../magpieSignin'
 import {
   channelApi,
+  type AccountCreditConfig,
   type ChannelConnectionSummary,
+  type CreditTestResult,
   type MagpieProvider,
   type MagpieQuota,
   type MagpieSigninSession,
@@ -472,6 +558,40 @@ const form = reactive({
   modelsText: '',
 })
 
+/** ── 余额查询配置（存在我们自己的库；网关读不到余额时用它） ── */
+const creditOpen = ref(false)
+const creditKinds = ref<string[]>([])
+const creditSaved = ref<AccountCreditConfig | null>(null)
+const creditTesting = ref(false)
+const creditTest = ref<CreditTestResult | null>(null)
+/** provider id → 已配置的余额来源（列表里标出来，不用逐条点开看） */
+const creditConfigs = ref<Record<string, AccountCreditConfig>>({})
+
+const credit = reactive({
+  kind: '',
+  method: '',
+  url: '',
+  expression: '',
+  tokenHeader: '',
+  token: '',
+  billing: '',
+})
+
+/** 试查结果文案（成功列出每段读数，失败给原因） */
+const creditTestText = computed(() => {
+  const result = creditTest.value
+  if (!result) return ''
+  if (result.error) return '没查到：' + result.error
+  const parts = (result.parts ?? [])
+    .filter((part) => part && part.amount !== undefined && part.amount !== null)
+    .map((part) => `${part.label || '余额'} ${part.amount}${part.currency ? ' ' + part.currency : ''}`)
+  if (parts.length) return '读到：' + parts.join(' ｜ ')
+  if (result.amount !== undefined && result.amount !== null) {
+    return `读到：${result.amount}${result.currency ? ' ' + result.currency : ''}`
+  }
+  return '没取到数字，检查字段表达式'
+})
+
 /** 当前选中的预设；编辑更新版 magpie 建的上游时可能不在内置目录里 */
 const pickedPreset = computed<MagpiePreset | undefined>(() => magpiePresetOf(form.preset.trim()))
 
@@ -502,6 +622,7 @@ watch(
 
 onMounted(() => {
   if (props.connections.length && connectionId.value) void load()
+  void loadCreditKinds()
 })
 
 // 切换网关（多连接）时重新读取；props 同步发生在挂载前也算一次
@@ -608,11 +729,145 @@ async function load(): Promise<void> {
     if (out?.ok === false) {
       error.value = String(out?.message ?? 'Magpie 管理接口不可用')
     }
+    await loadCreditConfigs()
   } catch (e: any) {
     error.value = e?.message ?? String(e)
     providers.value = []
   } finally {
     loading.value = false
+  }
+}
+
+/**
+ * 读取余额查询配置（我们自己的库，与网关无关）。
+ *
+ * <p>失败只是不显示「余额自建」标记，不能影响上游列表本身。</p>
+ */
+async function loadCreditConfigs(): Promise<void> {
+  try {
+    const rows = await channelApi.creditConfigs()
+    const map: Record<string, AccountCreditConfig> = {}
+    for (const row of (rows ?? []) as AccountCreditConfig[]) {
+      if (row?.providerId) map[String(row.providerId)] = row
+    }
+    creditConfigs.value = map
+  } catch {
+    creditConfigs.value = {}
+  }
+}
+
+/** 读取可用的查询实现标识（后端 SPI 注册了哪些就给哪些） */
+async function loadCreditKinds(): Promise<void> {
+  try {
+    creditKinds.value = (await channelApi.creditConfigKinds()) ?? []
+  } catch {
+    creditKinds.value = []
+  }
+}
+
+/**
+ * 把已存的余额配置填进表单（令牌不回显，只能重填）。
+ *
+ * @param saved 已存配置；为空表示这个上游还没配
+ */
+function applyCredit(saved: AccountCreditConfig | null): void {
+  creditSaved.value = saved
+  creditTest.value = null
+  credit.kind = String(saved?.kind ?? '')
+  credit.method = String(saved?.method ?? '')
+  credit.url = String(saved?.url ?? '')
+  credit.expression = String(saved?.expression ?? '')
+  credit.tokenHeader = String(saved?.tokenHeader ?? '')
+  credit.token = ''
+  credit.billing = String(saved?.billing ?? '')
+}
+
+/**
+ * 表单里是否填了余额查询的东西（决定保存上游时要不要一起存配置）。
+ *
+ * @returns 有任一字段为真
+ */
+function hasCreditInput(): boolean {
+  return !!(credit.kind.trim() || credit.method.trim() || credit.url.trim()
+    || credit.expression.trim() || credit.tokenHeader.trim() || credit.token.trim()
+    || credit.billing.trim())
+}
+
+/**
+ * 保存上游后同步余额配置。
+ *
+ * <p>只在上游保存成功之后调用：配置的主键就是 provider id，先有上游才有意义。
+ * 配置保存失败不回滚上游，只提示——上游本身已经生效，余额是附加信息。</p>
+ *
+ * @param providerId 上游 id
+ */
+async function saveCreditIfNeeded(providerId: string): Promise<void> {
+  if (!hasCreditInput()) return
+  try {
+    const saved = await channelApi.saveCreditConfig(providerId, {
+      kind: credit.kind.trim(),
+      method: credit.method.trim(),
+      url: credit.url.trim(),
+      expression: credit.expression.trim(),
+      tokenHeader: credit.tokenHeader.trim(),
+      billing: credit.billing.trim(),
+      token: credit.token.trim(),
+      status: 1,
+    })
+    creditSaved.value = saved
+    creditConfigs.value = { ...creditConfigs.value, [providerId]: saved }
+  } catch (e: any) {
+    ElMessage.error('上游已保存，但余额查询配置没存上：' + (e?.message ?? e))
+  }
+}
+
+/** 试查一次（不落库）：先看清能不能读到数，再决定保存 */
+async function testCredit(): Promise<void> {
+  const providerId = form.id.trim()
+  if (!providerId) {
+    ElMessage.warning('先填上游 ID')
+    return
+  }
+  creditTesting.value = true
+  creditTest.value = null
+  try {
+    creditTest.value = await channelApi.testCreditConfig({
+      providerId,
+      kind: credit.kind.trim(),
+      method: credit.method.trim(),
+      url: credit.url.trim(),
+      expression: credit.expression.trim(),
+      tokenHeader: credit.tokenHeader.trim(),
+      billing: credit.billing.trim(),
+      token: credit.token.trim(),
+    })
+  } catch (e: any) {
+    creditTest.value = { error: e?.message ?? String(e) }
+  } finally {
+    creditTesting.value = false
+  }
+}
+
+/** 删除这个上游的余额配置（额度卡回到只读网关） */
+async function removeCredit(): Promise<void> {
+  const providerId = form.id.trim()
+  if (!providerId || !creditSaved.value) return
+  try {
+    await ElMessageBox.confirm(`删除「${providerId}」的余额查询配置？之后额度卡只读网关。`, '确认删除', {
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  try {
+    await channelApi.deleteCreditConfig(providerId)
+    const next = { ...creditConfigs.value }
+    delete next[providerId]
+    creditConfigs.value = next
+    applyCredit(null)
+    ElMessage.success('余额配置已删除')
+  } catch (e: any) {
+    ElMessage.error('删除失败：' + (e?.message ?? e))
   }
 }
 
@@ -641,6 +896,10 @@ function openEditor(provider: MagpieProvider | null, preset = ''): void {
   presetMode.value = !!form.preset.trim()
   // 已经填了地址/模型的老数据，展开高级让人看得见，避免「编辑时字段消失」
   advancedOpen.value = presetMode.value && hasAdvancedValues()
+  // 余额配置按 provider id 取；新增时 id 还没填，等用户填了再「试查 / 保存」
+  const savedCredit = form.id.trim() ? creditConfigs.value[form.id.trim()] ?? null : null
+  applyCredit(savedCredit)
+  creditOpen.value = !!savedCredit
   dialogVisible.value = true
 }
 
@@ -718,6 +977,8 @@ async function submit(): Promise<void> {
       isNew: !editing.value,
       from: editing.value && originalId.value && originalId.value !== id ? originalId.value : undefined,
     })
+    // 上游先进网关，再按同一个 id 存余额配置；配置失败只提示，不回滚上游
+    await saveCreditIfNeeded(id)
     ElMessage.success(editing.value ? '上游已更新' : '上游已新增')
     dialogVisible.value = false
     await load()
@@ -797,30 +1058,6 @@ async function testProvider(provider: MagpieProvider): Promise<void> {
   } finally {
     busyId.value = ''
   }
-}
-
-/**
- * 该 provider 是否由插件接管。
- *
- * <p>{@code move.state=plugin} 只覆盖 magpie 明确标记过的那几个；实测
- * minimax-code / trae-cn / trae-global 等 provider 的 {@code move} 是 null，
- * 但 {@code account.logins[].agent} 已经写成 {@code plugin:xxx}，登录必须走
- * 插件端点。只看 move 会让这些上游全部落到内置端点，magpie 直接回
- * 「magpie can't sign in to xxx accounts」——用户看到的就是「所有登录都失败」。</p>
- *
- * @param provider 上游行
- * @returns 是否插件接管
- */
-function isPluginManaged(provider: MagpieProvider): boolean {
-  const move = provider.move as Record<string, unknown> | undefined
-  const state = move?.state ?? (provider as Record<string, unknown>).moveState
-  if (String(state ?? '') === 'plugin') return true
-  const account = (provider as Record<string, unknown>).account as Record<string, unknown> | undefined
-  const logins = Array.isArray(account?.logins) ? account.logins : []
-  if (logins.some((row) => String((row as Record<string, unknown>)?.agent ?? '').startsWith('plugin:'))) {
-    return true
-  }
-  return String((provider as Record<string, unknown>).chat ?? '').startsWith('plugin://')
 }
 
 /**
@@ -1030,6 +1267,9 @@ function windowName(w: Record<string, unknown>): string {
 
 /** 窗口用量：remaining / limit 单位 */
 function windowAmount(w: Record<string, unknown>): string {
+  // 自建的余额源（source=spi）给的是拼好的展示串，直接用；网关的续窗口才有数量字段
+  const display = w.display ?? w.Display
+  if (typeof display === 'string' && display.trim()) return display.trim()
   const remaining = w.remaining ?? w.Remaining
   const limit = w.limit ?? w.Limit
   const unit = w.unit ?? w.Unit ?? ''
@@ -1455,6 +1695,17 @@ function testAllOk(value: unknown): boolean {
 .mg-up__more:hover {
   border-color: var(--el-color-primary-light-5, #a0cfff);
   color: var(--el-color-primary, #409eff);
+}
+/* ── 余额查询（我们自己的配置） ── */
+.mg-up__credit-test {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.mg-up__formhint.is-error {
+  color: var(--el-color-danger, #f56c6c);
 }
 .mg-up__tag.is-plugin {
   margin-left: 6px;
