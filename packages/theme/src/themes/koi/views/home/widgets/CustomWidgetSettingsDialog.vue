@@ -10,6 +10,7 @@ import { reactive, ref, watch } from "vue";
 
 import type { CustomWidgetConfig } from "../widgets";
 import ReDialog from "@repo/ui/re-dialog";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 interface Props {
   modelValue: boolean;
@@ -116,10 +117,10 @@ async function handleSave(): Promise<void> {
         />
       </el-form-item>
       <el-form-item label="高度模式" prop="heightMode">
-        <el-radio-group v-model="form.heightMode">
-          <el-radio value="fill">自适应铺满</el-radio>
-          <el-radio value="fixed">固定高度</el-radio>
-        </el-radio-group>
+        <ReRadioGroup v-model="form.heightMode">
+          <ReRadio value="fill">自适应铺满</ReRadio>
+          <ReRadio value="fixed">固定高度</ReRadio>
+        </ReRadioGroup>
       </el-form-item>
       <el-form-item v-if="form.heightMode === 'fixed'" label="固定高度" prop="fixedHeight">
         <el-input-number
@@ -132,11 +133,11 @@ async function handleSave(): Promise<void> {
         <span style="margin-left: 8px; color: var(--el-text-color-secondary);">px</span>
       </el-form-item>
       <el-form-item label="滚动条" prop="scrolling">
-        <el-radio-group v-model="form.scrolling">
-          <el-radio value="auto">自动</el-radio>
-          <el-radio value="yes">始终显示</el-radio>
-          <el-radio value="no">禁用</el-radio>
-        </el-radio-group>
+        <ReRadioGroup v-model="form.scrolling">
+          <ReRadio value="auto">自动</ReRadio>
+          <ReRadio value="yes">始终显示</ReRadio>
+          <ReRadio value="no">禁用</ReRadio>
+        </ReRadioGroup>
       </el-form-item>
     </el-form>
     <template #footer>

@@ -69,13 +69,13 @@
       <!-- 壁纸库 -->
       <section class="wp-library">
         <div class="wp-library__bar">
-          <el-radio-group v-model="activeFilter" size="small" class="wp-library__filter">
-            <el-radio-button label="all">全部 {{ counts.all }}</el-radio-button>
-            <el-radio-button label="builtin">内置 {{ counts.builtin }}</el-radio-button>
-            <el-radio-button label="online">在线 {{ counts.online }}</el-radio-button>
-            <el-radio-button label="mine">我的 {{ counts.mine }}</el-radio-button>
-            <el-radio-button label="favorite">收藏 {{ counts.favorite }}</el-radio-button>
-          </el-radio-group>
+          <ReRadioGroup v-model="activeFilter" size="small" class="wp-library__filter">
+            <ReRadioButton label="all">全部 {{ counts.all }}</ReRadioButton>
+            <ReRadioButton label="builtin">内置 {{ counts.builtin }}</ReRadioButton>
+            <ReRadioButton label="online">在线 {{ counts.online }}</ReRadioButton>
+            <ReRadioButton label="mine">我的 {{ counts.mine }}</ReRadioButton>
+            <ReRadioButton label="favorite">收藏 {{ counts.favorite }}</ReRadioButton>
+          </ReRadioGroup>
           <el-input v-model="query" class="wp-library__search" size="small" clearable placeholder="搜索壁纸名称">
             <template #prefix>
               <el-icon><Search /></el-icon>
@@ -255,6 +255,7 @@ import {
   type UploadedWallpaper,
 } from "./store";
 import type { WallpaperPreset, WallpaperTile } from "./types";
+import { ReRadioGroup, ReRadioButton } from '@repo/ui/re-kit';
 
 const setting = wallpaperSetting;
 

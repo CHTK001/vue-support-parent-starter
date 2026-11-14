@@ -24,7 +24,8 @@ import {
   nextTick,
   ref,
   watch } from "vue";
-import { ElButton, ElInput, ElRadioButton, ElRadioGroup, ElTabPane, ElTabs } from "element-plus";
+import { ElButton, ElInput, ElTabPane, ElTabs } from "element-plus";
+import { ReRadioButton, ReRadioGroup } from "../ReKit/index";
 import { finder } from "@medv/finder";
 import LiveView from "./LiveView.vue";
 import { probeLive } from "./liveClient";
@@ -501,14 +502,14 @@ async function copy(text: string): Promise<void> {
     @update:model-value="(v: boolean) => emit('update:visible', v)"
   >
     <div class="picker-bar">
-      <ElRadioGroup
+      <ReRadioGroup
         :model-value="mode"
         size="small"
         @update:model-value="(v: any) => switchMode(v as 'live' | 'static')"
       >
-        <ElRadioButton value="live">实时浏览器</ElRadioButton>
-        <ElRadioButton value="static">静态渲染</ElRadioButton>
-      </ElRadioGroup>
+        <ReRadioButton value="live">实时浏览器</ReRadioButton>
+        <ReRadioButton value="static">静态渲染</ReRadioButton>
+      </ReRadioGroup>
       <ElInput
         v-model="target"
         placeholder="要预览的页面地址（预填上游抓取节点的 URL，可改成任意公网地址）"

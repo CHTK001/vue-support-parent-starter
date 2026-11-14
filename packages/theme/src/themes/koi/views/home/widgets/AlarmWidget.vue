@@ -54,11 +54,11 @@
           <el-time-picker v-model="form.time" :format="'HH:mm'" style="width:100%" />
         </el-form-item>
         <el-form-item label="重复">
-          <el-radio-group v-model="form.repeat">
-            <el-radio value="daily">每天</el-radio>
-            <el-radio value="weekday">工作日</el-radio>
-            <el-radio value="once">单次</el-radio>
-          </el-radio-group>
+          <ReRadioGroup v-model="form.repeat">
+            <ReRadio value="daily">每天</ReRadio>
+            <ReRadio value="weekday">工作日</ReRadio>
+            <ReRadio value="once">单次</ReRadio>
+          </ReRadioGroup>
         </el-form-item>
         <el-form-item label="次数">
           <el-select v-model="form.repeatCount" style="width: 100%">
@@ -88,6 +88,7 @@ import { useMessageStore } from "@repo/pinia";
 import useAuthStore from "@repo/pinia/modules/auth";
 import type { WidgetItem } from "../types";
 import ReDialog from "@repo/ui/re-dialog";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 const props = defineProps<{ widget: WidgetItem }>();
 

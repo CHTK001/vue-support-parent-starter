@@ -11,22 +11,22 @@
 
         <div class="map3d-controls">
           <!-- Engine selector -->
-          <el-radio-group
+          <ReRadioGroup
             v-model="selectedEngine"
             class="engine-select"
             @change="(val: string | number | boolean | undefined) => onEngineChange(val as MapEngine)"
           >
-            <el-radio-button value="mars3d">Mars3D</el-radio-button>
-            <el-radio-button value="maplibre">MapLibre</el-radio-button>
-          </el-radio-group>
+            <ReRadioButton value="mars3d">Mars3D</ReRadioButton>
+            <ReRadioButton value="maplibre">MapLibre</ReRadioButton>
+          </ReRadioGroup>
 
           <!-- Engine-specific controls -->
           <template v-if="engine === 'mars3d'">
-            <el-radio-group v-model="globeMode" class="map-mode" size="small">
-              <el-radio-button value="globe">球体</el-radio-button>
-              <el-radio-button value="wireframe">线框</el-radio-button>
-              <el-radio-button value="dots">点阵</el-radio-button>
-            </el-radio-group>
+            <ReRadioGroup v-model="globeMode" class="map-mode" size="small">
+              <ReRadioButton value="globe">球体</ReRadioButton>
+              <ReRadioButton value="wireframe">线框</ReRadioButton>
+              <ReRadioButton value="dots">点阵</ReRadioButton>
+            </ReRadioGroup>
 
             <!-- Mars3D advanced controls -->
             <el-dropdown trigger="click" @command="handleMars3DDropdown">
@@ -44,11 +44,11 @@
           </template>
 
           <template v-else>
-            <el-radio-group v-model="viewStyle" class="map-style" size="small">
-              <el-radio-button value="streets">街道</el-radio-button>
-              <el-radio-button value="satellite">卫星</el-radio-button>
-              <el-radio-button value="dark">暗黑</el-radio-button>
-            </el-radio-group>
+            <ReRadioGroup v-model="viewStyle" class="map-style" size="small">
+              <ReRadioButton value="streets">街道</ReRadioButton>
+              <ReRadioButton value="satellite">卫星</ReRadioButton>
+              <ReRadioButton value="dark">暗黑</ReRadioButton>
+            </ReRadioGroup>
 
             <!-- MapLibre advanced controls -->
             <el-dropdown trigger="click" @command="handleMapLibreDropdown">
@@ -144,6 +144,7 @@ import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
 import { ElMessage } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 // Engine types
 export type MapEngine = 'mars3d' | 'maplibre'
@@ -808,25 +809,19 @@ if (props.autoResetOnResize) {
 
 .map3d-controls { display: flex; align-items: center; gap: 10px; }
 
-/* Engine selector */
-.engine-select :deep(.el-radio-button__inner) { 
-  border-radius: 6px; 
-  padding: 4px 12px; 
-  font-size: 12px; 
-  min-width: 70px; 
-  text-align: center; 
-}
-.engine-select :deep(.is-checked) { 
-  background: var(--el-color-primary); 
-  border-color: var(--el-color-primary); 
-  color: white; 
+/* Engine selector（分段控件） */
+.engine-select :deep(.el-segmented__item-label) {
+  padding: 0 10px;
+  font-size: 12px;
+  min-width: 70px;
+  justify-content: center;
 }
 
 /* Mode controls */
-.map-mode, .map-style :deep(.el-radio-button__inner) { 
-  border-radius: 6px; 
-  padding: 4px 12px; 
-  font-size: 12px; 
+.map-mode :deep(.el-segmented__item-label),
+.map-style :deep(.el-segmented__item-label) {
+  padding: 0 10px;
+  font-size: 12px;
 }
 .map-nav :deep(.el-button) { border-radius: 6px; padding: 5px 8px; }
 .map-nav .active :deep() { color: var(--el-color-primary); }

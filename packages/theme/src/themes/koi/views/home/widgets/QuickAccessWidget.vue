@@ -46,10 +46,10 @@
     <ReDialog v-model="dialogVisible" title="添加快捷" width="440px" :close-on-click-modal="false" append-to-body @close="dialogVisible = false">
       <el-form label-width="70px" label-position="left">
         <el-form-item label="类型">
-          <el-radio-group v-model="form.type">
-            <el-radio value="route">系统路由</el-radio>
-            <el-radio value="link">外部链接</el-radio>
-          </el-radio-group>
+          <ReRadioGroup v-model="form.type">
+            <ReRadio value="route">系统路由</ReRadio>
+            <ReRadio value="link">外部链接</ReRadio>
+          </ReRadioGroup>
         </el-form-item>
         <el-form-item v-if="form.type === 'route'" label="路由">
           <el-select v-model="form.routePath" filterable placeholder="搜索系统菜单..." style="width:100%">
@@ -86,6 +86,7 @@ import { getMenuLanguage } from "@repo/languages";
 import useAuthStore from "@repo/pinia/modules/auth";
 import type { WidgetItem } from "../types";
 import ReDialog from "@repo/ui/re-dialog";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 defineProps<{ widget: WidgetItem }>();
 

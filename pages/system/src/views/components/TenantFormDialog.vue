@@ -18,6 +18,7 @@ import {
 } from "../../api/systemApi";
 import type { SysTenant, TenantDatasourceOption } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 const visible = defineModel<boolean>("visible", { required: true });
 
@@ -167,10 +168,10 @@ async function handleSubmit() {
         <el-input v-model="form.sysTenantHomeUrl" placeholder="租户访问地址" maxlength="500" show-word-limit />
       </el-form-item>
       <el-form-item label="状态">
-        <el-radio-group v-model="form.sysTenantStatus">
-          <el-radio :label="0">启用</el-radio>
-          <el-radio :label="1">禁用</el-radio>
-        </el-radio-group>
+        <ReRadioGroup v-model="form.sysTenantStatus">
+          <ReRadio :label="0">启用</ReRadio>
+          <ReRadio :label="1">禁用</ReRadio>
+        </ReRadioGroup>
       </el-form-item>
       <el-form-item label="备注">
         <el-input v-model="form.sysTenantRemark" type="textarea" :rows="2" placeholder="备注" maxlength="1000" show-word-limit />

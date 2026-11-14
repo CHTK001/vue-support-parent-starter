@@ -121,10 +121,10 @@
 
       <div class="wan-video-gen__param-group">
         <div class="wan-video-gen__param-label">时长</div>
-        <el-radio-group v-model="duration" >
-          <el-radio-button :value="5">5 秒</el-radio-button>
-          <el-radio-button :value="10">10 秒</el-radio-button>
-        </el-radio-group>
+        <ReRadioGroup v-model="duration" >
+          <ReRadioButton :value="5">5 秒</ReRadioButton>
+          <ReRadioButton :value="10">10 秒</ReRadioButton>
+        </ReRadioGroup>
       </div>
 
       <div class="wan-video-gen__composer">
@@ -172,8 +172,9 @@
  */
 import { onBeforeUnmount, ref } from 'vue';
 import {http, message} from '@repo/core';
-import { ElButton, ElInput, ElIcon, ElSelect, ElOption, ElRadioGroup, ElRadioButton, ElTag } from 'element-plus';
+import { ElButton, ElInput, ElIcon, ElSelect, ElOption, ElTag } from 'element-plus';
 import { VideoCamera, VideoCameraFilled, Loading, Download, WarningFilled, Lightning } from '@element-plus/icons-vue';
+import { ReRadioGroup, ReRadioButton } from '@repo/ui/re-kit';
 
 interface Props {
   baseUrl?: string;

@@ -118,11 +118,11 @@
 
       <div class="wan-image-gen__param-group">
         <div class="wan-image-gen__param-label">生成数量</div>
-        <el-radio-group v-model="count" >
-          <el-radio-button :value="1">1 张</el-radio-button>
-          <el-radio-button :value="2">2 张</el-radio-button>
-          <el-radio-button :value="4">4 张</el-radio-button>
-        </el-radio-group>
+        <ReRadioGroup v-model="count" >
+          <ReRadioButton :value="1">1 张</ReRadioButton>
+          <ReRadioButton :value="2">2 张</ReRadioButton>
+          <ReRadioButton :value="4">4 张</ReRadioButton>
+        </ReRadioGroup>
       </div>
 
       <div class="wan-image-gen__composer">
@@ -170,8 +170,9 @@
  */
 import { onBeforeUnmount, ref } from 'vue';
 import {http, message} from '@repo/core';
-import { ElButton, ElInput, ElIcon, ElSelect, ElOption, ElRadioGroup, ElRadioButton, ElTag } from 'element-plus';
+import { ElButton, ElInput, ElIcon, ElSelect, ElOption, ElTag } from 'element-plus';
 import { MagicStick, Loading, Download, PictureFilled, WarningFilled, Lightning } from '@element-plus/icons-vue';
+import { ReRadioGroup, ReRadioButton } from '@repo/ui/re-kit';
 
 interface Props {
   baseUrl?: string;

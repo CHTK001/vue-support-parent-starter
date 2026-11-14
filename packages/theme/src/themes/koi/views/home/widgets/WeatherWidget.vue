@@ -2,7 +2,7 @@
   <div class="ww">
     <div v-if="!widget.hideTitle" class="ww__header">
       <div class="ww__title">
-        <el-icon class="ww__title-icon"><Sunny /></el-icon>
+        <ReIcon class="ww__title-icon" :name="wmoToFluentIcon(weatherCode)" :size="16" />
         <span>{{ widget.title }}</span>
       </div>
     </div>
@@ -118,7 +118,6 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
-import { Sunny } from "@element-plus/icons-vue";
 import { getConfig } from "@repo/config";
 import { useWeather } from "@repo/theme/composables/useWeather";
 import { subscribeRefresh, unregisterRefresh } from "./refreshRegistry";

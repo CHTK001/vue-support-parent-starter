@@ -17,7 +17,7 @@
  *   app.use(ReKit);
  */
 import type { App, InjectionKey, Plugin, PropType, Slots } from "vue";
-import { computed, defineComponent, h, inject, provide, type VNode } from "vue";
+import { Fragment, computed, defineComponent, h, inject, provide, type VNode } from "vue";
 import {
   ElAlert,
   ElAvatar,
@@ -35,6 +35,7 @@ import {
   ElRadioButton,
   ElRadioGroup,
   ElRow,
+  ElSegmented,
   ElTableColumn,
   ElTreeSelect,
 } from "element-plus";
@@ -159,63 +160,249 @@ const ReCol = defineComponent({
 });
 
 /* ==================== ReRadioGroup / ReRadio / ReRadioButton ==================== */
+
+/**
+ * 分段控件的选项（从子项 VNode 里提取）。
+ *
+ * <p>{@code index} 是子项在原插槽里的序号：el-segmented 的默认插槽只回传 item，
+ * 不回传 index，渲染富内容（图标 / 计数 / 自定义 span）时按它回原插槽取 children。</p>
+ */
+type ReRadioOption = { label: string; value: unknown; disabled: boolean; index: number };
+
+/** 认得出「单选项」的组件名：ReKit 自己的两个 + Element Plus 的两个（迁移期混用） */
+const RADIO_ITEM_NAMES = new Set([
+  "ReRadio",
+  "ReRadioButton",
+  "ElRadio",
+  "ElRadioButton",
+  "el-radio",
+  "el-radio-button",
+]);
+
+function isRadioItem(node: VNode): boolean {
+  const type = node.type as { name?: string; __name?: string } | string;
+  const name = typeof type === "string" ? type : type?.name ?? type?.__name ?? "";
+  return RADIO_ITEM_NAMES.has(name);
+}
+
+/** 把插槽结果摊平成一维 VNode（v-for / <template> 会包一层 Fragment，注释/文本节点丢掉） */
+function flattenVNodes(input: unknown, out: VNode[] = []): VNode[] {
+  if (Array.isArray(input)) {
+    for (const item of input) flattenVNodes(item, out);
+    return out;
+  }
+  if (!input || typeof input !== "object") return out;
+  const node = input as VNode;
+  if (node.type === Fragment) return flattenVNodes(node.children, out);
+  // Comment / Text / Static 的 type 是 symbol，不是可渲染的选项
+  if (typeof node.type === "symbol") return out;
+  out.push(node);
+  return out;
+}
+
+/**
+ * 取子项的「实际内容」。
+ *
+ * <p>同一个子项在三种写法下 children 的形状不同：模板里的
+ * {@code <ReRadio value="a">甲</ReRadio>} 是 {@code { default: () => ['甲'] }}
+ * （插槽对象），render 函数写成 {@code h(ReRadio, p, () => '甲')} 是函数，
+ * 直接给字符串/VNode 数组则是原值。这里统一摊平成可遍历的内容。</p>
+ */
+function resolveChildren(children: unknown): unknown {
+  if (typeof children === "function") {
+    try {
+      return resolveChildren((children as () => unknown)());
+    } catch {
+      return undefined;
+    }
+  }
+  if (
+    children &&
+    typeof children === "object" &&
+    !Array.isArray(children) &&
+    "default" in (children as Record<string, unknown>) &&
+    !("type" in (children as Record<string, unknown>))
+  ) {
+    return resolveChildren((children as Record<string, unknown>).default);
+  }
+  return children;
+}
+
+/** VNode 里的纯文本（`<el-radio value="a">甲</el-radio>` 的文案靠它取） */
+function textOfVNode(input: unknown): string {
+  const value = resolveChildren(input);
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (Array.isArray(value)) return value.map(textOfVNode).join("");
+  if (value && typeof value === "object" && "children" in (value as VNode)) {
+    return textOfVNode((value as VNode).children);
+  }
+  return "";
+}
+
+/** 子项的 children 拍平成可渲染节点 */
+function renderableChildren(children: unknown): unknown[] {
+  const value = resolveChildren(children);
+  if (value == null) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+/**
+ * 取出分组插槽里的全部单选项。
+ *
+ * <p>每次都重新调用插槽，而不是缓存 VNode：分段控件可能因自身 resize 重渲染，
+ * 复用同一批 VNode 会碰到「vnode 已挂载过」的问题；重新调用拿到的永远是当前
+ * 响应式状态下的一批新 VNode，插槽里读到的数据也才能被收集为依赖、数据变化时
+ * 跟着重算（比如「全部 {{ counts.all }}」这种带计数的分段项）。</p>
+ */
+function readRadioItems(slot: (() => VNode[]) | undefined): VNode[] {
+  if (!slot) return [];
+  return flattenVNodes(slot()).filter(isRadioItem);
+}
+
+/**
+ * 子项 → 分段选项。
+ *
+ * <p>取值口径对齐 Element Plus：{@code value} 是值、{@code label} 是文案；
+ * 只写了 {@code label}（旧写法，如 {@code <el-radio-button label="all">}）时
+ * label 同时当值用。文案优先取插槽文字，其次 label 属性。</p>
+ */
+function toRadioOption(node: VNode, index: number): ReRadioOption {
+  const props = (node.props ?? {}) as Record<string, unknown>;
+  const hasValue = props.value !== undefined;
+  const value = hasValue ? props.value : props.label;
+  const propLabel = typeof props.label === "string" || typeof props.label === "number" ? String(props.label) : "";
+  const label = textOfVNode(node.children) || propLabel || String(value ?? "");
+  const disabled = props.disabled !== undefined && props.disabled !== false;
+  return { label, value, disabled, index };
+}
+
 const ReRadioGroup = defineComponent({
   name: "ReRadioGroup",
   inheritAttrs: true,
   props: {
     // 不声明 type 会让 TS 把该 prop 推成 undefined，导致 v-model 绑任何值都报
     // 「Type 'number' is not assignable to type 'undefined'」。这里显式放开。
-    modelValue: { type: [String, Number, Boolean, Object] as PropType<string | number | boolean | object>, default: undefined },
-    /** 尺寸（只对 ReKit 布局生效，`el` 布局走 EP 自己的尺寸类） */
+    modelValue: {
+      type: [String, Number, Boolean, Object, Array] as PropType<string | number | boolean | object>,
+      default: undefined,
+    },
+    /** 尺寸（segmented 形态吃 el-segmented 的 large/default/small） */
     size: { type: String, default: "default" },
     /**
-     * 布局模式：
-     *   - `"default"`（默认/留空） ReKit 风格：轨道 + 选块，由 size / button / capsule 联合控制圆角与描边。
-     *   - `"el"` Element Plus 原生风格：不挂 `re-radio-group` 类，re-kit.css 中的所有 ReRadioGroup
-     *     规则全部不生效，由 EP 自己的样式（右下角拼接 + 实心主色）运载。
-     *   - `"square"` 扁平方块风格（`class="proc-metric"` 同级）：浅灰底轨道、按钮无描边半圆角
-     *    （Solid 圆角、Capsule 药丸均不渲染，选项语义由选中态的白底深字承载）。
+     * 渲染形态：
+     *   - `"segmented"`（默认）：el-segmented 分段控件。子项 ReRadio / ReRadioButton
+     *     （或还没改完的 el-radio / el-radio-button）只当「选项声明」，不参与渲染，
+     *     文案、图标、计数从它们的插槽内容里取。
+     *   - `"el"`：原生 el-radio-group（子项照旧渲染，走 EP 自己的单选样式）。
+     *   - `"square"`：el-radio-group + re-kit.css 的扁平方块轨道。
+     *   - `"card"`：el-radio-group + 子项自带卡片样式（如 `.st-src-cards` 那种大卡）。
+     *   - `"default"`：旧的 ReKit 轨道样式（保留兼容）。
+     * 后四种都保持「子项真的渲染」，页面里针对 .el-radio / .el-radio-button 的
+     * 自定义 CSS 才继续有效；默认的分段形态是控件自己画的，不吃这些覆盖。
      */
-    layout: { type: String, default: "default" },
+    layout: { type: String, default: "segmented" },
+    /** 分段形态：整行铺满（el-segmented 的 block） */
+    block: { type: Boolean, default: false },
+    /** 分段形态：选项排布方向 */
+    direction: { type: String, default: "horizontal" },
     disabled: { type: Boolean, default: false },
+    /** 旧布局修饰：仅 default 布局使用 */
     button: { type: Boolean, default: false },
+    /** 旧布局修饰：仅 default 布局使用 */
     capsule: { type: Boolean, default: true },
   },
-  emits: ["update:modelValue"],
+  emits: ["update:modelValue", "change"],
   setup(props, { attrs, slots, emit }) {
-    // 把当前选中值下发给子项：ReRadio / ReRadioButton 靠它判断激活态（图标动画需要）。
+    // 把当前选中值下发给子项：非分段布局里 ReRadio / ReRadioButton 靠它判断激活态。
     provide(RE_RADIO_STATE_KEY, computed(() => props.modelValue));
-    // layout="el" 时不挂 `re-radio-group`：re-kit.css 中该段全部选择器都不会落到它头上；
-    // layout="square" 时穿不穿 capsule/button 修饰符都由样式分支自己接管，不作为 layout 状态。
-    const groupClass: string[] = [];
-    if (props.layout !== "el") {
-      groupClass.push("re-radio-group", `re-radio-group--${props.size}`, `re-radio-group--${props.layout}`);
-      if (props.layout === "default") {
-        if (props.button) groupClass.push("re-radio-group--button");
-        if (props.capsule) groupClass.push("re-radio-group--capsule");
+
+    const isSegmented = computed(() => props.layout === "segmented");
+
+    return () => {
+      if (!isSegmented.value) {
+        // layout="el" 时不挂 `re-radio-group`：re-kit.css 中该段全部选择器都不会落到它头上；
+        // layout="square" 时穿不穿 capsule/button 修饰符都由样式分支自己接管，不作为 layout 状态。
+        const groupClass: string[] = [];
+        if (props.layout !== "el") {
+          groupClass.push("re-radio-group", `re-radio-group--${props.size}`, `re-radio-group--${props.layout}`);
+          if (props.layout === "default") {
+            if (props.button) groupClass.push("re-radio-group--button");
+            if (props.capsule) groupClass.push("re-radio-group--capsule");
+          }
+        }
+        return h(
+          ElRadioGroup,
+          {
+            ...attrs,
+            // modelValue 已声明为 prop，不会出现在 attrs 里；必须显式回传，
+            // 否则 ElRadioGroup 永远拿不到当前值，表现为「点选不切换、不高亮」。
+            modelValue: props.modelValue,
+            size: props.size,
+            disabled: props.disabled,
+            class: groupClass,
+            // 渲染函数里绑定带冒号的事件必须写成 "onXxx:yyy"，见下方旧注释。
+            "onUpdate:modelValue": (v: unknown) => emit("update:modelValue", v),
+            onChange: (v: unknown) => emit("change", v),
+          } as any,
+          // 以函数插槽下发，避免 Element Plus 报
+          // 「Non-function value encountered for default slot」
+          { default: () => slots.default?.() },
+        );
       }
-    }
-    return () =>
-      h(
-        ElRadioGroup,
+
+      const options = readRadioItems(slots.default).map(toRadioOption);
+      return h(
+        ElSegmented,
         {
           ...attrs,
-          // modelValue 已声明为 prop，不会出现在 attrs 里；必须显式回传，
-          // 否则 ElRadioGroup 永远拿不到当前值，表现为「点选不切换、不高亮」。
           modelValue: props.modelValue,
-          size: props.size,
+          // 尺寸缺省交给主题（el-segmented 没有 "default" 这个值，undefined = 默认档）
+          size: props.size === "default" ? undefined : props.size,
           disabled: props.disabled,
-          class: groupClass,
-          // 渲染函数里绑定带冒号的事件必须写成 "onXxx:yyy"。
-          // 此前写作 onUpdate / onUpdateModelValue，Vue 分别映射为 "update"
-          // 与 "updateModelValue"，都与 Element Plus 实际派发的
-          // "update:modelValue" 对不上，导致点选后父组件收不到通知、v-model 失效。
+          block: props.block,
+          direction: props.direction,
+          options,
+          class: "re-radio",
           "onUpdate:modelValue": (v: unknown) => emit("update:modelValue", v),
+          onChange: (v: unknown) => emit("change", v),
         } as any,
-        // 以函数插槽下发，避免 Element Plus 报
-        // 「Non-function value encountered for default slot」
-        { default: () => slots.default?.() },
+        {
+          default: ({ item }: { item: ReRadioOption }) => {
+            // 富内容（图标 / 计数 / 带 class 的 span）按序号回原插槽取，纯文本直接用 label
+            const source = readRadioItems(slots.default)[item.index];
+            const sourceProps = (source?.props ?? {}) as Record<string, unknown>;
+            const children = source?.children;
+            const nodes: unknown[] = [];
+            // 子项用 props 声明的两态图标（ReSwitch 的 radio 布局靠它）：分段模式下子项
+            // 本身不渲染，图标必须在这里补回来，否则那套「是/否 + 太阳/月亮」会丢图标
+            if (
+              sourceProps.icon ||
+              sourceProps.activeIcon ||
+              sourceProps.inactiveIcon ||
+              sourceProps.preset
+            ) {
+              nodes.push(
+                h(StateIcon, {
+                  active: props.modelValue === item.value,
+                  icon: sourceProps.icon as string,
+                  activeIcon: sourceProps.activeIcon as string,
+                  inactiveIcon: sourceProps.inactiveIcon as string,
+                  preset: sourceProps.preset as string,
+                  size: (sourceProps.iconSize as number) ?? 16,
+                }),
+              );
+            }
+            if (children != null) {
+              nodes.push(...renderableChildren(children));
+            }
+            if (!nodes.length) nodes.push(item.label);
+            return sourceProps.class
+              ? h("span", { class: sourceProps.class as any }, nodes as any)
+              : (nodes as any);
+          },
+        },
       );
+    };
   },
 });
 

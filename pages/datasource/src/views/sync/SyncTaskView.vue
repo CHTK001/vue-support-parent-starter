@@ -253,8 +253,8 @@
         <template v-if="step === 0">
           <div class="st-form-item">
             <label>输入源类型</label>
-            <el-radio-group v-model="form.sourceType" class="st-src-cards" @change="onSourceTypeChange">
-              <el-radio
+            <ReRadioGroup v-model="form.sourceType" layout="card" class="st-src-cards" @change="onSourceTypeChange">
+              <ReRadio
                 v-for="item in SOURCE_TYPES"
                 :key="item.value"
                 :value="item.value"
@@ -263,8 +263,8 @@
               >
                 <span class="st-src-ic"><ReIcon :name="item.icon" :size="16" /></span>
                 <span class="st-src-name">{{ item.label }}</span>
-              </el-radio>
-            </el-radio-group>
+              </ReRadio>
+            </ReRadioGroup>
             <div class="st-form-hint">{{ SOURCE_TYPE_HINT[form.sourceType] }}</div>
           </div>
 
@@ -280,10 +280,10 @@
 
             <div class="st-form-item">
               <label>取数方式</label>
-              <el-radio-group v-model="sourceMode" @change="onSourceModeChange">
-                <el-radio-button value="table">选择数据表</el-radio-button>
-                <el-radio-button value="sql">自定义 SQL</el-radio-button>
-              </el-radio-group>
+              <ReRadioGroup v-model="sourceMode" @change="onSourceModeChange">
+                <ReRadioButton value="table">选择数据表</ReRadioButton>
+                <ReRadioButton value="sql">自定义 SQL</ReRadioButton>
+              </ReRadioGroup>
             </div>
 
             <div v-if="sourceMode === 'table'" class="st-form-item">
@@ -329,12 +329,12 @@
               </div>
               <div v-if="form.sourceFormat === 'CSV'" class="st-form-item">
                 <label>定界符</label>
-                <el-radio-group v-model="form.sourceDelimiter" class="st-seg-delim">
-                  <el-radio-button value=",">逗号 ,</el-radio-button>
-                  <el-radio-button value=";">分号 ;</el-radio-button>
-                  <el-radio-button value="\t">Tab</el-radio-button>
-                  <el-radio-button value="|">竖线 |</el-radio-button>
-                </el-radio-group>
+                <ReRadioGroup v-model="form.sourceDelimiter" block class="st-seg-delim">
+                  <ReRadioButton value=",">逗号 ,</ReRadioButton>
+                  <ReRadioButton value=";">分号 ;</ReRadioButton>
+                  <ReRadioButton value="\t">Tab</ReRadioButton>
+                  <ReRadioButton value="|">竖线 |</ReRadioButton>
+                </ReRadioGroup>
               </div>
               <div v-else class="st-form-item">
                 <label>工作表序号（0 起）</label>
@@ -369,11 +369,11 @@
             </div>
             <div class="st-form-item">
               <label>处理完单个文件</label>
-              <el-radio-group v-model="form.sourceAfterProcess">
-                <el-radio-button value="KEEP">保留原文件</el-radio-button>
-                <el-radio-button value="ARCHIVE">归档到 done/</el-radio-button>
-                <el-radio-button value="DELETE">删除源文件</el-radio-button>
-              </el-radio-group>
+              <ReRadioGroup v-model="form.sourceAfterProcess">
+                <ReRadioButton value="KEEP">保留原文件</ReRadioButton>
+                <ReRadioButton value="ARCHIVE">归档到 done/</ReRadioButton>
+                <ReRadioButton value="DELETE">删除源文件</ReRadioButton>
+              </ReRadioGroup>
               <div class="st-form-hint">归档目录 done/ 会被自动排除，避免归档后被再次同步。</div>
             </div>
           </template>
@@ -996,6 +996,7 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReTabs from "@repo/ui/re-tabs";
 import type { ReTabsItem } from "@repo/ui/re-tabs";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import { ReRadioGroup, ReRadioButton, ReRadio } from "@repo/ui/re-kit";
 
 defineOptions({ name: "SyncTaskView" });
 
@@ -3653,36 +3654,8 @@ onUnmounted(() => {
 /* ---------- 解析设置区（小节标题 + 定界符分段控件） ---------- */
 .st-section-label { margin-top: -2px; font-size: 12px; font-weight: 600; color: var(--text-tertiary); letter-spacing: 1px; }
 .st-grid-parse { grid-template-columns: 210px minmax(0, 1fr); align-items: end; }
-.st-seg-delim { display: flex; width: 100%; }
-.st-seg-delim :deep(.el-radio-button) { flex: 1; min-width: 0; }
-.st-seg-delim :deep(.el-radio-button__inner) {
-  display: block;
-  width: 100%;
-  border: 1px solid var(--border-default);
-  border-left-width: 1px;
-  border-radius: 0 !important;
-  background: var(--bg-container);
-  color: var(--text-primary);
-  box-shadow: none;
-  text-align: center;
-}
-.st-seg-delim :deep(.el-radio-button:first-child .el-radio-button__inner) {
-  border-radius: var(--radius-md, 8px) 0 0 var(--radius-md, 8px) !important;
-}
-.st-seg-delim :deep(.el-radio-button:last-child .el-radio-button__inner) {
-  border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0 !important;
-}
-.st-seg-delim :deep(.el-radio-button + .el-radio-button .el-radio-button__inner),
-.st-seg-delim :deep(.el-radio-button:not(:first-child) .el-radio-button__inner) { margin-left: -1px; }
-.st-seg-delim :deep(.el-radio-button.is-active .el-radio-button__inner),
-.st-seg-delim :deep(.el-radio-button__original:checked + .el-radio-button__inner) {
-  background: var(--el-color-primary-light-9) !important;
-  border-color: var(--el-color-primary) !important;
-  color: var(--el-color-primary) !important;
-  font-weight: 600;
-  position: relative;
-  z-index: 1;
-}
+/* 定界符分段控件：铺满所在列（选项等宽由 el-segmented 的 block 负责） */
+.st-seg-delim { width: 100%; }
 
 /* ---------- 解析预览卡（UI 图）：真实源列 chips + 类型 ---------- */
 .st-preview {

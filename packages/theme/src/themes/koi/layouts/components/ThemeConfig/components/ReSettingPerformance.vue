@@ -5,6 +5,7 @@ import type { PerformanceConfig } from "@repo/config";
 import ReSwitch from "@repo/ui/re-switch";
 import { DataLine } from "@element-plus/icons-vue";
 import { useI18n } from "vue-i18n";
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 const { t } = useI18n();
 
@@ -51,26 +52,26 @@ const positionOptions = computed(() => [
           </div>
           <div class="perf-config-row">
             <span class="perf-config-label">{{ t("performance.content.label") }}</span>
-            <el-radio-group v-model="perf.performanceMonitorMode" class="perf-radio">
-              <el-radio-button label="detailed">{{ t("performance.content.detailed") }}</el-radio-button>
-              <el-radio-button label="simple">{{ t("performance.content.simple") }}</el-radio-button>
-              <el-radio-button label="minimal">{{ t("performance.content.minimal") }}</el-radio-button>
-            </el-radio-group>
+            <ReRadioGroup v-model="perf.performanceMonitorMode" class="perf-radio">
+              <ReRadioButton label="detailed">{{ t("performance.content.detailed") }}</ReRadioButton>
+              <ReRadioButton label="simple">{{ t("performance.content.simple") }}</ReRadioButton>
+              <ReRadioButton label="minimal">{{ t("performance.content.minimal") }}</ReRadioButton>
+            </ReRadioGroup>
           </div>
           <div class="perf-config-row">
             <span class="perf-config-label">{{ t("performance.layout.label") }}</span>
-            <el-radio-group v-model="perf.performanceMonitorLayout" class="perf-radio">
-              <el-radio-button label="merged">{{ t("performance.layout.merged") }}</el-radio-button>
-              <el-radio-button label="split">{{ t("performance.layout.split") }}</el-radio-button>
-            </el-radio-group>
+            <ReRadioGroup v-model="perf.performanceMonitorLayout" class="perf-radio">
+              <ReRadioButton label="merged">{{ t("performance.layout.merged") }}</ReRadioButton>
+              <ReRadioButton label="split">{{ t("performance.layout.split") }}</ReRadioButton>
+            </ReRadioGroup>
           </div>
           <div class="perf-config-row">
             <span class="perf-config-label">{{ t("performance.direction.label") }}</span>
-            <el-radio-group v-model="perf.performanceMonitorDirection" class="perf-radio">
-              <el-radio-button label="auto">{{ t("performance.direction.auto") }}</el-radio-button>
-              <el-radio-button label="vertical">{{ t("performance.direction.vertical") }}</el-radio-button>
-              <el-radio-button label="horizontal">{{ t("performance.direction.horizontal") }}</el-radio-button>
-            </el-radio-group>
+            <ReRadioGroup v-model="perf.performanceMonitorDirection" class="perf-radio">
+              <ReRadioButton label="auto">{{ t("performance.direction.auto") }}</ReRadioButton>
+              <ReRadioButton label="vertical">{{ t("performance.direction.vertical") }}</ReRadioButton>
+              <ReRadioButton label="horizontal">{{ t("performance.direction.horizontal") }}</ReRadioButton>
+            </ReRadioGroup>
           </div>
         </div>
       </template>
@@ -115,15 +116,10 @@ const positionOptions = computed(() => [
   }
 
   .perf-radio {
-    :deep(.el-radio-button__inner) {
+    /* 分段控件现在是 el-segmented：只压字号/内距，选中块由控件自己画 */
+    :deep(.el-segmented__item-label) {
       font-size: 12px;
-      padding: 4px 10px;
-      border: 1px solid var(--el-border-color-lighter) !important;
-    }
-    :deep(.el-radio-button.is-active .el-radio-button__inner) {
-      background: var(--el-color-primary);
-      color: #fff;
-      border-color: var(--el-color-primary) !important;
+      padding: 0 2px;
     }
   }
 }

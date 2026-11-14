@@ -32,9 +32,6 @@ import {
   ElSwitch,
   ElCheckbox,
   ElCheckboxGroup,
-  ElRadio,
-  ElRadioButton,
-  ElRadioGroup,
   ElSlider,
   ElRate,
   ElColorPicker,
@@ -44,6 +41,7 @@ import {
   ElCol,
 } from "element-plus";
 import { useDataSource, type ReDataSource } from "@repo/core";
+import { ReRadioButton, ReRadioGroup } from "../ReKit/index";
 import ReIconSelect from "../ReIconSelect/theme/default/ReIconSelect.vue";
 import type { ReFieldOption, ReFormField } from "./types";
 
@@ -168,7 +166,7 @@ const OptionsField = defineComponent({
         );
       }
       return h(
-        ElRadioGroup,
+        ReRadioGroup,
         {
           modelValue: p.value,
           "onUpdate:modelValue": (v: unknown) => emit("update", v),
@@ -177,7 +175,7 @@ const OptionsField = defineComponent({
           ...(p.field.attrs ?? {}),
         },
         () => opts.map((o) =>
-          h(ElRadioButton, {
+          h(ReRadioButton, {
             key: String(o?.value),
             value: o?.value,
             disabled: o?.disabled,
@@ -482,9 +480,9 @@ defineExpose({
 </style>
 
 <style>
-/* 全局样式：radio-button 盒子更大 */
-.re-form-radio-group .el-radio-button__inner {
-  padding: 10px 20px;
+/* 全局样式：分段控件（ReRadioGroup）比默认档再大一号，和表单其它控件对齐 */
+.re-form-radio-group .el-segmented__item-label {
+  padding: 0 12px;
   font-size: 14px;
 }
 </style>

@@ -129,11 +129,11 @@
                   </el-col>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }">
                     <el-form-item label="性别" prop="sysUserSex">
-                      <el-radio-group v-model="mineForm.sysUserSex">
-                        <el-radio :value="1" border>男</el-radio>
-                        <el-radio :value="2" border>女</el-radio>
-                        <el-radio :value="0" border>未知</el-radio>
-                      </el-radio-group>
+                      <ReRadioGroup v-model="mineForm.sysUserSex">
+                        <ReRadio :value="1" border>男</ReRadio>
+                        <ReRadio :value="2" border>女</ReRadio>
+                        <ReRadio :value="0" border>未知</ReRadio>
+                      </ReRadioGroup>
                     </el-form-item>
                   </el-col>
                   <el-col :sm="{ span: 24 }" :xs="{ span: 24 }" class="mt-6px">
@@ -263,10 +263,10 @@
 
               <ReDialog v-model="totpDialogVisible" title="开启两步验证" width="520px" @closed="handleTotpDialogClosed">
                 <div class="totp-bind">
-                  <el-radio-group v-model="totpBindMode" class="totp-bind__mode">
-                    <el-radio-button value="scan">扫码添加</el-radio-button>
-                    <el-radio-button value="manual">手动输入密钥</el-radio-button>
-                  </el-radio-group>
+                  <ReRadioGroup v-model="totpBindMode" class="totp-bind__mode">
+                    <ReRadioButton value="scan">扫码添加</ReRadioButton>
+                    <ReRadioButton value="manual">手动输入密钥</ReRadioButton>
+                  </ReRadioGroup>
 
                   <template v-if="totpBindMode === 'scan'">
                     <div class="totp-bind__tip">
@@ -520,6 +520,7 @@ import ReDialog from "@repo/ui/re-dialog";
  */
 const ReTable = defineAsyncComponent(() => import("@repo/ui/re-table").then((m) => m.default));
 import type { ReTableColumn } from "@repo/ui/re-table";
+import { ReRadioGroup, ReRadioButton, ReRadio } from "@repo/ui/re-kit";
 
 const authStore = useAuthStore();
 const userStore = useUserStore();

@@ -3,7 +3,25 @@
  * 由 packages/ui/src/components/ReKit/index.ts 引入
  * ============================================================ */
 
-/* ---------- ReRadioGroup：分段控件（Segmented Control） ----------
+/* ---------- ReRadioGroup：segmented 形态（默认，el-segmented 承载） ----------
+ * 默认布局直接把选项交给 el-segmented 渲染（滑块选中、键盘可达、resize 自适应都由
+ * Element Plus 负责），这里只做两件事：把选中块的主色压深到能承载白字（与旧实现
+ * 的对比度口径一致，白字压 #409eff 只有 2.78:1，不达 AA），以及把字号拉回页面正文
+ * 的 13px（el-segmented 默认 14px）。
+ *
+ * 下面的 .re-radio-group 段只服务于 layout="el|square|card|default" 的旧形态，
+ * 它们仍然渲染 el-radio-group + 子项，页面里针对 .el-radio-button__inner 的覆盖照旧生效。
+ */
+.re-radio {
+  --el-segmented-item-selected-bg-color: color-mix(
+    in srgb,
+    var(--el-color-primary) 72%,
+    var(--el-color-black, #000)
+  );
+  font-size: 13px;
+}
+
+/* ---------- ReRadioGroup（旧布局）：分段控件（Segmented Control） ----------
  * 设计约束（改动前请先读这段）：
  *   1. 色值只走 Element Plus / koi 令牌（--el-*），暗色由 html.dark 自动覆盖。
  *      旧实现依赖 shared/modern-vars.css 的 --rm-* —— 那是一套并行的写死 hex

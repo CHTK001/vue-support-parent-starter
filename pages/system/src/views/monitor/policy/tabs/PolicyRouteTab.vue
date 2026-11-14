@@ -34,6 +34,7 @@ import type { ApiRouteAction, ApiRouteRuleConfig, PolicyConfig, RegisteredRoute 
 import { TABLE_TOOLBAR, useFirstLoadGuard } from "../shared/policyTable";
 import { usePolicyHitContext } from "../composables/policyHitContext";
 import PolicyHitCell from "../components/PolicyHitCell.vue";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 const { t } = useI18n();
 const { loadHitCounts } = usePolicyHitContext();
@@ -769,14 +770,14 @@ defineExpose({ reload: () => tableRef.value?.reload() });
           />
         </el-form-item>
         <el-form-item :label="t('policy.route.form.action')" required>
-          <el-radio-group
+          <ReRadioGroup
             :model-value="rule.action"
             @update:model-value="(v: string | number | boolean | undefined) => handleActionChange(v as ApiRouteAction)"
           >
-            <el-radio v-for="item in actions" :key="item.value" :value="item.value">
+            <ReRadio v-for="item in actions" :key="item.value" :value="item.value">
               {{ item.label }}
-            </el-radio>
-          </el-radio-group>
+            </ReRadio>
+          </ReRadioGroup>
         </el-form-item>
         <template v-if="rule.action === 'DISABLE'">
           <el-form-item :label="t('policy.route.form.statusCode')">

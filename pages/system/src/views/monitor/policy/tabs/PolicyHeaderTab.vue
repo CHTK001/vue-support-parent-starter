@@ -34,6 +34,7 @@ import type { HeaderMatchType, HeaderPresets, HeaderRuleRow, PolicyConfig } from
 import { TABLE_TOOLBAR, useFirstLoadGuard } from "../shared/policyTable";
 import { usePolicyHitContext } from "../composables/policyHitContext";
 import PolicyHitCell from "../components/PolicyHitCell.vue";
+import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
 
 const { t } = useI18n();
 const { hitCountOf, loadHitCounts } = usePolicyHitContext();
@@ -448,9 +449,9 @@ defineExpose({ reload: () => tableRef.value?.reload() });
           </i18n-t>
         </el-form-item>
         <el-form-item :label="t('policy.header.form.matchType')">
-          <el-radio-group v-model="form.matchType">
-            <el-radio v-for="opt in matchOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
-          </el-radio-group>
+          <ReRadioGroup v-model="form.matchType">
+            <ReRadio v-for="opt in matchOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</ReRadio>
+          </ReRadioGroup>
           <p class="policy-form-tip">{{ matchHint }}</p>
         </el-form-item>
         <el-form-item :label="t('policy.header.form.patterns')" required>
