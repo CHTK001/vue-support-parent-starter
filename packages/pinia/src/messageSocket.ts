@@ -8,6 +8,7 @@
  *   void bindStationMessageSocket();
  */
 import { useSocketService } from "@repo/core";
+import { getConfig } from "@repo/config";
 import { useMessageStore } from "./index";
 
 /**
@@ -22,6 +23,11 @@ export function bindStationMessageSocket(): (() => void) | null {
     return null;
   }
   return service.subscribe("message", "push", (msg) => {
+    // app.yaml `message.socket=false`：关闭实时推送，仅保留 HTTP 拉取。
+    // 在回调里判断而不是绑定前判断，这样设置面板拨开关不用刷新页面即可生效。
+    if (getConfig().message?.socket === false) {
+      return;
+    }
     const data = (msg as Record<string, unknown>).data;
     // 兼容两种载荷：{ module, event, data } 或 { module, event, content, subject }
     const payload = (data && typeof data === "object"

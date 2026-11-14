@@ -747,6 +747,9 @@ export async function restoreUserConfig(): Promise<void> {
       }
       if (menu) filtered.menu = menu as AppConfig["menu"];
       if (login) filtered.login = login as AppConfig["login"];
+      // message：设置抽屉可调的展示位置 / 推送开关 / 未读数上限，与上方 watch 写入的切片对齐，
+      // 漏掉这一片会导致刷新后消息通知的改动全部回落到 app.yaml 默认值。
+      if (message) filtered.message = message as AppConfig["message"];
       if (Object.keys(filtered).length > 0) {
         // restoreUserConfig：用户可调切片的恢复写回（internal channel），
         // 不经过 setConfig 只读保护（被保护的 loaderConfig 已在下方删除）
