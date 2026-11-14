@@ -678,21 +678,32 @@
           </template>
         </div>
 
-        <!-- 空态：给三条能直接用的提示词，点了就填进输入条；比一句「开始生成」更接近下一步 -->
+        <!-- 空态：给三条能直接用的提示词，点了就填进输入条；比一句「开始生成」更接近下一步。
+             「库为空」与「检索/筛选没命中」是两回事：后者要给出清除条件的出路，
+             否则用户只看到「还没有作品」，会以为自己把作品弄丢了。 -->
         <div v-if="!loading && !rows.length" class="wg-empty">
-          <p class="wg-empty-title">还没有作品</p>
-          <p class="wg-empty-hint">描述你想看到的画面，或者从这三条开始：</p>
-          <div class="wg-empty-samples">
-            <button
-              v-for="sample in EMPTY_SAMPLES"
-              :key="sample"
-              type="button"
-              class="wg-empty-sample"
-              @click="prompt = sample"
-            >
-              {{ sample }}
-            </button>
-          </div>
+          <template v-if="hasActiveQuery">
+            <p class="wg-empty-title">没有匹配的作品</p>
+            <p class="wg-empty-hint">当前检索或筛选条件下没有记录。</p>
+            <div class="wg-empty-samples">
+              <button type="button" class="wg-empty-sample" @click="resetQuery">清除检索与筛选</button>
+            </div>
+          </template>
+          <template v-else>
+            <p class="wg-empty-title">还没有作品</p>
+            <p class="wg-empty-hint">描述你想看到的画面，或者从这三条开始：</p>
+            <div class="wg-empty-samples">
+              <button
+                v-for="sample in EMPTY_SAMPLES"
+                :key="sample"
+                type="button"
+                class="wg-empty-sample"
+                @click="prompt = sample"
+              >
+                {{ sample }}
+              </button>
+            </div>
+          </template>
         </div>
 
         <!-- 分页尾部：加载中 / 还有更多（可点）/ 到底了。
@@ -893,8 +904,9 @@
           -->
           <template #param-rail>
             <!-- 张数前置到分辨率 UI 之前：与「尺寸」同款的安静值按钮，
-                 点开是模型支持的全部档位（不再用 − n + 连点）。 -->
-            <template v-if="mediaType === 'image'">
+                 点开是模型支持的全部档位（不再用 − n + 连点）。
+                 只有一档的模型不显示：弹层里仅一个「1 张」，没有选择意义。 -->
+            <template v-if="countSelectable">
               <span class="wg-rail-group">
                 <span class="wg-rail-label">
                   <WgIcon :d="ICONS.stack" class="wg-rail-label-icon" />
@@ -928,8 +940,8 @@
             </template>
 
             <template v-if="sizes.length">
-              <!-- 张数与分辨率之间用竖线分段；视频态没有张数，就不留这条空线 -->
-              <span v-if="mediaType === 'image'" class="wg-rail-sep" aria-hidden="true"></span>
+              <!-- 张数与分辨率之间用竖线分段；视频态没有张数、单档模型也没有，就不留这条空线 -->
+              <span v-if="countSelectable" class="wg-rail-sep" aria-hidden="true"></span>
               <!-- 画幅：把分辨率按方向归成 方 / 横 / 竖 三段，点一段就切到该方向的第一档。
                    只有一种方向时不显示（一个按钮的分段没有选择意义）。 -->
               <span v-if="aspectGroups.length > 1" class="wg-rail-group">
@@ -1458,6 +1470,23 @@ const sizes = computed(() => currentConfig.value?.sizes ?? [])
 const maxCount = computed(() => Math.max(1, currentConfig.value?.maxCount ?? 1))
 const durations = computed(() => currentConfig.value?.durations ?? [])
 const countOptions = computed(() => Array.from({ length: maxCount.value }, (_, i) => i + 1))
+
+/**
+ * 张数是否值得给一档选择。
+ *
+ * <p>只有 1 个档位时，弹层里就一个「1 张」按钮：点开没有可选项、关掉也没变化，
+ * 是纯噪声。这种模型（如 maxCount=1 的 agnes-image-2.5-flash）直接不显示张数轨，
+ * 与卡片详情里「张数为 1 不出条目」同一口径。</p>
+ */
+const countSelectable = computed(() => mediaType.value === 'image' && countOptions.value.length > 1)
+
+/** 切模型后档位可能变少（4 张的模型 → 只支持 1 张的）：夹回上限，
+ *  否则提交的 count 会超出模型能力，而张数轨在单档时是隐藏的，用户改不回来。 */
+watch([maxCount, mediaType], () => {
+  if (count.value > maxCount.value) {
+    count.value = maxCount.value
+  }
+})
 
 /**
  * 风格可选项。
@@ -2009,6 +2038,25 @@ const sortLabel = computed(() => SORT_OPTIONS.find((item) => item.key === sortOr
 const activeFilterCount = computed(
   () => (modelFilter.value ? 1 : 0) + (statusFilter.value ? 1 : 0) + (onlyFavorite.value ? 1 : 0),
 )
+
+/**
+ * 是否有生效中的检索 / 筛选条件。
+ *
+ * <p>决定空态说「还没有作品」还是「没有匹配的作品」：库里有记录但条件把所有行都过滤掉时，
+ * 说「还没有作品」是错的，用户会以为数据丢了。检索词也算条件，否则搜一个不存在的词
+ * 也会落到「还没有作品」。</p>
+ */
+const hasActiveQuery = computed(
+  () => !!keyword.value.trim() || activeFilterCount.value > 0,
+)
+
+/** 清掉检索词与全部筛选条件（空态里的「清除检索与筛选」用） */
+const resetQuery = () => {
+  keyword.value = ''
+  modelFilter.value = ''
+  statusFilter.value = ''
+  onlyFavorite.value = false
+}
 
 const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`)
 
@@ -3173,12 +3221,31 @@ const onOptimize = async () => {
   try {
     const result = await apiService.optimizeInput(source, mediaType.value)
     const cleaned = cleanOptimized(result?.optimized ?? '')
+    // 后端 status 是权威口径：没真正调模型（未配置客户端 / 已关闭 / 调用失败）
+    // 与「模型认为够了」在文本上完全一样，只看文本会把前者说成后者。
+    const status = result?.status ?? ''
     if (!cleaned) {
       message.warning('优化结果为空，已保留原文')
       return
     }
-    if (cleaned === source) {
-      message.info('模型认为当前描述已经够具体了')
+    if (status === 'UNAVAILABLE') {
+      message.warning('输入优化暂不可用：未配置可用的优化模型，已保留原文')
+      return
+    }
+    if (status === 'FAILED') {
+      message.warning('优化调用失败，已保留原文')
+      return
+    }
+    if (status === 'DISABLED') {
+      message.info('输入优化已在管理端关闭，已保留原文')
+      return
+    }
+    if (status === 'EMPTY') {
+      message.warning('模型返回空内容，已保留原文')
+      return
+    }
+    if (status === 'UNCHANGED' || cleaned === source) {
+      message.info('未产生新的描述，已保留原文')
       return
     }
     prompt.value = cleaned
