@@ -1,11 +1,29 @@
-﻿export default {
+export default {
   // RAG not configured gate (knowledge base depends on RAG)
   ragGate: {
     title: 'Knowledge base unavailable',
     desc: 'The knowledge base requires RAG. Configure the RAG model and storage parameters in "Settings → Default Models" first.',
     goConfig: 'Configure now',
     fetchFailed: 'Unable to read RAG configuration status. Please retry or finish the configuration first.',
+    // Split hero: status lamps on the left, configuration sheet on the right
+    recheck: 'Check again',
+    ready: 'Ready',
+    pending: 'Missing',
+    sheet: 'Configuration',
+    missing: '{n} to configure',
+    llm: 'Chat model',
+    embedding: 'Embedding model',
+    engine: 'Embedding engine',
+    vector: 'Vector store',
+    splitter: 'Chunk size',
+    topK: 'Top K',
+    threshold: 'Similarity threshold',
+    uploadDir: 'Upload dir',
+    checkedAt: 'Checked at',
+    unset: 'Not set',
+    defaulted: 'Default',
   },
+
 
   status: {
     queued: 'Queued',

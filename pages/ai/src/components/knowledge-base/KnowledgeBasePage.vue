@@ -8,21 +8,61 @@
   >
     <PageHeader :title="t('knowledge.page.title')" />
 
-    <!-- RAG 未配置：整页只提示，不显示搜索框 / 新建按钮 / 卡片数据 -->
-    <div v-if="!ragReady" class="flex-1 flex flex-col min-h-0">
-      <div class="flex-1 flex items-center justify-center px-4 py-10">
-        <div class="rag-gate">
-          <el-icon class="rag-gate__icon" :size="46">
-            <MenuBookOutlined />
-          </el-icon>
-          <h2 class="rag-gate__title">{{ t('knowledge.ragGate.title') }}</h2>
-          <p class="rag-gate__desc">
+    <!-- RAG 未配置：整页只提示，不显示搜索框 / 新建按钮 / 卡片数据。
+         版式「分屏 Hero」：左边说清为什么要配 + 三枚状态灯，右边一张配置清单。
+         清单不回显成表单，只回显 /v2/rag/status 的真实读数，配好后本页自动让位。 -->
+    <div v-if="!ragReady" class="kb-gate">
+      <div class="kb-gate__split">
+        <div class="kb-gate__lead">
+          <span class="kb-gate__eyebrow">RAG · READY CHECK</span>
+          <h2 class="kb-gate__title">{{ t('knowledge.ragGate.title') }}</h2>
+          <p class="kb-gate__desc">
             {{ ragStatus?.embeddingIssue || ragStatus?.message || t('knowledge.ragGate.desc') }}
           </p>
-          <ReButton type="primary" round @click="goToConfig(ragStatus?.configPath)">
-            {{ t('knowledge.ragGate.goConfig') }}
-          </ReButton>
+          <div class="kb-gate__acts">
+            <ReButton type="primary" :round="false" @click="goToConfig(ragStatus?.configPath)">
+              {{ t('knowledge.ragGate.goConfig') }}
+            </ReButton>
+            <ReButton type="default" :round="false" :loading="ragChecking" @click="fetchRagStatus()">
+              {{ t('knowledge.ragGate.recheck') }}
+            </ReButton>
+          </div>
+          <ul class="kb-gate__checks">
+            <li
+              v-for="check in ragGateChecks"
+              :key="check.key"
+              class="kb-gate__check"
+              :class="check.ok ? 'is-ok' : 'is-bad'"
+            >
+              <span class="kb-gate__dot"></span>{{ check.label }}
+              <span class="kb-gate__val">
+                {{ check.ok ? t('knowledge.ragGate.ready') : t('knowledge.ragGate.pending') }}
+              </span>
+            </li>
+          </ul>
         </div>
+
+        <aside class="kb-gate__sheet">
+          <span v-if="ragGateMissing > 0" class="kb-gate__flag">
+            {{ t('knowledge.ragGate.missing', { n: ragGateMissing }) }}
+          </span>
+          <h3 class="kb-gate__sheet-t">{{ t('knowledge.ragGate.sheet') }}</h3>
+          <dl class="kb-gate__dl">
+            <div
+              v-for="row in ragGateRows"
+              :key="row.key"
+              class="kb-gate__row"
+              :class="{ 'is-bad': row.bad }"
+            >
+              <dt>{{ row.label }}<em>{{ row.key }}</em></dt>
+              <dd :title="row.value">{{ row.value }}</dd>
+            </div>
+            <div class="kb-gate__row">
+              <dt>{{ t('knowledge.ragGate.checkedAt') }}</dt>
+              <dd :title="ragCheckedAt">{{ ragCheckedAt || '—' }}</dd>
+            </div>
+          </dl>
+        </aside>
       </div>
     </div>
 
@@ -1306,7 +1346,6 @@ import ReRelationGraph from '@repo/ui/re-relation-graph'
 import { useStorage, useDebounceFn } from '@vueuse/core'
 import { usePopup } from '@/composables/usePopup'
 import { ArrowLeft24Filled, Globe24Regular, LockClosed24Regular } from '@vicons/fluent'
-import { MenuBookOutlined } from '@vicons/material'
 import PageHeader from '@/components/PageHeader.vue'
 import { apiService } from '@/services/ApiService'
 import { api } from '@/framework/context'
@@ -3206,14 +3245,60 @@ const ragReady = computed(() =>
   ragStatus.value?.available === true && ragStatus.value?.embeddingReady !== false,
 )
 
+// ── 门禁页（分屏 Hero）读数 ────────────────────────────────────────────────
+// 只读 /v2/rag/status 已返回的字段，不在前端另算一套「就绪」判断：
+// needLlmConfig / embeddingReady / needVectorStorageConfig 就是后端的判定结果。
+const ragChecking = ref(false)
+const ragCheckedAt = ref('')
+
+const ragGateChecks = computed(() => {
+  const status: any = ragStatus.value || {}
+  return [
+    { key: 'llm', label: t('knowledge.ragGate.llm'), ok: status.needLlmConfig === false },
+    { key: 'embedding', label: t('knowledge.ragGate.embedding'), ok: status.embeddingReady === true },
+    { key: 'vector', label: t('knowledge.ragGate.vector'), ok: status.needVectorStorageConfig === false },
+  ]
+})
+
+const ragGateMissing = computed(() => ragGateChecks.value.filter((check) => !check.ok).length)
+
+/**
+ * 配置清单的行：键名照抄后端 describe() 的字段，值原样回显。
+ *
+ * <p>空值要分两类：llm_model / embedding / vector_storage 空 = 缺配置（红字）；
+ * splitter / top_k / similarity_threshold / upload_dir 空 = 走后端默认（灰字），
+ * 不能一并标红，否则用户会去删一个本来就不用填的项。</p>
+ */
+const ragGateRows = computed(() => {
+  const config: Record<string, string> = ragStatus.value?.config || {}
+  const valueOf = (key: string) => String(config[key] ?? '').trim()
+  const unset = t('knowledge.ragGate.unset')
+  const fallback = t('knowledge.ragGate.defaulted')
+  return [
+    { key: 'llm_model', label: t('knowledge.ragGate.llm'), value: valueOf('llm_model') || unset, bad: !valueOf('llm_model') },
+    { key: 'embedding_model', label: t('knowledge.ragGate.embedding'), value: valueOf('embedding_model') || unset, bad: !valueOf('embedding_model') },
+    { key: 'embedding_engine', label: t('knowledge.ragGate.engine'), value: valueOf('embedding_engine') || unset, bad: !valueOf('embedding_engine') },
+    { key: 'vector_storage', label: t('knowledge.ragGate.vector'), value: valueOf('vector_storage') || unset, bad: !valueOf('vector_storage') },
+    { key: 'splitter', label: t('knowledge.ragGate.splitter'), value: valueOf('splitter') || fallback, bad: false },
+    { key: 'top_k', label: t('knowledge.ragGate.topK'), value: valueOf('top_k') || fallback, bad: false },
+    { key: 'similarity_threshold', label: t('knowledge.ragGate.threshold'), value: valueOf('similarity_threshold') || fallback, bad: false },
+    { key: 'upload_dir', label: t('knowledge.ragGate.uploadDir'), value: valueOf('upload_dir') || fallback, bad: false },
+  ]
+})
+
 // 获取 RAG 状态
 const fetchRagStatus = async () => {
+  ragChecking.value = true
   try {
     ragStatus.value = await api.get('/rag/status')
   } catch (error) {
     console.error('获取 RAG 状态失败:', error)
     // 拉取失败视为未就绪，页面走提示分支
     ragStatus.value = { available: false, message: t('knowledge.ragGate.fetchFailed') }
+  } finally {
+    // 成功失败都要记一次检测时间：门禁页那张清单上写的是「什么时候问过后端」
+    ragChecking.value = false
+    ragCheckedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   }
 }
 

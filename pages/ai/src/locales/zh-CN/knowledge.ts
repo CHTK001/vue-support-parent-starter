@@ -5,6 +5,23 @@ export default {
     desc: '知识库依赖 RAG，请先在「系统配置 → 默认模型」中配置好 RAG 所需的模型与存储参数。',
     goConfig: '去配置',
     fetchFailed: '无法获取 RAG 配置状态，请稍后重试或先完成配置。',
+    // 分屏 Hero：左侧状态灯 + 右侧配置清单
+    recheck: '重新检测',
+    ready: '已就绪',
+    pending: '未配置',
+    sheet: '配置清单',
+    missing: '待配置 {n} 项',
+    llm: '对话模型',
+    embedding: '嵌入模型',
+    engine: '嵌入引擎',
+    vector: '向量存储',
+    splitter: '分块长度',
+    topK: '召回条数',
+    threshold: '相似度阈值',
+    uploadDir: '上传目录',
+    checkedAt: '检测时间',
+    unset: '未选择',
+    defaulted: '默认',
   },
 
   // ── 共用状态文本 ──

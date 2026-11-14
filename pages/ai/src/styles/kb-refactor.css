@@ -4052,8 +4052,6 @@ html.dark .kb-tpl__cover {
 
 .kb-nav__filter:focus {
   outline: none;
-  border-color: var(--kb-accent-line);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kb-accent) 10%, transparent);
 }
 
 .kb-nav__filter::-webkit-search-cancel-button {
@@ -4713,12 +4711,6 @@ html.dark .kb-tpl__cover {
   background: var(--kb-canvas);
 }
 
-/* 聚焦不铺光晕：红线落在文本域自己的下沿，而不是整块输入区的底边 */
-.kb-ask__input:focus-within {
-  border-color: var(--kb-line);
-  box-shadow: none;
-}
-
 .kb-ask__input .el-textarea__inner:focus {
   border-color: var(--kb-line);
   box-shadow: inset 0 -1px 0 var(--kb-accent);
@@ -4889,3 +4881,261 @@ html.dark .kb-tpl__cover {
     padding: 9px 10px 8px;
   }
 }
+
+/* ############################################################################
+   13. RAG 未配置门禁（分屏 Hero · 2026-11-14 定版）
+   ----------------------------------------------------------------------------
+   左「为什么要配」+ 三枚状态灯，右「配置清单」一张略微左倾的纸：本页唯一允许
+   有阴影的地方 —— 它是从台账里抽出来递到眼前的一张单子，不是页面的第四栏。
+   读数全部来自 /v2/rag/status（config / needLlmConfig / embeddingReady /
+   needVectorStorageConfig），前端不另算一套就绪判定；配好后本页自动让位。
+   本节自成一组类名（.kb-gate__*），不覆盖 §11 的任何规则。
+   ############################################################################ */
+.kb-gate {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  padding: 32px 56px;
+  /* 光晕铺在容器底上而不是绝对定位的伪元素：窗口收窄也不会撑出横向滚动条 */
+  background: radial-gradient(
+    620px 620px at 8% 12%,
+    color-mix(in srgb, var(--kb-accent) 9%, transparent),
+    transparent 70%
+  );
+}
+
+/* margin:auto 而不是 justify-content:center：内容比容器高时，居中不会把顶部裁掉 */
+.kb-gate__split {
+  margin: auto;
+  width: 100%;
+  max-width: 1140px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  align-items: center;
+  gap: 52px;
+}
+
+.kb-gate__lead {
+  min-width: 0;
+}
+
+.kb-gate__eyebrow {
+  display: block;
+  font-family: var(--kb-mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--kb-accent);
+}
+
+.kb-gate__title {
+  margin: 14px 0 0;
+  font-family: var(--kb-serif);
+  font-size: clamp(26px, 2.8vw, 38px);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+  color: var(--kb-ink);
+}
+
+.kb-gate__desc {
+  margin: 12px 0 0;
+  max-width: 34em;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--kb-ink-2);
+}
+
+.kb-gate__acts {
+  display: flex;
+  align-items: center;
+  gap: var(--kb-sp-3);
+  margin-top: 24px;
+}
+
+/* 门禁页两颗键：方角 + 同一高度。ReButton 默认是胶囊，这里显式压回 koi 的 6px。
+   选择器写到 0,3,0：ReButton 的 scoped 规则是 `.re-button[data-v-*]`（0,2,0），
+   同权重只能靠引入顺序取胜，这里不赌顺序。 */
+.kb-gate .kb-gate__acts .re-button {
+  height: 34px;
+  border-radius: var(--kb-r-md);
+}
+
+.kb-gate__checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kb-sp-2);
+  margin: var(--kb-sp-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kb-gate__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border: 1px solid var(--kb-line);
+  border-radius: var(--kb-r-md);
+  background: var(--kb-card);
+  font-size: 12px;
+  color: var(--kb-ink-2);
+}
+
+.kb-gate__dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--kb-ink-3);
+}
+
+/* 状态读数用等宽字并压小一号：它是「值」，不是标签 */
+.kb-gate__val {
+  font-family: var(--kb-mono);
+  font-size: 11px;
+  color: var(--kb-ink-3);
+}
+
+.kb-gate__check.is-bad .kb-gate__dot {
+  background: var(--kb-err);
+}
+
+.kb-gate__check.is-bad .kb-gate__val {
+  color: var(--kb-err);
+}
+
+.kb-gate__check.is-ok .kb-gate__dot {
+  background: var(--kb-ok);
+}
+
+.kb-gate__check.is-ok .kb-gate__val {
+  color: var(--kb-ok);
+}
+
+.kb-gate__sheet {
+  position: relative;
+  padding: 20px 24px 14px;
+  border: 1px solid var(--kb-line);
+  border-radius: 14px;
+  background: var(--kb-card);
+  transform: rotate(-1.2deg);
+  /* 阴影也用令牌混色，不写死 rgb：暗色下自然变淡，换主色不跟着脏 */
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--el-color-black) 5%, transparent),
+    0 18px 44px -14px color-mix(in srgb, var(--el-color-black) 22%, transparent);
+}
+
+/* 待配置张数骑在纸上沿：全屏唯一的重色，扫一眼就知道还差几项 */
+.kb-gate__flag {
+  position: absolute;
+  top: -10px;
+  right: 20px;
+  padding: 2px 9px;
+  border-radius: var(--kb-r-sm);
+  background: var(--kb-err);
+  color: var(--el-color-white);
+  font-family: var(--kb-mono);
+  font-size: 10.5px;
+  line-height: 1.7;
+}
+
+.kb-gate__sheet-t {
+  margin: 0;
+  font-family: var(--kb-serif);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--kb-ink);
+}
+
+.kb-gate__dl {
+  display: flex;
+  flex-direction: column;
+  margin: 10px 0 0;
+}
+
+.kb-gate__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--kb-sp-3);
+  padding: 7px 0;
+  border-top: 1px solid var(--kb-line-soft);
+}
+
+.kb-gate__row:first-child {
+  border-top: 0;
+}
+
+.kb-gate__row dt {
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--kb-ink-2);
+}
+
+/* 原始配置键：留给会去配置文件里核对的人，字号比中文标签低一档，不抢主位 */
+.kb-gate__row dt em {
+  display: block;
+  font-family: var(--kb-mono);
+  font-size: 10.5px;
+  font-style: normal;
+  line-height: 1.5;
+  color: var(--kb-ink-3);
+  overflow-wrap: anywhere;
+}
+
+.kb-gate__row dd {
+  margin: 0;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--kb-mono);
+  font-size: 11.5px;
+  color: var(--kb-ink-2);
+}
+
+.kb-gate__row.is-bad dd {
+  color: var(--kb-err);
+}
+
+/* 单栏：清单不再倾斜，标题降一档，别在窄屏上撑出两层滚动 */
+@media (max-width: 1200px) {
+  .kb-gate {
+    padding: 28px 40px;
+  }
+}
+
+@media (max-width: 960px) {
+  .kb-gate {
+    padding: 24px 28px;
+  }
+
+  .kb-gate__split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    max-width: 560px;
+  }
+
+  .kb-gate__sheet {
+    transform: none;
+  }
+
+  .kb-gate__title {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 640px) {
+  .kb-gate {
+    padding: 20px 16px;
+  }
+
+  .kb-gate__acts {
+    flex-wrap: wrap;
+  }
+}
+
