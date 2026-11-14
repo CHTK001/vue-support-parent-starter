@@ -2,7 +2,7 @@
   <div class="hg">
     <div class="hg-inner">
       <header class="hg-head">
-        <h1 class="hg-title">
+        <h1 class="hg-title k">
           汉字识字
           <span class="hg-title__dot" />
         </h1>
@@ -25,7 +25,7 @@
           <div class="hg-card">
             <div class="hg-card__art">
               <img v-if="current.image" :src="current.image" :alt="current.char" class="hg-card__img" />
-              <span v-else class="hg-card__char">{{ current.char }}</span>
+              <span v-else class="hg-card__char k">{{ current.char }}</span>
             </div>
             <div class="hg-card__ask">{{ askText }}</div>
           </div>
@@ -64,7 +64,7 @@
               <div><dt>结构</dt><dd>{{ current.structure || "—" }}</dd></div>
               <div class="hg-learn__full">
                 <dt>笔顺</dt>
-                <dd class="hg-learn__strokes">{{ current.strokeOrder || "—" }}</dd>
+                <dd class="hg-learn__strokes k">{{ current.strokeOrder || "—" }}</dd>
               </div>
               <div class="hg-learn__full"><dt>释义 / 组词</dt><dd>{{ current.meaning || "—" }}</dd></div>
             </dl>
@@ -88,6 +88,9 @@
  *
  * <p>题目由服务端自动生成（读音题、笔画题交替），题干带笔顺/部首/结构/释义/字画，
  * 答完直接当「学习卡」。这里只负责展示与判分，不自己造题。</p>
+ *
+ * <p>视觉形态：挂轴问答（05 卷轴方案）—— 宣纸底 + 主色边条，选项为半满胶囊；
+ * 逻辑 / 接口 / 题型（识读 / 笔画数 / 笔顺排序）全部保持。</p>
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
@@ -231,18 +234,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/*
- * 视觉基准：成语消消乐（IdiomGameView.vue 的 .ig-page / .ig-title / .ig-card）。
- *
- * 本视图原先是「720px 窄栏 + 落宿主灰底 + 22px 黑标题」，实测计算样式
- * （bg-image=none、标题 22px、卡片是灰块无边框），与其余内嵌模块差了一个色系
- * —— 学生看到的是「后台表单」而不是「游戏」。这里整体对齐：
- *   地面  linear-gradient(160deg, primary, primary-dark-2)，满幅不收窄
- *   标题  白字 / 40px / 900 / letter-spacing 3px + 白圆点
- *   卡片  --el-bg-color 底 + 1px --el-border-color-lighter 边 + 不加投影
- *
- * 地面要满幅、内容要限宽，所以多一层 .hg-inner：渐变归 .hg，宽度约束归 .hg-inner。
- */
+/* ===== 挂轴问答（05 卷轴方案）=====
+   视觉基准保持成语消消乐 / 各内嵌模块同系：
+   地面满幅主色渐变、内容限宽、白卡 + 细边。
+   本方案叠加「宣纸 + 卷杆」质感：
+   - 纸面用 color-mix 把主色轻染进白底（浅色模式近似宣纸，深色模式自动收敛）
+   - 字一律楷体 .k（Kaiti 家族）
+   - 选项 = 半满胶囊（full 半径）
+   深色模式所有 color-mix(primary) 均随皮肤变量走，无需另开分支。 */
+.k {
+  font-family: "Kaiti SC", "STKaiti", "KaiTi", "SimSun", serif;
+}
+
 .hg {
   min-height: 100%;
   padding: 4px 0 28px;
@@ -254,7 +257,7 @@ onMounted(() => {
   padding: 0 20px;
 }
 
-/* 标题：与基准 .ig-title 同一套（白字压在主色带上，靠描边阴影保证可读性） */
+/* 标题：白字压在主色带上（与基准 .ig-title 同一套） */
 .hg-head {
   margin-bottom: 4px;
 }
@@ -266,19 +269,16 @@ onMounted(() => {
   color: var(--el-color-white);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-shadow: 0 3px 0 color-mix(in srgb, var(--el-color-black) 12%, transparent);
 }
 .hg-title__dot {
   width: 14px;
   height: 14px;
-  /* 纯圆点用圆形令牌，不占 --el-radius-* 六档（那六档是圆角矩形语义） */
   border-radius: var(--el-border-radius-circle, 50%);
   background: var(--el-color-white);
-  /* 装饰性光环（0 偏移 0 模糊），不是卡片投影：只描一圈主色，压在主色底上略深 */
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
 }
-/* 副标题压在主色带上：白字降一档透明度，深色模式下主色更深、白字仍可读 */
 .hg-sub {
   margin: 6px 0 0;
   font-size: 13px;
@@ -289,7 +289,7 @@ onMounted(() => {
   opacity: 1;
 }
 
-/* 进度行：升格成白卡（原为透明，压在渐变上按钮会糊） */
+/* 进度行：白卡 + 细边 */
 .hg-bar {
   display: flex;
   align-items: center;
@@ -298,10 +298,8 @@ onMounted(() => {
   padding: 12px 18px;
   background: var(--el-bg-color);
   border-radius: var(--el-radius-xl, 16px);
-  /* koi 卡片不加投影：改用一条边框承载边界 */
   border: 1px solid var(--el-border-color-lighter);
 }
-/* 基准的胶囊控件高 36px；el-button--small 默认 24px（刚好卡 AA 底线），这里抬到同一手感 */
 .hg-bar :deep(.el-button) {
   min-height: 36px;
   padding: 0 16px;
@@ -323,7 +321,7 @@ onMounted(() => {
   margin-right: auto;
 }
 
-/* 空态：el-empty 自带浅灰插图与灰字，直接压主色底会看不清，整块给白卡 */
+/* 空态：白卡托底 */
 .hg-empty {
   padding: 30px 20px;
   background: var(--el-bg-color);
@@ -331,14 +329,26 @@ onMounted(() => {
   border-radius: var(--el-radius-xl, 16px);
 }
 
-/* 字画：白卡 + 边框（原为 --el-fill-color-lighter 灰块）；
-   内边距用基准的 20px 22px，与 .ig-card / .pc-card / .pg-card 同一档 */
+/* 字画卡：宣纸白 + 主色轻染 + 上下卷杆 */
 .hg-card {
-  padding: 20px 22px;
+  position: relative;
+  padding: 22px 22px 20px;
   border-radius: var(--el-radius-xl, 16px);
-  background: var(--el-bg-color);
+  background: color-mix(in srgb, var(--el-bg-color) 96%, var(--el-color-primary-light-5));
   border: 1px solid var(--el-border-color-lighter);
   text-align: center;
+}
+/* 上卷杆（天杆）：主色条压在卡顶 */
+.hg-card::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 18px;
+  right: 18px;
+  height: 5px;
+  border-radius: 0 0 var(--el-radius-sm, 6px) var(--el-radius-sm, 6px);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--el-color-primary) 72%, #000) 0%, color-mix(in srgb, var(--el-color-primary) 45%, #000) 45%, color-mix(in srgb, var(--el-color-primary) 30%, #000) 100%);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-black) 18%, transparent);
 }
 .hg-card__art {
   display: flex;
@@ -364,7 +374,7 @@ onMounted(() => {
   color: var(--el-text-color-regular);
 }
 
-/* 选项 */
+/* 选项：半满胶囊 */
 .hg-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -372,13 +382,13 @@ onMounted(() => {
   margin-top: 16px;
 }
 .hg-opt {
-  padding: 14px 16px;
+  padding: 13px 16px;
   font-size: 18px;
   font-weight: 700;
   color: var(--el-text-color-primary);
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-lg, 12px);
+  border-radius: var(--el-radius-full, 9999px);
   cursor: pointer;
   transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
@@ -390,28 +400,29 @@ onMounted(() => {
   cursor: default;
 }
 .hg-opt.is-correct {
-  background: var(--el-color-success-light-9);
+  background: var(--el-color-success);
   border-color: var(--el-color-success);
-  color: var(--el-color-success);
+  color: var(--el-color-white);
 }
 .hg-opt.is-wrong {
-  background: var(--el-color-danger-light-9);
+  background: var(--el-color-danger);
   border-color: var(--el-color-danger);
-  color: var(--el-color-danger);
+  color: var(--el-color-white);
 }
 .hg-opt.is-dim {
   opacity: 0.55;
 }
 
-/* 笔顺题：笔画块更像「可点的笔画」，一行放得下更多 */
+/* 笔顺题：笔画块更大更可点 */
 .hg-options--strokes {
-  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
 }
 .hg-options--strokes .hg-opt {
   font-size: 26px;
   padding: 10px 0;
+  border-radius: var(--el-radius-lg, 12px);
 }
-/* 笔顺回显：白卡 + 左侧主色条（原本是裸文字，压在主色底上会看不清） */
+/* 笔顺回显：白卡 + 左侧主色条 */
 .hg-tapped {
   margin-top: 12px;
   padding: 12px 16px;
@@ -432,7 +443,7 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
-/* 判分回显：白卡 + 左侧色条，色条取文字自身颜色（对错两态自动跟随） */
+/* 判分回显：白卡 + 左侧色条跟随文字颜色 */
 .hg-feedback {
   margin: 12px 0 0;
   padding: 10px 14px;
@@ -498,9 +509,7 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* 成绩页：整块一张白卡。
-   分数原本是 --el-color-primary（主色蓝）直接压在页面上，地面翻成主色渐变后
-   会与底色糊成一片，所以这里必须先有白底托住。 */
+/* 成绩页：白卡托分 */
 .hg-done {
   text-align: center;
   margin-top: 14px;
@@ -521,10 +530,7 @@ onMounted(() => {
   color: var(--el-text-color-regular);
 }
 
-/*
- * 窄屏（≤640px）：标题收到 28px（40px 在 390px 宽下会顶到边），
- * 选项与学习卡两列改一列（沿用原有断点，只补标题与内边距）。
- */
+/* 窄屏 */
 @media (max-width: 640px) {
   .hg-title {
     font-size: 28px;
@@ -559,11 +565,7 @@ onMounted(() => {
   }
 }
 
-/*
- * 触摸设备：可点控件抬到 44px。
- * WCAG 2.2 的 2.5.8（AA）底线是 24×24，上面已满足；这里做 2.5.5（AAA）的加分档，
- * 与基准 .ig-chip 的 36px 桌面档区分开。
- */
+/* 触摸设备：可点控件抬到 44px */
 @media (pointer: coarse) {
   .hg-bar :deep(.el-button),
   .hg-opt,

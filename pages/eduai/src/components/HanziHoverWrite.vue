@@ -156,28 +156,32 @@ onBeforeUnmount(() => {
     >
       <div v-if="data" class="hhw__content">
         <div class="hhw__head">
-          <span class="hhw__char">{{ data.char }}</span>
+          <span class="hhw__char k">{{ data.char }}</span>
           <span class="hhw__meta">{{ data.strokes.length }} 画 · 自动播放</span>
         </div>
 
-        <svg class="hhw__svg" viewBox="0 0 100 100" role="img" :aria-label="`${data.char}逐笔书写动画`">
-          <template v-for="(stroke, idx) in data.strokes" :key="idx">
+        <!-- 卷轴笔顺：顶杆压边，纸面收窄成手卷 -->
+        <div class="hhw__scroll">
+          <span class="hhw__rod hhw__rod--top" aria-hidden="true" />
+          <svg class="hhw__svg" viewBox="0 0 100 100" role="img" :aria-label="`${data.char}逐笔书写动画`">
+            <template v-for="(stroke, idx) in data.strokes" :key="idx">
+              <path
+                :d="stroke.path"
+                class="hhw-stroke hhw-stroke--ghost"
+              />
+              <path
+                v-if="idx < currentStroke"
+                :d="stroke.path"
+                class="hhw-stroke hhw-stroke--done"
+              />
+            </template>
             <path
-              :d="stroke.path"
-              class="hhw-stroke hhw-stroke--ghost"
+              v-if="currentStroke > 0 && currentStroke <= data.strokes.length"
+              :d="data.strokes[currentStroke - 1].path"
+              class="hhw-stroke hhw-stroke--writing"
             />
-            <path
-              v-if="idx < currentStroke"
-              :d="stroke.path"
-              class="hhw-stroke hhw-stroke--done"
-            />
-          </template>
-          <path
-            v-if="currentStroke > 0 && currentStroke <= data.strokes.length"
-            :d="data.strokes[currentStroke - 1].path"
-            class="hhw-stroke hhw-stroke--writing"
-          />
-        </svg>
+          </svg>
+        </div>
 
         <div class="hhw__foot">
           <span v-if="currentStroke > 0 && currentStroke <= data.strokes.length">
@@ -197,6 +201,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* 卷轴笔顺浮层（05 卷轴方案）：
+   白卡 + 主色细边；纸面用 color-mix 把主色轻染进白底（浅色≈宣纸，深色自动收敛）；
+   顶杆（卷筒）压纸面顶边；字用楷体。定位 / 播放逻辑不动。 */
+.k {
+  font-family: "Kaiti SC", "STKaiti", "KaiTi", "SimSun", serif;
+}
+
 .hhw {
   position: fixed;
   z-index: 2100;
@@ -205,6 +216,7 @@ onBeforeUnmount(() => {
   padding: 12px 14px;
   background: var(--el-bg-color-overlay);
   border: 1px solid var(--el-border-color-light);
+  border-left: 4px solid var(--el-color-primary);
   border-radius: var(--el-radius-sm, 6px);
   box-shadow: var(--el-box-shadow-light);
   color: var(--el-text-color-primary);
@@ -230,13 +242,34 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
+/* 手卷容器：顶杆 + 纸面 */
+.hhw__scroll {
+  position: relative;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm, 6px);
+  background: color-mix(in srgb, var(--el-bg-color-overlay) 96%, var(--el-color-primary-light-5));
+  overflow: hidden;
+}
+.hhw__rod {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  height: 4px;
+  border-radius: 0 0 var(--el-radius-sm, 6px) var(--el-radius-sm, 6px);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--el-color-primary) 72%, #000) 0%, color-mix(in srgb, var(--el-color-primary) 45%, #000) 45%, color-mix(in srgb, var(--el-color-primary) 30%, #000) 100%);
+  box-shadow: 0 2px 5px color-mix(in srgb, var(--el-color-black) 18%, transparent);
+  z-index: 1;
+}
+.hhw__rod--top {
+  top: 0;
+}
 .hhw__svg {
+  position: relative;
   width: 100%;
   height: 152px;
   display: block;
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  z-index: 0;
 }
 .hhw-stroke {
   fill: none;

@@ -1,15 +1,16 @@
 <template>
-  <div class="page-container">
-    <!-- 上区：页头 + 右侧悬浮正方形统计卡 -->
-    <div class="top-zone">
-      <div class="page-header">
-        <div class="page-header__left">
-          <h1 class="page-header__title">汉字库</h1>
-          <p class="page-header__sub">维护汉字的读音、笔顺（顺序）、字画与释义，供识字 / 写字类模块取材</p>
+  <div class="page-container scroll-bank">
+    <!-- 卷头：标题 / 统计 / 工具 -->
+    <div class="scroll-bank__head">
+      <div class="scroll-bank__heading">
+        <div class="scroll-bank__title-row">
+          <h1 class="scroll-bank__title k">汉字卷</h1>
+          <span class="scroll-bank__seal" aria-hidden="true">卷</span>
         </div>
+        <p class="scroll-bank__sub">按部首分行 · 共 {{ total }} 字 · 当前卷 {{ rows.length }} 字</p>
       </div>
 
-      <div class="stats-row">
+      <div class="stats-row scroll-bank__stats">
         <div v-for="st in statCards" :key="st.title" class="stat-card">
           <div class="stat-card__body">
             <div class="stat-card__title">{{ st.title }}</div>
@@ -21,122 +22,143 @@
           </div>
         </div>
       </div>
+
+      <div class="scroll-bank__toolbar">
+        <el-input
+          v-model="searchDraft.keyword"
+          clearable
+          class="scroll-bank__kw"
+          placeholder="搜 字 / 拼音 / 释义"
+          :prefix-icon="Search"
+          @keyup.enter="commitSearch"
+          @change="commitSearch"
+          @clear="commitSearch"
+        />
+        <el-select
+          v-model="searchDraft.gradeLevel"
+          clearable
+          placeholder="全部学段"
+          class="scroll-bank__grade"
+          @change="commitSearch"
+        >
+          <el-option v-for="lv in GRADE_LEVELS" :key="lv" :label="lv" :value="lv" />
+        </el-select>
+        <el-button type="primary" :icon="Search" :loading="loading" @click="commitSearch">搜索</el-button>
+        <el-button :icon="RefreshLeft" @click="handleReset">重置</el-button>
+        <span class="scroll-bank__spacer" />
+        <el-button type="primary" :icon="Plus" @click="openCreate">＋ 新增汉字</el-button>
+      </div>
     </div>
 
-    <!-- 筛选 -->
-    <el-card shadow="never" class="filter-card">
-      <div class="filter-grid">
-        <div class="filter-field">
-          <label class="filter-field__label">关键字</label>
-          <el-input
-            v-model="searchDraft.keyword"
-            clearable
-            placeholder="字 / 拼音（含无声调）/ 通假字 / 释义"
-            :prefix-icon="Search"
-            @keyup.enter="commitSearch"
-            @change="commitSearch"
-            @clear="commitSearch"
-          />
-        </div>
-        <div class="filter-field">
-          <label class="filter-field__label">学段</label>
-          <el-select v-model="searchDraft.gradeLevel" clearable placeholder="全部学段" style="width: 100%" @change="commitSearch">
-            <el-option v-for="lv in GRADE_LEVELS" :key="lv" :label="lv" :value="lv" />
-          </el-select>
-        </div>
-        <div class="filter-actions">
-          <el-button type="primary" :icon="Search" :loading="loading" @click="commitSearch">搜索</el-button>
-          <el-button :icon="RefreshLeft" @click="handleReset">重置</el-button>
-        </div>
-      </div>
-    </el-card>
+    <!-- 卷轴主区：左右卷杆 + 纸面字流 -->
+    <div class="scroll-bank__stage">
+      <span class="scroll-rod scroll-rod--l" aria-hidden="true" />
+      <span class="scroll-rod scroll-rod--r" aria-hidden="true" />
 
-    <!-- 工具条 + 表格 -->
-    <el-card shadow="never" class="table-card">
-      <div class="table-wrap">
-        <ReTable
-          ref="tableRef"
-          :loader="loadRows"
-          :columns="hanziColumns"
-          :params="appliedParams"
-          :row-key="'hanziId'"
-          v-model:page="pageNo"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="table"
-          :layout-switch="false"
-          :toolbar="false"
-          stripe
-          :settings="{ border: false }"
-          class="hanzi-table"
-          @load="onLoad"
-          @load-error="pageLoadError"
-        >
-          <template #toolbar>
-            <el-button type="primary" :icon="Plus" @click="openCreate">新增汉字</el-button>
-          </template>
-          <template #empty>
-            <el-empty :image-size="88" description="暂无汉字，点击「新增汉字」创建" />
-          </template>
-          <template #col-hanziChar="{ row }">
-            <span
-              class="hanzi-char hanzi-hover-target"
-              @mouseenter="startHanziHover($event, row as unknown as EduHanzi)"
-              @mouseleave="cancelHanziHover"
-            >{{ row.hanziChar }}</span>
-          </template>
-          <template #col-hanziPinyin="{ row }">
-            <div class="pinyin-cell">
-              <span
-                v-for="p in readings(row as unknown as EduHanzi)"
-                :key="p"
-                class="pinyin-chip"
-              >{{ p }}</span>
-              <span v-if="!readings(row as unknown as EduHanzi).length" class="muted">—</span>
+      <div ref="paperRef" class="scroll-bank__paper">
+        <div v-if="loading" class="scroll-bank__loading" role="status" aria-label="加载中">
+          <span class="scroll-bank__spinner" />
+        </div>
+        <p class="scroll-bank__hint">{{ scrollHint }}</p>
+
+        <template v-if="rows.length">
+          <div v-for="g in radicalGroups" :key="g.key" class="scroll-radical">
+            <span class="scroll-radical__side k">{{ g.radical }}</span>
+            <div class="scroll-radical__cells">
+              <button
+                v-for="h in g.items"
+                :key="h.hanziId"
+                type="button"
+                class="scroll-cell k"
+                :class="{ 'is-cur': selectedHanzi?.hanziId === h.hanziId }"
+                :title="`${h.hanziChar} · ${(h.hanziPinyin ?? '').split(/[,，;；/|\s]+/).filter(Boolean).join(' / ') || '—'} · ${h.hanziStrokes ?? '—'} 画`"
+                @mouseenter="startHanziHover($event, h)"
+                @mouseleave="cancelHanziHover"
+                @click="selectHanzi(h)"
+              >{{ h.hanziChar }}</button>
             </div>
-          </template>
-          <template #col-hanziTongjia="{ row }">
-            <span v-if="row.hanziTongjia" class="tongjia-pill" :title="`通 ${row.hanziTongjia}`">
-              通 {{ row.hanziTongjia }}
-            </span>
-            <span v-else class="muted">—</span>
-          </template>
-          <template #col-hanziStrokeOrder="{ row }">
-            <span class="stroke-order">{{ row.hanziStrokeOrder || "—" }}</span>
-          </template>
-          <template #col-hanziImage="{ row }">
-            <el-image
-              v-if="row.hanziImage"
-              :src="row.hanziImage"
-              :preview-src-list="[row.hanziImage]"
-              preview-teleported
-              fit="contain"
-              class="hanzi-thumb"
-            />
-            <span v-else class="muted">—</span>
-          </template>
-          <template #col-hanziGradeLevel="{ row }">
-            <span class="tag-pill">{{ row.hanziGradeLevel || "不限" }}</span>
-          </template>
-          <template #col-actions="{ row }">
-            <ReButton
-              layout="square"
-              type="primary"
-              :icon="EditPen"
-              tip="编辑"
-              @click.stop="openEdit(row as unknown as EduHanzi)"
-            />
-            <ReButton
-              layout="square"
-              type="danger"
-              :icon="Delete"
-              tip="删除"
-              @click.stop="remove(row as unknown as EduHanzi)"
-            />
-          </template>
-        </ReTable>
+          </div>
+        </template>
+        <el-empty v-else-if="!loading" :image-size="88" description="暂无汉字，点击「＋ 新增汉字」创建" />
       </div>
-    </el-card>
+    </div>
+
+    <!-- 卷底导航：翻卷 + 每卷字数 -->
+    <div class="scroll-bank__nav">
+      <button
+        type="button"
+        class="scroll-nav-btn"
+        :disabled="pageNo <= 1"
+        aria-label="上一卷"
+        @click="prevScroll"
+      >‹</button>
+      <span class="scroll-nav__text">卷 {{ pageNo }} / {{ scrollPages }} · 每卷约 {{ pageSize }} 字</span>
+      <button
+        type="button"
+        class="scroll-nav-btn"
+        :disabled="pageNo >= scrollPages"
+        aria-label="下一卷"
+        @click="nextScroll"
+      >›</button>
+      <span class="scroll-nav__size">
+        每卷
+        <el-select v-model="pageSize" size="small" style="width: 84px" @change="onScrollSizeChange">
+          <el-option v-for="s in [10, 20, 50]" :key="s" :label="`${s} 字`" :value="s" />
+        </el-select>
+      </span>
+    </div>
+
+    <!-- 选中字详情（卷侧注）：编辑 / 删除入口在这里 -->
+    <section v-if="selectedHanzi" class="scroll-detail">
+      <div class="scroll-detail__art">
+        <el-image
+          v-if="selectedHanzi.hanziImage"
+          :src="selectedHanzi.hanziImage"
+          :preview-src-list="[selectedHanzi.hanziImage]"
+          preview-teleported
+          fit="contain"
+          class="scroll-detail__img"
+        />
+        <span v-else class="scroll-detail__char k">{{ selectedHanzi.hanziChar }}</span>
+      </div>
+      <div class="scroll-detail__main">
+        <div class="scroll-detail__title">
+          <span class="scroll-detail__char scroll-detail__char--sm k">{{ selectedHanzi.hanziChar }}</span>
+          <span class="pinyin-group">
+            <span v-for="p in readings(selectedHanzi)" :key="p" class="pinyin-chip">{{ p }}</span>
+            <span v-if="!readings(selectedHanzi).length" class="muted">—</span>
+          </span>
+        </div>
+        <dl class="scroll-detail__grid">
+          <div><dt>部首</dt><dd>{{ selectedHanzi.hanziRadical || "—" }}</dd></div>
+          <div><dt>笔画</dt><dd>{{ selectedHanzi.hanziStrokes ?? "—" }}</dd></div>
+          <div><dt>结构</dt><dd>{{ selectedHanzi.hanziStructure || "—" }}</dd></div>
+          <div><dt>学段</dt><dd>{{ selectedHanzi.hanziGradeLevel || "不限" }}</dd></div>
+          <div class="scroll-detail__full">
+            <dt>笔顺</dt>
+            <dd class="scroll-detail__strokes k">{{ selectedHanzi.hanziStrokeOrder || "—" }}</dd>
+          </div>
+          <div class="scroll-detail__full"><dt>释义 / 组词</dt><dd>{{ selectedHanzi.hanziMeaning || "—" }}</dd></div>
+        </dl>
+      </div>
+      <div class="scroll-detail__ops">
+        <ReButton
+          layout="square"
+          type="primary"
+          :icon="EditPen"
+          tip="编辑"
+          @click="openEdit(selectedHanzi)"
+        />
+        <ReButton
+          layout="square"
+          type="danger"
+          :icon="Delete"
+          tip="删除"
+          @click="remove(selectedHanzi)"
+        />
+        <el-button class="scroll-detail__close" :icon="Close" circle @click="selectedHanzi = null" />
+      </div>
+    </section>
 
     <!-- 新增/编辑对话框 -->
     <ReDialog v-model="dialogVisible" class="q-dialog" width="880" :show-close="false" :show-window-shell="false" align-center>
@@ -178,7 +200,7 @@
                 :max="64"
                 controls-position="right"
                 style="width: 100%"
-                @update:model-value="(v?: number) => (form.hanziStrokes = v)"
+                @update:model-value="(v: number | null | undefined) => (form.hanziStrokes = v)"
               />
             </el-form-item>
           </div>
@@ -253,16 +275,18 @@
  * 一个字一条：维护读音（拼音）、笔顺（顺序）、笔画数、部首、结构、字画与释义。
  * 唯一键是汉字本身，后端「按字查重后更新」，因此重复提交同一个字不会报错。
  * 分页为服务端分页（GET /v2/edu/hanzi/page）。
+ *
+ * 展示形态：卷轴（05 卷轴方案）——「卷」即一页（pageSize 个字），
+ * 每卷内按部首前端分组横排成字格流，悬停字格出笔顺浮层、点字出详情侧注。
+ * 数据流与接口契约（搜索 / 学段 / 分页 / 新增 / 编辑 / 删除）与表格形态完全一致。
  */
 import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Plus, Reading, RefreshLeft, Search } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
-import { createPageLoader, pageLoadError, strParam } from "../api/pageLoader";
+import { strParam } from "../api/pageLoader";
 import type { EduHanzi } from "../api/types";
-import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
-import type { ReTableColumn } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
 import HanziHoverWrite from "../components/HanziHoverWrite.vue";
@@ -270,66 +294,101 @@ import HanziHoverWrite from "../components/HanziHoverWrite.vue";
 const GRADE_LEVELS = ["小学", "初中", "高中"] as const;
 const STRUCTURES = ["独体", "上下", "左右", "左中右", "上中下", "半包围", "全包围"] as const;
 
-/**
- * 汉字列表的列定义（ReTable 表格模式用）。
- *
- * <p>自定义单元格一律走 {@code #col-<prop>} 插槽；「字 / 字画 / 学段 / 操作」
- * 四列没有可直出的纯文本字段（或字段需包一层），同样挂插槽渲染。</p>
- */
-const hanziColumns: ReTableColumn[] = [
-  { prop: "hanziChar", label: "字", width: 72, align: "center", slot: "col-hanziChar" },
-  { prop: "hanziPinyin", label: "读音", minWidth: 130, slot: "col-hanziPinyin" },
-  { prop: "hanziTongjia", label: "通假字", width: 100, align: "center", slot: "col-hanziTongjia" },
-  { prop: "hanziStrokes", label: "笔画", width: 66, align: "center" },
-  { prop: "hanziRadical", label: "部首", width: 66, align: "center" },
-  { prop: "hanziStructure", label: "结构", width: 86, align: "center" },
-  {
-    prop: "hanziStrokeOrder",
-    label: "笔顺",
-    width: 140,
-    showOverflowTooltip: true,
-    slot: "col-hanziStrokeOrder",
-  },
-  { prop: "hanziMeaning", label: "释义 / 组词", minWidth: 200, showOverflowTooltip: true },
-  { prop: "hanziImage", label: "字画", width: 74, align: "center", slot: "col-hanziImage" },
-  { prop: "hanziGradeLevel", label: "学段", width: 76, align: "center", slot: "col-hanziGradeLevel" },
-  { prop: "actions", label: "操作", width: 120, align: "center", fixed: "right", slot: "col-actions" },
-];
-
-// ==================== 列表 ====================
+// ==================== 卷（分页）态 ====================
 const loading = ref(false);
 const rows = ref<EduHanzi[]>([]);
-const tableRef = ref();
 const total = ref(0);
 const pageNo = ref(1);
 const pageSize = ref(20);
+const paperRef = ref<HTMLElement | null>(null);
 
 const blankSearch = () => ({ keyword: "", gradeLevel: "" });
 const searchDraft = reactive(blankSearch());
 const applied = reactive(blankSearch());
 
-/** 筛选参数：提交后交给后端 pageQuery */
-const appliedParams = computed(() => ({
-  keyword: strParam(applied.keyword),
-  gradeLevel: strParam(applied.gradeLevel),
-}));
+/** 总卷数（最少 1 卷，空库也是 1 卷的空卷） */
+const scrollPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
 
-/** 汉字分页 loader（后端筛选） */
-const loadRows = createPageLoader((page, size, params) =>
-  eduaiApi.pageHanzi({
-    ...params,
-    pageNum: page,
-    pageSize: size,
-  }),
-);
+/** 本卷内按部首分组：无部首的字归「—」组；组按字数多的靠前（卷首重笔） */
+const radicalGroups = computed(() => {
+  const map = new Map<string, EduHanzi[]>();
+  for (const r of rows.value) {
+    const key = (r.hanziRadical ?? "").trim() || "—";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(r);
+  }
+  return [...map.entries()]
+    .map(([radical, items]) => ({ key: radical, radical, items }))
+    .sort((a, b) => b.items.length - a.items.length);
+});
 
-/** ReTable 每页加载完成后同步当前页行与总数 */
-function onLoad(r: { data: unknown[]; total?: number }) {
-  rows.value = (r.data ?? []) as EduHanzi[];
-  total.value = r?.total ?? rows.value.length;
+const scrollHint = computed(() => {
+  const first = radicalGroups.value[0]?.radical ?? "—";
+  return `卷 ${pageNo.value} · 从「${first}」部首起 —— 每格一字，点字看详情 / 悬停出笔顺`;
+});
+
+/** 拉取当前卷（服务端分页，接口与表格形态一致） */
+async function fetchScroll(): Promise<void> {
+  loading.value = true;
+  try {
+    for (;;) {
+      const res = await eduaiApi.pageHanzi({
+        keyword: strParam(applied.keyword),
+        gradeLevel: strParam(applied.gradeLevel),
+        pageNum: pageNo.value,
+        pageSize: pageSize.value,
+      });
+      rows.value = (res?.data ?? []) as EduHanzi[];
+      total.value = res?.total ?? rows.value.length;
+      const pages = Math.max(1, Math.ceil(total.value / pageSize.value));
+      if (pageNo.value <= pages || pageNo.value <= 1) break;
+      // 尾卷被删空后页码超出总卷数：自动回退到最后一卷再取一次
+      pageNo.value = pages;
+    }
+    if (selectedHanzi.value) {
+      const still = rows.value.find((r) => r.hanziId === selectedHanzi.value?.hanziId);
+      if (!still) selectedHanzi.value = null;
+    }
+    nextTickScrollTop();
+  } catch (e) {
+    message.error("加载失败: " + (e instanceof Error ? e.message : String(e)));
+  } finally {
+    loading.value = false;
+  }
 }
 
-/** 行悬停书写动画的锚点与当前行（字单元格） */
+function nextTickScrollTop(): void {
+  const el = paperRef.value;
+  if (el) el.scrollTop = 0;
+}
+
+function onScrollSizeChange(): void {
+  if (pageNo.value !== 1) pageNo.value = 1;
+  void fetchScroll();
+}
+
+function prevScroll(): void {
+  if (pageNo.value <= 1) return;
+  pageNo.value -= 1;
+  void fetchScroll();
+}
+
+function nextScroll(): void {
+  if (pageNo.value >= scrollPages.value) return;
+  pageNo.value += 1;
+  void fetchScroll();
+}
+
+// ==================== 选中字详情 ====================
+const selectedHanzi = ref<EduHanzi | null>(null);
+
+function selectHanzi(h: EduHanzi): void {
+  cancelHanziHover();
+  selectedHanzi.value = h;
+}
+
+// ==================== 悬停笔顺 ====================
+/** 行悬停书写动画的锚点与当前行（字格） */
 const hanziHover = reactive<{
   visible: boolean;
   anchor: HTMLElement | null;
@@ -363,15 +422,16 @@ const statCards = computed(() => {
   const withOrder = list.filter((r) => (r.hanziStrokeOrder ?? "").length > 0).length;
   const withImage = list.filter((r) => (r.hanziImage ?? "").length > 0).length;
   return [
-    { title: "本页汉字", value: list.length, icon: Reading, bg: "var(--el-color-primary-light-9)", hint: `共 ${total.value} 条` },
-    { title: "已配笔顺", value: withOrder, icon: Plus, bg: "var(--el-color-success-light-9)", hint: "本页已填笔顺" },
-    { title: "已配字画", value: withImage, icon: EditPen, bg: "var(--el-color-warning-light-9)", hint: "本页已填字画" },
+    { title: "本卷汉字", value: list.length, icon: Reading, bg: "var(--el-color-primary-light-9)", hint: `共 ${total.value} 条` },
+    { title: "已配笔顺", value: withOrder, icon: Plus, bg: "var(--el-color-success-light-9)", hint: "本卷已填笔顺" },
+    { title: "已配字画", value: withImage, icon: EditPen, bg: "var(--el-color-warning-light-9)", hint: "本卷已填字画" },
   ];
 });
 
 function commitSearch() {
   Object.assign(applied, { ...searchDraft });
-  void tableRef.value?.goto(1);
+  pageNo.value = 1;
+  void fetchScroll();
 }
 
 function handleReset() {
@@ -457,7 +517,7 @@ async function save() {
     });
     message.success("保存成功");
     dialogVisible.value = false;
-    void tableRef.value?.reload();
+    void fetchScroll();
   } catch (e) {
     message.error("保存失败: " + (e instanceof Error ? e.message : String(e)));
   } finally {
@@ -478,21 +538,22 @@ async function remove(row: EduHanzi) {
   try {
     await eduaiApi.deleteHanzi(row.hanziId as number);
     message.success("已删除");
-    void tableRef.value?.reload();
+    void fetchScroll();
   } catch (e) {
     message.error("删除失败: " + (e instanceof Error ? e.message : String(e)));
   }
 }
 
 onMounted(() => {
-  // 表格 loader 自动加载首屏，无需手动触发
+  void fetchScroll();
 });
 
 onBeforeUnmount(cancelHanziHover);
 </script>
 
 <style scoped>
-.page-container {
+/* ===== 卷轴基础 ===== */
+.scroll-bank {
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -500,28 +561,55 @@ onBeforeUnmount(cancelHanziHover);
   background: var(--el-bg-color-page);
 }
 
-/* ---------- 上区 ---------- */
-.top-zone {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  flex-wrap: wrap;
+.k {
+  font-family: "Kaiti SC", "STKaiti", "KaiTi", "SimSun", serif;
 }
-.page-header__title {
+
+/* ---------- 卷头 ---------- */
+.scroll-bank__head {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+.scroll-bank__heading {
+  margin-right: auto;
+}
+.scroll-bank__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.scroll-bank__title {
   margin: 0;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 900;
   color: var(--el-text-color-primary);
-  letter-spacing: 1px;
+  letter-spacing: 3px;
+  line-height: 1.2;
 }
-.page-header__sub {
-  margin: 6px 0 0;
-  font-size: 13px;
+/* 卷头朱文印：主色圆角块 + 白「卷」字 */
+.scroll-bank__seal {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--el-radius-sm, 6px);
+  background: color-mix(in srgb, var(--el-color-primary) 88%, #000);
+  color: var(--el-color-white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+}
+.scroll-bank__sub {
+  margin: 5px 0 0;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 
-.stats-row {
+.scroll-bank__stats {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -529,9 +617,9 @@ onBeforeUnmount(cancelHanziHover);
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-width: 170px;
-  padding: 12px 16px;
+  gap: 12px;
+  min-width: 156px;
+  padding: 10px 14px;
   border-radius: var(--el-radius-lg, 12px);
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
@@ -545,7 +633,7 @@ onBeforeUnmount(cancelHanziHover);
   color: var(--el-text-color-secondary);
 }
 .stat-card__value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 900;
   color: var(--el-text-color-primary);
   font-variant-numeric: tabular-nums;
@@ -556,8 +644,8 @@ onBeforeUnmount(cancelHanziHover);
   color: var(--el-text-color-placeholder);
 }
 .stat-card__icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--el-radius-lg, 12px);
   display: flex;
   align-items: center;
@@ -566,81 +654,226 @@ onBeforeUnmount(cancelHanziHover);
   flex-shrink: 0;
 }
 
-/* ---------- 筛选 ---------- */
-.filter-card {
-  border-radius: var(--el-radius-lg, 12px);
-}
-.filter-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
-  gap: 12px 16px;
-  align-items: end;
-}
-.filter-field__label {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 6px;
-}
-.filter-actions {
+.scroll-bank__toolbar {
   display: flex;
+  align-items: center;
   gap: 8px;
-}
-
-/* ---------- 表格 ---------- */
-.table-card {
-  border-radius: var(--el-radius-lg, 12px);
-}
-.table-wrap {
-  /* 固定容器高度（同三库口径）：消除滚动条液面高度随滚动反复重算的抖动。
-     374 = 本页实测 wrap.top 344.8 + el-main 底部留白 8 + 卡片 body
-     底部内边距 21；此时表格卡正好贴到页面容器底边，不再留底空。
-     本页统计卡单行、筛选单行，上方区域与昆虫库不同，故基准取
-     同分布的 FunConfig 的 374 而非昆虫库的 493。
-     min-height 取 300：更小视口下改走页面滚动，不把固定高度顶破。
-     contain: layout size 让 ReTable 走 height:100%。 */
-  height: calc(100vh - 374px);
-  min-height: 300px;
-  contain: layout size;
-  overflow: hidden;
-}
-.hanzi-table {
+  flex-wrap: wrap;
   width: 100%;
 }
-.hanzi-table :deep(.el-table__header th) {
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-primary);
-  font-weight: 700;
-  font-size: 13px;
+.scroll-bank__kw {
+  width: 230px;
 }
-.hanzi-table :deep(.el-table__cell) {
-  padding: 10px 0;
+.scroll-bank__grade {
+  width: 130px;
 }
-.hanzi-char {
-  font-size: 22px;
+.scroll-bank__spacer {
+  flex: 1;
+}
+
+/* ---------- 卷轴主区 ---------- */
+.scroll-bank__stage {
+  position: relative;
+  flex: 1;
+  min-height: 320px;
+}
+/* 左右卷杆：primary 压深一档，模拟木轴 */
+.scroll-rod {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--el-color-primary) 62%, #000) 0%, color-mix(in srgb, var(--el-color-primary) 45%, #000) 45%, color-mix(in srgb, var(--el-color-primary) 30%, #000) 100%);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 20%, transparent);
+  z-index: 3;
+}
+.scroll-rod--l {
+  left: 14px;
+}
+.scroll-rod--r {
+  right: 14px;
+}
+/* 纸面：koi 白 + 主色轻染出宣纸感 */
+.scroll-bank__paper {
+  position: absolute;
+  inset: 0 34px;
+  background: color-mix(in srgb, var(--el-bg-color) 95%, var(--el-color-primary-light-5));
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-lg, 12px);
+  overflow: auto;
+  padding: 14px 16px 18px;
+}
+.scroll-bank__hint {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+.scroll-bank__loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--el-bg-color) 55%, transparent);
+  z-index: 2;
+}
+.scroll-bank__spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid var(--el-border-color-lighter);
+  border-top-color: var(--el-color-primary);
+  animation: scroll-bank-spin 0.8s linear infinite;
+}
+@keyframes scroll-bank-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 部首行 */
+.scroll-radical {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.scroll-radical__side {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--el-radius-sm, 6px);
+  background: color-mix(in srgb, var(--el-color-primary-light-9) 65%, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-lighter);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+}
+.scroll-radical__cells {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 字格：每格一字，悬停上浮出笔顺、点选即高亮详情 */
+.scroll-cell {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: var(--el-radius-sm, 6px);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-extra-light);
+  display: grid;
+  place-items: center;
+  font-size: 21px;
   font-weight: 800;
   color: var(--el-text-color-primary);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
-.hanzi-hover-target {
-  cursor: help;
-  border-bottom: 1px dashed var(--el-border-color);
-  transition: border-color 0.2s, color 0.2s;
-}
-.hanzi-hover-target:hover {
+.scroll-cell:hover {
+  transform: translateY(-2px);
+  border-color: var(--el-color-primary-light-7);
   color: var(--el-color-primary);
+}
+.scroll-cell.is-cur {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: var(--el-color-white);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--el-color-primary) 30%, transparent);
+}
+
+/* ---------- 卷底导航 ---------- */
+.scroll-bank__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 2px 0;
+}
+.scroll-nav-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid var(--el-border-color);
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.scroll-nav-btn:hover:not(:disabled) {
   border-color: var(--el-color-primary);
 }
-.stroke-order {
-  font-size: 16px;
-  letter-spacing: 2px;
+.scroll-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.scroll-nav__text {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.scroll-nav__size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* ---------- 详情侧注（选中字） ---------- */
+.scroll-detail {
+  display: flex;
+  gap: 18px;
+  padding: 14px 18px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-left: 4px solid var(--el-color-primary);
+}
+.scroll-detail__art {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--el-radius-md, 8px);
+  background: color-mix(in srgb, var(--el-color-primary-light-9) 55%, var(--el-bg-color));
+  border: 1px solid var(--el-border-color-lighter);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.scroll-detail__img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--el-radius-md, 8px);
+}
+.scroll-detail__char {
+  font-size: 62px;
+  font-weight: 900;
+  line-height: 1;
   color: var(--el-text-color-primary);
 }
-.pinyin-cell {
+.scroll-detail__char--sm {
+  font-size: 30px;
+}
+.scroll-detail__main {
+  flex: 1;
+  min-width: 0;
+}
+.scroll-detail__title {
   display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.pinyin-group {
+  display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
-  line-height: 1.4;
 }
 .pinyin-chip {
   font-size: 12px;
@@ -650,40 +883,46 @@ onBeforeUnmount(cancelHanziHover);
   color: var(--el-text-color-regular);
   white-space: nowrap;
 }
-.tongjia-pill {
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: var(--el-radius-sm, 6px);
-  background: var(--el-color-warning-light-9);
-  color: var(--el-color-warning-dark-2);
-  white-space: nowrap;
+.scroll-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px 14px;
+  margin: 0;
 }
-.hanzi-thumb {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--el-radius-sm, 6px);
-  border: 1px solid var(--el-border-color-lighter);
+.scroll-detail__grid > div {
+  min-width: 0;
+}
+.scroll-detail__grid dt {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.scroll-detail__grid dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--el-text-color-primary);
+  word-break: break-word;
+}
+.scroll-detail__full {
+  grid-column: 1 / -1;
+}
+.scroll-detail__strokes {
+  font-size: 20px !important;
+  letter-spacing: 4px;
+}
+.scroll-detail__ops {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.scroll-detail__close {
+  margin-left: 4px;
 }
 .muted {
   color: var(--el-text-color-placeholder);
 }
-.tag-pill {
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: var(--el-radius-sm, 6px);
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  white-space: nowrap;
-}
 
-
-/* ---------- 对话框 ---------- */
+/* ---------- 对话框（保留表格形态原样） ---------- */
 .q-dialog :deep(.el-dialog__header) {
   padding: 0;
   margin-right: 0;
@@ -789,7 +1028,10 @@ onBeforeUnmount(cancelHanziHover);
 }
 
 @media (max-width: 1200px) {
-  .filter-grid {
+  .scroll-bank__kw {
+    width: 180px;
+  }
+  .scroll-detail__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .form-grid--4 {
@@ -798,4 +1040,15 @@ onBeforeUnmount(cancelHanziHover);
 }
 
 /* ============ 无障碍：尊重系统「减少动态效果」偏好 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cell {
+    transition: none;
+  }
+  .scroll-nav-btn {
+    transition: none;
+  }
+  .scroll-bank__spinner {
+    animation-duration: 1.6s;
+  }
+}
 </style>
