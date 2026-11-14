@@ -6,6 +6,8 @@
     <AnnouncementBar position="fixed-top" />
     <component :is="LayoutComponent[layout]" v-if="!isMobile" />
     <component :is="LayoutMobile" v-if="isMobile" />
+    <!-- 站内消息右下角浮窗（app.yaml message.position=right-bottom 时挂载；hidden 时两处都不渲染） -->
+    <ReStationMessage v-if="messageFloating" mode="floating" />
     <component :is="ThemeConfig" />
     <KoiLockScreen />
   </div>
@@ -17,6 +19,7 @@ import { computed, onMounted, type Component } from "vue";
 // 全局主题配置
 import useGlobalStore from "@repo/pinia/modules/global";
 import { applyGlobalWatermark } from "@repo/core";
+import { getConfig } from "@repo/config";
 import { useUnreadFlash } from "./useUnreadFlash";
 
 // 未读消息标签页闪烁提示
@@ -27,6 +30,7 @@ onMounted(() => {
   applyGlobalWatermark();
 });
 import ThemeConfig from "@repo/theme/koi/layouts/components/ThemeConfig/index.vue";
+import ReStationMessage from "@repo/ui/re-station-message";
 import KoiLockScreen from "@repo/theme/koi/layouts/components/LockScreen/index.vue";
 import AnnouncementBar from "@repo/theme/koi/layouts/components/AnnouncementBar/index.vue";
 import WallpaperLayer from "@repo/theme/koi/components/wallpaper/WallpaperLayer.vue";
@@ -55,6 +59,9 @@ const globalStore = useGlobalStore();
 
 /** 获取布局格式 */
 const layout = computed(() => globalStore.layout);
+
+/** 站内消息是否走右下角浮窗（app.yaml `message.position=right-bottom`） */
+const messageFloating = computed(() => getConfig().message?.position === "right-bottom");
 
 // 获取当前为[移动端、IPad、PC端]仓库，阔以使用 watchEffect(() => {}) 进行监听。
 const { isMobile } = useScreenStore();

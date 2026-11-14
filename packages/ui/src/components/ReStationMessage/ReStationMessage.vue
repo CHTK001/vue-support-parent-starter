@@ -8,12 +8,13 @@
  *   - Socket：bindStationMessageSocket 将实时推送写入 store
  * 不注入 adapter 时（后端接口未就绪）静默降级为仅实时推送。
  */
-import { ref, watch, onMounted } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { ElNotification, ElMessageBox } from "element-plus";
 import { Bell, Refresh } from "@element-plus/icons-vue";
 import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
 import { useMessageStore } from "@repo/pinia";
+import { getConfig } from "@repo/config";
 import {getStationMessageAdapter, message} from "@repo/core";
 /** 顶栏动画图标（index.ts 默认导出即 defineAsyncComponent 结果，可直接当组件用） */
 import ReIcon from "../ReIcon";
@@ -24,12 +25,29 @@ const props = withDefaults(
     title?: string;
     /** 弹出层宽度（px） */
     width?: number;
+    /**
+     * 渲染形态：
+     *  - toolbar（默认）：顶栏铃铛，由 Header 条目表挂载
+     *  - floating：右下角浮球，由布局层在 `message.position=right-bottom` 时挂载
+     */
+    mode?: "toolbar" | "floating";
   }>(),
   {
     title: "站内消息",
     width: 340,
+    mode: "toolbar",
   },
 );
+
+/** 是否右下角浮窗形态（弹出层向上展开、触发器固定在视口右下） */
+const isFloating = computed(() => props.mode === "floating");
+/** 弹出层展开方向：浮窗向上，顶栏向下 */
+const popoverPlacement = computed(() => (isFloating.value ? "top-end" : "bottom-end"));
+/** 徽标数量上限（app.yaml `message.maxUnread`，默认 99，超出显示 `99+`） */
+const badgeMax = computed(() => {
+  const max = getConfig().message?.maxUnread;
+  return typeof max === "number" && max > 0 ? max : 99;
+});
 
 const messageStore = useMessageStore();
 const { messages, unread, latest } = storeToRefs(messageStore);
@@ -160,7 +178,7 @@ async function handleItemClick(msg: {
   <el-popover
     v-model:visible="popoverVisible"
     ref="popoverRef"
-    placement="bottom-end"
+    :placement="popoverPlacement"
     :width="width"
     trigger="click"
     :show-arrow="false"
@@ -169,20 +187,23 @@ async function handleItemClick(msg: {
     @show="handleShow"
   >
     <template #reference>
-      <div class="re-station-message-trigger-wrap">
+      <div :class="['re-station-message-trigger-wrap', { 'is-floating': isFloating }]">
         <el-badge
           :value="unread"
           :hidden="unread === 0"
-          :max="99"
+          :max="badgeMax"
           class="re-station-message-badge"
         >
           <!-- 顶栏消息入口：icons-animated 动画铃铛（hover/focus 播放）。
                原先为 <el-icon><Bell/> + koi-scale-i 容器缩放；动画图标自带交互动效后
                不再叠加容器动画，避免「缩放 + 摆铃」两层动作互相打架。 -->
           <div
-            class="re-station-message-trigger hover:bg-[--el-header-icon-hover-bg-color] koi-icon w-36px h-36px rounded-md flex flex-justify-center flex-items-center"
+            :class="['re-station-message-trigger', { 're-station-message-trigger--floating': isFloating }]"
+            :title="title"
+            role="button"
+            :aria-label="`${title}${unread > 0 ? `（${unread} 条未读）` : ''}`"
           >
-            <ReIcon name="anim:heroicons:bell" :size="18" />
+            <ReIcon name="anim:heroicons:bell" :size="isFloating ? 22 : 18" />
           </div>
         </el-badge>
       </div>
@@ -259,6 +280,49 @@ async function handleItemClick(msg: {
 .re-station-message-trigger-wrap {
   display: inline-flex;
   align-items: center;
+
+  /* 右下角浮窗形态：脱离顶栏，固定在视口右下 */
+  &.is-floating {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 2000;
+  }
+}
+
+/* 顶栏触发器：36px 方形，规格与其它顶栏图标按钮一致 */
+.re-station-message-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--el-text-color-primary);
+  transition: background-color 0.2s, box-shadow 0.2s;
+  outline: none;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--el-header-icon-hover-bg-color, var(--el-fill-color-light));
+  }
+
+  /* 右下角浮球：44px 圆形主色按钮 */
+  &--floating {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--el-color-primary);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+
+    &:hover,
+    &:focus-visible {
+      background: var(--el-color-primary-light-3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+    }
+  }
 }
 
 .re-station-message-panel {

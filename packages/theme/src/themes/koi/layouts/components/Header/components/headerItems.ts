@@ -48,6 +48,8 @@ export interface HeaderItemContext {
   timer: AppConfig["other"]["timer"];
   weather: AppConfig["other"]["weather"];
   bigscreen: AppConfig["other"]["bigscreen"];
+  /** 站内消息展示位置（toolbar / right-bottom / hidden） */
+  message: AppConfig["message"];
   /** 业务能力是否启用（见 @repo/core BACKEND_CAPABILITIES） */
   capability: (key: string) => boolean;
 }
@@ -93,7 +95,13 @@ export const HEADER_ITEMS: readonly HeaderItemDef[] = [
   { key: "topMenus", component: ReTopMenus, collapsible: false },
   { key: "searchMenu", component: ReSearchMenu, flag: "searchMenu", keepMounted: true },
   { key: "refresh", component: Refresh, flag: "refresh" },
-  { key: "message", component: ReStationMessage, flag: "message" },
+  // 站内消息：展示位置由 app.yaml messages.position 决定，right-bottom 时改由布局层浮窗挂载
+  {
+    key: "message",
+    component: ReStationMessage,
+    flag: "message",
+    enabled: (ctx) => (ctx.message?.position ?? "toolbar") === "toolbar",
+  },
   {
     key: "quickNote",
     component: ReNoteEntry,
