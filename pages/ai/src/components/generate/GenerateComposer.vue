@@ -116,14 +116,15 @@
       <input type="file" ref="imageInputRef" style="display: none" multiple
         :accept="getFileExtensionsFromType('IMAGE').join(',')" @change="handleImageSelect">
 
-      <!-- 参数轨（生图）：画幅 / 尺寸 / 张数（视频为时长），由外部注入。
-           独立成行、和底部工具条分开：参数决定「这次出图怎么出」，
+      <!-- 参数轨（生图）：张数 / 画幅 / 尺寸（视频为时长），由外部注入。
+           与模型 / 风格 / 参考图 / 优化 / 发送同一条基线：参数决定「这次出图怎么出」，
            工具条是「用什么模型、对提示词做什么、发出去」。 -->
-      <div v-if="$slots['param-rail']" class="param-rail w-full">
-        <slot name="param-rail"></slot>
-      </div>
+      <div class="bottom-rail w-full">
+        <div v-if="$slots['param-rail']" class="param-rail">
+          <slot name="param-rail"></slot>
+        </div>
 
-      <div class="input-actions w-full flex justify-between">
+        <div class="input-actions flex justify-between">
         <div class="tools left-tools flex gap-0.5 items-center">
           <!-- 通用工具条插槽：生图页把模型芯片放这里，和优化 / 参考图 / 发送同一行 -->
           <slot name="buttons"></slot>
@@ -166,6 +167,7 @@
             </button>
           </LTooltip>
         </div>
+      </div>
       </div>
 
       <!-- 模型选择器弹窗 -->
@@ -1844,14 +1846,26 @@ defineExpose({ insertText, insertBadge, clearDraft });
   position: relative;
 }
 
-/* 参数轨：一行放画幅 / 尺寸 / 张数（视频为时长），窄窗横向滚动，不换行。
-   与上方提示词留 6px、与下方工具条留 2px，让「输入」和「参数」各成一段。 */
-.param-rail {
+/* 参数轨（生图）：张数 / 画幅 / 尺寸（视频为时长），与工具条同排、窄窗横向滚动不换行。
+   与上方提示词留 6px、与下方工具条留 2px，让「输入」和「参数」同排显示。 */
+/* 输入框底部只有一条横向基线：参数 + 工具 + 发送同排。
+   参数组与左工具组各自可横向滚动、都不换行，右组发送始终贴右。 */
+.bottom-rail {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
+  gap: 8px;
+  padding-top: 6px;
+  min-width: 0;
+}
+
+.param-rail {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 6px 10px;
-  padding: 6px 6px 2px;
+  padding: 0 6px;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -1897,6 +1911,8 @@ defineExpose({ insertText, insertBadge, clearDraft });
 /* 底部工具条始终一行：左右两组都不换行，左组内容超宽时横向滚动（滚动条隐藏）。
    右组 margin-left:auto 保证仍贴右。 */
 .input-actions {
+  flex: 1 1 auto;
+  min-width: 0;
   flex-wrap: nowrap;
   justify-content: flex-start;
 }
