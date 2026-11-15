@@ -49,7 +49,7 @@ import ReIcon from "@repo/ui/components/ReIcon/theme/koi/ReIcon.vue";
 import ReFullScreen from "@repo/theme/koi/layouts/components/Header/components/ReFullScreen.vue";
 import useTabsStore from "@repo/pinia/modules/tabs";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
-import { resolveKeepAliveName } from "../keepAliveName";
+import { isRouteKeepAlive, resolveKeepAliveName } from "../keepAliveName";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { HOME_URL } from "@repo/config";
 import { TABS_SLEEP_KEY, type TabsSleepHandle } from "../useTabsSleep";
@@ -304,7 +304,7 @@ const handleRefresh = () => {
   setTimeout(() => {
     // 按组件名（路由记录里已解析的组件）寄存，报复的优势是右键刷新也能命中缓存
     const keepAliveName = resolveKeepAliveName(route);
-    if (!route.meta.isKeepAlive) return;
+    if (!isRouteKeepAlive(route.meta)) return;
     keepAliveStore.removeKeepAliveName(keepAliveName);
     refreshCurrentPage(false);
     nextTick(() => {

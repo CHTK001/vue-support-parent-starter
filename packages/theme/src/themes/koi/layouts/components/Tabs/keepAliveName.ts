@@ -20,6 +20,25 @@
 
 import type { RouteLocationNormalized } from "vue-router";
 
+/**
+ * 路由是否要求 KeepAlive 缓存。
+ *
+ * <p>路由表里两种写法并存，必须都认：</p>
+ * <ul>
+ *   <li>{@code meta.isKeepAlive}：后端菜单行经 packages/core/src/router/menu.ts
+ *       生成动态路由时写入；</li>
+ *   <li>{@code meta.keepAlive}：业务模块的静态路由直接声明（如
+ *       pages/system/src/routes 的每个页面）。</li>
+ * </ul>
+ *
+ * <p>页签只认前者时，静态路由的页签永远不进 include：既没有缓存可言，
+ * 「休眠」也就没有东西可释放。两者语义相同，这里统一。</p>
+ */
+export function isRouteKeepAlive(meta?: Record<string, any> | null): boolean {
+  if (!meta) return false;
+  return Boolean(meta.isKeepAlive ?? meta.keepAlive);
+}
+
 /** 把路由记录里的原始组件值解析为组件名；解不出来时返回 null */
 export function componentDisplayName(raw: unknown): string | null {
   if (raw == null) return null;

@@ -10,7 +10,7 @@ import Sortable from "sortablejs";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { resolveKeepAliveName } from "./keepAliveName";
+import { isRouteKeepAlive, resolveKeepAliveName } from "./keepAliveName";
 import { log } from "@repo/utils";
 
 /**
@@ -63,7 +63,7 @@ export function useLayoutTabs(
           title: item.meta.title,
           path: item.path,
           name: item.name,
-          isKeepAlive: item.meta.isKeepAlive,
+          isKeepAlive: isRouteKeepAlive(item.meta),
           isAffix: "1"
         });
       }
@@ -87,7 +87,7 @@ export function useLayoutTabs(
       title: resolvedTitle,
       path: path,
       name: route.name as string,
-      isKeepAlive: route.meta.isKeepAlive,
+      isKeepAlive: isRouteKeepAlive(route.meta),
       isAffix: isAffixed ? "1" : (route.meta.isAffix || "0"),
       // 登记到 keep-alive 的键：已解析的 SFC 组件名，解不出时退回路由名（旧口径）
       keepAliveName: resolveKeepAliveName(route),
@@ -109,6 +109,10 @@ export function useLayoutTabs(
       existingTab.icon = tab.icon;
       // 补全旧标签上已解析但未登记的组件名
       existingTab.keepAliveName = tab.keepAliveName;
+      // 缓存口径由当前路由 meta 决定：isKeepAlive 字段引入之前落盘的旧标签没有这个字段，
+      // 只补 keepAliveName 会让它对右键「立即休眠」永远不可用（ReTabMenu.canSleep 读的就是
+      // tab.isKeepAlive），休眠开关对它形同不存在，直到标签被关掉重开。
+      existingTab.isKeepAlive = tab.isKeepAlive;
       return;
     }
     tabsStore.addTab(tab);
