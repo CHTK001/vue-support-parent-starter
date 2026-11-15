@@ -171,7 +171,10 @@ const resolveContextTabPath = (e: MouseEvent): string | null => {
     return legacyId.slice(4);
   }
 
-  return route.fullPath;
+  // 页签身份是 path（见 useLayoutTabs.addTab），右键空白区时没有命中任何标签元素，
+  // 兜底必须回到当前页签的 path：tabList 全以 path 为键，返回 fullPath 会让
+  // getMenuPositionAndClosable 找不到目标，整张菜单状态为空（关闭侧边 / 其他都失效）。
+  return route.path;
 };
 
 /** 处理鼠标右键点击父级菜单（标签空白区：默认当前路由对应标签） */
@@ -379,7 +382,10 @@ const tabsSleep = inject(TABS_SLEEP_KEY, null);
  */
 const canSleep = computed(() => {
   if (!tabsSleep || !choosePath.value) return false;
-  if (choosePath.value === route.fullPath) return false;
+  // choosePath 是页签的 path（无查询参数），当前 URL 可能带 ?v=xxx。只比 fullPath 时
+  // 对「当前页签」右键仍会显示「立即休眠」，而 useTabsSleep.sleep() 按 path 判定会
+  // 直接 return —— 变成「有菜单项、点了没反应」。两种口径都排除才是真的前台页签。
+  if (choosePath.value === route.fullPath || choosePath.value === route.path) return false;
   const tab = tabsStore.tabList.find((item: any) => item.path === choosePath.value);
   if (!tab || tab.isAffix === "1") return false;
   if (tabsSleep.isSleeping(choosePath.value)) return false;

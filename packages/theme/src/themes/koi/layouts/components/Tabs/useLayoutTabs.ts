@@ -124,7 +124,10 @@ export function useLayoutTabs(
   };
 
   const handleTabClick = (fullPath: string) => {
-    if (fullPath === route.fullPath) return;
+    // 页签以 route.path 为唯一标识（见 addTab 注释），当前 URL 常带 ?v=xxx 之类
+    // 查询参数。只比 fullPath 会漏判「点回当前页签」：push({ path }) 把参数清掉，
+    // 等于悄悄重置了页面的筛选 / 分页状态。两种口径任一命中都算同一个页签。
+    if (fullPath === route.fullPath || fullPath === route.path) return;
     router.push({ path: fullPath });
   };
 
