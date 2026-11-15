@@ -370,11 +370,30 @@ export function useUsageBoard() {
     refreshAll();
   }
 
-  function refreshAll() {
+  /**
+   * 明细表的重载入口，由 {@code UsageDetailTable} 挂载时注册（卸载时注销）。
+   *
+   * <p>明细由 ReTable 自己按 params 取数：切时间范围 / 改模型过滤都会让
+   * {@code watch(params)} 重新拉一遍。但「刷新」按钮不动 params，组件不会被唤醒，
+   * 明细会停在旧数据上 —— 于是留一个显式入口，只在刷新时调用，范围切换仍然
+   * 走 watch，避免同一份条件打两次接口。</p>
+   */
+  const detailReloader = ref<null | (() => void)>(null);
+  function registerDetailReloader(fn: (() => void) | null) {
+    detailReloader.value = fn;
+  }
+
+  /**
+   * 刷新看板。
+   *
+   * @param opts.detail 连明细一起重载；只有「刷新 / 重新加载」按钮需要，
+   *                    切范围与筛选传 false（ReTable 的 params watch 会负责）
+   */
+  function refreshAll(opts: { detail?: boolean } = {}) {
     loadData();
-    // 明细表不用在这里再拉一次：loader 模式下 ReTable 会 watch params 变化
-    // （时间范围 / 模型过滤都在 detailQueryParams 里）并自动回到第 1 页重新取数。
-    // 此处再调 reloadDetails 会打两次接口。
+    if (opts.detail) {
+      detailReloader.value?.();
+    }
   }
 
   /**
@@ -411,7 +430,10 @@ export function useUsageBoard() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `usage_${suffix}.xlsx`;
+      // 后端 /v2/usage/export 生产的是 CSV（text/csv;charset=UTF-8，带 BOM），
+      // 文件名必须跟着内容走：早先固定写 .xlsx，Excel 打开会报「格式与扩展名不符」。
+      const ext = /sheet|excel/i.test(blob.type) ? "xlsx" : "csv";
+      a.download = `usage_${suffix}.${ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -2017,7 +2039,7 @@ export function useUsageBoard() {
     trendData, trendOption, trendMetric, trendChartType,
     latencyDates, latencyModelCount, latencyOption,
     detailRecords, detailLoading, detailTotal, detailModelFilter, costVisible,
-    detailColumns, detailQueryParams, loadDetailPage, hasAnyUsage,
+    detailColumns, detailQueryParams, loadDetailPage, hasAnyUsage, registerDetailReloader,
     fmtToken, formatNumber, money, formatLatency, formatSpeed,
     speedColor, speedTitle, decodeWindowMs, decodeWindowColor, getFirstColor, getTotalColor,
     formatTypeLabel, typeTagType, callModeLabel, callModeTag, cacheRatePct, cacheRateText,

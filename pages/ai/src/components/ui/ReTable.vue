@@ -20,6 +20,7 @@
       消费方的 rowStyle 传不进去 —— 仍在渲染后按行注入（见脚本注释）。
     -->
     <ReTableBase
+      ref="tableRef"
       :data="data"
       :columns="columns"
       :stripe="stripe"
@@ -168,6 +169,17 @@ function onSizeChange(size: number) {
 }
 
 const slots = useSlots()
+/**
+ * 完整版 ReTable 的实例句柄。
+ *
+ * <p>适配层原先不转发任何方法，页面想「显式重载」只能改 params 绕一圈（还会被
+ * 重置回第 1 页）。这里补一个最小透传：reload / goto，语义与完整版一致。</p>
+ */
+const tableRef = ref<any>(null)
+defineExpose({
+  reload: () => tableRef.value?.reload?.(),
+  goto: (page?: number, size?: number) => tableRef.value?.goto?.(page, size),
+})
 /**
  * 需要原样转发给完整版 ReTable 的插槽。
  *

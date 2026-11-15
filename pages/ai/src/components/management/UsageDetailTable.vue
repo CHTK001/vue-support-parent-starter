@@ -40,6 +40,7 @@
     </header>
     <div class="ud-body">
       <ReTable
+        ref="tableRef"
         :data="board.detailRecords"
         :loading="board.detailLoading"
         :columns="visibleColumns"
@@ -233,9 +234,23 @@ import ReTable from '@/components/ui/ReTable.vue';
 import ReTag from '@/components/ui/ReTag.vue';
 import ReIpText from '@repo/ui/re-ip-text';
 import { Eye24Regular, EyeOff24Regular } from '@vicons/fluent';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = defineProps<{ board: any; compact?: boolean }>();
+
+/**
+ * 把「重载明细」入口交给 board。
+ *
+ * <p>明细由 ReTable 按 params 自己取数，切范围/改筛选都会触发重载；但「刷新」
+ * 按钮不改 params，只能由页面显式调用这里注册的 reload —— 否则明细会停在旧数据上。</p>
+ */
+const tableRef = ref<any>(null);
+onMounted(() => {
+  props.board?.registerDetailReloader?.(() => tableRef.value?.reload?.());
+});
+onBeforeUnmount(() => {
+  props.board?.registerDetailReloader?.(null);
+});
 
 /**
  * 表格高度口径。

@@ -80,7 +80,7 @@
           circle
           :loading="board.refreshing"
           title="刷新数据"
-          @click="board.refreshAll"
+          @click="board.refreshAll({ detail: true })"
         >
           <el-icon v-if="!board.refreshing">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -502,7 +502,7 @@
         <p v-else-if="board.routeErrors.list || board.routeErrors.statistics" class="usage-page__empty-desc">点「重新加载」再试一次，或切换时间范围。</p>
         <p v-else class="usage-page__empty-desc">近 30 天的用量会在这里卷成时间轴；发起一次对话或接口调用后即可看到 Token、费用、模型分布与延迟。</p>
         <div v-if="!board.refreshing" class="usage-page__empty-actions">
-          <el-button size="small" @click="board.refreshAll">重新加载</el-button>
+          <el-button size="small" @click="board.refreshAll({ detail: true })">重新加载</el-button>
           <el-button v-if="board.activeFilter !== 'all'" size="small" type="primary" plain @click="board.setQuickFilter('all')">查看全部区间</el-button>
         </div>
       </div>
