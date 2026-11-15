@@ -31,6 +31,25 @@ const visibleChannels = computed(() =>
   channels.value.filter((c) => !activeGroup.value || c.group === activeGroup.value),
 );
 
+/**
+ * 左栏选台列表滚动分页：visibleChannels 保持全量（selectFirst / 切组校验依赖它），
+ * 模板只挂载前 railLimit 条，滚到底或点击末尾「还有 N 条」再追加，避免单组频道
+ * 过多时一次性铺出全部 DOM。
+ */
+const RAIL_PAGE = 30;
+const railLimit = ref(RAIL_PAGE);
+const pagedChannels = computed(() => visibleChannels.value.slice(0, railLimit.value));
+const railHiddenCount = computed(() => Math.max(0, visibleChannels.value.length - pagedChannels.value.length));
+const loadMoreRail = () => {
+  railLimit.value = Math.min(visibleChannels.value.length, railLimit.value + RAIL_PAGE);
+};
+const onRailScroll = (e: Event) => {
+  const el = e.target as HTMLElement;
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) loadMoreRail();
+};
+// 频道数据 / 分组变化后回到首批
+watch(visibleChannels, () => { railLimit.value = RAIL_PAGE; });
+
 /** 当前播放地址（经后端代理） */
 const playUrl = computed(() => (selected.value ? livePlayUrl(selected.value.id, srcIndex.value) : ""));
 
@@ -153,9 +172,9 @@ onMounted(() => void load());
           <div v-if="loading" class="vdl-channel-grid" aria-busy="true">
             <span v-for="i in 8" :key="i" class="vdl-skeleton-item" />
           </div>
-          <div v-else class="vdl-channel-grid">
+          <div v-else class="vdl-channel-grid" @scroll="onRailScroll">
             <button
-              v-for="c in visibleChannels"
+              v-for="c in pagedChannels"
               :key="c.id"
               type="button"
               class="vdl-channel"
@@ -164,6 +183,15 @@ onMounted(() => void load());
               @click="selectChannel(c)"
             >
               <span class="vdl-channel-label" :title="c.name">{{ c.name }}</span>
+            </button>
+            <button
+              v-if="railHiddenCount > 0"
+              type="button"
+              class="vdl-channel"
+              style="grid-column: 1 / -1; opacity: .7; font-size: 12px;"
+              @click="loadMoreRail"
+            >
+              还有 {{ railHiddenCount }} 条 · 点击加载更多
             </button>
           </div>
         </aside>

@@ -83,14 +83,22 @@
               刷新
             </el-button>
           </header>
-          <div class="card-body tight">
-            <div v-for="s in sessions" :key="s.sessionId" class="session" @click="onPickSession(s.sessionId)">
+          <div class="card-body tight" @scroll="onRailScroll">
+            <div v-for="s in pagedSessions" :key="s.sessionId" class="session" @click="onPickSession(s.sessionId)">
               <i class="dot" :class="s.capturing ? 'ok' : 'idle'"></i>
               <span class="session-id mono">{{ s.sessionId }}</span>
               <span class="session-meta">{{ s.peerCount }} 端</span>
               <span class="session-pick">接入</span>
             </div>
             <div v-if="!sessions.length" class="empty-mini">无活跃会话</div>
+            <button
+              v-if="railHiddenCount > 0"
+              type="button"
+              style="width: 100%; padding: 8px; border: 0; background: transparent; color: inherit; opacity: .65; font-size: 12px; text-align: center; cursor: pointer;"
+              @click="loadMoreRail"
+            >
+              还有 {{ railHiddenCount }} 条 · 点击加载更多
+            </button>
           </div>
         </section>
       </div>
@@ -694,16 +702,34 @@
     await loadScreens()
   }
 
+  /**
+   * 左栏活跃会话滚动分页：sessions 全量留内存、只挂载前 railLimit 条，
+   * 滚到底或点击末尾「还有 N 条」再追加。头部计数仍用 sessions.length（全量）。
+   */
+  const RAIL_PAGE = 30
+  const railLimit = ref(RAIL_PAGE)
+  const pagedSessions = computed(() => sessions.value.slice(0, railLimit.value))
+  const railHiddenCount = computed(() => Math.max(0, sessions.value.length - pagedSessions.value.length))
+  const loadMoreRail = () => {
+    railLimit.value = Math.min(sessions.value.length, railLimit.value + RAIL_PAGE)
+  }
+  const onRailScroll = (e: Event) => {
+    const el = e.target as HTMLElement
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) loadMoreRail()
+  }
+
   /** 刷新活跃会话；失败时给出后端状态提示 */
   async function refreshSessions(): Promise<void> {
     sessionLoading.value = true
     try {
       const list = await listControlSessions()
       sessions.value = list
+      railLimit.value = RAIL_PAGE
       backendNotice.value = ''
       addLog('ok', `[session] ${list.length} active sessions`)
     } catch (e) {
       sessions.value = []
+      railLimit.value = RAIL_PAGE
       const hint = describeBackendError(e)
       backendNotice.value = hint
       addLog('warn', `[session] load fail: ${String(e)}`)

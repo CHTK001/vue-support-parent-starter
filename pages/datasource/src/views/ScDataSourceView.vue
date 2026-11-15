@@ -2243,6 +2243,25 @@ const filteredList = computed<DataSourceInfo[]>(() => {
   return filterDataSources(typed, statusKey.value, keyword.value);
 });
 
+/**
+ * 左栏滚动分页：全量 filteredList 留在内存，只挂载前 railLimit 条，滚到底或点击
+ * 列表末尾的「还有 N 条」再追加一批，避免大台账一次性铺出全部 DOM。
+ * 计数 / 全选 / 选中态仍走全量 filteredList，不受渲染上限影响。
+ */
+const RAIL_PAGE = 30;
+const railLimit = ref(RAIL_PAGE);
+const pagedList = computed<DataSourceInfo[]>(() => filteredList.value.slice(0, railLimit.value));
+const railHiddenCount = computed(() => Math.max(0, filteredList.value.length - pagedList.value.length));
+const loadMoreRail = () => {
+  railLimit.value = Math.min(filteredList.value.length, railLimit.value + RAIL_PAGE);
+};
+const onRailScroll = (e: Event) => {
+  const el = e.target as HTMLElement;
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) loadMoreRail();
+};
+// 筛选 / 台账变化后回到首批，避免沿用上一批的渲染上限
+watch(filteredList, () => { railLimit.value = RAIL_PAGE; });
+
 /** 左栏类型过滤下拉选项：全部 + 每种已登记类型（带中文标签与计数） */
 const typeFilterOptions = computed(() => {
   const counts = new Map<string, number>();
@@ -2781,13 +2800,13 @@ onMounted(load);
             </button>
           </div>
 
-          <!-- 数据源卡片列表 -->
-          <div class="ds-side__list">
+          <!-- 数据源卡片列表：滚动分页（全量留内存、只挂载前 railLimit 条，触底追加） -->
+          <div class="ds-side__list" @scroll="onRailScroll">
             <p v-if="loading && !list.length" class="ds-side__hint">加载中…</p>
             <ReEmpty v-else-if="!filteredList.length" description="暂无匹配的数据源" :image-size="60" />
             <template v-else>
               <div
-                v-for="item in filteredList"
+                v-for="item in pagedList"
                 :key="item.id ?? item.name"
                 class="ds-item-row"
                 :class="{
@@ -2836,6 +2855,14 @@ onMounted(load);
                   />
                 </button>
               </div>
+              <button
+                v-if="railHiddenCount > 0"
+                type="button"
+                style="width: 100%; padding: 8px; border: 0; background: transparent; color: inherit; opacity: .65; font-size: 12px; text-align: center; cursor: pointer;"
+                @click="loadMoreRail"
+              >
+                还有 {{ railHiddenCount }} 条 · 点击加载更多
+              </button>
             </template>
           </div>
 

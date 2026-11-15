@@ -346,6 +346,25 @@ const visibleTargets = computed(() => {
   });
 });
 
+/**
+ * 左栏目标列表滚动分页：CDP 目标可能很多，全量 visibleTargets 留内存、只挂载前
+ * railLimit 条，滚到底或点击末尾「还有 N 条」再追加。计数胶囊 / 选中态 / 关闭按钮
+ * 仍按全量 targets 与 id 工作，不受渲染上限影响。
+ */
+const RAIL_PAGE = 30;
+const railLimit = ref(RAIL_PAGE);
+const pagedTargets = computed(() => visibleTargets.value.slice(0, railLimit.value));
+const railHiddenCount = computed(() => Math.max(0, visibleTargets.value.length - pagedTargets.value.length));
+const loadMoreRail = () => {
+  railLimit.value = Math.min(visibleTargets.value.length, railLimit.value + RAIL_PAGE);
+};
+const onRailScroll = (e: Event) => {
+  const el = e.target as HTMLElement;
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) loadMoreRail();
+};
+// 搜索 / 类型筛选 / 目标增减后回到首批
+watch(visibleTargets, () => { railLimit.value = RAIL_PAGE; });
+
 /** 右键菜单状态 */
 const contextMenu = ref<{ open: boolean; x: number; y: number; node: DomTreeNode | null }>({
   open: false,
@@ -4769,10 +4788,10 @@ onBeforeUnmount(() => {
             </select>
           </div>
 
-          <!-- 目标列表 -->
-          <div class="debug-tlist">
+          <!-- 目标列表：滚动分页（全量留内存、只挂载前 railLimit 条，触底追加） -->
+          <div class="debug-tlist" @scroll="onRailScroll">
             <button
-              v-for="t in visibleTargets"
+              v-for="t in pagedTargets"
               :key="t.id"
               :class="['debug-target', { 'is-active': t.id === selectedTarget }]"
               @click="selectTarget(t.id)"
@@ -4791,6 +4810,15 @@ onBeforeUnmount(() => {
               </span>
               <span class="debug-target__type">{{ t.type || "other" }}</span>
               <span class="debug-target__close" title="关闭页面" @click.stop="closePage(t.id)">×</span>
+            </button>
+
+            <button
+              v-if="railHiddenCount > 0"
+              type="button"
+              style="width: 100%; padding: 8px; border: 0; background: transparent; color: inherit; opacity: .65; font-size: 12px; text-align: center; cursor: pointer;"
+              @click="loadMoreRail"
+            >
+              还有 {{ railHiddenCount }} 条 · 点击加载更多
             </button>
 
             <div v-if="!visibleTargets.length" class="debug-empty debug-empty--rail">
