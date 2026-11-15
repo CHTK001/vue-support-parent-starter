@@ -5,16 +5,16 @@
         <span v-if="modelReady" class="asr-model-badge">
           {{ modelConfig.asrProvider || 'whisper' }} · {{ modelConfig.asrModel || '未配置' }}
         </span>
-        <span v-else class="asr-model-badge is-off">未配置 ASR 模型</span>
+        <span v-else class="asr-model-badge is-off">未配置 ASR 服务商</span>
       </template>
 
-      <!-- 未配置模型：与人脸识别 / 以图搜图同口径，优先提示去配置 -->
+      <!-- 未配置服务商：与人脸识别 / 以图搜图同口径，优先提示去配置 -->
       <div v-if="!modelReady" class="asr-hint">
         <el-icon :size="28"><WarningFilled /></el-icon>
         <div>
           <p class="asr-hint-title">音频识别未启用</p>
           <p class="asr-hint-desc">
-            请到「系统设置 → 音频配置」中选择 ASR 默认模型，保存后立即生效。
+            请到「系统设置 → 音频配置」中选择 ASR 服务商（本地 whisper / 云端 ASR）并确认默认模型，保存后立即生效。
           </p>
           <ReButton type="primary" @click="goConfig">去配置模型</ReButton>
         </div>

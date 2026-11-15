@@ -5,7 +5,7 @@
         <span v-if="modelReady" class="tts-model-badge">
           {{ modelConfig.ttsProvider || '默认服务商' }} · {{ modelConfig.ttsModel || '未配置' }}
         </span>
-        <span v-else class="tts-model-badge is-off">未配置 TTS 模型</span>
+        <span v-else class="tts-model-badge is-off">未配置 TTS 服务商</span>
       </template>
 
       <div v-if="!modelReady" class="tts-hint">
@@ -13,7 +13,7 @@
         <div>
           <p class="tts-hint-title">语音合成未启用</p>
           <p class="tts-hint-desc">
-            请到「系统设置 → 音频配置」中选择 TTS 默认模型，保存后立即生效。
+            请到「系统设置 → 音频配置」中选择 TTS 服务商（本地 onnx / 云端 TTS）并确认默认模型，保存后立即生效。
           </p>
           <ReButton type="primary" @click="goConfig">去配置模型</ReButton>
         </div>

@@ -34,17 +34,19 @@ const IMAGE_REQUIRED = MODEL_REQUIRED_FIELDS.image_search.fields
 /** 图像上色必需项：上色模型（同组的分类/检测/描述/超分都是「留空关闭」）。 */
 const COLORIZE_REQUIRED = MODEL_REQUIRED_FIELDS.image.fields
 /**
- * 音频识别必需项：ASR 默认模型。
+ * 音频识别必需项：ASR 服务商（provider）。
  *
- * <p>只要求 default_model 一项：provider 缺省时后端走 whisper 本地推理，
- * 密钥/地址仅云端 ASR 才需要，作为必需门禁会把「本地 whisper」也一并挡掉。
+ * <p>门禁落在服务商上，不是默认模型：后端 {@code ApiAsrController.transcribe()} 在
+ * provider 为空时直接抛「未配置 ASR 服务商」；default_model 的声明是「留空/auto=由所选
+ * 引擎自动使用推荐档位」，属于选配。密钥/地址仅云端 ASR 才需要，也不进必选。</p>
  */
 const ASR_REQUIRED = MODEL_REQUIRED_FIELDS.asr.fields
 /**
- * 语音合成必需项：TTS 默认模型。
+ * 语音合成必需项：TTS 服务商（provider）。
  *
- * <p>与 ASR 同口径：provider 缺省时后端回落配置文件 {@code ai.tts.provider}，
- * 密钥/地址仅云端 TTS 才需要，作为必需门禁会把「本地合成」也一并挡掉。
+ * <p>与 ASR 同口径：{@code ApiTtsController.tts()} 先取分组 provider，取不到回落配置文件
+ * {@code ai.tts.provider}，两处都空就抛「未配置 TTS 服务商」；default_model 留空回落
+ * {@code ai.tts.default-model}，属选配。</p>
  */
 const TTS_REQUIRED = MODEL_REQUIRED_FIELDS.tts.fields
 /**

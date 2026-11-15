@@ -24,7 +24,7 @@
         <section v-for="group in displayGroups" :key="group.group" :ref="setGroupRef(group.group)"
           v-show="!fieldSearch || groupMatchesSearch(group)" class="dms-group">
           <SettingsCard :title="group.groupName" :subtitle="groupSubtitle(group)">
-            <!-- 分组必选口径：含必选模型 / 全部选配 / 无需模型（口径见 config/modelRequiredFields.ts） -->
+            <!-- 分组必选口径：含必选项 / 全部选配 / 无需配置（口径见 config/modelRequiredFields.ts） -->
             <template #actions>
               <el-tooltip :content="groupRequirementTip(group)" placement="top" :show-after="150">
                 <span class="dms-req" :class="`is-${groupRequirement(group)}`">{{ groupRequirementText(group) }}</span>
@@ -161,7 +161,7 @@ import { isAdmin } from '@repo/core'
 import { MODEL_SUBTYPE_LABELS } from '@/components/models/model.constants'
 import { deriveModelTraits } from '@/components/models/model.utils'
 import { TYPE_LABELS, findPickedModel, mapProviderModel, resolveModelMeta } from '@/components/models/modelMeta'
-import { requiredFieldsOf, requiredGroupOf, isRequiredModelField, resolveGroupRequirement } from '@/config/modelRequiredFields'
+import { requiredFieldsOf, requiredGroupOf, isRequiredField, resolveGroupRequirement } from '@/config/modelRequiredFields'
 import { enumLabel, isEnumDefinition, parseEnumOptions } from './dms/enumLabels'
 
 // Element Plus 组件导入
@@ -600,7 +600,10 @@ const modelFields = (group) =>
  * 那会走「模型选择器」那一支（只读输入框 + 弹模型对话框），语义完全不同。</p>
  */
 const isPlainVisibleField = (group, field) =>
-    (group === 'generate'
+    // 必选项一律常驻：卡片头写着「含必选项」，正文却把它折进「高级选项」，
+    // 用户看到红色门禁提示也找不到该填哪一项（音频两组的必选项是服务商，正是这种字段）。
+    isRequiredField(group, field)
+    || (group === 'generate'
     && (String(field || '').startsWith('media_') || String(field || '') === 'task_timeout_minutes'))
     || (group === 'image_search' && String(field || '') === 'keyword_extractor')
     // 人脸重识别的归并参数**必须常驻**：同人判定阈值、归并时间窗、轨迹容量、保留时长
@@ -795,23 +798,27 @@ const isModelValueField = (field) =>
     Boolean(field) && String(field).toLowerCase().includes('model') && !ENGINE_FIELDS.includes(String(field))
 
 /**
- * 分组当前真正渲染出来的模型字段。
+ * 分组当前真正渲染出来的、需要挂徽标的字段。
  *
  * <p>徽标与门禁按同一批字段推导：拆分组页面可能用 fields 白名单只放行部分字段，
  * 按后端定义算会把没渲染的必选项也算进来，徽标就说谎了。</p>
+ *
+ * <p>除了模型槽位，**必选项也要计入**：音频两个分组的必选项是服务商（provider），
+ * 按模型槽位算会得出「全部选配」，与「provider 为空即抛未配置」的门禁正好相反。</p>
  */
-const displayedModelFields = (group) =>
-    modelFields(group)
-        .filter((item) => isModelValueField(item.field))
+const displayedBadgeFields = (group) =>
+    (group.items || [])
+        .filter((item) => notAdminOnly(item) && shouldShowField(group.group, item.field))
+        .filter((item) => isModelValueField(item.field) || isRequiredField(group.group, item.field))
         .map((item) => item.field)
 
-/** 分组必选三态：required=含必选模型 / optional=全部选配 / none=无需模型 */
-const groupRequirement = (group) => resolveGroupRequirement(group.group, displayedModelFields(group))
+/** 分组必选三态：required=含必选项 / optional=全部选配 / none=无需配置 */
+const groupRequirement = (group) => resolveGroupRequirement(group.group, displayedBadgeFields(group))
 
 const GROUP_REQUIREMENT_TEXT = {
-    required: '含必选模型',
+    required: '含必选项',
     optional: '全部选配',
-    none: '无需模型',
+    none: '无需配置',
 }
 
 /** 分组徽标文案 */
@@ -825,7 +832,7 @@ const groupRequirementText = (group) => GROUP_REQUIREMENT_TEXT[groupRequirement(
  */
 const groupRequirementTip = (group) => {
     const state = groupRequirement(group)
-    if (state === 'none') return '本分组没有模型配置项，无需选择模型'
+    if (state === 'none') return '本分组没有模型槽位或必选项，无需配置'
     if (state === 'optional') return '本分组的模型都可留空：留空走默认兜底，或直接关闭对应能力'
     const spec = requiredGroupOf(group.group)
     const required = requiredFieldsOf(group.group)
@@ -836,14 +843,19 @@ const groupRequirementTip = (group) => {
     return `${spec?.capability || '该能力'}需配置${anyOf}：${labels.join(' / ')}`
 }
 
-/** 模型字段徽标文案（必选 / 选配）；非模型字段返回空，不挂徽标 */
+/**
+ * 字段徽标文案（必选 / 选配）。
+ *
+ * <p>必选项一律挂「必选」——包括服务商这种不是模型槽位的字段（音频两个分组的硬门禁）；
+ * 「选配」只挂模型槽位，其余普通配置项不挂徽标，避免满屏都是选配。</p>
+ */
 const modelFieldBadge = (group, field) => {
-    if (!isModelValueField(field)) return ''
-    return isRequiredModelField(group, field) ? '必选' : '选配'
+    if (isRequiredField(group, field)) return '必选'
+    return isModelValueField(field) ? '选配' : ''
 }
 
-/** 模型字段徽标底色：必选红、选配灰 */
-const modelFieldBadgeTone = (group, field) => (isRequiredModelField(group, field) ? 'danger' : 'muted')
+/** 字段徽标底色：必选红、选配灰 */
+const modelFieldBadgeTone = (group, field) => (isRequiredField(group, field) ? 'danger' : 'muted')
 
 // 获取字段中文标签
 const getFieldLabel = (item) => {
@@ -2003,7 +2015,7 @@ onMounted(async () => {
   background: var(--el-fill-color-light);
 }
 
-/* 分组必选口径徽标（含必选模型 / 全部选配 / 无需模型）：
+/* 分组必选口径徽标（含必选项 / 全部选配 / 无需配置）：
    放标题行右侧，红色只给「含必选」，其余两态都用灰阶，避免整页五颜六色 */
 .dms-req {
   flex-shrink: 0;
