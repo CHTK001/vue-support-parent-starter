@@ -83,7 +83,7 @@
               刷新
             </el-button>
           </header>
-          <div class="card-body tight" @scroll="onRailScroll">
+          <div ref="railListRef" class="card-body tight" @scroll="onRailScroll">
             <div v-for="s in pagedSessions" :key="s.sessionId" class="session" @click="onPickSession(s.sessionId)">
               <i class="dot" :class="s.capturing ? 'ok' : 'idle'"></i>
               <span class="session-id mono">{{ s.sessionId }}</span>
@@ -708,6 +708,7 @@
    */
   const RAIL_PAGE = 30
   const railLimit = ref(RAIL_PAGE)
+  const railListRef = ref<HTMLElement | null>(null)
   const pagedSessions = computed(() => sessions.value.slice(0, railLimit.value))
   const railHiddenCount = computed(() => Math.max(0, sessions.value.length - pagedSessions.value.length))
   const loadMoreRail = () => {
@@ -715,6 +716,8 @@
   }
   const onRailScroll = (e: Event) => {
     const el = e.target as HTMLElement
+    // 归顶后（scrollTop=0）DOM 收缩派生的钳制 scroll 不算触底。
+    if (el.scrollTop <= 0) return
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) loadMoreRail()
   }
 
@@ -725,11 +728,13 @@
       const list = await listControlSessions()
       sessions.value = list
       railLimit.value = RAIL_PAGE
+      if (railListRef.value) railListRef.value.scrollTop = 0
       backendNotice.value = ''
       addLog('ok', `[session] ${list.length} active sessions`)
     } catch (e) {
       sessions.value = []
       railLimit.value = RAIL_PAGE
+      if (railListRef.value) railListRef.value.scrollTop = 0
       const hint = describeBackendError(e)
       backendNotice.value = hint
       addLog('warn', `[session] load fail: ${String(e)}`)

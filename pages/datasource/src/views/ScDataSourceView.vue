@@ -2257,10 +2257,20 @@ const loadMoreRail = () => {
 };
 const onRailScroll = (e: Event) => {
   const el = e.target as HTMLElement;
+  // 筛选 / 数据变化重置批次时容器已归顶（scrollTop=0），DOM 收缩派生的钳制 scroll
+  // 不能算触底，否则 railLimit 会被立刻推回全量、首批语义失效。
+  if (el.scrollTop <= 0) return;
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) loadMoreRail();
 };
-// 筛选 / 台账变化后回到首批，避免沿用上一批的渲染上限
-watch(filteredList, () => { railLimit.value = RAIL_PAGE; });
+// 筛选 / 台账变化后回到首批，避免沿用上一批的渲染上限。
+// 同步把滚动容器归顶：DOM 从「已铺 N 行」缩短成「首批 30 行」时，浏览器会钳制
+// 残留的 scrollTop 并派发一次原生 scroll，若不归顶会被 onRailScroll 当成触底、
+// 立刻把 railLimit 推回全量，「筛选后回到首批」的语义就失效了（人眼验收真实复现）。
+const railListRef = ref<HTMLElement | null>(null);
+watch(filteredList, () => {
+  railLimit.value = RAIL_PAGE;
+  if (railListRef.value) railListRef.value.scrollTop = 0;
+});
 
 /** 左栏类型过滤下拉选项：全部 + 每种已登记类型（带中文标签与计数） */
 const typeFilterOptions = computed(() => {
@@ -2801,7 +2811,7 @@ onMounted(load);
           </div>
 
           <!-- 数据源卡片列表：滚动分页（全量留内存、只挂载前 railLimit 条，触底追加） -->
-          <div class="ds-side__list" @scroll="onRailScroll">
+          <div ref="railListRef" class="ds-side__list" @scroll="onRailScroll">
             <p v-if="loading && !list.length" class="ds-side__hint">加载中…</p>
             <ReEmpty v-else-if="!filteredList.length" description="暂无匹配的数据源" :image-size="60" />
             <template v-else>

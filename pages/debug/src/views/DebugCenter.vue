@@ -360,10 +360,17 @@ const loadMoreRail = () => {
 };
 const onRailScroll = (e: Event) => {
   const el = e.target as HTMLElement;
+  // 归顶后（scrollTop=0）DOM 收缩派生的钳制 scroll 不算触底。
+  if (el.scrollTop <= 0) return;
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) loadMoreRail();
 };
-// 搜索 / 类型筛选 / 目标增减后回到首批
-watch(visibleTargets, () => { railLimit.value = RAIL_PAGE; });
+// 搜索 / 类型筛选 / 目标增减后回到首批；同步归顶滚动容器，避免 DOM 缩短派发的
+// 原生 scroll 被误判触底、把 railLimit 又推回全量（人眼验收真实复现）。
+const railListRef = ref<HTMLElement | null>(null);
+watch(visibleTargets, () => {
+  railLimit.value = RAIL_PAGE;
+  if (railListRef.value) railListRef.value.scrollTop = 0;
+});
 
 /** 右键菜单状态 */
 const contextMenu = ref<{ open: boolean; x: number; y: number; node: DomTreeNode | null }>({
@@ -4789,7 +4796,7 @@ onBeforeUnmount(() => {
           </div>
 
           <!-- 目标列表：滚动分页（全量留内存、只挂载前 railLimit 条，触底追加） -->
-          <div class="debug-tlist" @scroll="onRailScroll">
+          <div ref="railListRef" class="debug-tlist" @scroll="onRailScroll">
             <button
               v-for="t in pagedTargets"
               :key="t.id"

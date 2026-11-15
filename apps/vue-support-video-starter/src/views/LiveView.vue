@@ -38,6 +38,7 @@ const visibleChannels = computed(() =>
  */
 const RAIL_PAGE = 30;
 const railLimit = ref(RAIL_PAGE);
+const railListRef = ref<HTMLElement | null>(null);
 const pagedChannels = computed(() => visibleChannels.value.slice(0, railLimit.value));
 const railHiddenCount = computed(() => Math.max(0, visibleChannels.value.length - pagedChannels.value.length));
 const loadMoreRail = () => {
@@ -45,10 +46,15 @@ const loadMoreRail = () => {
 };
 const onRailScroll = (e: Event) => {
   const el = e.target as HTMLElement;
+  // 归顶后（scrollTop=0）DOM 收缩派生的钳制 scroll 不算触底。
+  if (el.scrollTop <= 0) return;
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) loadMoreRail();
 };
-// 频道数据 / 分组变化后回到首批
-watch(visibleChannels, () => { railLimit.value = RAIL_PAGE; });
+// 频道数据 / 分组变化后回到首批；同步归顶，避免 DOM 缩短派发的原生 scroll 被误判触底。
+watch(visibleChannels, () => {
+  railLimit.value = RAIL_PAGE;
+  if (railListRef.value) railListRef.value.scrollTop = 0;
+});
 
 /** 当前播放地址（经后端代理） */
 const playUrl = computed(() => (selected.value ? livePlayUrl(selected.value.id, srcIndex.value) : ""));
@@ -172,7 +178,7 @@ onMounted(() => void load());
           <div v-if="loading" class="vdl-channel-grid" aria-busy="true">
             <span v-for="i in 8" :key="i" class="vdl-skeleton-item" />
           </div>
-          <div v-else class="vdl-channel-grid" @scroll="onRailScroll">
+          <div v-else ref="railListRef" class="vdl-channel-grid" @scroll="onRailScroll">
             <button
               v-for="c in pagedChannels"
               :key="c.id"
