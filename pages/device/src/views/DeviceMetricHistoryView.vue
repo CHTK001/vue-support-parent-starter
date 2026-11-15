@@ -236,6 +236,7 @@ async function loadEngine(): Promise<void> {
 async function query(): Promise<void> {
   if (!filters.value.deviceId) {
     rows.value = []
+    ElMessage.warning('请先选择设备')
     return
   }
   loading.value = true

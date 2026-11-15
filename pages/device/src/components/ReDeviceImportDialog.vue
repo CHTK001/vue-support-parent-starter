@@ -117,18 +117,21 @@ function onWrite() {
 }
 
 /** 重新选择：清空文件与父组件上一次结果 */
-function onReset() {
+/** 只清本地状态；父组件由 reset / closed 事件感知，这里不重复通知 */
+function resetLocal() {
   file.value = null
   ranDryRun.value = false
   requestedDryRun.value = false
+}
+
+function onReset() {
+  resetLocal()
   emit('reset')
 }
 
 /** 弹窗关闭：重置文件，通知父组件 */
 function onClosed() {
-  file.value = null
-  ranDryRun.value = false
-  requestedDryRun.value = false
+  resetLocal()
   emit('closed')
 }
 
@@ -143,14 +146,20 @@ watch(
       mode.value = props.mode || 'create'
       dryRun.value = props.dryRun ?? true
     } else {
-      onClosed()
+      // 关闭时只清本地状态；closed 事件由 ReDialog 统一抛出，避免父组件收到两次
+      resetLocal()
     }
   }
 )
 </script>
 
 <template>
-  <ReDialog :title="status === 'done' ? '导入完成' : '导入台账'" width="860px" @closed="onClosed">
+  <ReDialog
+    v-model="visible"
+    :title="status === 'done' ? '导入完成' : '导入台账'"
+    width="860px"
+    @closed="onClosed"
+  >
     <!-- 未开始：文件选择 + 模式 -->
     <div v-if="status === 'upload'" class="dt">
       <div class="dt__hint">

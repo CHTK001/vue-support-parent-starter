@@ -299,7 +299,7 @@
  * @since 4.0.0.42
  */
 import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   CircleCheck,
@@ -337,6 +337,7 @@ const standalone = computed(() => !!props.standalone)
 
 /** 路由（消费向导传入的 ids / layout / remind） */
 const route = useRoute()
+const router = useRouter()
 
 const REMIND_BAR_KEY = 'device:preview-remind-dismissed'
 const remindBarVisible = ref(true)
@@ -1040,7 +1041,8 @@ function clearRepair(): void {
 function popout(): void {
   // 独立窗口跟主页面同源，读同一份本机缓存，不用把画面编到 URL 里
   persistWall()
-  const url = `${window.location.origin}/device/preview/standalone`
+  // 宿主是 hash 路由，必须用 router 解析出的 href（含 #/ 与 base），否则新窗口落到 /#/home
+  const url = `${window.location.origin}${router.resolve({ name: 'DevicePreviewStandalone' }).href}`
   const win = window.open(url, '_blank', 'width=1600,height=900')
   if (!win) {
     ElMessage.warning('浏览器拦住了新窗口，允许弹窗后再试')

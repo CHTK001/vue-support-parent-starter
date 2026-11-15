@@ -3,7 +3,7 @@
     <header class="wall-head">
       <div class="flex items-center gap-3">
         <el-button size="small" @click="back">返回台账</el-button>
-        <h2 class="text-lg font-semibold">视频预览</h2>
+        <h2 class="text-lg font-semibold">视频墙</h2>
         <span v-if="protocol === 'rtsp' && !hasRtspGateway()" class="text-xs text-el-color-warning">RTSP 需转流</span>
         <span class="text-xs text-el-text-secondary">{{ devices.length }} 台设备 · 第 {{ page + 1 }} / {{ pageCount }} 页</span>
       </div>
@@ -12,7 +12,7 @@
         <el-segmented v-model="protocol" :options="protocolSegments" size="small" />
         <el-button size="small" :disabled="page <= 0" @click="page--">上一页</el-button>
         <el-button size="small" :disabled="page >= pageCount - 1" @click="page++">下一页</el-button>
-        <ReButton size="small" :plain="rotate" type="primary" @click="toggleRotate">
+        <ReButton size="small" :plain="rotate" type="primary" :disabled="!devices.length" @click="toggleRotate">
           {{ rotate ? '停止轮巡' : '开始轮巡' }}
         </ReButton>
       </div>
@@ -229,6 +229,11 @@ function back() {
 }
 
 function toggleRotate() {
+  // 没有设备就没有页可轮，按钮本身已禁用，这里兜住程序化调用
+  if (!devices.value.length) {
+    rotate.value = false
+    return
+  }
   rotate.value = !rotate.value
   if (rotate.value) {
     rotateTimer = setInterval(() => {

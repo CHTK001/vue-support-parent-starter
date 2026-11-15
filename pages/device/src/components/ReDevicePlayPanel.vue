@@ -25,7 +25,7 @@
         <el-segmented v-model="streamType" :options="streamSegments" size="small" @change="reload" />
         <el-segmented v-model="protocol" :options="protocolSegments" size="small" @change="reload" />
         <el-segmented v-model="layout" :options="layoutSegments" size="small" />
-        <ReButton icon="RefreshRight" layout="square" tip="重载当前画面" :loading="loading" @click="reload" />
+        <ReButton icon="RefreshRight" layout="square" tip="重载当前画面" :loading="loading" :disabled="!canReload" @click="reload" />
         <ReButton
           icon="Grid"
           layout="square"
@@ -228,6 +228,8 @@ const playable = computed(() =>
     ? props.devices.some((device) => isPlayable(device, props.vendors))
     : isPlayable(props.device, props.vendors)
 )
+/** 「重载当前画面」有东西可重载才可点：墙面按画面数，单画面按是否绑定了设备 */
+const canReload = computed(() => (wallMode.value ? tiles.value.length > 0 : !!props.device))
 const layoutSize = computed(() => Number(layout.value) || 4)
 const emptySlots = computed(() => Math.max(0, layoutSize.value - tiles.value.length))
 const usedKeys = computed(() => new Set(tiles.value.map((tile) => tile.sourceKey)))

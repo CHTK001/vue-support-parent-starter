@@ -73,7 +73,7 @@ export const deviceRoutes: RouteConfigsTable[] = [
     name: 'DeviceVideoWall',
     component: () => import('../views/DeviceVideoWallView.vue'),
     meta: {
-      title: '视频预览',
+      title: '视频墙',
       showLink: false,
       keepAlive: false,
       isVisible: '0',
