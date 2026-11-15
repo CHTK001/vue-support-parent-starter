@@ -149,6 +149,9 @@ export const GROUP_LABELS: Record<string, Record<string, string>> = {
   ),
 };
 
+/** 名称里是否含中文：含中文的名称本身就是人话，优先于机器编码 */
+const CJK = /[\u4e00-\u9fa5]/;
+
 /** 返回配置项的中文短标签；无映射时回退到 code / name。 */
 export function settingLabel(row: Partial<SysSetting> | null | undefined): string {
   if (!row) return "";
@@ -160,5 +163,8 @@ export function settingLabel(row: Partial<SysSetting> | null | undefined): strin
     if (scoped) return scoped;
   }
   if (name && SETTING_LABELS[`@${name}`]) return SETTING_LABELS[`@${name}`];
+  // 编码没有映射、名称本身就是中文（如自建配置「消息头拦截·第一方豁免」）时，
+  // 显示名称比显示机器编码可读 —— 编码仍在行内 meta 与右栏检查器里给出。
+  if (name && CJK.test(name)) return name;
   return code || name || "";
 }

@@ -33,6 +33,7 @@ import {
   SwitchButton,
   EditPen,
   Search,
+  Refresh,
 } from "@element-plus/icons-vue";
 import {
   pageForSetting,
@@ -111,6 +112,8 @@ const groupIconMap: Record<string, unknown> = {
   smtp: Promotion,
   sms: Cellphone,
   schedule: Clock,
+  // 策略控制台的运行时热更新参数（保存即生效），与「定时任务」一样是运行时开关
+  hot_reload: Refresh,
 };
 const groupDescMap: Record<string, string> = {
   default: "登录页与界面基础配置（品牌、Logo、欢迎语、备案号等）",
@@ -119,6 +122,7 @@ const groupDescMap: Record<string, string> = {
   smtp: "内部邮箱服务（SMTP 发信 / IMAP 收信），用于系统邮件、通知与验证码投递",
   sms: "内部短信服务（阿里云 / 腾讯云），用于通知与短信验证码投递",
   schedule: "系统定时任务的开关与执行周期",
+  hot_reload: "策略控制台的运行时参数，保存即生效、无需重启（策略控制台 → 热更新配置）",
 };
 
 /**
@@ -136,6 +140,8 @@ const groupNameMap: Record<string, string> = {
   smtp: "邮件服务",
   sms: "短信服务",
   schedule: "定时任务",
+  // 策略控制台的热更新分组：库里分组 code 是 hot_reload，直接显示会是一列英文
+  hot_reload: "热更新配置",
   /* 第三方登录 / 集成：库里存的是渠道 code，界面上要给中文名，否则一列英文扫不动 */
   alipay: "支付宝登录",
   baidu: "百度登录",
@@ -195,6 +201,7 @@ const groupAccentMap: Record<string, string> = {
   userAgreement: "success",
   smtp: "warning",
   sms: "success",
+  hot_reload: "warning",
 };
 function groupAccent(g: string): string {
   if (g.startsWith("startup")) return "info";
@@ -214,6 +221,7 @@ const CATEGORY_LIST = [
   { key: "basic", label: "基础配置" },
   { key: "integration", label: "第三方集成" },
   { key: "message", label: "消息通知" },
+  { key: "policy", label: "策略控制" },
   { key: "startup", label: "启动参数" },
   { key: "content", label: "内容协议" },
 ];
@@ -225,6 +233,7 @@ const groupCategoryMap: Record<string, string> = {
   sms: "message",
   smtp: "message",
   userAgreement: "content",
+  hot_reload: "policy",
 };
 
 /** 分组归类：startup- 前缀优先判为启动参数（一个前缀抵 5 个分组） */
