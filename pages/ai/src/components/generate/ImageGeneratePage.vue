@@ -790,8 +790,8 @@
                   <span class="wg-rail-style-name">无风格</span>
                 </button>
                 <button
-                  v-for="item in styleOptions"
-                  :key="item.key || 'none'"
+                  v-for="item in realStyles"
+                  :key="item.key"
                   type="button"
                   class="wg-rail-style"
                   :class="{ 'is-active': style === item.key }"
@@ -1541,21 +1541,28 @@ watch(styleRailEnabled, (on) => {
 })
 
 /**
+ * 真实风格项（key 非空）。
+ *
+ * 「无风格」不是一项风格，而是「不加风格」，由风格轨最左侧的固定按钮表达，
+ * 故不进这份列表：风格轨与 @ 面板都只列它。
+ * 之前风格轨直接遍历 styleOptions，把内置表里的空 key 项也渲染了一遍，
+ * 结果最左侧并排出现两个「无风格」，还同时是选中态。
+ */
+const realStyles = computed(() => styleOptions.value.filter((item) => !!item.key))
+
+/**
  * @ 风格面板的风格项。
  *
- * 缩略图与描述都从 styleOptions 取，与风格轨共用同一份数据 ——
+ * 缩略图与描述都从 realStyles 取，与风格轨共用同一份数据 ——
  * 两处各维护一份必然漂移（之前「风格缩略图和文字对不上」就是这么来的）。
- * 无风格项（key 为空）不进面板：面板是「加一个风格」，去掉风格用风格轨最左侧的无。
  */
 const stylePanelItems = computed(() =>
-  styleOptions.value
-    .filter((item) => !!item.key)
-    .map((item) => ({
-      key: item.key,
-      name: item.name,
-      prompt: item.prompt,
-      thumb: styleThumb(item.key),
-    })),
+  realStyles.value.map((item) => ({
+    key: item.key,
+    name: item.name,
+    prompt: item.prompt,
+    thumb: styleThumb(item.key),
+  })),
 )
 
 /** 当前风格的描述文本，提交时追加到提示词 */
@@ -2749,6 +2756,10 @@ watch(
 const enterSelectMode = () => {
   selectedIds.value = new Set()
   selecting.value = true
+  // 收起来源弹层：批量删除是从「记录管理」弹层里点的，弹层 v-if="!selecting" 会被销毁；
+  // 不复位的话退出选择模式后它会带着 show=true 重新挂载 —— 自动弹出、且因为 CustomPopover
+  // 的 watch 非 immediate 而收不到 Esc/点外部，成了关不掉的死弹层。
+  recordsOpen.value = false
 }
 
 /** 退出选择模式并清空选择 */
