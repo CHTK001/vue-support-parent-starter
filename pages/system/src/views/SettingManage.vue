@@ -54,7 +54,7 @@ import type { ReTableColumn, RePageResult } from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import { settingTypeOptions, normType, typeLabel } from "../settingUtils";
-import { settingLabel } from "../settingLabels";
+import { settingLabel, THIRD_PARTY_SETTING_GROUPS } from "../settingLabels";
 
 /* ================== 页面模式 ==================
  * manage：配置管理（创建/删除配置定义，菜单入口）
@@ -110,41 +110,24 @@ const groupIconMap: Record<string, unknown> = {
   userAgreement: Document,
   smtp: Promotion,
   sms: Cellphone,
+  schedule: Clock,
 };
 const groupDescMap: Record<string, string> = {
   default: "登录页与界面基础配置（品牌、Logo、欢迎语、备案号等）",
-  config: "WebSocket / Socket 连接配置",
+  config: "WebSocket / Socket 连接、编解码与外观水印",
   userAgreement: "用户协议内容与条款",
   smtp: "内部邮箱服务（SMTP 发信 / IMAP 收信），用于系统邮件、通知与验证码投递",
   sms: "内部短信服务（阿里云 / 腾讯云），用于通知与短信验证码投递",
+  schedule: "系统定时任务的开关与执行周期",
 };
 
 /**
  * 第三方登录 / 集成渠道的分组 code。
  *
- * <p>这些分组在库里是按渠道 code 平铺的（alipay / dingtalk / wechat…），
- * 之前只有 gitee / github / google / oidc / sso 落了分类，其余十来个渠道
- * 全部落到「基础配置」里，跟「默认配置 / 系统配置」混在一起，分段标题还
- * 显示着「第三方集成」却只有 5 个 —— 一键补全，新增渠道时只加这里。</p>
+ * <p>清单落在 settingLabels.ts（配置项中文标签也要按它分流），这里只做 Set 化
+ * 便于 has() 查询 —— 两处各维护一份必然漂移，新增渠道时只加那份清单。</p>
  */
-const THIRD_PARTY_GROUPS = new Set([
-  "alipay",
-  "dingtalk",
-  "douyin",
-  "feishu",
-  "gitee",
-  "github",
-  "google",
-  "microsoft",
-  "oidc",
-  "qq",
-  "sso",
-  "taobao",
-  "wechat",
-  "wechat_enterprise",
-  "wechat_mp",
-  "weibo",
-]);
+const THIRD_PARTY_GROUPS = new Set(THIRD_PARTY_SETTING_GROUPS);
 
 const groupNameMap: Record<string, string> = {
   default: "默认配置",
@@ -152,8 +135,10 @@ const groupNameMap: Record<string, string> = {
   userAgreement: "用户协议",
   smtp: "邮件服务",
   sms: "短信服务",
+  schedule: "定时任务",
   /* 第三方登录 / 集成：库里存的是渠道 code，界面上要给中文名，否则一列英文扫不动 */
   alipay: "支付宝登录",
+  baidu: "百度登录",
   dingtalk: "钉钉登录",
   douyin: "抖音登录",
   feishu: "飞书登录",
@@ -170,8 +155,26 @@ const groupNameMap: Record<string, string> = {
   wechat_mp: "微信公众号登录",
   weibo: "微博登录",
 };
+
+/**
+ * 启动参数分组的中文后缀。
+ *
+ * <p>六个 startup-* 分组原名一律显示成「启动参数」，左栏会并排出现六行一模一样的
+ * 名字，只能靠条数区分；补上后缀后一眼能认出是哪类启动参数。</p>
+ */
+const STARTUP_SUFFIX: Record<string, string> = {
+  actuator: "Actuator 端点",
+  api: "插件 API",
+  ip: "IP 解析",
+  jackson: "Jackson 序列化",
+  mybatis: "MyBatis",
+  swagger: "接口文档",
+};
 function groupName(g: string): string {
-  if (g.startsWith("startup")) return "启动参数";
+  if (g.startsWith("startup-")) {
+    const suffix = STARTUP_SUFFIX[g.slice("startup-".length)];
+    return suffix ? `启动参数 · ${suffix}` : "启动参数";
+  }
   return groupNameMap[g] ?? g;
 }
 function groupIcon(g: string): unknown {
@@ -335,6 +338,14 @@ function unwrapPage(res: unknown): { total: number; rows: Record<string, unknown
   return { total, rows };
 }
 
+/**
+ * 分组排序权重。
+ *
+ * <p>默认按 code 字典序，但「默认配置」是最高频入口，被 alipay 这类渠道 code 挤到
+ * 后面不合理；系统配置紧随其后，定时任务排基础配置末位。</p>
+ */
+const GROUP_ORDER = ["default", "config", "schedule"];
+
 /** 按分组聚类并按 sort 排序 */
 const groups = computed(() => {
   const m = new Map<string, SysSetting[]>();
@@ -343,12 +354,16 @@ const groups = computed(() => {
     if (!m.has(g)) m.set(g, []);
     m.get(g)!.push(s);
   });
+  const rank = (g: string) => {
+    const i = GROUP_ORDER.indexOf(g);
+    return i < 0 ? GROUP_ORDER.length : i;
+  };
   return [...m.entries()]
     .map(([group, items]) => ({
       group,
       items: [...items].sort((a, b) => (a.sysSettingSort ?? 0) - (b.sysSettingSort ?? 0)),
     }))
-    .sort((a, b) => a.group.localeCompare(b.group));
+    .sort((a, b) => rank(a.group) - rank(b.group) || a.group.localeCompare(b.group));
 });
 
 /** 全部分组下配置项总数（顶部统计） */
@@ -719,7 +734,9 @@ async function handleEmailCheck() {
 
 const detailColumns: ReTableColumn[] = [
   { prop: "info", label: "配置", minWidth: 260, slot: "info" },
-  { prop: "value", label: "预览 / 编辑", minWidth: 320, slot: "value" },
+  // 这一列只读：值就地不可改（敏感项只给解密查看），改值走行尾编辑按钮与右栏检查器。
+  // 之前叫「预览 / 编辑」会让人以为单元格可点进去改，与真实交互不符。
+  { prop: "value", label: "当前值", minWidth: 320, slot: "value" },
   { prop: "action", label: "操作", width: 150, slot: "action", fixed: "right", align: "right" },
 ];
 

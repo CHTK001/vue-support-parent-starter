@@ -73,6 +73,18 @@ function stripSecureCookie(proxy: ProxyOptions): ProxyOptions {
   };
 }
 
+/**
+ * 后端 context-path（仅 dev 代理使用）。
+ *
+ * <p>本机 18170 实例的 context-path 是根：`/v2`、`/actuator`、`/api` 直接可用；
+ * 部署在 192.168.50.198 的那套是 `/system/api`，端点整体后移一层。
+ * 默认空串对齐本机口径，连远端时用
+ * `SYSTEM_API_CONTEXT=/system/api SYSTEM_API_TARGET=http://192.168.50.198:18170` 启动。
+ * 前端自己的统一前缀 `/system/api` 由下面 `/system/api` 的 strip 规则处理，与本项无关。</p>
+ */
+const API_CONTEXT = (process.env.SYSTEM_API_CONTEXT ?? "").replace(/\/+$/, "");
+// 代理路径前缀（本机为空串，远端为 /system/api），下面三个 rewrite 共用。
+
 export default createVite({
   appName: "vue-support-system-starter",
   title: "系统管理平台",
@@ -145,34 +157,32 @@ export default createVite({
         rewrite: (path) => path.replace(/^\/system\/api/, ""),
       }),
       // Spring Actuator：`/actuator/**` 监控大屏卡片直接读端点。
-      // 后端 context-path 是 `/system/api`（见 system-starter 的 application.yml），
-      // Actuator 端点随之落在 `/system/api/actuator/**`；前端沿用既有约定
-      // {@code http().get("/actuator/..."}（见 pages/system/api/systemApi.ts），
-      // 因此 dev 代理负责补上 context-path，生产由同源网关按同一规则转发。
+      // 前端沿用既有约定 {@code http().get("/actuator/..."}（见 pages/system/api/systemApi.ts），
+      // 代理按 API_CONTEXT 补 context-path：本机为空（直打 /actuator），远端补 /system/api。
       "/actuator": stripSecureCookie({
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/actuator/, "/system/api/actuator"),
+        rewrite: (path) => path.replace(/^\/actuator/, `${API_CONTEXT}/actuator`),
       }),
       // AI 提供商管理（pages/ai 的模型管理页）内嵌后，其 apiService 以 `/v2` 为基址
-      // （web 模式见 pages/ai/src/services/ApiService.ts）。系统后端 context-path 为
-      // /system/api，ai-starter 的 /v2/** 端点落在 /system/api/v2/** 下，故把 /v2 代理到
-      // 系统后端并补上 context-path。仅 pages/ai 子树用 /v2；本应用自身走 /system/api，
-      // 两者前缀不重叠。/v2 与 /system/api 都指向同一 SYSTEM_API_TARGET。
+      // （web 模式见 pages/ai/src/services/ApiService.ts）。本机后端 context-path 为根，
+      // /v2 原样转发；连远端那套（context-path /system/api）时由 API_CONTEXT 补前缀。
+      // 仅 pages/ai 子树用 /v2；本应用自身走 /system/api，两者前缀不重叠。
+      // /v2 与 /system/api 都指向同一 SYSTEM_API_TARGET。
       "/v2": stripSecureCookie({
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/v2/, "/system/api/v2"),
+        rewrite: (path) => path.replace(/^\/v2/, `${API_CONTEXT}/v2`),
       }),
       // pages/ai 模型管理页的 adminApi（rootHttp，baseURL 为空）直接调 `/api/providers`
       // 等管理端点（见 pages/ai/src/services/modules/model.api.ts），这些端点在 ai-starter
-      // 的 manage/api 控制器下（@RequestMapping("/api")）。内嵌到系统后端后它们落在
-      // /system/api/api/** 下，故 /api 代理到系统后端并补 context-path 与 /api 前缀。
+      // 的 manage/api 控制器下（@RequestMapping("/api")）。本机 context-path 为根，
+      // 即 /api/**；远端那套补上 /system/api 后落在 /system/api/api/**。
       // 仅 pages/ai 子树用 /api；本应用自身走 /system/api 与 /v2，前缀不重叠。
       "/api": stripSecureCookie({
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, "/system/api/api"),
+        rewrite: (path) => path.replace(/^\/api/, `${API_CONTEXT}/api`),
       }),
       // Socket.IO 实时推送（租户创建进度等）：后端 socket 服务是独立 Netty 进程，
       // 端口与 HTTP 分开（plugin.socket.room.port=18171），这里按路径代理过去。
