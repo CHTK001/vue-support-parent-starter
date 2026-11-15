@@ -7711,7 +7711,8 @@ const iconSelect = Select;
               placement="bottom-end"
               :width="280"
               trigger="click"
-              popper-class="re-table__popover"
+              popper-class="re-table__popover re-table__popover--settings"
+              :popper-options="{ modifiers: [{ name: 'flip', options: { fallbackPlacements: ['top-end', 'top-start', 'bottom-start'] } }, { name: 'preventOverflow', options: { padding: 12 } }] }"
             >
               <template #reference>
                 <!-- ⚠ 同上：必须外包单根元素，否则 ElOnlyChild 挂不上触发器、面板点不开。 -->
@@ -8952,6 +8953,18 @@ const iconSelect = Select;
   background: var(--el-bg-color);
   border-radius: 8px;
   overflow: hidden;
+}
+
+/**
+ * 浮层限高：表格设置面板 8 个开关约 500px 高，在 1264×569 这类短视口下
+ * 贴底展开会被裁掉底部选项（弹层 top=550、高 511）。这里按视口留 12px 余量，
+ * 超出改为浮层内部滚动，保证每一项都能点到。
+ * 配合 ElPopover 的 flip fallbackPlacements，短视口会自动向上翻转。
+ */
+.re-table__popover--settings {
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* ---- 快捷键帮助浮层（分页行右侧，替代原刷新入口） ---- */
