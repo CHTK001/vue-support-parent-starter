@@ -1949,23 +1949,53 @@ const ensureModelParams = async (m: any) => {
 watch(() => currentModel.value, (m) => { void ensureModelParams(m); }, { immediate: true });
 
 const optimizing = ref(false);
+/**
+ * 优化输入框草稿。
+ *
+ * <p>后端 {@code status} 是权威口径：没真正调模型（未配置客户端 / 管理端关闭 /
+ * 调用异常）与「模型认为已经够清晰」在文本上完全一样（都是原文），只看文本会把
+ * 前者说成后者。这里按 status 分流提示，任何失败分支都保留用户原文，
+ * 绝不拿半截结果覆盖草稿。</p>
+ *
+ * <p>与生图页 {@code ImageGeneratePage.onOptimize} 同口径，两处不共用是因为
+ * 编辑器实例类型不同（本页是 tiptap，生图页是纯字符串）。</p>
+ */
 const handleOptimize = async () => {
   const text = editor.value ? editor.value.getText() : "";
   if (!text.trim() || optimizing.value) return;
   optimizing.value = true;
   try {
-    const res = await apiService._request("/input/optimize", {
-      method: "POST",
-      data: { input: text },
-    });
-    const payload = res?.data ?? res;
-    const optimized = payload?.optimized || payload?.optimizedContent;
-    if (!optimized || !optimized.trim()) {
+    // 不传 scene：聊天输入走后端通用默认提示词，不能借用生图/生视频的要素清单。
+    const result = await apiService.optimizeInput(text);
+    const optimized = (result?.optimized ?? "").trim();
+    const status = result?.status ?? "";
+    if (!optimized) {
+      message.warning(t('chat.input.optimizeEmpty'));
+      return;
+    }
+    if (status === 'UNAVAILABLE') {
       message.warning(t('chat.input.optimizeUnavailable'));
-    } else if (optimized.trim() === text.trim()) {
+      return;
+    }
+    if (status === 'FAILED') {
+      message.warning(t('chat.input.optimizeFailedKeep'));
+      return;
+    }
+    if (status === 'DISABLED') {
+      message.info(t('chat.input.optimizeDisabled'));
+      return;
+    }
+    if (status === 'EMPTY') {
+      message.warning(t('chat.input.optimizeEmpty'));
+      return;
+    }
+    if (status === 'UNCHANGED' || optimized === text.trim()) {
       message.info(t('chat.input.optimizeNoChange'));
-    } else if (editor.value) {
+      return;
+    }
+    if (editor.value) {
       editor.value.commands.setContent(optimized);
+      message.success(t('chat.input.optimizeDone', { model: result?.model || '默认模型', ms: result?.elapsedMillis ?? 0 }));
     }
   } catch (e) {
     console.warn("优化失败", e);
