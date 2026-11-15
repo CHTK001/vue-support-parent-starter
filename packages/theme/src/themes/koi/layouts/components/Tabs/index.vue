@@ -5,7 +5,7 @@
     :class="[tabsRootClass, { 'is-inactive-dimmed': settings.inactiveDimmed.value }]"
     :style="{ '--tab-min-width': `${settings.minWidth.value}px` }"
     @contextmenu.prevent="handleTabsMenuParent($event)"
-    @wheel="handleWheel"
+    @wheel.capture="handleWheel"
   >
     <ReScrollNav
       ref="scrollNavRef"
@@ -207,8 +207,16 @@ function getTabTitle(path: string): string {
  * ReScrollNav 的原生横向滚动，抢过来反而别扭。关闭时直接返回，
  * 滚轮回落到 ReScrollNav 的横向滚动。</p>
  *
+ * <p>监听必须挂在<b>捕获阶段</b>（模板里的 {@code @wheel.capture}）：
+ * ReScrollNav 的 viewport 自带 {@code @wheel.prevent}，会把同一次滚轮又折算成
+ * scrollLeft。冒泡监听晚于它，即便这边 preventDefault 也拦不住已经发生的横向滚动，
+ * 于是「切页签 + 标签条推走 + 1.6 的 scrollIntoView 拉回来」三件事同时发生，
+ * 表现为一次滚轮标签栏来回抽搐。捕获阶段 stopPropagation 后事件根本到不了
+ * viewport，横向滚动彻底让位给页签切换。</p>
+ *
  * <p>节流用一个滚轮手势的冷却：一次触控板滑动会连发几十个 wheel 事件
- * （deltaY 都是小数），不加冷却会一口气跳过五六个页签。</p>
+ * （deltaY 都是小数），不加冷却会一口气跳过五六个页签。冷却期内的事件同样要
+ * 拦下来，否则它们仍会漏到 viewport 变成一串横向滚动。</p>
  */
 const WHEEL_COOLDOWN = 220;
 let lastWheelAt = 0;
@@ -218,11 +226,13 @@ function handleWheel(event: WheelEvent): void {
   if (event.deltaY === 0) return;
   const list = tabList.value ?? [];
   if (list.length < 2) return;
+
+  // 捕获阶段就截断：既阻止页面默认滚动，也不让 ReScrollNav 的 @wheel.prevent 收到事件
+  event.preventDefault();
+  event.stopPropagation();
+
   const now = Date.now();
-  if (now - lastWheelAt < WHEEL_COOLDOWN) {
-    event.preventDefault();
-    return;
-  }
+  if (now - lastWheelAt < WHEEL_COOLDOWN) return;
   lastWheelAt = now;
   const index = list.findIndex((item) => item.path === activeTab.value);
   if (index < 0) return;
@@ -230,8 +240,6 @@ function handleWheel(event: WheelEvent): void {
   const next = (index + (event.deltaY > 0 ? 1 : -1) + list.length) % list.length;
   const target = list[next];
   if (!target?.path) return;
-  // 阻止页面跟着滚：页签栏在页面顶部，滚轮默认会把内容滚走
-  event.preventDefault();
   handleTabClick(target.path);
 }
 
