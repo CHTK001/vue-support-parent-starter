@@ -52,7 +52,7 @@
  * 模型选择对话框：搜索 + 按供应商分组 + 类型/子类型标签 + 清空。
  * 纯展示 + 本地搜索状态；命中结果与 logo 由父级注入。
  */
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Search } from "@element-plus/icons-vue"
 import { CheckCircleFilled } from "@vicons/material"
 import ReDialog from '@repo/ui/re-dialog'
@@ -76,6 +76,20 @@ const emit = defineEmits<{
 }>()
 
 const search = ref('')
+
+/**
+ * 每次打开都从空搜索开始。
+ *
+ * <p>选择器实例在多次打开之间是复用的，`search` 不会随关闭自动清空：
+ * 上一项搜过「clip」后关掉，再打开另一项时列表是上一项的关键词过滤后的结果 ——
+ * 有候选的字段会显示成空态，看起来像「这个类型的模型一个都没有」。</p>
+ */
+watch(
+  () => props.visible,
+  (v) => {
+    if (v) search.value = ''
+  },
+)
 
 const filteredProviders = computed(() => {
   const q = search.value.trim().toLowerCase()

@@ -203,10 +203,11 @@
         />
         <el-input
           v-else
-          :model-value="String(values[item.field] ?? '')"
+          :model-value="textModel(item.field)"
           :disabled="saving || !canEdit(item.field)"
           :aria-label="item.label"
           placeholder="留空表示不指定"
+          @update:model-value="onTextInput(item.field, $event)"
           @change="onTextChange(item.field, $event)"
         />
       </SettingsRow>
@@ -405,6 +406,19 @@ const numberModels = ref<Record<string, number | undefined>>({})
  */
 const revertEpoch = ref(0)
 
+/**
+ * 文本输入框的草稿值。
+ *
+ * <p>{@code el-input} 是受控组件：每次 input 之后都会把 DOM 值回写成 `modelValue`
+ * （见 Element Plus 的 `setNativeInputValue`）。若直接绑 `values[field]`，而 `values`
+ * 只在保存成功后（`load()` 重新拉取）才更新，则每敲一个字就被回写成旧值，
+ * 输入框一个字也留不下 —— 「默认摄像头标识」这类文本项因此完全不可编辑。</p>
+ *
+ * <p>草稿层与 {@link values} 分开：输入框显示草稿，提交成功后由 {@link load} 覆盖回权威值。
+ * 保存失败时把草稿退回旧值，输入框才不会停在一个没落库的字符串上。</p>
+ */
+const textModels = ref<Record<string, string>>({})
+
 const saving = ref(false)
 const loading = ref(false)
 
@@ -435,6 +449,9 @@ const reidThreshold = computed(() => effectiveNumber('reid_threshold', DEFAULT_R
 
 /** 输入框绑定值（取不到时用兜底，避免 el-input-number 显示空白） */
 const numberModel = (field: string): number | undefined => numberModels.value[field]
+
+/** 文本输入框的显示值（草稿优先，未编辑时回落读回来的权威值） */
+const textModel = (field: string): string => textModels.value[field] ?? String(values.value[field] ?? '')
 
 /**
  * 徽标文案。
@@ -536,12 +553,17 @@ const load = async () => {
     meta.value = metaMap
 
     const numeric: Record<string, number | undefined> = {}
+    const text: Record<string, string> = {}
     for (const item of FIELDS_WITH_SPLIT) {
-      if (item.type !== 'number') continue
-      const raw = String(valueMap[item.field] ?? '').trim()
-      numeric[item.field] = raw === '' ? undefined : Number(raw)
+      if (item.type === 'number') {
+        const raw = String(valueMap[item.field] ?? '').trim()
+        numeric[item.field] = raw === '' ? undefined : Number(raw)
+      } else if (item.type === 'text') {
+        text[item.field] = String(valueMap[item.field] ?? '')
+      }
     }
     numberModels.value = numeric
+    textModels.value = text
   } catch (error) {
     console.error('[ReID 配置] 获取 face 分组设置失败:', error)
     notify.error(t('settings.loadFailed'), error)
@@ -562,11 +584,11 @@ const load = async () => {
 const saveField = async (field: string, value: unknown): Promise<boolean> => {
   saving.value = true
   try {
-    // 管理员写的是全局层，没有「个人覆盖」可撤销：null 送到后端会被落成空串，
-    // 与「显式留空」混为一谈。这里改写成该字段的系统默认值，语义才是「恢复默认」。
-    const payloadValue = value === null && isAdmin()
-      ? String(meta.value[field]?.defaultValue ?? '')
-      : value
+    // null 的语义是「撤销本人覆盖，回落继承」。管理员写的本来就是全局层，
+    // 没有上一层可继承，所以对他的 null 只能落成「留空/未指定」—— 写入空串。
+    // 不能改写 default_value：后端的 defaultValue 就是「未覆盖时的当前值」，
+    // 拿它回写等于把原值再写一遍，清空动作会变成静默的空操作。
+    const payloadValue = value === null && isAdmin() ? '' : value
     const payload = { [field]: payloadValue }
     if (isAdmin()) {
       await apiService.updateGroupSettings(GROUP, payload)
@@ -666,10 +688,22 @@ const onNumberChange = async (field: string, raw: number | undefined | null) => 
   }
 }
 
+/** 文本字段输入中：只记草稿，不落库（落库在 change/失焦时做） */
+const onTextInput = (field: string, raw: string) => {
+  textModels.value[field] = String(raw ?? '')
+}
+
 /** 文本字段变更：即改即存；空串写成 null（撤销覆盖，回落继承） */
 const onTextChange = async (field: string, raw: string) => {
   const value = String(raw ?? '').trim()
-  await saveField(field, value === '' ? null : value)
+  // 旧值取权威值而不是草稿：草稿在 input 阶段已经是用户刚敲的文本，退回它等于什么都没做
+  const previous = String(values.value[field] ?? '')
+  textModels.value[field] = value
+  const ok = await saveField(field, value === '' ? null : value)
+  if (!ok) {
+    // 保存失败：把草稿退回旧值，输入框不能停在一个没落库的字符串上
+    textModels.value[field] = previous
+  }
 }
 
 // ===================== 模型选择 =====================
