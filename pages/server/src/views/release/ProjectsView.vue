@@ -3000,7 +3000,8 @@ async function handleSave() {
 async function toggleEnabled(item: Project) {
   const next = item.enabled === false;
   try {
-    await http().put(`${BASE}/project/${item.id}`).data({ enabled: next });
+    // 走专用开关接口：后端记 toggle 操作日志，前端「启用/禁用」筛选才查得到
+    await http().put(`${BASE}/project/${item.id}/enabled`).query({ enabled: next });
     message.success(next ? '已激活' : '已禁用');
     loadList();
   } catch (e: any) {
