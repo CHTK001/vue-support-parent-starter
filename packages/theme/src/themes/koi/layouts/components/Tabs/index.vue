@@ -210,7 +210,7 @@ function getTabTitle(path: string): string {
  * <p>监听必须挂在<b>捕获阶段</b>（模板里的 {@code @wheel.capture}）：
  * ReScrollNav 的 viewport 自带 {@code @wheel.prevent}，会把同一次滚轮又折算成
  * scrollLeft。冒泡监听晚于它，即便这边 preventDefault 也拦不住已经发生的横向滚动，
- * 于是「切页签 + 标签条推走 + 1.6 的 scrollIntoView 拉回来」三件事同时发生，
+ * 于是「切页签 + 标签条推走 + 自动对齐当前页签拉回来」三件事同时发生，
  * 表现为一次滚轮标签栏来回抽搐。捕获阶段 stopPropagation 后事件根本到不了
  * viewport，横向滚动彻底让位给页签切换。</p>
  *

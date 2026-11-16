@@ -75,11 +75,45 @@ const scrollByDirection = (direction: "prev" | "next") => {
   el.scrollBy({ left: delta, behavior: "smooth" });
 };
 
+/**
+ * 把指定元素（当前页签）滚进视口。
+ *
+ * <p>不用 {@code scrollIntoView}：它按「调用瞬间」的布局算滚动量，而两侧翻页按钮
+ * 是溢出后才出现（{@code v-show}）的——按钮一显形 viewport 的 clientWidth 立刻缩掉
+ * 38×2px，刚滚到位的页签又被裁掉一截（多页签验收实测右边缘溢出 70px，再调一次
+ * 才对齐）。这里自己用 rect 差值算 scrollLeft，再由 {@link realignActive} 在布局
+ * 变化后补一次，结果与「按钮先渲染还是先滚动」无关。</p>
+ *
+ * <p>只滚 viewport 自身：{@code scrollIntoView} 会顺带滚动祖先滚动容器，
+ * 页签栏不该把页面一起推走。</p>
+ */
 const scrollToSelector = (selector: string) => {
   const wrap = getViewport();
   if (!wrap || !selector) return;
   const target = wrap.querySelector(selector) as HTMLElement | null;
-  target?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  if (!target) return;
+  // 目标在滚动内容里的左右边界：rect 差值 + 当前 scrollLeft
+  // （offsetLeft 是相对 track 的，减容器偏移实测偏差 200px 以上）
+  const wrapRect = wrap.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const left = targetRect.left - wrapRect.left + wrap.scrollLeft;
+  const right = left + targetRect.width;
+  if (left < wrap.scrollLeft) {
+    wrap.scrollTo({ left, behavior: "smooth" });
+  } else if (right > wrap.scrollLeft + wrap.clientWidth) {
+    wrap.scrollTo({ left: right - wrap.clientWidth, behavior: "smooth" });
+  }
+};
+
+/**
+ * 布局变化后重新对齐当前页签（幂等：已完整可见时不动）。
+ *
+ * <p>翻页按钮显隐、窗口缩放、页签增删都会改 viewport 的 clientWidth 或页签位置，
+ * 一次滚动不足以保证「滚完那一刻」仍然完整可见，所以这些时机都补一次。</p>
+ */
+const realignActive = () => {
+  if (!props.activeSelector) return;
+  nextTick(() => scrollToSelector(props.activeSelector));
 };
 
 const handleWheel = (e: WheelEvent) => {
@@ -93,7 +127,11 @@ const bindResizeObserver = () => {
   const el = getViewport();
   if (!el || typeof ResizeObserver === "undefined") return;
   resizeObserver?.disconnect();
-  resizeObserver = new ResizeObserver(() => updateScrollState());
+  resizeObserver = new ResizeObserver(() => {
+    updateScrollState();
+    // 视口宽度变了（翻页按钮显隐、窗口缩放）：当前页签可能又被裁掉一截
+    realignActive();
+  });
   resizeObserver.observe(el);
 };
 
@@ -101,9 +139,12 @@ watch(
   () => props.activeSelector,
   (selector) => {
     if (!selector) return;
-    nextTick(() => scrollToSelector(selector));
+    realignActive();
   },
 );
+
+// 溢出状态翻转意味着一侧多出 38px 的翻页按钮，viewport 立刻变窄
+watch(scrollable, () => realignActive());
 
 onMounted(() => {
   nextTick(() => {
