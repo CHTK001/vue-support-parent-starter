@@ -6,6 +6,7 @@
 // 用法：node gen-providers-doc.js [输出路径]
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,7 +18,7 @@ const ROOT = process.env.CHUA_PROJECT_ROOT || path.resolve(__dirname, '../../../
 const TPL = path.join(ROOT, 'vue-support-parent-starter/pages/ai/src/components/models/model.constants.ts');
 const JAVA = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/java/com/chua/starter/datasearch/credit/spi/impl/HostCreditQueryProvider.java');
 const APC = path.join(ROOT, 'spring-support-parent-starter/spring-support-ai-starter/src/main/java/com/chua/starter/ai/support/manage/api/ApiProviderController.java');
-const LIMIT_REGISTRY = path.join(ROOT, 'spring-support-parent-starter/spring-support-ai-starter/src/main/resources/provider-limits/provider-limit-docs.json');
+const LIMIT_REGISTRY = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/resources/provider-catalog/provider-limit-docs.json');
 const OUT = process.argv[2] || path.join(ROOT, 'vue-support-parent-starter/pages/ai/docs/提供商.md');
 
 const src = fs.readFileSync(TPL, 'utf8');
@@ -62,6 +63,20 @@ try {
 }
 const limitDocEntries = limitEntries.filter((e) => e.doc);
 const limitVerified = limitEntries.filter((e) => e.verified);
+// 模型目录快照：datasearch 内置，用来算「说明 / 计费 / 能力位」覆盖数
+const CATALOG = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/resources/provider-catalog/models-dev.json.gz');
+let catalogProviders = 0;
+let catalogModels = 0;
+try {
+  const snapshot = JSON.parse(zlib.gunzipSync(fs.readFileSync(CATALOG)).toString('utf8'));
+  const providers = snapshot.providers || {};
+  catalogProviders = Object.keys(providers).length;
+  catalogModels = Object.values(providers)
+    .reduce((sum, p) => sum + Object.keys(p.models || {}).length, 0);
+} catch (e) {
+  catalogProviders = 0;
+  catalogModels = 0;
+}
 const hostOf = (url) => {
   if (!url) return null;
   try { return new URL(url).hostname.toLowerCase(); } catch { return null; }
@@ -157,7 +172,7 @@ const lines = [];
 lines.push('# 提供商能力矩阵（AI 控制台）');
 lines.push('');
 lines.push('> 数据来源：`pages/ai/src/components/models/model.constants.ts`（模板库，' + rows.length + ' 行 / ' + seen.size + ' 个唯一 id，2026-11-16）');
-lines.push('> 判定依据：`ApiProviderController` 的 `creditBrand` / `candidateKinds` / `creditLevel` / `isOfficialOpenAi` / `AUTO_CREDIT_KINDS` / `syncProvider`，`HostCreditQueryProvider.HOSTS` / `sameOrigin`，`fetchModelsFromUpstream`，`ProviderLimits` / `ProviderLimitPresets` / `HeaderProviderLimitProvider`');
+lines.push('> 判定依据：`ApiProviderController` 的 `creditBrand` / `candidateKinds` / `creditLevel` / `isOfficialOpenAi` / `AUTO_CREDIT_KINDS` / `syncProvider`，`HostCreditQueryProvider.HOSTS` / `sameOrigin`，`fetchModelsFromUpstream`，`ProviderLimits` / `ProviderLimitPresets` / `HeaderProviderLimitProvider`，`ProviderModelCatalogs` / `ProviderCatalogSyncService`');
 lines.push('> 本表由 `pages/ai/docs/gen-providers-doc.js` 生成，改模板或改预设后重跑即可，不要手改。');
 lines.push('');
 lines.push('## 一、结论');
@@ -170,6 +185,7 @@ lines.push('| 拉取模型 | 除 ONNX / 路由组 / 免费渠道 / 自填地址�
 lines.push('| 余额查询 | 官方预设 ' + (byCredit.official || 0) + ' 行（' + officialIds.length + ' 个厂商）、OpenAI 官方 ' + (byCredit.openai || 0) + '、中转探测 ' + (byCredit.relay || 0) + '、不查 ' + (byCredit.none || 0) + ' |');
 const limitKind = (k) => rows.filter((r) => r.limit.kind === k).length;
 lines.push('| 限制查询 | 文档登记 ' + limitKind('verified') + ' 行（已核对口径）、文档入口 ' + limitKind('doc') + ' 行、未收录但可观测响应头 ' + limitKind('none') + ' 行、纯响应头 ' + limitKind('header') + ' 行、仅手动 ' + (limitKind('manual') + limitKind('local')) + ' 行；登记表 ' + limitEntries.length + ' 家，其中官方文档入口 ' + limitDocEntries.length + ' 家、已核对口径 ' + limitVerified.length + ' 家 |');
+lines.push('| 模型信息 | 公开目录覆盖 ' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型（说明、目录价、上下文、模态与能力位）；流式 / 异步无公开来源，接口返回 `null` |');
 lines.push('');
 lines.push('**200+ 家的实际含义**：没有任何一家是「逐家写死代码」。');
 lines.push('');
@@ -232,21 +248,38 @@ rows.forEach((r, i) => {
 lines.push('');
 lines.push('## 五、限制与计费口径怎么同步（供应商详情「同步」）');
 lines.push('');
-lines.push('入口：供应商详情 →「同步」→ `POST /api/providers/{id}/sync`。一次点击做三件事，结果按分节返回：');
+lines.push('入口：供应商详情 →「同步」→ `POST /api/providers/{id}/sync`。一次点击做四件事，结果按分节返回：');
 lines.push('');
 lines.push('| 分节 | 数据来源 | 落点 | 拿不到时 |');
 lines.push('| --- | --- | --- | --- |');
 lines.push('| 限制 | 手动配置 → 官方文档登记表 → 上游响应头，按此顺序 | `sys_ai_provider.extra.provider_limits` | 页面显示「未收录」并列出已尝试链路，不写 0 |');
 lines.push('| 计费标准 | 官方指标源（`ChatClientIndicators`）+ 上游 `/models` 的 pricing | `sys_ai_model_metrics` + 服务商模型行 | 已有价格不覆盖；官方源未接入时给出官方价格页 |');
-lines.push('| 模型描述 | 上游 `/models` 的 `description` / `summary` | `sys_ai_provider_model.description` | 默认只补空值，`overwrite_descriptions=true` 才覆盖 |');
+lines.push('| 模型描述 | 上游 `/models` 的 `description` / `summary`；上游缺失时由公开目录补位 | `sys_ai_provider_model.description` | 默认只补空值，`overwrite_descriptions=true` 才覆盖（公开目录永远只补空值） |');
+lines.push('| 公开目录 | models.dev 快照（`ProviderModelCatalogProvider` SPI，' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型） | 说明补空；上下文 / 输出上限 / 多模态 / 思考 / 工具调用 / 附件 / 温度 / 权重等能力位补空；价格写 `sys_ai_model_metrics`（`source=models.dev`） | 未收录时保留上游与手工值；流式 / 异步目录不提供，返回 `null` 显示「未收录」 |');
 lines.push('');
 lines.push('**限制机制**（`ProviderLimits`，与余额同构：一种机制一个实现，不逐家写死）：');
 lines.push('');
 lines.push('- `manual`：读 `extra.limits_manual`，支持 `concurrency`、`requests_per_minute`、`requests_per_day`、`tokens_per_minute`、`tokens_per_day`、`monthly_request_quota`、`monthly_token_quota`、`billing_basis`、`currency`、`notes`、`source_url`、`model_concurrency`；');
-lines.push('- `doc`：`ProviderLimitPresets` 从 `provider-limits/provider-limit-docs.json` 加载登记表（' + limitEntries.length + ' 条），先按 provider id 精确匹配、再按主机名匹配；只有核对过原文的条目返回数值 / 计费口径，其余条目只回传 `doc_url`；');
+lines.push('- `doc`：`ProviderLimitPresets` 从 datasearch 的 `provider-catalog/provider-limit-docs.json`（`ProviderLimitProvider` SPI）加载登记表（' + limitEntries.length + ' 条），先按 provider id 精确匹配、再按主机名匹配；只有核对过原文的条目返回数值 / 计费口径，其余条目只回传 `doc_url`；');
 lines.push('- `header`：复用本次 `GET /models` 的响应头，读 `x-ratelimit-*`（OpenAI 风格）、`ratelimit-policy` / `ratelimit-limit`（IETF 草案）、`anthropic-ratelimit-*`、`retry-after`。不额外发请求。');
 lines.push('');
 lines.push('**扩展方式（SPI）**：新增机制不必改本模块 —— 声明 `ProviderLimitProvider` 的 Spring Bean，或在 `META-INF/services/` 登记实现即可；执行顺序由 `order()` 决定（内置 manual=10 / doc=20 / header=30），同一 `kind` 只保留一个，Spring Bean 优先于 ServiceLoader。');
+lines.push('');
+lines.push('SPI 分两层，数据与机制分开：');
+lines.push('');
+lines.push('- **厂商定义 / 能力**（`spring-support-datasearch-starter`）：`ProviderLimitProvider`（限制登记项）与 `ProviderModelCatalogProvider`（模型目录），都按 `META-INF/services` 装载，调用方只给「平台 + 地址」；内置实现是登记表与 models.dev 快照，新增来源（厂商控制台、私有登记表）只需加一个实现类 + 一行登记，不改 ai-starter；');
+lines.push('- **获取机制**（`spring-support-ai-starter`）：`ProviderLimitProvider`（manual / doc / header）决定「怎么拿到数值」，`order()` 排序，与余额的 `CreditQueryProvider` 同构。');
+lines.push('');
+lines.push('**模型信息口径**（公开目录）：快照 `provider-catalog/models-dev.json.gz`（' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型，约 0.42 MB）随 datasearch 发布，字段映射如下：');
+lines.push('');
+lines.push('| 目录字段 | 落点 | 说明 |');
+lines.push('| --- | --- | --- |');
+lines.push('| `description` | `sys_ai_provider_model.description` | 只在为空时补；上游 / 手写文案优先 |');
+lines.push('| `cost.input` / `cost.output` / `cost.cache_read` / `cost.cache_write` | `sys_ai_model_metrics.price_input_per_musd` 等 | USD / 百万 token；已有价格不覆盖，手动锁定字段跳过 |');
+lines.push('| `limit.context` / `limit.output` | 模型行 `context_window` / `max_tokens` + 指标同名列 | token 数；只补空值 |');
+lines.push('| `modalities` / `tool_call` / `reasoning` / `attachment` / `structured_output` / `temperature` / `open_weights` | 模型行能力位 + `metrics` | 只补空值；`null` 表示目录没写，不当成 `false` |');
+lines.push('| `knowledge` / `release_date` / `last_updated` | 模型行同名列 | 只补空值 |');
+lines.push('| `streaming` / `async` | — | **models.dev 没有这两个字段**，接口返回 `null`，页面显示「未收录」；不按协议默认成「支持」 |');
 lines.push('');
 lines.push('**已核对口径的条目**（只有这些带数值 / 计费口径，其余条目只有文档入口）：');
 lines.push('');
@@ -258,7 +291,7 @@ limitVerified.forEach((r) => {
   lines.push('| `' + r.id + '` | ' + r.name + ' | ' + state + ' | ' + (r.doc ? '`' + r.doc.replace(/^https?:\/\//, '') + '`' : '—') + ' |');
 });
 lines.push('');
-lines.push('登记表由 `provider-limits/provider-limit-docs.json` 提供，后端 `ProviderLimitPresets` 与本文档共用这一份数据；其余 ' + (limitDocEntries.length - limitVerified.length) + ' 家只有官方文档入口（models.dev 目录的 `doc` 字段，多为模型/接口文档而非限制页），没有数值口径，页面不替厂商编数字。');
+lines.push('登记表由 datasearch 的 `provider-catalog/provider-limit-docs.json` 提供，后端 `ProviderLimitProvider` SPI 与本文档共用这一份数据；其余 ' + (limitDocEntries.length - limitVerified.length) + ' 家只有官方文档入口（models.dev 目录的 `doc` 字段，多为模型/接口文档而非限制页），没有数值口径，页面不替厂商编数字。');
 lines.push('');
 lines.push('DeepSeek 的并发是账号级（所有 API Key 合并计算），官方按模型给固定值；Moss 只公布了计费口径与「以服务端错误码为准」，没有固定并发 / RPM 数字；OpenAI / Anthropic / Gemini 是按账户等级分级，本表不写死数字，运行时交给响应头观测。');
 lines.push('');
@@ -271,6 +304,7 @@ lines.push('- 其余「官方预设」只做过**假 Token 探活路由**（404 
 lines.push('- 「中转探测」这类没有逐家验证过——它本来就是对未知站点的依次尝试，命中与否取决于对方有没有挂那套接口；');
 lines.push('- 限制登记表：' + limitEntries.length + ' 条（官方文档入口 ' + limitDocEntries.length + ' 条）已用本地探针验证装载与匹配（DeepSeek 命中数值、qwen 命中文档入口但无数字、baichuan 无条目、按主机名命中 302.ai）；只有 DeepSeek 并发、Moss 计费口径按官方原文核对，其余入口页多为模型 / 接口文档，不是限制页；');
 lines.push('- 限制机制走 SPI（Spring Bean + `META-INF/services`），本地探针确认装载顺序为 `manual → doc → header`；');
+lines.push('- 模型目录：本地探针确认 datasearch 侧装载 `modelsdev` 实现（' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型），qwen → alibaba 命中并有说明 / 价格 / 上下文，`streaming` / `async` 均为 `null`；ai-starter 侧 `ProviderCatalogSpiTest`（6 项）与限流回退测试（8 项）共 14 项通过（2026-11-16）；');
 lines.push('- 「同步」接口的新代码已编译通过（`mvn -o -pl spring-support-ai-starter compile`，2026-11-16 14:54），但 8082 运行实例仍是旧 jar，接口级验收待换 jar 后执行；');
 lines.push('- 表里不会出现「支持」这种断言，只有「会走哪条路」。');
 lines.push('');
@@ -281,6 +315,9 @@ lines.push('- 有官方余额接口、但本仓库还没有预设的厂商（如
 lines.push('- 每家的余额字段路径没有统一的行业标准，同一个 `billing` 口径在不同站点也会返回不同单位（USD / 美分 / 次数），表达式兜底就是为这个准备的。');
 lines.push('- **免费渠道**是纯路由聚合（模型来自运行时合并路由表），自己没有账户，模板里的 `free.nomifun.com/v1` 只是占位地址；余额面板仍会按「中转探测」去请求它，结果没有业务意义，看这一行时忽略余额列即可。');
 lines.push('- **限制只能观测到「上游肯说」的那部分**：限流做在网关 / nginx 层、响应头不返 `*ratelimit*` 的站点，这次同步拿到的就是「未收录」，只能靠 `extra.limits_manual` 手填；登记表 ' + limitEntries.length + ' 家里只有 ' + limitVerified.length + ' 家核对过口径（DeepSeek 并发、Moss 计费），其余 ' + (limitDocEntries.length - limitVerified.length) + ' 家只有文档入口，没有数值，不编数字。');
+lines.push('- **流式 / 异步没有公开来源**：models.dev 不提供这两个字段，OpenAI 兼容协议本身也都支持 `stream`，但「模型 / 厂商是否真的支持」属于商用能力声明，没有目录可依；接口返回 `null`、页面写「未收录」，要判断得看厂商文档或实际调用。');
+lines.push('- **价格是 models.dev 的目录价**（USD / 百万 token），不是中转站的实际结算价；渠道价请以上游 `/models` 或手工录入为准，公开目录只做补位，已有价格不覆盖。');
+lines.push('- **目录快照随包发布**：`provider-catalog/models-dev.json.gz` 生成于 2026-11-16，不会自动联网刷新；新增厂商 / 模型要重跑 `_tmp_cleanup/gen-model-snapshot.mjs` 并重新发版。');
 lines.push('- **限制落库后不参与限流**：`ProviderThrottle` 读的是 `extra.max_concurrency` / `extra.requests_per_minute`（供应商表单的两个字段），不读 `extra.provider_limits` 或 `limits_manual`；同步到的官方并发 / RPM 目前只做展示，要让它生效得再拉一条「限制 → 闸门」的读取链。');
 lines.push('- **`extra.limits_manual` 目前没有独立表单**：写入口是供应商的 `extra` 配置（接口 / 库），管理面还没有「并发 / RPM / 配额」的输入控件；要改只能改 `extra`。这一步没做，是因为先要把同步链路跑通。');
 lines.push('- **上游 pricing 不是每家都有**：中转站 `/models` 大多只回 id 与 name，`pricing` 只有 OpenRouter 这类聚合站才带；没有上游价格时计费标准只能来自官方指标源（`ChatClientIndicators`），两条都没有就显示「未接入」，不猜价格。');

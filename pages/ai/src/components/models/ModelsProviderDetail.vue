@@ -1388,6 +1388,26 @@ const syncSections = computed(() => {
   if (body.fetch_error) {
     sections.push({ title: '上游目录', lines: [], muted: String(body.fetch_error) })
   }
+
+  // 公开目录：说明 / 能力位 / 计费补位，流式与异步目录不提供，如实写「未收录」
+  const catalog = body.catalog ?? {}
+  if (catalog.supported) {
+    const caps = catalog.capabilities ?? {}
+    const catalogDesc = catalog.descriptions ?? {}
+    const catalogPricing = catalog.pricing ?? {}
+    sections.push({
+      title: '模型目录',
+      lines: [
+        `来源：${catalog.source ?? 'models.dev'}，${catalog.models ?? 0} 个模型`,
+        `说明补全：${catalogDesc.updated ?? 0} 行，未变 ${catalogDesc.unchanged ?? 0} 行，本地未配置 ${catalogDesc.missing ?? 0} 个`,
+        `计费写入：更新 ${catalogPricing.updated ?? 0} 条，新增 ${catalogPricing.inserted ?? 0} 条，回写模型 ${catalogPricing.provider_models ?? 0} 行`,
+        `能力位：思考 ${caps.reasoning ?? 0}，工具调用 ${caps.tool_call ?? 0}，附件 ${caps.attachment ?? 0}，上下文 ${caps.context_window ?? 0}`,
+      ],
+      muted: `流式 / 异步：公开目录未收录${catalog.doc ? `；文档：${catalog.doc}` : ''}`,
+    })
+  } else if (catalog.message) {
+    sections.push({ title: '模型目录', lines: [], muted: String(catalog.message) })
+  }
   return sections.filter((section) => section.lines.length || section.muted)
 })
 
@@ -1403,8 +1423,9 @@ const handleSyncProvider = async () => {
     syncReportVisible.value = true
     const pricing = body?.pricing ?? {}
     const descUpdated = body?.descriptions?.updated ?? 0
+    const catalogUpdated = body?.catalog?.descriptions?.updated ?? 0
     message.success(
-      `同步完成：计费 +${(pricing.inserted ?? 0)} / ~${(pricing.updated ?? 0)}，模型描述 ${descUpdated} 行`,
+      `同步完成：计费 +${(pricing.inserted ?? 0)} / ~${(pricing.updated ?? 0)}，模型描述 ${descUpdated + catalogUpdated} 行`,
       { duration: 3500 },
     )
     emit('changed')
