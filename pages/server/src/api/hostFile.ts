@@ -125,6 +125,8 @@ export const uploadHostFile = (hostId: number, dir: string, file: File) => {
  */
 export const downloadHostFile = (hostId: number, path: string) =>
   http().get(`${hostFileBase(hostId)}/download`).query({ path }).responseType("blob")
+    // 目录整体打包可能较慢，放宽到 120s（与磁盘占用分析同档）
+    .timeout(120_000)
     .then(r => r.data as Blob);
 
 /**
