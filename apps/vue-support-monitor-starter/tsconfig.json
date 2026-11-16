@@ -19,6 +19,15 @@
       // 路由入口 = @pages/osgi/src/routes（深导入口径，见 src/router/index.ts）。
       "@pages/osgi/*": ["../../pages/osgi/*"],
       "@pages/osgi": ["../../pages/osgi/src/index.ts"],
+      // osgi 包内文件的 @repo/* 解析（与 collect-scheduler 同款）：包文件按
+      // node_modules 最近优先解析，而 pnpm 只在各 app 的 node_modules 放了 @repo 链接，
+      // 从 pages/osgi/src 向上找不到（根 node_modules/@repo 为空）→ TS2307。
+      // 这里按 osgi 包实际 import 面显式列映射（re-* 子入口不能靠 * 通配，见根
+      // tsconfig 的生成段注释）。
+      "@repo/config": ["../../packages/config/src"],
+      "@repo/ui/re-button": ["../../packages/ui/src/components/ReButton/index.ts"],
+      "@repo/ui/re-tag": ["../../packages/ui/src/components/ReTag/index.ts"],
+      "@repo/ui/re-table": ["../../packages/ui/src/components/ReTable/index.ts"],
       // P2P 房间（@pages/room）：不占菜单也不占路由，由「服务管理」页内嵌 RoomView。
       // paths 保留给类型解析（monitor 与宿主都可能 import 本包）。
       "@pages/room/*": ["../../pages/room/*"],
