@@ -200,7 +200,7 @@ function onKeydown(e: KeyboardEvent): void {
 /* ===================== 容器 ===================== */
 .rm-number {
   --rm-num-bg: var(--rm-bg);
-  --rm-num-border: var(--rm-border-hover);
+  --rm-num-border: var(--rm-border);
   --rm-num-step-bg: transparent;
   --rm-num-step-color: var(--rm-text-secondary);
 
@@ -222,7 +222,7 @@ function onKeydown(e: KeyboardEvent): void {
 }
 
 .rm-number:hover:not(.rm-number--disabled):not(.rm-number--readonly) {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border-light)) inset;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border)) inset;
 }
 
 .rm-number--small { height: var(--rm-height-sm); border-radius: var(--rm-radius); min-width: 84px; }

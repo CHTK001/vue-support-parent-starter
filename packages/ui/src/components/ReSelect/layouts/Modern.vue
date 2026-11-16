@@ -25,7 +25,7 @@ const model = defineModel<string | number | (string | number)[] | null>({ defaul
 
 .re-select--modern :deep(.el-input__wrapper) {
   border-radius: var(--rm-radius-md);
-  box-shadow: 0 0 0 1px var(--rm-border-light) inset;
+  box-shadow: 0 0 0 1px var(--rm-border) inset;
   background: var(--rm-bg);
   transition: box-shadow var(--rm-transition), background var(--rm-transition);
 }

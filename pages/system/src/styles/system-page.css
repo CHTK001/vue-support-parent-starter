@@ -119,3 +119,49 @@
     gap: 8px;
   }
 }
+
+/* ==================== ReDialog Modern 弹窗内的原生 EP 表单件 ====================
+ * ReDialog 的 modern 布局把弹窗渲染成 .rm-dialog 并 Teleport 到 body：页面里
+ * scoped 的 :deep(.el-dialog ...) 既选不中壳（壳不是 .el-dialog），也因弹窗节点
+ * 不带 scoped data-v 属性而无法命中弹窗内容。实测弹窗内的原生 el-select /
+ * el-tree-select / el-input / el-segmented 一直走 Element 默认描边（亮色
+ * #dcdfe6，暗色 #4c4d4f），与 ReInput / ReSelect / ReInputNumber 的 --rm-border
+ * 深浅不一 —— 这就是「边框偏淡不统一」的另一半根因。
+ * 这里用全局规则（本文件随 system 包入口加载）统一到同一枚令牌。
+ * 圆角与尺寸不在这里改：koi 已把 --el-border-radius-base 映射为 --rm-radius（同为 6px）。
+ */
+.rm-dialog .el-select__wrapper:not(.is-disabled),
+.rm-dialog .el-input__wrapper:not(.is-disabled),
+.rm-dialog .el-textarea__inner {
+  background-color: var(--rm-bg);
+  box-shadow: 0 0 0 1px var(--rm-border) inset;
+}
+
+/* 分段控件自带浅灰轨道（--el-fill-color-light），只补外框，不改底色 */
+.rm-dialog .el-segmented {
+  box-shadow: 0 0 0 1px var(--rm-border) inset;
+}
+
+.rm-dialog .el-select__wrapper.is-hovering:not(.is-focused):not(.is-disabled),
+.rm-dialog .el-select__wrapper:hover:not(.is-focused):not(.is-disabled),
+.rm-dialog .el-input__wrapper:hover:not(.is-disabled),
+.rm-dialog .el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--rm-border-hover) inset;
+}
+
+.rm-dialog .el-select__wrapper.is-focused,
+.rm-dialog .el-input__wrapper.is-focus,
+.rm-dialog .el-textarea__inner:focus {
+  box-shadow:
+    0 0 0 1px var(--rm-primary) inset,
+    0 0 0 4px var(--rm-primary-light-9);
+}
+
+/* 图标选择器（ElInput #append 分段按钮）与输入框共用一条外框 */
+.rm-dialog .el-input-group__append {
+  background-color: var(--rm-bg-subtle);
+  box-shadow:
+    0 1px 0 0 var(--rm-border) inset,
+    0 -1px 0 0 var(--rm-border) inset,
+    -1px 0 0 0 var(--rm-border) inset;
+}

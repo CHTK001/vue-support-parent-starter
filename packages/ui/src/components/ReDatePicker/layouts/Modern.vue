@@ -96,7 +96,7 @@ const displayValue = computed(() => {
   padding: 0 12px;
   border-radius: var(--rm-radius-lg);
   background: var(--rm-bg);
-  box-shadow: 0 0 0 1px var(--rm-border-light) inset;
+  box-shadow: 0 0 0 1px var(--rm-border) inset;
   transition:
     box-shadow var(--rm-transition),
     background var(--rm-transition);
@@ -116,7 +116,7 @@ const displayValue = computed(() => {
 }
 
 .rm-date-wrap:hover:not(.rm-date-wrap--disabled) {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border-light)) inset;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rm-primary) 30%, var(--rm-border)) inset;
 }
 
 .rm-date-wrap--focused {

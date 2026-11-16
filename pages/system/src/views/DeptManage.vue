@@ -755,27 +755,10 @@ onMounted(loadList);
   height: 32px;
 }
 
-/* 统一弹窗内所有表单组件边框，深浅完全一致 */
-:deep(.el-dialog .el-select .el-input__wrapper),
-:deep(.el-dialog .el-tree-select .el-input__wrapper),
-:deep(.el-dialog .el-input .el-input__wrapper),
-:deep(.el-dialog .el-textarea__inner) {
-  box-shadow: 0 0 0 1px var(--el-border-color) inset !important;
-  background-color: var(--el-fill-color-blank);
-  border-radius: var(--el-radius-xs, 4px);
-}
-:deep(.el-dialog .el-select .el-input__wrapper:hover),
-:deep(.el-dialog .el-tree-select .el-input__wrapper:hover),
-:deep(.el-dialog .el-input .el-input__wrapper:hover),
-:deep(.el-dialog .el-textarea__inner:hover) {
-  box-shadow: 0 0 0 1px var(--el-border-color-hover) inset !important;
-}
-:deep(.el-dialog .el-select .el-input.is-focus .el-input__wrapper),
-:deep(.el-dialog .el-tree-select .el-input.is-focus .el-input__wrapper),
-:deep(.el-dialog .el-input .el-input.is-focus .el-input__wrapper),
-:deep(.el-dialog .el-textarea__inner:focus) {
-  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
-}
+/* 弹窗内原生 EP 表单件的描边统一规则放在 styles/system-page.css。
+ * ReDialog 的 modern 布局渲染 .rm-dialog 并 Teleport 到 body：这里既选不中壳
+ * （壳不是 .el-dialog），scoped :deep 也因弹窗节点不带 data-v 属性而永远失效
+ * （旧规则 :deep(.el-dialog ...) 从未命中，是「边框偏淡不统一」的根因之一）。 */
 /* 右侧上下结构布局 */
 .dept-detail-top {
   padding: 0 16px;

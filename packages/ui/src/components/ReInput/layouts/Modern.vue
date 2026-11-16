@@ -313,7 +313,7 @@ function togglePassword(): void {
   padding: 0 12px;
   border-radius: var(--rm-radius);
   background: var(--rm-bg);
-  box-shadow: 0 0 0 1px var(--rm-border-light) inset;
+  box-shadow: 0 0 0 1px var(--rm-border) inset;
   transition:
     box-shadow var(--rm-transition),
     background var(--rm-transition);
