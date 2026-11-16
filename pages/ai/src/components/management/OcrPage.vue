@@ -707,7 +707,11 @@ onBeforeUnmount(() => {
   color: var(--ocr-text);
 }
 
-:global(html.dark) .ocr-root {
+/* 暗色身份色覆盖。
+   注意不能写 `:global(html.dark) .ocr-root` —— Vue SFC 编译后只剩裸 `html.dark`，
+   `.ocr-root` 被吞掉，覆盖静默失效（同 FaceSearchPage.vue 的坑）。
+   scoped 内直接写 `html.dark .ocr-root`，编译成 `html.dark .ocr-root[data-v-xxx]`。 */
+html.dark .ocr-root {
   --ocr-brand: #fb923c;
   --ocr-brand-2: #fdba74;
   --ocr-accent: #22d3ee;

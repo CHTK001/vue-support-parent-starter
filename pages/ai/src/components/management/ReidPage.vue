@@ -886,8 +886,10 @@ onUnmounted(() => {
   color: var(--reid-text);
 }
 
-/* 暗色身份色：与人脸页一致，橙/青在深底上用更亮的一档，否则检测框发闷 */
-:global(html.dark) .reid-root {
+/* 暗色身份色：与人脸页一致，橙/青在深底上用更亮的一档，否则检测框发闷。
+   注意不能写 `:global(html.dark) .reid-root` —— Vue SFC 编译后只剩裸 `html.dark`，
+   `.reid-root` 被吞掉，覆盖静默失效（同 FaceSearchPage.vue 的坑）。 */
+html.dark .reid-root {
   --reid-brand: #fb923c;
   --reid-brand-2: #fdba74;
   --reid-accent: #22d3ee;
