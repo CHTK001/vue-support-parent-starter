@@ -33,11 +33,23 @@
             <el-icon :size="13"><LinkOutlined /></el-icon>
             <span class="d-band-url-text">{{ provider.apiUrl }}</span>
           </div>
+          <!--
+            上次「同步」落库的限制摘要（extra.provider_limits）：不点同步也能看到当前口径。
+            只显示实际存在的维度，未收录就不占位 —— 这里不能出现 0。
+          -->
+          <div
+            v-if="providerLimits"
+            class="d-band-url d-band-limits"
+            :title="providerLimits.title"
+          >
+            <el-icon :size="13"><SpeedOutlined /></el-icon>
+            <span class="d-band-url-text">{{ providerLimits.summary }}</span>
+          </div>
         </div>
         <div class="d-band-actions">
           <!--
             路由组：没有上游地址、没有自己的模型行，只做「成员来自模型库 + 组内策略」，
-            因此隐藏「编辑供应商 / 添加模型 / 同步价格」，成员在下方配置面板里维护。
+            因此隐藏「编辑供应商 / 添加模型 / 同步」，成员在下方配置面板里维护。
           -->
           <el-button v-if="canWrite && !isRouterGroup" @click="emit('edit-provider')" round>
             <template #icon><EditOutlined /></template>
@@ -51,9 +63,9 @@
             <template #icon><PlusOutlined /></template>
             {{ t('settings.providerDetail.addModel') }}
           </el-button>
-          <el-button v-if="!isOnnx && !isRouterGroup && canWrite" round :loading="syncPricingLoading" @click="handleSyncPricing">
+          <el-button v-if="!isOnnx && !isRouterGroup && canWrite" round :loading="syncLoading" @click="handleSyncProvider">
             <template #icon><Timer /></template>
-            同步价格
+            同步
           </el-button>
         </div>
       </section>
@@ -456,6 +468,21 @@
       :provider-id="provider.providerId"
     />
 
+    <!-- 同步结果：限制 / 计费标准 / 模型描述三段分开显示，失败原因与已尝试链路一并给出 -->
+    <el-dialog v-model="syncReportVisible" title="同步结果" width="560px" append-to-body>
+      <div v-if="syncReport" class="sync-report">
+        <div v-for="section in syncSections" :key="section.title" class="sync-section">
+          <div class="sync-section-title">{{ section.title }}</div>
+          <div v-for="line in section.lines" :key="line" class="sync-line">{{ line }}</div>
+          <div v-if="section.muted" class="sync-muted">{{ section.muted }}</div>
+        </div>
+        <div v-if="!syncSections.length" class="sync-muted">本次没有可展示的同步结果</div>
+      </div>
+      <template #footer>
+        <el-button type="primary" round @click="syncReportVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 弹窗 -->
     <ModelFormDialog
       ref="formRef"
@@ -488,7 +515,7 @@ import CardAvatar from '../ui/CardAvatar.vue'
 import {
   SettingsOutlined, RemoveCircleOutlineRound, ScienceOutlined,
   PlusOutlined, LinkOutlined, EditOutlined, DeleteOutlined,
-  SearchOutlined, ViewListOutlined, GridViewOutlined,
+  SearchOutlined, ViewListOutlined, GridViewOutlined, SpeedOutlined,
 } from '@vicons/material'
 import {
   TextT24Regular, Image24Regular, DocumentText24Regular,
@@ -1239,46 +1266,152 @@ const handleDelete = async (model: any) => {
   emit('changed')
 }
 
-/** 同步价格：从服务商指标端点拉取价格/能力数据写入指标库 */
-const syncPricingLoading = ref(false)
-const handleSyncPricing = async () => {
+/** 同步：限制 + 计费标准 + 模型描述（后端 POST /providers/{id}/sync） */
+const syncLoading = ref(false)
+const syncReportVisible = ref(false)
+const syncReport = ref<any>(null)
+
+/** 限制里可量化的维度：拿不到的维度不写 0，也不占位 */
+const limitCoreLines = (limit: any): string[] => {
+  if (!limit || typeof limit !== 'object') return []
+  const lines: string[] = []
+  if (limit.concurrency != null) lines.push(`并发上限：${limit.concurrency}`)
+  if (limit.model_concurrency && typeof limit.model_concurrency === 'object') {
+    const perModel = Object.entries(limit.model_concurrency)
+      .map(([name, value]) => `${name} ${value}`)
+      .join('，')
+    if (perModel) lines.push(`按模型并发：${perModel}`)
+  }
+  if (limit.requests_per_minute != null) lines.push(`请求频率：${limit.requests_per_minute} RPM`)
+  if (limit.requests_per_hour != null) lines.push(`请求频率：${limit.requests_per_hour} 次/小时`)
+  if (limit.requests_per_day != null) lines.push(`请求上限：${limit.requests_per_day} 次/天`)
+  if (limit.tokens_per_minute != null) lines.push(`Token 频率：${limit.tokens_per_minute} TPM`)
+  if (limit.tokens_per_day != null) lines.push(`Token 上限：${limit.tokens_per_day}/天`)
+  if (limit.monthly_request_quota != null) lines.push(`月度请求配额：${limit.monthly_request_quota}`)
+  if (limit.monthly_token_quota != null) lines.push(`月度 Token 配额：${limit.monthly_token_quota}`)
+  if (limit.billing_basis) lines.push(`计费口径：${limit.billing_basis}${limit.currency ? `（${limit.currency}）` : ''}`)
+  return lines
+}
+
+/** 限制全量文本（弹窗用）：量化维度 + 备注 + 来源 */
+const limitValueLines = (limit: any): string[] => {
+  const lines = limitCoreLines(limit)
+  if (limit && typeof limit === 'object') {
+    if (limit.notes) lines.push(limit.notes)
+    if (limit.source_url) lines.push(`来源：${limit.source_url}`)
+  }
+  return lines
+}
+
+/**
+ * 上次同步落库的限制（extra.provider_limits）：{ 摘要, 悬停全文 }。
+ * 只读已持久化的数据，不额外发请求；没有就整行不显示。
+ */
+const providerLimits = computed(() => {
+  const report = props.provider?.extra?.provider_limits
+  if (!report || typeof report !== 'object') return null
+  const declared = report.declared && typeof report.declared === 'object' ? report.declared : null
+  const observed = report.observed && typeof report.observed === 'object' ? report.observed : null
+  const declaredCore = limitCoreLines(declared)
+  const observedCore = limitCoreLines(observed)
+  if (!declaredCore.length && !observedCore.length) return null
+  const source = declared?.source || observed?.source || ''
+  const capturedAt = report.captured_at ? new Date(report.captured_at).toLocaleString('zh-CN') : ''
+  const head = (declaredCore.length ? declaredCore : observedCore).slice(0, 2)
+  const summary = `限制：${head.join('，')}${source ? `（${source}）` : ''}`
+  const title = [
+    ...declaredCore.map((line: string) => `官方 / 手动：${line}`),
+    ...observedCore.map((line: string) => `响应头：${line}`),
+    source ? `来源标识：${source}` : '',
+    capturedAt ? `同步时间：${capturedAt}` : '',
+  ].filter(Boolean).join('\n')
+  return { summary, title }
+})
+
+const syncSections = computed(() => {
+  const body = syncReport.value
+  if (!body) return [] as Array<{ title: string; lines: string[]; muted?: string }>
+  const sections: Array<{ title: string; lines: string[]; muted?: string }> = []
+
+  const limits = body.limits ?? {}
+  const declaredLines = limitValueLines(limits.declared)
+  const observedLines = limitValueLines(limits.observed)
+  const attempted = Array.isArray(limits.attempted)
+    ? limits.attempted.map((row: any) => {
+        const status = row?.status === 'hit' ? '命中' : row?.status === 'error' ? '失败' : '未命中'
+        return `${row?.kind ?? '?'} ${status}`
+      }).join('，')
+    : ''
+  sections.push({
+    title: '限制',
+    lines: [
+      ...declaredLines.map((line) => `官方 / 手动：${line}`),
+      ...observedLines.map((line) => `响应头：${line}`),
+    ],
+    muted: declaredLines.length || observedLines.length
+      ? (attempted ? `已尝试：${attempted}` : '')
+      : `未收录${attempted ? `（已尝试：${attempted}）` : ''}`,
+  })
+
+  const pricing = body.pricing ?? {}
+  const pricingLines: string[] = []
+  if (pricing.billing_basis) pricingLines.push(`计费口径：${pricing.billing_basis}`)
+  if (pricing.supported) {
+    pricingLines.push(
+      `官方指标源：更新 ${pricing.updated ?? 0} 条，新增 ${pricing.inserted ?? 0} 条，回写模型 ${pricing.provider_models ?? 0} 行`
+      + (pricing.source ? `（来源：${pricing.source}）` : ''),
+    )
+  } else {
+    pricingLines.push(`官方指标源：未接入${pricing.pricing_url ? `（官方价格页：${pricing.pricing_url}）` : ''}`)
+  }
+  if (pricing.upstream) {
+    pricingLines.push(
+      `上游目录：更新 ${pricing.upstream.updated ?? 0} 条，新增 ${pricing.upstream.inserted ?? 0} 条，`
+      + `回写模型 ${pricing.upstream.provider_models ?? 0} 行`,
+    )
+  }
+  sections.push({ title: '计费标准', lines: pricingLines })
+
+  const desc = body.descriptions ?? {}
+  sections.push({
+    title: '模型描述',
+    lines: desc.supported
+      ? [`上游 ${desc.fetched ?? 0} 个模型，更新 ${desc.updated ?? 0} 行，未变 ${desc.unchanged ?? 0} 行，本地未配置 ${desc.missing ?? 0} 个`]
+      : [],
+    muted: desc.message || (desc.supported ? '' : '未拉取上游模型目录'),
+  })
+
+  if (body.fetch_error) {
+    sections.push({ title: '上游目录', lines: [], muted: String(body.fetch_error) })
+  }
+  return sections.filter((section) => section.lines.length || section.muted)
+})
+
+const handleSyncProvider = async () => {
   const providerId = props.provider?.id ?? props.provider?.provider_id
   if (!providerId) return
-  syncPricingLoading.value = true
+  syncLoading.value = true
   try {
-    const res: any = await modelApi.syncPricing(providerId)
+    const res: any = await modelApi.syncProvider(providerId, {})
     const body = res?.data ?? res
     if (body?.success === false) throw new Error(body?.message || '同步失败')
-    const updated: number = body?.updated ?? 0
-    const inserted: number = body?.inserted ?? 0
-    const providerModels: number = body?.provider_models ?? 0
-    const source: string = body?.source ?? ''
-    if (body?.supported === false) {
-      const pricingUrl: string = body?.pricing_url ?? ''
-      message.warning(
-        `该服务商暂未接入自动同步指标${pricingUrl ? `（官方价格页：${pricingUrl}）` : ''}`,
-        { duration: 4000 },
-      )
-    } else {
-      const parts: string[] = []
-      if (updated > 0) parts.push(`更新 ${updated} 条`)
-      if (inserted > 0) parts.push(`新增 ${inserted} 条`)
-      if (providerModels > 0) parts.push(`回写模型 ${providerModels} 行`)
-      if (parts.length === 0) {
-        message.success(`指标已是最新${source ? `（来源：${source}）` : ''}`, { duration: 3000 })
-      } else {
-        message.success(`价格同步完成：${parts.join('，')}${source ? `（来源：${source}）` : ''}`, { duration: 4000 })
-      }
-    }
+    syncReport.value = body
+    syncReportVisible.value = true
+    const pricing = body?.pricing ?? {}
+    const descUpdated = body?.descriptions?.updated ?? 0
+    message.success(
+      `同步完成：计费 +${(pricing.inserted ?? 0)} / ~${(pricing.updated ?? 0)}，模型描述 ${descUpdated} 行`,
+      { duration: 3500 },
+    )
     emit('changed')
   } catch (error: any) {
     const detail = error?.response?.data?.message
       || error?.response?.data?.msg
       || error?.message
-      || '同步价格失败'
+      || '同步失败'
     message.error(String(detail), { duration: 3000 })
   } finally {
-    syncPricingLoading.value = false
+    syncLoading.value = false
   }
 }
 
@@ -1473,6 +1606,12 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* 已落库的限制摘要：中文按正文字体，不用等宽；过长时省略，全文在 title 里 */
+.d-band-limits { color: var(--color-text-gray); }
+.d-band-limits .d-band-url-text {
+  font-family: inherit;
+  cursor: help;
 }
 .d-band-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .d-del-btn {
@@ -1999,6 +2138,13 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .mc-btn:disabled { cursor: not-allowed; opacity: .45; }
 .mc-btn:disabled:hover { color: var(--color-text-gray); background: transparent; }
 .mc-btn.danger:hover { color: var(--el-color-danger); background: color-mix(in srgb, var(--el-color-danger) 12%, transparent); }
+
+/* 同步结果弹窗：限制 / 计费标准 / 模型描述三段分节，长 URL 允许换行 */
+.sync-report { display: flex; flex-direction: column; gap: 14px; }
+.sync-section { display: flex; flex-direction: column; gap: 4px; }
+.sync-section-title { font-size: 13px; font-weight: 600; color: var(--color-text-primary); }
+.sync-line { font-size: 12px; line-height: 1.7; color: var(--color-text-gray); word-break: break-all; }
+.sync-muted { font-size: 12px; line-height: 1.7; color: var(--color-text-gray); opacity: .75; word-break: break-all; }
 
 /* 动效降级：系统开启「减少动态效果」时，模型卡的描边/底色/阴影与卡片按钮的颜色直接到位。
    逐个列出，不写 `*` / .mc * 通配，

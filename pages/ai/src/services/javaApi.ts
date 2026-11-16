@@ -40,6 +40,12 @@ export const modelApi = {
     apiHttp.post(`/api/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(modelName)}/test-latency`),
   syncPricing: (providerId: string) =>
     apiHttp.post(`/api/providers/${encodeURIComponent(providerId)}/models/sync-pricing`),
+  /**
+   * 供应商「同步」：限制（并发 / 频率 / 配额 / 计费口径）+ 计费标准 + 模型描述。
+   * 结果持久化到提供商 extra.provider_limits 与模型指标表。
+   */
+  syncProvider: (providerId: string, data?: any) =>
+    apiHttp.post(`/api/providers/${encodeURIComponent(providerId)}/sync`, data ?? {}),
   pipelines: () => http.get('/models/pipelines'),
   get: (id: string) => http.get(`/models/${id}`),
 };

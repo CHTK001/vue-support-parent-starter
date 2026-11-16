@@ -17,6 +17,7 @@ const ROOT = process.env.CHUA_PROJECT_ROOT || path.resolve(__dirname, '../../../
 const TPL = path.join(ROOT, 'vue-support-parent-starter/pages/ai/src/components/models/model.constants.ts');
 const JAVA = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/java/com/chua/starter/datasearch/credit/spi/impl/HostCreditQueryProvider.java');
 const APC = path.join(ROOT, 'spring-support-parent-starter/spring-support-ai-starter/src/main/java/com/chua/starter/ai/support/manage/api/ApiProviderController.java');
+const LIMIT_PRESETS = path.join(ROOT, 'spring-support-parent-starter/spring-support-ai-starter/src/main/java/com/chua/starter/ai/support/manage/limit/ProviderLimitPresets.java');
 const OUT = process.argv[2] || path.join(ROOT, 'vue-support-parent-starter/pages/ai/docs/提供商.md');
 
 const src = fs.readFileSync(TPL, 'utf8');
@@ -51,6 +52,25 @@ const relayKinds = chainMatch
   ? [...chainMatch[1].matchAll(/"([^"]+)"/g)].map((x) => x[1])
   : [];
 const relayChain = relayKinds.map((k) => KIND_LABEL[k] || k).join(' → ');
+
+// 限制预设：只读 Java 里的方法块（source / sourceUrl / verified / 是否有数值），不手写结论
+let presetRows = [];
+try {
+  const presetSrc = fs.readFileSync(LIMIT_PRESETS, 'utf8');
+  const blocks = [...presetSrc.matchAll(/private static ProviderLimit (\w+)\(\) \{([\s\S]*?)\n    \}/g)];
+  presetRows = blocks.map((m) => {
+    const body = m[2];
+    return {
+      key: m[1],
+      source: (body.match(/\.source\("([^"]+)"/) || [])[1] || m[1],
+      url: (body.match(/\.sourceUrl\("([^"]+)"/) || [])[1] || '',
+      verified: /\.verified\(true\)/.test(body),
+      hasNumbers: /\.(concurrency|modelConcurrency|requestsPerMinute|requestsPerHour|requestsPerDay|tokensPerMinute|tokensPerDay|monthlyRequestQuota|monthlyTokenQuota)\(/.test(body),
+    };
+  });
+} catch (e) {
+  presetRows = [];
+}
 const hostOf = (url) => {
   if (!url) return null;
   try { return new URL(url).hostname.toLowerCase(); } catch { return null; }
@@ -106,10 +126,34 @@ function modelsOf(t) {
   return '远端 /models';
 }
 
+/**
+ * 限制路径：镜像 ProviderLimitPresets.find(platform, baseUrl) 的匹配顺序与条件。
+ * 返回 { text, preset }，preset 为命中的预设名（未命中为 null）。
+ */
+function limitOf(t) {
+  const host = hostOf(t.url) || '';
+  const p = String(t.id || '').toLowerCase();
+  const has = (s) => p.includes(s);
+  const matches = [
+    ['deepseek', has('deepseek') || host.includes('deepseek.com')],
+    ['moss', has('moss') || host.includes('moss.cn')],
+    ['openai', has('openai') && host.includes('openai.com')],
+    ['anthropic', (has('anthropic') || has('claude')) && host.includes('anthropic.com')],
+    ['gemini', (has('gemini') || has('google')) && host.includes('googleapis.com')],
+  ];
+  for (const [name, hit] of matches) {
+    if (hit) return { preset: name, text: '文档预设（' + name + '）' };
+  }
+  if (!t.url) return { preset: null, text: '仅手动（无上游地址）' };
+  if (t.id === 'onnx') return { preset: null, text: '仅手动（本地推理）' };
+  return { preset: null, text: '响应头 → 手动' };
+}
+
 const seen = new Map();
 for (const t of rows) {
   t.credit = creditOf(t);
   t.models = modelsOf(t);
+  t.limit = limitOf(t);
   t.proto = protocolLabel[t.protocol] || t.protocol;
   seen.set(t.id, (seen.get(t.id) || 0) + 1);
 }
@@ -117,6 +161,7 @@ for (const t of rows) {
 const tally = (keyFn) => rows.reduce((acc, r) => { const k = keyFn(r); acc[k] = (acc[k] || 0) + 1; return acc; }, {});
 const byCredit = tally((r) => r.credit.level);
 const byProto = tally((r) => r.proto);
+const byLimit = tally((r) => (r.limit.preset ? 'preset' : r.limit.text));
 const officialRows = rows.filter((r) => r.credit.level === 'official');
 const officialIds = [...new Set(officialRows.map((r) => r.id))];
 
@@ -124,7 +169,7 @@ const lines = [];
 lines.push('# 提供商能力矩阵（AI 控制台）');
 lines.push('');
 lines.push('> 数据来源：`pages/ai/src/components/models/model.constants.ts`（模板库，' + rows.length + ' 行 / ' + seen.size + ' 个唯一 id，2026-11-16）');
-lines.push('> 判定依据：`ApiProviderController` 的 `creditBrand` / `candidateKinds` / `creditLevel` / `isOfficialOpenAi` / `AUTO_CREDIT_KINDS`，`HostCreditQueryProvider.HOSTS` / `sameOrigin`，`fetchModelsFromUpstream`');
+lines.push('> 判定依据：`ApiProviderController` 的 `creditBrand` / `candidateKinds` / `creditLevel` / `isOfficialOpenAi` / `AUTO_CREDIT_KINDS` / `syncProvider`，`HostCreditQueryProvider.HOSTS` / `sameOrigin`，`fetchModelsFromUpstream`，`ProviderLimits` / `ProviderLimitPresets` / `HeaderProviderLimitProvider`');
 lines.push('> 本表由 `pages/ai/docs/gen-providers-doc.js` 生成，改模板或改预设后重跑即可，不要手改。');
 lines.push('');
 lines.push('## 一、结论');
@@ -135,12 +180,14 @@ lines.push('| 模板行数 / 唯一 id | ' + rows.length + ' 行，' + seen.size
 lines.push('| 协议分布 | ' + Object.entries(byProto).map(([k, v]) => k + ' ' + v).join('、') + ' |');
 lines.push('| 拉取模型 | 除 ONNX / 路由组 / 免费渠道 / 自填地址外，其余模板都走 `GET {base_url}/models`；OpenAI 兼容与 Gemini 可直接用（Gemini 用 `?key=`），Anthropic(CC) 看上游是否认 Bearer（见第二节） |');
 lines.push('| 余额查询 | 官方预设 ' + (byCredit.official || 0) + ' 行（' + officialIds.length + ' 个厂商）、OpenAI 官方 ' + (byCredit.openai || 0) + '、中转探测 ' + (byCredit.relay || 0) + '、不查 ' + (byCredit.none || 0) + ' |');
+lines.push('| 限制查询 | 文档预设命中 ' + Object.entries(byLimit).filter(([k]) => k === 'preset').reduce((a, [, v]) => a + v, 0) + ' 行、响应头观测 ' + (byLimit['响应头 → 手动'] || 0) + ' 行、仅手动 ' + ((byLimit['仅手动（无上游地址）'] || 0) + (byLimit['仅手动（本地推理）'] || 0)) + ' 行；官方预设共 ' + presetRows.length + ' 家，其中数值已核对 ' + presetRows.filter((r) => r.verified && r.hasNumbers).length + ' 家 |');
 lines.push('');
 lines.push('**200+ 家的实际含义**：没有任何一家是「逐家写死代码」。');
 lines.push('');
 lines.push('- **官方预设**：' + officialIds.length + ' 个厂商有明确的余额端点（`HostCreditQueryProvider.HOSTS`），命中后直接用它的地址和字段；');
 lines.push('- **中转探测**：其余 ' + (byCredit.relay || 0) + ' 行，按后端 `AUTO_CREDIT_KINDS` 的顺序依次试（本次生成时为 `' + relayChain + '`），谁先返回数字谁算数，全不通就只显示「已尝试：…」和上游原文；');
 lines.push('- **不查**：没有上游地址（路由组 / 自填）、或地址指向本机（ONNX / Ollama），发请求没有意义。');
+lines.push('- **限制**：同理不逐家写死 —— 官方文档收录了 ' + presetRows.length + ' 家，其余靠「拉 `/models` 时顺带读响应头」观测，都拿不到才显示「未收录」，中转站可把后台看到的并发 / RPM 填进 `extra.limits_manual`。第四节每行的「限制路径」列就是这个判定结果。');
 lines.push('');
 lines.push('## 二、拉取模型：OpenAI / CC / Gemini 三种协议怎么请求');
 lines.push('');
@@ -151,7 +198,7 @@ lines.push('| 协议 | 请求地址 | 认证 | 覆盖行数 | 结论 |');
 lines.push('| --- | --- | --- | --- | --- |');
 lines.push('| OpenAI 兼容 | `{base}/models`；404 且非 Gemini 时补 `{base}/v1/models` 重试一次；Ollama 再回落 `/api/tags` | 默认 `Authorization: Bearer`，可改头名与前缀 | ' + (byProto['OpenAI 兼容'] || 0) + ' | 支持 |');
 lines.push('| Gemini | `{base}/models?key=<key>`（platform 含 google / gemini 时用查询参数认证） | `?key=` | ' + (byProto.Gemini || 0) + ' | 支持 |');
-lines.push('| Anthropic(CC) | `{base}/models`（与其他协议同一条链，没有单独分支） | 只发一个认证头，**不带** `anthropic-version` | ' + (byProto['Anthropic(CC)'] || 0) + ' | 看上游：CC 中转站（one-api / new-api 系）大多认 Bearer，能拉到；Anthropic 官方 `/v1/models` 要 `x-api-key` + `anthropic-version`，默认配置会 401（见第六节缺口） |');
+lines.push('| Anthropic(CC) | `{base}/models`（与其他协议同一条链，没有单独分支） | 只发一个认证头，**不带** `anthropic-version` | ' + (byProto['Anthropic(CC)'] || 0) + ' | 看上游：CC 中转站（one-api / new-api 系）大多认 Bearer，能拉到；Anthropic 官方 `/v1/models` 要 `x-api-key` + `anthropic-version`，默认配置会 401（见第七节缺口） |');
 lines.push('');
 lines.push('只有 **404** 会被当成「拉不到」，401 / 403 / 429 分别回「Key 无效」「没有读取模型列表的权限」「请求过于频繁」，页面据此区分「地址填错」和「Key 权限不对」。不拉模型列表的只有 4 类：ONNX（读本地模型门面）、路由组（读模型库成员）、免费渠道（读运行时合并路由表）、自填地址的 `custom`。');
 lines.push('');
@@ -187,26 +234,62 @@ lines.push('**同源是硬约束**：`base_url` 的用途是证明「这把 Key 
 lines.push('');
 lines.push('## 四、逐个提供商');
 lines.push('');
-lines.push('| # | 提供商 | 模板 id | 协议 | 拉取模型 | 余额查询 | 默认地址 |');
-lines.push('| --- | --- | --- | --- | --- | --- | --- |');
+lines.push('| # | 提供商 | 模板 id | 协议 | 拉取模型 | 余额查询 | 限制路径 | 默认地址 |');
+lines.push('| --- | --- | --- | --- | --- | --- | --- | --- |');
 rows.forEach((r, i) => {
   const url = r.url ? '`' + r.url.replace(/^https?:\/\//, '') + '`' : '—';
-  lines.push('| ' + (i + 1) + ' | ' + r.name + ' | `' + r.id + '` | ' + r.proto + ' | ' + r.models + ' | ' + r.credit.text + ' | ' + url + ' |');
+  lines.push('| ' + (i + 1) + ' | ' + r.name + ' | `' + r.id + '` | ' + r.proto + ' | ' + r.models + ' | ' + r.credit.text + ' | ' + r.limit.text + ' | ' + url + ' |');
 });
 lines.push('');
-lines.push('## 五、验证状态（照实写）');
+lines.push('## 五、限制与计费口径怎么同步（供应商详情「同步」）');
+lines.push('');
+lines.push('入口：供应商详情 →「同步」→ `POST /api/providers/{id}/sync`。一次点击做三件事，结果按分节返回：');
+lines.push('');
+lines.push('| 分节 | 数据来源 | 落点 | 拿不到时 |');
+lines.push('| --- | --- | --- | --- |');
+lines.push('| 限制 | 手动配置 → 官方文档预设 → 上游响应头，按此顺序 | `sys_ai_provider.extra.provider_limits` | 页面显示「未收录」并列出已尝试链路，不写 0 |');
+lines.push('| 计费标准 | 官方指标源（`ChatClientIndicators`）+ 上游 `/models` 的 pricing | `sys_ai_model_metrics` + 服务商模型行 | 已有价格不覆盖；官方源未接入时给出官方价格页 |');
+lines.push('| 模型描述 | 上游 `/models` 的 `description` / `summary` | `sys_ai_provider_model.description` | 默认只补空值，`overwrite_descriptions=true` 才覆盖 |');
+lines.push('');
+lines.push('**限制机制**（`ProviderLimits`，与余额同构：一种机制一个实现，不逐家写死）：');
+lines.push('');
+lines.push('- `manual`：读 `extra.limits_manual`，支持 `concurrency`、`requests_per_minute`、`requests_per_day`、`tokens_per_minute`、`tokens_per_day`、`monthly_request_quota`、`monthly_token_quota`、`billing_basis`、`currency`、`notes`、`source_url`、`model_concurrency`；');
+lines.push('- `doc`：`ProviderLimitPresets` 里按平台 / 域名匹配的官方文档口径；');
+lines.push('- `header`：复用本次 `GET /models` 的响应头，读 `x-ratelimit-*`（OpenAI 风格）、`ratelimit-policy` / `ratelimit-limit`（IETF 草案）、`anthropic-ratelimit-*`、`retry-after`。不额外发请求。');
+lines.push('');
+lines.push('**已收录的官方文档预设**：');
+lines.push('');
+lines.push('| 厂商 | 来源 | 数值是否逐项核对 | 官方文档 |');
+lines.push('| --- | --- | --- | --- |');
+presetRows.forEach((r) => {
+  const state = r.verified
+    ? (r.hasNumbers ? '已核对（含数值）' : '已核对（仅口径）')
+    : '仅机制说明，数值随账户等级变化';
+  lines.push('| `' + r.source + '` | ' + r.key + ' 预设 | ' + state + ' | ' + (r.url ? '`' + r.url.replace(/^https?:\/\//, '') + '`' : '—') + ' |');
+});
+lines.push('');
+lines.push('DeepSeek 的并发是账号级（所有 API Key 合并计算），官方按模型给固定值；Moss 只公布了计费口径与「以服务端错误码为准」，没有固定并发 / RPM 数字；OpenAI / Anthropic / Gemini 是按账户等级分级，本表不写死数字，运行时交给响应头观测。');
+lines.push('');
+lines.push('**为什么 200+ 家都能覆盖**：网关类的限流头是行业通行做法，只要能拉到 `/models` 就能顺带读到；读不到就说明对方没有公开口径，页面照实说「未收录」，不编数字。中转站 / 自建网关也可以把后台看到的并发、RPM 填进 `extra.limits_manual`，同步时原样落库。');
+lines.push('');
+lines.push('## 六、验证状态（照实写）');
 lines.push('');
 lines.push('- 真正跑过真实链路的供应商只有 4 家：Moss（三家口径全 404，原样回传）、路由组（`none`，不查）、Agnes AI（`billing` 命中，读到真实额度）、ONNX（`none`，本地推理）；');
 lines.push('- 其余「官方预设」只做过**假 Token 探活路由**（404 说明路径不对，401/403 说明路径存在），没有用真实 Key 做过字段级验证；');
 lines.push('- 「中转探测」这类没有逐家验证过——它本来就是对未知站点的依次尝试，命中与否取决于对方有没有挂那套接口；');
+lines.push('- 限制预设只做了**官方文档原文核对**（DeepSeek 并发、Moss 计费口径），没有在运行实例上用真实 Key 跑过响应头观测；`header` 机制以「本次 `/models` 响应里实际出现的头」为准，没出现就是 `miss`；');
+lines.push('- 「同步」接口的新代码已编译通过（`mvn -pl spring-support-ai-starter compile`），但 8082 运行实例仍是旧 jar，接口级验收待换 jar 后执行；');
 lines.push('- 表里不会出现「支持」这种断言，只有「会走哪条路」。');
 lines.push('');
-lines.push('## 六、已知缺口');
+lines.push('## 七、已知缺口');
 lines.push('');
 lines.push('- **Anthropic 官方拉模型缺 `anthropic-version`**：`requestUpstreamModels` 只发一个认证头，官方 `/v1/models` 除 `x-api-key` 外还要 `anthropic-version: 2023-06-01`，所以 `anthropic` 模板用官方 Key 拉模型会 401（「检测协议」那条链带了这个头，能过）。目前只能靠 CC 中转站或手填模型；要让官方 Key 直接可拉，得在拉模型链路补上这个头。');
 lines.push('- 有官方余额接口、但本仓库还没有预设的厂商（如智谱、MiniMax 等）：没有拿到官方文档原文，一律不加，避免编地址；这类暂时落到「中转探测」，不通再用手配的「自定义地址 + 字段表达式」；');
 lines.push('- 每家的余额字段路径没有统一的行业标准，同一个 `billing` 口径在不同站点也会返回不同单位（USD / 美分 / 次数），表达式兜底就是为这个准备的。');
 lines.push('- **免费渠道**是纯路由聚合（模型来自运行时合并路由表），自己没有账户，模板里的 `free.nomifun.com/v1` 只是占位地址；余额面板仍会按「中转探测」去请求它，结果没有业务意义，看这一行时忽略余额列即可。');
+lines.push('- **限制只能观测到「上游肯说」的那部分**：限流做在网关 / nginx 层、响应头不返 `*ratelimit*` 的站点，这次同步拿到的就是「未收录」，只能靠 `extra.limits_manual` 手填；官方文档只收录已核对原文的 5 家，其余厂商不编数字。');
+lines.push('- **`extra.limits_manual` 目前没有独立表单**：写入口是供应商的 `extra` 配置（接口 / 库），管理面还没有「并发 / RPM / 配额」的输入控件；要改只能改 `extra`。这一步没做，是因为先要把同步链路跑通。');
+lines.push('- **上游 pricing 不是每家都有**：中转站 `/models` 大多只回 id 与 name，`pricing` 只有 OpenRouter 这类聚合站才带；没有上游价格时计费标准只能来自官方指标源（`ChatClientIndicators`），两条都没有就显示「未接入」，不猜价格。');
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, lines.join('\n') + '\n', 'utf8');
