@@ -162,6 +162,8 @@
       title="ReID 管线"
       subtitle="裁脸 → 重识别特征 → 跨帧归并；这一段的模型与参数决定「这个人去过哪」，两套特征分别入库"
     >
+      <!-- Q4 定宽：ReID 全部行统一走固定控件列宽，不再让模型行占满剩余宽度，
+           保证各行宽度一致、左右对齐。注意注释只能写在这里，写进标签内部是非法模板。 -->
       <SettingsRow
         v-for="item in REID_FIELDS"
         :key="item.field"
@@ -170,7 +172,6 @@
         :badge="badgeOf(item.field)"
         :risk="item.risk"
         :risk-tip="item.riskTip"
-        :control-flex="item.type === 'model' || item.type === 'text'"
       >
         <el-input
           v-if="item.type === 'model'"
@@ -375,12 +376,6 @@ const REID_FIELDS: FieldSpec[] = [
     min: 0,
     max: 2592000,
     integer: true,
-  },
-  {
-    field: 'default_camera_id',
-    label: '默认摄像头标识',
-    description: '调用方未指定摄像头时用它归属观测；留空表示不指定',
-    type: 'text',
   },
 ]
 
