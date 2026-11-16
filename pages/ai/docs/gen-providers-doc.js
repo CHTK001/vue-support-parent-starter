@@ -141,7 +141,29 @@ function creditOf(t) {
   if (host && (host === 'api.openai.com' || host.endsWith('.openai.com'))) {
     return { level: 'openai', text: 'OpenAI 官方' };
   }
+  // 官方站点但没有已收录的余额接口：不当中转站，一个请求都不发（与后端 creditLevel=uncovered 同口径）
+  if (isOfficialSiteOf(t)) {
+    return { level: 'uncovered', text: '官方站点·未收录（不探测）' };
+  }
   return { level: 'relay', text: '中转探测' };
+}
+
+// 官方站点判定：与 ProviderRegistries.isOfficialSite 同口径 ——
+// 先按平台标签查登记项，主机名命中任意登记项的 hosts 时同样算官方站点（平台标签不可信时以主机名为准）
+const hostMatches = (host, official) => !!host && !!official
+  && (host === official || host.endsWith('.' + official) || official.endsWith('.' + host));
+function isOfficialSiteOf(t) {
+  const byIdEntry = registryById.get(String(t.id || '').toLowerCase());
+  const entry = byIdEntry || (hostOf(t.url)
+    ? (providerRegistry.providers || []).find((p) =>
+      (p.hosts || []).some((h) => hostMatches(hostOf(t.url), String(h || '').toLowerCase())))
+    : null);
+  if (!entry) return false;
+  const hosts = entry.hosts || [];
+  if (!hosts.length) return false;
+  const host = hostOf(t.url);
+  if (!host) return true;
+  return hosts.some((h) => hostMatches(host, String(h || '').toLowerCase()));
 }
 
 function modelsOf(t) {
@@ -316,7 +338,7 @@ lines.push('| --- | --- |');
 lines.push('| 模板行数 / 唯一 id | ' + rows.length + ' 行，' + seen.size + ' 个（`google`、`baichuan`、`volcengine` 各重复一次，指向不同地址） |');
 lines.push('| 协议分布 | ' + Object.entries(byProto).map(([k, v]) => k + ' ' + v).join('、') + ' |');
 lines.push('| 拉取模型 | 除 ONNX / 路由组 / 免费渠道 / 自填地址外，其余模板都走 `GET {base_url}/models`；OpenAI 兼容与 Gemini 可直接用（Gemini 用 `?key=`），Anthropic(CC) 看上游是否认 Bearer（见第二节） |');
-lines.push('| 余额查询 | 官方预设 ' + (byCredit.official || 0) + ' 行（' + officialIds.length + ' 个厂商）、OpenAI 官方 ' + (byCredit.openai || 0) + '、中转探测 ' + (byCredit.relay || 0) + '、不查 ' + (byCredit.none || 0) + ' |');
+lines.push('| 余额查询 | 官方预设 ' + (byCredit.official || 0) + ' 行（' + officialIds.length + ' 个厂商）、OpenAI 官方 ' + (byCredit.openai || 0) + '、官方站点未收录 ' + (byCredit.uncovered || 0) + '、中转探测 ' + (byCredit.relay || 0) + '、不查 ' + (byCredit.none || 0) + ' |');
 const limitKind = (k) => rows.filter((r) => r.limit.kind === k).length;
 lines.push('| 限制查询 | 文档登记 ' + limitKind('verified') + ' 行（已核对口径）、文档入口 ' + limitKind('doc') + ' 行、未收录但可观测响应头 ' + limitKind('none') + ' 行、纯响应头 ' + limitKind('header') + ' 行、仅手动 ' + (limitKind('manual') + limitKind('local')) + ' 行；登记表 ' + limitEntries.length + ' 家，其中官方文档入口 ' + limitDocEntries.length + ' 家、已核对口径 ' + limitVerified.length + ' 家 |');
 lines.push('| 模型信息 | 公开目录覆盖 ' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型（说明、目录价、上下文、模态与能力位）；对应到模板 ' + catalogRows + ' 行；流式按协议判 ' + rows.filter((r) => streamingCell(r) !== '未收录').length + ' 行支持（' + rows.filter((r) => asyncCell(r) !== '未收录').length + ' 行异步已实测），其余「未收录」 |');
@@ -325,7 +347,8 @@ lines.push('');
 lines.push('**200+ 家的实际含义**：没有任何一家是「逐家写死代码」。');
 lines.push('');
 lines.push('- **官方预设**：' + officialIds.length + ' 个厂商有明确的余额端点（datasearch 的 `provider-credit-endpoints.json`，11 家 Bearer + 4 家 AK/SK 签名），命中后直接用它的地址和字段；');
-lines.push('- **中转探测**：其余 ' + (byCredit.relay || 0) + ' 行，按后端 `AUTO_CREDIT_KINDS` 的顺序依次试（本次生成时为 `' + relayChain + '`），谁先返回数字谁算数，全不通就只显示「已尝试：…」和上游原文；');
+lines.push('- **中转探测**：' + (byCredit.relay || 0) + ' 行，上游不是厂商官方站点（中转 / 聚合站 / 自建网关），按后端 `AUTO_CREDIT_KINDS` 的顺序依次试（本次生成时为 `' + relayChain + '`），谁先返回数字谁算数，全不通就只显示「已尝试：…」和上游原文；');
+lines.push('- **官方站点·未收录**：' + (byCredit.uncovered || 0) + ' 行，上游是厂商自己的官方站点，但官方文档没写余额接口。官方站点上没有 OpenAI 兼容计费协议，拿官方 Key 去打 `/v1/dashboard/billing/*` 只会 404，所以**一个请求都不发**，直接显示「未收录」；要查只能在该供应商「余额」里配自定义地址 + 字段表达式（`credit_url` / `credit_expression`），配了就以用户配置为准；');
 lines.push('- **不查**：没有上游地址（路由组 / 自填）、或地址指向本机（ONNX / Ollama），发请求没有意义。');
 lines.push('- **限制**：不逐家写死 —— 登记表 ' + limitEntries.length + ' 家（模板库全量，含去重别名与主机名），其中 ' + limitDocEntries.length + ' 家带官方文档入口（models.dev 目录的 `doc` 字段）；入口只是文档，不等于页面写了数值，数值仍靠「拉 `/models` 时顺带读响应头」或 `extra.limits_manual` 手填，都拿不到才显示「未收录」。第四节每行的「限制查询」列就是这个判定结果。');
 lines.push('- **签到**：与余额 / 限制不同，签到没有「按提供商」的通用端点，它属于账号渠道（OAuth / 网关账号）能力；API Key 类提供商模板没有登录态，也不可能签到。所以第四节这一列只在模板 id 恰好与账号渠道同名时给出结论，其余写「不适用」。');
@@ -484,9 +507,9 @@ lines.push('');
 lines.push('## 七、已知缺口');
 lines.push('');
 lines.push('- **Anthropic 官方拉模型缺 `anthropic-version`**：`requestUpstreamModels` 只发一个认证头，官方 `/v1/models` 除 `x-api-key` 外还要 `anthropic-version: 2023-06-01`，所以 `anthropic` 模板用官方 Key 拉模型会 401（「检测协议」那条链带了这个头，能过）。目前只能靠 CC 中转站或手填模型；要让官方 Key 直接可拉，得在拉模型链路补上这个头。');
-lines.push('- 有官方余额接口、但本仓库还没有预设的厂商（如智谱、MiniMax 等）：没有拿到官方文档原文，一律不加，避免编地址；这类暂时落到「中转探测」，不通再用手配的「自定义地址 + 字段表达式」；');
+lines.push('- 有官方余额接口、但本仓库还没有预设的厂商（如智谱、MiniMax 等）：没有拿到官方文档原文，一律不加，避免编地址；这类落到「官方站点·未收录」，不发探测请求，要查用手配的「自定义地址 + 字段表达式」；');
 lines.push('- 每家的余额字段路径没有统一的行业标准，同一个 `billing` 口径在不同站点也会返回不同单位（USD / 美分 / 次数），表达式兜底就是为这个准备的。');
-lines.push('- **免费渠道**是纯路由聚合（模型来自运行时合并路由表），自己没有账户，模板里的 `free.nomifun.com/v1` 只是占位地址；余额面板仍会按「中转探测」去请求它，结果没有业务意义，看这一行时忽略余额列即可。');
+lines.push('- **免费渠道**是纯路由聚合（模型来自运行时合并路由表），自己没有账户，模板里的 `free.nomifun.com/v1` 只是占位地址；这个主机不在供应商登记表里，余额面板仍会按「中转探测」去请求它，结果没有业务意义，看这一行时忽略余额列即可。');
 lines.push('- **限制只能观测到「上游肯说」的那部分**：限流做在网关 / nginx 层、响应头不返 `*ratelimit*` 的站点，这次同步拿到的就是「未收录」，只能靠 `extra.limits_manual` 手填；登记表 ' + limitEntries.length + ' 家里只有 ' + limitVerified.length + ' 家核对过口径（DeepSeek 并发、Moss 计费），其余 ' + (limitDocEntries.length - limitVerified.length) + ' 家只有文档入口，没有数值，不编数字。');
 lines.push('- **流式 / 异步是「协议级 + 端点实测」两档口径，不是逐家文档结论**：models.dev 不提供这两个字段，所以流式按接入协议判（openai / anthropic / gemini 三种协议的 SSE 流式是协议必备行为，有上游地址才标「支持（协议）」，共 ' + rows.filter((r) => streamingCell(r) !== '未收录').length + ' 行，其余 ' + rows.filter((r) => streamingCell(r) === '未收录').length + ' 行是无上游地址的模板）；异步只标官方批量端点实测存在的厂商（OpenAI `/v1/batches`、Anthropic `/v1/messages/batches`、Gemini `:batchGenerateContent`，非法 Key 分别得 401 / 401 / 400，说明端点存在），共 ' + rows.filter((r) => asyncCell(r) !== '未收录').length + ' 行，其余 ' + rows.filter((r) => asyncCell(r) === '未收录').length + ' 行写「未收录」，不代表不支持 —— 中转站有没有实现批量端点只能逐家核对，没核对就不写。');
 lines.push('- **流式 / 异步已落库**：`sys_ai_model_metrics` 新增 `sys_ai_model_metrics_support_streaming` / `_support_async` 两列（`V6.15__alter_ai_model_metrics_capabilities.sql` 补列，建库脚本同步），同步时写入指标行并回写服务商模型行；只补空值，已有结论不被覆盖。');
