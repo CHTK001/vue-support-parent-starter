@@ -1515,6 +1515,56 @@ function onContextMenuSelect(command: string): void {
   emit("context-menu-select", item, ctx);
 }
 
+/** ========== 表格设置浮层：打开前按视口算方向与限高 ========== */
+
+/** 表格设置触发按钮（拿它的视口位置算上下可用空间） */
+const settingsTriggerRef = ref<HTMLElement | null>(null);
+
+/** 表格设置浮层方向：底部空间不够时改为朝上展开 */
+const settingsPlacement = ref<"bottom-end" | "top-end">("bottom-end");
+
+/** 表格设置面板限高（px）：超出改为面板内部滚动，短视口下每一项仍可点 */
+const settingsPanelMaxHeight = ref(520);
+
+/** 浮层内容自然高度（8 个开关约 489px），小于它就不必限高 */
+const SETTINGS_PANEL_NATURAL_HEIGHT = 520;
+
+/** ElPopover 的外壳留白（上下 padding + 边框），算限高时要扣掉，否则浮层仍会越界 */
+const SETTINGS_POPPER_CHROME = 26;
+
+/** ElPopover 与触发按钮的间距（offset），算可用空间时要扣掉 */
+const SETTINGS_POPPER_OFFSET = 12;
+
+/**
+ * 打开表格设置前算好浮层方向与限高。
+ *
+ * <p>ElPopover 首次定位时面板内容还没渲染，popper 量到的高度是 0，
+ * flip / preventOverflow 会判定「放得下」，于是浮层贴着视口边缘展开被裁掉
+ * （1264×569 实测：朝下时 top=550 底部越界；只加 flip 后朝上 top=-17 顶部越界）。
+ * 方向与限高都必须在打开前按触发按钮的视口位置自己算：</p>
+ * <ul>
+ *   <li>可用空间 = 触发按钮到视口边缘的距离 − 浮层间距 − 浮层外壳留白</li>
+ *   <li>下方装不下、且上方更宽裕时改为朝上展开</li>
+ *   <li>面板限高不超过可用空间，超出改为面板内部滚动，保证每一项都能点到</li>
+ * </ul>
+ */
+function prepareSettingsPopper(): void {
+  const el = settingsTriggerRef.value;
+  const viewportHeight = window.innerHeight || 0;
+  if (!el || !viewportHeight) {
+    settingsPlacement.value = "bottom-end";
+    settingsPanelMaxHeight.value = SETTINGS_PANEL_NATURAL_HEIGHT;
+    return;
+  }
+  const rect = el.getBoundingClientRect();
+  const spaceBelow = viewportHeight - rect.bottom - SETTINGS_POPPER_OFFSET - SETTINGS_POPPER_CHROME;
+  const spaceAbove = rect.top - SETTINGS_POPPER_OFFSET - SETTINGS_POPPER_CHROME;
+  const openUpward = spaceBelow < SETTINGS_PANEL_NATURAL_HEIGHT && spaceAbove > spaceBelow;
+  settingsPlacement.value = openUpward ? "top-end" : "bottom-end";
+  const available = openUpward ? spaceAbove : spaceBelow;
+  settingsPanelMaxHeight.value = Math.max(160, Math.min(SETTINGS_PANEL_NATURAL_HEIGHT, available));
+}
+
 /** ========== 缺陷4: 列设置面板搜索 ========== */
 const columnSearchKey = ref("");
 const filteredColumnsForSettings = computed<ReTableColumn[]>(() => {
@@ -7708,19 +7758,18 @@ const iconSelect = Select;
           <!-- 表格设置 Popover slot -->
           <template #table-settings>
             <ElPopover
-              placement="bottom-end"
+              :placement="settingsPlacement"
               :width="280"
               trigger="click"
               popper-class="re-table__popover re-table__popover--settings"
-              :popper-options="{ modifiers: [{ name: 'flip', options: { fallbackPlacements: ['top-end', 'top-start', 'bottom-start'] } }, { name: 'preventOverflow', options: { padding: 12 } }] }"
             >
               <template #reference>
                 <!-- ⚠ 同上：必须外包单根元素，否则 ElOnlyChild 挂不上触发器、面板点不开。 -->
-                <span class="re-table__settings-trigger">
+                <span ref="settingsTriggerRef" class="re-table__settings-trigger" @click="prepareSettingsPopper">
                   <ReButton layout="square" :size="elementTableSize" icon="anim:tabler:settings" :anim-icon-size="16" :tip="settingsTriggerText" />
                 </span>
               </template>
-              <div class="re-table__settings-panel">
+              <div class="re-table__settings-panel" :style="{ maxHeight: `${settingsPanelMaxHeight}px` }">
                 <div class="settings-header">
                   <span class="settings-title">表格设置</span>
                 </div>
@@ -8952,19 +9001,20 @@ const iconSelect = Select;
   padding: 0;
   background: var(--el-bg-color);
   border-radius: 8px;
-  overflow: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /**
  * 浮层限高：表格设置面板 8 个开关约 500px 高，在 1264×569 这类短视口下
- * 贴底展开会被裁掉底部选项（弹层 top=550、高 511）。这里按视口留 12px 余量，
- * 超出改为浮层内部滚动，保证每一项都能点到。
- * 配合 ElPopover 的 flip fallbackPlacements，短视口会自动向上翻转。
+ * 贴底展开会被裁掉底部选项（实测弹层 top=550、高 511）。
+ *
+ * <p>限高与方向由 {@code prepareSettingsPopper()} 在打开前按触发按钮的视口位置算出：
+ * 底部空间不足就改朝上展开，面板拿到不超过可用空间的 max-height，超出改为面板内部滚动。
+ * 这里只保证外壳不额外裁剪，让滚动发生在面板里。</p>
  */
 .re-table__popover--settings {
-  max-height: calc(100vh - 24px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: visible;
 }
 
 /* ---- 快捷键帮助浮层（分页行右侧，替代原刷新入口） ---- */
