@@ -135,7 +135,6 @@
 import { message } from "@repo/core";
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getLocale } from '@/locales'
 import { useDebounceFn } from '@vueuse/core'
 import { apiService } from '@/services/ApiService'
 import { usePopup } from '@/composables/usePopup'
@@ -331,13 +330,19 @@ const loadSettings = async () => {
     originalSettings.value = snapshot()
   }
 
-  // 加载插件状态
+  // 加载插件状态。
+  // 不能从 /plugins/query 取：web-search 是内置工具，不在磁盘插件清单里，清单里
+  // 永远没有这一条 → 开关读回恒为「关」（改完再进页面又变回 off）。
+  // 开关本身存的是 sys_ai_global_setting 的 plugins.web-search（PUT /plugins/global
+  // 就写这里），所以直接读该分组的生效值；未配置时与后端 DEFAULT_PLUGIN_ENABLED
+  // 一致，按「开」处理，避免界面说的和实际生效的不是同一个。
   try {
-    const pluginsRes = await apiService.queryPlugins(undefined, getLocale())
-    const plugin = pluginsRes.plugins?.find((p: any) => p.pluginId === 'web-search')
-    if (plugin) {
-      pluginEnabled.value = plugin.enabled
-    }
+    const pluginsRes = await apiService.fetchGroupSettings('plugins')
+    const raw = (pluginsRes?.data ?? pluginsRes ?? {}) as Record<string, any>
+    const flag = raw['web-search']
+    pluginEnabled.value = flag === undefined || flag === null
+      ? true
+      : flag === true || String(flag) === 'true'
   } catch (error) {
     console.error('获取插件状态失败:', error)
   }

@@ -83,7 +83,7 @@ export default {
   search: {
     title: 'Search Settings',
     webSearchPlugin: 'Web Search Plugin',
-    webSearchPluginDesc: 'When enabled, the AI assistant can obtain real-time information via search. You can also manage this toggle in "Plugins → Local Tools".',
+    webSearchPluginDesc: 'When enabled, the AI assistant can obtain real-time information via search. This switch applies to the whole installation (shared by all accounts).',
     provider: 'Search Provider',
     providerDesc: 'Switching providers will not lose the other party\'s API Key configuration',
     bocha: 'Bocha',

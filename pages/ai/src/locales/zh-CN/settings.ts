@@ -83,7 +83,7 @@ export default {
   search: {
     title: '搜索设置',
     webSearchPlugin: '网络搜索插件',
-    webSearchPluginDesc: '启用后 AI 助手可以通过搜索获取实时信息。你也可以在「插件 → 本地工具」中管理此开关。',
+    webSearchPluginDesc: '启用后 AI 助手可以通过搜索获取实时信息。该开关对全站生效（所有账号共用）。',
     provider: '搜索供应商',
     providerDesc: '切换供应商不会丢失另一方的 API Key 配置',
     bocha: '博查 (Bocha)',
