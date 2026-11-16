@@ -132,8 +132,10 @@ const pushDialog = reactive({
   item: null as ReleaseHostFileItem | null,
   releases: [] as ReleaseOption[],
   projects: [] as ProjectOption[],
-  releaseId: 0,
-  projectId: 0,
+  // 初值必须是 null 而不是 0：el-select 把 0 当成「已选中的合法值」，未选时不会回落到
+  // placeholder，而是把 0 渲染进输入框（实测两个下拉都显示「0」）。
+  releaseId: null as number | null,
+  projectId: null as number | null,
   loading: false,
   pushing: false,
 });
@@ -150,8 +152,8 @@ async function openPushDialog(item: ReleaseHostFileItem): Promise<void> {
   }
   pushDialog.item = item;
   pushDialog.open = true;
-  pushDialog.releaseId = 0;
-  pushDialog.projectId = 0;
+  pushDialog.releaseId = null;
+  pushDialog.projectId = null;
   pushDialog.projects = [];
   pushDialog.loading = true;
   try {
@@ -171,9 +173,9 @@ async function openPushDialog(item: ReleaseHostFileItem): Promise<void> {
  *
  * @param releaseId 发布 ID
  */
-async function onPushReleaseChange(releaseId: number): Promise<void> {
+async function onPushReleaseChange(releaseId: number | null): Promise<void> {
   pushDialog.releaseId = releaseId;
-  pushDialog.projectId = 0;
+  pushDialog.projectId = null;
   pushDialog.projects = [];
   if (!releaseId) {
     return;
@@ -300,9 +302,10 @@ async function load(keepSelection = false): Promise<void> {
     if (!keepSelection) {
       clearSelection();
     } else {
-      // 刷新后保留仍在本页里的选择（ReTable 勾选列会随数据重算，这里只需收敛行对象）
-      const keep = new Set(selectedRows.value.map(it => it.key));
-      selectedRows.value = selectedRows.value.filter(it => keep.has(it.key));
+      // 刷新后保留仍在本页里的选择：按新的条目集收敛，避免批量条计数里留着
+      // 已经被筛掉 / 已删除的行（原实现拿自身 key 集合做过滤，等于没过滤）
+      const alive = new Set(items.value.map(it => it.key));
+      selectedRows.value = selectedRows.value.filter(it => alive.has(it.key));
     }
     if (detailKey.value && !items.value.some(it => it.key === detailKey.value)) {
       detailKey.value = "";
