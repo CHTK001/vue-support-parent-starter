@@ -28,6 +28,7 @@
       :loading="loading"
       :empty-text="emptyText"
       :row-key="rowKey as string"
+      :table-id="tableId"
       :show-selection="selectable"
       :show-index="showIndex"
       :engine="engine"
@@ -147,6 +148,15 @@ const props = defineProps({
    * 例如 {@code :layout-table="{ fill: true }"} 让表格吃满可用高度。</p>
    */
   layoutTable: { type: Object as PropType<Record<string, any>>, default: () => ({}) },
+  /**
+   * 表格标识（透传 {@code table-id}）。
+   *
+   * <p>完整版 ReTable 用它作为列配置 / 分页 / 表格设置的持久化键；
+   * 不传时会回落到「当前路由 path」—— 同一路由放多张表就会共用一份存档，
+   * 而且换过一次列顺序后，旧存档会一直覆盖新代码里的默认列序。
+   * 需要独立存档的表（如同路由下的明细表）显式传一个稳定 id。</p>
+   */
+  tableId: { type: String as PropType<string | undefined>, default: undefined },
 })
 
 const emit = defineEmits([

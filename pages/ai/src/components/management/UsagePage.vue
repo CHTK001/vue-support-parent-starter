@@ -198,7 +198,7 @@
           <ReEcharts
             v-if="board.treemapBlocks.blocks.length"
             :option="treemapOption"
-            height="128px"
+            height="178px"
             notMerge
             @click="board.onTreemapClick"
           />
@@ -254,7 +254,7 @@
         </header>
 
         <div class="usage-panel__chart usage-panel__chart--tight">
-          <ReEcharts v-if="board.trendData.length" :option="board.trendOption" height="128px" notMerge />
+          <ReEcharts v-if="board.trendData.length" :option="board.trendOption" height="178px" notMerge />
           <div v-else class="usage-empty usage-empty--sm">
             <el-empty
               :description="board.routeErrors.trend ? '趋势加载失败，点右上角刷新重试' : '暂无趋势数据'"
@@ -348,7 +348,7 @@
           </div>
         </header>
         <div class="usage-panel__chart usage-panel__chart--tight">
-          <ReEcharts v-if="board.modelBarDates.length" :option="board.modelBarOption" height="118px" notMerge />
+          <ReEcharts v-if="board.modelBarDates.length" :option="board.modelBarOption" height="168px" notMerge />
           <div v-else class="usage-empty usage-empty--sm">
             <el-empty description="暂无按天模型用量数据" :image-size="40" />
           </div>
@@ -366,7 +366,7 @@
           <ReEcharts
             v-if="board.latencyDates.length && board.latencyModelCount > 0"
             :option="board.latencyOption"
-            height="118px"
+            height="168px"
             notMerge
           />
           <div v-else class="usage-empty usage-empty--sm">
@@ -837,9 +837,12 @@ function pctStyle(r: any) {
 <style scoped>
 /* ============================================================================
    用量管理 —— 侦察时间轴（04）视觉体系
-   骨架：40 顶栏 / 44 刻度尺 / 64 核心读数 / 30 派生读数 / 168 构成 + 趋势 /
-   156 分布 + 每日模型 + 延迟 / 124 双 Top5 + 实时 / 明细（最低 280px + 剩余高度）。
+   骨架：40 顶栏 / 94 刻度尺 / 114 核心读数 / 80 派生读数 / 218 构成 + 趋势 /
+   206 分布 + 每日模型 + 延迟 / 174 双 Top5 + 实时 / 明细（最低 800px + 剩余高度）。
    全部沿用控制台既有的 --el-* / --u-* 令牌（暗色自动跟随），不新造皮肤。
+
+   <p>2026-11-16：每个卡片块统一长高 50px（原 44/64/30/168/156/124 → 94/114/80/
+   218/206/174），明细块 280 → 400；图表高度同步 +50，否则卡片长高只会多出一条空白。</p>
    ============================================================================ */
 .usage-page {
   height: 100%;
@@ -953,7 +956,7 @@ function pctStyle(r: any) {
 .usage-seg--sm .usage-seg__btn { padding: 2px 6px; font-size: 10.5px; }
 
 /* ── 刻度尺（30 天主干） ── */
-.usage-spine { display: flex; align-items: stretch; gap: 10px; height: 44px; padding: 4px 10px; }
+.usage-spine { display: flex; align-items: stretch; gap: 10px; height: 94px; padding: 4px 10px; }
 .usage-spine__side {
   display: flex;
   flex-direction: column;
@@ -1043,7 +1046,7 @@ function pctStyle(r: any) {
 .usage-spine__back:hover { border-color: var(--u-primary, #165dff); }
 
 /* ── 核心读数（四格） ── */
-.usage-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; height: 64px; }
+.usage-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; height: 114px; }
 .usage-kpi {
   position: relative;
   display: flex;
@@ -1090,7 +1093,7 @@ function pctStyle(r: any) {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
-  height: 30px;
+  height: 80px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1213,18 +1216,18 @@ function pctStyle(r: any) {
 }
 
 /* ── 构成 + 趋势 ── */
-.usage-mid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.14fr); gap: 8px; height: 168px; }
+.usage-mid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.14fr); gap: 8px; height: 218px; }
 
 /* ── 分布 + 每日模型 + 延迟 ── */
 .usage-triple {
   display: grid;
   grid-template-columns: minmax(0, 1.06fr) minmax(0, 1fr) minmax(0, 0.94fr);
   gap: 8px;
-  height: 156px;
+  height: 206px;
 }
 .usage-triple--ranks {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.84fr);
-  height: 124px;
+  height: 174px;
 }
 
 .usage-dist__headrow,
@@ -1413,9 +1416,9 @@ function pctStyle(r: any) {
 .usage-live__v.is-rate { color: var(--u-primary, #165dff); }
 .usage-live__hint { margin: 4px 10px 0; font-size: 9.5px; color: var(--el-text-color-placeholder); }
 
-/* ── 明细：最低 280px（表头 + 3 行 + 分页条都在卡片内），父级有富余时继续长高；
+/* ── 明细：最低 800px（表头 + 十余行 + 分页条都在卡片内），父级有富余时继续长高；
       表体内部滚动 ── */
-.usage-detail-wrap { display: flex; flex: 1 1 280px; min-height: 280px; min-width: 0; }
+.usage-detail-wrap { display: flex; flex: 1 1 800px; min-height: 800px; min-width: 0; }
 .usage-detail-wrap > * { flex: 1 1 auto; min-width: 0; }
 .usage-detail-wrap :deep(.ud-head) { padding: 5px 10px 3px; }
 .usage-detail-wrap :deep(.ud-title) { font-size: 13px; }

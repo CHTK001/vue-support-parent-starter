@@ -17,6 +17,7 @@ import { http } from "@repo/utils";
 import type { EChartsOption } from "echarts";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { usageApi } from "@/services/javaApi";
+import { useAuthStore } from "@/stores/auth";
 
 type ChartType = "token" | "cost";
 interface DistRow {
@@ -1754,18 +1755,21 @@ export function useUsageBoard() {
   const costVisible = ref(false);
   const detailUserFilter = ref("");
 
+  /** 当前登录用户（来自 /v2/user/me，已缓存到 auth store），用于明细「账号」列翻译。 */
+  const currentUser = computed(() => useAuthStore().user);
+
   const detailColumns = computed<ReTableColumn[]>(() => [
     // 时间列不钉左：vxe 的固定列是双份渲染（表头/表体各一份），在本页宽度下
-    // 表头与表体会整体错开约 40px，且左侧多出一条空白带；整表一起横滚更稳。
-    // 时间列钉左：默认皮肤下固定层与主表列宽一致，钉住才不会滚丢时间
-    { prop: "time", label: "时间", width: 150, slot: "time", fixed: "left" },
+    // 表头与表体会整体错开约 40px，且左侧多出一条空白带；整表一起横滚更稳，
+    // 也不会出现「时间显示不在一行」的错位。
+    { prop: "time", label: "时间", width: 150, slot: "time" },
     { prop: "model", label: "模型", minWidth: 180, showOverflowTooltip: true, slot: "model" },
+    { prop: "strength", label: "强度", width: 90, slot: "strength" },
+    { prop: "endpoint", label: "端点", width: 185, showOverflowTooltip: true, slot: "endpoint" },
+    { prop: "ip", label: "请求 IP", width: 130, showOverflowTooltip: true, slot: "ip" },
     { prop: "group", label: "分组", width: 140, showOverflowTooltip: true, slot: "group" },
     { prop: "user", label: "账号", width: 90, slot: "user" },
     { prop: "provider", label: "服务商", width: 100, slot: "provider" },
-    { prop: "endpoint", label: "端点", width: 185, showOverflowTooltip: true, slot: "endpoint" },
-    { prop: "strength", label: "强度", width: 90, slot: "strength" },
-    { prop: "ip", label: "请求 IP", width: 130, showOverflowTooltip: true, slot: "ip" },
     { prop: "tokens", label: "Token", width: 170, align: "right", slot: "tokens" },
     { prop: "cost", label: `费用(${currencySymbol.value})`, width: 90, align: "right", slot: "cost" },
     { prop: "latency", label: "耗时", width: 150, slot: "latency" },
@@ -2038,7 +2042,7 @@ export function useUsageBoard() {
     modelBarMetric, modelBarDates, modelBarOption,
     trendData, trendOption, trendMetric, trendChartType,
     latencyDates, latencyModelCount, latencyOption,
-    detailRecords, detailLoading, detailTotal, detailModelFilter, costVisible,
+    detailRecords, detailLoading, detailTotal, detailModelFilter, costVisible, currentUser,
     detailColumns, detailQueryParams, loadDetailPage, hasAnyUsage, registerDetailReloader,
     fmtToken, formatNumber, money, formatLatency, formatSpeed,
     speedColor, speedTitle, decodeWindowMs, decodeWindowColor, getFirstColor, getTotalColor,

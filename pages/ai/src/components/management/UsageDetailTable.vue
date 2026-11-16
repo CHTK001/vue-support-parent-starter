@@ -45,6 +45,7 @@
         :loading="board.detailLoading"
         :columns="visibleColumns"
         :show-index="false"
+        table-id="usage-detail"
         class="ud-table"
         row-key="sysAiUsageId"
         :pagination="true"
@@ -107,7 +108,9 @@
         </template>
         <template #col-group="{ row }">{{ row.sysAiUsageGroupName }}</template>
         <template #col-user="{ row }">
-          <ReTag :type="row.sysAiUsageUserId ? 'primary' : 'info'">{{ row.sysAiUsageUserId || '三方' }}</ReTag>
+          <ReTag :type="row.sysAiUsageUserId ? 'primary' : 'info'">
+            {{ userDisplay(row) }}
+          </ReTag>
         </template>
         <template #col-provider="{ row }"><span :title="row.sysAiUsageProvider || ''">{{ board.providerDisplay(row.sysAiUsageProvider) }}</span></template>
         <template #col-endpoint="{ row }">
@@ -138,6 +141,10 @@
                   <span v-if="Number(row.sysAiUsageCachedTokens) > 0" class="ud-tk tk-cache-line" :title="'缓存读取 ' + board.formatNumber(row.sysAiUsageCachedTokens)">
                     <svg class="ud-tk-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 5.5h10v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6ZM3 5.5 8 3l5 2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>{{ board.fmtToken(row.sysAiUsageCachedTokens) }}
                   </span>
+                  <div class="td-rate-body">
+                    <span class="td-rate-bar"><i :style="{ width: board.cacheRatePct(row) + '%' }" /></span>
+                    <span class="td-val">{{ board.cacheRateText(row) }}</span>
+                  </div>
                 </span>
               </div>
             </template>
@@ -170,15 +177,15 @@
               <div class="ud-latency-inline">
                 <span class="ud-latency-vbar" :style="{ backgroundColor: board.getTotalColor(row) }"></span>
                 <div class="ud-latency-lines">
-                  <div class="ud-latency-line"><span class="ud-latency-k">首字</span><span class="ud-latency-v" :style="{ color: board.getFirstColor(row) }">{{ board.formatLatency(row.sysAiUsageFirstTokenLatency) }}</span></div>
-                  <div class="ud-latency-line"><span class="ud-latency-k">总耗</span><span class="ud-latency-v" :style="{ color: board.getTotalColor(row) }">{{ board.formatLatency(row.sysAiUsageTotalLatency) }}</span></div>
+                  <div class="ud-latency-line"><span class="ud-latency-k">首字等待</span><span class="ud-latency-v" :style="{ color: board.getFirstColor(row) }">{{ board.formatLatency(row.sysAiUsageFirstTokenLatency) }}</span></div>
+                  <div class="ud-latency-line"><span class="ud-latency-k">总耗时</span><span class="ud-latency-v" :style="{ color: board.getTotalColor(row) }">{{ board.formatLatency(row.sysAiUsageTotalLatency) }}</span></div>
                 </div>
               </div>
             </template>
             <div class="latency-pop">
               <div class="latency-pop-row">
                 <span class="latency-pop-dot" :style="{ background: board.getFirstColor(row) }"></span>
-                <span class="latency-pop-label">首字</span>
+                <span class="latency-pop-label">首字等待</span>
                 <span class="latency-pop-value" :style="{ color: board.getFirstColor(row) }">{{ board.formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
               </div>
               <div class="latency-pop-row">
@@ -276,12 +283,10 @@ const layoutTable = computed(() =>
  * <p>状态只活在本组件（不写 localStorage）：明细表是排查用的临时视图，
  * 下次进来回到默认列组比记住上次的裁剪更可预期。</p>
  *
- * <p>04 版底部明细先不铺满 13 列：端点 / 强度 / 请求 IP / 调用类型这类诊断字段
- * 默认收起，留在「列」弹层里按需打开，主表先保证 9 列读得清。</p>
+ * <p>13 列默认全展示：端点 / 强度 / 请求 IP / 调用类型等诊断字段与主表同层，
+ * 无需进「列」弹层才能看见；用户仍可按需在弹层里收起任意列。</p>
  */
-const hiddenProps = ref<string[]>(
-  props.compact ? ['endpoint', 'strength', 'ip', 'callType'] : [],
-);
+const hiddenProps = ref<string[]>([]);
 const isColVisible = (prop: string) => !hiddenProps.value.includes(prop);
 function setColVisible(prop: string, visible: boolean): void {
   if (visible) {
@@ -290,6 +295,16 @@ function setColVisible(prop: string, visible: boolean): void {
     hiddenProps.value = [...hiddenProps.value, prop];
   }
 }
+
+/** 明细「账号」列展示文本：所有记录均为当前用户具名，翻译成当前用户名/昵称；
+ *  未命中当前用户或未取到登录态时，兜底渲染原 userId 或「三方」。 */
+const userDisplay = (row: any): string => {
+  const u = props.board.currentUser;
+  if (u && row.sysAiUsageUserId != null && String(row.sysAiUsageUserId) === String(u.id)) {
+    return u.username || u.nickname || String(row.sysAiUsageUserId);
+  }
+  return row.sysAiUsageUserId || '三方';
+};
 const visibleColumns = computed(() =>
   (props.board.detailColumns || []).filter((c: any) => !hiddenProps.value.includes(c.prop)),
 );
