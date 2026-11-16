@@ -1393,7 +1393,7 @@ onBeforeUnmount(() => {
 
 .fl07-tab.is-active {
   background: color-mix(in srgb, var(--rm-primary, var(--el-color-primary)) 12%, transparent);
-  color: var(--rm-primary, var(--el-color-primary));
+  color: var(--rm-primary-ink, var(--el-color-primary));
   font-weight: 600;
 }
 
@@ -1405,7 +1405,7 @@ onBeforeUnmount(() => {
   padding: 0 5px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--rm-primary, var(--el-color-primary)) 16%, transparent);
-  color: var(--rm-primary, var(--el-color-primary));
+  color: var(--rm-primary-ink, var(--el-color-primary));
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }

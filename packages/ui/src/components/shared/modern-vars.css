@@ -8,6 +8,14 @@
   --rm-primary: #6366f1;
   --rm-primary-hover: #4f46e5;
   --rm-primary-light-9: #eef2ff;
+  /* 主色有两种用途，必须分开：
+       --rm-primary     装饰与实心底色，只受 3:1（图形）门槛约束；
+       --rm-primary-ink 压在浅底上的**文字**墨色，必须 ≥4.5:1；
+       --rm-on-primary  压在实心底色上的文字色。
+     混用会让深色主题（--rm-primary 是提亮的 500 档）出现
+     白字压亮蓝 3.68、亮蓝字压深底 3.98 这类不达标。 */
+  --rm-primary-ink: #4f46e5;
+  --rm-on-primary: #ffffff;
   --rm-success: #10b981;
   --rm-warning: #f59e0b;
   --rm-danger: #ef4444;
@@ -89,6 +97,12 @@
   --rm-text-regular: #cbd5e1;
   --rm-text-secondary: #94a3b8;
   --rm-text-disabled: #64748b;
+
+  /* 深色下主色被提亮（500 档），白字压上去只有 3.68:1，
+     墨色压深底也不够（3.98:1）。两条用途各自校到 4.5:1 以上：
+       实心底 → 文字换近黑；文字墨色 → 提亮到 400 档。 */
+  --rm-primary-ink: #60a5fa;
+  --rm-on-primary: #0b1220;
 
   --rm-overlay: rgba(0, 0, 0, 0.7);
 }

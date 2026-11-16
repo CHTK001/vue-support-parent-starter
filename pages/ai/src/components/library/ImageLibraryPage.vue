@@ -1817,7 +1817,10 @@ defineExpose({ reload: refresh })
 .il *,
 .il *::before,
 .il *::after { box-sizing: border-box; }
-.il button { font: inherit; color: inherit; }
+/* 用 :where() 把特异性降到 0 —— 原来写 `.il button`（0,1,1）会压过
+   `.il-btn` / `.il-btn--primary`（都是 0,1,0），导致「上传图片」这类实心按钮
+   拿不到自己的白字，而是继承 `.il` 的深墨色，压在 #2563eb 上只有 3.45:1。 */
+.il :where(button) { font: inherit; color: inherit; }
 .il ::selection { background: var(--selection-bg, #dbeafe); }
 .il ::-webkit-scrollbar { width: 8px; height: 8px; }
 .il ::-webkit-scrollbar-thumb {
@@ -1871,19 +1874,19 @@ defineExpose({ reload: refresh })
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .il-btn:hover:not(:disabled) {
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
   border-color: var(--el-color-primary-light-5, #a0cfff);
   background: var(--el-color-primary-light-9, #ecf5ff);
 }
 .il-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .il-btn--primary {
-  color: var(--el-color-white, #fff);
+  color: var(--color-on-accent, #fff);
   border-color: var(--el-color-primary, #409eff);
   background: var(--el-color-primary, #409eff);
   box-shadow: var(--shadow-brand, 0 2px 8px rgba(59, 130, 246, 0.24));
 }
 .il-btn--primary:hover:not(:disabled) {
-  color: var(--el-color-white, #fff);
+  color: var(--color-on-accent, #fff);
   border-color: var(--el-color-primary-dark-2, #337ecc);
   background: var(--el-color-primary-dark-2, #337ecc);
 }
@@ -1915,7 +1918,7 @@ defineExpose({ reload: refresh })
   justify-content: center;
   gap: 6px;
   pointer-events: none;
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
   background: color-mix(in srgb, var(--el-color-primary, #409eff) 8%, var(--bg-container, #fff));
   border: 2px dashed var(--el-color-primary, #409eff);
   border-radius: var(--radius-lg, 14px);
@@ -1976,8 +1979,8 @@ defineExpose({ reload: refresh })
   cursor: pointer;
 }
 .il-tab .il-ico { opacity: 0.8; }
-.il-tab:hover { color: var(--el-color-primary, #409eff); }
-.il-tab.is-on { color: var(--el-color-primary, #409eff); font-weight: 600; }
+.il-tab:hover { color: var(--color-primary-ink, #1d4ed8); }
+.il-tab.is-on { color: var(--color-primary-ink, #1d4ed8); font-weight: 600; }
 .il-tab.is-on::after {
   content: "";
   position: absolute;
@@ -1998,7 +2001,7 @@ defineExpose({ reload: refresh })
   background: var(--el-fill-color, #f5f7fa);
 }
 .il-tab.is-on .il-tab__n {
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
   background: var(--el-color-primary-light-8, #d9ecff);
 }
 .il-tabs__right {
@@ -2051,7 +2054,7 @@ defineExpose({ reload: refresh })
 .il-tag--ok { color: var(--el-color-success-dark-2, #529b2e); background: var(--el-color-success-light-9, #f0f9eb); }
 .il-tag--warn { color: var(--el-color-warning-dark-2, #b88230); background: var(--el-color-warning-light-9, #fdf6ec); }
 .il-tag--err { color: var(--status-error-text, #b91c1c); background: var(--status-error-bg, #fef2f2); }
-.il-tag--brand { color: var(--el-color-primary, #409eff); background: var(--el-color-primary-light-9, #ecf5ff); }
+.il-tag--brand { color: var(--color-primary-ink, #1d4ed8); background: var(--el-color-primary-light-9, #ecf5ff); }
 .il-tag--line {
   color: var(--text-tertiary, #86909c);
   background: transparent;
@@ -2146,7 +2149,7 @@ defineExpose({ reload: refresh })
 .il-grp .il-ico { opacity: 0.75; }
 .il-grp:hover { background: var(--bg-hover, #f5f7fa); color: var(--text-primary, #1f2329); }
 .il-grp.is-on {
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
   background: var(--el-color-primary-light-9, #ecf5ff);
   font-weight: 600;
 }
@@ -2158,7 +2161,7 @@ defineExpose({ reload: refresh })
   color: var(--text-tertiary, #86909c);
   flex: none;
 }
-.il-grp.is-on .il-grp__n { color: var(--el-color-primary, #409eff); }
+.il-grp.is-on .il-grp__n { color: var(--color-primary-ink, #1d4ed8); }
 
 .il-grp-new {
   display: flex;
@@ -2177,7 +2180,7 @@ defineExpose({ reload: refresh })
 }
 .il-grp-new .il-ico { width: 12px; height: 12px; }
 .il-grp-new:hover {
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
   border-color: var(--el-color-primary-light-5, #a0cfff);
 }
 
@@ -2277,10 +2280,10 @@ defineExpose({ reload: refresh })
   cursor: pointer;
 }
 .il-seg button .il-ico { width: 12px; height: 12px; }
-.il-seg button:hover { color: var(--el-color-primary, #409eff); }
+.il-seg button:hover { color: var(--color-primary-ink, #1d4ed8); }
 .il-seg button.is-on {
   background: var(--bg-container, #fff);
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
   font-weight: 600;
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.06));
 }
@@ -2401,7 +2404,7 @@ defineExpose({ reload: refresh })
   height: 32px;
   background: var(--el-color-primary-light-9, #ecf5ff);
   border-bottom: 1px solid var(--el-color-primary-light-8, #d9ecff);
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
   font-size: 11.5px;
   font-weight: 600;
 }
@@ -2474,7 +2477,7 @@ defineExpose({ reload: refresh })
 }
 .il-iconbtn .il-ico { width: 13px; height: 13px; }
 .il-iconbtn:hover:not(:disabled) {
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
   border-color: var(--el-border-color, #dcdfe6);
   background: var(--el-color-primary-light-9, #ecf5ff);
 }
@@ -2521,7 +2524,7 @@ defineExpose({ reload: refresh })
   display: grid;
   place-items: center;
   border-radius: var(--el-border-radius-small, 4px);
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
   background: var(--el-color-primary-light-9, #ecf5ff);
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 11px;
@@ -2541,7 +2544,7 @@ defineExpose({ reload: refresh })
   background: var(--el-color-primary-light-9, #ecf5ff);
   border-top: 1px solid var(--el-color-primary-light-8, #d9ecff);
 }
-.il-batchbar__count { font-size: 12px; font-weight: 600; color: var(--el-color-primary, #409eff); }
+.il-batchbar__count { font-size: 12px; font-weight: 600; color: var(--color-primary-ink, #1d4ed8); }
 .il-batchbar__acts { margin-left: auto; display: flex; gap: 6px; }
 
 /* ───────────────────────── 画布 ───────────────────────── */
@@ -2753,7 +2756,7 @@ defineExpose({ reload: refresh })
 .il-insp__feat code {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   font-size: 10px;
-  color: var(--el-color-primary, #409eff);
+  color: var(--color-primary-ink, #1d4ed8);
 }
 .il-insp__feat p {
   margin: 4px 0 0;

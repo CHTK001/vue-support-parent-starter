@@ -372,7 +372,7 @@
 
 .lib-view-btn.is-active {
   background: var(--lib-surface);
-  color: var(--el-color-primary);
+  color: var(--color-primary-ink);
 }
 
 /* ── 网格 ─────────────────────────────────────────────── */

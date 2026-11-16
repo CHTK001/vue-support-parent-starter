@@ -339,7 +339,7 @@ function onSizeChange(size: number): void {
 
 .rm-pager__btn--active {
   background: var(--rm-primary);
-  color: var(--rm-text-white);
+  color: var(--rm-on-primary);
   border-color: transparent;
   box-shadow: none;
 }

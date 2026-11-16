@@ -47,7 +47,12 @@
   /* ========== 文本 ========== */
   --text-primary: #0f172a;
   --text-secondary: #475569;
-  --text-tertiary: #94a3b8;
+  /* 三级文字：原 #94a3b8 在 #ffffff / #f1f5fb / #f2f6fc 上只有 2.56 / 2.34 / 2.36，
+     低于 WCAG AA 的 4.5:1 —— 人脸库「列设置/表格设置/刷新/快捷键帮助」、人脸识别
+     「同年龄段/相似发型/上镜感」页签、会话「展开」等**可交互**控件都读不清。
+     #5b6b82 在四种浅底上 4.96~5.43，仍明显浅于二级文字 #475569（6.93~7.58），
+     三级阶梯保留。深色主题的 #94a3b8 本来就够（4.90~6.96），不动。 */
+  --text-tertiary: #5b6b82;
   --text-inverse: #ffffff;
 
   /* ========== 边框 ========== */
@@ -156,8 +161,12 @@ html.dark {
   --bg-hover: #263449;
 
   --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
+  /* 深色下这条阶梯原来偏暗：secondary #94a3b8、tertiary #64748b。
+     tertiary 压在卡片 #161c27 上只有 3.59、压 #263449（hover）只有 2.64，
+     人脸识别的页签/侧栏按钮、人脸库的工具按钮全都不达标。
+     整条阶梯一起提亮并保持三级层次：16.0 / 7.0 / 5.7（压 #161c27）。 */
+  --text-secondary: #b6c2d2;
+  --text-tertiary: #8d9eb4;
   --text-inverse: #0f172a;
 
   --border-subtle: rgba(255, 255, 255, 0.06);

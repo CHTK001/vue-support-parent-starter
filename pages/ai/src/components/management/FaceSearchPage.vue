@@ -1370,6 +1370,23 @@ onBeforeUnmount(() => {
   --fs-accent: #06b6d4;
   --fs-accent-2: #14b8a6;
 
+  /* ---- 身份色的两种用途必须分开 ----
+     --fs-brand / --fs-accent 是**装饰色**：边框、描边、进度环、色块、光晕。
+     这类用法对比度门槛是 3:1（非文本图形），亮橙/亮青本身就够。
+     但它们当**文字色**时（页签选中态、卡片名、命中徽标、幽灵按钮）
+     白底上只有 #f97316 = 2.80、#06b6d4 = 2.43，远低于 AA 4.5:1。
+     故另立两个「墨色」令牌专供文字，装饰色一个都不动，身份色不变。 */
+  --fs-brand-ink: #c2410c;   /* 压白 5.18 / 压凹槽 #f3f6fb 4.78 */
+  --fs-accent-ink: #0e7490;  /* 压白 5.36 */
+  /* 承载文字的实底（CTA 胶囊 / 开关选中态）：原渐变 #14b8a6→#06b6d4
+     白字只有 2.49→2.43。压深到同色系的 700 档后 5.47→5.36，白字成立。
+     装饰用的 --fs-accent/--fs-accent-2 不受影响。 */
+  --fs-cta-from: #0f766e;
+  --fs-cta-to: #0e7490;
+  --fs-cta-brand-from: #c2410c;
+  --fs-cta-brand-to: #9a3412;
+  --fs-on-cta: #ffffff;
+
   --fs-bg: var(--el-bg-color);
   --fs-card: var(--el-bg-color);
   --fs-text: var(--el-text-color-primary);
@@ -1394,11 +1411,26 @@ onBeforeUnmount(() => {
   color: var(--fs-text);
 }
 
-:global(html.dark) .fs-root {
+/* 深色覆盖。
+   注意不能写 `:global(html.dark) .fs-root` —— Vue SFC 编译后只剩裸 `html.dark`，
+   后面那段 `.fs-root` 会被整段吞掉（实测 probe-fs-selector.json：规则选择器就是
+   `html.dark`），于是深色令牌从未生效。scoped 下直接写 `html.dark .fs-root`
+   会编译成 `html.dark .fs-root[data-v-xxx]`，既能命中又保持 scoped。 */
+html.dark .fs-root {
   --fs-brand: #fb923c;
   --fs-brand-2: #fdba74;
   --fs-accent: #22d3ee;
   --fs-accent-2: #2dd4bf;
+  /* 深色下装饰色被提亮，当文字反而够（#fb923c 压 #161c27 = 7.55，
+     #22d3ee 压 #161c27 = 9.45），墨色令牌直接复用装饰色。 */
+  --fs-brand-ink: #fb923c;
+  --fs-accent-ink: #22d3ee;
+  /* 深色下 CTA 底色是亮青/亮橙，白字只有 1.6~2.0，必须换近黑字 */
+  --fs-cta-from: #2dd4bf;
+  --fs-cta-to: #22d3ee;
+  --fs-cta-brand-from: #fdba74;
+  --fs-cta-brand-to: #fb923c;
+  --fs-on-cta: #0b1220;
   /* 深色下原值 0 14px 36px -10px rgba(0,0,0,.6) 的黑色投影在深底上完全不可见，
      改从正文色（此时是浅色）派生才能继续表达「浮起」 */
   --fs-shadow: 0 14px 36px -10px color-mix(in srgb, var(--el-text-color-primary) 22%, transparent);
@@ -1429,7 +1461,7 @@ onBeforeUnmount(() => {
 }
 
 .fs-group-icon {
-  color: var(--fs-accent);
+  color: var(--fs-accent-ink);
 }
 
 .fs-group-label {
@@ -1551,7 +1583,7 @@ onBeforeUnmount(() => {
 }
 
 .fs-facebar-text b {
-  color: var(--fs-brand);
+  color: var(--fs-brand-ink);
 }
 
 .fs-facebar-chip {
@@ -1573,7 +1605,7 @@ onBeforeUnmount(() => {
 }
 
 .fs-facebar-chip:hover {
-  border-color: var(--fs-accent);
+  border-color: var(--fs-accent-ink);
   color: var(--fs-text);
 }
 
@@ -1582,9 +1614,9 @@ onBeforeUnmount(() => {
 }
 
 .fs-facebar-chip.is-active {
-  border-color: var(--fs-brand);
+  border-color: var(--fs-brand-ink);
   background: color-mix(in srgb, var(--fs-brand) 14%, transparent);
-  color: var(--fs-brand);
+  color: var(--fs-brand-ink);
 }
 
 /* SVG 关键点填充：盖在照片上必须是纯白才能在任何肤色/背景下都看得见，
@@ -1661,14 +1693,14 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   font-weight: 700;
-  color: var(--fs-brand);
+  color: var(--fs-brand-ink);
   font-size: 15px;
 }
 
 .fs-found-sub {
   margin-top: 4px;
   font-size: 13px;
-  color: var(--fs-accent);
+  color: var(--fs-accent-ink);
 }
 
 .fs-noface {
@@ -1714,11 +1746,11 @@ onBeforeUnmount(() => {
 }
 
 .fs-drop:hover {
-  border-color: var(--fs-accent);
+  border-color: var(--fs-accent-ink);
   background: var(--fs-hover);
 }
 
-.fs-drop-icon { color: var(--fs-accent); }
+.fs-drop-icon { color: var(--fs-accent-ink); }
 .fs-drop-title { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
 .fs-drop-desc { margin: 0; font-size: 13px; color: var(--fs-muted); }
 .fs-drop-btn { margin-top: 10px; }
@@ -1740,21 +1772,21 @@ onBeforeUnmount(() => {
   font-size: 15px;
   font-weight: 600;
   border: none;
-  color: var(--el-color-white);
+  color: var(--fs-on-cta);
 }
 
 .fs-btn-ghost {
   background: var(--fs-card);
-  color: var(--fs-brand);
+  color: var(--fs-brand-ink);
   border: 2px solid var(--fs-brand);
 }
 
 .fs-btn-accent {
-  background: linear-gradient(135deg, var(--fs-accent-2), var(--fs-accent));
+  background: linear-gradient(135deg, var(--fs-cta-from), var(--fs-cta-to));
 }
 
 .fs-btn-brand {
-  background: linear-gradient(135deg, var(--fs-brand-2), var(--fs-brand));
+  background: linear-gradient(135deg, var(--fs-cta-brand-from), var(--fs-cta-brand-to));
 }
 
 .fs-btn:disabled { opacity: 0.5; }
@@ -1830,7 +1862,7 @@ onBeforeUnmount(() => {
    四个页签底色与凹槽几乎同色，去掉就分不清选中的是哪一个 */
 .fs-tab.is-active {
   background: var(--fs-card);
-  color: var(--fs-brand);
+  color: var(--fs-brand-ink);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
 }
 
@@ -1854,7 +1886,7 @@ onBeforeUnmount(() => {
 
 /* 当前选中的脸：与左图加粗框、顶部序号 chip 同步高亮 */
 .fs-section.is-active {
-  border-color: var(--fs-brand);
+  border-color: var(--fs-brand-ink);
 }
 
 .fs-section-head {
@@ -1888,8 +1920,8 @@ onBeforeUnmount(() => {
 
 /* 命中 = 主橙（本页身份色）；未命中/失败/进行中各自一档中性语义 */
 .fs-section-badge.is-hit {
-  border-color: var(--fs-brand);
-  color: var(--fs-brand);
+  border-color: var(--fs-brand-ink);
+  color: var(--fs-brand-ink);
   background: color-mix(in srgb, var(--fs-brand) 14%, transparent);
 }
 
@@ -1901,8 +1933,8 @@ onBeforeUnmount(() => {
 }
 
 .fs-section-badge.is-busy {
-  border-color: var(--fs-accent);
-  color: var(--fs-accent);
+  border-color: var(--fs-accent-ink);
+  color: var(--fs-accent-ink);
   background: color-mix(in srgb, var(--fs-accent) 12%, transparent);
 }
 
@@ -1950,7 +1982,7 @@ onBeforeUnmount(() => {
   box-shadow: var(--fs-shadow);
 }
 
-.fs-card.is-picked { border-color: var(--fs-brand); }
+.fs-card.is-picked { border-color: var(--fs-brand-ink); }
 
 .fs-card-face {
   position: relative;
@@ -2023,14 +2055,14 @@ onBeforeUnmount(() => {
   text-align: center;
   font-size: 13px;
   font-weight: 700;
-  color: var(--fs-brand);
+  color: var(--fs-brand-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-height: 1.3em;
 }
 
-.fs-card-score { color: var(--fs-brand); font-size: 13px; }
+.fs-card-score { color: var(--fs-brand-ink); font-size: 13px; }
 .fs-card-sep { margin: 0 4px; }
 
 .fs-card-id {
@@ -2089,7 +2121,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-.fs-thumb.is-active { border-color: var(--fs-brand); }
+.fs-thumb.is-active { border-color: var(--fs-brand-ink); }
 .fs-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* 主行动 */
@@ -2100,8 +2132,8 @@ onBeforeUnmount(() => {
   border-radius: var(--el-radius-full, 9999px);
   font-size: 16px;
   font-weight: 700;
-  color: var(--el-color-white);
-  background: linear-gradient(135deg, var(--fs-accent-2), var(--fs-accent));
+  color: var(--fs-on-cta);
+  background: linear-gradient(135deg, var(--fs-cta-from), var(--fs-cta-to));
 }
 
 .fs-cta:disabled { opacity: 0.5; }
@@ -2113,7 +2145,7 @@ onBeforeUnmount(() => {
   color: var(--fs-muted);
 }
 
-.fs-gallery-hint b { color: var(--fs-accent); }
+.fs-gallery-hint b { color: var(--fs-accent-ink); }
 
 /* 模型说明 */
 .fs-model {
@@ -2126,7 +2158,7 @@ onBeforeUnmount(() => {
   color: var(--fs-muted);
 }
 
-.fs-model b { color: var(--fs-accent); font-weight: 600; }
+.fs-model b { color: var(--fs-accent-ink); font-weight: 600; }
 .fs-dot { opacity: 0.5; }
 
 /* 模型未配齐的门禁提示：与以图搜图的 .is-hint 同一套语言（图标 + 标题 + 说明），
@@ -2203,9 +2235,9 @@ onBeforeUnmount(() => {
 .fs-rail-btn:hover { transform: translateY(-1px); }
 
 .fs-rail-btn.is-on {
-  color: var(--el-color-white);
+  color: var(--fs-on-cta);
   border-color: transparent;
-  background: linear-gradient(135deg, var(--fs-accent-2), var(--fs-accent));
+  background: linear-gradient(135deg, var(--fs-cta-from), var(--fs-cta-to));
 }
 
 .fs-rail-btn:disabled {
