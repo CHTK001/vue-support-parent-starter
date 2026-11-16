@@ -205,9 +205,7 @@ const meta = ref<{
 /** 查询方式的中文名（auto 时后端会回落，页面只显示「自动识别」） */
 const KIND_LABELS: Record<string, string> = {
   auto: '自动识别',
-  'new-api': 'new-api 中转站',
   billing: 'OpenAI 兼容计费',
-  sub2api: 'sub2api 中转站',
   openai: 'OpenAI 官方',
   host: '厂商官方',
   expression: '自定义口径',
@@ -216,9 +214,7 @@ const KIND_LABELS: Record<string, string> = {
 /** 读数来源的短标签（卡片右上角） */
 const SOURCE_LABELS: Record<string, string> = {
   host: '厂商官方',
-  'new-api': 'new-api',
   billing: '兼容计费',
-  sub2api: 'sub2api',
   openai: 'OpenAI',
   expression: '自定义',
 }
@@ -246,7 +242,7 @@ const LEVEL_LABELS: Record<string, string> = {
 const LEVEL_HINTS: Record<string, string> = {
   official: '这家厂商有官方余额接口，按官方地址与字段直接查',
   openai: '上游是 OpenAI 官方，走 OpenAI 额度接口',
-  relay: '中转 / 聚合站：依次探测 new-api、OpenAI 兼容计费、sub2api 三种余额协议，第一条查到数的胜出',
+  relay: '中转 / 聚合站：探测 OpenAI 兼容计费余额协议，第一条查到数的胜出',
   manual: '页面上指定了唯一余额实现（可覆盖地址与字段表达式）',
   none: '没有配置上游地址，没有可查的余额；先填上游地址，或在「余额」里配自定义地址',
 }
