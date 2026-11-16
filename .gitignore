@@ -266,9 +266,10 @@ apps/*/dist-dsh/
 
 **/_ofdtest/
 
-# @file-viewer vite-plugin ��Ⱦ���ʲ���dev �����빹��ʱ�ɲ��������Լ 27MB������⣩
+# @file-viewer vite-plugin 渲染器资产清单：dev 启动与 build 时由插件重建（约 27MB，故忽略）
 # public/vendor/  <- 资产作为源码提交，见上（升级渲染器时手动同步）
-# public/flyfish-viewer-assets.json
+# 清单是纯生成物：copiedAt 时间戳每次 dev/build 都会被插件改写，入库只会制造噪音
+**/flyfish-viewer-assets.json
 
 **/.kb-ui-accept/
 **/dcm-probe*.mjs
@@ -304,7 +305,7 @@ prom-embed-probe.mjs
 **/dev-*.err
 **/acceptance-report.prev.json
 
-# һ�������/̽��/���ֽű����ͼ��probe- ǰ׺��diag- ǰ׺��repro- ǰ׺��
+# 一次性取证/探测/复现脚本及其快照（probe- 前缀、diag- 前缀、repro- 前缀）
 **/probe-*.mjs
 **/diag-*.mjs
 **/ds-layout-check.*
