@@ -485,6 +485,12 @@ html.dark .svc {
   font-family: var(--svc-mono); font-size: 10.5px; color: var(--svc-ink-3);
   white-space: nowrap; font-variant-numeric: tabular-nums;
 }
+/* 默认角色：右栏只做「有没有配、配的是谁」的提示，长名字截断，完整名进 title */
+.svc-grps__role {
+  flex: 0 1 auto; max-width: 84px; padding: 0 5px; border-radius: 4px;
+  font-size: 10.5px; color: var(--svc-ink-3); background: var(--svc-surface-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* 页头副标题里的告警数字：只染色，不加背景，避免和状态带抢注意力 */
 .svc-sub-warn { color: var(--svc-warning); }

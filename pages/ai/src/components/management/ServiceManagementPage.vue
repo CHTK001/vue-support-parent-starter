@@ -448,6 +448,7 @@
           <div class="svc-grps" v-if="groupStats.items.length">
             <button v-for="g in groupStats.items" :key="g.id" class="svc-grps__row" @click="openSheet('groups')">
               <span class="svc-grps__name" :title="g.name">{{ g.name }}</span>
+              <span class="svc-grps__role" v-if="g.roleName" :title="`默认角色：${g.roleName}`">{{ g.roleName }}</span>
               <span class="svc-grps__meta">{{ g.models }} 模型 · {{ g.members }} Key</span>
             </button>
           </div>
@@ -860,14 +861,14 @@ const groupStats = ref<{
   total: number
   models: number
   keys: number
-  items: Array<{ id: any; name: string; models: number; members: number }>
+  items: Array<{ id: any; name: string; models: number; members: number; roleName: string }>
 }>({ total: 0, models: 0, keys: 0, items: [] })
 
 function onGroupStats(v: {
   total: number
   models: number
   keys: number
-  items?: Array<{ id: any; name: string; models: number; members: number }>
+  items?: Array<{ id: any; name: string; models: number; members: number; roleName: string }>
 }) {
   groupStats.value = { ...v, items: v.items || [] }
 }

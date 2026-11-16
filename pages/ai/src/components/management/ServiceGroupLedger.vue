@@ -63,6 +63,17 @@
           </div>
         </template>
 
+        <!-- 默认角色：组内 Key 调模型时的系统提示词来源；没设就走全局默认 -->
+        <template #col-role="{ row }">
+          <span class="svc-chip" v-if="row.roleName" :title="`默认角色：${row.roleName}`">{{ row.roleName }}</span>
+          <span
+            class="svc-chip is-empty"
+            v-else-if="row.defaultRoleId"
+            :title="`角色 #${row.defaultRoleId} 已停用或删除，当前不生效`"
+          >#{{ row.defaultRoleId }}（失效）</span>
+          <span class="svc-chip is-empty" v-else title="组内 Key 的请求不带分组级提示词，沿用全局默认">未设角色</span>
+        </template>
+
         <!-- 模型清单：台面上最多两个，其余收进 +N -->
         <template #col-models="{ row }">
           <div class="svc-models" v-if="row.models.length">
@@ -232,6 +243,29 @@
                 成员的归属写在 Key 侧，保存后 Key 台账会同步刷新。
               </span>
             </el-form-item>
+            <!-- 默认角色：分组级提示词来源；不设 = 沿用全局默认 -->
+            <el-form-item label="默认角色">
+              <el-select
+                v-model="form.defaultRoleId"
+                class="svc-form__wide"
+                clearable
+                filterable
+                :loading="rolesLoading"
+                placeholder="不设分组级角色（沿用全局默认）"
+              >
+                <el-option
+                  v-for="r in roleSelectOptions"
+                  :key="r.id"
+                  :label="r.name"
+                  :value="r.id"
+                />
+              </el-select>
+              <span class="svc-form__hint">
+                组内 Key 调模型时，先取该角色在<b>当前形态</b>下的提示词当系统提示词
+                （该形态没配就回退角色自身的提示词）；不设则沿用「设置中心 → 系统提示词」。
+                调用方自己带了 system 提示词时以调用方为准，分组默认值不覆盖。
+              </span>
+            </el-form-item>
           </el-form>
         </div>
       </div>
@@ -271,7 +305,7 @@ import { ElMessageBox } from 'element-plus'
 import { Add24Regular, Edit24Regular } from '@vicons/fluent'
 import { Delete } from '@element-plus/icons-vue'
 import { adminApi } from '@/framework/context'
-import { appKeyApi, groupApi } from '@/services/javaApi'
+import { appKeyApi, groupApi, roleApi } from '@/services/javaApi'
 import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
@@ -290,7 +324,7 @@ const emit = defineEmits<{
     models: number
     keys: number
     /** 分组清单（父级右栏直接展示，不重复拉一次接口） */
-    items: Array<{ id: any; name: string; models: number; members: number }>
+    items: Array<{ id: any; name: string; models: number; members: number; roleName: string }>
   }): void
   /** 分组或其成员发生变化：父级据此刷新 Key 台账（Key 的分组名 / 模型范围都跟着变） */
   (e: 'changed'): void
@@ -380,8 +414,11 @@ function isForbidden(e: any): boolean {
 // ============================================================================
 const groups = ref<any[]>([])
 const keys = ref<any[]>([])
+const roles = ref<any[]>([])
 const loading = ref(false)
 const keysLoading = ref(false)
+const rolesLoading = ref(false)
+const rolesFailed = ref(false)
 const error = ref('')
 const forbidden = ref(false)
 const keyword = ref('')
@@ -405,6 +442,49 @@ const keyMap = computed<Map<number, any>>(() => {
     if (isFinite(id)) map.set(id, k)
   }
   return map
+})
+
+/** 角色下拉候选：启用中的角色（停用的角色即使被分组引用也不再生效） */
+const roleOptions = computed(() =>
+  roles.value
+    .filter((r: any) => r?.status == null || Number(r.status) === 1)
+    .map((r: any) => ({
+      id: Number(r?.id ?? r?.roleId),
+      name: String(r?.name ?? r?.code ?? `角色 ${r?.id}`),
+      code: String(r?.code ?? ''),
+    }))
+    .filter((r) => isFinite(r.id)),
+)
+
+/** 角色主键 → 名称：列表里只显示名字，存的是 id */
+const roleMap = computed<Map<number, string>>(() => {
+  const map = new Map<number, string>()
+  for (const r of roleOptions.value) map.set(r.id, r.name)
+  return map
+})
+
+/**
+ * 编辑中的分组已配、但已不在启用名单里的角色。
+ *
+ * <p>不能让下拉把已有值吞成一片空白：元素在没有匹配项时只显示裸 id，
+ * 用户会以为「没配过」。这里补一条带说明的候选项来回显。</p>
+ */
+const staleRole = computed(() => {
+  const rid = Number(editing.value?.defaultRoleId ?? 0)
+  if (!rid || !isFinite(rid)) return null
+  const hit = roles.value.find((r: any) => Number(r?.id ?? r?.roleId) === rid)
+  if (!hit) {
+    return { id: rid, name: rolesFailed.value ? `角色 #${rid}（名单未加载）` : `角色 #${rid}（已删除）`, code: '' }
+  }
+  return { id: rid, name: `${String(hit?.name ?? `角色 #${rid}`)}（已停用）`, code: String(hit?.code ?? '') }
+})
+
+/** 下拉候选：启用中的角色 + 当前分组已配的失效角色（只为回显，选了也不生效） */
+const roleSelectOptions = computed(() => {
+  const opts = roleOptions.value
+  const stale = staleRole.value
+  if (stale && !opts.some((o) => o.id === stale.id)) return [...opts, stale]
+  return opts
 })
 
 const rows = computed(() =>
@@ -433,6 +513,8 @@ const rows = computed(() =>
       members,
       modelCount: models.length,
       memberCount: members.length,
+      defaultRoleId: g?.defaultRoleId == null ? null : Number(g.defaultRoleId),
+      roleName: roleMap.value.get(Number(g?.defaultRoleId)) ?? '',
       createdAt: g?.createdAt ?? '',
       createdText: shortTime(g?.createdAt),
     }
@@ -441,6 +523,7 @@ const rows = computed(() =>
 
 const columns = computed<ReTableColumn[]>(() => [
   { prop: 'name', label: '分组', minWidth: 210, slot: 'name' },
+  { prop: 'roleName', label: '默认角色', minWidth: 132, slot: 'role' },
   { prop: 'models', label: '模型清单', minWidth: 190, slot: 'models' },
   { prop: 'members', label: '成员 Key', minWidth: 190, slot: 'members' },
   { prop: 'modelCount', label: '模型 / Key', width: 108, slot: 'scale' },
@@ -452,7 +535,7 @@ const filteredRows = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) return rows.value
   return rows.value.filter((r) =>
-    (r.name + ' ' + r.description + ' ' + r.models.join(' ') + ' ' + r.members.map((m: any) => m.name).join(' '))
+    (r.name + ' ' + r.description + ' ' + r.roleName + ' ' + r.models.join(' ') + ' ' + r.members.map((m: any) => m.name).join(' '))
       .toLowerCase().includes(kw),
   )
 })
@@ -488,6 +571,7 @@ const keyOptions = computed(() =>
 function reload() {
   load()
   loadKeys()
+  loadRoles()
 }
 
 async function load() {
@@ -527,6 +611,27 @@ async function loadKeys() {
     keys.value = []
   } finally {
     keysLoading.value = false
+  }
+}
+
+/**
+ * 角色候选：分组默认角色只从「角色管理」里挑。
+ *
+ * <p>失败不阻塞分组台账 —— 没有角色名单时下拉为空，已配的角色在主表里
+ * 退化为 {@code #id}，不会把分组页整页打成错误页。</p>
+ */
+async function loadRoles() {
+  if (rolesLoading.value) return
+  rolesLoading.value = true
+  try {
+    const res = await roleApi.list()
+    roles.value = asList(pick(res))
+    rolesFailed.value = false
+  } catch {
+    roles.value = []
+    rolesFailed.value = true
+  } finally {
+    rolesLoading.value = false
   }
 }
 
@@ -583,6 +688,8 @@ function createForm(src?: any) {
     description: src?.description ?? '',
     models: src ? src.models.slice() : [],
     appKeyIds: src ? src.memberIds.slice() : [],
+    // null = 不设分组级角色；清空选择后提交 0（后端据此把列置 NULL）
+    defaultRoleId: src?.defaultRoleId ?? null,
   }
 }
 
@@ -604,6 +711,7 @@ function openCreate() {
   editing.value = null
   loadModels()
   loadKeys()
+  loadRoles()
   form.value = createForm()
   showForm.value = true
 }
@@ -613,6 +721,7 @@ function openEdit(row: any) {
   editing.value = row
   loadModels()
   loadKeys()
+  loadRoles()
   const next = createForm(row)
   // 模型清单只回显「模型管理里真有的」编码，免得下拉里冒出已下线模型；
   // 候选还没加载完（size=0）时先原样保留，不让一次编辑顺手删掉配置
@@ -638,6 +747,8 @@ async function submit() {
     models: f.models.slice(),
     // 空数组是「解绑全部」的显式语义（后端 null 才是「不改动」），这里必须发 []
     appKeyIds: f.appKeyIds.map(Number),
+    // 0 = 显式「不设分组级角色」：后端 updateById 跳过 null，清空必须靠这个哨兵
+    defaultRoleId: f.defaultRoleId ? Number(f.defaultRoleId) : 0,
   }
   saving.value = true
   try {
@@ -707,6 +818,8 @@ watch(rows, (list) => {
       name: r.name,
       models: r.modelCount,
       members: r.memberCount,
+      // 右栏分组清单顺带露默认角色，省得为了看角色再点进弹层
+      roleName: r.roleName,
     })),
   })
 }, { immediate: true })

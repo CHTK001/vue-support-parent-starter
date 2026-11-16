@@ -103,6 +103,9 @@ export const topupApi = {
  *   <li>{@code appKeyIds} 是「成员 Key」的投影：归属真源在 Key 侧
  *       （{@code sys_ai_app_key.sys_ai_app_key_group_id}），后端保存时会双向对齐。
  *       {@code null} = 不改动，{@code []} = 解绑全部，列表 = 最终名单。</li>
+ *   <li>{@code defaultRoleId} 是分组级默认角色：{@code null} = 不改动，
+ *       {@code 0} = 显式清空（updateById 跳过 null，清空只能靠这个哨兵），
+ *       正整数 = 设为该角色。仅在调用方没带 system 提示词时生效。</li>
  * </ul>
  */
 export const groupApi = {
