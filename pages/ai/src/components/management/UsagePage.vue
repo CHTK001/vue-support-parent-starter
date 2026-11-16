@@ -265,8 +265,8 @@
       </article>
     </section>
 
-    <!-- ── 分布（三口径） + 每日模型 + 模型延迟 ── -->
-    <section class="usage-triple">
+    <!-- ── 分布（占两行） + 每日模型（占两列） + 模型延迟 ── -->
+    <section class="usage-triple usage-triple--dist">
       <article class="usage-panel usage-card">
         <header class="usage-panel__head">
           <div class="usage-panel__title-wrap">
@@ -838,7 +838,7 @@ function pctStyle(r: any) {
 /* ============================================================================
    用量管理 —— 侦察时间轴（04）视觉体系
    骨架：40 顶栏 / 94 刻度尺 / 114 核心读数 / 80 派生读数 / 218 构成 + 趋势 /
-   206 分布 + 每日模型 + 延迟 / 174 双 Top5 + 实时 / 明细（最低 800px + 剩余高度）。
+   206 分布（两行）+ 每日模型（两列）+ 延迟 / 174 双 Top5 + 实时 / 明细（最低 800px + 剩余高度）。
    全部沿用控制台既有的 --el-* / --u-* 令牌（暗色自动跟随），不新造皮肤。
 
    <p>2026-11-16：每个卡片块统一长高 50px（原 44/64/30/168/156/124 → 94/114/80/
@@ -1225,6 +1225,20 @@ function pctStyle(r: any) {
   gap: 8px;
   height: 206px;
 }
+/*
+ * 分布占左列两行，每日模型横跨右侧两列，延迟落在右下、同样横跨两列：
+ * 分布是逐项列表（项数多、要滚动），给它整列高度才看得全；
+ * 每日模型是堆叠柱，横向越宽日期越不挤。
+ * 两行等高（202px），正好容纳 27 抬头 + 168 图表 + 4 内边距 + 余量。
+ */
+.usage-triple--dist {
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr) minmax(0, 0.98fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  height: 412px;
+}
+.usage-triple--dist > :nth-child(1) { grid-column: 1; grid-row: 1 / span 2; }
+.usage-triple--dist > :nth-child(2) { grid-column: 2 / span 2; grid-row: 1; }
+.usage-triple--dist > :nth-child(3) { grid-column: 2 / span 2; grid-row: 2; }
 .usage-triple--ranks {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.84fr);
   height: 174px;
