@@ -1322,6 +1322,7 @@ const providerLimits = computed(() => {
   const title = [
     ...declaredCore.map((line: string) => `官方 / 手动：${line}`),
     ...observedCore.map((line: string) => `响应头：${line}`),
+    report.doc_url ? `官方文档：${report.doc_url}` : '',
     source ? `来源标识：${source}` : '',
     capturedAt ? `同步时间：${capturedAt}` : '',
   ].filter(Boolean).join('\n')
@@ -1336,6 +1337,8 @@ const syncSections = computed(() => {
   const limits = body.limits ?? {}
   const declaredLines = limitValueLines(limits.declared)
   const observedLines = limitValueLines(limits.observed)
+  // 登记表覆盖 200+ 家：没有数值也能给官方文档入口，但不能把「有文档」写成「有限制」
+  const docUrl = limits.doc_url ? String(limits.doc_url) : ''
   const attempted = Array.isArray(limits.attempted)
     ? limits.attempted.map((row: any) => {
         const status = row?.status === 'hit' ? '命中' : row?.status === 'error' ? '失败' : '未命中'
@@ -1347,6 +1350,7 @@ const syncSections = computed(() => {
     lines: [
       ...declaredLines.map((line) => `官方 / 手动：${line}`),
       ...observedLines.map((line) => `响应头：${line}`),
+      ...(docUrl ? [`官方文档：${docUrl}`] : []),
     ],
     muted: declaredLines.length || observedLines.length
       ? (attempted ? `已尝试：${attempted}` : '')
