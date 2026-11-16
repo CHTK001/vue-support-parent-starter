@@ -62,9 +62,12 @@
                 <WgIcon :d="viewStyle === 'grid' ? ICONS.list : ICONS.grid" />
               </button>
             </div>
-        </template>
 
-        <template #tools>
+          <!--
+            搜索 / 筛选 / 记录管理 / 排序：原来单独占一行（#tools），
+            用户要求合并到标题行 —— 少一条横条，把纵向空间还给结果区。
+            与生成类型 / 视图切换同属「对结果集做操作」，放在标题右侧同一组里。
+          -->
           <label class="wg-search">
             <WgIcon :d="ICONS.search" />
             <input
@@ -836,10 +839,10 @@
           </template>
 
           <!--
-            工具条左组：模型。和优化 / 参考图 / 发送排在同一行 ——
-            「用什么模型、对提示词做什么、发出去」本来就是一串动作，拆成两行要来回找。
+            模型放参数轨最左（用户要求「底部模型选择放到第一个」）：
+            先定「用什么模型」，再看张数 / 画幅 / 尺寸，顺序与出图工作流一致。
           -->
-          <template #buttons>
+          <template #leading>
             <span class="wg-rail-group">
               <PickerPopover v-model:show="modelOpen" :width="340" @update:show="(v) => { modelOpen = v; if (!v) modelKeyword = '' }">
               <template #trigger="{ toggle }">
@@ -879,8 +882,11 @@
               </div>
               </PickerPopover>
             </span>
-            <!-- 风格开关：默认关闭。是否可开由模型能力决定（styleSupported），
-                 开启后风格轨才显示；与模型芯片同排，不另起一行。 -->
+          </template>
+
+          <!-- 风格开关：默认关闭。是否可开由模型能力决定（styleSupported），
+               开启后风格轨才显示；与模型芯片同排，不另起一行。 -->
+          <template #buttons>
             <button
               v-if="mediaType === 'image' && styleSupported"
               type="button"
@@ -3515,6 +3521,14 @@ onUnmounted(() => {
   background: var(--color-input-bg);
   color: var(--color-text-gray);
   transition: border-color 0.2s;
+}
+
+/* 搜索框并入标题行后固定宽度：它原来是筛选行的主内容，可以撑满；
+   现在同一行还有生成类型 / 视图 / 筛选 / 记录管理 / 排序，让它继续 flex-grow
+   会把标题挤到换行，故收成定宽。 */
+.re-page__actions .wg-search {
+  flex: 0 1 240px;
+  min-width: 160px;
 }
 
 .wg-search .wg-svg {

@@ -120,6 +120,12 @@
            与模型 / 风格 / 参考图 / 优化 / 发送同一条基线：参数决定「这次出图怎么出」，
            工具条是「用什么模型、对提示词做什么、发出去」。 -->
       <div class="bottom-rail w-full">
+        <!-- 前置槽：生图页把「模型」放在参数轨最左。
+             先定「用什么模型」，再看张数 / 画幅 / 尺寸，顺序与出图工作流一致。 -->
+        <div v-if="$slots.leading" class="leading-rail">
+          <slot name="leading"></slot>
+        </div>
+
         <div v-if="$slots['param-rail']" class="param-rail">
           <slot name="param-rail"></slot>
         </div>
@@ -1873,6 +1879,16 @@ defineExpose({ insertText, insertBadge, clearDraft });
 
 .param-rail::-webkit-scrollbar {
   display: none;
+}
+
+/* 参数轨最左的前置控件组（模型）：不参与横向滚动，始终可见 ——
+   模型是这一行的起点，滚走了用户就不知道当前用的是什么模型。 */
+.leading-rail {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 /* 命令徽标样式 */
