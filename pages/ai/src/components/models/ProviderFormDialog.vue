@@ -60,13 +60,14 @@ const DETECT_STATE_LABEL: Record<'ok' | 'na' | 'bad', string> = { ok: '可用', 
 /**
  * 余额查询方式（extra.credit_kind）。
  *
- * <p>{@code auto} 不落库：后端按「厂商官方 → OpenAI 官方 → new-api → sub2api」
+ * <p>{@code auto} 不落库：后端按「厂商官方 → OpenAI 官方 → new-api → OpenAI 兼容计费 → sub2api」
  * 自动回落，第一条查到数的胜出。其余值直接指定唯一实现，并可覆盖地址与字段表达式。
  * 实现在 datasearch-starter 的 credit SPI 里，与渠道管理页共用同一套口径。</p>
  */
 const CREDIT_KINDS = [
   { value: 'auto', label: '自动识别（推荐）', short: '自动' },
   { value: 'new-api', label: 'new-api / one-api 中转站', short: 'new-api' },
+  { value: 'billing', label: 'OpenAI 兼容计费接口（one-api / new-api / voapi）', short: '兼容计费' },
   { value: 'sub2api', label: 'sub2api 中转站', short: 'sub2api' },
   { value: 'host', label: '厂商官方（DeepSeek / Moonshot / 硅基流动 / OpenRouter）', short: '厂商官方' },
   { value: 'openai', label: 'OpenAI 官方', short: 'OpenAI' },
@@ -1238,6 +1239,11 @@ const protocolOptions = [
               </template>
               <p class="pf-note">
                 决定「提供商详情 → 余额与用量」怎么查：每个 Key 单独查一次，前一段算剩余、后一段算已用，总量是两者之和。
+              </p>
+              <p v-if="form.creditKind === 'auto'" class="pf-note">
+                自动识别依次尝试：厂商官方 → OpenAI 官方 → new-api（/api/usage/token）→ OpenAI 兼容计费
+                （/v1/dashboard/billing）→ sub2api（/v1/usage），第一条查到数的胜出；都不通时到详情页的
+                「余额与用量」看已尝试链路，再按上游实际地址自配「自定义地址 + 表达式」。
               </p>
             </div>
           </div>

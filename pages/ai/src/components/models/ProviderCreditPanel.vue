@@ -8,6 +8,7 @@
     <div class="pc-bar__main">
       <span class="pc-bar__title">余额与用量</span>
       <span v-if="kindLabel" class="pc-kind">{{ kindLabel }}</span>
+      <span v-if="levelLabel" class="pc-level" :title="levelHint">{{ levelLabel }}</span>
       <span v-if="rows.length" class="pc-scope">{{ rows.length }} 个 Key</span>
 
       <span
@@ -49,6 +50,10 @@
       <span v-else-if="!rows.length" class="pc-bar__err">
         {{ loading ? '正在查询余额…' : '没有可查的 Key' }}
       </span>
+      <!-- 全部 Key 都没查到数：把自动识别试过哪几条口径摆出来（单条失败原因在胶囊的 tooltip 里） -->
+      <span v-else-if="!anyOk && attempted" class="pc-bar__chain" :title="firstError">
+        已尝试：{{ attempted }}
+      </span>
 
       <button class="pc-reload pc-bar__reload" type="button" :disabled="loading" @click="load">
         {{ loading ? '查询中…' : '刷新' }}
@@ -62,6 +67,7 @@
         <span class="pc-title">余额与用量</span>
         <!-- 口径写在屏上：这里是「N 个 Key 汇总」，卡片是「单个 Key」，两个数字本来就不会相等 -->
         <span v-if="kindLabel" class="pc-kind">{{ kindLabel }}</span>
+        <span v-if="levelLabel" class="pc-level" :title="levelHint">{{ levelLabel }}</span>
         <span v-if="rows.length" class="pc-scope">{{ rows.length }} 个 Key</span>
       </div>
       <button class="pc-reload" type="button" :disabled="loading" @click="load">
@@ -91,6 +97,7 @@
     </div>
 
     <p v-if="error" class="pc-error">{{ error }}</p>
+    <p v-if="!loading && !anyOk && attempted" class="pc-chain">已尝试：{{ attempted }}</p>
 
     <div v-if="!rows.length" class="pc-empty">
       {{ loading ? '正在查询余额…' : (error ? '这次没查到读数' : '没有可查的 Key。') }}
@@ -184,6 +191,10 @@ const loading = ref(false)
 const error = ref('')
 const meta = ref<{
   kind?: string
+  /** 本次实际尝试的实现标识（后端 candidates），全部查不到时显示出来 */
+  candidates?: string[]
+  /** 余额口径分级（official / openai / relay / manual / none） */
+  level?: string
   currency?: string | null
   total?: { remain?: number; used?: number; total?: number } | null
   ok?: boolean
@@ -195,6 +206,7 @@ const meta = ref<{
 const KIND_LABELS: Record<string, string> = {
   auto: '自动识别',
   'new-api': 'new-api 中转站',
+  billing: 'OpenAI 兼容计费',
   sub2api: 'sub2api 中转站',
   openai: 'OpenAI 官方',
   host: '厂商官方',
@@ -205,13 +217,41 @@ const KIND_LABELS: Record<string, string> = {
 const SOURCE_LABELS: Record<string, string> = {
   host: '厂商官方',
   'new-api': 'new-api',
+  billing: '兼容计费',
   sub2api: 'sub2api',
   openai: 'OpenAI',
   expression: '自定义',
 }
 
 const kindLabel = computed(() => KIND_LABELS[String(meta.value.kind || '')] || '')
-const pinned = computed(() => rows.value.length > 1)
+const pinned = computed(() => rows.value.length > 1)/** 全部 Key 都没查到数：此时把「已尝试链路」显示出来，方便判断该换哪条口径 */
+const anyOk = computed(() => rows.value.some((row) => row.ok))
+const attempted = computed(() => (meta.value.candidates || [])
+  .map((kind) => KIND_LABELS[kind] || kind)
+  .join(' → '))
+/** 第一条失败原因（吸底条只放得下一行，完整原文在胶囊 tooltip 与详情卡里） */
+const firstError = computed(() => {
+  const bad = rows.value.find((row) => !row.ok)
+  return bad && bad.error ? String(bad.error) : ''
+})
+
+/** 余额口径分级：告诉用户「这家凭什么能查 / 为什么查不到」 */
+const LEVEL_LABELS: Record<string, string> = {
+  official: '官方预设',
+  openai: 'OpenAI 官方',
+  relay: '中转站探测',
+  manual: '手动口径',
+  none: '无上游',
+}
+const LEVEL_HINTS: Record<string, string> = {
+  official: '这家厂商有官方余额接口，按官方地址与字段直接查',
+  openai: '上游是 OpenAI 官方，走 OpenAI 额度接口',
+  relay: '中转 / 聚合站：依次探测 new-api、OpenAI 兼容计费、sub2api 三种余额协议，第一条查到数的胜出',
+  manual: '页面上指定了唯一余额实现（可覆盖地址与字段表达式）',
+  none: '没有配置上游地址，没有可查的余额；先填上游地址，或在「余额」里配自定义地址',
+}
+const levelLabel = computed(() => LEVEL_LABELS[String(meta.value.level || '')] || '')
+const levelHint = computed(() => LEVEL_HINTS[String(meta.value.level || '')] || '')
 
 /** 金额：不写千分位、不带货币符号，货币用码单独显示（与渠道管理页一致） */
 const money = (value: unknown) => {
@@ -422,6 +462,16 @@ onMounted(load)
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 全 Key 都没查到时的一行「已尝试」链路：灰字，不抢错误色 */
+.pc-bar__chain {
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
 .pc-bar__reload { margin-left: auto; }
 
 .pc {
@@ -462,6 +512,7 @@ onMounted(load)
   color: var(--el-text-color-primary);
 }
 .pc-kind,
+.pc-level,
 .pc-scope {
   padding: 1px 8px;
   border-radius: 999px;
@@ -470,7 +521,8 @@ onMounted(load)
   background: var(--el-fill-color-light);
   white-space: nowrap;
 }
-.pc-kind {
+.pc-kind,
+.pc-level {
   border: 1px dashed var(--el-border-color);
   background: transparent;
 }
@@ -560,6 +612,14 @@ onMounted(load)
   font-size: 11.5px;
   line-height: 1.6;
   color: var(--el-color-danger);
+  word-break: break-all;
+}
+/* 全部 Key 都没查到数时的「已尝试」链路：说明自动识别试过哪几条口径 */
+.pc-chain {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
   word-break: break-all;
 }
 
