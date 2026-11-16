@@ -19,15 +19,30 @@
         </div>
       </div>
 
-      <!-- 思考 -->
-      <div v-else-if="item.type === 'think' && showProcess" class="timeline-row">
-        <span class="timeline-rail"><el-icon size="14"><BrainCircuit20Regular /></el-icon></span>
+      <!-- 思考：折叠入口与正文行同一套逻辑——左侧图标位平时是思考图标，
+           鼠标经过/聚焦/展开时换成折叠箭头（收起右向、展开旋转 90°），
+           不再在标题行中间另塞一个箭头（用户口径 2026-11-16） -->
+      <div v-else-if="item.type === 'think' && showProcess" class="timeline-row timeline-row--think">
+        <span class="timeline-rail timeline-rail--toggle" role="button" tabindex="0"
+          :aria-expanded="isThinkingOpen(item)"
+          :aria-label="isThinkingOpen(item) ? t('common.collapse') : t('common.expand')"
+          :title="isThinkingOpen(item) ? t('common.collapse') : t('common.expand')"
+          @click="toggleThinking(item)"
+          @keydown.enter.prevent="toggleThinking(item)"
+          @keydown.space.prevent="toggleThinking(item)">
+          <el-icon class="timeline-rail__glyph" size="14"><BrainCircuit20Regular /></el-icon>
+          <el-icon class="timeline-toggle" :class="{ 'is-open': isThinkingOpen(item) }" size="14">
+            <ChevronRight12Regular />
+          </el-icon>
+        </span>
         <div class="timeline-body">
           <MessageThinkingSection :reasoning-content="item.reasoningContent || ''"
             :is-thinking="item.source.state?.isThinking || false"
             :is-streaming="item.source.state?.isStreaming || false"
             :thinking-duration-ms="item.source.thinkingDurationMs ?? item.source.metadata?.thinkingDurationMs"
-            :metadata="item.source.metadata" />
+            :metadata="item.source.metadata"
+            :expanded="isThinkingOpen(item)"
+            @toggle="toggleThinking(item)" />
         </div>
       </div>
 
@@ -140,6 +155,30 @@ const toggleContent = (item: DisplayItem): void => {
   lockScrollAnchor();
 };
 
+// 思考块的展开状态与正文行同一套表达：显式展开 / 显式收起各记一个集合，
+// 都没记过时看这轮是否还在思考（思考中就展开，思考结束收成标题行一行摘要）。
+const thinkingOpenIds = ref<Set<string>>(new Set());
+const thinkingClosedIds = ref<Set<string>>(new Set());
+
+const isThinkingOpen = (item: DisplayItem): boolean => {
+  const id = String(item.id);
+  if (thinkingOpenIds.value.has(id)) return true;
+  if (thinkingClosedIds.value.has(id)) return false;
+  return item.source.state?.isThinking === true;
+};
+
+const toggleThinking = (item: DisplayItem): void => {
+  const id = String(item.id);
+  if (isThinkingOpen(item)) {
+    thinkingOpenIds.value.delete(id);
+    thinkingClosedIds.value.add(id);
+    return;
+  }
+  thinkingClosedIds.value.delete(id);
+  thinkingOpenIds.value.add(id);
+  lockScrollAnchor();
+};
+
 /**
  * 单行预览：去掉 Markdown 记号后的第一段人话。
  *
@@ -216,9 +255,9 @@ defineEmits<{
   line-height: 1.7;
 }
 
-/* ---- 回复正文的单行折叠（用户口径 2026-11-16） ----------------------------
-   左侧图标位平时就是原来那个「正文」图标；鼠标经过该行（或键盘聚焦、或已展开）
-   才换成折叠箭头。箭头收起时右向，展开后旋转 90°，与工具行「> → v」同一套语义。
+/* ---- 回复正文 / 思考的单行折叠（用户口径 2026-11-16） ----------------------
+   左侧图标位平时就是原来那个行内图标（正文 / 思考）；鼠标经过该行（或键盘聚焦、
+   或已展开）才换成折叠箭头。箭头收起时右向，展开后旋转 90°，两行共用同一套语义。
    触屏没有 hover，箭头常驻，否则手机上找不到展开入口。 */
 .timeline-rail--toggle {
   position: relative;
@@ -255,14 +294,19 @@ defineEmits<{
   opacity: 0;
 }
 
+/* 正文行与思考行共用「鼠标经过/聚焦/展开 → 图标换箭头」这一套 */
 .timeline-row--content:hover .timeline-rail__glyph,
 .timeline-row--content:focus-within .timeline-rail__glyph,
+.timeline-row--think:hover .timeline-rail__glyph,
+.timeline-row--think:focus-within .timeline-rail__glyph,
 .timeline-rail--toggle[aria-expanded='true'] .timeline-rail__glyph {
   opacity: 0;
 }
 
 .timeline-row--content:hover .timeline-toggle,
 .timeline-row--content:focus-within .timeline-toggle,
+.timeline-row--think:hover .timeline-toggle,
+.timeline-row--think:focus-within .timeline-toggle,
 .timeline-toggle.is-open {
   opacity: 1;
 }

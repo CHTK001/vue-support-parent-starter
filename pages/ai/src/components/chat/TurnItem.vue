@@ -96,7 +96,7 @@
             v-if="timelineItems.length"
             :items="timelineItems"
             :is-streaming="streamingState.isStreaming"
-            :collapsible-content="true"
+            :collapsible-content="collapsibleContent"
             @click="handleClick"
             @abort="emit('abort')" />
 
@@ -266,7 +266,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, inject } from "vue";
+import { computed, ref, watch, nextTick, inject, onMounted } from "vue";
 import { ElAlert, ElIcon, ElImageViewer, ElButton } from "element-plus";
 import { useI18n } from "vue-i18n";
 import { InsightsTwotone, MenuBookOutlined, CodeOutlined } from "@vicons/material";
@@ -290,10 +290,41 @@ import FileDiffDialog from './message-item/FileDiffDialog.vue';
 import PlanApprovalCard from './message-item/PlanApprovalCard.vue';
 import { useFileChanges, type FileChangeEntry } from '@/composables/useFileChanges';
 import { useAuthStore } from '@/stores/auth';
+import { apiService } from '@/services/ApiService';
+import { resolveCollapseLastReply } from '@/services/modules/message.api';
 
 const { toast } = usePopup();
 const { t } = useI18n();
 const authStore = useAuthStore();
+
+// 读取缓存（含 in-flight 去重）复用 message.api.ts 里 initial_load_turns 的同源共享缓存：
+// 会话切换时多个回合实例会连续读同一份 session 配置，共享的 Promise 保证一个页面生命周期
+// 只请求一次；设置页保存后会调缓存失效（invalidateCollapseLastReplyCache），无需在此重复缓存。
+
+/**
+ * 「最后一条回复默认折叠」开关：来自 session 分组的会话配置（与设置页里显示的是同一份值）。
+ *
+ * <p>默认 false＝一直展开全文；开启后最新一轮回复的正文默认只占一行，
+ * 悬停出左侧折叠箭头、点击展开全文（见 ProcessTimeline 的 collapsible-content）。
+ * 读取失败时回落默认值「一直展开」，不因一次配置请求失败让正文被迫折叠。</p>
+ */
+const collapseLastReply = ref(false)
+
+/**
+ * 一次性把「最后一条回复默认折叠」开关拉进状态（复用共享缓存，多个回合实例共享同一次请求）。
+ *
+ * 用户可能直接进会话页、根本没打开过设置页；只在设置页里灌数据的话，他自己配的折叠开关
+ * 要等下次进设置才生效（设置页保存会调缓存失效，自然重读）。读不到也不报错（回落默认值「一直展开」）。
+ */
+function ensureCollapseLastReplyLoaded(): Promise<boolean> {
+  return resolveCollapseLastReply(apiService).then((value) => {
+    collapseLastReply.value = value;
+    return value;
+  });
+}
+
+/** 把折叠开关接给 ProcessTimeline：按值决定最后一条回复是否默认收成一行。 */
+const collapsibleContent = computed(() => collapseLastReply.value)
 
 /**
  * 当前登录用户的展示名：优先昵称，退回用户名；都缺时返回空串（模板据此不渲染名字）。
@@ -525,6 +556,12 @@ watch(turnsCache, () => {
     el.scrollTop = el.scrollHeight;
   });
 }, { deep: true });
+
+onMounted(async () => {
+  // 首次挂载拉取一次折叠开关；配置在会话切换后通常不变，设置页保存后会调缓存失效，
+  // 下次渲染（新实例）会重新读到更新后的值。
+  await ensureCollapseLastReplyLoaded()
+})
 
 // 流式过程中最后一组且需折叠为标题行
 const isLastActiveGroup = computed(() => {

@@ -16,8 +16,14 @@ const SESSION_GROUP = "session";
  */
 const FIELD_INITIAL_LOAD_TURNS = "initial_load_turns";
 
+/** 「最后一条回复默认折叠」字段名：与后端 SessionGlobalSettingProvider 的 collapse_last_reply 逐字一致 */
+const FIELD_LAST_REPLY_COLLAPSE = "collapse_last_reply";
+
 /** 会话配置读不到时的兜底轮次：与后端 SPI 声明的默认值 10 对齐 */
 const DEFAULT_INITIAL_LOAD_TURNS = 10;
+
+/** 「最后一条回复默认折叠」读不到时的兜底：false＝一直展开全文 */
+const DEFAULT_COLLAPSE_LAST_REPLY = false;
 
 /**
  * 轮次数上限：与后端 MAX_INITIAL_TURNS 对齐。
@@ -42,6 +48,35 @@ let initialLoadTurnsPromise: Promise<number> | null = null;
 export function invalidateInitialLoadTurnsCache(): void {
   initialLoadTurnsPromise = null;
 }
+
+/** 「最后一条回复默认折叠」的进程内缓存（含 in-flight 去重）。 */
+let collapseLastReplyPromise: Promise<boolean> | null = null;
+
+/** 让缓存的「最后一条回复默认折叠」失效，下次读取会话配置时重新拉取。 */
+export function invalidateCollapseLastReplyCache(): void {
+  collapseLastReplyPromise = null;
+}
+
+/** 取本人生效的「最后一条回复默认折叠」开关（默认 false＝一直展开全文）。 */
+export async function resolveCollapseLastReply(ctx: ApiContext): Promise<boolean> {
+  if (!collapseLastReplyPromise) {
+    collapseLastReplyPromise = (async () => {
+      const response: any = await ctx._request(`/settings/${SESSION_GROUP}/merged`);
+      const first = response?.data ?? response;
+      const items = Array.isArray(first) ? first : Array.isArray(first?.data) ? first.data : [];
+      const item = items.find((it: any) => it?.field === FIELD_LAST_REPLY_COLLAPSE);
+      const raw = String(item?.value ?? item?.defaultValue ?? '').toLowerCase();
+      return raw === 'true';
+    })().catch((error) => {
+      collapseLastReplyPromise = null;
+      console.warn("[messages] 读取会话配置 collapse_last_reply 失败，按默认一直展开:", error);
+      return DEFAULT_COLLAPSE_LAST_REPLY;
+    });
+  }
+  return collapseLastReplyPromise;
+}
+
+
 
 /**
  * 取本人生效的「初始化加载最新的记录数量」（单位：用户轮次）。

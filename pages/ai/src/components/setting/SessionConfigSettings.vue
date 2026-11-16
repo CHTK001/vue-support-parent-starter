@@ -68,6 +68,22 @@
       </SettingsRow>
 
       <SettingsRow
+        label="最后一条回复默认折叠"
+        description="开启后，最新一轮 AI 回复的正文默认只显示一行预览，点击左侧图标位的箭头或预览行即可展开全文；关闭则每条回复都一直展开全文"
+      >
+        <div class="session-config-controls">
+          <el-switch
+            :model-value="collapseLastReply"
+            :loading="saving"
+            :disabled="loading"
+            aria-label="最后一条回复默认折叠"
+            @change="onCollapseLastReplyChange"
+          />
+          <span class="session-config-state">{{ collapseStateLabel }}</span>
+        </div>
+      </SettingsRow>
+
+      <SettingsRow
         label="会话超时时间"
         description="一次回复连续这么久（分钟）没有任何输出就判定为超时，服务端结束该次回复并给出超时提示；填 0 = 不限制"
       >
@@ -202,7 +218,7 @@ import { OpenAI } from '@/components/icons'
 import ModelPickerDialog from './dms/ModelPickerDialog.vue'
 import ModelRowLogo from '@/components/models/ModelRowLogo.vue'
 import { mapProviderModel, findPickedModel } from '@/components/models/modelMeta'
-import { invalidateInitialLoadTurnsCache } from '../../services/modules/message.api'
+import { invalidateInitialLoadTurnsCache, invalidateCollapseLastReplyCache } from '../../services/modules/message.api'
 
 const { t } = useI18n()
 const { notify } = usePopup()
@@ -229,6 +245,8 @@ const FIELD_INITIAL_TURNS = 'initial_load_turns'
  * 空串 = 用内置默认文案。
  */
 const FIELD_THINKING_PHRASES = 'thinking_placeholder_phrases'
+/** 「最后一条回复默认折叠」开关：与后端 SessionGlobalSettingProvider 的 collapse_last_reply 逐字一致 */
+const FIELD_LAST_REPLY_COLLAPSE = 'collapse_last_reply'
 /** 初始化加载轮次的默认值：与后端 SPI 声明的 10 对齐，配置缺失时不让下拉空着 */
 const DEFAULT_INITIAL_TURNS = 10
 /** 会话超时字段名（分钟） */
@@ -458,6 +476,10 @@ const completionWaitModel = ref(DEFAULT_COMPLETION_WAIT)
 const initialTurnsModel = ref(DEFAULT_INITIAL_TURNS)
 /** 「AI 正在思考…」占位文案（多行文本，一行一句）；空 = 用内置默认文案 */
 const thinkingPhrasesText = ref('')
+/** 「最后一条回复默认折叠」开关：false=一直展开（默认），true=默认收成一行 */
+const collapseLastReply = ref(false)
+const defaultCollapseLastReply = ref(false)
+const overriddenCollapseLastReply = ref(false)
 
 /**
  * 保存占位文案。
@@ -507,6 +529,14 @@ const stateLabel = computed((): string => {
     return `跟随默认（${defaultEnabled.value ? '开' : '关'}）`
   }
   return enabled.value ? '已开启' : '已关闭'
+})
+
+/** 折叠开关的状态文案：区分「继承默认值」与「已覆盖」两种来源 */
+const collapseStateLabel = computed((): string => {
+  if (!overriddenCollapseLastReply.value) {
+    return `跟随默认（${defaultCollapseLastReply.value ? '开' : '关'}）`
+  }
+  return collapseLastReply.value ? '已开启' : '已关闭'
 })
 
 /**
@@ -573,6 +603,13 @@ const load = async () => {
     thinkingPhrasesText.value = phrases.join('\n')
     // 同步进内存文案库：设置页里读到的就是气泡里将要显示的那一份，两处不各持一份状态
     setCustomThinkingPhrases(phrases)
+
+    const collapseItem = pickField(response, FIELD_LAST_REPLY_COLLAPSE)
+    if (collapseItem) {
+      overriddenCollapseLastReply.value = collapseItem.overridden === true
+      collapseLastReply.value = String(collapseItem.value ?? '').toLowerCase() === 'true'
+      defaultCollapseLastReply.value = String(collapseItem.defaultValue ?? 'false').toLowerCase() === 'true'
+    }
   } catch (error) {
     console.error('获取 session 分组设置失败:', error)
     notify.error(t('settings.loadFailed'), error)
@@ -590,9 +627,10 @@ const saveOverrides = async (payload: Record<string, unknown>) => {
   saving.value = true
   try {
     await apiService.updateUserGroupOverrides(GROUP, payload)
-    // 会话首屏加载轮次在消息出口侧有一份进程内缓存（见 message.api.ts）。
-    // 不在这里失效的话，用户改完设置立刻开会话，读到的还是旧轮次，得刷新页面才生效。
+    // 会话折叠开关在回合侧有一份进程内缓存（见 TurnItem 的 ensureCollapseLastReplyLoaded），
+    // 不在这里失效的话，用户改完设置再开会话，读到的还是旧折叠值，得刷新页面才生效。
     invalidateInitialLoadTurnsCache()
+    invalidateCollapseLastReplyCache()
     await load()
   } catch (error) {
     console.error('保存 session 分组设置失败:', error)
@@ -685,6 +723,12 @@ const onInitialTurnsChange = (value: number | undefined) => {
   )
   initialTurnsModel.value = initialTurns.value
   saveOverrides({ [FIELD_INITIAL_TURNS]: initialTurns.value })
+}
+
+/** 「最后一条回复默认折叠」开关变更：写本人覆盖层 */
+const onCollapseLastReplyChange = (value: boolean | string | number) => {
+  collapseLastReply.value = value === true
+  saveOverrides({ [FIELD_LAST_REPLY_COLLAPSE]: collapseLastReply.value })
 }
 
 onMounted(() => {
