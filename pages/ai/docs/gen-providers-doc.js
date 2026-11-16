@@ -1,7 +1,7 @@
 // 生成「提供商能力矩阵」文档：数据全部取自代码，不手写结论。
 // 判定口径镜像后端：
 //   余额  → ApiProviderController.candidateKinds / creditBrand / isOfficialOpenAi
-//           + HostCreditQueryProvider.HOSTS（bearerBrands 11 家、AK/SK 4 家）
+//           + provider-credit-endpoints.json（Bearer 11 家、AK/SK 4 家）
 //   模型  → fetchModelsFromUpstream / requestUpstreamModels
 // 用法：node gen-providers-doc.js [输出路径]
 import fs from 'node:fs';
@@ -16,7 +16,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = process.env.CHUA_PROJECT_ROOT || path.resolve(__dirname, '../../../..');
 
 const TPL = path.join(ROOT, 'vue-support-parent-starter/pages/ai/src/components/models/model.constants.ts');
-const JAVA = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/java/com/chua/starter/datasearch/credit/spi/impl/HostCreditQueryProvider.java');
+const CREDIT_REGISTRY = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/resources/provider-catalog/provider-credit-endpoints.json');
+const PROVIDER_REGISTRY = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/resources/provider-catalog/provider-registry.json');
 const APC = path.join(ROOT, 'spring-support-parent-starter/spring-support-ai-starter/src/main/java/com/chua/starter/ai/support/manage/api/ApiProviderController.java');
 const LIMIT_REGISTRY = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/resources/provider-catalog/provider-limit-docs.json');
 const PRICING_REGISTRY = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/resources/provider-catalog/provider-pricing-rules.json');
@@ -35,14 +36,18 @@ const rows = block.split('\n')
     return { id: g('id'), name: g('name'), protocol: g('protocol'), url: g('defaultApiUrl') };
   });
 
-// HostCreditQueryProvider 的预设：HOSTS.put("x", new HostSpec("url", ... ) 里的 signType 判断比较复杂，
-// 这里按「已知 AK/SK 签名类」名单区分，名单与代码注释（11 Bearer + 4 AK/SK）一致。
-const java = fs.readFileSync(JAVA, 'utf8');
-const hosts = [...java.matchAll(/HOSTS\.put\("([^"]+)",\s*new HostSpec\("([^"]+)"/g)]
-  .map((x) => ({ brand: x[1], url: x[2] }));
-const hostNames = hosts.map((h) => h.brand);
-const SIGN_KINDS = new Set(['aliyun-bss', 'volc-billing', 'baidu-bce', 'qiniu']);
-const bearer = hosts.filter((h) => !SIGN_KINDS.has(h.brand));
+// 官方余额预设：数据源是 datasearch 的 provider-credit-endpoints.json（Host 实现已改为读它），
+// 不再从 Java 常量里正则抠地址；signType 非空即 AK/SK 签名类。
+const creditRegistry = JSON.parse(fs.readFileSync(CREDIT_REGISTRY, 'utf8'));
+const hosts = (creditRegistry.entries || []).map((e) => ({
+  brand: e.id, url: e.url, signType: e.signType || null,
+}));
+const SIGN_KINDS = new Set(hosts.filter((h) => h.signType).map((h) => h.brand));
+const bearer = hosts.filter((h) => !h.signType);
+
+// 供应商登记表：一家一条（协议 / 地址 / models.dev 目录键 / 能力位 / 余额口径）
+const providerRegistry = JSON.parse(fs.readFileSync(PROVIDER_REGISTRY, 'utf8'));
+const registryById = new Map((providerRegistry.providers || []).map((p) => [String(p.id).toLowerCase(), p]));
 
 const localHosts = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1']);
 
@@ -94,12 +99,13 @@ const protocolLabel = { openai: 'OpenAI 兼容', anthropic: 'Anthropic(CC)', gem
 // Gemini POST :batchGenerateContent → 400（API key not valid）；三者都说明端点存在。
 const STREAMING_PROTOCOLS = new Set(['openai', 'anthropic', 'gemini']);
 const BATCH_VERIFIED = { openai: 'openai', anthropic: 'anthropic', google: 'gemini' };
-const streamingCell = (r) => (STREAMING_PROTOCOLS.has(String(r.protocol || '').toLowerCase())
+// 无上游地址的模板（免费渠道 / 路由组 / 自填 / 本地 ONNX）不发请求，与后端能力位一致：不下结论
+const streamingCell = (r) => (r.url && STREAMING_PROTOCOLS.has(String(r.protocol || '').toLowerCase())
   ? '支持（协议）'
   : '未收录');
 const asyncCell = (r) => {
   const expected = BATCH_VERIFIED[String(r.id || '').toLowerCase()];
-  return expected && expected === String(r.protocol || '').toLowerCase() ? '支持（端点实测）' : '未收录';
+  return r.url && expected && expected === String(r.protocol || '').toLowerCase() ? '支持（端点实测）' : '未收录';
 };
 
 // 与 HostCreditQueryProvider.sameOrigin 同口径：域名相同、互为子域、或同一主域才算同一家
@@ -150,8 +156,8 @@ function modelsOf(t) {
   return '远端 /models';
 }
 
-// 模型目录：与 RegistryProviderLimitProvider / ModelsDevCatalogProvider 同口径，
-// 先按别名精确匹配，再按主机名相等 / 子域匹配。
+// 模型目录：与 ModelsDevCatalogProvider 同口径，先按登记表的 models.dev 目录键
+// （together → togetherai、qwen → alibaba），再按别名精确匹配，最后按主机名相等 / 子域匹配。
 const catalogByAlias = new Map();
 const catalogByHost = new Map();
 if (catalogSnapshot) {
@@ -163,7 +169,10 @@ if (catalogSnapshot) {
 }
 function catalogOf(t) {
   const id = String(t.id || '').toLowerCase();
-  let provider = catalogByAlias.get(id) || null;
+  const entry = registryById.get(id);
+  const modelsDevId = entry && entry.modelsDevId ? String(entry.modelsDevId).toLowerCase() : null;
+  let provider = modelsDevId ? catalogByAlias.get(modelsDevId) || null : null;
+  if (!provider) provider = catalogByAlias.get(id) || null;
   if (!provider) {
     const host = hostOf(t.url) || '';
     for (const [candidate, p] of catalogByHost) {
@@ -297,7 +306,7 @@ const lines = [];
 lines.push('# 提供商能力矩阵（AI 控制台）');
 lines.push('');
 lines.push('> 数据来源：`pages/ai/src/components/models/model.constants.ts`（模板库，' + rows.length + ' 行 / ' + seen.size + ' 个唯一 id，2026-11-16）');
-lines.push('> 判定依据：`ApiProviderController` 的 `creditBrand` / `candidateKinds` / `creditLevel` / `isOfficialOpenAi` / `AUTO_CREDIT_KINDS` / `syncProvider`，`HostCreditQueryProvider.HOSTS` / `sameOrigin`，`fetchModelsFromUpstream`，`ProviderLimitCollector` / `ProviderLimitPresets` / `HeaderLimitMechanism`，`ProviderModelCatalogs` / `ProviderCatalogSyncService` / `ProviderProtocolCapabilities`');
+lines.push('> 判定依据：`ApiProviderController` 的 `creditBrand` / `candidateKinds` / `creditLevel` / `isOfficialOpenAi` / `AUTO_CREDIT_KINDS` / `syncProvider`，datasearch 的 `provider-credit-endpoints.json`（官方余额端点 / 同源判断）与 `provider-registry.json`（名称 / 说明 / 协议 / 地址 / models.dev 目录键 / 能力位 / 余额口径），`fetchModelsFromUpstream`，`ProviderLimitCollector` / `ProviderLimitPresets` / `HeaderLimitMechanism`，`ProviderModelCatalogs` / `ProviderCatalogSyncService` / `ProviderProtocolCapabilities`');
 lines.push('> 本表由 `pages/ai/docs/gen-providers-doc.js` 生成，改模板或改预设后重跑即可，不要手改。');
 lines.push('');
 lines.push('## 一、结论');
@@ -315,7 +324,7 @@ lines.push('| 签到 | 账号渠道能力，不是提供商模板字段：' + ch
 lines.push('');
 lines.push('**200+ 家的实际含义**：没有任何一家是「逐家写死代码」。');
 lines.push('');
-lines.push('- **官方预设**：' + officialIds.length + ' 个厂商有明确的余额端点（`HostCreditQueryProvider.HOSTS`），命中后直接用它的地址和字段；');
+lines.push('- **官方预设**：' + officialIds.length + ' 个厂商有明确的余额端点（datasearch 的 `provider-credit-endpoints.json`，11 家 Bearer + 4 家 AK/SK 签名），命中后直接用它的地址和字段；');
 lines.push('- **中转探测**：其余 ' + (byCredit.relay || 0) + ' 行，按后端 `AUTO_CREDIT_KINDS` 的顺序依次试（本次生成时为 `' + relayChain + '`），谁先返回数字谁算数，全不通就只显示「已尝试：…」和上游原文；');
 lines.push('- **不查**：没有上游地址（路由组 / 自填）、或地址指向本机（ONNX / Ollama），发请求没有意义。');
 lines.push('- **限制**：不逐家写死 —— 登记表 ' + limitEntries.length + ' 家（模板库全量，含去重别名与主机名），其中 ' + limitDocEntries.length + ' 家带官方文档入口（models.dev 目录的 `doc` 字段）；入口只是文档，不等于页面写了数值，数值仍靠「拉 `/models` 时顺带读响应头」或 `extra.limits_manual` 手填，都拿不到才显示「未收录」。第四节每行的「限制查询」列就是这个判定结果。');
@@ -340,15 +349,15 @@ lines.push('## 三、余额口径怎么判（后端分级）');
 lines.push('');
 lines.push('| 级别 | 判定条件 | 页面徽章 |');
 lines.push('| --- | --- | --- |');
-lines.push('| `official` | 平台 id 或 `base_url` 域名命中 `HOSTS`，且地址与该厂商同源 | 官方预设 |');
+lines.push('| `official` | 平台 id 或 `base_url` 域名命中 `provider-credit-endpoints.json`（`kind=registry` 与兼容的 `kind=host` 读同一份），且地址与该厂商同源 | 官方预设 |');
 lines.push('| `openai` | `base_url` 是 `api.openai.com` | OpenAI 官方 |');
 lines.push('| `relay` | 有上游地址但没命中预设 | 中转站探测 |');
 lines.push('| `manual` | `extra.credit_kind` 指定了唯一实现 | 手动口径 |');
 lines.push('| `none` | 无上游地址，或地址是本机 | 无上游 / 不查 |');
 lines.push('');
-lines.push('AK/SK 签名类 4 家（`aliyun-bss`、`volc-billing`、`baidu-bce`、`qiniu`）只在账户侧（`kind=host` + `providerId`）可用，不参与 AI 供应商面板的自动探测——那侧只有 API Key，拿不到 SecretKey。');
+lines.push('AK/SK 签名类 4 家（`aliyun-bss`、`volc-billing`、`baidu-bce`、`qiniu`）只在账户侧（`kind=registry` / 兼容的 `kind=host` + `providerId`）可用，不参与 AI 供应商面板的自动探测——那侧只有 API Key，拿不到 SecretKey。');
 lines.push('');
-lines.push('**官方预设全表（15 家）**：`HostCreditQueryProvider.HOSTS` 里登记的全部厂商，共 11 家 Bearer + 4 家 AK/SK 签名；「AI 面板」列指这条预设在模型管理的供应商上能不能自动命中。');
+lines.push('**官方预设全表（15 家）**：`provider-credit-endpoints.json` 里登记的全部厂商，共 11 家 Bearer + 4 家 AK/SK 签名；「AI 面板」列指这条预设在模型管理的供应商上能不能自动命中。');
 lines.push('');
 lines.push('| 厂商 | 余额端点 | AI 面板 |');
 lines.push('| --- | --- | --- |');
@@ -404,7 +413,7 @@ lines.push('| --- | --- | --- | --- |');
 lines.push('| 限制 | 手动配置 → 官方文档登记表 → 上游响应头，按此顺序 | `sys_ai_provider.extra.provider_limits` | 页面显示「未收录」并列出已尝试链路，不写 0 |');
 lines.push('| 计费标准 | 官方指标源（`ChatClientIndicators`）+ 上游 `/models` 的 pricing | `sys_ai_model_metrics` + 服务商模型行 | 已有价格不覆盖；官方源未接入时给出官方价格页 |');
 lines.push('| 模型描述 | 上游 `/models` 的 `description` / `summary`；上游缺失时由公开目录补位 | `sys_ai_provider_model.description` | 默认只补空值，`overwrite_descriptions=true` 才覆盖（公开目录永远只补空值） |');
-lines.push('| 公开目录 | models.dev 快照（`ProviderModelCatalogProvider` SPI，' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型） | 说明补空；上下文 / 输出上限 / 多模态 / 思考 / 工具调用 / 附件 / 温度 / 权重等能力位补空；价格写 `sys_ai_model_metrics`（`source=models.dev`）；流式 / 异步按 `ProviderProtocolCapabilities` 判定后随报告返回 | 未收录时保留上游与手工值；协议未知或厂商未实测时返回 `null` 显示「未收录」 |');
+lines.push('| 公开目录 | models.dev 快照（`ProviderModelCatalogProvider` SPI，' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型） | 说明补空；上下文 / 输出上限 / 多模态 / 思考 / 工具调用 / 附件 / 温度 / 权重等能力位补空；价格写 `sys_ai_model_metrics`（`source=models.dev`）；流式 / 异步按 `ProviderProtocolCapabilities` 判定后写指标两列（`support_streaming` / `support_async`）并回写服务商模型行 | 未收录时保留上游与手工值；协议未知或厂商未实测时返回 `null` 显示「未收录」 |');
 lines.push('| 定价规则 | 点击同步时按 `ProviderPricingProvider.refresh` 实时抓官方价格页（当前 DeepSeek、Moonshot/Kimi、OpenCode、OpenCode Go、CommandCode、Anthropic、Agnes、NanoGPT、AI/ML API、Alibaba Cloud Model Studio（Qwen）、Eden AI、LLM Gateway（canonical）十二家已接入），静态 `provider-pricing-rules.json` 仅作离线兜底 | `sys_ai_model_metrics.sys_ai_model_metrics_pricing_rules`（JSON），并按 `model_pattern` 下发给模型行 `metrics.pricing_rules`；规则内带 `source_url` / `fetched_at` | 抓取/解析失败时不覆盖旧价，报告里回 `pricing_error`；未收录时为空，不拿标准目录价冒充峰谷价。Dots 无公开可核对价格页，不写价格 |');
 lines.push('');
 const pricing = JSON.parse(fs.readFileSync(PRICING_REGISTRY, 'utf8'));
@@ -439,7 +448,7 @@ lines.push('| `cost.input` / `cost.output` / `cost.cache_read` / `cost.cache_wri
 lines.push('| `limit.context` / `limit.output` | 模型行 `context_window` / `max_tokens` + 指标同名列 | token 数；只补空值 |');
 lines.push('| `modalities` / `tool_call` / `reasoning` / `attachment` / `structured_output` / `temperature` / `open_weights` | 模型行能力位 + `metrics` | 只补空值；`null` 表示目录没写，不当成 `false` |');
 lines.push('| `knowledge` / `release_date` / `last_updated` | 模型行同名列 | 只补空值 |');
-lines.push('| `streaming` / `async` | 同步报告 `streaming` / `async`（+ `*_source`） | **models.dev 没有这两个字段**：按第七节口径判定 —— 流式看协议（`protocol`），异步只认端点实测过的官方厂商（`probe`）；判定不了返回 `null` 显示「未收录」，不按协议默认成「支持」。指标库是定列表没有这两列，暂不落库（见第七节） |');
+lines.push('| `streaming` / `async` | 模型指标 `sys_ai_model_metrics.sys_ai_model_metrics_support_streaming` / `_support_async`，同步报告同名字段（+ `*_source`） | **models.dev 没有这两个字段**：按第七节口径判定 —— 流式看协议（`protocol`），异步只认端点实测过的官方厂商（`probe`）；判定不了返回 `null` 显示「未收录」，不按协议默认成「支持」。两列由 V6.15 迁移补上，同步时写入指标行并回写服务商模型行（只补空值） |');
 lines.push('');
 lines.push('**已核对口径的条目**（只有这些带数值 / 计费口径，其余条目只有文档入口）：');
 lines.push('');
@@ -464,7 +473,7 @@ lines.push('- 其余「官方预设」只做过**假 Token 探活路由**（404 
 lines.push('- 「中转探测」这类没有逐家验证过——它本来就是对未知站点的依次尝试，命中与否取决于对方有没有挂那套接口；');
 lines.push('- 限制登记表：' + limitEntries.length + ' 条（官方文档入口 ' + limitDocEntries.length + ' 条）已用本地探针验证装载与匹配（DeepSeek 命中数值、qwen 命中文档入口但无数字、baichuan 无条目、按主机名命中 302.ai）；只有 DeepSeek 并发、Moss 计费口径按官方原文核对，其余入口页多为模型 / 接口文档，不是限制页；');
 lines.push('- 限制机制走 SPI（Spring Bean + `META-INF/services`），本地探针确认装载顺序为 `manual → doc → header`；');
-lines.push('- 模型目录：本地探针确认 datasearch 侧装载 `modelsdev` 实现（' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型），qwen → alibaba 命中并有说明 / 价格 / 上下文；目录侧 `streaming` / `async` 仍为 `null`（不猜），协议级口径由 `ProviderProtocolCapabilities` 判定：openai / anthropic / gemini 流式为 `true`（来源 `protocol`），openai / anthropic / google 异步为 `true`（来源 `probe`），`openrouter` 等中转异步仍为 `null`；`openai` 不再带 `dots` alias，Dots 同步返回「公开目录未收录」，不会把 Dots 误同步成 OpenAI 模型；ai-starter 侧 `ProviderCatalogSpiTest`（6 项）、`ProviderPricingSpiTest`（8 项）、`PricingPageSourceTest`（5 项）通过（2026-11-16）；');
+lines.push('- 模型目录：本地探针确认 datasearch 侧装载 `modelsdev` 实现（' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型），qwen → alibaba 命中并有说明 / 价格 / 上下文；`streaming` / `async` 由能力位 SPI（`ProviderCapabilityProvider`）在目录查询时补齐，口径与 `ProviderProtocolCapabilities` 一致：openai / anthropic / gemini 流式为 `true`（来源 `protocol`），openai / anthropic / google 异步为 `true`（来源 `probe`），无上游地址的 5 个模板（免费渠道 / DuckDuckGo / 路由组 / ONNX / 自填）返回 `null` 表示未收录；`openai` 不再带 `dots` alias，Dots 同步返回「公开目录未收录」，不会把 Dots 误同步成 OpenAI 模型；ai-starter 侧 `ProviderCatalogSpiTest`（6 项）、`ProviderPricingSpiTest`（8 项）、`PricingPageSourceTest`（5 项）通过（2026-11-16）；');
 lines.push('- 「同步」接口已在 8082 新 jar 上做接口级验收：临时 provider 逐家调用 `POST /api/providers/{id}/sync`，OpenCode 目录 139 个模型 / 368 条实时规则、CommandCode 93 / 342、Anthropic 18 / 58、Agnes 4 / 18，四家均 `pricing_live=true`、`pricing_error=null`；落库抽查 `muse-wonder-1.0` 为 OpenCode 3 条 + CommandCode 3 条，`claude-opus-5-5` 为 Anthropic 4 条 + CommandCode 4 条 + OpenCode 4 条，`gpt-6-astra` 为 CommandCode 4 条（$10 / $50 / $1 / $12.50），`agnes-3.0-flash` 为 Agnes 3 条（trial 0）；验证用临时 provider 与指标行已清理，未留测试数据；');
 lines.push('- 2026-11-16 第二轮新增三家接口级验收：OpenCode Go 官方页 42 个模型 / 139 条规则，目录 41 / 139；NanoGPT 官方页 12 / 24，目录 621 / 24（未登录只列常用模型）；AI/ML API 官方页 769 / 1210，目录 168 / 1210。三家均 `pricing_live=true`、`pricing_error=null`；按目录展示名匹配并落库后实际命中 OpenCode Go 24 个模型 / 77 条、NanoGPT 12 / 24、AI/ML API 154 / 314（同一指标行按 `provider_id` 合并，实际行数少于目录模型数）。三家在限制登记表里只有文档入口（`verified=false`），没有核对的并发 / RPM 数值，未编数字；验证用临时 provider 与指标行已清理（metrics 回到 496 行，残留规则 0）；');
 lines.push('- 2026-11-16 第三轮新增三家接口级验收：Alibaba Cloud Model Studio 目录 53 个模型 / 182 条实时规则，按 id 命中 26；Eden AI 目录 396 / 198，按展示名命中 15（页面仅渲染 99 行，note 已注明）；LLM Gateway canonical 目录 203 / 640，按 id 命中 203。三家均 `pricing_live=true`、`pricing_error=null`；落库抽查 `qwen-plus` 为 Alibaba $0.4 / $1.2、`claude-fable-5-2` 为 Eden AI $8 / $40、`claude-haiku-4-5` 为 LLM Gateway $1 / $5。Alibaba 插入 36 行 / 更新 17 行，Eden 插入 180 / 更新 146，LLM Gateway 上游 320 个模型插入 164 / 更新 203；验证用临时 provider 与指标行已清理（metrics 回到 496 行，新增 provider 规则 0 残留）。LLM Gateway 只覆盖 canonical `llmgateway`，不覆盖 rank12 `llmgateway-providers`。');
@@ -478,8 +487,8 @@ lines.push('- 有官方余额接口、但本仓库还没有预设的厂商（如
 lines.push('- 每家的余额字段路径没有统一的行业标准，同一个 `billing` 口径在不同站点也会返回不同单位（USD / 美分 / 次数），表达式兜底就是为这个准备的。');
 lines.push('- **免费渠道**是纯路由聚合（模型来自运行时合并路由表），自己没有账户，模板里的 `free.nomifun.com/v1` 只是占位地址；余额面板仍会按「中转探测」去请求它，结果没有业务意义，看这一行时忽略余额列即可。');
 lines.push('- **限制只能观测到「上游肯说」的那部分**：限流做在网关 / nginx 层、响应头不返 `*ratelimit*` 的站点，这次同步拿到的就是「未收录」，只能靠 `extra.limits_manual` 手填；登记表 ' + limitEntries.length + ' 家里只有 ' + limitVerified.length + ' 家核对过口径（DeepSeek 并发、Moss 计费），其余 ' + (limitDocEntries.length - limitVerified.length) + ' 家只有文档入口，没有数值，不编数字。');
-lines.push('- **流式 / 异步是「协议级 + 端点实测」两档口径，不是逐家文档结论**：models.dev 不提供这两个字段，所以流式按接入协议判（openai / anthropic / gemini 三种协议的 SSE 流式是协议必备行为，标「支持（协议）」，共 ' + rows.filter((r) => streamingCell(r) !== '未收录').length + ' 行）；异步只标官方批量端点实测存在的厂商（OpenAI `/v1/batches`、Anthropic `/v1/messages/batches`、Gemini `:batchGenerateContent`，非法 Key 分别得 401 / 401 / 400，说明端点存在），共 ' + rows.filter((r) => asyncCell(r) !== '未收录').length + ' 行；其余 ' + rows.filter((r) => asyncCell(r) === '未收录').length + ' 行写「未收录」，不代表不支持 —— 中转站有没有实现批量端点只能逐家核对，没核对就不写。');
-lines.push('- **流式 / 异步暂不落库**：`sys_ai_model_metrics` 是定列表（`price_*` / 上下文 / 能力位各一列，无 JSON 扩展列），没有 streaming / async 列，写进 metrics 会被静默丢弃；目前结论只在「同步」报告与本文档第四节体现。要落到模型指标配置表，得给该表加 `streaming` / `async_supported`（+ 来源）三列并写迁移。');
+lines.push('- **流式 / 异步是「协议级 + 端点实测」两档口径，不是逐家文档结论**：models.dev 不提供这两个字段，所以流式按接入协议判（openai / anthropic / gemini 三种协议的 SSE 流式是协议必备行为，有上游地址才标「支持（协议）」，共 ' + rows.filter((r) => streamingCell(r) !== '未收录').length + ' 行，其余 ' + rows.filter((r) => streamingCell(r) === '未收录').length + ' 行是无上游地址的模板）；异步只标官方批量端点实测存在的厂商（OpenAI `/v1/batches`、Anthropic `/v1/messages/batches`、Gemini `:batchGenerateContent`，非法 Key 分别得 401 / 401 / 400，说明端点存在），共 ' + rows.filter((r) => asyncCell(r) !== '未收录').length + ' 行，其余 ' + rows.filter((r) => asyncCell(r) === '未收录').length + ' 行写「未收录」，不代表不支持 —— 中转站有没有实现批量端点只能逐家核对，没核对就不写。');
+lines.push('- **流式 / 异步已落库**：`sys_ai_model_metrics` 新增 `sys_ai_model_metrics_support_streaming` / `_support_async` 两列（`V6.15__alter_ai_model_metrics_capabilities.sql` 补列，建库脚本同步），同步时写入指标行并回写服务商模型行；只补空值，已有结论不被覆盖。');
 lines.push('- **价格来源分两层**：models.dev 的目录价（USD / 百万 token）只做补位；DeepSeek、Moonshot、OpenCode、OpenCode Go、CommandCode、Anthropic、Agnes、NanoGPT、AI/ML API、Alibaba Cloud Model Studio（Qwen）、Eden AI、LLM Gateway（canonical）十二家已接入官方价格页实时抓取，规则内的 `source_url` 指向官方域，抓取失败保留库里的上一次价格；其余厂商没有官方来源就不写价格。');
 lines.push('- **目录快照随包发布**：`provider-catalog/models-dev.json.gz` 生成于 2026-11-16，不会自动联网刷新；新增厂商 / 模型要重跑 `pages/ai/docs/gen-model-snapshot.js`（联网拉 models.dev 并裁剪）并重新发版。');
 lines.push('- **限制落库后不参与限流**：`ProviderThrottle` 读的是 `extra.max_concurrency` / `extra.requests_per_minute`（供应商表单的两个字段），不读 `extra.provider_limits` 或 `limits_manual`；同步到的官方并发 / RPM 目前只做展示，要让它生效得再拉一条「限制 → 闸门」的读取链。');
