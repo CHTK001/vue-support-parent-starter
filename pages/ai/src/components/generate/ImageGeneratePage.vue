@@ -50,16 +50,35 @@
               </div>
             </PickerPopover>
 
-            <div class="wg-views">
+            <!--
+              作品区形态：画廊（01，多列作品墙）/ 舞台（05，暗色沉浸单张）。
+              两个都要，切换入口在右上角 —— 与生成类型、搜索、筛选同属「对结果集做操作」的一组。
+
+              用分段控件而不是单个反复切换的图标钮：两种形态是一对等价的看法，
+              用户要能一眼看到「现在在哪一档、另一档是什么」，而不是靠图标猜下一次点会变成什么。
+            -->
+            <div class="wg-mode" role="group" aria-label="作品视图">
               <button
                 type="button"
-                class="wg-view"
-                :aria-label="viewStyle === 'grid' ? '切换为列表视图' : '切换为网格视图'"
-                :title="viewStyle === 'grid' ? '切换为列表视图' : '切换为网格视图'"
-                @click="viewStyle = viewStyle === 'grid' ? 'list' : 'grid'"
+                class="wg-mode-btn"
+                :class="{ 'is-active': viewMode === 'gallery' }"
+                :aria-pressed="viewMode === 'gallery'"
+                title="画廊：多列作品墙"
+                @click="setViewMode('gallery')"
               >
-                <!-- 图标表示「点下去会切到的目标视图」：当前是网格就显示列表图标 -->
-                <WgIcon :d="viewStyle === 'grid' ? ICONS.list : ICONS.grid" />
+                <WgIcon :d="ICONS.grid" />
+                <span>画廊</span>
+              </button>
+              <button
+                type="button"
+                class="wg-mode-btn"
+                :class="{ 'is-active': viewMode === 'stage' }"
+                :aria-pressed="viewMode === 'stage'"
+                title="舞台：单张沉浸查看"
+                @click="setViewMode('stage')"
+              >
+                <WgIcon :d="ICONS.image" />
+                <span>舞台</span>
               </button>
             </div>
 
@@ -253,13 +272,241 @@
       <div
         ref="canvasRef"
         class="wg-canvas"
+        :class="{ 'is-stage': viewMode === 'stage' }"
         tabindex="0"
         role="region"
         aria-label="生成历史"
         @scroll.passive="onCanvasScroll"
+        @keydown="onCanvasKeydown"
       >
+        <!--
+          05 沉浸舞台：01 画廊里点开一张作品就落到这里。
+          暗色底把画面推成唯一主体，右侧是同一批结果的竖排记录条，
+          底部是本条任务的全部结果（胶片行）—— 一次生成 6–10 张时逐张看的就是这里。
+          进入/退出都走右上角的分段开关，Esc 回画廊、←/→ 换张。
+        -->
+        <div v-if="viewMode === 'stage'" class="wg-stage">
+          <header class="wg-stage-head">
+            <button type="button" class="wg-stage-back" @click="setViewMode('gallery')">
+              <WgIcon :d="ICONS.arrowRight" class="wg-stage-back-icon" />
+              <span>返回画廊</span>
+            </button>
+            <span v-if="stageRow" class="wg-stage-pos">
+              <template v-if="stageItems.length > 1">
+                第 {{ stageSafeIndex + 1 }} / {{ stageItems.length }} 张
+              </template>
+              <template v-else>单张作品</template>
+            </span>
+            <div class="wg-stage-nav">
+              <button
+                type="button"
+                class="wg-stage-navbtn"
+                aria-label="上一张"
+                title="上一张（←）"
+                :disabled="!stageRow"
+                @click="stageStep(-1)"
+              >
+                <WgIcon :d="ICONS.chevron" class="is-left" />
+              </button>
+              <button
+                type="button"
+                class="wg-stage-navbtn"
+                aria-label="下一张"
+                title="下一张（→）"
+                :disabled="!stageRow"
+                @click="stageStep(1)"
+              >
+                <WgIcon :d="ICONS.chevron" class="is-right" />
+              </button>
+            </div>
+          </header>
+
+          <div v-if="stageRow" class="wg-stage-body">
+            <section class="wg-stage-main">
+              <!-- 说明浮层压在画面上：题目 + 规格 + 操作，全部贴着这张图 -->
+              <figure class="wg-stage-figure" v-viewer="viewerOptions">
+                <!--
+                  画框比画面宽时，两侧会留出大片纯暗色，看起来像「图没铺满」。
+                  用同一张图做一层放大虚化的底，把暗色填成画面自身的延伸；
+                  只做背景层（div + background-image），不进 v-viewer 的图片列表，
+                  否则「查看原图」会翻到两张一模一样的图。
+                -->
+                <div
+                  v-if="stageRow.task.type === 'image' && stageItem && !mediaFailed(stageItem.url)"
+                  class="wg-stage-bleed"
+                  :style="{ backgroundImage: 'url(' + mediaSrc(stageItem.url) + ')' }"
+                  aria-hidden="true"
+                />
+                <video
+                  v-if="stageRow.task.type === 'video' && stageItem && !mediaFailed(stageItem.url)"
+                  :src="mediaVideoSrc(stageItem.url)"
+                  class="wg-stage-media"
+                  controls
+                  preload="metadata"
+                />
+                <img
+                  v-else-if="stageItem && !mediaFailed(stageItem.url)"
+                  :src="mediaSrc(stageItem.url)"
+                  class="wg-stage-media"
+                  :alt="stageRow.task.prompt"
+                  decoding="async"
+                />
+                <div v-else class="wg-stage-lost" role="img" aria-label="原图已丢失">原图已丢失</div>
+
+                <figcaption class="wg-stage-cap">
+                  <p class="wg-stage-prompt" :title="stageRow.task.prompt">
+                    {{ stageRow.task.prompt || '（无提示词）' }}
+                  </p>
+                  <div class="wg-stage-meta">
+                    <span class="wg-stage-badge" :class="badgeClass(stageRow.task)">{{ badgeText(stageRow.task) }}</span>
+                    <span class="wg-stage-kv"><em>模型</em>{{ modelLabel(stageRow.task.model) }}</span>
+                    <span v-if="stageRow.task.size" class="wg-stage-kv">
+                      <em>尺寸</em>{{ stageRow.task.size }}<template v-if="ratioOf(stageRow.task.size)"> · {{ ratioOf(stageRow.task.size) }}</template>
+                    </span>
+                    <span v-if="stageRow.task.type === 'image' && (stageRow.task.count ?? 1) > 1" class="wg-stage-kv">
+                      <em>张数</em>{{ stageRow.task.count }} 张
+                    </span>
+                    <span v-if="stageRow.task.type === 'image' && stageRow.task.style" class="wg-stage-kv">
+                      <em>风格</em>{{ styleName(stageRow.task.style) }}
+                    </span>
+                    <span class="wg-stage-kv"><em>耗时</em>{{ formatElapsed(stageRow.task.elapsedMillis) }}</span>
+                    <span class="wg-stage-kv"><em>时间</em>{{ formatTime(stageRow.task.createdAt) }}</span>
+                  </div>
+
+                  <div class="wg-stage-acts">
+                    <button
+                      type="button"
+                      class="wg-stage-act"
+                      aria-label="查看原图"
+                      title="查看原图"
+                      @click="zoomStage($event)"
+                    >
+                      <WgIcon :d="ICONS.zoom" />
+                    </button>
+                    <button
+                      type="button"
+                      class="wg-stage-act"
+                      aria-label="下载"
+                      title="下载"
+                      @click="stageItem && download(stageItem.url, stageRow!.task.type)"
+                    >
+                      <WgIcon :d="ICONS.download" />
+                    </button>
+                    <button
+                      type="button"
+                      class="wg-stage-act"
+                      :class="{ 'is-on': isFavorite(stageRow.task.taskId) }"
+                      :aria-label="isFavorite(stageRow.task.taskId) ? '取消收藏' : '收藏'"
+                      :title="isFavorite(stageRow.task.taskId) ? '取消收藏' : '收藏'"
+                      @click="toggleFavorite(stageRow.task.taskId)"
+                    >
+                      <WgIcon :d="ICONS.star" />
+                    </button>
+                    <el-dropdown
+                      v-if="stageRow.task.type === 'image'"
+                      trigger="click"
+                      @command="(cmd) => stageItem && onMoreCommand(cmd, stageItem, stageRow!)"
+                    >
+                      <button
+                        type="button"
+                        class="wg-stage-act"
+                        aria-label="更多"
+                        title="更多"
+                        :disabled="moreBusy"
+                      >
+                        <WgIcon :d="ICONS.dots" />
+                      </button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item command="face" :disabled="moreBusy">添加到人脸库</el-dropdown-item>
+                          <el-dropdown-item command="image" :disabled="moreBusy">添加到图像库</el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                    <button
+                      type="button"
+                      class="wg-stage-act"
+                      aria-label="用同样的提示词与参数再生成一次"
+                      title="再次生成"
+                      @click="regenerate(stageRow.task)"
+                    >
+                      <WgIcon :d="ICONS.refresh" />
+                    </button>
+                  </div>
+                </figcaption>
+              </figure>
+
+              <!-- 胶片行：本条任务的全部结果。张数为 1 时不出（一个格子的胶片没有意义） -->
+              <div
+                v-if="stageItems.length > 1"
+                class="wg-stage-film"
+                role="tablist"
+                aria-label="本次生成的全部结果"
+              >
+                <button
+                  v-for="(item, index) in stageItems"
+                  :key="item.key"
+                  type="button"
+                  class="wg-stage-film-item"
+                  :class="{ 'is-active': index === stageSafeIndex }"
+                  role="tab"
+                  :aria-selected="index === stageSafeIndex"
+                  :aria-label="`第 ${index + 1} 张`"
+                  @click="stageItemIndex = index"
+                >
+                  <img
+                    v-if="!mediaFailed(item.url)"
+                    :src="mediaSrc(item.url)"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span v-else class="wg-stage-film-lost">已丢失</span>
+                </button>
+              </div>
+            </section>
+
+            <!-- 右侧记录条：画廊里的顺序原样搬过来，点一条换主角 -->
+            <aside class="wg-stage-rail" aria-label="生成记录">
+              <p class="wg-stage-rail-title">
+                <WgIcon :d="ICONS.stack" />
+                <span>生成记录</span>
+                <span class="wg-stage-rail-count">{{ stageTotal }}</span>
+              </p>
+              <div class="wg-stage-rail-list">
+                <button
+                  v-for="entry in resultRows"
+                  :key="'sr-' + entry.id"
+                  type="button"
+                  class="wg-stage-rail-item"
+                  :class="{ 'is-active': entry.id === stageRow.id }"
+                  :aria-current="entry.id === stageRow.id ? 'true' : undefined"
+                  @click="stagePickTask(entry)"
+                >
+                  <img
+                    v-if="entry.items[0] && !mediaFailed(entry.items[0].url)"
+                    :src="mediaSrc(entry.items[0].url)"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span class="wg-stage-rail-text">{{ entry.task.prompt || '（无提示词）' }}</span>
+                  <span class="wg-stage-rail-time">{{ formatTime(entry.task.createdAt) }}</span>
+                </button>
+              </div>
+            </aside>
+          </div>
+
+          <!-- 没有成功作品时：舞台不装作有东西可看，给出回画廊这一条出路 -->
+          <div v-else class="wg-stage-empty">
+            <p class="wg-stage-empty-title">还没有可展示的作品</p>
+            <p class="wg-stage-empty-hint">生成完成后会自动出现在舞台上；也可以回画廊看看进行中的任务。</p>
+            <button type="button" class="wg-more-btn" @click="setViewMode('gallery')">回到画廊</button>
+          </div>
+        </div>
+
         <!-- 骨架屏：首次加载历史期间，避免「一片空白」 -->
-        <div v-if="loading && !rows.length" class="wg-list">
+        <div v-if="viewMode === 'gallery' && loading && !rows.length" class="wg-list">
           <article v-for="n in 3" :key="'sk-' + n" class="wg-card is-skeleton" aria-hidden="true">
             <div class="wg-sk-row">
               <span class="wg-sk wg-sk-badge"></span>
@@ -283,9 +530,8 @@
           不再把某类单独抽出来钉在顶部——那样会打乱时间顺序。
         -->
         <div
-          v-else-if="rows.length"
-          class="wg-list"
-          :class="{ 'is-grid': viewStyle === 'grid' }"
+          v-else-if="viewMode === 'gallery' && rows.length"
+          class="wg-list is-gallery"
         >
           <template v-for="entry in listEntries" :key="entry.key">
             <!-- 日期分隔：只在天变的时候出现一次，网格视图里横跨整行 -->
@@ -298,7 +544,7 @@
               :key="entry.row.id"
               class="wg-card"
               :class="[`is-${entry.row.kind}`, { 'is-selecting': selecting, 'is-selected': selectedIds.has(entry.row.id) }]"
-              @click="onCardClick(entry.row)"
+              @click="onCardClick(entry.row, $event)"
             >
               <!-- 卡片内部沿用原来的 row 变量：v-for 单元素包一层，避免把上百处 row.* 全改成 entry.row.* -->
               <template v-for="row in [entry.row]" :key="row.id">
@@ -429,12 +675,13 @@
                       class="wg-grid"
                       :class="`is-${resultLayout(row)}`"
                       :style="{ '--wg-cols': gridCols(row) }"
-                      v-viewer="viewerOptions"
+                      @click="onGridClick($event, row)"
                     >
                       <figure
                         v-for="(entry, idx) in row.items"
                         :key="entry.key"
                         class="wg-thumb"
+                        :data-index="idx"
                         :class="{
                           'is-lead': isLead(row, idx),
                           'is-fan-card': isFanCard(row, idx),
@@ -482,9 +729,9 @@
                             v-if="row.task.type === 'image'"
                             type="button"
                             class="wg-icon"
-                            aria-label="查看大图"
-                            title="查看大图"
-                            @click.stop="zoom($event)"
+                            aria-label="在舞台查看大图"
+                            title="在舞台查看大图"
+                            @click.stop="openStage(row, idx)"
                           >
                             <WgIcon :d="ICONS.zoom" />
                           </button>
@@ -606,8 +853,8 @@
                   }"
                 >
                   <span class="wg-spark"><WgIcon :d="ICONS.sparkle" /></span>
-                  <span class="wg-stage">{{ stageText(row.task) }}</span>
-                  <span class="wg-stage-num">{{ row.task.progress ?? 0 }}%</span>
+                  <span class="wg-gen-stage">{{ stageText(row.task) }}</span>
+                  <span class="wg-gen-stage-num">{{ row.task.progress ?? 0 }}%</span>
                   <!--
                     已用时：生成中这一段进度会长时间停在同一个数（上游不返回中间进度），
                     光看一个不动的百分比像是卡死了。秒数按心跳同一事实推进——
@@ -615,7 +862,7 @@
                     0.1s/2.3s/4.4s/…/12.8s 连续推进），这里把它显示出来，
                     而不是编一个假的百分比（不做时间插值是既定口径）。
                   -->
-                  <span class="wg-stage-elapsed">已用时 {{ elapsedSeconds(row.task) }}s</span>
+                  <span class="wg-gen-stage-elapsed">已用时 {{ elapsedSeconds(row.task) }}s</span>
                 </div>
               </div>
 
@@ -684,7 +931,7 @@
         <!-- 空态：给三条能直接用的提示词，点了就填进输入条；比一句「开始生成」更接近下一步。
              「库为空」与「检索/筛选没命中」是两回事：后者要给出清除条件的出路，
              否则用户只看到「还没有作品」，会以为自己把作品弄丢了。 -->
-        <div v-if="!loading && !rows.length" class="wg-empty">
+        <div v-if="viewMode === 'gallery' && !loading && !rows.length" class="wg-empty">
           <template v-if="hasActiveQuery">
             <p class="wg-empty-title">没有匹配的作品</p>
             <p class="wg-empty-hint">当前检索或筛选条件下没有记录。</p>
@@ -712,7 +959,7 @@
         <!-- 分页尾部：加载中 / 还有更多（可点）/ 到底了。
              「还有更多」必须给按钮而不是只靠滚动触发：内容不足一屏时容器不会产生滚动事件，
              第一页之外的历史将永远无法加载。 -->
-        <div v-if="rows.length" class="wg-more">
+        <div v-if="viewMode === 'gallery' && rows.length" class="wg-more">
           <span v-if="loadingMore">加载中…</span>
           <button v-else-if="hasMore" type="button" class="wg-more-btn" @click="loadMore()">
             加载更早的记录
@@ -1401,7 +1648,33 @@ const modelFilter = ref('')
 const statusFilter = ref<GenerateTaskStatus | ''>('')
 const onlyFavorite = ref(false)
 const sortOrder = ref<'newest' | 'oldest'>('newest')
-const viewStyle = ref<'list' | 'grid'>('list')
+/**
+ * 作品区形态。01 画廊（多列作品墙）与 05 舞台（暗色沉浸单张）两个都要，
+ * 切换入口在页面头右上角；记住上一种形态，刷新后不跳回默认。
+ */
+type ViewMode = 'gallery' | 'stage'
+const VIEW_MODE_KEY = 'wg:view-mode'
+
+const readViewMode = (): ViewMode => {
+  try {
+    return localStorage.getItem(VIEW_MODE_KEY) === 'stage' ? 'stage' : 'gallery'
+  } catch {
+    return 'gallery'
+  }
+}
+
+const viewMode = ref<ViewMode>(readViewMode())
+/** 舞台里当前看的是哪条记录、第几张（从画廊点进来时写入） */
+const stageTaskId = ref('')
+const stageItemIndex = ref(0)
+
+watch(viewMode, (mode) => {
+  try {
+    localStorage.setItem(VIEW_MODE_KEY, mode)
+  } catch {
+    // 隐私模式 / 配额满：形态不记忆，本次会话内照常切换
+  }
+})
 const favorites = ref<string[]>(readFavorites())
 
 const authStore = useAuthStore()
@@ -1959,15 +2232,12 @@ const isRefPeer = (row: Row) =>
 /** 扇开主图：张数超过 4 时的第一张，完整展示 */
 const isLead = (row: Row, index: number) => resultLayout(row) === 'fan' && index === 0
 
-/** 扇开露头的卡片数量：主图之外最多再露三张，其余收进 +N 角标 */
-const FAN_PEEK = 3
-
 /**
- * 当前视图下真正露头的张数。
- * 网格视图一列只有 360px，主图 + 三张露头会挤到卡片外，所以那里一张都不露（=0），
- * 只留主图 + 角标；列表视图按 FAN_PEEK 露三张。
+ * 画廊一列只有 300px 左右：主图 + 三张露头会挤到卡片外，
+ * 所以这里一张都不露（=0），只留主图 + 「+N」角标；
+ * 全部结果走悬停浮层，逐张看进舞台（底部胶片行）。
  */
-const fanPeek = () => (viewStyle.value === 'grid' ? 0 : FAN_PEEK)
+const fanPeek = () => 0
 
 const isFanCard = (row: Row, index: number) =>
   resultLayout(row) === 'fan' && index > 0 && index <= fanPeek()
@@ -1981,6 +2251,94 @@ const fanHiddenCount = (row: Row) =>
 
 const isFanHidden = (row: Row, index: number) =>
   resultLayout(row) === 'fan' && index > fanPeek()
+
+/* ---------- 05 沉浸舞台 ---------- */
+
+/** 有产物的记录：舞台只在成功作品之间移动，进行中 / 失败的记录留在画廊里看进度 */
+const resultRows = computed(() => rows.value.filter((row) => row.kind === 'result'))
+
+/** 舞台主角：没有显式选中时取最新一条 */
+const stageRow = computed<Row | null>(() => {
+  const list = resultRows.value
+  if (!list.length) {
+    return null
+  }
+  return list.find((row) => row.id === stageTaskId.value) ?? list[0]
+})
+
+const stageItems = computed(() => stageRow.value?.items ?? [])
+
+/** 下标会因删除 / 换记录而越界，读之前先夹一下，避免取到 undefined */
+const stageSafeIndex = computed(() =>
+  Math.min(Math.max(stageItemIndex.value, 0), Math.max(0, stageItems.value.length - 1)),
+)
+
+const stageItem = computed(() => stageItems.value[stageSafeIndex.value] ?? null)
+
+const stageTotal = computed(() => resultRows.value.length)
+
+/** 切换形态。切到舞台时若还没选过作品，落到最新一条，避免「切了却还是空的」 */
+const setViewMode = (mode: ViewMode) => {
+  if (mode === 'stage' && !stageRow.value) {
+    stageTaskId.value = resultRows.value[0]?.id ?? ''
+    stageItemIndex.value = 0
+  }
+  viewMode.value = mode
+}
+
+/** 从画廊点开一张：定位到那条记录的第 index 张 */
+const openStage = (row: Row, index = 0) => {
+  stageTaskId.value = row.id
+  stageItemIndex.value = index
+  viewMode.value = 'stage'
+  nextTick(() => canvasRef.value?.scrollTo({ top: 0 }))
+}
+
+/** 右侧记录条：换一条记录，张数下标归零 */
+const stagePickTask = (row: Row) => {
+  stageTaskId.value = row.id
+  stageItemIndex.value = 0
+}
+
+const stageMoveTask = (delta: number) => {
+  const list = resultRows.value
+  if (list.length < 2) {
+    return
+  }
+  const current = Math.max(0, list.findIndex((row) => row.id === stageRow.value?.id))
+  stagePickTask(list[(current + delta + list.length) % list.length])
+}
+
+/** ←/→ 与切换按钮：单张任务换记录，多张任务换张（到头循环） */
+const stageStep = (delta: number) => {
+  const items = stageItems.value
+  if (!items.length) {
+    return
+  }
+  if (items.length === 1) {
+    stageMoveTask(delta)
+    return
+  }
+  stageItemIndex.value = (stageSafeIndex.value + delta + items.length) % items.length
+}
+
+/** 舞台键盘：Esc 回画廊、←/→ 换张。只在舞台生效，不抢画廊里方向键的滚动 */
+const onCanvasKeydown = (ev: KeyboardEvent) => {
+  if (viewMode.value !== 'stage') {
+    return
+  }
+  if (ev.key === 'Escape') {
+    ev.preventDefault()
+    setViewMode('gallery')
+  } else if (ev.key === 'ArrowLeft') {
+    ev.preventDefault()
+    stageStep(-1)
+  } else if (ev.key === 'ArrowRight') {
+    ev.preventDefault()
+    stageStep(1)
+  }
+}
+
 
 /** 扇开的错位：越靠右转得越多、落得越低，形成一叠照片的手感 */
 const fanCardStyle = (index: number) => ({
@@ -2014,6 +2372,11 @@ const thumbStyle = (row: Row, index: number) => {
  * @return 可直接写进 style.width 的值
  */
 const placeholderWidth = (row: Row) => {
+  // 画廊一列就是整宽：占位块直接吃满栏宽。
+  // 不能再算「主图 + 露头」——画廊里 --wg-thumb 就是 100%，calc 会把栏宽翻倍撑破列。
+  if (viewMode.value === 'gallery') {
+    return '100%'
+  }
   const n = Math.max(1, row.task.count ?? 1)
   if (n > 4) {
     // 主图 + 三张露头：每张 110px 宽、压掉 46px，合计 192px 露在右侧
@@ -2148,10 +2511,10 @@ const voidReason = (task: GenerateTask) => {
 
 const isFavorite = (taskId: string) => favorites.value.includes(taskId)
 
-/** 查看大图：按钮自身不驱动 viewer，直接触发同图内 img 的点击交给 v-viewer */
-const zoom = (ev: MouseEvent) => {
-  const figure = (ev.currentTarget as HTMLElement | null)?.closest('.wg-thumb')
-  figure?.querySelector('img')?.click()
+/** 舞台「查看原图」：按钮自身不驱动 viewer，直接触发图内 img 的点击交给 v-viewer */
+const zoomStage = (ev: MouseEvent) => {
+  const holder = (ev.currentTarget as HTMLElement | null)?.closest('.wg-stage-figure')
+  holder?.querySelector('img')?.click()
 }
 
 const toggleFavorite = (taskId: string) => {
@@ -2802,14 +3165,48 @@ const toggleSelectAll = () => {
 }
 
 /**
- * 选择模式下点击卡片本体即切换勾选，不需要精准点到那个小方框。
+ * 卡片本体点击：
+ * - 选择模式下 = 勾选；
+ * - 画廊里点空白处 = 进舞台看这一张（图上各处操作按钮都带 .stop，不会误触）。
  *
  * @param row 卡片行
+ * @param ev  点击事件
  */
-const onCardClick = (row: { id: string }) => {
+const onCardClick = (row: Row, ev: MouseEvent) => {
   if (selecting.value) {
     toggleSelect(row.id)
+    return
   }
+  const target = ev.target as HTMLElement | null
+  // 按钮 / 链接 / 输入框有自己的语义；结果图那一块由 onGridClick 负责定位到具体第几张
+  if (target?.closest('button, a, input, label, video, .wg-grid, .el-dropdown, .el-popover')) {
+    return
+  }
+  if (row.kind === 'result') {
+    openStage(row)
+  }
+}
+
+/**
+ * 结果图点击：画廊里点任意一张 → 进舞台并定位到那一张。
+ *
+ * <p>之前这里是 v-viewer 直接弹 viewerjs。现在「点开大图」的落点是 05 舞台，
+ * 一个页面里只留一个沉浸入口；viewerjs 退到舞台的「查看原图」里，
+ * 需要 1:1 看像素时再进去。图上的操作按钮（下载 / 收藏 / 更多）各自 .stop，不受影响。</p>
+ *
+ * @param ev  点击事件
+ * @param row 卡片行
+ */
+const onGridClick = (ev: MouseEvent, row: Row) => {
+  if (selecting.value || row.kind !== 'result') {
+    return
+  }
+  const target = ev.target as HTMLElement | null
+  if (target?.closest('button, video')) {
+    return
+  }
+  const thumb = target?.closest<HTMLElement>('.wg-thumb')
+  openStage(row, Number(thumb?.dataset.index ?? 0) || 0)
 }
 
 /** 删除勾选的记录 */
@@ -3474,7 +3871,7 @@ onUnmounted(() => {
 
 /*
  * 生成类型切换按钮。
- * 与 .wg-view 一样是 38px 高的方形工具按钮，但带文字（用户要一眼看出当前是图像还是视频），
+ * 与 .wg-mode 同一行高（38px）的工具按钮，但带文字（用户要一眼看出当前是图像还是视频），
  * 尺寸随内容走。颜色继承 --color-* 令牌，暗色模式自动跟随。
  */
 .wg-media-btn {
@@ -3626,36 +4023,54 @@ onUnmounted(() => {
   line-height: 1;
 }
 
-.wg-views {
-  display: flex;
+/*
+ * 作品形态切换（右上角）：画廊 / 舞台。
+ * 一条轨道 + 两枚按钮，当前档用主色淡底，和输入条的 .wg-rail-seg 同一套读法。
+ * 不用单个反复切换的图标钮：两种形态是一对等价的看法，
+ * 用户要能一眼看到「现在在哪一档、另一档是什么」。
+ */
+.wg-mode {
+  display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
-  justify-content: center;
-  width: 38px;
+  gap: 2px;
   height: 38px;
+  padding: 3px;
   border: 1px solid var(--color-input-border);
-  border-radius: var(--r);
+  border-radius: var(--r-pill);
   background: var(--color-surface);
 }
 
-.wg-view {
-  display: flex;
+.wg-mode-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
   border: 0;
+  border-radius: var(--r-pill);
   background: transparent;
   color: var(--color-text-gray);
+  font-size: 12px;
+  line-height: 1;
   cursor: pointer;
-  transition: color 0.18s;
+  transition: background 0.18s, color 0.18s;
 }
 
-.wg-view.is-active,
-.wg-view:hover {
+.wg-mode-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.wg-mode-btn.is-active {
+  background: var(--color-primary-50);
   color: var(--color-primary);
+  font-weight: 600;
 }
 
-.wg-view .wg-svg {
-  width: 18px;
-  height: 18px;
+.wg-mode-btn .wg-svg {
+  width: 15px;
+  height: 15px;
 }
 
 /* ---------- 下拉菜单（会话同款） ----------
@@ -4125,7 +4540,7 @@ onUnmounted(() => {
 .wg-media-btn:focus-visible,
 .wg-chip:focus-visible,
 .wg-rail-value:focus-visible,
-.wg-view:focus-visible,
+.wg-mode-btn:focus-visible,
 .wg-menu-item:focus-visible,
 .wg-seg-item:focus-visible,
 .wg-ratio:focus-visible,
@@ -4376,9 +4791,9 @@ onUnmounted(() => {
   opacity: 0.8;
 }
 
-.wg-list.is-grid .wg-day-label {
-  grid-column: 1 / -1;
-  margin: 2px 0;
+.wg-list.is-gallery .wg-day-label {
+  column-span: all;
+  margin: 2px 0 10px;
 }
 
 /*
@@ -4421,7 +4836,7 @@ onUnmounted(() => {
  * 行间用发丝线分隔，读起来是「模型 / 尺寸 / …」一列标签值，
  * 而不是几颗像按钮一样散在角落的灰底块。网格视图仍保持胶囊（下方一行）。
  */
-.wg-list:not(.is-grid) .wg-card-detail > .wg-card-chips .wg-pill {
+.wg-list:not(.is-gallery) .wg-card-detail > .wg-card-chips .wg-pill {
   gap: 4px;
   height: 20px;
   padding: 0;
@@ -4429,7 +4844,7 @@ onUnmounted(() => {
   background: transparent;
 }
 
-.wg-list:not(.is-grid) .wg-card-detail > .wg-card-chips .wg-pill + .wg-pill {
+.wg-list:not(.is-gallery) .wg-card-detail > .wg-card-chips .wg-pill + .wg-pill {
   padding-top: 6px;
   border-top: 1px solid var(--color-surface-border);
 }
@@ -4705,38 +5120,78 @@ onUnmounted(() => {
 }
 
 /*
- * 网格视图：一屏多图。
- * 之前 is-grid 只把缩略图改小、.wg-list 仍是单列 flex，
- * 于是「网格」模式渲染出来的还是一行一个全宽卡片，右侧照样空一大片 ——
- * 切换器名不副实。这里真正分列，列宽 360px 起。
+ * 01 画廊：多列作品墙。
+ *
+ * 用 CSS 多栏（column-width 300px）而不是等宽 grid —— 作品高度随画幅变化，
+ * 等宽 grid 会把同一行拉平、行尾留下空洞；瀑布流是「每一列各自往下长」，
+ * 竖图、横图、方图混在一起也不浪费空间。日期分隔横跨所有栏（column-span: all），
+ * 分组标题仍落在时间流上。
  */
-.wg-list.is-grid {
-  --wg-thumb: 150px;
-  /* 紧凑档不扇开：一列只有 360px，主图 + 三张露头放不下，
-     露头会挤出卡片右边界，所以这里只留主图 + 「+N」角标（见 fanPeek）。
-     露头宽度归零，进行中 / 失败占位块的封顶宽度也跟着回到主图宽。 */
+.wg-list.is-gallery {
+  --wg-thumb: 100%;
+  /* 紧凑档不扇开：一列只有 300px，主图 + 三张露头放不下，
+     露头会挤出卡片右边界，所以这里只留主图 + 「+N」角标（见 fanPeek）。 */
   --wg-fan-peek: 0px;
-  display: grid;
-  align-items: start;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  display: block;
+  columns: 300px;
+  column-gap: 16px;
 }
 
-/* 每列只有 360px 左右，左右分栏放不下，参数回到媒体下方 */
-.wg-list.is-grid .wg-card-body {
+/*
+ * 一张卡不被拆到两栏里。
+ *
+ * 画廊里的读法是「先看画、再看说明、最后一行状态与操作」：
+ * 卡片整体 column-reverse，把 .wg-card-head（状态 / 操作）挪到最下方，
+ * 图片顶到卡面最上沿 —— 01 的信息架构就是作品墙，不是一条条记录。
+ */
+.wg-list.is-gallery .wg-card {
+  break-inside: avoid;
+  flex-direction: column-reverse;
+  margin: 0 0 16px;
+  padding: 10px 10px 12px;
+  gap: 10px;
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+.wg-list.is-gallery .wg-card-head-right {
+  gap: 6px;
+  font-size: 12px;
+}
+
+/* 一列 300px 里媒体占满整宽 */
+.wg-list.is-gallery .wg-card-media {
+  width: 100%;
+}
+
+.wg-list.is-gallery .wg-grid.is-single,
+.wg-list.is-gallery .wg-grid.is-pair,
+.wg-list.is-gallery .wg-grid.is-quad,
+.wg-list.is-gallery .wg-grid.is-fan {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* 扇开在窄栏里不叠：主图吃掉整宽，其余张数收进 +N 角标 */
+.wg-list.is-gallery .wg-grid.is-fan .wg-thumb.is-lead {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 一栏只有 300px 左右，左右分栏放不下，参数回到媒体下方 */
+.wg-list.is-gallery .wg-card-body {
   flex-direction: column;
   gap: 12px;
 }
 
-.wg-list.is-grid .wg-card-detail > .wg-card-chips {
+.wg-list.is-gallery .wg-card-detail > .wg-card-chips {
   flex-direction: row;
   flex-wrap: wrap;
   max-width: none;
   margin-left: 0;
 }
 
-/* 窄卡片里提示词会挤成两三行，钳到 2 行 */
-.wg-list.is-grid .wg-card-title {
+/* 画廊一栏 300px，提示词会挤成好几行，钳到 2 行；完整文本在 title 属性里 */
+.wg-list.is-gallery .wg-card-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -4744,47 +5199,38 @@ onUnmounted(() => {
 }
 
 /*
- * 网格视图每列只有 411px，一行塞不下
- * 「状态 + 提示词 + 耗时 + 时间 + 再次生成 + 删除」——
- * 之前 flex 不换行，提示词被压成 0 宽（整条提示词消失），
- * 删除按钮还被挤出卡片右边界。改成两行：
- *   第一行：状态 …… 耗时 / 时间 / 再次生成 / 删除
- *   第二行：提示词（钳 2 行）
+ * 画廊一栏约 300px，一行塞不下
+ * 「状态 + 耗时 + 时间 + 再次生成 + 删除」：
+ * 让操作行允许换行，窄栏里也不会把删除按钮挤出卡片右边界。
  */
-.wg-list.is-grid .wg-card-head {
+.wg-list.is-gallery .wg-card-head {
   flex-wrap: wrap;
   row-gap: 6px;
 }
 
-.wg-list.is-grid .wg-card-title {
-  order: 3;
-  flex: 1 0 100%;
-  min-width: 0;
-}
-
 /* 窄卡片里「再次生成」只留图标，四个字要 90px */
-.wg-list.is-grid .wg-act.is-primary {
+.wg-list.is-gallery .wg-act.is-primary {
   padding: 0 8px;
 }
 
-.wg-list.is-grid .wg-act.is-primary span {
+.wg-list.is-gallery .wg-act.is-primary span {
   display: none;
 }
 
-/* 紧凑视图下源图进一步收窄：一列只有 360px 左右，120px 会挤到结果 */
-.wg-list.is-grid .wg-ref-src {
+/* 画廊里源图进一步收窄：一栏只有 300px 左右，120px 会挤到结果 */
+.wg-list.is-gallery .wg-ref-src {
   width: 84px;
 }
 
 /* 只有一张结果时源图与结果同尺度（02 First Cell），不跟着收窄。
    这里不再单独指定宽度：上面 is-ref-peer 用 1:1:0 共享伸缩，
-   窄列里两张图一起等比缩小，硬写 --wg-thumb 反而会撑破 360px 的列。 */
+   窄栏里两张图一起等比缩小，硬写 --wg-thumb 反而会撑破 300px 的栏。 */
 
-/* 网格视图里扇开整组收起（fanPeek() = 0）：主图 + 角标，全部结果走悬停浮层。
+/* 画廊里扇开整组收起（fanPeek() = 0）：主图 + 角标，全部结果走悬停浮层。
    宽度不用另写规则：--wg-fan-peek 归零后 .wg-grid.is-fan 的 max-width 就是主图宽。 */
 
-.wg-list.is-grid .wg-ref-caption,
-.wg-list.is-grid .wg-flow-label {
+.wg-list.is-gallery .wg-ref-caption,
+.wg-list.is-gallery .wg-flow-label {
   display: none;
 }
 
@@ -4936,11 +5382,11 @@ onUnmounted(() => {
   height: 26px;
 }
 
-.wg-stage {
+.wg-gen-stage {
   font-size: 12px;
 }
 
-.wg-stage-num {
+.wg-gen-stage-num {
   font-size: 20px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -4948,7 +5394,7 @@ onUnmounted(() => {
 }
 
 /* 已用时：进度长时间停在同一档时，这个每秒递增的秒数是「还活着」的唯一信号 */
-.wg-stage-elapsed {
+.wg-gen-stage-elapsed {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
@@ -5385,7 +5831,7 @@ onUnmounted(() => {
   .wg-menu-icon,
   .wg-search,
   .wg-chip,
-  .wg-view,
+  .wg-mode-btn,
   .wg-menu-item,
   .wg-seg-item,
   .wg-ratio,
@@ -5394,6 +5840,11 @@ onUnmounted(() => {
   .wg-act,
   .wg-retry,
   .wg-thumb-actions,
+  .wg-stage-back,
+  .wg-stage-navbtn,
+  .wg-stage-act,
+  .wg-stage-film-item,
+  .wg-stage-rail-item,
   .wg-icon {
     transition: none;
   }
@@ -5423,6 +5874,513 @@ onUnmounted(() => {
   .wg-sk {
     background-position: 50% 50%;
     animation: none;
+  }
+}
+
+/* ---------- 05 沉浸舞台 ---------- */
+
+/*
+ * 舞台与画廊是同一页的两种形态：
+ * 画廊是亮色作品墙（看一批），舞台是暗色场馆（看一张）。
+ * 只把舞台这一块压暗，页面头与输入条保持 koi 亮色 ——
+ * 整页换肤会让「切形态」变成「换网站」，反而认不出是同一个页面。
+ */
+.wg-stage {
+  --stg-bg: #0e1017;
+  --stg-panel: #171b26;
+  --stg-line: rgba(255, 255, 255, 0.08);
+  --stg-text: #eef1f8;
+  --stg-dim: rgba(238, 241, 248, 0.62);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  background: radial-gradient(120% 96% at 50% 0%, #1c2233 0%, var(--stg-bg) 64%);
+  color: var(--stg-text);
+}
+
+/* 舞台占满画布高度：大图在其中按可用高度缩放，不把页面撑出滚动条 */
+.wg-canvas.is-stage {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px 16px;
+  overflow: hidden;
+}
+
+.wg-stage-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 10px;
+}
+
+.wg-stage-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 8px;
+  border: 1px solid var(--stg-line);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--stg-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.18s, background 0.18s, border-color 0.18s;
+}
+
+.wg-stage-back:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--stg-text);
+}
+
+.wg-stage-back .wg-svg {
+  width: 15px;
+  height: 15px;
+  transform: rotate(180deg);
+}
+
+.wg-stage-pos {
+  color: var(--stg-dim);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* 上一张 / 下一张推到右侧，与右上角形态开关同一侧，视线不用来回找 */
+.wg-stage-nav {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.wg-stage-navbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--stg-line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--stg-text);
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, opacity 0.18s;
+}
+
+.wg-stage-navbtn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.wg-stage-navbtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.wg-stage-navbtn .wg-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.wg-stage-navbtn .wg-svg.is-left {
+  transform: rotate(90deg);
+}
+
+.wg-stage-navbtn .wg-svg.is-right {
+  transform: rotate(-90deg);
+}
+
+/*
+ * 主体：左边是画，右边是同一批作品的竖排记录条。
+ * 用 1fr + 280px 而不是均分 —— 记录条只需要能认出「哪一条」，
+ * 多出来的宽度全部给画面。
+ */
+.wg-stage-body {
+  display: grid;
+  flex: 1;
+  gap: 14px;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 280px;
+}
+
+.wg-stage-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.wg-stage-figure {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--stg-line);
+  border-radius: var(--el-radius-lg, 12px);
+  background: #0a0c12;
+}
+
+.wg-stage-media {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: zoom-in;
+}
+
+/* 虚化底：比画框大一圈，边缘被 overflow 裁掉，避免模糊后露出硬边 */
+.wg-stage-bleed {
+  position: absolute;
+  inset: -8%;
+  background-position: center;
+  background-size: cover;
+  filter: blur(44px) saturate(0.92);
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+/* 说明浮层压在画面下沿：题目、规格、操作都贴着这张图，不再另起一块面板。
+   两行文字 + 右侧操作列：prompt 独占第一行，规格在第二行，
+   操作竖排在右边 —— 之前三块挤成一条 flex，prompt 被规格挤成两个字的竖排。 */
+.wg-stage-cap {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  align-items: end;
+  gap: 4px 16px;
+  padding: 44px 16px 14px;
+  background: linear-gradient(to top, rgba(6, 8, 13, 0.94) 0%, rgba(6, 8, 13, 0.72) 52%, transparent 100%);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.wg-stage-prompt {
+  display: -webkit-box;
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  overflow: hidden;
+  color: var(--stg-text);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wg-stage-meta {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1;
+  grid-row: 2;
+  gap: 4px 14px;
+  color: var(--stg-dim);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.wg-stage-meta em {
+  margin-right: 4px;
+  font-style: normal;
+  opacity: 0.6;
+}
+
+.wg-stage-badge {
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+/*
+ * 舞台徽标复用卡片的状态色，但底衬换成半透明白：
+ * 卡片上那几档是「浅底深字」，压在暗色画面上会变成两块亮斑。
+ */
+.wg-stage-badge.is-success {
+  background: rgba(74, 222, 128, 0.16);
+  color: #6ee7a0;
+}
+
+.wg-stage-badge.is-danger {
+  background: rgba(248, 113, 113, 0.16);
+  color: #fca5a5;
+}
+
+.wg-stage-badge.is-info {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--stg-dim);
+}
+
+.wg-stage-badge.is-primary {
+  background: rgba(109, 93, 252, 0.22);
+  color: #b9b0ff;
+}
+
+.wg-stage-acts {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: end;
+  gap: 4px;
+}
+
+.wg-stage-act {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--stg-text);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+
+.wg-stage-act:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.wg-stage-act.is-on {
+  color: #ffd166;
+}
+
+.wg-stage-act:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wg-stage-act .wg-svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* 胶片行：一次生成 8–10 张时逐张挑，横向滚动不换行 */
+.wg-stage-film {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.wg-stage-film-item {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: var(--el-radius-sm, 6px);
+  background: #14181f;
+  cursor: pointer;
+  opacity: 0.62;
+  transition: opacity 0.18s, border-color 0.18s;
+}
+
+.wg-stage-film-item:hover {
+  opacity: 0.9;
+}
+
+.wg-stage-film-item.is-active {
+  border-color: var(--el-color-primary);
+  opacity: 1;
+}
+
+.wg-stage-film-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wg-stage-film-lost {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: var(--stg-dim);
+  font-size: 10px;
+}
+
+.wg-stage-lost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--stg-dim);
+  font-size: 12px;
+}
+
+/* 右侧记录条：与画廊同一个顺序，点一条换主角 */
+.wg-stage-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px;
+  border: 1px solid var(--stg-line);
+  border-radius: var(--el-radius-lg, 12px);
+  background: var(--stg-panel);
+}
+
+.wg-stage-rail-title {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  color: var(--stg-dim);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.wg-stage-rail-title .wg-svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+.wg-stage-rail-count {
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--stg-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.wg-stage-rail-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.wg-stage-rail-item {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--el-radius-sm, 6px);
+  background: transparent;
+  color: var(--stg-text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s, border-color 0.16s;
+}
+
+.wg-stage-rail-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.wg-stage-rail-item.is-active {
+  border-color: rgba(109, 93, 252, 0.55);
+  background: rgba(109, 93, 252, 0.16);
+}
+
+.wg-stage-rail-item img {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: #0a0c12;
+}
+
+.wg-stage-rail-text {
+  display: -webkit-box;
+  flex: 1;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.4;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wg-stage-rail-time {
+  flex: 0 0 auto;
+  color: var(--stg-dim);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 没有成功作品：舞台不装作有东西可看，只留回画廊一条出路 */
+.wg-stage-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--stg-dim);
+  text-align: center;
+}
+
+.wg-stage-empty-title {
+  margin: 0;
+  color: var(--stg-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wg-stage-empty-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+}
+
+.wg-stage-empty .wg-more-btn {
+  border-color: var(--stg-line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--stg-text);
+}
+
+.wg-stage-empty .wg-more-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* 舞台内控件也走键盘：暗底上焦点环换成白色，主色环在 #0e1017 上偏暗 */
+.wg-stage button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 2px;
+}
+
+/* 窄屏：记录条落到画面下方，横排滚动 */
+@media (max-width: 1080px) {
+  .wg-stage-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 148px;
+  }
+
+  .wg-stage-rail-list {
+    flex-direction: row;
+  }
+
+  .wg-stage-rail-item {
+    width: 168px;
   }
 }
 
