@@ -840,7 +840,6 @@ onMounted(() => {
           v-model:page-size="query.pageSize"
           :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
           v-model:search-visible="searchVisible"
-          :search-gap="16"
           v-model:search-model="query"
           :row-class-name="deckRowClass"
           @row-click="onRowClick"

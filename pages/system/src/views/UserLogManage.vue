@@ -156,7 +156,6 @@ const columns: ReTableColumn[] = [
         ref="tableRef"
         table-id="system-userlog"
         :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
-        :search-gap="16"
         v-model:search-model="query"
         @search-reset="handleReset"
         :loader="loadLogs"

@@ -345,7 +345,6 @@ onMounted(() => {
       v-model:page="query.page"
       v-model:page-size="query.pageSize"
       :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
-      :search-gap="16"
       v-model:search-model="query"
       @search-reset="handleReset"
     >

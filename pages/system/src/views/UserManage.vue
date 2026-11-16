@@ -1098,7 +1098,6 @@ onUnmounted(() => {
         :params="query"
         :auto-reload="false"
         :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
-        :search-gap="16"
         v-model:search-model="query"
         row-key="sysUserId"
         v-model:page="query.page"

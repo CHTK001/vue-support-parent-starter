@@ -1295,8 +1295,8 @@ const searchAreaCollapsed = computed(() => searchEnabled.value && !searchVisible
  * 搜索区间距：收起时归零。
  *
  * <p>折叠动画只压 max-height，元素自身的 margin 不在动画里 —— 若留着
- * {@code searchGap}（两卡模式是 16px），收起后会悬着一条空白，看起来像表格
- * 「掉下去 16px」。间距跟 {@code .re-table__search} 的 margin-bottom transition 一起
+ * {@code searchGap}（默认 8px），收起后会悬着一条空白，看起来像表格
+ * 「掉下去 8px」。间距跟 {@code .re-table__search} 的 margin-bottom transition 一起
  * 走，收起动作才是整块一起收。</p>
  */
 const searchGapStyle = computed(() => ({
@@ -8317,7 +8317,7 @@ const iconSelect = Select;
    border: 1px solid var(--el-border-color-lighter);
    */
   /* margin-bottom 与折叠动画同步：收起时 searchGap 归零（见 searchGapStyle），
-     间距若瞬时消失会在动画第一帧就把表格顶上去 16px */
+     间距若瞬时消失会在动画第一帧就把表格顶上去 8px */
   transition: box-shadow var(--rt-duration, 200ms) var(--rt-ease, ease),
     margin-bottom var(--rt-duration, 200ms) var(--rt-ease, ease);
 }
