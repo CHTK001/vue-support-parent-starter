@@ -1761,11 +1761,20 @@ function pad2(n: number) {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
-/** 依据 runningSince 实时计算运行时长：不足 1 小时显示 mm:ss，否则 HH:mm:ss，超过 1 天加「N天」 */
-function formatRuntime(item: Project) {
-  if (!item.runningSince) return '-';
-  const start = new Date(item.runningSince).getTime();
-  if (Number.isNaN(start)) return '-';
+/**
+ * 运行时长文案：前端每秒 tick 实时计算（不轮询后端），基准为项目 runningSince，
+ * 输出 HH:mm:ss，超过 1 天加「N天」。
+ *
+ * <p>runningSince 缺失或非法时一律退化为「运行中」而不是「-」：状态灯和 PID 都是准的，
+ * 缺的只是基准时间（例如 PID 由人工登记进库，没走启动链路）。左栏行尾、指标条、
+ * 拓扑节点共用这一个口径，不允许多处各说各话（验收缺陷 D1）。</p>
+ *
+ * @param item 项目
+ * @returns 运行时长或「运行中」
+ */
+function runtimeLabel(item: Project): string {
+  const start = item.runningSince ? new Date(item.runningSince).getTime() : Number.NaN;
+  if (Number.isNaN(start)) return '运行中';
   let sec = Math.max(0, Math.floor((nowTs.value - start) / 1000));
   const days = Math.floor(sec / 86400);
   sec -= days * 86400;
@@ -1775,11 +1784,6 @@ function formatRuntime(item: Project) {
   const s = sec - m * 60;
   const clock = `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
   return days > 0 ? `${days}天 ${clock}` : clock;
-}
-
-/** 指标条运行时长文案：运行中但缺少 runningSince 基准时退化为「运行中」 */
-function runtimeLabel(item: Project): string {
-  return item.runningSince ? formatRuntime(item) : '运行中';
 }
 
 interface EnvVar { key: string; value: string; }
