@@ -96,6 +96,7 @@
             v-if="timelineItems.length"
             :items="timelineItems"
             :is-streaming="streamingState.isStreaming"
+            :collapsible-content="true"
             @click="handleClick"
             @abort="emit('abort')" />
 
