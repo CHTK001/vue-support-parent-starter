@@ -874,6 +874,103 @@ const humanPrice = (v: number) => {
   return '$' + s.replace(/0+$/, '').replace(/\.$/, '')
 }
 
+/** 同一模型可能由多家厂商提供，价格规则按 provider_id 分组后的展示数据。 */
+interface ProviderPriceGroup {
+  providerId: string
+  input: number | null
+  output: number | null
+  cacheHit: number | null
+  cacheWrite: number | null
+  peak: number | null
+  offPeak: number | null
+  quantity: number | null
+  unit: string
+  currency: string
+  note: string
+  sourceUrl: string
+}
+
+/** 规则里的价格：标准价优先，峰谷价没有标准价时回退峰价。 */
+const pricingRulePrice = (rule: any): number | null => {
+  const standard = numOrNull(rule?.standard_price)
+  return standard != null ? standard : numOrNull(rule?.peak_price)
+}
+
+/**
+ * 按 provider_id 聚合模型的 pricing_rules。
+ *
+ * <p>后端把同一 model_key 的多家厂商规则合并进一个数组，但指标行只保留一个
+ * `price_input_per_musd` / `price_output_per_musd`；直接显示指标行会把多厂商价格
+ * 混成一个数。这里只做展示分组，不回写任何数据。</p>
+ */
+const providerPriceGroups = (model: any): ProviderPriceGroup[] => {
+  const rules = Array.isArray(model?.metrics?.pricing_rules) ? model.metrics.pricing_rules : []
+  const byProvider = new Map<string, any[]>()
+  for (const rule of rules) {
+    if (!rule || !rule.item) continue
+    const providerId = String(rule.provider_id ?? rule.providerId ?? '').trim() || '未标注来源'
+    const list = byProvider.get(providerId)
+    if (list) list.push(rule)
+    else byProvider.set(providerId, [rule])
+  }
+  const groups: ProviderPriceGroup[] = []
+  byProvider.forEach((items, providerId) => {
+    const find = (...names: string[]) => items.find((rule: any) => names.includes(String(rule.item || '')))
+    const inputRule = find('input_cache_miss', 'input')
+    const outputRule = find('output')
+    const cacheHitRule = find('input_cache_hit')
+    const cacheWriteRule = find('input_cache_write')
+    const input = pricingRulePrice(inputRule)
+    // 输出价只认标准价；峰谷价单独展示，避免把峰价同时当成标准输出价。
+    const output = numOrNull(outputRule?.standard_price)
+    const cacheHit = pricingRulePrice(cacheHitRule)
+    const cacheWrite = pricingRulePrice(cacheWriteRule)
+    const peak = numOrNull(outputRule?.peak_price)
+    const offPeak = numOrNull(outputRule?.off_peak_price)
+    if ([input, output, cacheHit, cacheWrite, peak, offPeak].every((v) => v == null)) return
+    const first = items[0] || {}
+    groups.push({
+      providerId,
+      input,
+      output,
+      cacheHit,
+      cacheWrite,
+      peak,
+      offPeak,
+      quantity: numOrNull(first.quantity),
+      unit: String(first.unit || ''),
+      currency: String(first.currency || 'USD'),
+      note: items.map((rule: any) => String(rule.note || '')).find(Boolean) || '',
+      sourceUrl: items.map((rule: any) => String(rule.source_url || '')).find(Boolean) || '',
+    })
+  })
+  return groups
+}
+
+/** 按币种格式化价格；USD 用 $，其它币种显式带代码。 */
+const humanMoney = (v: number | null, currency: string): string => {
+  if (v == null) return '—'
+  const text = humanPrice(v)
+  return currency === 'USD' ? text : `${currency} ${text.replace(/^\$/, '')}`
+}
+
+/** 单家厂商价格行的可读文本；单位按规则自己的 quantity / unit 显示。 */
+const providerPriceLine = (group: ProviderPriceGroup): string => {
+  const f = (v: number | null) => humanMoney(v, group.currency)
+  const priceUnit = group.quantity === 1000000 && group.unit === 'token'
+    ? `${group.currency} / 百万 token`
+    : (group.quantity != null && group.unit ? `${group.currency} / ${group.quantity} ${group.unit}` : group.currency)
+  const parts: string[] = []
+  if (group.input != null || group.output != null) parts.push(`输入 ${f(group.input)} / 输出 ${f(group.output)}`)
+  if (group.cacheHit != null) parts.push(`缓存命中 ${f(group.cacheHit)}`)
+  if (group.cacheWrite != null) parts.push(`缓存写入 ${f(group.cacheWrite)}`)
+  if (group.peak != null || group.offPeak != null) parts.push(`峰 ${f(group.peak)} / 谷 ${f(group.offPeak)}`)
+  const detail = [`${group.providerId}（${priceUnit}）：${parts.join('，')}`]
+  if (group.note) detail.push(group.note)
+  if (group.sourceUrl) detail.push(`来源：${group.sourceUrl}`)
+  return detail.join('；')
+}
+
 /**
  * 模型卡片上的参数 / 官方指标条目。
  *
@@ -967,6 +1064,11 @@ const cardMeta = (model: any) => {
     // 只有两边都采到才判免费，缺一边不算。
     const free = pIn != null && pOut != null && pIn === 0 && pOut === 0
     const known = pIn != null || pOut != null
+    // 同一 model_key 可能合并了多家厂商的规则；按 provider_id 分组展示，
+    // 不能把多家的价格塞进一个 input/output 数值里。
+    const groups = providerPriceGroups(model)
+    const multiProvider = groups.length > 1
+    const groupKnown = groups.some((g) => g.input != null || g.output != null)
     // 峰谷 / 按次规则按模型下发（已按 model_pattern 过滤），这里只做展示补充，
     // 标准价仍用指标表的 input/output，避免同一格出现两套口径。
     const rules = Array.isArray(mt.pricing_rules) ? mt.pricing_rules : []
@@ -975,17 +1077,37 @@ const cardMeta = (model: any) => {
       .filter((r: any) => r?.item && !String(r.item).startsWith('input')
         && !['output', 'cache_read', 'cache_write'].includes(r.item))
       .map((r: any) => `${r.note || r.item}${r.quantity ? `（${r.quantity} ${r.unit || ''}）` : ''}`)
-    items.push({
-      label: '价格',
-      value: !known ? EMPTY : free ? '免费' : `${f(pIn)}/${f(pOut)}`,
-      title: !known
-        ? '官方估价：指标源未采集（用「同步价格」回填）'
-        : free
-          ? '上游标注免费（输入输出价格均为 0）'
-          : `官方估价（USD / 百万 token）：输入 ${f(pIn)}，输出 ${f(pOut)}`
-            + (peak ? `；峰谷价（输出）：峰 ${f(peak.peak_price)} / 谷 ${f(peak.off_peak_price)}` : '')
-            + (extras.length ? `；按次：${extras.join('；')}` : ''),
-    })
+    if (multiProvider || (!known && groupKnown)) {
+      const allFree = groups.length > 0
+        && groups.every((g) => g.input === 0 && g.output === 0)
+      const first = groups[0]
+      const singleValue = first
+        ? `${humanMoney(first.input, first.currency)}/${humanMoney(first.output, first.currency)}`
+        : EMPTY
+      const title = [
+        '官方定价（按厂商）：',
+        ...groups.map((g) => providerPriceLine(g)),
+        extras.length ? `其它计价：${extras.join('；')}` : '',
+      ].filter(Boolean).join('\n')
+      items.push({
+        label: '价格',
+        value: multiProvider ? (allFree ? '免费' : `${groups.length} 家`) : singleValue,
+        sub: multiProvider ? `${groups.length} 个来源` : undefined,
+        title,
+      })
+    } else {
+      items.push({
+        label: '价格',
+        value: !known ? EMPTY : free ? '免费' : `${f(pIn)}/${f(pOut)}`,
+        title: !known
+          ? '官方估价：指标源未采集（用「同步价格」回填）'
+          : free
+            ? '上游标注免费（输入输出价格均为 0）'
+            : `官方估价（USD / 百万 token）：输入 ${f(pIn)}，输出 ${f(pOut)}`
+              + (peak ? `；峰谷价（输出）：峰 ${f(peak.peak_price)} / 谷 ${f(peak.off_peak_price)}` : '')
+              + (extras.length ? `；按次：${extras.join('；')}` : ''),
+      })
+    }
   }
   // ④ 速度：首字延迟（TTFT）不单独占格，而是这一格的副行 —— 两者都是「快不快」，
   //    并列成两格会把真正要横向比较的 6 格挤掉。
