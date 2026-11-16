@@ -65,15 +65,17 @@ const limitDocEntries = limitEntries.filter((e) => e.doc);
 const limitVerified = limitEntries.filter((e) => e.verified);
 // 模型目录快照：datasearch 内置，用来算「说明 / 计费 / 能力位」覆盖数
 const CATALOG = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/resources/provider-catalog/models-dev.json.gz');
+let catalogSnapshot = null;
 let catalogProviders = 0;
 let catalogModels = 0;
 try {
-  const snapshot = JSON.parse(zlib.gunzipSync(fs.readFileSync(CATALOG)).toString('utf8'));
-  const providers = snapshot.providers || {};
+  catalogSnapshot = JSON.parse(zlib.gunzipSync(fs.readFileSync(CATALOG)).toString('utf8'));
+  const providers = catalogSnapshot.providers || {};
   catalogProviders = Object.keys(providers).length;
   catalogModels = Object.values(providers)
     .reduce((sum, p) => sum + Object.keys(p.models || {}).length, 0);
 } catch (e) {
+  catalogSnapshot = null;
   catalogProviders = 0;
   catalogModels = 0;
 }
@@ -121,16 +123,117 @@ function creditOf(t) {
 }
 
 function modelsOf(t) {
-  if (!t.url) return '自填地址';
   if (t.id === 'onnx') return '本地清单';
   if (t.id === 'router-group') return '模型库成员';
   if (t.id === 'free-channel') return '运行时路由';
+  if (!t.url) return '自填地址';
   const host = hostOf(t.url);
   if (host && localHosts.has(host)) return '本机 /models → /api/tags';
   if (t.protocol === 'gemini') return '/models?key=';
   if (t.protocol === 'anthropic') return '/models（见第二节）';
   return '远端 /models';
 }
+
+// 模型目录：与 RegistryProviderLimitProvider / ModelsDevCatalogProvider 同口径，
+// 先按别名精确匹配，再按主机名相等 / 子域匹配。
+const catalogByAlias = new Map();
+const catalogByHost = new Map();
+if (catalogSnapshot) {
+  for (const [key, provider] of Object.entries(catalogSnapshot.providers || {})) {
+    catalogByAlias.set(String(key).toLowerCase(), provider);
+    for (const alias of provider.aliases || []) catalogByAlias.set(String(alias).toLowerCase(), provider);
+    for (const host of provider.hosts || []) catalogByHost.set(String(host).toLowerCase(), provider);
+  }
+}
+function catalogOf(t) {
+  const id = String(t.id || '').toLowerCase();
+  let provider = catalogByAlias.get(id) || null;
+  if (!provider) {
+    const host = hostOf(t.url) || '';
+    for (const [candidate, p] of catalogByHost) {
+      if (host === candidate || host.endsWith('.' + candidate)) { provider = p; break; }
+    }
+  }
+  return provider ? Object.keys(provider.models || {}).length : null;
+}
+
+// 签到是账号渠道（AccountChannelAuthManager）的能力，不是提供商模板字段；
+// 扫实现类的 @Spi 别名与 supportsCheckin() / supportsAutoCheckin() 返回值。
+const CHANNEL_DIRS = [
+  'spring-support-parent-starter/spring-support-ai-starter/src/main/java/com/chua/starter/ai/support/spi/impl',
+  'spring-support-parent-starter/spring-support-account-starter/src/main/java/com/chua/starter/account/channel',
+];
+function walkJava(dir, out = []) {
+  let entries = [];
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return out; }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) walkJava(full, out);
+    else if (entry.name.endsWith('AccountChannelAuthManager.java')) out.push(full);
+  }
+  return out;
+}
+function scanChannels() {
+  const classes = [];
+  const files = CHANNEL_DIRS.flatMap((dir) => walkJava(path.join(ROOT, dir)));
+  for (const file of files) {
+    const txt = fs.readFileSync(file, 'utf8');
+    const ids = [...txt.matchAll(/@Spi\("([^"]+)"\)/g)].map((m) => m[1]);
+    if (!ids.length && /@Spi\(MagpieSupport\.CHANNEL\)/.test(txt)) ids.push('magpie');
+    if (!ids.length) continue;
+    // 方法体按大括号配对取，兼容单行 `boolean supportsCheckin() { return true; }`，
+    // 也避免把 Javadoc 里的 {@link #supportsCheckin()} 当成实现
+    const methodReturn = (name) => {
+      const re = new RegExp('boolean\\s+' + name + '\\s*\\(\\s*\\)\\s*\\{');
+      const m = re.exec(txt);
+      if (!m) return null;
+      let i = m.index + m[0].length;
+      let depth = 1;
+      const start = i;
+      while (i < txt.length && depth > 0) {
+        const ch = txt[i++];
+        if (ch === '{') depth++;
+        else if (ch === '}') depth--;
+      }
+      const body = txt.slice(start, i - 1);
+      const r = /\breturn\s+(true|false)\s*;/.exec(body);
+      return r ? r[1] === 'true' : null;
+    };
+    const className = /class\s+(\w+)/.exec(txt)?.[1] || path.basename(file, '.java');
+    const parent = /class\s+\w+\s+extends\s+(\w+)/.exec(txt)?.[1] || null;
+    classes.push({
+      ids,
+      className,
+      parent,
+      file: path.basename(file),
+      checkin: methodReturn('supportsCheckin'),
+      auto: methodReturn('supportsAutoCheckin'),
+    });
+  }
+  // 子类没覆写时继承父类结论（如 qoder-cn extends qoder）
+  const byClass = new Map(classes.map((c) => [c.className, c]));
+  const resolve = (target, seen = new Set()) => {
+    if (target.checkin !== null || !target.parent || seen.has(target.className)) return target;
+    const parent = byClass.get(target.parent);
+    if (parent) {
+      seen.add(target.className);
+      resolve(parent, seen);
+      target.checkin = parent.checkin;
+      if (target.auto === null) target.auto = parent.auto;
+    }
+    return target;
+  };
+  classes.forEach((c) => resolve(c));
+  const map = new Map();
+  for (const c of classes) {
+    const checkin = c.checkin === true;
+    for (const id of c.ids) {
+      map.set(id, { checkin, auto: checkin ? (c.auto !== false) : null, file: c.file });
+    }
+  }
+  return map;
+}
+const channelCheckins = scanChannels();
 
 /**
  * 限制路径：镜像后端 ProviderLimitPresets.entryOf 的匹配顺序 —— 先精确命中 aliases，
@@ -157,6 +260,8 @@ for (const t of rows) {
   t.credit = creditOf(t);
   t.models = modelsOf(t);
   t.limit = limitOf(t);
+  t.catalog = catalogOf(t);
+  t.checkin = channelCheckins.get(String(t.id).toLowerCase()) || null;
   t.proto = protocolLabel[t.protocol] || t.protocol;
   seen.set(t.id, (seen.get(t.id) || 0) + 1);
 }
@@ -165,6 +270,10 @@ const tally = (keyFn) => rows.reduce((acc, r) => { const k = keyFn(r); acc[k] = 
 const byCredit = tally((r) => r.credit.level);
 const byProto = tally((r) => r.proto);
 const byLimit = tally((r) => (r.limit.preset ? 'preset' : r.limit.text));
+const catalogRows = rows.filter((r) => r.catalog != null).length;
+const channelRows = rows.filter((r) => r.checkin != null).length;
+const channelYesRows = rows.filter((r) => r.checkin && r.checkin.checkin).length;
+const channelYesIds = [...channelCheckins.entries()].filter(([, v]) => v.checkin).map(([k]) => k);
 const officialRows = rows.filter((r) => r.credit.level === 'official');
 const officialIds = [...new Set(officialRows.map((r) => r.id))];
 
@@ -185,14 +294,16 @@ lines.push('| 拉取模型 | 除 ONNX / 路由组 / 免费渠道 / 自填地址�
 lines.push('| 余额查询 | 官方预设 ' + (byCredit.official || 0) + ' 行（' + officialIds.length + ' 个厂商）、OpenAI 官方 ' + (byCredit.openai || 0) + '、中转探测 ' + (byCredit.relay || 0) + '、不查 ' + (byCredit.none || 0) + ' |');
 const limitKind = (k) => rows.filter((r) => r.limit.kind === k).length;
 lines.push('| 限制查询 | 文档登记 ' + limitKind('verified') + ' 行（已核对口径）、文档入口 ' + limitKind('doc') + ' 行、未收录但可观测响应头 ' + limitKind('none') + ' 行、纯响应头 ' + limitKind('header') + ' 行、仅手动 ' + (limitKind('manual') + limitKind('local')) + ' 行；登记表 ' + limitEntries.length + ' 家，其中官方文档入口 ' + limitDocEntries.length + ' 家、已核对口径 ' + limitVerified.length + ' 家 |');
-lines.push('| 模型信息 | 公开目录覆盖 ' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型（说明、目录价、上下文、模态与能力位）；流式 / 异步无公开来源，接口返回 `null` |');
+lines.push('| 模型信息 | 公开目录覆盖 ' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型（说明、目录价、上下文、模态与能力位）；对应到模板 ' + catalogRows + ' 行；流式 / 异步无公开来源，接口返回 `null` |');
+lines.push('| 签到 | 账号渠道能力，不是提供商模板字段：' + channelYesIds.length + ' 个渠道 id 支持（' + channelYesIds.join('、') + '）；模板里 ' + channelRows + ' 行有同名账号渠道，其中支持 ' + channelYesRows + ' 行；其余不适用 |');
 lines.push('');
 lines.push('**200+ 家的实际含义**：没有任何一家是「逐家写死代码」。');
 lines.push('');
 lines.push('- **官方预设**：' + officialIds.length + ' 个厂商有明确的余额端点（`HostCreditQueryProvider.HOSTS`），命中后直接用它的地址和字段；');
 lines.push('- **中转探测**：其余 ' + (byCredit.relay || 0) + ' 行，按后端 `AUTO_CREDIT_KINDS` 的顺序依次试（本次生成时为 `' + relayChain + '`），谁先返回数字谁算数，全不通就只显示「已尝试：…」和上游原文；');
 lines.push('- **不查**：没有上游地址（路由组 / 自填）、或地址指向本机（ONNX / Ollama），发请求没有意义。');
-lines.push('- **限制**：不逐家写死 —— 登记表 ' + limitEntries.length + ' 家（模板库全量，含去重别名与主机名），其中 ' + limitDocEntries.length + ' 家带官方文档入口（models.dev 目录的 `doc` 字段）；入口只是文档，不等于页面写了数值，数值仍靠「拉 `/models` 时顺带读响应头」或 `extra.limits_manual` 手填，都拿不到才显示「未收录」。第四节每行的「限制路径」列就是这个判定结果。');
+lines.push('- **限制**：不逐家写死 —— 登记表 ' + limitEntries.length + ' 家（模板库全量，含去重别名与主机名），其中 ' + limitDocEntries.length + ' 家带官方文档入口（models.dev 目录的 `doc` 字段）；入口只是文档，不等于页面写了数值，数值仍靠「拉 `/models` 时顺带读响应头」或 `extra.limits_manual` 手填，都拿不到才显示「未收录」。第四节每行的「限制查询」列就是这个判定结果。');
+lines.push('- **签到**：与余额 / 限制不同，签到没有「按提供商」的通用端点，它属于账号渠道（OAuth / 网关账号）能力；API Key 类提供商模板没有登录态，也不可能签到。所以第四节这一列只在模板 id 恰好与账号渠道同名时给出结论，其余写「不适用」。');
 lines.push('');
 lines.push('## 二、拉取模型：OpenAI / CC / Gemini 三种协议怎么请求');
 lines.push('');
@@ -237,14 +348,36 @@ for (const h of hosts) {
 lines.push('');
 lines.push('**同源是硬约束**：`base_url` 的用途是证明「这把 Key 是这个站点的」。域名与厂商预设不一致时，`host` 候选会被直接跳过（`HostCreditQueryProvider.sameOrigin`），也不会拿中转站的 Key 去问厂商官方接口；反过来，中转站地址只走中转探测，探测用的根地址就是它自己的 `base_url`。拿别家的 Key 去问这家要余额，只会得到 401，然后把假结论写进页面。');
 lines.push('');
-lines.push('## 四、逐个提供商');
+lines.push('## 四、逐个提供商（能力矩阵）');
 lines.push('');
-lines.push('| # | 提供商 | 模板 id | 协议 | 拉取模型 | 余额查询 | 限制路径 | 默认地址 |');
-lines.push('| --- | --- | --- | --- | --- | --- | --- | --- |');
+lines.push('纵向是模板库里的每家提供商（' + rows.length + ' 行），横向是四项能力。单元格只写「会走哪条路」或「不支持」，不把「有文档」写成「有数值」：');
+lines.push('');
+lines.push('| # | 提供商 | 模板 id | 协议 | 余额查询 | 模型查询 | 限制查询 | 模型信息 | 签到 | 默认地址 |');
+lines.push('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
 rows.forEach((r, i) => {
   const url = r.url ? '`' + r.url.replace(/^https?:\/\//, '') + '`' : '—';
-  lines.push('| ' + (i + 1) + ' | ' + r.name + ' | `' + r.id + '` | ' + r.proto + ' | ' + r.models + ' | ' + r.credit.text + ' | ' + r.limit.text + ' | ' + url + ' |');
+  const catalog = r.catalog == null ? '未收录' : '目录 ' + r.catalog + ' 个模型';
+  const checkin = r.checkin == null
+    ? '不适用'
+    : r.checkin.checkin
+      ? '支持（渠道签到）'
+      : '不支持（渠道无签到端点）';
+  lines.push('| ' + (i + 1) + ' | ' + r.name + ' | `' + r.id + '` | ' + r.proto + ' | ' + r.credit.text + ' | ' + r.models + ' | ' + r.limit.text + ' | ' + catalog + ' | ' + checkin + ' | ' + url + ' |');
 });
+lines.push('');
+lines.push('**签到为什么大多是「不适用」**：签到需要登录态（OAuth / 网关账号），模板里的提供商是 API Key 调用，没有可签到的账户。模板 id 与账号渠道同名时才继承渠道结论（`cline` / `kilo` / `minimax` / `opencode` 四个渠道都明确没有签到端点）。真正的签到能力在渠道页，见下表。');
+lines.push('');
+lines.push('| 账号渠道 | 签到 | 自动签到 | 依据实现 |');
+lines.push('| --- | --- | --- | --- |');
+const channelIds = [...channelCheckins.keys()].sort();
+for (const id of channelIds) {
+  const c = channelCheckins.get(id);
+  lines.push('| `' + id + '` | ' + (c.checkin ? '支持' : '不支持') + ' | '
+    + (c.checkin ? (c.auto ? '支持' : '不支持（渠道自行签到）') : '—')
+    + ' | `' + c.file + '` |');
+}
+lines.push('');
+lines.push('`supportsCheckin()` / `supportsAutoCheckin()` 是 `AccountChannelAuthManager` 的默认方法（默认 `false` / `true`）；上表由实现类的返回值直接生成，未覆写的按接口默认计算。magpie 聚合 WorkBuddy / Trae / MiniMax / Qoder 四家的签到端点，但它自己有定时器，所以自动签到记 `false`，避免重复跑。');
 lines.push('');
 lines.push('## 五、限制与计费口径怎么同步（供应商详情「同步」）');
 lines.push('');
