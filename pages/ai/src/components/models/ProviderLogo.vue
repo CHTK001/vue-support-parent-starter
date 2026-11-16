@@ -65,8 +65,9 @@ watch(() => props.pid, (pid) => {
   const mappedFile = PROVIDER_ICONS[id]
   // 没有品牌映射的虚拟 / 自定义供应商显示首字；有映射时使用图板中的精确文件名，
   // 兼容别名复用图标（例如 opencode-go → opencode.svg），不再盲猜扩展名。
+  // 以 `/` 开头的是应用根相对路径（如系统 logo），直接拼 base，不加 providers 前缀。
   currentSrc.value = id && id !== 'custom' && id !== 'agent' && mappedFile
-    ? assetUrl(`images/providers/${mappedFile}`)
+    ? assetUrl(mappedFile.startsWith('/') ? mappedFile : `images/providers/${mappedFile}`)
     : null
 }, { immediate: true })
 

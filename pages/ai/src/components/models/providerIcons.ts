@@ -3,7 +3,9 @@
 // 所有供应商图标映射集中在这里，新增供应商只需在此添加一行。
 //
 // key   = 供应商品牌 id（与 ProviderLogo 的 pid 对应）
-// value = 图标文件名（含扩展名），对应 public/images/providers/{value}
+// value = 图标文件名（含扩展名），对应 public/images/providers/{value}；
+//         以 `/` 开头时表示应用根相对路径（如 `/images/logo.png`），用于复用
+//         已有系统资源、不复制副本
 //
 // 注意：
 // - 图标文件**只**放在 apps/vue-support-ai-starter/public/images/providers/，
@@ -96,8 +98,9 @@ export const PROVIDER_ICONS: Record<string, string> = {
 
   // ===== 路由 / 免费 / 兼容（模型管理侧自定标识，干净品牌图标） =====
   'router-group': 'router-group.svg',
-  'free-channel': 'free-channel.svg',
-  free: 'free.svg',
+  // 免费渠道直接用系统 logo（应用根 images/logo.png），不另存一份品牌图
+  'free-channel': '/images/logo.png',
+  free: '/images/logo.png',
   'openai-compatible': 'openai-compatible.svg',
   moss: 'moss.svg',
   newapi: 'newapi.png',
@@ -471,7 +474,8 @@ export function getProviderLogoPath(providerName?: string | null): string | null
   if (!brand || brand === 'custom' || brand === 'agent') return null
   const file = PROVIDER_ICONS[brand]
   if (!file) return null
-  return fixFrontendAssetUrl(`/images/providers/${file}`)
+  // 以 `/` 开头的是应用根相对路径（如系统 logo），不套 providers 前缀
+  return fixFrontendAssetUrl(file.startsWith('/') ? file : `/images/providers/${file}`)
 }
 
 /**
