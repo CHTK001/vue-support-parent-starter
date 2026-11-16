@@ -390,11 +390,11 @@ lines.push('| 限制 | 手动配置 → 官方文档登记表 → 上游响应�
 lines.push('| 计费标准 | 官方指标源（`ChatClientIndicators`）+ 上游 `/models` 的 pricing | `sys_ai_model_metrics` + 服务商模型行 | 已有价格不覆盖；官方源未接入时给出官方价格页 |');
 lines.push('| 模型描述 | 上游 `/models` 的 `description` / `summary`；上游缺失时由公开目录补位 | `sys_ai_provider_model.description` | 默认只补空值，`overwrite_descriptions=true` 才覆盖（公开目录永远只补空值） |');
 lines.push('| 公开目录 | models.dev 快照（`ProviderModelCatalogProvider` SPI，' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型） | 说明补空；上下文 / 输出上限 / 多模态 / 思考 / 工具调用 / 附件 / 温度 / 权重等能力位补空；价格写 `sys_ai_model_metrics`（`source=models.dev`） | 未收录时保留上游与手工值；流式 / 异步目录不提供，返回 `null` 显示「未收录」 |');
-lines.push('| 定价规则 | 点击同步时按 `ProviderPricingProvider.refresh` 实时抓官方价格页（当前 DeepSeek、Moonshot/Kimi 已接入），静态 `provider-pricing-rules.json` 仅作离线兜底 | `sys_ai_model_metrics.sys_ai_model_metrics_pricing_rules`（JSON），并按 `model_pattern` 下发给模型行 `metrics.pricing_rules`；规则内带 `fetched_at` | 抓取/解析失败时不覆盖旧价，报告里回 `pricing_error`；未收录时为空，不拿标准目录价冒充峰谷价 |');
+lines.push('| 定价规则 | 点击同步时按 `ProviderPricingProvider.refresh` 实时抓官方价格页（当前 DeepSeek、Moonshot/Kimi、OpenCode、CommandCode、Anthropic、Agnes 已接入），静态 `provider-pricing-rules.json` 仅作离线兜底 | `sys_ai_model_metrics.sys_ai_model_metrics_pricing_rules`（JSON），并按 `model_pattern` 下发给模型行 `metrics.pricing_rules`；规则内带 `source_url` / `fetched_at` | 抓取/解析失败时不覆盖旧价，报告里回 `pricing_error`；未收录时为空，不拿标准目录价冒充峰谷价。Dots 无公开可核对价格页，不写价格 |');
 lines.push('');
 const pricing = JSON.parse(fs.readFileSync(PRICING_REGISTRY, 'utf8'));
 const pricingRules = (pricing.entries || []).reduce((n, e) => n + (e.rules || []).length, 0);
-lines.push('**定价规则覆盖**：登记 ' + (pricing.entries || []).length + ' 家 / ' + pricingRules + ' 条静态兜底，当前 DeepSeek、Moonshot/Kimi 接入实时抓取并标 `verified=true`；其余厂商按同一 JSON 格式追加，不猜数值。DeepSeek 抓峰谷与按次价，Moonshot 抓 K3 五列 / K2 三列（人民币 / 百万 token）；每次点「同步」都重新抓官方价格页，页面改价后无需改代码，重新同步即落库；抓取失败会保留库里的上一次价格并在报告里给出原因。规则字段：');
+lines.push('**定价规则覆盖**：登记 ' + (pricing.entries || []).length + ' 家 / ' + pricingRules + ' 条静态兜底，当前 DeepSeek、Moonshot/Kimi、OpenCode、CommandCode、Anthropic、Agnes 接入实时抓取并标 `verified=true`；其余厂商按同一 JSON 格式追加，不猜数值。DeepSeek 抓峰谷与按次价，Moonshot 抓 K3 五列 / K2 三列（人民币 / 百万 token）；OpenCode 抓 `/docs/zen` 的 HTML 价格表，CommandCode 抓官方 pricing-limits 的 role=row 网格，Anthropic 抓官方 pricing 的模型卡片，Agnes 抓官方 Model Pricing 的 Angel User Trial Price（当前价；list price 写在 note，不把 trial 0 价冒充 list price）。新增厂商只改 `source.type` 与选择器 / 正则，不加 Java 分支；每次点「同步」都重新抓官方价格页，页面改价后无需改代码，重新同步即落库；抓取失败会保留库里的上一次价格并在报告里给出原因。规则字段：');
 lines.push('');
 lines.push('- `item` / `unit` / `quantity`：计价项与计价单位。`quantity=1000` + `unit=search` 表示「每 1000 次」，`quantity=10000` + `unit=char` 表示「每万字符」，`unit=hour` 表示按小时；');
 lines.push('- `peak_price` / `off_peak_price` / `standard_price`：峰价、谷价、不分峰谷的标准价；`peak_windows` 写时区、星期与起止分钟（左闭右开），`off_peak_policy` 说明闲时规则；');
@@ -444,13 +444,14 @@ lines.push('**为什么 200+ 家都能覆盖**：网关类的限流头是行业�
 lines.push('');
 lines.push('## 六、验证状态（照实写）');
 lines.push('');
-lines.push('- 真正跑过真实链路的供应商只有 4 家：Moss（三家口径全 404，原样回传）、路由组（`none`，不查）、Agnes AI（`billing` 命中，读到真实额度）、ONNX（`none`，本地推理）；');
+lines.push('- 早期真实链路验证过 4 家：Moss（三家口径全 404，原样回传）、路由组（`none`，不查）、Agnes AI（`billing` 命中，读到真实额度）、ONNX（`none`，本地推理）；本次定价 / 目录另验收 OpenCode、CommandCode、Anthropic、Agnes 四家（见下条），不是所有官方预设都做过字段级验证；');
 lines.push('- 其余「官方预设」只做过**假 Token 探活路由**（404 说明路径不对，401/403 说明路径存在），没有用真实 Key 做过字段级验证；');
 lines.push('- 「中转探测」这类没有逐家验证过——它本来就是对未知站点的依次尝试，命中与否取决于对方有没有挂那套接口；');
 lines.push('- 限制登记表：' + limitEntries.length + ' 条（官方文档入口 ' + limitDocEntries.length + ' 条）已用本地探针验证装载与匹配（DeepSeek 命中数值、qwen 命中文档入口但无数字、baichuan 无条目、按主机名命中 302.ai）；只有 DeepSeek 并发、Moss 计费口径按官方原文核对，其余入口页多为模型 / 接口文档，不是限制页；');
 lines.push('- 限制机制走 SPI（Spring Bean + `META-INF/services`），本地探针确认装载顺序为 `manual → doc → header`；');
-lines.push('- 模型目录：本地探针确认 datasearch 侧装载 `modelsdev` 实现（' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型），qwen → alibaba 命中并有说明 / 价格 / 上下文，`streaming` / `async` 均为 `null`；ai-starter 侧 `ProviderCatalogSpiTest`（6 项）与限流回退测试（8 项）共 14 项通过（2026-11-16）；');
-lines.push('- 「同步」接口的新代码已编译通过（`mvn -o -pl spring-support-ai-starter compile`，2026-11-16 14:54），但 8082 运行实例仍是旧 jar，接口级验收待换 jar 后执行；');
+lines.push('- 模型目录：本地探针确认 datasearch 侧装载 `modelsdev` 实现（' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型），qwen → alibaba 命中并有说明 / 价格 / 上下文，`streaming` / `async` 均为 `null`；`openai` 不再带 `dots` alias，Dots 同步返回「公开目录未收录」，不会把 Dots 误同步成 OpenAI 模型；ai-starter 侧 `ProviderCatalogSpiTest`、`ProviderPricingSpiTest`、`PricingPageSourceTest`、`ModelClientResolverThrottleTest` 通过（2026-11-16）；');
+lines.push('- 「同步」接口已在 8082 新 jar 上做接口级验收：临时 provider 逐家调用 `POST /api/providers/{id}/sync`，OpenCode 目录 139 个模型 / 368 条实时规则、CommandCode 93 / 342、Anthropic 18 / 58、Agnes 4 / 18，四家均 `pricing_live=true`、`pricing_error=null`；落库抽查 `muse-wonder-1.0` 为 OpenCode 3 条 + CommandCode 3 条，`claude-opus-5-5` 为 Anthropic 4 条 + CommandCode 4 条 + OpenCode 4 条，`gpt-6-astra` 为 CommandCode 4 条（$10 / $50 / $1 / $12.50），`agnes-3.0-flash` 为 Agnes 3 条（trial 0）；验证用临时 provider 与指标行已清理，未留测试数据；');
+lines.push('- 官方检索说明：Bocha `site:` 对上述官方域基本无结果，改为直接请求官方价格页并缓存原文后离线解析；因此 `verified=true` 只表示「本次从官方域抓到并解析成功」，不表示第三方评测背书；');
 lines.push('- 表里不会出现「支持」这种断言，只有「会走哪条路」。');
 lines.push('');
 lines.push('## 七、已知缺口');
@@ -461,11 +462,13 @@ lines.push('- 每家的余额字段路径没有统一的行业标准，同一个
 lines.push('- **免费渠道**是纯路由聚合（模型来自运行时合并路由表），自己没有账户，模板里的 `free.nomifun.com/v1` 只是占位地址；余额面板仍会按「中转探测」去请求它，结果没有业务意义，看这一行时忽略余额列即可。');
 lines.push('- **限制只能观测到「上游肯说」的那部分**：限流做在网关 / nginx 层、响应头不返 `*ratelimit*` 的站点，这次同步拿到的就是「未收录」，只能靠 `extra.limits_manual` 手填；登记表 ' + limitEntries.length + ' 家里只有 ' + limitVerified.length + ' 家核对过口径（DeepSeek 并发、Moss 计费），其余 ' + (limitDocEntries.length - limitVerified.length) + ' 家只有文档入口，没有数值，不编数字。');
 lines.push('- **流式 / 异步没有公开来源**：models.dev 不提供这两个字段，OpenAI 兼容协议本身也都支持 `stream`，但「模型 / 厂商是否真的支持」属于商用能力声明，没有目录可依；接口返回 `null`、页面写「未收录」，要判断得看厂商文档或实际调用。');
-lines.push('- **价格是 models.dev 的目录价**（USD / 百万 token），不是中转站的实际结算价；渠道价请以上游 `/models` 或手工录入为准，公开目录只做补位，已有价格不覆盖。');
+lines.push('- **价格来源分两层**：models.dev 的目录价（USD / 百万 token）只做补位；DeepSeek、Moonshot、OpenCode、CommandCode、Anthropic、Agnes 六家已接入官方价格页实时抓取，规则内的 `source_url` 指向官方域，抓取失败保留库里的上一次价格；其余厂商没有官方来源就不写价格。');
 lines.push('- **目录快照随包发布**：`provider-catalog/models-dev.json.gz` 生成于 2026-11-16，不会自动联网刷新；新增厂商 / 模型要重跑 `pages/ai/docs/gen-model-snapshot.js`（联网拉 models.dev 并裁剪）并重新发版。');
 lines.push('- **限制落库后不参与限流**：`ProviderThrottle` 读的是 `extra.max_concurrency` / `extra.requests_per_minute`（供应商表单的两个字段），不读 `extra.provider_limits` 或 `limits_manual`；同步到的官方并发 / RPM 目前只做展示，要让它生效得再拉一条「限制 → 闸门」的读取链。');
 lines.push('- **`extra.limits_manual` 目前没有独立表单**：写入口是供应商的 `extra` 配置（接口 / 库），管理面还没有「并发 / RPM / 配额」的输入控件；要改只能改 `extra`。这一步没做，是因为先要把同步链路跑通。');
 lines.push('- **上游 pricing 不是每家都有**：中转站 `/models` 大多只回 id 与 name，`pricing` 只有 OpenRouter 这类聚合站才带；没有上游价格时计费标准只能来自官方指标源（`ChatClientIndicators`），两条都没有就显示「未接入」，不猜价格。');
+lines.push('- **Dots 没有公开可核对的价格 / 余额页**：`studio.dots.ai` 与 `dots.ai/platform` 都是 SPA 空壳，未找到可解析的官方价格表；本期不写 Dots 价格、不加 Dots 余额预设，目录同步返回「未收录」；`provider-limit-docs.json` 里带 `dots` alias 的重复 `openai` 条目已删除，避免把 Dots 误映射成 OpenAI。');
+lines.push('- **余额没有新增 key-only 预设**：OpenCode 文档只说在 Console 看余额，CommandCode 指向 Studio Usage / CLI `/usage`，Anthropic Admin API 需要管理 key，Agnes / Dots 无公开接口；「只有一个 appkey」口径下没有可用的官方余额端点，不猜地址。');
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, lines.join('\n') + '\n', 'utf8');
