@@ -7,7 +7,7 @@
  *   3) 返回 Promise<ApiResult<T>>，由业务代码 .then(r => r.data) 解包
  *   4) 路径与后端 spring-api-support-common-system-starter / common-service-starter 一致
  */
-import { http } from "@repo/utils";
+import { http, getAccessToken, decryptAesHex } from "@repo/utils";
 import type {
   ApiResult,
   CacheStats,
@@ -1392,12 +1392,33 @@ export function rollbackSettingHistoryBatch(batchNo: string) {
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
-/** 解密设置值 */
+/**
+ * 解密设置值
+ *
+ * <p>后端 {@code /v2/setting/decrypt} 不再回传明文：它用「当前会话令牌」派生的
+ * AES-256-CBC 密钥把明文加密成 hex 下发，由浏览器本地解密。这样响应体、网关日志
+ * 与网络面板里都只有密文；令牌本身不随响应传输。</p>
+ *
+ * <p>解不开（令牌已轮换、或部署未透传令牌）时抛错，由页面提示刷新重试，
+ * 绝不回退成「把密文当明文显示」。</p>
+ *
+ * @param settingId 配置标识
+ * @returns 与原接口同形的结果，{@code data} 为明文
+ */
 export function decryptSettingValue(settingId: number) {
   return http()
     .get("/v2/setting/decrypt")
     .query({ settingId })
-    .then<ApiResult<string>>((r) => r.data);
+    .then<ApiResult<string>>((r) => r.data)
+    .then((res) => {
+      const cipher = res?.data ?? "";
+      if (!cipher) return res;
+      const plain = decryptAesHex(cipher, getAccessToken());
+      if (!plain) {
+        throw new Error("解密失败：登录令牌已变化，请刷新页面后重试");
+      }
+      return { ...res, data: plain };
+    });
 }
 
 /* ================== 公告已读统计 ================== */

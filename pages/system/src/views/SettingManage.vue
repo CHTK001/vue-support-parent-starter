@@ -54,7 +54,7 @@ import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn, RePageResult } from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
-import { settingTypeOptions, normType, typeLabel } from "../settingUtils";
+import { settingTypeOptions, normType, typeLabel, isBooleanType, isBooleanTruthy, booleanText } from "../settingUtils";
 import { settingLabel, THIRD_PARTY_SETTING_GROUPS } from "../settingLabels";
 
 /* ================== 页面模式 ==================
@@ -539,11 +539,12 @@ const selectedGroupText = computed(() => {
   return `${groupName(g)}（${g}）`;
 });
 
-/** 检查器里的「当前值」：敏感项默认掩码，解密后显示明文 */
+/** 检查器里的「当前值」：敏感项默认掩码，解密后显示明文；布尔项显示开启/关闭 */
 const selectedValueText = computed(() => {
   const s = selectedSetting.value;
   if (!s) return "-";
   if (isSensitive(s)) return selectedRevealed.value || "••••••••";
+  if (isBooleanType(s.sysSettingValueType)) return booleanText(s.sysSettingValue);
   return s.sysSettingValue || "-";
 });
 
@@ -939,6 +940,16 @@ onMounted(() => {
               <el-icon><component :is="revealedMap[row.sysSettingId] ? Hide : View" /></el-icon>
             </el-button>
           </div>
+          <!-- 布尔配置不输出 true/false 原始字面量：读的人要的是「开没开」 -->
+          <span
+            v-else-if="isBooleanType(row.sysSettingValueType)"
+            class="bool-value"
+            :class="{ 'is-on': isBooleanTruthy(row.sysSettingValue) }"
+            :title="row.sysSettingValue || 'false'"
+          >
+            <span class="bool-value__dot" aria-hidden="true" />
+            {{ booleanText(row.sysSettingValue) }}
+          </span>
           <span v-else class="value-readonly"><template v-for="(seg, i) in valueSegments(row.sysSettingValue)" :key="i">{{ seg }}<wbr /></template></span>
         </template>
 
@@ -982,7 +993,18 @@ onMounted(() => {
         <dl class="insp-list">
           <div class="insp-row">
             <dt>当前值</dt>
-            <dd><code class="insp-val">{{ selectedValueText }}</code></dd>
+            <dd>
+              <span
+                v-if="!isSensitive(selectedSetting) && isBooleanType(selectedSetting.sysSettingValueType)"
+                class="bool-value"
+                :class="{ 'is-on': isBooleanTruthy(selectedSetting.sysSettingValue) }"
+                :title="selectedSetting.sysSettingValue || 'false'"
+              >
+                <span class="bool-value__dot" aria-hidden="true" />
+                {{ selectedValueText }}
+              </span>
+              <code v-else class="insp-val">{{ selectedValueText }}</code>
+            </dd>
           </div>
           <div class="insp-row">
             <dt>值类型</dt>
@@ -1727,6 +1749,32 @@ onMounted(() => {
   color: var(--el-text-color-regular);
   /* 断点由模板里的 <wbr> 提供（URL 层级），这里只兜底极长的不可断词 */
   overflow-wrap: anywhere;
+}
+
+/* 布尔值可视化：圆点 + 开启/关闭，代替 true/false 原始字面量 */
+.bool-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 9px 1px 7px;
+  font-size: 12px;
+  line-height: 20px;
+  border-radius: 999px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+.bool-value__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-text-color-placeholder);
+}
+.bool-value.is-on {
+  color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+}
+.bool-value.is-on .bool-value__dot {
+  background: var(--el-color-success);
 }
 
 .setting-na {

@@ -44,6 +44,42 @@ export function typeLabel(type?: string | null): string {
 }
 
 /**
+ * 是否为布尔类型配置（含库内 BOOL / Boolean 等别名）。
+ *
+ * @param type 库内值类型
+ * @returns 布尔类型返回 true
+ */
+export function isBooleanType(type?: string | null): boolean {
+  return normType(type) === "BOOLEAN";
+}
+
+/**
+ * 布尔配置的可识别真值。
+ *
+ * <p>库内历史数据存在 {@code true / 1 / on / yes / 是} 等多种写法，
+ * 只认字符串 {@code "true"} 会把 {@code 1} 误显示成「关闭」。</p>
+ *
+ * @param value 配置值
+ * @returns 真值返回 true
+ */
+export function isBooleanTruthy(value?: string | null): boolean {
+  const v = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return v === "true" || v === "1" || v === "on" || v === "yes" || v === "y" || v === "是" || v === "开启";
+}
+
+/**
+ * 布尔配置的中文展示文案，供列表/检查器统一使用。
+ *
+ * @param value 配置值
+ * @returns 「开启」或「关闭」
+ */
+export function booleanText(value?: string | null): string {
+  return isBooleanTruthy(value) ? "开启" : "关闭";
+}
+
+/**
  * 校验单个配置值，返回错误文案；无错误返回空串。
  * 覆盖：数字格式、JSON/数组结构、sysSettingValidate 正则规则。
  */

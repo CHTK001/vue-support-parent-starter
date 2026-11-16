@@ -62,6 +62,36 @@ export function encodeRequestBody(plaintext: string, options: RequestCodecOption
 }
 
 /**
+ * 解密后端单独下发的 hex 密文（不是 codec 响应包装）。
+ *
+ * <p>与 {@link encodeRequestBody} 走同一套线协议：key/IV 都由 {@code SHA-256(key)}
+ * 派生，AES/CBC/PKCS7，线上载荷为 hex。用于「敏感值加密下发、客户端本地解密」，
+ * 避免明文出现在响应体、网关日志与浏览器网络面板里。</p>
+ *
+ * @param cipherHex hex 密文
+ * @param key       与后端约定的口令（本项目为当前会话令牌）
+ * @returns 明文；密文为空、口令为空或解不开时返回空串
+ */
+export function decryptAesHex(cipherHex: string, key: string): string {
+  const hex = String(cipherHex ?? "").trim();
+  if (!hex || !key) return "";
+  try {
+    const digest = sha256Hex(key);
+    const cipherParams = CryptoJS.lib.CipherParams.create({
+      ciphertext: CryptoJS.enc.Hex.parse(hex),
+    });
+    const decrypted = CryptoJS.AES.decrypt(cipherParams, CryptoJS.enc.Hex.parse(digest), {
+      mode: CryptoJS.mode.CBC,
+      iv: CryptoJS.enc.Hex.parse(digest.slice(0, 32)),
+      padding: CryptoJS.pad.Pkcs7,
+    });
+    return decrypted.toString(CryptoJS.enc.Utf8);
+  } catch {
+    return "";
+  }
+}
+
+/**
  * 解后端 {@code ApiResponseEncodeResponseBodyAdvice} 的响应包装。
  *
  * <p>后端格式：{@code 02{key}200{data}ffff}。其中 AES 分支的 data 是按
