@@ -413,6 +413,8 @@ export interface SysSetting extends Auditable {
   sysSettingGroup?: string;
   sysSettingSort?: number;
   sysSettingInSystem?: number;
+  /** 状态：1 启用 / 0 停用（停用行不在配置管理展示） */
+  sysSettingStatus?: number;
   sysSettingRemark?: string;
   /** 是否敏感配置: 0否 1是（列表/详情返回时掩码，明文需通过解密接口获取） */
   sysSettingIsSensitive?: number;
@@ -425,6 +427,18 @@ export interface SysSetting extends Auditable {
 /** 系统设置 VO（带类型/选项） */
 export interface SysSettingVO extends SysSetting {
   sysSettingOptions?: string;
+}
+
+/** 系统设置分组（左栏中文名与自定义分组数据源） */
+export interface SysSettingGroupBrief {
+  sysSettingGroupId?: number;
+  sysSettingGroupName?: string;
+  sysSettingGroupCode?: string;
+  sysSettingGroupIcon?: string;
+  sysSettingGroupEnable?: boolean;
+  sysSettingGroupRemark?: string;
+  sysSettingGroupSort?: number;
+  sysSettingGroupUseProjectInterface?: boolean;
 }
 
 /** 系统设置变更历史 */

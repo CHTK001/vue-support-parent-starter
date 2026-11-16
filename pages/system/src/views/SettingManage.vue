@@ -34,6 +34,7 @@ import {
   EditPen,
   Search,
   Refresh,
+  Plus,
 } from "@element-plus/icons-vue";
 import {
   pageForSetting,
@@ -48,14 +49,23 @@ import {
   decryptSettingValue,
   exportSetting,
   checkEmailConnectivity,
+  saveSettingGroup,
+  listSettingGroups,
 } from "../api/systemApi";
-import type { SysSetting, SysSettingHistory, EmailConnectivity } from "../api/types";
+import type {
+  SysSetting,
+  SysSettingHistory,
+  EmailConnectivity,
+  SysSettingGroupBrief,
+} from "../api/types";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn, RePageResult } from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import { settingTypeOptions, normType, typeLabel, isBooleanType, isBooleanTruthy, booleanText } from "../settingUtils";
 import { settingLabel, THIRD_PARTY_SETTING_GROUPS } from "../settingLabels";
+import { listAccountsCached } from "../api/accountApi";
+import type { AccountKind, SysAccountBrief } from "../api/accountApi";
 
 /* ================== 页面模式 ==================
  * manage：配置管理（创建/删除配置定义，菜单入口）
@@ -133,6 +143,35 @@ const groupDescMap: Record<string, string> = {
  */
 const THIRD_PARTY_GROUPS = new Set(THIRD_PARTY_SETTING_GROUPS);
 
+/* ================== 分组字典（sys_setting_group） ==================
+ * 左栏中文名与自定义分组都来自这张字典表；此前唯一来源是页面里的硬编码
+ * map，自定义分组建了也只会显示成英文编码。字典表是「配置管理」里的
+ * 可见实体，读它才能让新增分组真正落到导航上。
+ */
+const groupList = ref<SysSettingGroupBrief[]>([]);
+const groupMetaMap = computed(() => {
+  const m = new Map<string, SysSettingGroupBrief>();
+  groupList.value.forEach((g) => {
+    if (g.sysSettingGroupCode) m.set(g.sysSettingGroupCode, g);
+  });
+  return m;
+});
+/** 本次会话新建的分组：字典表还没回读到（缓存/延迟）时也要留在左栏 */
+const createdGroupCodes = ref<string[]>([]);
+
+async function loadGroups() {
+  try {
+    const res = await listSettingGroups();
+    const data = res?.data;
+    // 停用的分组不进左栏：它和停用的配置项一样不该出现在运行配置里
+    groupList.value = Array.isArray(data)
+      ? data.filter((g) => g.sysSettingGroupEnable !== false)
+      : [];
+  } catch {
+    groupList.value = [];
+  }
+}
+
 const groupNameMap: Record<string, string> = {
   default: "默认配置",
   config: "系统配置",
@@ -177,11 +216,16 @@ const STARTUP_SUFFIX: Record<string, string> = {
   swagger: "接口文档",
 };
 function groupName(g: string): string {
+  // 内置分组用页面里校对过的中文名（字典种子里的 wechat_mp 之类仍是半英文）；
+  // 没登记过的 code 才回落字典表 —— 自定义分组的「中文名」只能从那里来。
+  if (groupNameMap[g]) return groupNameMap[g];
+  const meta = groupMetaMap.value.get(g);
+  if (meta?.sysSettingGroupName) return meta.sysSettingGroupName;
   if (g.startsWith("startup-")) {
     const suffix = STARTUP_SUFFIX[g.slice("startup-".length)];
     return suffix ? `启动参数 · ${suffix}` : "启动参数";
   }
-  return groupNameMap[g] ?? g;
+  return g;
 }
 function groupIcon(g: string): unknown {
   if (g.startsWith("startup")) return Cpu;
@@ -293,6 +337,59 @@ function valueSegments(value?: string | null): string[] {
   return text.split(/(?<=[/?#&=])/).filter(Boolean);
 }
 
+/* ================== 账号选型回显 ================== */
+
+/**
+ * 配置行指向的账号种类。
+ *
+ * <p>邮件/短信不再自己存 SMTP 密钥，而是存账号管理里的 {@code EMAIL}/{@code SMS}
+ * 账号 ID；值列直接显示 UUID 对人没有意义，这里按分组+名称识别后翻译成账号名。</p>
+ *
+ * @param row 配置行
+ * @return EMAIL / SMS；不是账号选型行返回 null
+ */
+function accountKindOf(row: SysSetting): AccountKind | null {
+  if (row.sysSettingName !== "accountId") return null;
+  if (row.sysSettingGroup === "smtp") return "EMAIL";
+  if (row.sysSettingGroup === "sms") return "SMS";
+  return null;
+}
+
+/** 账号 ID → 账号摘要（配置页只读回显用） */
+const accountBriefMap = ref<Record<string, SysAccountBrief>>({});
+
+/**
+ * 拉取邮件/短信账号清单供回显。
+ *
+ * <p>失败时静默：账号模块不可用不应让配置页报错，值列退回显示原始 ID。</p>
+ */
+async function loadAccountBriefs() {
+  const kinds: AccountKind[] = ["EMAIL", "SMS"];
+  const results = await Promise.allSettled(kinds.map((k) => listAccountsCached(k)));
+  const next: Record<string, SysAccountBrief> = {};
+  results.forEach((r) => {
+    if (r.status !== "fulfilled") return;
+    (r.value ?? []).forEach((a) => {
+      if (a?.accountId) next[a.accountId] = a;
+    });
+  });
+  accountBriefMap.value = next;
+}
+
+/**
+ * 账号值的可读文本：名称 · 登录名；账号已被删除/停用时如实说明。
+ *
+ * @param value 配置值（账号 ID）
+ */
+function accountValueText(value?: string | null): string {
+  const id = (value ?? "").trim();
+  if (!id) return "未选择账号";
+  const brief = accountBriefMap.value[id];
+  if (!brief) return id;
+  const name = brief.name || brief.username || brief.code || id;
+  return brief.status === 0 ? `${name}（已停用）` : name;
+}
+
 /* ================== 全量数据 ================== */
 
 const allSettings = ref<SysSetting[]>([]);
@@ -301,8 +398,12 @@ const groupLoading = ref(false);
 async function loadAll() {
   groupLoading.value = true;
   try {
-    const res = await pageForSetting({ page: 1, pageSize: 1000 });
-    allSettings.value = unwrapPage(res).rows as SysSetting[];
+    // 分组字典与配置清单并行：前者决定左栏中文名，后者决定有哪些分组
+    await Promise.all([loadGroups(), pageForSetting({ page: 1, pageSize: 1000 }).then((res) => {
+      allSettings.value = (unwrapPage(res).rows as SysSetting[]).filter(
+        (s) => Number(s.sysSettingStatus) !== 0,
+      );
+    })]);
   } catch {
     allSettings.value = [];
   } finally {
@@ -355,24 +456,44 @@ function unwrapPage(res: unknown): { total: number; rows: Record<string, unknown
  */
 const GROUP_ORDER = ["default", "config", "schedule"];
 
-/** 按分组聚类并按 sort 排序 */
+/** 按分组聚类并按 sort 排序（停用行 status=0 不展示：邮件/短信历史凭据行已随账号收口停用） */
 const groups = computed(() => {
   const m = new Map<string, SysSetting[]>();
   allSettings.value.forEach((s) => {
+    if (Number(s.sysSettingStatus) === 0) return;
     const g = s.sysSettingGroup || "default";
     if (!m.has(g)) m.set(g, []);
     m.get(g)!.push(s);
   });
+  // 本次会话新建、尚未挂配置项的分组：并入导航（空清单），否则建完就看不见
+  createdGroupCodes.value.forEach((g) => {
+    if (!m.has(g)) m.set(g, []);
+  });
   const rank = (g: string) => {
     const i = GROUP_ORDER.indexOf(g);
     return i < 0 ? GROUP_ORDER.length : i;
+  };
+  /**
+   * 排序键：内置分组按 GROUP_ORDER 权重排在前，自定义分组（页面没登记中文名、
+   * 只存在于字典表的 code）统一落到末尾，组内再按建组时填的排序值 ——
+   * 否则新建分组会按种子 sort 插到「默认配置」上面。
+   */
+  const isCustom = (g: string) => !groupNameMap[g] && !g.startsWith("startup") && groupMetaMap.value.has(g);
+  const sortKey = (g: string): [number, number] => {
+    if (!isCustom(g)) return [0, rank(g)];
+    const v = groupMetaMap.value.get(g)?.sysSettingGroupSort;
+    return [1, typeof v === "number" ? v : Number.MAX_SAFE_INTEGER];
   };
   return [...m.entries()]
     .map(([group, items]) => ({
       group,
       items: [...items].sort((a, b) => (a.sysSettingSort ?? 0) - (b.sysSettingSort ?? 0)),
     }))
-    .sort((a, b) => rank(a.group) - rank(b.group) || a.group.localeCompare(b.group));
+    .sort((a, b) => {
+      const [ta, sa] = sortKey(a.group);
+      const [tb, sb] = sortKey(b.group);
+      return ta - tb || sa - sb || a.group.localeCompare(b.group);
+    });
 });
 
 /** 全部分组下配置项总数（顶部统计） */
@@ -488,6 +609,58 @@ async function handleDelete(row: SysSetting) {
   await refreshAll();
 }
 
+/* ================== 新增自定义分组 ==================
+ * 左栏底部的「+」入口。此前只能靠给配置项手填一个英文分组编码，
+ * 没有中文名、也没法独立建组；这里补上字典表的建组入口。
+ */
+const groupDialogVisible = ref(false);
+const groupSaving = ref(false);
+const groupForm = ref<SysSettingGroupBrief>({});
+
+function handleGroupAdd() {
+  groupForm.value = {
+    sysSettingGroupEnable: true,
+    sysSettingGroupSort: (groupList.value.length + 1) * 10,
+  };
+  groupDialogVisible.value = true;
+}
+
+async function handleGroupSubmit() {
+  const name = (groupForm.value.sysSettingGroupName ?? "").trim();
+  const code = (groupForm.value.sysSettingGroupCode ?? "").trim();
+  if (!name) {
+    message.warning("请填写分组名称");
+    return;
+  }
+  if (!code) {
+    message.warning("请填写分组编码");
+    return;
+  }
+  groupSaving.value = true;
+  try {
+    await saveSettingGroup({
+      sysSettingGroupId: groupForm.value.sysSettingGroupId,
+      sysSettingGroupName: name,
+      sysSettingGroupCode: code,
+      sysSettingGroupIcon: groupForm.value.sysSettingGroupIcon,
+      sysSettingGroupEnable: groupForm.value.sysSettingGroupEnable ?? true,
+      sysSettingGroupSort: groupForm.value.sysSettingGroupSort ?? 0,
+      sysSettingGroupRemark: groupForm.value.sysSettingGroupRemark,
+    });
+    message.success("分组已创建");
+    groupDialogVisible.value = false;
+    if (!createdGroupCodes.value.includes(code)) createdGroupCodes.value.push(code);
+    await loadAll();
+    activeGroup.value = code;
+    selectedSetting.value = null;
+    await detailTableRef.value?.reload();
+  } catch (e) {
+    message.error((e as Error)?.message ?? "保存失败");
+  } finally {
+    groupSaving.value = false;
+  }
+}
+
 /** 数据变更后统一刷新：卡片全量 + 分组详情 */
 async function refreshAll() {
   await loadAll();
@@ -543,6 +716,7 @@ const selectedGroupText = computed(() => {
 const selectedValueText = computed(() => {
   const s = selectedSetting.value;
   if (!s) return "-";
+  if (accountKindOf(s)) return accountValueText(s.sysSettingValue);
   if (isSensitive(s)) return selectedRevealed.value || "••••••••";
   if (isBooleanType(s.sysSettingValueType)) return booleanText(s.sysSettingValue);
   return s.sysSettingValue || "-";
@@ -768,6 +942,8 @@ const historyColumns: ReTableColumn[] = [
 
 onMounted(() => {
   loadAll();
+  // 账号清单与配置清单并行：账号行回显要用它把人名换出来
+  void loadAccountBriefs();
 });
 </script>
 
@@ -835,7 +1011,17 @@ onMounted(() => {
 
       <div class="config-nav__foot">
         <span>共 {{ totalSettings }} 项配置</span>
-        <ReButton layout="square" icon="Refresh" tip="刷新" :loading="groupLoading" @click="refreshAll" />
+        <div class="config-nav__foot__actions">
+          <ReButton layout="square" icon="Refresh" tip="刷新" :loading="groupLoading" @click="refreshAll" />
+          <ReButton
+            v-if="mode === 'manage'"
+            layout="square"
+            icon="Plus"
+            type="primary"
+            tip="新增分组"
+            @click="handleGroupAdd"
+          />
+        </div>
       </div>
     </aside>
 
@@ -934,7 +1120,11 @@ onMounted(() => {
         </template>
 
         <template #value="{ row }">
-          <div v-if="isSensitive(row)" class="sensitive-box">
+          <!-- 账号选型行存的是账号 UUID，直接显示对人没有意义：翻成账号名 -->
+          <span v-if="accountKindOf(row)" class="value-readonly">
+            {{ accountValueText(row.sysSettingValue) }}
+          </span>
+          <div v-else-if="isSensitive(row)" class="sensitive-box">
             <code class="sensitive-box__text">{{ revealedMap[row.sysSettingId] ?? "••••••••" }}</code>
             <el-button link type="primary" @click.stop="toggleSensitive(row)">
               <el-icon><component :is="revealedMap[row.sysSettingId] ? Hide : View" /></el-icon>
@@ -1121,6 +1311,41 @@ onMounted(() => {
       </el-form>
     </ReDialog>
 
+    <!-- 新增分组弹窗：左栏底部「+」入口 -->
+    <ReDialog
+      v-model="groupDialogVisible"
+      title="新增分组"
+      width="520"
+      :close-on-click-modal="false"
+      destroy-on-close
+      layout="modern"
+      compact
+      :confirm-loading="groupSaving"
+      :footer-hidden="false"
+      @ok="handleGroupSubmit"
+    >
+      <el-form label-width="100px" :model="groupForm">
+        <el-form-item label="分组名称" required>
+          <ReInput layout="modern" v-model="groupForm.sysSettingGroupName" placeholder="如：业务开关" maxlength="64" show-word-limit />
+        </el-form-item>
+        <el-form-item label="分组编码" required>
+          <ReInput layout="modern" v-model="groupForm.sysSettingGroupCode" placeholder="英文编码，如 business（建立后不建议改）" maxlength="64" />
+        </el-form-item>
+        <el-form-item label="图标">
+          <ReInput layout="modern" v-model="groupForm.sysSettingGroupIcon" placeholder="图标名，如 ep:setting（可空）" maxlength="128" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <ReInputNumber layout="modern" v-model="groupForm.sysSettingGroupSort" :min="0" class="!w-full" />
+        </el-form-item>
+        <el-form-item label="启用">
+          <ReSwitch layout="square" v-model="groupForm.sysSettingGroupEnable" />
+        </el-form-item>
+        <el-form-item label="描述">
+          <ReInput layout="modern" v-model="groupForm.sysSettingGroupRemark" type="textarea" :rows="2" maxlength="255" show-word-limit />
+        </el-form-item>
+      </el-form>
+    </ReDialog>
+
     <!-- 变更历史抽屉 -->
     <ReDrawer
       v-model="historyDrawerVisible"
@@ -1270,7 +1495,10 @@ onMounted(() => {
   flex-direction: row;
   gap: 4px;
   padding: 0;
-  height: calc(100vh - 100px);
+  /* 高度吃满父容器，不要自己算视口：父链已经让出了 header(56) 与 main-content 的
+     padding(8+8)，再减 100 就是重复扣减；而标签栏(Tabs)是条件渲染的，写死的
+     视口算式在标签栏出现时会多算一截，把 el-main 顶出滚动条。 */
+  height: 100%;
   min-height: 0;
 }
 
@@ -1459,6 +1687,11 @@ onMounted(() => {
   border-top: 1px solid var(--el-border-color-lighter);
   font-size: 11.5px;
   color: var(--el-text-color-secondary);
+}
+.config-nav__foot__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ============ 中栏：清单卡片 ============

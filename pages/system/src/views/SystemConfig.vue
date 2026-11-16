@@ -39,6 +39,7 @@ import {
 import type { SysSetting } from "../api/types";
 import { normType, typeLabel } from "../settingUtils";
 import { settingLabel } from "../settingLabels";
+import { listAccountsCached, type AccountKind, type SysAccountBrief } from "../api/accountApi";
 import SettingValueEditor from "./components/SettingValueEditor.vue";
 
 /* ================== 模块元信息 ================== */
@@ -103,7 +104,10 @@ async function loadAll() {
   loading.value = true;
   try {
     const res = await pageForSetting({ page: 1, pageSize: 1000 });
-    allSettings.value = unwrapPage(res).rows as SysSetting[];
+    // 停用行（status=0，如随账号收口停用的历史 SMTP/短信凭据行）不参与展示
+    allSettings.value = (unwrapPage(res).rows as SysSetting[]).filter(
+      (s) => Number(s.sysSettingStatus) !== 0,
+    );
     originalMap.clear();
     allSettings.value.forEach((s) => {
       if (s.sysSettingId != null) originalMap.set(s.sysSettingId, s.sysSettingValue ?? "");
@@ -150,9 +154,9 @@ function raw(group: string, code: string): string {
 function moduleReady(group: string): boolean {
   switch (group) {
     case "smtp":
-      return !!(raw("smtp", "smtp.host") && raw("smtp", "smtp.from") && raw("smtp", "smtp.password"));
+      return !!raw("smtp", "smtp.accountId");
     case "sms":
-      return !!(raw("sms", "sms.appId") && raw("sms", "sms.appSecret") && raw("sms", "sms.appSign"));
+      return !!raw("sms", "sms.accountId");
     case "config":
       return !!raw("config", "socket.urls");
     case "userAgreement":
@@ -190,22 +194,10 @@ const SECTION_RULES: Record<string, Record<string, SectionDef>> = {
     enable: { key: "personal", title: "个性化", order: 5 },
   },
   smtp: {
-    host: { key: "server", title: "服务器", order: 1 },
-    port: { key: "server", title: "服务器", order: 1 },
-    sslEnable: { key: "server", title: "服务器", order: 1 },
-    starttls: { key: "server", title: "服务器", order: 1 },
-    auth: { key: "auth", title: "认证", order: 2 },
-    username: { key: "auth", title: "认证", order: 2 },
-    password: { key: "auth", title: "认证", order: 2 },
-    from: { key: "auth", title: "认证", order: 2 },
-    imapHost: { key: "imap", title: "IMAP 收信", order: 3 },
-    imapPort: { key: "imap", title: "IMAP 收信", order: 3 },
+    accountId: { key: "account", title: "发信账号", order: 1 },
   },
   sms: {
-    appType: { key: "channel", title: "通道", order: 1 },
-    appId: { key: "credential", title: "凭证", order: 2 },
-    appSecret: { key: "credential", title: "凭证", order: 2 },
-    appSign: { key: "credential", title: "凭证", order: 2 },
+    accountId: { key: "account", title: "短信账号", order: 1 },
   },
   config: {
     enable: { key: "socket", title: "Socket 连接", order: 1 },
@@ -255,6 +247,40 @@ function v(code: string): string {
 }
 function isOn(code: string): boolean {
   return v(code) === "true";
+}
+/**
+ * 账号行（smtp.accountId / sms.accountId）对应的账号显示名。
+ *
+ * <p>配置值存的是账号管理的账号标识，这里把它翻译回「名称 · 用户名」，英雄区与
+ * 就绪状态不再读历史 SMTP / 短信字段。账号列表不经网络实时拉取（配置页以
+ * sys_setting 数据为准），取不到账号管理数据时直接显示标识本身。</p>
+ */
+const accountBriefs = ref<Record<string, SysAccountBrief[]>>({});
+function accountKindOf(group: string): AccountKind | null {
+  return group === "smtp" ? "EMAIL" : group === "sms" ? "SMS" : null;
+}
+function heroAccountLabel(group: string): string {
+  const kind = accountKindOf(group);
+  const id = raw(group, `${group}.accountId`);
+  if (!kind || !id) return "";
+  const brief = (accountBriefs.value[kind] ?? []).find((a) => a.accountId === id);
+  if (!brief) return id;
+  const parts: string[] = [];
+  const name = brief.name || brief.code || brief.username || brief.accountId;
+  parts.push(name);
+  if (brief.username && brief.username !== name) parts.push(brief.username);
+  return parts.join(" · ");
+}
+function heroAccountMeta(group: string): string {
+  const kind = accountKindOf(group);
+  const id = raw(group, `${group}.accountId`);
+  if (!kind || !id) return "未配置";
+  const brief = (accountBriefs.value[kind] ?? []).find((a) => a.accountId === id);
+  if (!brief) return "账号标识";
+  const bits: string[] = [];
+  if (brief.vendor) bits.push(brief.vendor);
+  if (brief.defaultAccount) bits.push("默认");
+  return bits.length ? bits.join(" · ") : "来自账号管理";
 }
 function toLabel(x: unknown): string {
   if (x === null || x === undefined) return "";
@@ -480,6 +506,16 @@ onMounted(async () => {
   if (modules.value.length && !modules.value.some((m) => m.group === activeGroup.value)) {
     activeGroup.value = modules.value[0].group;
   }
+  // 英雄区账号显示名：预取 EMAIL / SMS 账号，配置值里的标识翻译回可读名称
+  const kinds = Array.from(new Set(MODULE_ORDER.map(accountKindOf).filter((k): k is AccountKind => !!k)));
+  try {
+    const loaded = await Promise.all(kinds.map(async (k) => [k, await listAccountsCached(k)] as const));
+    loaded.forEach(([k, list]) => {
+      accountBriefs.value[k] = list;
+    });
+  } catch {
+    /* 账号管理不可达时英雄区回退显示标识 */
+  }
 });
 onBeforeUnmount(destroySortables);
 </script>
@@ -627,15 +663,12 @@ onBeforeUnmount(destroySortables);
                     <path d="m3 7 9 6 9-6" />
                   </svg>
                   <div class="h-mail__lines">
-                    <div><span>主机</span><b>{{ v("smtp.host") || "未配置" }}</b></div>
-                    <div><span>端口</span><b>{{ v("smtp.port") || "—" }}</b></div>
-                    <div><span>发件</span><b>{{ v("smtp.from") || "未配置" }}</b></div>
+                    <div><span>账号</span><b>{{ heroAccountLabel("smtp") || "未配置" }}</b></div>
+                    <div><span>来源</span><b>{{ heroAccountMeta("smtp") }}</b></div>
                   </div>
                 </div>
                 <div class="h-mail__chips">
-                  <i :class="{ on: isOn('smtp.sslEnable') }">SSL</i>
-                  <i :class="{ on: isOn('smtp.starttls') }">STARTTLS</i>
-                  <i :class="{ on: isOn('smtp.auth') }">认证</i>
+                  <i :class="{ on: !!heroAccountLabel('smtp') }">已收口到账号管理</i>
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 10px;">
                   <ReButton
@@ -663,14 +696,14 @@ onBeforeUnmount(destroySortables);
                   <span class="h-phone__notch" />
                   <div class="h-phone__screen">
                     <div class="h-sms__bubble">
-                      <b>【{{ v("sms.appSign") || "签名" }}】</b>
+                      <b>【{{ heroAccountMeta("sms") || "短信账号" }}】</b>
                       您的验证码为 358162
                     </div>
                   </div>
                 </div>
                 <div class="h-sms__meta">
-                  <i class="on">{{ v("sms.appType") || "通道" }}</i>
-                  <i>{{ v("sms.appId") ? "AppID 已配置" : "AppID 未配置" }}</i>
+                  <i class="on">{{ heroAccountLabel("sms") || "未配置短信账号" }}</i>
+                  <i>已收口到账号管理</i>
                 </div>
                 <ReButton
                   type="primary"

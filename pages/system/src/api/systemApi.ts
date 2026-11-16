@@ -29,6 +29,7 @@ import type {
   SysSetting,
   SysSettingHistory,
   SysSettingVO,
+  SysSettingGroupBrief,
   SysTenant,
   SysTenantStats,
   SysUser,
@@ -596,6 +597,29 @@ export function deleteSetting(sysSettingId: number) {
     .delete("/v2/setting/delete")
     .query({ sysSettingId })
     .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 配置分组（新增/更新） */
+export function saveSettingGroup(data: {
+  sysSettingGroupId?: number;
+  sysSettingGroupName: string;
+  sysSettingGroupCode: string;
+  sysSettingGroupIcon?: string;
+  sysSettingGroupEnable?: boolean;
+  sysSettingGroupSort?: number;
+  sysSettingGroupRemark?: string;
+}) {
+  return http()
+    .post("/v2/setting/group/saveOrUpdate")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 配置分组列表（左栏中文名与自定义分组数据源） */
+export function listSettingGroups() {
+  return http()
+    .get("/v2/setting/group/list")
+    .then<ApiResult<SysSettingGroupBrief[]>>((r) => r.data);
 }
 
 /* ================== 设置变更历史 ================== */
