@@ -1171,6 +1171,30 @@ function clearAllSelection(): void {
   emit("selection-change", []);
 }
 
+/**
+ * 按给定行键收敛选中集（刷新后数据变了，但选择要保留的场景）。
+ *
+ * <p>与 {@link clearAllSelection} 的区别是「只删不存在的」：跨页选择靠
+ * {@code selectedRowsMap} 记住，若某次刷新把某些行筛掉了，这些行必须从
+ * 选中集里消失——否则批量条的计数会包含页面上根本看不到的行，后续批量动作
+ * 也会打到它们身上。</p>
+ *
+ * @param keys 仍然有效的行键（当前数据集的 rowKey 集合）
+ */
+function pruneSelection(keys: string[]): void {
+  const keep = new Set(keys.map(String));
+  let changed = false;
+  for (const key of Object.keys(selectedRowsMap.value)) {
+    if (!keep.has(key)) {
+      delete selectedRowsMap.value[key];
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  saveSelectionToStorage(selectedRowsMap.value);
+  emit("selection-change", allSelectedRows.value);
+}
+
 /** 批量删除 */
 async function onBatchDelete(): Promise<void> {
   const rows = allSelectedRows.value;
@@ -1421,6 +1445,41 @@ function showCtxMenu(ctx: ReTableContextMenuContext): void {
   if (ctxMenuTree.value.nodes.length === 0) return;
   const { clientX: x, clientY: y } = ctx.event;
   void nextTick(() => ctxMenuRef.value?.open(x, y));
+}
+
+/**
+ * 以代码方式打开某一行的右键菜单。
+ *
+ * <p>行内「更多」按钮与真右键必须给出同一份菜单：菜单项由 {@code contextMenu}
+ * 按行求值，只有走这里才拿得到同一套 disabled 判定与同一份节点树。宿主不再
+ * 自己拼第二份菜单，也不再把 {@code __more} 抛给页面壳（那样页面壳既没有
+ * 菜单状态也没有定位能力，只能静默丢掉）。</p>
+ *
+ * @param row   目标行数据（按引用在 dataList 里定位行号）
+ * @param event 触发事件（取坐标定位浮层；缺省时贴触发元素左下角）
+ */
+function openRowMenu(row: Record<string, unknown>, event?: MouseEvent): void {
+  const rowIndex = (dataList.value ?? []).indexOf(row);
+  let x = 0;
+  let y = 0;
+  if (event) {
+    x = event.clientX;
+    y = event.clientY;
+  }
+  if (x === 0 && y === 0) {
+    const rect = (event?.currentTarget as HTMLElement | null)?.getBoundingClientRect?.();
+    if (rect) {
+      x = Math.round(rect.left);
+      y = Math.round(rect.bottom);
+    }
+  }
+  const ctx: ReTableContextMenuContext = {
+    row,
+    rowIndex,
+    event: { clientX: x, clientY: y } as MouseEvent,
+  };
+  if (resolveCtxMenuItems(ctx).length === 0) return;
+  showCtxMenu(ctx);
 }
 
 /**
@@ -4736,6 +4795,11 @@ watch(dataList, () => {
   // 新一批数据落地后恢复勾选：跨页记住的勾选状态要落到新行上。
   // 放在这里而不是各个 reload 入口，是为了让「刷新 / 翻页 / 改查询条件」共用一条路径。
   void restoreSelection();
+  // 不分页 = 当前数据集就是全集：数据变了就得把已不存在的行从选中集里摘掉，
+  // 否则批量条计数会包含页面上看不到的行（跨页分页模式不能这么做，那是另一回事）。
+  if (!paginationCfg.value.enable) {
+    pruneSelection((dataList.value ?? []).map((row) => String(row[props.rowKey] ?? "")).filter(Boolean));
+  }
   // 行被整体替换了：固定列浮层的行高要重新按新内容对齐（含沉降期复核：字体/列宽晚到）
   resyncFixedRowHeights();
 });
@@ -6570,7 +6634,10 @@ defineExpose({
   resetColumns,
   clearCache,
   clearAllSelection,
+  pruneSelection,
   toggleBatchSelect,
+  // 行内「更多」按钮：宿主按行打开同一份右键菜单（不要自己再拼一份）
+  openRowMenu,
   // 列宽：宿主（数据源控制台的「设置列宽…」「调整列宽以适应内容」）只调这几个，
   // 宽度本身仍由本组件落盘 —— 宿主不需要知道存档在哪、按什么分键
   setColumnWidth,

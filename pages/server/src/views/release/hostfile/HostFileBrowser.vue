@@ -136,13 +136,27 @@ function onMenuSelect(item: ReTableContextMenuItem, ctx: { row: Record<string, u
 
 /** 外部清空选择（翻页 / 换目录 / 重新检索时由父级调用） */
 function clearSelection(): void {
-  // ReTable 的实例方法名是 clearSelection（element 引擎） / clearCheckboxRow（vxe 引擎）
+  // ReTable 只暴露 clearAllSelection：它同时清 selectedRowsMap、当前页选择与
+  // sessionStorage 存档，并回抛 selection-change。
+  const table = tableRef.value as unknown as { clearAllSelection?: () => void } | null;
+  table?.clearAllSelection?.();
+}
+
+/**
+ * 行内「更多」：把该行的右键菜单交给 ReTable 打开。
+ *
+ * <p>菜单项、禁用判定、定位与关闭都由 ReTable 负责，这里只转交行与触发事件，
+ * 避免页面壳维护第二套菜单状态（历史上这里 emit 了 {@code __more} 而父级没有
+ * 对应分支，表现为「点了没反应」）。</p>
+ *
+ * @param row 目标行
+ * @param evt 触发事件（用于定位浮层）
+ */
+function openRowMore(row: Record<string, unknown>, evt: MouseEvent): void {
   const table = tableRef.value as unknown as {
-    clearSelection?: () => void;
-    clearCheckboxRow?: () => void;
+    openRowMenu?: (row: Record<string, unknown>, event?: MouseEvent) => void;
   } | null;
-  table?.clearSelection?.();
-  table?.clearCheckboxRow?.();
+  table?.openRowMenu?.(row, evt);
 }
 
 /** 暴露给父级 */
@@ -282,7 +296,7 @@ function onDrop(event: DragEvent): void {
               layout="square"
               size="mini"
               tip="更多"
-              @click="emit('menu-select', '__more', row as unknown as ReleaseHostFileItem)"
+              @click="(evt: MouseEvent) => openRowMore(row, evt)"
             />
           </template>
         </div>
