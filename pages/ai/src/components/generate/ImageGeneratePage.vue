@@ -3523,12 +3523,22 @@ onUnmounted(() => {
   transition: border-color 0.2s;
 }
 
+/* 操作区强行保持一行：RePageHead 默认允许换行，本页操作项偏多
+   （视图 / 搜索 / 筛选 / 清理 / 排序），换行会让「排序」掉到第二行、
+   头部整体变成两行高，标题与搜索框的垂直中心也错开。
+   空间不够时不再换行，改为压缩搜索框（min-width 兜底）。 */
+:deep(.re-page__actions) {
+  flex-wrap: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
 /* 搜索框并入标题行后固定宽度：它原来是筛选行的主内容，可以撑满；
    现在同一行还有生成类型 / 视图 / 筛选 / 记录管理 / 排序，让它继续 flex-grow
    会把标题挤到换行，故收成定宽。 */
 .re-page__actions .wg-search {
   flex: 0 1 240px;
-  min-width: 160px;
+  min-width: 120px;
 }
 
 .wg-search .wg-svg {
