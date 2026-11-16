@@ -967,6 +967,13 @@ const cardMeta = (model: any) => {
     // 只有两边都采到才判免费，缺一边不算。
     const free = pIn != null && pOut != null && pIn === 0 && pOut === 0
     const known = pIn != null || pOut != null
+    // 峰谷 / 按次规则按模型下发（已按 model_pattern 过滤），这里只做展示补充，
+    // 标准价仍用指标表的 input/output，避免同一格出现两套口径。
+    const rules = Array.isArray(mt.pricing_rules) ? mt.pricing_rules : []
+    const peak = rules.find((r: any) => r?.item === 'output' && r?.peak_price != null)
+    const extras = rules
+      .filter((r: any) => r?.item && !['input', 'output', 'cache_read', 'cache_write'].includes(r.item))
+      .map((r: any) => `${r.note || r.item}${r.quantity ? `（${r.quantity} ${r.unit || ''}）` : ''}`)
     items.push({
       label: '价格',
       value: !known ? EMPTY : free ? '免费' : `${f(pIn)}/${f(pOut)}`,
@@ -974,7 +981,9 @@ const cardMeta = (model: any) => {
         ? '官方估价：指标源未采集（用「同步价格」回填）'
         : free
           ? '上游标注免费（输入输出价格均为 0）'
-          : `官方估价（USD / 百万 token）：输入 ${f(pIn)}，输出 ${f(pOut)}`,
+          : `官方估价（USD / 百万 token）：输入 ${f(pIn)}，输出 ${f(pOut)}`
+            + (peak ? `；峰谷价（输出）：峰 ${f(peak.peak_price)} / 谷 ${f(peak.off_peak_price)}` : '')
+            + (extras.length ? `；按次：${extras.join('；')}` : ''),
     })
   }
   // ④ 速度：首字延迟（TTFT）不单独占格，而是这一格的副行 —— 两者都是「快不快」，
@@ -1401,6 +1410,7 @@ const syncSections = computed(() => {
         `来源：${catalog.source ?? 'models.dev'}，${catalog.models ?? 0} 个模型`,
         `说明补全：${catalogDesc.updated ?? 0} 行，未变 ${catalogDesc.unchanged ?? 0} 行，本地未配置 ${catalogDesc.missing ?? 0} 个`,
         `计费写入：更新 ${catalogPricing.updated ?? 0} 条，新增 ${catalogPricing.inserted ?? 0} 条，回写模型 ${catalogPricing.provider_models ?? 0} 行`,
+        `峰谷 / 按次规则：${catalogPricing.rules_count ?? catalog.pricing_rules ?? 0} 条`,
         `能力位：思考 ${caps.reasoning ?? 0}，工具调用 ${caps.tool_call ?? 0}，附件 ${caps.attachment ?? 0}，上下文 ${caps.context_window ?? 0}`,
       ],
       muted: `流式 / 异步：公开目录未收录${catalog.doc ? `；文档：${catalog.doc}` : ''}`,

@@ -19,6 +19,7 @@ const TPL = path.join(ROOT, 'vue-support-parent-starter/pages/ai/src/components/
 const JAVA = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/java/com/chua/starter/datasearch/credit/spi/impl/HostCreditQueryProvider.java');
 const APC = path.join(ROOT, 'spring-support-parent-starter/spring-support-ai-starter/src/main/java/com/chua/starter/ai/support/manage/api/ApiProviderController.java');
 const LIMIT_REGISTRY = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/resources/provider-catalog/provider-limit-docs.json');
+const PRICING_REGISTRY = path.join(ROOT, 'spring-support-parent-starter/spring-support-datasearch-starter/src/main/resources/provider-catalog/provider-pricing-rules.json');
 const OUT = process.argv[2] || path.join(ROOT, 'vue-support-parent-starter/pages/ai/docs/提供商.md');
 
 const src = fs.readFileSync(TPL, 'utf8');
@@ -381,7 +382,7 @@ lines.push('`supportsCheckin()` / `supportsAutoCheckin()` 是 `AccountChannelAut
 lines.push('');
 lines.push('## 五、限制与计费口径怎么同步（供应商详情「同步」）');
 lines.push('');
-lines.push('入口：供应商详情 →「同步」→ `POST /api/providers/{id}/sync`。一次点击做四件事，结果按分节返回：');
+lines.push('入口：供应商详情 →「同步」→ `POST /api/providers/{id}/sync`。一次点击做五件事，结果按分节返回：');
 lines.push('');
 lines.push('| 分节 | 数据来源 | 落点 | 拿不到时 |');
 lines.push('| --- | --- | --- | --- |');
@@ -389,6 +390,17 @@ lines.push('| 限制 | 手动配置 → 官方文档登记表 → 上游响应�
 lines.push('| 计费标准 | 官方指标源（`ChatClientIndicators`）+ 上游 `/models` 的 pricing | `sys_ai_model_metrics` + 服务商模型行 | 已有价格不覆盖；官方源未接入时给出官方价格页 |');
 lines.push('| 模型描述 | 上游 `/models` 的 `description` / `summary`；上游缺失时由公开目录补位 | `sys_ai_provider_model.description` | 默认只补空值，`overwrite_descriptions=true` 才覆盖（公开目录永远只补空值） |');
 lines.push('| 公开目录 | models.dev 快照（`ProviderModelCatalogProvider` SPI，' + catalogProviders + ' 家 / ' + catalogModels + ' 个模型） | 说明补空；上下文 / 输出上限 / 多模态 / 思考 / 工具调用 / 附件 / 温度 / 权重等能力位补空；价格写 `sys_ai_model_metrics`（`source=models.dev`） | 未收录时保留上游与手工值；流式 / 异步目录不提供，返回 `null` 显示「未收录」 |');
+lines.push('| 定价规则 | 官方价格页逐项核对（`ProviderPricingProvider` SPI → `provider-pricing-rules.json`） | `sys_ai_model_metrics.sys_ai_model_metrics_pricing_rules`（JSON），并按 `model_pattern` 下发给模型行 `metrics.pricing_rules` | 未收录时为空，不拿标准目录价冒充峰谷价 |');
+lines.push('');
+const pricing = JSON.parse(fs.readFileSync(PRICING_REGISTRY, 'utf8'));
+const pricingRules = (pricing.entries || []).reduce((n, e) => n + (e.rules || []).length, 0);
+lines.push('**定价规则覆盖**：登记 ' + (pricing.entries || []).length + ' 家 / ' + pricingRules + ' 条，当前只有 DeepSeek 做过官方页面逐项核对并标 `verified=true`；其余厂商按同一 JSON 格式追加，不猜数值。规则字段：');
+lines.push('');
+lines.push('- `item` / `unit` / `quantity`：计价项与计价单位。`quantity=1000` + `unit=search` 表示「每 1000 次」，`quantity=10000` + `unit=char` 表示「每万字符」，`unit=hour` 表示按小时；');
+lines.push('- `peak_price` / `off_peak_price` / `standard_price`：峰价、谷价、不分峰谷的标准价；`peak_windows` 写时区、星期与起止分钟（左闭右开），`off_peak_policy` 说明闲时规则；');
+lines.push('- `model_pattern` 支持 `*` 通配；同一模型可同时命中标准 token 价与按次价，展示时分开列，不混算。');
+lines.push('');
+lines.push('**「只有一个 appkey」的口径**：余额 / 用量只走同源 Bearer 接口；官方有 usage 接口的（OpenAI 兼容计费、DeepInfra、Together、OpenRouter、OpenCode Go 等）直接按 usage 折算，不要求另有余额端点。签到需要登录态，API Key 模板一律不适用；阿里云 BSS / 火山 / 百度 BCE / 七牛这 4 家 AK/SK 签名类不会自动出现在候选里（自动候选只取 Bearer 类预设）。');
 lines.push('');
 lines.push('**限制机制**（`ProviderLimits`，与余额同构：一种机制一个实现，不逐家写死）：');
 lines.push('');
