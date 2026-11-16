@@ -43,6 +43,7 @@ import { RoomView } from '@pages/room';
 import ScServerFormDrawer from '../components/ScServerFormDrawer.vue';
 import ScServerDetailDrawer from '../components/ScServerDetailDrawer.vue';
 import ScServerOperLogPanel from '../components/ScServerOperLogPanel.vue';
+import ScFrpPanel from '../components/ScFrpPanel.vue';
 import { normalizeFilterType, hasDedicatedFilterPanel } from '../components/filters';
 import { copyText } from '../utils/clipboard';
 import { deriveStatusMeta } from '../utils/nodeList';
@@ -125,6 +126,10 @@ function statusDotClass(node: ServerNodeView): string {
 
 function isRoomNode(node: ServerNodeView): boolean {
   return String(node.protocol || '').trim().toLowerCase() === 'room';
+}
+
+function isFrpNode(node: ServerNodeView): boolean {
+  return String(node.protocol || '').trim().toLowerCase() === 'frp';
 }
 
 /** 当前在左栏高亮（= 右栏概览对应的服务） */
@@ -353,6 +358,19 @@ function openRoom(node: ServerNodeView): void {
   roomVisible.value = true;
 }
 
+/** FRP 映射抽屉 */
+const frpVisible = ref(false);
+const frpNode = ref<{ id: number; name: string } | null>(null);
+
+function openFrpRules(node: ServerNodeView): void {
+  if (node.status !== 'RUNNING') {
+    message.warning(`FRP 节点「${node.name}」未运行，请先启动`);
+    return;
+  }
+  frpNode.value = { id: node.id, name: node.name };
+  frpVisible.value = true;
+}
+
 /**
  * 右键菜单命令前缀，用 key 编码「目标 + 动作」：
  *   - 顶层动作：{@code act:<cmd>}
@@ -370,6 +388,9 @@ function buildContextMenu(ctx: ReTableContextMenuContext): ReTableContextMenuIte
   ];
   if (isRoomNode(node)) {
     items.push({ key: 'act:room', label: 'P2P 房间', icon: 'Share' });
+  }
+  if (isFrpNode(node)) {
+    items.push({ key: 'act:frp', label: 'FRP 映射', icon: 'Share' });
   }
   items.push(
     { key: 'act:copy-name', label: '复制名称', icon: 'DocumentCopy', divided: true },
@@ -430,6 +451,9 @@ function onContextMenuSelect(item: ReTableContextMenuItem, ctx: ReTableContextMe
       break;
     case 'room':
       openRoom(node);
+      break;
+    case 'frp':
+      openFrpRules(node);
       break;
     case 'copy-name':
       void copyCardText(node.name, '服务名称已复制');
@@ -696,6 +720,11 @@ function tabCtx(name: string): ServiceTab | undefined {
     <!-- P2P 房间：关闭抽屉即卸载，RoomView 自己 leave 并断开 WebSocket -->
     <ReDrawer v-model="roomVisible" title="P2P 房间" :size="'88%'" :footer-hidden="true" close-only>
       <RoomView :room-id="roomId" :server-url="roomServerUrl" @leave="roomVisible = false" />
+    </ReDrawer>
+
+    <!-- FRP 内网穿透：规则管理（服务端统管，下推 / 撤销全走 monitor API） -->
+    <ReDrawer v-model="frpVisible" title="FRP 映射" :size="'76%'" :footer-hidden="true" close-only>
+      <ScFrpPanel :node-id="frpNode?.id ?? null" :node-name="frpNode?.name" />
     </ReDrawer>
 
     <!-- 节点操作日志 -->

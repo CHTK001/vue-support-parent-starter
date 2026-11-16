@@ -315,6 +315,60 @@ export const listFilterTypes = () =>
 export const listProxyNodes = () =>
   http().get(`${B}/proxies`).then(r => unwrapResult<ServerNodeView[]>(r));
 
+// ===== FRP 规则管理（服务端统管，/ms/monitor/server/{id}/frp/rules）=====
+
+/** 单条 FRP 规则（对齐后端 FrpRuleManageVO.FrpRuleItem） */
+export interface FrpRuleItem {
+  /** 规则标识（撤销时按它定位） */
+  ruleId: string;
+  /** 所属客户端标识（expose=提供方 / map=访问方） */
+  clientId: string;
+  /** 目标地址 */
+  targetHost: string;
+  /** 目标端口 */
+  targetPort: number;
+  /** 本地端口（expose=本机服务端口 / map=本机监听端口） */
+  localPort: number;
+}
+
+/** FRP 规则管理视图（对齐后端 FrpRuleManageVO） */
+export interface FrpRuleManage {
+  /** 在线客户端标识列表 */
+  clients: string[];
+  /** 暴露规则（提供方） */
+  exposes: FrpRuleItem[];
+  /** 映射规则（访问方） */
+  maps: FrpRuleItem[];
+}
+
+/** 新建 FRP 规则请求（服务端下推） */
+export interface FrpRuleRequest {
+  /** 接收规则的客户端标识 */
+  clientId: string;
+  /** 规则类型：expose=暴露规则 / map=映射规则 */
+  type: 'expose' | 'map';
+  /** 目标地址 */
+  targetHost: string;
+  /** 目标端口 */
+  targetPort: number;
+  /** 本地端口（expose=本机服务端口 / map=本机监听端口） */
+  localPort: number;
+  /** 允许透传扩展字段（对齐 ServerNodeRequest 的 RequestBody 兼容口径） */
+  [key: string]: unknown;
+}
+
+/** 查询 FRP 节点规则全表（仅运行中的 FRP 节点可查） */
+export const getFrpRules = (id: number) =>
+  http().get(`${B}/${id}/frp/rules`).then(r => unwrapResult<FrpRuleManage>(r));
+
+/** 下推一条新 FRP 规则给客户端 */
+export const pushFrpRule = (id: number, d: FrpRuleRequest) =>
+  http().post(`${B}/${id}/frp/rules`).data(d).then(r => unwrapResult<void>(r));
+
+/** 撤销一条 FRP 规则（type: expose=暴露规则 / map=映射规则） */
+export const revokeFrpRule = (id: number, type: 'expose' | 'map', ruleId: string) =>
+  http().delete(`${B}/${id}/frp/rules/${type}/${ruleId}`).then(r => unwrapResult<void>(r));
+
 // ===== 发现服务（service-discovery 插件的专属接口，后端 /ms/monitor/discovery）=====
 /** 服务发现实例 */
 export interface DiscoveryInstance {
