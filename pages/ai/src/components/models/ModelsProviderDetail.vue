@@ -1411,6 +1411,11 @@ const syncSections = computed(() => {
         `说明补全：${catalogDesc.updated ?? 0} 行，未变 ${catalogDesc.unchanged ?? 0} 行，本地未配置 ${catalogDesc.missing ?? 0} 个`,
         `计费写入：更新 ${catalogPricing.updated ?? 0} 条，新增 ${catalogPricing.inserted ?? 0} 条，回写模型 ${catalogPricing.provider_models ?? 0} 行`,
         `峰谷 / 按次规则：${catalogPricing.rules_count ?? catalog.pricing_rules ?? 0} 条`,
+        catalog.pricing_live
+          ? `实时价格：官方页面抓取成功${catalog.pricing_fetched_at ? `（${catalog.pricing_fetched_at}）` : ''}`
+          : (catalog.pricing_error
+              ? `实时价格：抓取失败，已保留上次价格（${catalog.pricing_error}）`
+              : '实时价格：该厂商暂无官方页面抓取器'),
         `能力位：思考 ${caps.reasoning ?? 0}，工具调用 ${caps.tool_call ?? 0}，附件 ${caps.attachment ?? 0}，上下文 ${caps.context_window ?? 0}`,
       ],
       muted: `流式 / 异步：公开目录未收录${catalog.doc ? `；文档：${catalog.doc}` : ''}`,
