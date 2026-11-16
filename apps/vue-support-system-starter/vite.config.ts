@@ -36,7 +36,14 @@ function systemProxyHeaders(): PluginOption {
     apply: "serve",
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
-        if (req.url?.startsWith("/system/api") || req.url?.startsWith("/v2")) {
+        // /fs 是嵌入式文件服务器（FileStorageEmbeddedFilter）的挂载前缀，
+        // 上传/删除这类写请求同样会被后端 CORS 白名单拦（8096 不在白名单），
+        // 因此与 /v2、/system/api 同口径处理。
+        if (
+          req.url?.startsWith("/system/api") ||
+          req.url?.startsWith("/v2") ||
+          req.url?.startsWith("/fs")
+        ) {
           delete req.headers.origin;
           delete req.headers.referer;
           req.headers["x-trace-id"] = `e2e-${Date.now().toString(16)}${FIRST_PARTY_MARKER}`;
@@ -183,6 +190,17 @@ export default createVite({
         target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, `${API_CONTEXT}/api`),
+      }),
+      // 嵌入式文件服务器（FileStorageEmbeddedFilter，默认挂载前缀 /fs）。
+      // 后端 /v2/file/server-config 在 embedded 形态下发的 server 就是 /fs，
+      // 前端按「应用接口源 + /fs」拼绝对地址 → http://localhost:8096/fs/...
+      // 没有这条代理时请求打到 vite 自己，被 base 中间件当作静态资源，
+      // 报「The server is configured with a public base URL of /system/ - did you
+      // mean to visit /system/fs/default?...」，文件管理页整页「列表查询失败」。
+      // 生产由同源后端直接服务 /fs，不经此代理。
+      "/fs": stripSecureCookie({
+        target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
+        changeOrigin: true,
       }),
       // Socket.IO 实时推送（租户创建进度等）：后端 socket 服务是独立 Netty 进程，
       // 端口与 HTTP 分开（plugin.socket.room.port=18171），这里按路径代理过去。
