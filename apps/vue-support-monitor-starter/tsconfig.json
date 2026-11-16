@@ -15,6 +15,10 @@
       "@pages/docker": ["../../pages/docker/src/index.ts"],
       "@pages/monitor/*": ["../../pages/monitor/*"],
       "@pages/monitor": ["../../pages/monitor/src/index.ts"],
+      // OSGi 插件中心（@pages/osgi）：分组「插件中心」+ 叶子 /collect/osgi，
+      // 路由入口 = @pages/osgi/src/routes（深导入口径，见 src/router/index.ts）。
+      "@pages/osgi/*": ["../../pages/osgi/*"],
+      "@pages/osgi": ["../../pages/osgi/src/index.ts"],
       // P2P 房间（@pages/room）：不占菜单也不占路由，由「服务管理」页内嵌 RoomView。
       // paths 保留给类型解析（monitor 与宿主都可能 import 本包）。
       "@pages/room/*": ["../../pages/room/*"],

@@ -42,6 +42,10 @@ import { createServerHostRoutes } from "@pages/server/src/routes";
 import { createDockerRoutes } from "@pages/docker/src/routes";
 // 内网穿透：统一隧道管理页，通过 @pages/tunnel/src/routes 的 createTunnelRoutes 展开。
 import { createTunnelRoutes } from "@pages/tunnel/src/routes";
+// OSGi 插件中心（@pages/osgi）：插件是部署级能力，独立成「插件中心」分组
+// （/grp-plugin → /collect/osgi）。视图/API/路由同源，宿主只做一行展开
+// （与 collect-scheduler 同款接法，见 vite.config.ts 的 alias 说明）。
+import { osgiRoutes } from "@pages/osgi/src/routes";
 // 调试中心（CDP）：并进「分析管理」分组的叶子页（不再单开「运维管理」）。
 import { createCdpRoutes } from "@pages/debug/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
@@ -250,6 +254,11 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // Group: 内网穿透 - 由 @pages/tunnel/src/routes 提供
   // /grp-tunnel 分组 + 单个 /tunnel 叶子（提供方是页面里的一个字段，不再分成两个菜单）
   ...createTunnelRoutes(),
+
+  // OSGi 插件中心：整包展开（/grp-plugin「插件中心」分组 + /collect/osgi 叶子），
+  // 后端接口在 monitor 自身（spring-support-osgi-starter，/osgi/**）。
+  // osgiRoutes 是常量无需工厂参数；keepAlive/菜单分组由包内自带的 meta 决定。
+  ...osgiRoutes,
 
   // ==================== 设备管理 ====================
   // 从「主机管理」中独立成组：主机与设备是两类平级资产，各自的入口直接可见。

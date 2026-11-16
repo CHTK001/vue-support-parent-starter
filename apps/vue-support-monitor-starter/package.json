@@ -29,6 +29,7 @@
     "@pages/filesystem": "workspace:*",
     "@pages/hotsport": "workspace:*",
     "@pages/monitor": "workspace:*",
+    "@pages/osgi": "workspace:*",
     "@pages/room": "workspace:*",
     "@pages/remote": "workspace:*",
     "@pages/server": "workspace:*",

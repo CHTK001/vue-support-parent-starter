@@ -388,6 +388,11 @@ function dropProxyOrigin(): PluginOption {
           // 于是 403 Invalid CORS request —— 表现为「下拉选了新级别但什么都没发生」。
           url.startsWith("/actuator") ||
           isFirstPartyApi(url) ||
+          // OSGi 插件中心（/osgi/**，spring-support-osgi-starter）归本应用后端：
+          // 变更类操作（POST /osgi/bundles/install、/start、/stop、/uninstall）会带
+          // Origin: http://127.0.0.1:<dev端口>，后端 CORS 白名单里没有 dev 端口 →
+          // 403 Invalid CORS request，与 /control、/actuator 同一堵墙，故一并摘掉 Origin。
+          url.startsWith("/osgi") ||
           /^\/(fs|default|local|ot|config|recycle|assets|static)(\/|$|\?)/.test(url)
         ) {
           delete req.headers.origin;
@@ -518,6 +523,9 @@ export default createVite({
     "@pages/server": "pages/server",
     "@pages/system": "pages/system",
     "@pages/monitor": "pages/monitor",
+    // OSGi 插件中心（@pages/osgi）：页面包自带视图/API/路由（分组「插件中心」+
+    // 叶子 /collect/osgi），宿主只挂路由；与 collect-scheduler 同款接法。
+    "@pages/osgi": "pages/osgi",
     "@pages/project": "pages/project",
     "@pages/room": "pages/room",
     "@pages/filesystem": "pages/filesystem",
@@ -840,6 +848,13 @@ export default createVite({
       // 漏了这条时 AI 控制台的供应商列表与「余额 / 用量」端点
       // （/api/providers/{id}/credit）一律 502，余额面板永远读不到数 —— 与 /api/channels 同一个坑。
       "/api/providers": {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      // OSGi 插件管理（/osgi/**，spring-support-osgi-starter）同样在 monitor 后端自身。
+      // 必须显式声明：下面 /api 的缺省目标是 127.0.0.1:8080（本机没有进程），
+      // 漏了这条时插件中心页一打开就是 502、bundle 清单全空。
+      "/osgi": {
         target: apiTarget,
         changeOrigin: true,
       },
