@@ -8,13 +8,17 @@
  *
  * <p>信息架构（2026-11-14 改版）：头部归档卡（类型色 + 徽标 + 路径）→
  * 概览 KPI 区（两列网格）→ 位置复制卡（等宽代码风格）→ 指纹 → 预览 →
- * 底部操作条（主操作下载 + 重命名 + 删除）。全部沿用 koi 令牌，
+ * 底部操作条（下载 + 计算 MD5 + 重命名 + 删除）。全部沿用 koi 令牌，
  * 深色模式自然跟随，不新增自造皮肤。</p>
+ *
+ * <p>「计算 MD5」是操作而不是信息，放在底部常驻操作条：面板高度会被页面压到
+ * 360px 左右，正文可视区只有 ~200px，「指纹」区在折叠线以下，按钮放在正文里
+ * 用户看不到也点不到（验收缺陷 D6）。算完把结果行滚进视野。</p>
  *
  * @author CH
  * @since 4.0.0.62
  */
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { message } from "@repo/core";
 import ReIcon from "@repo/ui/re-icon";
 import type { ReleaseHostFileItem } from "../../../api/releaseHostFile";
@@ -57,6 +61,8 @@ const emit = defineEmits<{
 /** MD5 结果缓存：同一个文件重复点没意义 */
 const md5 = ref("");
 const md5Loading = ref(false);
+/** 结果行：算完要把它滚进视野，「指纹」区在短面板里位于折叠线以下 */
+const md5Row = ref<HTMLElement | null>(null);
 
 /** 文本预览内容 */
 const text = ref("");
@@ -112,6 +118,11 @@ async function computeMd5(): Promise<void> {
   try {
     const data = await getReleaseHostFileMd5(props.item.key, props.bucket);
     md5.value = data?.md5 || "";
+    // 计算结果在正文「指纹」区，短面板里可能仍在折叠线下方：算完把它带到视野里
+    if (md5.value) {
+      await nextTick();
+      md5Row.value?.scrollIntoView({ block: "nearest" });
+    }
   } catch (e) {
     toastError(e, "计算 MD5 失败");
   } finally {
@@ -193,6 +204,9 @@ watch(
       void loadText();
     }
   },
+  // immediate：面板是 v-if 新建的实例，首次挂载时 key 已经有值、watch 不会触发，
+  // 文本预览会一直停在「（空文件）」且不发 /host-file/text（实测首开必空，关掉重开才正常）。
+  { immediate: true },
 );
 
 /** 图片类型点击「看原图」 */
@@ -271,22 +285,13 @@ function previewImage(): void {
         </button>
       </section>
 
-      <!-- 指纹 -->
+      <!-- 指纹：计算入口在底部操作条（常驻可见），这里只放结果 -->
       <section v-if="!item.directory" class="hfd-sec">
         <header class="hfd-sec-head">
           <span class="hfd-sec-title">指纹</span>
-          <button
-            v-if="local"
-            type="button"
-            class="hfd-mini"
-            :disabled="md5Loading"
-            @click="computeMd5"
-          >
-            <ReIcon :name="md5Loading ? 'Loading' : 'Key'" :size="11" />
-            {{ md5Loading ? "计算中…" : md5 ? "重新计算" : "计算 MD5" }}
-          </button>
+          <span v-if="local" class="hfd-hint-inline">{{ md5 ? "已计算" : "尚未计算" }}</span>
         </header>
-        <button v-if="md5" type="button" class="hfd-md5 mono" :title="`${md5}（点击复制）`" @click="copy(md5, ' MD5')">
+        <button v-if="md5" ref="md5Row" type="button" class="hfd-md5 mono" :title="`${md5}（点击复制）`" @click="copy(md5, ' MD5')">
           <span class="hfd-md5-text">{{ md5 }}</span>
           <ReIcon name="CopyDocument" :size="12" class="hfd-md5-ico" />
         </button>
@@ -327,6 +332,18 @@ function previewImage(): void {
         <button type="button" class="hfd-btn hfd-btn--primary" @click="download">
           <ReIcon name="Download" :size="13" />
           下载
+        </button>
+        <!-- 计算 MD5 放这里而不是正文「指纹」区：面板被页面高度压到 ~360px 时，
+             正文可视高度只剩 196px，「指纹」区在折叠线以下，按钮用户看不到也点不到（D6）。 -->
+        <button
+          v-if="local"
+          type="button"
+          class="hfd-btn"
+          :disabled="md5Loading"
+          @click="computeMd5"
+        >
+          <ReIcon :name="md5Loading ? 'Loading' : 'Key'" :size="13" />
+          {{ md5Loading ? "计算中…" : md5 ? "重新计算" : "计算 MD5" }}
         </button>
       </template>
       <button type="button" class="hfd-btn" @click="emit('rename', item)">
@@ -662,6 +679,7 @@ function previewImage(): void {
 }
 .hfd-btn:hover { border-color: var(--brand-400); color: var(--brand-500); background: var(--bg-container); }
 .hfd-btn:active { transform: translateY(0.5px); }
+.hfd-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .hfd-btn--primary {
   border-color: transparent;
   background: var(--brand-gradient, linear-gradient(135deg, var(--brand-500), var(--brand-600)));
