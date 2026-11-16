@@ -168,13 +168,16 @@ export default defineConfig({
     watch: {
       // 共享根 public 里由 @file-viewer 插件 / 手动同步写入的渲染器资源
       // （public/vendor 约 27MB，含 17MB 的 ppt 字体；public/wasm 含 CAD 大文件）。
-      // Windows 下 chokidar 会对这些仍在写入的大文件建 fs.watch 句柄，触发 EBUSY
-      // 并使 dev server 进程直接崩溃。这些是只读资产，监听其变化没有意义，故排除。
+      // Windows 下对仍在写入/被外部进程短暂锁定的大文件建 fs.watch 会触发 EBUSY，
+      // dev 进程直接崩溃（exit 1）。
+      // 注意：Vite 8 已换原生 node fs watcher，只认正则字符串 ignored、
+      // 函数式回调不会生效（实测见 monitor vite.config 注释），故用与
+      // createVite SHARED_WATCH_IGNORED / monitor 同款的正则数组形态。
       ignored: [
-        (p: string) =>
-          /(^|[/\\])public[/\\]vendor([/\\]|$)/.test(p) ||
-          /(^|[/\\])public[/\\]wasm([/\\]|$)/.test(p) ||
-          /(^|[/\\])public[/\\]flyfish-viewer-assets\.json$/.test(p),
+        /[/\\]vendor[/\\]/,
+        /[/\\]wasm[/\\]/,
+        /\.bcmap$/,
+        /[/\\]flyfish-viewer-assets\.json$/,
       ],
     },
   },
