@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
-import { resolveObjectUrl } from "../../api/filestorageApi";
+import { resolveObjectUrl, authHeaders, rawBytesUrl } from "../../api/filestorageApi";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -125,7 +125,11 @@ async function load(): Promise<void> {
       url = await resolveObjectUrl(props.bucket, props.objectKey, { params });
       if (!url) throw new Error("获取播放地址失败");
     }
-    const res = await fetch(url);
+    // 自己解码字节：src 是渲染预览地址（票据 + preview=true），必须改写 raw=true，
+    // 否则音频/视频容器类型会拿到服务端预览页 HTML（如 MIDI 报「MIDI 解析失败」）。
+    // 顶层走票据通道时同样补 raw=true 直出对象字节；包内条目通道本身回条目字节，保持原样。
+    const finalUrl = props.inner ? url : rawBytesUrl(url);
+    const res = await fetch(finalUrl, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const ab = await res.arrayBuffer();
     if (!ab.byteLength) throw new Error("预览通道返回空响应体");

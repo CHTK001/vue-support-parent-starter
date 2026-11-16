@@ -13,7 +13,7 @@
  */
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
-import { resolveObjectUrl } from "../../api/filestorageApi";
+import { resolveObjectUrl, authHeaders, rawBytesUrl } from "../../api/filestorageApi";
 import { parseClassInfo, type ClassInfo } from "../../utils/classFile";
 
 const props = defineProps<{
@@ -242,7 +242,9 @@ async function load(): Promise<void> {
   try {
     let buf: ArrayBuffer;
     if (props.src) {
-      const res = await fetch(props.src);
+      // 父组件透传的是渲染预览地址（票据 + preview=true），本面板要自己解码字节，
+      // 必须改写成 raw=true，否则拿到的是服务端预览页 HTML 而不是文件内容。
+      const res = await fetch(rawBytesUrl(props.src), { headers: authHeaders() });
       if (!res.ok) {
         throw new Error(`读取文件失败（HTTP ${res.status}）`);
       }
@@ -257,7 +259,12 @@ async function load(): Promise<void> {
       if (!url) {
         throw new Error("获取文件地址失败");
       }
-      const res = await fetch(url);
+      // 顶层（无 inner）：票据渲染通道对非内联类型回 HTML 兜底页，必须补 raw=true
+      // 直出对象字节；包内条目 preview=true&inner= 通道本身回条目字节，保持原样。
+      const finalUrl = params.preview
+        ? url
+        : `${url}${url.includes("?") ? "&" : "?"}raw=true`;
+      const res = await fetch(finalUrl, { headers: authHeaders() });
       if (!res.ok) {
         throw new Error(`读取文件失败（HTTP ${res.status}）`);
       }

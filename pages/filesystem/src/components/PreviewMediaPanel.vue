@@ -18,7 +18,7 @@
  */
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Download, Refresh } from "@element-plus/icons-vue";
-import { resolveObjectUrl } from "../api/filestorageApi";
+import { resolveObjectUrl, rawBytesUrl } from "../api/filestorageApi";
 import { kindOf } from "../utils/fileKind";
 import { extensionOf } from "../utils/officeRenderer";
 import { aiffToWavBlob } from "../utils/aiff";
@@ -144,9 +144,10 @@ async function load(): Promise<void> {
       errorText.value = "获取播放地址失败";
       return;
     }
-    // AIFF：浏览器原生 <audio> 解不了 —— 取回字节，前端转 WAV 后播放
+    // AIFF：浏览器原生 <audio> 解不了 —— 取回字节，前端转 WAV 后播放。
+    // 票据渲染通道对 aiff 回 HTML 兜底页，取字节必须 raw=true 直出对象字节。
     if (["aiff", "aif"].includes(extensionOf(effectiveName.value).toLowerCase())) {
-      const res = await fetch(url);
+      const res = await fetch(rawBytesUrl(url));
       if (!res.ok) {
         throw new Error(`读取文件失败：HTTP ${res.status}`);
       }

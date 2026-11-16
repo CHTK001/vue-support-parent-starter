@@ -319,6 +319,10 @@ async function load(): Promise<void> {
     if (props.inner) {
       params.preview = "true";
       params.inner = props.inner;
+    } else {
+      // 顶层：/fs/ot 票据渲染通道对非内联类型回服务端预览页 HTML 兜底，
+      // 本面板要解析 SWF 文件头与字节，必须 raw=true 直出对象字节。
+      params.raw = "true";
     }
     const ticketUrl = await resolveObjectUrl(props.bucket, props.objectKey, { params });
     if (!ticketUrl) {

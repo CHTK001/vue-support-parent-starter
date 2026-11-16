@@ -111,6 +111,10 @@ async function fetchBytes(): Promise<ArrayBuffer> {
   if (props.inner) {
     params.preview = "true";
     params.inner = props.inner;
+  } else {
+    // 顶层：/fs/ot 票据渲染通道对 TGA 回服务端预览页 HTML 兜底，
+    // 本面板要自己解码 TGA 像素，必须 raw=true 直出对象字节。
+    params.raw = "true";
   }
   const url = await resolveObjectUrl(props.bucket, props.objectKey, { params });
   if (!url) {

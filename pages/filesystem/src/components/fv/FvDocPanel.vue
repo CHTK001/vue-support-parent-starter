@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
-import { authHeaders, objectUrl } from "../../api/filestorageApi";
+import { authHeaders, objectUrl, rawBytesUrl } from "../../api/filestorageApi";
 import { extensionOf } from "../../utils/officeRenderer";
 
 const props = defineProps<{
@@ -187,7 +187,9 @@ async function loadRenderer(kind: DocKind): Promise<unknown> {
  */
 async function fetchBytes(): Promise<ArrayBuffer> {
   if (props.src) {
-    const res = await fetch(props.src, { headers: authHeaders() });
+    // 父组件透传的是渲染预览地址（票据 + preview=true），本面板要自己解码字节，
+    // 必须改写成 raw=true，否则拿到的是服务端预览页 HTML 而不是文件内容。
+    const res = await fetch(rawBytesUrl(props.src), { headers: authHeaders() });
     if (!res.ok) throw new Error(`读取文件失败：HTTP ${res.status}`);
     return res.arrayBuffer();
   }

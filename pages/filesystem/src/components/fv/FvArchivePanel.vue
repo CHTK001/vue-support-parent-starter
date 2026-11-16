@@ -8,7 +8,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
-import { resolveObjectUrl } from "../../api/filestorageApi";
+import { resolveObjectUrl, authHeaders, rawBytesUrl } from "../../api/filestorageApi";
 import { previewAssetBase } from "../../utils/previewAssetBase";
 
 const props = defineProps<{
@@ -118,10 +118,18 @@ async function load(): Promise<void> {
   failReason.value = "";
   fileRef.value = null;
   try {
-    const url = props.src
-      ?? await resolveObjectUrl(props.bucket, props.objectKey);
+    // 压缩包渲染器要原始字节：src 是渲染预览地址（票据 + preview=true），
+    // 服务端对压缩包回 HTML 兜底页，必须改写 raw=true 直出对象字节；
+    // 无 src 时 resolveObjectUrl 走同一渲染通道，同样要补 raw=true。
+    let url = props.src ? rawBytesUrl(props.src) : "";
+    if (!url) {
+      url = await resolveObjectUrl(props.bucket, props.objectKey);
+      if (url && !/[?&]raw=true(&|$)/.test(url)) {
+        url = `${url}${url.includes("?") ? "&" : "?"}raw=true`;
+      }
+    }
     if (!url) throw new Error("获取压缩包地址失败");
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: authHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const ab = await res.arrayBuffer();
     if (!ab.byteLength) throw new Error("预览通道返回空响应体");

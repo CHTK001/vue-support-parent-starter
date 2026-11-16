@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
-import { resolveObjectUrl } from "../../api/filestorageApi";
+import { resolveObjectUrl, rawBytesUrl } from "../../api/filestorageApi";
 
 const props = defineProps<{
   /** 存储桶名 */
@@ -132,7 +132,13 @@ async function load(): Promise<void> {
       url = await resolveObjectUrl(props.bucket, props.objectKey, { params });
       if (!url) throw new Error("获取图纸地址失败");
     }
-    const res = await fetch(url);
+    // 本面板把字节交给 file-viewer cad 渲染器自己解析：src 是渲染预览地址
+    // （票据 + preview=true），非内联渲染类型会拿到服务端预览页 HTML，
+    // 必须改写 raw=true 直出对象字节；无 src 的票据通道同样补 raw=true。
+    const finalUrl = props.inner
+      ? url
+      : rawBytesUrl(url);
+    const res = await fetch(finalUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const ab = await res.arrayBuffer();
     if (!ab.byteLength) throw new Error("预览通道返回空响应体");

@@ -10,7 +10,7 @@
 -->
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { resolveObjectUrl } from "../../api/filestorageApi";
+import { resolveObjectUrl, rawBytesUrl } from "../../api/filestorageApi";
 import { parseClassInfo, type ClassInfo } from "../../utils/classFile";
 
 /** CFR 包类型（@run-slicer/cfr 的 d.ts 已提供同名 API，这里只做兼容层） */
@@ -84,7 +84,13 @@ async function load(): Promise<void> {
       url = await resolveObjectUrl(props.bucket, props.objectKey, { params });
       if (!url) throw new Error("获取文件地址失败");
     }
-    const res = await fetch(url);
+    // 本面板自己解析 .class 字节：src 是渲染预览地址（票据 + preview=true），
+    // 服务端对 class 回 HTML 兜底页，必须改写 raw=true 直出对象字节；
+    // 无 src 时 resolveObjectUrl 也走票据渲染通道，同样补 raw=true。
+    const finalUrl = props.inner
+      ? url
+      : rawBytesUrl(url);
+    const res = await fetch(finalUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const buf = await res.arrayBuffer();
     if (!buf.byteLength) throw new Error("预览通道返回空响应体");
