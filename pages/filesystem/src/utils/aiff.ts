@@ -6,7 +6,9 @@
  * 对这两类扩展名取回字节后调用 {@link aiffToWavBlob} 转成 WAV，再交给
  * {@code <audio>} 播放，避免「能下载不能播」。</p>
  *
- * <p>AIFF 全部按<b>大端</b>存储；WAV 按<b>小端</b>。COMM 里的采样率是
+ * <p>AIFF 全部按<b>大端</b>存储；WAV 按<b>小端</b>。COMM 布局：
+ * {@code numChannels:UInt16 @+0, numSampleFrames:UInt32 @+2, sampleSize:UInt16 @+6,
+ * sampleRate:80-bit @+8}（AIFC 追加 {@code compressionType @+18}）。采样率是
  * 80-bit IEEE 754 扩展精度（explicit integer bit，偏移 16383），
  * {@link readExtendedFloat} 负责换算成普通 number。</p>
  *
@@ -93,10 +95,15 @@ export function aiffToWavBlob(bytes: Uint8Array, fileName: string): Blob {
     const size = view.getUint32(pos + 4, false);
     const body = pos + CHUNK_HEADER;
     if (id === "COMM") {
-      channels = view.getInt32(body, false);
+      // AIFF 规范：numChannels UInt16 @+0、numSampleFrames UInt32 @+2、
+      // sampleSize UInt16 @+6、sampleRate 80-bit @+8；AIFC 再追加 compression。
+      // 旧实现按 +0 读 int32、+8 读 sampleSize、+10 读 sampleRate，全部错位 2 字节：
+      // sampleRate 读到压缩名尾随位 + 非法指数 → -Infinity → 合法 AIFC 也被判
+      // 「缺少 COMM / SSND 或参数非法」（实测 c.aiff FORM+COMM 全对仍报错）。
+      channels = view.getInt16(body, false);
       // numSampleFrames 占 4 字节，此处不用
-      bitsPerSample = view.getInt16(body + 8, false);
-      sampleRate = readExtendedFloat(view, body + 10);
+      bitsPerSample = view.getInt16(body + 6, false);
+      sampleRate = readExtendedFloat(view, body + 8);
       if (form === "AIFC" && size >= 18) {
         compression = tag(view, body + 18);
       }
