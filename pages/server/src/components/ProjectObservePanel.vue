@@ -13,125 +13,252 @@
 -->
 <template>
   <div class="obs">
-    <div class="obs-bar">
-      <div class="obs-tabs">
-        <button
-          v-for="t in TABS"
-          :key="t.key"
-          type="button"
-          class="obs-tab"
-          :class="{ 'is-on': tab === t.key }"
-          @click="switchTab(t.key)"
-        >
-          {{ t.label }}
-        </button>
+    <!-- 档案头：运行档案 / 项目 -->
+    <header class="obs-top">
+      <div class="obs-crumb">
+        <span class="obs-logo" aria-hidden="true">▤</span>
+        <b>运行档案</b>
+        <span class="obs-sep">/</span>
+        <span class="mono obs-project">{{ props.projectName || '项目' }}</span>
+        <span class="mono obs-dim">· Actuator 观测</span>
       </div>
       <span class="obs-grow"></span>
       <span v-if="currentUrl" class="obs-url mono" :title="currentUrl">{{ currentUrl }}</span>
-      <button type="button" class="obs-btn" :disabled="loading" @click="refresh">刷新</button>
+      <span class="obs-stamp mono">
+        <template v-if="loading">读取中…</template>
+        <template v-else-if="readAt">{{ readAt }} · 累计读取 {{ fmtReadTotal(readElapsed) }}</template>
+        <template v-else>未读取</template>
+      </span>
+      <button type="button" class="obs-btn" :disabled="loading" @click="refresh">刷新档案</button>
+    </header>
+
+    <!-- 档案分类 -->
+    <nav class="obs-tabs">
+      <button
+        v-for="t in TABS"
+        :key="t.key"
+        type="button"
+        class="obs-tab"
+        :class="{ 'is-on': tab === t.key }"
+        @click="switchTab(t.key)"
+      >
+        {{ t.label }}
+        <em v-if="tabCounts[t.key]">{{ tabCounts[t.key] }}</em>
+      </button>
+    </nav>
+
+    <!--
+      本轮读取总览：两行必须分开 ——
+        第一行是「我们读得多快」（前端到应用的往返，含网络）；
+        第二行是「应用自己跑得多慢」（http.server.requests 里的 COUNT/TOTAL_TIME/MAX）。
+      混成一行会把网络往返当成业务耗时，这是两个量。
+    -->
+    <div v-if="readEntries.length" class="obs-readsum">
+      <div class="obs-readsum-row">
+        <span class="obs-readsum-proj mono">{{ props.projectName || '项目' }}</span>
+        <span class="obs-dim">·</span>
+        <span class="obs-cap">读取耗时</span>
+        <b class="mono">{{ fmtReadTotal(readElapsed) }}</b>
+        <span class="obs-dim">共 {{ readEntries.length }} 次端点读取</span>
+        <template v-if="readSlowest">
+          <span class="obs-dim">· 最慢</span>
+          <b class="mono obs-readsum-slow">{{ readChipName(readSlowest.name) }} {{ fmtReadTotal(readSlowest.ms) }}</b>
+        </template>
+        <span class="obs-grow"></span>
+        <span
+          v-for="e in readEntries.slice(0, 3)"
+          :key="e.name"
+          class="obs-readchip mono"
+          :title="e.name"
+        >
+          {{ readChipName(e.name) }} {{ fmtReadTotal(e.ms) }}
+        </span>
+      </div>
+      <div v-if="appTiming.count" class="obs-readsum-row obs-readsum-app">
+        <span class="obs-dim">·</span>
+        <span class="obs-cap">应用执行</span>
+        <b class="mono">平均 {{ fmtMs(appTiming.avgMs || 0) }}/次</b>
+        <span class="obs-dim">
+          · 峰值 <b class="mono">{{ fmtMs(appTiming.maxMs || 0) }}</b>
+          · 样本 {{ appTiming.count }}
+        </span>
+        <template v-if="appTiming.startedMs !== null">
+          <span class="obs-dim">· 启动</span>
+          <b class="mono">{{ fmtMs(appTiming.startedMs) }}</b>
+        </template>
+        <span class="obs-grow"></span>
+        <span class="obs-dim">http.server.requests 自记，非网络往返</span>
+      </div>
     </div>
 
-    <!-- ==================== 指标 ==================== -->
-    <div v-if="tab === 'metrics'" class="obs-body obs-split">
-      <aside class="obs-side">
-        <input v-model="metricKeyword" class="obs-search" type="text" placeholder="搜索指标名" />
-        <div class="obs-list">
+    <!-- ==================== 指标（剖面档案） ==================== -->
+    <div v-if="tab === 'metrics'" class="obs-body">
+      <section class="obs-sheet">
+        <div class="obs-profile">
+          <div class="obs-profile-main">
+            <div class="obs-cap">指标剖面 · {{ metricGroup || 'Actuator' }}</div>
+            <h1 class="mono">{{ metricName || '未选择指标' }}</h1>
+            <p class="obs-lead">
+              采样自 <code>/actuator/metrics{{ metricName ? `/${metricName}` : '' }}</code>，
+              采集耗时 {{ metricElapsed ? `${metricElapsed}ms` : '—' }}<template v-if="loadError">；{{ loadError }}</template>
+            </p>
+          </div>
+          <div class="obs-profile-read">
+            <b class="obs-rnum">{{ metricCurrentValue }}</b>
+            <span class="obs-badge" :class="metricIsWarn ? 'is-warn' : 'is-ok'">
+              <i class="obs-dot" :class="metricIsWarn ? 'is-warn' : 'is-ok'"></i>{{ metricIsWarn ? '无读数' : '已采集' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="obs-facts">
+          <div v-for="f in metricFacts" :key="f.k">
+            <span>{{ f.k }}</span><b class="mono" :title="f.v">{{ f.v }}</b>
+          </div>
+        </div>
+
+        <div class="obs-meas">
+          <div v-for="m in metricMeasurements" :key="m.statistic">
+            <span class="obs-cap">{{ m.statistic }}</span>
+            <b class="mono">{{ metricStatText(m.statistic, m.value) }}</b>
+          </div>
+          <div v-if="!metricMeasurements.length">
+            <span class="obs-cap">统计量</span><b class="mono">—</b>
+          </div>
+        </div>
+
+        <div class="obs-rule"><span>标签构成</span></div>
+        <div class="obs-tags">
+          <div v-for="t in metricTags" :key="t.tag" class="obs-tagrow">
+            <span class="mono">{{ t.tag }}</span>
+            <span class="obs-dim">{{ (t.values && t.values.length ? t.values.slice(0, 8) : []).join(' · ') || '—' }}</span>
+          </div>
+          <div v-if="!metricTags.length" class="obs-empty-sm">该指标没有可用标签</div>
+        </div>
+
+        <div class="obs-rule">
+          <span>同一目标下的其它档案</span>
+          <b class="mono obs-dim">{{ filteredMetrics.length }} 个指标</b>
+        </div>
+        <div class="obs-catalog">
+          <input
+            v-model="metricKeyword"
+            class="obs-search obs-search--inline"
+            type="text"
+            placeholder="搜索指标名"
+          />
           <button
             v-for="name in filteredMetrics"
             :key="name"
             type="button"
-            class="obs-item"
+            class="obs-cat"
             :class="{ 'is-on': name === metricName }"
             :title="name"
             @click="openMetric(name)"
           >
-            {{ name }}
+            <span class="mono">{{ name }}</span>
+            <span class="obs-dim">{{ metricGroupOf(name) }}</span>
           </button>
-          <div v-if="!metrics.length && !loading" class="obs-empty-sm">
+          <div v-if="!filteredMetrics.length && !loading" class="obs-empty-sm">
             {{ loadError || '没有读到指标，确认 management.endpoints.web.exposure.include 含 metrics' }}
           </div>
         </div>
-      </aside>
-      <section class="obs-main obs-main-rel">
-        <div v-if="loading && metricDetail" class="obs-loading-mask" role="status" aria-label="读取指标中">
-          <span class="obs-spinner"></span>
+
+        <div
+          class="obs-rule is-grip"
+          title="上下拖拽调整「原始返回」高度"
+          @pointerdown.prevent="startRawDrag"
+        >
+          <span>原始返回</span>
+          <b class="mono obs-dim">拖拽调高</b>
         </div>
-        <div v-if="loading && !metricDetail" class="obs-empty">读取中…</div>
-        <div v-else-if="!metricDetail" class="obs-empty">左侧选一个指标查看当前值</div>
-        <template v-else>
-          <div class="obs-kpis">
-            <div v-for="m in metricMeasurements" :key="m.statistic" class="obs-kpi">
-              <span class="obs-kpi-k">{{ m.statistic }}</span>
-              <b class="obs-kpi-v">{{ fmtNum(m.value) }}</b>
-            </div>
-          </div>
-          <div v-if="metricTags.length" class="obs-taglist">
-            <span v-for="t in metricTags" :key="t.tag" class="obs-tagchip">
-              {{ t.tag }}<template v-if="t.values && t.values.length"> · {{ t.values.slice(0, 6).join(', ') }}</template>
-            </span>
-          </div>
-          <pre class="obs-json">{{ pretty(metricDetail) }}</pre>
-        </template>
+        <pre class="obs-json" :style="{ height: `${rawHeight}px` }">{{ pretty(metricDetail) }}</pre>
       </section>
     </div>
 
-    <!-- ==================== 日志管理 ==================== -->
+    <!-- ==================== 日志管理（剖面档案） ==================== -->
     <div v-else-if="tab === 'loggers'" class="obs-body">
-      <div class="obs-hint">
-        改级别走 Actuator <code>POST /actuator/loggers/{name}</code>，立即生效、不用重启；
-        「继承」表示清掉项目级配置、回落到上级（通常是 ROOT）。
-      </div>
-      <div class="obs-logger-bar">
-        <input
-          v-model="loggerKeyword"
-          class="obs-search"
-          type="text"
-          placeholder="搜索日志名称，如 com.chua（回车精确查询）"
-          @keyup.enter="lookupLogger(loggerKeyword)"
-        />
-        <label class="obs-check">
-          <input v-model="onlyConfigured" type="checkbox" />
-          只看已单独设置
-        </label>
-        <span class="obs-count">{{ filteredLoggers.length }} 个</span>
-      </div>
-      <div v-if="loggersTruncated" class="obs-warn">
-        日志列表过大已被截断（只显示前一部分）：需要调整哪个就在搜索框输入完整名字后回车，会单独查出它的级别。
-      </div>
-      <div class="obs-table">
-        <div class="obs-tr obs-th">
-          <span class="obs-c-name">日志名称</span>
-          <span class="obs-c-level">生效级别</span>
-          <span class="obs-c-level">项目级配置</span>
-          <span class="obs-c-op">设为</span>
+      <section class="obs-sheet">
+        <div class="obs-profile">
+          <div class="obs-profile-main">
+            <div class="obs-cap">日志级别剖面 · {{ loggerRows.length }} 条档案</div>
+            <h1 class="mono">日志级别档案</h1>
+            <p class="obs-lead">
+              改级别走 Actuator <code>POST /actuator/loggers/{name}</code>，立即生效、不用重启；
+              「继承」表示清掉项目级配置、回落到上级（通常是 ROOT）。
+            </p>
+          </div>
+          <div class="obs-profile-read">
+            <b class="obs-rnum">{{ filteredLoggers.length }}</b>
+            <span class="obs-badge is-ok"><i class="obs-dot is-ok"></i>生效中</span>
+          </div>
         </div>
-        <div v-for="row in visibleLoggers" :key="row.name" class="obs-tr">
-          <span class="obs-c-name mono" :title="row.name">{{ row.name }}</span>
-          <span class="obs-c-level">{{ row.effectiveLevel || '—' }}</span>
-          <span class="obs-c-level" :class="{ 'is-set': !!row.configuredLevel }">
-            {{ row.configuredLevel || '继承' }}
-          </span>
-          <span class="obs-c-op">
-            <select
-              class="obs-select"
-              :value="row.configuredLevel || ''"
-              :disabled="!!savingLogger[row.name]"
-              @change="onLevelChangeEvent(row.name, $event)"
-            >
-              <option value="">继承</option>
-              <option v-for="lv in levels" :key="lv" :value="lv">{{ lv }}</option>
-            </select>
-          </span>
+
+        <div class="obs-facts">
+          <div><span>档案总数</span><b class="mono">{{ loggerRows.length }}</b></div>
+          <div><span>当前可见</span><b class="mono">{{ visibleLoggers.length }}</b></div>
+          <div><span>已单独设置</span><b class="mono">{{ configuredCount }}</b></div>
+          <div><span>截断</span><b class="mono">{{ loggersTruncated ? '是' : '否' }}</b></div>
+          <div><span>热更新</span><b class="mono">无需重启</b></div>
         </div>
-        <div v-if="!filteredLoggers.length" class="obs-empty-sm">
-          {{ loadError || '没有读到日志列表，确认 exposure.include 含 loggers' }}
+
+        <div class="obs-rule">
+          <span>级别明细</span>
+          <b class="mono obs-dim">{{ filteredLoggers.length }} 个</b>
         </div>
-      </div>
+        <div class="obs-logger-bar">
+          <input
+            v-model="loggerKeyword"
+            class="obs-search obs-search--inline"
+            type="text"
+            placeholder="搜索日志名称，如 com.chua（回车精确查询）"
+            @keyup.enter="lookupLogger(loggerKeyword)"
+          />
+          <label class="obs-check">
+            <input v-model="onlyConfigured" type="checkbox" />
+            只看已单独设置
+          </label>
+          <span class="obs-count">{{ filteredLoggers.length }} 个</span>
+        </div>
+        <div v-if="loggersTruncated" class="obs-warn">
+          日志列表过大已被截断（只显示前一部分）：需要调整哪个就在搜索框输入完整名字后回车，会单独查出它的级别。
+        </div>
+        <div class="obs-table">
+          <div class="obs-tr obs-th">
+            <span class="obs-c-name">日志名称</span>
+            <span class="obs-c-level">生效级别</span>
+            <span class="obs-c-level">项目级配置</span>
+            <span class="obs-c-op">设为</span>
+          </div>
+          <div v-for="row in visibleLoggers" :key="row.name" class="obs-tr">
+            <span class="obs-c-name mono" :title="row.name">{{ row.name }}</span>
+            <span class="obs-c-level">{{ row.effectiveLevel || '—' }}</span>
+            <span class="obs-c-level" :class="{ 'is-set': !!row.configuredLevel }">
+              {{ row.configuredLevel || '继承' }}
+            </span>
+            <span class="obs-c-op">
+              <select
+                class="obs-select"
+                :value="row.configuredLevel || ''"
+                :disabled="!!savingLogger[row.name]"
+                @change="onLevelChangeEvent(row.name, $event)"
+              >
+                <option value="">继承</option>
+                <option v-for="lv in levels" :key="lv" :value="lv">{{ lv }}</option>
+              </select>
+            </span>
+          </div>
+          <div v-if="!filteredLoggers.length" class="obs-empty-sm">
+            {{ loadError || '没有读到日志列表，确认 exposure.include 含 loggers' }}
+          </div>
+        </div>
+      </section>
     </div>
 
-    <!-- ==================== 链路追踪（APM 树 / Actuator 请求记录） ==================== -->
+    <!-- ==================== 链路追踪（剖面档案：APM span 树 / Actuator 请求记录降级） ==================== -->
     <div v-else-if="tab === 'traces'" class="obs-body obs-split">
       <aside class="obs-side">
+        <div class="obs-cap obs-side-cap">链路档案 · {{ traceSource === 'apm' ? 'APM span 树' : 'Actuator 请求记录' }}</div>
         <div class="obs-trace-bar">
           <select v-model.number="traceMinutes" class="obs-select" @change="loadTraces">
             <option :value="15">近 15 分钟</option>
@@ -141,39 +268,49 @@
           </select>
           <span class="obs-count">{{ traceSource === 'apm' ? traces.length : httpRecords.length }} 条</span>
         </div>
-        <div v-if="traceSource === 'actuator'" class="obs-hint obs-trace-note">
-          APM 未接入，展示项目 Actuator 的 <code>{{ httpTraceEndpoint }}</code> 请求记录；
-          需要完整 span 调用链时再为项目注入 SkyWalking / 平台 APM agent。
-          <span v-if="httpTraceTruncated">记录过多，已截断展示。</span>
+        <div class="obs-hint obs-trace-note">
+          APM span 树优先；未接入时自动回退读取项目 Actuator 的请求记录，不做假链路。
+          <template v-if="traceSource === 'apm'">
+            左侧层级树选一条链路，右侧按 span 开始时间排成时间轴瀑布。
+          </template>
+          <template v-if="traceSource === 'actuator'">
+            <code>{{ httpTraceEndpoint }}</code> 请求记录；需要完整 span 调用链时再为项目注入 SkyWalking / 平台 APM agent。
+            <span v-if="httpTraceTruncated">记录过多，已截断展示。</span>
+          </template>
         </div>
         <div class="obs-list">
           <template v-if="traceSource === 'apm'">
-            <button
-              v-for="t in traces"
-              :key="t.traceId"
-              type="button"
-              class="obs-item obs-trace-item"
-              :class="{ 'is-on': t.traceId === traceId, 'is-error': t.error }"
-              @click="openTrace(t.traceId)"
+            <div
+              v-for="row in traceTree"
+              :key="row.traceId"
+              class="obs-item obs-trace-item obs-trace-tree"
+              :class="{ 'is-root': row.depth === 0 }"
+              @click="row.depth === 0 ? openTrace(row.traceId) : null"
             >
-              <span class="obs-trace-ms mono">{{ fmtMs(t.durationMs) }}</span>
-              <span class="obs-trace-name" :title="t.endpointName || t.serviceName || t.traceId">
-                {{ t.endpointName || t.serviceName || t.traceId }}
+              <span class="obs-trace-ms mono">{{ fmtMs(row.durationMs) }}</span>
+              <span
+                class="obs-trace-name"
+                :title="`${row.serviceName || ''} · ${row.endpointName || ''}`"
+              >
+                {{ row.endpointName || row.serviceName || row.traceId }}
               </span>
-              <span class="obs-trace-time">{{ fmtClock(t.startTime) }}</span>
-            </button>
+              <span v-if="row.depth > 0" class="obs-trace-child mono obs-dim" title="子 span">· 子 span</span>
+              <span class="obs-trace-time">{{ fmtClock(row.startTime) }}</span>
+            </div>
           </template>
           <template v-else>
             <button
               v-for="r in httpRecords"
               :key="r.key"
               type="button"
-              class="obs-item obs-trace-item"
+              class="obs-item obs-trace-item obs-trace-http"
               :class="{ 'is-on': r.key === httpRecordKey, 'is-error': r.status >= 500 }"
+              :title="`${r.method} ${r.uri} · 耗时 ${fmtMs(r.timeTaken)}`"
               @click="openHttpRecord(r)"
             >
-              <span class="obs-trace-ms mono">{{ r.status ? r.status : '—' }}</span>
-              <span class="obs-trace-name" :title="`${r.method} ${r.uri}`">{{ r.method }} {{ r.uri }}</span>
+              <span class="obs-trace-status mono">{{ r.status ? r.status : '—' }}</span>
+              <span class="obs-trace-name">{{ r.method }} {{ r.uri }}</span>
+              <span class="obs-trace-lat mono">{{ fmtMs(r.timeTaken) }}</span>
               <span class="obs-trace-time">{{ r.timestamp ? fmtClock(r.timestamp) : '' }}</span>
             </button>
           </template>
@@ -185,62 +322,147 @@
           </div>
         </div>
       </aside>
-      <section class="obs-main obs-main-rel">
-        <template v-if="traceSource === 'actuator'">
-          <div v-if="!currentHttpRecord" class="obs-empty">左侧选一条请求记录查看详情</div>
-          <template v-else>
-            <div class="obs-trace-head">
-              <span class="mono">{{ currentHttpRecord.method }} {{ currentHttpRecord.uri }}</span>
-              <span class="obs-grow"></span>
-              <span class="obs-count">HTTP {{ currentHttpRecord.status || '—' }} · {{ fmtMs(currentHttpRecord.timeTaken) }}</span>
+      <section class="obs-main">
+        <section class="obs-sheet">
+          <template v-if="traceSource === 'actuator'">
+            <div class="obs-profile">
+              <div class="obs-profile-main">
+                <div class="obs-cap">请求记录剖面 · {{ httpTraceEndpoint }}</div>
+                <h1 class="mono">{{ currentHttpRecord ? `${currentHttpRecord.method} ${currentHttpRecord.uri}` : '未选择记录' }}</h1>
+                <p class="obs-lead">
+                  Actuator <code>{{ httpTraceEndpoint }}</code> 的请求记录（Actuator 语境，非 span 链路）。
+                  需要完整 span 调用链时再为项目注入 SkyWalking / 平台 APM agent。
+                </p>
+              </div>
+              <div class="obs-profile-read">
+                <b class="obs-rnum">{{ currentHttpRecord ? currentHttpRecord.status || '—' : '—' }}</b>
+                <span class="obs-badge" :class="currentHttpRecord && currentHttpRecord.status >= 500 ? 'is-warn' : 'is-ok'">
+                  <i class="obs-dot" :class="currentHttpRecord && currentHttpRecord.status >= 500 ? 'is-warn' : 'is-ok'"></i>
+                  {{ currentHttpRecord && currentHttpRecord.status >= 500 ? '失败' : '成功' }}
+                </span>
+              </div>
             </div>
-            <pre class="obs-json">{{ currentHttpRecord.raw }}</pre>
+
+            <div class="obs-facts">
+              <div><span>状态码</span><b class="mono">{{ currentHttpRecord ? currentHttpRecord.status || '—' : '—' }}</b></div>
+              <div><span>耗时</span><b class="mono">{{ currentHttpRecord ? fmtMs(currentHttpRecord.timeTaken) : '—' }}</b></div>
+              <div><span>时间</span><b class="mono">{{ currentHttpRecord && currentHttpRecord.timestamp ? fmtClock(currentHttpRecord.timestamp) : '—' }}</b></div>
+              <div><span>记录总数</span><b class="mono">{{ httpRecords.length }}</b></div>
+              <div><span>截断</span><b class="mono">{{ httpTraceTruncated ? '是' : '否' }}</b></div>
+            </div>
+
+            <div class="obs-rule">
+              <span>请求时间轴</span>
+              <b class="mono obs-dim">{{ httpRecords.length }} 条 · {{ fmtMs(httpTimeline.span) }} 窗口</b>
+            </div>
+            <div class="obs-wf">
+              <div class="obs-wf-head">
+                <span class="obs-cap">请求</span>
+                <span class="obs-cap">耗时（按时间戳定位）</span>
+              </div>
+              <div
+                v-for="r in httpRecords"
+                :key="r.key"
+                class="obs-wf-row"
+                :class="{ 'is-on': r.key === httpRecordKey, 'is-error': r.status >= 500 }"
+                @click="openHttpRecord(r)"
+              >
+                <div class="obs-wf-label">
+                  <span class="obs-wf-status mono">{{ r.status || '—' }}</span>
+                  <span class="obs-wf-name mono" :title="`${r.method} ${r.uri}`">{{ r.method }} {{ r.uri }}</span>
+                </div>
+                <div class="obs-wf-track">
+                  <i
+                    class="obs-wf-bar"
+                    :class="r.status >= 500 ? 'is-error' : 'is-http'"
+                    :style="barStyle(r.timestamp || httpTimeline.t0, Math.max(r.timeTaken || 0, 1), httpTimeline.t0, httpTimeline.span)"
+                  ></i>
+                </div>
+                <span class="obs-wf-ms mono">{{ fmtMs(r.timeTaken) }}</span>
+              </div>
+            </div>
+
+            <div class="obs-rule"><span>原始返回</span></div>
+            <pre class="obs-json">{{ currentHttpRecord ? currentHttpRecord.raw : '左侧选一条请求记录查看详情' }}</pre>
           </template>
-        </template>
-        <template v-else>
-          <div v-if="!traceId" class="obs-empty">左侧选一条链路，按父子 span 展开成树</div>
-          <div v-else-if="loading && !spanRows.length" class="obs-empty">读取链路…</div>
-          <div v-else-if="!spanRows.length" class="obs-empty">这条链路没有 span（可能已过保留期）</div>
+
           <template v-else>
-            <div class="obs-trace-head">
-              <span class="mono">{{ traceId }}</span>
-              <span class="obs-grow"></span>
-              <span class="obs-count">{{ spanRows.length }} 个 span · {{ traceDuration }}</span>
-              <button type="button" class="obs-btn" @click="toggleAll">{{ allExpanded ? '全部收起' : '全部展开' }}</button>
+            <div class="obs-profile">
+              <div class="obs-profile-main">
+                <div class="obs-cap">链路剖面 · APM span 树</div>
+                <h1 class="mono">{{ traceId || '未选择链路' }}</h1>
+                <p class="obs-lead">
+                  按 span 开始时间排成时间轴瀑布，条长即耗时；左侧层级树选一条链路即可看到慢在哪一段。
+                </p>
+              </div>
+              <div class="obs-profile-read">
+                <b class="obs-rnum">{{ traceDuration }}</b>
+                <span class="obs-badge is-ok"><i class="obs-dot is-ok"></i>{{ spanRows.length }} 个 span</span>
+              </div>
             </div>
-            <div class="obs-tree">
+
+            <div class="obs-facts">
+              <div><span>span 数</span><b class="mono">{{ spanRows.length }}</b></div>
+              <div><span>总耗时</span><b class="mono">{{ traceDuration }}</b></div>
+              <div><span>链路总数</span><b class="mono">{{ traces.length }}</b></div>
+              <div><span>窗口</span><b class="mono">近 {{ traceMinutes }} 分钟</b></div>
+              <div><span>来源</span><b class="mono">APM</b></div>
+            </div>
+
+            <div class="obs-rule">
+              <span>span 时间轴</span>
+              <b class="mono obs-dim">{{ traceTimeline.spanText }} 窗口</b>
+              <button type="button" class="obs-btn obs-rule-btn" @click="toggleAll">{{ allExpanded ? '全部收起' : '全部展开' }}</button>
+            </div>
+            <div v-if="!traceId" class="obs-empty">左侧选一条链路，按时间轴展开成瀑布</div>
+            <div v-else-if="loading && !spanRows.length" class="obs-empty">读取链路…</div>
+            <div v-else-if="!spanRows.length" class="obs-empty">这条链路没有 span（可能已过保留期）</div>
+            <div v-else class="obs-wf">
+              <div class="obs-wf-head">
+                <span class="obs-cap">span · 按层级缩进</span>
+                <span class="obs-cap">耗时（按开始时间定位）</span>
+              </div>
               <div
                 v-for="row in visibleSpanRows"
                 :key="row.key"
-                class="obs-tree-row"
+                class="obs-wf-row"
                 :class="{ 'is-error': row.span.error, 'is-remote': !row.span.parentSpanId }"
-                :style="{ paddingLeft: 6 + row.depth * 16 + 'px' }"
               >
-                <button
-                  type="button"
-                  class="obs-tree-toggle"
-                  :class="{ 'is-hidden': !row.hasChildren }"
-                  @click="toggleNode(row.key)"
-                >
-                  {{ expanded[row.key] ? '▾' : '▸' }}
-                </button>
-                <span class="obs-tree-svc mono" :title="row.span.serviceName || ''">
-                  {{ row.span.serviceName || '—' }}
-                </span>
-                <span class="obs-tree-name" :title="row.span.endpointName || ''">
-                  {{ row.span.endpointName || row.span.component || row.span.spanId }}
-                </span>
-                <span class="obs-tree-ms mono">{{ fmtMs(row.span.durationMs) }}</span>
+                <div class="obs-wf-label" :style="{ paddingLeft: row.depth * 14 + 'px' }">
+                  <button
+                    type="button"
+                    class="obs-wf-toggle"
+                    :class="{ 'is-hidden': !row.hasChildren }"
+                    @click.stop="toggleNode(row.key)"
+                  >
+                    {{ expanded[row.key] ? '▾' : '▸' }}
+                  </button>
+                  <span class="obs-wf-svc mono" :title="row.span.serviceName || ''">
+                    {{ row.span.serviceName || '—' }}
+                  </span>
+                  <span class="obs-wf-name" :title="row.span.endpointName || ''">
+                    {{ row.span.endpointName || row.span.component || row.span.spanId }}
+                  </span>
+                </div>
+                <div class="obs-wf-track">
+                  <i
+                    class="obs-wf-bar"
+                    :class="`is-${spanKind(row.span)}`"
+                    :style="barStyle(row.span.startTime, row.span.durationMs, traceTimeline.t0, traceTimeline.span)"
+                  ></i>
+                </div>
+                <span class="obs-wf-ms mono">{{ fmtMs(row.span.durationMs) }}</span>
               </div>
             </div>
           </template>
-        </template>
+        </section>
       </section>
     </div>
 
-    <!-- ==================== 其它端点 ==================== -->
+    <!-- ==================== 其它端点（剖面档案） ==================== -->
     <div v-else class="obs-body obs-split">
       <aside class="obs-side">
+        <div class="obs-cap obs-side-cap">端点档案 · {{ OTHER_ENDPOINTS.length }} 个</div>
         <div class="obs-list">
           <button
             v-for="e in OTHER_ENDPOINTS"
@@ -255,21 +477,70 @@
         </div>
       </aside>
       <section class="obs-main">
-        <div v-if="!otherEndpoint" class="obs-empty">左侧选一个端点读取原始返回</div>
-        <template v-else>
-          <div class="obs-other-head">
-            <span class="mono">/actuator/{{ otherEndpoint }}</span>
-            <span class="obs-grow"></span>
-            <span v-if="loading" class="obs-count">读取中…</span>
-            <span v-else class="obs-count">HTTP {{ otherStatus }} · {{ otherElapsed }}ms</span>
+        <section class="obs-sheet">
+          <div class="obs-profile">
+            <div class="obs-profile-main">
+              <div class="obs-cap">端点剖面 · Actuator</div>
+              <h1 class="mono">{{ otherEndpoint ? `/actuator/${otherEndpoint}` : '未选择端点' }}</h1>
+              <p class="obs-lead">
+                数据取自目标主机进程，通常 5–20 秒；读取失败会保留后端给出的原始原因。
+              </p>
+            </div>
+            <div class="obs-profile-read">
+              <b class="obs-rnum">{{ loading ? '…' : otherStatus || '—' }}</b>
+              <span class="obs-badge" :class="otherStatus && otherStatus < 400 ? 'is-ok' : 'is-warn'">
+                <i class="obs-dot" :class="otherStatus && otherStatus < 400 ? 'is-ok' : 'is-warn'"></i>
+                {{ loading ? '读取中' : otherStatus && otherStatus < 400 ? '可读' : '异常' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="obs-facts">
+            <div><span>端点</span><b class="mono">{{ otherEndpoint || '—' }}</b></div>
+            <div><span>HTTP</span><b class="mono">{{ loading ? '—' : otherStatus || '—' }}</b></div>
+            <div><span>耗时</span><b class="mono">{{ loading ? '—' : `${otherElapsed}ms` }}</b></div>
+            <div><span>返回体</span><b class="mono">{{ otherBody ? `${otherBody.length} 字符` : '（空返回）' }}</b></div>
+            <div><span>端点总数</span><b class="mono">{{ OTHER_ENDPOINTS.length }}</b></div>
+          </div>
+
+          <!-- 启动阶段：startup 端点自带每个阶段的 duration（秒），比原始 JSON 有用得多。
+               响应体常超过 512KB 被后端截断，JSON.parse 会失败，这时按文本抽取而不是整块不给。 -->
+          <template v-if="startupSteps.length">
+            <div class="obs-rule">
+              <span>启动阶段耗时</span>
+              <b class="mono obs-dim">
+                Top {{ startupSteps.length }} · {{ startupTruncated ? '响应被截断，按文本抽取' : '按阶段耗时倒序' }}
+              </b>
+            </div>
+            <div class="obs-table">
+              <div class="obs-tr obs-tr-startup obs-th">
+                <span class="obs-c-name">阶段</span>
+                <span class="obs-c-level">耗时</span>
+                <span class="obs-c-level">开始</span>
+              </div>
+              <div v-for="s in startupSteps" :key="s.key" class="obs-tr obs-tr-startup">
+                <span class="obs-c-name mono" :title="s.name">{{ s.name }}</span>
+                <span class="obs-c-level mono">{{ fmtMs(s.durationMs) }}</span>
+                <span class="obs-c-level mono obs-dim">{{ s.startTime || '—' }}</span>
+              </div>
+            </div>
+          </template>
+
+          <div
+            class="obs-rule is-grip"
+            title="上下拖拽调整「原始返回」高度"
+            @pointerdown.prevent="startRawDrag"
+          >
+            <span>原始返回</span>
+            <b class="mono obs-dim">拖拽调高</b>
           </div>
           <div v-if="otherMessage" class="obs-warn">{{ otherMessage }}</div>
           <!-- 这些端点是「向目标主机的进程要数据」，绝非毫秒级：health 就要几秒，
                threaddump/startup 更高。没有读取中状态时，用户看到的是上一轮残留的
                HTTP 200 和「（空返回）」，会误判成端点坏了。 -->
           <div v-if="loading" class="obs-empty">读取中…（数据取自目标主机进程，通常 5–20 秒）</div>
-          <pre v-else class="obs-json">{{ otherBody || '（空返回）' }}</pre>
-        </template>
+          <pre v-else class="obs-json" :style="{ height: `${rawHeight}px` }">{{ otherBody || '（空返回）' }}</pre>
+        </section>
       </section>
     </div>
   </div>
@@ -315,6 +586,90 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]['key'];
 
+/** 页签分类计数（档案视图右上角的档案数量） */
+const tabCounts = computed<Record<string, number>>(() => ({
+  metrics: metrics.value.length,
+  loggers: loggerRows.value.length,
+  traces: traceSource.value === 'apm' ? traces.value.length : httpRecords.value.length,
+  other: OTHER_ENDPOINTS.length,
+}));
+
+/** 本轮读取时间戳（档案头的水位） */
+const readAt = ref('');
+
+/**
+ * 本轮读取过的端点耗时（按端点路径记，重复读取取最新值）。
+ *
+ * <p>关联到项目之后要回答的是「这次观测一共花了多久、慢在哪个端点」：
+ * 单个端点自己的 {@code elapsedMs} 只能说明它自己，汇总必须单独记账，
+ * 否则档案头永远只显示最后一次读取的耗时。</p>
+ */
+const readStats = reactive<Record<string, number>>({});
+
+/** 本轮读取总耗时（各端点之和，ms） */
+const readElapsed = computed(() => Object.values(readStats).reduce((sum, ms) => sum + (ms || 0), 0));
+
+/** 本轮读过的端点（按耗时倒序） */
+const readEntries = computed(() =>
+  Object.entries(readStats)
+    .map(([name, ms]) => ({ name, ms }))
+    .sort((a, b) => b.ms - a.ms),
+);
+
+/** 本轮最慢的端点 */
+const readSlowest = computed(() => readEntries.value[0] || null);
+
+/**
+ * 应用自己的执行时间（来自 {@code http.server.requests} 与 {@code application.started.time}）。
+ *
+ * <p>和上面的 {@code readStats} 是两个量：这里记的是应用服务端处理的耗时
+ * （COUNT / TOTAL_TIME / MAX，单位秒），不含网络往返；读不到也不影响观测，
+ * 只是少一行参考。</p>
+ */
+const appTiming = reactive<{
+  avgMs: number | null;
+  maxMs: number | null;
+  count: number | null;
+  startedMs: number | null;
+}>({ avgMs: null, maxMs: null, count: null, startedMs: null });
+
+/** 取 measurements 里某个统计量的值（拿不到返回 null） */
+function statOf(detail: any, name: string): number | null {
+  const list = Array.isArray(detail?.measurements) ? detail.measurements : [];
+  const hit = list.find((m: any) => String(m?.statistic || '').toUpperCase() === name);
+  const n = Number(hit?.value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** 读应用的执行时间（平均 / 峰值 / 样本数 / 启动耗时） */
+async function loadAppTiming() {
+  try {
+    const req = await fetchActuator(props.projectId, 'metrics/http.server.requests');
+    markRead(req.elapsedMs, 'metrics/http.server.requests');
+    if (req.status === 200) {
+      const detail = parseJson<any>(req.body);
+      const count = statOf(detail, 'COUNT');
+      const total = statOf(detail, 'TOTAL_TIME');
+      const max = statOf(detail, 'MAX');
+      appTiming.count = count;
+      appTiming.maxMs = max === null ? null : max * 1000;
+      appTiming.avgMs = count && total !== null ? (total / count) * 1000 : null;
+    }
+  } catch {
+    /* 只是补充说明：读不到就不显示这一行，别让它挡住观测 */
+  }
+  try {
+    const started = await fetchActuator(props.projectId, 'metrics/application.started.time');
+    markRead(started.elapsedMs, 'metrics/application.started.time');
+    if (started.status === 200) {
+      const value = statOf(parseJson<any>(started.body), 'VALUE');
+      appTiming.startedMs = value === null ? null : value * 1000;
+    }
+  } catch {
+    /* 同上 */
+  }
+}
+
 const OTHER_ENDPOINTS = [
   'health',
   'info',
@@ -345,8 +700,11 @@ function switchTab(next: TabKey) {
 }
 
 function refresh() {
+  // 刷新档案 = 新的一轮读取：清掉上一轮各端点的耗时，重新累计
+  for (const key of Object.keys(readStats)) delete readStats[key];
   loaded[tab.value] = false;
   ensureLoaded();
+  void loadAppTiming();
 }
 
 function ensureLoaded() {
@@ -380,12 +738,108 @@ const metricTags = computed<any[]>(() => {
   return Array.isArray(list) ? list : [];
 });
 
+/** 当前指标的采集耗时（ms） */
+const metricElapsed = ref(0);
+
+/** 按指标名前缀归组（剖面档案的分组口径） */
+function metricGroupOf(name: string): string {
+  const n = String(name || '');
+  if (n.startsWith('jvm.')) return 'JVM';
+  if (n.startsWith('http.')) return 'HTTP';
+  if (n.startsWith('process.')) return '进程';
+  if (n.startsWith('system.')) return '系统';
+  if (n.startsWith('hikaricp') || n.startsWith('datasource')) return '连接池';
+  return '其它';
+}
+
+/** 当前指标的分组 */
+const metricGroup = computed(() => (metricName.value ? metricGroupOf(metricName.value) : 'Actuator'));
+
+/** 按统计量名取一条测量值 */
+function metricStat(name: string): number | null {
+  const hit = metricMeasurements.value.find((m: any) => String(m.statistic || '').toUpperCase() === name);
+  if (!hit) return null;
+  const n = Number(hit.value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** 指标单位：baseUnit=seconds 的指标（http.server.requests 等）测量值是秒 */
+const metricUnit = computed(() => String(metricDetail.value?.baseUnit || ''));
+
+/** 秒值按毫秒文案展示（null 表示没有该统计量） */
+function fmtSec(sec: number | null): string {
+  return sec === null ? '—' : fmtMs(sec * 1000);
+}
+
+/** 单条统计量的展示文案：时间类换算成 ms/s，计数类保持原值 */
+function metricStatText(statistic: string, value: number): string {
+  const s = String(statistic || '').toUpperCase();
+  const isTime = metricUnit.value === 'seconds' && (s === 'VALUE' || s === 'MAX' || s.includes('TOTAL'));
+  return isTime ? fmtSec(Number(value)) : fmtNum(value);
+}
+
+/** 内存类指标按字节折算，其余按原值 */
+function fmtMetricValue(name: string, value: number | null): string {
+  if (value === null) return '—';
+  const n = String(name || '');
+  if (/memory|bytes/i.test(n)) {
+    if (value >= 1024 ** 3) return `${(value / 1024 ** 3).toFixed(2)} GB`;
+    if (value >= 1024 ** 2) return `${(value / 1024 ** 2).toFixed(1)} MB`;
+    if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
+    return `${value} B`;
+  }
+  return fmtNum(value);
+}
+
+/** 当前指标读数（时间类指标没有 VALUE，用「平均耗时」当主读数） */
+const metricCurrentValue = computed(() => {
+  if (metricUnit.value === 'seconds') {
+    const count = metricStat('COUNT');
+    const total = metricStat('TOTAL_TIME');
+    if (count && total !== null) return fmtSec(total / count);
+    return fmtSec(metricStat('VALUE'));
+  }
+  return fmtMetricValue(metricName.value, metricStat('VALUE'));
+});
+
+/** 当前指标是否缺统计量（缺数据时不做「正常」的假结论） */
+const metricIsWarn = computed(() => !metricMeasurements.value.length);
+
+/** 指标事实区（时间类补平均/峰值/样本数，其余按原口径） */
+const metricFacts = computed(() => {
+  const name = metricName.value;
+  const tags = metricTags.value.length
+    ? metricTags.value
+        .map((t: any) => `${t.tag}${t.values && t.values.length ? `=${t.values.slice(0, 3).join(',')}` : ''}`)
+        .join(' · ')
+    : '—';
+  if (metricUnit.value === 'seconds') {
+    const count = metricStat('COUNT');
+    const total = metricStat('TOTAL_TIME');
+    return [
+      { k: '样本数', v: count === null ? '—' : fmtNum(count) },
+      { k: '平均耗时', v: count && total !== null ? fmtSec(total / count) : '—' },
+      { k: '峰值', v: fmtSec(metricStat('MAX')) },
+      { k: '累计耗时', v: fmtSec(total) },
+      { k: '可用标签', v: tags },
+    ];
+  }
+  return [
+    { k: '当前值', v: fmtMetricValue(name, metricStat('VALUE')) },
+    { k: '统计量', v: metricStat('COUNT') === null ? '—' : fmtNum(metricStat('COUNT')) },
+    { k: '峰值', v: fmtMetricValue(name, metricStat('MAX')) },
+    { k: '累计', v: metricStat('TOTAL') === null ? '—' : fmtMetricValue(name, metricStat('TOTAL')) },
+    { k: '可用标签', v: tags },
+  ];
+});
+
 async function loadMetrics() {
   loading.value = true;
   loadError.value = '';
   try {
     const payload = await fetchActuator(props.projectId, 'metrics');
     currentUrl.value = payload.url || '';
+    markRead(payload.elapsedMs, 'metrics');
     if (payload.status !== 200) {
       loadError.value = payload.message || `HTTP ${payload.status}`;
       metrics.value = [];
@@ -411,13 +865,39 @@ async function openMetric(name: string) {
   try {
     const payload = await fetchActuator(props.projectId, `metrics/${name}`);
     currentUrl.value = payload.url || currentUrl.value;
+    metricElapsed.value = payload.elapsedMs || 0;
     metricDetail.value = payload.status === 200 ? parseJson<any>(payload.body) || { raw: payload.body } : null;
     if (payload.status !== 200) {
       loadError.value = payload.message || `HTTP ${payload.status}`;
     }
+    markRead(payload.elapsedMs, `metrics/${name}`);
   } finally {
     loading.value = false;
   }
+}
+
+/**
+ * 记录本轮读取水位（档案头的时间戳与总耗时）。
+ *
+ * @param elapsedMs 本次读取耗时（ms）
+ * @param endpoint  本次读取的端点路径（用于本轮耗时汇总）
+ */
+function markRead(elapsedMs?: number, endpoint?: string) {
+  const d = new Date();
+  const pad = (v: number) => String(v).padStart(2, '0');
+  readAt.value = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  if (endpoint && elapsedMs && elapsedMs > 0) readStats[endpoint] = elapsedMs;
+}
+
+/** 耗时文案：秒级换成 s，避免档案头出现 9120ms 这种长串 */
+function fmtReadTotal(ms: number): string {
+  if (!ms) return '—';
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+}
+
+/** 汇总条上的端点名（指标路径去掉 metrics/ 前缀，避免整行都是同前缀） */
+function readChipName(name: string): string {
+  return String(name || '').replace(/^metrics\//, '');
 }
 
 // ==================== 日志级别 ====================
@@ -449,6 +929,9 @@ const filteredLoggers = computed(() => {
 /** 列表最多渲染 300 行：一个应用动辄上千个 logger，全画出来会卡住滚动 */
 const visibleLoggers = computed(() => filteredLoggers.value.slice(0, 300));
 
+/** 已在项目级单独设置过的日志数 */
+const configuredCount = computed(() => loggerRows.value.filter((r) => !!r.configuredLevel).length);
+
 async function loadLoggers() {
   loading.value = true;
   loadError.value = '';
@@ -465,6 +948,7 @@ async function loadLoggers() {
       levels.value = payload.levels;
     }
     loggersTruncated.value = !!payload.truncated;
+    markRead(payload.elapsedMs, 'loggers');
     // 后端已把列表压成 name/级别三列；老后端没有该字段时退回解析原文
     const rows: LoggerRow[] = Array.isArray(payload.loggers)
       ? payload.loggers.map((row) => ({
@@ -626,7 +1110,36 @@ interface SpanRow {
   parentKey: string;
 }
 
+/** 链路层级树节点（左侧列表，层级树 IA：入口根 + 子 span 缩进） */
+interface TraceTreeNode {
+  traceId: string;
+  key: string;
+  depth: number;
+  durationMs: number;
+  endpointName?: string | null;
+  serviceName?: string | null;
+  startTime: number;
+  error: boolean;
+}
+
 const spanRows = computed<SpanRow[]>(() => buildRows(traceSpans.value));
+
+/** 左侧链路层级树：第一条为入口根，其余按顺序作为子 span（与层级树 IA 一致） */
+const traceTree = computed<TraceTreeNode[]>(() => {
+  const list = traces.value;
+  if (!list.length) return [];
+  const node = (t: ApmTrace, depth: number): TraceTreeNode => ({
+    traceId: t.traceId,
+    key: t.traceId,
+    depth,
+    durationMs: t.durationMs,
+    endpointName: t.endpointName || '',
+    serviceName: t.serviceName || '',
+    startTime: t.startTime,
+    error: t.error,
+  });
+  return [node(list[0], 0), ...list.slice(1).map((t, i) => node(t, 1 + i))];
+});
 
 /** 展开状态：默认全部展开，用户收起某个节点后只隐藏它的子树 */
 const expanded = reactive<Record<string, boolean>>({});
@@ -655,6 +1168,65 @@ const traceDuration = computed(() => {
   if (!list.length) return '—';
   return fmtMs(Math.max(...list.map((s) => s.durationMs)));
 });
+
+/**
+ * 追踪效果的时间轴窗口（span 的最早开始 → 最晚结束）。
+ *
+ * <p>把「目录树」变成「瀑布」的关键：所有 span 条都按同一条时间轴定位，
+ * 父子关系用缩进 + 覆盖关系表达，才能看出「慢在哪一段」。</p>
+ */
+const traceTimeline = computed(() => {
+  // 用完整 span 集算窗口：收起某个节点只隐藏它的行，不能让整条时间轴跟着缩放
+  const rows = spanRows.value;
+  if (!rows.length) return { t0: 0, span: 1, spanText: '—' };
+  const t0 = Math.min(...rows.map((r) => r.span.startTime));
+  const t1 = Math.max(...rows.map((r) => r.span.endTime || r.span.startTime + r.span.durationMs));
+  const span = Math.max(t1 - t0, 1);
+  return { t0, span, spanText: fmtMs(span) };
+});
+
+/**
+ * Actuator 请求记录的时间轴窗口。
+ *
+ * <p>请求记录只有「时间戳 + 耗时」，没有 span 树；按时间戳定位、按耗时定宽，
+ * 就是这条链路被追踪到的样子。</p>
+ */
+const httpTimeline = computed(() => {
+  const list = httpRecords.value;
+  if (!list.length) return { t0: 0, span: 1 };
+  const stamps = list.map((r) => r.timestamp || 0).filter((v) => v > 0);
+  const t0 = stamps.length ? Math.min(...stamps) : 0;
+  const t1 = Math.max(...list.map((r) => (r.timestamp || t0) + Math.max(r.timeTaken || 0, 1)));
+  return { t0, span: Math.max(t1 - t0, 1) };
+});
+
+/**
+ * 时间轴条的位置与宽度（百分比）。
+ *
+ * @param start    起点毫秒
+ * @param duration 耗时毫秒
+ * @param t0       时间轴起点
+ * @param span     时间轴总跨度
+ * @returns 可直接绑到 :style 的 left / width
+ */
+function barStyle(start: number, duration: number, t0: number, span: number) {
+  const left = ((start - t0) / span) * 100;
+  const width = (duration / span) * 100;
+  return {
+    left: `${Math.min(Math.max(left, 0), 99.6)}%`,
+    width: `${Math.min(Math.max(width, 0.6), 100)}%`,
+  };
+}
+
+/** span 类型：决定时间轴条的颜色（错误 > 远程 > DB > HTTP > 内部） */
+function spanKind(span: ApmSpan): string {
+  if (span.error) return 'error';
+  if (span.peer) return 'remote';
+  const c = `${span.component || ''} ${span.layer || ''}`.toLowerCase();
+  if (/db|jdbc|mysql|redis|mongo|sql|elastic|cache/.test(c)) return 'db';
+  if (/http|rpc|dubbo|grpc|feign|gateway/.test(c)) return 'http';
+  return 'inner';
+}
 
 /**
  * 按 parentSpanId 把 span 排成树（先序），同一层按开始时间。
@@ -820,6 +1392,7 @@ async function loadHttpTraceFallback(): Promise<HttpRecord[]> {
       httpTraceExposed.value = true;
       httpTraceEndpoint.value = ep;
       httpTraceTruncated.value = !!payload.truncated;
+      markRead(payload.elapsedMs, ep);
       const records = parseHttpTrace(payload);
       if (records.length) {
         return records;
@@ -928,6 +1501,7 @@ async function openOther(endpoint: string) {
       compact.length || payload.records
         ? prettyText(JSON.stringify(payload.records, null, 2))
         : prettyText(payload.body);
+    markRead(payload.elapsedMs, endpoint);
   } catch (e: any) {
     otherMessage.value = e?.message || '读取失败';
     otherBody.value = '';
@@ -936,7 +1510,85 @@ async function openOther(endpoint: string) {
   }
 }
 
+interface StartupStepRow {
+  key: string;
+  name: string;
+  durationMs: number;
+  startTime: string;
+}
+
+/** 后端是否因为响应体过大截断了原始返回（startup 常超 512KB） */
+const startupTruncated = computed(
+  () => otherEndpoint.value === 'startup' && /过大|截断/.test(otherMessage.value),
+);
+
+/**
+ * startup 端点的启动阶段耗时（TopN，按 duration 倒序）。
+ *
+ * <p>{@code /actuator/startup} 的每个事件自己带 {@code duration}（单位秒），
+ * 这才是「关联项目启动慢在哪一步」的直接答案；原始 JSON 几百 KB，看不动。</p>
+ *
+ * <p>响应体超过后端 512KB 上限时 JSON 一定解析失败，这时按文本抽取
+ * {@code duration} 与 {@code name} 的配对 —— 宁可标注「已截断」，也不整块不给。</p>
+ */
+const startupSteps = computed<StartupStepRow[]>(() => {
+  if (otherEndpoint.value !== 'startup' || !otherBody.value) return [];
+  const rows: StartupStepRow[] = [];
+  const parsed = parseJson<any>(otherBody.value);
+  if (parsed?.timeline?.events && Array.isArray(parsed.timeline.events)) {
+    parsed.timeline.events.forEach((e: any, i: number) => {
+      const dur = Number(e?.duration);
+      const start = Date.parse(String(e?.startTime || ''));
+      rows.push({
+        key: `${i}`,
+        name: String(e?.startupStep?.name || '—'),
+        durationMs: Number.isFinite(dur) ? dur * 1000 : 0,
+        startTime: Number.isFinite(start) ? fmtClock(start) : '',
+      });
+    });
+  } else {
+    const re = /"duration"\s*:\s*([0-9.eE+-]+)[\s\S]{0,400}?"name"\s*:\s*"([^"]+)"/g;
+    let hit: RegExpExecArray | null;
+    while ((hit = re.exec(otherBody.value))) {
+      const dur = Number(hit[1]);
+      rows.push({
+        key: `t${rows.length}`,
+        name: hit[2],
+        durationMs: Number.isFinite(dur) ? dur * 1000 : 0,
+        startTime: '',
+      });
+    }
+  }
+  return rows.sort((a, b) => b.durationMs - a.durationMs).slice(0, 8);
+});
+
 // ==================== 公共 ====================
+
+/**
+ * 「原始返回」的高度（px）。
+ *
+ * <p>原始 JSON 动辄几百行，固定高度里只能看到开头几行；用一条可拖拽的分隔条
+ * 让用户按当前要看的字段把版面拉高，比再开一个弹层轻。</p>
+ */
+const rawHeight = ref(240);
+
+/** 拖拽「原始返回」上沿调整高度（120px ~ 视口下方留 220px） */
+function startRawDrag(ev: PointerEvent) {
+  const startY = ev.clientY;
+  const startHeight = rawHeight.value;
+  const move = (e: PointerEvent) => {
+    const next = startHeight - (e.clientY - startY);
+    rawHeight.value = Math.min(Math.max(next, 120), Math.max(200, window.innerHeight - 240));
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    document.body.style.userSelect = '';
+  };
+  document.body.style.userSelect = 'none';
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
 
 /** JSON.parse 容错：文本不是 JSON 时返回 null */
 function parseJson<T>(text: string): T | null {
@@ -987,6 +1639,7 @@ function fmtClock(ms: number): string {
 onMounted(() => {
   if (!TABS.some((t) => t.key === tab.value)) tab.value = 'metrics';
   ensureLoaded();
+  void loadAppTiming();
 });
 </script>
 
@@ -999,20 +1652,72 @@ onMounted(() => {
   font-size: 12.5px;
 }
 
-.obs-bar {
+/* ============ 档案头 ============ */
+.obs-top {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  height: 52px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+}
+
+.obs-crumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.obs-logo {
+  color: var(--el-color-primary);
+  font-size: 14px;
+}
+
+.obs-crumb b {
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+.obs-sep {
+  color: var(--el-text-color-placeholder);
+  font-size: 11px;
+}
+
+/* 弱化文字：档案里的次级信息（分组名、计数、标签值等） */
+.obs-dim {
+  color: var(--el-text-color-placeholder);
+  font-weight: 400;
+}
+
+.obs-project {
+  overflow: hidden;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-crumb .obs-dim {
+  font-size: 11px;
+}
+
+.obs-stamp {
+  color: var(--el-text-color-placeholder);
+  font-size: 10.5px;
+  white-space: nowrap;
 }
 
 .obs-tabs {
   display: flex;
   gap: 2px;
-  padding: 2px;
+  padding: 3px;
   border-radius: 8px;
   background: var(--el-fill-color-light);
+  /* 页签靠左：档案是从左往右读的，居中会让人找不到起点 */
+  align-self: flex-start;
+  margin: 8px 20px 0;
+  width: fit-content;
 }
 
 .obs-tab {
@@ -1025,6 +1730,14 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.obs-tab em {
+  margin-left: 4px;
+  color: var(--el-text-color-placeholder);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-style: normal;
+}
+
 .obs-tab.is-on {
   background: var(--el-bg-color);
   color: var(--el-color-primary);
@@ -1034,6 +1747,64 @@ onMounted(() => {
 
 .obs-grow {
   flex: 1;
+}
+
+/* ============ 本轮读取总览 ============ */
+.obs-readsum {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 20px 0;
+  padding: 5px 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: var(--el-fill-color-lighter);
+  font-size: 11.5px;
+}
+
+.obs-readsum-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+/* 第二行是应用自己的执行时间，和「读取耗时」区分开：弱一档底色与字号 */
+.obs-readsum-app {
+  padding-top: 2px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+}
+
+.obs-readsum-proj {
+  overflow: hidden;
+  max-width: 180px;
+  color: var(--el-color-primary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-readsum b {
+  font-size: 12px;
+}
+
+.obs-readsum-slow {
+  color: var(--el-color-warning-dark-2);
+}
+
+.obs-readchip {
+  overflow: hidden;
+  max-width: 190px;
+  padding: 1px 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-full);
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .obs-url {
@@ -1064,15 +1835,15 @@ onMounted(() => {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 10px;
+  padding: 10px 20px 16px;
 }
 
 .obs-split {
   display: grid;
   grid-template-columns: 264px minmax(0, 1fr);
-  gap: 10px;
+  gap: 14px;
   overflow: hidden;
-  padding: 10px;
+  padding: 10px 20px 16px;
 }
 
 .obs-side {
@@ -1083,33 +1854,306 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.obs-main {
-  min-width: 0;
-  overflow: auto;
+.obs-side-cap {
+  padding: 0 2px 2px;
 }
 
-/* 详情读取中的覆盖层：切换指标时旧数据仍在，遮罩给出「在加载」的可见反馈 */
-.obs-main-rel { position: relative; }
-.obs-loading-mask {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
+/* ============ 档案纸（剖面档案主体） ============ */
+.obs-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 16px 20px 14px;
+  overflow: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.obs-profile {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.obs-profile-main {
+  min-width: 0;
+}
+
+.obs-cap {
+  color: var(--el-text-color-placeholder);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.obs-profile h1 {
+  margin: 3px 0 4px;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  word-break: break-all;
+}
+
+.obs-lead {
+  max-width: 620px;
+  margin: 0;
+  color: var(--el-text-color-secondary);
+  font-size: 11.5px;
+  line-height: 1.65;
+}
+
+.obs-lead code {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+}
+
+.obs-profile-read {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.obs-rnum {
+  font-size: 30px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.obs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.obs-badge.is-ok {
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success-dark-2);
+}
+
+.obs-badge.is-warn {
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning-dark-2);
+}
+
+.obs-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.obs-dot.is-ok {
+  background: var(--el-color-success);
+}
+
+.obs-dot.is-warn {
+  background: var(--el-color-warning);
+}
+
+.obs-facts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 13px;
+  padding: 10px 0;
+  border-top: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.obs-facts div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.obs-facts span {
+  color: var(--el-text-color-placeholder);
+  font-size: 10px;
+}
+
+.obs-facts b {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-meas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.obs-meas div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.obs-meas b {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-rule {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 13px 0 7px;
+}
+
+.obs-rule span {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.obs-rule b {
+  color: var(--el-text-color-placeholder);
+  font-size: 10.5px;
+  font-weight: 400;
+}
+
+.obs-rule-btn {
+  order: 2;
+  padding: 2px 9px;
+  font-size: 11px;
+}
+
+.obs-rule::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  height: 1px;
+  background: var(--el-border-color-lighter);
+}
+
+/* 可拖拽的分隔条：把细线加粗成抓手，悬停变主色，提示「这里能拖」 */
+.obs-rule.is-grip {
+  cursor: ns-resize;
+  user-select: none;
+}
+
+.obs-rule.is-grip::after {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--el-border-color);
+  transition: background 0.15s ease;
+}
+
+.obs-rule.is-grip:hover::after {
+  background: var(--el-color-primary);
+}
+
+.obs-tr-startup {
+  grid-template-columns: minmax(0, 1fr) 88px 84px;
+}
+
+.obs-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.obs-tagrow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 20px;
+  border-bottom: 1px dotted var(--el-border-color-light);
+  font-size: 11px;
+}
+
+.obs-tagrow span:first-child {
+  flex: none;
+  width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-tagrow span:last-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-catalog {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.obs-search--inline {
+  width: 200px;
+  margin-bottom: 2px;
+}
+
+.obs-cat {
   display: flex;
   align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  background: color-mix(in srgb, var(--el-bg-color) 55%, transparent);
+  gap: 6px;
+  max-width: 320px;
+  padding: 3px 9px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--el-fill-color-lighter);
+  color: var(--el-text-color-regular);
+  font-size: 11px;
+  cursor: pointer;
 }
-.obs-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--el-border-color);
-  border-top-color: var(--el-color-primary);
-  border-radius: 50%;
-  animation: obs-spin 0.8s linear infinite;
+
+.obs-cat span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-@keyframes obs-spin {
-  to { transform: rotate(360deg); }
+
+.obs-cat span:last-child {
+  flex: none;
+  font-size: 10px;
+}
+
+.obs-cat:hover {
+  border-color: var(--el-border-color);
+}
+
+.obs-cat.is-on {
+  border-color: var(--el-color-primary-light-8);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+.obs-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .obs-search {
@@ -1168,49 +2212,8 @@ onMounted(() => {
   justify-content: center;
 }
 
-.obs-kpis {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.obs-kpi {
-  display: flex;
-  min-width: 120px;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-}
-
-.obs-kpi-k {
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-}
-
-.obs-kpi-v {
-  font-size: 18px;
-  font-variant-numeric: tabular-nums;
-}
-
-.obs-taglist {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.obs-tagchip {
-  padding: 1px 8px;
-  border-radius: 10px;
-  background: var(--el-fill-color-light);
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-}
-
 .obs-json {
+  flex: none;
   margin: 0;
   padding: 10px;
   overflow: auto;
@@ -1314,6 +2317,44 @@ onMounted(() => {
   gap: 6px;
 }
 
+/* Actuator 请求记录（左侧列表）：状态 / 请求 / 延迟 / 时间 四列。
+   延迟必须进列表——排查时第一眼要的就是「哪条慢」，再点进去看瀑布。 */
+.obs-trace-http {
+  grid-template-columns: 34px minmax(0, 1fr) 52px 44px;
+  gap: 4px;
+}
+
+.obs-trace-status {
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.obs-trace-lat {
+  color: var(--el-color-warning-dark-2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.obs-trace-http .obs-trace-time {
+  font-size: 10px;
+}
+
+/* 链路追踪层级树（左侧）：入口根 + 子 span 缩进，4 列布局 */
+.obs-trace-tree {
+  grid-template-columns: 62px minmax(0, 1fr) 1fr 58px;
+}
+.obs-trace-tree.is-root .obs-trace-name {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.obs-trace-child {
+  flex: none;
+  font-size: 9.5px;
+  color: var(--el-text-color-placeholder);
+}
+
 .obs-trace-item.is-error .obs-trace-ms {
   color: var(--el-color-danger);
 }
@@ -1335,45 +2376,130 @@ onMounted(() => {
   text-align: right;
 }
 
-.obs-trace-head,
-.obs-other-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  color: var(--el-text-color-secondary);
-  font-size: 11.5px;
-}
-
-.obs-tree {
+/* ============ 追踪效果：时间轴瀑布 ============ */
+.obs-wf {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
   overflow: hidden;
 }
 
-.obs-tree-row {
+.obs-wf-head {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 4px 10px;
   border-bottom: 1px solid var(--el-border-color-lighter);
-  font-size: 12px;
+  background: var(--el-fill-color-light);
 }
 
-.obs-tree-row:last-child {
+.obs-wf-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.obs-wf-row:last-child {
   border-bottom: none;
 }
 
-.obs-tree-row.is-error .obs-tree-name {
-  color: var(--el-color-danger);
+.obs-wf-row:hover {
+  background: var(--el-fill-color-light);
 }
 
-.obs-tree-row.is-remote {
+.obs-wf-row.is-on {
+  background: var(--el-color-primary-light-9);
+}
+
+.obs-wf-row.is-remote {
   background: color-mix(in srgb, var(--el-color-primary) 4%, transparent);
 }
 
-.obs-tree-toggle {
+.obs-wf-row.is-error .obs-wf-name {
+  color: var(--el-color-danger);
+}
+
+.obs-wf-label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+}
+
+.obs-wf-svc {
+  flex: none;
+  max-width: 110px;
+  overflow: hidden;
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-wf-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-wf-status {
+  flex: none;
+  width: 30px;
+  color: var(--el-color-success-dark-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.obs-wf-row.is-error .obs-wf-status {
+  color: var(--el-color-danger);
+}
+
+.obs-wf-track {
+  position: relative;
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--el-radius-full);
+  background: var(--el-fill-color-light);
+}
+
+.obs-wf-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  min-width: 2px;
+  border-radius: var(--el-radius-full);
+  background: var(--el-color-info);
+}
+
+.obs-wf-bar.is-inner {
+  background: var(--el-color-info);
+}
+
+.obs-wf-bar.is-http {
+  background: var(--el-color-primary);
+}
+
+.obs-wf-bar.is-db {
+  background: var(--el-color-warning);
+}
+
+.obs-wf-bar.is-remote {
+  background: var(--el-color-primary-light-3);
+}
+
+.obs-wf-bar.is-error {
+  background: var(--el-color-danger);
+}
+
+.obs-wf-toggle {
   width: 14px;
+  flex: none;
   padding: 0;
   border: none;
   background: transparent;
@@ -1382,31 +2508,15 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.obs-tree-toggle.is-hidden {
+.obs-wf-toggle.is-hidden {
   visibility: hidden;
 }
 
-.obs-tree-svc {
-  width: 132px;
-  overflow: hidden;
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.obs-tree-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.obs-tree-ms {
+.obs-wf-ms {
   color: var(--el-text-color-regular);
-  font-size: 11.5px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .obs-warn {
