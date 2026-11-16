@@ -1239,6 +1239,22 @@ function pctStyle(r: any) {
 .usage-triple--dist > :nth-child(1) { grid-column: 1; grid-row: 1 / span 2; }
 .usage-triple--dist > :nth-child(2) { grid-column: 2 / span 2; grid-row: 1; }
 .usage-triple--dist > :nth-child(3) { grid-column: 2 / span 2; grid-row: 2; }
+/*
+ * 窄屏降级：三列时分布卡只剩 ~285px，扣掉固定的四列数字（44+50+58+64）后
+ * 名称列不足一个字，模型名被截成 "n…"。视口 1460px 以下改为
+ * 「分布横跨两列占第一行 + 每日模型/延迟在第二行各占一列」，
+ * 分布拿回整行宽度，两张图仍等分下方。行高沿用 206px，与左侧单卡等高。
+ */
+@media (max-width: 1460px) {
+  .usage-triple--dist {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: 206px 206px;
+    height: auto;
+  }
+  .usage-triple--dist > :nth-child(1) { grid-column: 1 / span 2; grid-row: 1; }
+  .usage-triple--dist > :nth-child(2) { grid-column: 1; grid-row: 2; }
+  .usage-triple--dist > :nth-child(3) { grid-column: 2; grid-row: 2; }
+}
 .usage-triple--ranks {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.84fr);
   height: 174px;
