@@ -264,6 +264,9 @@ async function saveCfg(): Promise<void> {
   }
   savingCfg.value = true;
   try {
+    // 保存即重启：客户端会全体断开重连。必须在动作前重建基线——stop→start 的空窗期里
+    // 8s 轮询会观察到 clients 消失，若此时旧基线仍在，就会把这次重启误报成「离线」假事件。
+    resetBaseline();
     // 关键：update 是整体覆盖语义（先 stop → applyRequest 全量 → startIfEnabled）。
     // 必须把节点现状字段全量回传，否则 filters / enabled 会被清空；同时保存本身
     // 就会重启节点，因此不需要单独的「重启」动作参与 —— 语义即「保存并重启生效」。
@@ -284,8 +287,6 @@ async function saveCfg(): Promise<void> {
     signalForAction('apply',
       cur.enabled === 1 ? '配置已保存，节点重启生效' : '配置已保存（节点未启用，仅保存定义）', 'SAVE');
     message.success(cur.enabled === 1 ? '配置已保存，节点已重启生效' : '配置已保存，节点未启用不拉起');
-    // 保存即重启：客户端会全体断开重连，重建基线避免把这次重启报成离线假事件
-    resetBaseline();
     await loadNode();
     await reload();
   } catch (e) {
@@ -309,13 +310,14 @@ async function restartNode(): Promise<void> {
   if (!ok) return;
   restarting.value = true;
   try {
+    // 和 saveCfg 同理：重启会让客户端全体断开重连。若等 stop 完成后再重建基线，
+    // 空窗期的 8s 轮询会把这次重启误报成「客户端离线」假事件——必须先重建基线再动作。
+    resetBaseline();
     await stopServerNode(props.nodeId);
     signalForAction('apply', '节点已停止，正在重启…', 'STOP');
     await startServerNode(props.nodeId);
     signalForAction('apply', '节点已启动，客户端重新接入', 'START');
     message.success('节点已重启');
-    // 重启强制全部客户端重连：重建基线，重连过程不再报「离线/接入」噪音
-    resetBaseline();
     await loadNode();
     await reload();
   } catch (e) {
