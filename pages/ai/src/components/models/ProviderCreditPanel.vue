@@ -193,7 +193,7 @@ const meta = ref<{
   kind?: string
   /** 本次实际尝试的实现标识（后端 candidates），全部查不到时显示出来 */
   candidates?: string[]
-  /** 余额口径分级（official / openai / relay / manual / none） */
+  /** 余额口径分级（official / openai / uncovered / relay / manual / none） */
   level?: string
   currency?: string | null
   total?: { remain?: number; used?: number; total?: number } | null
@@ -235,6 +235,7 @@ const firstError = computed(() => {
 const LEVEL_LABELS: Record<string, string> = {
   official: '官方预设',
   openai: 'OpenAI 官方',
+  uncovered: '官方站点·未收录',
   relay: '中转站探测',
   manual: '手动口径',
   none: '无上游',
@@ -242,7 +243,8 @@ const LEVEL_LABELS: Record<string, string> = {
 const LEVEL_HINTS: Record<string, string> = {
   official: '这家厂商有官方余额接口，按官方地址与字段直接查',
   openai: '上游是 OpenAI 官方，走 OpenAI 额度接口',
-  relay: '中转 / 聚合站：探测 OpenAI 兼容计费余额协议，第一条查到数的胜出',
+  uncovered: '上游是厂商官方站点，但没有可用的官方余额接口；官方站点上没有中转计费协议，不做探测',
+  relay: '上游不是厂商官方站点（中转 / 自建网关）：探测 OpenAI 兼容计费余额协议，第一条查到数的胜出',
   manual: '页面上指定了唯一余额实现（可覆盖地址与字段表达式）',
   none: '没有配置上游地址，没有可查的余额；先填上游地址，或在「余额」里配自定义地址',
 }
