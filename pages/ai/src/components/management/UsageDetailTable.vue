@@ -108,7 +108,7 @@
         </template>
         <template #col-group="{ row }">{{ row.sysAiUsageGroupName }}</template>
         <template #col-user="{ row }">
-          <ReTag :type="row.sysAiUsageUserId ? 'primary' : 'info'">
+          <ReTag :type="userTagType(row)" :title="row.sysAiUsageUserId ? `账号标识：${row.sysAiUsageUserId}` : '无归属账号'">
             {{ userDisplay(row) }}
           </ReTag>
         </template>
@@ -296,14 +296,34 @@ function setColVisible(prop: string, visible: boolean): void {
   }
 }
 
-/** 明细「账号」列展示文本：所有记录均为当前用户具名，翻译成当前用户名/昵称；
- *  未命中当前用户或未取到登录态时，兜底渲染原 userId 或「三方」。 */
+/**
+ * 调度线程同步外部工具时写入的兜底归属（后端 {@code SysAiUsageService.ORPHAN_OWNER}）。
+ *
+ * <p>库里没有主键为 {@code admin} 的账号，这个值代表「机器级、没有登录态」的用量，
+ * 例如 opencode / claude-code 的定时同步。管理员的查询范围是全部账号，明细里会同时
+ * 出现本人、其它账号和这一批兜底行，必须分开显示，不能都当成账号名。</p>
+ */
+const ORPHAN_OWNER = 'admin';
+
+/** 明细「账号」列展示文本。
+ *  本人 → 用户名；兜底归属 → 「三方同步」；其它账号 → 原 userId（无用户表可查名）。 */
 const userDisplay = (row: any): string => {
+  const raw = row.sysAiUsageUserId;
+  if (raw == null || raw === '') return '三方';
+  const id = String(raw);
   const u = props.board.currentUser;
-  if (u && row.sysAiUsageUserId != null && String(row.sysAiUsageUserId) === String(u.id)) {
-    return u.username || u.nickname || String(row.sysAiUsageUserId);
+  if (u && String(u.id) === id) {
+    return u.username || u.nickname || id;
   }
-  return row.sysAiUsageUserId || '三方';
+  if (id === ORPHAN_OWNER) return '三方同步';
+  return id;
+};
+
+/** 账号标签配色：本人/兜底行都算正常归属，空值才是真正的无主数据。 */
+const userTagType = (row: any): 'primary' | 'info' => {
+  const raw = row.sysAiUsageUserId;
+  if (raw == null || raw === '') return 'info';
+  return 'primary';
 };
 const visibleColumns = computed(() =>
   (props.board.detailColumns || []).filter((c: any) => !hiddenProps.value.includes(c.prop)),
