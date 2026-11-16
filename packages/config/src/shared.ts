@@ -289,6 +289,9 @@ export const defaultAppConfig: AppConfig = {
     captcha: true,
     otp: false,
     slider: false,
+    // 短信验证码登录入口：后端 OpenSmsLogin 落到此处；还要配合 other.smsLogin.enable
+    // （短信发信账号可用）才真正显示，见 ReLoginForm 的 smsLoginAvailable
+    smsLogin: false,
     // 滑块验证形态：simple=原有向右拖动滑块；puzzle=图片拼图滑块
     sliderType: "simple",
     // 拼图滑块参数（sliderType=puzzle 时生效；不配则自动生成占位图）
@@ -386,6 +389,13 @@ export const defaultAppConfig: AppConfig = {
     themeId: "koi",
     logLevel: "info",
     themeConfigCloseConfirm: false,
+    // 后端派生能力位：未下发时按关闭处理（邮箱验证 / 短信登录入口不显示）
+    emailVerify: {
+      enable: false,
+    },
+    smsLogin: {
+      enable: false,
+    },
     statusColors: {
       success: "#67C23A",
       warning: "#E6A23C",

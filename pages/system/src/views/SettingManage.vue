@@ -197,6 +197,7 @@ const groupNameMap: Record<string, string> = {
   taobao: "淘宝登录",
   wechat: "微信登录",
   wechat_enterprise: "企业微信登录",
+  wechat_mini: "微信小程序登录",
   wechat_mp: "微信公众号登录",
   weibo: "微博登录",
 };

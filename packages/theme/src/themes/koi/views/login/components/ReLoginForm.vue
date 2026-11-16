@@ -32,148 +32,235 @@
       <!-- 登录类型选择卡片：只在 app.yaml loginConfig.types 配了多项时出现 -->
       <ReLoginTypePicker v-if="loginTypes.length > 1" v-model="activeLoginType" :disabled="loading" />
 
-      <!-- 租户编码：仅当所选入口需要按编码定位租户时才显示 -->
-      <el-form-item v-if="activeLoginEntry?.tenantCode" prop="tenantCode">
-        <el-input
-          v-model="loginForm.tenantCode"
-          type="text"
-          :placeholder="$t('menu.login.form.tenantCode')"
-          size="large"
-          class="login-input"
-          clearable
-          @keydown.enter="handleKoiLogin"
+      <!--
+        登录方式切换：账号密码 / 短信验证码，两个入口平级。
+        只在 OpenSmsLogin（login.smsLogin）与短信发信账号可用（other.smsLogin.enable）
+        同时成立时出现，缺一即整块隐藏——没有可用短信通道时给出入口只会让用户白等验证码。
+      -->
+      <div v-if="smsLoginAvailable" class="login-mode-switch" role="tablist" aria-label="登录方式">
+        <button
+          v-for="item in loginModes"
+          :key="item.value"
+          type="button"
+          role="tab"
+          class="login-mode-switch__item"
+          :class="{ 'is-active': loginMode === item.value }"
+          :aria-selected="loginMode === item.value"
+          :disabled="loading"
+          @click="switchLoginMode(item.value)"
         >
-          <template #prefix>
-            <el-icon :size="16"><OfficeBuilding /></el-icon>
-          </template>
-        </el-input>
-      </el-form-item>
+          <el-icon :size="14"><component :is="item.icon" /></el-icon>
+          <span>{{ item.label }}</span>
+        </button>
+      </div>
 
-      <el-form-item prop="loginName">
-        <el-input
-          v-model="loginForm.loginName"
-          type="text"
-          name="username"
-          autocomplete="username"
-          :placeholder="$t('menu.login.form.loginName')"
-          size="large"
-          class="login-input"
-          @keydown.enter="handleKoiLogin"
-        >
-          <template #prefix>
-            <el-icon :size="16"><User /></el-icon>
-          </template>
-        </el-input>
-      </el-form-item>
-
-      <el-form-item prop="password">
-        <el-input
-          v-model="loginForm.password"
-          type="password"
-          name="password"
-          autocomplete="current-password"
-          :placeholder="$t('menu.login.form.password')"
-          show-password
-          size="large"
-          class="login-input"
-          @keydown.enter="handleKoiLogin"
-        >
-          <template #prefix>
-            <el-icon :size="16"><Lock /></el-icon>
-          </template>
-        </el-input>
-      </el-form-item>
-
-      <el-form-item prop="securityCode" v-if="loginConfig.captcha">
-        <div class="login-verify-wrap flex flex-col sm:flex-row items-start sm:items-center gap-12px w-full">
+      <!-- 账号密码登录 -->
+      <template v-if="loginMode === 'password'">
+        <!-- 租户编码：仅当所选入口需要按编码定位租户时才显示 -->
+        <el-form-item v-if="activeLoginEntry?.tenantCode" prop="tenantCode">
           <el-input
-            v-model="loginForm.securityCode"
+            v-model="loginForm.tenantCode"
             type="text"
-            :placeholder="$t('menu.login.form.securityCode')"
+            :placeholder="$t('menu.login.form.tenantCode')"
             size="large"
-            class="login-input w-full sm:flex-1"
+            class="login-input"
+            clearable
             @keydown.enter="handleKoiLogin"
           >
             <template #prefix>
-              <el-icon :size="16"><Postcard /></el-icon>
+              <el-icon :size="16"><OfficeBuilding /></el-icon>
             </template>
           </el-input>
-          <el-tooltip
-            effect="light"
-            placement="top"
-            :show-after="300"
+        </el-form-item>
+
+        <el-form-item prop="loginName">
+          <el-input
+            v-model="loginForm.loginName"
+            type="text"
+            name="username"
+            autocomplete="username"
+            :placeholder="$t('menu.login.form.loginName')"
+            size="large"
+            class="login-input"
+            @keydown.enter="handleKoiLogin"
           >
-            <template #content>
-              <el-image
-                v-if="loginForm.captchaPicture"
-                class="login-verify-tip-img block"
-                :src="loginForm.captchaPicture"
-                fit="contain"
-              />
-              <span v-else>{{ $t("menu.login.picture") }}</span>
+            <template #prefix>
+              <el-icon :size="16"><User /></el-icon>
             </template>
-            <div
-              class="login-verify-img w-100px h-40px flex-shrink-0 rounded-8px overflow-hidden cursor-pointer border-1px border-solid border-[--el-border-color-lighter]"
-              @click="handleCaptcha"
+          </el-input>
+        </el-form-item>
+
+        <el-form-item prop="password">
+          <el-input
+            v-model="loginForm.password"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            :placeholder="$t('menu.login.form.password')"
+            show-password
+            size="large"
+            class="login-input"
+            @keydown.enter="handleKoiLogin"
+          >
+            <template #prefix>
+              <el-icon :size="16"><Lock /></el-icon>
+            </template>
+          </el-input>
+        </el-form-item>
+
+        <el-form-item prop="securityCode" v-if="loginConfig.captcha">
+          <div class="login-verify-wrap flex flex-col sm:flex-row items-start sm:items-center gap-12px w-full">
+            <el-input
+              v-model="loginForm.securityCode"
+              type="text"
+              :placeholder="$t('menu.login.form.securityCode')"
+              size="large"
+              class="login-input w-full sm:flex-1"
+              @keydown.enter="handleKoiLogin"
             >
-              <el-image
-                v-if="loginForm.captchaPicture"
-                class="w-100px h-40px block"
-                :src="loginForm.captchaPicture"
-                fit="cover"
-              />
+              <template #prefix>
+                <el-icon :size="16"><Postcard /></el-icon>
+              </template>
+            </el-input>
+            <el-tooltip
+              effect="light"
+              placement="top"
+              :show-after="300"
+            >
+              <template #content>
+                <el-image
+                  v-if="loginForm.captchaPicture"
+                  class="login-verify-tip-img block"
+                  :src="loginForm.captchaPicture"
+                  fit="contain"
+                />
+                <span v-else>{{ $t("menu.login.picture") }}</span>
+              </template>
               <div
-                v-else
-                class="login-verify-placeholder w-100px h-40px flex flex-items-center flex-justify-center bg-[--el-fill-color-light] text-[--el-color-primary]"
+                class="login-verify-img w-100px h-40px flex-shrink-0 rounded-8px overflow-hidden cursor-pointer border-1px border-solid border-[--el-border-color-lighter]"
+                @click="handleCaptcha"
               >
-                <el-icon class="animate-spin"><Loading /></el-icon>
+                <el-image
+                  v-if="loginForm.captchaPicture"
+                  class="w-100px h-40px block"
+                  :src="loginForm.captchaPicture"
+                  fit="cover"
+                />
+                <div
+                  v-else
+                  class="login-verify-placeholder w-100px h-40px flex flex-items-center flex-justify-center bg-[--el-fill-color-light] text-[--el-color-primary]"
+                >
+                  <el-icon class="animate-spin"><Loading /></el-icon>
+                </div>
               </div>
-            </div>
-          </el-tooltip>
+            </el-tooltip>
+          </div>
+        </el-form-item>
+
+        <!-- OTP 动态口令弹窗（TOTP） -->
+        <ReOtpDialog ref="otpDialogRef" @confirm="handleOtpConfirm" />
+
+        <!-- 滑块验证（按 loginConfig.sliderType 渲染对应形态：simple = 普通滑动 / puzzle = 图片拼图） -->
+        <el-form-item v-if="loginConfig.slider">
+          <ReSliderVerify
+            ref="sliderRef"
+            :slider-type="loginConfig.sliderType || 'simple'"
+            :disabled="loading"
+            :tolerance="4"
+            :puzzle="loginConfig.sliderPuzzle"
+            @success="sliderPassed = true"
+          />
+        </el-form-item>
+
+        <!-- 记住账号密码：勾选且登录成功后才写入本机（凭据专用存储，强制 AES），取消勾选并登录成功即清除 -->
+        <el-form-item class="login-remember-item">
+          <el-checkbox v-model="rememberMe" :disabled="loading">
+            {{ $t("menu.login.remember") }}
+          </el-checkbox>
+        </el-form-item>
+
+        <el-form-item class="m-b-0">
+          <el-button
+            type="primary"
+            class="login-btn w-100% tracking-4px"
+            size="large"
+            :loading="loading"
+            @click="handleKoiLogin"
+          >
+            {{ loading ? $t("menu.login.loading") : $t("menu.login.in") }}
+          </el-button>
+        </el-form-item>
+
+        <div class="flex flex-justify-center m-t-12px" v-if="loginConfig.captcha">
+          <el-button text @click="handleCaptcha">
+            <span class="text-13px text-[--el-text-color-secondary] hover:text-[--el-color-primary] select-none transition-colors">
+              {{ $t("menu.login.picture") }}
+            </span>
+          </el-button>
         </div>
-      </el-form-item>
+      </template>
 
-      <!-- OTP 动态口令弹窗（TOTP） -->
-      <ReOtpDialog ref="otpDialogRef" @confirm="handleOtpConfirm" />
+      <!-- 短信验证码登录：手机号 + 验证码，发送走 /v2/sms/send（bizType=login） -->
+      <template v-else>
+        <el-form-item>
+          <el-input
+            v-model="smsForm.phone"
+            type="tel"
+            name="phone"
+            autocomplete="tel"
+            maxlength="11"
+            placeholder="请输入手机号"
+            size="large"
+            class="login-input"
+            @keydown.enter="handleSmsLogin"
+          >
+            <template #prefix>
+              <el-icon :size="16"><Iphone /></el-icon>
+            </template>
+          </el-input>
+        </el-form-item>
 
-      <!-- 滑块验证（按 loginConfig.sliderType 渲染对应形态：simple = 普通滑动 / puzzle = 图片拼图） -->
-      <el-form-item v-if="loginConfig.slider">
-        <ReSliderVerify
-          ref="sliderRef"
-          :slider-type="loginConfig.sliderType || 'simple'"
-          :disabled="loading"
-          :tolerance="4"
-          :puzzle="loginConfig.sliderPuzzle"
-          @success="sliderPassed = true"
-        />
-      </el-form-item>
+        <el-form-item>
+          <div class="login-sms-code">
+            <el-input
+              v-model="smsForm.code"
+              type="text"
+              name="smsCode"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="请输入短信验证码"
+              size="large"
+              class="login-input login-sms-code__input"
+              @keydown.enter="handleSmsLogin"
+            >
+              <template #prefix>
+                <el-icon :size="16"><Message /></el-icon>
+              </template>
+            </el-input>
+            <el-button
+              class="login-sms-code__send"
+              size="large"
+              :disabled="smsCountdown > 0"
+              :loading="sendingSmsCode"
+              @click="handleSendSmsCode"
+            >
+              {{ smsCountdown > 0 ? `${smsCountdown}s` : "获取验证码" }}
+            </el-button>
+          </div>
+        </el-form-item>
 
-      <!-- 记住账号密码：勾选且登录成功后才写入本机（凭据专用存储，强制 AES），取消勾选并登录成功即清除 -->
-      <el-form-item class="login-remember-item">
-        <el-checkbox v-model="rememberMe" :disabled="loading">
-          {{ $t("menu.login.remember") }}
-        </el-checkbox>
-      </el-form-item>
-
-      <el-form-item class="m-b-0">
-        <el-button
-          type="primary"
-          class="login-btn w-100% tracking-4px"
-          size="large"
-          :loading="loading"
-          @click="handleKoiLogin"
-        >
-          {{ loading ? $t("menu.login.loading") : $t("menu.login.in") }}
-        </el-button>
-      </el-form-item>
-
-      <div class="flex flex-justify-center m-t-12px" v-if="loginConfig.captcha">
-        <el-button text @click="handleCaptcha">
-          <span class="text-13px text-[--el-text-color-secondary] hover:text-[--el-color-primary] select-none transition-colors">
-            {{ $t("menu.login.picture") }}
-          </span>
-        </el-button>
-      </div>
+        <el-form-item class="m-b-0">
+          <el-button
+            type="primary"
+            class="login-btn w-100% tracking-4px"
+            size="large"
+            :loading="loading"
+            @click="handleSmsLogin"
+          >
+            {{ loading ? $t("menu.login.loading") : $t("menu.login.in") }}
+          </el-button>
+        </el-form-item>
+      </template>
 
       <!-- 第三方登录（与个人中心绑定面板共用 /v2/setting/sso/providers 配置源） -->
       <ReThirdLogin />
@@ -182,11 +269,11 @@
 </template>
 
 <script lang="ts" setup>
-import { User, Lock, Postcard, WarningFilled, OfficeBuilding } from "@element-plus/icons-vue";
-import { ref, reactive, toRef, computed, onMounted, nextTick, watch } from "vue";
+import { User, Lock, Postcard, WarningFilled, OfficeBuilding, Iphone, Message } from "@element-plus/icons-vue";
+import { ref, reactive, toRef, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
 import type { LoginTypeConfig } from "@repo/config";
-import { msgWarning, msgError, getCaptcha, thirdLoginExchange, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting, setActiveBaseUrl, applyActiveBaseUrl, resetActiveBaseUrl } from "@repo/core";
+import { msgWarning, msgError, msgSuccess, getCaptcha, thirdLoginExchange, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting, setActiveBaseUrl, applyActiveBaseUrl, resetActiveBaseUrl, sendSmsCode, smsLogin } from "@repo/core";
 import {
   readRememberedLogin,
   saveRememberedLogin,
@@ -259,6 +346,160 @@ watch(
 const activeLoginEntry = computed<LoginTypeConfig>(
   () => loginTypes.value.find((item) => item.type === activeLoginType.value) ?? loginTypes.value[0] ?? DEFAULT_LOGIN_TYPE,
 );
+
+/**
+ * 短信验证码登录是否可用（双条件）。
+ *
+ * <p>{@code login.smsLogin} 来自后端 {@code OpenSmsLogin} 开关；{@code other.smsLogin.enable}
+ * 是后端派生的「短信发信账号是否可用」结论（{@code SmsDeliveryCapability}）。
+ * 缺一即整块隐藏：只有开关、没有可用短信账号时，用户点进去也永远收不到验证码。</p>
+ */
+const smsLoginAvailable = computed(
+  () => loginConfig.value.smsLogin === true && getConfig().other?.smsLogin?.enable === true,
+);
+
+/** 登录方式：账号密码（默认） / 短信验证码，二者平级 */
+const loginMode = ref<"password" | "sms">("password");
+
+/** 方式切换按钮（图标取 Element Plus 组件，避免再引一套图标依赖） */
+const loginModes = [
+  { value: "password" as const, label: "账号密码", icon: User },
+  { value: "sms" as const, label: "短信登录", icon: Iphone },
+];
+
+/** 手机号 / 验证码规则与后端 {@code SmsLoginRequest} 的 @Pattern 保持一致，先在本地拦一道 */
+const SMS_PHONE_PATTERN = /^1[3-9]\d{9}$/;
+const SMS_CODE_PATTERN = /^\d{4,6}$/;
+
+/** 短信登录表单（不入 el-form 校验：手机号/验证码不是账号密码字段） */
+const smsForm = reactive({ phone: "", code: "" });
+const sendingSmsCode = ref(false);
+/** 重发倒计时（秒），大于 0 时禁止再点发送 */
+const smsCountdown = ref(0);
+let smsCountdownTimer: ReturnType<typeof setInterval> | undefined;
+
+/** 清掉倒计时（卸载 / 切回账号密码时） */
+const stopSmsCountdown = () => {
+  if (smsCountdownTimer) {
+    clearInterval(smsCountdownTimer);
+    smsCountdownTimer = undefined;
+  }
+};
+
+/** 60s 重发倒计时：只为防连点触发服务端限流，与验证码 5 分钟有效期无关 */
+const startSmsCountdown = (seconds = 60) => {
+  stopSmsCountdown();
+  smsCountdown.value = seconds;
+  smsCountdownTimer = setInterval(() => {
+    smsCountdown.value -= 1;
+    if (smsCountdown.value <= 0) stopSmsCountdown();
+  }, 1000);
+};
+
+/** 切换登录方式：清掉另一侧的输入，避免验证码在两种方式之间串用 */
+const switchLoginMode = (mode: "password" | "sms") => {
+  if (loading.value || mode === loginMode.value) return;
+  loginMode.value = mode;
+  loginForm.securityCode = "";
+  smsForm.code = "";
+  sliderPassed.value = false;
+  sliderRef.value?.reset();
+};
+
+// 短信通道不可用（配置被关掉 / 账号被停用）时强制回到账号密码，避免停在空面板上
+watch(smsLoginAvailable, (available) => {
+  if (!available && loginMode.value === "sms") {
+    loginMode.value = "password";
+    stopSmsCountdown();
+  }
+});
+
+onBeforeUnmount(stopSmsCountdown);
+
+/** 发送短信验证码（登录场景固定 bizType=login，与 SmsCodeServiceImpl 的校验键一致） */
+const handleSendSmsCode = async () => {
+  const phone = smsForm.phone.trim();
+  if (!SMS_PHONE_PATTERN.test(phone)) {
+    msgWarning("请输入正确的手机号");
+    return;
+  }
+  if (smsCountdown.value > 0 || sendingSmsCode.value) return;
+  sendingSmsCode.value = true;
+  try {
+    // 验证码签在所选入口的后端上：登录请求必须发往同一地址，否则校验必然失败
+    setActiveBaseUrl(activeLoginEntry.value.baseUrl);
+    const res = await sendSmsCode({ phone, bizType: "login" });
+    if (res?.data === false) {
+      msgError(res?.msg || "验证码发送失败");
+      return;
+    }
+    msgSuccess("验证码已发送，请查收");
+    startSmsCountdown();
+  } catch (error) {
+    msgError((error as Error)?.message || "验证码发送失败");
+  } finally {
+    sendingSmsCode.value = false;
+  }
+};
+
+/**
+ * 短信验证码登录。
+ *
+ * <p>登录成功后的收尾与账号密码登录（{@link submitLogin}）完全一致：
+ * setToken → roles/perms → refreshDefaultSetting → initAuthRouter → 目标页。</p>
+ */
+const handleSmsLogin = async () => {
+  if (loading.value) return;
+  const phone = smsForm.phone.trim();
+  const code = smsForm.code.trim();
+  if (!SMS_PHONE_PATTERN.test(phone)) {
+    msgWarning("请输入正确的手机号");
+    return;
+  }
+  if (!SMS_CODE_PATTERN.test(code)) {
+    msgWarning("请输入短信验证码");
+    return;
+  }
+  try {
+    loading.value = true;
+    authStore.$reset();
+    resetRouter();
+    setActiveBaseUrl(activeLoginEntry.value.baseUrl);
+    const res = await smsLogin({ phone, code });
+    const result = res?.data;
+    if (!result?.accessToken) {
+      // 登录失败：撤销入口地址，避免停在一个连不通的站点上反复重试
+      resetActiveBaseUrl();
+      msgError(res?.msg || "短信登录失败，请检查验证码");
+      return;
+    }
+    applyActiveBaseUrl();
+    userStore.setToken(result);
+    if (result.roles?.length) setUserRoles(result.roles);
+    if (result.perms?.length) setUserPerms(result.perms);
+    // 令牌就绪后补拉后端配置（能力开关等），失败静默降级为本地配置
+    void refreshDefaultSetting();
+    const username =
+      (typeof result.username === "string" && result.username) ||
+      ((result.userInfo as Record<string, unknown> | undefined)?.sysUserUsername as string) ||
+      phone;
+    tabsStore.$reset();
+    userStore.setLoginName(username);
+    keepAliveStore.$reset();
+    await nextTick();
+    await initAuthRouter(router);
+    if (props.forced) {
+      emit("success");
+    } else {
+      await router.replace(HOME_URL);
+    }
+  } catch (error) {
+    resetActiveBaseUrl();
+    msgError((error as Error)?.message || "短信登录失败，请重试");
+  } finally {
+    loading.value = false;
+  }
+};
 // 品牌 Logo：支持 app.yaml 配置（本地资源路径或外部 URL），为空时回退内置 logo
 const resolvedLogoUrl = computed(() => {
   const custom = loginConfig.value.logoUrl;
@@ -718,6 +959,70 @@ const submitLogin = async (otpCode: string) => {
   &:active {
     transform: translateY(0);
   }
+}
+
+/* 登录方式切换（账号密码 / 短信登录）
+   与「登录类型卡片」区分：卡片换的是后端入口（平台 / 租户），这里换的是同后端的登录方式 */
+.login-mode-switch {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 20px;
+  background: var(--el-fill-color-light);
+  border-radius: 10px;
+}
+
+.login-mode-switch__item {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  transition:
+    background var(--el-transition-duration, 0.2s) ease,
+    color var(--el-transition-duration, 0.2s) ease;
+
+  &:hover:not(:disabled):not(.is-active) {
+    color: var(--el-color-primary);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  &.is-active {
+    color: var(--el-color-primary);
+    background: var(--el-bg-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* 短信验证码 + 获取按钮同行：按钮定宽，输入框吃掉剩余宽度 */
+.login-sms-code {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+.login-sms-code__input {
+  flex: 1;
+}
+
+.login-sms-code__send {
+  flex-shrink: 0;
+  min-width: 104px;
+  border-radius: 10px;
 }
 
 .login-mobile-brand {

@@ -37,6 +37,7 @@ export const THIRD_PARTY_SETTING_GROUPS: readonly string[] = [
   "taobao",
   "wechat",
   "wechat_enterprise",
+  "wechat_mini",
   "wechat_mp",
   "weibo",
 ];
@@ -120,6 +121,7 @@ const SSO_SWITCH_LABELS: Record<string, string> = {
   Oidc: "OIDC 单点登录",
   Wechat: "微信登录",
   Wechat_mp: "微信公众号登录",
+  Wechat_mini: "微信小程序登录",
   Wechat_enterprise: "企业微信登录",
   Qq: "QQ 登录",
   Alipay: "支付宝登录",

@@ -476,6 +476,14 @@ export interface LoginConfig {
   types: LoginTypeConfig[];
   /** 是否启用图形验证码 */
   captcha: boolean;
+  /**
+   * 是否显示「短信验证码登录」入口。
+   *
+   * <p>来自后端配置 {@code OpenSmsLogin}（default 分组，落到 {@code login.smsLogin}）；
+   * 入口最终是否出现还要看 {@code other.smsLogin.enable}（短信发信账号是否可用），
+   * 两者同时为真才显示。见 {@code ReLoginForm} 的 {@code smsLoginAvailable}。</p>
+   */
+  smsLogin: boolean;
   /** 是否启用 OTP 动态口令（TOTP，6 位数字） */
   otp: boolean;
   /** 是否启用滑块验证（前端滑动校验） */
@@ -600,6 +608,26 @@ export interface OtherConfig {
   emptyState: EmptyStateConfig;
   /** 多标签页栏（app.yaml other.tabsBar） */
   tabsBar: TabsBarConfig;
+  /**
+   * 邮箱验证码能力（后端派生配置 {@code other.emailVerify.enable}）。
+   *
+   * <p>服务器邮箱发信通道是否已配置，个人中心「验证邮箱」等入口据此显隐。
+   * 未下发时按关闭处理。</p>
+   */
+  emailVerify?: CapabilitySwitchConfig;
+  /**
+   * 短信发信能力（后端派生配置 {@code other.smsLogin.enable}）。
+   *
+   * <p>服务器短信账号是否可用；与 {@code login.smsLogin} 一起决定登录页
+   * 「短信验证码登录」入口是否出现。</p>
+   */
+  smsLogin?: CapabilitySwitchConfig;
+}
+
+/** 单项能力开关（后端派生下发，{@code enable} 表示可用） */
+export interface CapabilitySwitchConfig {
+  /** 能力是否可用 */
+  enable: boolean;
 }
 
 /**

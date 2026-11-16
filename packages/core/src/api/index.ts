@@ -243,6 +243,47 @@ export function thirdLoginExchange(data: Record<string, unknown>) {
     .then<ApiResult<LoginResult>>((r) => r.data);
 }
 
+/** 微信小程序扫码登录码（后端直接返回 data URL，前端不再自行编码） */
+export interface WechatMiniQrCode {
+  /** 本次扫码场景值：轮询与换票都用它 */
+  scene: string;
+  /** 小程序码图片（data:image/png;base64,...） */
+  image: string;
+  /** 小程序落地页，空串表示首页 */
+  page?: string;
+  /** 打开的小程序版本：release / trial / develop */
+  envVersion?: string;
+  /** 有效期（秒） */
+  expireSeconds?: number;
+}
+
+/** 取小程序登录码（服务端调微信 wxa/getwxacodeunlimit，未配置凭据时回错误文案） */
+export function wechatMiniQrCode() {
+  return getApiHttp()
+    .get("/v2/user/third/wechat_mini/qrcode")
+    .timeout(8000)
+    .retry(false)
+    .then<ApiResult<WechatMiniQrCode>>((r) => r.data);
+}
+
+/** 轮询小程序扫码状态：WAITING / CONFIRMED / EXPIRED */
+export function wechatMiniQrState(scene: string) {
+  return getApiHttp()
+    .get("/v2/user/third/wechat_mini/qrcode/state")
+    .query({ scene })
+    .timeout(5000)
+    .retry(false)
+    .then<ApiResult<{ scene?: string; status?: string }>>((r) => r.data);
+}
+
+/** 小程序扫码换票：scene 一次性使用，成功后返回系统登录结果（后端按 @RequestParam 取参） */
+export function wechatMiniQrExchange(scene: string) {
+  return getApiHttp()
+    .post("/v2/user/third/wechat_mini/qrcode/exchange")
+    .query({ scene })
+    .then<ApiResult<LoginResult>>((r) => r.data);
+}
+
 /**
  * 获取远程菜单（并发去重 + 网络优先 + 缓存兜底）
  *
