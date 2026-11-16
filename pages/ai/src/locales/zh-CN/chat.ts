@@ -491,6 +491,7 @@ export default {
     preview: '预览',
     source: '源码',
     refreshPreview: '刷新预览',
+    openInBrowser: '在内置浏览器中打开',
     imageAlt: '图片预览',
     unsupportedPreview: '此文件暂不支持预览',
     openInExplorer: '在资源管理器中打开',

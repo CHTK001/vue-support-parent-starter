@@ -27,6 +27,13 @@
                     {{ tab.name }}
                 </span>
                 <div class="flex items-center gap-1 shrink-0">
+                    <!-- 在内置浏览器中打开（HTML / SVG）：看渲染效果而不用切源码 -->
+                    <button v-if="canOpenInBrowser" class="preview-close-btn"
+                        :title="t('chat.workspace.openInBrowser')" @click="handleOpenInBrowser">
+                        <el-icon :size="14">
+                            <Globe20Regular class="text-gray-500 dark:text-gray-400" />
+                        </el-icon>
+                    </button>
                     <!-- 手动刷新预览按钮 -->
                     <button class="preview-close-btn" :title="t('chat.workspace.refreshPreview')" @click="handleManualRefresh">
                         <el-icon :size="14">
@@ -127,7 +134,7 @@ import { useI18n } from 'vue-i18n'
 import { apiService } from '@/services/ApiService'
 import { loadAuthenticatedImage } from '@/utils/authImage'
 import { LoadingOutlined } from '@vicons/antd'
-import { Eye20Filled, Eye20Regular, Code20Filled, Code20Regular, ArrowClockwise20Regular } from '@vicons/fluent'
+import { Eye20Filled, Eye20Regular, Code20Filled, Code20Regular, ArrowClockwise20Regular, Globe20Regular } from '@vicons/fluent'
 import { DocumentCopy, Plus } from '@element-plus/icons-vue'
 import { useStorage } from '@vueuse/core'
 import { usePreviewMarkdown, buildMarkdownSrcDoc } from '@/composables/useMarkdown'
@@ -252,6 +259,14 @@ const isMarkdownFile = computed(() => {
 })
 
 const canTogglePreview = computed(() => isMarkdownFile.value || isHtmlFile.value)
+
+/** SVG 是图片预览，但同样是「可直接看渲染效果」的文件，给一个内置浏览器入口 */
+const isSvgFile = computed(() => {
+    if (!selectedFile.value) return false
+    return selectedFile.value.extension.toLowerCase() === '.svg'
+})
+
+const canOpenInBrowser = computed(() => isHtmlFile.value || isSvgFile.value)
 
 /** Electron file:// 预览：本地文件，无服务端鉴权，仍用 src 加载 */
 const isLocalHtmlPreview = computed(
@@ -485,6 +500,33 @@ async function loadHtmlPreviewLocal(): Promise<void> {
 function handleManualRefresh(): void {
     if (!selectedFile.value) return
     loadFileContent(selectedFile.value.path, true, false)
+}
+
+/**
+ * 在内置浏览器中打开当前 HTML / SVG 文件。
+ *
+ * <p>用 data URL 交给内置浏览器：文件正文已由带鉴权请求头的
+ * {@link loadFileContent} 取回，地址里不拼任何令牌；HTML / SVG 都是文本，
+ * data URL 足够，也不存在 object URL 在标签未关时被 revoke 的生命周期问题。</p>
+ */
+async function handleOpenInBrowser(): Promise<void> {
+    if (!selectedFile.value || !props.sessionId) return
+    let content = fileContent.value
+    if (!content) {
+        // SVG 走的是图片 blob 预览，正文不在 fileContent 里，这里补读一次
+        try {
+            const resp = await apiService.getWorkspaceFile(props.sessionId, selectedFile.value.path)
+            content = resp.content
+        } catch (error) {
+            console.error('[FilePreviewPanel] Read file for browser preview failed:', error)
+            message.error(t('chat.workspace.loadFileFailed'))
+            return
+        }
+    }
+    const mime = isHtmlFile.value ? 'text/html' : 'image/svg+xml'
+    const url = `data:${mime};charset=utf-8,${encodeURIComponent(content)}`
+    const { previewUrl } = await import('@/utils/workspacePreview')
+    await previewUrl(url)
 }
 
 function onImageError(event: Event | string): void {

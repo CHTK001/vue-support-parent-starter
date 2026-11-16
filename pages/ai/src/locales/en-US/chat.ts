@@ -483,6 +483,7 @@ export default {
     preview: 'Preview',
     source: 'Source',
     refreshPreview: 'Refresh Preview',
+    openInBrowser: 'Open in Built-in Browser',
     imageAlt: 'Image Preview',
     unsupportedPreview: 'This file does not support preview',
     openInExplorer: 'Open in Explorer',
