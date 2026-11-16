@@ -1,7 +1,7 @@
 <template>
     <teleport to="body">
         <div v-if="show" ref="popoverRef"
-            class="popover-shell fixed border border-white/40 dark:border-white/10 shadow-[0_0_16px_rgba(0,0,0,0.10)] dark:shadow-[0_0_8px_rgba(0,0,0,0.4)] overflow-hidden flex flex-col z-2000 pointer-events-auto px-1 py-1 backdrop-blur-xl backdrop-saturate-150"
+            class="popover-shell fixed border border-white/40 dark:border-white/10 overflow-hidden flex flex-col z-2000 pointer-events-auto px-1 py-1 backdrop-blur-xl backdrop-saturate-150"
             :class="[popperClass, entering ? 'pop-init' : 'pop-run']" :style="popoverStyle" @click.stop
             @mouseenter="$emit('mouseenter', $event)" @mouseleave="$emit('mouseleave', $event)">
                 <!-- Header 槽位 -->
@@ -29,6 +29,14 @@
       保留一点透明度只为和页面层次呼应，实际观感接近实面。
     */
     background: color-mix(in srgb, var(--color-surface, #ffffff) 92%, transparent);
+    /*
+      浮层投影。原先是模板上的任意值 shadow-[0_0_16px_rgba(0,0,0,0.10)]：
+      零偏移 + 10% 黑 + 16px 模糊，压在实面白底上几乎看不到落差，弹层像直接
+      贴在内容上，风格宫格这种大面板尤其显脏。改走项目自己的浮层令牌
+      --shadow-pop（refactor.css 的 :root / html.dark 各有一份，暗色下自动换成
+      更重的黑色投影），本组件被多个宿主复用，取不到令牌时退回同值字面量。
+    */
+    box-shadow: var(--shadow-pop, 0 12px 32px rgba(15, 23, 42, 0.12));
 }
 
 .popover-content {
