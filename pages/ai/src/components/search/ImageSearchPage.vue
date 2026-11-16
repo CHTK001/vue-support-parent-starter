@@ -830,7 +830,9 @@ async function prefillFromLibrary(): Promise<void> {
     return
   }
   try {
-    const blob = await apiService.imageBlob(id)
+    // 用 composable 的 group（上面 setGroups 已把它同步到 URL 带来的那一组）：
+    // 记录 id 是分组内序号，取原图必须带同一个分组，否则会取到默认组同号的另一张图。
+    const blob = await apiService.imageBlob(id, group.value)
     if (!blob) {
       toast.error('取原图失败：这条记录可能只留了缩略图，或原图已被清理')
       return

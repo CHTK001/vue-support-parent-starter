@@ -97,8 +97,8 @@ export interface ImageListParams {
 export type ImageSearchList = ImageSearchHit[];
 
 export interface ImageSearchApi {
-  /** 以图搜图状态（是否已配置特征模型、当前模型、底库规模） */
-  status(): Promise<ImageSearchStatus>;
+  /** 以图搜图状态（是否已配置特征模型、当前模型、该分组的底库规模） */
+  status(group?: string): Promise<ImageSearchStatus>;
   /** 当前账号下已存在数据的分组名（不含 default 的兜底，由调用方自行补） */
   listImageGroups(): Promise<string[]>;
   /** 把一张图加入底库（特征提取 + 写入） */
@@ -117,14 +117,15 @@ export interface ImageSearchApi {
   /**
    * 取一条底库记录的原图（后端在登记时落存的原图）二进制。
    *
-   * <p>注意这个端点没有 `group` 参数：后端对 `{id}/image` 始终走默认组的 Store，
-   * 所以它只适合按 id 盲取，分组筛选应交给 `url` + {@link resolveImageUrl} 的
-   *鉴权加载器，不要依赖它看大图。</p>
+   * <p>必须带分组：记录 id 是**分组内序号**，同一个 id 在不同分组里指向不同的图。
+   * 不带分组时后端按默认组解释，在非默认组里要么 404，要么取到默认组同号的另一张图
+   * （界面上安静地显示一张不相干的图，比报错更难发现）。</p>
    *
-   * @param id 底库记录标识
+   * @param id    底库记录标识（分组内序号）
+   * @param group 记录所属分组；不传 = 后端按默认组
    * @return 原图二进制；无图时 null
    */
-  imageBlob(id: number): Promise<Blob | null>;
+  imageBlob(id: number, group?: string): Promise<Blob | null>;
 }
 
 /** 拆 ReturnResult 信封；兼容部分链路已拆好的情况。 */
@@ -193,17 +194,26 @@ export function toGroups(res: unknown): string[] {
 /**
  * 拼「查看大图」端点地址。
  *
- * <p>注意：本端点没有 `group` 参数（与 `/list` 的团队分离），所以不搞地址拼接，
- * 直接返回相对路径（由 `client.get` 拼上 baseURL）。分组筛选请走 `url` 字段
- * 与 {@link resolveImageUrl}。</p>
+ * <p>分组必须进地址：记录 id 是分组内序号，不带 group 的地址会落到默认组，
+ * 在非默认组里要么 404、要么取到默认组同号的另一张图。这里保留相对路径形态
+ * （不带 /v2），由 {@code client.get} 拼上 baseURL。</p>
+ *
+ * @param id    记录标识
+ * @param group 记录所属分组
+ * @returns 带分组参数的相对路径
  */
-function imageIdPath(id: number): string {
-  return `/image-search/${id}/image`;
+function imageIdPath(id: number, group?: string): string {
+  const g = normalizeGroup(group);
+  return g
+    ? `/image-search/${id}/image?group=${encodeURIComponent(g)}`
+    : `/image-search/${id}/image`;
 }
 
 export const imageSearchApi: ImageSearchApi = {
-  async status(this: ApiContext) {
-    const res = await this._request("/image-search/status");
+  async status(this: ApiContext, group?: string) {
+    const res = await this._request("/image-search/status", {
+      params: { group: normalizeGroup(group) },
+    });
     const data = unwrap<Partial<ImageSearchStatus>>(res) ?? {};
     return {
       available: !!data.available,
@@ -281,14 +291,14 @@ export const imageSearchApi: ImageSearchApi = {
     return unwrap<boolean>(res) === true;
   },
 
-  async imageBlob(this: ApiContext, id: number): Promise<Blob | null> {
+  async imageBlob(this: ApiContext, id: number, group?: string): Promise<Blob | null> {
     // 图片端点返回二进制，不能走 JSON 通道；令牌由框架客户端自动带上，
     // 绝不进 URL（与 utils/authImage 同一条口径）。
     if (!id) {
       return null;
     }
     try {
-      const res = await this.client.get(imageIdPath(id), { responseType: "blob" });
+      const res = await this.client.get(imageIdPath(id, group), { responseType: "blob" });
       return res;
     } catch {
       return null;

@@ -1239,7 +1239,7 @@ async function loadStatus(): Promise<void> {
     await modelConfig.load()
     available.value = modelConfig.imageReady
     modelName.value = modelConfig.imageFeatureModel
-    statusInfo.value = await apiService.status()
+    statusInfo.value = await apiService.status(group.value)
   } catch {
     /* 状态读不到不阻断页面：列表仍然可看，只是缺维度信息 */
   } finally {
@@ -1276,7 +1276,7 @@ async function refresh(): Promise<void> {
   await load(page.value)
 }
 
-/** 切分组 = 换一个库：回第 1 页，清勾选与选中项 */
+/** 切分组 = 换一个库：回第 1 页，清勾选与选中项，并重读该组的状态 */
 async function selectGroup(g: string): Promise<void> {
   if (g === group.value) {
     return
@@ -1284,6 +1284,9 @@ async function selectGroup(g: string): Promise<void> {
   group.value = g
   selected.value = new Set()
   activeId.value = null
+  // 状态（count / dimension）是分组属性：不重读就会把上一组的数字带到新组，
+  // 表现为「新组明明有图却显示上一组的维度」。
+  await loadStatus()
   await load(1)
 }
 
