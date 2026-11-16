@@ -1521,12 +1521,19 @@ const syncSections = computed(() => {
     sections.push({ title: '上游目录', lines: [], muted: String(body.fetch_error) })
   }
 
-  // 公开目录：说明 / 能力位 / 计费补位，流式与异步目录不提供，如实写「未收录」
+  // 公开目录：说明 / 能力位 / 计费补位；流式走协议、异步只认实测端点（口径 A′）
   const catalog = body.catalog ?? {}
   if (catalog.supported) {
     const caps = catalog.capabilities ?? {}
     const catalogDesc = catalog.descriptions ?? {}
     const catalogPricing = catalog.pricing ?? {}
+    const capText = (value: unknown) => (value === true ? '支持' : value === false ? '不支持' : '未收录')
+    // 来源只认后端口径：protocol=协议必备行为；probe=官方批量端点实测
+    const srcText = (value: unknown) => (value === 'protocol' ? '协议' : value === 'probe' ? '端点实测' : '')
+    const withSource = (text: string, source: unknown) => {
+      const label = srcText(source)
+      return label ? `${text}（${label}）` : text
+    }
     sections.push({
       title: '模型目录',
       lines: [
@@ -1541,7 +1548,9 @@ const syncSections = computed(() => {
               : '实时价格：该厂商暂无官方页面抓取器'),
         `能力位：思考 ${caps.reasoning ?? 0}，工具调用 ${caps.tool_call ?? 0}，附件 ${caps.attachment ?? 0}，上下文 ${caps.context_window ?? 0}`,
       ],
-      muted: `流式 / 异步：公开目录未收录${catalog.doc ? `；文档：${catalog.doc}` : ''}`,
+      muted: `流式：${withSource(capText(catalog.streaming), catalog.streaming_source)}；`
+        + `异步：${withSource(capText(catalog.async), catalog.async_source)}`
+        + (catalog.doc ? `；文档：${catalog.doc}` : ''),
     })
   } else if (catalog.message) {
     sections.push({ title: '模型目录', lines: [], muted: String(catalog.message) })
