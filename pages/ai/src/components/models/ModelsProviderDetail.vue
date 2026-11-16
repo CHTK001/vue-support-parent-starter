@@ -972,7 +972,7 @@ const cardMeta = (model: any) => {
     const rules = Array.isArray(mt.pricing_rules) ? mt.pricing_rules : []
     const peak = rules.find((r: any) => r?.item === 'output' && r?.peak_price != null)
     const extras = rules
-      .filter((r: any) => r?.item && !['input', 'output', 'cache_read', 'cache_write'].includes(r.item))
+      .filter((r: any) => r?.item && !['input', 'output', 'input_cache_hit', 'input_cache_miss', 'cache_read', 'cache_write'].includes(r.item))
       .map((r: any) => `${r.note || r.item}${r.quantity ? `（${r.quantity} ${r.unit || ''}）` : ''}`)
     items.push({
       label: '价格',
