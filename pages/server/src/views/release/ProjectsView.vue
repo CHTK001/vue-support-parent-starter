@@ -3191,7 +3191,7 @@ function ctxCommandsFor(item: Project): CtxCommandItem[] {
       actuatorMaybe = !probe || probe.actuator === true;
       if (actuatorMaybe) {
         actuatorItems.push({ command: 'actuator', label: '指标', icon: 'DataAnalysis' });
-        actuatorItems.push({ command: 'actuator-loggers', label: '日志管理（热更新级别）', icon: 'Document' });
+        actuatorItems.push({ command: 'actuator-loggers', label: '日志管理', icon: 'Document' });
         actuatorItems.push({ command: 'actuator-endpoints', label: '其它端点', icon: 'Grid' });
       }
     }
