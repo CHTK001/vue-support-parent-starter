@@ -143,6 +143,35 @@ export function isChannelProvider(provider: any): boolean {
 export const DEFAULT_AUTH_SCHEME = 'bearer'
 
 /**
+ * 免登录内置对话渠道。
+ *
+ * <p>这类渠道没有上游地址、也没有 API Key：模型目录由后端 {@code ChatClient}
+ * 扩展（SPI）自己给出，鉴权由客户端按渠道自己的登录态处理。前端据此：</p>
+ * <ul>
+ *   <li>表单不校验 API 地址；</li>
+ *   <li>「从提供商获取模型列表」不要求地址与 Key，直接走后端内置模型清单。</li>
+ * </ul>
+ *
+ * <p>值为 SPI 扩展名；渠道管理物化出来的 {@code chat-<渠道>} 行会去掉前缀后再比对。</p>
+ */
+export const KEYLESS_CHANNEL_PROVIDER_IDS: ReadonlySet<string> = new Set([
+  'duckduckgo',
+])
+
+/**
+ * 判断 provider 是否为免登录内置对话渠道。
+ *
+ * @param provider provider 对象（来自 /api/providers）
+ * @returns platform（去掉 {@code chat-} 前缀）∈ {@link KEYLESS_CHANNEL_PROVIDER_IDS}
+ */
+export function isKeylessChannelProvider(provider: any): boolean {
+  if (!provider) return false
+  let platform = String(provider.platform ?? provider.provider ?? '').toLowerCase().trim()
+  if (platform.startsWith('chat-')) platform = platform.slice('chat-'.length)
+  return KEYLESS_CHANNEL_PROVIDER_IDS.has(platform)
+}
+
+/**
  * 由落库字段反推表单内部认证方式，供编辑回显。
  *
  * @param authScheme 后端 auth_scheme
@@ -212,6 +241,10 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'commandcode', name: 'commandcode', description: '聚合 API，支持数百个模型', protocol: 'openai', defaultApiUrl: 'https://api.commandcode.ai/provider/v1', keywords: ['router'] },
   { id: 'agnes', name: 'Agnes AI', description: '聚合 API，免费使用多种模型', protocol: 'openai', defaultApiUrl: 'https://apihub.agnes-ai.cn/v1', keywords: ['apihub'] },
   { id: 'free-channel', name: '免费渠道', description: '聚合多个免费模型，按模型自动切换上游地址与全局 Key，支持多账号限流切换', protocol: 'openai', defaultApiUrl: 'https://free.nomifun.com/v1', keywords: ['free', 'channel', 'mianfei', '免费渠道'] },
+  // 免登录对话渠道：没有上游地址、也没有 Key，模型目录由后端 ChatClient 扩展自己提供
+  // （见 model.constants.ts 的 KEYLESS_CHANNEL_PROVIDER_IDS）。落库 auth_scheme=none、
+  // base_url 留空；「从提供商获取模型列表」走内置模型清单，加进来的模型可直接调用。
+  { id: 'duckduckgo', name: 'DuckDuckGo', description: '免登录对话渠道，无需 API 地址与 Key（模型由内置客户端提供）', protocol: 'openai', keywords: ['duck', 'ddg', '免登录', 'duck.ai'], defaultAuthMode: 'none' },
   { id: 'opencode', name: 'OpenCode', description: '免费开源 API，支持多种模型', protocol: 'openai', defaultApiUrl: 'https://opencode.ai/zen/v1', keywords: ['zen'] },
   { id: 'siliconflow', name: 'SiliconFlow 硅基流动', description: '国内 AI 模型平台，支持 DeepSeek、Qwen 等', protocol: 'openai', defaultApiUrl: 'https://api.siliconflow.cn/v1', keywords: ['jiguang', 'silicon'] },
   { id: 'bai', name: 'b.ai', description: '免费 AI 模型平台，支持 DeepSeek 等', protocol: 'openai', defaultApiUrl: 'https://api.b.ai/v1', keywords: [] },

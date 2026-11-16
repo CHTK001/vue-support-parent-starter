@@ -213,7 +213,7 @@ import {
 import {
   MODEL_SUBTYPE_LABELS, MODEL_TYPE_ICON, MODEL_TYPE_KIND, TASK_TO_TYPE, TYPE_TO_TASK,
 } from './model.constants'
-import { isChannelProvider } from './model.constants'
+import { isChannelProvider, isKeylessChannelProvider } from './model.constants'
 import { channelApi } from '@/services/javaApi'
 import { SearchOutlined, ScienceOutlined } from '@vicons/material'
 import {
@@ -578,6 +578,9 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
   // 读取后端 extra.routes 的路由键清单，而不是拦在「请先配 API 地址与 Key」。
   const rawPlatform = String(provider?.rawPlatform || provider?.platform || provider?.provider || '').toLowerCase()
   const freeChannelProvider = rawPlatform === 'free-channel' || rawPlatform === 'free'
+  // 免登录内置渠道（DuckDuckGo 等）：没有地址、没有 Key，模型目录由后端 ChatClient
+  // 扩展提供；渠道管理物化出来的 chat-<渠道> 行同样按这个口径处理（不走去 /api/channels 查账号）
+  const keylessProvider = isKeylessChannelProvider(provider)
 
   // 本地推理（ONNX）无需 base_url 与 Key：模型目录由后端本地模型门面提供，
   // 不能沿用云端提供商的「必须配好地址和 Key 才允许拉取」的前置校验，否则加模型流程会被堵死
@@ -586,7 +589,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
     provider?.provider_id === 'onnx' ||
     String(provider?.platform || provider?.provider || '').toLowerCase().includes('onnx')
 
-  if (channelProviderFlag) {
+  if (channelProviderFlag && !keylessProvider) {
     // 渠道 provider：从渠道管理页拉取已启用模型（渠道总开关 + 单模型开关双重过滤）
     providerId.value = provider?.id || provider?.provider_id || ''
     openIsChannel.value = true
@@ -661,7 +664,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
     return
   }
 
-  if (!isLocalProvider && !freeChannelProvider) {
+  if (!isLocalProvider && !freeChannelProvider && !keylessProvider) {
     const hasApiKey =
       provider.apiKey ||
       (provider.apiKeyList && provider.apiKeyList.length > 0) ||

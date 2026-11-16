@@ -15,7 +15,7 @@ import ProviderLogo from './ProviderLogo.vue'
 import OnnxExternalDialog from './OnnxExternalDialog.vue'
 import { apiService } from '../../services/ApiService'
 import { adminApi } from '@/framework/context'
-import { KEY_STRATEGIES, AUTH_SCHEMES, DEFAULT_AUTH_SCHEME, deriveAuthMode, isChannelProvider, CHANNEL_PROVIDER_IDS } from './model.constants'
+import { KEY_STRATEGIES, AUTH_SCHEMES, DEFAULT_AUTH_SCHEME, deriveAuthMode, isChannelProvider, isKeylessChannelProvider, CHANNEL_PROVIDER_IDS } from './model.constants'
 import { parseHeaders, validateHeadersText, resolveProviderBrand, headersToText } from './model.utils'
 import { channelApi, type ChannelSummary } from '@/services/javaApi'
 import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
@@ -328,6 +328,14 @@ const isFreeChannelProvider = computed(() => {
 
 /** 当前供应商是否是路由组：没有真实上游地址与凭证，成员来自模型库，策略在组内维护 */
 const isRouterGroupProvider = computed(() => String(providerType.value || '').toLowerCase() === 'router-group')
+
+/**
+ * 当前供应商是否是免登录内置对话渠道（DuckDuckGo 等）。
+ *
+ * <p>这类渠道没有上游地址与 Key：模型目录由后端 ChatClient 扩展提供，
+ * 因此表单既不校验地址，也不采集 Key。</p>
+ */
+const isKeylessChannelProviderFlag = computed(() => isKeylessChannelProvider({ platform: providerType.value }))
 
 /** 路由表编辑行：点击「添加」时新增，保存时写回 extra.routes */
 const formRoutes = ref<RouteTableRow[]>([])
@@ -714,9 +722,10 @@ const onExternalSaved = async () => {
 
 const handleSave = async () => {
   if (!form.name.trim()) { message.warning(t('settings.models.nameRequired')); return }
-  // ONNX 纯本地推理没有远端地址；路由组也没有真实上游地址，都不校验 apiUrl
-  // （模型库驱动，成员各自带着地址与凭证）
-  if (!isLocalProvider.value && !isChannelProviderFlag.value && !isRouterGroupProvider.value && !form.apiUrl.trim()) {
+  // ONNX 纯本地推理没有远端地址；路由组也没有真实上游地址；免登录渠道（DuckDuckGo 等）
+  // 的模型目录由内置对话客户端提供 —— 这三种都不校验 apiUrl
+  if (!isLocalProvider.value && !isChannelProviderFlag.value && !isRouterGroupProvider.value
+      && !isKeylessChannelProviderFlag.value && !form.apiUrl.trim()) {
     message.warning(t('settings.models.apiUrlRequired')); return
   }
   const headerErrors = validateHeadersText(form.customHeaders, t)
@@ -763,7 +772,10 @@ const handleSave = async () => {
     // ONNX 的 base_url 是后端占位值（模型注册表驱动），表单已不展示该字段，
     // 不回传，避免把空串覆盖进库里
     // 路由组同样不传 base_url：地址留空，成员是库里的真实上游
-    if (!isLocalProvider.value && !isRouterGroupProvider.value) updateData.base_url = form.apiUrl
+    // 免登录渠道也没有上游地址：不传，避免把展示用的空串写回
+    if (!isLocalProvider.value && !isRouterGroupProvider.value && !isKeylessChannelProviderFlag.value) {
+      updateData.base_url = form.apiUrl
+    }
     // 凭证必须走 credentials：后端 ApiProviderController#updateProvider 只认 body.credentials，
     // 顶层 apiKey 不在它的字段表里 —— 早先这里发 apiKey，接口照样 200、前端照样弹「已更新」，
     // 但 Key 一个字节都没落库（用户报的「key 无法修改、无法保存」）。
@@ -780,18 +792,25 @@ const handleSave = async () => {
   } else {
     // 依据名称 / 地址推断品牌，避免把自定义添加的 DeepSeek 等存成协议图标
     const inferred = resolveProviderBrand({ name: form.name, base_url: form.apiUrl })
-    const platformVal = inferred !== 'custom' ? inferred : providerType.value
+    // 免登录渠道的 platform 必须就是模板 id（后端按它去 ChatClient SPI 里找内置客户端），
+    // 不能交给品牌推断：DuckDuckGo 名字变体很多，推断成 custom 就调不通
+    const platformVal = isKeylessChannelProviderFlag.value
+      ? String(providerType.value || '').toLowerCase()
+      : (inferred !== 'custom' ? inferred : providerType.value)
     // 路由组没有真实上游：base_url 留空（后端对 router-group 不做必填校验），凭证也空
     const payload: any = {
       platform: platformVal, name: form.name,
-      base_url: isRouterGroupProvider.value || isChannelProviderFlag.value ? '' : form.apiUrl,
-      auth_scheme: isRouterGroupProvider.value ? 'none' : (isLocalProvider.value ? 'none' : auth.authScheme),
+      base_url: isRouterGroupProvider.value || isChannelProviderFlag.value || isKeylessChannelProviderFlag.value
+        ? '' : form.apiUrl,
+      auth_scheme: isRouterGroupProvider.value || isKeylessChannelProviderFlag.value || isLocalProvider.value
+        ? 'none' : auth.authScheme,
       enabled: true, initial_model: null,
       extra: buildExtra(),
     }
     // 账号渠道 provider 凭据由渠道管理页绑定（sys_ai_provider_connection），表单不采集 api_key
     // 路由组同样不采集：成员留在模型库，成员自己的 Key 在成员行上维护
-    if (!isChannelProviderFlag.value && !isRouterGroupProvider.value) {
+    // 免登录渠道也没有 Key：内置客户端按渠道自身登录态发请求
+    if (!isChannelProviderFlag.value && !isRouterGroupProvider.value && !isKeylessChannelProviderFlag.value) {
       payload.credentials = { api_key: effectiveApiKey }
     }
     if (form.proxyUrl.trim()) payload.proxy = form.proxyUrl.trim()
@@ -957,6 +976,15 @@ const protocolOptions = [
           </p>
         </div>
       </div>
+      <div v-else-if="isKeylessChannelProviderFlag" class="pf-line">
+        <span class="pf-line-label">{{ t('settings.models.apiUrl') }}</span>
+        <div class="pf-line-ctrl">
+          <p class="pf-note">
+            免登录渠道没有上游地址：地址与 Key 都不用填。模型清单由内置对话客户端提供，
+            「从提供商获取模型列表」里加进来的模型可以直接在会话中调用。
+          </p>
+        </div>
+      </div>
       <div v-else class="pf-line">
         <span class="pf-line-label"><span class="pf-req">*</span>{{ t('settings.models.apiUrl') }}</span>
         <div class="pf-line-ctrl">
@@ -1060,6 +1088,16 @@ const protocolOptions = [
             </ul>
           </div>
           <p v-else class="pf-note">尚无绑定账号，请前往渠道管理页完成绑定。</p>
+        </div>
+      </div>
+
+      <!-- 免登录内置渠道：没有 Key 可填，鉴权由渠道客户端自己处理 -->
+      <div v-else-if="isKeylessChannelProviderFlag" class="pf-line">
+        <span class="pf-line-label">鉴权</span>
+        <div class="pf-line-ctrl">
+          <p class="pf-note">
+            免登录渠道不采集 API Key：请求由内置客户端按渠道自身的登录态发出。
+          </p>
         </div>
       </div>
 
@@ -1396,7 +1434,9 @@ const protocolOptions = [
         <span v-if="testing" class="pf-testing">连接测试中…</span>
         <div class="pf-footer-btns">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button v-if="!isLocalProvider" :loading="testing" @click="handleTestConnection">测试连接</el-button>
+          <!-- 免登录渠道没有上游地址与 Key：连接测试必然报「请先填写地址」，直接不给入口；
+               验证方式是用「从提供商获取模型列表」，它能列出内置客户端返回的模型 -->
+          <el-button v-if="!isLocalProvider && !isKeylessChannelProviderFlag" :loading="testing" @click="handleTestConnection">测试连接</el-button>
           <el-button type="primary" @click="handleSave">保存</el-button>
         </div>
       </div>
