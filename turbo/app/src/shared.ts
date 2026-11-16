@@ -17,7 +17,7 @@ import {
   type RouteConfigsTable,
 } from "@repo/core";
 import { bindStationMessageSocket } from "@repo/pinia";
-import { setConfig, applyConfig, resolveMenuDefaultIcon, type AppConfig } from "@repo/config";
+import { setConfig, applyConfig, rememberAppTitle, resolveMenuDefaultIcon, type AppConfig } from "@repo/config";
 import { log, ensureFingerprint } from "@repo/utils";
 
 /** 加载动画的部署侧接管：把 app.yaml 的决定落到「下次刷新首屏」用的 localStorage */
@@ -83,6 +83,9 @@ export function applyTitle(
   const finalTitle = title ?? env.VITE_WEB_TITLE ?? env.VITE_APP_TITLE ?? context.config.app.title;
   if (finalTitle) {
     applyConfig({ app: { ...context.config.app, title: finalTitle } } as Partial<AppConfig>);
+    // 记住壳级声明的品牌名：后续任何一次配置合并把它改回框架占位「应用」时，
+    // 标题后缀仍取这里（见 @repo/config 的 getAppTitle 说明），不出现两个来源。
+    rememberAppTitle(finalTitle);
   }
 }
 

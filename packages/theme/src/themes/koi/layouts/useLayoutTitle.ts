@@ -7,7 +7,7 @@
  */
 import { getMenuLanguage, translateConfigText } from "@repo/languages";
 import useAuthStore from "@repo/pinia/modules/auth";
-import { getConfig } from "@repo/config";
+import { getConfig, getAppTitle } from "@repo/config";
 import { resolveAssetUrl, defaultLogoUrl } from "@repo/assets";
 
 /** 在递归菜单树中按路径精确查找菜单 meta */
@@ -146,13 +146,19 @@ export function setDocumentFavicon(): void {
   }
 }
 
-/** 设置浏览器标题：`页面标题 - 应用标题`，应用标题缺省用 config.app.title */
+/**
+ * 设置浏览器标题：`页面标题 - 应用标题`
+ *
+ * <p>应用标题取 {@code getAppTitle()}（配置值 → 应用壳声明名），
+ * 与 core 守卫 {@code packages/core/src/router/guard.ts} 同一取数口，
+ * 避免两条路径一个用路由 meta、一个用站点默认名。</p>
+ */
 export function setDocumentTitle(
   routePath: string,
   metaTitle?: string,
   activeMenu?: string
 ): void {
-  const appTitle = getConfig().app.title;
+  const appTitle = getAppTitle();
   const title = resolvePageTitle(routePath, metaTitle, activeMenu);
   document.title = title && title !== appTitle ? `${title} - ${appTitle}` : appTitle;
 }

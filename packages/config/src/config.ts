@@ -67,6 +67,39 @@ export function getConfig(): AppConfig {
 }
 
 /**
+ * 应用壳（main.ts 的 `createContextApp({ title })`）声明的品牌名。
+ *
+ * <p>为什么需要单独记一份：`config.app.title` 有三个写入点 ——
+ * {@code loadConfig} 的整份合并、{@code applyTitle} 的壳级覆盖、远程设置热更；
+ * 任一后续写入若把该值改回框架占位（{@code defaultAppConfig.app.title} = 「应用」），
+ * 浏览器标题的后缀就会从站点名退化成「应用」。文档标题只在导航时重写，
+ * 所以这种退化在下一次跳转时才被看到 —— 表现为「同一次会话里标题前后不一致」。</p>
+ */
+let declaredAppTitle = "";
+
+/**
+ * 记录应用壳声明的品牌名（由 {@code applyTitle} 调用；空值忽略，保持上一次声明）。
+ *
+ * @param title 壳级标题（main.ts / VITE_WEB_TITLE / VITE_APP_TITLE 的最终结果）
+ */
+export function rememberAppTitle(title?: string): void {
+  const value = String(title ?? "").trim();
+  if (value && value !== defaultAppConfig.app.title) declaredAppTitle = value;
+}
+
+/**
+ * 浏览器标题后缀用的应用名（唯一取数口，`document.title` 的各个写点都走它）。
+ *
+ * <p>优先级：显式配置的 {@code config.app.title}（非框架占位）→ 应用壳声明名 →
+ * 当前值（哪怕只剩占位，也保证返回非空串）。</p>
+ */
+export function getAppTitle(): string {
+  const current = String(currentConfig.app?.title ?? "").trim();
+  if (current && current !== defaultAppConfig.app.title) return current;
+  return declaredAppTitle || current;
+}
+
+/**
  * 解析菜单缺省图标：app.yaml 的 menuConfig.defaultIcon 优先，未配置时回退框架内置默认常量。
  *
  * 供「菜单数据归一化」（core 远程菜单 / @repo/app 静态路由树）与「菜单渲染层」（koi 布局）共用，

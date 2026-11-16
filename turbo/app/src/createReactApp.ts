@@ -13,7 +13,7 @@
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { RouterProvider, createBrowserRouter, type RouteObject } from "react-router-dom";
-import { getConfig } from "@repo/config";
+import { getConfig, getAppTitle } from "@repo/config";
 import { getAccessToken } from "@repo/utils";
 import { checkRouteAccess, applyDocumentTitle } from "@repo/core";
 import { assembleCore, applyTitle, buildMenuFromRoutes, kickOffFingerprint, hideAppLoaderWhenReady, applyLoaderDeployPolicy } from "./shared";
@@ -181,7 +181,8 @@ export class ReactAppBuilder {
         if (decision.type === "redirect-home") return { redirect: homePath };
         if (decision.type === "redirect-forbidden") return { redirect: config.route.forbiddenPath || "/403" };
         if (decision.title) {
-          applyDocumentTitle(decision.title, config.app.title);
+          // 后缀与 Vue 侧同一取数口（getAppTitle），不直接读 config.app.title
+          applyDocumentTitle(decision.title, getAppTitle());
         }
         return null;
       };

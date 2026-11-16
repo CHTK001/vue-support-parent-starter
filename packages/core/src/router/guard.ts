@@ -14,7 +14,7 @@
  *  10. 未通过跳 config.route.forbiddenPath
  */
 import type { Router, RouteLocationNormalized, NavigationGuardReturn } from "vue-router";
-import { getConfig } from "@repo/config";
+import { getConfig, getAppTitle } from "@repo/config";
 import { getMenuLanguage } from "@repo/languages";
 import { getAppStorage } from "../storage";
 import { log, REMEMBER_KEY_PREFIX } from "@repo/utils";
@@ -114,10 +114,14 @@ export function setupRouterGuard(
     hooks?.onBeforeEach?.(to, from);
 
     // 2. 标题
+    // 后缀统一走 getAppTitle()（配置值 → 壳级声明名），与 koi 的 setDocumentTitle 同源：
+    // 此前这里直接读 config.app.title，一旦该值被后续配置合并改回框架占位「应用」，
+    // 标题就成了「页面 - 应用」，与整页加载后的「页面 - 站点名」不一致。
+    const appTitle = getAppTitle();
     const customTitle = hooks?.resolveTitle?.(to);
-    const rawTitle = getMenuLanguage((to.meta?.title as string) || "") || config.app.title;
+    const rawTitle = getMenuLanguage((to.meta?.title as string) || "") || appTitle;
     const title = customTitle ?? (rawTitle === "home" ? "" : rawTitle);
-    document.title = title && title !== config.app.title ? `${title} - ${config.app.title}` : config.app.title;
+    document.title = title && title !== appTitle ? `${title} - ${appTitle}` : appTitle;
 
     // 3. 未开启鉴权：直接放行
     if (!config.app.openAuth) return true;

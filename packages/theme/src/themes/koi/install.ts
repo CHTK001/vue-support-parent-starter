@@ -32,6 +32,7 @@ import { setupSvgSprite as setupKoiSvgSprite } from "@repo/assets";
 import { AppUiContextKey } from "@repo/theme";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { setRouter } from "@repo/core";
+import { onConfigChange } from "@repo/config";
 import { setDocumentTitle, setDocumentFavicon } from "@repo/theme/koi/layouts/useLayoutTitle";
 // 布局使用 ReXxx（koi 主题实现），注册为全局组件
 import { install as installReIcon } from "@repo/ui/re-icon";
@@ -89,6 +90,20 @@ export async function installKoi(app: App, options: InstallKoiOptions = {}): Pro
       setDocumentTitle(to.path, to.meta?.title as string, to.meta?.activeMenu as string | undefined);
       // 同步浏览器标签页图标（跟随 app.yaml loginConfig.logoUrl）
       setDocumentFavicon();
+    });
+
+    // 配置热更（远程设置下发 / 环境级 app.yaml 覆盖）后应用名可能变化，
+    // 标题后缀立刻重放一次当前路由；否则「标题只在导航时重写」会让后缀停在旧值，
+    // 下一次跳转才纠正 —— 表现为同一次会话里标题前后不一致（见发布管理验收 D2）。
+    // 订阅生命周期与 router 一致（koi 每个应用只安装一次），文档标题非关键资源，不额外解绑。
+    onConfigChange(() => {
+      const current = router.currentRoute.value;
+      if (!current?.path) return;
+      setDocumentTitle(
+        current.path,
+        current.meta?.title as string,
+        current.meta?.activeMenu as string | undefined
+      );
     });
   }
 
