@@ -206,15 +206,52 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       badgeTip: '图像特征模型未配置，以图搜图不可用',
     },
     {
-      // 图像库：与「以图搜图」同一底库，但定位是**库管理**（台账 / 画布 / 特征空间）。
-      // 检索在「以图搜图」，改库在这里 —— 两个入口并排，和「人脸识别 ↔ 人脸底库」的分工一致。
+      // ── 底库（用户口径 2026-11-16）：图像库 / 人脸库 / 人脸重识别库单独成组 ──
+      //
+      // 为什么从「图像」里独立出来：这三个是同一类东西 —— **按账号隔离的本地底库**
+      // （台账、增删、分组），检索/识别在「以图搜图 / 人脸识别 / 人脸重识别」那三项里。
+      // 混在「图像」里时，识别页和改库页隔着好几项，用户找不到「我的人脸库在哪」。
+      // 三者排在一起后，「找库 → 改库」是一条直线，与设置中心「底库」分组同口径。
       key: 'image-library',
       label: '图像库',
       icon: ImageMultiple20Regular,
-      section: '图像',
+      section: '底库',
       showKey: 'showImageLibraryMenu',
       badge: modelConfig.imageReady ? '' : '未配置',
       badgeTip: '图像特征模型未配置，入库与检索都不可用',
+    },
+    {
+      // 人脸库：与人脸识别页共用同一底库（分组隔离），这里只做库管理。
+      // 原先只有「设置中心 → 底库 → 人脸底库」一个入口，主页侧栏找不到。
+      key: 'face-library',
+      label: '人脸库',
+      icon: ContactCard20Regular,
+      section: '底库',
+      showKey: 'showFaceLibraryMenu',
+      badge: modelConfig.faceModelsError ? '异常'
+        : modelConfig.unregisteredConfigured.length ? '未注册'
+          : modelConfig.faceReady ? '' : '未配置',
+      badgeTip: modelConfig.faceModelsError
+        ? '人脸模型清单接口异常（读取失败），无法确认登记是否可用'
+        : modelConfig.unregisteredConfigured.length
+          ? '人脸检测/特征模型已配置但未在后端注册，登记不可用'
+          : '人脸检测模型 / 人脸特征模型未配置，登记不可用',
+    },
+    {
+      // 人脸重识别库：存「观测过的人」（每行两套向量），与重识别页是「看结果 / 管原始数据」的分工。
+      key: 'reid-library',
+      label: '人脸重识别库',
+      icon: Fingerprint24Regular,
+      section: '底库',
+      showKey: 'showReidLibraryMenu',
+      badge: modelConfig.faceModelsError ? '异常'
+        : modelConfig.unregisteredConfigured.length ? '未注册'
+          : modelConfig.faceReady ? '' : '未配置',
+      badgeTip: modelConfig.faceModelsError
+        ? '人脸模型清单接口异常（读取失败），无法确认重识别库是否可用'
+        : modelConfig.unregisteredConfigured.length
+          ? '人脸检测/特征模型已配置但未在后端注册，重识别库不可用'
+          : '人脸检测模型 / 人脸特征模型未配置，重识别库不可用',
     },
     {
       key: 'image-colorize',

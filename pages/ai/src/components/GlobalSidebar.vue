@@ -1042,6 +1042,9 @@ const currentActiveTab = computed(() => {
   if (routeName === 'ImageSearch') return 'image-search'
   // 图像库：底库管理页（台账/画布/特征空间），与「以图搜图」是两个入口
   if (routeName === 'ImageLibrary') return 'image-library'
+  // 底库分组（2026-11-16）：人脸库 / 人脸重识别库 从设置中心提到主页侧栏
+  if (routeName === 'FaceLibrary') return 'face-library'
+  if (routeName === 'ReidLibrary') return 'reid-library'
   if (routeName === 'ImageColorize') return 'image-colorize'
   if (routeName === 'Ocr') return 'ocr'
   if (routeName === 'AudioRecognition') return 'audio-recognition'
@@ -1439,6 +1442,8 @@ const ROUTE_NAME_BY_TAB: Record<string, string> = {
   'face-reid': 'FaceReid',
   'image-search': 'ImageSearch',
   'image-library': 'ImageLibrary',
+  'face-library': 'FaceLibrary',
+  'reid-library': 'ReidLibrary',
   'image-colorize': 'ImageColorize',
   ocr: 'Ocr',
   'audio-recognition': 'AudioRecognition',
@@ -1514,12 +1519,24 @@ const UNREGISTERED_MESSAGE: Record<string, string> = {
   'face-reid': '人脸重识别模型当前不可用：已配置的检测/特征模型未在后端注册。请到「系统设置 → 默认模型 → 人脸重识别」重新选择当前可用的模型',
 };
 
+/**
+ * 「已配置但未在后端注册」只适用于人脸类门禁。
+ *
+ * <p>为什么必须限定：{@code unregisteredConfigured} 的来源是
+ * {@code /v2/face/config/models}（人脸检测/特征模型清单），它只描述人脸能力。
+ * 早先这里对所有门禁菜单一律判定，结果人脸模型未注册时，点击「以图搜图」
+ * 会弹出「以图搜图未启用：请先配置图像特征模型」—— 用户明明配好了（origin=USER），
+ * 菜单徽标也不显示「未配置」，却被拦在门外，只能怀疑是配置没生效。
+ * 以图搜图 / 图像上色 / OCR / 音频同理，全部被这一条误伤。</p>
+ */
+const UNREGISTERED_TABS = new Set(['face-search', 'face-reid']);
+
 /** 模型门禁文案：未配置或已配置但未注册时返回提示；可用时返回 null */
 const modelGateMessage = (tab: string): string | null => {
   const gate = MODEL_GATE_TABS[tab]
   if (!gate) return null
   if (!(modelConfig as any)[gate.field]) return gate.missing
-  if (modelConfig.unregisteredConfigured.length) {
+  if (UNREGISTERED_TABS.has(tab) && modelConfig.unregisteredConfigured.length) {
     return UNREGISTERED_MESSAGE[tab] ?? gate.missing
   }
   return null

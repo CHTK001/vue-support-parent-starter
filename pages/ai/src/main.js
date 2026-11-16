@@ -249,11 +249,26 @@ const routes = [
       },
       {
         // 图像库：把「以图搜图」的底库从设置里的一个面板升为独立整页
-        // （台账 / 画布 + 特征空间），与「以图搜图」并列为同一个图像段。
+        // （台账 / 画布 + 特征空间）。2026-11-16 起与「人脸库 / 人脸重识别库」
+        // 一起归入侧栏「底库」分组 —— 三个入口是同一类东西（按账号隔离的本地底库）。
         path: "image-library",
         name: "ImageLibrary",
         meta: { title: "图像库", requiresAuth: true },
         component: () => import("./components/library/ImageLibraryPage.vue"),
+      },
+      {
+        // 人脸库 / 人脸重识别库：与设置中心的同名 tab 共用组件，
+        // 独立路由只是为了在主页侧栏「底库」分组里有一等入口。
+        path: "face-library",
+        name: "FaceLibrary",
+        meta: { title: "人脸库", requiresAuth: true },
+        component: () => import("./components/library/FaceLibraryPage.vue"),
+      },
+      {
+        path: "reid-library",
+        name: "ReidLibrary",
+        meta: { title: "人脸重识别库", requiresAuth: true },
+        component: () => import("./components/library/ReidLibraryPage.vue"),
       },
       {
         // OCR 与「以图搜图 / 人脸识别」同属图像类，放在同一段路由里便于对照
