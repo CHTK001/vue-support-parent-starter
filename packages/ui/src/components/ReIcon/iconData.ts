@@ -10,6 +10,15 @@
  * 业务方可通过 props 注入自定义 prefix 与图标名列表。
  */
 import { ANIMATED_ICON_NAMES, ANIMATED_ICON_PREFIX } from "./animated/registry";
+import { COLORFUL_ICON_NAMES } from "./colorful/names";
+
+/**
+ * 彩色品牌图标页签的前缀（仅作 tabs 的分组键）。
+ *
+ * <p>彩色图标名本身就是完整名（{@code logos:mysql}），选出来要原样存进 model，
+ * 不能再拼前缀——与 {@link ANIMATED_ICON_PREFIX} 同口径。</p>
+ */
+export const COLORFUL_TAB_PREFIX = "color:";
 
 /** 默认前缀：饿了么 (Element Plus Icons) */
 export const epIcons: string[] = [
@@ -333,6 +342,8 @@ export const defaultIconSets: Record<string, string[]> = {
   "mdi:": mdiIcons,
   // 动画图标的名单本身已是完整名（`anim:<lib>:<icon>`），不能再拼前缀
   [ANIMATED_ICON_PREFIX]: [...ANIMATED_ICON_NAMES],
+  // 彩色品牌图标同理，名字本身是 `logos:mysql` 这种完整名
+  [COLORFUL_TAB_PREFIX]: [...COLORFUL_ICON_NAMES],
 };
 
 /** 图标选择器 tabs 元数据 */
@@ -346,4 +357,5 @@ export const defaultIconTabs: IconSelectTab[] = [
   { label: "Remix Icon", prefix: "ri:" },
   { label: "Material Design", prefix: "mdi:" },
   { label: "动画", prefix: ANIMATED_ICON_PREFIX },
+  { label: "彩色", prefix: COLORFUL_TAB_PREFIX },
 ];

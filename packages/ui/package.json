@@ -419,7 +419,9 @@
     "clean": "rimraf dist",
     "icons:sync": "node scripts/sync-animated-icons.mjs",
     "icons:check": "node scripts/sync-animated-icons.mjs --check",
-    "icons:check:remote": "node scripts/sync-animated-icons.mjs --check --remote"
+    "icons:check:remote": "node scripts/sync-animated-icons.mjs --check --remote",
+    "icons:colorful:sync": "node scripts/sync-colorful-icons.mjs",
+    "icons:colorful:check": "node scripts/check-colorful-icons.mjs"
   },
   "dependencies": {
     "@antv/g": "^6.1.28",

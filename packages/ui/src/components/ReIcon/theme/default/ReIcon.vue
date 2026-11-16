@@ -1,7 +1,18 @@
 <template>
+  <!-- 彩色品牌图标：离线 body 原色内联（fill 自带，不能走 currentColor）；body 未到时留白 -->
+  <svg
+    v-if="isColorful"
+    aria-hidden="true"
+    class="re-icon re-icon__colorful"
+    :viewBox="colorfulBody?.viewBox"
+    :style="{ width: `${colorfulSize}px`, height: `${colorfulSize}px` }"
+    v-html="colorfulBody?.body ?? ''"
+    v-bind="$attrs"
+  />
+
   <!-- icons-animated 动画图标：独立 chunk 懒加载，hover/focus 自动播放 -->
   <span
-    v-if="isAnimated && hasAnimatedIcon"
+    v-else-if="isAnimated && hasAnimatedIcon"
     class="re-icon re-icon__anim"
     :style="{
       width: `${animatedSize}px`,
@@ -103,6 +114,7 @@
  * ReIcon —— 通用图标组件（v-model + 多源 + 可扩展）
  *
  * 支持的图标源（自动识别）：
+ *   0) 彩色品牌图标（name 为内置的 `logos:mysql` 等，见 colorful/names）→ 离线 body 原色渲染
  *   1) Element Plus：name="Search" 等 PascalCase（自动）
  *   2) ep:xxx          → 强制走 Element Plus（兼容未注册前缀）
  *   3) ri:xxx / mdi:xxx / carbon:xxx 等 → Iconify 三方库
@@ -131,6 +143,9 @@ import { computed, ref, onMounted, shallowRef, watch, h, markRaw, toRaw, type Co
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import { ElIcon } from "element-plus";
 import { ANIMATED_ICON_PREFIX, isAnimatedIconName, loadAnimatedIcon } from "../../animated/registry";
+import { isColorfulIconName } from "../../colorful/names";
+import { loadColorfulIcon, peekColorfulIcon } from "../../colorful/load";
+import type { ColorfulIconBody } from "../../colorful/types";
 
 defineOptions({ name: "ReIcon", inheritAttrs: true });
 
@@ -198,6 +213,9 @@ const httpReg = /^https?:\/\//;
 const iconifyReg = /^[a-z]{2,}:/;
 const epReg = /^[A-Z][a-zA-Z0-9]*$/;
 
+/** 彩色品牌图标（选择器「彩色」页签）：离线 SVG body，保留品牌原色 */
+const isColorful = computed(() => isColorfulIconName(effectiveName.value));
+
 /** 动画图标命名空间：`anim:<lib>:<icon>`（是否已注册另判断） */
 const isAnimated = computed(() => effectiveName.value.startsWith(ANIMATED_ICON_PREFIX));
 
@@ -213,7 +231,9 @@ const effectiveIcon = computed<string>(() => {
 });
 
 const isHttp = computed(() => httpReg.test(effectiveName.value));
-const isIconify = computed(() => !isAnimated.value && iconifyReg.test(effectiveName.value));
+const isIconify = computed(
+  () => !isAnimated.value && !isColorful.value && iconifyReg.test(effectiveName.value),
+);
 
 /** Element Plus 图标解析 */
 const elementIcon = computed(() => {
@@ -300,13 +320,45 @@ watch(
   { immediate: true },
 );
 
-/** 上游动画图标只接受数值尺寸（Number prop），字符串尺寸需解析 */
-const animatedSize = computed(() => {
-  const value = props.size;
+/** 彩色品牌图标 body（按组懒加载，切回来命中缓存） */
+const colorfulBody = shallowRef<ColorfulIconBody | null>(null);
+
+watch(
+  () => (isColorfulIconName(effectiveName.value) ? effectiveName.value : ""),
+  async (name, _previous, onCleanup) => {
+    if (!name) {
+      colorfulBody.value = null;
+      return;
+    }
+    // 同组切换时 body 已在缓存里，先同步换掉，别让上一张图多显示一帧
+    const cached = peekColorfulIcon(name);
+    if (cached) {
+      colorfulBody.value = cached;
+      return;
+    }
+    let alive = true;
+    onCleanup(() => {
+      alive = false;
+    });
+    const body = await loadColorfulIcon(name);
+    // 加载中留白，不闪 Menu；切走（alive=false）就别再覆盖别人的 body
+    if (alive) colorfulBody.value = body;
+  },
+  { immediate: true },
+);
+
+/** 尺寸归一：字符串（"18px"/"1.2em"）要解析成数值，动画/彩色图标只接受 px 数值 */
+function toPixelSize(value: number | string): number {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
   const parsed = Number.parseFloat(String(value));
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 18;
-});
+}
+
+/** 上游动画图标只接受数值尺寸（Number prop），字符串尺寸需解析 */
+const animatedSize = computed(() => toPixelSize(props.size));
+
+/** 彩色品牌图标：svg 宽高与 viewBox 无关，按 size 给正方形即可 */
+const colorfulSize = computed(() => toPixelSize(props.size));
 
 /* ==================== 动画图标常驻播放 ==================== */
 
@@ -387,6 +439,15 @@ if (typeof window !== "undefined") {
   align-items: center;
   justify-content: center;
   line-height: 0;
+}
+/* 彩色品牌图标：保留 body 自带 fill，不继承 currentColor */
+.re-icon__colorful {
+  display: inline-block;
+  vertical-align: middle;
+  object-fit: contain;
+  outline: none;
+  flex-shrink: 0;
+  overflow: visible;
 }
 .re-icon__placeholder,
 .re-icon__iconify-placeholder {

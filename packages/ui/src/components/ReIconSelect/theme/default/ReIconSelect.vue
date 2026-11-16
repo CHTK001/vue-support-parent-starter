@@ -14,8 +14,14 @@
  */
 import { computed, ref, watch } from "vue";
 import { ElInput, ElPopover, ElTabs, ElTabPane, ElPagination, ElButton, ElScrollbar, ElEmpty } from "element-plus";
-import { defaultIconSets, defaultIconTabs, type IconSelectTab } from "../../../ReIcon/iconData";
+import {
+  COLORFUL_TAB_PREFIX,
+  defaultIconSets,
+  defaultIconTabs,
+  type IconSelectTab,
+} from "../../../ReIcon/iconData";
 import { ANIMATED_ICON_PREFIX } from "../../../ReIcon/animated/registry";
+import { isColorfulIconName } from "../../../ReIcon/colorful/names";
 import ReIcon from "../../../ReIcon/theme/default/ReIcon.vue";
 
 defineOptions({ name: "ReIconSelect", inheritAttrs: true });
@@ -63,6 +69,12 @@ function parseValue(): void {
     currentPrefix.value = props.tabs[0]?.prefix ?? "ep:";
     return;
   }
+  // 彩色品牌图标名本身是 `logos:mysql` 这种完整名，落到「彩色」页签；
+  // 调用方注入了自定义 tabs/图标集时没有这个页签，就按原逻辑拆前缀
+  if (isColorfulIconName(v) && props.icons[COLORFUL_TAB_PREFIX]) {
+    currentPrefix.value = COLORFUL_TAB_PREFIX;
+    return;
+  }
   const idx = v.indexOf(":");
   if (idx > 0) {
     currentPrefix.value = v.substring(0, idx + 1);
@@ -103,11 +115,12 @@ function iconItemStyle(name: string): Record<string, string> | undefined {
 
 /**
  * 把列表项还原成完整图标名。
- * 动画图标（`anim:` 前缀）的列表项本身就是完整名（`anim:<lib>:<icon>`），
- * 其它前缀仍是 `prefix + 短名`。
+ * 动画（`anim:`）与彩色品牌（`color:`）页签的列表项本身就是完整名
+ * （`anim:<lib>:<icon>` / `logos:mysql`），其它前缀仍是 `prefix + 短名`。
  */
 function resolveIconName(name: string): string {
-  return currentPrefix.value === ANIMATED_ICON_PREFIX ? name : currentPrefix.value + name;
+  const prefix = currentPrefix.value;
+  return prefix === ANIMATED_ICON_PREFIX || prefix === COLORFUL_TAB_PREFIX ? name : prefix + name;
 }
 
 function onChangeIcon(name: string): void {
@@ -124,7 +137,9 @@ function onBeforeEnter(): void {
     currentPage.value = 1;
     return;
   }
-  const name = model.value.substring(model.value.indexOf(":") + 1);
+  const name = isColorfulIconName(model.value)
+    ? model.value
+    : model.value.substring(model.value.indexOf(":") + 1);
   const idx = currentList.value.findIndex((i) => i === name);
   if (idx >= 0) {
     currentPage.value = Math.ceil((idx + 1) / props.pageSize);

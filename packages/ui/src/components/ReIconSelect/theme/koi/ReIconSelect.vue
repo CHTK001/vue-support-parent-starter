@@ -7,7 +7,7 @@
  *  - 面板：搜索框 → tabs（本地图标 / Element 图标 / Iconify）→ 图标网格（36×36 圆角7）
  *    → footer（共 X 个 + 分页）
  */
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import {
   ElInput, ElPopover, ElTabs, ElTabPane, ElPagination, ElScrollbar, ElEmpty,
 } from "element-plus";
@@ -15,6 +15,7 @@ import { Close, Search } from "@element-plus/icons-vue";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import ReIcon from "../../../ReIcon/theme/koi/ReIcon.vue";
 import { ANIMATED_ICON_NAMES } from "../../../ReIcon/animated/registry";
+import { COLORFUL_ICON_NAMES, isColorfulIconName } from "../../../ReIcon/colorful/names";
 
 defineOptions({ name: "ReIconSelect", inheritAttrs: true });
 
@@ -101,7 +102,7 @@ const ICONIFY_ICON_NAMES: string[] = [
 
 const visible = ref(false);
 const searchText = ref("");
-const activeTab = ref<"local" | "ele" | "iconify" | "anim">("local");
+const activeTab = ref<"local" | "ele" | "iconify" | "anim" | "color">("local");
 const currentPage = ref(1);
 
 /** 图标主题 CSS 变量（照搬目标站 --koi-select-icon-*） */
@@ -114,6 +115,7 @@ const sourceIcons = computed(() => {
   if (activeTab.value === "local") return LOCAL_ICON_NAMES;
   if (activeTab.value === "iconify") return ICONIFY_ICON_NAMES;
   if (activeTab.value === "anim") return [...ANIMATED_ICON_NAMES];
+  if (activeTab.value === "color") return [...COLORFUL_ICON_NAMES];
   return ELE_ICON_NAMES;
 });
 
@@ -148,11 +150,19 @@ watch([activeTab, searchText], () => {
   currentPage.value = 1;
 });
 
-watch(visible, (v) => {
+watch(visible, async (v) => {
   if (!v) {
     searchText.value = "";
     currentPage.value = 1;
+    return;
   }
+  // 已有值落在彩色品牌图标时直接切到「彩色」页签，并定位到它所在页
+  if (!isColorfulIconName(props.modelValue)) return;
+  activeTab.value = "color";
+  const index = COLORFUL_ICON_NAMES.indexOf(props.modelValue);
+  // 切页签会触发上面那个 watcher 把页码清成 1，等这一拍过去再定位
+  await nextTick();
+  if (index >= 0) currentPage.value = Math.floor(index / props.pageSize) + 1;
 });
 
 watch(filteredTotal, (total) => {
@@ -217,6 +227,7 @@ watch(filteredTotal, (total) => {
         <ElTabPane label="Element 图标" name="ele" />
         <ElTabPane label="Iconify" name="iconify" />
         <ElTabPane label="动画" name="anim" />
+        <ElTabPane label="彩色" name="color" />
       </ElTabs>
 
       <ElScrollbar max-height="260px">

@@ -3,6 +3,8 @@
  * ReIcon koi 主题 —— 图标组件（KoiSvgIcon / KoiGlobalIcon 移植）
  *
  * 渲染规则（按优先级）：
+ *  - name 是彩色品牌图标（`logos:mysql` 等，见 colorful/names）：离线 SVG body 原色渲染
+ *    （按组懒加载独立 chunk）
  *  - name 以 `anim:` 开头：icons-animated 动画图标（`anim:<lib>:<icon>`，懒加载独立 chunk）
  *  - name 以 `koi-` 开头：本地 svg symbol（#icon-xxx use 引用）
  *  - name 以 `ep:` 开头：解包为 element-plus 图标组件（ep:menu -> Menu）
@@ -15,6 +17,9 @@ import { computed, markRaw, shallowRef, toRaw, watch, type Component } from "vue
 import { ElIcon } from "element-plus";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import { ANIMATED_ICON_PREFIX, isAnimatedIconName, loadAnimatedIcon } from "../../animated/registry";
+import { isColorfulIconName } from "../../colorful/names";
+import { loadColorfulIcon, peekColorfulIcon } from "../../colorful/load";
+import type { ColorfulIconBody } from "../../colorful/types";
 
 defineOptions({ name: "ReIcon", inheritAttrs: true });
 
@@ -38,6 +43,9 @@ const props = withDefaults(
 
 const safeName = computed(() => (typeof props.name === "string" ? props.name : ""));
 
+/** 彩色品牌图标（选择器「彩色」页签）：离线 SVG body，保留品牌原色 */
+const isColorful = computed(() => isColorfulIconName(safeName.value));
+
 /** 动画图标命名空间：`anim:<lib>:<icon>`（是否已注册另判断） */
 const isAnimated = computed(() => safeName.value.startsWith(ANIMATED_ICON_PREFIX));
 
@@ -49,10 +57,11 @@ const isLocalSvg = computed(() => safeName.value.startsWith(SVG_PREFIX));
 /** 本地 svg symbol 引用路径：svg sprite 的 id 为 icon-{文件名}（文件名已含 koi- 前缀） */
 const localHref = computed(() => `#icon-${safeName.value}`);
 
-/** 是否走 iconify 在线渲染（ri:/mdi:/carbon: 等，ep:/anim: 除外） */
+/** 是否走 iconify 在线渲染（ri:/mdi:/carbon: 等，ep:/anim:/彩色品牌 除外） */
 const isIconify = computed(() => {
   if (isLocalSvg.value) return false;
   if (isAnimated.value) return false;
+  if (isColorful.value) return false;
   if (safeName.value.startsWith("ep:")) return false;
   return iconifyReg.test(safeName.value);
 });
@@ -119,19 +128,52 @@ watch(
   { immediate: true },
 );
 
-/** 上游动画图标只接受数值尺寸（Number prop），字符串尺寸需解析 */
-const animatedSize = computed(() => {
-  const value = props.size;
+/** 彩色品牌图标 body（按组懒加载，切回来命中缓存） */
+const colorfulBody = shallowRef<ColorfulIconBody | null>(null);
+
+watch(
+  () => (isColorfulIconName(safeName.value) ? safeName.value : ""),
+  async (name, _previous, onCleanup) => {
+    if (!name) {
+      colorfulBody.value = null;
+      return;
+    }
+    // 同组切换时 body 已在缓存里，先同步换掉，别让上一张图多显示一帧
+    const cached = peekColorfulIcon(name);
+    if (cached) {
+      colorfulBody.value = cached;
+      return;
+    }
+    let alive = true;
+    onCleanup(() => {
+      alive = false;
+    });
+    const body = await loadColorfulIcon(name);
+    // 加载中留白，不闪 Menu；切走（alive=false）就别再覆盖别人的 body
+    if (alive) colorfulBody.value = body;
+  },
+  { immediate: true },
+);
+
+/** 尺寸归一：字符串（"18px"/"1.2em"）要解析成数值，动画/彩色图标只接受 px 数值 */
+function toPixelSize(value: number | string): number {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
   const parsed = Number.parseFloat(String(value));
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 18;
-});
+}
+
+/** 上游动画图标只接受数值尺寸（Number prop），字符串尺寸需解析 */
+const animatedSize = computed(() => toPixelSize(props.size));
+
+/** 彩色品牌图标：svg 宽高与 viewBox 无关，按 size 给正方形即可 */
+const colorfulSize = computed(() => toPixelSize(props.size));
 
 /** 全局兜底图标：任何图标加载失败/不存在时，显示Menu图标，永远不空白 */
 const fallbackIcon = computed(() => {
   if (isLocalSvg.value) return null;
-  // 已注册的动画图标由动画分支负责（加载中留白，不闪 Menu）
+  // 已注册的动画/彩色图标由各自分支负责（加载中留白，不闪 Menu）
   if (hasAnimatedIcon.value) return null;
+  if (isColorful.value) return null;
   if (isIconify.value && iconifyRenderer.value) return null;
   if (elementIcon.value) return null;
   return (ElementPlusIconsVue as Record<string, unknown>).Menu as Component;
@@ -140,9 +182,18 @@ const fallbackIcon = computed(() => {
 
 <template>
   <ElIcon :size="size" :color="color" v-bind="$attrs">
+    <!-- 彩色品牌图标：离线 body 原色内联（fill 自带，不能走 currentColor）；body 未到时留白 -->
+    <svg
+      v-if="isColorful"
+      aria-hidden="true"
+      class="re-icon__colorful"
+      :viewBox="colorfulBody?.viewBox"
+      :style="{ width: `${colorfulSize}px`, height: `${colorfulSize}px` }"
+      v-html="colorfulBody?.body ?? ''"
+    />
     <!-- icons-animated 动画图标：独立 chunk 懒加载，hover/focus 自动播放 -->
     <span
-      v-if="isAnimated && hasAnimatedIcon"
+      v-else-if="isAnimated && hasAnimatedIcon"
       class="re-icon__anim"
       :style="{ width: `${animatedSize}px`, height: `${animatedSize}px` }"
     >
@@ -178,5 +229,15 @@ const fallbackIcon = computed(() => {
   align-items: center;
   justify-content: center;
   line-height: 0;
+}
+
+/* 彩色品牌图标：保留 body 自带 fill，不继承 currentColor */
+.re-icon__colorful {
+  display: inline-block;
+  vertical-align: middle;
+  object-fit: contain;
+  outline: none;
+  flex-shrink: 0;
+  overflow: visible;
 }
 </style>
