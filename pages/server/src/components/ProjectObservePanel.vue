@@ -805,30 +805,40 @@ const metricCurrentValue = computed(() => {
 /** 当前指标是否缺统计量（缺数据时不做「正常」的假结论） */
 const metricIsWarn = computed(() => !metricMeasurements.value.length);
 
-/** 指标事实区（时间类补平均/峰值/样本数，其余按原口径） */
+/**
+ * 指标事实区。
+ *
+ * <p>只有真正带 COUNT/TOTAL_TIME 的计时器（http.server.requests 等）才套「样本数 /
+ * 平均耗时 / 峰值 / 累计耗时」那套口径。`application.ready.time` 这类同样以秒为单位、
+ * 但只有 VALUE 的 Gauge 若也套上去，四行会全是「—」，属于给用户看空格子。</p>
+ */
 const metricFacts = computed(() => {
   const name = metricName.value;
+  const isSeconds = metricUnit.value === 'seconds';
   const tags = metricTags.value.length
     ? metricTags.value
         .map((t: any) => `${t.tag}${t.values && t.values.length ? `=${t.values.slice(0, 3).join(',')}` : ''}`)
         .join(' · ')
     : '—';
-  if (metricUnit.value === 'seconds') {
-    const count = metricStat('COUNT');
-    const total = metricStat('TOTAL_TIME');
+  const count = metricStat('COUNT');
+  const total = metricStat('TOTAL_TIME');
+  if (isSeconds && count !== null && total !== null) {
     return [
-      { k: '样本数', v: count === null ? '—' : fmtNum(count) },
-      { k: '平均耗时', v: count && total !== null ? fmtSec(total / count) : '—' },
+      { k: '样本数', v: fmtNum(count) },
+      { k: '平均耗时', v: count ? fmtSec(total / count) : '—' },
       { k: '峰值', v: fmtSec(metricStat('MAX')) },
       { k: '累计耗时', v: fmtSec(total) },
       { k: '可用标签', v: tags },
     ];
   }
+  // 秒为单位的读数（VALUE/MAX/TOTAL）要带 ms/s，其余指标按字节或原值
+  const fmtRead = (stat: string, v: number | null) =>
+    v === null ? '—' : isSeconds ? metricStatText(stat, v) : fmtMetricValue(name, v);
   return [
-    { k: '当前值', v: fmtMetricValue(name, metricStat('VALUE')) },
-    { k: '统计量', v: metricStat('COUNT') === null ? '—' : fmtNum(metricStat('COUNT')) },
-    { k: '峰值', v: fmtMetricValue(name, metricStat('MAX')) },
-    { k: '累计', v: metricStat('TOTAL') === null ? '—' : fmtMetricValue(name, metricStat('TOTAL')) },
+    { k: '当前值', v: fmtRead('VALUE', metricStat('VALUE')) },
+    { k: '统计量', v: count === null ? '—' : fmtNum(count) },
+    { k: '峰值', v: fmtRead('MAX', metricStat('MAX')) },
+    { k: '累计', v: fmtRead('TOTAL', metricStat('TOTAL')) },
     { k: '可用标签', v: tags },
   ];
 });
