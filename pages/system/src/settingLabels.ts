@@ -59,23 +59,25 @@ export const SETTING_LABELS: Record<string, string> = {
   "other.personalConfig.enable": "个性化配置",
   "@SystemName": "系统名称",
 
-  /* smtp 邮件服务 */
-  "smtp.host": "主机",
-  "smtp.port": "端口",
-  "smtp.username": "登录账号",
-  "smtp.from": "发件邮箱",
-  "smtp.password": "密码/授权码",
-  "smtp.auth": "登录认证",
-  "smtp.starttls": "STARTTLS 升级",
-  "smtp.sslEnable": "SSL 加密",
-  "smtp.imapHost": "IMAP 主机",
-  "smtp.imapPort": "IMAP 端口",
+  /* smtp 邮件服务（账号已收口到账号管理，这里只选账号） */
+  "smtp.accountId": "邮件账号",
+  "smtp.host": "主机（历史保留，停用）",
+  "smtp.port": "端口（历史保留，停用）",
+  "smtp.username": "登录账号（历史保留，停用）",
+  "smtp.from": "发件邮箱（历史保留，停用）",
+  "smtp.password": "密码/授权码（历史保留，停用）",
+  "smtp.auth": "登录认证（历史保留，停用）",
+  "smtp.starttls": "STARTTLS 升级（历史保留，停用）",
+  "smtp.sslEnable": "SSL 加密（历史保留，停用）",
+  "smtp.imapHost": "IMAP 主机（历史保留，停用）",
+  "smtp.imapPort": "IMAP 端口（历史保留，停用）",
 
-  /* sms 短信服务 */
-  "sms.appType": "服务商",
-  "sms.appId": "App ID",
-  "sms.appSecret": "App 密钥",
-  "sms.appSign": "短信签名",
+  /* sms 短信服务（账号已收口到账号管理，这里只选账号） */
+  "sms.accountId": "短信账号",
+  "sms.appType": "服务商（历史保留，停用）",
+  "sms.appId": "App ID（历史保留，停用）",
+  "sms.appSecret": "App 密钥（历史保留，停用）",
+  "sms.appSign": "短信签名（历史保留，停用）",
 
   /* config 连接配置 / 安全与外观 */
   "socket.enable": "启用连接",

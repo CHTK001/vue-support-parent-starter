@@ -12,6 +12,19 @@
       :disabled="disabled"
       controls-position="right"
     />
+    <!-- 邮件 / 短信账号：直接选账号管理里的账号，不再手填 SMTP / 短信密钥 -->
+    <ReSelect
+      v-else-if="accountKind"
+      v-model="accountModel"
+      :data="accountOptions"
+      :loading="accountLoading"
+      :disabled="disabled"
+      :placeholder="accountPlaceholder"
+      :title="accountTitle"
+      clearable
+      filterable
+      empty-text="账号管理里还没有该类型的账号"
+    />
     <el-color-picker
       v-else-if="type === 'COLOR'"
       v-model="row.sysSettingValue"
@@ -49,9 +62,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, ref } from "vue";
 import type { SysSetting } from "../../api/types";
 import { normType } from "../../settingUtils";
+import { listAccountsCached, type AccountKind, type SysAccountBrief } from "../../api/accountApi";
 
 const props = defineProps<{ row: SysSetting; disabled?: boolean; showSave?: boolean }>();
 const emit = defineEmits<{
@@ -90,6 +104,83 @@ const numModel = computed<number | undefined>({
   },
 });
 
+/**
+ * 账号行：{@code smtp.accountId} / {@code sms.accountId} 指向账号管理里的 EMAIL / SMS 账号。
+ *
+ * <p>这两行是「配置管理 → 邮件 / 短信」与账号管理之间的唯一连接点：页面只让用户
+ * 「选账号」，不再手填 SMTP 主机 / 短信密钥，避免同一份凭据存在两处来源。
+ * 后端 {@code AccountSettingSelection} 读这两行决定实际发送用哪个账号。</p>
+ */
+const ACCOUNT_GROUPS: Record<string, AccountKind> = { smtp: "EMAIL", sms: "SMS" };
+
+/** 本行是否为账号选择行；是则返回对应账号种类 */
+const accountKind = computed<AccountKind | null>(() => {
+  if (props.row.sysSettingName !== "accountId") return null;
+  const group = String(props.row.sysSettingGroup ?? "").toLowerCase();
+  return ACCOUNT_GROUPS[group] ?? null;
+});
+
+/** 可选账号（来自账号管理） */
+const accounts = ref<SysAccountBrief[]>([]);
+const accountLoading = ref(false);
+
+/**
+ * 下拉选项文案：名称 · 用户名 · 厂商 · 默认。
+ *
+ * <p>同一服务商常有多个账号，只看名称分不清收件地址，因此把用户名（发件邮箱 /
+ * 手机号）一起显示；停用账号保留可选项但禁用，方便看出「之前选的是哪个」。</p>
+ */
+function accountLabel(it: SysAccountBrief): string {
+  const parts: string[] = [];
+  const name = it.name || it.code || it.username || it.accountId;
+  parts.push(name);
+  if (it.username && it.username !== name) parts.push(it.username);
+  if (it.vendor) parts.push(it.vendor);
+  if (it.defaultAccount) parts.push("默认");
+  return parts.join(" · ");
+}
+
+const accountOptions = computed(() =>
+  accounts.value.map(it => ({
+    value: it.accountId,
+    label: accountLabel(it),
+    disabled: it.status === 0,
+  })),
+);
+
+/** 账号 v-model 代理：写入账号标识并标脏 */
+const accountModel = computed<string | undefined>({
+  get: () => props.row.sysSettingValue || undefined,
+  set: v => {
+    props.row.sysSettingValue = v == null ? "" : String(v);
+    markDirty();
+  },
+});
+
+const accountPlaceholder = computed(() =>
+  accounts.value.length ? "选择账号（来自账号管理）" : "请先在账号管理添加账号",
+);
+
+/** 当前值在账号管理里已不存在 / 已停用时给出提示，避免只显示一串标识误以为配置正常 */
+const accountTitle = computed(() => {
+  const v = props.row.sysSettingValue;
+  if (!v) return "";
+  return accounts.value.some(it => it.accountId === v) ? "" : "当前值在账号管理中已不存在或已停用，请重新选择";
+});
+
+onMounted(async () => {
+  const kind = accountKind.value;
+  if (!kind) return;
+  accountLoading.value = true;
+  try {
+    accounts.value = await listAccountsCached(kind);
+  } catch {
+    accounts.value = [];
+  } finally {
+    accountLoading.value = false;
+  }
+});
+
 function resetDefault() {
   const d = props.row.sysSettingDefaultValue;
   if (d == null) return;
@@ -114,6 +205,7 @@ const canReset = computed(() => {
 }
 .sv-editor :deep(.el-input),
 .sv-editor :deep(.el-input-number),
+.sv-editor :deep(.el-select),
 .sv-editor :deep(.el-color-picker) {
   flex: 1;
   min-width: 0;
