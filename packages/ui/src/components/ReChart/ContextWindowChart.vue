@@ -52,9 +52,15 @@
         </div>
       </div>
 
+      <!--
+        三种画法都用 v-show 常驻 DOM，不随切换销毁重建：
+         - 切回面积图不必重建格子，尺寸观察者也不必重挂（见 syncSize）；
+         - 点阵 200 格只在挂载时创建一次，切换只是 display 开关，省掉整批 DOM 重建。
+        隐藏时 display:none 不参与布局与绘制，代价只是几百个空 span。
+      -->
       <!-- 画法 A：面积图（treemap） -->
       <div
-        v-if="viewMode === 'area'"
+        v-show="viewMode === 'area'"
         ref="areaRef"
         class="re-chart-context__area"
         :class="{ 'is-dimmed': !!hoveredKey }"
@@ -98,7 +104,7 @@
 
       <!-- 画法 B：点阵图（200 格，同一份数据） -->
       <div
-        v-else-if="viewMode === 'dots'"
+        v-show="viewMode === 'dots'"
         class="re-chart-context__dots"
         :class="{ 'is-dimmed': !!hoveredKey }"
         :aria-label="`${DOT_COUNT} 格点阵，每格约 ${perDotText} tokens`"
@@ -126,7 +132,7 @@
         左罐从底往上按占用堆叠、剩余留空；右侧给一个主读数 + 前几类占比。
         和面积图/点阵图看的是同一份 slices，只是把「还剩多少」摆到最前面。
       -->
-      <div v-else class="re-chart-context__gauge" @mouseleave="onPointerLeave">
+      <div v-show="viewMode !== 'area' && viewMode !== 'dots'" class="re-chart-context__gauge" @mouseleave="onPointerLeave">
         <div
           class="re-chart-context__gauge-tank"
           role="img"
@@ -243,7 +249,7 @@
  *    小块（尺寸不足不显示标签）同样能看全；
  *  - `clickToExpand`（默认开）点击任意块即在图下方摊开全部切片清单，不弹对话框。
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import ContextModeIcon from "./ContextModeIcon.vue";
 import type { ContextSlice, ContextViewMode, ReChartContextData } from "./types";
 import {
@@ -560,13 +566,35 @@ const gaugeRows = computed(() => {
 
 let observer: ResizeObserver | null = null;
 
+/**
+ * 实测画布尺寸。
+ *
+ * <p>三种画法现在用 v-show 常驻 DOM，隐藏的画法是 display:none，
+ * 此时 getBoundingClientRect 返回 0×0 —— 不能拿它覆盖已有尺寸，
+ * 否则切走一次就把面积图布局清空（旧的 v-if 写法正是靠这个把
+ * areaSize 留成旧值/0，切回来要么空白、要么按旧宽度排）。</p>
+ */
 function syncSize() {
   const el = areaRef.value;
   if (!el) return;
   const box = el.getBoundingClientRect();
-  areaSize.w = Math.round(box.width);
-  areaSize.h = Math.round(box.height);
+  const w = Math.round(box.width);
+  const h = Math.round(box.height);
+  if (w <= 0 || h <= 0) return;
+  if (w === areaSize.w && h === areaSize.h) return;
+  areaSize.w = w;
+  areaSize.h = h;
 }
+
+/**
+ * 切回面积图时补一次实测：display 从 none 变回 block 后，
+ * ResizeObserver 要到下一帧才回调，中间会闪一帧空格子。
+ * 这里在 DOM 更新后立刻量，切换当帧就有格子。
+ */
+watch(viewMode, (mode) => {
+  if (mode !== "area") return;
+  nextTick(() => syncSize());
+});
 
 onMounted(() => {
   syncSize();
@@ -732,8 +760,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: flex-start;
   gap: 1px;
-  transition: left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease,
-    opacity 0.18s ease, box-shadow 0.18s ease;
+  /* 只过渡绘制属性：left/top/width/height 是布局属性，过渡它们会在每次
+     尺寸变化时逐帧触发布局（容器拖动、面板开合都会卡）。几何变化直接落位。 */
+  transition: opacity 0.18s ease, box-shadow 0.18s ease;
 }
 /* 同类别保持清晰、其余类别退到 0.2：一组占多少一眼可读 */
 .re-chart-context__cell.is-dim {
