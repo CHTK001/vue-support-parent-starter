@@ -722,9 +722,11 @@ const onExternalSaved = async () => {
 
 const handleSave = async () => {
   if (!form.name.trim()) { message.warning(t('settings.models.nameRequired')); return }
-  // ONNX 纯本地推理没有远端地址；路由组也没有真实上游地址；免登录渠道（DuckDuckGo 等）
-  // 的模型目录由内置对话客户端提供 —— 这三种都不校验 apiUrl
+  // ONNX 纯本地推理没有远端地址；路由组也没有真实上游地址；免费渠道是渠道管理的统一入口，
+  // 地址由渠道管理维护；免登录渠道（DuckDuckGo 等）的模型目录由内置对话客户端提供
+  // —— 这四种都不校验 apiUrl
   if (!isLocalProvider.value && !isChannelProviderFlag.value && !isRouterGroupProvider.value
+      && !isFreeChannelProvider.value
       && !isKeylessChannelProviderFlag.value && !form.apiUrl.trim()) {
     message.warning(t('settings.models.apiUrlRequired')); return
   }
@@ -772,8 +774,9 @@ const handleSave = async () => {
     // ONNX 的 base_url 是后端占位值（模型注册表驱动），表单已不展示该字段，
     // 不回传，避免把空串覆盖进库里
     // 路由组同样不传 base_url：地址留空，成员是库里的真实上游
-    // 免登录渠道也没有上游地址：不传，避免把展示用的空串写回
-    if (!isLocalProvider.value && !isRouterGroupProvider.value && !isKeylessChannelProviderFlag.value) {
+    // 免费渠道 / 免登录渠道也没有自己的上游地址：不传，避免把展示用的空串写回
+    if (!isLocalProvider.value && !isRouterGroupProvider.value
+        && !isFreeChannelProvider.value && !isKeylessChannelProviderFlag.value) {
       updateData.base_url = form.apiUrl
     }
     // 凭证必须走 credentials：后端 ApiProviderController#updateProvider 只认 body.credentials，
@@ -973,6 +976,15 @@ const protocolOptions = [
           <p class="pf-note">
             路由组没有真实上游：它不占地址与密钥，成员全部来自模型库。
             成员的顺序与策略（路由策略 / 被限流时 / 延迟 / 全忙 / 上下文）在供应商详情页的「路由组」面板维护。
+          </p>
+        </div>
+      </div>
+      <div v-else-if="isFreeChannelProvider" class="pf-line">
+        <span class="pf-line-label">{{ t('settings.models.apiUrl') }}</span>
+        <div class="pf-line-ctrl">
+          <p class="pf-note">
+            免费渠道是渠道管理的统一入口，不需要填地址：模型清单取自渠道管理里所有已开启的模型，
+            调用时按所选模型自动切到对应渠道的上游地址与凭据。「从提供商获取模型列表」直接读这份清单。
           </p>
         </div>
       </div>

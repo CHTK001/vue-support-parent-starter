@@ -240,7 +240,10 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'openrouter', name: 'OpenRouter', description: '聚合 API，支持数百个模型', protocol: 'openai', defaultApiUrl: 'https://openrouter.ai/api/v1', keywords: ['router'] },
   { id: 'commandcode', name: 'commandcode', description: '聚合 API，支持数百个模型', protocol: 'openai', defaultApiUrl: 'https://api.commandcode.ai/provider/v1', keywords: ['router'] },
   { id: 'agnes', name: 'Agnes AI', description: '聚合 API，免费使用多种模型', protocol: 'openai', defaultApiUrl: 'https://apihub.agnes-ai.cn/v1', keywords: ['apihub'] },
-  { id: 'free-channel', name: '免费渠道', description: '聚合多个免费模型，按模型自动切换上游地址与全局 Key，支持多账号限流切换', protocol: 'openai', defaultApiUrl: 'https://free.nomifun.com/v1', keywords: ['free', 'channel', 'mianfei', '免费渠道'] },
+  // 免费渠道＝渠道管理的统一入口：模型取自渠道管理里所有已开启的模型，调用时按模型
+  // 自动切换到对应渠道的上游地址与凭据。它没有自己的上游地址，模板不带 defaultApiUrl，
+  // 表单也不再要求填写（地址/Key 都在渠道管理维护）。
+  { id: 'free-channel', name: '免费渠道', description: '渠道管理统一入口：模型来自渠道管理所有已开启的模型，按模型自动切换上游地址与凭据', protocol: 'openai', keywords: ['free', 'channel', 'mianfei', '免费渠道'] },
   // 免登录对话渠道：没有上游地址、也没有 Key，模型目录由后端 ChatClient 扩展自己提供
   // （见 model.constants.ts 的 KEYLESS_CHANNEL_PROVIDER_IDS）。落库 auth_scheme=none、
   // base_url 留空；「从提供商获取模型列表」走内置模型清单，加进来的模型可直接调用。
