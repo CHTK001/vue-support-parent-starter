@@ -245,6 +245,7 @@ import { DataLine20Regular } from '@vicons/fluent';
 import { useTurnStats } from '@/composables/useTurnStats';
 import TraceFlowDialog from './trace/TraceFlowDialog.vue';
 import { normalizeLiveTrace, type SessionTrace } from './trace/traceTypes';
+import { CONTEXT_KHAKI } from './contextPalette';
 
 const props = defineProps<{
   /** 当前会话的全部消息（activeMessages） */
@@ -436,14 +437,15 @@ const cacheRateShort = computed(() => {
 /**
  * 上下文 token 构成。
  *
- * 五分量与 SessionStatusPanel 同源同色。
+ * 五分量与 SessionStatusPanel 同源同色，且统一取 contextPalette 的卡其色系
+ * （此处原先是 Element Plus 默认 hex：蓝/灰/绿/橙/红，与上下文窗口图表两套皮）。
  */
 const BREAKDOWN_META = [
-  { key: 'systemPrompt', labelKey: 'chat.runStats.bdSystem', color: '#409eff' },
-  { key: 'summary', labelKey: 'chat.runStats.bdSummary', color: '#909399' },
-  { key: 'userPrompt', labelKey: 'chat.runStats.bdUser', color: '#67c23a' },
-  { key: 'history', labelKey: 'chat.runStats.bdHistory', color: '#e6a23c' },
-  { key: 'tools', labelKey: 'chat.runStats.bdTools', color: '#f56c6c' },
+  { key: 'systemPrompt', labelKey: 'chat.runStats.bdSystem', color: CONTEXT_KHAKI.systemPrompt },
+  { key: 'summary', labelKey: 'chat.runStats.bdSummary', color: CONTEXT_KHAKI.summary },
+  { key: 'userPrompt', labelKey: 'chat.runStats.bdUser', color: CONTEXT_KHAKI.userPrompt },
+  { key: 'history', labelKey: 'chat.runStats.bdHistory', color: CONTEXT_KHAKI.history },
+  { key: 'tools', labelKey: 'chat.runStats.bdTools', color: CONTEXT_KHAKI.tools },
 ] as const;
 
 const breakdownRows = computed(() => {

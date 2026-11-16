@@ -60,14 +60,15 @@ import { computed, ref, watch } from 'vue'
 import CustomPopover from '../ui/CustomPopover.vue'
 import ContextTreemapMini from './ContextTreemapMini.vue'
 import { apiService } from '@/services/ApiService'
+import { CONTEXT_KHAKI } from './contextPalette'
 
-/** 上下文分类的元信息：与「执行轨迹 → 上下文窗口」同一套键与配色 */
+/** 上下文分类的元信息：与「执行轨迹 → 上下文窗口」同一套键与配色（卡其色系） */
 const BREAKDOWN_META = [
-  { key: 'systemPrompt', label: '系统提示词', color: 'var(--el-color-primary)' },
-  { key: 'tools', label: '工具定义', color: 'var(--el-color-danger)' },
-  { key: 'summary', label: '摘要', color: 'var(--el-color-info)' },
-  { key: 'userPrompt', label: '用户输入', color: 'var(--el-color-success)' },
-  { key: 'history', label: '对话消息', color: 'var(--el-color-warning)' },
+  { key: 'systemPrompt', label: '系统提示词', color: CONTEXT_KHAKI.systemPrompt },
+  { key: 'tools', label: '工具定义', color: CONTEXT_KHAKI.tools },
+  { key: 'summary', label: '摘要', color: CONTEXT_KHAKI.summary },
+  { key: 'userPrompt', label: '用户输入', color: CONTEXT_KHAKI.userPrompt },
+  { key: 'history', label: '对话消息', color: CONTEXT_KHAKI.history },
 ] as const
 
 const props = defineProps<{

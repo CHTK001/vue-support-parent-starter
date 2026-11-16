@@ -221,6 +221,7 @@ import { flattenContentsForTimeline } from '@/utils/messageUtils';
 import { getToolIcon, getToolConfig, getArgsText, resolveToolName } from '@/utils/toolDisplay';
 import FileChangesBar from './message-item/FileChangesBar.vue';
 import FileDiffDialog from './message-item/FileDiffDialog.vue';
+import { CONTEXT_KHAKI } from './contextPalette';
 
 const props = defineProps<{
   sessionId?: string;
@@ -415,13 +416,14 @@ const progressColor = computed(() => {
 /**
  * token 构成的五个分量，各自占已用 token 的比例。
  * 数据来自 useSessionTokenStats 的 breakdown，后端随 contextStats 一起下发。
+ * 配色与上下文窗口图表同源（contextPalette 卡其色系），不再用 Element Plus 默认 hex。
  */
 const BREAKDOWN_META = [
-  { key: 'systemPrompt', label: '系统提示', color: '#409eff' },
-  { key: 'summary', label: '摘要', color: '#909399' },
-  { key: 'userPrompt', label: '用户输入', color: '#67c23a' },
-  { key: 'history', label: '历史消息', color: '#e6a23c' },
-  { key: 'tools', label: '工具定义', color: '#f56c6c' },
+  { key: 'systemPrompt', label: '系统提示', color: CONTEXT_KHAKI.systemPrompt },
+  { key: 'summary', label: '摘要', color: CONTEXT_KHAKI.summary },
+  { key: 'userPrompt', label: '用户输入', color: CONTEXT_KHAKI.userPrompt },
+  { key: 'history', label: '历史消息', color: CONTEXT_KHAKI.history },
+  { key: 'tools', label: '工具定义', color: CONTEXT_KHAKI.tools },
 ] as const;
 
 const breakdownRows = computed(() => {

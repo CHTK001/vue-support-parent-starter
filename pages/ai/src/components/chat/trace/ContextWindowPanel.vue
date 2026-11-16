@@ -250,6 +250,7 @@ import { useSessionStore } from "@/stores/session";
 import { useSessionTokenStats } from "@/composables/useSessionTokenStats";
 import ReChart, { ContextModeIcon } from "@repo/ui/re-chart";
 import type { ContextSlice, ContextViewMode, ReChartContextData } from "@repo/ui/re-chart";
+import { CONTEXT_KHAKI, CONTEXT_KHAKI_EXTRA } from "../contextPalette";
 
 /**
  * 面板只接收会话标识：
@@ -310,20 +311,22 @@ watch(() => props.sessionId, () => { void loadCharacterPrompt(); }, { immediate:
 /**
  * 五个分类与后端 breakdown 的键一一对应。
  *
- * 颜色沿用 --el-* 令牌（refactor.css 已映射到主题层），不写死 hex：
- * 换肤 / 暗色下不会出现一块刺眼的固定色。
+ * 颜色取 contextPalette 的卡其色系（同一色相由深到浅五档）。
+ * 早期这里是 --el-color-primary / danger / info / success / warning 五个语义令牌，
+ * 拼贴面积图里等于蓝红灰绿橙并排，色噪压过面积（用户口径 2026-11-16）。
+ * 悬停卡的迷你 treemap 读同一份常量，两处不会走色。
  */
 const BREAKDOWN_META = [
-  { key: "systemPrompt", label: "系统提示词", color: "var(--el-color-primary)", short: "系" },
-  { key: "tools", label: "工具定义", color: "var(--el-color-danger)", short: "具" },
-  { key: "summary", label: "摘要", color: "var(--el-color-info)", short: "摘" },
-  { key: "userPrompt", label: "用户输入", color: "var(--el-color-success)", short: "用" },
-  { key: "history", label: "对话消息", color: "var(--el-color-warning)", short: "史" },
+  { key: "systemPrompt", label: "系统提示词", color: CONTEXT_KHAKI.systemPrompt, short: "系" },
+  { key: "tools", label: "工具定义", color: CONTEXT_KHAKI.tools, short: "具" },
+  { key: "summary", label: "摘要", color: CONTEXT_KHAKI.summary, short: "摘" },
+  { key: "userPrompt", label: "用户输入", color: CONTEXT_KHAKI.userPrompt, short: "用" },
+  { key: "history", label: "对话消息", color: CONTEXT_KHAKI.history, short: "史" },
 ] as const;
 
-/** 明细里额外的两个视图：来自会话消息，不属于 breakdown 的独立分类 */
-const FILE_COLOR = "var(--el-color-primary-light-3)";
-const TOOL_RESULT_COLOR = "var(--el-color-danger-light-3)";
+/** 明细里额外的两个视图：来自会话消息，不属于 breakdown 的独立分类（比五档更浅） */
+const FILE_COLOR = CONTEXT_KHAKI_EXTRA.files;
+const TOOL_RESULT_COLOR = CONTEXT_KHAKI_EXTRA.toolResult;
 
 const breakdown = computed<Record<string, number>>(() => {
   const raw = (tokenStats.value?.breakdown || {}) as Record<string, number>;
@@ -577,7 +580,7 @@ const entries = computed<Entry[]>(() => {
       subtitle: "由后端按字符数 × 1.5 估算",
       tokens: sysValue,
       share: 0,
-      color: "var(--el-color-primary)",
+      color: CONTEXT_KHAKI.systemPrompt,
       short: "系",
       note: "系统提示词的正文由后端在请求组装时注入，接口只返回估算后的合计 token，不提供原文，因此这里不展开逐段内容。",
       content: "（后端未下发表全文；合计 token 见上方分类占比）",
@@ -610,7 +613,7 @@ const entries = computed<Entry[]>(() => {
       subtitle: `本会话调用 ${row.count} 次`,
       tokens: null,
       share: 0,
-      color: "var(--el-color-danger)",
+      color: CONTEXT_KHAKI.tools,
       short: "具",
       note: `工具定义的 schema 由后端序列化后计入上下文（本会话合计 ${formatTokens(toolValue)} token），接口不返回单个工具的定义体积，因此这里只列调用参数。`,
       content: row.args.filter(Boolean).join("\n\n---\n\n"),
@@ -627,7 +630,7 @@ const entries = computed<Entry[]>(() => {
       subtitle: "role=system 的压缩产物",
       tokens: summaryValue,
       share: 0,
-      color: "var(--el-color-info)",
+      color: CONTEXT_KHAKI.summary,
       short: "摘",
       note: "摘要由会话压缩生成，随请求以 system 消息下发；接口只返回合计 token，不提供摘要正文。",
       content: "（后端未下发摘要正文；合计 token 见上方分类占比）",
@@ -657,7 +660,7 @@ const entries = computed<Entry[]>(() => {
       subtitle: isUser ? "用户消息" : "助手消息",
       tokens,
       share: 0,
-      color: isLastUser ? "var(--el-color-success)" : "var(--el-color-warning)",
+      color: isLastUser ? CONTEXT_KHAKI.userPrompt : CONTEXT_KHAKI.history,
       short: isLastUser ? "用" : "史",
       note: "会话消息原文，随请求按角色下发。token 为按后端口径（字符数 × 1.5）的估算值。",
       content: text,
