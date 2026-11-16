@@ -101,6 +101,19 @@ export const MODEL_REQUIRED_FIELDS: Readonly<Record<string, ModelRequiredGroup>>
     fields: ['layout_model'],
   },
   /**
+   * 试卷识别：版面分析模型。
+   *
+   * <p>试卷按「版面文本区」切出题号/题干/作答，没有版面模型时 OCR 只能整图出块，
+   * 拿不到题目边界；后端 {@code PaperClientManager.available()} 因此在「既没有版面模型、
+   * 也没有结构化大模型」时判不可用。留空可复用 {@code layout} 分组（见
+   * {@code resolveLayoutDetector}），但试卷页仍要求显式选择本组使用的版面模型，
+   * 否则用户会以为试卷识别已配好、实际切不出题。</p>
+   */
+  paper: {
+    capability: '试卷识别',
+    fields: ['layout_model'],
+  },
+  /**
    * 图片识别：只有「图像上色」是必选（ColorizeClientManager.available() 的门禁）。
    *
    * <p>同组的 classify_model / detect_model / captioning_model / super_resolution_model
