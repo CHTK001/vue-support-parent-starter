@@ -248,10 +248,16 @@
                 fit="contain"
                 @error="avatarFailed.add(getModelId(model))"
               />
-              <span
-                class="ml-name-text"
-                :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)"
-              >{{ model.alias || getModelDisplayName(model.modelName) }}</span>
+              <!-- 名称 + 描述两行：描述是模型副标题，显示在模型名下方（没有就整行不占位） -->
+              <span class="ml-name-body">
+                <span
+                  class="ml-name-text"
+                  :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)"
+                >{{ model.alias || getModelDisplayName(model.modelName) }}</span>
+                <span v-if="model.description" class="ml-name-desc" :title="model.description">
+                  {{ model.description }}
+                </span>
+              </span>
               <span v-if="model.external" class="ml-badge">外部目录</span>
             </span>
 
@@ -320,6 +326,10 @@
               <div class="mc-head-text min-w-0">
                 <span class="mc-name" :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)">
                   {{ model.alias || getModelDisplayName(model.modelName) }}
+                </span>
+                <!-- 模型描述：显示在模型名下方的一行小字（没有描述不占位） -->
+                <span v-if="model.description" class="mc-desc" :title="model.description">
+                  {{ model.description }}
                 </span>
                 <!--
                   模型的全部标签统一走 ModelTagStrip（图标 + tooltip）：
@@ -1625,7 +1635,7 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
    右栏再窄就整块横向滚动，而不是把名称压成「…」（模型名是识别主键，
    压完就分不清同前缀的几行）。 */
 .model-list {
-  border: 1px solid var(--border-subtle, var(--color-surface-border));
+  border: 1px solid var(--border-strong, var(--color-surface-border));
   border-radius: var(--radius-lg, 12px);
   background: var(--color-surface);
   overflow-x: auto;
@@ -1639,13 +1649,21 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   min-width: 700px;
   padding: 0 12px;
 }
+/* 竖分隔线：表格要有「格」，否则密排行只看得到横线，价格/速度这类数字列
+   与相邻的名称列容易连读成一片。用 inset 阴影画线，不占盒模型宽度，
+   grid 列宽不会因此错位（border-left 会各吃掉 1px）。 */
+.ml-head > *:not(:first-child),
+.ml-row > *:not(:first-child) {
+  box-shadow: inset 1px 0 0 var(--border-subtle, var(--color-surface-border));
+  padding-left: 8px;
+}
 .ml-head {
   height: 34px;
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-gray);
   background: var(--bg-elevated, #f8fafc);
-  border-bottom: 1px solid var(--border-subtle, var(--color-surface-border));
+  border-bottom: 1px solid var(--border-default, var(--color-surface-border));
   border-radius: var(--radius-lg, 12px) var(--radius-lg, 12px) 0 0;
 }
 .ml-row {
@@ -1665,6 +1683,13 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   gap: 8px;
   min-width: 0;
 }
+/* 名称 + 描述两行；行内网格用 align-items:center 让两行整体垂直居中 */
+.ml-name-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
 .ml-logo {
   width: 22px;
   height: 22px;
@@ -1680,6 +1705,16 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
+}
+/* 描述副标题：一行截断，完整内容在 title 里；比名称小一号、浅一档 */
+.ml-name-desc {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--color-text-gray);
 }
 .ml-badge {
   flex-shrink: 0;
@@ -1806,6 +1841,20 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .mc-name {
   font-size: 14px; font-weight: 700; color: var(--color-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* 卡片副标题（模型描述）：最多两行，超出省略；完整内容在 title 里。
+   限制行数是卡片等高的前提之一：描述长短差异极大（「本地 OCR」vs 一段介绍），
+   不限高会把同排卡片撑成高低不齐。 */
+.mc-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-text-gray);
+  word-break: break-word;
 }
 /* .mc-type / .mc-type.sub 已随标签改造移除：类型、细分类型、特性
    统一由 ModelTagStrip 以「图标 + tooltip」渲染，不再占用文字宽度。 */

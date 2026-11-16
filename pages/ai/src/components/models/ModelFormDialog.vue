@@ -75,6 +75,21 @@
             <el-form-item label="模型别名" prop="alias">
               <el-input v-model="form.alias" placeholder="可选，业务展示用名称（如：我的模型）" clearable />
             </el-form-item>
+            <!--
+              模型描述：卡片与列表里显示在模型名下方的一行说明。
+              从提供商获取时会带上游 description（Google / OpenRouter / ONNX 本地行等），
+              没有上游描述也可以手填；留空则不显示副标题。
+            -->
+            <el-form-item label="模型描述" prop="description">
+              <el-input
+                v-model="form.description"
+                type="textarea"
+                :rows="2"
+                maxlength="500"
+                show-word-limit
+                placeholder="可选，显示在模型名下方的一句话说明（如：本地 OCR 文字识别，支持中英文）"
+              />
+            </el-form-item>
             <el-form-item v-if="subTypeOptions.length" label="细分类型" prop="subType">
               <el-select v-model="form.subType" class="w-full" clearable placeholder="选择该模型在管线里的具体用途">
                 <el-option v-for="opt in subTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
@@ -524,6 +539,7 @@ const form = ref<any>({
   modelName: '',
   modelType: 'text',
   subType: '',
+  description: '',
   config: createDefaultModelConfig(),
 })
 
@@ -771,7 +787,7 @@ const selectModelType = (type: any) => {
 const openAdd = () => {
   isEditMode.value = false
   editingId.value = null
-  form.value = { modelName: '', modelType: 'text', subType: '', config: createDefaultModelConfig() }
+  form.value = { modelName: '', modelType: 'text', subType: '', description: '', config: createDefaultModelConfig() }
   formRef.value?.clearValidate?.()
   visible.value = true
 }
@@ -783,6 +799,8 @@ const openEdit = (model: any) => {
   form.value = {
     modelName: model.modelName || '',
     alias: model.alias || '',
+    // 描述：后端实体列 sys_ai_provider_model_description 原样回显
+    description: model.description || '',
     modelType: model.modelType || 'text',
     subType: model.subType || model.modelSubType || model.config?.modelSubType || inferSubType(model, model.modelType || 'text'),
     // generate 节点后端已回传（toProviderModelResponse），这里带回生成参数
@@ -806,6 +824,9 @@ const prefillFromFetch = (model: any) => {
   form.value = {
     modelName: model.modelName || '',
     alias: model.alias || '',
+    // 上游描述（后端 upstreamModelRow 统一读 description/summary）：带进表单，
+    // 保存后就是卡片与列表里模型名下方那行说明。
+    description: model.description || '',
     modelType: type,
     subType: model.subType || model.modelSubType || model.config?.modelSubType || inferSubType(model, type),
     config: mergeFetchConfig(model, type),

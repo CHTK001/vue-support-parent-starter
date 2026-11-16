@@ -1002,6 +1002,8 @@ const createModelPayload = (m: any) => {
     tool_call: caps.includes('tool_call'),
     temperature_supported: caps.includes('temperature'),
     open_weights: caps.includes('open_weights'),
+    // 模型描述：上游 description（或 summary），与保存后的模型副标题保持一致
+    ...(m?.description || m?.summary ? { description: m.description || m.summary } : {}),
     ...(m?.family ? { family: m.family } : {}),
     ...(m?.knowledge ? { knowledge: m.knowledge } : {}),
     ...(m?.release_date ? { release_date: m.release_date } : {}),
