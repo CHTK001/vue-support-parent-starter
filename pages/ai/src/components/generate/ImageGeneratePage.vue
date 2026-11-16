@@ -731,7 +731,7 @@
           :allow-reference="referenceSupported"
           allow-optimize
           :optimizing="optimizing"
-          :allow-style-panel="styleSupported && styleRailEnabled"
+          :allow-style-panel="styleSupported"
           :style-items="stylePanelItems"
           :style-value="style"
           :history="promptHistory"
@@ -765,78 +765,11 @@
             </figure>
           </template>
 
-          <!-- 风格轨：一排缩略图，点图即换风格；默认不显示，由工具条上的风格开关控制。
-               与 @ 风格面板共用同一份 styleOptions / styleThumb，不另存第二份数据。 -->
-          <template #style-rail>
-            <div
-              v-if="mediaType === 'image' && ((styleRailEnabled && styleSupported) || referenceSupported)"
-              class="wg-style-rail"
-            >
-              <span class="wg-style-rail-label">
-                <template v-if="styleRailEnabled && styleSupported">风格<template v-if="style"> · {{ styleLabel }}</template></template>
-                <template v-else>参考图</template>
-              </span>
-              <div class="wg-style-rail-list" role="group" aria-label="风格与参考图">
-                <template v-if="styleRailEnabled && styleSupported">
-                <!-- 「无风格」排最前：风格是一个可取消的附加项，不能选上去就下不来 -->
-                <button
-                  type="button"
-                  class="wg-rail-style"
-                  :class="{ 'is-active': !style }"
-                  :aria-pressed="!style"
-                  title="无风格"
-                  @click="pickStyle('')"
-                >
-                  <span class="wg-rail-thumb is-none" aria-hidden="true">
-                    <WgIcon :d="ICONS.close" />
-                  </span>
-                  <span class="wg-rail-style-name">无风格</span>
-                </button>
-                <button
-                  v-for="item in realStyles"
-                  :key="item.key"
-                  type="button"
-                  class="wg-rail-style"
-                  :class="{ 'is-active': style === item.key }"
-                  :aria-pressed="style === item.key"
-                  :title="item.prompt ? `${item.name} · ${item.prompt}` : item.name"
-                  @click="pickStyle(item.key)"
-                >
-                  <span class="wg-rail-thumb">
-                    <img
-                      v-if="styleThumb(item.key)"
-                      :src="mediaSrc(styleThumb(item.key))"
-                      :alt="item.name"
-                      loading="lazy"
-                      @error="markStyleThumbFailed(item.key)"
-                    />
-                    <!-- 没有对应缩略图的风格：按 key 固定的色块 + 名字占位，不拿别的风格的图冒充 -->
-                    <span v-else class="wg-style-fallback" :style="styleFallbackStyle(item.key)">{{ item.name }}</span>
-                  </span>
-                  <span class="wg-rail-style-name">{{ item.name }}</span>
-                </button>
-                <!--
-                  添加参考图：风格是「往提示词里加什么」，参考图是「照着什么画」，
-                  两者都是出图的附加条件，放在同一条轨上，用户不必先去工具条里找图标。
-                  模型不支持图生图时不显示（能力见 sys_ai_provider_model_capabilities）。
-                -->
-                </template>
-                <button
-                  v-if="referenceSupported"
-                  type="button"
-                  class="wg-rail-style is-add"
-                  aria-label="添加参考图"
-                  title="添加参考图"
-                  @click="pickReference"
-                >
-                  <span class="wg-rail-thumb is-add" aria-hidden="true">
-                    <WgIcon :d="ICONS.image" />
-                  </span>
-                  <span class="wg-rail-style-name">参考图</span>
-                </button>
-              </div>
-            </div>
-          </template>
+          <!--
+            风格不再常驻在输入框上方：模型支持的风格可能有十几个，42px 的方图
+            既看不出风格、又占掉输入区一行。收进「风格」芯片的弹层（与模型同款：
+            轨上一个芯片，点开才弹面板），面板里给 80px 预览图 + 风格名。
+          -->
 
           <!--
             模型放参数轨最左（用户要求「底部模型选择放到第一个」）：
@@ -884,23 +817,69 @@
             </span>
           </template>
 
-          <!-- 风格开关：默认关闭。是否可开由模型能力决定（styleSupported），
-               开启后风格轨才显示；与模型芯片同排，不另起一行。 -->
+          <!-- 风格：与模型同款 —— 轨上只放一个芯片，点开才弹宫格面板。
+               十几张缩略图常驻在输入框上方会占掉一整行，42px 的方图也看不清风格；
+               收进弹层后每格能放到 80px，且不影响输入区高度。 -->
           <template #buttons>
-            <button
+            <PickerPopover
               v-if="mediaType === 'image' && styleSupported"
-              type="button"
-              class="wg-chip is-toolbar wg-style-switch"
-              :class="{ 'is-strong': styleRailEnabled }"
-              role="switch"
-              :aria-checked="styleRailEnabled"
-              aria-label="风格开关"
-              title="风格：开启后显示风格缩略图"
-              @click="styleRailEnabled = !styleRailEnabled"
+              v-model:show="styleOpen"
+              :width="440"
+              :max-height="520"
             >
-              <WgIcon :d="ICONS.sparkle" />
-              <span>风格</span>
-            </button>
+              <template #trigger="{ toggle }">
+                <button
+                  type="button"
+                  class="wg-chip is-toolbar wg-style-chip"
+                  :class="{ 'is-strong': !!style }"
+                  :title="style ? `出图风格：${styleLabel}` : '出图风格：不加风格描述'"
+                  @click="toggle"
+                >
+                  <WgIcon :d="ICONS.sparkle" />
+                  <span>{{ style ? `风格 · ${styleLabel}` : '风格' }}</span>
+                  <WgIcon :d="ICONS.chevron" />
+                </button>
+              </template>
+              <div class="wg-menu">
+                <p class="wg-menu-title">
+                  出图风格<span class="wg-menu-count">{{ styleMenuItems.length }}</span>
+                </p>
+                <div class="wg-style-grid">
+                  <button
+                    v-for="item in styleMenuItems"
+                    :key="item.key || 'none'"
+                    type="button"
+                    class="wg-menu-item wg-style-cell"
+                    :class="{ 'is-active': style === item.key }"
+                    :title="item.prompt || '不加风格描述，按提示词直接出图'"
+                    @click="pickStyle(item.key); styleOpen = false"
+                  >
+                    <span class="wg-style-cell-thumb" :class="{ 'is-none': !item.key }">
+                      <img
+                        v-if="item.thumb"
+                        :src="item.thumb"
+                        alt=""
+                        loading="lazy"
+                        @error="markStyleThumbFailed(item.key)"
+                      />
+                      <span
+                        v-else-if="item.key"
+                        class="wg-style-fallback"
+                        :style="{ '--wg-style-hue': item.hue }"
+                        >{{ item.name }}</span
+                      >
+                      <WgIcon v-else :d="ICONS.close" />
+                    </span>
+                    <span class="wg-style-cell-name">{{ item.name }}</span>
+                  </button>
+                </div>
+                <div class="wg-menu-foot">
+                  <span>↑↓ 导航</span>
+                  <span>Enter 选择</span>
+                  <span>Esc 关闭</span>
+                </div>
+              </div>
+            </PickerPopover>
           </template>
 
           <!--
@@ -1261,7 +1240,7 @@ const STYLE_TEMPLATES: ReadonlyArray<StyleTemplate> = [
   { key: 'pixel', name: '像素怀旧', prompt: '像素艺术，8-bit 复古游戏风，有限色板' },
   // 2026-11-14 扩充：原有 8 种集中在「写实 / 动漫 / 平面插画」，缺油画、水彩这类
   // 传统画种，也缺 3D、微缩这类近两年常见的出图方向，用户可选项偏窄。
-  // 新风格暂未配缩略图，面板里用按 key 固定的色块 + 风格名占位（不拿别的风格的图冒充）。
+  // 缩略图同批补齐（同一主体 + 该风格描述生成，见 STYLE_THUMBS）。
   { key: 'oil', name: '油画厚涂', prompt: '古典油画，厚涂笔触，画布肌理，暖调侧光，油料光泽' },
   { key: 'watercolor', name: '水彩晕染', prompt: '水彩画，湿画法晕染，颜色自然扩散，留白与纸纹' },
   { key: 'cinematic', name: '电影剧照', prompt: '电影剧照，宽银幕构图，戏剧性布光，胶片颗粒与冷调色' },
@@ -1286,6 +1265,19 @@ const STYLE_TEMPLATES: ReadonlyArray<StyleTemplate> = [
  * 表里没有对应文件的 key（模型管理里自配的风格）会退到「真用过该风格」的生成结果，
  * 都没有时用按 key 固定的色块 + 风格名占位 —— 配错图比没图更误导。
  */
+/**
+ * 缩略图地址的版本串。
+ *
+ * <p>静态目录没接上时，dev server / 反向代理会把 `/gen-style/xx.webp` 回成
+ * `200 + text/html`（也就是 index.html），浏览器照样缓存这个坏响应 ——
+ * 补上文件后用户刷新仍是破图。地址带上版本串，换一版就绕开旧缓存；
+ * 换图或有新环境部署时把这个数字 +1。</p>
+ *
+ * <p>2026-11-16：补齐后 8 种风格缩略图时 +1 —— 文件缺失期间被缓存的坏响应
+ * 按原地址仍会命中，只有换地址才能让老浏览器重新取图。</p>
+ */
+const STYLE_THUMB_VERSION = '3'
+
 const STYLE_THUMBS: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(
     [
@@ -1306,7 +1298,7 @@ const STYLE_THUMBS: Readonly<Record<string, string>> = Object.freeze(
       'lowpoly',
       'vaporwave',
       'isometric',
-    ].map((key) => [key, `${import.meta.env.BASE_URL}gen-style/${key}.webp`]),
+    ].map((key) => [key, `${import.meta.env.BASE_URL}gen-style/${key}.webp?v=${STYLE_THUMB_VERSION}`]),
   ),
 )
 
@@ -1522,8 +1514,8 @@ const styleSupported = computed(() => currentConfig.value?.style !== false)
 /**
  * 当前模型是否支持参考图（图生图）。
  *
- * <p>风格轨上的「参考图」格与工具条图标共用这一个判断：模型不支持时两处一起消失，
- * 免得入口点开发现选不了。</p>
+ * <p>输入条工具按钮与「再次生成」的参考图回填共用这一个判断：模型不支持时
+ * 入口一起消失，免得点开发现选不了。</p>
  */
 const referenceSupported = computed(() => !!currentConfig.value?.referenceImage)
 
@@ -1531,27 +1523,19 @@ const referenceSupported = computed(() => !!currentConfig.value?.referenceImage)
 const stylePanelOpen = ref(false)
 
 /**
- * 风格开关：默认关闭。
+ * 风格面板（芯片点开的弹层）是否打开。
  *
- * 是否显示开关由模型能力 styleSupported 决定（模型显式声明 style=false 时连开关都不给）；
- * 开启后风格轨与 @ 风格面板才一起出现。风格轨里的「添加参考图」是独立的图生图入口，
- * 不受这个开关影响。关闭时清掉已选风格并收起面板，免得「关了风格」却仍把描述拼进提示词。
+ * <p>与 `@` 风格面板（stylePanelOpen）互不影响：一个是轨上芯片的下拉，
+ * 一个是输入框里打 `@` 唤起的模态，各自记住自己的开关状态。</p>
  */
-const styleRailEnabled = ref(false)
-
-watch(styleRailEnabled, (on) => {
-  if (!on) {
-    style.value = ''
-    stylePanelOpen.value = false
-  }
-})
+const styleOpen = ref(false)
 
 /**
  * 真实风格项（key 非空）。
  *
- * 「无风格」不是一项风格，而是「不加风格」，由风格轨最左侧的固定按钮表达，
- * 故不进这份列表：风格轨与 @ 面板都只列它。
- * 之前风格轨直接遍历 styleOptions，把内置表里的空 key 项也渲染了一遍，
+ * 「无风格」不是一项风格，而是「不加风格」，在芯片弹层里单独占一格，
+ * 故不进这份列表：`@` 面板只列真实风格。
+ * 之前直接遍历 styleOptions，把内置表里的空 key 项也渲染了一遍，
  * 结果最左侧并排出现两个「无风格」，还同时是选中态。
  */
 const realStyles = computed(() => styleOptions.value.filter((item) => !!item.key))
@@ -1559,7 +1543,7 @@ const realStyles = computed(() => styleOptions.value.filter((item) => !!item.key
 /**
  * @ 风格面板的风格项。
  *
- * 缩略图与描述都从 realStyles 取，与风格轨共用同一份数据 ——
+ * 缩略图与描述都从 realStyles 取，与风格芯片面板共用同一份数据 ——
  * 两处各维护一份必然漂移（之前「风格缩略图和文字对不上」就是这么来的）。
  */
 const stylePanelItems = computed(() =>
@@ -1568,6 +1552,25 @@ const stylePanelItems = computed(() =>
     name: item.name,
     prompt: item.prompt,
     thumb: styleThumb(item.key),
+  })),
+)
+
+/**
+ * 风格芯片弹层里的格子：「无风格」+ 全部真实风格。
+ *
+ * <p>与 {@link stylePanelItems} 同源，只是多一格「无风格」—— 弹层里必须能退回
+ * 「不加风格」，而 `@` 面板的「无风格」是输入框里删掉标记，不需要这一格。</p>
+ *
+ * <p>`thumb` 为空表示没有可用预览图：模板退到按 key 固定色相的色块 + 风格名，
+ * 不拿别的风格的成图冒充。</p>
+ */
+const styleMenuItems = computed(() =>
+  styleOptions.value.map((item) => ({
+    key: item.key,
+    name: item.name,
+    prompt: item.prompt,
+    thumb: item.key ? styleThumb(item.key) : '',
+    hue: styleHue(item.key || 'none'),
   })),
 )
 
@@ -2203,10 +2206,10 @@ const onDurationPick = (value: number) => {
 }
 
 /**
- * 点风格轨上的缩略图：只记下选中的风格 key。
+ * 风格芯片弹层里选中：只记下选中的风格 key（模板里顺手把弹层收起）。
  *
- * 不再把风格描述写进输入框 —— 输入条本身已有风格选择器（常驻缩略图轨 + @ 面板），
- * 用户能看到的「选中了哪个风格」就是轨上高亮的那张缩略图 + 标签上的名字；
+ * 不再把风格描述写进输入框 —— 输入条本身已有风格选择器（芯片弹层 + @ 面板），
+ * 用户能看到的「选中了哪个风格」就是芯片上的「风格 · <名字>」；
  * 描述文本在提交时由 onComposerSubmit 统一拼到提示词最前面，避免输入区
  * 出现一段风格文案、还容易与用户手打的文字重复或冲突。
  *
@@ -2217,7 +2220,7 @@ const pickStyle = (key: string) => {
 }
 
 /**
- * @ 面板里选中：只记下风格 key（用于风格轨高亮与提交时拼接），
+ * @ 面板里选中：只记下风格 key（用于芯片高亮与提交时拼接），
  * 不再往输入框写任何文字 —— 风格描述由提交端统一拼到提示词最前面。
  *
  * @param key 风格 key
@@ -3321,7 +3324,7 @@ const onComposerSubmit = async (text: string) => {
     })
     tasks.value.unshift(task)
     // 记进本机输入历史（↑↓ 可翻回）：只存用户手打的那段，不存拼接后的风格描述，
-    // 回填时风格仍由风格轨负责，避免描述在提示词里出现两遍。
+    // 回填时风格仍由风格选择器负责，避免描述在提示词里出现两遍。
     rememberInput(withStyle, authStore.user?.username, 'generate')
     promptHistory.value = loadInputHistory(authStore.user?.username, 'generate')
     // 记住本次提交：创建接口只保证「记录已入库」便返回 200，上游是否受理要到轮询才知道
@@ -3995,134 +3998,85 @@ onUnmounted(() => {
   height: 13px;
 }
 
-/* 风格开关：默认灰底；开启用主色描边 + 浅底，与旁边常驻实心的模型芯片区分，
-   不抢模型芯片这个更重要的信息。状态由 .is-strong 切换。 */
-.wg-style-switch.is-strong {
+/* 风格芯片：未选风格时是安静的值按钮；选了风格才用浅主色底 + 主色字。
+   与模型芯片（常驻实心）不同，这里表达的是「已选风格」，不是「当前模型」。 */
+.wg-style-chip.is-strong {
   border-color: var(--color-primary);
   background: var(--color-primary-50);
   color: var(--color-primary);
   font-weight: 500;
 }
 
-/* ---------- 风格轨（输入框内常驻的一排缩略图） ---------- */
+/* ---------- 风格弹层（芯片点开的宫格） ---------- */
 
-.wg-style-rail {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 6px 0;
-}
-
-.wg-style-rail-label {
-  flex: 0 0 auto;
-  max-width: 96px;
-  overflow: hidden;
-  color: var(--color-text-gray);
-  font-size: 12px;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 超过一行就横向滚：风格数量由模型配置决定，轨道不能把提示词挤没 */
-.wg-style-rail-list {
-  display: flex;
-  flex: 1 1 auto;
+/* 440px 宽的面板排 5 列：每格约 80px，17 种风格 4 行放得下，
+   不用滚动就能一眼扫完；风格更多时由外层 popover-shell 负责滚动。 */
+.wg-style-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 6px;
-  min-width: 0;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
+  padding: 2px 0 4px;
 }
 
-.wg-rail-style {
-  display: flex;
-  flex: 0 0 auto;
+/* 复用 .wg-menu-item 才能被 PickerPopover 的 ↑↓ 当作可选项，
+   但排布要竖过来：图在上、名在下（.wg-menu-item 本身是横排的 30px 行）。 */
+.wg-menu-item.wg-style-cell {
   flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  width: 48px;
-  padding: 3px;
+  align-items: stretch;
+  gap: 5px;
+  width: auto;
+  min-height: 0;
+  padding: 5px;
   border: 1px solid transparent;
   border-radius: var(--r-sm);
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
 
-.wg-rail-style:hover {
-  background: var(--color-surface-hover);
-}
-
-.wg-rail-style.is-active {
+.wg-menu-item.wg-style-cell.is-active {
   border-color: var(--color-primary);
   background: var(--color-primary-50);
 }
 
-.wg-rail-thumb {
+.wg-style-cell-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  width: 42px;
   aspect-ratio: 1 / 1;
   border-radius: calc(var(--r-sm) / 1.5);
   background: var(--color-secondary-surface);
 }
 
-.wg-rail-thumb img {
+.wg-style-cell-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 /* 「无风格」：虚线空框 + 叉，一眼是「不加风格」而不是某张图 */
-.wg-rail-thumb.is-none {
+.wg-style-cell-thumb.is-none {
   border: 1px dashed var(--color-surface-border);
   color: var(--color-text-gray);
 }
 
-.wg-rail-thumb.is-none .wg-svg {
-  width: 16px;
-  height: 16px;
+.wg-style-cell-thumb.is-none .wg-svg {
+  width: 18px;
+  height: 18px;
 }
 
-/* 「添加参考图」：同款虚线空框 + 图片图标 —— 和「无风格」并排也看得出一个是「不要风格」，
-   一个是「加一张参考图」，不会混成同一类 */
-.wg-rail-thumb.is-add {
-  border: 1px dashed var(--color-surface-border);
-  color: var(--color-text-gray);
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.wg-rail-thumb.is-add .wg-svg {
-  width: 16px;
-  height: 16px;
-}
-
-.wg-rail-style.is-add:hover .wg-rail-thumb.is-add {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-/* 轨上占位色块只有 42px，12px 的风格名放不下，缩到 10px 两字一行 */
-.wg-rail-thumb .wg-style-fallback {
-  padding: 0 2px;
-  font-size: 10px;
-}
-
-.wg-rail-style-name {
-  max-width: 100%;
+.wg-style-cell-name {
   overflow: hidden;
   color: var(--color-text-gray);
   font-size: 11px;
-  line-height: 1.2;
+  line-height: 1.3;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.wg-rail-style.is-active .wg-rail-style-name {
+.wg-style-cell.is-active .wg-style-cell-name {
   color: var(--color-primary);
+  font-weight: 500;
 }
 
 .wg-style-fallback {

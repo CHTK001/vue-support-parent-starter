@@ -53,11 +53,6 @@
            上下间距由注入方自己的 margin 承担 -->
       <slot name="reference"></slot>
 
-      <!-- 风格缩略图轨（生图）：由外部注入，常驻在输入框内、参考图之下。
-           一排缩略图就是全部风格，点图即换，不必先开弹层再选；
-           轨道只有一行、超宽时横向滚动，不挤压提示词的高度。 -->
-      <slot name="style-rail"></slot>
-
       <!-- 文件列表显示区域 -->
       <div class="file-list flex flex-wrap gap-2 mb-3" v-if="uploadFiles.length > 0">
         <FileItem v-for="file in uploadFiles" :key="file.id" :name="file.displayName" :type="file.fileType"
