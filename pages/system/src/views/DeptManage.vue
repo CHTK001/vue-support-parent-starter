@@ -664,7 +664,9 @@ onMounted(loadList);
   display: flex;
   gap: 8px;
   padding: 0;
-  height: calc(100vh - 100px);
+  /* 与 DictManage/SettingManage 同口径：父链已让出 header 与 main-content padding，
+     不再按视口重复扣减，避免外层多出一条滚动条。 */
+  height: 100%;
   box-sizing: border-box;
 }
 .dept-tree-card {

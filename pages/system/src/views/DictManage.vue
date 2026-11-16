@@ -781,7 +781,9 @@ onUnmounted(() => {
   gap: 8px;
   padding: 0;
   width: 100%;
-  height: calc(100vh - 100px);
+  /* 吃满父容器即可：header 与 main-content 的内边距由父链让出，
+     自己再按视口减一截会和标签栏(Tabs)的高度打架，多出来的那截变成外层滚动条。 */
+  height: 100%;
   box-sizing: border-box;
   min-width: 0;
 }
