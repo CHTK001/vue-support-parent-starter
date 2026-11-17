@@ -9,7 +9,15 @@
 import { getConfig } from "@repo/config";
 import { getRouter } from "@repo/core";
 import { clearAllAuthData, getAccessToken } from "@repo/utils";
-import type { OsgiAction, OsgiBundle } from "../types/osgi";
+import type {
+  OsgiAction,
+  OsgiBundle,
+  OsgiJar,
+  OsgiJarDeleteResult,
+  OsgiService,
+  OsgiSnapshot,
+  OsgiStats,
+} from "../types/osgi";
 
 /** OSGi 接口错误，携带 HTTP 状态供页面区分「未开启端点」与业务失败 */
 export class OsgiError extends Error {
@@ -194,6 +202,20 @@ export const stopBundle = (symbolicName: string) =>
 export const uninstallBundle = (symbolicName: string) =>
   request<OsgiAction>("POST", `/osgi/bundles/${encodeURIComponent(symbolicName)}/uninstall`);
 
+/** 部署目录 jar 清单（含「是否仍在框架中」） */
+export const listJars = () => request<OsgiJar[]>("GET", "/osgi/jars");
+
+/**
+ * 删除部署目录中的 jar。
+ *
+ * <p>只允许删除已不在框架中的文件：bundle 还在时后端会拒绝（409/500），
+ * 因为运行时状态与磁盘状态必须一起推进。</p>
+ *
+ * @param fileName 部署目录中的文件名
+ */
+export const deleteJar = (fileName: string) =>
+  request<OsgiJarDeleteResult>("POST", `/osgi/jars/${encodeURIComponent(fileName)}/delete`);
+
 /**
  * 下载 bundle 对应的本地 jar。
  *
@@ -226,3 +248,12 @@ export async function downloadBundle(symbolicName: string): Promise<void> {
   link.remove();
   URL.revokeObjectURL(url);
 }
+
+/** 框架统计（bundle 总数、持有服务引用数、自动启动失败数、已注册服务类型） */
+export const listStats = () => request<OsgiStats>("GET", "/osgi/stats");
+
+/** 服务注册表中的全部服务登记（按 ranking 降序） */
+export const listServices = () => request<OsgiService[]>("GET", "/osgi/services");
+
+/** 容器侧桥接快照（框架版本、定义数、验收拒绝记录） */
+export const getSnapshot = () => request<OsgiSnapshot>("GET", "/osgi/snapshot");
