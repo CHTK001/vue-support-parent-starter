@@ -193,6 +193,10 @@
       /* 渠道管理页：已从 pages/ai 抽离为独立包 @pages/channel */
       "@pages/channel": ["pages/channel/src"],
       "@pages/channel/*": ["pages/channel/src/*"],
+      // 数据源管理页：独立页面包（bare 指向 src/index.ts，通配带路径留 src
+      // 前缀，与 @pages/channel 同口径；宿主统一写 @pages/datasource/src/... 深导入）。
+      "@pages/datasource": ["pages/datasource/src/index.ts"],
+      "@pages/datasource/*": ["pages/datasource/*"],
       // 设备远程控制（@pages/control）：页面根 + 深路径（业务写 @pages/control/src/...）
       "@pages/control": ["pages/control/src"],
       "@pages/control/*": ["pages/control/*"],

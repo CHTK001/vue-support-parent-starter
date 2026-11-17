@@ -33,6 +33,13 @@ import "@pages/ai/menu";
 // 本应用框架上下文。深导入 /embed 而非包根，理由同 /menu。
 import "@pages/ai/embed";
 import { adoptHostFramework } from "@pages/ai/embed";
+// AI 控制台概览 widget：@repo/theme 的 REPO_ALIAS 把 @pages/ai 指到 pages/ai/src，
+// 深路径只拖入 widget 元数据与懒加载组件，不连带 re-export 的整页组件。
+import { aiWidgets } from "@pages/ai/widgets/aiWidgets";
+// 渠道 / 数据源概览 widget：collect 应用的 homePath 指向平台总览、无 koi widget
+// 主页，这两个 widget 统一由 system 承载。深路径导入只拖入元数据与懒加载组件。
+import { channelWidgets } from "@pages/channel/widgets/channelWidgets";
+import { datasourceWidgets } from "@pages/datasource/src/widgets/datasourceWidgets";
 
 // 主题层不反向依赖 pages/*：由应用把公告接口实现注入 @repo/theme 的注册表，
 // AnnouncementBar 通过 getAnnouncementApi 取用；不注入则静默不请求。
@@ -114,7 +121,14 @@ createContextApp({
 })
   .routes([...systemRoutes, ...tenantRoutes] as never)
   // 监控大屏卡片：各 pages 包自己注册（见 @pages/actuator、@pages/apm/monitor）
-  .widgets([actuatorContribution, apmContribution, defineWidgetContribution(systemWidgets)])
+  .widgets([
+    actuatorContribution,
+    apmContribution,
+    defineWidgetContribution(systemWidgets),
+    defineWidgetContribution(aiWidgets),
+    defineWidgetContribution(channelWidgets),
+    defineWidgetContribution(datasourceWidgets),
+  ])
   // 原先是 main.ts 手工 `.use(ReButtonInstall, ReInputInstall, ...)` 逐个导入安装。
   // 这些组件清单属于「这个 app 用到哪套 CRUD 组件」，已经由 @repo/ui 的 preset 维护：
   //   - core preset 覆盖表格 / 表单 / 弹窗 / 标签 / 输入 / 搜索 / 图标选择等 CRUD 基础件；

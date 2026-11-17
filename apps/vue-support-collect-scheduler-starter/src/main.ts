@@ -23,6 +23,10 @@ import { collectRoutes, collectWidgets, registerCollectKeepAlive } from "@pages/
 import { jobRoutes } from "@pages/job";
 import { osgiRoutes } from "@pages/osgi";
 import { defineWidgetContribution } from "@repo/theme/koi/views/home/registry";
+// channel / datasource / ai 三个 pages 模块的 home widget 均不在本应用接线：
+// app.yaml 的 routeConfig.homePath 指向 /collect/dashboard（平台总览），
+// koi widget 主页（/#/home）在本应用不可达，接了也是死码。这些 widget 统一
+// 由 system 应用承载（见 apps/vue-support-system-starter/src/main.ts 的登记）。
 import { hostRoutes } from "./routes";
 
 /** 应用标识：与目录名、app.yaml 的托管路径一致，改动需三处同步 */
@@ -74,8 +78,8 @@ void (async () => {
     // （setRouter + title/favicon 前置）与无静态菜单时的兜底；本入口无需手写安装器。
   })
     .routes(routes as never)
-    // 采集侧向 home 仪表板贡献「采集概览」widget。与 .routes() 同构：
-    // 在 mount() 阶段完成注册，早于首页首次渲染，贡献方无需关心时序
+    // 各 pages 模块向 home 仪表板贡献的 widget。与 .routes() 同构：
+    // 在 mount() 阶段完成注册，早于首页首次渲染，贡献方无需关心时序。
     .widgets([defineWidgetContribution(collectWidgets)])
     .mount("#app");
 

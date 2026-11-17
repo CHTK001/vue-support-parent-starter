@@ -30,6 +30,7 @@ import UnoCSS from "unocss/vite";
 import { presetWind3, presetAttributify, presetIcons, presetTypography, transformerDirectives, transformerVariantGroup, type UserConfig as UnoConfig } from "unocss";
 import path from "node:path";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 /** 当前文件所在目录（turbo/configs） */
@@ -243,6 +244,21 @@ export interface CreateViteOptions {
   entry?: string;
   /** 是否启用 vue-setup-extend（默认 true） */
   vueSetupExtend?: boolean;
+  /**
+   * 是否启用 Vapor 模式（默认 false）。
+   *
+   * <p>开启后由 @vitejs/plugin-vue 的 {@code features.vapor} 把可强制的 SFC
+   * （纯模板 / {@code <script setup>}）编译成 Vapor 产物：不生成虚拟 DOM 的
+   * vnode 树，更新走细粒度绑定，首屏与高频更新的开销都更低。</p>
+   *
+   * <p><b>前置条件：Vue 3.6+（编译产物从 {@code vue} 主入口导入
+   * {@code defineVaporComponent / renderEffect / setText} 等，这些自 3.6 起由主入口
+   * re-export 自 {@code @vue/runtime-vapor}；vue 包本身没有 {@code vue/vapor} 子路径）。</b>
+   * 当前仓库装的是 3.5.x，编译器会静默忽略 vapor 标记（实测产物与普通模式逐字一致），
+   * 所以这里在版本不足时<b>直接报错</b>而不是降级 —— 静默回退会让人以为已经开了
+   * Vapor，实际跑的还是虚拟 DOM。升级 vue 之后无需改代码，本项即可生效。</p>
+   */
+  vapor?: boolean;
   /** 追加业务级插件 */
   plugins?: PluginOption[];
   /** 追加业务级别名（会覆盖同名 @repo/* 别名） */
@@ -272,6 +288,62 @@ export interface CreateViteOptions {
 
 /** 公共 index.html 模板路径（turbo/template/index.html） */
 export const SHARED_INDEX_HTML = path.resolve(WORKSPACE_ROOT, "turbo/template/index.html");
+
+/**
+ * 当前安装的 Vue 是否自带 Vapor 运行时。
+ *
+ * <p>判据是 {@code vue} 主入口构建产物是否 re-export {@code @vue/runtime-vapor}：
+ * Vapor 编译产物（script 的 {@code defineVaporComponent}、模板的
+ * {@code renderEffect / setText / template}）只从 {@code vue} 主入口导入（vue 3.6
+ * 开始由主入口 re-export，vue 包本身没有 {@code vue/vapor} 子路径 —— 3.6.0-rc.15
+ * 实测 exports 表里只有 . / server-renderer / compiler-sfc / jsx-runtime / jsx）。
+ * 主入口若没有这个 re-export，构建期就会报一个无法解析的 import，dev 直接白屏，
+ * 所以必须先探测再决定。</p>
+ *
+ * <p>结果是「version 级」的常量：同一个 node_modules 里不会中途变。用 undefined
+ * 表示尚未探测，避免每次热更新都重算。</p>
+ */
+let vaporRuntimeCache: boolean | undefined;
+
+function hasVaporRuntime(): boolean {
+  if (vaporRuntimeCache !== undefined) return vaporRuntimeCache;
+  try {
+    // 用 createRequire 而不是 import：只关心能否解析，不加载运行时。
+    // 本文件是 ESM，没有 require；以 WORKSPACE_ROOT 为基准解析，避免按本文件
+    // 所在目录（turbo/vite）查找而漏掉根 node_modules 里的 vue。
+    const req = createRequire(path.join(WORKSPACE_ROOT, "noop.js"));
+    const vueDir = path.dirname(req.resolve("vue/package.json"));
+    // 读主入口构建产物（vite 打包时浏览器端用的就是它），看有没有
+    // `export * from "@vue/runtime-vapor"` 这类 re-export 标记。
+    const entry = path.join(vueDir, "dist", "vue.runtime.esm-bundler.js");
+    const head = fs.readFileSync(entry, "utf8").slice(0, 4096);
+    vaporRuntimeCache = /[`"']?@vue\/runtime-vapor[`"']?/.test(head) || head.includes("createVaporApp");
+  } catch {
+    vaporRuntimeCache = false;
+  }
+  return vaporRuntimeCache;
+}
+
+/**
+ * 把 {@code vapor} 选项翻译成 @vitejs/plugin-vue 的 options。
+ *
+ * <p>取舍：这里<b>不做静默降级</b>。用户显式写了 {@code vapor: true} 而运行时不存在时
+ * 必须报错 —— 否则编译器会安静地回退到虚拟 DOM 编译，产物与预期不符却没人发现
+ * （实测 Vue 3.5.45：vapor=true 与 false 编译出的 SFC 代码逐字一致）。</p>
+ *
+ * @param options createVite 选项
+ * @returns 传给 vue() 的 options；未启用 vapor 时为空对象（与旧行为一致）
+ */
+function vaporPluginOptions(options: CreateViteOptions): { features?: { vapor: boolean } } {
+  if (!options.vapor) return {};
+  if (!hasVaporRuntime()) {
+    throw new Error(
+      "[createVite] vapor: true 需要 Vue 3.6+ 的 Vapor 运行时（vue 主入口需 re-export @vue/runtime-vapor），" +
+        "当前 node_modules 中的 Vue 版本不提供它。请先升级 vue，或去掉 vapor 选项。",
+    );
+  }
+  return { features: { vapor: true } };
+}
 
 /**
  * 应用采用「无 index.html 模式」：应用目录不维护 index.html。
@@ -1052,7 +1124,7 @@ export function createVite(options: CreateViteOptions = {}): UserConfig {
     plugins.push(react());
   } else {
     // 默认 vue（保持向后兼容）
-    plugins.push(vue());
+    plugins.push(vue(vaporPluginOptions(options)));
     if (options.vueSetupExtend ?? false) {
       plugins.push(vueSetupExtend());
     }
