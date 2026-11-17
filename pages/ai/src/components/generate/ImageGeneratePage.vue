@@ -5213,6 +5213,23 @@ onUnmounted(() => {
   padding: 0 8px;
 }
 
+/* 画廊瀑布流：单张结果用任务尺寸比例（已知），不再强制 1:1 方图。
+   不同画幅的卡片（横图 4:3 / 方图 1:1 / 竖图 3:4）自然产生不同高度，
+   在 CSS 多列布局里形成瀑布错落。加载前比例已知 → 无布局抖动。 */
+.wg-list.is-gallery .wg-grid.is-single .wg-media {
+  aspect-ratio: unset;
+  height: 100%;
+  object-fit: contain;
+  background: var(--color-secondary-surface);
+}
+
+/* 有参考图且只有 1 张结果时，参考图不再与结果同尺度并排，
+   缩回窄档（120px），让成片视觉上占主导。 */
+.wg-list.is-gallery .wg-card-media.is-ref-peer .wg-ref-src {
+  flex: 0 0 auto;
+  width: 120px;
+}
+
 .wg-list.is-gallery .wg-act.is-primary span {
   display: none;
 }
