@@ -166,12 +166,15 @@ async function loadInfo(silent = false) {
 }
 onMounted(async () => {
   mq = window.matchMedia("(prefers-reduced-motion: reduce)"); syncMotion(); mq.addEventListener?.("change", syncMotion);
+  document.addEventListener("fullscreenchange", syncFullscreen);
+  syncFullscreen();
   await Promise.all([loadInfo(), loadRestfulStats()]);
   connectSSE();
   restfulTimer = window.setInterval(() => { void loadRestfulStats(); }, 2000);
 });
 onBeforeUnmount(() => {
   mq?.removeEventListener?.("change", syncMotion);
+  document.removeEventListener("fullscreenchange", syncFullscreen);
   disconnectSSE();
   if (restfulTimer) { window.clearInterval(restfulTimer); restfulTimer = undefined; }
 });
@@ -197,6 +200,10 @@ function fmtRate(k: number): string { return k < 1024 ? `${k.toFixed(1)} KB/s` :
 /** KB/s → Mbps（网卡侧栏展示） */
 function toMbps(k: number): string { return `${(k * 8.192 / 1000).toFixed(1)} Mbps`; }
 async function copyText(t?: string) { if (!t) return; try { await navigator.clipboard.writeText(t); message.success("已复制"); } catch { message.warning("复制失败"); } }
+
+/** 是否处于浏览器全屏：页头全屏按钮的图标要在「进入 / 退出」两种形态间切换 */
+const isFullscreen = ref(false);
+const syncFullscreen = () => { isFullscreen.value = Boolean(document.fullscreenElement); };
 
 function toggleFullscreen() {
   try {
@@ -1396,8 +1403,8 @@ function coreRowOpt(index: number): Opt {
         <button class="srv-icon-btn" title="刷新" :disabled="loading" @click="loadInfo()">
           <el-icon :size="16" :class="{ 'is-spin': loading }"><Refresh /></el-icon>
         </button>
-        <button class="srv-icon-btn" title="全屏" @click="toggleFullscreen">
-          <el-icon :size="16"><FullScreen /></el-icon>
+        <button class="srv-icon-btn" :title="isFullscreen ? '退出全屏' : '全屏'" @click="toggleFullscreen">
+          <el-icon :size="16"><component :is="isFullscreen ? Aim : FullScreen" /></el-icon>
         </button>
         <!-- 编辑态才露出的第二个入口：退回进入编辑前的布局（改动即时落盘，这是唯一撤销口） -->
         <button
@@ -2546,6 +2553,10 @@ function coreRowOpt(index: number): Opt {
 @keyframes srv-spin { to { transform: rotate(360deg); } }
 
 .srv-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
   height: 34px;
   padding: 0 16px;
   border-radius: 10px;
@@ -2561,9 +2572,6 @@ function coreRowOpt(index: number): Opt {
 .srv-primary-btn--sm { height: 28px; padding: 0 12px; font-size: 12px; border-radius: 8px; }
 /* 「自定义」按钮：与主按钮同尺寸但描边样式 —— 它是入口不是主操作，别抢「系统详情」的视觉权重 */
 .srv-primary-btn--ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-color-primary-light-7);
   color: var(--el-color-primary);
