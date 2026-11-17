@@ -5,7 +5,7 @@
         <h2 class="dps-title">人员管理</h2>
         <p class="dps-sub">人员台账与人脸录入；人员属于跨设备管理数据，不放在单台设备详情里。</p>
       </div>
-      <el-button :loading="loading" @click="loadPersons">刷新</el-button>
+      <el-button :loading="loading" @click="refresh">刷新</el-button>
     </header>
 
     <div class="dps-bar">
@@ -14,28 +14,32 @@
         placeholder="姓名 / 手机 / 人员ID"
         clearable
         style="width: 240px"
-        @keyup.enter="loadPersons"
+        @keyup.enter="query"
       />
-      <el-button type="primary" @click="loadPersons">查询</el-button>
+      <el-button type="primary" @click="query">查询</el-button>
       <el-button @click="openPerson()">新增人员</el-button>
     </div>
 
-    <el-table v-loading="loading" :data="persons" border>
-      <el-table-column prop="devicePersonName" label="姓名" min-width="120" />
-      <el-table-column prop="devicePersonExternalId" label="外部ID" width="120" />
-      <el-table-column prop="devicePersonPhone" label="手机" width="140" />
-      <el-table-column prop="devicePersonTitle" label="职称" width="120" />
-      <el-table-column prop="devicePersonVendor" label="厂商" width="110" />
-      <el-table-column prop="devicePersonOrgId" label="组织" min-width="140" />
-      <el-table-column label="操作" width="260" fixed="right">
-        <template #default="{ row }">
-          <el-button link type="primary" @click="openPerson(row)">编辑</el-button>
-          <el-button link type="success" @click="pickFace(row)">人脸</el-button>
-          <el-button link type="warning" @click="removeFace(row)">删人脸</el-button>
-          <el-button link type="danger" @click="removePerson(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- 服务端分页：loader 供数，不再一次性拉 500 条硬截断 -->
+    <ReTable
+      ref="tableRef"
+      :columns="columns"
+      :loader="loadPersons"
+      :params="tableParams"
+      engine="element"
+      row-key="devicePersonId"
+      :pagination="true"
+      :page-size="20"
+      :page-sizes="[10, 20, 50, 100, 200]"
+      :toolbar="false"
+    >
+      <template #col-actions="{ row }">
+        <el-button link type="primary" @click="openPerson(row)">编辑</el-button>
+        <el-button link type="success" @click="pickFace(row)">人脸</el-button>
+        <el-button link type="warning" @click="removeFace(row)">删人脸</el-button>
+        <el-button link type="danger" @click="removePerson(row)">删除</el-button>
+      </template>
+    </ReTable>
 
     <el-dialog v-model="personDialog.visible" :title="personDialog.id ? '编辑人员' : '新增人员'" width="520px">
       <el-form :model="personDialog.form" label-width="90px">
@@ -78,16 +82,25 @@
  * @author CH
  * @since 4.0.0.52
  */
-import { onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import ReTable from '@repo/ui/re-table'
+import type { RePageResult, ReTableColumn, ReTableLoadParams } from '@repo/ui/re-table'
 import { deviceApi } from '../api/deviceApi'
 
 const loading = ref(false)
 const saving = ref(false)
 const keyword = ref('')
-const persons = ref<Record<string, any>[]>([])
 const faceInput = ref<HTMLInputElement>()
 let faceTarget: Record<string, any> | null = null
+
+/** ReTable 暴露的方法里只用 reload */
+const tableRef = ref<InstanceType<typeof ReTable> | null>(null)
+
+/** 交给 ReTable 的查询参数（page/pageSize 由组件自己注入，这里不能带） */
+const tableParams = computed<Record<string, unknown>>(() =>
+  keyword.value ? { keyword: keyword.value } : {}
+)
 
 const personDialog = reactive<{ visible: boolean; id: string; form: Record<string, any> }>({
   visible: false,
@@ -95,16 +108,41 @@ const personDialog = reactive<{ visible: boolean; id: string; form: Record<strin
   form: {}
 })
 
-const rowsOf = (page: any): Record<string, any>[] => page?.records ?? page?.data ?? []
+/** 列定义：与人员表字段一一对应，操作列走插槽 */
+const columns: ReTableColumn[] = [
+  { prop: 'devicePersonName', label: '姓名', minWidth: 120 },
+  { prop: 'devicePersonExternalId', label: '外部ID', width: 120 },
+  { prop: 'devicePersonPhone', label: '手机', width: 140 },
+  { prop: 'devicePersonTitle', label: '职称', width: 120 },
+  { prop: 'devicePersonVendor', label: '厂商', width: 110 },
+  { prop: 'devicePersonOrgId', label: '组织', minWidth: 140 },
+  { prop: 'actions', label: '操作', slot: 'actions', width: 260, fixed: 'right' },
+]
 
-async function loadPersons() {
+/** ReTable 远程 loader：page/pageSize 由组件给，其余条件来自查询框 */
+async function loadPersons({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   loading.value = true
   try {
-    persons.value = rowsOf(await deviceApi.pagePersons({ page: 1, size: 500, keyword: keyword.value }))
+    // 后端用的是 page/size，把组件注入的 page/pageSize 重命名过去，避免同名冲突
+    const filters = { ...params }
+    delete filters.page
+    delete filters.pageSize
+    const res: any = await deviceApi.pagePersons({ ...filters, page, size: pageSize })
+    const list = (res?.records ?? res?.data ?? []) as Record<string, any>[]
+    return { total: (res?.total ?? list.length) as number, records: list as unknown as Array<Record<string, unknown>> }
+  } catch (e: any) {
+    ElMessage.error(e?.message ?? '加载人员失败')
+    return { total: 0, records: [] }
   } finally {
     loading.value = false
   }
 }
+
+/** 查询 / 刷新：reload 重拉当前页（参数变化时 ReTable 自己会重置回第 1 页） */
+function query(): void {
+  void tableRef.value?.reload()
+}
+const refresh = query
 
 function openPerson(row?: Record<string, any>) {
   personDialog.id = row?.devicePersonId ?? ''
@@ -126,7 +164,7 @@ async function savePerson() {
     }
     ElMessage.success('已保存')
     personDialog.visible = false
-    await loadPersons()
+    await tableRef.value?.reload()
   } catch (e: any) {
     ElMessage.error(e?.message ?? '保存失败')
   } finally {
@@ -178,12 +216,10 @@ async function removePerson(row: Record<string, any>) {
   await ElMessageBox.confirm(`删除人员「${row.devicePersonName}」？`, '确认', { type: 'warning' })
   await deviceApi.deletePerson(row.devicePersonId)
   ElMessage.success('已删除')
-  await loadPersons()
+  await tableRef.value?.reload()
 }
 
-onMounted(() => {
-  void loadPersons()
-})
+// ReTable 挂载时自己会调 loader 取第一页，无需在 onMounted 再触一次
 </script>
 
 <style scoped>

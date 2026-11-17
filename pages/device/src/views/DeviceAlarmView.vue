@@ -273,6 +273,7 @@ import ReStatCard from '@repo/ui/re-stat-card'
 import ReTable from '@repo/ui/re-table'
 import type { RePageResult, ReTableColumn, ReTableLoadParams } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
+import { resolveUserDisplayInfo } from '@repo/utils'
 
 import deviceApi from '../api/deviceApi'
 import type { DeviceAlarm, DeviceInfo } from '../types/device'
@@ -501,7 +502,8 @@ async function handle(row: DeviceAlarm, status: string): Promise<void> {
     }
   }
   try {
-    await deviceApi.updateAlarmStatus(row.deviceAlarmId, status, 'admin')
+    // 处理人取当前登录用户，不再写死 admin；取不到时不传，避免空串落库
+    await deviceApi.updateAlarmStatus(row.deviceAlarmId, status, resolveUserDisplayInfo().username || undefined)
     row.deviceAlarmStatus = status
     if (detail.value?.deviceAlarmId === row.deviceAlarmId) detail.value = { ...row }
     await Promise.all([tableRef.value?.reload(), refreshStats()])

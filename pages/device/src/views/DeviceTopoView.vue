@@ -247,8 +247,9 @@ async function resolveRestricted(): Promise<void> {
       const devices = (await deviceApi.groupDevices(query.id)) || []
       deviceIds = devices.map((item) => item.deviceInfoId)
     } else {
-      const page = await deviceApi.page({ vendor: query.id, pageNo: 1, pageSize: 2000 })
-      deviceIds = (page?.data || []).map((item) => item.deviceInfoId)
+      // 厂商过滤要的是该厂商的全部设备；单页上限 200 会被钳，循环翻页取全
+      const devices = await deviceApi.pageAll({ vendor: query.id })
+      deviceIds = devices.map((item) => item.deviceInfoId)
     }
     restricted.value = new Set(
       deviceIds.filter(Boolean).map((id) => `device:${id}`)

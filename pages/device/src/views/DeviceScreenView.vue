@@ -142,11 +142,8 @@ function openDetail(device: DeviceInfo) {
 async function load() {
   loading.value = true
   try {
-    const result = await deviceApi.page({ pageNo: 1, pageSize: 500 })
-    const list = (result as unknown as { data?: DeviceInfo[] })?.data
-      ?? (result as unknown as { records?: DeviceInfo[] })?.records
-      ?? []
-    devices.value = list
+    // 后端单页上限 200，直接传 500 会被钳、静默丢数据；画地图需要全量，循环翻页取全
+    devices.value = await deviceApi.pageAll()
   } finally {
     loading.value = false
   }

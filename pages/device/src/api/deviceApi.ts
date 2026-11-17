@@ -88,6 +88,29 @@ export const deviceApi = {
   /** 服务端分页（列表页使用） */
   page: (params: DevicePageQuery) =>
     http.get("/page").query(params as unknown as Record<string, unknown>).then(unwrap) as Promise<PageResult<DeviceInfo>>,
+  /**
+   * 循环翻页取全量设备（后端单页上限 200）。
+   *
+   * <p>Topo 厂商过滤 / 设备大屏需要「全部设备」而不是「第一页」；
+   * 直接传 pageSize: 2000 会被后端钳成 200，静默丢数据 —— 这里按 total
+   * 走完整趟分页，并带页数上限防止异常数据（total 虚高）导致死循环。</p>
+   */
+  pageAll: async (params?: DevicePageQuery): Promise<DeviceInfo[]> => {
+    const PAGE_SIZE = 200
+    const MAX_PAGES = 100
+    const all: DeviceInfo[] = []
+    for (let pageNo = 1; pageNo <= MAX_PAGES; pageNo++) {
+      const res = (await http
+        .get("/page")
+        .query({ ...(params as Record<string, unknown>), pageNo, pageSize: PAGE_SIZE })
+        .then(unwrap)) as PageResult<DeviceInfo> & { records?: DeviceInfo[]; total?: number }
+      const list = res?.records ?? res?.data ?? []
+      all.push(...(list as DeviceInfo[]))
+      const total = res?.total ?? all.length
+      if (all.length >= total || list.length < PAGE_SIZE) break
+    }
+    return all
+  },
   /** 台账统计（列表顶部卡片） */
   stats: (params: { orgId?: string; vendor?: string }) =>
     http.get("/stats").query(params).then(unwrap) as Promise<{
@@ -282,9 +305,9 @@ export const deviceApi = {
       pageNo?: number
       pageSize?: number
     }>,
-  /** 更新告警处理状态 */
+  /** 更新告警处理状态（不传 handler 时不带该字段，避免空串落库） */
   updateAlarmStatus: (id: string, status: string, handler?: string) =>
-    http.put(`/alarms/${id}/status`).data({ status, handler: handler ?? '' }).then(unwrap),
+    http.put(`/alarms/${id}/status`).data({ status, ...(handler ? { handler } : {}) }).then(unwrap),
 
   // ==================== 厂商设备目录同步（写回方向） ====================
   /** 把本地设备写回厂商侧（仅厂商实现写回 SPI 生效） */
