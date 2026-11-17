@@ -86,6 +86,15 @@ export function applyTitle(
     // 记住壳级声明的品牌名：后续任何一次配置合并把它改回框架占位「应用」时，
     // 标题后缀仍取这里（见 @repo/config 的 getAppTitle 说明），不出现两个来源。
     rememberAppTitle(finalTitle);
+    // 同一份声明再写一次到全局桥：dev 下 @repo/theme 被 optimizeDeps 预打包，
+    // 它内联的那份 @repo/config 是独立实例（且可能仍是旧预构建产物），
+    // 拿不到上面这次 rememberAppTitle 的结果。全局桥是唯一与模块实例无关的通道，
+    // 主题侧 setDocumentTitle 直接读它（见 useLayoutTitle.resolveShellAppTitle）。
+    try {
+      (globalThis as Record<string, unknown>).__reAppTitle = finalTitle;
+    } catch {
+      // 极端沙箱下写全局失败：标题退化为配置值，不影响启动
+    }
   }
 }
 

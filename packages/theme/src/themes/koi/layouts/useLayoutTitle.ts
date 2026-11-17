@@ -7,7 +7,7 @@
  */
 import { getMenuLanguage, translateConfigText } from "@repo/languages";
 import useAuthStore from "@repo/pinia/modules/auth";
-import { getConfig, getAppTitle } from "@repo/config";
+import { getConfig, getAppTitle, defaultAppConfig } from "@repo/config";
 import { resolveAssetUrl, defaultLogoUrl } from "@repo/assets";
 
 /** 在递归菜单树中按路径精确查找菜单 meta */
@@ -147,10 +147,34 @@ export function setDocumentFavicon(): void {
 }
 
 /**
+ * 解析标题后缀用的应用名。
+ *
+ * <p>先取 {@code getAppTitle()}；它若只拿到框架占位「应用」，再读全局桥
+ * {@code globalThis.__reAppTitle}。为什么需要这一步：dev 下本包在
+ * {@code optimizeDeps.include} 里，Vite 会把依赖的 {@code @repo/config} 预打包成
+ * 独立 chunk，主题侧拿到的可能是**另一份**实例（也可能还是旧预构建产物），
+ * 读不到应用壳 {@code applyTitle} 写进源码那份的声明名。全局桥与模块实例无关，
+ * 是两条写点唯一稳定的共同来源。</p>
+ *
+ * @returns 非空的应用名；都取不到时回退默认占位
+ */
+export function resolveShellAppTitle(): string {
+  const fromConfig = getAppTitle();
+  if (fromConfig && fromConfig !== defaultAppConfig.app.title) return fromConfig;
+  try {
+    const bridged = (globalThis as Record<string, unknown>).__reAppTitle;
+    if (typeof bridged === "string" && bridged.trim()) return bridged.trim();
+  } catch {
+    // 读全局失败：按配置值处理
+  }
+  return fromConfig;
+}
+
+/**
  * 设置浏览器标题：`页面标题 - 应用标题`
  *
- * <p>应用标题取 {@code getAppTitle()}（配置值 → 应用壳声明名），
- * 与 core 守卫 {@code packages/core/src/router/guard.ts} 同一取数口，
+ * <p>应用标题取 {@link resolveShellAppTitle}，与 core 守卫
+ * {@code packages/core/src/router/guard.ts} 同一取数口，
  * 避免两条路径一个用路由 meta、一个用站点默认名。</p>
  */
 export function setDocumentTitle(
@@ -158,7 +182,7 @@ export function setDocumentTitle(
   metaTitle?: string,
   activeMenu?: string
 ): void {
-  const appTitle = getAppTitle();
+  const appTitle = resolveShellAppTitle();
   const title = resolvePageTitle(routePath, metaTitle, activeMenu);
   document.title = title && title !== appTitle ? `${title} - ${appTitle}` : appTitle;
 }

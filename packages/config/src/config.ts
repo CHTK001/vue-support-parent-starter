@@ -78,25 +78,58 @@ export function getConfig(): AppConfig {
 let declaredAppTitle = "";
 
 /**
+ * 壳级声明名的跨实例桥（`globalThis` 上的一个字符串）。
+ *
+ * <p>为什么需要：`@repo/theme` / `@repo/ui` 在 `optimizeDeps.include` 里，Vite 会把它们
+ * 依赖的 {@code @repo/config} 一起预打包成 deps 里的独立 chunk，浏览器里于是存在**两份**
+ * 本模块实例 —— 各自持有自己的 {@code currentConfig} 与 {@code declaredAppTitle}。
+ * 应用壳的 {@code applyTitle} 只写进源码那份，主题侧 {@code setDocumentTitle} 读的却是
+ * 预打包那份（停在默认值「应用」），标题后缀因此被两条写点来回覆盖：
+ * 守卫写「页面 - 站点名」，紧接着主题守卫又写回「页面 - 应用」。
+ * 用一个全局字符串把声明名共享出去，两份实例都能取到，不依赖构建期的单实例假设。</p>
+ */
+const APP_TITLE_BRIDGE_KEY = "__reAppTitle";
+
+/**
+ * 读跨实例桥里的壳级声明名。
+ *
+ * @returns 已声明的品牌名；未声明或不可读时返回空串
+ */
+function readBridgedAppTitle(): string {
+  try {
+    const value = (globalThis as Record<string, unknown>)[APP_TITLE_BRIDGE_KEY];
+    return typeof value === "string" ? value.trim() : "";
+  } catch {
+    return "";
+  }
+}
+
+/**
  * 记录应用壳声明的品牌名（由 {@code applyTitle} 调用；空值忽略，保持上一次声明）。
  *
  * @param title 壳级标题（main.ts / VITE_WEB_TITLE / VITE_APP_TITLE 的最终结果）
  */
 export function rememberAppTitle(title?: string): void {
   const value = String(title ?? "").trim();
-  if (value && value !== defaultAppConfig.app.title) declaredAppTitle = value;
+  if (!value || value === defaultAppConfig.app.title) return;
+  declaredAppTitle = value;
+  try {
+    (globalThis as Record<string, unknown>)[APP_TITLE_BRIDGE_KEY] = value;
+  } catch {
+    // 桥写入失败（极端沙箱）：仅本实例生效，不影响启动
+  }
 }
 
 /**
  * 浏览器标题后缀用的应用名（唯一取数口，`document.title` 的各个写点都走它）。
  *
- * <p>优先级：显式配置的 {@code config.app.title}（非框架占位）→ 应用壳声明名 →
- * 当前值（哪怕只剩占位，也保证返回非空串）。</p>
+ * <p>优先级：显式配置的 {@code config.app.title}（非框架占位）→ 应用壳声明名
+ * （本实例 → 跨实例桥）→ 当前值（哪怕只剩占位，也保证返回非空串）。</p>
  */
 export function getAppTitle(): string {
   const current = String(currentConfig.app?.title ?? "").trim();
   if (current && current !== defaultAppConfig.app.title) return current;
-  return declaredAppTitle || current;
+  return declaredAppTitle || readBridgedAppTitle() || current;
 }
 
 /**

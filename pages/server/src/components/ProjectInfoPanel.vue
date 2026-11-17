@@ -190,12 +190,20 @@ const disabled = computed(() => props.project.enabled === false);
 const statusText = computed(() => (disabled.value ? '已禁用' : running.value ? '运行中' : '已停止'));
 const statusTone = computed(() => (disabled.value ? 'off' : running.value ? 'on' : 'idle'));
 
-/** 运行时长：runningSince 是后端给的 ISO 时间 */
+/**
+ * 运行时长：runningSince 是后端给的 ISO 时间。
+ *
+ * <p>运行中但缺 runningSince 时返回「运行中」而不是空串：PID 与状态灯都是准的，
+ * 缺的只是计时基准（例如 PID 由人工登记进库、没走启动链路）。空串会被指标条
+ * 兜底成「—」，与左栏行尾的「运行中」互相矛盾 —— 同一份数据两处口径不一致
+ * 正是发布管理验收的 D1，这里与 ProjectsView.runtimeLabel 保持同一说法。</p>
+ */
 const runtimeLabel = computed(() => {
   const since = props.project.runningSince;
-  if (!running.value || !since) return '';
+  if (!running.value) return '';
+  if (!since) return '运行中';
   const ms = Date.now() - new Date(since).getTime();
-  if (!Number.isFinite(ms) || ms <= 0) return '';
+  if (!Number.isFinite(ms) || ms <= 0) return '运行中';
   const min = Math.floor(ms / 60000);
   if (min < 60) return `${min} 分钟`;
   const hour = Math.floor(min / 60);
