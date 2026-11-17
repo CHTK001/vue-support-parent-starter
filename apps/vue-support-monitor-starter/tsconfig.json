@@ -27,6 +27,12 @@
       "@repo/config": ["../../packages/config/src"],
       "@repo/pinia": ["../../packages/pinia/src"],
       "@repo/pinia/*": ["../../packages/pinia/src/*"],
+      // 监控大屏卡片契约包（@repo/monitor-cards）：领域包与宿主共用的类型 + 注册表。
+      // 与根 tsconfig 同名映射，app 的 paths 会整体覆盖根 paths，必须在此显式列出，
+      // 否则 @pages/system 的 cards/registry.ts、cards/types.ts 全部 TS2307，
+      // 连带 useMonitorCards / MonitorCardLibrary 里的 map 回调参数隐式 any。
+      "@repo/monitor-cards": ["../../packages/monitor-cards/src"],
+      "@repo/monitor-cards/*": ["../../packages/monitor-cards/src/*"],
       "@repo/ui/re-button": ["../../packages/ui/src/components/ReButton/index.ts"],
       "@repo/ui/re-tag": ["../../packages/ui/src/components/ReTag/index.ts"],
       "@repo/ui/re-table": ["../../packages/ui/src/components/ReTable/index.ts"],

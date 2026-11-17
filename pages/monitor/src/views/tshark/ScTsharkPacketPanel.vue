@@ -115,7 +115,7 @@ import { Connection, Document } from '@element-plus/icons-vue'
 import type { ReTableColumn, ReTableContextMenuContext, ReTableContextMenuItem } from '@repo/ui/re-table'
 import type { TsharkPacket } from './types'
 
-defineProps<{
+const props = defineProps<{
   packets: TsharkPacket[]
   loading: boolean
   page: number

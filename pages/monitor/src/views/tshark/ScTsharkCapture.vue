@@ -114,7 +114,7 @@
           @open-detail="openPacketDetail"
           @open-lifecycle="openLifecycle"
           @export="exportCsv"
-          @export-pcap="exportPcapSession"
+          @export-pcap="handleExportPcap"
           @time-range-change="onPacketTimeRangeChange"
           @clear-time-range="clearPacketTimeRange"
         />
@@ -221,6 +221,7 @@ const {
   tcpStream, tcpStreamLoading,
   init, loadPackets, applyPacketFilter, selectSession, clearActiveSession,
   filterByProtocol, filterByFlow, refresh, exportCsv, downloadPcap, startCapture, stopSession, deleteSession,
+  pauseSession, resumeSession,
   loadTimeline,
   openPacketDetail, openPacketDetailById, exportPcapSession, openTcpStream,
   onPacketTimeRangeChange, clearPacketTimeRange, cleanupLoading, cleanupRetention,
@@ -255,6 +256,15 @@ function onRetryInstall() {
 
 const lifecycleVisible = ref(false)
 const lifecyclePacket = ref<TsharkPacket | null>(null)
+
+/**
+ * 导出当前会话的 PCAP 文件：报文面板的 emit 不带参数，这里取当前选中会话 id。
+ */
+function handleExportPcap() {
+  const sid = activeSessionId.value
+  if (sid == null) return
+  void exportPcapSession(sid)
+}
 
 const packetEmptyText = computed(() =>
   packetFilter.value.trim() ? '没有匹配的数据包，试试清除或修改过滤' : '该会话还没有抓到的数据包')

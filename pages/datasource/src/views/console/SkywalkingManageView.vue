@@ -265,7 +265,7 @@
             </ReButton>
           </div>
           <ReTable
-            :data="alarms"
+            :data="alarms as unknown as Record<string, unknown>[]"
             :columns="alarmColumns"
             :loading="alarmsLoading"
             stripe
@@ -364,7 +364,7 @@
                 <div class="dsw-span-header-left">
                   <span class="dsw-span-pad" style="width: 18px" />
                   <ReIcon :name="spanIcon(s)" size="14" class="dsw-span-icon" />
-                  <span class="dsw-span-name">{{ s.endpointName || s.name || s.serviceName }}</span>
+                  <span class="dsw-span-name">{{ s.endpointName || s.serviceName }}</span>
                   <ReTag size="small" type="info" class="dsw-span-layer">{{ s.layer }}</ReTag>
                   <span class="dsw-span-meta">{{ formatMs(s.durationMs) }} · {{ s.type }}</span>
                 </div>
@@ -377,7 +377,7 @@
                   <div class="dsw-span-header-left">
                     <span class="dsw-span-pad" style="width: 40px" />
                     <ReIcon :name="spanIcon(c)" size="14" class="dsw-span-icon" />
-                    <span class="dsw-span-name">{{ c.endpointName || c.name || c.serviceName }}</span>
+                    <span class="dsw-span-name">{{ c.endpointName || c.serviceName }}</span>
                     <ReTag size="small" type="info" class="dsw-span-layer">{{ c.layer }}</ReTag>
                     <span class="dsw-span-meta">{{ formatMs(c.durationMs) }} · {{ c.type }}</span>
                   </div>
@@ -427,6 +427,7 @@ import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   fetchSkywalkingOverview,
+  fetchSkywalkingSources,
   fetchSkywalkingStatus,
   fetchSkywalkingServices,
   fetchSkywalkingInstances,
