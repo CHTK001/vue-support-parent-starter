@@ -6,7 +6,11 @@
          给它一个折叠开关只会让人误以为功能被删（需求口径：分组菜单不支持折叠，故无折叠按钮）。 -->
     <el-menu-item-group v-if="isGroupItem(item)">
       <template #title>
-        <span class="menu-group-title" v-text="getMenuLanguage(item.meta?.title)"></span>
+        <span class="menu-group-title">
+          <i class="menu-group-dot" aria-hidden="true"></i>
+          <span class="menu-group-text" v-text="getMenuLanguage(item.meta?.title)"></span>
+          <i class="menu-group-rule" aria-hidden="true"></i>
+        </span>
       </template>
       <ReAsideSubMenu :menuList="groupChildren(item)" />
     </el-menu-item-group>
@@ -352,15 +356,45 @@ const handleMenuRouter = (value: any) => {
   }
 }
 
-/** 分组标题行：纯分区标签（不可点、不可折叠），只负责单行省略 */
+/** 分组标题行：纯分区标签（不可点、不可折叠）。
+ * 2026-11-17：从「一行裸文字」改为「主色圆点 + 文字 + 淡分隔线」——
+ * 分组（尤其排在侧栏顶部时）只挂一行灰字太秃，加个锚点让分区边界可扫视。
+ * 圆点用主题色、分隔线用最浅边框色，深色模式下随变量自动适配；
+ * 折叠成窄图标轨时标题整体被 .is-group-nav 规则隐藏，装饰不会漏出来。 */
 .menu-group-title {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
   min-width: 0;
+  user-select: none;
+}
+
+/** 分组标题前的主题色小圆点：分区的视觉锚点 */
+.menu-group-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--el-color-primary);
+  opacity: 0.85;
+}
+
+/** 分组标题文字：保持单行省略（省略职责从容器移到文字自身） */
+.menu-group-text {
+  flex: none;
+  max-width: 70%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  user-select: none;
+}
+
+/** 分组标题后的淡分隔线：填满标题行剩余空间，把分区「框」出来 */
+.menu-group-rule {
+  flex: 1;
+  min-width: 12px;
+  height: 1px;
+  background-color: var(--el-border-color-lighter);
 }
 </style>
 
