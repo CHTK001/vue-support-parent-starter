@@ -1775,6 +1775,7 @@ export function useUsageBoard() {
     { prop: "latency", label: "耗时", width: 150, slot: "latency" },
     { prop: "type", label: "类型", width: 130, slot: "type" },
     { prop: "callType", label: "调用类型", width: 95, slot: "callType" },
+    { prop: "status", label: "状态", width: 90, align: "center", slot: "status" },
   ]);
 
   /**

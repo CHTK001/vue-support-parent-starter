@@ -2,7 +2,7 @@
   <!--
     用量管理 · 明细表（业务区块，三个变体共享）
 
-    <p>原 {@code UsagePage.vue} 用量明细区块原样抽出：13 列全部保留（时间钉左 +
+    <p>原 {@code UsagePage.vue} 用量明细区块原样抽出：14 列全部保留（时间钉左 +
     模型速率 popover + Token 明细 + 耗时指示 + 费用敏感开关 + 类型/调用标签 +
     ReIpText 等），数据/loader 全部来自 {@code board}（由各变体 {@code reactive(useUsageBoard())} 注入）。</p>
   -->
@@ -225,6 +225,11 @@
         <template #col-callType="{ row }">
           <ReTag :type="board.callModeTag(row)">{{ board.callModeLabel(row) }}</ReTag>
         </template>
+        <template #col-status="{ row }">
+          <ReTag :type="row.sysAiUsageStatus === 'failed' ? 'danger' : 'success'">
+            {{ row.sysAiUsageStatus === 'failed' ? '失败' : '成功' }}
+          </ReTag>
+        </template>
       </ReTable>
     </div>
   </section>
@@ -278,12 +283,12 @@ const layoutTable = computed(() =>
 );
 
 /**
- * 列显隐：13 列在 1280~1600 宽度下必然横滚，给用户一个「只留关心的几列」的出口。
+ * 列显隐：14 列在 1280~1600 宽度下必然横滚，给用户一个「只留关心的几列」的出口。
  *
  * <p>状态只活在本组件（不写 localStorage）：明细表是排查用的临时视图，
  * 下次进来回到默认列组比记住上次的裁剪更可预期。</p>
  *
- * <p>13 列默认全展示：端点 / 强度 / 请求 IP / 调用类型等诊断字段与主表同层，
+ * <p>14 列默认全展示：端点 / 强度 / 请求 IP / 调用类型等诊断字段与主表同层，
  * 无需进「列」弹层才能看见；用户仍可按需在弹层里收起任意列。</p>
  */
 const hiddenProps = ref<string[]>([]);
