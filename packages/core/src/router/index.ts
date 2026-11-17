@@ -23,6 +23,10 @@ import {
   createRouter,
   createWebHistory,
   createWebHashHistory,
+  parseQuery as parseQueryRaw,
+  stringifyQuery as stringifyQueryRaw,
+  type LocationQuery,
+  type LocationQueryRaw,
   type RouteRecordRaw,
 } from "vue-router";
 import { getConfig } from "@repo/config";
@@ -33,7 +37,12 @@ import {
   type RouterGuardHooks,
 } from "./guard";
 import type { RouteConfigsTable } from "./types";
-import { log } from "@repo/utils";
+import {
+  decodeQueryObject,
+  encodeQueryObject,
+  DEFAULT_QUERY_PLAIN_KEYS,
+  log,
+} from "@repo/utils";
 import {
   hasBaseRoutes,
   buildBaseRoutes,
@@ -89,6 +98,20 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
   const config = getConfig();
   const routeConfig = config.route;
 
+  // 地址栏查询参数加密（route.queryCrypto，缺省开启）：
+  // - parseQuery：解析地址栏时解密，页面读 route.query 永远拿明文；
+  // - stringifyQuery：router.push / RouterLink / resolve 生成地址时加密，
+  //   地址栏（含分享、新窗口深链）里只出现 enc1~<hex> 密文；
+  // - 旧明文链接不带前缀，解密时原样返回，天然兼容。
+  const queryCryptoConfig = routeConfig.queryCrypto;
+  const queryCryptoEnabled = queryCryptoConfig?.enabled !== false;
+  const queryCryptoOptions = {
+    key: queryCryptoConfig?.key,
+    plainKeys: queryCryptoConfig?.plainKeys?.length
+      ? [...DEFAULT_QUERY_PLAIN_KEYS, ...queryCryptoConfig.plainKeys]
+      : undefined,
+  };
+
   // 三模式装配（+ all=本地+远程合并）：
   // - remote 且不合并本地菜单时，业务路由交给 loadRemoteRoutes 动态注册
   // all 模式：保留本地业务路由，同时允许远程路由动态注册
@@ -107,6 +130,15 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
         : createWebHistory(import.meta.env.BASE_URL),
     routes: [...initialLayoutRoutes, ...businessRoutes, ...fallback] as RouteRecordRaw[],
     scrollBehavior: () => ({ left: 0, top: 0 }),
+    // 查询参数加解密收口：见上方 queryCryptoEnabled 注释
+    ...(queryCryptoEnabled
+      ? {
+          parseQuery: (search: string): LocationQuery =>
+            decodeQueryObject(parseQueryRaw(search), queryCryptoOptions) as LocationQuery,
+          stringifyQuery: (query?: LocationQueryRaw): string =>
+            stringifyQueryRaw(encodeQueryObject(query ?? {}, queryCryptoOptions)),
+        }
+      : {}),
   });
 
   // hash 模式启动归一化：把遗留的 pathname（如 /login、/collect/datasource/list）改回 base，

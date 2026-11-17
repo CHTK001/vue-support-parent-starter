@@ -517,7 +517,16 @@ export interface LoginConfig {
 /** 路由模式：static=静态路由写死 / module=按 page 模块装配 / remote=后端菜单接口返回 */
 export type RouteMode = "static" | "module" | "remote" | "all";
 
-/** 路由配置 */
+/** 地址栏查询参数加密配置（route.queryCrypto） */
+export interface QueryCryptoConfig {
+  /** 是否开启（缺省开启） */
+  enabled?: boolean;
+  /** 加密口令（缺省用内置默认值；建议部署时在 app.yaml 的 route.queryCrypto.key 覆盖） */
+  key?: string;
+  /** 追加保持明文的参数名（在内置白名单基础上合并，内置见 @repo/utils 的 DEFAULT_QUERY_PLAIN_KEYS） */
+  plainKeys?: string[];
+}
+
 export interface RouteConfig {
   /** 路由模式（static / module / remote / all） */
   mode: RouteMode;
@@ -547,6 +556,8 @@ export interface RouteConfig {
   forbiddenPath: string;
   /** 500 路径 */
   serverErrorPath: string;
+  /** 地址栏查询参数加密：hash 路由 query 里的业务 id（releaseId/hostId/identityId 等）统一脱敏 */
+  queryCrypto?: QueryCryptoConfig;
 }
 
 /**

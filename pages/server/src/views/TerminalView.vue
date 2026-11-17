@@ -10,6 +10,7 @@ import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElDropdown, ElDropdownMenu, ElDropdownItem } from "element-plus";
+import { encodeQueryObject } from "@repo/utils";
 import { queryHosts, getHost } from "../api";
 import ScGuacViewer from "../components/ScGuacViewer.vue";
 import ScSshDirectViewer from "../components/ScSshDirectViewer.vue";
@@ -489,9 +490,11 @@ function toggleImmersive(): void {
 function popout(): void {
   const h = selectedHost.value;
   if (!h) return;
-  const q = new URLSearchParams({ hostId: String(h.id), protocol: protocolOf(h) });
+  // 地址栏脱敏：业务参数走与路由层同一套加密（新窗口打开后由 parseQuery 解密还原）
+  const query: Record<string, string> = { hostId: String(h.id), protocol: protocolOf(h) };
   const c = connection.value;
-  if (c && c.identityId != null) q.set("identityId", String(c.identityId));
+  if (c && c.identityId != null) query.identityId = String(c.identityId);
+  const q = new URLSearchParams(encodeQueryObject(query) as Record<string, string>);
   const url = `${window.location.origin}${window.location.pathname}#/terminal-standalone?${q.toString()}`;
   const a = document.createElement("a");
   a.href = url;

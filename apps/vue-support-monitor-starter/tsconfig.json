@@ -25,6 +25,8 @@
       // 这里按 osgi 包实际 import 面显式列映射（re-* 子入口不能靠 * 通配，见根
       // tsconfig 的生成段注释）。
       "@repo/config": ["../../packages/config/src"],
+      "@repo/pinia": ["../../packages/pinia/src"],
+      "@repo/pinia/*": ["../../packages/pinia/src/*"],
       "@repo/ui/re-button": ["../../packages/ui/src/components/ReButton/index.ts"],
       "@repo/ui/re-tag": ["../../packages/ui/src/components/ReTag/index.ts"],
       "@repo/ui/re-table": ["../../packages/ui/src/components/ReTable/index.ts"],

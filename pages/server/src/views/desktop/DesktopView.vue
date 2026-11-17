@@ -366,6 +366,7 @@ import DesktopProfile from "./apps/DesktopProfile.vue";
 import DesktopOps from "./apps/DesktopOps.vue";
 import DesktopSoftware from "./apps/DesktopSoftware.vue";
 import { terminalFrameUrl } from "./urls";
+import { encryptQueryValue } from "@repo/utils";
 
 /** 顶栏高度（窗口拖拽的上边界） */
 const TOP_H = 34;
@@ -900,7 +901,7 @@ function appProps(w: DesktopWindow): Record<string, unknown> {
 function popOut(w: DesktopWindow): void {
   const url = w.app === "terminal"
     ? terminalFrameUrl(w.hostId, null)
-    : `${location.origin}${location.pathname}#/desktop-window/${w.hostId}?only=${w.app}`;
+    : `${location.origin}${location.pathname}#/desktop-window/${w.hostId}?only=${encryptQueryValue(w.app)}`;
   const win = window.open(url, "_blank");
   if (!win) ElMessage.warning("浏览器拦截了弹出窗口，请允许后重试");
   closeDeskMenu();

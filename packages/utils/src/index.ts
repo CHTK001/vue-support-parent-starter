@@ -23,6 +23,7 @@ export * from "./modules/costMs";
 export * from "./modules/dexie";
 export * from "./modules/scheduler";
 export * from "./modules/md5";
+export * from "./modules/queryCrypto";
 export { default as errorStatus } from "./modules/errorStatus";
 export { default as mittBus } from "./modules/mitt";
 

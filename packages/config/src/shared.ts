@@ -338,6 +338,8 @@ export const defaultAppConfig: AppConfig = {
     notFoundPath: "/404",
     forbiddenPath: "/403",
     serverErrorPath: "/500",
+    // 地址栏查询参数加密：默认开启（见 @repo/utils 的 queryCrypto）
+    queryCrypto: { enabled: true },
   },
   socket: {
     enable: false,
