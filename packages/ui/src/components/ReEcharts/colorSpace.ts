@@ -92,6 +92,76 @@ function formatRgb(rgb: number[], alpha: number): string {
 }
 
 /**
+ * 解析 #rrggbb / #rgb / rgb(a) 成三元组，失败返回 null
+ */
+export function toRgb(color: string): [number, number, number] | null {
+  const hex = color.trim();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) {
+    const full = hex.length === 4
+      ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
+      : hex;
+    return [
+      parseInt(full.slice(1, 3), 16),
+      parseInt(full.slice(3, 5), 16),
+      parseInt(full.slice(5, 7), 16),
+    ];
+  }
+  const m = hex.match(/rgba?\(([^)]+)\)/i);
+  if (m) {
+    const parts = m[1].split(",").map((s) => parseFloat(s.trim()));
+    if (parts.length >= 3 && parts.slice(0, 3).every((n) => Number.isFinite(n))) {
+      return [parts[0], parts[1], parts[2]];
+    }
+  }
+  return null;
+}
+
+/**
+ * 把语义色向主题色靠一档：既保留「成功/告警/危险」的色相差，又让整张图跟上换肤
+ */
+export function tintToward(color: string, toward: string, weight: number): string {
+  const a = toRgb(color);
+  const b = toRgb(toward);
+  if (!a || !b) return color;
+  const w = Math.max(0, Math.min(1, weight));
+  const mix = a.map((v, i) => Math.round(v * (1 - w) + b[i] * w));
+  return `#${mix.map((n) => n.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** 读根元素 CSS 变量，取不到返回 fallback */
+function readRootVar(name: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+/**
+ * 图表通用调色板：主色 + 语义色各向主色靠 30% / 15%。
+ *
+ * <p>语义色向主题色靠一档后，主题切卡其时曲线的绿/橙/红都带上暖调，
+ * 整张图与界面同源；色相差仍保留，多序列监控图依旧一眼可分。
+ * ReEcharts（注入 option.color）与 D3 引擎（桑基节点/连线）共用这一份，
+ * 避免出现「echarts 已跟主题、d3 还停在默认蓝」的分裂。</p>
+ */
+export function chartPalette(): string[] {
+  const primary = normalizeColor(readRootVar("--el-color-primary", "#409eff"));
+  const success = normalizeColor(readRootVar("--el-color-success", "#67c23a"));
+  const warning = normalizeColor(readRootVar("--el-color-warning", "#e6a23c"));
+  const danger = normalizeColor(readRootVar("--el-color-danger", "#f56c6c"));
+  const info = normalizeColor(readRootVar("--el-color-info", "#909399"));
+  return [
+    primary,
+    tintToward(success, primary, 0.3),
+    tintToward(warning, primary, 0.3),
+    tintToward(danger, primary, 0.3),
+    tintToward(info, primary, 0.3),
+    tintToward(success, primary, 0.15),
+    tintToward(warning, primary, 0.15),
+    tintToward(danger, primary, 0.15),
+  ];
+}
+
+/**
  * Normalize a CSS color string to sRGB rgb()/rgba().
  * Already-compatible values (hex / rgb / rgba / hsl / named) are returned as-is.
  */

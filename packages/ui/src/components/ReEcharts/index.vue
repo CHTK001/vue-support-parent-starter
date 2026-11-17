@@ -13,7 +13,7 @@
 import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
 import { ref, onMounted, onBeforeUnmount, watch, shallowRef } from "vue";
-import { normalizeColor } from "./colorSpace";
+import { chartPalette } from "./colorSpace";
 
 interface Props {
   /** ECharts 配置 */
@@ -68,13 +68,11 @@ const readCssVar = (name: string, fallback: string): string => {
 };
 
 const injectTheme = (option: EChartsOption): EChartsOption => {
-  const palette = [
-    readCssVar("--el-color-primary", "#409eff"),
-    readCssVar("--el-color-success", "#67c23a"),
-    readCssVar("--el-color-warning", "#e6a23c"),
-    readCssVar("--el-color-danger", "#f56c6c"),
-    readCssVar("--el-color-info", "#909399"),
-  ].map(normalizeColor);
+  /* 语义色各向主题色靠 30%：主题切卡其，曲线的绿/橙/红都带上暖调，
+     整张图与界面同源；色相差仍保留，CPU/内存/磁盘依旧一眼可分。
+     不直接改成同一色相的五档 —— 多序列监控图靠色相区分，单色阶会读不出来。
+     调色板与 D3 引擎共用 chartPalette()，两处不会走偏。 */
+  const palette = chartPalette();
   const textColor = props.theme === "dark"
     ? readCssVar("--el-text-color-primary", "#e5eaf3")
     : readCssVar("--el-text-color-regular", "#606266");
@@ -138,9 +136,29 @@ watch(
   },
 );
 
-onMounted(() => init());
+/**
+ * 换主题色后重绘。
+ *
+ * <p>主题色写在 {@code <html>} 行内样式上（applyPrimaryColorVars），props 不变，
+ * 上面两个 watch 都不会触发 —— 不补这个就会「界面已换肤、图表停在旧配色」。
+ * 监听 html 的 style 属性即可；这是唯一的主题色写入点，不会误触发。</p>
+ */
+let themeStyleObserver: MutationObserver | null = null;
+
+onMounted(() => {
+  init();
+  if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+    themeStyleObserver = new MutationObserver(() => updateOption());
+    themeStyleObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["style", "class"],
+    });
+  }
+});
 
 onBeforeUnmount(() => {
+  themeStyleObserver?.disconnect();
+  themeStyleObserver = null;
   if (resizeHandler) {
     window.removeEventListener("resize", resizeHandler);
     resizeHandler = null;

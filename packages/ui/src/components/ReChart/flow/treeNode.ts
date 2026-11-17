@@ -34,6 +34,33 @@ export const FLOW_STATUS_COLORS: Record<string, string> = {
 };
 export const FLOW_GREY = "#CED4D9";
 
+/**
+ * 画时点读取主题中性色。
+ *
+ * G6 canvas 不认 `var(--x)`，节点子形（边线 / 底色 / 文字）都在 draw 钩子里
+ * 现读现用，配合 ReChartFlow 的主题变化重绘，整张流线图跟随主题。
+ */
+function flowCssVar(name: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+/** 节点中性灰（边线 / 进度条底 / 折叠钮），跟随主题边框色 */
+export function flowNeutral(): string {
+  return flowCssVar("--border-default", FLOW_GREY);
+}
+
+/** 节点文字色 */
+export function flowTextColor(): string {
+  return flowCssVar("--text-primary", "#000");
+}
+
+/** 节点底色 */
+export function flowSurfaceColor(): string {
+  return flowCssVar("--bg-container", "#fff");
+}
+
 /** 流线节点业务字段（对应官方决策树 JSON 字段） */
 export interface FlowNodeDatum {
   id?: string;
@@ -112,7 +139,7 @@ export function registerTreeNode(): void {
         text: this.nodeDatum.name ?? this.nodeDatum.id ?? "",
         fontSize: 12,
         opacity: 0.85,
-        fill: "#000",
+        fill: flowTextColor(),
         cursor: "pointer",
       };
     }
@@ -124,7 +151,7 @@ export function registerTreeNode(): void {
         y: height / 2 - 8,
         text: this.nodeDatum.label ?? "",
         fontSize: 16,
-        fill: "#000",
+        fill: flowTextColor(),
         opacity: 0.85,
       };
     }
@@ -139,7 +166,7 @@ export function registerTreeNode(): void {
         y: height / 2 - 8,
         text: this.nodeDatum.currency ?? "",
         fontSize: 12,
-        fill: "#000",
+        fill: flowTextColor(),
         opacity: 0.75,
       };
     }
@@ -200,7 +227,7 @@ export function registerTreeNode(): void {
     getVariableStyle(attributes: AnyObj) {
       const [, height] = this.getSizeOf(attributes);
       return {
-        fill: "#000",
+        fill: flowTextColor(),
         fontSize: 12,
         opacity: 0.45,
         text: this.nodeDatum.variableName ?? "",
@@ -218,14 +245,14 @@ export function registerTreeNode(): void {
       const { collapsed } = attributes;
       const [width] = this.getSizeOf(attributes);
       return {
-        backgroundFill: "#fff",
+        backgroundFill: flowSurfaceColor(),
         backgroundHeight: 16,
         backgroundLineWidth: 1,
         backgroundRadius: 0,
-        backgroundStroke: FLOW_GREY,
+        backgroundStroke: flowNeutral(),
         backgroundWidth: 16,
         cursor: "pointer",
-        fill: FLOW_GREY,
+        fill: flowNeutral(),
         fontSize: 16,
         text: collapsed ? "+" : "-",
         textAlign: "center" as const,
@@ -272,7 +299,7 @@ export function registerTreeNode(): void {
         width,
         height: 4,
         radius: [0, 0, radius, radius],
-        fill: `linear-gradient(to right, ${color} ${percent}, ${FLOW_GREY} ${percent})`,
+        fill: `linear-gradient(to right, ${color} ${percent}, ${flowNeutral()} ${percent})`,
       };
     }
     drawProcessBar(attributes: AnyObj, container: AnyObj) {
@@ -284,7 +311,7 @@ export function registerTreeNode(): void {
     // 覆写主矩形底色：白底 + 灰描边（官方 fund-flow 风格）
     getKeyStyle(attributes: AnyObj) {
       const base = (Rect.prototype as AnyObj).getKeyStyle?.call(this, attributes) ?? {};
-      return { ...base, fill: "#fff", lineWidth: 1, stroke: FLOW_GREY };
+      return { ...base, fill: flowSurfaceColor(), lineWidth: 1, stroke: flowNeutral() };
     }
 
     // 覆盖基类渲染入口：G6 的 Rect 会回调多个 draw hooks，

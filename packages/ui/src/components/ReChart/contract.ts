@@ -16,6 +16,7 @@ import type {
   ReChartContextData,
   ReChartMatrixData,
   ReChartOrbitData,
+  ReChartRaceData,
   ReChartTopologyData,
 } from "./types";
 
@@ -85,29 +86,142 @@ export function isMatrixData(raw: unknown): raw is ReChartMatrixData {
   return Array.isArray(d.rows) && Array.isArray(d.columns) && Array.isArray(d.values);
 }
 
+/**
+ * 动态竞速条形形状判定。
+ *
+ * 要求 `items` 非空数组 + `frames` 为数组，且每帧都要有 `values` 对象；
+ * 帧内数值是否覆盖全部条目由面板按 0 补齐，这里只认「有多帧快照」这一层形状。
+ */
+export function isRaceData(raw: unknown): raw is ReChartRaceData {
+  if (!raw || typeof raw !== "object") return false;
+  const d = raw as ReChartRaceData;
+  return (
+    Array.isArray(d.items) &&
+    d.items.length > 0 &&
+    Array.isArray(d.frames) &&
+    d.frames.every((frame) => !!frame && typeof frame === "object" && !!frame.values && typeof frame.values === "object")
+  );
+}
+
 /* ==================== 配色 ==================== */
 
-/** 切片类别 → 颜色（浅色底、深色描边由面板自行处理） */
-const KIND_COLOR: Record<ContextSliceKind, string> = {
-  file: "#3b82f6",
-  image: "#06b6d4",
-  tool: "#f59e0b",
-  turn: "#22c55e",
-  prompt: "#8b5cf6",
+/**
+ * 切片类别色跟随主题（2026-11 需求）：不再写死 hex，而是以当前主色
+ * （`--el-color-primary`）为锚点，按固定色相偏移旋转出各类别颜色，
+ * 饱和度/明度沿用主色。主题换卡其，切片整体转暖棕大地色系；主题换蓝，
+ * 回到冷色系。偏移量按原写死色板在默认蓝（#3986FF）下的相对色相标定，
+ * 默认主题下观感与写死时基本一致。
+ *
+ * <p>`free` / `other` 是"空闲 / 未分类"的中性语义，保持灰调、不随主题转色相；
+ * 浅色底、深色描边仍由面板自行处理。</p>
+ */
+const KIND_HUE_OFFSET: Record<ContextSliceKind, number | null> = {
+  file: 0,
+  image: -30,
+  tool: 170,
+  turn: -70,
+  prompt: 55,
+  free: null,
+  other: null,
+};
+
+/** free / other 的中性色（不随主题色相旋转） */
+const NEUTRAL_KIND_COLOR: Partial<Record<ContextSliceKind, string>> = {
   free: "#94a3b8",
   other: "#64748b",
 };
 
-/** 未识别 kind 时的兜底序列（按 key 稳定取色，避免每次重排都换色） */
-const FALLBACK_COLORS = ["#6366f1", "#ec4899", "#14b8a6", "#f97316", "#a855f7", "#0ea5e9"];
+/** 未识别 kind 时的兜底序列色相偏移（均匀布满色轮，任意主色下类别都可分） */
+const FALLBACK_HUE_OFFSETS = [0, 60, 120, 180, 240, 300];
 
-/** 取切片颜色：优先宿主显式 color，其次 kind 色表，最后按 key 稳定哈希兜底 */
+/** 主色读取失败时的锚点色（与 ThemeConfig 首选色一致）；jsdom / SSR 下走这里 */
+const ANCHOR_PRIMARY = "#3986FF";
+
+function hexToRgb6(hex: string): [number, number, number] | null {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/**
+ * 读当前主题主色：优先行内样式（applyPrimaryColorVars 写在 <html> 上），
+ * 取不到再退计算样式；两者都没有（jsdom / SSR）时回锚点色。
+ */
+function currentPrimaryColor(): string {
+  if (typeof document === "undefined") return ANCHOR_PRIMARY;
+  const el = document.documentElement;
+  let raw = el.style.getPropertyValue("--el-color-primary").trim();
+  if (!raw && typeof getComputedStyle === "function") {
+    raw = getComputedStyle(el).getPropertyValue("--el-color-primary").trim();
+  }
+  return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toLowerCase() : ANCHOR_PRIMARY;
+}
+
+/** hex → hsl（h: 0-360，s/l: 0-1） */
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) * 60;
+  else if (max === gn) h = ((bn - rn) / d + 2) * 60;
+  else h = ((rn - gn) / d + 4) * 60;
+  return [h, s, l];
+}
+
+/** hsl → hex（h 越界自动回绕） */
+function hslToHex(h: number, s: number, l: number): string {
+  const hue = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (hue < 60) [r, g, b] = [c, x, 0];
+  else if (hue < 120) [r, g, b] = [x, c, 0];
+  else if (hue < 180) [r, g, b] = [0, c, x];
+  else if (hue < 240) [r, g, b] = [0, x, c];
+  else if (hue < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const to = (v: number) =>
+    Math.max(0, Math.min(255, Math.round((v + m) * 255)))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${to(r)}${to(g)}${to(b)}`;
+}
+
+/** 主色按 offset 度旋转色相（s/l 不变）；非法输入原样返回 */
+function rotateHue(hex: string, offset: number): string {
+  const rgb = hexToRgb6(hex);
+  if (!rgb) return hex;
+  const [h, s, l] = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+  return hslToHex(h + offset, s, l);
+}
+
+/**
+ * 取切片颜色：优先宿主显式 color，其次 kind 色表（由当前主色派生），
+ * 最后按 key 稳定哈希兜底（同一次渲染内稳定，不随重排换色）。
+ */
 export function sliceColor(slice: ContextSlice): string {
   if (slice.color) return slice.color;
-  if (slice.kind && KIND_COLOR[slice.kind]) return KIND_COLOR[slice.kind];
+  const primary = currentPrimaryColor();
+  if (slice.kind) {
+    const neutral = NEUTRAL_KIND_COLOR[slice.kind];
+    if (neutral) return neutral;
+    const offset = KIND_HUE_OFFSET[slice.kind];
+    if (offset != null) return rotateHue(primary, offset);
+  }
   let hash = 0;
   for (const ch of slice.key) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return FALLBACK_COLORS[hash % FALLBACK_COLORS.length];
+  return rotateHue(primary, FALLBACK_HUE_OFFSETS[hash % FALLBACK_HUE_OFFSETS.length]);
 }
 
 /** 类别中文文案（图例用） */

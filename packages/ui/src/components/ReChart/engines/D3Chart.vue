@@ -52,6 +52,7 @@
 /// <reference path="../d3-sankey.d.ts" />
 import { computed, onMounted, onBeforeUnmount, ref, watch, shallowRef } from "vue";
 import { sankey, sankeyLeft, sankeyLinkHorizontal } from "d3-sankey";
+import { chartPalette } from "../../ReEcharts/colorSpace";
 import type { ReChartSankeyData } from "../types";
 
 interface Props {
@@ -77,7 +78,22 @@ const root = ref<HTMLDivElement | null>(null);
 const viewWidth = ref(600);
 const viewHeight = ref(400);
 
-const textColor = computed(() => (props.theme === "dark" ? "#e5eaf3" : "#606266"));
+/**
+ * 换主题色 / 切暗色后重绘。
+ *
+ * <p>本组件的节点/连线色与文字色都是 JS 解析后写进 SVG 的（canvas/SVG 属性不认
+ * `var(--x)`），props 不变时 Vue 不会重渲；主题色写在 `<html>` 行内样式上，
+ * 这里监听 html 的 style/class 变化递增 tick，让 render 重新取色（与 ReEcharts 同一手法）。</p>
+ */
+const themeTick = ref(0);
+let themeStyleObserver: MutationObserver | null = null;
+
+const textColor = computed(() => {
+  void themeTick.value; // 建立响应依赖：换主题色后随重渲染重新取色
+  return props.theme === "dark"
+    ? readCssVar("--el-text-color-primary", "#e5eaf3")
+    : readCssVar("--el-text-color-regular", "#606266");
+});
 const emptyText = computed(() => props.emptyText);
 const ariaLabel = "桑基流线图";
 
@@ -104,14 +120,8 @@ const readCssVar = (name: string, fallback: string): string => {
 };
 
 function paletteColor(i: number): string {
-  const base = [
-    readCssVar("--el-color-primary", "#409eff"),
-    readCssVar("--el-color-success", "#67c23a"),
-    readCssVar("--el-color-warning", "#e6a23c"),
-    readCssVar("--el-color-danger", "#f56c6c"),
-    readCssVar("--el-color-info", "#909399"),
-  ];
-  return base[i % base.length];
+  // 与 ReEcharts 共用 chartPalette()：主色 + 语义色向主色靠一档，切主题色两边同步
+  return chartPalette()[i % chartPalette().length];
 }
 
 function measure() {
@@ -126,6 +136,7 @@ type SNode = any;
 type SLink = any;
 
 function render() {
+  void themeTick.value; // 建立响应依赖：换主题色后重渲染重新取色
   if (!props.sankey || !props.sankey.nodes?.length || !props.sankey.links?.length) {
     nodes.value = [];
     links.value = [];
@@ -214,16 +225,29 @@ let ro: ResizeObserver | null = null;
 
 onMounted(() => {
   render();
+  if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+    themeStyleObserver = new MutationObserver(() => {
+      themeTick.value += 1;
+    });
+    themeStyleObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["style", "class"],
+    });
+  }
   if (typeof ResizeObserver !== "undefined" && root.value) {
     ro = new ResizeObserver(() => render());
     ro.observe(root.value);
   }
 });
 
-onBeforeUnmount(() => ro?.disconnect());
+onBeforeUnmount(() => {
+  themeStyleObserver?.disconnect();
+  themeStyleObserver = null;
+  ro?.disconnect();
+});
 
 watch(() => props.sankey, render, { deep: true });
-watch([() => props.theme, viewWidth, viewHeight], render);
+watch([() => props.theme, viewWidth, viewHeight, themeTick], render);
 </script>
 
 <style scoped>

@@ -16,7 +16,7 @@
 import { onMounted, onBeforeUnmount, watch, ref } from "vue";
 import { Graph, treeToGraphData } from "@antv/g6";
 import type { ReChartFlowNode } from "../types";
-import { ensureIconFont, registerTreeNode } from "./treeNode";
+import { ensureIconFont, FLOW_GREY, registerTreeNode } from "./treeNode";
 
 interface Props {
   data?: ReChartFlowNode | { root?: ReChartFlowNode };
@@ -46,6 +46,22 @@ const emit = defineEmits<{
 
 const container = ref<HTMLDivElement | null>(null);
 let graphInstance: Graph | null = null;
+
+/** 读根元素 CSS 变量（G6 canvas 不认 var(--x)，须解析成具体颜色） */
+function readCssVar(name: string, fallback: string): string {
+  if (typeof window === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+/**
+ * 换主题色后重建画布。
+ *
+ * <p>节点/边的颜色都是 G6 draw 钩子里现读 CSS 变量解析出来的，主题色写在
+ * `<html>` 行内样式上，props 不变不会重绘 —— 重建一次让全部子形重新取色。</p>
+ */
+const themeTick = ref(0);
+let themeStyleObserver: MutationObserver | null = null;
 
 function normalizeData(): ReChartFlowNode | null {
   const d = props.data as any;
@@ -85,7 +101,7 @@ function wireGraph(root: ReChartFlowNode | null) {
         radius: 4,
       },
     },
-    edge: { type: "cubic-horizontal", style: { stroke: "#CED4D9" } },
+    edge: { type: "cubic-horizontal", style: { stroke: readCssVar("--border-default", FLOW_GREY) } },
     layout: {
       type: "indented",
       direction: "LR",
@@ -103,16 +119,33 @@ function wireGraph(root: ReChartFlowNode | null) {
   graphInstance.render().then(() => emit("ready", graphInstance));
 }
 
-onMounted(() => wireGraph(normalizeData()));
+onMounted(() => {
+  wireGraph(normalizeData());
+  if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+    themeStyleObserver = new MutationObserver(() => {
+      themeTick.value += 1;
+    });
+    themeStyleObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["style", "class"],
+    });
+  }
+});
+
 onBeforeUnmount(() => {
+  themeStyleObserver?.disconnect();
+  themeStyleObserver = null;
   graphInstance?.destroy();
   graphInstance = null;
 });
+
 watch(
   () => props.data,
   (val) => wireGraph(normalizeData()),
   { deep: true },
 );
+
+watch(themeTick, () => wireGraph(normalizeData()));
 </script>
 
 <style scoped>

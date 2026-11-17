@@ -30,7 +30,8 @@ export type ReChartType =
   | "context" // 上下文窗口（同一份数据的两种画法：面积图 / 点阵图）
   | "atlas" // 关系星图（自绘：分组聚簇 + 连线，节点大小 = 权重）
   | "orbit" // 权限轨道（自绘：同心弧量表，弧长 = 覆盖率）
-  | "matrix"; // 热力矩阵（自绘：行 × 列 的强度分档网格）
+  | "matrix" // 热力矩阵（自绘：行 × 列 的强度分档网格）
+  | "race"; // 动态竞速条形（Bar Chart Race：多帧快照逐帧推进，条长插值 + 名次换位）
 
 /** 聚合面板使用的渲染引擎 */
 export type ReChartEngine = "echarts" | "d3";
@@ -371,14 +372,68 @@ export interface ReChartMatrixData {
   note?: string;
 }
 
-/** 内置图形（星图 / 轨道 / 矩阵）选中事件载荷 */
+/* ==================== 动态竞速条形（race） ==================== */
+
+/** 竞速图的一个参赛条目 */
+export interface RaceItem {
+  /** 稳定 id：帧里按它取数，颜色与名次跟着它走 */
+  id: string;
+  /** 轴标签（条左端的名字） */
+  label: string;
+  /** 条色：hex / rgb / CSS 变量（如 `var(--brand-500)`）；不填按序取 koi 令牌 */
+  color?: string;
+  /** 悬停提示里的补充说明（如所属分组、口径） */
+  detail?: string;
+}
+
+/** 竞速图的一帧：某个时刻所有条目的数值快照 */
+export interface RaceFrame {
+  /** 帧标签（年份、期数、时间），显示在画布左上角 */
+  label?: string;
+  /** 条目 id → 数值；缺项按 0 处理（该条目此帧尚未出现） */
+  values: Record<string, number>;
+}
+
+/**
+ * 动态竞速条形数据（type="race" 的唯一合法形状）。
+ *
+ * 数据是「多帧快照」而不是单帧：面板按 {@link duration} 逐帧推进，每帧一次
+ * `setOption`，由 ECharts 官方的 `realtimeSort` 负责条长插值与名次换位。
+ * 所以这里只描述「每一帧各条目是多少」，不描述动画曲线。
+ */
+export interface ReChartRaceData {
+  /** 条目定义（顺序只影响默认配色，不影响名次） */
+  items: RaceItem[];
+  /** 帧序列，至少 1 帧 */
+  frames: RaceFrame[];
+  /** 显示前 N 名，默认 10 */
+  top?: number;
+  /** 单帧动画时长 ms（条长插值 + 名次换位），默认 900 */
+  duration?: number;
+  /** 动画结束后停留 ms，默认 300 */
+  hold?: number;
+  /** 播完是否回到第一帧重播，默认 true */
+  loop?: boolean;
+  /** 面板标题（左上角），不填不占位 */
+  title?: string;
+  /** 数值格式化（轴右端读数与悬停提示共用），默认千分位 */
+  valueFormat?: (value: number) => string;
+  /** 数值单位后缀（如 " 万" / " 次"），拼在读数后面 */
+  unit?: string;
+}
+
+/** 内置图形（星图 / 轨道 / 矩阵 / 竞速）选中事件载荷 */
 export interface ReChartSelectPayload {
   /** 来自哪个内置图形 */
-  type: "atlas" | "orbit" | "matrix";
-  /** 星图节点 id / 轨道环 key */
+  type: "atlas" | "orbit" | "matrix" | "race";
+  /** 星图节点 id / 轨道环 key / 竞速条目 id */
   id?: string;
   /** 矩阵命中的行 key */
   rowKey?: string;
   /** 矩阵命中的列 key */
   columnKey?: string;
+  /** 竞速条目名称 */
+  label?: string;
+  /** 竞速条目当前帧数值 */
+  value?: number;
 }

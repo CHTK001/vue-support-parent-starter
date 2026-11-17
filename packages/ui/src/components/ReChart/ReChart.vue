@@ -76,6 +76,18 @@
       @select="(p) => emit('select', { type: 'matrix', ...p })"
     />
 
+    <!-- 内置视图 6：动态竞速条形（多帧快照推进，条长插值 + 名次换位） -->
+    <RaceChart
+      v-else-if="activeType === 'race'"
+      class="re-chart__body"
+      :data="raceData"
+      :height="height"
+      :theme="theme"
+      :chrome="raceChrome"
+      :autoplay="raceAutoplay"
+      @select="(p) => emit('select', { type: 'race', ...p })"
+    />
+
     <template v-else>
       <!-- 引擎切换条（可选） -->
       <div v-if="engineSelector" class="re-chart__selector">
@@ -139,13 +151,15 @@
  * <ReChart type="flow" :data="tree" height="420px" />          <!-- 资金流线图（G6） -->
  * <ReChart type="topology" :topology="{ nodes, edges }" />      <!-- 链路拓扑 -->
  * <ReChart type="context" :context-window="{ used, total, slices }" />
+ * <ReChart type="race" :race="{ items, frames }" height="420px" /> <!-- 动态竞速条形 -->
  * ```
  *
  * - {@link type} 决定图类型（line/area/bar/pie/donut/radar/funnel/scatter/gauge/
- *   sankey/heatmap/custom/flow/topology/context/atlas/orbit/matrix）；
+ *   sankey/heatmap/custom/flow/topology/context/atlas/orbit/matrix/race）；
  * - {@link engine} 默认 echarts，可切 d3；
  * - {@link type==='flow'} 固定走 G6（复刻官方 fund-flow 资金流向图），engine 被忽略；
- * - {@link type==='topology' | 'context' | 'atlas' | 'orbit' | 'matrix'} 走内置自绘面板，engine 被忽略；
+ * - {@link type==='topology' | 'context' | 'atlas' | 'orbit' | 'matrix' | 'race'} 走内置自绘面板，engine 被忽略；
+ *   race 内部用 ECharts 官方的 bar-race 能力（realtimeSort），面板只负责逐帧推进与配色；
  * - ECharts 是同步轻量路径（复用 ReEcharts 的主题注入 / 暗黑 / resize）；
  * - d3 / G6 经 {@link ReAsync} 异步按需 import，带统一骨架与错误重试。
  *
@@ -182,12 +196,14 @@ import ContextWindowChart from "./ContextWindowChart.vue";
 import AtlasChart from "./AtlasChart.vue";
 import OrbitChart from "./OrbitChart.vue";
 import MatrixChart from "./MatrixChart.vue";
+import RaceChart from "./RaceChart.vue";
 import { buildEchartsOption, type ChartSimpleSeries } from "./engines/echarts";
 import {
   isAtlasData,
   isContextWindowData,
   isMatrixData,
   isOrbitData,
+  isRaceData,
   isTopologyData,
 } from "./contract";
 import type {
@@ -202,6 +218,7 @@ import type {
   ReChartAtlasData,
   ReChartOrbitData,
   ReChartMatrixData,
+  ReChartRaceData,
   ReChartSelectPayload,
   ContextViewMode,
   ContextSlice,
@@ -249,6 +266,12 @@ interface ReChartShellProps {
   orbit?: ReChartOrbitData;
   /** 热力矩阵数据（type="matrix" 时生效） */
   matrix?: ReChartMatrixData;
+  /** 动态竞速条形数据（type="race" 时生效） */
+  race?: ReChartRaceData;
+  /** 竞速是否渲染自带头部 / 进度条（默认 true）；宿主自带抬头时置 false */
+  raceChrome?: boolean;
+  /** 竞速挂载后是否自动播放（默认 true） */
+  raceAutoplay?: boolean;
   /** 多视图（图标切换）；所有视图的 data 必须同形状，不一致须给 transform */
   views?: ViewPane[];
   /** 初始激活的视图 key；不填取 views 第一项 */
@@ -269,6 +292,8 @@ const props = withDefaults(defineProps<ReChartShellProps>(), {
   contextClickToExpand: true,
   contextMode: "area" as ContextViewMode,
   contextChrome: true,
+  raceChrome: true,
+  raceAutoplay: true,
 });
 
 const emit = defineEmits<{
@@ -359,6 +384,11 @@ function resolvePaneData(pane: ViewPane, type: ReChartType): unknown {
     warnOnce(pane.key, type, "{ rows, columns, values }");
     return null;
   }
+  if (type === "race") {
+    if (isRaceData(raw)) return raw;
+    warnOnce(pane.key, type, "{ items, frames }");
+    return null;
+  }
   return raw;
 }
 
@@ -419,6 +449,16 @@ const matrixData = computed<ReChartMatrixData | null>(() => {
     return isMatrixData(resolved) ? resolved : null;
   }
   return isMatrixData(props.matrix) ? props.matrix : null;
+});
+
+/** 动态竞速条形最终数据 */
+const raceData = computed<ReChartRaceData | null>(() => {
+  const pane = activePane.value;
+  if (pane && activeType.value === "race") {
+    const resolved = resolvePaneData(pane, "race");
+    return isRaceData(resolved) ? resolved : null;
+  }
+  return isRaceData(props.race) ? props.race : null;
 });
 
 function switchView(key: string) {

@@ -433,6 +433,16 @@ function pctOfUsed(slice: ContextSlice): string {
 const areaRef = ref<HTMLElement | null>(null);
 const areaSize = reactive({ w: 0, h: 0 });
 
+/**
+ * 换主题色后重取切片色。
+ *
+ * <p>切片色由 sliceColor 读 `<html>` 上的主题变量（applyPrimaryColorVars 写入），
+ * props 不变时 Vue 不会自己重渲染 —— 与 ReEcharts 同一手法：监听 html 的
+ * style/class 属性变化递增 tick，让下方 cellStyle / dots / legend 全部重算取色。</p>
+ */
+const themeTick = ref(0);
+let themeStyleObserver: MutationObserver | null = null;
+
 const cells = computed(() =>
   areaSize.w > 0 && areaSize.h > 0
     ? layoutTreemap(sortedSlices.value, areaSize.w, areaSize.h)
@@ -441,6 +451,7 @@ const cells = computed(() =>
 
 /** 块只靠圆角与描边分隔（不缩 w/h），保证面积严格等于 token 占比 */
 function cellStyle(cell: { x: number; y: number; w: number; h: number; slice: ContextSlice }) {
+  void themeTick.value; // 建立响应依赖：换主题色后随重渲染重新取色
   const free = cell.slice.kind === "free";
   const color = sliceColor(cell.slice);
   return {
@@ -495,6 +506,7 @@ function readableTextColor(color: string): string {
 /* ==================== 点阵图 ==================== */
 
 const dots = computed(() => {
+  void themeTick.value; // 建立响应依赖：换主题色后重算点阵取色
   const d = vm.value;
   if (!d) return [];
   const ordered = sortedSlices.value;
@@ -518,6 +530,7 @@ const perDotText = computed(() => {
 
 /** 图例按类别聚合（同类多片只出现一次，占比累加） */
 const legend = computed(() => {
+  void themeTick.value; // 建立响应依赖：换主题色后重算图例取色
   const d = vm.value;
   if (!d) return [];
   const map = new Map<string, { kind: string; color: string; tokens: number; label: string }>();
@@ -602,11 +615,22 @@ onMounted(() => {
     observer = new ResizeObserver(() => syncSize());
     observer.observe(areaRef.value);
   }
+  if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+    themeStyleObserver = new MutationObserver(() => {
+      themeTick.value += 1;
+    });
+    themeStyleObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["style", "class"],
+    });
+  }
 });
 
 onBeforeUnmount(() => {
   observer?.disconnect();
   observer = null;
+  themeStyleObserver?.disconnect();
+  themeStyleObserver = null;
 });
 </script>
 

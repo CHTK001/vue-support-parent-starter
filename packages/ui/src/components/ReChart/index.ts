@@ -56,6 +56,9 @@ export type {
   ReChartOrbitData,
   MatrixAxisItem,
   ReChartMatrixData,
+  RaceItem,
+  RaceFrame,
+  ReChartRaceData,
   ReChartSelectPayload,
 } from "./types";
 export {
@@ -64,6 +67,7 @@ export {
   isAtlasData,
   isOrbitData,
   isMatrixData,
+  isRaceData,
   normalizeContextWindow,
   formatTokens,
   sliceColor,
