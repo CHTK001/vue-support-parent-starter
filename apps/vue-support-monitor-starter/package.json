@@ -20,6 +20,7 @@
     "@element-plus/icons-vue": "catalog:",
     "@pages/actuator": "workspace:*",
     "@pages/apm": "workspace:*",
+    "@pages/bigscreen": "workspace:*",
     "@pages/channel": "workspace:*",
     "@pages/control": "workspace:*",
     "@pages/datasource": "workspace:*",

@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.vue",
+    "src/**/*.d.ts",
+    "../../packages/core/src/**/*.d.ts",
+    // 主题的 env.d.ts（declare global 扩展 Window）：@repo/core 的 themeBridge.ts
+    // 运行时 import("@repo/theme") 会把 forcedLogin.ts 拉进类型程序，缺它的全局
+    // Window.__reForcedLoginOpen 声明即报 TS2551（monitor 宿主同款 include，见其 tsconfig）。
+    "../../packages/theme/src/**/*.d.ts"
+  ]
+}

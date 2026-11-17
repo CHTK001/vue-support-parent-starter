@@ -535,6 +535,9 @@ export default createVite({
     "@pages/docker": "pages/docker",
     // pages/tunnel 已交付：内网穿透路由（单页面 TunnelPage，提供方在页内选）
     "@pages/tunnel": "pages/tunnel",
+    // 可视化大屏（@pages/bigscreen）：three-screen-lab 七屏整体迁入 pages/screen
+    //（目录名英文）。屏幕目录/拼装/舞台都在包内，宿主只挂路由。
+    "@pages/bigscreen": "pages/screen",
     "@pages/template": "pages/template",
     // 开发环境占位：`@lucasmarkes/hairline` 未出现在 workspace store 中
     //（ReEmpty 的 `layout="plot"` 可选功能），alias 指向 ReEmpty 目录下的 stub module，

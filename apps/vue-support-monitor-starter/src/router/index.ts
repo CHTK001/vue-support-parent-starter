@@ -42,6 +42,9 @@ import { createServerHostRoutes } from "@pages/server/src/routes";
 import { createDockerRoutes } from "@pages/docker/src/routes";
 // 内网穿透：统一隧道管理页，通过 @pages/tunnel/src/routes 的 createTunnelRoutes 展开。
 import { createTunnelRoutes } from "@pages/tunnel/src/routes";
+// 可视化大屏（@pages/bigscreen）：three-screen-lab 七屏（风电/工厂/人口/巡检/农业/工业/园区）
+// 展厅页。模块求值即自注册大屏目录；默认 showLink:false 不进侧边栏，/bigscreen 直达。
+import { createBigScreenRoutes } from "@pages/bigscreen/src/routes";
 // OSGi 插件中心（@pages/osgi）：插件是部署级能力，独立成「插件中心」分组
 // （/grp-plugin → /collect/osgi）。视图/API/路由同源，宿主只做一行展开
 // （与 collect-scheduler 同款接法，见 vite.config.ts 的 alias 说明）。
@@ -259,6 +262,10 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 后端接口在 monitor 自身（spring-support-osgi-starter，/osgi/**）。
   // osgiRoutes 是常量无需工厂参数；keepAlive/菜单分组由包内自带的 meta 决定。
   ...osgiRoutes,
+
+  // 可视化大屏展厅：/bigscreen 单页（七屏在页内目录 + 舞台切换），默认不进侧边栏。
+  // 纯前端展示模块，无后端接口依赖；屏幕源码与拼装引擎都在 @pages/bigscreen 包内。
+  ...createBigScreenRoutes(),
 
   // ==================== 设备管理 ====================
   // 从「主机管理」中独立成组：主机与设备是两类平级资产，各自的入口直接可见。

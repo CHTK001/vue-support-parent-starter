@@ -197,6 +197,10 @@
       // 前缀，与 @pages/channel 同口径；宿主统一写 @pages/datasource/src/... 深导入）。
       "@pages/datasource": ["pages/datasource/src/index.ts"],
       "@pages/datasource/*": ["pages/datasource/*"],
+      // 可视化大屏（@pages/bigscreen）：three-screen-lab 七屏整体迁入 pages/screen
+      //（目录名英文，屏幕源码逐字节保留、运行时按构建规则拼装）。
+      "@pages/bigscreen": ["pages/screen/src"],
+      "@pages/bigscreen/*": ["pages/screen/*"],
       // 设备远程控制（@pages/control）：页面根 + 深路径（业务写 @pages/control/src/...）
       "@pages/control": ["pages/control/src"],
       "@pages/control/*": ["pages/control/*"],
