@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>租户购买页设计稿</title>
+    <style>
+      :root {
+        --brand: #2563eb;
+        --brand-soft: #eff6ff;
+        --ink: #1f2937;
+        --ink-2: #4b5563;
+        --ink-3: #9ca3af;
+        --line: #e5e7eb;
+        --bg: #f6f7f9;
+        --card: #ffffff;
+        --warn: #b45309;
+        --warn-bg: #fffbeb;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 13px/1.6 "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      }
+      .page { width: 1200px; margin: 0 auto; padding: 28px 32px 40px; }
+      header { display: flex; align-items: flex-end; justify-content: space-between; }
+      h1 { margin: 0; font-size: 22px; letter-spacing: .5px; }
+      .sub { margin-top: 6px; color: var(--ink-3); font-size: 12px; }
+      .cycle {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 4px; border-radius: 8px; background: #eef0f4;
+      }
+      .cycle button {
+        border: 0; background: transparent; color: var(--ink-2);
+        padding: 7px 18px; border-radius: 6px; font-size: 13px; cursor: pointer;
+        font-family: inherit;
+      }
+      .cycle button.on { background: #fff; color: var(--brand); box-shadow: 0 1px 2px rgba(16,24,40,.08); font-weight: 600; }
+      .cycle .save { margin-left: 4px; font-size: 11px; color: #b91c1c; }
+
+      .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 22px; }
+      .tier {
+        position: relative; display: flex; flex-direction: column;
+        background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+        padding: 20px 20px 18px;
+      }
+      .tier.hot { border-color: var(--brand); box-shadow: 0 10px 24px rgba(37,99,235,.10); }
+      .tier .flag {
+        position: absolute; top: -10px; right: 16px;
+        background: var(--brand); color: #fff; font-size: 11px;
+        padding: 2px 10px; border-radius: 20px;
+      }
+      .tier h2 { margin: 0 0 4px; font-size: 16px; }
+      .tier .desc { color: var(--ink-3); font-size: 12px; min-height: 38px; }
+      .price { display: flex; align-items: baseline; gap: 6px; margin: 8px 0 2px; }
+      .price .cur { font-size: 14px; color: var(--ink-2); }
+      .price strong { font-size: 30px; letter-spacing: -0.5px; }
+      .price .per { color: var(--ink-3); font-size: 12px; }
+      .price .origin { margin-left: 6px; color: var(--ink-3); font-size: 12px; text-decoration: line-through; }
+      .meta { color: var(--ink-3); font-size: 12px; margin-bottom: 14px; }
+      ul { list-style: none; margin: 0; padding: 14px 0 0; border-top: 1px dashed var(--line); flex: 1; }
+      li { display: flex; gap: 8px; padding: 4px 0; color: var(--ink-2); }
+      li i { color: var(--brand); font-style: normal; }
+      .tier .buy {
+        margin-top: 16px; width: 100%; border: 1px solid var(--brand); color: var(--brand);
+        background: #fff; border-radius: 8px; padding: 9px 0; font-size: 13px; cursor: pointer; font-family: inherit;
+      }
+      .tier.hot .buy { background: var(--brand); color: #fff; }
+
+      .panel {
+        display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; margin-top: 22px;
+      }
+      .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+      .card h3 { margin: 0 0 12px; font-size: 14px; }
+      .row { display: flex; justify-content: space-between; padding: 7px 0; font-size: 13px; }
+      .row .k { color: var(--ink-2); }
+      .row .v { color: var(--ink); font-weight: 600; }
+      .row.total { border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 12px; }
+      .row.total .v { color: #b91c1c; font-size: 18px; }
+      .spec { display: flex; gap: 8px; margin-bottom: 10px; }
+      .spec button {
+        border: 1px solid var(--line); background: #fff; border-radius: 8px;
+        padding: 8px 14px; font-size: 12px; color: var(--ink-2); cursor: pointer; font-family: inherit;
+      }
+      .spec button.on { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+      .pay { display: flex; flex-direction: column; gap: 10px; }
+      .pay-item {
+        display: flex; align-items: center; justify-content: space-between;
+        border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+      }
+      .pay-item.on { border-color: var(--brand); background: var(--brand-soft); }
+      .pay-item .name { display: flex; align-items: center; gap: 8px; }
+      .pay-item .dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--ink-3); }
+      .pay-item.on .dot { border: 4px solid var(--brand); }
+      .pay-item small { color: var(--ink-3); font-size: 11px; }
+      .offline {
+        background: var(--warn-bg); color: var(--warn); border: 1px solid #fde68a;
+        border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.7;
+      }
+      .offline b { display: block; margin-bottom: 2px; }
+      .submit {
+        width: 100%; margin-top: 12px; border: 0; border-radius: 8px; padding: 11px 0;
+        background: var(--brand); color: #fff; font-size: 14px; cursor: pointer; font-family: inherit;
+      }
+      .tip { margin-top: 10px; color: var(--ink-3); font-size: 11px; text-align: center; }
+      .soon { color: var(--ink-3); font-size: 11px; border: 1px solid var(--line); border-radius: 20px; padding: 1px 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div>
+          <h1>选择你的租户版本</h1>
+          <div class="sub">按使用时长购买，到期前可随时续费；续费在原到期日上叠加，不浪费剩余时间。</div>
+        </div>
+        <div class="cycle">
+          <button>月付</button>
+          <button>季付</button>
+          <button class="on">年付</button>
+          <span class="save">省 20%</span>
+        </div>
+      </header>
+
+      <section class="tiers">
+        <article class="tier">
+          <h2>基础版</h2>
+          <p class="desc">单人团队起步，跑通采集与看板的完整闭环。</p>
+          <div class="price"><span class="cur">¥</span><strong>1,280</strong><span class="per">/年</span><span class="origin">¥1,600</span></div>
+          <div class="meta">折合 ¥106.7 / 月</div>
+          <ul>
+            <li><i>✓</i> 1 个租户空间，5 个账号</li>
+            <li><i>✓</i> 采集调度 + 实时看板</li>
+            <li><i>✓</i> 历史数据保留 3 个月</li>
+            <li><i>✓</i> 工单支持（工作日）</li>
+          </ul>
+          <button class="buy">选择基础版</button>
+        </article>
+
+        <article class="tier hot">
+          <span class="flag">最受欢迎</span>
+          <h2>专业版</h2>
+          <p class="desc">多团队协作与设备接入，覆盖日常运维全流程。</p>
+          <div class="price"><span class="cur">¥</span><strong>3,880</strong><span class="per">/年</span><span class="origin">¥4,680</span></div>
+          <div class="meta">折合 ¥323.3 / 月</div>
+          <ul>
+            <li><i>✓</i> 1 个租户空间，30 个账号</li>
+            <li><i>✓</i> 含设备接入与能力矩阵</li>
+            <li><i>✓</i> 告警规则 + 通知渠道</li>
+            <li><i>✓</i> 历史数据保留 12 个月</li>
+            <li><i>✓</i> 专属对接群</li>
+          </ul>
+          <button class="buy">选择专业版</button>
+        </article>
+
+        <article class="tier">
+          <h2>旗舰版</h2>
+          <p class="desc">多租户代运营与私有化部署，按需扩展模块。</p>
+          <div class="price"><span class="cur">¥</span><strong>9,800</strong><span class="per">/年</span><span class="origin">¥12,000</span></div>
+          <div class="meta">折合 ¥816.7 / 月</div>
+          <ul>
+            <li><i>✓</i> 不限账号，支持子租户</li>
+            <li><i>✓</i> 全部模块 + 开放接口</li>
+            <li><i>✓</i> 私有化部署与迁移协助</li>
+            <li><i>✓</i> 数据保留 36 个月</li>
+            <li><i>✓</i> 7×12 小时响应</li>
+          </ul>
+          <button class="buy">选择旗舰版</button>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="card">
+          <h3>订单确认</h3>
+          <div class="spec">
+            <button>月付 ¥388</button>
+            <button>季付 ¥1,048</button>
+            <button class="on">年付 ¥3,880</button>
+          </div>
+          <div class="row"><span class="k">服务</span><span class="v">专业版</span></div>
+          <div class="row"><span class="k">时长规格</span><span class="v">年付（12 个月）</span></div>
+          <div class="row"><span class="k">生效时间</span><span class="v">付款确认后立即生效</span></div>
+          <div class="row"><span class="k">到期时间</span><span class="v">2027-11-17</span></div>
+          <div class="row"><span class="k">优惠</span><span class="v">年付立减 ¥800</span></div>
+          <div class="row total"><span class="k">应付金额</span><span class="v">¥3,880.00</span></div>
+        </div>
+
+        <div class="card">
+          <h3>收款方式</h3>
+          <div class="pay">
+            <div class="pay-item on">
+              <span class="name"><span class="dot"></span>线下收款（对公转账 / 扫码）</span>
+              <small>客服确认到账后开通</small>
+            </div>
+            <div class="offline">
+              <b>下单后如何付款？</b>
+              提交订单后，我们会展示对公账户与收款码；转账时备注订单号，客服在 1 个工作日内确认并开通。
+            </div>
+            <div class="pay-item">
+              <span class="name"><span class="dot"></span>在线支付</span>
+              <span class="soon">即将开放</span>
+            </div>
+          </div>
+          <button class="submit">提交订单，获取收款信息</button>
+          <div class="tip">提交即表示同意《服务协议》，开通前可随时取消</div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

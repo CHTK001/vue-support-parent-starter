@@ -1,8 +1,10 @@
 /**
  * 租户模块路由（pages/tenant）
  *
- * 租户域从系统管理里独立出来后，ReFlow 编排架构这类“租户能力视图”放在本模块，
- * 不再继续堆进 pages/system。路由仍挂到 koi layout 下，保留侧边栏。
+ * 租户域从系统管理里独立出来后，面向管理员的是三件事：
+ * 卖什么（服务管理：服务 + 多档规格 + 菜单/按钮配置）、
+ * 谁买了（租户订阅：录入订阅 + 线下收款记账）、
+ * 有哪些租户（租户管理）。路由仍挂到 koi layout 下，保留侧边栏。
  */
 import type { RouteConfigsTable } from "@repo/core";
 import type { StaticMenuItem } from "@repo/pinia";
@@ -17,16 +19,39 @@ export const tenantMenus: StaticMenuItem[] = [
   {
     path: "/tenant",
     name: "TenantModule",
-    redirect: "/manage/tenant",
+    redirect: "/manage/tenant/service",
     meta: { title: "租户模块", icon: "OfficeBuilding", isVisible: "1" },
     children: [
+      { path: "/manage/tenant/service", name: "TenantServiceManage", meta: { title: "服务管理", icon: "Goods", isVisible: "1" } },
+      { path: "/manage/tenant/subscription", name: "TenantSubscription", meta: { title: "租户订阅", icon: "Tickets", isVisible: "1" } },
       { path: "/manage/tenant", name: "SystemTenant", meta: { title: "租户管理", icon: "OfficeBuilding", isVisible: "1" } },
-      { path: "/manage/tenant/reflow-orchestration", name: "TenantReFlowOrchestration", meta: { title: "ReFlow 编排架构", icon: "Share", isVisible: "1" } },
     ],
   },
 ];
 
 export const tenantRoutes: RouteConfigsTable[] = [
+  {
+    path: "/manage/tenant/service",
+    name: "TenantServiceManage",
+    component: () => import("../views/ServiceManage.vue"),
+    meta: {
+      title: "服务管理",
+      icon: "Goods",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
+  {
+    path: "/manage/tenant/subscription",
+    name: "TenantSubscription",
+    component: () => import("../views/TenantSubscription.vue"),
+    meta: {
+      title: "租户订阅",
+      icon: "Tickets",
+      showLink: true,
+      keepAlive: true,
+    },
+  },
   {
     path: "/manage/tenant",
     name: "SystemTenant",
@@ -34,17 +59,6 @@ export const tenantRoutes: RouteConfigsTable[] = [
     meta: {
       title: "租户管理",
       icon: "OfficeBuilding",
-      showLink: true,
-      keepAlive: true,
-    },
-  },
-  {
-    path: "/manage/tenant/reflow-orchestration",
-    name: "TenantReFlowOrchestration",
-    component: () => import("../views/ReFlowOrchestration.vue"),
-    meta: {
-      title: "ReFlow 编排架构",
-      icon: "Share",
       showLink: true,
       keepAlive: true,
     },

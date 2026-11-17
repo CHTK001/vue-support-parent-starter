@@ -651,21 +651,48 @@ export interface TenantAccountBackfillResult {
   message?: string;
 }
 
-/** 租户-服务关联 */
+/** 租户-服务关联（订阅） */
 export interface SysTenantService {
   sysTenantServiceId?: number;
   sysTenantId?: string;
   sysServiceId?: number;
   /** 到期时间 */
   sysTenantServiceValidTime?: string;
+  /** 订阅规格ID */
+  sysTenantServicePlanId?: number;
+  /** 规格名称快照 */
+  sysTenantServicePlanName?: string;
+  /** 规格价格快照 */
+  sysTenantServicePrice?: number;
+  /** 实收金额 */
+  sysTenantServicePayAmount?: number;
+  /** 收款方式: OFFLINE/ONLINE/FREE */
+  sysTenantServicePayChannel?: string;
+  /** 收款时间 */
+  sysTenantServicePayTime?: string;
+  /** 收款备注 */
+  sysTenantServicePayRemark?: string;
+  /** 服务名称（非DB，列表回显） */
+  sysServiceName?: string;
+  /** 租户名称（非DB，列表回显） */
+  sysTenantName?: string;
 }
 
-/** 租户绑定服务请求 */
+/** 租户绑定服务请求（一条 = 一次订阅，可带规格与线下收款） */
 export interface TenantServiceBindRequest {
   sysTenantId?: string;
   serviceBindItems?: Array<{
     sysServiceId?: number;
+    /** 到期时间；传了规格可留空，由后端按规格周期推算 */
     validTime?: string;
+    /** 订阅规格ID */
+    sysServicePlanId?: number;
+    /** 实收金额 */
+    payAmount?: number;
+    /** 收款方式，默认 OFFLINE */
+    payChannel?: string;
+    /** 收款备注 */
+    payRemark?: string;
   }>;
 }
 
@@ -705,6 +732,27 @@ export interface SysService {
   sysServiceStatus?: number;
   /** 关联模块ID列表（非DB） */
   sysServiceTags?: number[];
+  /** 关联菜单/按钮ID列表（非DB，可含按钮 sysMenuType=3） */
+  sysServiceMenuIds?: number[];
+}
+
+/** 服务价格规格：一个服务按不同时长卖不同价 */
+export interface SysServicePlan {
+  sysServicePlanId?: number;
+  sysServiceId?: number;
+  /** 规格名称，如月付/季付/年付 */
+  sysServicePlanName?: string;
+  /** 周期单位: DAY/MONTH/YEAR */
+  sysServicePlanUnit?: string;
+  /** 周期数量 */
+  sysServicePlanQuantity?: number;
+  /** 售价 */
+  sysServicePlanPrice?: number;
+  /** 划线价，为空不展示 */
+  sysServicePlanOriginPrice?: number;
+  /** 0:启用 1:停售 */
+  sysServicePlanStatus?: number;
+  sysServicePlanSort?: number;
 }
 
 /* ================== 头像框 ================== */

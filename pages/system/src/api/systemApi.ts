@@ -26,6 +26,8 @@ import type {
   SysMenuSettingVO,
   SysRole,
   SysService,
+  SysServicePlan,
+  SysTenantService,
   SysSetting,
   SysSettingHistory,
   SysSettingVO,
@@ -945,6 +947,63 @@ export function expireTenantServices() {
   return http()
     .put("/v2/tenant/services/expire")
     .then<ApiResult<number>>((r) => r.data);
+}
+
+/* ================== 服务价格规格 ================== */
+
+/** 服务的价格规格列表（按 serviceId 过滤） */
+export function listForServicePlan(sysServiceId?: number) {
+  return http()
+    .get("/v2/service/plan/list")
+    .query({ sysServiceId })
+    .then<ApiResult<SysServicePlan[]>>((r) => r.data);
+}
+
+/** 新增服务规格 */
+export function saveServicePlan(data: SysServicePlan) {
+  return http()
+    .post("/v2/service/plan/save")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<SysServicePlan>>((r) => r.data);
+}
+
+/** 更新服务规格 */
+export function updateServicePlan(data: SysServicePlan) {
+  return http()
+    .put("/v2/service/plan/update")
+    .data(data as Record<string, unknown>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 删除服务规格（已被订阅引用时后端会拒绝，应改为停售） */
+export function deleteServicePlan(sysServicePlanId: number) {
+  return http()
+    .delete("/v2/service/plan/delete")
+    .query({ sysServicePlanId })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 启用/停售服务规格 */
+export function updateServicePlanStatus(sysServicePlanId: number, status: number) {
+  return http()
+    .put("/v2/service/plan/status")
+    .query({ sysServicePlanId, status })
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/* ================== 租户订阅（含线下收款记账） ================== */
+
+/** 分页查询租户订阅 */
+export function pageForSubscription(params: {
+  page?: number;
+  pageSize?: number;
+  sysTenantId?: string;
+  sysServiceId?: number;
+}) {
+  return http()
+    .get("/v2/tenant/subscription/page")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<PageResult<SysTenantService>>>((r) => r.data);
 }
 
 /** 操作日志分页列表 */

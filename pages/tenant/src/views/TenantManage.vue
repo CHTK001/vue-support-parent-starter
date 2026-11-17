@@ -12,13 +12,12 @@ import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTe
 import type { SysTenant, TenantDatasourceOption, TenantDatasourceView, TenantAccountBackfillResult, TenantEndpointInfo } from "@pages/system/api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import ReProgressDialog, { type ProgressSnapshot, type ProgressStep } from "@repo/ui/re-progress-dialog";
-import ServiceCatalogPanel from "@pages/system/views/components/ServiceCatalogPanel.vue";
 import TenantServiceBindDialog from "@pages/system/views/components/TenantServiceBindDialog.vue";
 
-const tenantStatusOptions = [
+const tenantStatusOptions: Array<{ label: string; value: number }> = [
   { label: "启用", value: 0 },
   { label: "禁用", value: 1 },
-] as const;
+];
 
 const query = ref<{
   page: number;
@@ -217,9 +216,6 @@ const pwdForm = ref({ sysTenantId: "", sysTenantPassword: "admin123456" });
 const pwdDialogVisible = ref(false);
 
 const listForSelect = ref<SysTenant[]>([]);
-
-/** 页签：租户列表 / 服务目录（服务是租户域的一部分，放同一页避免多一个菜单） */
-const activeTab = ref("tenant");
 
 /** 分配服务弹窗 */
 const bindVisible = ref(false);
@@ -871,8 +867,6 @@ onUnmounted(() => {
 
 <template>
   <div class="system-page">
-    <el-tabs v-model="activeTab" class="tenant-tabs">
-      <el-tab-pane label="租户列表" name="tenant">
     <ReTable
       ref="tableRef"
       table-id="system-tenant"
@@ -1205,11 +1199,6 @@ onUnmounted(() => {
         <el-button type="primary" @click="endpointVisible = false">关闭</el-button>
       </template>
     </ReDialog>
-      </el-tab-pane>
-      <el-tab-pane label="服务目录" name="service" lazy>
-        <ServiceCatalogPanel />
-      </el-tab-pane>
-    </el-tabs>
   </div>
 </template>
 
@@ -1221,21 +1210,6 @@ onUnmounted(() => {
   padding: 0;
   height: 100%;
   box-sizing: border-box;
-}
-
-/* 页签占满剩余高度：ReTable 依赖父级高度撑开，否则表格会塌成一条 */
-.tenant-tabs {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-.tenant-tabs :deep(.el-tabs__content) {
-  flex: 1;
-  min-height: 0;
-}
-.tenant-tabs :deep(.el-tab-pane) {
-  height: 100%;
 }
 
 /* 表格外壳（描边 / 圆角 / 卡片投影 / focus-within 转主色）已由 ReTable 插件提供 */
