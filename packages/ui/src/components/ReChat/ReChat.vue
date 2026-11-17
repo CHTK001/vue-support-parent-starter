@@ -1201,7 +1201,7 @@ watch(
   box-shadow: none;
 }
 .re-chat__history-search :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1.5px #6366f1 inset;
+  box-shadow: 0 0 0 1.5px var(--el-color-primary, #6366f1) inset;
   background: #fff;
 }
 .re-chat__history-search :deep(.el-input__inner) {
@@ -1294,7 +1294,7 @@ watch(
   min-width: 0;
 }
 .re-chat__history-body :deep(.elx-conversations__item:hover) {
-  background: rgba(99, 102, 241, 0.05);
+  background: color-mix(in srgb, var(--el-color-primary, #6366f1) 5%, transparent);
 }
 .re-chat__history-body :deep(.elx-conversations__item.is-active) {
   background: var(--el-color-primary-light-9, rgba(99, 102, 241, 0.08));
@@ -1331,8 +1331,8 @@ watch(
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 .re-chat__item-icon:hover {
-  background: #e0e7ff;
-  color: #6366f1;
+  background: var(--el-color-primary-light-7, #e0e7ff);
+  color: var(--el-color-primary, #6366f1);
   transform: scale(1.08);
 }
 .re-chat__item-icon.is-pinned {
@@ -1350,7 +1350,7 @@ watch(
   transition: color 0.15s ease;
 }
 .re-chat__item-label-text.is-selected {
-  color: #6366f1;
+  color: var(--el-color-primary, #6366f1);
   font-weight: 500;
 }
 .re-chat__item-more {
@@ -1367,7 +1367,7 @@ watch(
 }
 .re-chat__item-more:hover {
   background: #eef0f4;
-  color: #6366f1;
+  color: var(--el-color-primary, #6366f1);
 }
 
 /* ===== 底部折叠 ===== */
@@ -1391,7 +1391,7 @@ watch(
 }
 .re-chat__collapse-btn:hover {
   background: #f1f3f7;
-  color: #4f46e5;
+  color: var(--el-color-primary, #4f46e5);
 }
 
 /* ===== 收缩开关 ===== */
@@ -1413,8 +1413,8 @@ watch(
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
 }
 .re-chat__history-toggle:hover {
-  color: #6366f1;
-  background: #f5f3ff;
+  color: var(--el-color-primary, #6366f1);
+  background: var(--el-color-primary-light-9, #f5f3ff);
 }
 
 /* ===== 聊天主区域 ===== */
@@ -1505,8 +1505,8 @@ watch(
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .re-chat__input :deep(.elx-x-sender__content:focus-within) {
-  border-color: #c7d2fe;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+  border-color: var(--el-color-primary-light-7, #c7d2fe);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary, #6366f1) 8%, transparent);
 }
 /* 上层文本输入区：占输入框上半部分绝大部分空间 */
 .re-chat__input :deep(.elx-x-sender__chat-room) {
@@ -1563,9 +1563,9 @@ watch(
   font-size: 14px;
 }
 .re-chat__toggle-btn:hover {
-  background: #f1f3ff;
-  border-color: #dde2ff;
-  color: #6d74c9;
+  background: var(--el-color-primary-light-9, #f1f3ff);
+  border-color: var(--el-color-primary-light-7, #dde2ff);
+  color: var(--el-color-primary, #6d74c9);
 }
 .re-chat__toggle-btn.is-active {
   background: var(--el-color-primary, #6366f1);
@@ -1590,8 +1590,8 @@ watch(
   transition: all 0.15s ease;
 }
 .re-chat__mini-btn:hover {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--el-color-primary-light-9, #eef2ff);
+  color: var(--el-color-primary, #4f46e5);
 }
 
 /* 模型选择按钮：胶囊带文字 */
@@ -1605,8 +1605,8 @@ watch(
   color: #6b7280;
 }
 .re-chat__mini-btn.re-chat__model-btn:hover {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--el-color-primary-light-9, #eef2ff);
+  color: var(--el-color-primary, #4f46e5);
 }
 .re-chat__model-btn .el-icon {
   font-size: 14px;
@@ -1638,10 +1638,10 @@ watch(
   transition: background 0.15s ease;
 }
 .re-chat__model-item:hover {
-  background: #f3f4ff;
+  background: var(--el-color-primary-light-9, #f3f4ff);
 }
 .re-chat__model-item.is-active {
-  color: #4f46e5;
+  color: var(--el-color-primary, #4f46e5);
   font-weight: 600;
 }
 .re-chat__model-item-label {
@@ -1677,7 +1677,7 @@ watch(
 .re-chat__send-btn:hover:not(.is-disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(167, 139, 250, 0.45);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-primary, #6366f1) 45%, transparent);
 }
 .re-chat__send-btn.is-disabled,
 .re-chat__send-btn.is-empty {
@@ -1736,12 +1736,12 @@ watch(
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  background: #eef2ff;
-  color: #6366f1;
+  background: var(--el-color-primary-light-9, #eef2ff);
+  color: var(--el-color-primary, #6366f1);
   flex-shrink: 0;
 }
 .re-chat__command-item.is-active .re-chat__command-icon {
-  background: #6366f1;
+  background: var(--el-color-primary, #6366f1);
   color: #fff;
 }
 .re-chat__command-body {
@@ -1815,9 +1815,9 @@ watch(
   transition: all 0.2s ease;
 }
 .re-chat__skills-back:hover {
-  color: #4f46e5;
-  border-color: #c7d2fe;
-  background: #eef2ff;
+  color: var(--el-color-primary, #4f46e5);
+  border-color: var(--el-color-primary-light-7, #c7d2fe);
+  background: var(--el-color-primary-light-9, #eef2ff);
 }
 .re-chat__skills-title-lg {
   font-size: 22px;
@@ -1845,11 +1845,11 @@ watch(
   transition: all 0.2s ease;
 }
 .re-chat__skill-card:hover {
-  border-color: #c7d2fe;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08);
+  border-color: var(--el-color-primary-light-7, #c7d2fe);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--el-color-primary, #6366f1) 8%, transparent);
 }
 .re-chat__skill-card.is-installed {
-  border-color: #c7d2fe;
+  border-color: var(--el-color-primary-light-7, #c7d2fe);
 }
 .re-chat__skill-card.is-active {
   border-color: var(--el-color-primary, #6366f1);
@@ -1950,6 +1950,6 @@ watch(
 }
 .re-chat__prompt-card .el-icon {
   font-size: 16px;
-  color: #6366f1;
+  color: var(--el-color-primary, #6366f1);
 }
 </style>
