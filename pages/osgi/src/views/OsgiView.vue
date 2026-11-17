@@ -1,13 +1,16 @@
 <!--
-  OSGi 插件管理 —— 调音台版式。
+  OSGi 插件管理 —— 机柜版式（Rack Cabinet）。
 
-  设计语言：把 OSGi 运行时当作一台正在工作的调音台——
-  - 每个 bundle 一路通道条（CH）：状态灯 + LED 电平表 + 推子反映生命周期电平，
-    推子旁的按钮就是启停 / 升级 / 下载 / 卸载；
-  - 跳线盘（PATCH BAY）= 服务注册表，每路服务一个插孔，已注册即点亮；
-  - 磁带机（TAPE）+ 右侧机架 = Socket 实时操作日志，后端每次写操作广播
-    开始 / 成功 / 失败三帧，磁带与日志同步滚动；
-  - 文件仓 = 部署目录 jar 清单，卸载后文件仍在，在此删除。
+  设计语言：把 OSGi 运行时当作一台上电工作的标准机柜——
+  - 每个 bundle 是一块插在柜里的 1U 模块：面板左侧是电源/状态灯，中间是丝印
+    名称与版本，右侧是生命周期电平灯条；模块上的按钮就是启停 / 升级 /
+    下载 / 卸载，系统模块（bundleId=0）是柜子的电源模块，只展示不操作；
+  - 右侧竖立 PATCH 面板 = 服务注册表，每个已注册服务点亮一个插座；
+  - 柜子底部的磁带机 = Socket 实时操作日志，后端每次写操作广播
+    开始 / 成功 / 失败三帧，磁带随新帧滚动；
+  - 机柜下方的拉出式抽屉 = 部署目录 jar 文件仓，三态筛选，卸载后可在此删文件。
+
+  本页没有传统页头：页面身份是刻在机柜顶梁上的铭牌，操作内嵌在控制单元里。
 
   能力与后端 /osgi/** 完全对齐，全部真实链路：清单、统计、快照、服务登记走
   GET 端点，安装 / 升级 / 启停 / 卸载 / 删除 / 下载走变更端点，无一处 mock。
@@ -64,19 +67,21 @@ const jarLoading = ref(false);
 const jarBusy = ref("");
 /** 文件仓筛选：all / installed（在框架中）/ only（仅文件） */
 const trayFilter = ref<"all" | "installed" | "only">("all");
+/** 文件仓抽屉是否拉出 */
+const drawerOpen = ref(false);
 
-/** 框架统计（顶部芯片） */
+/** 框架统计（控制面板丝印） */
 const stats = ref<OsgiStats | null>(null);
-/** 容器侧桥接快照（顶部芯片） */
+/** 容器侧桥接快照（控制面板丝印） */
 const snapshot = ref<OsgiSnapshot | null>(null);
-/** 服务注册表（跳线盘） */
+/** 服务注册表（PATCH 面板） */
 const services = ref<OsgiService[]>([]);
 
 /** 搜索关键字（符号名 / ID / 文件名 模糊匹配，纯前端展示过滤） */
 const searchText = ref("");
 /** 状态筛选键：all / ACTIVE / RESOLVED / transition / stopped */
 const filterState = ref("all");
-/** 通道条点击定位后临时高亮的行符号名 */
+/** 模块点击定位后临时高亮的行符号名 */
 const highlightName = ref("");
 
 const installInput = ref<HTMLInputElement | null>(null);
@@ -94,7 +99,7 @@ const logs = ref<OsgiLogEntry[]>([]);
 const LOG_LIMIT = 200;
 /** 是否已接入 socket 通道（接入前日志区显示提示，避免误以为是后端没推） */
 const logChannelReady = ref(false);
-/** 最近一帧 socket 原始载荷，用于右侧展示载荷形状 */
+/** 最近一帧 socket 原始载荷，用于展示载荷形状 */
 const lastFrame = ref<{ module: string; event: string; dataId: string; timestamp: string } | null>(null);
 /** 日志滚动容器 */
 const logBox = ref<HTMLElement | null>(null);
@@ -125,7 +130,7 @@ const activeCount = computed(() => rows.value.filter(row => row.state === "ACTIV
 const framework = computed(() => rows.value.find(row => row.bundleId === 0));
 
 /**
- * 顶部芯片：全部来自真实端点，取不到就显示 —，不用前端兜底编造。
+ * 顶部丝印：全部来自真实端点，取不到就显示 —，不用前端兜底编造。
  */
 const chips = computed(() => {
   const rejected = snapshot.value?.rejected;
@@ -155,7 +160,7 @@ const filters: Array<{ key: string; label: string }> = [
   { key: "stopped", label: "已停止" },
 ];
 
-/** 搜索 + 状态筛选后的通道条 */
+/** 搜索 + 状态筛选后的模块清单 */
 const filteredRows = computed(() => {
   const kw = searchText.value.trim().toLowerCase();
   return rows.value.filter(row => {
@@ -220,7 +225,7 @@ function matchFilter(row: OsgiBundle): boolean {
 }
 
 /**
- * 状态 → 电平（0–10），推子与 LED 电平表共用这一口径。
+ * 状态 → 电平（0–10），LED 电平灯条与数字读数共用这一口径。
  *
  * <p>与状态配色一致：卸载为 0，安装为低位，解析/停止中为中位，
  * 启动中过半，运行中满格。</p>
@@ -241,7 +246,7 @@ function stateLevel(state: string): number {
 }
 
 /**
- * LED 电平表分段样式：底部起点亮，高段用警示色。
+ * LED 电平灯条分段样式：底部起点亮，高段用警示色。
  *
  * @param state OSGi bundle 状态
  * @param index 分段序号（1 起，自下而上）
@@ -262,7 +267,7 @@ function ladderClass(state: string, index: number): string {
 }
 
 /**
- * 通道编号：两位补零，与 bundleId 一一对应。
+ * 模块槽位号：两位补零，与 bundleId 一一对应（1U 起算）。
  *
  * @param id bundleId
  * @return 展示文本
@@ -357,19 +362,19 @@ async function reloadJars(): Promise<void> {
 /**
  * 读取统计 / 快照 / 服务登记。
  *
- * <p>三块都是只读观测数据，任一失败只影响对应芯片与跳线盘，
- * 不牵连通道条（bundle 清单）的展示。</p>
+ * <p>三块都是只读观测数据，任一失败只影响对应丝印与跳线盘，
+ * 不牵连模块墙（bundle 清单）的展示。</p>
  */
 async function loadMetrics(): Promise<void> {
   try {
     stats.value = (await listStats()) ?? null;
   } catch {
-    // 统计取不到时芯片显示 —，通道条不受影响
+    // 统计取不到时丝印显示 —，模块墙不受影响
   }
   try {
     snapshot.value = (await getSnapshot()) ?? null;
   } catch {
-    // 快照取不到时芯片显示 —，通道条不受影响
+    // 快照取不到时丝印显示 —，模块墙不受影响
   }
   try {
     services.value = (await listServices()) ?? [];
@@ -675,7 +680,7 @@ async function download(row: OsgiBundle): Promise<void> {
   }
 }
 
-/** 通道条点击：滚动定位到对应条并临时高亮 */
+/** 模块点击：滚动定位到对应模块并临时高亮 */
 function locate(row: OsgiBundle): void {
   highlightName.value = row.symbolicName;
   window.setTimeout(() => {
@@ -688,7 +693,7 @@ function locate(row: OsgiBundle): void {
 }
 
 /**
- * 从文件仓跳到对应的运行时通道条。
+ * 从文件仓跳到对应的运行时模块。
  *
  * <p>文件与 bundle 的对应关系唯一可靠的键是符号名（文件名可以随便改），
  * 因此先按符号名找 bundle，找不到就只提示，不改视图——静默无反应会让人以为是点了没生效。</p>
@@ -773,319 +778,314 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="osgi-page">
-    <!-- 页头：页面身份 + 实时通道状态 + 主操作 -->
-    <header class="osg-hd">
-      <div class="osg-hd__left">
-        <div class="osg-kick">OSGi PLUGIN CENTER · LIVE CONSOLE</div>
-        <h1 class="osg-title">插件中心 › OSGi 插件 · 调音台</h1>
-        <p class="osg-sub">
-          每个 bundle 一路通道：状态灯与推子是生命周期电平，跳线盘是已注册服务，磁带机走 Socket 实时日志。
-        </p>
+    <!-- 机柜主体：无页头，页面身份是顶梁铭牌 -->
+    <section class="rk osg-hd" :class="{ 'rk--booting': loading && !rows.length }">
+      <!-- 顶梁：铭牌 + 电源指示 + 主操作（全部内嵌在柜体上） -->
+      <div class="rk-top">
+        <div class="rk-plate">
+          <span class="rk-plate__screw tl"></span><span class="rk-plate__screw tr"></span>
+          <span class="rk-plate__brand">OSGi PLUGIN RACK</span>
+          <span class="rk-plate__model">RACK UNIT · 19" · MODULAR</span>
+          <span class="rk-live osg-live" :class="{ 'rk-live--off': !logChannelReady }">
+            <i class="rk-live__dot"></i>{{ logChannelReady ? "LIVE · POWER · LINK OK" : "SOCKET 未接入" }}
+          </span>
+          <span class="rk-plate__screw bl"></span><span class="rk-plate__screw br"></span>
+        </div>
+        <div class="rk-top__acts osg-hd__acts">
+          <ReButton icon="RefreshRight" :loading="loading" @click="reloadAll">刷新</ReButton>
+          <ReButton type="primary" icon="Upload" :disabled="!!busy" @click="pickInstall">上传 jar</ReButton>
+        </div>
       </div>
-      <span class="osg-live" :class="{ 'osg-live--off': !logChannelReady }">
-        <i class="osg-live__dot"></i>{{ logChannelReady ? "LIVE · osgi / operation-log" : "socket 未接入" }}
-      </span>
-      <div class="osg-hd__acts">
-        <ReButton icon="RefreshRight" :loading="loading" @click="reloadAll">刷新</ReButton>
-        <ReButton type="primary" icon="Upload" :disabled="!!busy" @click="pickInstall">上传 jar</ReButton>
-      </div>
-    </header>
 
-    <!-- 运行芯片：全部来自真实端点 -->
-    <div class="osg-chips">
-      <span v-for="c in chips" :key="c.label" class="osg-chip" :title="c.label">
-        {{ c.label }} <b>{{ c.value }}</b>
-      </span>
-    </div>
-
-    <!-- 控制带：搜索 + 状态筛选 -->
-    <div class="osg-ctrl">
-      <el-input
-        v-model="searchText"
-        class="osg-ctrl__search"
-        placeholder="搜索符号名 / ID / 文件名…"
-        clearable
-        :prefix-icon="Search"
-      />
-      <div class="osg-ctrl__chips">
-        <button
-          v-for="f in filters"
-          :key="f.key"
-          type="button"
-          class="osg-chipbtn"
-          :class="{ 'osg-chipbtn--on': filterState === f.key }"
-          @click="filterState = f.key"
-        >
-          {{ f.label }}
-        </button>
-      </div>
-    </div>
-
-    <div class="osg-layout">
-      <!-- 左列：调音台 + 文件仓 -->
-      <section class="osg-col">
-        <div class="osg-desk">
-          <!-- 主控条 -->
-          <div class="osg-master">
-            <span class="osg-master__ttl">OSGi LIVE DESK</span>
-            <div class="osg-mleds" :key="logPulse">
-              <i v-for="i in 10" :key="i" :class="{ on: i <= masterLevel }"></i>
-            </div>
-            <span class="osg-master__meta">
-              {{ framework ? `FW ${framework.symbolicName} · v${framework.version}` : "FW —" }} · 运行
-              {{ activeCount }}/{{ rows.length }}
-            </span>
+      <!-- 控制单元：主电平表 + 搜索 + 状态筛选 + 框架丝印 -->
+      <div class="rk-ctrl">
+        <div class="rk-ctrl__row">
+          <span class="rk-ctrl__ttl">MASTER</span>
+          <div class="rk-mleds" :key="logPulse">
+            <i v-for="i in 10" :key="i" :class="{ on: i <= masterLevel }"></i>
           </div>
-
-          <!-- 通道条：每个 bundle 一路 -->
-          <div class="osg-strips" :class="{ 'osg-strips--empty': !loading && !rows.length }">
-            <template v-for="row in filteredRows" :key="row.bundleId">
-              <div
-                :id="`osgi-ch-${row.bundleId}`"
-                class="osg-ch"
-                :class="[`osg-ch--${row.state.toLowerCase()}`, { 'osg-ch--hl': highlightName === row.symbolicName }]"
-              >
-                <div class="osg-ch__info">
-                  <div class="osg-ch__id">
-                    CH {{ chNo(row.bundleId) }} · {{ isSystem(row) ? "SYSTEM" : "BUNDLE" }}
-                  </div>
-                  <div class="osg-ch__name">
-                    {{ row.symbolicName }}
-                    <span class="osg-ch__ver">v{{ row.version }}</span>
-                    <span class="osg-ch__bid">#{{ row.bundleId }}</span>
-                  </div>
-                  <div class="osg-ch__lad" :title="`状态电平 · ${stateText(row.state)}`">
-                    <i v-for="i in 10" :key="i" :class="ladderClass(row.state, i)"></i>
-                  </div>
-                  <div class="osg-ch__ops">
-                    <template v-if="isSystem(row)">
-                      <ReTag type="info" effect="plain">系统内置</ReTag>
-                      <span class="osg-ch__sysnote">框架本体，无启停 / 升级 / 卸载操作</span>
-                    </template>
-                    <template v-else>
-                      <ReTag
-                        :type="stateTagType(row.state)"
-                        effect="plain"
-                        :style="row.state === 'STOPPING' ? { '--el-tag-text-color': 'var(--el-color-primary-light)' } : undefined"
-                      >
-                        {{ stateText(row.state) }}
-                      </ReTag>
-                      <ReButton
-                        size="small"
-                        :type="row.state === 'ACTIVE' ? 'warning' : 'success'"
-                        :disabled="!!busy"
-                        @click="toggle(row)"
-                      >
-                        {{ row.state === "ACTIVE" ? "停止" : "启动" }}
-                      </ReButton>
-                      <ReButton size="small" :disabled="!!busy" @click="pickUpgrade(row.symbolicName)">升级</ReButton>
-                      <ReButton size="small" :disabled="!!busy" @click="download(row)">下载</ReButton>
-                      <ReButton size="small" type="danger" :disabled="!!busy" @click="remove(row)">卸载</ReButton>
-                    </template>
-                  </div>
-                </div>
-                <div class="osg-ch__fader">
-                  <div class="osg-fader">
-                    <span class="osg-fader__slot"></span>
-                    <span class="osg-fader__thumb" :style="{ bottom: `calc(10px + (100% - 20px) * ${stateLevel(row.state) / 10})` }"></span>
-                  </div>
-                  <span class="osg-fader__val">电平 <b>{{ stateLevel(row.state) }}</b>/10</span>
-                </div>
-              </div>
-            </template>
-
-            <div v-if="!loading && !filteredRows.length" class="osg-empty">
-              <p v-if="rows.length">没有符合当前搜索 / 筛选条件的 bundle</p>
-              <div v-else>
-                <p>暂无已安装 bundle</p>
-                <p class="osg-empty__hint">
-                  从下方上传 jar 即可安装；端点需开启 <code>plugin.osgi.endpoint.enabled=true</code>
-                </p>
-              </div>
-            </div>
+          <span class="rk-ctrl__meta">
+            {{ framework ? `FW ${framework.symbolicName} · v${framework.version}` : "FW —" }} · 运行
+            {{ activeCount }}/{{ rows.length }}
+          </span>
+          <div class="rk-ctrl__search osg-ctrl__search">
+            <el-input
+              v-model="searchText"
+              placeholder="搜索符号名 / ID / 文件名…"
+              clearable
+              :prefix-icon="Search"
+            />
           </div>
+          <div class="rk-seg">
+            <button
+              v-for="f in filters"
+              :key="f.key"
+              type="button"
+              class="rk-seg__btn osg-chipbtn"
+              :class="{ 'rk-seg__btn--on': filterState === f.key }"
+              @click="filterState = f.key"
+            >
+              {{ f.label }}
+            </button>
+          </div>
+        </div>
+        <div class="rk-silk osg-chips">
+          <span v-for="c in chips" :key="c.label" class="rk-silk__item osg-chip" :title="c.label">
+            {{ c.label }} <b>{{ c.value }}</b>
+          </span>
+        </div>
+      </div>
 
-          <!-- 下半区：跳线盘（服务）+ 磁带机（socket 日志） -->
-          <div class="osg-lower">
-            <div class="osg-patch">
-              <div class="osg-panel__h">PATCH BAY · 服务跳线 <span class="osg-panel__n">{{ services.length }} 路</span></div>
-              <div v-if="services.length" class="osg-jacks">
-                <div v-for="svc in services" :key="svc.osgiServiceId" class="osg-jack" title="已注册服务">
-                  <span class="osg-jack__hole"></span>
-                  <span class="osg-jack__nm">{{ svc.type }}</span>
-                  <span class="osg-jack__pid">{{ svc.pid }}</span>
+      <!-- 柜体：左立柱 + 模块墙 + PATCH 面板 + 右立柱 -->
+      <div class="rk-body">
+        <div class="rk-rail rk-rail--l" aria-hidden="true">
+          <i v-for="i in 14" :key="i"></i>
+        </div>
+
+        <div class="rk-bay" :class="{ 'rk-bay--empty': !loading && !rows.length }">
+          <template v-for="row in filteredRows" :key="row.bundleId">
+            <div
+              :id="`osgi-ch-${row.bundleId}`"
+              class="mod osg-ch"
+              :class="[`mod--${row.state.toLowerCase()}`, { 'mod--hl': highlightName === row.symbolicName }]"
+            >
+              <!-- 模块前面板：左 = 状态灯区，中 = 丝印，右 = 电平灯条 -->
+              <div class="mod__lamp">
+                <i class="mod__pwr"></i>
+                <span class="mod__slot">U{{ chNo(row.bundleId) }}</span>
+              </div>
+
+              <div class="mod__face">
+                <div class="mod__name">
+                  {{ row.symbolicName }}
+                  <span class="mod__ver">v{{ row.version }}</span>
+                  <span class="mod__bid">#{{ row.bundleId }}</span>
+                </div>
+                <div class="mod__ops">
+                  <template v-if="isSystem(row)">
+                    <ReTag type="info" effect="plain">系统内置</ReTag>
+                    <span class="mod__sysnote">框架电源模块，无启停 / 升级 / 卸载操作</span>
+                  </template>
+                  <template v-else>
+                    <ReTag
+                      :type="stateTagType(row.state)"
+                      effect="plain"
+                      :style="row.state === 'STOPPING' ? { '--el-tag-text-color': 'var(--el-color-primary-light)' } : undefined"
+                    >
+                      {{ stateText(row.state) }}
+                    </ReTag>
+                    <ReButton
+                      size="small"
+                      :type="row.state === 'ACTIVE' ? 'warning' : 'success'"
+                      :disabled="!!busy"
+                      @click="toggle(row)"
+                    >
+                      {{ row.state === "ACTIVE" ? "停止" : "启动" }}
+                    </ReButton>
+                    <ReButton size="small" :disabled="!!busy" @click="pickUpgrade(row.symbolicName)">升级</ReButton>
+                    <ReButton size="small" :disabled="!!busy" @click="download(row)">下载</ReButton>
+                    <ReButton size="small" type="danger" :disabled="!!busy" @click="remove(row)">卸载</ReButton>
+                  </template>
                 </div>
               </div>
-              <p v-else class="osg-patch__empty">当前无已注册服务，启动 bundle 后自动点亮</p>
-            </div>
-            <div class="osg-tape">
-              <div class="osg-reel" :class="{ spinning: logPulse > 0 }" :key="`ra-${logPulse}`"></div>
-              <div class="osg-tapeline" :key="`t-${logPulse}`">
-                <span v-for="(item, index) in tapeTicks" :key="`${item.startedAt}-${index}`" class="osg-tick">
-                  ● {{ actionText(item.action) }} · {{ item.symbolicName || "—" }} · {{ logTime(item.startedAt) }}
-                </span>
-                <span v-if="!tapeTicks.length" class="osg-tick osg-tick--idle">等待操作…</span>
+
+              <div class="mod__meter osg-ch__lad" :title="`状态电平 · ${stateText(row.state)}`">
+                <div class="mod__ladder">
+                  <i v-for="i in 10" :key="i" :class="ladderClass(row.state, i)"></i>
+                </div>
+                <span class="mod__level osg-fader__val">LVL <b>{{ stateLevel(row.state) }}</b>/10</span>
               </div>
-              <div class="osg-reel" :class="{ spinning: logPulse > 0 }" :key="`rb-${logPulse}`"></div>
+            </div>
+          </template>
+
+          <div v-if="!loading && !filteredRows.length" class="rk-empty osg-empty">
+            <p v-if="rows.length">没有符合当前搜索 / 筛选条件的 bundle</p>
+            <div v-else>
+              <p>机柜内暂无已安装模块</p>
+              <p class="rk-empty__hint">
+                从下方文件仓上传 jar 即可插入；端点需开启 <code>plugin.osgi.endpoint.enabled=true</code>
+              </p>
             </div>
           </div>
         </div>
 
-        <!-- 文件仓：部署目录 jar 清单 + 上传坞 -->
-        <section class="osg-tray">
-          <div class="osg-tray__head">
-            <span class="osg-panel__h">部署目录 · 文件仓 <span class="osg-panel__n">{{ jars.length }} 个 jar</span></span>
-            <div class="osg-seg">
-              <button
-                type="button"
-                class="osg-seg__btn"
-                :class="{ 'osg-seg__btn--on': trayFilter === 'all' }"
-                @click="trayFilter = 'all'"
-              >
-                全部
-              </button>
-              <button
-                type="button"
-                class="osg-seg__btn"
-                :class="{ 'osg-seg__btn--on': trayFilter === 'installed' }"
-                @click="trayFilter = 'installed'"
-              >
-                在框架中
-              </button>
-              <button
-                type="button"
-                class="osg-seg__btn"
-                :class="{ 'osg-seg__btn--on': trayFilter === 'only' }"
-                @click="trayFilter = 'only'"
-              >
-                仅文件
-              </button>
+        <!-- PATCH 面板：服务注册表，竖排在柜体右侧 -->
+        <aside class="rk-patch osg-panel">
+          <div class="rk-patch__h">PATCH<span>服务跳线 · {{ services.length }} 路</span></div>
+          <div v-if="services.length" class="rk-jacks osg-jacks">
+            <div v-for="svc in services" :key="svc.osgiServiceId" class="rk-jack osg-jack" title="已注册服务">
+              <span class="rk-jack__hole"></span>
+              <span class="rk-jack__nm">{{ svc.type }}</span>
+              <span class="rk-jack__pid">{{ svc.pid }}</span>
             </div>
           </div>
+          <p v-else class="rk-patch__empty">当前无已注册服务，启动 bundle 后自动点亮</p>
+        </aside>
 
-          <div class="osg-tray__body" :class="{ 'osg-tray__body--empty': !jarLoading && !filteredJars.length }">
-            <div v-for="jar in filteredJars" :key="jar.fileName" class="osg-jar" :class="jar.installed ? 'osg-jar--on' : 'osg-jar--off'">
-              <span class="osg-jar__bar"></span>
-              <div class="osg-jar__body">
-                <div class="osg-jar__name">
-                  {{ jar.fileName }}
-                  <span class="osg-jar__size">{{ formatSize(jar.size) }}</span>
-                </div>
-                <div class="osg-jar__meta">
-                  <span v-if="jar.installed">框架中 · {{ jar.symbolicName }} · {{ stateText(jar.state ?? "") }}</span>
-                  <span v-else>仅文件 · 未安装</span>
-                  <span class="osg-jar__time">{{ formatTime(jar.lastModified) }}</span>
-                </div>
-              </div>
-              <ReTag :type="jar.installed ? 'success' : 'info'" effect="plain">
-                {{ jar.installed ? "在框架中" : "仅文件" }}
-              </ReTag>
-              <div class="osg-jar__ops">
-                <ReButton
-                  v-if="jar.installed"
-                  size="small"
-                  :disabled="!!jarBusy"
-                  @click="locateBySymbolic(jar.symbolicName ?? '')"
-                >
-                  查看插件
-                </ReButton>
-                <ReButton
-                  size="small"
-                  type="danger"
-                  :disabled="jar.installed || !!jarBusy"
-                  :loading="jarBusy === jar.fileName"
-                  :title="jar.installed ? '仍在框架中，请先在通道条上卸载' : ''"
-                  @click="removeJar(jar)"
-                >
-                  删除文件
-                </ReButton>
-              </div>
-            </div>
+        <div class="rk-rail rk-rail--r" aria-hidden="true">
+          <i v-for="i in 14" :key="i"></i>
+        </div>
+      </div>
 
-            <div v-if="!jarLoading && !filteredJars.length" class="osg-empty">
-              <p v-if="jars.length">没有符合当前搜索 / 筛选条件的文件</p>
-              <div v-else>
-                <p>部署目录暂无 jar 文件</p>
-                <p class="osg-empty__hint">上传安装后会在这里显示，卸载后可在此删除文件</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="osg-dock" @click="pickInstall" @dragover.prevent @drop.prevent="onDropInstall">
-            <span class="osg-dock__plus">+</span>
-            <span>拖入 .jar 即刻安装 <small>· 同符号名上传 = 原地升级 · 点击选择文件</small></span>
-          </div>
-        </section>
-      </section>
-
-      <!-- 右轨：socket 载荷 + 实时日志 -->
-      <aside class="osg-rail">
-        <div class="osg-panel">
-          <div class="osg-panel__h">SOCKET · operation-log</div>
-          <p class="osg-panel__sub">
-            载荷形状 <code>{ module, event, data, dataId, timestamp }</code>，通道
-            <code>osgi / operation-log</code>
-          </p>
-          <p v-if="lastFrame" class="osg-frame">
+      <!-- 柜底：磁带机（socket 日志回放）+ 载荷读数 -->
+      <div class="rk-base">
+        <div class="rk-reel osg-reel" :class="{ spinning: logPulse > 0 }" :key="`ra-${logPulse}`"></div>
+        <div class="rk-tape osg-tape" :key="`t-${logPulse}`">
+          <span v-for="(item, index) in tapeTicks" :key="`${item.startedAt}-${index}`" class="rk-tape__tick osg-tick">
+            ● {{ actionText(item.action) }} · {{ item.symbolicName || "—" }} · {{ logTime(item.startedAt) }}
+          </span>
+          <span v-if="!tapeTicks.length" class="rk-tape__tick rk-tape__tick--idle">等待操作…</span>
+        </div>
+        <div class="rk-reel osg-reel" :class="{ spinning: logPulse > 0 }" :key="`rb-${logPulse}`"></div>
+        <div class="rk-frame osg-frame">
+          <template v-if="lastFrame">
             <code>{ module: "{{ lastFrame.module }}", event: "{{ lastFrame.event }}", dataId: "{{ lastFrame.dataId }}", ts: "{{ lastFrame.timestamp }}" }</code>
-          </p>
-          <p v-else class="osg-panel__sub">等待首帧…</p>
+          </template>
+          <code v-else class="rk-frame--idle">payload { module, event, data, dataId, timestamp } · 等待首帧…</code>
         </div>
+      </div>
+    </section>
 
-        <section class="osg-log" :class="{ 'osg-log--closed': !logOpen }">
-          <header class="osg-log__head" @click="logOpen = !logOpen">
-            <span class="osg-log__caret">{{ logOpen ? "▾" : "▸" }}</span>
-            <span class="osg-log__title">实时操作日志</span>
-            <span class="osg-log__chan" :class="{ 'osg-log__chan--off': !logChannelReady }">
-              {{ logChannelReady ? "socket · osgi / operation-log" : "socket 未接入" }}
-            </span>
-            <span v-if="problemCount" class="osg-log__badge">{{ problemCount }} 异常</span>
-            <span class="osg-log__count">{{ logs.length }} 条</span>
-            <div class="osg-log__spacer"></div>
+    <!-- 文件仓：拉出式抽屉 -->
+    <section class="drawer osg-tray" :class="{ 'drawer--open': drawerOpen }">
+      <button type="button" class="drawer__grip" @click="drawerOpen = !drawerOpen">
+        <span class="drawer__grip__lines" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="drawer__grip__ttl">部署目录 · 文件仓 <b>{{ jars.length }}</b> 个 jar</span>
+        <span class="drawer__grip__caret">{{ drawerOpen ? "▾ 收起" : "▸ 拉出" }}</span>
+      </button>
+
+      <div v-show="drawerOpen" class="drawer__body">
+        <div class="drawer__tools">
+          <div class="drawer__seg">
             <button
               type="button"
-              class="osg-log__act"
-              :class="{ 'osg-log__act--on': logOnlyProblem }"
-              @click.stop="logOnlyProblem = !logOnlyProblem"
+              class="drawer__seg__btn osg-seg__btn"
+              :class="{ 'drawer__seg__btn--on': trayFilter === 'all' }"
+              @click="trayFilter = 'all'"
             >
-              仅异常
+              全部
             </button>
-            <button type="button" class="osg-log__act" @click.stop="clearLogs">清空</button>
-          </header>
-
-          <div v-show="logOpen" ref="logBox" class="osg-log__body">
-            <p v-if="!visibleLogs.length" class="osg-log__empty">
-              {{ logs.length ? "当前没有异常日志" : "等待操作…安装 / 卸载 / 启停 / 升级 的每一步都会实时出现在这里" }}
-            </p>
-            <div
-              v-for="(item, index) in visibleLogs"
-              :key="`${item.startedAt}-${index}`"
-              class="osg-log__row"
-              :class="`osg-log__row--${item.level.toLowerCase()}`"
+            <button
+              type="button"
+              class="drawer__seg__btn osg-seg__btn"
+              :class="{ 'drawer__seg__btn--on': trayFilter === 'installed' }"
+              @click="trayFilter = 'installed'"
             >
-              <span class="osg-log__time">{{ logTime(item.startedAt) }}</span>
-              <span class="osg-log__stage" :class="`osg-log__stage--${item.status}`">
-                {{ item.status === "start" ? "开始" : item.status === "failure" ? "失败" : "完成" }}
-              </span>
-              <span class="osg-log__action">{{ actionText(item.action) }}</span>
-              <span class="osg-log__symbol">{{ item.symbolicName || "—" }}</span>
-              <span class="osg-log__msg">{{ item.message || "—" }}</span>
-              <span v-if="item.duration > 0" class="osg-log__dur">{{ item.duration }}ms</span>
+              在框架中
+            </button>
+            <button
+              type="button"
+              class="drawer__seg__btn osg-seg__btn"
+              :class="{ 'drawer__seg__btn--on': trayFilter === 'only' }"
+              @click="trayFilter = 'only'"
+            >
+              仅文件
+            </button>
+          </div>
+          <div class="drawer__auto osg-foot__auto">
+            <span>每 30s 自动刷新</span>
+            <el-switch v-model="autoRefresh" size="small" />
+          </div>
+        </div>
+
+        <div class="drawer__list" :class="{ 'drawer__list--empty': !jarLoading && !filteredJars.length }">
+          <div v-for="jar in filteredJars" :key="jar.fileName" class="jar osg-jar" :class="jar.installed ? 'jar--on osg-jar--on' : 'jar--off osg-jar--off'">
+            <span class="jar__bar"></span>
+            <div class="jar__body">
+              <div class="jar__name">
+                {{ jar.fileName }}
+                <span class="jar__size">{{ formatSize(jar.size) }}</span>
+              </div>
+              <div class="jar__meta">
+                <span v-if="jar.installed">框架中 · {{ jar.symbolicName }} · {{ stateText(jar.state ?? "") }}</span>
+                <span v-else>仅文件 · 未安装</span>
+                <span class="jar__time">{{ formatTime(jar.lastModified) }}</span>
+              </div>
+            </div>
+            <ReTag :type="jar.installed ? 'success' : 'info'" effect="plain">
+              {{ jar.installed ? "在框架中" : "仅文件" }}
+            </ReTag>
+            <div class="jar__ops">
+              <ReButton
+                v-if="jar.installed"
+                size="small"
+                :disabled="!!jarBusy"
+                @click="locateBySymbolic(jar.symbolicName ?? '')"
+              >
+                查看模块
+              </ReButton>
+              <ReButton
+                size="small"
+                type="danger"
+                :disabled="jar.installed || !!jarBusy"
+                :loading="jarBusy === jar.fileName"
+                :title="jar.installed ? '仍在框架中，请先在模块上卸载' : ''"
+                @click="removeJar(jar)"
+              >
+                删除文件
+              </ReButton>
             </div>
           </div>
-        </section>
-      </aside>
-    </div>
 
-    <!-- 底部信息带 -->
-    <div class="osg-foot">
-      <span class="osg-foot__dot"></span>
-      <span>共 {{ rows.length }} 个 bundle · {{ activeCount }} 个运行中 · 服务 {{ services.length }} 路 · jar {{ jars.length }} 个</span>
-      <div class="osg-foot__auto">
-        <span>每 30s 自动刷新</span>
-        <el-switch v-model="autoRefresh" size="small" />
+          <div v-if="!jarLoading && !filteredJars.length" class="rk-empty osg-empty">
+            <p v-if="jars.length">没有符合当前搜索 / 筛选条件的文件</p>
+            <div v-else>
+              <p>部署目录暂无 jar 文件</p>
+              <p class="rk-empty__hint">上传安装后会在这里显示，卸载后可在此删除文件</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="drawer__dock osg-dock" @click="pickInstall" @dragover.prevent @drop.prevent="onDropInstall">
+          <span class="drawer__dock__plus">+</span>
+          <span>拖入 .jar 即刻插入机柜 <small>· 同符号名上传 = 原地升级 · 点击选择文件</small></span>
+        </div>
       </div>
-    </div>
+    </section>
+
+    <!-- 机架显示屏：实时操作日志（可折叠） -->
+    <section class="mon osg-log" :class="{ 'mon--closed osg-log--closed': !logOpen }">
+      <header class="mon__head osg-log__head" @click="logOpen = !logOpen">
+        <span class="mon__caret">{{ logOpen ? "▾" : "▸" }}</span>
+        <span class="mon__title">实时操作日志</span>
+        <span class="mon__chan" :class="{ 'mon__chan--off': !logChannelReady }">
+          {{ logChannelReady ? "socket · osgi / operation-log" : "socket 未接入" }}
+        </span>
+        <span v-if="problemCount" class="mon__badge">{{ problemCount }} 异常</span>
+        <span class="mon__count">{{ logs.length }} 条</span>
+        <div class="mon__spacer"></div>
+        <button
+          type="button"
+          class="mon__act osg-log__act"
+          :class="{ 'mon__act--on osg-log__act--on': logOnlyProblem }"
+          @click.stop="logOnlyProblem = !logOnlyProblem"
+        >
+          仅异常
+        </button>
+        <button type="button" class="mon__act osg-log__act" @click.stop="clearLogs">清空</button>
+      </header>
+
+      <div v-show="logOpen" ref="logBox" class="mon__body">
+        <p v-if="!visibleLogs.length" class="mon__empty">
+          {{ logs.length ? "当前没有异常日志" : "等待操作…安装 / 卸载 / 启停 / 升级 的每一步都会实时出现在这里" }}
+        </p>
+        <div
+          v-for="(item, index) in visibleLogs"
+          :key="`${item.startedAt}-${index}`"
+          class="mon__row osg-log__row"
+          :class="`mon__row--${item.level.toLowerCase()}`"
+        >
+          <span class="mon__time">{{ logTime(item.startedAt) }}</span>
+          <span class="mon__stage" :class="`mon__stage--${item.status}`">
+            {{ item.status === "start" ? "开始" : item.status === "failure" ? "失败" : "完成" }}
+          </span>
+          <span class="mon__action">{{ actionText(item.action) }}</span>
+          <span class="mon__symbol">{{ item.symbolicName || "—" }}</span>
+          <span class="mon__msg">{{ item.message || "—" }}</span>
+          <span v-if="item.duration > 0" class="mon__dur">{{ item.duration }}ms</span>
+        </div>
+      </div>
+    </section>
 
     <input ref="installInput" type="file" accept=".jar" class="osgi-page__file" @change="onInstallFile" />
     <input ref="upgradeInput" type="file" accept=".jar" class="osgi-page__file" @change="onUpgradeFile" />
@@ -1096,197 +1096,138 @@ onBeforeUnmount(() => {
 .osgi-page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   padding: 16px;
 }
 
-/* ============ 页头 ============ */
-.osg-hd {
+.osgi-page__file {
+  display: none;
+}
+
+/* ============ 机柜主体 ============ */
+.rk {
+  --rk-frame: var(--el-border-color);
+  --rk-panel: var(--el-bg-color);
+  --rk-well: var(--el-fill-color-lighter);
+  border: 1px solid var(--rk-frame);
+  border-radius: var(--el-radius-lg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--el-color-primary) 4%, transparent), transparent 120px),
+    var(--rk-well);
+  box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* ---- 顶梁铭牌 ---- */
+.rk-top {
   display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rk-frame);
+  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--rk-panel));
 }
 
-.osg-hd__left {
+.rk-plate {
+  position: relative;
   flex: 1;
-  min-width: 260px;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 6px 26px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-radius-sm);
+  background: var(--rk-well);
 }
 
-.osg-kick {
+.rk-plate__brand {
+  font-family: var(--el-font-family-mono);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--el-color-primary);
+}
+
+.rk-plate__model {
   font-family: var(--el-font-family-mono);
   font-size: 10px;
-  letter-spacing: 0.28em;
-  color: var(--el-color-primary);
-  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--el-text-color-placeholder);
 }
 
-.osg-title {
-  margin: 2px 0 2px;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-}
-
-.osg-sub {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.osg-live {
+.rk-live {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin-left: auto;
   padding: 3px 10px;
   border: 1px solid var(--el-color-success);
   border-radius: 9999px;
   font-family: var(--el-font-family-mono);
   font-size: 10px;
+  letter-spacing: 0.08em;
   color: var(--el-color-success);
 }
 
-.osg-live--off {
+.rk-live--off {
   border-color: var(--el-color-warning);
   color: var(--el-color-warning);
 }
 
-.osg-live__dot {
+.rk-live__dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-  animation: osg-blink 1.6s infinite;
+  animation: rk-blink 1.6s infinite;
 }
 
-@keyframes osg-blink {
+@keyframes rk-blink {
   50% {
     opacity: 0.25;
   }
 }
 
-.osg-hd__acts {
+.rk-plate__screw {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--el-border-color);
+  box-shadow: inset 0 0 0 1.5px var(--el-fill-color);
+}
+
+.rk-plate__screw.tl { left: 8px; top: 8px; }
+.rk-plate__screw.tr { right: 8px; top: 8px; }
+.rk-plate__screw.bl { left: 8px; bottom: 8px; }
+.rk-plate__screw.br { right: 8px; bottom: 8px; }
+
+.rk-top__acts {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-/* ============ 运行芯片 ============ */
-.osg-chips {
+/* ---- 控制单元 ---- */
+.rk-ctrl {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rk-frame);
+  background: var(--rk-panel);
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.osg-chip {
-  padding: 3px 10px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 9999px;
-  background: var(--el-bg-color);
-  font-family: var(--el-font-family-mono);
-  font-size: 10px;
-  color: var(--el-text-color-regular);
-}
-
-.osg-chip b {
-  color: var(--el-color-primary);
-  font-weight: 700;
-}
-
-/* ============ 控制带 ============ */
-.osg-ctrl {
+.rk-ctrl__row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.osg-ctrl__search {
-  width: 260px;
-}
-
-.osg-ctrl__chips {
-  margin-left: auto;
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.osg-chipbtn {
-  height: 28px;
-  padding: 0 12px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 14px;
-  background: var(--el-bg-color);
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-
-.osg-chipbtn:hover {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
-}
-
-.osg-chipbtn--on {
-  border-color: var(--el-color-primary);
-  background: var(--el-color-primary);
-  color: var(--el-button-text-color);
-  font-weight: 500;
-}
-
-/* ============ 布局 ============ */
-.osg-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 14px;
-  align-items: start;
-}
-
-.osg-col {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-}
-
-.osg-rail {
-  display: flex;
-  flex-direction: column;
   gap: 12px;
-  position: sticky;
-  top: 16px;
-}
-
-@media (max-width: 1180px) {
-  .osg-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .osg-rail {
-    position: static;
-  }
-}
-
-/* ============ 调音台 ============ */
-.osg-desk {
-  border-radius: var(--el-radius-xl);
-  border: 1px solid var(--el-border-color);
-  overflow: hidden;
-  background: linear-gradient(180deg, var(--el-fill-color-lighter), var(--el-bg-color));
-  box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.5);
-}
-
-.osg-master {
-  display: flex;
-  align-items: center;
-  gap: 16px;
   flex-wrap: wrap;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--el-border-color);
-  background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
 }
 
-.osg-master__ttl {
+.rk-ctrl__ttl {
   font-family: var(--el-font-family-mono);
   font-size: 11px;
   letter-spacing: 0.22em;
@@ -1294,24 +1235,24 @@ onBeforeUnmount(() => {
   color: var(--el-color-primary);
 }
 
-.osg-mleds {
+.rk-mleds {
   display: flex;
   gap: 3px;
 }
 
-.osg-mleds i {
+.rk-mleds i {
   width: 7px;
   height: 12px;
   border-radius: 2px;
   background: var(--el-fill-color);
 }
 
-.osg-mleds i.on {
+.rk-mleds i.on {
   background: var(--el-color-success);
-  animation: osg-fw-pulse 1.2s ease-out;
+  animation: rk-fw-pulse 1.2s ease-out;
 }
 
-@keyframes osg-fw-pulse {
+@keyframes rk-fw-pulse {
   0% {
     box-shadow: 0 0 8px var(--el-color-success);
   }
@@ -1320,88 +1261,192 @@ onBeforeUnmount(() => {
   }
 }
 
-.osg-master__meta {
-  margin-left: auto;
+.rk-ctrl__meta {
   font-family: var(--el-font-family-mono);
   font-size: 10px;
   color: var(--el-text-color-secondary);
 }
 
-/* ============ 通道条 ============ */
-.osg-strips {
+.rk-ctrl__search {
+  margin-left: auto;
+  width: 240px;
+}
+
+.rk-seg {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 14px;
+  background: var(--el-fill-color-light);
+}
+
+.rk-seg__btn {
+  height: 26px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.rk-seg__btn:hover {
+  color: var(--el-color-primary);
+}
+
+.rk-seg__btn--on {
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  box-shadow: var(--el-box-shadow-lighter);
+}
+
+.rk-silk {
   display: flex;
   flex-wrap: wrap;
+  gap: 5px 16px;
+  padding: 6px 10px;
+  border: 1px dashed var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm);
+  background: var(--rk-well);
 }
 
-.osg-strips--empty {
-  min-height: 64px;
-}
-
-.osg-ch {
-  --ch-color: var(--el-text-color-placeholder);
-  flex: 1 1 320px;
-  display: flex;
-  gap: 14px;
-  padding: 14px 16px 16px;
-  border-right: 1px solid var(--el-border-color);
-  border-bottom: 1px solid var(--el-border-color);
-  transition: box-shadow 0.15s, background 0.15s;
-}
-
-.osg-ch:hover {
-  background: var(--el-fill-color-lighter);
-}
-
-.osg-ch--hl {
-  box-shadow: inset 0 0 0 2px var(--el-color-primary);
-}
-
-.osg-ch--active {
-  --ch-color: var(--el-color-success);
-}
-
-.osg-ch--resolved {
-  --ch-color: var(--el-color-primary);
-}
-
-.osg-ch--installed {
-  --ch-color: var(--el-color-info);
-}
-
-.osg-ch--starting {
-  --ch-color: var(--el-color-warning);
-}
-
-.osg-ch--stopping {
-  --ch-color: var(--el-color-primary-light);
-}
-
-.osg-ch--uninstalled {
-  --ch-color: var(--el-color-danger);
-}
-
-.osg-ch__info {
-  min-width: 0;
-  flex: 1;
-}
-
-.osg-ch__id {
+.rk-silk__item {
   font-family: var(--el-font-family-mono);
   font-size: 10px;
+  letter-spacing: 0.04em;
   color: var(--el-text-color-secondary);
+  white-space: nowrap;
 }
 
-.osg-ch__name {
+.rk-silk__item b {
+  color: var(--el-color-primary);
+  font-weight: 700;
+}
+
+/* ---- 柜体 ---- */
+.rk-body {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 224px 26px;
+  align-items: stretch;
+}
+
+.rk-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0;
+  background: color-mix(in srgb, var(--el-text-color-placeholder) 8%, var(--rk-well));
+  border-right: 1px solid var(--rk-frame);
+}
+
+.rk-rail--r {
+  border-right: 0;
+  border-left: 1px solid var(--rk-frame);
+}
+
+.rk-rail i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+/* ---- 模块墙 ---- */
+.rk-bay {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rk-bay--empty {
+  min-height: 120px;
+}
+
+.mod {
+  --mod-color: var(--el-text-color-placeholder);
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-radius-md);
+  background: var(--rk-panel);
+  box-shadow: 0 2px 0 0 var(--el-border-color-lighter), var(--el-box-shadow-lighter);
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.mod:hover {
+  border-color: var(--el-color-primary-light-5);
+  transform: translateY(-1px);
+}
+
+.mod--hl {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 2px var(--el-color-primary-light-5), var(--el-box-shadow-light);
+}
+
+.mod--active { --mod-color: var(--el-color-success); }
+.mod--resolved { --mod-color: var(--el-color-primary); }
+.mod--installed { --mod-color: var(--el-color-info); }
+.mod--starting { --mod-color: var(--el-color-warning); }
+.mod--stopping { --mod-color: var(--el-color-primary-light); }
+.mod--uninstalled { --mod-color: var(--el-color-danger); }
+
+.mod__lamp {
+  flex: none;
+  width: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-right: 1px dashed var(--el-border-color-lighter);
+  padding-right: 10px;
+}
+
+.mod__pwr {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--mod-color);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--mod-color) 65%, transparent);
+}
+
+.mod__slot {
+  font-family: var(--el-font-family-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--el-text-color-placeholder);
+}
+
+.mod__face {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.mod__name {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 2px;
   font-size: 15px;
   font-weight: 700;
   color: var(--el-text-color-primary);
+  overflow: hidden;
 }
 
-.osg-ch__ver {
+.mod__ver {
   flex: none;
   padding: 1px 6px;
   border: 1px solid var(--el-border-color-lighter);
@@ -1413,7 +1458,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 
-.osg-ch__bid {
+.mod__bid {
   flex: none;
   font-family: var(--el-font-family-mono);
   font-size: 10px;
@@ -1421,253 +1466,201 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-placeholder);
 }
 
-.osg-ch__lad {
+.mod__ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mod__sysnote {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+.mod__meter {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px dashed var(--el-border-color-lighter);
+}
+
+.mod__ladder {
   display: flex;
   flex-direction: column-reverse;
   gap: 2px;
-  margin-top: 10px;
 }
 
-.osg-ch__lad i {
-  width: 26px;
-  height: 6px;
+.mod__ladder i {
+  width: 22px;
+  height: 5px;
   border-radius: 2px;
   background: var(--el-fill-color);
   transition: background 0.2s;
 }
 
-.osg-ch__lad i.on {
-  background: var(--ch-color);
+.mod__ladder i.on {
+  background: var(--mod-color);
 }
 
-.osg-ch__lad i.hot {
+.mod__ladder i.hot {
   background: var(--el-color-warning);
 }
 
-.osg-ch__lad i.max {
+.mod__ladder i.max {
   background: var(--el-color-danger);
 }
 
-.osg-ch__ops {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.osg-ch__sysnote {
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-}
-
-.osg-ch__fader {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: none;
-}
-
-.osg-fader {
-  position: relative;
-  width: 34px;
-  height: 150px;
-  border-radius: var(--el-radius-sm);
-  border: 1px solid var(--el-border-color);
-  background: var(--el-fill-color);
-}
-
-.osg-fader__slot {
-  position: absolute;
-  left: 50%;
-  top: 10px;
-  bottom: 10px;
-  width: 4px;
-  transform: translateX(-50%);
-  border-radius: 2px;
-  background: var(--el-border-color);
-}
-
-.osg-fader__thumb {
-  position: absolute;
-  left: 50%;
-  transform: translate(-50%, 50%);
-  width: 30px;
-  height: 16px;
-  border-radius: var(--el-radius-xs);
-  background: linear-gradient(180deg, var(--el-color-primary-light), var(--el-color-primary));
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-
-.osg-fader__val {
+.mod__level {
   font-family: var(--el-font-family-mono);
   font-size: 9px;
   color: var(--el-text-color-secondary);
 }
 
-.osg-fader__val b {
+.mod__level b {
   color: var(--el-color-primary);
 }
 
-/* ============ 空态 ============ */
-.osg-empty {
-  flex: 1 1 100%;
-  padding: 28px 16px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
-}
-
-.osg-empty p {
-  margin: 4px 0;
-}
-
-.osg-empty__hint {
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
-.osg-empty__hint code {
-  padding: 0 4px;
-  border-radius: var(--el-radius-sm);
-  background: var(--el-fill-color-light);
-}
-
-/* ============ 下半区：跳线盘 + 磁带机 ============ */
-.osg-lower {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-}
-
-.osg-patch {
-  padding: 14px 16px;
-  border-right: 1px solid var(--el-border-color);
-}
-
-.osg-panel__h {
+/* ---- PATCH 面板 ---- */
+.rk-patch {
+  border-left: 1px solid var(--rk-frame);
+  background: color-mix(in srgb, var(--el-color-primary) 4%, var(--rk-well));
+  padding: 12px;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--el-text-color-secondary);
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
 }
 
-.osg-panel__h::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  background: var(--el-color-primary);
-}
-
-.osg-panel__n {
+.rk-patch__h {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-family: var(--el-font-family-mono);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--el-color-primary);
+}
+
+.rk-patch__h span {
   font-size: 10px;
   font-weight: 400;
-  color: var(--el-text-color-placeholder);
+  letter-spacing: 0.02em;
+  color: var(--el-text-color-secondary);
 }
 
-.osg-jacks {
+.rk-jacks {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 10px;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 320px;
 }
 
-.osg-jack {
-  width: 84px;
-  text-align: center;
+.rk-jack {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm);
+  background: var(--rk-panel);
 }
 
-.osg-jack__hole {
-  display: block;
-  width: 22px;
-  height: 22px;
-  margin: 0 auto 5px;
-  border: 2px solid var(--el-color-primary);
+.rk-jack__hole {
+  grid-row: 1 / span 2;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--el-color-success);
   border-radius: 50%;
   background: var(--el-fill-color);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--el-color-primary) 50%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-success) 55%, transparent);
 }
 
-.osg-jack__nm {
-  display: block;
+.rk-jack__nm {
   font-family: var(--el-font-family-mono);
-  font-size: 9px;
-  color: var(--el-text-color-regular);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.osg-jack__pid {
-  display: block;
+.rk-jack__pid {
   font-family: var(--el-font-family-mono);
-  font-size: 8px;
+  font-size: 9px;
   color: var(--el-text-color-placeholder);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.osg-patch__empty {
-  margin: 10px 0 0;
+.rk-patch__empty {
+  margin: 0;
   font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
 
-.osg-tape {
+/* ---- 柜底：磁带机 + 载荷读数 ---- */
+.rk-base {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--rk-frame);
+  background: var(--rk-panel);
 }
 
-.osg-reel {
-  width: 44px;
-  height: 44px;
+.rk-reel {
+  width: 38px;
+  height: 38px;
   flex: none;
   border-radius: 50%;
   border: 3px solid var(--el-border-color);
   position: relative;
 }
 
-.osg-reel::before {
+.rk-reel::before {
   content: "";
   position: absolute;
-  inset: 12px;
+  inset: 10px;
   border-radius: 50%;
   border: 2px dashed var(--el-text-color-secondary);
 }
 
-.osg-reel.spinning {
-  animation: osg-spin 3.6s linear infinite;
+.rk-reel.spinning {
+  animation: rk-spin 3.6s linear infinite;
 }
 
-@keyframes osg-spin {
+@keyframes rk-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.osg-tapeline {
+.rk-tape {
   flex: 1;
   min-width: 0;
-  height: 52px;
-  padding: 5px;
-  border: 1px solid var(--el-border-color);
+  height: 46px;
+  padding: 4px 6px;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-sm);
-  background: var(--el-fill-color-lighter);
+  background: var(--rk-well);
   overflow: hidden;
   display: flex;
   flex-direction: column-reverse;
   gap: 2px;
 }
 
-.osg-tick {
+.rk-tape__tick {
   font-family: var(--el-font-family-mono);
   font-size: 9px;
   color: var(--el-text-color-secondary);
@@ -1676,41 +1669,174 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
 }
 
-.osg-tick--idle {
+.rk-tape__tick--idle {
   color: var(--el-text-color-placeholder);
 }
 
-/* ============ 文件仓 ============ */
-.osg-tray {
-  background: var(--el-bg-color);
+.rk-frame {
+  flex: none;
+  max-width: 380px;
+  padding: 6px 8px;
+  border: 1px dashed var(--el-border-color-lighter);
+  border-radius: var(--el-radius-sm);
+  background: var(--rk-well);
+  overflow: hidden;
+}
+
+.rk-frame code {
+  display: block;
+  font-family: var(--el-font-family-mono);
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--el-color-primary);
+  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rk-frame code.rk-frame--idle {
+  color: var(--el-text-color-placeholder);
+}
+
+/* ---- 空态 ---- */
+.rk-empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.rk-empty p {
+  margin: 4px 0;
+}
+
+.rk-empty__hint {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+.rk-empty__hint code {
+  padding: 0 4px;
+  border-radius: var(--el-radius-sm);
+  background: var(--el-fill-color-light);
+}
+
+/* ============ 文件仓抽屉 ============ */
+.drawer {
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-radius-lg);
+  background: var(--el-bg-color);
+  overflow: hidden;
+}
+
+.drawer__grip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: color-mix(in srgb, var(--el-text-color-placeholder) 5%, var(--el-bg-color));
+  cursor: pointer;
+  user-select: none;
+}
+
+.drawer__grip__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.drawer__grip__lines i {
+  width: 26px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--el-border-color);
+}
+
+.drawer__grip__ttl {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.drawer__grip__ttl b {
+  color: var(--el-color-primary);
+}
+
+.drawer__grip__caret {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.drawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 14px;
 }
 
-.osg-tray__head {
+.drawer__tools {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
 }
 
-.osg-tray__head .osg-panel__h {
-  margin: 0;
+.drawer__seg {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 14px;
+  background: var(--el-fill-color-light);
 }
 
-.osg-tray__body {
+.drawer__seg__btn {
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.drawer__seg__btn:hover {
+  color: var(--el-color-primary);
+}
+
+.drawer__seg__btn--on {
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  box-shadow: var(--el-box-shadow-lighter);
+}
+
+.drawer__auto {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.drawer__list {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.osg-tray__body--empty {
+.drawer__list--empty {
   min-height: 48px;
 }
 
-.osg-jar {
+.jar {
   position: relative;
   display: flex;
   align-items: center;
@@ -1721,12 +1847,12 @@ onBeforeUnmount(() => {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.osg-jar:hover {
+.jar:hover {
   border-color: var(--el-color-primary-light-5);
   box-shadow: var(--el-box-shadow-light);
 }
 
-.osg-jar__bar {
+.jar__bar {
   align-self: stretch;
   width: 3px;
   flex: none;
@@ -1735,16 +1861,16 @@ onBeforeUnmount(() => {
   background: var(--el-text-color-placeholder);
 }
 
-.osg-jar--on .osg-jar__bar {
+.jar--on .jar__bar {
   background: var(--el-color-success);
 }
 
-.osg-jar__body {
+.jar__body {
   min-width: 0;
   flex: 1;
 }
 
-.osg-jar__name {
+.jar__name {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1757,7 +1883,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.osg-jar__size {
+.jar__size {
   flex: none;
   padding: 1px 6px;
   border: 1px solid var(--el-border-color-lighter);
@@ -1768,7 +1894,7 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 
-.osg-jar__meta {
+.jar__meta {
   display: flex;
   gap: 10px;
   margin-top: 2px;
@@ -1776,24 +1902,22 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-placeholder);
 }
 
-.osg-jar__time {
+.jar__time {
   font-family: var(--el-font-family-mono);
 }
 
-.osg-jar__ops {
+.jar__ops {
   display: flex;
   gap: 4px;
   flex: none;
 }
 
-/* ============ 上传坞 ============ */
-.osg-dock {
+.drawer__dock {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 56px;
-  margin-top: 10px;
+  min-height: 52px;
   border: 1.5px dashed var(--el-border-color);
   border-radius: var(--el-radius-lg);
   font-size: 13px;
@@ -1802,13 +1926,13 @@ onBeforeUnmount(() => {
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
-.osg-dock:hover {
+.drawer__dock:hover {
   border-color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
 }
 
-.osg-dock__plus {
+.drawer__dock__plus {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1822,68 +1946,29 @@ onBeforeUnmount(() => {
   line-height: 1;
 }
 
-.osg-dock:hover .osg-dock__plus {
+.drawer__dock:hover .drawer__dock__plus {
   background: var(--el-color-primary);
   color: var(--el-button-text-color);
 }
 
-.osg-dock small {
+.drawer__dock small {
   font-size: 11px;
   color: var(--el-text-color-placeholder);
 }
 
-.osg-dock:hover small {
+.drawer__dock:hover small {
   color: var(--el-color-primary);
 }
 
-/* ============ 右轨面板 ============ */
-.osg-panel {
-  background: var(--el-bg-color);
+/* ============ 实时日志（机架显示屏） ============ */
+.mon {
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-radius-lg);
-  padding: 12px 14px;
-}
-
-.osg-panel__sub {
-  margin: 8px 0 0;
-  font-size: 11px;
-  color: var(--el-text-color-secondary);
-}
-
-.osg-panel__sub code,
-.osg-frame code {
-  padding: 0 4px;
-  border-radius: var(--el-radius-sm);
-  background: var(--el-fill-color-light);
-  font-family: var(--el-font-family-mono);
-  font-size: 10px;
-}
-
-.osg-frame {
-  margin: 8px 0 0;
-  padding: 8px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm);
-  background: var(--el-fill-color-lighter);
-}
-
-.osg-frame code {
-  padding: 0;
-  background: none;
-  font-size: 10px;
-  color: var(--el-color-primary);
-  word-break: break-all;
-}
-
-/* ============ 实时日志 ============ */
-.osg-log {
   background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-lg);
   overflow: hidden;
 }
 
-.osg-log__head {
+.mon__head {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1893,33 +1978,33 @@ onBeforeUnmount(() => {
   user-select: none;
 }
 
-.osg-log--closed .osg-log__head {
+.mon--closed .mon__head {
   border-bottom: 0;
 }
 
-.osg-log__caret {
+.mon__caret {
   width: 10px;
   font-size: 10px;
   color: var(--el-text-color-placeholder);
 }
 
-.osg-log__title {
+.mon__title {
   font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
 
-.osg-log__chan {
+.mon__chan {
   font-family: var(--el-font-family-mono);
   font-size: 11px;
   color: var(--el-color-success);
 }
 
-.osg-log__chan--off {
+.mon__chan--off {
   color: var(--el-color-warning);
 }
 
-.osg-log__badge {
+.mon__badge {
   padding: 1px 6px;
   border-radius: 8px;
   background: var(--el-color-danger-light-9);
@@ -1927,16 +2012,16 @@ onBeforeUnmount(() => {
   font-size: 11px;
 }
 
-.osg-log__count {
+.mon__count {
   font-size: 11px;
   color: var(--el-text-color-placeholder);
 }
 
-.osg-log__spacer {
+.mon__spacer {
   flex: 1;
 }
 
-.osg-log__act {
+.mon__act {
   height: 22px;
   padding: 0 8px;
   border: 1px solid var(--el-border-color);
@@ -1947,13 +2032,13 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.osg-log__act:hover,
-.osg-log__act--on {
+.mon__act:hover,
+.mon__act--on {
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);
 }
 
-.osg-log__body {
+.mon__body {
   max-height: 240px;
   overflow-y: auto;
   padding: 6px 0;
@@ -1961,14 +2046,14 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
-.osg-log__empty {
+.mon__empty {
   margin: 10px 14px;
   font-family: var(--el-font-family);
   font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
 
-.osg-log__row {
+.mon__row {
   display: flex;
   align-items: baseline;
   gap: 10px;
@@ -1976,24 +2061,24 @@ onBeforeUnmount(() => {
   line-height: 1.5;
 }
 
-.osg-log__row:hover {
+.mon__row:hover {
   background: var(--el-fill-color-light);
 }
 
-.osg-log__row--error {
+.mon__row--error {
   background: var(--el-color-danger-light-9);
 }
 
-.osg-log__row--warn {
+.mon__row--warn {
   background: var(--el-color-warning-light-9);
 }
 
-.osg-log__time {
+.mon__time {
   flex: none;
   color: var(--el-text-color-placeholder);
 }
 
-.osg-log__stage {
+.mon__stage {
   flex: none;
   width: 30px;
   font-family: var(--el-font-family);
@@ -2001,25 +2086,25 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 
-.osg-log__stage--start {
+.mon__stage--start {
   color: var(--el-color-info);
 }
 
-.osg-log__stage--success {
+.mon__stage--success {
   color: var(--el-color-success);
 }
 
-.osg-log__stage--failure {
+.mon__stage--failure {
   color: var(--el-color-danger);
 }
 
-.osg-log__action {
+.mon__action {
   flex: none;
   min-width: 48px;
   color: var(--el-text-color-primary);
 }
 
-.osg-log__symbol {
+.mon__symbol {
   flex: none;
   max-width: 180px;
   overflow: hidden;
@@ -2028,7 +2113,7 @@ onBeforeUnmount(() => {
   color: var(--el-color-primary);
 }
 
-.osg-log__msg {
+.mon__msg {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -2037,76 +2122,74 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-regular);
 }
 
-.osg-log__dur {
+.mon__dur {
   flex: none;
   color: var(--el-text-color-placeholder);
 }
 
-/* ============ 底部信息带 ============ */
-.osg-foot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 2px 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+/* ============ 响应式 ============ */
+@media (max-width: 1180px) {
+  .rk-body {
+    grid-template-columns: 20px minmax(0, 1fr) 20px;
+  }
+
+  .rk-patch {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid var(--rk-frame);
+  }
+
+  .rk-jacks {
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: none;
+  }
+
+  .rk-jack {
+    width: 200px;
+  }
+
+  .rk-frame {
+    display: none;
+  }
 }
 
-.osg-foot__dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--el-color-primary);
-}
+@media (max-width: 640px) {
+  .rk-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-.osg-foot__auto {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+  .rk-rail {
+    display: none;
+  }
 
-/* ============ 文件仓分段 ============ */
-.osg-seg {
-  display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 16px;
-  background: var(--el-fill-color-light);
-  margin-left: auto;
-}
+  .rk-ctrl__search {
+    width: 100%;
+    margin-left: 0;
+  }
 
-.osg-seg__btn {
-  height: 24px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-}
+  .mod {
+    flex-wrap: wrap;
+  }
 
-.osg-seg__btn:hover {
-  color: var(--el-color-primary);
-}
+  .mod__meter {
+    flex-direction: row;
+    width: 100%;
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px dashed var(--el-border-color-lighter);
+    padding-top: 8px;
+  }
 
-.osg-seg__btn--on {
-  background: var(--el-bg-color);
-  color: var(--el-color-primary);
-  font-weight: 600;
-  box-shadow: var(--el-box-shadow-lighter);
-}
-
-.osgi-page__file {
-  display: none;
+  .mod__ladder {
+    flex-direction: row;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .osg-live__dot,
-  .osg-mleds i.on,
-  .osg-reel.spinning {
+  .rk-live__dot,
+  .rk-mleds i.on,
+  .rk-reel.spinning {
     animation: none !important;
   }
 }
