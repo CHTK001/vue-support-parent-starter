@@ -73,6 +73,7 @@ const showTypeOptions = [
   { label: "SpEL 表达式为真时显示", value: "SPEL" },
   { label: "功能开关闭联", value: "SWITCH" },
   { label: "配置属性为真时显示", value: "PROPERTY" },
+  { label: "Actuator 端点加载时显示", value: "ENDPOINT" },
 ];
 
 /** 条件值输入框 placeholder，随条件类型变化；返回空串表示该类型不需要条件值 */
@@ -84,6 +85,8 @@ const showValuePlaceholder = computed<string>(() => {
       return "SpEL 表达式，可用 #env 读配置，如 #env.getProperty('plugin.job.enable') == 'true'";
     case "PROPERTY":
       return "Spring 配置键，如 plugin.job.console.enable";
+    case "ENDPOINT":
+      return "Actuator 端点标识，如 health、metrics、env；留空默认 health";
     default:
       return "";
   }
@@ -126,8 +129,8 @@ interface MenuVM {
   isTag?: number;         // 菜单徽标: 1开启 0关闭
   tagType?: string;       // 徽标类型: danger/success/info/warning/primary
   tagName?: string;       // 徽标名称(留空显示圆点)
-  showType?: string;      // 动态显示条件类型: ALWAYS/CLASS/SPEL/SWITCH/PROPERTY
-  showValue?: string;     // 条件值: 类全名 / SpEL表达式 / 配置键
+  showType?: string;      // 动态显示条件类型: ALWAYS/CLASS/SPEL/SWITCH/PROPERTY/ENDPOINT
+  showValue?: string;     // 条件值: 类全名 / SpEL表达式 / 配置键 / Actuator端点标识
   showSwitch?: number;    // 开关型条件放行值: 1放行 0隐藏
   showKey?: string;       // 开关型条件联动的功能键(统一策略配置 type=FEATURE 的 biz_key)
   children?: MenuVM[];
