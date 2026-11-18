@@ -153,13 +153,19 @@ async function load(): Promise<void> {
   loading.value = true;
   fileRef.value = null;
   try {
-    const [drawingMod, ready] = await Promise.all([
+    const [drawingMod, bpmnMod, ready] = await Promise.all([
       import("@file-viewer/renderer-drawing"),
+      // bpmn 渲染器在包的 /bpmn 子入口（主入口 drawingRenderer 只覆盖
+      // drawio/mermaid/excalidraw/plantuml），不单独装配会报「尚未装配 BPMN 2.0 renderer」
+      import("@file-viewer/renderer-drawing/bpmn"),
       ensureFileViewerLoaded(),
     ]);
     if (disposed || token !== loadToken) return;
     if (!ready) throw new Error("file-viewer 依赖加载失败");
-    renderers.value = [(drawingMod as { drawingRenderer: unknown }).drawingRenderer];
+    renderers.value = [
+      (drawingMod as { drawingRenderer: unknown }).drawingRenderer,
+      (bpmnMod as { bpmnRenderer: unknown }).bpmnRenderer,
+    ].filter(Boolean);
     const buf = await fetchBytes();
     if (disposed || token !== loadToken) return;
     const name = resolveViewerFileName();
