@@ -82,3 +82,154 @@ export function injectBaseHref(html: string, baseUrl: string): string {
 export function buildHtmlPreviewSrcDoc(html: string, baseUrl: string): string {
   return injectBaseHref(html, baseUrl)
 }
+
+/** 预览资源加载器：给完整地址，返回 blob 地址与释放句柄；失败返回 {@code null} */
+export interface PreviewAssetLoader {
+  (url: string): Promise<{ objectUrl: string; revoke: () => void } | null>
+}
+
+/** 带资源改写的预览文档 */
+export interface HtmlPreviewSrcDoc {
+  /** 可直接给 {@code <iframe srcdoc>} 的文档 */
+  html: string
+  /** 释放本次改写创建的 blob 地址（切换文件 / 卸载时必须调用） */
+  revoke: () => void
+}
+
+/** 需要改写的标签与属性（{@code srcset} 单独处理） */
+const ASSET_ATTRS: Record<string, string[]> = {
+  img: ['src', 'srcset'],
+  source: ['src', 'srcset'],
+  video: ['src', 'poster'],
+  audio: ['src'],
+}
+
+/**
+ * 把地址解析成**同源绝对地址**；不支持取的协议（data/blob/相对之外的 scheme）返回 {@code null}。
+ *
+ * <p>{@code baseUrl} 可能是相对路径（开发态经 Vite 代理的 {@code /v2/...}），
+ * {@code new URL} 必须拿到绝对基址，所以先按当前页面补全。</p>
+ */
+function resolveAssetUrl(value: string, baseUrl: string): string | null {
+  const raw = value.trim()
+  if (!raw || raw.startsWith('#')) {
+    return null
+  }
+  try {
+    const base = new URL(baseUrl, window.location.href)
+    const resolved = new URL(raw, base)
+    return resolved.protocol === 'http:' || resolved.protocol === 'https:' ? resolved.href : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 构建 HTML 预览文档，并把图片/媒体资源换成**带鉴权取回的 blob 地址**。
+ *
+ * <p><b>为什么要换。</b>预览正文由 {@code getWorkspaceFile} 带请求头取回，
+ * 但页面里的 {@code <img src>} 是浏览器自己发的请求，带不上令牌；服务端
+ * 鉴权层只把 {@code .js/.css/favicon.ico} 当静态资源放行，其它后缀一律 404，
+ * 于是预览里只有样式能出来、图片全裂。</p>
+ *
+ * <p><b>做法。</b>解析文档，把 {@code img/source/video/audio} 的相对地址
+ * 按 {@code <base href>} 口径解析成绝对地址，逐个用 {@code load} 带令牌取回，
+ * 换成 {@code blob:} 地址；非 http(s) 地址（data/blob/内联）原样保留。
+ * 取不到的保留原地址，不阻断其它资源。</p>
+ *
+ * @param html 已带鉴权取回的 HTML 正文
+ * @param baseUrl 资源基址（目录，应以 {@code /} 结尾）
+ * @param load 资源加载器（例如 {@code loadAuthenticatedImage}）
+ * @returns 改写后的文档与释放句柄
+ */
+export async function buildHtmlPreviewSrcDocWithAssets(
+  html: string,
+  baseUrl: string,
+  load: PreviewAssetLoader,
+): Promise<HtmlPreviewSrcDoc> {
+  if (!html) {
+    return { html: '', revoke: () => {} }
+  }
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  doc.querySelectorAll('base').forEach((el) => el.remove())
+  const baseTag = doc.createElement('base')
+  baseTag.setAttribute('href', baseUrl)
+  doc.head.prepend(baseTag)
+
+  const elements = Array.from(doc.querySelectorAll('img, source, video, audio'))
+  const urls = new Set<string>()
+  for (const el of elements) {
+    for (const attr of ASSET_ATTRS[el.tagName.toLowerCase()] || []) {
+      const value = el.getAttribute(attr)
+      if (!value) {
+        continue
+      }
+      if (attr === 'srcset') {
+        for (const candidate of value.split(',')) {
+          const urlPart = candidate.trim().split(/\s+/)[0]
+          const abs = urlPart ? resolveAssetUrl(urlPart, baseUrl) : null
+          if (abs) {
+            urls.add(abs)
+          }
+        }
+      } else {
+        const abs = resolveAssetUrl(value, baseUrl)
+        if (abs) {
+          urls.add(abs)
+        }
+      }
+    }
+  }
+
+  const loaded = new Map<string, string>()
+  const revokes: Array<() => void> = []
+  await Promise.all(
+    Array.from(urls).map(async (abs) => {
+      const asset = await load(abs)
+      if (!asset) {
+        return
+      }
+      loaded.set(abs, asset.objectUrl)
+      revokes.push(asset.revoke)
+    }),
+  )
+
+  const swap = (value: string): string => {
+    const abs = resolveAssetUrl(value, baseUrl)
+    return (abs && loaded.get(abs)) || value
+  }
+
+  for (const el of elements) {
+    for (const attr of ASSET_ATTRS[el.tagName.toLowerCase()] || []) {
+      const value = el.getAttribute(attr)
+      if (!value) {
+        continue
+      }
+      if (attr === 'srcset') {
+        const rewritten = value
+          .split(',')
+          .map((candidate) => {
+            const trimmed = candidate.trim()
+            if (!trimmed) {
+              return ''
+            }
+            const spaceAt = trimmed.search(/\s/)
+            const urlPart = spaceAt < 0 ? trimmed : trimmed.slice(0, spaceAt)
+            const descriptor = spaceAt < 0 ? '' : trimmed.slice(spaceAt)
+            const swapped = swap(urlPart)
+            return swapped === urlPart ? trimmed : swapped + descriptor
+          })
+          .filter(Boolean)
+          .join(', ')
+        el.setAttribute(attr, rewritten)
+      } else {
+        el.setAttribute(attr, swap(value))
+      }
+    }
+  }
+
+  return {
+    html: `<!DOCTYPE html>\n${doc.documentElement.outerHTML}`,
+    revoke: () => revokes.forEach((revoke) => revoke()),
+  }
+}

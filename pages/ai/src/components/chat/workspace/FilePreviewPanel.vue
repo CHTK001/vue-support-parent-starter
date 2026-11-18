@@ -138,7 +138,7 @@ import { Eye20Filled, Eye20Regular, Code20Filled, Code20Regular, ArrowClockwise2
 import { DocumentCopy, Plus } from '@element-plus/icons-vue'
 import { useStorage } from '@vueuse/core'
 import { usePreviewMarkdown, buildMarkdownSrcDoc } from '@/composables/useMarkdown'
-import { buildHtmlPreviewSrcDoc } from '@/utils/htmlPreviewSrcDoc'
+import { buildHtmlPreviewSrcDoc, buildHtmlPreviewSrcDocWithAssets } from '@/utils/htmlPreviewSrcDoc'
 import { useTheme } from '@/composables/useTheme'
 import { useHighlight } from '@/composables/useHighlight'
 import ContextMenu, { type ContextMenuItem } from '@/components/ui/ContextMenu.vue'
@@ -206,7 +206,10 @@ function releaseImagePreview(): void {
     imagePreviewUrl.value = ''
 }
 
-onBeforeUnmount(releaseImagePreview)
+onBeforeUnmount(() => {
+    releaseImagePreview()
+    releaseHtmlPreviewAssets()
+})
 const htmlPreviewVersion = ref(0)
 const fileContentHash = ref('')
 
@@ -284,19 +287,67 @@ const htmlPreviewSrc = computed(() => {
  * HTTP 场景的 HTML 预览文档（令牌不进任何 URL）。
  *
  * <p>预览正文早已由 {@code loadFileContent} → {@code getWorkspaceFile}
- * 用鉴权请求头取回并放进 {@code fileContent}，这里只需补一个
- * {@code <base href>} 让相对资源仍解析到 {@code html-preview} 下的正确路径。</p>
+ * 用鉴权请求头取回并放进 {@code fileContent}，这里再补两件事：</p>
+ * <ul>
+ *   <li>注入 {@code <base href>}，让 CSS/JS 的相对地址仍落到 {@code html-preview} 下；</li>
+ *   <li>把图片/媒体资源换成带鉴权取回的 blob 地址 —— {@code <img>} 这类标签由浏览器
+ *       自己发请求、带不上令牌，而服务端鉴权层只把 {@code .js/.css/favicon.ico}
+ *       当静态资源放行，不换就是一片裂图。</li>
+ * </ul>
+ *
+ * <p>改写要逐个取回资源，是异步的，所以用 {@code ref} + {@code watch} 而不是 computed；
+ * 并发的两次改写用序号丢弃先发后到的旧结果。</p>
  */
-const htmlPreviewSrcDoc = computed(() => {
-    if (isLocalHtmlPreview.value) return ''
+const htmlPreviewSrcDoc = ref('')
+/** 释放上一份预览文档创建的 blob（切换文件 / 重新加载 / 卸载都必须调用） */
+let htmlPreviewAssetsRevoke: (() => void) | null = null
+/** 构建序号：晚返回的旧改写结果直接丢弃，避免覆盖新文档 */
+let htmlPreviewBuildSeq = 0
+
+/**
+ * 释放当前预览文档持有的 blob 地址并清空 srcdoc。
+ *
+ * <p>与 {@link releaseImagePreview} 同理：不 revoke 会让 blob 随每次预览常驻内存。</p>
+ */
+function releaseHtmlPreviewAssets(): void {
+    if (htmlPreviewAssetsRevoke) {
+        htmlPreviewAssetsRevoke()
+        htmlPreviewAssetsRevoke = null
+    }
+    htmlPreviewSrcDoc.value = ''
+}
+
+async function rebuildHtmlPreviewSrcDoc(): Promise<void> {
+    const seq = ++htmlPreviewBuildSeq
+    releaseHtmlPreviewAssets()
+    if (isLocalHtmlPreview.value) return
+    if (!isHtmlFile.value) return
     const content = fileContent.value
-    if (!content || !props.sessionId) return ''
+    if (!content || !props.sessionId) return
     const baseUrl = apiService.getWorkspaceHtmlPreviewBaseUrl(
         props.sessionId,
         selectedFile.value?.path || '',
     )
-    return buildHtmlPreviewSrcDoc(content, baseUrl)
-})
+    try {
+        const built = await buildHtmlPreviewSrcDocWithAssets(content, baseUrl, loadAuthenticatedImage)
+        if (seq !== htmlPreviewBuildSeq) {
+            built.revoke()
+            return
+        }
+        htmlPreviewAssetsRevoke = built.revoke
+        htmlPreviewSrcDoc.value = built.html
+    } catch (error) {
+        console.error('[FilePreviewPanel] HTML 预览资源改写失败，退回纯 base 文档:', error)
+        if (seq !== htmlPreviewBuildSeq) return
+        htmlPreviewSrcDoc.value = buildHtmlPreviewSrcDoc(content, baseUrl)
+    }
+}
+
+watch(
+    () => [fileContent.value, selectedFile.value?.path, props.sessionId] as const,
+    () => { void rebuildHtmlPreviewSrcDoc() },
+    { immediate: true },
+)
 
 const markdownHtml = computed(() => {
     if (!selectedFile.value || !fileContent.value) return ''
