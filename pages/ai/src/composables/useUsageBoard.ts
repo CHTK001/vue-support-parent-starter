@@ -259,19 +259,19 @@ export function useUsageBoard() {
    */
   const statCards = computed(() => [
     {
-      key: "token", label: "总 Token", value: animatedTokens.value, unit: "tokens", cls: "", tone: "primary",
+      key: "token", label: "总 Token", value: animatedTokens.value, unit: "tokens", cls: "", tone: "primary", spark: "ring" as const,
       sub: ["输入 " + fmtToken(stats.totalPromptTokens), "输出 " + fmtToken(stats.totalCompletionTokens)],
     },
     {
-      key: "requests", label: "总请求数", value: animatedCalls.value, unit: "", cls: "", tone: "info",
+      key: "requests", label: "总请求数", value: animatedCalls.value, unit: "", cls: "", tone: "info", spark: "requests" as const,
       sub: ["缓存 " + fmtToken(stats.totalCachedTokens) + " tokens"],
     },
     {
-      key: "cost", label: "总消费", value: currencySymbol.value + money(stats.totalCost), unit: "", cls: "cost", tone: "success",
+      key: "cost", label: "总消费", value: currencySymbol.value + money(stats.totalCost), unit: "", cls: "cost", tone: "success", spark: "cost" as const,
       sub: ["标准价 " + currencySymbol.value + money(stats.standardCost)],
     },
     {
-      key: "latency", label: "平均耗时", value: money(stats.avgLatency), unit: "ms", cls: "", tone: "warning",
+      key: "latency", label: "平均耗时", value: money(stats.avgLatency), unit: "ms", cls: "", tone: "warning", spark: "latency" as const,
       sub: ["首字 " + money(stats.avgFirstTokenLatency) + "ms"],
     },
   ]);
@@ -392,7 +392,9 @@ export function useUsageBoard() {
    */
   function refreshAll(opts: { detail?: boolean } = {}) {
     loadData();
+    // 手动刷新时连热力图一起重取（它平时只在首屏拉一次）
     if (opts.detail) {
+      void loadHeatmap(true);
       detailReloader.value?.();
     }
   }
@@ -450,10 +452,26 @@ export function useUsageBoard() {
 
   // ---------- 数据加载 ----------
   const summaryRows = ref<any[]>([]);
-  const trendData = ref<Array<{ date: string; input: number; output: number; cached: number; total: number; calls: number }>>([]);
+  const trendData = ref<Array<{ date: string; input: number; output: number; cached: number; total: number; calls: number; cost: number; latAvg: number }>>([]);
+  /**
+   * 调用类型拆分行（后端 /usage/call-type 原样）。
+   *
+   * <p>一次会话的 token 不只花在对话上：工具执行、记忆抽取、外部同步各有明细行。
+   * 分开统计后，工具与记忆的消耗不会再被并进「对话」里让总量凭空变大。</p>
+   */
+  const callTypePoints = ref<Array<{
+    callType: string;
+    calls: number;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    cost: number;
+  }>>([]);
 
   /** 服务商 id → 中文名。后端 GET /v2/providers 列表回填，未命中兜底原样显示 */
   const providerNameMap = ref<Record<string, string>>({});
+  /** 服务商 id → 平台标识（如 openai/anthropic，来自 /usage/providers 的 platform 字段，供明细表 tag 用） */
+  const providerPlatformMap = ref<Record<string, string>>({});
   let providerNameLoaded = false;
   function providerDisplay(p: string | null | undefined): string {
     if (!p) return "-";
@@ -464,6 +482,28 @@ export function useUsageBoard() {
     return providerNameMap.value[p] || FALLBACK_PROVIDERS[p] || p;
   }
 
+  /**
+   * 供应商标签：优先取 /usage/providers 的 platform（如 openai / anthropic）。
+   * 平台名与显示名相同（或拿不到）时返回空串，调用方不渲染 tag，避免重复信息。
+   */
+  function providerTag(p: string | null | undefined): string {
+    if (!p) return "";
+    const platform = providerPlatformMap.value[p] || "";
+    if (!platform) return "";
+    return platform.toLowerCase() === providerDisplay(p).toLowerCase() ? "" : platform;
+  }
+
+  /**
+   * 按名称生成稳定配色（明细表供应商色点等）：同名恒同色、跨刷新不跳色。
+   * 用名字做简单哈希取调色板下标 —— 供应商没有「名次」语义，不能按行号取色。
+   */
+  function nameColor(name: string | null | undefined): string {
+    const s = String(name || "");
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return BOARD_PALETTE[h % BOARD_PALETTE.length];
+  }
+
   /** 各路由拉数状态（独立开关）：任意路由有请求在飞，`refreshing` 都按路由聚合 */
   const routeLoading = reactive<Record<string, boolean>>({
     providers: false,
@@ -471,6 +511,7 @@ export function useUsageBoard() {
     list: false,
     trend: false,
     modelTrend: false,
+    callType: false,
     spine: false,
   });
   /** 各路由最近一次的报错，null 表示该路由正常 */
@@ -480,6 +521,7 @@ export function useUsageBoard() {
     list: null,
     trend: null,
     modelTrend: null,
+    callType: null,
     spine: null,
   });
   /** 按路由压缩的“加载中”：驱动顶栏底边 2px 流光条，任一路在飞就亮灯 */
@@ -494,6 +536,7 @@ export function useUsageBoard() {
     routeErrors.list = null;
     routeErrors.trend = null;
     routeErrors.modelTrend = null;
+    routeErrors.callType = null;
     routeErrors.spine = null;
   }
 
@@ -503,6 +546,7 @@ export function useUsageBoard() {
     list: "明细列表",
     trend: "每日趋势",
     modelTrend: "模型趋势",
+    callType: "调用类型拆分",
     spine: "刻度尺",
   };
 
@@ -525,6 +569,7 @@ export function useUsageBoard() {
         const id = p?.id ?? p?.provider_id;
         const name = p?.name;
         if (id && name) providerNameMap.value[String(id)] = String(name);
+        if (id && p?.platform) providerPlatformMap.value[String(id)] = String(p.platform);
       }
     } catch (e: any) {
       routeErrors.providers = e?.message || e;
@@ -570,11 +615,11 @@ export function useUsageBoard() {
       const res: any = await usageApi.trend(timeParams.value);
       if (loadSeq !== seq) return;
       const dailyRows: any[] = res.data || [];
-      const map = new Map<string, { date: string; input: number; output: number; cached: number; total: number; calls: number }>();
+      const map = new Map<string, { date: string; input: number; output: number; cached: number; total: number; calls: number; cost: number; latSum: number }>();
       for (const r of dailyRows) {
         const raw = String(r.date || ""); const d = raw.length > 10 && raw.includes(":") ? raw.slice(0, 13) : raw.slice(0, 10);
         if (!d) continue;
-        if (!map.has(d)) map.set(d, { date: d, input: 0, output: 0, cached: 0, total: 0, calls: 0 });
+        if (!map.has(d)) map.set(d, { date: d, input: 0, output: 0, cached: 0, total: 0, calls: 0, cost: 0, latSum: 0 });
         const a = map.get(d)!;
         a.input += Number(r.promptTokens) || 0;
         a.output += Number(r.completionTokens) || 0;
@@ -582,8 +627,23 @@ export function useUsageBoard() {
         a.cached += Number(r.cachedTokens) || 0;
         a.total += Number(r.totalTokens) || 0;
         a.calls += Number(r.totalCalls) || 0;
+        // 后端 selectDailyAggregate 返回 totalCost 与 totalLatency（总量口径），
+        // 这里累加后按请求数折算日均，供费用/延迟小图使用
+        a.cost += Number(r.totalCost) || 0;
+        a.latSum += Number(r.totalLatency) || 0;
       }
-      trendData.value = [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1));
+      trendData.value = [...map.values()]
+        .map((a) => ({
+          date: a.date,
+          input: a.input,
+          output: a.output,
+          cached: a.cached,
+          total: a.total,
+          calls: a.calls,
+          cost: a.cost,
+          latAvg: a.calls > 0 ? a.latSum / a.calls : 0,
+        }))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
     } catch (e: any) {
       routeErrors.trend = e?.message || e;
     } finally {
@@ -603,6 +663,7 @@ export function useUsageBoard() {
         provider: r?.provider,
         totalTokens: Number(r?.totalTokens) || 0,
         totalCost: Number(r?.totalCost) || 0,
+        totalCalls: Number(r?.totalCalls) || 0,
         // null 保持 null（而不是 0）：没实测样本时延迟图应断点，不能画成 0ms
         avgFirstTokenLatency: r?.avgFirstTokenLatency == null ? null : Number(r.avgFirstTokenLatency),
         avgTotalLatency: r?.avgTotalLatency == null ? null : Number(r.avgTotalLatency),
@@ -635,12 +696,114 @@ export function useUsageBoard() {
       loadList(seq),
       loadTrend(seq),
       loadModelTrend(seq),
+      loadCallType(seq),
       loadSpine(seq),
+      // 热力图看的是近 53 周的长期节奏，与顶部时间筛选无关：
+      // 首次进入拉一次，之后切筛选不重复打 371 天的聚合查询
+      loadHeatmap(),
     ]);
     // 检查回退到了更晚的版本（本次拉数被覆盖）
     if (loadSeq !== seq) return;
     const faults = aggregatedFaults();
     if (faults) message.warning(`部分数据未加载：${faults}`);
+  }
+
+  /**
+   * 调用类型拆分：对话 / 工具 / 记忆 / 外部四条固定桶（外加历史未知类型）。
+   *
+   * <p>桶必须固定输出，即使某个类型这段时间为 0 —— 页面上要能一眼看到
+   * 「工具用量 0、记忆用量 0」，而不是那一格直接消失，否则无法判断是没消耗
+   * 还是根本没在统计。</p>
+   */
+  async function loadCallType(seq: number) {
+    routeLoading.callType = true;
+    try {
+      const res: any = await usageApi.callType(timeParams.value);
+      if (loadSeq !== seq) return;
+      const rows: any[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      callTypePoints.value = rows.map((r) => ({
+        callType: String(r?.callType ?? r?.call_type ?? "chat"),
+        calls: Number(r?.calls) || 0,
+        promptTokens: Number(r?.promptTokens) || 0,
+        completionTokens: Number(r?.completionTokens) || 0,
+        totalTokens: Number(r?.totalTokens) || 0,
+        cost: Number(r?.totalCost ?? r?.total_cost) || 0,
+      }));
+    } catch (e: any) {
+      // 旧部署没有 /usage/call-type（404）时留空即可：不弹错、不阻断其它路由
+      const msg = String(e?.message ?? e ?? "");
+      routeErrors.callType = /404/.test(msg) ? null : msg;
+    } finally {
+      routeLoading.callType = false;
+    }
+  }
+
+  /** 调用类型的四个固定桶（顺序即展示顺序） */
+  const CALL_TYPE_BUCKETS = [
+    { key: "chat", label: "对话", color: "#3B82F6", match: ["chat", "chat_stream"] },
+    { key: "tool", label: "工具", color: "#F59E0B", match: ["local-tool", "tool"] },
+    { key: "memory", label: "记忆", color: "#8B5CF6", match: ["memory-extract", "memory"] },
+    { key: "external", label: "外部", color: "#10B981", match: ["external"] },
+  ] as const;
+
+  interface CallTypeRow {
+    key: string;
+    label: string;
+    color: string;
+    calls: number;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    cost: number;
+    /** 当前口径占比（%） */
+    pct: number;
+  }
+
+  const callTypeRows = computed<CallTypeRow[]>(() => {
+    const blank = () => ({ calls: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, cost: 0 });
+    const acc = new Map<string, ReturnType<typeof blank>>();
+    for (const b of CALL_TYPE_BUCKETS) acc.set(b.key, blank());
+    const unknown = blank();
+    for (const p of callTypePoints.value) {
+      const t = String(p.callType || "chat").trim().toLowerCase();
+      const bucket = CALL_TYPE_BUCKETS.find((b) => (b.match as readonly string[]).includes(t));
+      const target = bucket ? acc.get(bucket.key)! : unknown;
+      target.calls += p.calls;
+      target.promptTokens += p.promptTokens;
+      target.completionTokens += p.completionTokens;
+      target.totalTokens += p.totalTokens;
+      target.cost += p.cost;
+    }
+    const rows: Array<Omit<CallTypeRow, "pct">> = CALL_TYPE_BUCKETS.map((b) => ({
+      key: b.key,
+      label: b.label,
+      color: b.color,
+      ...acc.get(b.key)!,
+    }));
+    if (unknown.calls > 0 || unknown.totalTokens > 0) {
+      rows.push({ key: "other", label: "其他", color: OTHER_SLICE_COLOR, ...unknown });
+    }
+    // 占比按 token 计；某段时间 token 全为 0 时退回按调用次数，避免整条全是 0%
+    const tokenTotal = rows.reduce((s, r) => s + r.totalTokens, 0);
+    const callTotal = rows.reduce((s, r) => s + r.calls, 0);
+    const base = tokenTotal > 0 ? tokenTotal : callTotal;
+    return rows.map((r) => ({
+      ...r,
+      pct: base > 0 ? ((tokenTotal > 0 ? r.totalTokens : r.calls) / base) * 100 : 0,
+    }));
+  });
+
+  /** 拆分合计（token）：作为这组读数的分母展示 */
+  const callTypeTotal = computed(() => callTypeRows.value.reduce((s, r) => s + r.totalTokens, 0));
+  /** 工具用量：单独拎出来，回答「模型调工具花了多少」 */
+  const callTypeToolTokens = computed(() => callTypeRows.value.find((r) => r.key === "tool")?.totalTokens ?? 0);
+  /** 记忆用量：单独拎出来，回答「记忆抽取花了多少」 */
+  const callTypeMemoryTokens = computed(() => callTypeRows.value.find((r) => r.key === "memory")?.totalTokens ?? 0);
+
+  /** 构成条宽度：按当前桶的最大值归一，避免 1% 的条看不见 */
+  function callTypeWidth(row: CallTypeRow): string {
+    const max = Math.max(1, ...callTypeRows.value.map((r) => r.totalTokens));
+    return `${Math.max(row.totalTokens > 0 ? 2 : 0, (row.totalTokens / max) * 100)}%`;
   }
 
   // ---------- 模型/分组/应用分布 ----------
@@ -731,6 +894,163 @@ export function useUsageBoard() {
     return `${((v / total) * 100).toFixed(1)}%`;
   }
 
+  // ==================== TopK 速度榜（模型 / 供应商 / Agent） ====================
+  /**
+   * 速度榜的拆分维度。
+   *
+   * <p>三个维度都由前端从 `/usage/model-trend` 的行 roll up：后端只给
+   * 「天 × 服务商 × 模型」的实测速度（{@code avgTokensPerSecond}），
+   * 不直接出「按模型/供应商/Agent 的速度榜」。</p>
+   *
+   * <p>Agent（分组）维度没有后端速度聚合：model-trend 不带 groupName。
+   * 做法是展示层 join —— 把 model-trend 按 (服务商, 模型) 折成速度表，
+   * 再按各分组实际使用的 (服务商, 模型) 组合按请求数加权。纯前端聚合，
+   * 不新增接口、不穿透持久层。</p>
+   */
+  const TOPK_SCOPES = [
+    { key: "model", label: "模型" },
+    { key: "provider", label: "供应商" },
+    { key: "agent", label: "Agent" },
+  ] as const;
+  type TopkScope = (typeof TOPK_SCOPES)[number]["key"];
+  const topkScope = ref<TopkScope>("model");
+  /** 榜单长度：取速度前 10 名 */
+  const TOPK_N = 10;
+  /** 榜单色点：按名次取色，与看板调色板同源（koi 品牌紫族 + 语义色） */
+  const TOPK_PALETTE = [
+    "#6d5dfc", "#2fbf71", "#f59e0b", "#ff4c4c", "#8b5cf6",
+    "#06b6d4", "#3b82f6", "#f7ba1e", "#14b8a6", "#0ea5e9",
+  ];
+  function topkColor(i: number): string {
+    return TOPK_PALETTE[i % TOPK_PALETTE.length];
+  }
+
+  /** 速度榜的一行：展示层聚合结果 */
+  interface TopkRow {
+    key: string;
+    name: string;
+    /** 按请求数加权的平均速度（tok/s）；无实测样本为 null */
+    speed: number | null;
+    /** 有实测速度样本的请求数（副行「N 次计时」） */
+    ticks: number;
+    calls: number;
+    tokens: number;
+    cost: number;
+    /** 按请求数加权的平均首字耗时（ms）；无样本为 null */
+    firstMs: number | null;
+  }
+
+  /**
+   * 按请求数加权聚合：速度/首字只对「有实测样本」的行求加权，
+   * 请求数/Token/费用全量累加。
+   */
+  function weightedSpeed(rows: Array<{ speed: number | null; first: number | null; calls: number }>) {
+    let s = 0, f = 0, ticks = 0, firstTicks = 0, calls = 0;
+    for (const r of rows) {
+      calls += r.calls || 0;
+      if (r.speed != null && Number.isFinite(r.speed) && r.speed > 0) {
+        s += r.speed * (r.calls || 0);
+        ticks += r.calls || 0;
+      }
+      if (r.first != null && Number.isFinite(r.first)) {
+        f += r.first * (r.calls || 0);
+        firstTicks += r.calls || 0;
+      }
+    }
+    return {
+      speed: ticks > 0 ? s / ticks : null,
+      firstMs: firstTicks > 0 ? f / firstTicks : null,
+      ticks,
+      calls,
+    };
+  }
+
+  const topkRows = computed<TopkRow[]>(() => {
+    const rows = modelTrendRows.value;
+    const out = new Map<string, TopkRow>();
+    if (topkScope.value === "agent") {
+      // Agent 维度：model-trend 按 (provider, model) 折速度表，再按分组 join
+      const speedByPM = new Map<string, Array<{ speed: number | null; first: number | null; calls: number }>>();
+      for (const r of rows) {
+        const k = `${r.provider}\u0000${r.model}`;
+        const list = speedByPM.get(k) || [];
+        list.push({ speed: r.avgTokensPerSecond, first: r.avgFirstTokenLatency, calls: r.totalCalls });
+        speedByPM.set(k, list);
+      }
+      const pmSpeed = new Map<string, ReturnType<typeof weightedSpeed>>();
+      for (const [k, list] of speedByPM) pmSpeed.set(k, weightedSpeed(list));
+      const byGroup = new Map<string, Array<{ calls: number; tokens: number; cost: number; pm: string }>>();
+      for (const r of summaryRows.value) {
+        const g = r.group || "默认";
+        const pm = `${r.provider}\u0000${r.model}`;
+        const list = byGroup.get(g) || [];
+        list.push({ calls: Number(r.requests) || 0, tokens: Number(r.totalTokens) || 0, cost: Number(r.cost) || 0, pm });
+        byGroup.set(g, list);
+      }
+      for (const [g, list] of byGroup) {
+        // 分组内按请求数加权各 (provider, model) 的速度
+        const speedList = list
+          .map((x) => {
+            const w = pmSpeed.get(x.pm);
+            return w ? { speed: w.speed, first: w.firstMs, calls: x.calls } : null;
+          })
+          .filter((x): x is { speed: number | null; first: number | null; calls: number } => x != null);
+        const w = weightedSpeed(speedList);
+        out.set(g, {
+          key: g,
+          name: g,
+          speed: w.speed,
+          ticks: w.ticks,
+          calls: list.reduce((s, x) => s + x.calls, 0),
+          tokens: list.reduce((s, x) => s + x.tokens, 0),
+          cost: list.reduce((s, x) => s + x.cost, 0),
+          firstMs: w.firstMs,
+        });
+      }
+    } else {
+      const keyOf = (r: (typeof rows)[number]) => (topkScope.value === "model" ? r.model || "未知" : r.provider || "未知");
+      for (const r of rows) {
+        const k = keyOf(r);
+        const cur = out.get(k) || { key: k, name: k, speed: null, ticks: 0, calls: 0, tokens: 0, cost: 0, firstMs: null };
+        cur.calls += r.totalCalls || 0;
+        cur.tokens += r.totalTokens || 0;
+        cur.cost += r.totalCost || 0;
+        // 加权聚合：先把每行的速度/首字按其请求数加进累加器，最后统一除
+        cur.speed = cur.speed == null ? r.avgTokensPerSecond : cur.speed;
+        cur.firstMs = cur.firstMs == null ? r.avgFirstTokenLatency : cur.firstMs;
+        out.set(k, cur);
+      }
+      // 统一做加权平均（上面只做了首行初始化，这里重算）
+      const acc = new Map<string, { s: number; f: number; ticks: number; fTicks: number }>();
+      for (const r of rows) {
+        const k = keyOf(r);
+        const a = acc.get(k) || { s: 0, f: 0, ticks: 0, fTicks: 0 };
+        const calls = r.totalCalls || 0;
+        if (r.avgTokensPerSecond != null && Number.isFinite(r.avgTokensPerSecond) && r.avgTokensPerSecond > 0) {
+          a.s += r.avgTokensPerSecond * calls;
+          a.ticks += calls;
+        }
+        if (r.avgFirstTokenLatency != null && Number.isFinite(r.avgFirstTokenLatency)) {
+          a.f += r.avgFirstTokenLatency * calls;
+          a.fTicks += calls;
+        }
+        acc.set(k, a);
+      }
+      for (const [k, row] of out) {
+        const a = acc.get(k);
+        if (a) {
+          row.speed = a.ticks > 0 ? a.s / a.ticks : null;
+          row.firstMs = a.fTicks > 0 ? a.f / a.fTicks : null;
+          row.ticks = a.ticks;
+        }
+      }
+    }
+    return [...out.values()]
+      .filter((r) => r.speed != null)
+      .sort((a, b) => (b.speed ?? 0) - (a.speed ?? 0))
+      .slice(0, TOPK_N);
+  });
+
   /** 应用标识多为英文小写，补中文名；未收录的软件名原样显示，别藏起来 */
   const APP_LABELS: Record<string, string> = {
     "self-console": "本控制台",
@@ -775,7 +1095,7 @@ export function useUsageBoard() {
       case "connecting": return "实时连接中…";
       case "live": return "实时";
       case "paused": return "已暂停";
-      default: return "连接失败，已退回定时刷新";
+      default: return "连接失败，点刷新重试";
     }
   });
 
@@ -1003,12 +1323,23 @@ export function useUsageBoard() {
     refreshAll();
   }
 
-  // 表面色（用于饼图切片间隔，随主题 / 深色变化）
+  // 表面色（用于饼图切片间隔、热力图格子缝隙，随主题 / 深色变化）
   const surfaceBg = ref("#ffffff");
+  // 热力图「无用量 / 未来」空格底色：取 Element Plus 中性填充令牌，随主题变化。
+  // 用中性灰而非色阶最低的近白紫，才能把「无数据格」和「有数据格」区分开，
+  // 也避免 0 值格被染成近白后连成一片（canvas 不认 var()，故取计算后的真实色值）。
+  const emptyCellBg = ref("#e6e8eb");
+  // 热力图 hover 强调边框色：canvas 不认 var()，取计算后的主文本色真实值。
+  const textPrimary = ref("#1d2129");
   function readSurfaceBg() {
     const host = document.querySelector(".usage-page") || document.documentElement;
-    const v = getComputedStyle(host).getPropertyValue("--el-bg-color").trim();
-    surfaceBg.value = v || "#ffffff";
+    const cs = getComputedStyle(host);
+    surfaceBg.value = cs.getPropertyValue("--el-bg-color").trim() || "#ffffff";
+    emptyCellBg.value =
+      cs.getPropertyValue("--el-fill-color-dark").trim() ||
+      cs.getPropertyValue("--el-fill-color").trim() ||
+      "#e6e8eb";
+    textPrimary.value = cs.getPropertyValue("--el-text-color-primary").trim() || "#1d2129";
   }
   let themeObserver: MutationObserver | null = null;
   onMounted(() => {
@@ -1033,26 +1364,231 @@ export function useUsageBoard() {
     closeLiveStream();
   });
 
+  /* ==================== §3.5 用量热力图：最近 53 周 ==================== */
+
+  /** 热力图的周数：GitHub 风格，一周一列，共 53 周（近 371 天） */
+  const HEATMAP_WEEKS = 53;
+  /** 热力图的取数窗口：53 周整天（与刻度尺一样独立于时间筛选，看的是长期节奏） */
+  function heatmapWindow(): { startTime: string; endTime: string } {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() - (HEATMAP_WEEKS * 7 - 1));
+    return { startTime: `${fmtDate(start)} 00:00:00`, endTime: `${fmtDate(now)} 23:59:59` };
+  }
+  /** 每日一行：token / 请求 / 费用（热力图的三个切换口径） */
+  const heatmapDays = ref<Array<{ date: string; tokens: number; calls: number; cost: number }>>([]);
+  const heatmapMetric = ref<"token" | "calls" | "cost">("token");
+  const heatmapLoading = ref(false);
+  /** 热力图是否已取过数：它不随时间筛选变化，只在首屏 / 手动刷新时拉一次 */
+  let heatmapLoaded = false;
+
+  /**
+   * 拉热力图数据：`/usage/trend` 近 371 天按天聚合。
+   *
+   * <p>与刻度尺共用 `/usage/trend` 但窗口独立：刻度尺只要 30 天（页面主干，
+   * 要快），热力图要 371 天（长尾节奏，慢一点无妨）。两路都走后端日汇总表，
+   * 一次几十行，不构成负担。</p>
+   */
+  async function loadHeatmap(force = false) {
+    if (heatmapLoaded && !force) return;
+    heatmapLoading.value = true;
+    try {
+      const res: any = await usageApi.trend(heatmapWindow());
+      const rows: any[] = res?.data || [];
+      const map = new Map<string, { date: string; tokens: number; calls: number; cost: number }>();
+      for (const r of rows) {
+        const d = String(r?.date || "").slice(0, 10);
+        if (!d) continue;
+        const cur = map.get(d) || { date: d, tokens: 0, calls: 0, cost: 0 };
+        cur.tokens += Number(r?.totalTokens) || 0;
+        cur.calls += Number(r?.totalCalls) || 0;
+        cur.cost += Number(r?.totalCost) || 0;
+        map.set(d, cur);
+      }
+      // 补全 371 天骨架：没用量的一天也要占位（值为 0），否则周列会「跳日」
+      const out: Array<{ date: string; tokens: number; calls: number; cost: number }> = [];
+      for (let i = HEATMAP_WEEKS * 7 - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = fmtDate(d);
+        out.push(map.get(key) || { date: key, tokens: 0, calls: 0, cost: 0 });
+      }
+      heatmapDays.value = out;
+      heatmapLoaded = true;
+    } catch {
+      heatmapDays.value = [];
+    } finally {
+      heatmapLoading.value = false;
+    }
+  }
+
+  /** 热力图网格：53 列（周，周一起始）× 7 行（周一~周日） */
+  const heatGrid = computed(() => {
+    const byDate = new Map(heatmapDays.value.map((d) => [d.date, d]));
+    const now = new Date();
+    // 今天所在周的周一：0=周一 ... 6=周日
+    const dow = (now.getDay() + 6) % 7;
+    const thisMonday = new Date(now);
+    thisMonday.setDate(now.getDate() - dow);
+    const cols: Array<{
+      /** 该列周一日期（用于月份刻度） */
+      weekStart: string;
+      /** 该列 7 天的值；null = 未来格（今天之后的本周空白），不画 */
+      cells: Array<number | null>;
+    }> = [];
+    for (let w = HEATMAP_WEEKS - 1; w >= 0; w--) {
+      const mon = new Date(thisMonday);
+      mon.setDate(thisMonday.getDate() - w * 7);
+      const cells: Array<number | null> = [];
+      for (let d = 0; d < 7; d++) {
+        const dd = new Date(mon);
+        dd.setDate(mon.getDate() + d);
+        const key = fmtDate(dd);
+        // 未来格（晚于今天）不画，避免给还没发生的日期留色块
+        const isFuture = dd > now;
+        if (isFuture) {
+          cells.push(null);
+          continue;
+        }
+        const row = byDate.get(key);
+        const metric = heatmapMetric.value;
+        cells.push(row ? (metric === "calls" ? row.calls : metric === "cost" ? row.cost : row.tokens) : 0);
+      }
+      cols.push({ weekStart: fmtDate(mon), cells });
+    }
+    return cols;
+  });
+
+  /** 热力图当前口径的最大值（visualMap 的分母；全 0 时兜底 1 防除零） */
+  const heatMax = computed(() => {
+    let max = 0;
+    for (const col of heatGrid.value) {
+      for (const v of col.cells) {
+        if (v != null && v > max) max = v;
+      }
+    }
+    return max || 1;
+  });
+
+  /**
+   * 用量热力图 option：GitHub 风格，周一~周日 7 行 × 53 周列。
+   *
+   * <p>紫色色阶对齐 koi 品牌族（与页面其它图表同源）；x 轴只标月份变化的
+   * 周列，避免 53 个标签糊成一片；图例（色阶）放在右下角。</p>
+   */
+  const heatmapOption = computed<EChartsOption>(() => {
+    const cols = heatGrid.value;
+    const metricLabel = heatmapMetric.value === "token" ? "Token" : heatmapMetric.value === "calls" ? "请求" : "费用";
+    // 月份刻度：仅该周周一的月份与上一列不同才标「M月」
+    const xLabels = cols.map((c, i) => {
+      const [, m] = c.weekStart.split("-").map(Number);
+      const prev = i > 0 ? cols[i - 1].weekStart.split("-").map(Number)[1] : -1;
+      return prev === m ? "" : `${m}月`;
+    });
+    // 值域：未来格 / 无用量格统一归 0，与「有用量格(>0)」共用一张 heatmap。
+    // 0 值由 visualMap 首档的中性空态灰着色（不再是近白紫），>0 走紫色阶；
+    // 每格 itemStyle 描主题背景色缝隙，格子各自独立。单 series 保证 ECharts
+    // 稳定渲染全部 371 格（双 series / 空 series 会让 zrender 丢掉格子图形）。
+    const data: Array<[number, number, number]> = [];
+    cols.forEach((col, x) => {
+      col.cells.forEach((v, y) => {
+        data.push([x, y, v == null ? 0 : Math.max(0, Number(v) || 0)]);
+      });
+    });
+    return {
+      aria: {
+        enabled: true,
+        decal: { show: false },
+        description: `最近 53 周每日${metricLabel}用量热力图，GitHub 风格：横轴为周（含月份刻度），纵轴为周一至周日 7 行，每格独立带边框。有用量的格子颜色越深表示该日${metricLabel}越高，无用量与未来日期为中性灰空格。可用右上角切换 Token / 请求 / 费用口径。`,
+      },
+      tooltip: {
+        confine: true,
+        formatter: (p: any) => {
+          const [x, y, raw] = p.value as [number, number, number];
+          const col = cols[x];
+          const dd = new Date(col.weekStart + "T00:00:00");
+          dd.setDate(dd.getDate() + y);
+          const isEmpty = raw === 0;
+          const val = heatmapMetric.value === "token" ? fmtToken(raw) : heatmapMetric.value === "calls" ? formatNumber(raw) : currencySymbol.value + money(raw);
+          return `${fmtDate(dd)}<br/><b>${val}</b> ${metricLabel}${isEmpty ? "（无用量）" : ""}`;
+        },
+      },
+      grid: { left: 8, right: 12, top: 6, bottom: 22, containLabel: false },
+      xAxis: {
+        type: "category",
+        data: xLabels,
+        splitArea: { show: false },
+        axisTick: { show: false },
+        axisLine: { show: false },
+        axisLabel: {
+          fontSize: 10,
+          color: "var(--el-text-color-placeholder)",
+          interval: 0,
+          hideOverlap: true,
+        },
+      },
+      yAxis: {
+        type: "category",
+        data: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+        splitArea: { show: false },
+        axisTick: { show: false },
+        axisLine: { show: false },
+        axisLabel: { fontSize: 10, color: "var(--el-text-color-placeholder)", hideOverlap: true },
+      },
+      visualMap: {
+        min: 0,
+        max: heatMax.value,
+        calculable: false,
+        orient: "horizontal",
+        left: "right",
+        bottom: 0,
+        itemWidth: 10,
+        itemHeight: 10,
+        itemGap: 3,
+        textStyle: { fontSize: 10, color: "var(--el-text-color-placeholder)" },
+        inRange: {
+          // 首档=随主题的中性空态灰（0 值 / 未来格明确区别于有数据格，
+          // 也不再是近白紫连成一片）；其后为 GitHub 风格紫色阶（对齐 koi 品牌紫族）。
+          // canvas 不认 var()，emptyCellBg 取自计算后的 Element Plus 令牌真实值。
+          color: [emptyCellBg.value, "#e9e3ff", "#d4c9fd", "#b3a9fe", "#8f83fd", "#6d5dfc", "#5a4bd9", "#4338ca"],
+        },
+      },
+      series: [
+        {
+          type: "heatmap",
+          data,
+          // 每格描一圈主题背景色当缝隙，格子各自独立（GitHub 风格），
+          // 不再连成一片；hover 时用主文本色描边强调当前格。
+          itemStyle: { borderRadius: 2, borderColor: surfaceBg.value, borderWidth: 2 },
+          emphasis: { itemStyle: { borderColor: textPrimary.value, borderWidth: 1 } },
+          // 格子尺寸由轴决定，53×7 的 category heatmap 天然等宽等高
+          label: { show: false },
+        },
+      ],
+    };
+  });
+
   /* ==================== §4 双栏看板：环形总览 + 图例 ==================== */
 
   /**
-   * 看板调色板（§5 视觉体系指定色值）。
+   * 看板调色板（对齐 koi 设计令牌）。
    *
    * <p>为什么不用 `--el-color-primary` 这类 CSS 变量：ECharts 是 canvas 渲染，
    * `var()` 在 canvas 语境里不生效，必须给真实色值。这里集中一处，
-   * 图例色点、明细表进度条、环形扇区取同一个函数 —— 三处颜色永远一致。</p>
+   * 图例色点、明细表进度条、环形扇区取同一个函数 —— 三处颜色永远一致。
+   * 色值取 koi 品牌紫族与监控域语义色，与全局主题同源。</p>
    */
   const BOARD_PALETTE = [
-    "#165DFF", // 主色蓝
-    "#00B42A", // 成功绿
-    "#FF7D00", // 警示橙
-    "#722ED1", // 辅助紫
-    "#F53F3F", // 危险红
-    "#14C9C9", // 青
-    "#F7BA1E", // 黄
-    "#3491FA", // 浅蓝
-    "#9FDB1D", // 黄绿
-    "#D91AD9", // 品红
+    "#6d5dfc", // koi brand-500 主色紫
+    "#2fbf71", // koi status-success 成功绿
+    "#f59e0b", // koi status-warning 警示橙
+    "#ff4c4c", // koi status-error 危险红
+    "#8b5cf6", // koi metric-mem 辅助紫
+    "#06b6d4", // koi metric-net 青
+    "#3b82f6", // koi metric-cpu 蓝
+    "#f7ba1e", // 黄
+    "#14b8a6", // koi metric-jvm 蓝绿
+    "#0ea5e9", // koi metric-db 天蓝
   ];
   /** 第 n 项的稳定配色：按**排序后的名次**取色，不按数组下标，切指标时不跳色 */
   function boardColorByIndex(i: number): string {
@@ -1390,10 +1926,10 @@ export function useUsageBoard() {
     const rest = Math.max(0, input + output);
     const data = rest > 0
       ? [
-        { name: "输入", value: input, itemStyle: { color: "#165DFF" } },
-        { name: "输出", value: output, itemStyle: { color: "#00B42A" } },
+        { name: "输入", value: input, itemStyle: { color: "#6d5dfc" } },
+        { name: "输出", value: output, itemStyle: { color: "#2fbf71" } },
       ]
-      : [{ name: "暂无", value: 1, itemStyle: { color: "#E5E6EB" } }];
+      : [{ name: "暂无", value: 1, itemStyle: { color: "#ece9ff" } }];
     return {
       tooltip: {
         trigger: "item",
@@ -1441,17 +1977,19 @@ export function useUsageBoard() {
   // ==================== 每日模型用量（堆叠柱状图） ====================
   const modelTrendRows = ref<Array<{
     date: string; model: string; provider: string;
-    totalTokens: number; totalCost: number;
+    totalTokens: number; totalCost: number; totalCalls: number;
     avgFirstTokenLatency: number | null; avgTotalLatency: number | null;
     avgTokensPerSecond: number | null;
   }>>([]);
   const modelBarMetric = ref<ChartType>("token");
 
-  /** 同一模型在不同日期必须拿到同一个颜色，故颜色按模型名做稳定映射而非按下标 */
+  /** 同一模型在不同日期必须拿到同一个颜色，故颜色按模型名做稳定映射而非按下标。
+   *  色板对齐 koi 设计令牌（与 charts.ts 的 MODEL_COLORS 同源）：主色 #6d5dfc
+   *  （brand-500）打头，辅以品牌紫族与监控域语义色 —— canvas 渲染需真实色值。 */
   const MODEL_COLORS = [
-    "#5B8FF9", "#5AD8A6", "#5D7092", "#F6BD16", "#6F5EF9",
-    "#6DC8EC", "#945FB9", "#FF9845", "#1E9493", "#FF99C3",
-    "#269A99", "#8D6DFF", "#E8684A", "#4EA3D1", "#C9A227",
+    "#6d5dfc", "#8f83fd", "#5a4bd9", "#b3a9fe", "#7c6cf0",
+    "#8b5cf6", "#3b82f6", "#06b6d4", "#14b8a6", "#2fbf71",
+    "#f59e0b", "#ff4c4c", "#0ea5e9", "#f7ba1e", "#9fdb1d",
   ];
   /** 模型名 -> 颜色。按首次出现顺序占坑，保证跨刷新/跨筛选不跳色 */
   const modelColorMap = new Map<string, string>();
@@ -1639,6 +2177,130 @@ export function useUsageBoard() {
   });
 
   /**
+   * 缓存命中率走势：命中率 = 缓存读取 token / 总 token。
+   *
+   * <p>数据与趋势图同源（`/usage/trend` 的日汇总，含 cachedTokens），不额外发请求；
+   * 缺样本的日子给 null，折线断开，避免把「没数据」画成 0%。</p>
+   */
+  const cacheTrendOption = computed<EChartsOption>(() => {
+    const rows = trendData.value;
+    const dates = rows.map((r) => (r.date.length > 10 ? `${r.date.slice(11, 13)}:00` : r.date));
+    const rateSeries = rows.map((r) => {
+      const total = Number(r.total) || 0;
+      if (total <= 0) return null;
+      return Number((((Number(r.cached) || 0) / total) * 100).toFixed(1));
+    });
+    // 区间加权命中率：按每日总 token 加权（而非日数算术平均），与头部「区间命中」口径一致。
+    // 无有效样本时为 null，不画参考线。
+    let sampleTotal = 0, sampleCached = 0;
+    rows.forEach((r) => {
+      const t = Number(r.total) || 0;
+      if (t > 0) { sampleTotal += t; sampleCached += Number(r.cached) || 0; }
+    });
+    const avgPct = sampleTotal > 0 ? Number(((sampleCached / sampleTotal) * 100).toFixed(1)) : null;
+    return {
+      aria: {
+        enabled: true,
+        decal: { show: false },
+        description: `缓存命中率按日走势折线图，共 ${rows.length} 个日桶，纵轴为缓存读取占总 Token 的百分比（0–100%），命中率为 0 的日期断线不连；${avgPct != null ? `图中虚线为区间加权命中率均值 ${avgPct}%，可据此判断每日高于或低于平均；` : ''}区间汇总命中率见面板头部「缓存命中率」旁的说明文字。`,
+      },
+      tooltip: {
+        trigger: "axis",
+        confine: true,
+        axisPointer: { type: "line", lineStyle: { type: "dashed" } },
+        formatter: (params: any) => {
+          const p = Array.isArray(params) ? params[0] : params;
+          const i = p?.dataIndex ?? 0;
+          const r = rows[i];
+          if (!r) return "";
+          const total = Number(r.total) || 0;
+          const cached = Number(r.cached) || 0;
+          const pct = total > 0 ? ((cached / total) * 100).toFixed(1) : "—";
+          return `${p?.axisValue ?? r.date}<br/>命中率 <b>${pct}%</b><br/>缓存读取 ${fmtToken(cached)} / 总 ${fmtToken(total)}`;
+        },
+      },
+      grid: { left: 44, right: 16, top: 16, bottom: 24 },
+      xAxis: {
+        type: "category",
+        boundaryGap: false,
+        data: dates,
+        axisLabel: { fontSize: 10 },
+      },
+      yAxis: {
+        type: "value",
+        min: 0,
+        max: 100,
+        axisLabel: { formatter: (v: number) => `${v}%`, fontSize: 10 },
+        splitLine: { lineStyle: { type: "dashed", opacity: 0.45 } },
+      },
+      series: [
+        {
+          name: "缓存命中率",
+          type: "line",
+          smooth: true,
+          showSymbol: false,
+          connectNulls: false,
+          data: rateSeries,
+          lineStyle: { width: 2, color: "#6d5dfc" },
+          itemStyle: { color: "#6d5dfc" },
+          areaStyle: { opacity: 0.14, color: "#6d5dfc" },
+          // 区间加权命中率参考线：哪几天高于/低于平均一眼可分。无样本时不画。
+          ...(avgPct != null
+            ? {
+                markLine: {
+                  silent: true,
+                  symbol: "none",
+                  lineStyle: { type: "dashed" as const, width: 1, color: "#8f83fd", opacity: 0.8 },
+                  label: {
+                    show: true,
+                    formatter: `均值 ${avgPct}%`,
+                    position: "insideEndTop",
+                    fontSize: 10,
+                    color: "#5a4bd9",
+                  },
+                  data: [{ yAxis: avgPct }],
+                },
+              }
+            : {}),
+        },
+      ],
+    };
+  });
+
+  /**
+   * 指标卡右下角的静态小图（请求 / 费用 / 延迟）。
+   *
+   * <p>纯装饰性走势：无坐标轴、无 tooltip、不响应鼠标，取最近 30 个日桶。
+   * 值为 0 的日子照画，读者能看出「这几天没动静」。</p>
+   */
+  function miniSparkOption(kind: string): EChartsOption {
+    const rows = trendData.value.slice(-30);
+    const values = rows.map((r) =>
+      kind === "requests" ? r.calls : kind === "cost" ? Number(r.cost) || 0 : Number(r.latAvg) || 0,
+    );
+    const color = kind === "requests" ? "#06b6d4" : kind === "cost" ? "#2fbf71" : "#f59e0b";
+    const isBar = kind === "requests";
+    return {
+      grid: { left: 0, right: 0, top: 2, bottom: 0 },
+      xAxis: { type: "category", show: false, boundaryGap: !isBar, data: rows.map((r) => r.date) },
+      yAxis: { type: "value", show: false, min: 0 },
+      series: [
+        {
+          type: isBar ? "bar" : "line",
+          data: values.length ? values : [0, 0],
+          silent: true,
+          smooth: true,
+          showSymbol: false,
+          barMaxWidth: 4,
+          itemStyle: { color, borderRadius: isBar ? [1, 1, 0, 0] : 0 },
+          lineStyle: { width: 1.5, color },
+          ...(isBar ? {} : { areaStyle: { opacity: 0.12, color } }),
+        } as any,
+      ],
+    };
+  }
+
+  /**
    * 模型延迟图：一天一个点、一个模型一条线，纵轴为「平均首字延迟（ms）」。
    *
    * 为什么画首字延迟而不是总耗时：总耗时随输出长度线性增长，同一个模型写得长一点
@@ -1769,7 +2431,7 @@ export function useUsageBoard() {
     { prop: "ip", label: "请求 IP", width: 130, showOverflowTooltip: true, slot: "ip" },
     { prop: "group", label: "分组", width: 140, showOverflowTooltip: true, slot: "group" },
     { prop: "user", label: "账号", width: 90, slot: "user" },
-    { prop: "provider", label: "服务商", width: 100, slot: "provider" },
+    { prop: "provider", label: "服务商", width: 150, slot: "provider" },
     { prop: "tokens", label: "Token", width: 170, align: "right", slot: "tokens" },
     { prop: "cost", label: `费用(${currencySymbol.value})`, width: 90, align: "right", slot: "cost" },
     { prop: "latency", label: "耗时", width: 150, slot: "latency" },
@@ -1955,6 +2617,16 @@ export function useUsageBoard() {
     return latencyColor(row?.sysAiUsageTotalLatency, TOTAL_THRESHOLDS);
   }
 
+  /**
+   * 明细「耗时」列左侧色条：自上而下由首字色渐变到总耗时色。
+   *
+   * <p>同一根条上同时读出两个阶段——顶端是等首字（预填充/排队），底端是整条请求结束，
+   * 中间的解码段用前段等待色过渡，避免两段各占一根条把行高撑散。</p>
+   */
+  function latencyBarGradient(row: any): string {
+    return `linear-gradient(180deg, ${getFirstColor(row)} 0%, ${decodeWindowColor(row)} 55%, ${getTotalColor(row)} 100%)`;
+  }
+
   // ---------- 来源类型中文标签 ----------
   const TYPE_LABEL_MAP: Record<string, string> = {
     chat: "会话",
@@ -2030,6 +2702,7 @@ export function useUsageBoard() {
     setQuickFilter, onCustomRange, refreshAll, refreshing, handleExport, exporting,
     spineView, spineMax, spineTotal, drillDay, selectSpineDay, clearDrill, isSpineInRange,
     modelDist, groupDist, appDist,
+    callTypeRows, callTypeTotal, callTypeToolTokens, callTypeMemoryTokens, callTypeWidth,
     distScopes, distScope, distMetric, distRows, distBoard, distSorted, distName,
     modelRankTop5, appRankTop5, rankMetric, rankValue, rankBarWidth, rankPct, appLabel,
     liveEnabled, liveState, liveTodayTokens, liveRangeTokens, liveRate, liveLabel,
@@ -2040,15 +2713,19 @@ export function useUsageBoard() {
     closeTreemapDialog,
     OTHER_SLICE_COLOR, boardColorOf, barWidth, isZeroCost,
     modelRingOption, groupRingOption, miniRingOption, boardColumns, percentNum, percent,
+    miniSparkOption,
+    topkRows, topkScope, TOPK_SCOPES, topkColor,
+    heatmapOption, heatmapMetric, heatmapLoading,
+    cacheTrendOption,
     modelBarMetric, modelBarDates, modelBarOption,
     trendData, trendOption, trendMetric, trendChartType,
     latencyDates, latencyModelCount, latencyOption,
     detailRecords, detailLoading, detailTotal, detailModelFilter, costVisible, currentUser,
     detailColumns, detailQueryParams, loadDetailPage, hasAnyUsage, registerDetailReloader,
     fmtToken, formatNumber, money, formatLatency, formatSpeed,
-    speedColor, speedTitle, decodeWindowMs, decodeWindowColor, getFirstColor, getTotalColor,
+    speedColor, speedTitle, decodeWindowMs, decodeWindowColor, getFirstColor, getTotalColor, latencyBarGradient,
     formatTypeLabel, typeTagType, callModeLabel, callModeTag, cacheRatePct, cacheRateText,
-    endpointDisplay, providerDisplay, isSuspiciousSpeed, formatTime,
+    endpointDisplay, providerDisplay, providerTag, nameColor, isSuspiciousSpeed, formatTime,
     currencySymbol,
     routeErrors,
   };

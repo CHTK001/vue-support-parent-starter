@@ -65,6 +65,7 @@
           circle
           :loading="board.exporting"
           title="导出当前区间用量"
+          aria-label="导出当前区间用量"
           @click="board.handleExport"
         >
           <el-icon v-if="!board.exporting">
@@ -80,6 +81,7 @@
           circle
           :loading="board.refreshing"
           title="刷新数据"
+          aria-label="刷新数据"
           @click="board.refreshAll({ detail: true })"
         >
           <el-icon v-if="!board.refreshing">
@@ -142,7 +144,7 @@
         v-for="card in board.statCards"
         :key="card.key"
         class="usage-kpi usage-card"
-        :class="[`is-${card.tone}`, { 'has-ring': card.key === 'token' }]"
+        :class="[`is-${card.tone}`, { 'has-ring': card.spark === 'ring', 'has-spark': card.spark !== 'ring' }]"
       >
         <div class="usage-kpi__head">
           <i class="usage-kpi__mark" />
@@ -152,8 +154,12 @@
           {{ card.value }}<span v-if="card.unit" class="usage-kpi__unit">{{ card.unit }}</span>
         </div>
         <div class="usage-kpi__sub">{{ card.sub.join(' · ') }}</div>
-        <div v-if="card.key === 'token'" class="usage-kpi__ring">
+        <!-- 纯装饰性小图：不承载读数（数值已在上方文字里），对辅助技术隐藏 -->
+        <div v-if="card.spark === 'ring'" class="usage-kpi__ring" aria-hidden="true">
           <ReEcharts :option="board.miniRingOption('input')" height="38px" width="56px" notMerge />
+        </div>
+        <div v-else class="usage-kpi__ring usage-kpi__ring--spark" aria-hidden="true">
+          <ReEcharts :option="board.miniSparkOption(card.spark)" height="34px" width="92px" notMerge />
         </div>
       </article>
     </section>
@@ -169,6 +175,88 @@
         <span class="usage-deriv__hint">{{ d.hint }}</span>
       </li>
     </ul>
+
+    <!-- ── 用量构成：按调用类型拆分，工具/记忆各自独立成行 ── -->
+    <section class="usage-calltype usage-card" aria-label="用量构成（按调用类型）">
+      <header class="usage-calltype__head">
+        <div class="usage-panel__title-wrap">
+          <h2 class="usage-panel__title">用量构成</h2>
+          <span class="usage-panel__meta">
+            按调用类型拆分 · 工具 {{ board.fmtToken(board.callTypeToolTokens) }} ·
+            记忆 {{ board.fmtToken(board.callTypeMemoryTokens) }} ·
+            合计 {{ board.fmtToken(board.callTypeTotal) }} tokens
+          </span>
+        </div>
+        <span class="usage-calltype__hint">工具/记忆/外部均为独立明细，不并入对话</span>
+      </header>
+      <ul class="usage-calltype__list">
+        <li v-for="r in board.callTypeRows" :key="r.key" class="usage-calltype__row">
+          <i class="usage-calltype__dot" :style="{ background: r.color }" />
+          <span class="usage-calltype__name">{{ r.label }}</span>
+          <span class="usage-calltype__bar" aria-hidden="true">
+            <i :style="{ width: board.callTypeWidth(r), background: r.color }" />
+          </span>
+          <span class="usage-calltype__pct">{{ r.pct.toFixed(1) }}%</span>
+          <span class="usage-calltype__num">{{ board.fmtToken(r.totalTokens) }}</span>
+          <span class="usage-calltype__num">{{ board.formatNumber(r.calls) }} 次</span>
+          <span class="usage-calltype__num">{{ board.money(r.cost) }}</span>
+        </li>
+      </ul>
+    </section>
+    <!-- ── TopK 速度榜：模型 / 供应商 / Agent 三维切换，按请求数加权 ── -->
+    <section class="usage-speed usage-card" aria-label="TopK 速度榜">
+      <header class="usage-speed__head">
+        <div class="usage-panel__title-wrap">
+          <h2 class="usage-panel__title">TopK 速度榜</h2>
+          <span class="usage-panel__meta">平均解码速度 · 按请求数加权 · 前 {{ board.topkRows.length || 0 }} 名</span>
+        </div>
+        <div class="usage-seg usage-seg--sm" role="tablist" aria-label="速度榜维度" @keydown="onTabKeydown">
+          <button
+            v-for="s in board.TOPK_SCOPES"
+            :key="s.key"
+            type="button"
+            role="tab"
+            class="usage-seg__btn"
+            :class="{ 'is-on': board.topkScope === s.key }"
+            :aria-selected="board.topkScope === s.key"
+            @click="board.topkScope = s.key"
+          >{{ s.label }}</button>
+        </div>
+      </header>
+      <ol v-if="board.topkRows.length" class="usage-speed__list">
+        <li v-for="(r, i) in board.topkRows" :key="r.key" class="usage-speed__row">
+          <!-- 相对速度条：以榜首为 100%，纯装饰（数值已在右侧文字里） -->
+          <i
+            class="usage-speed__bar"
+            aria-hidden="true"
+            :style="{
+              width: speedBarPct(r.speed),
+              background: board.topkColor(i),
+            }"
+          />
+          <i class="usage-speed__dot" :style="{ background: board.topkColor(i) }" />
+          <div class="usage-speed__main">
+            <div class="usage-speed__title">
+              <span class="usage-speed__name" :title="r.name">{{ r.name }}</span>
+              <span class="usage-speed__rate">{{ Math.round(r.speed ?? 0) }} token/秒</span>
+              <span class="usage-speed__ticks">· {{ board.formatNumber(r.ticks) }} 计时</span>
+            </div>
+            <div class="usage-speed__sub">
+              {{ board.formatNumber(r.calls) }} 个请求 · {{ board.fmtToken(r.tokens) }} token ·
+              {{ board.currencySymbol }}{{ board.money(r.cost) }} · 首字
+              {{ r.firstMs == null ? '—' : board.formatLatency(r.firstMs) }} ·
+              <span title="后端暂未提供分模型缓存读取统计" class="usage-speed__na">命中率 —</span> ·
+              <span title="后端暂未提供失败次数字段" class="usage-speed__na">失败 —</span>
+            </div>
+          </div>
+          <span class="usage-speed__rank">{{ i + 1 }}</span>
+        </li>
+      </ol>
+      <div v-else class="usage-speed__empty">
+        {{ board.routeErrors.trend || board.routeErrors.modelTrend ? '速度数据加载失败，点右上角刷新重试' : '当前区间暂无可比较的实测速度' }}
+      </div>
+    </section>
+
     <!-- ── 构成 + 趋势：面积看分布，曲线看走势 ── -->
     <section class="usage-mid">
       <article class="usage-panel usage-card">
@@ -263,6 +351,24 @@
           </div>
         </div>
       </article>
+    </section>
+
+    <!-- ── 缓存命中率：缓存读取 / 总 Token 的日走势（与趋势图同源，不额外发请求） ── -->
+    <section class="usage-panel usage-card usage-cache" aria-label="缓存命中率">
+      <header class="usage-panel__head">
+        <div class="usage-panel__title-wrap">
+          <h2 class="usage-panel__title">缓存命中率</h2>
+          <span class="usage-panel__meta">
+            区间命中 {{ cacheSummary.pct }} · 缓存读取 {{ board.fmtToken(cacheSummary.cached) }} token
+          </span>
+        </div>
+      </header>
+      <div class="usage-panel__chart usage-panel__chart--tight usage-cache__chart">
+        <ReEcharts v-if="board.trendData.length" :option="board.cacheTrendOption" height="132px" notMerge />
+        <div v-else class="usage-empty usage-empty--sm">
+          <el-empty description="暂无缓存数据" :image-size="40" />
+        </div>
+      </div>
     </section>
 
     <!-- ── 分布（占两行） + 每日模型（占两列） + 模型延迟 ── -->
@@ -481,6 +587,31 @@
       </article>
     </section>
 
+    <!-- ── 用量热力图：最近 53 周的每日用量（GitHub 风格，与时间筛选无关） ── -->
+    <section class="usage-panel usage-card usage-heat" aria-label="近 53 周用量热力图">
+      <header class="usage-panel__head">
+        <div class="usage-panel__title-wrap">
+          <h2 class="usage-panel__title">用量热力图</h2>
+          <span class="usage-panel__meta">最近 53 周的每日用量 · 周一至周日</span>
+        </div>
+        <div class="usage-seg usage-seg--sm" role="tablist" aria-label="热力图口径" @keydown="onTabKeydown">
+          <button
+            v-for="m in heatmapMetrics"
+            :key="m.key"
+            type="button"
+            role="tab"
+            class="usage-seg__btn"
+            :class="{ 'is-on': board.heatmapMetric === m.key }"
+            :aria-selected="board.heatmapMetric === m.key"
+            @click="board.heatmapMetric = m.key"
+          >{{ m.label }}</button>
+        </div>
+      </header>
+      <div v-loading="board.heatmapLoading" class="usage-heat__body">
+        <ReEcharts :option="board.heatmapOption" height="196px" notMerge />
+      </div>
+    </section>
+
     <!-- ── 明细（默认 9 列，其余在「列」里按需打开，内部滚动） ── -->
     <div class="usage-detail-wrap">
       <UsageDetailTable :board="board" compact />
@@ -657,6 +788,57 @@ const trendDesc = computed(() => {
   }
   return map[board.trendMetric] ?? ''
 })
+
+/** 热力图口径：Token / 请求 / 费用（写入 board.heatmapMetric，option 自动跟随） */
+const heatmapMetrics = [
+  { key: 'token', label: 'Token' },
+  { key: 'calls', label: '请求' },
+  { key: 'cost', label: '费用' },
+] as const
+
+/** 缓存命中率面板的头部摘要：区间内 命中率 + 缓存读取 token（来自统计快照） */
+const cacheSummary = computed(() => {
+  const total = Number(board.stats.totalTokens) || 0
+  const cached = Number(board.stats.totalCachedTokens) || 0
+  return {
+    pct: total > 0 ? `${((cached / total) * 100).toFixed(1)}%` : '—',
+    cached,
+    total,
+  }
+})
+
+/**
+ * Tab 键盘导航（WAI-ARIA Tabs 模式）：←/→/Home/End 在 tab 间移动并激活。
+ * 只挂在本次新增的 tablist 上；激活通过点击目标按钮复用既有 @click 逻辑，
+ * 不改任何既有 tab 的行为、不引入焦点 roving tabindex 状态，纯增量。
+ */
+function onTabKeydown(e: KeyboardEvent) {
+  const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End']
+  if (!keys.includes(e.key)) return
+  const list = (e.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('[role="tab"]')
+  if (!list.length) return
+  const cur = Array.prototype.indexOf.call(list, document.activeElement)
+  if (cur < 0) return
+  e.preventDefault()
+  let next = cur
+  if (e.key === 'Home') next = 0
+  else if (e.key === 'End') next = list.length - 1
+  else if (e.key === 'ArrowLeft') next = (cur - 1 + list.length) % list.length
+  else next = (cur + 1) % list.length
+  list[next].focus()
+  list[next].click()
+}
+
+/**
+ * 速度榜相对条宽度：以当前榜首（topkRows 已按速度降序）为 100%。
+ * 纯视觉编码，数值本身以右侧文字为准；最小 6% 保证末位也能看见一条底衬。
+ */
+function speedBarPct(speed: number | null | undefined): string {
+  const top = board.topkRows.length ? (board.topkRows[0].speed ?? 0) : 0
+  const v = Number(speed) || 0
+  if (!(top > 0) || !(v > 0)) return '0%'
+  return `${Math.max(6, Math.round((v / top) * 100))}%`
+}
 
 /** 今天（本地时区），刻度尺上高亮最后一根 */
 const todayKey = (() => {
@@ -1087,6 +1269,9 @@ function pctStyle(r: any) {
 }
 .usage-kpi.has-ring .usage-kpi__sub { padding-right: 58px; }
 .usage-kpi__ring { position: absolute; right: 8px; bottom: 2px; pointer-events: none; opacity: 0.9; }
+/* 请求/费用/耗时三卡的静态走势小图：比迷你环更宽，副行给它们让位 */
+.usage-kpi__ring--spark { right: 10px; bottom: 5px; opacity: 0.85; }
+.usage-kpi.has-spark .usage-kpi__sub { padding-right: 100px; }
 
 /* ── 派生读数（五格横带） ── */
 .usage-deriv {
@@ -1126,6 +1311,165 @@ function pctStyle(r: any) {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+/* ── 用量构成（按调用类型：对话 / 工具 / 记忆 / 外部） ── */
+.usage-calltype { padding: 8px 12px 10px; }
+.usage-calltype__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.usage-calltype__hint {
+  font-size: 10px;
+  color: var(--el-text-color-placeholder);
+  white-space: nowrap;
+}
+.usage-calltype__list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.usage-calltype__row {
+  display: grid;
+  grid-template-columns: 8px 44px minmax(60px, 1fr) 52px 84px 68px 84px;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  font-size: 11px;
+  color: var(--el-text-color-regular);
+  font-variant-numeric: tabular-nums;
+}
+.usage-calltype__dot { width: 8px; height: 8px; border-radius: 2px; }
+.usage-calltype__name { font-weight: 600; color: var(--el-text-color-primary); }
+.usage-calltype__bar {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--el-fill-color-light);
+  overflow: hidden;
+}
+.usage-calltype__bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.usage-calltype__pct { text-align: right; color: var(--el-text-color-secondary); }
+.usage-calltype__num { text-align: right; white-space: nowrap; }
+
+/* ── TopK 速度榜：模型 / 供应商 / Agent ── */
+.usage-speed { padding: 6px 10px 8px; }
+.usage-speed__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 26px;
+  padding: 2px 2px 4px;
+}
+.usage-speed__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.usage-speed__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  padding: 5px 8px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+.usage-speed__row:hover { background: var(--el-fill-color-light); }
+/* 相对速度条：贴在行底的低透明度底衬，宽度=本行速度/榜首。
+   纯装饰、不承载读数；isolation 保证它压在文字之下，不抢可读性。 */
+.usage-speed__bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  opacity: 0.32;
+  border-radius: 0 2px 2px 0;
+  pointer-events: none;
+  transition: width 0.25s var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1)), opacity 0.15s ease;
+}
+.usage-speed__row:hover .usage-speed__bar { opacity: 0.55; }
+.usage-speed__dot,
+.usage-speed__main,
+.usage-speed__rank { position: relative; z-index: 1; }
+.usage-speed__dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.usage-speed__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.usage-speed__title { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.usage-speed__name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.usage-speed__rate {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--u-primary, #165dff);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.usage-speed__ticks { font-size: 10.5px; color: var(--el-text-color-placeholder); flex-shrink: 0; }
+.usage-speed__sub {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.usage-speed__na { color: var(--el-text-color-placeholder); cursor: help; }
+.usage-speed__rank {
+  width: 18px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
+}
+/* 前三名名次用主色点亮，强化「榜」的语义 */
+.usage-speed__row:nth-child(-n+3) .usage-speed__rank { color: var(--u-primary, #165dff); }
+.usage-speed__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* ── 用量热力图 ── */
+.usage-heat__body { padding: 0 8px 8px; min-height: 204px; }
+
+/* 缓存率图：空态 el-empty 与 132px 图表两态等高，数据异步到达时不跳版。
+   只作用于本面板（子 .usage-empty--sm 已有 height:100% 会填满），
+   不改共用的 --tight 规则、不波及既有图表。 */
+.usage-cache__chart { min-height: 140px; }
+
+/* 新增区块的动效降级：全局 tokens.css 只收敛 animation-*，这里补齐 transition-*。
+   仅作用于本次新增的 speed/heat/cache 面板，不改动既有区块与全局规则。 */
+@media (prefers-reduced-motion: reduce) {
+  .usage-speed__row,
+  .usage-speed__bar,
+  .usage-seg__btn { transition: none; }
 }
 
 /* ── 面板通用 ── */
@@ -1468,6 +1812,7 @@ function pctStyle(r: any) {
   .usage-deriv__hint { display: none; }
   .usage-spine__side { width: 70px; }
   .usage-head__tools { gap: 6px; }
+  .usage-speed__list { grid-template-columns: 1fr; }
 }
 /* ── 色块详情弹窗：模型级指标或汇总块的成员名单 ── */
 .usage-treemap-detail { padding: 4px 0 0; }

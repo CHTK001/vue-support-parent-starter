@@ -48,6 +48,20 @@
       </SettingsRow>
 
       <SettingsRow
+        label="输入历史记录数量"
+        description="输入框按 ↑ 能翻回的历史条数上限（1-1000，默认 100）。这些记录加密保存在本浏览器的 IndexedDB 里，不随账号同步；调小后多余的老记录会在下一次发送时自动清理"
+      >
+        <el-select
+          v-model="historyLimitModel"
+          class="w-56"
+          aria-label="输入历史记录数量"
+          @change="onHistoryLimitChange"
+        >
+          <el-option v-for="n in historyLimitOptions" :key="n" :label="`${n} 条`" :value="n" />
+        </el-select>
+      </SettingsRow>
+
+      <SettingsRow
         label="「AI 正在思考…」占位文案"
         description="AI 答复的首字还没回来时，气泡里显示哪一句。一行一句，随机轮换且不会连着两次相同；留空则用内置的默认文案"
       >
@@ -143,6 +157,98 @@
         </el-select>
       </SettingsRow>
 
+      <SettingsRow
+        label="单轮执行超时"
+        description="这一轮总共跑这么久（秒）仍未完成就结束并中断执行，即使一直在输出也会收口；填 0 = 不限制"
+      >
+        <el-select
+          v-model="turnTimeoutModel"
+          :disabled="loading"
+          class="w-56"
+          aria-label="单轮执行超时（秒）"
+          @change="onTurnTimeoutChange"
+        >
+          <el-option
+            v-for="m in TURN_TIMEOUT_OPTIONS"
+            :key="m"
+            :label="m === 0 ? '不限制' : `${m} 秒`"
+            :value="m"
+          />
+        </el-select>
+      </SettingsRow>
+
+      <SettingsRow
+        label="失败自动重试次数"
+        description="本轮的正文/思考/工具结果都还没输出时失败，自动重发几次；已经开始输出后失败不会重试（避免拼出两段回复）"
+      >
+        <el-select
+          v-model="retryMaxModel"
+          :disabled="loading"
+          class="w-56"
+          aria-label="失败自动重试次数"
+          @change="onRetryMaxChange"
+        >
+          <el-option
+            v-for="m in RETRY_MAX_OPTIONS"
+            :key="m"
+            :label="m === 0 ? '不重试' : `${m} 次`"
+            :value="m"
+          />
+        </el-select>
+      </SettingsRow>
+
+      <SettingsRow
+        label="重试间隔"
+        description="每次重试前等待多久；开启指数退避后，第 n 次重试等待「间隔 × 2^(n-1)」"
+      >
+        <el-select
+          v-model="retryIntervalModel"
+          :disabled="loading"
+          class="w-56"
+          aria-label="重试间隔（秒）"
+          @change="onRetryIntervalChange"
+        >
+          <el-option
+            v-for="m in RETRY_INTERVAL_OPTIONS"
+            :key="m"
+            :label="`${m} 秒`"
+            :value="m"
+          />
+        </el-select>
+      </SettingsRow>
+
+      <SettingsRow
+        label="重试指数退避"
+        description="关闭时每次重试都按固定间隔等待；开启后间隔逐次翻倍，避免上游持续故障时被连续轰击"
+      >
+        <div class="session-config-controls">
+          <el-switch
+            :model-value="retryBackoff"
+            :loading="saving"
+            :disabled="loading"
+            aria-label="重试是否启用指数退避"
+            @change="onRetryBackoffChange"
+          />
+          <span class="session-config-state">{{ retryBackoff ? '已开启' : '固定间隔' }}</span>
+        </div>
+      </SettingsRow>
+
+      <SettingsRow
+        label="重启后自动继续"
+        description="服务重启时，如果有一轮「已经提问、助手还没回完」的对话，自动补发「继续」把它跑完；工作区终端也会自动输入一次「继续」"
+      >
+        <div class="session-config-controls">
+          <el-switch
+            :model-value="autoContinue"
+            :loading="saving"
+            :disabled="loading"
+            aria-label="重启后是否自动继续未完成的回合"
+            @change="onAutoContinueChange"
+          />
+          <span class="session-config-state">{{ autoContinue ? '已开启' : '已关闭' }}</span>
+        </div>
+      </SettingsRow>
+
       <p class="session-config-note">
         <span class="session-config-note__icon"><el-icon><InfoFilled /></el-icon></span>
         <span class="session-config-note__text">
@@ -219,6 +325,12 @@ import ModelPickerDialog from './dms/ModelPickerDialog.vue'
 import ModelRowLogo from '@/components/models/ModelRowLogo.vue'
 import { mapProviderModel, findPickedModel } from '@/components/models/modelMeta'
 import { invalidateInitialLoadTurnsCache, invalidateCollapseLastReplyCache } from '../../services/modules/message.api'
+import {
+  DEFAULT_MESSAGE_HISTORY_LIMIT,
+  MAX_MESSAGE_HISTORY_LIMIT,
+  getMessageHistoryLimit,
+  setMessageHistoryLimit,
+} from '@repo/utils'
 
 const { t } = useI18n()
 const { notify } = usePopup()
@@ -255,8 +367,14 @@ const FIELD_IDLE_TIMEOUT = 'stream_idle_timeout_minutes'
 const FIELD_FIRST_TOKEN_TIMEOUT = 'stream_first_token_timeout_millis'
 /** 整段回复等待上限（秒） */
 const FIELD_COMPLETION_WAIT = 'stream_completion_wait_seconds'
-/** 会话超时兜底值：后端未返回时用它，不让输入框空着 */
-const DEFAULT_IDLE_TIMEOUT = 30
+/**
+ * 会话超时兜底值（分钟）：与后端 {@code SessionGlobalSettingProvider} 里
+ * {@code stream_idle_timeout_minutes} 的 {@code defaultValue}（5）逐字对齐。
+ *
+ * <p>后端未返回该字段（老版本后端 / 接口异常）时用它，不让输入框空着；
+ * 这里若与后端默认值不同，用户在设置页看到的就是一个服务端并不认的值。</p>
+ */
+const DEFAULT_IDLE_TIMEOUT = 5
 const DEFAULT_FIRST_TOKEN_TIMEOUT = 8000
 const DEFAULT_COMPLETION_WAIT = 100
 
@@ -274,6 +392,31 @@ const FIRST_TOKEN_OPTIONS = [3000, 5000, 8000, 15000, 30000, 60000]
 /** 整段回复等待可选档位（秒）：默认 100s */
 const COMPLETION_WAIT_OPTIONS = [60, 100, 180, 300, 600, 1800]
 
+/** 单轮执行超时字段名（秒，0=不限制） */
+const FIELD_TURN_TIMEOUT = 'stream_turn_timeout_seconds'
+/** 失败重试次数字段名 */
+const FIELD_RETRY_MAX = 'stream_retry_max'
+/** 重试间隔字段名（秒） */
+const FIELD_RETRY_INTERVAL = 'stream_retry_interval_seconds'
+/** 重试指数退避开关字段名 */
+const FIELD_RETRY_BACKOFF = 'stream_retry_backoff'
+/** 重启后自动继续开关字段名 */
+const FIELD_AUTO_CONTINUE = 'auto_continue_on_restart'
+
+/** 单轮执行超时默认值（秒）：与后端 SessionGlobalSettingProvider 的 600 对齐 */
+const DEFAULT_TURN_TIMEOUT = 600
+/** 失败重试默认次数 */
+const DEFAULT_RETRY_MAX = 2
+/** 重试间隔默认值（秒） */
+const DEFAULT_RETRY_INTERVAL = 5
+
+/** 单轮执行超时可选档位（秒），0 = 不限制 */
+const TURN_TIMEOUT_OPTIONS = [0, 60, 120, 300, 600, 900, 1800, 3600]
+/** 失败重试次数可选档位 */
+const RETRY_MAX_OPTIONS = [0, 1, 2, 3, 5, 10]
+/** 重试间隔可选档位（秒） */
+const RETRY_INTERVAL_OPTIONS = [2, 5, 10, 15, 30, 60]
+
 /** 联想条数的可选档位 */
 const MAX_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10]
 
@@ -285,6 +428,15 @@ const MAX_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10]
  * 正是这个配置要解决的问题。</p>
  */
 const INITIAL_LOAD_TURNS_OPTIONS = [5, 10, 15, 20, 30, 50]
+
+/**
+ * 输入历史记录数量的可选档位（条）。
+ *
+ * <p>默认 100 与 {@code DEFAULT_MESSAGE_HISTORY_LIMIT} 对齐。这一项与上面几条不同：
+ * 历史记录存在**本浏览器的 IndexedDB**（AES 加密）里，条数是本机配置，不进服务端
+ * 覆盖层——换一台机器、换一个浏览器就没有那份记录可谈「同步条数」。</p>
+ */
+const HISTORY_LIMIT_OPTIONS = [50, DEFAULT_MESSAGE_HISTORY_LIMIT, 200, 300, 500, MAX_MESSAGE_HISTORY_LIMIT]
 
 // ===================== 对话路由（runtime 分组的模型选择） =====================
 
@@ -328,6 +480,7 @@ const loadModels = () => {
   if (modelsLoadPromise) return modelsLoadPromise
   modelsLoadPromise = (async () => {
     try {
+      // 只要已开启的模型（口径由账号模块判定）
       const body = await adminApi.get('/api/providers')
       const data = Array.isArray(body) ? body : body?.data || []
       const all: any[] = []
@@ -335,7 +488,6 @@ const loadModels = () => {
       for (const p of data) {
         if (!p?.provider_id) continue
         const list = (p.models || [])
-          .filter((m: any) => m.enabled !== false)
           .map((m: any) => mapProviderModel(p, m))
           .filter((m: any) => (m.types || []).includes('text'))
         if (list.length) {
@@ -473,6 +625,19 @@ const firstTokenTimeout = ref(DEFAULT_FIRST_TOKEN_TIMEOUT)
 const firstTokenModel = ref(DEFAULT_FIRST_TOKEN_TIMEOUT)
 const completionWait = ref(DEFAULT_COMPLETION_WAIT)
 const completionWaitModel = ref(DEFAULT_COMPLETION_WAIT)
+/** 单轮执行超时（秒） */
+const turnTimeout = ref(DEFAULT_TURN_TIMEOUT)
+const turnTimeoutModel = ref(DEFAULT_TURN_TIMEOUT)
+/** 失败重试次数 */
+const retryMax = ref(DEFAULT_RETRY_MAX)
+const retryMaxModel = ref(DEFAULT_RETRY_MAX)
+/** 重试间隔（秒） */
+const retryInterval = ref(DEFAULT_RETRY_INTERVAL)
+const retryIntervalModel = ref(DEFAULT_RETRY_INTERVAL)
+/** 重试是否指数退避 */
+const retryBackoff = ref(false)
+/** 重启后是否自动继续未完成的回合 */
+const autoContinue = ref(true)
 const initialTurnsModel = ref(DEFAULT_INITIAL_TURNS)
 /** 「AI 正在思考…」占位文案（多行文本，一行一句）；空 = 用内置默认文案 */
 const thinkingPhrasesText = ref('')
@@ -480,6 +645,27 @@ const thinkingPhrasesText = ref('')
 const collapseLastReply = ref(false)
 const defaultCollapseLastReply = ref(false)
 const overriddenCollapseLastReply = ref(false)
+/** 输入历史记录数量（本浏览器的 IndexedDB 配置，默认 100） */
+const historyLimitModel = ref(getMessageHistoryLimit())
+
+/**
+ * 条数档位：库里若被手工写成档位外的值（例如 137），下拉也要能显示它。
+ */
+const historyLimitOptions = computed(() => {
+  const list = [...HISTORY_LIMIT_OPTIONS]
+  if (!list.includes(historyLimitModel.value)) list.push(historyLimitModel.value)
+  return list.sort((a, b) => a - b)
+})
+
+/**
+ * 保存输入历史记录数量。
+ *
+ * @param value 用户选中的档位（条）
+ */
+const onHistoryLimitChange = (value: number) => {
+  historyLimitModel.value = setMessageHistoryLimit(value)
+  notify.success('已保存', `输入历史最多保留 ${historyLimitModel.value} 条（仅保存在本浏览器）`)
+}
 
 /**
  * 保存占位文案。
@@ -574,7 +760,7 @@ const load = async () => {
     maxCountModel.value = nearestOption(maxCount.value, MAX_COUNT_OPTIONS, 3)
     const idleItem = pickField(response, FIELD_IDLE_TIMEOUT)
     const idle = Number(idleItem?.value ?? idleItem?.defaultValue)
-    // 0 是合法值（= 不限制超时），所以不能用 `|| DEFAULT` 兜底，否则 0 会被吞成 30
+    // 0 是合法值（= 不限制超时），所以不能用 `|| DEFAULT` 兜底，否则 0 会被吞成 5
     idleTimeout.value = Number.isFinite(idle) && idle >= 0
       ? Math.min(idle, 180)
       : DEFAULT_IDLE_TIMEOUT
@@ -591,6 +777,29 @@ const load = async () => {
       ? Math.min(Math.trunc(completion), 3600)
       : DEFAULT_COMPLETION_WAIT
     completionWaitModel.value = nearestOption(completionWait.value, COMPLETION_WAIT_OPTIONS, DEFAULT_COMPLETION_WAIT)
+    const turnTimeoutItem = pickField(response, FIELD_TURN_TIMEOUT)
+    const turnTimeoutValue = Number(turnTimeoutItem?.value ?? turnTimeoutItem?.defaultValue)
+    // 0 = 不限制，是合法值，不能用 `|| DEFAULT` 兜底
+    turnTimeout.value = Number.isFinite(turnTimeoutValue) && turnTimeoutValue >= 0
+      ? Math.min(Math.trunc(turnTimeoutValue), 86400)
+      : DEFAULT_TURN_TIMEOUT
+    turnTimeoutModel.value = nearestOption(turnTimeout.value, TURN_TIMEOUT_OPTIONS, DEFAULT_TURN_TIMEOUT)
+    const retryMaxItem = pickField(response, FIELD_RETRY_MAX)
+    const retryMaxValue = Number(retryMaxItem?.value ?? retryMaxItem?.defaultValue)
+    retryMax.value = Number.isFinite(retryMaxValue) && retryMaxValue >= 0
+      ? Math.min(Math.trunc(retryMaxValue), 10)
+      : DEFAULT_RETRY_MAX
+    retryMaxModel.value = nearestOption(retryMax.value, RETRY_MAX_OPTIONS, DEFAULT_RETRY_MAX)
+    const retryIntervalItem = pickField(response, FIELD_RETRY_INTERVAL)
+    const retryIntervalValue = Number(retryIntervalItem?.value ?? retryIntervalItem?.defaultValue)
+    retryInterval.value = Number.isFinite(retryIntervalValue) && retryIntervalValue > 0
+      ? Math.min(Math.trunc(retryIntervalValue), 300)
+      : DEFAULT_RETRY_INTERVAL
+    retryIntervalModel.value = nearestOption(retryInterval.value, RETRY_INTERVAL_OPTIONS, DEFAULT_RETRY_INTERVAL)
+    const backoffItem = pickField(response, FIELD_RETRY_BACKOFF)
+    retryBackoff.value = String(backoffItem?.value ?? backoffItem?.defaultValue ?? 'false').toLowerCase() === 'true'
+    const autoContinueItem = pickField(response, FIELD_AUTO_CONTINUE)
+    autoContinue.value = String(autoContinueItem?.value ?? autoContinueItem?.defaultValue ?? 'true').toLowerCase() === 'true'
     const turnsItem = pickField(response, FIELD_INITIAL_TURNS)
     const turns = Number(turnsItem?.value ?? turnsItem?.defaultValue)
     initialTurns.value = Number.isFinite(turns) && turns >= 1
@@ -729,6 +938,48 @@ const onInitialTurnsChange = (value: number | undefined) => {
 const onCollapseLastReplyChange = (value: boolean | string | number) => {
   collapseLastReply.value = value === true
   saveOverrides({ [FIELD_LAST_REPLY_COLLAPSE]: collapseLastReply.value })
+}
+
+/** 单轮执行超时变更：写本人覆盖层（秒，0=不限制） */
+const onTurnTimeoutChange = (value: number | undefined) => {
+  if (!Number.isFinite(value)) {
+    return
+  }
+  turnTimeout.value = nearestOption(Math.trunc(Number(value)), TURN_TIMEOUT_OPTIONS, DEFAULT_TURN_TIMEOUT)
+  turnTimeoutModel.value = turnTimeout.value
+  saveOverrides({ [FIELD_TURN_TIMEOUT]: turnTimeout.value })
+}
+
+/** 失败重试次数变更：写本人覆盖层（0=不重试） */
+const onRetryMaxChange = (value: number | undefined) => {
+  if (!Number.isFinite(value)) {
+    return
+  }
+  retryMax.value = nearestOption(Math.trunc(Number(value)), RETRY_MAX_OPTIONS, DEFAULT_RETRY_MAX)
+  retryMaxModel.value = retryMax.value
+  saveOverrides({ [FIELD_RETRY_MAX]: retryMax.value })
+}
+
+/** 重试间隔变更：写本人覆盖层（秒） */
+const onRetryIntervalChange = (value: number | undefined) => {
+  if (!Number.isFinite(value)) {
+    return
+  }
+  retryInterval.value = nearestOption(Math.trunc(Number(value)), RETRY_INTERVAL_OPTIONS, DEFAULT_RETRY_INTERVAL)
+  retryIntervalModel.value = retryInterval.value
+  saveOverrides({ [FIELD_RETRY_INTERVAL]: retryInterval.value })
+}
+
+/** 重试指数退避开关变更：写本人覆盖层 */
+const onRetryBackoffChange = (value: boolean | string | number) => {
+  retryBackoff.value = value === true
+  saveOverrides({ [FIELD_RETRY_BACKOFF]: retryBackoff.value })
+}
+
+/** 重启后自动继续开关变更：写本人覆盖层 */
+const onAutoContinueChange = (value: boolean | string | number) => {
+  autoContinue.value = value === true
+  saveOverrides({ [FIELD_AUTO_CONTINUE]: autoContinue.value })
 }
 
 onMounted(() => {

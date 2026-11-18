@@ -594,6 +594,13 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
       },
+      // 工作区终端（PTY）：与 /ws/chat 同为 WebSocket 升级，dev 下不代理则该端点
+      // 连不上 vite 服务本身（表现为终端面板「terminal websocket connect timeout」）。
+      '/ws/terminal': {
+        target: AI_API_TARGET,
+        changeOrigin: true,
+        ws: true,
+      },
       // 天气/定位三方数据源代理（与 vue-support-system-starter 同口径）：
       // packages/core 的 weather.ts 候选表里 /weather-api、/geo-api 等前缀排在直连域名之前，
       // dev 期配了就走代理（免跨域、可走内网），请求失败自动降级直连；

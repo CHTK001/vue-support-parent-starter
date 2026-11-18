@@ -287,6 +287,13 @@ export const usageApi = {
    * 分别占多少」；本接口保留模型维度，一天返回多行，前端归并成同一根柱内的分段。
    */
   modelTrend: (params?: any) => http.get('/usage/model-trend', { params }),
+  /**
+   * 按「调用类型」拆分（对话 / 工具 / 记忆 / 外部）。
+   *
+   * <p>数据源是明细表已有的 `sys_ai_usage_call_type` 列：一次会话里工具执行、
+   * 记忆抽取各占一行，分开统计才能看出 token 到底花在哪一块。</p>
+   */
+  callType: (params?: any) => http.get('/usage/call-type', { params }),
   syncLogs: (params?: any) => http.get('/usage/sync-logs', { params }),
   parsers: (params?: any) => http.get('/usage/parsers', { params }),
   /**
@@ -582,7 +589,20 @@ export const channelApi = {
     apiHttp.post(`/api/channels/${channel}/checkin`, body) as Promise<{ ok: boolean; channel: string; label: string; result: Record<string, any> }>,
   /** POST /api/channels/{channel}/list-models —— 按 label 拉取账号当前可用模型 */
   listModels: (channel: string, body: { label?: string }) =>
-    apiHttp.post(`/api/channels/${channel}/list-models`, body) as Promise<{ ok: boolean; models: Array<{ id: string; name?: string; contextWindow?: number }> }>,
+    apiHttp.post(`/api/channels/${channel}/list-models`, body) as Promise<{ ok: boolean; keyless?: boolean; models: Array<{ id: string; name?: string; contextWindow?: number; tasks?: string[] }> }>,
+  /**
+   * GET /api/channels/{channel}/models/config —— 读取该渠道已落库的模型行。
+   *
+   * <p>免登录渠道不在 {@code /api/channels} 里（那份清单只有账号渠道），
+   * 模型弹框要靠这个端点拿到「已拉取但未出现在实时目录」的行，
+   * 否则视频 / 3D 这类实现没有声明目录的渠道会显示成空列表。</p>
+   */
+  modelConfig: (channel: string) =>
+    apiHttp.get(`/api/channels/${channel}/models/config`) as Promise<{
+      ok: boolean;
+      channel: string;
+      models: Array<{ model: string; enabled: boolean; alias?: string; contextWindow?: number; tasks?: string[] }>;
+    }>,
   /** POST /api/channels/{channel}/import-models —— 调 SPI listModels 并落库 sys_ai_provider_model */
   importModels: (channel: string, body: { label?: string }) =>
     apiHttp.post(`/api/channels/${channel}/import-models`, body) as Promise<{ ok: boolean; channel: string; created: number; updated: number; total: number }>,

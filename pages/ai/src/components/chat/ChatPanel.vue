@@ -208,7 +208,7 @@ import { useLayoutStore } from "@/stores/layout"
 import { useWorkspaceStore } from "@/stores/workspace"
 import { getCurrentTurns, flattenContentsForTimeline } from "@/utils/messageUtils"
 import { getToolActionLabel, getToolIcon, getArgsText } from "@/utils/toolDisplay"
-import { loadInputHistory, rememberInput } from "@/utils/inputHistory"
+import { hydrateInputHistory, rememberInput } from "@/utils/inputHistory"
 import { useStreamResponse } from "@/composables/useStreamResponse"
 import type { InputMessageState, Session, QueuedMessage } from '@/types/session';
 import type { Character } from '@/types/character';
@@ -256,13 +256,29 @@ const workspaceStore = useWorkspaceStore();
 /**
  * 本机输入历史（按用户分键，见 utils/inputHistory）。
  *
- * <p>与会话消息解耦：用户清空会话后 ↑ 仍能翻到上次发过的内容。登录态是异步
- * 恢复的，用户名可能晚于挂载才就位，所以跟着 user 变化重读一次。</p>
+ * <p>与会话消息解耦：用户清空会话后 ↑ 仍能翻到上次发过的内容。数据存在浏览器
+ * IndexedDB 且文本经 AES 加密（底层 utils/modules/messageHistory.ts），读取是异步的：
+ * 先同步拿到空快照，再由 hydrate 回填。登录态也是异步恢复的，用户名可能晚于挂载
+ * 才就位，所以跟着 user 变化重读一次。</p>
  */
-const localInputHistory = ref<string[]>(loadInputHistory(authStore.user?.username))
+const localInputHistory = ref<string[]>([])
+
+/**
+ * 载入当前用户的本机历史。
+ *
+ * @param name 用户名（未登录时为空，底层归入匿名分组）
+ */
+async function syncInputHistory(name?: string | null) {
+  const list = await hydrateInputHistory(name)
+  // 等待期间用户名可能又变了：只认最后一次请求
+  if (String(name ?? "") === String(authStore.user?.username ?? "")) {
+    localInputHistory.value = list
+  }
+}
+
 watch(() => authStore.user?.username, (name) => {
-  localInputHistory.value = loadInputHistory(name)
-})
+  void syncInputHistory(name)
+}, { immediate: true })
 
 // 有壁纸时隐藏底部渐变遮罩（壁纸已有视觉层次，不透明遮罩会像补丁）
 const hasWallpaper = computed(() => !!layoutStore.wallpaperUrl);
@@ -983,7 +999,7 @@ const handleConfigChange = (config: any) => {
  * <p>入口是输入行左组的 SessionWorkspaceButton；这里只做转发，内存同步、落库与
  * 失败回滚都收在 {@link handleConfigChange} 里，避免两条路径各写一份。</p>
  *
- * @param workspacePath 新目录；null 表示回到「自动创建」（账号 agent 目录）
+ * @param workspacePath 新目录；null 表示回到「自动创建」（账号工作目录）
  */
 const handleWorkspaceChange = (workspacePath: string | null) => {
   handleConfigChange({ workspacePath });
@@ -1135,7 +1151,7 @@ async function loadMoreMessages(sessionId: string, beforeMessageId: string) {
 /**
  * 历史提示条目（输入框按 ↑ 打开）：本机输入历史 + 当前会话<b>已加载</b>的用户提问。
  *
- * <p>2026-11-14 起本机历史（localStorage，见 utils/inputHistory）排在最前：
+ * <p>2026-11-18 起本机历史（IndexedDB + AES 加密，见 utils/inputHistory）排在最前：
  * 用户清空会话消息后仍能翻到上次输入。此前只读消息列表，删消息历史即空。
  * 会话消息部分随加载/删除实时变化，作为补充分列在后面；同一文本只保留一条。</p>
  */
@@ -1759,9 +1775,11 @@ async function handleSendMessage(payload?: InputMessageState) {
   if (!data || (!data.content?.trim() && !(data.files?.length))) return;
 
   // 本机输入历史先落一条：即使随后发送失败、或用户事后清空会话消息，
-  // ↑ 历史提示也还能翻到这次输入。
-  rememberInput(data.content ?? '', authStore.user?.username)
-  localInputHistory.value = loadInputHistory(authStore.user?.username)
+  // ↑ 历史提示也还能翻到这次输入。写库是异步的，不阻塞发送——历史只是便利功能，
+  // 不能因为 IndexedDB 慢或不可用把消息卡在输入框里。
+  void rememberInput(data.content ?? '', authStore.user?.username).then((list) => {
+    localInputHistory.value = list
+  })
 
   try {
     const { content, files, knowledgeBaseIds, think, search, skillNames } = data;
