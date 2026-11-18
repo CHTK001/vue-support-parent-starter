@@ -31,6 +31,7 @@ import {
   Picture as PictureIcon,
   ArrowDown as ArrowDownIcon,
   ArrowRight as ArrowRightIcon,
+  Link as LinkIcon,
 } from '@element-plus/icons-vue'
 import { channelApi } from '../channelApi'
 import type {
@@ -66,6 +67,11 @@ import geminiIcon from '../assets/channel-icons/gemini.svg'
 import minimaxIcon from '../assets/channel-icons/minimax.ico'
 import zcodeIcon from '../assets/channel-icons/zcode.ico'
 import lobsteraiIcon from '../assets/channel-icons/lobsterai.ico'
+import raccoonIcon from '../assets/channel-icons/raccoon.ico'
+// 免登录渠道：DuckDuckGo 走 SSE 免登录，对话与出图同一家
+import duckduckgoIcon from '../assets/channel-icons/duckduckgo.svg'
+// 图片生成渠道：Pollinations 免登录
+import pollinationsIcon from '../assets/channel-icons/pollinations.ico'
 // 这三个图标来自 Magpie 自带的品牌图（/icons/…），和网关里的上游列表同源，
 // 渠道页与网关页才不会同一家出现两种标记。
 import qoderIcon from '../assets/channel-icons/qoder.svg'
@@ -94,7 +100,7 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   gemini: { icon: geminiIcon, color: '#8E75B2', glyph: 'G', method: '浏览器授权' },
   minimax: { icon: minimaxIcon, color: '#F5701A', glyph: 'M', method: '设备码' },
   zcode: { icon: zcodeIcon, color: '#0C5CFF', glyph: 'Z', method: '浏览器授权' },
-  raccoon: { color: '#0FA47F', glyph: 'R', method: '扫码' },
+  raccoon: { icon: raccoonIcon, color: '#0FA47F', glyph: 'R', method: '扫码' },
   // Kilo 免费池：登录方式由后端给（keyless），这里只补官方图标
   kilo: { icon: kiloIcon, color: '#F97316', glyph: 'K' },
   loomy: { color: '#2B7DE9', glyph: 'L', method: '微信扫码' },
@@ -105,14 +111,11 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   workbuddy: { icon: workbuddyIcon, color: '#5A4FF3', glyph: 'W', method: '浏览器授权' },
   // Magpie 统一网关：本机 / Docker 常驻，凭据是「网关地址 + 网关 key」
   magpie: { icon: magpieIcon, color: '#0EA5A4', glyph: 'M', method: 'API Key' },
-  // ChatClient 免登录渠道：无官方图标，用 DuckDuckGo 品牌橙 + 首字母徽标
-  'chat-duckduckgo': { color: '#DE5833', glyph: 'D', method: '免登录' },
-  // Trae：对话复用本机登录态（也可在面板里临时填 JWT），同时具备文生图能力
-  'chat-trae': { icon: traeIcon, color: '#0F766E', glyph: 'T', method: '本机登录态' },
-  // 文生图渠道：Pollinations 免登录，DuckDuckGo 走 SSE 免登录，Trae 需登录态
-  'image-duckduckgo': { color: '#DE5833', glyph: 'D', method: '免登录' },
-  'image-pollinations': { color: '#7C3AED', glyph: 'P', method: '免登录' },
-  'image-trae': { icon: traeIcon, color: '#0F766E', glyph: 'T', method: '本机登录态' },
+  // ChatClient 免登录渠道：官方 DuckDuckGo 图标
+  'chat-duckduckgo': { icon: duckduckgoIcon, color: '#DE5833', glyph: 'D', method: '免登录' },
+  // 文生图渠道：官方 Pollinations 图标；DuckDuckGo 走 SSE 免登录
+  'image-duckduckgo': { icon: duckduckgoIcon, color: '#DE5833', glyph: 'D', method: '免登录' },
+  'image-pollinations': { icon: pollinationsIcon, color: '#7C3AED', glyph: 'P', method: '免登录' },
 }
 
 /** 渠道品牌外观（未知渠道给中性灰兜底） */
@@ -193,7 +196,7 @@ const activeSummary = () => channels.value.find((c) => c.channel === activeChann
 
 // ---------- 方案 A：运维甲板（OPS·DECK）派生状态 ----------
 /**
- * 内置通道的种类：对话 / 出图 / 都不是。
+ * 内置通道的种类：对话 / 出图 / 视频 / 图生 3D / 都不是。
  *
  * <p>分组（左栏「免登录对话 / 文生图」）与状态灯必须用同一个判据：以前分组看
  * {@code chatClient || kind}、状态灯只看 {@code kind}，若后端给
@@ -201,12 +204,14 @@ const activeSummary = () => channels.value.find((c) => c.channel === activeChann
  * 灯却是「未绑定」。这里收成一处，两边都调它。</p>
  *
  * @param c 渠道摘要
- * @returns 'chat' / 'image' / ''（普通账号渠道）
+ * @returns 'chat' / 'image' / 'video' / 'model3d' / ''（普通账号渠道）
  */
-function builtinKindOf(c?: ChannelSummary): 'chat' | 'image' | '' {
+function builtinKindOf(c?: ChannelSummary): 'chat' | 'image' | 'video' | 'model3d' | '' {
   const kind = String(c?.kind ?? '').toUpperCase()
   if (c?.chatClient || kind === 'CHAT') return 'chat'
   if (c?.imageClient || kind === 'IMAGE') return 'image'
+  if (kind === 'VIDEO') return 'video'
+  if (kind === 'MODEL_3D') return 'model3d'
   return ''
 }
 
@@ -223,10 +228,13 @@ const channelState = (c?: ChannelSummary): 'online' | 'stale' | 'none' => {
   if (conns.some((x) => x.hosted)) return 'online'
   return conns.some((x) => x.status === 'valid') ? 'online' : 'stale'
 }
-const channelStateText = (c?: ChannelSummary): string =>
-  builtinKindOf(c)
-    ? '免登录可用'
-    : ({ online: '在线', stale: '待刷新', none: '未绑定' })[channelState(c)]
+const channelStateText = (c?: ChannelSummary): string => {
+  if (builtinKindOf(c)) return '免登录可用'
+  // 网关这次没读到：托管渠道此时既没有上游行也没有本地连接，状态只能落到 none，
+  // 但「未绑定」是相反的结论。指示灯颜色保持中性，文案改成「没读到」（见 gatewayIndexError）。
+  if (gatewayIndexError.value && c && gatewayOwnedChannel(c.channel)) return '接入数未读到'
+  return ({ online: '在线', stale: '待刷新', none: '未绑定' })[channelState(c)]
+}
 
 const connState = (conn: ChannelConnectionSummary): 'valid' | 'stale' | 'unknown' =>
   conn.status === 'valid' ? 'valid' : conn.status === 'expired' || conn.status === 'invalid' ? 'stale' : 'unknown'
@@ -240,12 +248,15 @@ async function loadChannels() {
   modelConfigErrors.value = []
   try {
     // /api/channels 只回 AI 账号渠道（AccountChannelAuthManager）；免登录对话 /
-    // 文生图渠道走各自 SPI 端点。三路合并后才是完整渠道清单（DuckDuckGo 在此），
-    // 单路失败不拖垮整页：AI 渠道是主体，其余两路失败仅影响新增渠道的展示。
-    const [ai, chat, image] = await Promise.allSettled([
+    // 文生图 / 文生视频 / 图生 3D 渠道走各自 SPI 端点。五路合并后才是完整渠道清单
+    // （DuckDuckGo / Trae / Pollinations / 豆包 / 通义 / Forge 都在这里）。
+    // 单路失败不拖垮整页：AI 渠道是主体，其余几路失败仅影响新增渠道的展示。
+    const [ai, chat, image, video, model3d] = await Promise.allSettled([
       channelApi.list(),
       channelApi.chatChannels(),
       channelApi.imageChannels(),
+      channelApi.videoChannels(),
+      channelApi.model3dChannels(),
     ])
     // 主清单（AI 账号渠道）失败才在错误条里提示；免登录两路失败不弹错误。
     if (ai.status === 'rejected') loadError.value = ai.reason?.message ?? String(ai.reason)
@@ -254,12 +265,15 @@ async function loadChannels() {
         ? ((ai.value as any).data ?? ai.value)
         : []
     /** 免登录 SPI 元数据 → 渠道卡片摘要 */
-    const toSummary = (x: any, kind: 'CHAT' | 'IMAGE'): ChannelSummary => ({
+    const toSummary = (x: any, kind: 'CHAT' | 'IMAGE' | 'VIDEO' | 'MODEL_3D'): ChannelSummary => ({
       channel: x.channel,
       displayName: x.displayName,
       kind,
       enabled: true,
       priority: x.priority,
+      // 官网由后端登记表下发，四个 SPI 接口都带这两个字段；缺省就不显示入口。
+      website: x.website,
+      doc: x.doc,
       supportsImage: kind === 'IMAGE' ? true : x.supportsImage,
       chatClient: kind === 'CHAT',
       imageClient: kind === 'IMAGE',
@@ -269,13 +283,20 @@ async function loadChannels() {
         enabled: true,
         alias: m.name ?? m.alias,
         contextWindow: m.contextWindow,
+        tasks: m.tasks,
       })),
     })
     const chatRows: ChannelSummary[] =
       chat.status === 'fulfilled' ? (chat.value?.channels ?? []).map((x) => toSummary(x, 'CHAT')) : []
     const imageRows: ChannelSummary[] =
       image.status === 'fulfilled' ? (image.value?.channels ?? []).map((x) => toSummary(x, 'IMAGE')) : []
-    channels.value = [...aiRows, ...chatRows, ...imageRows]
+    // 文生视频 / 图生 3D 与上两路同属免登录生成类渠道，过去没进这一页，
+    // 左栏因此只有对话与出图两组，用户看不到豆包 / 通义 / Forge 这些渠道。
+    const videoRows: ChannelSummary[] =
+      video.status === 'fulfilled' ? (video.value?.channels ?? []).map((x) => toSummary(x, 'VIDEO')) : []
+    const model3dRows: ChannelSummary[] =
+      model3d.status === 'fulfilled' ? (model3d.value?.channels ?? []).map((x) => toSummary(x, 'MODEL_3D')) : []
+    channels.value = [...aiRows, ...chatRows, ...imageRows, ...videoRows, ...model3dRows]
     // 从这一刻起「没有这个渠道」才是可信的结论；之前左栏不该画「还没有配置网关」。
     channelsLoaded.value = true
     // 对话渠道的模型清单不在元数据里，并发补一次实时拉取，避免面板首屏空模型；
@@ -295,29 +316,48 @@ async function loadChannels() {
         }
       }),
     )
-    // 免登录对话 / 文生图渠道的模型由客户端内置，启用状态存在
+    // 免登录对话 / 文生图 / 文生视频 / 图生 3D 渠道的模型由客户端内置，启用状态存在
     // sys_ai_provider_model（与 AI 渠道同一套行）。这里把用户保存过的
     // enabled / alias / 价格合并回内置清单；读不到就保留默认值，不阻塞页面。
+    // ⚠️ 四类都要合并，且**内置目录为空时也要查**：只合并 chat + image、或只在有内置
+    // 目录时才查，会导致视频 / 3D 渠道保存后再进页面退回「全部启用」，甚至模型整个消失。
     await Promise.allSettled(
-      [...chatRows, ...imageRows]
-        .filter((c) => (c.models ?? []).length)
+      [...chatRows, ...imageRows, ...videoRows, ...model3dRows]
         .map(async (c) => {
           try {
             const cfg = await channelApi.modelConfig(c.channel)
-            const rows = (cfg as any)?.models ?? []
-            if (Array.isArray(rows) && rows.length && c.models) {
-              const saved = new Map(rows.map((r: any) => [String(r.model), r]))
-              for (const m of c.models) {
-                const hit = saved.get(m.model)
-                if (!hit) continue
-                m.enabled = hit.enabled !== false
-                if (hit.alias) m.alias = hit.alias
-                if (hit.contextWindow) m.contextWindow = hit.contextWindow
-                if (hit.free !== undefined) m.free = hit.free
-                if (hit.rate !== undefined) m.rate = hit.rate
-                if (hit.priceInput !== undefined) m.priceInput = hit.priceInput
-                if (hit.priceOutput !== undefined) m.priceOutput = hit.priceOutput
-              }
+            const rows: any[] = Array.isArray((cfg as any)?.models) ? (cfg as any).models : []
+            if (!rows.length) return
+            if (!(c.models ?? []).length) {
+              // 内置目录为空（视频渠道没有声明模型），但库里可能已经有拉取过的行：
+              // 以落库行为准，否则「拉取模型」之后重进页面又变成 0 个模型。
+              c.models = rows.map((r: any) => ({
+                model: String(r.model),
+                enabled: r.enabled !== false,
+                alias: r.alias,
+                contextWindow: r.contextWindow,
+                tasks: r.tasks,
+                ...(r.free !== undefined ? { free: r.free } : {}),
+                ...(r.rate !== undefined ? { rate: r.rate } : {}),
+                ...(r.priceInput !== undefined ? { priceInput: r.priceInput } : {}),
+                ...(r.priceOutput !== undefined ? { priceOutput: r.priceOutput } : {}),
+              }))
+              return
+            }
+            const saved = new Map(rows.map((r: any) => [String(r.model), r]))
+            // 上面已判过非空，这里再兜一层是为了让 TS 收窄类型（models 是可选的）
+            const list = c.models ?? []
+            for (const m of list) {
+              const hit = saved.get(m.model)
+              if (!hit) continue
+              m.enabled = hit.enabled !== false
+              if (hit.alias) m.alias = hit.alias
+              if (hit.contextWindow) m.contextWindow = hit.contextWindow
+              if (hit.tasks) m.tasks = hit.tasks
+              if (hit.free !== undefined) m.free = hit.free
+              if (hit.rate !== undefined) m.rate = hit.rate
+              if (hit.priceInput !== undefined) m.priceInput = hit.priceInput
+              if (hit.priceOutput !== undefined) m.priceOutput = hit.priceOutput
             }
           } catch {
             // 单渠道配置读取失败不拖垮整页，但要留痕：模型清单会退回内置默认值
@@ -367,7 +407,7 @@ async function toggleChannelEnabled(channel: string, enabled: boolean) {
 // ⚠️ 用 reactive：模板直接读 bindState[c.channel]，必须响应式才能渲染弹窗内容。
 const bindState = reactive<Record<string, {
   handle: Record<string, any>
-  input: { apiKey: string; baseUrl: string; pageKey: string; pageUrl: string }
+  input: { apiKey: string; baseUrl: string; pageKey: string; configDir: string }
 }>>({})
 
 // 进行中的 SSE 客户端（按渠道），用于「关闭弹窗 / 重新发起」时中止旧流。
@@ -385,11 +425,21 @@ const bindError = ref('')
 const bindElapsed = ref(0)
 let bindTimer: ReturnType<typeof setInterval> | null = null
 
+// 后端 describe 的结论：形态 / 局域网地址 / 配置目录，以及它描述的是哪个地址。
+// 前端只认识回环，填本机网卡 IP（192.168.x.x）时只有后端能判出「本地」，所以形态以后端为准；
+// 用户改了地址就作废这些结论，避免把上一个地址的形态贴到新地址上。
+const gatewayDescribeMode = ref<'' | 'local' | 'remote'>('')
+const gatewayDescribeBaseUrl = ref('')
+const gatewayLanUrls = ref<string[]>([])
+const gatewayConfigDir = ref('')
+/** 网关组头角标：describe 判定网关跑在本机时才显示「本机配置」；没读到 / 远程都不显示 */
+const gatewayLocalChip = computed(() => gatewayDescribeMode.value === 'local')
+
 // Raccoon 之类扫码渠道的二维码图片（dataURL），由 url 本地渲染，不外发。
 const qrImages = reactive<Record<string, string>>({})
 
 function resetBindChannel(channel: string) {
-  bindState[channel] = { handle: {}, input: { apiKey: '', baseUrl: '', pageKey: '', pageUrl: '' } }
+  bindState[channel] = { handle: {}, input: { apiKey: '', baseUrl: '', pageKey: '', configDir: '' } }
 }
 function ensureBindState(channel: string) {
   if (!bindState[channel]) resetBindChannel(channel)
@@ -403,13 +453,14 @@ function ensureBindState(channel: string) {
 function buildPollHandle(channel: string): Record<string, any> {
   const state = bindState[channel]
   const handle: Record<string, any> = { ...(state?.handle ?? {}) }
-  const input = state?.input ?? { apiKey: '', baseUrl: '', pageKey: '', pageUrl: '' }
+  const input = state?.input ?? { apiKey: '', baseUrl: '', pageKey: '', configDir: '' }
   if (input.apiKey?.trim()) handle.apiKey = input.apiKey.trim()
-  // Magpie：数据面地址 / 管理面地址 / 页面 Key 分开传（后端会互相推导，可只填其一）
+  // Magpie：只传网关地址，页面地址由后端按端口推导（3425 → 3430）；
+  // 本地形态的 Key 由后端从配置目录现读，目录本身随凭据落库（config_dir）。
   if (channel === 'magpie') {
     if (input.baseUrl?.trim()) handle.baseUrl = input.baseUrl.trim()
     if (input.pageKey?.trim()) handle.pageKey = input.pageKey.trim()
-    if (input.pageUrl?.trim()) handle.pageUrl = input.pageUrl.trim()
+    if (input.configDir?.trim()) handle.config_dir = input.configDir.trim()
   }
   return handle
 }
@@ -627,13 +678,11 @@ async function openBindDialog(channel: string) {
     const out = (res as any)?.data ?? res
     const handle = (out?.handle ?? {}) as Record<string, any>
     bindState[channel]!.handle = handle
-    // Magpie：把后端给的默认网关地址 / 页面地址预填到输入框（用户可改成远程地址）
+    // Magpie：只回显后端给的默认网关地址（用户可改成远程地址）；
+    // 页面地址不再回显，它由后端按 base_url 推导，表单里也没有这个字段了。
     if (channel === 'magpie') {
       if (!bindState[channel]!.input.baseUrl) {
         bindState[channel]!.input.baseUrl = String(handle.baseUrl ?? '')
-      }
-      if (!bindState[channel]!.input.pageUrl) {
-        bindState[channel]!.input.pageUrl = String(handle.pageUrl ?? '')
       }
     }
 
@@ -688,6 +737,19 @@ function submitBindInput() {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
+  // Magpie 两种形态共用一条校验：地址必填；远程要页面 Key。
+  // 网关 Key 保持可空——本机网关默认不校验，远程也允许网关那边没开鉴权。
+  if (channel === 'magpie') {
+    if (!state.input.baseUrl.trim()) {
+      ElMessage.warning('请填写网关地址')
+      return
+    }
+    // 形态以后端结论为准（本机网卡 IP 也算本地），见 magpieFormMode
+    if (magpieFormMode.value === 'remote' && !state.input.pageKey.trim()) {
+      ElMessage.warning('远程网关需要填写页面 Key')
+      return
+    }
+  }
   if (isApiKeyBind() && !state.input.apiKey.trim() && channel !== 'magpie') {
     ElMessage.warning('请填写 API key（匿名通道填 public）')
     return
@@ -713,12 +775,104 @@ function onBaseUrlInput(event: Event | string) {
   const split = splitMagpieLink(raw)
   if (!split) return
   state.input.baseUrl = split.gateway
-  state.input.pageUrl = split.pageUrl
-  state.input.pageKey = split.pageKey
+  // 只取页面 Key：页面地址由后端按 base_url 推导，写进凭据反而会和推导结果打架
+  if (split.pageKey) state.input.pageKey = split.pageKey
 }
 
-// Magpie：整条启动链接拆成「数据面地址 / 页面地址 / 页面 Key」
-function splitMagpieLink(raw: string): { gateway: string; pageUrl: string; pageKey: string } | null {
+/**
+ * 取网关地址里的主机名（小写；IPv6 不带方括号）。
+ *
+ * <p>没写协议时按 {@code http://} 理解（和浏览器地址栏一致），端口、路径、查询串与
+ * 认证段都不参与判断。纯字符串切分而不是 {@code new URL}，因为裸 IPv6（{@code ::1}）
+ * 后者解析不了。</p>
+ *
+ * @param raw 输入框里的网关地址
+ * @returns 主机名；取不到时返回空串
+ */
+function hostOfAddress(raw: string): string {
+  let text = raw.trim()
+  if (!text) return ''
+  const schemeAt = text.indexOf('://')
+  if (schemeAt >= 0) text = text.slice(schemeAt + 3)
+  // 主机部分到第一个路径 / 查询 / 片段为止
+  let cut = -1
+  for (const mark of ['/', '?', '#']) {
+    const at = text.indexOf(mark)
+    if (at >= 0 && (cut < 0 || at < cut)) cut = at
+  }
+  const authority = cut >= 0 ? text.slice(0, cut) : text
+  // 认证段（user:pass@host）不参与判断
+  const at = authority.lastIndexOf('@')
+  const hostPort = at >= 0 ? authority.slice(at + 1) : authority
+  let host = hostPort
+  if (hostPort.startsWith('[')) {
+    // IPv6 字面量：[::1]:3425
+    const end = hostPort.indexOf(']')
+    host = end > 0 ? hostPort.slice(1, end) : hostPort.slice(1)
+  } else {
+    // 只有「恰好一段冒号」才是端口；IPv6 裸写（::1）会保留整段
+    const colon = hostPort.lastIndexOf(':')
+    if (colon > 0 && hostPort.indexOf(':') === colon) host = hostPort.slice(0, colon)
+  }
+  host = host.trim().toLowerCase()
+  if (host.endsWith('.')) host = host.slice(0, -1)
+  return host
+}
+
+/**
+ * 判断网关地址落在本机还是远端。
+ *
+ * <p>只认回环写法：{@code 127.0.0.1} / {@code localhost} / {@code ::1}。本机网卡 IP
+ * （{@code 192.168.x.x}）在这里判不出，由 {@link magpieFormMode} 用后端给的
+ * {@code lanUrls} 补齐——那是后端枚举出来的本机地址，不是前端猜的。</p>
+ *
+ * @param raw 输入框里的网关地址
+ * @returns {@code local} 表示本机网关，{@code remote} 表示要走网络与 Key
+ */
+function magpieModeOf(raw: string): 'local' | 'remote' {
+  const host = hostOfAddress(raw)
+  if (!host) return 'local'
+  return host === '127.0.0.1' || host === 'localhost' || host === '::1' ? 'local' : 'remote'
+}
+
+/** {@code lanUrls} 里的主机名集合（后端枚举的本机网卡地址） */
+const gatewayLanHosts = computed(() =>
+  gatewayLanUrls.value.map((u) => hostOfAddress(u)).filter(Boolean),
+)
+
+/** 当前网关表单形态：后端 describe 的结论优先，其次回环，其次后端枚举的本机地址，最后按远端 */
+const magpieFormMode = computed(() => {
+  const typed = bindState[bindChannel.value]?.input?.baseUrl ?? ''
+  if (gatewayDescribeMode.value && sameEndpoint(gatewayDescribeBaseUrl.value, typed)) {
+    return gatewayDescribeMode.value
+  }
+  const host = hostOfAddress(typed)
+  if (host && gatewayLanHosts.value.includes(host)) return 'local'
+  return magpieModeOf(typed)
+})
+
+/**
+ * 两个地址是否指向同一个入口（忽略协议缺省、大小写与结尾斜杠）。
+ *
+ * <p>只用来确认「后端说的形态是不是当前这个地址的」，不做归一化后写回。</p>
+ *
+ * @param left 地址一
+ * @param right 地址二
+ * @returns true 表示同一个入口
+ */
+function sameEndpoint(left: string, right: string): boolean {
+  const norm = (raw: string): string => {
+    let text = raw.trim().toLowerCase()
+    if (!text) return ''
+    if (!/^[a-z][a-z0-9+.-]*:\/\//.test(text)) text = 'http://' + text
+    return text.replace(/\/+$/, '')
+  }
+  const a = norm(left)
+  return a !== '' && a === norm(right)
+}
+
+// Magpie：整条启动链接拆成「网关地址 / 页面 Key」
+function splitMagpieLink(raw: string): { gateway: string; pageKey: string } | null {
   const text = raw.trim()
   const queryAt = text.indexOf('?')
   if (queryAt < 0) return null
@@ -737,23 +891,23 @@ function splitMagpieLink(raw: string): { gateway: string; pageUrl: string; pageK
   if (!key) return null
   // 页面端口 3430 → 数据面 3425；其它端口视为同一个反代入口，原样保留
   const gateway = base.replace(/:3430(?=\/|$)/, ':3425')
-  return { gateway, pageUrl: base, pageKey: key }
+  return { gateway, pageKey: key }
 }
 
-// Magpie 页面地址输入（管理面，可空）
-function onPageUrlInput(event: Event | string) {
-  const channel = bindChannel.value
-  const state = bindState[channel]
-  if (!state) return
-  state.input.pageUrl = inputText(event)
-}
-
-// Magpie 页面 Key 输入（管理面必需，只在管理上游 / 签到用）
+// Magpie 页面 Key 输入（远程管理面必需；本地形态由配置目录里的 web-page.json 现读）
 function onPageKeyInput(event: Event | string) {
   const channel = bindChannel.value
   const state = bindState[channel]
   if (!state) return
   state.input.pageKey = inputText(event)
+}
+
+// Magpie 配置目录输入（本地形态专用；留空表示用后端缺省目录）
+function onConfigDirInput(event: Event | string) {
+  const channel = bindChannel.value
+  const state = bindState[channel]
+  if (!state) return
+  state.input.configDir = inputText(event)
 }
 
 // api-key 输入：直接写响应式状态（模板里用 $event 取 target，避免用未定义变量）
@@ -1103,13 +1257,20 @@ async function pullModels(channel: string) {
     const res = await channelApi.listModels(channel, targetRef)
     const out = (res as any)?.data ?? res
     if (out?.models?.length) {
+      // 免登录渠道（对话 / 出图 / 视频 / 3D 内置渠道）的清单就是「此刻可用的全部模型」，
+      // 落库即启用；账号渠道仍然只同步目录，启用与否由用户在页面上勾。
+      const keyless = out?.keyless === true
       ElMessage.success(`拉取到 ${out.models.length} 个模型，正在落库…`)
       // 落库走渠道专用端点（SPI listModels → sys_ai_provider_model），
       // 而非 /api/providers/{id}/models/import-all（该端点对 oauth 类 provider 会失败）。
       const impRes = await channelApi.importModels(channel, targetRef)
       const imp = (impRes as any)?.data ?? impRes
       if (imp?.ok) {
-        ElMessage.success(`落库完成：新增 ${imp.created ?? 0}，更新 ${imp.updated ?? 0}（新模型默认不启用）`)
+        ElMessage.success(
+          keyless
+            ? `落库完成：新增 ${imp.created ?? 0}，更新 ${imp.updated ?? 0}（免登录渠道直接启用）`
+            : `落库完成：新增 ${imp.created ?? 0}，更新 ${imp.updated ?? 0}（新模型默认不启用）`,
+        )
       }
       // 以数据库为准重建模型清单：拉取只负责同步目录，启用哪些由用户在页面上
       // 勾选保存。以前这里直接把本次拉到的清单写成 enabled=true，等于替用户
@@ -1484,6 +1645,8 @@ const KIND_TEXT: Record<string, string> = {
   AI: 'CHAT',
   CHAT: 'CHAT',
   IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO',
+  MODEL_3D: '3D',
   SMS: 'SMS',
   EMAIL: 'EMAIL',
 }
@@ -1514,13 +1677,65 @@ const modelsManageable = (c?: ChannelSummary): boolean => (c?.models ?? []).leng
 /**
  * 模型能否从上游拉取。
  *
- * <p>只有 AI 账号渠道才有 provider 行与授权账号，{@code /list-models} 才有上游可问。
- * 免登录渠道的模型是客户端内置表，拉取只会拿到「未注册的渠道」，因此不显示拉取按钮。</p>
+ * <p>AI 账号渠道有授权账号，{@code /list-models} 问的是该账号此刻可用模型；
+ * 免登录对话 / 文生图 / 文生视频 / 图生 3D 渠道的模型由客户端内置，
+ * 后端从各自的 SPI 注册表直接给出清单（不需要账号）。两类都能拉，
+ * 只是短信 / 邮件渠道没有模型，不显示按钮。</p>
  *
  * @param c 渠道摘要
  * @returns true 表示可拉取
  */
-const modelsPullable = (c?: ChannelSummary): boolean => kindOf(c) === 'AI'
+const modelsPullable = (c?: ChannelSummary): boolean =>
+  ['AI', 'CHAT', 'IMAGE', 'VIDEO', 'MODEL_3D'].includes(kindOf(c))
+
+/**
+ * 模型任务类型 → 中文短标签。
+ *
+ * <p>后端从免登录渠道 SPI 拉取时会把 {@code tasks} 一起落库，并在渠道摘要里透出；
+ * 一个渠道同时有对话与出图模型时，卡片上必须能区分，否则用户只看到一串模型名。</p>
+ */
+const MODEL_TASK_LABELS: Record<string, string> = {
+  chat: '对话',
+  image_generation: '图片',
+  video_generation: '视频',
+  model_3d: '3D',
+  embedding: '向量',
+  rerank: '重排',
+  audio_generation: '音频',
+  speech_recognition: '语音识别',
+}
+
+/**
+ * 模型能力标签。
+ *
+ * @param m 渠道模型行
+ * @returns 中文短标签；无 tasks 时按渠道种类兜底
+ */
+const modelTaskLabel = (m: any): string => {
+  const tasks = Array.isArray(m?.tasks) ? m.tasks : []
+  for (const task of tasks) {
+    const label = MODEL_TASK_LABELS[String(task ?? '').toLowerCase()]
+    if (label) return label
+  }
+  const kind = kindOf(detailSummary())
+  if (kind === 'IMAGE') return '图片'
+  if (kind === 'VIDEO') return '视频'
+  if (kind === 'MODEL_3D') return '3D'
+  return '对话'
+}
+
+/** 能力标签的样式键：不同能力给不同配色，扫一眼就能分出对话与出图 */
+const modelTaskKey = (m: any): string => {
+  const label = modelTaskLabel(m)
+  if (label === '图片') return 'image'
+  if (label === '视频') return 'video'
+  if (label === '3D') return 'model3d'
+  if (label === '向量') return 'vector'
+  if (label === '重排') return 'vector'
+  if (label === '音频') return 'audio'
+  if (label === '语音识别') return 'audio'
+  return 'chat'
+}
 
 /**
  * 模型展示顺序：已启用的排前面，其余保持后台 sortOrder 原序。
@@ -1821,7 +2036,7 @@ function hostedOnly(c?: ChannelSummary): boolean {
  */
 interface ChannelSource {
   /** 来源键（= 谁实现）：同时用于角标配色 */
-  key: 'gateway' | 'local' | 'chat' | 'image' | 'upstream'
+  key: 'gateway' | 'local' | 'chat' | 'image' | 'video' | 'model3d' | 'upstream'
   /** 角标文字：网关＝接入数量（0 条时「待接入」），其余 2~3 个字 */
   label: string
   /** 网关里已接入的上游条数（只有网关行有；0 表示还没接） */
@@ -1851,6 +2066,14 @@ function sourceOfChannel(c?: ChannelSummary): ChannelSource {
   // 文生图：由服务端内置出图通道实现，没有账号表
   if (builtin === 'image') {
     return { key: 'image', label: '出图', hint: '能力由服务端内置出图通道提供，不需要绑定账号' }
+  }
+  // 文生视频：同样由内置视频通道实现，凭证按次携带，没有账号表
+  if (builtin === 'video') {
+    return { key: 'video', label: '视频', hint: '能力由服务端内置视频通道提供，不需要绑定账号' }
+  }
+  // 图生 3D：内置 3D 通道实现，没有账号表
+  if (builtin === 'model3d') {
+    return { key: 'model3d', label: '3D', hint: '能力由服务端内置 3D 通道提供，不需要绑定账号' }
   }
   const hosted = hostedProvidersOf(c.channel)
   const local = localConnectionCount(c)
@@ -2045,6 +2268,97 @@ function providerLabel(provider: MagpieProvider): string {
   return name || String(provider?.id ?? '')
 }
 
+/**
+ * 管理面回 200、但明确说「这次没读到」时，取一句能展示的原因。
+ *
+ * <p>后端在网关管理面连不上时不会报 HTTP 错，而是回
+ * {@code {ok:false, manageable:false, providers:[], message:"..."}}——运维上这是
+ * 「读不到」，语义上不是「一家都没接」。只看 HTTP 状态会把这两种情况混成一种，
+ * 左栏就把 13 行全画成「待接入」，正好是相反的结论（见 {@link gatewayIndexError}）。</p>
+ *
+ * <p>{@code message} 末尾的括号里带着原始地址（可能含 {@code ?k=页面 Key}），
+ * 只截结论句，避免把 Key 印进界面提示；完整内容仍进控制台。</p>
+ *
+ * @param out 接口返回体
+ * @returns 不可读时的原因；能读到时为空串
+ */
+function gatewayUnreadableReason(out: any): string {
+  if (!out || (out.ok !== false && out.manageable !== false)) return ''
+  const raw = String(out.message ?? '').trim()
+  // 「（渠道 HTTP 请求失败: GET http://…/?k=…）」是排障细节，不是给用户看的结论
+  const cut = raw.indexOf('（渠道')
+  const brief = cut > 0 ? raw.slice(0, cut).trim() : raw
+  return brief || '网关管理面这次没读到：页面 Key 可能失效，或者管理面没在运行'
+}
+
+/**
+ * 后端 {@code describe} 给的实际形态（模式 / 配置目录 / Key 来源）。
+ *
+ * <p>只存后端原话，不拿输入框的值补：拿不到就保持 {@code null}，表单顶部整行
+ * 不显示，避免把「猜的」当成「后端确认的」。</p>
+ */
+const gatewayDescribe = ref<Record<string, any> | null>(null)
+
+/** describe 里的 Key 来源 → 人话；未知来源返回空串，由调用方略过该项 */
+function keySourceText(source: unknown): string {
+  const value = String(source ?? '').trim()
+  if (value === 'file') return '读自配置文件'
+  if (value === 'credential') return '手工填写'
+  if (value === 'none') return '未配置'
+  return ''
+}
+
+/** 表单顶部的状态行；describe 还没拿到（或字段不全）时不显示 */
+const gatewayDescribeLine = computed(() => {
+  const describe = gatewayDescribe.value
+  if (!describe) return ''
+  const mode = String(describe.mode ?? '').trim()
+  const modeText = mode === 'local' ? '本地' : mode === 'remote' ? '远程' : ''
+  if (!modeText) return ''
+  const parts = [`模式：${modeText}`]
+  const configDir = String(describe.configDir ?? '').trim()
+  if (configDir) parts.push(`配置目录：${configDir}`)
+  // 本机网关才有的局域网地址：给他机/手机填，远程时后端不给，这里自然不显示
+  if (gatewayLanUrls.value.length) parts.push(`局域网地址：${gatewayLanUrls.value.join('、')}`)
+  const gatewaySource = keySourceText(describe.gatewayKeySource)
+  const pageSource = keySourceText(describe.pageKeySource)
+  if (gatewaySource) parts.push(`网关 Key：${gatewaySource}`)
+  if (pageSource) parts.push(`页面 Key：${pageSource}`)
+  return parts.join(' · ')
+})
+
+/**
+ * 记下随上游列表一起下发的 describe 结果。
+ *
+ * <p>老后端（或管理面没开时）只回 baseUrl / pageUrl，没有 {@code mode}：
+ * 这时清空缓存，状态行消失，而不是沿用上一次的结论。</p>
+ *
+ * @param out {@code /providers} 的响应体（也兼容 describe 嵌套一层）
+ */
+function applyGatewayDescribe(out: any): void {
+  const source = out?.describe && typeof out.describe === 'object' ? out.describe : out
+  const mode = String(source?.mode ?? '').trim()
+  const known = mode === 'local' || mode === 'remote'
+  gatewayDescribe.value = known ? (source as Record<string, any>) : null
+  gatewayDescribeMode.value = known ? (mode as 'local' | 'remote') : ''
+  gatewayDescribeBaseUrl.value = known ? String(source?.baseUrl ?? '').trim() : ''
+  gatewayLanUrls.value = known && Array.isArray(source?.lanUrls)
+    ? (source.lanUrls as unknown[]).map((u) => String(u)).filter(Boolean)
+    : []
+  gatewayConfigDir.value = known && typeof source?.configDir === 'string'
+    ? String(source.configDir).trim()
+    : ''
+}
+
+/** 清空 describe 结论（没绑定 / 这次没读到）：三个 ref 一起清，避免残留上一个连接的形态 */
+function clearGatewayDescribe(): void {
+  gatewayDescribe.value = null
+  gatewayDescribeMode.value = ''
+  gatewayDescribeBaseUrl.value = ''
+  gatewayLanUrls.value = []
+  gatewayConfigDir.value = ''
+}
+
 async function loadGatewayIndex(): Promise<void> {
   const gateway = gatewayChannel.value
   const conn = gateway?.connections?.find((c) => c.primary) ?? gateway?.connections?.[0]
@@ -2053,6 +2367,7 @@ async function loadGatewayIndex(): Promise<void> {
     gatewayProviderRows.value = []
     gatewayPlugins.value = []
     gatewayQuotaCards.value = []
+    clearGatewayDescribe()
     // 没绑网关不是「读失败」：这里给的是「还没配」的落点，不是重试
     gatewayIndexError.value = ''
     return
@@ -2067,16 +2382,28 @@ async function loadGatewayIndex(): Promise<void> {
   ])
   if (prov.status === 'fulfilled') {
     const out = (prov.value as any)?.data ?? prov.value
+    applyGatewayDescribe(out)
     const list = out?.providers ?? out?.result?.providers ?? []
     const rows = (Array.isArray(list) ? list : []).filter(
       (p: any) => p && typeof p === 'object',
     ) as MagpieProvider[]
-    gatewayProviderRows.value = rows
-    gatewayProviders.value = rows
-      .map((p: any) => String(p?.id ?? ''))
-      .filter(Boolean)
-    gatewayIndexError.value = ''
+    const unreadable = gatewayUnreadableReason(out)
+    if (unreadable) {
+      // 200 + ok:false：管理面没开 / 页面 Key 失效。当成「0 条上游」会把
+      // 13 行托管渠道全画成「待接入」，用户看到的是「没绑定」这种反结论。
+      gatewayProviderRows.value = []
+      gatewayProviders.value = []
+      gatewayIndexError.value = unreadable
+      console.warn('[channel] 网关上游列表未读到', out)
+    } else {
+      gatewayProviderRows.value = rows
+      gatewayProviders.value = rows
+        .map((p: any) => String(p?.id ?? ''))
+        .filter(Boolean)
+      gatewayIndexError.value = ''
+    }
   } else {
+    clearGatewayDescribe()
     // 读不到就清空：沿用上一次的列表会把「这次没读到」画成「网关里就这些」，
     // 而上一次本来就可能是空的（首次进页面 / 刚绑上网关），那时整组都成了「待接入」。
     // 清空 + 留一条可重试的提示，用户才能分清「真没接」和「没读到」。
@@ -2346,6 +2673,18 @@ const upstreamSummary = computed<ChannelSummary | undefined>(() => {
 
 /** 右栏数据源：渠道摘要，或把上游包装成同一形状 */
 const detailSummary = (): ChannelSummary | undefined => upstreamSummary.value ?? activeSummary()
+
+/**
+ * 官网地址（右栏页头「官网」入口）。
+ *
+ * <p>地址由后端按登记表下发：213 家模板都有主站，本地推理 / 路由组 / 自建渠道
+ * 没有对外站点、字段缺省。这里只做「是不是一个能打开的 http(s) 地址」的过滤，
+ * 拿不到就不渲染入口——绝不拼一个猜的地址，点开 404 比没有更糟。</p>
+ */
+const detailWebsite = computed<string>(() => {
+  const raw = String(detailSummary()?.website ?? '').trim()
+  return /^https?:\/\/[^\s]+$/i.test(raw) ? raw : ''
+})
 
 /**
  * 渠道 / 上游 / 模型清单变化时重建模型选择草稿。
@@ -2663,6 +3002,16 @@ const GROUP_DEFS: Array<{
     key: 'image',
     label: '文生图',
     sources: ['image'],
+  },
+  {
+    key: 'video',
+    label: '文生视频',
+    sources: ['video'],
+  },
+  {
+    key: 'model3d',
+    label: '图生 3D',
+    sources: ['model3d'],
   },
 ]
 
@@ -4178,6 +4527,15 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 @click="toggleGroup(group.key)"
               >
                 <span class="chm-rail__group-name">{{ group.label }}</span>
+                <!--
+                  网关组独有的来源角标：后端 describe 判定网关跑在本机时，标出
+                  「配置目录就在本机」——和行内「已接入 N」那个数量角标分工不同。
+                -->
+                <span
+                  v-if="group.key === 'gateway' && gatewayLocalChip"
+                  class="chm-rail__group-src"
+                  title="网关运行在本机：配置目录由后端从本机读取"
+                >本机配置</span>
                 <b v-if="groupCount(group)">{{ groupCount(group) }}</b>
                 <el-icon class="chm-rail__group-fold" aria-hidden="true">
                   <ArrowRightIcon v-if="groupCollapsed(group)" />
@@ -4408,6 +4766,22 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
             <span class="chm-rail__dot" :class="'is-' + detailState" />
             {{ detailStateText }}
           </div>
+          <!--
+            官网入口（右侧顶部）：地址来自后端登记表，213 家模板默认就有主站。
+            没有官网的渠道（本机 ONNX / 路由组 / 自建地址）不渲染这个入口，
+            省得点开一个 404。
+          -->
+          <a
+            v-if="detailWebsite"
+            class="chm-panel__site"
+            :href="detailWebsite"
+            target="_blank"
+            rel="noopener noreferrer"
+            :title="`打开官网：${detailWebsite}`"
+          >
+            <el-icon aria-hidden="true"><LinkIcon /></el-icon>
+            官网
+          </a>
           <!--
             启停：渠道写本地 provider.enabled；上游写网关的 provider.off
             （/api/provider/{on|off}），两边都是真接口，不是本地假开关。
@@ -4896,7 +5270,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
               </div>
 
               <div
-                v-if="!isImageChannel || (detailSummary()!.models ?? []).length"
+                v-if="!isImageChannel || (detailSummary()!.models ?? []).length || modelsPullable(detailSummary())"
                 class="chm-panel__block"
               >
                 <div class="chm-models__title">
@@ -4968,6 +5342,12 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                       <span v-if="m.alias && m.alias !== m.model" class="chm-mcard__id" :title="m.model">{{ m.model }}</span>
                     </header>
                     <div class="chm-mcard__tags">
+                      <!-- 能力标签：一个渠道可能同时有对话与出图模型，先标能力再谈价格 -->
+                      <span
+                        class="chm-mtag is-task"
+                        :class="`is-task-${modelTaskKey(m)}`"
+                        :title="`任务类型：${modelTaskLabel(m)}`"
+                      >{{ modelTaskLabel(m) }}</span>
                       <span v-if="modelIsFree(m)" class="chm-mtag is-free">免费</span>
                       <span v-if="m.rate" class="chm-mtag is-rate" title="计费倍率">{{ m.rate }}x 倍率</span>
                       <span
@@ -5198,6 +5578,10 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 
         <!-- 密钥 -->
         <section v-if="isApiKeyBind()" class="chm-bind__fields">
+          <!-- 后端 describe 的实际形态：拿不到就整行不显示，不用输入框里的值代替 -->
+          <p v-if="bindChannel === 'magpie' && gatewayDescribeLine" class="chm-bind__help">
+            {{ gatewayDescribeLine }}
+          </p>
           <template v-if="bindChannel === 'magpie'">
             <label class="chm-bind__field">
               <span>网关地址</span>
@@ -5206,21 +5590,28 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                         placeholder="http://127.0.0.1:3425" />
               <em>对话、模型与配额走这里；也可以整条粘贴 magpie 的启动链接。</em>
             </label>
-            <label class="chm-bind__field">
-              <span>页面地址</span>
-              <el-input :model-value="bindState[bindChannel]?.input?.pageUrl ?? ''"
-                        @input="onPageUrlInput"
-                        placeholder="http://127.0.0.1:3430（可空）" />
-              <em>只在管理上游与签到时使用；留空按网关地址推导。</em>
+            <!-- 本机：Key 由后端从配置目录现读，只需要告诉它目录在哪 -->
+            <label v-if="magpieFormMode === 'local'" class="chm-bind__field">
+              <span>magpie 配置目录</span>
+              <el-input :model-value="bindState[bindChannel]?.input?.configDir ?? ''"
+                        @input="onConfigDirInput"
+                        :placeholder="gatewayConfigDir || '%USERPROFILE%\\.config\\magpie'" />
+              <em>本地会自动从该目录读取当前页面 Key 与网关 Key（web-page.json / settings.json）。</em>
             </label>
-            <label class="chm-bind__field">
+            <!-- 本机网卡的局域网地址：给手机 / 另一台电脑用，后端枚举得到，远程时为空 -->
+            <p v-if="bindChannel === 'magpie' && magpieFormMode === 'local' && gatewayLanUrls.length"
+               class="chm-bind__help">
+              给别的设备用：{{ gatewayLanUrls.join('、') }}（magpie web 需绑 0.0.0.0:3430 并固定 MAGPIE_WEB_KEY）
+            </p>
+            <!-- 远程：两把 Key 都在远端，只能手填 -->
+            <label v-else class="chm-bind__field">
               <span>页面 Key</span>
               <el-input :model-value="bindState[bindChannel]?.input?.pageKey ?? ''"
                         @input="onPageKeyInput"
-                        placeholder="启动链接里的 k=…（可空）" />
+                        placeholder="启动链接里的 k=…" />
             </label>
           </template>
-          <label class="chm-bind__field">
+          <label v-if="bindChannel !== 'magpie' || magpieFormMode === 'remote'" class="chm-bind__field">
             <span>{{ bindChannel === 'magpie' ? '网关 Key' : 'API Key' }}</span>
             <el-input :model-value="bindState[bindChannel]?.input?.apiKey ?? ''"
                       type="password"
@@ -5230,6 +5621,9 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                         ? '未开启鉴权可留空'
                         : '粘贴密钥；匿名通道填 public'" />
           </label>
+          <p v-if="bindChannel === 'magpie' && magpieFormMode === 'remote'" class="chm-bind__help">
+            远程只走 HTTP，需要这两把 Key：网关 Key 用于数据面，页面 Key 用于管理面。
+          </p>
           <el-button type="primary" class="chm-bind__wide" @click="submitBindInput()">完成绑定</el-button>
         </section>
 
@@ -5481,6 +5875,21 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+/*
+ * 网关组头的「本机配置」角标：标出这条网关的配置目录就在本机。
+ * 配色沿用行内「托管」角标的青色系，但更淡——它是来源说明，不是状态。
+ */
+.chm-rail__group-src {
+  flex: none;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #0f766e;
+  background: color-mix(in srgb, #0ea5a4 13%, transparent);
+}
 /* 折叠后的组头：只留一行标题，颜色压暗表示「整组收起来了」 */
 .chm-rail__group-head.is-collapsed {
   padding-bottom: 6px;
@@ -5668,7 +6077,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 }
 /*
  * 来源角标配色：区分「这条渠道的能力由谁实现」，不表达状态（状态在右侧圆点）。
- * 托管=青（网关）、账号=中性灰、对话=绿、出图=紫、未绑定=描边灰（状态）。
+ * 托管=青（网关）、账号=中性灰、对话=绿、出图=紫、视频=橙、3D=蓝、未绑定=描边灰（状态）。
  */
 .chm-rail__kind.is-src-gateway,
 .chm-panel__chip.is-src-gateway {
@@ -5695,6 +6104,16 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-panel__chip.is-src-image {
   color: #6d28d9;
   background: color-mix(in srgb, #8b5cf6 13%, transparent);
+}
+.chm-rail__kind.is-src-video,
+.chm-panel__chip.is-src-video {
+  color: #c2410c;
+  background: color-mix(in srgb, #f97316 13%, transparent);
+}
+.chm-rail__kind.is-src-model3d,
+.chm-panel__chip.is-src-model3d {
+  color: #1d4ed8;
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
 }
 .chm-rail__kind.is-src-none,
 .chm-panel__chip.is-src-none {
@@ -6122,6 +6541,29 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   margin: 0;
   flex: none;
 }
+/* 官网入口：页头右侧的小胶囊链接，和「已启用」状态、开关同一条水平线 */
+.chm-panel__site {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, #eef2f8);
+  background: var(--bg-elevated, #f8fafc);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #475569);
+  text-decoration: none;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.chm-panel__site:hover {
+  color: var(--el-color-primary, #409eff);
+  border-color: color-mix(in srgb, var(--el-color-primary, #409eff) 40%, transparent);
+}
+.chm-panel__site .el-icon {
+  font-size: 13px;
+}
 
 /* ---- KPI 行 ---- */
 .chm-kpis {
@@ -6462,6 +6904,31 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   color: var(--el-color-success, #529b2e);
   font-weight: 600;
 }
+/* 能力标签：对话 / 图片 / 视频 / 3D 用各自配色，扫一眼就能把两类模型分开 */
+.chm-mtag.is-task {
+  font-weight: 600;
+}
+.chm-mtag.is-task-chat {
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 12%, transparent);
+  color: var(--el-color-primary, #337ecc);
+}
+.chm-mtag.is-task-image {
+  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 16%, transparent);
+  color: #b45309;
+}
+.chm-mtag.is-task-video {
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 14%, transparent);
+  color: #c0392b;
+}
+.chm-mtag.is-task-model3d,
+.chm-mtag.is-task-vector {
+  background: color-mix(in srgb, var(--el-color-info, #909399) 16%, transparent);
+  color: #4b5563;
+}
+.chm-mtag.is-task-audio {
+  background: color-mix(in srgb, #8b5cf6 14%, transparent);
+  color: #6d28d9;
+}
 .chm-mtag.is-rate {
   background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 15%, transparent);
   color: #b45309;
@@ -6573,6 +7040,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   align-items: center;
   gap: 6px;
   min-width: 0;
+  /* 与右侧 24px 的方形图标钮同高：卡头两行时，状态 tag 和图标钮才对得齐 */
+  min-height: 24px;
 }
 .chm-acc__sub {
   display: flex;
@@ -6667,6 +7136,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   display: flex;
   align-items: center;
   gap: 2px;
+  /* 对齐第一行（名称 + 状态 tag），不再按两行整体的垂直居中 */
+  align-self: flex-start;
 }
 
 /* 账号下方的积分块：额度 + 进度 + 签到 */

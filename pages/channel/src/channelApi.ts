@@ -178,16 +178,45 @@ export interface ChannelAccountRef {
   [key: string]: unknown
 }
 
-/** 渠道种类：AI（账号类）/ CHAT（ChatClient 免登录对话）/ IMAGE（文生图）/ SMS（接码）/ EMAIL（收信） */
-export type ChannelKind = 'AI' | 'CHAT' | 'IMAGE' | 'SMS' | 'EMAIL'
+/** 渠道种类：AI（账号类）/ CHAT（ChatClient 免登录对话）/ IMAGE（文生图）/ VIDEO（文生视频）/ MODEL_3D（图生 3D）/ SMS（接码）/ EMAIL（收信） */
+export type ChannelKind = 'AI' | 'CHAT' | 'IMAGE' | 'VIDEO' | 'MODEL_3D' | 'SMS' | 'EMAIL'
 
 /** 账号类型：FIXED（固定，长期绑定）/ TEMPORARY（临时，一次性虚拟身份） */
 export type AccountType = 'FIXED' | 'TEMPORARY'
+
+/**
+ * SPI 渠道元数据（免登录对话 / 文生图 / 文生视频 / 图生 3D 四个接口共用）。
+ *
+ * <p>这四个接口的载荷形状一致，差别只在有没有模型清单与出图能力位。官网是后端
+ * 供应商登记表下发（213 家模板默认补全）的公共字段；缺省表示该渠道没有对外站点
+ * （本机推理、自建渠道），页面据此隐藏「官网」入口。</p>
+ */
+export interface SpiChannelMeta {
+  channel: string
+  displayName?: string
+  extension?: string | null
+  priority?: number
+  /** 官网地址（`https://` 开头；缺省表示没有官网入口） */
+  website?: string
+  /** 官方文档入口（与官网分开：文档讲用法） */
+  doc?: string
+  supportsImage?: boolean
+  models?: Array<{ id: string; name?: string }>
+}
 
 /** 渠道级摘要 */
 export interface ChannelSummary {
   channel: string
   displayName?: string
+  /**
+   * 官网地址（后端登记表给出，形如 `https://openrouter.ai`）。
+   *
+   * <p>本地推理（onnx）、路由组、自建渠道这些没有对外站点，字段缺省；
+   * 页面据此隐藏「官网」入口，而不是拿上游 API 地址顶替。</p>
+   */
+  website?: string
+  /** 官方文档入口（与官网分开：文档站讲用法，官网讲产品与定价） */
+  doc?: string
   loginMethod?: string
   /** 渠道种类（后端 SPI 输出；历史响应可能缺省，缺省按 AI 处理） */
   kind?: ChannelKind | string
@@ -259,6 +288,11 @@ export interface ChannelSummary {
     priceInput?: number
     /** 输出价格（USD / 百万 token） */
     priceOutput?: number
+    /**
+     * 模型任务类型（{@code chat} / {@code image_generation} / {@code video_generation} /
+     * {@code model_3d}）；免登录生成类渠道的模型卡靠它标出能力。
+     */
+    tasks?: string[]
   }>
 }
 
@@ -452,6 +486,8 @@ export const channelApi = {
         free?: boolean
         priceInput?: number
         priceOutput?: number
+        /** 任务类型（chat / image_generation / video_generation / model_3d） */
+        tasks?: string[]
       }>
     }>(apiHttp.get(`/api/channels/${channel}/models/config`)),
   /** PUT /api/channels/{channel}/enabled —— 渠道总开关 */
@@ -586,13 +622,7 @@ export const channelApi = {
   chatChannels: () =>
     unwrapPayload<{
       ok: boolean
-      channels: Array<{
-        channel: string
-        displayName?: string
-        extension?: string | null
-        priority?: number
-        supportsImage?: boolean
-      }>
+      channels: SpiChannelMeta[]
     }>(apiHttp.get('/api/channels/chat-channels')),
   /**
    * GET /api/channels/image-channels —— 全部文生图渠道元数据。
@@ -600,14 +630,27 @@ export const channelApi = {
   imageChannels: () =>
     unwrapPayload<{
       ok: boolean
-      channels: Array<{
-        channel: string
-        displayName?: string
-        extension?: string | null
-        priority?: number
-        models?: Array<{ id: string; name?: string }>
-      }>
+      channels: SpiChannelMeta[]
     }>(apiHttp.get('/api/channels/image-channels')),
+  /**
+   * GET /api/channels/video-channels —— 全部文生视频渠道元数据。
+   *
+   * <p>与 image-channels 对称：文生视频渠道同样来自独立 SPI 注册表，
+   * 模型清单随元数据一并返回，不需要再问一次上游。</p>
+   */
+  videoChannels: () =>
+    unwrapPayload<{
+      ok: boolean
+      channels: SpiChannelMeta[]
+    }>(apiHttp.get('/api/channels/video-channels')),
+  /**
+   * GET /api/channels/3d-channels —— 全部图生 3D 渠道元数据。
+   */
+  model3dChannels: () =>
+    unwrapPayload<{
+      ok: boolean
+      channels: SpiChannelMeta[]
+    }>(apiHttp.get('/api/channels/3d-channels')),
   /**
    * GET /api/accounts?channelKey= —— 某渠道下的账号（统一账号管理）。
    *
@@ -935,8 +978,16 @@ export interface MagpieProviderList {
   channel?: string
   /** 网关根地址（回显，便于确认连的是哪台） */
   baseUrl?: string
-  /** 管理面地址（页面端口，默认 3430） */
+  /** 管理面地址（页面端口，默认 3430，由 baseUrl 推导） */
   pageUrl?: string
+  /** 连接形态：local（回环，读本机配置目录）/ remote（走 HTTP 带 Key） */
+  mode?: 'local' | 'remote' | string
+  /** 本地回落的 magpie 配置目录（仅本地形态有值） */
+  configDir?: string
+  /** 网关 Key 来源：credential / file / none（后端现读文件时为 file） */
+  gatewayKeySource?: string
+  /** 页面 Key 来源：credential / file / none */
+  pageKeySource?: string
   /** 管理面是否可用（页面没开 / 页面 Key 缺失时为 false） */
   manageable?: boolean
   providers?: MagpieProvider[]
