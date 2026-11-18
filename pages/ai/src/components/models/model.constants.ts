@@ -123,6 +123,13 @@ export const CHANNEL_PROVIDER_IDS: ReadonlySet<string> = new Set([
   'loomy',
   'lobsterai',
   'opencode',
+  // 后端已有 SPI 实现、此前前端未识别的渠道：不补会把它们当普通 API Key 提供商，
+  // 表单要求填 Key，而正确路径是渠道管理页绑定账号。
+  'eac',
+  'kilo',
+  'workbuddy',
+  // SCNet 超算互联网：OpenAI 兼容 + API Key（SPI @Spi("scnet")）
+  'scnet',
 ])
 
 /**
@@ -249,6 +256,9 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   // base_url 留空；「从提供商获取模型列表」走内置模型清单，加进来的模型可直接调用。
   { id: 'duckduckgo', name: 'DuckDuckGo', description: '免登录对话渠道，无需 API 地址与 Key（模型由内置客户端提供）', protocol: 'openai', keywords: ['duck', 'ddg', '免登录', 'duck.ai'], defaultAuthMode: 'none' },
   { id: 'opencode', name: 'OpenCode', description: '免费开源 API，支持多种模型', protocol: 'openai', defaultApiUrl: 'https://opencode.ai/zen/v1', keywords: ['zen'] },
+  // SCNet 超算互联网：官方 OpenAI 兼容入口（/api/llm/v1），API Key 鉴权；
+  // 渠道鉴权由后端 ScnetAccountChannelAuthManager 负责，模型目录走 GET /models。
+  { id: 'scnet', name: 'SCNet 超算互联网', description: '国家超算互联网模型服务，OpenAI 兼容接口，API Key 鉴权', protocol: 'openai', defaultApiUrl: 'https://api.scnet.cn/api/llm/v1', keywords: ['scnet', '超算', 'scnet-max'] },
   { id: 'siliconflow', name: 'SiliconFlow 硅基流动', description: '国内 AI 模型平台，支持 DeepSeek、Qwen 等', protocol: 'openai', defaultApiUrl: 'https://api.siliconflow.cn/v1', keywords: ['jiguang', 'silicon'] },
   { id: 'bai', name: 'b.ai', description: '免费 AI 模型平台，支持 DeepSeek 等', protocol: 'openai', defaultApiUrl: 'https://api.b.ai/v1', keywords: [] },
   { id: 'ai302', name: 'AI302', description: 'AI302.com 聚合 API', protocol: 'openai', defaultApiUrl: 'https://api.ai302.com/v1', keywords: ['302'] },

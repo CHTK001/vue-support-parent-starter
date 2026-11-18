@@ -100,6 +100,8 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   loomy: { color: '#2B7DE9', glyph: 'L', method: '微信扫码' },
   lobsterai: { icon: lobsteraiIcon, color: '#F03D64', glyph: 'L', method: '浏览器授权' },
   opencode: { icon: opencodeIcon, color: '#111827', glyph: 'O', method: 'API Key' },
+  // SCNet 超算互联网：OpenAI 兼容 + API Key；无官方图标资源，用品牌蓝徽标兜底
+  scnet: { color: '#1D6FF2', glyph: 'S', method: 'API Key' },
   workbuddy: { icon: workbuddyIcon, color: '#5A4FF3', glyph: 'W', method: '浏览器授权' },
   // Magpie 统一网关：本机 / Docker 常驻，凭据是「网关地址 + 网关 key」
   magpie: { icon: magpieIcon, color: '#0EA5A4', glyph: 'M', method: 'API Key' },
