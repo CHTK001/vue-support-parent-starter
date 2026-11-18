@@ -1313,7 +1313,7 @@ import { useLibraryGroups } from '@/composables/useLibraryGroups'
 import type { GenerateModel, GenerateTask, GenerateTaskStatus } from '../../services/modules/generate.api'
 import { isInlineMedia, resolveReferenceImage } from '../../services/modules/generate.api'
 import { createAuthImageLoader, downloadAuthenticatedFile } from '../../utils/authImage'
-import { loadInputHistory, rememberInput } from '../../utils/inputHistory'
+import { hydrateInputHistory, rememberInput } from '../../utils/inputHistory'
 import { useAuthStore } from '../../stores/auth'
 /*
  * 内联媒体（后端存下来的字节）没有请求头可带，只能 fetch + blob 加载。
@@ -1686,13 +1686,17 @@ const authStore = useAuthStore()
  * 会话里是追问，生图这边是画面描述，混在一个列表里翻起来很乱。
  * 按用户分键，同一浏览器多账号不串内容；清空历史记录不影响这里。</p>
  */
-const promptHistory = ref<string[]>(loadInputHistory(authStore.user?.username, 'generate'))
+const promptHistory = ref<string[]>([])
 
 watch(
   () => authStore.user?.username,
   (name) => {
-    promptHistory.value = loadInputHistory(name, 'generate')
+    // 历史存在 IndexedDB 里（加密），读取是异步的：watch 立即触发一次，用户名变化时重读
+    void hydrateInputHistory(name, 'generate').then((list) => {
+      if (String(name ?? '') === String(authStore.user?.username ?? '')) promptHistory.value = list
+    })
   },
+  { immediate: true },
 )
 
 const canvasRef = ref<HTMLElement | null>(null)
@@ -3722,8 +3726,10 @@ const onComposerSubmit = async (text: string) => {
     tasks.value.unshift(task)
     // 记进本机输入历史（↑↓ 可翻回）：只存用户手打的那段，不存拼接后的风格描述，
     // 回填时风格仍由风格选择器负责，避免描述在提示词里出现两遍。
-    rememberInput(withStyle, authStore.user?.username, 'generate')
-    promptHistory.value = loadInputHistory(authStore.user?.username, 'generate')
+    // 写 IndexedDB 是异步的，不阻塞提交；完成后刷新列表。
+    void rememberInput(withStyle, authStore.user?.username, 'generate').then((list) => {
+      promptHistory.value = list
+    })
     // 记住本次提交：创建接口只保证「记录已入库」便返回 200，上游是否受理要到轮询才知道
     // （限流、队列满、Key 失效都发生在入库之后的异步提交里）。没有这层监听的话，
     // 失败只会表现为卡片静默翻成「失败」——用户若提交后切走或看别的标签就完全察觉不到。
