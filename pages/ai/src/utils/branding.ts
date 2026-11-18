@@ -2,10 +2,12 @@
  * 品牌资源解析：把 getConfig('app') 中的 title / logoUrl / logoLargeUrl / favicon
  * 收敛为唯一出口，组件与 index.html 一律不再硬编码品牌图片路径。
  *
- * 优先级（全部来自 app.yaml，缺省才落到内置兜底）：
- *   大图 logoLargeUrl → logoUrl → favicon → 内置 /favicon.ico
- *   小图 logoUrl     → logoLargeUrl → favicon → 内置 /favicon.ico
- *   ico  favicon     → logoUrl → logoLargeUrl → 内置 /favicon.ico
+ * 优先级（getConfig().login.logoUrl 最优先 —— 与 koi 应用同源：本地来自 app.yaml
+ * loginConfig.logoUrl，登录后由后端 sys_setting logourl 远程覆盖；app.yaml app.*
+ * 为本地缺省，内置 /favicon.ico 最后兜底）：
+ *   大图 login.logoUrl → logoLargeUrl → logoUrl → favicon → 内置 /favicon.ico
+ *   小图 login.logoUrl → logoUrl → logoLargeUrl → favicon → 内置 /favicon.ico
+ *   ico  login.logoUrl → favicon → logoUrl → logoLargeUrl → 内置 /favicon.ico
  *
  * index.html 是静态文件，物理上无法调用 getConfig()，因此 favicon / title 一律
  * 不在 HTML 里写死：由 applyBranding() 在 bootstrapFramework() 之后按 getConfig
@@ -44,6 +46,20 @@ function pick(...values: unknown[]): string {
   return ''
 }
 
+/**
+ * 登录配置里的品牌 Logo（getConfig().login.logoUrl）。
+ *
+ * <p>koi 应用（setDocumentFavicon / 登录页）都取它，且登录后会被
+ * refreshDefaultSetting 用后端 sys_setting 的 logourl 覆盖。AI 控制台把它放在
+ * 取值最前，保证 logo / ico 与其它应用一样「来自 getConfig」、随远程设置联动，
+ * app.yaml 的 app.* 退为本地缺省。</p>
+ */
+function loginLogoUrl(): string {
+  const login = (getConfig()?.login ?? {}) as { logoUrl?: unknown }
+  const raw = pick(login.logoUrl)
+  return raw === 'null' || raw === 'undefined' ? '' : raw
+}
+
 /** 品牌标题（document.title 与标题栏文案共用） */
 export function resolveBrandTitle(): string {
   return pick(appCfg().title) || FALLBACK_TITLE
@@ -52,19 +68,19 @@ export function resolveBrandTitle(): string {
 /** 浏览器 favicon / 站点图标 */
 export function resolveBrandFavicon(): string {
   const app = appCfg()
-  return fixFrontendAssetUrl(pick(app.favicon, app.logoUrl, app.logoLargeUrl) || FALLBACK_ICON)
+  return fixFrontendAssetUrl(pick(loginLogoUrl(), app.favicon, app.logoUrl, app.logoLargeUrl) || FALLBACK_ICON)
 }
 
 /** 小尺寸品牌 Logo（标题栏、侧边栏） */
 export function resolveBrandLogoSmall(): string {
   const app = appCfg()
-  return fixFrontendAssetUrl(pick(app.logoUrl, app.logoLargeUrl, app.favicon) || FALLBACK_ICON)
+  return fixFrontendAssetUrl(pick(loginLogoUrl(), app.logoUrl, app.logoLargeUrl, app.favicon) || FALLBACK_ICON)
 }
 
 /** 大尺寸品牌 Logo（欢迎页横幅、关于面板） */
 export function resolveBrandLogoLarge(): string {
   const app = appCfg()
-  return fixFrontendAssetUrl(pick(app.logoLargeUrl, app.logoUrl, app.favicon) || FALLBACK_ICON)
+  return fixFrontendAssetUrl(pick(loginLogoUrl(), app.logoLargeUrl, app.logoUrl, app.favicon) || FALLBACK_ICON)
 }
 
 /**

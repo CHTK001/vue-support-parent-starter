@@ -129,18 +129,29 @@ export function resolvePageTitle(
   return finalTitle === "home" || !finalTitle ? "" : finalTitle;
 }
 
-/** 同步浏览器标签页图标（favicon）：跟随 app.yaml loginConfig.logoUrl，未配置则回退打包 logo */
+/** 同步浏览器标签页图标（favicon）：跟随 getConfig().login.logoUrl，未配置则回退打包 logo */
 export function setDocumentFavicon(): void {
   try {
-    const logoUrl = getConfig().login.logoUrl;
+    const logoUrl = getConfig()?.login?.logoUrl;
     const resolved = logoUrl ? resolveAssetUrl(logoUrl) : defaultLogoUrl;
-    let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (!icon) {
-      icon = document.createElement("link");
+    // 归一为绝对地址：相对值（如 "logo.svg"）会随当前页面 URL 解析，history 子路径下会错位
+    const href = new URL(resolved, document.baseURI).href;
+    // 更新页面上已有的全部图标链接（含 index.html 的静态兜底 link），没有才新建，
+    // 避免出现「一个链接是静态兜底、另一个是配置值」的双链接各持旧值
+    const targets = Array.from(
+      document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"], link[rel="apple-touch-icon"]'),
+    );
+    if (!targets.some((link) => (link.rel || "").split(/\s+/).includes("icon"))) {
+      const icon = document.createElement("link");
       icon.rel = "icon";
       document.head.appendChild(icon);
+      targets.push(icon);
     }
-    icon.href = resolved;
+    for (const link of targets) {
+      if (resolved.endsWith(".svg")) link.type = "image/svg+xml";
+      else link.removeAttribute("type");
+      link.href = href;
+    }
   } catch {
     // 忽略：favicon 非关键资源
   }

@@ -15,7 +15,7 @@
     <!-- 移动端 Logo -->
     <div v-else-if="showMobileBrand" class="login-mobile-brand md:hidden">
       <div class="login-logo-wrap login-logo-wrap--mobile">
-        <img class="login-logo" :src="fallbackLogoUrl" :alt="loginConfig.brandName" />
+        <img class="login-logo" :src="resolvedLogoUrl" :alt="loginConfig.brandName" />
       </div>
       <div class="font-600 text-xl">{{ translateConfigText(loginConfig.title) }}</div>
     </div>
