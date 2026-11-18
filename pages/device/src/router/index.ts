@@ -137,6 +137,20 @@ export const deviceRoutes: RouteConfigsTable[] = [
     }
   },
   {
+    // 告警日志：所有设备告警（webhook 入站 + 平台自检离线/事件）统一汇集，菜单直达
+    path: '/device/alarm',
+    name: 'DeviceAlarm',
+    component: () => import('../views/DeviceAlarmView.vue'),
+    meta: {
+      title: '告警日志',
+      icon: 'Bell',
+      showLink: true,
+      keepAlive: true,
+      isVisible: '1',
+      rank: 16
+    }
+  },
+  {
     path: '/device/vehicle',
     name: 'DeviceVehicle',
     component: () => import('../views/DeviceVehicleView.vue'),
@@ -256,6 +270,16 @@ export const deviceMenus = [
         path: '/device/provider',
         name: 'DeviceProvider',
         meta: { title: '厂商接入', icon: 'Connection', isVisible: '1' }
+      },
+      {
+        path: '/device/alarm',
+        name: 'DeviceAlarm',
+        meta: { title: '告警日志', icon: 'Bell', isVisible: '1' }
+      },
+      {
+        path: '/device/events',
+        name: 'DeviceEvents',
+        meta: { title: '设备日志', icon: 'Document', isVisible: '1' }
       },
       {
         path: '/device/vehicle',
