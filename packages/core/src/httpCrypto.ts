@@ -44,6 +44,8 @@ declare global {
       /** 打开强制登录弹窗（并行 401/403 只弹一个） */
       show: (callbacks?: { onLogin?: () => void; onClose?: () => void }) => void;
     };
+    /** 强制登录弹窗是否打开（koi 主题状态标记；核心用它判断弹窗是否还开着） */
+    __reForcedLoginOpen?: boolean;
   }
 }
 

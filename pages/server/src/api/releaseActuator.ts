@@ -56,6 +56,15 @@ export interface ActuatorHttpRecord {
   timeTaken?: number;
   /** 原始时间戳（ISO 字符串），前端解析成毫秒 */
   timestamp?: string;
+  /**
+   * 链路关联键（后端 compact 从请求/响应头抽取，见 ActuatorHttpTrace）。
+   *
+   * <p>没有链路头（普通流量、或后端未升级）时为 null/undefined；
+   * 前端把有 traceId 的记录聚成调用树，其余归「未关联」平铺。</p>
+   */
+  traceId?: string | null;
+  spanId?: string | null;
+  parentSpanId?: string | null;
 }
 
 /** 热更新日志级别的结果 */

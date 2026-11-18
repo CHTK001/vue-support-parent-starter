@@ -299,20 +299,38 @@
             </div>
           </template>
           <template v-else>
-            <button
-              v-for="r in httpRecords"
-              :key="r.key"
-              type="button"
-              class="obs-item obs-trace-item obs-trace-http"
-              :class="{ 'is-on': r.key === httpRecordKey, 'is-error': r.status >= 500 }"
-              :title="`${r.method} ${r.uri} · 耗时 ${fmtMs(r.timeTaken)}`"
-              @click="openHttpRecord(r)"
-            >
-              <span class="obs-trace-status mono">{{ r.status ? r.status : '—' }}</span>
-              <span class="obs-trace-name">{{ r.method }} {{ r.uri }}</span>
-              <span class="obs-trace-lat mono">{{ fmtMs(r.timeTaken) }}</span>
-              <span class="obs-trace-time">{{ r.timestamp ? fmtClock(r.timestamp) : '' }}</span>
-            </button>
+            <template v-for="item in httpSideRows" :key="item.kind + ':' + (item.kind === 'group' ? item.group.traceId : item.row.key)">
+              <button
+                v-if="item.kind === 'group'"
+                type="button"
+                class="obs-item obs-trace-item obs-trace-group"
+                :class="{ 'is-on': item.group.traceId === httpTraceKey, 'is-root': true }"
+                :title="`${item.group.records.length} 条请求 · 点击展开/收起`"
+                @click="toggleHttpGroup(item.group.traceId)"
+              >
+                <span class="obs-trace-toggle">{{ httpTraceCollapsed[item.group.traceId] ? '▸' : '▾' }}</span>
+                <span class="obs-trace-name obs-trace-group-name">{{ shortTrace(item.group.traceId) }}</span>
+                <span class="obs-trace-lat mono">{{ item.group.records.length }} 条</span>
+                <span class="obs-trace-time">{{ item.group.firstTime ? fmtClock(item.group.firstTime) : '' }}</span>
+              </button>
+              <button
+                v-else
+                type="button"
+                class="obs-item obs-trace-item obs-trace-http"
+                :class="{
+                  'is-on': item.row.key === httpRecordKey,
+                  'is-error': item.row.record.status >= 500,
+                }"
+                :style="{ paddingLeft: 8 + item.row.depth * 14 + 'px' }"
+                :title="`${item.row.record.method} ${item.row.record.uri} · 耗时 ${fmtMs(item.row.record.timeTaken)}`"
+                @click="openHttpRecord(item.row.record)"
+              >
+                <span class="obs-trace-status mono">{{ item.row.record.status ? item.row.record.status : '—' }}</span>
+                <span class="obs-trace-name">{{ item.row.record.method }} {{ item.row.record.uri }}</span>
+                <span class="obs-trace-lat mono">{{ fmtMs(item.row.record.timeTaken) }}</span>
+                <span class="obs-trace-time">{{ item.row.record.timestamp ? fmtClock(item.row.record.timestamp) : '' }}</span>
+              </button>
+            </template>
           </template>
           <div
             v-if="(traceSource === 'apm' ? !traces.length : !httpRecords.length) && !loading"
@@ -328,10 +346,17 @@
             <div class="obs-profile">
               <div class="obs-profile-main">
                 <div class="obs-cap">请求记录剖面 · {{ httpTraceEndpoint }}</div>
-                <h1 class="mono">{{ currentHttpRecord ? `${currentHttpRecord.method} ${currentHttpRecord.uri}` : '未选择记录' }}</h1>
+                <h1 class="mono">
+                  <template v-if="httpView === 'tree'">
+                    {{ httpTraceKey !== null ? shortTrace(httpTraceKey) : '未选择链路组' }}
+                  </template>
+                  <template v-else>
+                    {{ currentHttpRecord ? `${currentHttpRecord.method} ${currentHttpRecord.uri}` : '未选择记录' }}
+                  </template>
+                </h1>
                 <p class="obs-lead">
-                  Actuator <code>{{ httpTraceEndpoint }}</code> 的请求记录（Actuator 语境，非 span 链路）。
-                  需要完整 span 调用链时再为项目注入 SkyWalking / 平台 APM agent。
+                  Actuator <code>{{ httpTraceEndpoint }}</code> 请求记录：有 traceparent / B3 链路头的按
+                  调用链聚成树，没有的归入「未关联」。要完整 span 调用链时再为项目注入 SkyWalking / 平台 APM agent。
                 </p>
               </div>
               <div class="obs-profile-read">
@@ -352,35 +377,102 @@
             </div>
 
             <div class="obs-rule">
-              <span>请求时间轴</span>
-              <b class="mono obs-dim">{{ httpRecords.length }} 条 · {{ fmtMs(httpTimeline.span) }} 窗口</b>
-            </div>
-            <div class="obs-wf">
-              <div class="obs-wf-head">
-                <span class="obs-cap">请求</span>
-                <span class="obs-cap">耗时（按时间戳定位）</span>
+              <span>视图</span>
+              <div class="obs-seg" role="group" aria-label="视图切换">
+                <button
+                  type="button"
+                  class="obs-seg-btn"
+                  :class="{ 'is-on': httpView === 'tree' }"
+                  @click="httpView = 'tree'"
+                >
+                  树状
+                </button>
+                <button
+                  type="button"
+                  class="obs-seg-btn"
+                  :class="{ 'is-on': httpView === 'timeline' }"
+                  @click="httpView = 'timeline'"
+                >
+                  时间轴
+                </button>
               </div>
-              <div
-                v-for="r in httpRecords"
-                :key="r.key"
-                class="obs-wf-row"
-                :class="{ 'is-on': r.key === httpRecordKey, 'is-error': r.status >= 500 }"
-                @click="openHttpRecord(r)"
-              >
-                <div class="obs-wf-label">
-                  <span class="obs-wf-status mono">{{ r.status || '—' }}</span>
-                  <span class="obs-wf-name mono" :title="`${r.method} ${r.uri}`">{{ r.method }} {{ r.uri }}</span>
-                </div>
-                <div class="obs-wf-track">
-                  <i
-                    class="obs-wf-bar"
-                    :class="r.status >= 500 ? 'is-error' : 'is-http'"
-                    :style="barStyle(r.timestamp || httpTimeline.t0, Math.max(r.timeTaken || 0, 1), httpTimeline.t0, httpTimeline.span)"
-                  ></i>
-                </div>
-                <span class="obs-wf-ms mono">{{ fmtMs(r.timeTaken) }}</span>
-              </div>
+              <b class="mono obs-dim">{{ httpViewNote }}</b>
             </div>
+
+            <!-- 树状：按调用链层级展开，每一行同时带组内时间区间条 -->
+            <template v-if="httpView === 'tree'">
+              <div v-if="httpTraceKey === null" class="obs-empty">左侧选一个链路组，按调用链层级展开</div>
+              <div v-else class="obs-wf">
+                <div class="obs-wf-head">
+                  <span class="obs-cap">调用链 · 按层级缩进</span>
+                  <span class="obs-cap">耗时（按时间戳定位）</span>
+                </div>
+                <div
+                  v-for="row in httpDetailTree"
+                  :key="row.key"
+                  class="obs-wf-row"
+                  :class="{ 'is-on': row.key === httpRecordKey, 'is-error': row.record.status >= 500 }"
+                  @click="openHttpRecord(row.record)"
+                >
+                  <div class="obs-wf-label" :style="{ paddingLeft: row.depth * 14 + 'px' }">
+                    <button
+                      type="button"
+                      class="obs-wf-toggle"
+                      :class="{ 'is-hidden': !row.hasChildren }"
+                      @click.stop="toggleHttpNode(row.key)"
+                    >
+                      {{ httpNodeCollapsed[row.key] ? '▸' : '▾' }}
+                    </button>
+                    <span class="obs-wf-status mono">{{ row.record.status || '—' }}</span>
+                    <span class="obs-wf-name mono" :title="`${row.record.method} ${row.record.uri}`">
+                      {{ row.record.method }} {{ row.record.uri }}
+                    </span>
+                  </div>
+                  <div class="obs-wf-track">
+                    <i
+                      class="obs-wf-bar"
+                      :class="row.record.status >= 500 ? 'is-error' : 'is-http'"
+                      :style="barStyle(row.record.timestamp || httpGroupTimeline.t0, Math.max(row.record.timeTaken || 0, 1), httpGroupTimeline.t0, httpGroupTimeline.span)"
+                    ></i>
+                  </div>
+                  <span class="obs-wf-ms mono">{{ fmtMs(row.record.timeTaken) }}</span>
+                </div>
+              </div>
+            </template>
+
+            <!-- 时间轴：全部记录按时间戳排成瀑布（原「请求时间轴」） -->
+            <template v-else>
+              <div class="obs-rule">
+                <span>请求时间轴</span>
+                <b class="mono obs-dim">{{ httpRecords.length }} 条 · {{ fmtMs(httpTimeline.span) }} 窗口</b>
+              </div>
+              <div class="obs-wf">
+                <div class="obs-wf-head">
+                  <span class="obs-cap">请求</span>
+                  <span class="obs-cap">耗时（按时间戳定位）</span>
+                </div>
+                <div
+                  v-for="r in httpRecords"
+                  :key="r.key"
+                  class="obs-wf-row"
+                  :class="{ 'is-on': r.key === httpRecordKey, 'is-error': r.status >= 500 }"
+                  @click="openHttpRecord(r)"
+                >
+                  <div class="obs-wf-label">
+                    <span class="obs-wf-status mono">{{ r.status || '—' }}</span>
+                    <span class="obs-wf-name mono" :title="`${r.method} ${r.uri}`">{{ r.method }} {{ r.uri }}</span>
+                  </div>
+                  <div class="obs-wf-track">
+                    <i
+                      class="obs-wf-bar"
+                      :class="r.status >= 500 ? 'is-error' : 'is-http'"
+                      :style="barStyle(r.timestamp || httpTimeline.t0, Math.max(r.timeTaken || 0, 1), httpTimeline.t0, httpTimeline.span)"
+                    ></i>
+                  </div>
+                  <span class="obs-wf-ms mono">{{ fmtMs(r.timeTaken) }}</span>
+                </div>
+              </div>
+            </template>
 
             <div class="obs-rule"><span>原始返回</span></div>
             <pre class="obs-json">{{ currentHttpRecord ? currentHttpRecord.raw : '左侧选一条请求记录查看详情' }}</pre>
@@ -1305,6 +1397,10 @@ interface HttpRecord {
   status: number;
   timeTaken: number;
   timestamp: number;
+  /** 链路关联键（后端 compact 抽取；取不到时为空串） */
+  traceId?: string;
+  spanId?: string;
+  parentSpanId?: string;
   raw: string;
 }
 const httpRecords = ref<HttpRecord[]>([]);
@@ -1316,6 +1412,242 @@ const httpTraceEndpoint = ref('httptrace');
 const httpTraceTruncated = ref(false);
 /** 端点是否真的暴露（200 也算，即使一条记录都没有——区分「未暴露」与「无记录」） */
 const httpTraceExposed = ref(false);
+
+/**
+ * Actuator 记录右侧主区视图：tree = 调用树（按父子层级缩进）；timeline = 时间轴瀑布。
+ *
+ * <p>与 APM 分支的「左树右瀑布」同构：树状把 traceparent/B3 关联键聚成的
+ * 调用链按层级展开，时间轴把所有记录按时间戳排成瀑布。</p>
+ */
+const httpView = ref<'tree' | 'timeline'>('tree');
+/** 当前选中的 trace 组；null = 未选择；'' = 未关联组（普通请求，无链路头） */
+const httpTraceKey = ref<string | null>(null);
+/** 左侧树：trace 组是否折叠（键 = traceId，'' 表示未关联组） */
+const httpTraceCollapsed = reactive<Record<string, boolean>>({});
+/** 左侧树：组内节点是否折叠（键 = 记录 key） */
+const httpNodeCollapsed = reactive<Record<string, boolean>>({});
+
+/** 树行：一条记录 + 树上的深度/父子关系（按 parentSpanId 建树） */
+interface HttpTreeRow {
+  key: string;
+  record: HttpRecord;
+  depth: number;
+  hasChildren: boolean;
+  parentKey: string;
+}
+
+/** 一个 trace 组：同一 traceId 的记录集合 + 组内调用树 */
+interface HttpTraceGroup {
+  traceId: string;
+  records: HttpRecord[];
+  treeRows: HttpTreeRow[];
+  /** 组内最大单请求耗时（近似整条链的耗时） */
+  totalMs: number;
+  /** 组内最早时间戳 */
+  firstTime: number;
+  /** 根节点数（并行起点；>1 说明有多条互不关联的入口） */
+  rootCount: number;
+}
+
+/**
+ * 把记录按 traceId 分组，组内按 parentSpanId 建树。
+ *
+ * <p>没有链路头的记录聚到 ''（未关联）组，平铺展示——它们只是被
+ * Actuator 记住的普通请求，不假装成链路。</p>
+ */
+const httpTraceGroups = computed<HttpTraceGroup[]>(() => {
+  const groups = new Map<string, HttpRecord[]>();
+  for (const r of httpRecords.value) {
+    const tid = r.traceId || '';
+    const list = groups.get(tid) || [];
+    list.push(r);
+    groups.set(tid, list);
+  }
+  const out: HttpTraceGroup[] = [];
+  for (const [tid, records] of groups) {
+    records.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    const treeRows = tid ? buildHttpRows(records) : records.map((r) => ({
+      key: r.key, record: r, depth: 0, hasChildren: false, parentKey: '',
+    }));
+    const roots = treeRows.filter((row) => !row.parentKey);
+    out.push({
+      traceId: tid,
+      records,
+      treeRows,
+      totalMs: Math.max(...records.map((r) => r.timeTaken || 0), 0),
+      firstTime: records[0]?.timestamp || 0,
+      rootCount: roots.length,
+    });
+  }
+  out.sort((a, b) => a.firstTime - b.firstTime);
+  return out;
+});
+
+/** 左侧列表可见行：按折叠状态过滤后的组头 + 组内行（先序，同层按时间） */
+const httpSideRows = computed<
+  Array<{ kind: 'group'; group: HttpTraceGroup } | { kind: 'row'; group: HttpTraceGroup; row: HttpTreeRow }>
+>(() => {
+  const out: Array<
+    { kind: 'group'; group: HttpTraceGroup } | { kind: 'row'; group: HttpTraceGroup; row: HttpTreeRow }
+  > = [];
+  for (const g of httpTraceGroups.value) {
+    out.push({ kind: 'group', group: g });
+    if (httpTraceCollapsed[g.traceId]) continue;
+    const hidden = new Set<string>();
+    for (const row of g.treeRows) {
+      if (row.parentKey && hidden.has(row.parentKey)) {
+        hidden.add(row.key);
+        continue;
+      }
+      out.push({ kind: 'row', group: g, row });
+      if (row.hasChildren && httpNodeCollapsed[row.key]) {
+        hidden.add(row.key);
+      }
+    }
+  }
+  return out;
+});
+
+/** 右侧树状视图的行：当前选中 trace 组的调用树（未选中组时为空，提示先选） */
+const httpDetailTree = computed<HttpTreeRow[]>(() => {
+  if (httpTraceKey.value === null) return [];
+  const g = httpTraceGroups.value.find((x) => x.traceId === httpTraceKey.value);
+  return g?.treeRows || [];
+});
+
+/** 右侧树状视图的时间轴窗口（选中组的最早开始 → 最晚结束） */
+const httpGroupTimeline = computed(() => {
+  const g = httpTraceGroups.value.find((x) => x.traceId === httpTraceKey.value);
+  const list = g?.records?.length ? g.records : httpRecords.value;
+  if (!list.length) return { t0: 0, span: 1 };
+  const stamps = list.map((r) => r.timestamp || 0).filter((v) => v > 0);
+  const t0 = stamps.length ? Math.min(...stamps) : 0;
+  const t1 = Math.max(...list.map((r) => (r.timestamp || t0) + Math.max(r.timeTaken || 0, 1)));
+  return { t0, span: Math.max(t1 - t0, 1) };
+});
+
+/** 视图切换区说明文案 */
+const httpViewNote = computed(() => {
+  if (httpView.value === 'tree') {
+    if (httpTraceKey.value === null) return '左侧选一个链路组';
+    const g = httpTraceGroups.value.find((x) => x.traceId === httpTraceKey.value);
+    if (!g) return '左侧选一个链路组';
+    if (g.rootCount > 1) return `${g.records.length} 条 · ${g.rootCount} 个并行起点`;
+    return `${g.records.length} 条 · ${g.treeRows.length} 个节点`;
+  }
+  const list = httpRecords.value;
+  if (!list.length) return '无记录';
+  return `${list.length} 条 · ${fmtMs(httpTimeline.value.span)} 窗口`;
+});
+
+/** traceId 短显：太长的只留前 8 位，未关联显示占位名 */
+function shortTrace(tid: string): string {
+  if (!tid) return '未关联';
+  return tid.length > 12 ? `#${tid.slice(0, 8)}…` : `#${tid}`;
+}
+
+function selectHttpGroup(traceId: string) {
+  httpTraceKey.value = traceId;
+  httpRecordKey.value = '';
+  currentHttpRecord.value = null;
+}
+
+function toggleHttpGroup(traceId: string) {
+  httpTraceCollapsed[traceId] = !httpTraceCollapsed[traceId];
+  selectHttpGroup(traceId);
+}
+
+function toggleHttpNode(key: string) {
+  httpNodeCollapsed[key] = !httpNodeCollapsed[key];
+}
+
+/**
+ * 组内建树（按 parentSpanId 匹配同组 spanId），先序扁平化。
+ *
+ * <p>与 APM 的 buildRows 同构；找不到父节点（上游记录不在缓冲里）的
+ * 记录成为根——真实的 Actuator 缓冲只留最近 200 条，跨明细丢失很正常。</p>
+ */
+function buildHttpRows(records: HttpRecord[]): HttpTreeRow[] {
+  if (!records.length) return [];
+  const bySpan = new Map<string, HttpRecord>();
+  for (const r of records) {
+    if (r.spanId) bySpan.set(r.spanId, r);
+  }
+  const children = new Map<string, HttpRecord[]>();
+  const roots: HttpRecord[] = [];
+  for (const r of records) {
+    const pk = r.parentSpanId && bySpan.has(r.parentSpanId) ? r.parentSpanId : '';
+    if (pk) {
+      const list = children.get(pk) || [];
+      list.push(r);
+      children.set(pk, list);
+    } else {
+      roots.push(r);
+    }
+  }
+  const sortBy = (a: HttpRecord, b: HttpRecord) =>
+    (a.timestamp || 0) - (b.timestamp || 0) || b.timeTaken - a.timeTaken;
+  roots.sort(sortBy);
+  const out: HttpTreeRow[] = [];
+  const walk = (r: HttpRecord, depth: number, parentKey: string) => {
+    const kids = children.get(r.spanId || '') || [];
+    out.push({ key: r.key, record: r, depth, hasChildren: kids.length > 0, parentKey });
+    kids.sort(sortBy).forEach((kid) => walk(kid, depth + 1, r.key));
+  };
+  roots.forEach((rt) => walk(rt, 0, ''));
+  return out;
+}
+
+/**
+ * 从原始请求记录里抽链路关联键（后端未升级、body 仍是原始 JSON 时的兜底）。
+ *
+ * <p>与后端 {@code ActuatorHttpTrace} 同口径：W3C traceparent / B3 / uber-trace-id /
+ * X-B3-* / X-Trace-Id，头名大小写不敏感；取不到时全部为空串。</p>
+ */
+function pickTrace(req: any, res: any): { traceId: string; spanId: string; parentSpanId: string } {
+  const pool: Record<string, string> = {};
+  const collect = (node: any) => {
+    const headers = node?.headers;
+    if (!headers || typeof headers !== 'object') return;
+    for (const [name, v] of Object.entries(headers)) {
+      const key = name.toLowerCase();
+      if (pool[key] === undefined) pool[key] = Array.isArray(v) ? String(v[0] ?? '') : String(v ?? '');
+    }
+  };
+  collect(req);
+  collect(res);
+  const first = (k: string) => (pool[k] ? String(pool[k]).trim() : '');
+  let traceId = '';
+  let spanId = '';
+  let parentSpanId = '';
+  const traceparent = first('traceparent');
+  if (traceparent) {
+    const parts = traceparent.split('-');
+    if (parts.length >= 3) {
+      traceId = parts[1] || '';
+      spanId = parts[2] || '';
+    }
+  }
+  const b3 = first('b3');
+  if (b3) {
+    const parts = b3.split('-');
+    if (!traceId && parts[0]) traceId = parts[0];
+    if (!spanId && parts[1]) spanId = parts[1];
+    if (!parentSpanId && parts[3]) parentSpanId = parts[3];
+  }
+  if (!traceId) traceId = first('x-b3-traceid');
+  if (!spanId) spanId = first('x-b3-spanid');
+  if (!parentSpanId) parentSpanId = first('x-b3-parentspanid');
+  const uber = first('uber-trace-id');
+  if (uber) {
+    const parts = uber.split(':');
+    if (!traceId && parts[0]) traceId = parts[0];
+    if (!spanId && parts[1]) spanId = parts[1];
+    if (!parentSpanId && parts[2]) parentSpanId = parts[2];
+  }
+  if (!traceId) traceId = first('x-trace-id');
+  return { traceId, spanId, parentSpanId };
+}
 
 /**
  * 解析 Actuator httptrace / httpexchanges 响应。
@@ -1354,6 +1686,9 @@ function parseHttpTrace(payload: { body?: string; records?: ActuatorHttpRecord[]
         status,
         timeTaken,
         timestamp,
+        traceId: e.traceId ? String(e.traceId) : '',
+        spanId: e.spanId ? String(e.spanId) : '',
+        parentSpanId: e.parentSpanId ? String(e.parentSpanId) : '',
         raw: prettyText(JSON.stringify(e, null, 2)),
       };
     });
@@ -1377,6 +1712,7 @@ function parseHttpTrace(payload: { body?: string; records?: ActuatorHttpRecord[]
       const ms = Date.parse(String(e.timestamp));
       if (Number.isFinite(ms)) timestamp = ms;
     }
+    const trace = pickTrace(req, res);
     return {
       key: `${idx}:${method}:${uri}:${status}`,
       method,
@@ -1384,6 +1720,9 @@ function parseHttpTrace(payload: { body?: string; records?: ActuatorHttpRecord[]
       status,
       timeTaken,
       timestamp,
+      traceId: trace.traceId,
+      spanId: trace.spanId,
+      parentSpanId: trace.parentSpanId,
       raw: prettyText(JSON.stringify(e, null, 2)),
     };
   });
@@ -1416,8 +1755,18 @@ async function loadTraces() {
   loading.value = true;
   traceEmpty.value = '';
   try {
-    const status = await getApmStatus();
-    if (!status.present || !status.capabilities?.includes('traces')) {
+    // APM 状态探测单独兜底：引擎后端未部署 / 接口异常时（例如统一包装返回
+    // data=null 或 code≠00000，unwrapResult 会直接抛错）一律视为「未接入」，
+    // 走 Actuator 请求记录降级。不能把探测错误当成链路空态文案展示——
+    // 实测 APM 未部署时后端返回 {code:200,msg:'ok',data:null}，unwrapResult
+    // 抛出 message='ok' 的 Error，原实现会把 'ok' 渲染成空态，Actuator 降级被挡死。
+    let status: Awaited<ReturnType<typeof getApmStatus>> | null = null;
+    try {
+      status = await getApmStatus();
+    } catch {
+      status = null;
+    }
+    if (!status || !status.present || !status.capabilities?.includes('traces')) {
       // APM 没接入：回退到项目自己的 Actuator 请求记录，用户在这里打开的就是 Actuator 语境，
       // 不该被一句「先去注入 agent」挡在门外。
       const records = await loadHttpTraceFallback();
@@ -1464,6 +1813,10 @@ async function loadTraces() {
 function openHttpRecord(r: HttpRecord) {
   httpRecordKey.value = r.key;
   currentHttpRecord.value = r;
+  // 树状视图下，点击组内记录时同步把所属链路组选为详情（未关联记录归 '' 组）
+  if (httpView.value === 'tree') {
+    httpTraceKey.value = r.traceId || '';
+  }
 }
 
 async function openTrace(id: string) {
@@ -2367,6 +2720,55 @@ onMounted(() => {
 
 .obs-trace-item.is-error .obs-trace-ms {
   color: var(--el-color-danger);
+}
+
+/* 链路组头（左侧树）：折叠三角 + 组名 + 条数 + 时间 */
+.obs-trace-group {
+  grid-template-columns: 16px minmax(0, 1fr) 52px 44px;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.obs-trace-group .obs-trace-name {
+  color: var(--el-color-primary);
+}
+
+.obs-trace-group.is-on {
+  background: var(--el-color-primary-light-9);
+}
+
+.obs-trace-toggle {
+  flex: none;
+  width: 14px;
+  color: var(--el-text-color-secondary);
+  font-size: 10px;
+  text-align: center;
+}
+
+/* 视图切换（树状 / 时间轴）分段按钮 */
+.obs-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 6px;
+  background: var(--el-fill-color-light);
+}
+
+.obs-seg-btn {
+  padding: 2px 9px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.obs-seg-btn.is-on {
+  background: var(--el-bg-color);
+  color: var(--el-color-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
 
 .obs-trace-ms {
