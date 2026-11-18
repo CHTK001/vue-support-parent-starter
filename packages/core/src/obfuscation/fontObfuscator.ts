@@ -128,3 +128,27 @@ export async function loadObfuscationFont(
   await face.load();
   document.fonts.add(face);
 }
+
+let fontLoadPromise: Promise<void> | null = null;
+
+/**
+ * 确保映射字体已注入并加载（幂等，进程内只加载一次）。
+ *
+ * <p>字体文件随包内资源提供（assets/re-obf.woff2，经构建管线解析 URL），
+ * 调用方无需关心资源地址。加载完成后，浏览器会自动以该字体重绘
+ * 已存在的 PUA 文本，无需组件手动刷新。</p>
+ *
+ * @param fontFamily 字体族名，默认 ReObfFont（须与 CSS 中声明一致）
+ */
+export function ensureObfuscationFont(fontFamily: string = OBF_FONT_FAMILY): Promise<void> {
+  if (typeof document === "undefined") return Promise.resolve();
+  if (!fontLoadPromise) {
+    const url = new URL("./assets/re-obf.woff2", import.meta.url).href;
+    fontLoadPromise = loadObfuscationFont(url, fontFamily).catch((err) => {
+      // 失败后允许下次重试
+      fontLoadPromise = null;
+      throw err;
+    });
+  }
+  return fontLoadPromise;
+}

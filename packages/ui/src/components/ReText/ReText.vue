@@ -14,7 +14,7 @@ import { ElText } from "element-plus";
 import type { TextProps } from "element-plus";
 import { getConfig } from "@repo/config";
 import { renderSecureText } from "@repo/core";
-import { buildObfuscatedChars, deobfuscateDynamic, OBF_FONT_FAMILY } from "@repo/core";
+import { buildObfuscatedChars, deobfuscateDynamic, ensureObfuscationFont, OBF_FONT_FAMILY } from "@repo/core";
 import type { FontObfuscatorOptions, ObfuscatedChar } from "@repo/core";
 import type { ReTextSecurityOptions } from "./types";
 
@@ -130,6 +130,8 @@ function rebuildObfuscate(): void {
     baseCodepoint: explicit.baseCodepoint,
     fontFamily: explicit.fontFamily,
   });
+  // 确保映射字体就绪：加载完成后浏览器自动以该字体重绘 PUA 文本
+  void ensureObfuscationFont(explicit.fontFamily).catch(() => undefined);
 }
 
 /**
@@ -141,7 +143,9 @@ function rebuildObfuscate(): void {
 const obfStyle = computed<Record<string, string>>(() => {
   const explicit = explicitObfuscateOptions.value;
   const style: Record<string, string> = {
-    fontFamily: `"${explicit.fontFamily || OBF_FONT_FAMILY}", inherit`,
+    // 注意：font-family 列表里不能出现 CSS 全局关键字 inherit（整条声明会被
+    // 浏览器丢弃，导致 PUA 码位无人渲染变成方块），回退用通用族 sans-serif。
+    fontFamily: `"${explicit.fontFamily || OBF_FONT_FAMILY}", sans-serif`,
   };
   if (explicit.fontSize && explicit.fontSize > 0) style.fontSize = `${explicit.fontSize}px`;
   if (explicit.color) style.color = explicit.color;
@@ -213,8 +217,14 @@ onBeforeUnmount(() => {
   white-space: pre;
   user-select: text;
 }
-/* 字体加密：整块套用映射字体，字形由 woff2 提供 */
+/* 字体加密：整块套用映射字体，字形由 woff2 提供（回退通用族，不能用 inherit） */
 .re-text--obf {
-  font-family: "ReObfFont", inherit;
+  font-family: "ReObfFont", sans-serif;
+}
+/* 主题层存在 * { font-family: KoiFont, ... } 通配规则：直接命中每个字符 span，
+   压过从根节点继承的映射字体，PUA 码位会落回普通字体渲染成方块。
+   这里用更高优先级把字符 span 拉回根节点的映射字体（单独的 inherit 关键字合法）。 */
+.re-text--obf .re-text__char {
+  font-family: inherit;
 }
 </style>
