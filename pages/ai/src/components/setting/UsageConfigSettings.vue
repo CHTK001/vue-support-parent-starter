@@ -157,6 +157,7 @@ const selectedProviders = computed<string[]>({
 /** 已知解析器补中文名，未知的原样显示英文 SPI 名（不要隐藏，避免用户无从选择） */
 const PARSER_LABELS: Record<string, string> = {
   system: '本系统',
+  magpie: 'Magpie 网关',
   scnet: 'SCNet 超算互联网',
   mimo: '小米 MiMo（Code 命令行 + 桌面软件）',
   opencode: 'OpenCode',
