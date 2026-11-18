@@ -544,30 +544,35 @@ onMounted(async () => {
   color: var(--el-text-color-primary);
 }
 
-/* ===== 分类标签 ===== */
+/* ===== 分类标签 → 文摘胶囊云（方案 10，对应 mockup .tags/.chip）===== */
 .market-tabs {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  overflow-x: hidden;
-  white-space: nowrap;
-  padding: 2px 2px 10px;
-  border-bottom: 1px solid var(--el-border-color);
-  margin-bottom: 14px;
+  gap: 8px;
+  padding: 0;
+  margin-bottom: 16px;
 }
 .market-tab {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
+  font-size: 12.5px;
+  line-height: 1;
+  color: var(--text-secondary, #475569);
   cursor: pointer;
-  padding-bottom: 6px;
-  border-bottom: 2px solid transparent;
-  transition: color 0.2s, border-color 0.2s;
+  padding: 7px 13px;
+  border-radius: var(--radius-full, var(--el-radius-full, 9999px));
+  border: 1px solid var(--border-default, #e2e9f3);
+  background: transparent;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
   flex: none;
 }
-.market-tab:hover { color: var(--el-text-color-primary); }
+.market-tab:hover {
+  color: var(--brand-500, #3b82f6);
+  border-color: var(--brand-500, #3b82f6);
+}
 .market-tab.active {
-  color: var(--el-color-primary);
-  border-bottom-color: var(--el-color-primary);
+  color: var(--brand-500, #3b82f6);
+  background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
+  border-color: var(--brand-500, #3b82f6);
   font-weight: 600;
 }
 
@@ -591,11 +596,16 @@ onMounted(async () => {
 }
 .market-group-arrow.collapsed { transform: rotate(90deg); }
 
-/* ===== 网格 / 单元 ===== */
+/* ===== 网格 → 双列瀑布流（方案 10）；单元 → 文摘卡 =====
+   本文件弹窗不使用 .market-grid，可直接整体改多列布局。 */
 .market-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
-  gap: 12px;
+  column-count: 2;
+  column-gap: 12px;
+}
+@media (max-width: 640px) {
+  .market-grid {
+    column-count: 1;
+  }
 }
 .market-cell {
   display: flex;
@@ -603,17 +613,20 @@ onMounted(async () => {
   align-items: stretch;
   gap: 9px;
   padding: 14px;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--border-subtle, #eef2f8);
   /* 原值 var(--mp-radius-lg, 14px)：--mp-* 来自未引入的 modern-polish.css，是空令牌，
-     收敛到 --el-radius-lg 档（14px 距 12/16 等距，本仓统一取 12px） */
-  border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-bg-color);
+     收敛到 12px 档（14px 距 12/16 等距，本仓统一取 12px） */
+  border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
+  background: var(--bg-container, #ffffff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
   min-width: 0;
+  break-inside: avoid;
+  margin-bottom: 12px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .market-cell:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: var(--el-box-shadow-light);
+  border-color: color-mix(in srgb, var(--brand-500, #3b82f6) 45%, transparent);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.06));
 }
 .market-cell-icon {
   flex: none;

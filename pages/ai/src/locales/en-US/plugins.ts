@@ -8,6 +8,13 @@ export default {
     tabMcp: 'MCP Servers',
   },
 
+  // ── 插件市场 · 瀑布文摘刊头 (PluginsPage.vue) ──
+  digest: {
+    kicker: 'PLUGIN DIGEST',
+    title: 'Plugin Digest',
+    subtitle: 'Assistants, Skills, MCP and local tools, curated by category',
+  },
+
   // ── MCP 服务器 (MCPServers.vue) ──
   mcp: {
     title: 'MCP Server List',

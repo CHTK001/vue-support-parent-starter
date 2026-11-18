@@ -1735,25 +1735,28 @@ onMounted(async () => {
     max-width: 260px;
     margin-left: auto;
 }
+/* 分类标签 → 文摘胶囊云（方案 10，对应 mockup .tags/.chip） */
 .market-tabs {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 16px;
-    overflow-x: hidden;
-    white-space: nowrap;
-    padding: 2px 2px 10px;
-    border-bottom: 1px solid var(--el-border-color);
-    margin-bottom: 14px;
+    gap: 8px;
+    padding: 0;
+    margin-bottom: 16px;
 }
 .market-tab {
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
+    font-size: 12.5px;
+    line-height: 1;
+    color: var(--text-secondary, #475569);
     cursor: pointer;
-    padding-bottom: 6px;
-    border-bottom: 2px solid transparent;
+    padding: 7px 13px;
+    border-radius: var(--radius-full, var(--el-radius-full, 9999px));
+    border: 1px solid var(--border-default, #e2e9f3);
+    background: transparent;
     transition:
         color var(--el-transition-duration-fast, 0.2s) ease,
-        border-color var(--el-transition-duration-fast, 0.2s) ease;
+        border-color var(--el-transition-duration-fast, 0.2s) ease,
+        background-color var(--el-transition-duration-fast, 0.2s) ease;
     flex: none;
     outline: none;
 }
@@ -1761,11 +1764,13 @@ onMounted(async () => {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 .market-tab:hover {
-    color: var(--el-text-color-primary);
+    color: var(--brand-500, #3b82f6);
+    border-color: var(--brand-500, #3b82f6);
 }
 .market-tab.active {
-    color: var(--el-color-primary);
-    border-bottom-color: var(--el-color-primary);
+    color: var(--brand-500, #3b82f6);
+    background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
+    border-color: var(--brand-500, #3b82f6);
     font-weight: 600;
 }
 .market-group {
@@ -1803,28 +1808,45 @@ onMounted(async () => {
     grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
     gap: 12px;
 }
+/* 瀑布流（方案 10）只作用于市场浏览区：安装弹窗里的 .market-grid
+   （dialog-market-grid）不在 .skill-market 内，仍是上面的等宽网格 */
+.skill-market .market-grid {
+    display: block;
+    column-count: 2;
+    column-gap: 12px;
+}
+@media (max-width: 640px) {
+    .skill-market .market-grid {
+        column-count: 1;
+    }
+}
 .market-cell {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 9px;
     padding: 14px;
-    border: 1px solid var(--el-border-color-lighter);
+    border: 1px solid var(--border-subtle, #eef2f8);
     /* 原值 var(--mp-radius-lg, 14px) —— --mp-radius-lg 只在未被引入的
-       modern-polish.css 里定义，故此前一直取兜底 14px；14 距 lg(12px)/xl(16px)
-       各 2px，技能卡片取 lg 档（与 ReCard 同档） */
-    border-radius: var(--el-radius-lg, 12px);
-    background: var(--el-bg-color);
+       modern-polish.css 里定义，故此前一直取兜底 14px；14 距 12px/16px
+       各 2px，技能卡片取 12px 档（与 ReCard 同档） */
+    border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
+    background: var(--bg-container, #ffffff);
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
     min-width: 0;
     transition:
         border-color var(--el-transition-duration-fast, 0.2s) ease,
         box-shadow var(--el-transition-duration-fast, 0.2s) ease;
 }
-/* hover 浮起：koi 允许的第二类投影。原值写死 rgba(16,24,40,.28)（纯黑投影，
-   深色模式下会糊成脏块），改为从正文色派生 */
+/* 瀑布流项：防截断 + 卡片间距（只作用市场浏览区，弹窗内不受影响） */
+.skill-market .market-cell {
+    break-inside: avoid;
+    margin-bottom: 12px;
+}
+/* hover 浮起：投影升一档（--shadow-md），描边转品牌色 */
 .market-cell:hover {
-    border-color: var(--el-color-primary-light-5);
-    box-shadow: 0 8px 22px -12px color-mix(in srgb, var(--el-text-color-primary) 28%, transparent);
+    border-color: color-mix(in srgb, var(--brand-500, #3b82f6) 45%, transparent);
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.06));
 }
 .market-cell-icon {
     flex: none;

@@ -297,10 +297,16 @@ onMounted(() => {
 }
 
 /* ===== 工具卡片（与 Skills/MCP 市场竖向卡片一致） ===== */
+/* 瀑布流（方案 10 · Masonry Digest）：双列多列布局，卡片 break-inside:avoid
+   防截断；窄屏退化为单列。原 grid(auto-fill, minmax(210px,1fr)) → 多列瀑布。 */
 .lt-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 12px;
+  column-count: 2;
+  column-gap: 12px;
+}
+@media (max-width: 640px) {
+  .lt-grid {
+    column-count: 1;
+  }
 }
 .lt-card {
   display: flex;
@@ -308,19 +314,22 @@ onMounted(() => {
   align-items: stretch;
   gap: 9px;
   padding: 14px;
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--border-subtle, #eef2f8);
   /* 原值 var(--mp-radius-lg, 14px)：--mp-* 来自未引入的 modern-polish.css，是空令牌，
-     收敛到 --el-radius-lg 档（14px 距 12/16 等距，本仓统一取 12px） */
-  border-radius: var(--el-radius-lg, 12px);
-  background: var(--el-bg-color);
+     收敛到 12px 档（14px 距 12/16 等距，本仓统一取 12px） */
+  border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
+  background: var(--bg-container, #ffffff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
   min-width: 0;
   cursor: pointer;
+  break-inside: avoid;
+  margin-bottom: 12px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
-/* 卡片本体不加投影；仅保留悬浮浮起反馈这一类 */
+/* 文摘卡：静止态浅投影；悬浮浮起升一档 + 品牌描边 */
 .lt-card:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: var(--el-box-shadow-light);
+  border-color: color-mix(in srgb, var(--brand-500, #3b82f6) 45%, transparent);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.06));
 }
 .lt-card--off { opacity: 0.6; }
 .lt-card__top {

@@ -57,9 +57,20 @@
         v-for="item in filteredItems"
         :key="item.id"
         class="market-card"
+        :class="{ 'market-card--custom': item.custom }"
         @click="item.custom ? formRef?.openEdit(item) : openDetail(item)"
       >
+        <!-- 内置角色：渐变封面带（与自建卡形成瀑布高低差）；自建卡无封面 -->
+        <div v-if="!item.custom" class="market-card-cover">
+          <CardAvatar
+            :src="item.avatar"
+            :name="item.title"
+            size="md"
+            class="market-card-avatar"
+          />
+        </div>
         <CardAvatar
+          v-else
           :src="item.avatar"
           :name="item.title"
           size="md"
@@ -388,19 +399,25 @@ onMounted(() => {
 }
 
 .market-cat:hover {
-  color: var(--el-color-primary);
-  border-color: var(--el-color-primary-light-5);
+  color: var(--brand-500, #3b82f6);
+  border-color: var(--brand-500, #3b82f6);
 }
 .market-cat.is-active {
-  /* 原值 #fff → 白色令牌（主色按钮上的文字需恒为白，不随明暗变） */
-  color: var(--el-color-white);
-  background: var(--el-color-primary);
-  border-color: var(--el-color-primary);
+  /* 文摘 chips 选中态：品牌色 12% 底 + 品牌描边 + 品牌字（mockup .chip.on） */
+  color: var(--brand-500, #3b82f6);
+  background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
+  border-color: var(--brand-500, #3b82f6);
 }
+/* 瀑布流（方案 10 · Masonry Digest）：双列多列布局，卡片 break-inside:avoid
+   防截断；窄屏退化为单列。原 grid(auto-fill, minmax(196px,1fr)) → 多列瀑布。 */
 .market-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
-  gap: 12px;
+  column-count: 2;
+  column-gap: 12px;
+}
+@media (max-width: 640px) {
+  .market-grid {
+    column-count: 1;
+  }
 }
 /* 卡片：div + @click，补键盘焦点环 */
 .market-card {
@@ -410,12 +427,17 @@ onMounted(() => {
   gap: 9px;
   padding: 14px;
   /* 原值 var(--mp-radius-lg, 14px)：--mp-radius-lg 是空令牌，实为 14px → xl 档 */
-  border-radius: var(--el-radius-xl, 16px);
-  border: 1px solid var(--el-border-color-lighter);
-  /* 原值 var(--color-surface, var(--el-fill-color-blank)) → 卡片底色令牌 */
-  background: var(--el-bg-color-overlay);
+  border-radius: var(--radius-xl, var(--el-radius-xl, 16px));
+  border: 1px solid var(--border-subtle, #eef2f8);
+  /* 文摘卡：容器底色 + 静止态浅投影（--bg-container 亮色未定义，落白底兜底） */
+  background: var(--bg-container, #ffffff);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
   cursor: pointer;
   outline: none;
+  /* 封面带负边距贴边，靠 overflow 裁出上圆角 */
+  overflow: hidden;
+  break-inside: avoid;
+  margin-bottom: 12px;
   transition:
     box-shadow var(--el-transition-duration-fast, 0.2s) ease,
     border-color var(--el-transition-duration-fast, 0.2s) ease;
@@ -425,10 +447,27 @@ onMounted(() => {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-/* 悬浮浮起：koi 允许的第二类投影。阴影色跟着主文字色走，明暗下都不会糊成黑块。 */
+/* 悬浮浮起：投影升一档，描边转品牌色（明暗下都不会糊成黑块）。 */
 .market-card:hover {
-  box-shadow: 0 8px 22px -12px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
-  border-color: var(--el-color-primary-light-5);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.06));
+  border-color: color-mix(in srgb, var(--brand-500, #3b82f6) 45%, transparent);
+}
+/* 内置角色封面带：负边距抵消卡片内边距贴边；品牌色 14% → 透明渐变衬 --bg-fill */
+.market-card-cover {
+  height: 62px;
+  margin: -14px -14px 0;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(120deg,
+      color-mix(in srgb, var(--brand-500, #3b82f6) 14%, transparent),
+      transparent 65%),
+    var(--bg-fill, #f1f5fb);
+}
+.market-card-cover .market-card-avatar {
+  align-self: center;
 }
 .market-card-avatar {
   flex: none;
