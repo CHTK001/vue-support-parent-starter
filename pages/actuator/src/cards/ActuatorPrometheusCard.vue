@@ -29,7 +29,7 @@ import type { CardListRow } from "./parts/types";
 import { formatClock, useActuatorResource } from "./useCardResource";
 import { humanBytes } from "./useMetricRows";
 import { humanValue, parsePrometheus, sumMetric, sumMetricWhere } from "./prometheus";
-import type { MonitorCardItem } from "@pages/system";
+import type { MonitorCardItem } from "@repo/monitor-cards";
 
 const props = defineProps<{ card: MonitorCardItem; refreshKey?: number }>();
 

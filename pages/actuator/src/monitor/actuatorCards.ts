@@ -30,7 +30,7 @@ import {
   Setting,
   Tickets,
 } from "@element-plus/icons-vue";
-import type { MonitorCardRegistration } from "@pages/system";
+import type { MonitorCardRegistration } from "@repo/monitor-cards";
 
 /** 贡献来源标识（写入卡片的 source，占位卡片据此显示「由 xx 提供」） */
 const SOURCE = "actuator";

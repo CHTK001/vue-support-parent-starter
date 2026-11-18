@@ -1,0 +1,446 @@
+/**
+ * @pages/actuator 独立页面视觉系统（全局类，`act-` 前缀，不污染宿主）。
+ *
+ * <p>这套样式从系统大屏原来的「Actuator 监控端点」弹窗搬来（弹窗已随
+ * ServerMonitor 瘦身删除）：形状语言、圆角、分隔线、键值行排版保持一致，
+ * 只把「弹窗里的固定高度」改成「占满页面、内容区自己滚」。</p>
+ *
+ * <p>颜色一律取宿主令牌：优先 koi（{@code --bg-*} / {@code --text-*} /
+ * {@code --border-*}），缺省回落到 Element Plus 变量，跟随 {@code html.dark}
+ * 自动切深浅，不另造一套色板。</p>
+ *
+ * @since 4.0.0.51
+ */
+
+/* ==========================================================================
+   1. 页面骨架（ReTabs 工作台）
+   ========================================================================== */
+
+.act-shell {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  background: var(--bg-page, var(--el-bg-color-page, #f6f7fb));
+}
+
+.act-shell__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.act-workbench {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+}
+
+/** 每个页签的内容区：`act` 自己吃满高度，滚动交给 `.act__body` */
+.act-workbench__view {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--bg-page, var(--el-bg-color-page, #f6f7fb));
+}
+
+/* 底部页签：沿用宿主页签语言（品牌紫选中态，不加发光） */
+.act-workbench .re-tabs__bar {
+  flex: none;
+  gap: 2px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--border-subtle, var(--el-border-color-lighter, #eef0f6));
+  border-bottom: none;
+  background: var(--bg-container, var(--el-bg-color, #fff));
+}
+
+.act-workbench .re-tabs__tab {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm, 6px);
+  border-bottom: 2px solid transparent;
+  font-size: 12.5px;
+  color: var(--text-secondary, var(--el-text-color-regular, #5c6270));
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.act-workbench .re-tabs__tab:hover {
+  background: var(--bg-hover, color-mix(in srgb, var(--brand-500, #6d5dfc) 6%, transparent));
+  color: var(--brand-500, #6d5dfc);
+}
+
+.act-workbench .re-tabs__tab.is-active {
+  background: color-mix(in srgb, var(--brand-500, #6d5dfc) 10%, var(--bg-container, #fff));
+  color: var(--brand-500, #6d5dfc);
+  border-bottom-color: var(--brand-500, #6d5dfc);
+  font-weight: 600;
+}
+
+.act-workbench .re-tabs__tab.is-active .re-tabs__icon {
+  color: inherit;
+}
+
+/* ==========================================================================
+   2. 页内骨架：工具条 + 内容区
+   ========================================================================== */
+
+.act {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: 0;
+  min-width: 0;
+  padding: 14px 16px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.act__bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.act__search {
+  width: 260px;
+}
+
+.act__count {
+  font-size: 12px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act__bar-right {
+  margin-left: auto;
+}
+
+.act__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 2px;
+}
+
+.act__empty {
+  padding: 32px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act__empty.is-error {
+  color: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+.act__hint {
+  flex: none;
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+/* ==========================================================================
+   3. 指标（metrics）：左列表 + 右明细
+   ========================================================================== */
+
+.act-metrics {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+}
+
+.act-metrics__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.act-metrics__filter {
+  width: 100%;
+}
+
+.act-metrics__scroll {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.act-metrics__item {
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-secondary, var(--el-text-color-regular, #606266));
+  text-align: left;
+  word-break: break-all;
+}
+
+.act-metrics__item:hover {
+  background: var(--bg-hover, var(--el-fill-color-light, #f5f7fa));
+}
+
+.act-metrics__item.is-active {
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  color: var(--el-color-primary, #409eff);
+}
+
+.act-metrics__detail {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.act-metrics__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  word-break: break-all;
+}
+
+.act-metrics__unit {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-metrics__desc {
+  margin: 4px 0 10px;
+  font-size: 12px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-metrics__tags {
+  margin-top: 12px;
+}
+
+/* ==========================================================================
+   4. 健康状态
+   ========================================================================== */
+
+.act-health__banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
+  font-size: 14px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-health__banner.is-up {
+  background: var(--el-color-success-light-9, #f0f9eb);
+}
+
+.act-health__banner.is-down {
+  background: var(--el-color-danger-light-9, #fef0f0);
+}
+
+.act-health__banner b {
+  margin-left: auto;
+  font-size: 16px;
+}
+
+.act-health__banner.is-up b {
+  color: var(--status-success, var(--el-color-success, #67c23a));
+}
+
+.act-health__banner.is-down b {
+  color: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+.act-health__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-success, var(--el-color-success, #67c23a));
+}
+
+.act-health__banner.is-down .act-health__dot {
+  background: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+.act-health__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.act-health__card {
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
+  background: var(--bg-container, var(--el-bg-color, #fff));
+}
+
+.act-health__card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.act-health__card-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.act-health__card.is-up .act-health__card-dot {
+  background: var(--status-success, var(--el-color-success, #67c23a));
+}
+
+.act-health__card.is-down .act-health__card-dot {
+  background: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+.act-health__card-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-health__card-detail {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+  word-break: break-all;
+}
+
+/* ==========================================================================
+   5. 键值 / 分组
+   ========================================================================== */
+
+.act-group {
+  margin-bottom: 14px;
+}
+
+.act-group__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-group__count {
+  padding: 1px 8px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--bg-fill, var(--el-fill-color, #f0f2f5));
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-kv {
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  overflow: hidden;
+  background: var(--bg-container, var(--el-bg-color, #fff));
+}
+
+.act-kv__row {
+  display: flex;
+  gap: 12px;
+  padding: 7px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+}
+
+.act-kv__row:last-child {
+  border-bottom: none;
+}
+
+.act-kv__k {
+  flex: 0 0 42%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--el-color-primary, #409eff);
+  word-break: break-all;
+}
+
+.act-kv__v {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-secondary, var(--el-text-color-regular, #606266));
+  word-break: break-all;
+}
+
+/* ==========================================================================
+   6. 表格与定时任务
+   ========================================================================== */
+
+.act-table .el-table__inner-wrapper {
+  font-size: 12px;
+}
+
+.act__pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.act-sched-managed {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+}
+
+.act-sched-managed__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, var(--el-text-color-regular, #606266));
+}
+
+.act-sched-managed__head small {
+  font-weight: 400;
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+.act-sched-managed__head small.is-error {
+  color: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+/* 表格插槽里的弱化读数（次数为 0 / 无 IP 时不要抢眼） */
+.act-muted {
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}

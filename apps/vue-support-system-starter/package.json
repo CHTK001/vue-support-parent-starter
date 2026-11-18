@@ -15,6 +15,7 @@
     "@pages/ai": "workspace:*",
     "@pages/actuator": "workspace:*",
     "@pages/apm": "workspace:*",
+    "@pages/cdp": "workspace:*",
     "@pages/filesystem": "workspace:*",
     "@pages/hotsport": "workspace:*",
     "@pages/job": "workspace:*",

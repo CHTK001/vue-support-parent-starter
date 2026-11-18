@@ -26,7 +26,7 @@ import CardBody from "./CardBody.vue";
 import CardKpi from "./parts/CardKpi.vue";
 import { formatClock } from "./useCardResource";
 import { useMetricRows } from "./useMetricRows";
-import type { MonitorCardItem } from "@pages/system";
+import type { MonitorCardItem } from "@repo/monitor-cards";
 
 const props = defineProps<{ card: MonitorCardItem; refreshKey?: number }>();
 

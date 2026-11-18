@@ -60,6 +60,10 @@ import { createControlRoutes } from "@pages/control/src/routes";
 // apmConfig 只用于菜单可见性（app.yaml 的 apmConfig.enable），与后端探测无关。
 import { apmRoutes } from "@pages/apm/src/routes";
 import { apmConfig } from "@pages/apm/src/config";
+// Actuator 观测（@pages/actuator）：一个菜单入口 + 11 个端点页签，
+// 页面路由由 @pages/actuator/src/routes 产出（视图、API、路由同源）。
+// 深导入 src/routes：包根 index.ts 会求值卡片贡献项，本文件只需要路由。
+import { actuatorRoutes } from "@pages/actuator/src/routes";
 // 账号管理（账号资产 + 模板管理 + 消息模板）：源码在后端项目
 // spring-support-account-starter/web（包名 @account/web），这里只合并它的隐藏子路由
 // （打印机管理 / 调用日志 / 设计器 / 预览），供模板工作台的 router.push({name}) 命中。
@@ -498,6 +502,23 @@ export const monitorRoutes: RouteConfigsTable[] = [
       rank: 13,
     },
     children: apmRoutes,
+  },
+
+  // ==================== Actuator 观测 ====================
+  // 一个菜单入口 `/actuator`，11 个原生端点（健康 / 信息 / 指标 / 环境 / 日志级别 /
+  // 映射 / Bean / 自动配置 / 线程 / 配置属性 / 定时任务）是同一页里的页签：
+  // 排障时先看健康、再翻映射、必要时改日志级别，拆成 11 条侧边栏只会让导航比内容还长。
+  // 页签状态只同步到 `?tab=`，不新增路由记录（见 @pages/actuator/src/routes）。
+  {
+    path: "/grp-actuator",
+    name: "GroupActuator",
+    meta: {
+      title: "Actuator 观测",
+      icon: "Monitor",
+      showLink: true,
+      rank: 14,
+    },
+    children: actuatorRoutes,
   },
 
   // ==================== 日志（已移除） ====================

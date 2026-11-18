@@ -14,7 +14,8 @@
     "element-plus": "catalog:",
     "@element-plus/icons-vue": "catalog:",
     "@repo/utils": "workspace:*",
-    "@pages/system": "workspace:*"
+    "@repo/monitor-cards": "workspace:*",
+    "@repo/ui": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:"

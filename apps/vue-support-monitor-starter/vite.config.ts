@@ -551,6 +551,9 @@ export default createVite({
     "@account/web": "../spring-support-parent-starter/spring-support-account-starter/web",
     // APM 观测台：页面根（业务以 "@pages/apm/src/..." 引用，alias 必须指向 pages/apm）
     "@pages/apm": "pages/apm",
+    // Actuator 观测（@pages/actuator）：独立 /actuator 页面（11 端点页签）+ 大屏卡片，
+    // 页面根（业务以 "@pages/actuator/src/..." 引用，alias 指向 pages/actuator）。
+    "@pages/actuator": "pages/actuator",
     // 远程控制(@pages/control):WebRTC 桌面共享 + 键鼠遥控
     "@pages/control": "pages/control",
     // 渠道管理页：直接复用 @pages/channel 的完整页面（品牌表 / 绑定 SSE / 模型开关 /

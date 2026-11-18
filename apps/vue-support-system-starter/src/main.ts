@@ -19,7 +19,7 @@ import { getActiveAnnouncements, markAnnouncementRead } from "@pages/system/api/
 import { defineWidgetContribution } from "@repo/theme/koi/views/home/registry";
 // 监控大屏的领域卡片贡献（Actuator / APM）：元数据与组件加载器留在各自 pages 包，
 // 这里只负责在 mount 前登记，大屏本体不反向依赖它们。
-import { actuatorContribution } from "@pages/actuator";
+import { actuatorContribution, actuatorRoutes } from "@pages/actuator";
 import { apmContribution } from "@pages/apm/src/monitor";
 import "@pages/filesystem";
 import "@pages/job";
@@ -119,7 +119,7 @@ createContextApp({
     url: { jobApi: "/v2/job" },
   },
 })
-  .routes([...systemRoutes, ...tenantRoutes] as never)
+  .routes([...systemRoutes, ...tenantRoutes, ...actuatorRoutes] as never)
   // 监控大屏卡片：各 pages 包自己注册（见 @pages/actuator、@pages/apm/monitor）
   .widgets([
     actuatorContribution,
