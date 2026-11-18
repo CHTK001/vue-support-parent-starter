@@ -87,7 +87,6 @@ html.header-inverted:not(.dark) {
   --el-header-optimum-hover-bg-color: #262626;
   --el-header-optimum-active-bg-color: var(--el-color-primary);
   --el-header-optimum-nav-btn-border-color: #3d3d3f;
-  --el-header-optimum-nav-btn-hover-border-color: var(--el-color-primary);
   --el-header-optimum-nav-btn-bg-color: #1f1f1f;
   --el-header-optimum-nav-btn-hover-bg-color: #2a2a2a;
 }
@@ -105,8 +104,6 @@ html.layout-horizontal.header-inverted:not(.dark) {
   --el-menu-hover-bg-color: #1a1a1a;
   --el-menu-active-bg-color: var(--el-color-primary);
   --el-menu-text-color: #d5d7dd;
-  --el-menu-hover-text-color: var(--el-color-primary);
-  --el-menu-parent-active-text-color: var(--el-color-primary);
   --el-menu-active-text-color: #ffffff;
 }
 
@@ -119,7 +116,6 @@ html.dark {
   --el-header-text-color: #e5eaf3;
   --el-header-text-regular-color: #cfd3dc;
   --el-header-toolbar-collapse-bg-color: #303133;
-  --el-header-toolbar-collapse-hover-bg-color: var(--el-color-primary-light-8);
   --el-header-toolbar-border-color: #4c4d4f;
   --el-header-icon-hover-bg-color: #2b2b2b;
 
@@ -130,18 +126,8 @@ html.dark {
   --el-menu-hover-bg-color: #1f1f1f;
   --el-menu-active-bg-color: var(--el-color-primary-light-8);
   --el-menu-text-color: #e5eaf3;
-  --el-menu-parent-active-text-color: var(--el-color-primary);
-  --el-menu-hover-text-color: var(--el-color-primary);
-  --el-menu-active-text-color: var(--el-color-primary);
 
-  --el-header-optimum-color: var(--el-menu-text-color);
-  --el-header-optimum-hover-color: var(--el-menu-hover-text-color);
-  --el-header-optimum-active-color: var(--el-menu-active-text-color);
-  --el-header-optimum-hover-bg-color: var(--el-menu-hover-bg-color);
-  --el-header-optimum-active-bg-color: var(--el-menu-active-bg-color);
   --el-header-optimum-nav-btn-border-color: #4c4d4f;
-  --el-header-optimum-nav-btn-hover-border-color: var(--el-color-primary);
-  --el-header-optimum-nav-btn-bg-color: transparent;
   --el-header-optimum-nav-btn-hover-bg-color: var(--el-color-primary-light-8);
 }
 

@@ -58,20 +58,10 @@
 
   --vd-ease: cubic-bezier(0.4, 0, 0.2, 1);
   --vd-fast: 0.18s;
-
-  --el-color-primary: #3b82f6;
 }
 
-/* ── Element Plus 浅色变量对齐主题 ─────────── */
+/* ── Element Plus 浅色变量对齐主题（主色与色阶由 themeColor.ts 运行时注入，见 src/main.ts） ─────────── */
 html {
-  --el-color-primary: #3b82f6;
-  --el-color-primary-light-3: #6ba0f8;
-  --el-color-primary-light-5: #9dbeff;
-  --el-color-primary-light-7: #cfdfff;
-  --el-color-primary-light-8: #e2ebff;
-  --el-color-primary-light-9: #eff5ff;
-  --el-color-primary-dark-2: #2f6fd0;
-
   --el-bg-color: #fff;
   --el-bg-color-page: #fff;
   --el-text-color-primary: #333;
