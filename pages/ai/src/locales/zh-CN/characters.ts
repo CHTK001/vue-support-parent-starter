@@ -22,7 +22,7 @@ export default {
     loadFailed: '获取助手列表失败',
   },
 
-  // ── 列表标签页 (CharacterListTab.vue) ──
+  // ── 名录（CharacterRoster.vue / CharactersPage.vue）──
   list: {
     create: '新建助手',
     import: '导入',
@@ -43,13 +43,46 @@ export default {
     genericProtectedHint: '通用助手为系统内置，不允许删除',
   },
 
-  // ── 角色弹窗 (CharacterModal.vue) ──
+  // ── 工作台（A 版式：名录 + 编辑区 + 能力清单）──
+  wb: {
+    untitled: '未命名助手',
+    builtin: '内置',
+    rosterTitle: '助手名录',
+    rosterEmptyHint: '点击左下角「新建助手」创建第一个助手',
+    groupRenameHint: '右键重命名分组',
+    editorEmptyTitle: '尚未选择助手',
+    editorEmptyDesc: '从左侧名录选择一个助手开始编辑，或新建一个助手',
+    switchDirtyTitle: '有未保存的修改',
+    switchDirtyConfirm: '当前助手的修改尚未保存，离开后将丢失。确定要离开吗？',
+    secBasic: '基础配置',
+    secPrompt: '提示词 · 分形态',
+    secMemory: '记忆与压缩',
+    dirty: '有未保存的修改',
+    clean: '所有修改已保存',
+    undo: '撤销修改',
+    capsLocalTools: '本地工具',
+    capsMcp: 'MCP 工具',
+    capsSkills: 'Skills 技能',
+    capsAgents: '子代理',
+    meterLabel: '启用率',
+    logTitle: '操作记录',
+    logEmpty: '暂无操作；调整能力开关、保存或撤销后会记录在这里',
+    logEnable: '启用',
+    logDisable: '停用',
+    logAllOn: '全部启用',
+    logAllOff: '全部停用',
+    logUndo: '撤销修改',
+    logSave: '提交保存',
+  },
+
+  // ── 保存链路（CharactersPage.vue，承接原角色弹窗）──
   modal: {
     editTitle: '编辑角色',
     createTitle: '新建角色',
     applyAll: '应用全部设置',
     saveSuccess: '角色更新成功',
     saveFailed: '角色保存失败',
+    savePromptFailed: '角色已保存，但该形态的提示词保存失败，请重试',
   },
 
   // ── 角色设置面板 (CharacterSettingPanel.vue) ──
@@ -175,5 +208,8 @@ export default {
     // 通用子代理
     genericAgentTitle: '通用子代理',
     genericAgentDesc: '适用于通用任务的子代理，无需特定角色设定，权限继承父角色设置',
+    // 工作台头部操作
+    useThis: '使用此角色',
+    delete: '删除',
   },
 }

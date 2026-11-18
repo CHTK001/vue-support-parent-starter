@@ -29,8 +29,6 @@ declare module 'vue' {
     BrowserPreviewPlaceholder: typeof import('./src/components/chat/BrowserPreviewPlaceholder.vue')['default']
     BrowserSettings: typeof import('./src/components/setting/BrowserSettings.vue')['default']
     BrowserWebviewLayer: typeof import('./src/components/BrowserWebviewLayer.vue')['default']
-    CharacterListTab: typeof import('./src/components/characters/CharacterListTab.vue')['default']
-    CharacterModal: typeof import('./src/components/characters/CharacterModal.vue')['default']
     CharacterSettingPanel: typeof import('./src/components/characters/CharacterSettingPanel.vue')['default']
     CharactersPage: typeof import('./src/components/characters/CharactersPage.vue')['default']
     ChatHeader: typeof import('./src/components/chat/ChatHeader.vue')['default']

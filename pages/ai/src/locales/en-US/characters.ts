@@ -22,7 +22,7 @@ export default {
     loadFailed: 'Failed to load assistant list',
   },
 
-  // ── 列表标签页 (CharacterListTab.vue) ──
+  // ── Roster (CharacterRoster.vue / CharactersPage.vue) ──
   list: {
     create: 'New Assistant',
     import: 'Import',
@@ -43,13 +43,46 @@ export default {
     genericProtectedHint: 'The generic assistant is built-in and cannot be deleted',
   },
 
-  // ── 角色弹窗 (CharacterModal.vue) ──
+  // ── 工作台（A 版式：名录 + 编辑区 + 能力清单）──
+  wb: {
+    untitled: 'Untitled Assistant',
+    builtin: 'Built-in',
+    rosterTitle: 'Assistant Roster',
+    rosterEmptyHint: 'Click "New Assistant" at the bottom left to create your first assistant',
+    groupRenameHint: 'Right-click to rename group',
+    editorEmptyTitle: 'No assistant selected',
+    editorEmptyDesc: 'Pick an assistant from the roster to start editing, or create a new one',
+    switchDirtyTitle: 'Unsaved changes',
+    switchDirtyConfirm: 'The current assistant has unsaved changes that will be lost. Leave anyway?',
+    secBasic: 'Basic Configuration',
+    secPrompt: 'Prompt · Forms',
+    secMemory: 'Memory & Compression',
+    dirty: 'Unsaved changes',
+    clean: 'All changes saved',
+    undo: 'Undo changes',
+    capsLocalTools: 'Local Tools',
+    capsMcp: 'MCP Tools',
+    capsSkills: 'Skills',
+    capsAgents: 'Sub-agents',
+    meterLabel: 'Enabled',
+    logTitle: 'Activity Log',
+    logEmpty: 'No activity yet; capability toggles, saves and undos will show up here',
+    logEnable: 'Enable',
+    logDisable: 'Disable',
+    logAllOn: 'Enable all',
+    logAllOff: 'Disable all',
+    logUndo: 'Undo changes',
+    logSave: 'Save submitted',
+  },
+
+  // ── Save flow (CharactersPage.vue, formerly the character modal) ──
   modal: {
     editTitle: 'Edit Character',
     createTitle: 'New Character',
     applyAll: 'Apply All Settings',
     saveSuccess: 'Character updated successfully',
     saveFailed: 'Failed to save character',
+    savePromptFailed: 'Character saved, but the prompt for this form failed to save. Please retry.',
   },
 
   // ── 角色设置面板 (CharacterSettingPanel.vue) ──
@@ -175,5 +208,8 @@ export default {
     // 通用子代理
     genericAgentTitle: 'Generic Sub-agent',
     genericAgentDesc: 'A sub-agent for general tasks. No specific character settings required. Permissions inherit from the parent character.',
+    // 工作台头部操作
+    useThis: 'Use this assistant',
+    delete: 'Delete',
   },
 }

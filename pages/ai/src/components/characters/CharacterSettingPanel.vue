@@ -1,31 +1,73 @@
 <template>
-  <div class="character-setting-panel-root h-full" v-loading="pageLoading" :element-loading-text="t('characters.setting.loading')">
-    <div class="flex h-full overflow-hidden">
-      <!-- 侧边栏 -->
-      <div class="w-40 shrink-0 overflow-y-auto py-3">
-        <div v-for="group in sidebarGroups" :key="group.label" class="mb-2">
-          <div class="px-2 pt-2 pb-1.5 text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-            {{ group.label }}
+  <div class="cwb-scope" v-loading="pageLoading" :element-loading-text="t('characters.setting.loading')">
+    <div class="cwb-panel">
+      <!-- 中栏：编辑区 -->
+      <div class="cwb-main">
+        <!-- 头部 -->
+        <div class="cwb-head">
+          <AvatarPreview :src="characterForm.avatarUrl" type="assistant" class="cwb-head__av"
+            :name="characterForm.title" :disabled="isGenericAssistant" />
+          <div class="cwb-head__text">
+            <div class="cwb-head__title">
+              {{ characterForm.title || t('characters.wb.untitled') }}
+              <span v-if="isGenericAssistant" class="ax-pill"
+                :title="t('characters.list.genericProtectedHint')">{{ t('characters.wb.builtin') }}</span>
+              <span v-if="data?.isPublic" class="ax-pill ax-pill--soft">
+                {{ t('characters.list.sharedTemplate') }}
+              </span>
+            </div>
+            <div class="cwb-head__desc">{{ characterForm.description || t('characters.list.noDescription') }}</div>
           </div>
-          <div class="pr-2 space-y-1">
-            <div v-for="item in group.items" :key="item.path" @click="tabsValue = item.path"
-              class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-200"
-              :class="tabsValue === item.path
-                ? 'bg-(--color-sidebar-bg-active) text-(--color-sidebar-text-active)'
-                : 'text-(--color-text) hover:bg-(--color-sidebar-bg-hover) hover:text-(--color-sidebar-text-hover)'">
-              <el-icon :size="16">
-                <component :is="item.icon" />
-              </el-icon>
-              <span class="text-sm font-medium">{{ item.label }}</span>
+          <div class="cwb-head__ops">
+            <el-button v-if="!isGenericAssistant" type="primary" plain @click="emit('use')">
+              {{ t('characters.setting.useThis') }}
+            </el-button>
+            <el-button v-if="!isGenericAssistant" type="danger" plain @click="emit('remove')">
+              {{ t('characters.setting.delete') }}
+            </el-button>
+          </div>
+        </div>
+        <!-- 能力度量头（07 舱 · Console 融合）：四组能力启用率一目了然 -->
+        <div class="cwb-console ax-console">
+          <div class="ax-dial" :class="dialClass(enabledLocalToolsCount, localTools.length)"
+            :style="dialStyle(enabledLocalToolsCount, localTools.length)">
+            <div class="ax-dial__ring"><span class="ax-dial__num ax-mono">{{ pctText(enabledLocalToolsCount, localTools.length) }}</span></div>
+            <div class="ax-dial__meta">
+              <span class="ax-dial__label">{{ t('characters.wb.capsLocalTools') }}</span>
+              <span class="ax-dial__value ax-mono">{{ enabledLocalToolsCount }}<small> / {{ localTools.length }}</small></span>
+            </div>
+          </div>
+          <div class="ax-dial" :class="dialClass(enabledMcpCount, mcpServers.length)"
+            :style="dialStyle(enabledMcpCount, mcpServers.length)">
+            <div class="ax-dial__ring"><span class="ax-dial__num ax-mono">{{ pctText(enabledMcpCount, mcpServers.length) }}</span></div>
+            <div class="ax-dial__meta">
+              <span class="ax-dial__label">{{ t('characters.wb.capsMcp') }}</span>
+              <span class="ax-dial__value ax-mono">{{ enabledMcpCount }}<small> / {{ mcpServers.length }}</small></span>
+            </div>
+          </div>
+          <div class="ax-dial" :class="dialClass(enabledSkillsCount, visibleSkills.length)"
+            :style="dialStyle(enabledSkillsCount, visibleSkills.length)">
+            <div class="ax-dial__ring"><span class="ax-dial__num ax-mono">{{ pctText(enabledSkillsCount, visibleSkills.length) }}</span></div>
+            <div class="ax-dial__meta">
+              <span class="ax-dial__label">{{ t('characters.wb.capsSkills') }}</span>
+              <span class="ax-dial__value ax-mono">{{ enabledSkillsCount }}<small> / {{ visibleSkills.length }}</small></span>
+            </div>
+          </div>
+          <div class="ax-dial" :class="dialClass(enabledAgentsCount, presetCharacters.length)"
+            :style="dialStyle(enabledAgentsCount, presetCharacters.length)">
+            <div class="ax-dial__ring"><span class="ax-dial__num ax-mono">{{ pctText(enabledAgentsCount, presetCharacters.length) }}</span></div>
+            <div class="ax-dial__meta">
+              <span class="ax-dial__label">{{ t('characters.wb.capsAgents') }}</span>
+              <span class="ax-dial__value ax-mono">{{ enabledAgentsCount }}<small> / {{ presetCharacters.length }}</small></span>
             </div>
           </div>
         </div>
-      </div>
-      <!-- 内容区 -->
-      <div class="flex-1 overflow-hidden flex flex-col px-4">
-        <!-- 基础设置 -->
-        <div v-show="tabsValue === 'basic'" class="flex-1 overflow-hidden">
-          <div class="h-full overflow-y-auto py-4">
+        <!-- 滚动内容 -->
+        <div class="cwb-scroll ax-scroll">
+          <!-- 基础配置 -->
+          <section class="cwb-sec" id="cwb-sec-basic">
+            <div class="ax-sec">{{ t('characters.wb.secBasic') }}</div>
+            <div class="cwb-sec__body">
             <el-form ref="basicFormRef" :model="characterForm" :rules="basicRules" label-position="top">
               <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 overflow-hidden">
                 <!-- 头像设置 -->
@@ -132,80 +174,14 @@
                 </el-form-item>
               </div>
 
-              <!-- 记忆与压缩 -->
-              <div class="mt-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 overflow-hidden">
-                <!-- 触发阈值 -->
-                <el-form-item prop="compressionTriggerRatio" class="mb-0!">
-                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 w-full">
-                    <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.triggerThreshold') }}</span>
-                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.triggerHint') }}</span>
-                    </div>
-                    <div class="w-1/2">
-                      <el-slider v-model="characterForm.compressionTriggerRatio" :min="0.5" :max="0.95" :step="0.05"
-                        show-input :format-tooltip="formatSliderTooltip" class="w-full" />
-                    </div>
-                  </div>
-                </el-form-item>
-                <!-- 保留目标 -->
-                <el-form-item prop="compressionTargetRatio" class="mb-0!">
-                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-800 w-full">
-                    <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.targetRatio') }}</span>
-                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.targetHint') }}</span>
-                    </div>
-                    <div class="w-1/2">
-                      <el-slider v-model="characterForm.compressionTargetRatio" :min="0.2" :max="0.8" :step="0.05"
-                        show-input :format-tooltip="(val) => `${Math.round(val * 100)}%`" class="w-full" />
-                    </div>
-                  </div>
-                </el-form-item>
-                <!-- 摘要模式 -->
-                <el-form-item prop="summaryMode" class="mb-0!">
-                  <div class="px-4 py-3.5 flex items-center justify-between gap-4 w-full">
-                    <div class="flex flex-col gap-1 w-1/2">
-                      <span class="text-base text-gray-900 dark:text-gray-100">{{ t('characters.setting.summaryMode') }}</span>
-                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('characters.setting.summaryHint') }}</span>
-                    </div>
-                    <div class="w-1/2">
-                      <el-select v-model="characterForm.summaryMode" :placeholder="t('characters.setting.summaryPlaceholder')" class="w-full">
-                        <el-option :label="t('characters.setting.summaryDisabled')" value="disabled">
-                          <span class="flex items-center gap-2">
-                            <el-icon><CloseOutlined /></el-icon>
-                            <span>{{ t('characters.setting.summaryDisabledDesc') }}</span>
-                          </span>
-                        </el-option>
-                        <el-option :label="t('characters.setting.summaryFast')" value="fast">
-                          <span class="flex items-center gap-2">
-                            <el-icon><ThunderboltOutlined /></el-icon>
-                            <span>{{ t('characters.setting.summaryFastDesc') }}</span>
-                          </span>
-                        </el-option>
-                        <el-option :label="t('characters.setting.summaryMemorySync')" value="memory_sync">
-                          <span class="flex items-center gap-2">
-                            <el-icon><FolderOutlined /></el-icon>
-                            <span>{{ t('characters.setting.summaryMemorySyncDesc') }}</span>
-                          </span>
-                        </el-option>
-                      </el-select>
-                    </div>
-                  </div>
-                </el-form-item>
-              </div>
+      </el-form>
+      </div>
+    </section>
 
-              <el-alert :title="t('characters.setting.tipTitle')" type="info" :closable="false" show-icon style="margin-top: 16px;">
-                <p class="text-sm">{{ t('characters.setting.tip1') }}</p>
-                <p class="text-sm">{{ t('characters.setting.tip2') }}</p>
-                <p class="text-sm">{{ t('characters.setting.tip3') }}</p>
-              </el-alert>
-            </el-form>
-          </div>
-        </div>
-
-        <!-- 提示词 -->
-        <div v-show="tabsValue === 'prompt'" class="flex-1 overflow-hidden">
-          <div class="px-0 py-6 h-full flex flex-col flex-1">
-            <div class="px-0 flex-1 flex flex-col min-h-0">
+    <!-- 提示词 · 分形态 -->
+    <section class="cwb-sec">
+      <div class="ax-sec">{{ t('characters.wb.secPrompt') }}</div>
+      <div class="cwb-sec__body">
               <el-form ref="promptFormRef" :model="characterForm" :rules="promptRules" label-position="top"
                 label-width="80px" size="large" class="flex-1 flex flex-col min-h-0">
                 <el-form-item :show-label="false" :show-feedback="false" style="flex-shrink: 0;" class="no-border-item">
@@ -272,230 +248,313 @@
                   </template>
                 </template>
 
-              </el-form>
+      </el-form>
+      </div>
+    </section>
+
+    <!-- 记忆与压缩 -->
+    <section class="cwb-sec" id="cwb-sec-memory">
+      <div class="ax-sec">{{ t('characters.wb.secMemory') }}</div>
+      <div class="cwb-sec__body">
+        <el-form label-position="top">
+          <!-- 触发阈值 -->
+          <el-form-item prop="compressionTriggerRatio" class="cwb-mem-item">
+            <div class="cwb-mem-row">
+              <div class="cwb-mem-label">
+                <span>{{ t('characters.setting.triggerThreshold') }}</span>
+                <span class="ax-muted">{{ t('characters.setting.triggerHint') }}</span>
+              </div>
+              <el-slider v-model="characterForm.compressionTriggerRatio" :min="0.5" :max="0.95" :step="0.05"
+                show-input :format-tooltip="formatSliderTooltip" class="w-full" />
             </div>
-          </div>
-        </div>
-
-        <!-- 本地工具 -->
-        <div v-show="tabsValue === 'local_tools'" class="flex-1 overflow-hidden">
-          <div class="px-0 py-6 h-full overflow-y-auto">
-            <div class="px-0">
-              <el-form label-position="top">
-                <!-- 全部禁用与白名单模式 同一行左对齐 + 右对齐 -->
-                <el-form-item class="no-border-item">
-                  <div class="flex items-center justify-between w-full">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-gray-500">{{ t('characters.setting.toolToggle') }}</span>
-                      <el-switch :model-value="!allDisabled" @update:model-value="(v) => handleAllDisabledToggle(!v)" />
-                    </div>
-                    <div :class="['flex items-center gap-2', { 'opacity-50 pointer-events-none': allDisabled }]">
-                      <span class="text-sm text-gray-500">{{ t('characters.setting.newPluginLabel') }}</span>
-                      <SegmentedToggle v-model="allowlistMode" :options="autoEnableOptions" />
-                    </div>
-                  </div>
-                </el-form-item>
-
-                <div v-if="localTools.length === 0" class="text-center text-gray-500 py-8">
-                  <el-icon size="48" class="mb-2">
-                    <InfoCircleOutlined />
-                  </el-icon>
-                  <div>{{ t('characters.setting.noLocalTools') }}</div>
-                  <div class="text-sm mt-2">{{ t('characters.setting.noLocalToolsHint') }}</div>
-                </div>
-
-                <div v-else class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
-                  <div v-for="tool in localTools" :key="tool.pluginId"
-                    class="tool-item p-2.5 rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30]"
-                    :class="{ 'opacity-50 pointer-events-none': allDisabled }">
-                    <div class="flex items-start justify-between gap-2 mb-1">
-                      <div class="font-medium text-sm flex-1 truncate text-gray-800 dark:text-gray-200">{{ tool.displayName }}</div>
-                      <div class="flex items-center gap-2 shrink-0">
-                        <el-switch :model-value="isToolProviderEnabled(tool.pluginId)"
-                          @update:model-value="(val) => handleLocalToolToggle(tool.pluginId, val)"
-                          :disabled="allDisabled" inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
-                      </div>
-                    </div>
-                    <p class="text-xs text-gray-500 line-clamp-2">{{ tool.description }}</p>
-                  </div>
-                </div>
-              </el-form>
+          </el-form-item>
+          <!-- 保留目标 -->
+          <el-form-item prop="compressionTargetRatio" class="cwb-mem-item">
+            <div class="cwb-mem-row">
+              <div class="cwb-mem-label">
+                <span>{{ t('characters.setting.targetRatio') }}</span>
+                <span class="ax-muted">{{ t('characters.setting.targetHint') }}</span>
+              </div>
+              <el-slider v-model="characterForm.compressionTargetRatio" :min="0.2" :max="0.8" :step="0.05"
+                show-input :format-tooltip="(val) => `${Math.round(val * 100)}%`" class="w-full" />
             </div>
-          </div>
-        </div>
-
-        <!-- MCP 工具 -->
-        <div v-show="tabsValue === 'mcp_tools'" class="flex-1 overflow-hidden">
-          <div class="px-0 py-6 h-full overflow-y-auto">
-            <div class="px-0">
-              <el-form label-position="top">
-                <!-- MCP 全部禁用与白名单模式 同一行 -->
-                <el-form-item class="no-border-item">
-                  <div class="flex items-center justify-between w-full">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-gray-500">{{ t('characters.setting.toolToggle') }}</span>
-                      <el-switch :model-value="!allMcpDisabled" @update:model-value="(v) => handleAllMcpDisabledToggle(!v)" />
-                    </div>
-                    <div :class="['flex items-center gap-2', { 'opacity-50 pointer-events-none': allMcpDisabled }]">
-                      <span class="text-sm text-gray-500">{{ t('characters.setting.newMcpLabel') }}</span>
-                      <SegmentedToggle v-model="mcpAllowlistMode" :options="autoEnableOptions" />
-                    </div>
-                  </div>
-                </el-form-item>
-
-                <div v-if="mcpServers.length === 0" class="text-center text-gray-500 py-8">
-                  <el-icon size="48" class="mb-2">
-                    <InfoCircleOutlined />
-                  </el-icon>
-                  <div>{{ t('characters.setting.noMcpServers') }}</div>
-                </div>
-
-                <div v-else>
-                  <div v-for="server in mcpServers" :key="server.id"
-                    class="mcp-server-item p-2.5 rounded-xl mb-2 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30]"
-                    :class="{ 'opacity-50': allMcpDisabled }">
-                    <div class="flex items-start justify-between">
-                      <div class="flex-1 mr-4">
-                        <div class="font-medium text-base mb-1 text-gray-800 dark:text-gray-200">
-                          {{ server.name }}
-                          <el-tag v-if="server.enabled" type="success" class="ml-2">
-                            {{ t('characters.setting.mcpRunning') }}
-                          </el-tag>
-                          <el-tag v-else type="info" class="ml-2">
-                            {{ t('characters.setting.mcpNotRunning') }}
-                          </el-tag>
-                        </div>
-                        <div v-if="server.description" class="text-sm text-gray-600 line-clamp-2">
-                          {{ server.description }}
-                        </div>
-                        <div v-if="server.tools && Object.keys(server.tools).length > 0"
-                          class="text-sm text-gray-500 mt-2">
-                          {{ t('characters.setting.availableTools', { count: Object.keys(server.tools).length }) }}
-                        </div>
-                      </div>
-
-                      <!-- 启用/禁用开关 -->
-                      <el-switch :model-value="isMcpServerEnabled(server.id)"
-                        @update:model-value="(val) => handleMcpServerToggle(server.id, val)"
-                        :disabled="allMcpDisabled" />
-                    </div>
-                  </div>
-                </div>
-              </el-form>
+          </el-form-item>
+          <!-- 摘要模式 -->
+          <el-form-item prop="summaryMode" class="cwb-mem-item">
+            <div class="cwb-mem-row">
+              <div class="cwb-mem-label">
+                <span>{{ t('characters.setting.summaryMode') }}</span>
+                <span class="ax-muted">{{ t('characters.setting.summaryHint') }}</span>
+              </div>
+              <el-select v-model="characterForm.summaryMode" :placeholder="t('characters.setting.summaryPlaceholder')" class="w-full">
+                <el-option :label="t('characters.setting.summaryDisabled')" value="disabled">
+                  <span class="flex items-center gap-2">
+                    <el-icon><CloseOutlined /></el-icon>
+                    <span>{{ t('characters.setting.summaryDisabledDesc') }}</span>
+                  </span>
+                </el-option>
+                <el-option :label="t('characters.setting.summaryFast')" value="fast">
+                  <span class="flex items-center gap-2">
+                    <el-icon><ThunderboltOutlined /></el-icon>
+                    <span>{{ t('characters.setting.summaryFastDesc') }}</span>
+                  </span>
+                </el-option>
+                <el-option :label="t('characters.setting.summaryMemorySync')" value="memory_sync">
+                  <span class="flex items-center gap-2">
+                    <el-icon><FolderOutlined /></el-icon>
+                    <span>{{ t('characters.setting.summaryMemorySyncDesc') }}</span>
+                  </span>
+                </el-option>
+              </el-select>
             </div>
-          </div>
-        </div>
+          </el-form-item>
+        </el-form>
+        <el-alert :title="t('characters.setting.tipTitle')" type="info" :closable="false" show-icon class="cwb-mem-tip">
+          <p class="text-sm">{{ t('characters.setting.tip1') }}</p>
+          <p class="text-sm">{{ t('characters.setting.tip2') }}</p>
+          <p class="text-sm">{{ t('characters.setting.tip3') }}</p>
+        </el-alert>
+      </div>
+    </section>
+      </div>
 
-        <!-- Skills 技能 -->
-        <div v-show="tabsValue === 'skills'" class="flex-1 overflow-hidden">
-          <div class="px-0 py-6 h-full overflow-y-auto">
-            <div class="px-0">
-              <el-form label-position="top">
-                <!-- Skills 全部禁用与白名单模式 同一行 -->
-                <el-form-item class="no-border-item">
-                  <div class="flex items-center justify-between w-full">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-gray-500">{{ t('characters.setting.toolToggle') }}</span>
-                      <el-switch :model-value="!allSkillsDisabled" @update:model-value="(v) => handleAllSkillsDisabledToggle(!v)" />
-                    </div>
-                    <div :class="['flex items-center gap-2', { 'opacity-50 pointer-events-none': allSkillsDisabled }]">
-                      <span class="text-sm text-gray-500">{{ t('characters.setting.newSkillLabel') }}</span>
-                      <SegmentedToggle v-model="skillsAllowlistMode" :options="autoEnableOptions" />
-                    </div>
-                  </div>
-                </el-form-item>
-
-                <div v-if="loadingSkills" class="text-center py-8">
-                  <el-icon class="is-loading" size="24">
-                    <LoadingOutlined />
-                  </el-icon>
-                  <div class="text-sm text-gray-500 mt-2">{{ t('characters.setting.loadingSkills') }}</div>
-                </div>
-
-                <div v-else-if="visibleSkills.length === 0" class="text-center text-gray-500 py-8">
-                  <el-icon size="48" class="mb-2">
-                    <InfoCircleOutlined />
-                  </el-icon>
-                  <div>{{ t('characters.setting.noSkills') }}</div>
-                  <div class="text-sm mt-2">{{ t('characters.setting.noSkillsHint') }}</div>
-                </div>
-
-                <div v-else class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
-                  <div v-for="skill in visibleSkills" :key="skill.id"
-                    class="skill-item p-2.5 rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30]"
-                    :class="{ 'opacity-50 pointer-events-none': allSkillsDisabled }">
-                    <div class="flex items-start justify-between gap-2 mb-2">
-                      <div class="font-medium text-sm flex-1 truncate text-gray-800 dark:text-gray-200">{{ skill.manifest?.name || skill.id }}</div>
-                      <div class="flex items-center gap-1.5 shrink-0">
-                        <el-switch :model-value="getSkillEffectiveEnabled(skill)"
-                          :loading="updatingSkills.has(skill.id)"
-                          @update:model-value="(val) => handleSkillToggle(skill.id, val)" :disabled="allSkillsDisabled"
- inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
-                        <el-tag v-if="skill.source === 'system'" type="success" effect="light">{{ t('characters.setting.sourceBuiltin') }}</el-tag>
-                        <el-tag v-if="skill.manifest?.version" type="info" effect="plain">v{{
-                          skill.manifest.version }}</el-tag>
-                      </div>
-                    </div>
-                    <p class="text-xs text-gray-500 line-clamp-2 min-h-[2rem]">{{ skill.manifest?.description || t('characters.setting.noDescription')
-                      }}</p>
-                  </div>
-                </div>
-              </el-form>
-            </div>
-          </div>
-        </div>
-
-        <!-- 子代理 -->
-        <div v-show="tabsValue === 'agent_presets'" class="flex-1 overflow-hidden">
-          <div class="px-0 py-6 h-full overflow-y-auto">
-            <div class="px-0">
-              <el-form label-position="top">
-                <!-- 全部禁用与白名单模式 同一行 -->
-                <el-form-item class="no-border-item">
-                  <div class="flex items-center justify-between w-full">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm text-gray-500">{{ t('characters.setting.toolToggle') }}</span>
-                      <el-switch :model-value="!allAgentsDisabled" @update:model-value="(v) => handleAllAgentsDisabledToggle(!v)" />
-                    </div>
-                  </div>
-                </el-form-item>
-
-                <div v-if="loadingAgents" class="text-center py-8">
-                  <el-icon class="is-loading" size="24">
-                    <LoadingOutlined />
-                  </el-icon>
-                  <div class="text-sm text-gray-500 mt-2">{{ t('characters.setting.loadingAgents') }}</div>
-                </div>
-
-                <div v-else-if="presetCharacters.length === 0" class="text-center text-gray-500 py-8">
-                  <el-icon size="48" class="mb-2">
-                    <InfoCircleOutlined />
-                  </el-icon>
-                  <div>{{ t('characters.setting.noAgents') }}</div>
-                  <div class="text-sm mt-2">{{ t('characters.setting.noAgentsHint') }}</div>
-                </div>
-
-                <div v-else class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
-                  <div v-for="char in presetCharacters" :key="char.id"
-                    class="agent-item p-2.5 rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#2a2c30]"
-                    :class="{ 'opacity-50 pointer-events-none': allAgentsDisabled }">
-                    <div class="flex items-start justify-between gap-2 mb-1">
-                      <div class="font-medium text-sm flex-1 truncate text-gray-800 dark:text-gray-200">{{ char.title }}</div>
-                      <div class="flex items-center gap-1.5 shrink-0">
-                        <el-switch :model-value="getAgentEffectiveEnabled(char)"
-                          @update:model-value="(val) => handleAgentToggle(char.id, val)" :disabled="allAgentsDisabled"
- inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
-                      </div>
-                    </div>
-                    <p class="text-xs text-gray-500 line-clamp-2 min-h-[2rem]">{{ char.description || t('characters.setting.noDescription') }}</p>
-                  </div>
-                </div>
-              </el-form>
-            </div>
-          </div>
-        </div>
+    <!-- 保存栏（中栏底部，随编辑列固定） -->
+    <div class="cwb-savebar ax-savebar">
+      <span class="ax-savebar__dirty">
+        <span class="ax-dot" :class="isDirty ? 'ax-dot--on' : 'ax-dot--off'"></span>
+        {{ isDirty ? t('characters.wb.dirty') : t('characters.wb.clean') }}
+      </span>
+      <div class="ax-savebar__ops">
+        <el-button :disabled="!isDirty" @click="resetChanges">{{ t('characters.wb.undo') }}</el-button>
+        <el-button type="primary" :loading="saving" :disabled="!isDirty" @click="emit('save')">
+          {{ t('characters.modal.applyAll') }}
+        </el-button>
       </div>
     </div>
+    </div>
+
+    <!-- 右栏：能力清单 -->
+    <aside class="cwb-rail">
+      <div class="cwb-rail__inner ax-scroll">
+        <!-- 本地工具 -->
+        <section class="ax-panel">
+          <header class="ax-panel__head">
+            <span>{{ t('characters.wb.capsLocalTools') }}</span>
+            <span class="ax-pill ax-pill--soft">{{ enabledLocalToolsCount }} / {{ localTools.length }}</span>
+          </header>
+          <div class="ax-meter">
+            <div class="ax-meter__head">
+              <span>{{ t('characters.wb.meterLabel') }}</span>
+              <span class="ax-mono">{{ pctText(enabledLocalToolsCount, localTools.length) }}</span>
+            </div>
+            <div class="ax-meter__track">
+              <div class="ax-meter__fill" :class="meterClass(enabledLocalToolsCount, localTools.length)"
+                :style="{ width: pct(enabledLocalToolsCount, localTools.length) + '%' }"></div>
+            </div>
+          </div>
+          <div class="ax-panel__body">
+            <div class="cwb-swgrp">
+              <div class="cwb-swgrp__row">
+                <span class="cwb-swgrp__label">{{ t('characters.setting.toolToggle') }}</span>
+                <el-switch :model-value="!allDisabled" @update:model-value="(v) => handleAllDisabledToggle(!v)" />
+              </div>
+              <div class="cwb-swgrp__row" :class="{ 'is-off': allDisabled }">
+                <span class="cwb-swgrp__label">{{ t('characters.setting.newPluginLabel') }}</span>
+                <SegmentedToggle v-model="allowlistMode" :options="autoEnableOptions" size="small" />
+              </div>
+            </div>
+            <div v-if="localTools.length === 0" class="ax-empty">
+              <el-icon size="32"><InfoCircleOutlined /></el-icon>
+              <p>{{ t('characters.setting.noLocalTools') }}</p>
+            </div>
+            <div v-else class="cwb-rail-list">
+              <div v-for="tool in localTools" :key="tool.pluginId" class="cwb-cap-item"
+                :class="{ 'is-off': allDisabled }">
+                <div class="cwb-cap-item__main">
+                  <div class="cwb-cap-item__name">{{ tool.displayName }}</div>
+                  <p class="cwb-cap-item__desc">{{ tool.description }}</p>
+                </div>
+                <el-switch :model-value="isToolProviderEnabled(tool.pluginId)"
+                  @update:model-value="(val) => handleLocalToolToggle(tool.pluginId, val)"
+                  :disabled="allDisabled" inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- MCP 工具 -->
+        <section class="ax-panel">
+          <header class="ax-panel__head">
+            <span>{{ t('characters.wb.capsMcp') }}</span>
+            <span class="ax-pill ax-pill--soft">{{ enabledMcpCount }} / {{ mcpServers.length }}</span>
+          </header>
+          <div class="ax-meter">
+            <div class="ax-meter__head">
+              <span>{{ t('characters.wb.meterLabel') }}</span>
+              <span class="ax-mono">{{ pctText(enabledMcpCount, mcpServers.length) }}</span>
+            </div>
+            <div class="ax-meter__track">
+              <div class="ax-meter__fill" :class="meterClass(enabledMcpCount, mcpServers.length)"
+                :style="{ width: pct(enabledMcpCount, mcpServers.length) + '%' }"></div>
+            </div>
+          </div>
+          <div class="ax-panel__body">
+            <div class="cwb-swgrp">
+              <div class="cwb-swgrp__row">
+                <span class="cwb-swgrp__label">{{ t('characters.setting.toolToggle') }}</span>
+                <el-switch :model-value="!allMcpDisabled" @update:model-value="(v) => handleAllMcpDisabledToggle(!v)" />
+              </div>
+              <div class="cwb-swgrp__row" :class="{ 'is-off': allMcpDisabled }">
+                <span class="cwb-swgrp__label">{{ t('characters.setting.newMcpLabel') }}</span>
+                <SegmentedToggle v-model="mcpAllowlistMode" :options="autoEnableOptions" size="small" />
+              </div>
+            </div>
+            <div v-if="mcpServers.length === 0" class="ax-empty">
+              <el-icon size="32"><InfoCircleOutlined /></el-icon>
+              <p>{{ t('characters.setting.noMcpServers') }}</p>
+            </div>
+            <div v-else class="cwb-rail-list">
+              <div v-for="server in mcpServers" :key="server.id" class="cwb-cap-item"
+                :class="{ 'is-off': allMcpDisabled }">
+                <div class="cwb-cap-item__main">
+                  <div class="cwb-cap-item__name">
+                    {{ server.name }}
+                    <el-tag v-if="server.enabled" type="success" size="small" effect="plain">{{ t('characters.setting.mcpRunning') }}</el-tag>
+                    <el-tag v-else type="info" size="small" effect="plain">{{ t('characters.setting.mcpNotRunning') }}</el-tag>
+                  </div>
+                  <p v-if="server.description" class="cwb-cap-item__desc">{{ server.description }}</p>
+                  <p v-if="server.tools && Object.keys(server.tools).length > 0" class="ax-muted cwb-cap-item__tools">
+                    {{ t('characters.setting.availableTools', { count: Object.keys(server.tools).length }) }}
+                  </p>
+                </div>
+                <el-switch :model-value="isMcpServerEnabled(server.id)"
+                  @update:model-value="(val) => handleMcpServerToggle(server.id, val)"
+                  :disabled="allMcpDisabled" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Skills 技能 -->
+        <section class="ax-panel">
+          <header class="ax-panel__head">
+            <span>{{ t('characters.wb.capsSkills') }}</span>
+            <span class="ax-pill ax-pill--soft">{{ enabledSkillsCount }} / {{ visibleSkills.length }}</span>
+          </header>
+          <div class="ax-meter">
+            <div class="ax-meter__head">
+              <span>{{ t('characters.wb.meterLabel') }}</span>
+              <span class="ax-mono">{{ pctText(enabledSkillsCount, visibleSkills.length) }}</span>
+            </div>
+            <div class="ax-meter__track">
+              <div class="ax-meter__fill" :class="meterClass(enabledSkillsCount, visibleSkills.length)"
+                :style="{ width: pct(enabledSkillsCount, visibleSkills.length) + '%' }"></div>
+            </div>
+          </div>
+          <div class="ax-panel__body">
+            <div class="cwb-swgrp">
+              <div class="cwb-swgrp__row">
+                <span class="cwb-swgrp__label">{{ t('characters.setting.toolToggle') }}</span>
+                <el-switch :model-value="!allSkillsDisabled" @update:model-value="(v) => handleAllSkillsDisabledToggle(!v)" />
+              </div>
+              <div class="cwb-swgrp__row" :class="{ 'is-off': allSkillsDisabled }">
+                <span class="cwb-swgrp__label">{{ t('characters.setting.newSkillLabel') }}</span>
+                <SegmentedToggle v-model="skillsAllowlistMode" :options="autoEnableOptions" size="small" />
+              </div>
+            </div>
+            <div v-if="loadingSkills" class="ax-empty">
+              <el-icon class="is-loading" size="24"><LoadingOutlined /></el-icon>
+              <p>{{ t('characters.setting.loadingSkills') }}</p>
+            </div>
+            <div v-else-if="visibleSkills.length === 0" class="ax-empty">
+              <el-icon size="32"><InfoCircleOutlined /></el-icon>
+              <p>{{ t('characters.setting.noSkills') }}</p>
+            </div>
+            <div v-else class="cwb-rail-list">
+              <div v-for="skill in visibleSkills" :key="skill.id" class="cwb-cap-item"
+                :class="{ 'is-off': allSkillsDisabled }">
+                <div class="cwb-cap-item__main">
+                  <div class="cwb-cap-item__name">
+                    {{ skill.manifest?.name || skill.id }}
+                    <el-tag v-if="skill.source === 'system'" type="success" size="small" effect="light">{{ t('characters.setting.sourceBuiltin') }}</el-tag>
+                    <el-tag v-if="skill.manifest?.version" type="info" size="small" effect="plain">v{{ skill.manifest.version }}</el-tag>
+                  </div>
+                  <p class="cwb-cap-item__desc">{{ skill.manifest?.description || t('characters.setting.noDescription') }}</p>
+                </div>
+                <el-switch :model-value="getSkillEffectiveEnabled(skill)"
+                  :loading="updatingSkills.has(skill.id)"
+                  @update:model-value="(val) => handleSkillToggle(skill.id, val)" :disabled="allSkillsDisabled"
+                  inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 子代理 -->
+        <section class="ax-panel">
+          <header class="ax-panel__head">
+            <span>{{ t('characters.wb.capsAgents') }}</span>
+            <span class="ax-pill ax-pill--soft">{{ enabledAgentsCount }} / {{ presetCharacters.length }}</span>
+          </header>
+          <div class="ax-meter">
+            <div class="ax-meter__head">
+              <span>{{ t('characters.wb.meterLabel') }}</span>
+              <span class="ax-mono">{{ pctText(enabledAgentsCount, presetCharacters.length) }}</span>
+            </div>
+            <div class="ax-meter__track">
+              <div class="ax-meter__fill" :class="meterClass(enabledAgentsCount, presetCharacters.length)"
+                :style="{ width: pct(enabledAgentsCount, presetCharacters.length) + '%' }"></div>
+            </div>
+          </div>
+          <div class="ax-panel__body">
+            <div class="cwb-swgrp">
+              <div class="cwb-swgrp__row">
+                <span class="cwb-swgrp__label">{{ t('characters.setting.toolToggle') }}</span>
+                <el-switch :model-value="!allAgentsDisabled" @update:model-value="(v) => handleAllAgentsDisabledToggle(!v)" />
+              </div>
+            </div>
+            <div v-if="loadingAgents" class="ax-empty">
+              <el-icon class="is-loading" size="24"><LoadingOutlined /></el-icon>
+              <p>{{ t('characters.setting.loadingAgents') }}</p>
+            </div>
+            <div v-else-if="presetCharacters.length === 0" class="ax-empty">
+              <el-icon size="32"><InfoCircleOutlined /></el-icon>
+              <p>{{ t('characters.setting.noAgents') }}</p>
+            </div>
+            <div v-else class="cwb-rail-list">
+              <div v-for="char in presetCharacters" :key="char.id" class="cwb-cap-item"
+                :class="{ 'is-off': allAgentsDisabled }">
+                <div class="cwb-cap-item__main">
+                  <div class="cwb-cap-item__name">{{ char.title }}</div>
+                  <p class="cwb-cap-item__desc">{{ char.description || t('characters.setting.noDescription') }}</p>
+                </div>
+                <el-switch :model-value="getAgentEffectiveEnabled(char)"
+                  @update:model-value="(val) => handleAgentToggle(char.id, val)" :disabled="allAgentsDisabled"
+                  inline-prompt :active-text="t('common.enable')" :inactive-text="t('common.disable')" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 操作记录（07 舱 · Console 融合）：本会话能力开关 / 保存 / 撤销流水 -->
+        <section class="ax-panel">
+          <header class="ax-panel__head">
+            <span>{{ t('characters.wb.logTitle') }}</span>
+            <span class="ax-pill ax-pill--soft ax-mono">{{ capabilityLog.length }}</span>
+          </header>
+          <div class="ax-panel__body">
+            <div v-if="capabilityLog.length === 0" class="ax-log__empty">{{ t('characters.wb.logEmpty') }}</div>
+            <div v-else class="ax-log">
+              <div v-for="(entry, idx) in capabilityLog" :key="idx" class="ax-log__item">
+                <span class="ax-log__time ax-mono">{{ entry.time }}</span>
+                <span class="ax-log__text">{{ entry.text }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </div>
 
     <!-- 形态管理：build 恒存不可删；key 建后不可改（历史会话与角色提示词引用着它） -->
     <ReDialog v-model="formDialogVisible" :title="t('characters.setting.formManageTitle')" width="560px"
@@ -610,6 +669,8 @@ import { apiService } from '../../services/ApiService'
 import { usePopup } from '../../composables/usePopup'
 import AvatarPreview from '../ui/AvatarPreview.vue'
 import SegmentedToggle from '../ui/SegmentedToggle.vue'
+// 工作台令牌桥 + 共享原子（--ax-* → koi 令牌，暗色由 html.dark 自动生效）
+import './workbench.css'
 import { DEFAULT_SUMMARY_MODE } from '@/constants'
 import type { PromptForm } from '@/services/modules/character.api'
 import { resolvePromptFormIcon, PROMPT_FORM_ICON_CHOICES } from '@/utils/promptFormIcons'
@@ -630,10 +691,6 @@ const formatSliderTooltip = (val: number): string => {
 
 // Props
 const props = defineProps({
-  simple: {
-    type: Boolean,
-    default: false
-  },
   data: {
     type: Object,
     default: () => ({
@@ -650,21 +707,20 @@ const props = defineProps({
       }
     })
   },
-  tab: {
-    type: String,
-    default: 'basic'
-  },
   isNew: {
+    type: Boolean,
+    default: false
+  },
+  saving: {
     type: Boolean,
     default: false
   }
 })
 
 // Emits
-const emit = defineEmits(['update:data', 'update:tab', 'saved'])
+const emit = defineEmits(['update:data', 'save', 'use', 'remove'])
 
 // 响应式数据
-const isSimpleStyle = computed(() => props.simple)
 // 只按 code 认内置通用助手：主键会被种子角色占用，按 id 判定会误伤（见 CharacterListTab 同口径）
 const isGenericAssistant = computed(() =>
   props.data?.code === 'general-assistant' || props.data?.sysAiRoleCode === 'general-assistant'
@@ -678,8 +734,6 @@ const providers = ref([]);
 // 表单引用
 const basicFormRef = ref(null)
 const promptFormRef = ref(null)
-
-const tabsValue = ref(props.tab)
 
 // 初始表单数据对照（用于检测是否有未保存的变更）
 // 在 loadAllData 全部就绪后记录
@@ -703,25 +757,8 @@ function deepEqual(a: any, b: any): boolean {
   return a === b
 }
 
-// 侧边栏分组
-const sidebarGroups = computed(() => [
-  {
-    label: t('characters.setting.groupBasic'),
-    items: [
-      { label: t('characters.setting.navBasic'), path: 'basic', icon: UserOutlined },
-      { label: t('characters.setting.navPrompt'), path: 'prompt', icon: MessageOutlined },
-    ]
-  },
-  {
-    label: t('characters.setting.groupTools'),
-    items: [
-      { label: t('characters.setting.navLocalTools'), path: 'local_tools', icon: ToolOutlined },
-      { label: t('characters.setting.navMcpTools'), path: 'mcp_tools', icon: ApiOutlined },
-      { label: t('characters.setting.navSkills'), path: 'skills', icon: Code24Regular },
-      { label: t('characters.setting.navSubAgents'), path: 'agent_presets', icon: Bot24Regular },
-    ]
-  }
-])
+// 原始数据快照（撤销时按它还原表单）
+const _initialRawData = ref<any>(null)
 
 // ---------- 提示词形态 ----------
 // 形态由角色配置维护（/v2/prompt-forms），可在 build / plan 之外自定义更多。
@@ -1168,10 +1205,46 @@ const isMcpServerEnabled = (serverId) => {
   return !mcpDeniedServers.value.includes(serverId);
 };
 
-// 监听 props.data 变化
-watch(() => props.data, (newVal, oldVal) => {
-  // 检测是否是角色切换（id 变化）或初始化
-  const isCharacterSwitch = !characterForm.id || (newVal.id && newVal.id !== characterForm.id);
+// 右栏能力清单的「已启用 / 总数」计数
+const enabledLocalToolsCount = computed(() =>
+  localTools.value.filter(t => isToolProviderEnabled(t.pluginId)).length
+)
+const enabledMcpCount = computed(() =>
+  mcpServers.value.filter(s => isMcpServerEnabled(s.id)).length
+)
+const enabledSkillsCount = computed(() =>
+  visibleSkills.value.filter(s => getSkillEffectiveEnabled(s)).length
+)
+const enabledAgentsCount = computed(() =>
+  presetCharacters.value.filter(c => getAgentEffectiveEnabled(c)).length
+)
+
+// ── 07 舱 · Console 融合：能力度量与操作记录 ──
+const pct = (on: number, total: number): number =>
+  total > 0 ? Math.round((on / total) * 100) : 0;
+const pctText = (on: number, total: number): string =>
+  total > 0 ? `${pct(on, total)}%` : '—';
+const dialStyle = (on: number, total: number) => ({ '--dial-pct': pct(on, total) });
+const dialClass = (on: number, total: number) =>
+  total <= 0 || on <= 0 ? ['ax-dial--zero'] : on >= total ? ['ax-dial--full'] : [];
+const meterClass = (on: number, total: number) =>
+  total <= 0 || on <= 0 ? 'ax-meter__fill--zero' : on >= total ? 'ax-meter__fill--full' : '';
+
+// 操作记录：只记录本会话内的真实动作（能力开关 / 保存提交 / 撤销），不造历史数据
+const capabilityLog = ref<Array<{ time: string; text: string }>>([]);
+const logCapability = (text: string) => {
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  capabilityLog.value.unshift({ time, text });
+  if (capabilityLog.value.length > 8) capabilityLog.value.length = 8;
+};
+
+// 应用角色数据到表单（props.data watch 与「撤销」resetChanges 复用同一份归一化逻辑）
+const applyCharacterData = (newVal: any, oldVal?: any) => {
+  // 检测是否是角色切换（id 变化）、初始化，或从已有角色进入「新建」空白态。
+  // newVal 无 id 而表单还留着上个角色的 id 时也按切换处理，
+  // 否则头像文件、分形态草稿等残留会串到新建的角色上。
+  const isCharacterSwitch = String(newVal?.id ?? '') !== String(characterForm.id ?? '');
 
   if (isCharacterSwitch) {
     characterForm.avatarFile = null;
@@ -1277,8 +1350,7 @@ watch(() => props.data, (newVal, oldVal) => {
   if (props.isNew || (newVal?.id && !oldVal?.id)) {
     loadAllData();
   }
-
-}, { immediate: true })
+}
 
 const handleAvatarChanged = (file) => {
   characterForm.avatarFile = file
@@ -1303,12 +1375,17 @@ const handleMcpServerToggle = (serverId, enabled) => {
       mcpDeniedServers.value.splice(index, 1);
     }
   }
+  const serverName = mcpServers.value.find(s => s.id === serverId)?.name || serverId;
+  logCapability(`${enabled ? t('characters.wb.logEnable') : t('characters.wb.logDisable')} · ${t('characters.wb.capsMcp')} / ${serverName}`);
 }
 
 // ── Skills 切换 ──
 const handleSkillToggle = (skillId, enabled) => {
   characterForm.enabledSkills[skillId] = enabled;
   characterForm.enabledSkills = { ...characterForm.enabledSkills };
+  const skill = skillsList.value.find(s => s.id === skillId);
+  const skillName = skill?.manifest?.name || skillId;
+  logCapability(`${enabled ? t('characters.wb.logEnable') : t('characters.wb.logDisable')} · ${t('characters.wb.capsSkills')} / ${skillName}`);
 };
 
 // ── 子代理 ──
@@ -1317,9 +1394,12 @@ const getAgentEffectiveEnabled = (char) => {
 };
 const handleAgentToggle = (charId, enabled) => {
   enabledAgents[charId] = enabled;
+  const agentName = presetCharacters.value.find(c => c.id === charId)?.title || charId;
+  logCapability(`${enabled ? t('characters.wb.logEnable') : t('characters.wb.logDisable')} · ${t('characters.wb.capsAgents')} / ${agentName}`);
 };
 const handleAllAgentsDisabledToggle = async (val) => {
   allAgentsDisabled.value = val;
+  logCapability(`${val ? t('characters.wb.logAllOff') : t('characters.wb.logAllOn')} · ${t('characters.wb.capsAgents')}`);
 };
 const loadPresetCharacters = async () => {
   loadingAgents.value = true;
@@ -1394,8 +1474,9 @@ async function loadAllData() {
   }
 }
 
-// 角色切换时刷新子代理列表
+// 角色切换时刷新子代理列表（操作记录跟随当前助手，切换即清空）
 watch(() => characterForm.id, () => {
+  capabilityLog.value = [];
   if (characterForm.id) {
     loadPresetCharacters();
   }
@@ -1404,16 +1485,19 @@ watch(() => characterForm.id, () => {
 // 全部禁用开关切换处理
 const handleAllDisabledToggle = async (val) => {
   allDisabled.value = val;
+  logCapability(`${val ? t('characters.wb.logAllOff') : t('characters.wb.logAllOn')} · ${t('characters.wb.capsLocalTools')}`);
   await loadLocalTools();
 };
 
 const handleAllMcpDisabledToggle = async (val) => {
   allMcpDisabled.value = val;
+  logCapability(`${val ? t('characters.wb.logAllOff') : t('characters.wb.logAllOn')} · ${t('characters.wb.capsMcp')}`);
   await loadMCPServers();
 };
 
 const handleAllSkillsDisabledToggle = async (val) => {
   allSkillsDisabled.value = val;
+  logCapability(`${val ? t('characters.wb.logAllOff') : t('characters.wb.logAllOn')} · ${t('characters.wb.capsSkills')}`);
 };
 
 // 加载本地工具列表
@@ -1481,10 +1565,8 @@ const handleLocalToolToggle = (pluginId, enabled) => {
     characterToolSettings.value = {};
   }
   characterToolSettings.value[pluginId] = enabled;
-  // 同步更新 localTools 以便 isToolProviderEnabled 即时反馈
-  const tool = localTools.value.find(t => t.pluginId === pluginId);
-  if (tool) tool.enabled = enabled;
-  console.log(`本地工具 ${pluginId} ${enabled ? '启用' : '禁用'}`);
+  const toolName = localTools.value.find(tl => tl.pluginId === pluginId)?.displayName || pluginId;
+  logCapability(`${enabled ? t('characters.wb.logEnable') : t('characters.wb.logDisable')} · ${t('characters.wb.capsLocalTools')} / ${toolName}`);
 }
 
 const loadModels = async () => {
@@ -1699,6 +1781,22 @@ const getFormData = () => {
   return finalData;
 }
 
+// 监听 props.data 变化（注册在 getFormData 之后，避免 immediate 首跑触发 TDZ）
+watch(() => props.data, (newVal, oldVal) => {
+  applyCharacterData(newVal, oldVal)
+  // 非首次加载（同一角色数据刷新，如保存后回读）：按当前表单重算基线，避免脏状态误报
+  if (!(props.isNew || (newVal?.id && !oldVal?.id))) {
+    _initialFormData.value = getFormData()
+  }
+  // 留存原始数据，供「撤销」还原
+  _initialRawData.value = JSON.parse(JSON.stringify(newVal || {}))
+}, { immediate: true })
+
+// 保存提交时写入操作记录（07 舱 · Console 融合）
+watch(() => props.saving, (val) => {
+  if (val) logCapability(t('characters.wb.logSave'))
+})
+
 // 验证所有表单
 const validate = async () => {
   try {
@@ -1710,11 +1808,8 @@ const validate = async () => {
     const hasError = validationResults.some(result => result.status === 'rejected')
 
     if (hasError) {
-      const firstErrorIndex = validationResults.findIndex(result => result.status === 'rejected')
-      if (firstErrorIndex !== -1) {
-        const tabNames = ['basic', 'prompt']
-        tabsValue.value = tabNames[firstErrorIndex]
-      }
+      // 工作台无 tab 可切：把基础配置节滚入视野，让用户看到校验错误
+      document.getElementById('cwb-sec-basic')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       return false;
     }
     return true;
@@ -1738,6 +1833,34 @@ const hasChanges = computed(() => {
   const current = getFormData()
   return !deepEqual(current, _initialFormData.value)
 })
+const isDirty = hasChanges
+
+// 撤销未保存的修改：表单回到最近一次基线（含分形态提示词草稿）
+const resetChanges = () => {
+  logCapability(t('characters.wb.logUndo'));
+  if (_initialRawData.value) {
+    applyCharacterData(JSON.parse(JSON.stringify(_initialRawData.value)), _initialRawData.value)
+  }
+  // 白名单模式下补齐缺失技能项，与 loadAllData 的归一化口径一致
+  if (skillsAllowlistMode.value) {
+    for (const skill of skillsList.value) {
+      if (!(skill.id in characterForm.enabledSkills)) {
+        characterForm.enabledSkills[skill.id] = false
+      }
+    }
+  }
+  // 分形态提示词：各形态草稿回到落库基准
+  for (const key of Object.keys(formDrafts.value)) {
+    formDrafts.value[key] = { ...formDrafts.value[key], draft: formOriginals.value[key] ?? '' }
+  }
+  if (!isBuildForm.value) {
+    const cur = formDrafts.value[promptModeValue.value]
+    formPromptDraft.value = cur?.draft ?? ''
+    formPromptOriginal.value = formOriginals.value[promptModeValue.value] ?? ''
+    formPromptFromTable.value = cur?.fromTable ?? false
+  }
+  _initialFormData.value = getFormData()
+}
 
 // 暴露方法给父组件
 /**
@@ -1890,7 +2013,8 @@ defineExpose({
   validate,
   getFormData,
   flushFormPrompt,
-  hasChanges
+  hasChanges,
+  resetChanges
 })
 
 // 移除不再需要的 parse 和 format 方法（已删除 max_memory_tokens 和 short_term_memory_tokens）
@@ -1941,132 +2065,310 @@ defineExpose({
   flex-shrink: 0;
 }
 
-.avatar-upload-container {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  width: 100%;
+/* ============================================================================
+   工作台布局（A · 三栏：中栏编辑 + 右栏能力清单）
+   令牌全部来自 workbench.css 的 --ax-* 桥（koi 令牌），此处不写死调色板。
+   ============================================================================ */
+.cwb-scope {
+  height: 100%;
+  min-height: 0;
 }
 
-.avatar-upload-actions {
+.cwb-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  padding: 14px;
+}
+
+/* 中栏：编辑区 */
+.cwb-main {
   display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--ax-line);
+  border-radius: var(--ax-r-lg);
+  background: var(--ax-surface);
+  box-shadow: var(--ax-sh-sm);
+  overflow: hidden;
+}
+
+.cwb-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--ax-line-soft);
+  flex: none;
+}
+
+.cwb-head__av {
+  width: 44px;
+  height: 44px;
+  flex: none;
+}
+
+.cwb-head__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cwb-head__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ax-text);
+  min-width: 0;
+}
+
+.cwb-head__desc {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ax-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cwb-head__ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* 滚动内容 */
+.cwb-scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cwb-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cwb-sec__body {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.avatar-preview {
-  width: 100px;
-  height: 100px;
+/* 记忆与压缩 */
+.cwb-mem-item {
+  margin-bottom: 0 !important;
 }
 
-.modal-body {
-  height: 400px;
-}
-
-.tool-item {
-  transition: all 0.2s;
-}
-
-.skill-item {
-  transition: all 0.2s;
-}
-
-/* 工具配置对话框样式 */
-.tool-config-list {
+.cwb-mem-row {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  overflow-x: hidden;
-}
-
-.tool-config-item {
-  padding: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  /* 原值 6px → sm 档 */
-  border-radius: var(--el-radius-sm, 6px);
-  transition: all 0.2s;
-  overflow: hidden;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.tool-config-item:hover {
-  border-color: var(--el-color-primary-light-5);
-  background-color: var(--el-fill-color-lighter);
-}
-
-.tool-config-item :deep(.el-checkbox__label) {
-  width: 100%;
-  overflow: hidden;
-}
-
-.tool-config-item :deep(.el-checkbox) {
+  gap: 6px;
   width: 100%;
 }
 
-/* 强制工具描述文本换行 */
-.tool-config-item :deep(*) {
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  word-break: break-word !important;
-}
-
-/* 工具配置对话框样式已迁移到 LDialog scoped styles */
-
-.mcp-server-item {
-  transition: all 0.2s;
-}
-
-.tool-checkbox-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.tool-checkbox-item {
-  display: block;
-}
-
-.tool-name {
+.cwb-mem-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: 13px;
-  padding: 8px 12px;
-  background-color: var(--el-fill-color-light);
-  /* 原值 4px → xs 档 */
-  border-radius: var(--el-radius-xs, 4px);
-  transition: all 0.2s;
+  font-weight: 600;
+  color: var(--ax-text);
 }
 
-.tool-checkbox-item :deep(.el-checkbox__input) {
-  position: absolute;
-  left: -9999px;
+.cwb-mem-label .ax-muted {
+  font-size: 11.5px;
+  font-weight: 400;
 }
 
-.tool-checkbox-item.is-checked .tool-name {
-  background-color: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  border: 1px solid var(--el-color-primary);
+.cwb-mem-tip {
+  margin-top: 4px;
+  flex: none;
 }
 
-/* 内容区域 flex 布局 */
-.character-setting-panel-root > div > div:last-child {
+.ax-muted {
+  color: var(--ax-text-3);
+}
+
+/* 能力度量头（07 舱 · Console 融合）：贴住头部下方，与滚动区左右对齐 */
+.cwb-console {
+  flex: none;
+  margin: 10px 16px 0;
+}
+
+/* 保存栏 */
+.cwb-savebar {
+  flex: none;
+  border: 1px solid var(--ax-line);
+  border-radius: var(--ax-r-lg);
+  box-shadow: var(--ax-sh-sm);
+}
+
+.cwb-savebar.ax-savebar {
+  border-top: 1px solid var(--ax-line);
+}
+
+.ax-savebar__dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ax-text-3);
+}
+
+.ax-savebar__ops {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 右栏：能力清单 */
+.cwb-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cwb-rail__inner {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  padding-right: 2px;
 }
 
-/* 表单区域优化 */
-:deep(.el-form) {
-  height: 100%;
+.ax-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ax-line-soft);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ax-text-2);
 }
 
+.ax-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+/* 能力面板里的总开关 + 模式切换组 */
+.cwb-swgrp {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--ax-line-soft);
+  border-radius: var(--ax-r-md);
+  background: var(--ax-fill);
+}
+
+.cwb-swgrp__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cwb-swgrp__row.is-off {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.cwb-swgrp__label {
+  font-size: 12px;
+  color: var(--ax-text-2);
+}
+
+.cwb-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cwb-cap-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--ax-line-soft);
+  border-radius: var(--ax-r-md);
+  transition: background 0.18s var(--ax-ease), border-color 0.18s var(--ax-ease);
+}
+
+.cwb-cap-item:hover {
+  background: var(--ax-hover);
+  border-color: var(--ax-line);
+}
+
+.cwb-cap-item.is-off {
+  opacity: 0.5;
+}
+
+.cwb-cap-item__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.cwb-cap-item__name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ax-text);
+}
+
+.cwb-cap-item__desc {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ax-text-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cwb-cap-item__tools {
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+/* 窄屏：能力清单退到下方单列 */
+@media (max-width: 1100px) {
+  .cwb-panel {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .cwb-rail {
+    max-height: 42vh;
+  }
+}
 
 /* 提示词输入框样式 - 禁止resize并占满flex空间 */
 .prompt-form-item {
   display: flex;
   flex-direction: column;
-  min-height: 400px;
+  min-height: 320px;
 }
 
 .prompt-form-item :deep(.el-form-item__content) {
@@ -2107,24 +2409,12 @@ defineExpose({
   margin-bottom: 0 !important;
 }
 
-/* 动效降级：系统开启「减少动态效果」时，工具卡 / 技能卡 / 配置项 / MCP 卡 / 工具名
-   的悬停底色与描边直接到位。逐个列出，不写 `*` / `.character-setting-panel-root *` 通配，
-   避免把 el-switch / el-checkbox / el-slider 内部 Element Plus 组件的合法过渡一起掐掉
-   （开关轨道的滑块位移是功能表达，不是装饰）。
-   这些都只带 transition（无 animation），hover 与选中态都是静态声明，照常成立。 */
+/* 动效降级：系统开启「减少动态效果」时，能力项 / 按钮的悬停过渡直接到位。
+   不写 `*` 通配，避免掐掉 el-switch / el-slider 内部组件的合法过渡。 */
 @media (prefers-reduced-motion: reduce) {
-  .tool-item,
-  .skill-item,
-  .tool-config-item,
-  .mcp-server-item,
-  .tool-name {
+  .cwb-cap-item,
+  .ax-btn {
     transition: none;
   }
 }
-
-/* 注意：B 段清单里的 flex 是 Tailwind 工具类，不是本项目的可点 class，
-   给它挂 outline: none 会波及组件内所有用到 flex 的元素，属于净损害，因此未在此改动。
-   侧边栏导航项同样没有独立的可点 class（只有 Tailwind 组合），
-   需要焦点环时应由主会话在模板侧补 tabindex 后另行立项。 */
-
 </style>

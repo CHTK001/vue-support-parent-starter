@@ -1,0 +1,365 @@
+/* ============================================================================
+   助手工作台（A 版式落地）—— 令牌桥 + 共享原子（workbench.css）
+
+   令牌口径与 design-preview 阶段的 assistants.css 一致：不写死调色板，
+   定义 --ax-* 别名全部指向系统 koi 令牌（@repo/theme tokens + pages/ai
+   本地 tokens.css 的 --brand-* / --bg-* / --text-* / --border-*），
+   html.dark 覆盖自动生效。末端字面量仅作宿主未加载令牌时的兜底。
+   ============================================================================ */
+
+.cwb-scope {
+  /* 排版 */
+  --ax-font: "KoiFont", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+
+  /* 表面 / 描边 —— 优先 koi 布局语义面，其次体系 --bg-* */
+  --ax-page: var(--koi-surface-page, var(--bg-page, #f6f7fb));
+  --ax-surface: var(--koi-widget-bg, var(--bg-container, #ffffff));
+  --ax-fill: var(--bg-fill, #f5f7fa);
+  --ax-hover: var(--bg-hover, #f1f2f8);
+  --ax-line: var(--border-default, #e3e6ef);
+  --ax-line-soft: var(--border-subtle, #eef0f6);
+  --ax-line-strong: var(--border-strong, #cfd6e0);
+
+  /* 文本阶梯 */
+  --ax-text: var(--text-primary, #1f2430);
+  --ax-text-2: var(--text-secondary, #5c6270);
+  --ax-text-3: var(--text-tertiary, #6b7280);
+  --ax-inverse: var(--text-inverse, #ffffff);
+
+  /* 品牌 / 状态（koi 品牌色阶 + 语义状态色） */
+  --ax-brand: var(--koi-brand-500, var(--brand-500, #6d5dfc));
+  --ax-brand-strong: var(--brand-600, #5a4bd9);
+  --ax-brand-weak: var(--brand-50, #f6f4ff);
+  --ax-ok: var(--status-success, #2fbf71);
+  --ax-warn: var(--status-warning, #f59e0b);
+  --ax-err: var(--status-error, #ff4c4c);
+
+  /* 圆角 / 阴影 / 缓动 */
+  --ax-r-md: var(--radius-md, 8px);
+  --ax-r-lg: var(--radius-lg, 12px);
+  --ax-r-pill: 999px;
+  --ax-sh-sm: var(--shadow-sm, 0 1px 2px rgba(15, 18, 33, 0.04));
+  --ax-sh-md: var(--shadow-md, 0 4px 12px rgba(15, 18, 33, 0.06));
+  --ax-ease: var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1));
+
+  color: var(--ax-text);
+  font-family: var(--ax-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 共享原子（工作台三栏通用；组件 scoped 样式不重定义 .ax-*） ---------- */
+
+/* 徽标 / 小标签 */
+.ax-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: var(--ax-r-md);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ax-brand-strong);
+  background: var(--ax-brand-weak);
+  white-space: nowrap;
+}
+.ax-pill--soft { color: var(--ax-text-3); background: var(--ax-fill); font-weight: 500; }
+
+/* 状态点 */
+.ax-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ax-line-strong);
+}
+.ax-dot--on { background: var(--ax-ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ax-ok) 18%, transparent); }
+.ax-dot--off { background: var(--ax-text-3); opacity: 0.5; }
+
+/* 按钮 */
+.ax-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 15px;
+  border: 1px solid var(--ax-line);
+  border-radius: var(--ax-r-md);
+  background: var(--ax-surface);
+  color: var(--ax-text);
+  font-family: var(--ax-font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.18s var(--ax-ease), background 0.18s var(--ax-ease),
+    box-shadow 0.18s var(--ax-ease), border-color 0.18s var(--ax-ease);
+}
+.ax-btn:hover { background: var(--ax-hover); border-color: var(--ax-line-strong); }
+.ax-btn:active { transform: translateY(1px) scale(0.99); }
+.ax-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ax-btn--primary {
+  color: var(--ax-inverse);
+  background: var(--ax-brand);
+  border-color: transparent;
+  box-shadow: var(--ax-sh-md);
+}
+.ax-btn--primary:hover:not(:disabled) { background: var(--ax-brand-strong); border-color: transparent; }
+.ax-btn--ghost { background: transparent; border-color: transparent; color: var(--ax-text-2); }
+.ax-btn--ghost:hover:not(:disabled) { background: var(--ax-fill); }
+.ax-btn--danger { color: var(--ax-err); }
+.ax-btn--danger:hover:not(:disabled) { background: color-mix(in srgb, var(--ax-err) 10%, transparent); }
+.ax-btn--sm { min-height: 28px; padding: 0 10px; font-size: 11.5px; }
+
+/* 分组筛选芯片 */
+.ax-grp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--ax-r-pill);
+  background: transparent;
+  color: var(--ax-text-3);
+  font-family: var(--ax-font);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.18s var(--ax-ease), background 0.18s var(--ax-ease), border-color 0.18s var(--ax-ease);
+}
+.ax-grp:hover { color: var(--ax-text); background: var(--ax-fill); }
+.ax-grp.is-on {
+  color: var(--ax-brand-strong);
+  background: var(--ax-brand-weak);
+  border-color: color-mix(in srgb, var(--ax-brand) 24%, transparent);
+  font-weight: 600;
+}
+
+/* 可滚动区（滚动条跟体系令牌走） */
+.ax-scroll { overflow: auto; scrollbar-width: thin; scrollbar-color: var(--ax-line-strong) transparent; }
+/* flex column + overflow:auto 的经典陷阱：子面板默认 flex-shrink:1，会被压扁并把
+   内容裁掉。滚动区里的直接子元素一律不收缩；需要内部滚动的子元素自己写
+   flex: 1 1 auto; min-height: 0; 覆盖即可。 */
+.ax-scroll > * { flex-shrink: 0; }
+.ax-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.ax-scroll::-webkit-scrollbar-thumb { background: var(--ax-line-strong); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+.ax-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* 配置域外壳 */
+.ax-panel {
+  border: 1px solid var(--ax-line);
+  border-radius: var(--ax-r-lg);
+  background: var(--ax-surface);
+  overflow: hidden;
+}
+
+/* 配置节标题 */
+.ax-sec {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ax-text-3);
+}
+.ax-sec::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--ax-line-soft);
+}
+
+/* 保存条：脏数据时才亮 */
+.ax-savebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--ax-line);
+  background: color-mix(in srgb, var(--ax-surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+.ax-savebar__state { font-size: 11.5px; color: var(--ax-text-3); }
+.ax-savebar__state.is-dirty { color: var(--ax-warn); font-weight: 600; }
+.ax-savebar__gap { flex: 1; }
+
+/* 空态 */
+.ax-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 26px 16px;
+  border: 1px dashed var(--ax-line);
+  border-radius: var(--ax-r-lg);
+  color: var(--ax-text-3);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* 入场：仅 transform/opacity，尊重减少动态效果设置 */
+@keyframes ax-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ax-rise { animation: ax-rise 0.28s var(--ax-ease) both; }
+@media (prefers-reduced-motion: reduce) {
+  .ax-rise { animation: none; }
+}
+
+/* ---------- 07 舱 · Console 融合件：等宽数字 / 仪表头 / 遥测条 / 操作记录 ---------- */
+
+/* 等宽数字（度量、计数、时间戳） */
+.ax-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 仪表头：一排环形度量（--dial-pct 为 0-100 数字，--dial-color 为环色） */
+.ax-console {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+}
+.ax-dial {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--ax-line);
+  border-radius: var(--ax-r-lg);
+  background: var(--ax-surface);
+  box-shadow: var(--ax-sh-sm);
+  --dial-pct: 0;
+  --dial-color: var(--ax-brand);
+}
+.ax-dial--full { --dial-color: var(--ax-ok); }
+.ax-dial--zero { --dial-color: var(--ax-line-strong); }
+.ax-dial__ring {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(var(--dial-color) calc(var(--dial-pct) * 1%), var(--ax-fill) 0);
+  transition: background 0.3s var(--ax-ease);
+}
+.ax-dial__ring::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--ax-surface);
+}
+.ax-dial__num {
+  position: relative;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ax-text);
+}
+.ax-dial__meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ax-dial__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ax-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ax-dial__value {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ax-text);
+}
+.ax-dial__value small {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--ax-text-3);
+}
+
+/* 遥测条：能力组启用率水平计量 */
+.ax-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 2px 0 10px;
+}
+.ax-meter__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ax-text-3);
+}
+.ax-meter__track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ax-fill);
+  overflow: hidden;
+}
+.ax-meter__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ax-brand);
+  transition: width 0.3s var(--ax-ease), background 0.3s var(--ax-ease);
+}
+.ax-meter__fill--full { background: var(--ax-ok); }
+.ax-meter__fill--zero { background: var(--ax-line-strong); }
+@media (prefers-reduced-motion: reduce) {
+  .ax-meter__fill,
+  .ax-dial__ring { transition: none; }
+}
+
+/* 操作记录：本会话的能力开关 / 保存 / 撤销流水 */
+.ax-log {
+  display: flex;
+  flex-direction: column;
+}
+.ax-log__item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--ax-line-soft);
+  font-size: 10.5px;
+  color: var(--ax-text-2);
+}
+.ax-log__item:last-child { border-bottom: 0; }
+.ax-log__time {
+  flex: none;
+  font-size: 9.5px;
+  color: var(--ax-text-3);
+}
+.ax-log__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ax-log__empty {
+  padding: 2px 0;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--ax-text-3);
+}
