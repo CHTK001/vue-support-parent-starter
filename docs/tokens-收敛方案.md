@@ -79,6 +79,14 @@ L2 页面私有层   --apm-* / --vd-* / --kb-* 等域前缀令牌，留在各自
 - 【事实核查 2026-11-18】本条前提已过期：monitor 现值 `--status-info: #3399ff`、`--status-warning: #ff9730`，与 `--metric-*`（#3b82f6 / #8b5cf6 / #f59e0b）不同值，**不可并入 `--status-*`**；`--proto-ssh/vnc/rdp` 已上收至 packages/theme 全局层，与 `--metric-cpu/mem/disk` 恰为同值三对。后续若执行本条：安全做法是 `--metric-*` 改引用 `--proto-*`（或随 L0 收敛整体上收全局层），`--status-*` 保持独立。
 - 【落地修订 2026-11-18】已按安全路径执行（提交 `9b687e030`）：theme tokens.css 与 pages/monitor tokens.css 中 `--metric-cpu/mem/disk` 改为 `var(--proto-ssh/vnc/rdp)` 同值引用，消除 6 处重复字面量；`--status-*` 保持独立。解析值不变（#3b82f6 / #8b5cf6 / #f59e0b），全仓 87 处 `var(--metric-*)` 用法视觉零变化；dev 运行态实测转换产物引用在位、旧字面量 0 残留。
 
+### Step 5 · 白名单副本同值收敛（2026-11-18 已完成）
+
+- 做法：以 packages/theme tokens.css 为基准，删除 ai / monitor 两份白名单副本中**同名同值**的变量声明。判定按级联解析模型：某声明删除后，亮/暗两态、两种文件引入顺序（theme 先/后）下该变量解析值均不变，才允许删；迭代至不动点。
+- monitor 份删 37 处（`--bg-container/--bg-fill/--bg-elevated/--radius-sm..xl/--ease-out/--status-error/--pulse-alarm/--scroll-thumb(-hover)/--selection-bg(-fade)/--metric-cpu..db/--sev-p0..p4` 等）；ai 份删 12 处（亮 8 + 暗 4：`--bg-container/--text-inverse/--radius-sm..xl/--status-warning/--ease-out/--border-subtle(dark)/--status-success,warning(dark)/--shadow-sm(dark)`）。
+- 漂移值与私有令牌一律不动：monitor 的 `--brand-*`、`--text-*`、`--focus-ring`、`--status-success` 等 20 处漂移与 17 个私有令牌保留；ai 的 `--u-*` 命名空间、`--el-*`/`--vxe-ui-*` 桥接、深档 `--brand-700..950` 保留。
+- 验收：fixpoint 复检两份副本 0 可删残留；`pnpm tokens:check` PASS（24133 个代码文件、封禁别名 0 命中）；改动文件 BOM=0 / FFFD=0 / 严格 UTF-8；dev 运行态（monitor 8848）实测被删声明已不在 monitor 份转换产物中、theme 层照常供给同名令牌。
+- 剩余（通往总验收标准 1、2）：monitor 品牌运行时接入（删静态 `--brand-*`，派生微差需逐屏对比）；20 + 21 + 16 处漂移值逐项决策；两份副本最终去留（改名或消亡）。
+
 ## 5. 风险与回滚
 
 - 每步一个独立提交，出问题单独 revert，不与其它改动混提交。

@@ -18,6 +18,10 @@
 
    注意：本文件必须在 refactor.css **之前**引入（后者的 :root 覆盖同优先级时，
    派生关系才成立）。见 main.js 的引入顺序。
+
+   2026-11-18 同值收敛：与 @repo/theme 全局 tokens.css 同名同值的令牌已删除
+   （亮色 8 处 + 暗色 4 处），由全局层统一供给；此处仅保留 ai 私有令牌、
+   有意的取值差异与 --el-* / --vxe-ui-* 桥接。
    ============================================================================ */
 
 :root {
@@ -33,7 +37,6 @@
 
   /* ========== 背景 ========== */
   --bg-page: #f2f6fc;          /* 页面底 */
-  --bg-container: #ffffff;     /* 卡片 / 面板 */
   --bg-elevated: #f8fafc;      /* 悬浮层 / 次级面 */
   --bg-fill: #f1f5fb;          /* 输入框 / 填充 */
   --bg-hover: #f1f5fb;         /* 悬浮态 */
@@ -47,7 +50,6 @@
      #5b6b82 在四种浅底上 4.96~5.43，仍明显浅于二级文字 #475569（6.93~7.58），
      三级阶梯保留。深色主题的 #94a3b8 本来就够（4.90~6.96），不动。 */
   --text-tertiary: #5b6b82;
-  --text-inverse: #ffffff;
 
   /* ========== 边框 ========== */
   --border-subtle: #eef2f8;
@@ -58,10 +60,6 @@
      体系里是 6/8/12/16 的阶梯；refactor.css 另有一套 20px 大圆角
      （--r-card / --size-surface-radius）。二者并存：卡片保持既有大圆角，
      控件/浮层用体系阶梯，避免"大圆角套小圆角"的割裂感。 */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
   --radius-dialog: 10px;
 
   /* ========== 阴影 ========== */
@@ -73,7 +71,6 @@
   /* ========== 状态语义色 ==========
      体系里状态色是"语义"而非"某个 hue"，图表 / 状态点 / 徽标统一取这里。 */
   --status-success: #16a34a;
-  --status-warning: #f59e0b;
   --status-error: #ef4444;
   --status-info: #3b82f6;
   --status-online: #16a34a;
@@ -90,7 +87,6 @@
   /* ========== 过渡 ========== */
   --transition-base: all 0.18s ease;
   --transition-slow: all 0.3s ease;
-  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================================================
@@ -162,7 +158,6 @@ html.dark {
   --text-tertiary: #8d9eb4;
   --text-inverse: #0f172a;
 
-  --border-subtle: rgba(255, 255, 255, 0.06);
   --border-default: rgba(255, 255, 255, 0.11);
   --border-strong: rgba(255, 255, 255, 0.18);
 
@@ -171,14 +166,11 @@ html.dark {
      运行时派生（半透明档 + 基准色提亮）；700 档运行时不派生，仍在此提亮一档 */
   --brand-700: #2563eb;
 
-  --status-success: #4ade80;
-  --status-warning: #fbbf24;
   --status-error: #f87171;
   --status-info: #60a5fa;
   --status-online: #4ade80;
   --status-offline: #64748b;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.36);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.44);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.22);
