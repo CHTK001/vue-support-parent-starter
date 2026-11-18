@@ -176,7 +176,6 @@ const PARSER_LABELS: Record<string, string> = {
   zed: 'Zed',
   lmstudio: 'LM Studio',
   grok: 'Grok',
-  jaycode: 'JayCode',
   // 以下为后端已注册、此前只能显示 SPI 英文名的数据源（含各家 agent 软件）。
   // 新增 UsageParser 时把 @Spi 别名补在这里，白名单才不会出现裸英文名。
   acode: 'Acode',
