@@ -14,13 +14,13 @@ import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "element-plus/dist/index.css";
 import { setupCommonDirectives } from "@repo/core";
 import { setupSvgSprite } from "@repo/assets";
-import { applyPrimaryColorVars } from "@repo/utils";
+import { applyPrimaryColorVars, BRAND_COLOR_BLUE } from "@repo/utils";
 import App from "./App.vue";
 import router from "./router";
 import "./styles/video.css";
 
-/** 参照站品牌蓝 #3b82f6：EP 主色与 9 级色阶改由 themeColor.ts 统一派生注入（video.css 不再写死），与全站主题色同一出处 */
-applyPrimaryColorVars(document.documentElement, "#3b82f6", false);
+/** 参照站品牌蓝（BRAND_COLOR_BLUE，tailwind blue-500）：EP 主色与 9 级色阶改由 themeColor.ts 统一派生注入（video.css 不再写死），与全站主题色同一出处；种子色常量与 ai 控制台共享 */
+applyPrimaryColorVars(document.documentElement, BRAND_COLOR_BLUE, false);
 
 /** 本应用使用的 Re* 组件 */
 const RE_COMPONENTS = [

@@ -56,6 +56,7 @@ L2 页面私有层   --apm-* / --vd-* / --kb-* 等域前缀令牌，留在各自
 - 事实：两份 71 个同名变量全部同值；server 仅 1 个独有变量，monitor 多 3 个。
 - 做法：把 server 独有变量并入 monitor 份（或合并文件落到 `packages/theme/src/styles/palettes/`），`monitor壳 main.ts` 只 import 一份；删除 server 的 tokens.css。
 - 验收：monitor 应用亮/暗两态截图对比无变化；`grep -rn "tokens.css" apps/vue-support-monitor-starter` 只剩一条 import。
+- 【落地修订 2026-11-18】`--terminal-bg` 不再写入 monitor 份：`packages/theme/src/styles/tokens.css` 已全局定义该变量（经 `@repo/app` 注入所有宿主 app），按「通用不留在个别项目」口径不重复落盘；server tokens.css 照删。
 
 ### Step 2 · ai 接入品牌运行时层，删除漂移的品牌色阶
 
@@ -63,6 +64,7 @@ L2 页面私有层   --apm-* / --vd-* / --kb-* 等域前缀令牌，留在各自
 - 中性色漂移（`--text-*`、`--bg-*`、`--border-*`、`--shadow-*`、`--status-*` 共约 20 处）逐项决策：建议采纳 theme 值；AI 控制台设计稿明确要求的差异保留到 L2 前缀下。
 - 已知微差需设计确认：themeColor 派生色阶与手写色阶存在轻微差异（如 light-3 派生 #76a8f9 vs 手写 #6ba0f9 级别），逐屏对比后拍板。
 - 验收：ai 控制台亮/暗截图对比通过；ai tokens.css 中不再有 `--brand-*` 静态定义。
+- 【落地修订 2026-11-18】派生能力下沉共享层：`applyPrimaryColorVars` 增加 `options.gradient` 覆写参数（@repo/utils/themeColor.ts）；品牌蓝种子色提为共享常量 `BRAND_COLOR_BLUE`（ai 控制台与 video 门户共用，禁止各入口再写死字面量）；ai 侧仅保留 `pages/ai/src/styles/brandVars.ts` 承载双色调渐变设计值。
 
 ### Step 3 · 立规防回潮
 

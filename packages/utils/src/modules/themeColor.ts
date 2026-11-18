@@ -99,12 +99,22 @@ function buildBrandVars(color: string, isDark: boolean): string {
   ].join("; ");
 }
 
+/**
+ * ai 控制台与 video 门户共用的品牌蓝种子色（tailwind blue-500）。
+ *
+ * <p>注意与系统默认主题色 {@link DEFAULT_THEME}（koi 紫系）不同：这两个 app 的
+ * 设计稿指定蓝色品牌。种子色只在此声明一次，各 app 经 @repo/utils 引用，
+ * 禁止在各自入口再写死字面量。</p>
+ */
+export const BRAND_COLOR_BLUE = "#3b82f6";
+
 /** 核心推进：只写一次，消除 12 次 setProperty 的视图抖动 */
 function writePrimaryVars(
   target: HTMLElement,
   color: string,
   isDark: boolean,
   varPrefix: string,
+  gradient?: string,
 ) {
   const safeColor = normalizeThemeColor(color);
   const rgb = hexToRgb(safeColor);
@@ -115,17 +125,29 @@ function writePrimaryVars(
     return `--el-color-${varPrefix}light-${i + 1}: ${level}`;
   }).join("; ");
   const strip = stripPrimaryVars(target.style.cssText);
+  const gradientOverride = gradient ? `--brand-gradient: ${gradient};` : "";
   target.style.cssText = `${strip};\
     --el-color-primary: ${safeColor};\
     --el-color-primary-rgb: ${rgbVar};\
     --el-color-primary-dark-2: ${dark2};\
     ${lights};\
-    ${buildBrandVars(safeColor, isDark)};`;
+    ${buildBrandVars(safeColor, isDark)};\
+    ${gradientOverride}`;
 }
 
-/** 写入 Element Plus 主题色及 9 级色阶 */
-export function applyPrimaryColorVars(target: HTMLElement, color: string, isDark: boolean) {
-  writePrimaryVars(target, color, isDark, "primary-");
+/**
+ * 写入 Element Plus 主题色及 9 级色阶。
+ *
+ * @param options.gradient 覆写 `--brand-gradient`（运行时派生的默认是同色系
+ * 单色渐变；app 有双色调设计时传完整 gradient 值，如 ai 控制台的「蓝→紫」）。
+ */
+export function applyPrimaryColorVars(
+  target: HTMLElement,
+  color: string,
+  isDark: boolean,
+  options?: { gradient?: string },
+) {
+  writePrimaryVars(target, color, isDark, "primary-", options?.gradient);
 }
 
 /** 写入 Element Plus 单个状态色变量及 9 级色阶（success / warning / danger / info） */
