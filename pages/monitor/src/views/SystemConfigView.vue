@@ -443,7 +443,7 @@ onMounted(load);
 
 .sc-card {
   transition: box-shadow 0.2s ease, border-color 0.15s ease;
-  &:hover { box-shadow: var(--shadow-2); border-color: var(--border-default); }
+  &:hover { box-shadow: var(--shadow-md); border-color: var(--border-default); }
   :deep(.el-card__header) { padding: 14px 16px; }
   :deep(.el-card__body) { padding: 16px; }
 }

@@ -5974,7 +5974,7 @@ onBeforeUnmount(() => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 
 /* 折叠态：268px → 44px，中间工作区净增 224px。只留计数、运行/停止点
@@ -6066,7 +6066,7 @@ onBeforeUnmount(() => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 
 /* ===== 头部：标题 + 计数 + 刷新/新增 + 搜索 + 状态筛选 ===== */
@@ -6199,7 +6199,7 @@ onBeforeUnmount(() => {
 .rail-chip.is-active {
   color: var(--el-color-primary);
   background: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 
 .rail-chip.is-active b {

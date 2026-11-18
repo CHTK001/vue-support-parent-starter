@@ -227,7 +227,7 @@ defineExpose({
   background: color-mix(in srgb, var(--el-bg-color) 88%, transparent);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 999px;
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
   backdrop-filter: blur(4px);
 }
 .re-map-wrap__item {

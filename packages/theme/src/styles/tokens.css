@@ -95,10 +95,6 @@
   --shadow-sm: 0 1px 2px rgba(15, 18, 33, 0.04);
   --shadow-md: 0 4px 12px rgba(15, 18, 33, 0.06);
   --shadow-lg: 0 8px 24px rgba(15, 18, 33, 0.08);
-  /* 别名（对齐 prototype.html 命名） */
-  --shadow-1: 0 1px 2px rgba(15, 18, 33, 0.04);
-  --shadow-2: 0 4px 12px rgba(15, 18, 33, 0.06);
-  --shadow-3: 0 8px 24px rgba(15, 18, 33, 0.08);
   --shadow-brand: 0 2px 8px rgba(109, 93, 252, 0.25);
   --badge-glow: 0 0 6px rgba(109, 93, 252, 0.5);
   --alarm-glow-in: 0 0 0 0 rgba(240, 74, 93, 0.4);
@@ -215,9 +211,6 @@ html.dark {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.35);
-  --shadow-3: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-brand: 0 2px 8px rgba(109, 93, 252, 0.4);
   --badge-glow: 0 0 6px rgba(109, 93, 252, 0.6);
 

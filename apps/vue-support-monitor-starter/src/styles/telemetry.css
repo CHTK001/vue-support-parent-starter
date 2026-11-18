@@ -157,7 +157,7 @@ html.dark {
      页面内部的「header → 内容区」之间该有的间距由各页自己的 gap/margin 负责。 */
   padding: 0;
   color: var(--text-primary);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
 }
 /* 控制台页（.dsm.tel-page）：这一段是历史上「只有控制台页去掉内边距」的补丁。
    现在 .tel-page 的内边距已全局归零，这条规则不再有实际作用，
@@ -628,11 +628,11 @@ html.dark {
   border-color: var(--theme-color-border, var(--border-default));
   color: var(--theme-color-text, var(--text-primary));
   transition: transform var(--tel-transition), box-shadow var(--tel-transition), border-color var(--tel-transition);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
 }
 .koi-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--shadow-md);
   border-color: var(--brand-500);
 }
 
@@ -735,7 +735,7 @@ html.dark {
 .tel-page .kpi {
   background: var(--bg-container);
   border-color: var(--border-subtle);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
 }
 .tel-kpi .kpi-value {
   color: var(--text-primary);
@@ -746,7 +746,7 @@ html.dark {
 .tel-page .card {
   background: var(--bg-container);
   border-color: var(--border-subtle);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
 }
 .tel-page .card-title { color: var(--text-primary); }
 

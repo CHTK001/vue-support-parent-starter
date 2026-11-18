@@ -3764,7 +3764,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 
 /* 折叠态：268px → 44px，中间工作区净增 224px。只留计数、在线/离线点
@@ -3985,7 +3985,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
 .rail-chip.is-active {
   color: var(--el-color-primary);
   background: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 
 .rail-chip.is-active b {
@@ -4492,7 +4492,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 
 .dock-head {
@@ -4732,7 +4732,7 @@ function onGlobalKeydown(e: KeyboardEvent): void {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 
 /* 底部一行：指标条 + Dock 开关，flex-wrap: nowrap 兜底，不能再撑成两行。

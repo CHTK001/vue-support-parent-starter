@@ -69,12 +69,14 @@ L2 页面私有层   --apm-* / --vd-* / --kb-* 等域前缀令牌，留在各自
 ### Step 3 · 立规防回潮
 
 - 新令牌只允许进 `@repo/theme` 的 tokens.css；禁止在任何 app/pages 新建 tokens.css 副本。
-- tokens.css 内部不再新增同值别名（现存 `--shadow-sm/--shadow-1`、`--shadow-md/--shadow-2`、`--shadow-lg/--shadow-3` 三对同值双别名择机合并）。
+- tokens.css 内部不再新增同值别名（原 `--shadow-sm/--shadow-1`、`--shadow-md/--shadow-2`、`--shadow-lg/--shadow-3` 三对已于 2026-11-18 合并：数字别名全部改用语义名，见 Step 3 落地修订）。
 - 落地方式：CI 加一条 grep 检查（`**/tokens.css` 只允许出现在 `packages/theme`）+ review checklist。
+- 【落地修订 2026-11-18】本仓无 CI 配置，守卫按 `surface:check` 惯例落成 `scripts/check-tokens.mjs`（`pnpm tokens:check`）：规则 1 = tokens.css 只许进 `packages/theme/src/styles/`，现存 ai/monitor/hotsport 三份入 BASELINE 白名单、只许消亡不许新增；规则 2 = 点名封禁已合并别名（声明与 var() 使用都拦）。同日完成 shadow 合并：`--shadow-1/2/3` 全仓 40 余处使用改为 `--shadow-sm/md/lg`（`--shadow-3` 确认零使用，纯死代码），theme tokens 内 6 行数字别名定义删除。
 
 ### Step 4（可选）· monitor 域内语义色合并
 
 - `--metric-cpu/--proto-ssh/--status-info` 同为 #3b82f6、`--metric-mem/--proto-vnc` 同为 #8b5cf6、`--metric-disk/--proto-rdp/--status-warning` 同为 #f59e0b：把 `--metric-*`、`--proto-*` 改为引用 `--status-*`（或统一收敛到 `--status-*`），删除重复字面量。
+- 【事实核查 2026-11-18】本条前提已过期：monitor 现值 `--status-info: #3399ff`、`--status-warning: #ff9730`，与 `--metric-*`（#3b82f6 / #8b5cf6 / #f59e0b）不同值，**不可并入 `--status-*`**；`--proto-ssh/vnc/rdp` 已上收至 packages/theme 全局层，与 `--metric-cpu/mem/disk` 恰为同值三对。后续若执行本条：安全做法是 `--metric-*` 改引用 `--proto-*`（或随 L0 收敛整体上收全局层），`--status-*` 保持独立。
 
 ## 5. 风险与回滚
 

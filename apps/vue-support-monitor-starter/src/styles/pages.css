@@ -37,7 +37,7 @@
   padding: 20px;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s var(--ease-out, ease), border-color 0.2s var(--ease-out, ease);
 }
 .kpi::after {
@@ -49,7 +49,7 @@
   background: linear-gradient(180deg, var(--selection-bg-fade), transparent);
   pointer-events: none;
 }
-.kpi:hover { box-shadow: var(--shadow-2); border-color: var(--border-default); }
+.kpi:hover { box-shadow: var(--shadow-md); border-color: var(--border-default); }
 .kpi::before {
   content: "";
   position: absolute;
@@ -116,10 +116,10 @@
   border-radius: var(--radius-lg, 12px);
   padding: 12px 14px;
   margin-bottom: 14px;
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
   transition: border-color 0.15s;
 }
-.filter:focus-within { border-color: var(--brand-100); box-shadow: var(--shadow-1), var(--focus-ring); }
+.filter:focus-within { border-color: var(--brand-100); box-shadow: var(--shadow-sm), var(--focus-ring); }
 .filter .grow { flex: 1; min-width: 200px; }
 /* ReFilter 组件已接管 input/select 样式，无需再覆盖原生控件边框 */
 .filter .chip {
@@ -181,7 +181,7 @@
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
   padding: 16px;
 }
 .card-pad-0 { padding: 0; }
@@ -231,7 +231,7 @@
   /* clip 保留圆角裁剪，同时放行内部 sticky 表头 */
   overflow: hidden;
   overflow: clip;
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
 }
 .t { width: 100%; border-collapse: collapse; font-size: 13px; }
 .t thead th {

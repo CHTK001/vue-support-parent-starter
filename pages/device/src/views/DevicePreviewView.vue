@@ -1309,7 +1309,7 @@ watch([wall, layout, protocol], persistWall, { deep: true })
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 .dpv-rail:hover {
   color: var(--el-color-primary);
@@ -1342,7 +1342,7 @@ watch([wall, layout, protocol], persistWall, { deep: true })
   border: 1px solid var(--el-border-color-lighter);
   border-left: none;
   border-radius: 0 var(--el-radius-base, 8px) var(--el-radius-base, 8px) 0;
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 .dpv-handle:hover {
   color: var(--el-color-primary);
@@ -1353,7 +1353,7 @@ watch([wall, layout, protocol], persistWall, { deep: true })
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 .dpv-panel--fill {
   display: flex;

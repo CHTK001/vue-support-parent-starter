@@ -556,7 +556,7 @@ watch(
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
 }
 .dtp-graph {
   flex: 1;
@@ -628,7 +628,7 @@ watch(
   background: color-mix(in srgb, var(--el-bg-color) 92%, transparent);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-lg, 12px);
-  box-shadow: var(--el-box-shadow-light, var(--shadow-1));
+  box-shadow: var(--el-box-shadow-light, var(--shadow-sm));
   backdrop-filter: blur(4px);
 }
 .dtp-detail__head {

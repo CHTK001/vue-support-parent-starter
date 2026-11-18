@@ -540,7 +540,7 @@ onUnmounted(() => {
   margin-bottom: 8px;
   background: var(--bg-container);
   transition: border-color 0.15s var(--ease-out, ease), box-shadow 0.15s, transform 0.15s;
-  &:hover { border-color: var(--brand-100); box-shadow: var(--shadow-2); transform: translateY(-1px); }
+  &:hover { border-color: var(--brand-100); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
   &:last-child { margin-bottom: 0; }
 }
 .p-main, .r-main { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }

@@ -13,7 +13,7 @@
  * <p>页面不画顶栏，标题、实例标识、计数与筛选收进一块与内容同宽的卡片。卡面
  * 与设备资产页（{@code @pages/device} 的 {@code .da-rail} / {@code .da-card}）
  * 同一档：页面是 {@code --bg-page} 灰底，卡片是 {@code --bg-container} 白面
- * 加 {@code --shadow-1} 软阴影，靠「白面浮在灰底上」分块，不用重描边。颜色一律
+ * 加 {@code --shadow-sm} 软阴影，靠「白面浮在灰底上」分块，不用重描边。颜色一律
  * 取 koi 令牌（{@code packages/theme/src/styles/tokens.css}），暗色主题下同样
  * 可读。</p>
  *
@@ -1357,7 +1357,7 @@ async function save() {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: var(--bg-container);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
 }
 
 .tunnel-page__title {
@@ -1528,7 +1528,7 @@ async function save() {
   background: var(--bg-container);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-sm);
 }
 
 .tunnel-page__split {
