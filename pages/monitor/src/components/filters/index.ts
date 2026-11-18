@@ -16,6 +16,9 @@ import ScFileStorageFilterPanel from './ScFileStorageFilterPanel.vue';
 import ScDiscoveryFilterPanel from './ScDiscoveryFilterPanel.vue';
 import ScFirewallFilterPanel from './ScFirewallFilterPanel.vue';
 import ScMappingFilterPanel from './ScMappingFilterPanel.vue';
+import ScCircuitBreakerFilterPanel from './ScCircuitBreakerFilterPanel.vue';
+import ScMockFilterPanel from './ScMockFilterPanel.vue';
+import ScRewriteFilterPanel from './ScRewriteFilterPanel.vue';
 import ScGenericFilterPanel from './ScGenericFilterPanel.vue';
 
 /**
@@ -29,28 +32,36 @@ const ALIAS: Record<string, string> = {
   service_discovery: 'service-discovery',
 };
 
-/** 专用面板注册表（规范名 → 组件） */
+/** 专用面板注册表（规范名统一小写；大小写由 normalizeFilterType 归一） */
 const REGISTRY: Record<string, Component> = {
   'file-storage': markRaw(ScFileStorageFilterPanel),
   'service-discovery': markRaw(ScDiscoveryFilterPanel),
   firewall: markRaw(ScFirewallFilterPanel),
   ip: markRaw(ScFirewallFilterPanel),
-  // 映射类：后端下发的 type 是大写（URL-MAPPING / SHELL-URL-MAPPING），两种写法都收
+  // 映射类：后端下发的 type 是大写（URL-MAPPING / SHELL-URL-MAPPING），normalize 已统一小写
   'url-mapping': markRaw(ScMappingFilterPanel),
-  'URL-MAPPING': markRaw(ScMappingFilterPanel),
   'shell-url-mapping': markRaw(ScMappingFilterPanel),
-  'SHELL-URL-MAPPING': markRaw(ScMappingFilterPanel),
+  // 高可用 / 打桩 / 网关改写（SPI 框架大写下发，normalize 已统一小写）
+  'circuit-breaker': markRaw(ScCircuitBreakerFilterPanel),
+  mock: markRaw(ScMockFilterPanel),
+  'request-rewrite': markRaw(ScRewriteFilterPanel),
 };
 
 /**
  * 归一化过滤器类型
  *
+ * <p>SPI 框架把 {@code @Spi} 别名统一转成大写下发（如 REQUEST-REWRITE / MOCK /
+ * CIRCUIT-BREAKER，见后端 ServiceDefinitionUtils.setName(alias.toUpperCase())），
+ * 而内置预设是小写（file-storage / service-discovery / ip / firewall）。
+ * 因此先按原值查 ALIAS（别名是 camelCase），再统一转小写，保证大小写两种
+ * 下发都命中注册表的小写规范 key。</p>
+ *
  * @param type 后端给出的过滤器类型
- * @returns 规范名；无法归一时返回去空格后的原值
+ * @returns 规范名；无法归一时返回去空格转小写后的原值
  */
 export function normalizeFilterType(type?: string | null): string {
   const t = (type ?? '').trim();
-  return ALIAS[t] ?? t;
+  return (ALIAS[t] ?? t).toLowerCase();
 }
 
 /**
@@ -78,5 +89,8 @@ export {
   ScDiscoveryFilterPanel,
   ScFirewallFilterPanel,
   ScMappingFilterPanel,
+  ScCircuitBreakerFilterPanel,
+  ScMockFilterPanel,
+  ScRewriteFilterPanel,
   ScGenericFilterPanel,
 };

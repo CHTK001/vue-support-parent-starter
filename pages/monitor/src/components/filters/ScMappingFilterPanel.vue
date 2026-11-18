@@ -11,6 +11,7 @@
 import { computed } from 'vue';
 import ReInput from '@repo/ui/re-input';
 import type { FilterTypeMeta } from '../../api';
+import { normalizeFilterType } from './index';
 
 const props = defineProps<{
   /** 插件元数据 */
@@ -25,9 +26,9 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: Record<string, string>): void;
 }>();
 
-/** 两种映射的差异只在文案与占位示例 */
+/** 两种映射的差异只在文案与占位示例（后端 SPI 大写下发，先归一） */
 const copy = computed(() =>
-  props.filterType === 'shell-url-mapping'
+  normalizeFilterType(props.filterType) === 'shell-url-mapping'
     ? {
         title: 'Shell 命令映射',
         hint: '左侧填命令（含参数占位），右侧填处理器标识；留空的行会被忽略',

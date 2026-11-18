@@ -12,6 +12,7 @@ import ReInput from '@repo/ui/re-input';
 import ReInputNumber from '@repo/ui/re-input-number';
 import ReSelect from '@repo/ui/re-select';
 import type { FilterTypeMeta } from '../../api';
+import { normalizeFilterType } from './index';
 
 const props = defineProps<{
   /** 插件元数据 */
@@ -35,8 +36,8 @@ const MODE_OPTIONS = [
 /** 当前是否白名单模式 */
 const isWhitelist = computed(() => (props.modelValue.mode || 'blacklist') === 'whitelist');
 
-/** 是否支持限流（ip 类型只管名单） */
-const supportsRateLimit = computed(() => props.filterType !== 'ip');
+/** 是否支持限流（ip 类型只管名单；后端 SPI 大写下发，先归一） */
+const supportsRateLimit = computed(() => normalizeFilterType(props.filterType) !== 'ip');
 
 /** IP 条数：给一行「已填 N 个」的即时反馈 */
 const ipCount = computed(() =>
