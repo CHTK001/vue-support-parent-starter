@@ -76,10 +76,10 @@
   /* 遮罩 */
   --overlay-bg: rgba(29, 33, 41, 0.5);
 
-  /* 指标色 */
-  --metric-cpu: #3b82f6;
-  --metric-mem: #8b5cf6;
-  --metric-disk: #f59e0b;
+  /* 指标色（cpu/mem/disk 同值引用全局协议色 --proto-*，消除重复字面量） */
+  --metric-cpu: var(--proto-ssh);
+  --metric-mem: var(--proto-vnc);
+  --metric-disk: var(--proto-rdp);
   --metric-net: #06b6d4;
   --metric-jvm: #14b8a6;
   --metric-redis: #ef4444;
