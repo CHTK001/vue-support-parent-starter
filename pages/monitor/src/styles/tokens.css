@@ -67,6 +67,9 @@
   /* 状态点（告警） */
   --pulse-alarm: #f04a5d;
 
+  /* 终端背景（远控终端 / 发布日志；原 pages/server tokens.css 独有变量，合并入此） */
+  --terminal-bg: #0d1117;
+
   /* 滚动条 */
   --scroll-thumb: #d5d9e6;
   --scroll-thumb-hover: #b9bfd2;

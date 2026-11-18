@@ -40,7 +40,6 @@ import "./styles/telemetry.css";
 // 唯一归属在壳、不归 pages 的理由：样式的「消费方」是壳整体装配出的应用，
 // 页面只声明依赖、由应用入口统一收集，避免每页重复 import 造成重复打包。
 import "@pages/monitor/src/styles/tokens.css";
-import "@pages/server/src/styles/tokens.css";
 import "@pages/server/src/styles/page.css";
 import "@pages/server/src/styles/dialog.css";
 import "@pages/system/src/styles/system-page.css";

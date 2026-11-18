@@ -1,6 +1,7 @@
 // composables/useTheme.ts
 import { ref, computed, watch } from "vue";
 import { applyThemePreset } from "@/themes";
+import { applyAiBrandVars } from "@/styles/brandVars";
 
 /**
  * 主题管理 Composable
@@ -90,6 +91,16 @@ watch(isDark, (newVal: boolean) => {
   }
 });
 
+// ── 品牌色阶：单一出处 = themeColor.ts 运行时派生（见 styles/brandVars.ts）──
+// 品牌蓝 #3b82f6 派生 --el-color-primary 九级色阶与 --brand-50..600、
+// --focus-ring、--selection-bg。此前本应用从未接通该注入，EP 组件一直落在
+// element-plus 默认蓝 #409eff 上，与自绘层的品牌蓝 #2563eb/#3b82f6 分裂——
+// 此处一并收口。暗色切换时品牌色阶随之重新派生（暗色下 50/100 走半透明、
+// 基准色提亮一档）。
+watch(isDark, (newVal: boolean) => {
+  applyAiBrandVars(newVal);
+});
+
 // 监听 themeMode 变化，持久化到 localStorage
 watch(themeMode, (newVal: ThemeMode) => {
   localStorage.setItem("theme-mode", newVal);
@@ -113,6 +124,7 @@ watch(activeThemePreset, (newVal: ThemePreset) => {
 // 初始应用 DOM 状态
 document.documentElement.classList.toggle("dark", isDark.value);
 applyThemePreset(activeThemePreset.value);
+applyAiBrandVars(isDark.value);
 
 /**
  * 主题 Composable 返回值类型

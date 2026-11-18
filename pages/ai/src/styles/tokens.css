@@ -22,20 +22,14 @@
 
 :root {
   /* ========== 品牌色 ==========
-     沿用 refactor.css 既有的纯蓝主色（#2563EB），但换成体系命名，
-     并补齐 50/100/…/950 全阶，组件层需要任意档位时不必再自己调。 */
-  --brand-50: #eff6ff;
-  --brand-100: #dbeafe;
-  --brand-200: #bfdbfe;
-  --brand-300: #93c5fd;
-  --brand-400: #60a5fa;
-  --brand-500: #3b82f6;
-  --brand-600: #2563eb;
+     --brand-50..600 与 --el-color-primary 九级色阶由 useTheme.ts 经
+     applyPrimaryColorVars 按品牌蓝 #3b82f6 运行时派生（亮/暗各一套），
+     此处不再静态写死；--brand-gradient 的「蓝→紫」双色调设计值亦由
+     useTheme.ts 在注入后覆写。运行时不派生的深档仍静态保留： */
   --brand-700: #1d4ed8;
   --brand-800: #1e40af;
   --brand-900: #1e3a8a;
   --brand-950: #172554;
-  --brand-gradient: linear-gradient(135deg, var(--brand-600) 0%, #6d28d9 100%);
 
   /* ========== 背景 ========== */
   --bg-page: #f2f6fc;          /* 页面底 */
@@ -87,9 +81,8 @@
   --status-unknown: #f5a524;
   --status-alarm: #f04a5d;
 
-  /* ========== 焦点环 / 选区 / 滚动条 ========== */
-  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.16);
-  --selection-bg: rgba(37, 99, 235, 0.16);
+  /* ========== 焦点环 / 选区 / 滚动条 ==========
+     （--focus-ring / --selection-bg 随品牌蓝由 themeColor.ts 运行时派生） */
   --scroll-thumb: #cbd5e1;
   --scroll-thumb-hover: #94a3b8;
   --overlay-bg: rgba(15, 23, 42, 0.45);
@@ -173,14 +166,10 @@ html.dark {
   --border-default: rgba(255, 255, 255, 0.11);
   --border-strong: rgba(255, 255, 255, 0.18);
 
-  /* 深底上品牌色要提亮，否则按钮文字对比度不足 */
-  --brand-50: rgba(37, 99, 235, 0.16);
-  --brand-100: rgba(37, 99, 235, 0.24);
-  --brand-400: #60a5fa;
-  --brand-500: #3b82f6;
-  --brand-600: #3b82f6;
+  /* 深底上品牌色要提亮，否则按钮文字对比度不足：
+     --brand-50..600 与 --brand-gradient 已改由 useTheme.ts 按暗色模式
+     运行时派生（半透明档 + 基准色提亮）；700 档运行时不派生，仍在此提亮一档 */
   --brand-700: #2563eb;
-  --brand-gradient: linear-gradient(135deg, var(--brand-500) 0%, #7c3aed 100%);
 
   --status-success: #4ade80;
   --status-warning: #fbbf24;
@@ -194,8 +183,6 @@ html.dark {
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.44);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.22);
 
-  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.28);
-  --selection-bg: rgba(59, 130, 246, 0.28);
   --scroll-thumb: #334155;
   --scroll-thumb-hover: #475569;
   --overlay-bg: rgba(2, 6, 23, 0.6);
