@@ -297,17 +297,25 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/device/src/views/DeviceEventLogView.vue"),
         meta: { title: "设备日志", icon: "Document", showLink: true, rank: 13 },
       },
+      // 告警日志：所有设备告警（webhook 入站 + 平台自检离线/事件）统一汇集。
+      // device_alarm 落库后由本页查询/处理；与「设备日志」相邻，同属设备事件域。
+      {
+        path: "/device/alarm",
+        name: "DeviceAlarm",
+        component: () => import("@pages/device/src/views/DeviceAlarmView.vue"),
+        meta: { title: "告警日志", icon: "Bell", showLink: true, rank: 14 },
+      },
       {
         path: "/device/access",
         name: "DeviceAccess",
         component: () => import("@pages/device/src/views/DeviceAccessRecordView.vue"),
-        meta: { title: "门禁记录", icon: "Door", showLink: true, rank: 14 },
+        meta: { title: "门禁记录", icon: "Door", showLink: true, rank: 15 },
       },
       {
         path: "/device/vehicle-pass",
         name: "DeviceVehiclePass",
         component: () => import("@pages/device/src/views/DeviceVehiclePassView.vue"),
-        meta: { title: "过车记录", icon: "Van", showLink: true, rank: 15 },
+        meta: { title: "过车记录", icon: "Van", showLink: true, rank: 16 },
       },
       // 传感器记录 = 环境指标的历史读数（时序存储）。
       // 引擎由 plugin.device.timeseries.engine 决定（bean/influxdb/redis），页面接口不变。
@@ -315,7 +323,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
         path: "/device/metric-history",
         name: "DeviceMetricHistory",
         component: () => import("@pages/device/src/views/DeviceMetricHistoryView.vue"),
-        meta: { title: "传感器记录", icon: "Odometer", showLink: true, rank: 16 },
+        meta: { title: "传感器记录", icon: "Odometer", showLink: true, rank: 17 },
       },
       // 独立的「设备分组」页已并入设备资产页左侧树（组织 / 分组 / 厂家 三分支），
       // 分组的新增 / 重命名 / 分配设备 / 删除全部收口在该树的分组右键菜单里。
