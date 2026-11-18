@@ -77,6 +77,7 @@ L2 页面私有层   --apm-* / --vd-* / --kb-* 等域前缀令牌，留在各自
 
 - `--metric-cpu/--proto-ssh/--status-info` 同为 #3b82f6、`--metric-mem/--proto-vnc` 同为 #8b5cf6、`--metric-disk/--proto-rdp/--status-warning` 同为 #f59e0b：把 `--metric-*`、`--proto-*` 改为引用 `--status-*`（或统一收敛到 `--status-*`），删除重复字面量。
 - 【事实核查 2026-11-18】本条前提已过期：monitor 现值 `--status-info: #3399ff`、`--status-warning: #ff9730`，与 `--metric-*`（#3b82f6 / #8b5cf6 / #f59e0b）不同值，**不可并入 `--status-*`**；`--proto-ssh/vnc/rdp` 已上收至 packages/theme 全局层，与 `--metric-cpu/mem/disk` 恰为同值三对。后续若执行本条：安全做法是 `--metric-*` 改引用 `--proto-*`（或随 L0 收敛整体上收全局层），`--status-*` 保持独立。
+- 【落地修订 2026-11-18】已按安全路径执行（提交 `9b687e030`）：theme tokens.css 与 pages/monitor tokens.css 中 `--metric-cpu/mem/disk` 改为 `var(--proto-ssh/vnc/rdp)` 同值引用，消除 6 处重复字面量；`--status-*` 保持独立。解析值不变（#3b82f6 / #8b5cf6 / #f59e0b），全仓 87 处 `var(--metric-*)` 用法视觉零变化；dev 运行态实测转换产物引用在位、旧字面量 0 残留。
 
 ## 5. 风险与回滚
 
