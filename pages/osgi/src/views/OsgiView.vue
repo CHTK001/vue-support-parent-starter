@@ -1,24 +1,27 @@
 <!--
-  OSGi 插件管理 —— 机柜版式（Rack Cabinet）。
+  OSGi 插件管理 —— 发射控制台版式（Launch Control Console）。
 
-  设计语言：把 OSGi 运行时当作一台上电工作的标准机柜——
-  - 每个 bundle 是一块插在柜里的 1U 模块：面板左侧是电源/状态灯，中间是丝印
-    名称与版本，右侧是生命周期电平灯条；模块上的按钮就是启停 / 升级 /
-    下载 / 卸载，系统模块（bundleId=0）是柜子的电源模块，只展示不操作；
-  - 右侧竖立 PATCH 面板 = 服务注册表，每个已注册服务点亮一个插座；
-  - 柜子底部的磁带机 = Socket 实时操作日志，后端每次写操作广播
-    开始 / 成功 / 失败三帧，磁带随新帧滚动；
-  - 机柜下方的拉出式抽屉 = 部署目录 jar 文件仓，三态筛选，卸载后可在此删文件。
+  设计语言：把 OSGi 运行时当作一座整装待发的航天发射场——
+  - 每个 bundle 是一座发射工位（PAD）：左侧是工位号与状态信标，中间是任务
+    铭牌（符号名 + 版本）与相位时间轴（装填 → 加注 → 点火 → 入轨，
+    对应 INSTALLED / RESOLVED / STARTING / ACTIVE），右侧是生命周期电平塔；
+    STOPPING 显示「离轨程序执行中」，UNINSTALLED 显示「任务中止」；
+    系统工位（bundleId=0）是发射场中枢，只展示不操作；
+  - 右侧地面站（GROUND STATION）= 服务注册表，每个已注册服务点亮一部天线；
+  - 测控带上的信标与波形 = Socket 实时操作日志，后端每次写操作广播
+    开始 / 成功 / 失败三帧，波形随新帧滚动；
+  - 场区下方的总装车间 = 部署目录 jar 文件仓，三态筛选，卸载后可在此删文件。
 
-  本页没有传统页头：页面身份是刻在机柜顶梁上的铭牌，操作内嵌在控制单元里。
+  本页没有传统页头：页面身份是塔架上的任务徽章铭牌，操作内嵌在 mast 上。
 
   能力与后端 /osgi/** 完全对齐，全部真实链路：清单、统计、快照、服务登记走
   GET 端点，安装 / 升级 / 启停 / 卸载 / 删除 / 下载走变更端点，无一处 mock。
   卸载与升级前做二次确认；删除 jar 前确认且仅在 bundle 已卸载时可用。
 
-  颜色与圆角全部走 koi / element 主题变量，明暗自动跟随；状态配色固定：
-  INSTALLED=info、RESOLVED=primary、STARTING=warning、ACTIVE=success、
-  STOPPING=primary-light、UNINSTALLED=danger。
+  颜色全部走 koi 设计令牌（@repo/theme tokens.css），明暗自动跟随；
+  状态配色：ACTIVE=--status-success、STARTING=--status-warning、
+  RESOLVED=--brand-500、STOPPING=--brand-400、INSTALLED=--metric-net、
+  UNINSTALLED=--status-error。
 -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -778,99 +781,109 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="osgi-page">
-    <!-- 机柜主体：无页头，页面身份是顶梁铭牌 -->
-    <section class="rk osg-hd" :class="{ 'rk--booting': loading && !rows.length }">
-      <!-- 顶梁：铭牌 + 电源指示 + 主操作（全部内嵌在柜体上） -->
-      <div class="rk-top">
-        <div class="rk-plate">
-          <span class="rk-plate__screw tl"></span><span class="rk-plate__screw tr"></span>
-          <span class="rk-plate__brand">OSGi PLUGIN RACK</span>
-          <span class="rk-plate__model">RACK UNIT · 19" · MODULAR</span>
-          <span class="rk-live osg-live" :class="{ 'rk-live--off': !logChannelReady }">
-            <i class="rk-live__dot"></i>{{ logChannelReady ? "LIVE · POWER · LINK OK" : "SOCKET 未接入" }}
+    <!-- 发射场主体：无页头，页面身份是塔架任务徽章 -->
+    <section class="lc osg-hd" :class="{ 'lc--booting': loading && !rows.length }">
+      <!-- 塔架 mast：任务徽章 + 测控链路 + 主操作 -->
+      <div class="lc-mast">
+        <div class="lc-badge">
+          <span class="lc-badge__mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <div class="lc-badge__txt">
+            <span class="lc-badge__brand">OSGi LAUNCH CONTROL</span>
+            <span class="lc-badge__model">MISSION CONTROL · SEQUENCE GRID</span>
+          </div>
+          <span class="lc-live osg-live" :class="{ 'lc-live--off': !logChannelReady }">
+            <i class="lc-live__dot"></i>{{ logChannelReady ? "TELEMETRY · LINK OK" : "SOCKET 未接入" }}
           </span>
-          <span class="rk-plate__screw bl"></span><span class="rk-plate__screw br"></span>
         </div>
-        <div class="rk-top__acts osg-hd__acts">
+        <div class="lc-mast__acts osg-hd__acts">
           <ReButton icon="RefreshRight" :loading="loading" @click="reloadAll">刷新</ReButton>
           <ReButton type="primary" icon="Upload" :disabled="!!busy" @click="pickInstall">上传 jar</ReButton>
         </div>
       </div>
 
-      <!-- 控制单元：主电平表 + 搜索 + 状态筛选 + 框架丝印 -->
-      <div class="rk-ctrl">
-        <div class="rk-ctrl__row">
-          <span class="rk-ctrl__ttl">MASTER</span>
-          <div class="rk-mleds" :key="logPulse">
+      <!-- 遥测带：9 路任务读数 -->
+      <div class="lc-telemetry osg-chips">
+        <span v-for="c in chips" :key="c.label" class="lc-tele osg-chip" :title="c.label">
+          <span class="lc-tele__label">{{ c.label }}</span>
+          <b class="lc-tele__val">{{ c.value }}</b>
+        </span>
+      </div>
+
+      <!-- 控制台：MASTER 电平塔 + 搜索 + 状态筛选 -->
+      <div class="lc-console">
+        <div class="lc-tower">
+          <span class="lc-tower__ttl">MASTER</span>
+          <div class="lc-tower__leds" :key="logPulse">
             <i v-for="i in 10" :key="i" :class="{ on: i <= masterLevel }"></i>
           </div>
-          <span class="rk-ctrl__meta">
-            {{ framework ? `FW ${framework.symbolicName} · v${framework.version}` : "FW —" }} · 运行
-            {{ activeCount }}/{{ rows.length }}
-          </span>
-          <div class="rk-ctrl__search osg-ctrl__search">
-            <el-input
-              v-model="searchText"
-              placeholder="搜索符号名 / ID / 文件名…"
-              clearable
-              :prefix-icon="Search"
-            />
-          </div>
-          <div class="rk-seg">
-            <button
-              v-for="f in filters"
-              :key="f.key"
-              type="button"
-              class="rk-seg__btn osg-chipbtn"
-              :class="{ 'rk-seg__btn--on': filterState === f.key }"
-              @click="filterState = f.key"
-            >
-              {{ f.label }}
-            </button>
-          </div>
         </div>
-        <div class="rk-silk osg-chips">
-          <span v-for="c in chips" :key="c.label" class="rk-silk__item osg-chip" :title="c.label">
-            {{ c.label }} <b>{{ c.value }}</b>
-          </span>
+        <span class="lc-console__meta">
+          {{ framework ? `FW ${framework.symbolicName} · v${framework.version}` : "FW —" }} · 入轨
+          {{ activeCount }}/{{ rows.length }}
+        </span>
+        <div class="lc-console__search osg-ctrl__search">
+          <el-input
+            v-model="searchText"
+            placeholder="搜索符号名 / ID / 文件名…"
+            clearable
+            :prefix-icon="Search"
+          />
+        </div>
+        <div class="lc-seg">
+          <button
+            v-for="f in filters"
+            :key="f.key"
+            type="button"
+            class="lc-seg__btn osg-chipbtn"
+            :class="{ 'lc-seg__btn--on': filterState === f.key }"
+            @click="filterState = f.key"
+          >
+            {{ f.label }}
+          </button>
         </div>
       </div>
 
-      <!-- 柜体：左立柱 + 模块墙 + PATCH 面板 + 右立柱 -->
-      <div class="rk-body">
-        <div class="rk-rail rk-rail--l" aria-hidden="true">
-          <i v-for="i in 14" :key="i"></i>
-        </div>
-
-        <div class="rk-bay" :class="{ 'rk-bay--empty': !loading && !rows.length }">
+      <!-- 发射场：工位阵 + 地面站 -->
+      <div class="lc-main">
+        <div class="lc-floor" :class="{ 'lc-floor--empty': !loading && !rows.length }">
           <template v-for="row in filteredRows" :key="row.bundleId">
             <div
               :id="`osgi-ch-${row.bundleId}`"
-              class="mod osg-ch"
-              :class="[`mod--${row.state.toLowerCase()}`, { 'mod--hl': highlightName === row.symbolicName }]"
+              class="pad osg-ch"
+              :class="[`pad--${row.state.toLowerCase()}`, { 'pad--hl': highlightName === row.symbolicName }]"
             >
-              <!-- 模块前面板：左 = 状态灯区，中 = 丝印，右 = 电平灯条 -->
-              <div class="mod__lamp">
-                <i class="mod__pwr"></i>
-                <span class="mod__slot">U{{ chNo(row.bundleId) }}</span>
+              <div class="pad__id">
+                <i class="pad__beacon"></i>
+                <span class="pad__no">PAD {{ chNo(row.bundleId) }}</span>
+                <span class="pad__bid">#{{ row.bundleId }}</span>
               </div>
 
-              <div class="mod__face">
-                <div class="mod__name">
+              <div class="pad__body">
+                <div class="pad__name">
                   {{ row.symbolicName }}
-                  <span class="mod__ver">v{{ row.version }}</span>
-                  <span class="mod__bid">#{{ row.bundleId }}</span>
+                  <span class="pad__ver">v{{ row.version }}</span>
                 </div>
-                <div class="mod__ops">
+
+                <!-- 相位时间轴：装填 → 加注 → 点火 → 入轨 -->
+                <div class="pad__phase" :title="`发射相位 · ${stateText(row.state)}`">
+                  <span class="pad__step" :class="{ 'pad__step--done': stateLevel(row.state) >= 3 }"><i></i>装填</span>
+                  <span class="pad__step" :class="{ 'pad__step--done': stateLevel(row.state) >= 4 }"><i></i>加注</span>
+                  <span class="pad__step" :class="{ 'pad__step--done': stateLevel(row.state) >= 6 }"><i></i>点火</span>
+                  <span class="pad__step" :class="{ 'pad__step--done': stateLevel(row.state) >= 8 }"><i></i>入轨</span>
+                  <span v-if="row.state === 'STOPPING'" class="pad__abort">离轨程序执行中</span>
+                  <span v-else-if="row.state === 'UNINSTALLED'" class="pad__abort pad__abort--bad">任务中止</span>
+                </div>
+
+                <div class="pad__ops">
                   <template v-if="isSystem(row)">
                     <ReTag type="info" effect="plain">系统内置</ReTag>
-                    <span class="mod__sysnote">框架电源模块，无启停 / 升级 / 卸载操作</span>
+                    <span class="pad__sysnote">发射场中枢，无启停 / 升级 / 卸载操作</span>
                   </template>
                   <template v-else>
                     <ReTag
                       :type="stateTagType(row.state)"
                       effect="plain"
-                      :style="row.state === 'STOPPING' ? { '--el-tag-text-color': 'var(--el-color-primary-light)' } : undefined"
+                      :style="row.state === 'STOPPING' ? { '--el-tag-text-color': 'var(--brand-400)' } : undefined"
                     >
                       {{ stateText(row.state) }}
                     </ReTag>
@@ -889,137 +902,133 @@ onBeforeUnmount(() => {
                 </div>
               </div>
 
-              <div class="mod__meter osg-ch__lad" :title="`状态电平 · ${stateText(row.state)}`">
-                <div class="mod__ladder">
+              <div class="pad__meter osg-ch__lad" :title="`状态电平 · ${stateText(row.state)}`">
+                <div class="pad__ladder">
                   <i v-for="i in 10" :key="i" :class="ladderClass(row.state, i)"></i>
                 </div>
-                <span class="mod__level osg-fader__val">LVL <b>{{ stateLevel(row.state) }}</b>/10</span>
+                <span class="pad__lvl osg-fader__val">LVL <b>{{ stateLevel(row.state) }}</b>/10</span>
               </div>
             </div>
           </template>
 
-          <div v-if="!loading && !filteredRows.length" class="rk-empty osg-empty">
+          <div v-if="!loading && !filteredRows.length" class="lc-empty osg-empty">
             <p v-if="rows.length">没有符合当前搜索 / 筛选条件的 bundle</p>
             <div v-else>
-              <p>机柜内暂无已安装模块</p>
-              <p class="rk-empty__hint">
-                从下方文件仓上传 jar 即可插入；端点需开启 <code>plugin.osgi.endpoint.enabled=true</code>
+              <p>发射场上暂无待发任务</p>
+              <p class="lc-empty__hint">
+                从总装车间上传 jar 即可进入工位；端点需开启 <code>plugin.osgi.endpoint.enabled=true</code>
               </p>
             </div>
           </div>
         </div>
 
-        <!-- PATCH 面板：服务注册表，竖排在柜体右侧 -->
-        <aside class="rk-patch osg-panel">
-          <div class="rk-patch__h">PATCH<span>服务跳线 · {{ services.length }} 路</span></div>
-          <div v-if="services.length" class="rk-jacks osg-jacks">
-            <div v-for="svc in services" :key="svc.osgiServiceId" class="rk-jack osg-jack" title="已注册服务">
-              <span class="rk-jack__hole"></span>
-              <span class="rk-jack__nm">{{ svc.type }}</span>
-              <span class="rk-jack__pid">{{ svc.pid }}</span>
+        <!-- 地面站：服务注册表 -->
+        <aside class="lc-ground osg-panel">
+          <div class="lc-ground__h">GROUND STATION<span>服务登记 · {{ services.length }} 路</span></div>
+          <div v-if="services.length" class="lc-jacks osg-jacks">
+            <div v-for="svc in services" :key="svc.osgiServiceId" class="lc-jack osg-jack" title="已注册服务">
+              <span class="lc-jack__dish"></span>
+              <span class="lc-jack__nm">{{ svc.type }}</span>
+              <span class="lc-jack__pid">{{ svc.pid }}</span>
             </div>
           </div>
-          <p v-else class="rk-patch__empty">当前无已注册服务，启动 bundle 后自动点亮</p>
+          <p v-else class="lc-ground__empty">当前无已注册服务，启动 bundle 后自动点亮天线</p>
         </aside>
-
-        <div class="rk-rail rk-rail--r" aria-hidden="true">
-          <i v-for="i in 14" :key="i"></i>
-        </div>
       </div>
 
-      <!-- 柜底：磁带机（socket 日志回放）+ 载荷读数 -->
-      <div class="rk-base">
-        <div class="rk-reel osg-reel" :class="{ spinning: logPulse > 0 }" :key="`ra-${logPulse}`"></div>
-        <div class="rk-tape osg-tape" :key="`t-${logPulse}`">
-          <span v-for="(item, index) in tapeTicks" :key="`${item.startedAt}-${index}`" class="rk-tape__tick osg-tick">
+      <!-- 测控带：信标 + 波形 + 载荷帧 -->
+      <div class="lc-comm">
+        <div class="lc-reel osg-reel" :class="{ spinning: logPulse > 0 }" :key="`ra-${logPulse}`"></div>
+        <div class="lc-tape osg-tape" :key="`t-${logPulse}`">
+          <span v-for="(item, index) in tapeTicks" :key="`${item.startedAt}-${index}`" class="lc-tape__tick osg-tick">
             ● {{ actionText(item.action) }} · {{ item.symbolicName || "—" }} · {{ logTime(item.startedAt) }}
           </span>
-          <span v-if="!tapeTicks.length" class="rk-tape__tick rk-tape__tick--idle">等待操作…</span>
+          <span v-if="!tapeTicks.length" class="lc-tape__tick lc-tape__tick--idle">等待操作…</span>
         </div>
-        <div class="rk-reel osg-reel" :class="{ spinning: logPulse > 0 }" :key="`rb-${logPulse}`"></div>
-        <div class="rk-frame osg-frame">
+        <div class="lc-reel lc-reel--r osg-reel" :class="{ spinning: logPulse > 0 }" :key="`rb-${logPulse}`"></div>
+        <div class="lc-frame osg-frame">
           <template v-if="lastFrame">
             <code>{ module: "{{ lastFrame.module }}", event: "{{ lastFrame.event }}", dataId: "{{ lastFrame.dataId }}", ts: "{{ lastFrame.timestamp }}" }</code>
           </template>
-          <code v-else class="rk-frame--idle">payload { module, event, data, dataId, timestamp } · 等待首帧…</code>
+          <code v-else class="lc-frame--idle">payload { module, event, data, dataId, timestamp } · 等待首帧…</code>
         </div>
       </div>
     </section>
 
-    <!-- 文件仓：拉出式抽屉 -->
-    <section class="drawer osg-tray" :class="{ 'drawer--open': drawerOpen }">
-      <button type="button" class="drawer__grip" @click="drawerOpen = !drawerOpen">
-        <span class="drawer__grip__lines" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="drawer__grip__ttl">部署目录 · 文件仓 <b>{{ jars.length }}</b> 个 jar</span>
-        <span class="drawer__grip__caret">{{ drawerOpen ? "▾ 收起" : "▸ 拉出" }}</span>
+    <!-- 总装车间：部署目录 jar 文件仓（拉出式） -->
+    <section class="hangar osg-tray" :class="{ 'hangar--open': drawerOpen }">
+      <button type="button" class="hangar__grip" @click="drawerOpen = !drawerOpen">
+        <span class="hangar__grip__lines" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="hangar__grip__ttl">总装车间 · 部署目录 <b>{{ jars.length }}</b> 个 jar</span>
+        <span class="hangar__grip__caret">{{ drawerOpen ? "▾ 收回" : "▸ 拉出" }}</span>
       </button>
 
-      <div v-show="drawerOpen" class="drawer__body">
-        <div class="drawer__tools">
-          <div class="drawer__seg">
+      <div v-show="drawerOpen" class="hangar__body">
+        <div class="hangar__tools">
+          <div class="hangar__seg">
             <button
               type="button"
-              class="drawer__seg__btn osg-seg__btn"
-              :class="{ 'drawer__seg__btn--on': trayFilter === 'all' }"
+              class="hangar__seg__btn osg-seg__btn"
+              :class="{ 'hangar__seg__btn--on': trayFilter === 'all' }"
               @click="trayFilter = 'all'"
             >
               全部
             </button>
             <button
               type="button"
-              class="drawer__seg__btn osg-seg__btn"
-              :class="{ 'drawer__seg__btn--on': trayFilter === 'installed' }"
+              class="hangar__seg__btn osg-seg__btn"
+              :class="{ 'hangar__seg__btn--on': trayFilter === 'installed' }"
               @click="trayFilter = 'installed'"
             >
               在框架中
             </button>
             <button
               type="button"
-              class="drawer__seg__btn osg-seg__btn"
-              :class="{ 'drawer__seg__btn--on': trayFilter === 'only' }"
+              class="hangar__seg__btn osg-seg__btn"
+              :class="{ 'hangar__seg__btn--on': trayFilter === 'only' }"
               @click="trayFilter = 'only'"
             >
               仅文件
             </button>
           </div>
-          <div class="drawer__auto osg-foot__auto">
-            <span>每 30s 自动刷新</span>
+          <div class="hangar__auto osg-foot__auto">
+            <span>每 30s 自动巡检</span>
             <el-switch v-model="autoRefresh" size="small" />
           </div>
         </div>
 
-        <div class="drawer__list" :class="{ 'drawer__list--empty': !jarLoading && !filteredJars.length }">
-          <div v-for="jar in filteredJars" :key="jar.fileName" class="jar osg-jar" :class="jar.installed ? 'jar--on osg-jar--on' : 'jar--off osg-jar--off'">
-            <span class="jar__bar"></span>
-            <div class="jar__body">
-              <div class="jar__name">
+        <div class="hangar__list" :class="{ 'hangar__list--empty': !jarLoading && !filteredJars.length }">
+          <div v-for="jar in filteredJars" :key="jar.fileName" class="veh osg-jar" :class="jar.installed ? 'veh--on osg-jar--on' : 'veh--off osg-jar--off'">
+            <span class="veh__bar"></span>
+            <div class="veh__body">
+              <div class="veh__name">
                 {{ jar.fileName }}
-                <span class="jar__size">{{ formatSize(jar.size) }}</span>
+                <span class="veh__size">{{ formatSize(jar.size) }}</span>
               </div>
-              <div class="jar__meta">
+              <div class="veh__meta">
                 <span v-if="jar.installed">框架中 · {{ jar.symbolicName }} · {{ stateText(jar.state ?? "") }}</span>
-                <span v-else>仅文件 · 未安装</span>
-                <span class="jar__time">{{ formatTime(jar.lastModified) }}</span>
+                <span v-else>仅文件 · 未总装</span>
+                <span class="veh__time">{{ formatTime(jar.lastModified) }}</span>
               </div>
             </div>
             <ReTag :type="jar.installed ? 'success' : 'info'" effect="plain">
               {{ jar.installed ? "在框架中" : "仅文件" }}
             </ReTag>
-            <div class="jar__ops">
+            <div class="veh__ops">
               <ReButton
                 v-if="jar.installed"
                 size="small"
                 :disabled="!!jarBusy"
                 @click="locateBySymbolic(jar.symbolicName ?? '')"
               >
-                查看模块
+                查看工位
               </ReButton>
               <ReButton
                 size="small"
                 type="danger"
                 :disabled="jar.installed || !!jarBusy"
                 :loading="jarBusy === jar.fileName"
-                :title="jar.installed ? '仍在框架中，请先在模块上卸载' : ''"
+                :title="jar.installed ? '仍在框架中，请先在工位上卸载' : ''"
                 @click="removeJar(jar)"
               >
                 删除文件
@@ -1027,62 +1036,62 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <div v-if="!jarLoading && !filteredJars.length" class="rk-empty osg-empty">
-            <p v-if="jars.length">没有符合当前搜索 / 筛选条件的文件</p>
+          <div v-if="!jarLoading && !filteredJars.length" class="lc-empty osg-empty">
+            <p v-if="jars.length">没有符合当前筛选条件的文件</p>
             <div v-else>
-              <p>部署目录暂无 jar 文件</p>
-              <p class="rk-empty__hint">上传安装后会在这里显示，卸载后可在此删除文件</p>
+              <p>总装车间暂无 jar 文件</p>
+              <p class="lc-empty__hint">上传安装后会在这里显示，卸载后可在此删除文件</p>
             </div>
           </div>
         </div>
 
-        <div class="drawer__dock osg-dock" @click="pickInstall" @dragover.prevent @drop.prevent="onDropInstall">
-          <span class="drawer__dock__plus">+</span>
-          <span>拖入 .jar 即刻插入机柜 <small>· 同符号名上传 = 原地升级 · 点击选择文件</small></span>
+        <div class="hangar__dock osg-dock" @click="pickInstall" @dragover.prevent @drop.prevent="onDropInstall">
+          <span class="hangar__dock__plus">+</span>
+          <span>拖入 .jar 即刻进入发射工位 <small>· 同符号名上传 = 原地升级 · 点击选择文件</small></span>
         </div>
       </div>
     </section>
 
-    <!-- 机架显示屏：实时操作日志（可折叠） -->
-    <section class="mon osg-log" :class="{ 'mon--closed osg-log--closed': !logOpen }">
-      <header class="mon__head osg-log__head" @click="logOpen = !logOpen">
-        <span class="mon__caret">{{ logOpen ? "▾" : "▸" }}</span>
-        <span class="mon__title">实时操作日志</span>
-        <span class="mon__chan" :class="{ 'mon__chan--off': !logChannelReady }">
+    <!-- 测控通信日志：实时操作日志（可折叠） -->
+    <section class="commlog osg-log" :class="{ 'commlog--closed osg-log--closed': !logOpen }">
+      <header class="commlog__head osg-log__head" @click="logOpen = !logOpen">
+        <span class="commlog__caret">{{ logOpen ? "▾" : "▸" }}</span>
+        <span class="commlog__title">测控通信日志</span>
+        <span class="commlog__chan" :class="{ 'commlog__chan--off': !logChannelReady }">
           {{ logChannelReady ? "socket · osgi / operation-log" : "socket 未接入" }}
         </span>
-        <span v-if="problemCount" class="mon__badge">{{ problemCount }} 异常</span>
-        <span class="mon__count">{{ logs.length }} 条</span>
-        <div class="mon__spacer"></div>
+        <span v-if="problemCount" class="commlog__badge">{{ problemCount }} 异常</span>
+        <span class="commlog__count">{{ logs.length }} 条</span>
+        <div class="commlog__spacer"></div>
         <button
           type="button"
-          class="mon__act osg-log__act"
-          :class="{ 'mon__act--on osg-log__act--on': logOnlyProblem }"
+          class="commlog__act osg-log__act"
+          :class="{ 'commlog__act--on osg-log__act--on': logOnlyProblem }"
           @click.stop="logOnlyProblem = !logOnlyProblem"
         >
           仅异常
         </button>
-        <button type="button" class="mon__act osg-log__act" @click.stop="clearLogs">清空</button>
+        <button type="button" class="commlog__act osg-log__act" @click.stop="clearLogs">清空</button>
       </header>
 
-      <div v-show="logOpen" ref="logBox" class="mon__body">
-        <p v-if="!visibleLogs.length" class="mon__empty">
+      <div v-show="logOpen" ref="logBox" class="commlog__body">
+        <p v-if="!visibleLogs.length" class="commlog__empty">
           {{ logs.length ? "当前没有异常日志" : "等待操作…安装 / 卸载 / 启停 / 升级 的每一步都会实时出现在这里" }}
         </p>
         <div
           v-for="(item, index) in visibleLogs"
           :key="`${item.startedAt}-${index}`"
-          class="mon__row osg-log__row"
-          :class="`mon__row--${item.level.toLowerCase()}`"
+          class="commlog__row osg-log__row"
+          :class="`commlog__row--${item.level.toLowerCase()}`"
         >
-          <span class="mon__time">{{ logTime(item.startedAt) }}</span>
-          <span class="mon__stage" :class="`mon__stage--${item.status}`">
+          <span class="commlog__time">{{ logTime(item.startedAt) }}</span>
+          <span class="commlog__stage" :class="`commlog__stage--${item.status}`">
             {{ item.status === "start" ? "开始" : item.status === "failure" ? "失败" : "完成" }}
           </span>
-          <span class="mon__action">{{ actionText(item.action) }}</span>
-          <span class="mon__symbol">{{ item.symbolicName || "—" }}</span>
-          <span class="mon__msg">{{ item.message || "—" }}</span>
-          <span v-if="item.duration > 0" class="mon__dur">{{ item.duration }}ms</span>
+          <span class="commlog__action">{{ actionText(item.action) }}</span>
+          <span class="commlog__symbol">{{ item.symbolicName || "—" }}</span>
+          <span class="commlog__msg">{{ item.message || "—" }}</span>
+          <span v-if="item.duration > 0" class="commlog__dur">{{ item.duration }}ms</span>
         </div>
       </div>
     </section>
@@ -1104,330 +1113,364 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-/* ============ 机柜主体 ============ */
-.rk {
-  --rk-frame: var(--el-border-color);
-  --rk-panel: var(--el-bg-color);
-  --rk-well: var(--el-fill-color-lighter);
-  border: 1px solid var(--rk-frame);
-  border-radius: var(--el-radius-lg);
+/* ============ 发射控制台主体 ============ */
+.lc {
+  --lc-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Courier New", monospace;
+  --lc-frame: var(--border-default);
+  --lc-panel: var(--bg-container);
+  --lc-well: var(--bg-fill);
+  border: 1px solid var(--lc-frame);
+  border-radius: var(--radius-xl);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--el-color-primary) 4%, transparent), transparent 120px),
-    var(--rk-well);
-  box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.5);
+    radial-gradient(1100px 180px at 50% 0%, color-mix(in srgb, var(--brand-500) 7%, transparent), transparent 70%),
+    var(--lc-panel);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
-/* ---- 顶梁铭牌 ---- */
-.rk-top {
+/* ---- 塔架 mast：任务徽章 + 主操作 ---- */
+.lc-mast {
   display: flex;
   align-items: stretch;
   gap: 12px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--rk-frame);
-  background: color-mix(in srgb, var(--el-color-primary) 6%, var(--rk-panel));
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--lc-frame);
+  background: color-mix(in srgb, var(--brand-500) 5%, var(--lc-panel));
 }
 
-.rk-plate {
-  position: relative;
+.lc-badge {
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: baseline;
-  gap: 14px;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
-  padding: 6px 26px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-radius-sm);
-  background: var(--rk-well);
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--brand-500) 35%, var(--border-subtle));
+  border-radius: var(--radius-md);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--brand-500) 10%, var(--bg-elevated)), var(--bg-elevated));
 }
 
-.rk-plate__brand {
-  font-family: var(--el-font-family-mono);
+.lc-badge__mark {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--brand-gradient);
+}
+
+.lc-badge__mark i {
+  width: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text-inverse);
+  opacity: 0.9;
+}
+
+.lc-badge__mark i:nth-child(2) {
+  width: 10px;
+  opacity: 0.65;
+}
+
+.lc-badge__mark i:nth-child(3) {
+  width: 13px;
+  opacity: 0.4;
+}
+
+.lc-badge__txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lc-badge__brand {
+  font-family: var(--lc-mono);
   font-size: 15px;
   font-weight: 800;
-  letter-spacing: 0.18em;
-  color: var(--el-color-primary);
+  letter-spacing: 0.16em;
+  color: var(--brand-600);
 }
 
-.rk-plate__model {
-  font-family: var(--el-font-family-mono);
+.lc-badge__model {
+  font-family: var(--lc-mono);
   font-size: 10px;
-  letter-spacing: 0.22em;
-  color: var(--el-text-color-placeholder);
+  letter-spacing: 0.2em;
+  color: var(--text-tertiary);
 }
 
-.rk-live {
+.lc-live {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin-left: auto;
   padding: 3px 10px;
-  border: 1px solid var(--el-color-success);
+  border: 1px solid var(--status-success);
   border-radius: 9999px;
-  font-family: var(--el-font-family-mono);
+  font-family: var(--lc-mono);
   font-size: 10px;
   letter-spacing: 0.08em;
-  color: var(--el-color-success);
+  color: var(--status-success);
 }
 
-.rk-live--off {
-  border-color: var(--el-color-warning);
-  color: var(--el-color-warning);
+.lc-live--off {
+  border-color: var(--status-warning);
+  color: var(--status-warning);
 }
 
-.rk-live__dot {
+.lc-live__dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-  animation: rk-blink 1.6s infinite;
+  animation: lc-blink 1.6s infinite;
 }
 
-@keyframes rk-blink {
+@keyframes lc-blink {
   50% {
     opacity: 0.25;
   }
 }
 
-.rk-plate__screw {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--el-border-color);
-  box-shadow: inset 0 0 0 1.5px var(--el-fill-color);
-}
-
-.rk-plate__screw.tl { left: 8px; top: 8px; }
-.rk-plate__screw.tr { right: 8px; top: 8px; }
-.rk-plate__screw.bl { left: 8px; bottom: 8px; }
-.rk-plate__screw.br { right: 8px; bottom: 8px; }
-
-.rk-top__acts {
+.lc-mast__acts {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-/* ---- 控制单元 ---- */
-.rk-ctrl {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--rk-frame);
-  background: var(--rk-panel);
-  display: flex;
-  flex-direction: column;
+/* ---- 遥测带：9 路任务读数 ---- */
+.lc-telemetry {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--lc-frame);
 }
 
-.rk-ctrl__row {
+.lc-tele {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--lc-well);
+  font-family: var(--lc-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.lc-tele__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lc-tele__val {
+  color: var(--brand-500);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---- 控制台：MASTER 电平塔 + 搜索 + 筛选 ---- */
+.lc-console {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--lc-frame);
+  background: var(--lc-panel);
 }
 
-.rk-ctrl__ttl {
-  font-family: var(--el-font-family-mono);
+.lc-tower {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lc-tower__ttl {
+  font-family: var(--lc-mono);
   font-size: 11px;
   letter-spacing: 0.22em;
   font-weight: 700;
-  color: var(--el-color-primary);
+  color: var(--brand-500);
 }
 
-.rk-mleds {
+.lc-tower__leds {
   display: flex;
-  gap: 3px;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--lc-well);
 }
 
-.rk-mleds i {
-  width: 7px;
-  height: 12px;
+.lc-tower__leds i {
+  width: 18px;
+  height: 4px;
   border-radius: 2px;
-  background: var(--el-fill-color);
+  background: var(--border-subtle);
 }
 
-.rk-mleds i.on {
-  background: var(--el-color-success);
-  animation: rk-fw-pulse 1.2s ease-out;
+.lc-tower__leds i.on {
+  background: var(--status-success);
+  animation: lc-pulse 1.2s var(--ease-out);
 }
 
-@keyframes rk-fw-pulse {
+@keyframes lc-pulse {
   0% {
-    box-shadow: 0 0 8px var(--el-color-success);
+    box-shadow: 0 0 8px var(--status-success);
   }
   100% {
-    box-shadow: 0 0 0 var(--el-color-success);
+    box-shadow: 0 0 0 var(--status-success);
   }
 }
 
-.rk-ctrl__meta {
-  font-family: var(--el-font-family-mono);
+.lc-console__meta {
+  font-family: var(--lc-mono);
   font-size: 10px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
-.rk-ctrl__search {
+.lc-console__search {
   margin-left: auto;
   width: 240px;
 }
 
-.rk-seg {
+.lc-seg {
   display: inline-flex;
   padding: 2px;
-  border: 1px solid var(--el-border-color);
+  border: 1px solid var(--border-default);
   border-radius: 14px;
-  background: var(--el-fill-color-light);
+  background: var(--bg-fill);
 }
 
-.rk-seg__btn {
+.lc-seg__btn {
   height: 26px;
   padding: 0 11px;
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
 }
 
-.rk-seg__btn:hover {
-  color: var(--el-color-primary);
+.lc-seg__btn:hover {
+  color: var(--brand-500);
 }
 
-.rk-seg__btn--on {
-  background: var(--el-bg-color);
-  color: var(--el-color-primary);
+.lc-seg__btn--on {
+  background: var(--bg-container);
+  color: var(--brand-500);
   font-weight: 600;
-  box-shadow: var(--el-box-shadow-lighter);
+  box-shadow: var(--shadow-sm);
 }
 
-.rk-silk {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px 16px;
-  padding: 6px 10px;
-  border: 1px dashed var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm);
-  background: var(--rk-well);
-}
-
-.rk-silk__item {
-  font-family: var(--el-font-family-mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: var(--el-text-color-secondary);
-  white-space: nowrap;
-}
-
-.rk-silk__item b {
-  color: var(--el-color-primary);
-  font-weight: 700;
-}
-
-/* ---- 柜体 ---- */
-.rk-body {
+/* ---- 发射场：工位阵 + 地面站 ---- */
+.lc-main {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) 224px 26px;
+  grid-template-columns: minmax(0, 1fr) 240px;
   align-items: stretch;
 }
 
-.rk-rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 0;
-  background: color-mix(in srgb, var(--el-text-color-placeholder) 8%, var(--rk-well));
-  border-right: 1px solid var(--rk-frame);
-}
-
-.rk-rail--r {
-  border-right: 0;
-  border-left: 1px solid var(--rk-frame);
-}
-
-.rk-rail i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
-}
-
-/* ---- 模块墙 ---- */
-.rk-bay {
-  display: flex;
-  flex-direction: column;
-  padding: 12px;
-  gap: 8px;
+.lc-floor {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 10px;
+  padding: 14px;
   min-width: 0;
 }
 
-.rk-bay--empty {
-  min-height: 120px;
+.lc-floor--empty {
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.mod {
-  --mod-color: var(--el-text-color-placeholder);
+/* ---- 发射工位（每个 bundle 一座） ---- */
+.pad {
+  --pad: var(--pulse-offline);
+  position: relative;
   display: flex;
-  align-items: stretch;
   gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-radius-md);
-  background: var(--rk-panel);
-  box-shadow: 0 2px 0 0 var(--el-border-color-lighter), var(--el-box-shadow-lighter);
-  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+  padding: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
-.mod:hover {
-  border-color: var(--el-color-primary-light-5);
+.pad:hover {
+  border-color: color-mix(in srgb, var(--pad) 55%, var(--border-default));
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
-.mod--hl {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 0 2px var(--el-color-primary-light-5), var(--el-box-shadow-light);
+.pad--hl {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-500) 25%, transparent), var(--shadow-md);
 }
 
-.mod--active { --mod-color: var(--el-color-success); }
-.mod--resolved { --mod-color: var(--el-color-primary); }
-.mod--installed { --mod-color: var(--el-color-info); }
-.mod--starting { --mod-color: var(--el-color-warning); }
-.mod--stopping { --mod-color: var(--el-color-primary-light); }
-.mod--uninstalled { --mod-color: var(--el-color-danger); }
+.pad--active { --pad: var(--status-success); }
+.pad--starting { --pad: var(--status-warning); }
+.pad--resolved { --pad: var(--brand-500); }
+.pad--stopping { --pad: var(--brand-400); }
+.pad--installed { --pad: var(--metric-net); }
+.pad--uninstalled { --pad: var(--status-error); }
 
-.mod__lamp {
+.pad::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--pad);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--pad) 60%, transparent);
+}
+
+.pad__id {
   flex: none;
-  width: 58px;
+  width: 74px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-right: 1px dashed var(--el-border-color-lighter);
+  align-items: flex-start;
+  gap: 6px;
   padding-right: 10px;
+  border-right: 1px dashed var(--border-default);
 }
 
-.mod__pwr {
-  width: 12px;
-  height: 12px;
+.pad__beacon {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--mod-color);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--mod-color) 65%, transparent);
+  background: var(--pad);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--pad) 70%, transparent);
 }
 
-.mod__slot {
-  font-family: var(--el-font-family-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: var(--el-text-color-placeholder);
+.pad__no {
+  font-family: var(--lc-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
 }
 
-.mod__face {
+.pad__bid {
+  font-family: var(--lc-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.pad__body {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -1436,49 +1479,90 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-.mod__name {
+.pad__name {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
   overflow: hidden;
 }
 
-.mod__ver {
+.pad__ver {
   flex: none;
   padding: 1px 6px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xs);
-  background: var(--el-fill-color-light);
-  font-family: var(--el-font-family-mono);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-fill);
+  font-family: var(--lc-mono);
   font-size: 10px;
   font-weight: 400;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
-.mod__bid {
-  flex: none;
-  font-family: var(--el-font-family-mono);
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--el-text-color-placeholder);
-}
-
-.mod__ops {
+.pad__phase {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
 }
 
-.mod__sysnote {
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
+.pad__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--lc-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
 }
 
-.mod__meter {
+.pad__step i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: var(--bg-container);
+}
+
+.pad__step--done {
+  color: var(--text-primary);
+}
+
+.pad__step--done i {
+  border-color: var(--pad);
+  background: var(--pad);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--pad) 55%, transparent);
+}
+
+.pad__abort {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--brand-400) 15%, transparent);
+  color: var(--brand-400);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.pad__abort--bad {
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+  color: var(--status-error);
+}
+
+.pad__ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pad__sysnote {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.pad__meter {
   flex: none;
   display: flex;
   flex-direction: column;
@@ -1486,49 +1570,49 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 6px;
   padding-left: 10px;
-  border-left: 1px dashed var(--el-border-color-lighter);
+  border-left: 1px dashed var(--border-default);
 }
 
-.mod__ladder {
+.pad__ladder {
   display: flex;
   flex-direction: column-reverse;
   gap: 2px;
 }
 
-.mod__ladder i {
-  width: 22px;
+.pad__ladder i {
+  width: 20px;
   height: 5px;
   border-radius: 2px;
-  background: var(--el-fill-color);
+  background: var(--bg-fill);
   transition: background 0.2s;
 }
 
-.mod__ladder i.on {
-  background: var(--mod-color);
+.pad__ladder i.on {
+  background: var(--brand-400);
 }
 
-.mod__ladder i.hot {
-  background: var(--el-color-warning);
+.pad__ladder i.hot {
+  background: var(--status-warning);
 }
 
-.mod__ladder i.max {
-  background: var(--el-color-danger);
+.pad__ladder i.max {
+  background: var(--status-success);
 }
 
-.mod__level {
-  font-family: var(--el-font-family-mono);
+.pad__lvl {
+  font-family: var(--lc-mono);
   font-size: 9px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
-.mod__level b {
-  color: var(--el-color-primary);
+.pad__lvl b {
+  color: var(--brand-500);
 }
 
-/* ---- PATCH 面板 ---- */
-.rk-patch {
-  border-left: 1px solid var(--rk-frame);
-  background: color-mix(in srgb, var(--el-color-primary) 4%, var(--rk-well));
+/* ---- 地面站：服务注册表 ---- */
+.lc-ground {
+  border-left: 1px solid var(--lc-frame);
+  background: color-mix(in srgb, var(--brand-500) 3%, var(--lc-well));
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -1536,524 +1620,528 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-.rk-patch__h {
+.lc-ground__h {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-family: var(--el-font-family-mono);
+  font-family: var(--lc-mono);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.2em;
-  color: var(--el-color-primary);
+  letter-spacing: 0.18em;
+  color: var(--brand-500);
 }
 
-.rk-patch__h span {
+.lc-ground__h span {
   font-size: 10px;
   font-weight: 400;
   letter-spacing: 0.02em;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
-.rk-jacks {
+.lc-jacks {
   display: flex;
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
-  max-height: 320px;
+  max-height: 340px;
 }
 
-.rk-jack {
+.lc-jack {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr);
   grid-template-rows: auto auto;
   column-gap: 8px;
   align-items: center;
   padding: 6px 8px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm);
-  background: var(--rk-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-container);
 }
 
-.rk-jack__hole {
+.lc-jack__dish {
   grid-row: 1 / span 2;
   width: 16px;
   height: 16px;
-  border: 2px solid var(--el-color-success);
+  border: 2px solid var(--status-success);
   border-radius: 50%;
-  background: var(--el-fill-color);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--el-color-success) 55%, transparent);
+  background: var(--bg-fill);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--status-success) 55%, transparent);
 }
 
-.rk-jack__nm {
-  font-family: var(--el-font-family-mono);
+.lc-jack__nm {
+  font-family: var(--lc-mono);
   font-size: 10px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.rk-jack__pid {
-  font-family: var(--el-font-family-mono);
+.lc-jack__pid {
+  font-family: var(--lc-mono);
   font-size: 9px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.rk-patch__empty {
+.lc-ground__empty {
   margin: 0;
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
-/* ---- 柜底：磁带机 + 载荷读数 ---- */
-.rk-base {
+/* ---- 测控带：信标 + 波形 + 载荷帧 ---- */
+.lc-comm {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  border-top: 1px solid var(--rk-frame);
-  background: var(--rk-panel);
+  padding: 10px 16px;
+  border-top: 1px solid var(--lc-frame);
+  background: var(--lc-panel);
 }
 
-.rk-reel {
+.lc-reel {
   width: 38px;
   height: 38px;
   flex: none;
   border-radius: 50%;
-  border: 3px solid var(--el-border-color);
+  border: 3px solid var(--border-default);
   position: relative;
 }
 
-.rk-reel::before {
+.lc-reel::before {
   content: "";
   position: absolute;
   inset: 10px;
   border-radius: 50%;
-  border: 2px dashed var(--el-text-color-secondary);
+  border: 2px dashed var(--text-tertiary);
 }
 
-.rk-reel.spinning {
-  animation: rk-spin 3.6s linear infinite;
+.lc-reel.spinning {
+  animation: lc-spin 3.6s linear infinite;
 }
 
-@keyframes rk-spin {
+@keyframes lc-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.rk-tape {
+.lc-tape {
   flex: 1;
   min-width: 0;
   height: 46px;
   padding: 4px 6px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm);
-  background: var(--rk-well);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--lc-well);
   overflow: hidden;
   display: flex;
   flex-direction: column-reverse;
   gap: 2px;
 }
 
-.rk-tape__tick {
-  font-family: var(--el-font-family-mono);
+.lc-tape__tick {
+  font-family: var(--lc-mono);
   font-size: 9px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.rk-tape__tick--idle {
-  color: var(--el-text-color-placeholder);
+.lc-tape__tick--idle {
+  color: var(--text-tertiary);
 }
 
-.rk-frame {
+.lc-frame {
   flex: none;
   max-width: 380px;
   padding: 6px 8px;
-  border: 1px dashed var(--el-border-color-lighter);
-  border-radius: var(--el-radius-sm);
-  background: var(--rk-well);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--lc-well);
   overflow: hidden;
 }
 
-.rk-frame code {
+.lc-frame code {
   display: block;
-  font-family: var(--el-font-family-mono);
+  font-family: var(--lc-mono);
   font-size: 9px;
   line-height: 1.5;
-  color: var(--el-color-primary);
+  color: var(--brand-500);
   word-break: break-all;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.rk-frame code.rk-frame--idle {
-  color: var(--el-text-color-placeholder);
+.lc-frame code.lc-frame--idle {
+  color: var(--text-tertiary);
 }
 
 /* ---- 空态 ---- */
-.rk-empty {
+.lc-empty {
+  grid-column: 1 / -1;
   padding: 24px 16px;
   text-align: center;
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
-.rk-empty p {
+.lc-empty p {
   margin: 4px 0;
 }
 
-.rk-empty__hint {
+.lc-empty__hint {
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
-.rk-empty__hint code {
+.lc-empty__hint code {
   padding: 0 4px;
-  border-radius: var(--el-radius-sm);
-  background: var(--el-fill-color-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-fill);
 }
 
-/* ============ 文件仓抽屉 ============ */
-.drawer {
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-lg);
-  background: var(--el-bg-color);
+/* ============ 总装车间（jar 文件仓抽屉） ============ */
+.hangar {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-container);
   overflow: hidden;
 }
 
-.drawer__grip {
+.hangar--open {
+  border-color: color-mix(in srgb, var(--brand-500) 40%, var(--border-default));
+}
+
+.hangar__grip {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   padding: 10px 14px;
   border: 0;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  background: color-mix(in srgb, var(--el-text-color-placeholder) 5%, var(--el-bg-color));
+  border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--brand-500) 4%, var(--bg-container));
   cursor: pointer;
   user-select: none;
 }
 
-.drawer__grip__lines {
+.hangar__grip__lines {
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
-.drawer__grip__lines i {
+.hangar__grip__lines i {
   width: 26px;
   height: 2px;
   border-radius: 2px;
-  background: var(--el-border-color);
+  background: var(--border-default);
 }
 
-.drawer__grip__ttl {
+.hangar__grip__ttl {
   font-size: 13px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
-.drawer__grip__ttl b {
-  color: var(--el-color-primary);
+.hangar__grip__ttl b {
+  color: var(--brand-500);
 }
 
-.drawer__grip__caret {
+.hangar__grip__caret {
   margin-left: auto;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
-.drawer__body {
+.hangar__body {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 12px 14px;
 }
 
-.drawer__tools {
+.hangar__tools {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.drawer__seg {
+.hangar__seg {
   display: inline-flex;
   padding: 2px;
-  border: 1px solid var(--el-border-color);
+  border: 1px solid var(--border-default);
   border-radius: 14px;
-  background: var(--el-fill-color-light);
+  background: var(--bg-fill);
 }
 
-.drawer__seg__btn {
+.hangar__seg__btn {
   height: 24px;
   padding: 0 10px;
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
 }
 
-.drawer__seg__btn:hover {
-  color: var(--el-color-primary);
+.hangar__seg__btn:hover {
+  color: var(--brand-500);
 }
 
-.drawer__seg__btn--on {
-  background: var(--el-bg-color);
-  color: var(--el-color-primary);
+.hangar__seg__btn--on {
+  background: var(--bg-container);
+  color: var(--brand-500);
   font-weight: 600;
-  box-shadow: var(--el-box-shadow-lighter);
+  box-shadow: var(--shadow-sm);
 }
 
-.drawer__auto {
+.hangar__auto {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
-.drawer__list {
+.hangar__list {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.drawer__list--empty {
+.hangar__list--empty {
   min-height: 48px;
 }
 
-.jar {
+.veh {
   position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: var(--el-radius-md);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.jar:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: var(--el-box-shadow-light);
+.veh:hover {
+  border-color: var(--brand-300);
+  box-shadow: var(--shadow-md);
 }
 
-.jar__bar {
+.veh__bar {
   align-self: stretch;
   width: 3px;
   flex: none;
   margin: 2px 0;
   border-radius: 2px;
-  background: var(--el-text-color-placeholder);
+  background: var(--pulse-offline);
 }
 
-.jar--on .jar__bar {
-  background: var(--el-color-success);
+.veh--on .veh__bar {
+  background: var(--status-success);
 }
 
-.jar__body {
+.veh__body {
   min-width: 0;
   flex: 1;
 }
 
-.jar__name {
+.veh__name {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--el-font-family-mono);
+  font-family: var(--lc-mono);
   font-size: 13px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.jar__size {
+.veh__size {
   flex: none;
   padding: 1px 6px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: var(--el-radius-xs);
-  background: var(--el-fill-color-light);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-fill);
   font-size: 11px;
   font-weight: 400;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
-.jar__meta {
+.veh__meta {
   display: flex;
   gap: 10px;
   margin-top: 2px;
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
-.jar__time {
-  font-family: var(--el-font-family-mono);
+.veh__time {
+  font-family: var(--lc-mono);
 }
 
-.jar__ops {
+.veh__ops {
   display: flex;
   gap: 4px;
   flex: none;
 }
 
-.drawer__dock {
+.hangar__dock {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   min-height: 52px;
-  border: 1.5px dashed var(--el-border-color);
-  border-radius: var(--el-radius-lg);
+  border: 1.5px dashed var(--border-default);
+  border-radius: var(--radius-lg);
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
-.drawer__dock:hover {
-  border-color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+.hangar__dock:hover {
+  border-color: var(--brand-500);
+  background: color-mix(in srgb, var(--brand-500) 6%, transparent);
+  color: var(--brand-500);
 }
 
-.drawer__dock__plus {
+.hangar__dock__plus {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 20px;
   height: 20px;
   flex: none;
-  border-radius: var(--el-radius-sm);
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--brand-500) 10%, transparent);
+  color: var(--brand-500);
   font-size: 15px;
   line-height: 1;
 }
 
-.drawer__dock:hover .drawer__dock__plus {
-  background: var(--el-color-primary);
-  color: var(--el-button-text-color);
+.hangar__dock:hover .hangar__dock__plus {
+  background: var(--brand-500);
+  color: var(--text-inverse);
 }
 
-.drawer__dock small {
+.hangar__dock small {
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
-.drawer__dock:hover small {
-  color: var(--el-color-primary);
+.hangar__dock:hover small {
+  color: var(--brand-500);
 }
 
-/* ============ 实时日志（机架显示屏） ============ */
-.mon {
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-radius-lg);
-  background: var(--el-bg-color);
+/* ============ 测控通信日志 ============ */
+.commlog {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-container);
   overflow: hidden;
 }
 
-.mon__head {
+.commlog__head {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--border-subtle);
   cursor: pointer;
   user-select: none;
 }
 
-.mon--closed .mon__head {
+.commlog--closed .commlog__head {
   border-bottom: 0;
 }
 
-.mon__caret {
+.commlog__caret {
   width: 10px;
   font-size: 10px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
-.mon__title {
+.commlog__title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
-.mon__chan {
-  font-family: var(--el-font-family-mono);
+.commlog__chan {
+  font-family: var(--lc-mono);
   font-size: 11px;
-  color: var(--el-color-success);
+  color: var(--status-success);
 }
 
-.mon__chan--off {
-  color: var(--el-color-warning);
+.commlog__chan--off {
+  color: var(--status-warning);
 }
 
-.mon__badge {
+.commlog__badge {
   padding: 1px 6px;
   border-radius: 8px;
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--status-error) 10%, transparent);
+  color: var(--status-error);
   font-size: 11px;
 }
 
-.mon__count {
+.commlog__count {
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
-.mon__spacer {
+.commlog__spacer {
   flex: 1;
 }
 
-.mon__act {
+.commlog__act {
   height: 22px;
   padding: 0 8px;
-  border: 1px solid var(--el-border-color);
+  border: 1px solid var(--border-default);
   border-radius: 11px;
   background: transparent;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
   font-size: 11px;
   cursor: pointer;
 }
 
-.mon__act:hover,
-.mon__act--on {
-  border-color: var(--el-color-primary);
-  color: var(--el-color-primary);
+.commlog__act:hover,
+.commlog__act--on {
+  border-color: var(--brand-500);
+  color: var(--brand-500);
 }
 
-.mon__body {
+.commlog__body {
   max-height: 240px;
   overflow-y: auto;
   padding: 6px 0;
-  font-family: var(--el-font-family-mono);
+  font-family: var(--lc-mono);
   font-size: 12px;
 }
 
-.mon__empty {
+.commlog__empty {
   margin: 10px 14px;
-  font-family: var(--el-font-family);
   font-size: 12px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
-.mon__row {
+.commlog__row {
   display: flex;
   align-items: baseline;
   gap: 10px;
@@ -2061,135 +2149,143 @@ onBeforeUnmount(() => {
   line-height: 1.5;
 }
 
-.mon__row:hover {
-  background: var(--el-fill-color-light);
+.commlog__row:hover {
+  background: var(--bg-hover);
 }
 
-.mon__row--error {
-  background: var(--el-color-danger-light-9);
+.commlog__row--error {
+  background: color-mix(in srgb, var(--status-error) 8%, transparent);
 }
 
-.mon__row--warn {
-  background: var(--el-color-warning-light-9);
+.commlog__row--warn {
+  background: color-mix(in srgb, var(--status-warning) 8%, transparent);
 }
 
-.mon__time {
+.commlog__time {
   flex: none;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
 }
 
-.mon__stage {
+.commlog__stage {
   flex: none;
   width: 30px;
-  font-family: var(--el-font-family);
   font-size: 11px;
-  color: var(--el-text-color-secondary);
+  color: var(--text-secondary);
 }
 
-.mon__stage--start {
-  color: var(--el-color-info);
+.commlog__stage--start {
+  color: var(--metric-net);
 }
 
-.mon__stage--success {
-  color: var(--el-color-success);
+.commlog__stage--success {
+  color: var(--status-success);
 }
 
-.mon__stage--failure {
-  color: var(--el-color-danger);
+.commlog__stage--failure {
+  color: var(--status-error);
 }
 
-.mon__action {
+.commlog__action {
   flex: none;
   min-width: 48px;
-  color: var(--el-text-color-primary);
+  color: var(--text-primary);
 }
 
-.mon__symbol {
+.commlog__symbol {
   flex: none;
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--el-color-primary);
+  color: var(--brand-500);
 }
 
-.mon__msg {
+.commlog__msg {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--el-text-color-regular);
+  color: var(--text-secondary);
 }
 
-.mon__dur {
+.commlog__dur {
   flex: none;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-tertiary);
+}
+
+/* ============ 暗色微调 ============ */
+.dark .lc {
+  background:
+    radial-gradient(1100px 180px at 50% 0%, color-mix(in srgb, var(--brand-500) 12%, transparent), transparent 70%),
+    var(--lc-panel);
+  box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.7);
+}
+
+.dark .lc-badge__brand {
+  color: var(--brand-300);
+}
+
+.dark .pad,
+.dark .veh,
+.dark .lc-jack {
+  background: color-mix(in srgb, var(--brand-500) 4%, var(--bg-container));
 }
 
 /* ============ 响应式 ============ */
 @media (max-width: 1180px) {
-  .rk-body {
-    grid-template-columns: 20px minmax(0, 1fr) 20px;
+  .lc-main {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .rk-patch {
-    grid-column: 1 / -1;
+  .lc-ground {
     border-left: 0;
-    border-top: 1px solid var(--rk-frame);
+    border-top: 1px solid var(--lc-frame);
   }
 
-  .rk-jacks {
+  .lc-jacks {
     flex-direction: row;
     flex-wrap: wrap;
     max-height: none;
   }
 
-  .rk-jack {
+  .lc-jack {
     width: 200px;
   }
 
-  .rk-frame {
+  .lc-frame {
     display: none;
   }
 }
 
 @media (max-width: 640px) {
-  .rk-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .rk-rail {
-    display: none;
-  }
-
-  .rk-ctrl__search {
+  .lc-console__search {
     width: 100%;
     margin-left: 0;
   }
 
-  .mod {
+  .pad {
     flex-wrap: wrap;
   }
 
-  .mod__meter {
+  .pad__meter {
     flex-direction: row;
     width: 100%;
     padding-left: 0;
     border-left: 0;
-    border-top: 1px dashed var(--el-border-color-lighter);
+    border-top: 1px dashed var(--border-default);
     padding-top: 8px;
   }
 
-  .mod__ladder {
+  .pad__ladder {
     flex-direction: row;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rk-live__dot,
-  .rk-mleds i.on,
-  .rk-reel.spinning {
+  .lc-live__dot,
+  .lc-tower__leds i.on,
+  .lc-reel.spinning {
     animation: none !important;
   }
 }
