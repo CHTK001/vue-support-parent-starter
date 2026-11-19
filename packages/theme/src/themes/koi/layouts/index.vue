@@ -10,12 +10,34 @@
     <ReStationMessage v-if="messageFloating" mode="floating" />
     <component :is="ThemeConfig" />
     <KoiLockScreen />
+    <!-- 水印篡改告警横幅：持续可见入口，点击展开最近事件明细（toast 只弹一次/60s） -->
+    <div v-if="wmTampers.length" class="wm-alert">
+      <button class="wm-alert__bar" type="button" @click="wmAlertOpen = !wmAlertOpen">
+        <span class="wm-alert__icon">!</span>
+        <span class="wm-alert__text">水印防护触发 {{ wmTampers.length }} 次，均已自动恢复</span>
+        <span class="wm-alert__arrow" :class="{ open: wmAlertOpen }">▾</span>
+      </button>
+      <div v-if="wmAlertOpen" class="wm-alert__detail">
+        <div v-for="(ev, i) in wmTampers" :key="i" class="wm-alert__row">
+          <span>{{ wmTimeLabel(ev.time) }}</span>
+          <span>{{ wmTypeLabel(ev.type) }}</span>
+        </div>
+        <div v-if="wmTampers.length >= 20" class="wm-alert__more">仅保留最近 20 条</div>
+        <button
+          class="wm-alert__close"
+          type="button"
+          @click.stop="wmAlertOpen = false; wmTampers = [];"
+        >
+          知道了，隐藏
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts" name="layout">
 import { useScreenStore } from "@repo/utils";
-import { computed, onMounted, type Component } from "vue";
+import { computed, onMounted, ref, type Component } from "vue";
 // 全局主题配置
 import useGlobalStore from "@repo/pinia/modules/global";
 import { useUserStore } from "@repo/pinia";
@@ -43,9 +65,29 @@ registerWatermarkTraceProvider(() => {
 });
 
 // 水印篡改告警消费方：控制台留痕 + 低频用户提示（自愈逻辑在 core 防篡改层）。
+// 横幅提供持续可见入口（toast 每 60s 至多一次，横幅隐藏前一直在），可展开最近事件明细。
 // 审计上报待后端安全事件接口就绪后在此补充，前端不虚构契约。
 let lastTamperToastAt = 0;
-window.addEventListener(WATERMARK_TAMPER_EVENT, () => {
+/** 最近篡改事件（保留 20 条，供横幅展开明细） */
+const wmTampers = ref<{ type: string; time: number }[]>([]);
+const wmAlertOpen = ref(false);
+const WM_TYPE_LABEL: Record<string, string> = {
+  remove: "水印节点被删除",
+  style: "水印样式被篡改",
+  integrity: "完整性巡检异常"
+};
+function wmTypeLabel(type: string): string {
+  return WM_TYPE_LABEL[type] ?? type;
+}
+function wmTimeLabel(time: number): string {
+  return new Date(time).toLocaleTimeString("zh-CN", { hour12: false });
+}
+window.addEventListener(WATERMARK_TAMPER_EVENT, (event) => {
+  const detail = (event as CustomEvent<{ type?: string; time?: number }>).detail ?? {};
+  wmTampers.value = [
+    ...wmTampers.value.slice(-19),
+    { type: String(detail.type ?? "integrity"), time: Number(detail.time ?? Date.now()) }
+  ];
   const count = getWatermarkTamperCount();
   console.warn(`[watermark] 检测到水印被篡改，已自动恢复（累计 ${count} 次）`);
   const now = Date.now();
@@ -98,4 +140,95 @@ const messageFloating = computed(() => getConfig().message?.position === "right-
 const { isMobile } = useScreenStore();
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+/* 水印篡改告警横幅：右下角持续入口；z-index 低于消息/弹层，不挡交互 */
+.wm-alert {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1500;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  border: 1px solid var(--el-color-warning-light-7);
+  border-radius: 10px;
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-light);
+  overflow: hidden;
+}
+.wm-alert__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: var(--el-color-warning-light-9);
+  color: var(--el-text-color-primary);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+.wm-alert__bar:hover .wm-alert__text {
+  color: var(--el-color-warning);
+}
+.wm-alert__icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--el-color-warning);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+.wm-alert__text {
+  flex: 1;
+  min-width: 0;
+}
+.wm-alert__arrow {
+  flex: none;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  transition: transform 0.2s;
+}
+.wm-alert__arrow.open {
+  transform: rotate(180deg);
+}
+.wm-alert__detail {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 12px 8px;
+}
+.wm-alert__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 11px;
+  color: var(--el-text-color-regular);
+  border-bottom: 1px dashed var(--el-border-color-lighter);
+}
+.wm-alert__row:last-of-type {
+  border-bottom: none;
+}
+.wm-alert__more {
+  padding: 2px 0;
+  font-size: 10px;
+  color: var(--el-text-color-placeholder);
+}
+.wm-alert__close {
+  margin-top: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+}
+.wm-alert__close:hover {
+  color: var(--el-color-primary);
+}
+</style>

@@ -11,7 +11,7 @@
  *   - 每个模块有英雄区 + 紧凑实时预览；支持全局搜索、就绪度概览；
  *   - 分区内拖拽 = 交换两条配置的 sort 值并批量更新。
  */
-import { buildWatermarkTile, message } from "@repo/core";
+import { buildWatermarkTile, WATERMARK_IMAGE_READY_EVENT, message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from "vue";
 import {
   Cellphone,
@@ -316,6 +316,14 @@ const agreementBody = computed(() => {
 
 /* ================== 水印实时预览（config 分组） ================== */
 
+/* 图片水印异步就绪：buildWatermarkTile 内部加载图片，onload 后派发事件刷新预览 */
+const wmImageTick = ref(0);
+const onWmImageReady = () => {
+  wmImageTick.value++;
+};
+onMounted(() => window.addEventListener(WATERMARK_IMAGE_READY_EVENT, onWmImageReady));
+onBeforeUnmount(() => window.removeEventListener(WATERMARK_IMAGE_READY_EVENT, onWmImageReady));
+
 /**
  * 水印配置行取值：兼容 `WatermarkOpen` 与旧式 `config:WatermarkOpen` 两种 code。
  * 旧式行在后端只填 sysSettingName（sysSettingCode 为空，见 /v2/setting/default 实测），
@@ -331,6 +339,8 @@ function wmValue(token: string): string {
 }
 const watermarkPreview = computed(() => {
   if (activeGroup.value !== "config") return null;
+  // 图片水印就绪事件（WATERMARK_IMAGE_READY_EVENT）会递增该计数，触发本 computed 重算
+  if (wmImageTick.value < 0) return null;
   const text = wmValue("WatermarkText").trim();
   const alphaRaw = Number.parseFloat(wmValue("WatermarkAlpha"));
   const alpha = Number.isFinite(alphaRaw) ? alphaRaw : 0.25;
@@ -338,22 +348,38 @@ const watermarkPreview = computed(() => {
   const fontSizeRaw = Number.parseFloat(wmValue("WatermarkFontSize"));
   const gapXRaw = Number.parseFloat(wmValue("WatermarkGapX"));
   const gapYRaw = Number.parseFloat(wmValue("WatermarkGapY"));
-  const tile = buildWatermarkTile({
+  const imageWidthRaw = Number.parseFloat(wmValue("WatermarkImageWidth"));
+  const base = {
     text: text || "ADMIN",
     color: wmValue("WatermarkColor") || "#409EFF",
     darkColor: wmValue("WatermarkDarkColor") || undefined,
+    image: wmValue("WatermarkImage") || undefined,
+    imageDark: wmValue("WatermarkImageDark") || undefined,
+    imageWidth: Number.isFinite(imageWidthRaw) ? imageWidthRaw : 120,
     alpha,
     rotate: Number.isFinite(rotateRaw) ? rotateRaw : -20,
     fontSize: Number.isFinite(fontSizeRaw) ? fontSizeRaw : 20,
     fontFamily: wmValue("WatermarkFontFamily") || "宋体",
     gapX: Number.isFinite(gapXRaw) ? gapXRaw : 60,
-    gapY: Number.isFinite(gapYRaw) ? gapYRaw : 50,
-    dark: false
-  });
+    gapY: Number.isFinite(gapYRaw) ? gapYRaw : 50
+  };
+  // 亮色 / 暗色并列预览：同一套瓦片算法，暗色侧验证 darkColor / imageDark
+  const tile = buildWatermarkTile({ ...base, dark: false });
+  const tileDark = buildWatermarkTile({ ...base, dark: true });
   const hints: string[] = [];
-  if (!text) hints.push("未配置文案，按默认 ADMIN 预览");
+  if (!text && !base.image) hints.push("未配置文案，按默认 ADMIN 预览");
   if (alpha === 0) hints.push("透明度为 0：正式开启后水印不可见");
-  return { ...tile, enabled: wmValue("WatermarkOpen") === "true", hints };
+  if (tile.imagePending || tileDark.imagePending) hints.push("图片水印加载中…");
+  if (base.image && !base.imageDark) hints.push("暗色主题沿用亮色图片");
+  if (!base.image && !base.darkColor) hints.push("未配置暗色配色，暗色沿用亮色");
+  return {
+    ...tile,
+    darkData: tileDark.data,
+    darkW: tileDark.w,
+    darkH: tileDark.h,
+    enabled: wmValue("WatermarkOpen") === "true",
+    hints
+  };
 });
 
 /* ================== 全局搜索 ================== */
@@ -776,16 +802,29 @@ onBeforeUnmount(destroySortables);
                 <div class="h-doc__body">{{ agreementBody.slice(0, 120) || "暂无正文" }}…</div>
               </div>
 
-              <!-- 水印实时预览（config 分组）：与真实渲染同一套瓦片算法，改值即变 -->
+              <!-- 水印实时预览（config 分组）：与真实渲染同一套瓦片算法，改值即变；亮色/暗色并列 -->
               <div v-if="activeGroup === 'config' && watermarkPreview" class="h-wm">
-                <div
-                  class="h-wm__screen"
-                  :style="{
-                    backgroundImage: `url(${watermarkPreview.data})`,
-                    backgroundSize: `${watermarkPreview.w}px ${watermarkPreview.h}px`
-                  }"
-                >
-                  <span v-if="!watermarkPreview.enabled" class="h-wm__off">未启用</span>
+                <div class="h-wm__screens">
+                  <div
+                    class="h-wm__screen"
+                    :style="{
+                      backgroundImage: `url(${watermarkPreview.data})`,
+                      backgroundSize: `${watermarkPreview.w}px ${watermarkPreview.h}px`
+                    }"
+                  >
+                    <span v-if="!watermarkPreview.enabled" class="h-wm__off">未启用</span>
+                    <span class="h-wm__tag">亮色</span>
+                  </div>
+                  <div
+                    class="h-wm__screen h-wm__screen--dark"
+                    :style="{
+                      backgroundImage: `url(${watermarkPreview.darkData})`,
+                      backgroundSize: `${watermarkPreview.darkW}px ${watermarkPreview.darkH}px`
+                    }"
+                  >
+                    <span v-if="!watermarkPreview.enabled" class="h-wm__off">未启用</span>
+                    <span class="h-wm__tag">暗色</span>
+                  </div>
                 </div>
                 <div class="h-wm__meta">
                   <i :class="{ on: watermarkPreview.enabled }">
@@ -1416,18 +1455,41 @@ onBeforeUnmount(destroySortables);
   color: var(--el-text-color-secondary);
 }
 
-/* 水印迷你预览 */
+/* 水印迷你预览（亮色 / 暗色并列） */
 .h-wm {
   margin-top: 10px;
 }
+.h-wm__screens {
+  display: flex;
+  gap: 8px;
+}
 .h-wm__screen {
   position: relative;
+  flex: 1;
+  min-width: 0;
   height: 86px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 10px;
   background-color: var(--el-bg-color);
   background-repeat: repeat;
   overflow: hidden;
+}
+.h-wm__screen--dark {
+  background-color: #1d1e1f;
+}
+.h-wm__tag {
+  position: absolute;
+  top: 5px;
+  right: 7px;
+  font-size: 9px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: var(--el-text-color-secondary);
+  background: color-mix(in srgb, var(--el-bg-color) 78%, transparent);
+}
+.h-wm__screen--dark .h-wm__tag {
+  background: color-mix(in srgb, #1d1e1f 78%, transparent);
 }
 .h-wm__off {
   position: absolute;

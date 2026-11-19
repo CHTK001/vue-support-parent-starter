@@ -55,6 +55,7 @@ export {
   applyGlobalWatermark,
   registerWatermarkTraceProvider,
   WATERMARK_TAMPER_EVENT,
+  WATERMARK_IMAGE_READY_EVENT,
   buildWatermarkLines,
   buildWatermarkTile,
   getWatermarkTamperCount,

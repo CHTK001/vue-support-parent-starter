@@ -542,6 +542,10 @@ const LEGACY_NAME_TO_PATH: Record<string, string> = {
   WatermarkGapY: "security.watermark.gapY",
   WatermarkZIndex: "security.watermark.zIndex",
   WatermarkTrace: "security.watermark.trace",
+  // 图片水印（security.watermark.image / imageDark / imageWidth）
+  WatermarkImage: "security.watermark.image",
+  WatermarkImageDark: "security.watermark.imageDark",
+  WatermarkImageWidth: "security.watermark.imageWidth",
 };
 
 /**

@@ -24,7 +24,8 @@
 
   全局配置（security.watermark）支持字段：
     enable / text(string|string[] 多行) / color / darkColor(暗色主题色) / alpha /
-    rotate / fontSize / fontFamily / gapX / gapY / zIndex / trace
+    rotate / fontSize / fontFamily / gapX / gapY / zIndex / trace /
+    image(图片水印地址，配置后优先于文字) / imageDark(暗色主题图片) / imageWidth(显示宽度，等比缩放)
   trace 为 true（默认）时，全局水印自动拼入当前登录用户（需宿主注册
   registerWatermarkTraceProvider）与生成时间，便于截图溯源。
   篡改检测：防删除/防样式篡改触发时派发 window 事件 WATERMARK_TAMPER_EVENT
@@ -65,6 +66,9 @@ export function registerWatermarkTraceProvider(fn: WatermarkTraceProvider | null
 /** 篡改事件名：window.dispatchEvent(CustomEvent)，detail = { type, time } */
 export const WATERMARK_TAMPER_EVENT = "watermark:tamper";
 
+/** 图片水印异步就绪事件：ensureImage 加载完图片后派发，设置页预览等监听后刷新瓦片 */
+export const WATERMARK_IMAGE_READY_EVENT = "watermark:image-ready";
+
 // 默认水印配置
 const defaultConfig = {
   text: "ADMIN",
@@ -76,7 +80,8 @@ const defaultConfig = {
   rotate: -20, // 水印旋转角度
   gapX: 60, // 瓦片横向间距（px）
   gapY: 50, // 瓦片纵向间距（px）
-  trace: true // 全局水印拼入溯源信息（用户/时间）
+  trace: true, // 全局水印拼入溯源信息（用户/时间）
+  imageWidth: 120 // 图片水印显示宽度（px），高度等比缩放
 };
 
 /** 运行时水印配置（defaultConfig + 全局配置 + 指令绑定值合并） */
@@ -94,6 +99,14 @@ interface WatermarkRuntimeConfig {
   gapX: number;
   gapY: number;
   trace: boolean;
+  /** 原始透明度（图片水印用 globalAlpha；文字水印已烘焙进 textColor） */
+  alpha?: number;
+  /** 图片水印地址（配置后优先于文字） */
+  image?: string;
+  /** 暗色主题图片水印地址（缺省沿用 image） */
+  imageDark?: string;
+  /** 图片水印显示宽度（px），高度等比缩放 */
+  imageWidth?: number;
 }
 
 /** 从全局配置读取水印配置（security.Watermark* 或 app.yaml watermark） */
@@ -123,6 +136,12 @@ function readGlobalWatermarkConfig(): Partial<WatermarkRuntimeConfig> {
   if (typeof wm.gapY === "number" && wm.gapY >= 0) result.gapY = wm.gapY;
   if (typeof wm.zIndex === "number") result.zIndex = wm.zIndex;
   if (typeof wm.trace === "boolean") result.trace = wm.trace;
+  // 原始透明度（图片水印用 globalAlpha；文字水印在 withAlpha 中烘焙进颜色）
+  if (typeof wm.alpha === "number") result.alpha = wm.alpha;
+  // 图片水印（配置后优先于文字；暗色可单独指定 imageDark）
+  if (typeof wm.image === "string" && wm.image) result.image = wm.image;
+  if (typeof wm.imageDark === "string" && wm.imageDark) result.imageDark = wm.imageDark;
+  if (typeof wm.imageWidth === "number" && wm.imageWidth > 0) result.imageWidth = wm.imageWidth;
   return result;
 }
 
@@ -165,6 +184,19 @@ function parseFontSize(font: string): number {
   return m ? parseFloat(m[1]) : 20;
 }
 
+/** 瓦片缓存：同参数（文案/字体/颜色/角度/间距/dpr）不重复绘制 canvas。
+ * 主题切换、配置热重载、字体就绪、篡改重建都会触发重绘，缓存后重复路径零绘制开销；
+ * 溯源时间行精确到分钟并参与缓存键，跨分钟自然产生新瓦片。 */
+const tileCache = new Map<string, { data: string; w: number; h: number }>();
+
+/** 缓存上限：水印瓦片按配置维度生成，数量有限；超限整体清空即可 */
+const TILE_CACHE_MAX = 80;
+
+function storeTileCache(key: string, tile: { data: string; w: number; h: number }): void {
+  if (tileCache.size >= TILE_CACHE_MAX) tileCache.clear();
+  tileCache.set(key, tile);
+}
+
 /**
  * 生成水印瓦片：按文本内容测量尺寸（长文案不截断），按 devicePixelRatio 放大
  * 保证高分屏清晰，旋转后按外接矩形铺排使 repeat 拼接无缝。
@@ -177,6 +209,11 @@ const generateWatermarkCanvas = (
   gapX: number = 60,
   gapY: number = 50
 ): { data: string; w: number; h: number } => {
+  // 缓存键：dpr + 字体 + 颜色 + 角度 + 间距 + 全部文案行（含分钟级时间行）
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  const cacheKey = `txt|${dpr}|${font}|${textColor}|${rotate}|${gapX}|${gapY}|${lines.join("\u0001")}`;
+  const cached = tileCache.get(cacheKey);
+  if (cached) return cached;
   const measure = document.createElement("canvas").getContext("2d") as CanvasRenderingContext2D;
   measure.font = font;
   const fontSize = parseFontSize(font);
@@ -189,8 +226,7 @@ const generateWatermarkCanvas = (
   const sin = Math.abs(Math.sin(rad));
   const tileW = Math.ceil(textWidth * cos + textHeight * sin) + gapX * 2;
   const tileH = Math.ceil(textWidth * sin + textHeight * cos) + gapY * 2;
-  // 按 dpr 放大画布，背景尺寸仍按 CSS 像素声明，高分屏不发虚
-  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  // 按 dpr 放大画布，背景尺寸仍按 CSS 像素声明，高分屏不发虚（dpr 已在缓存键处取过）
   const canvasW = Math.max(1, Math.round(tileW * dpr));
   const canvasH = Math.max(1, Math.round(tileH * dpr));
   const can: HTMLCanvasElement = document.createElement("canvas");
@@ -209,8 +245,87 @@ const generateWatermarkCanvas = (
   lines.forEach((line, i) => {
     cans.fillText(line, 0, startY + i * (fontSize + lineGap));
   });
-  return { data: can.toDataURL("image/png"), w: tileW, h: tileH };
+  const tile = { data: can.toDataURL("image/png"), w: tileW, h: tileH };
+  storeTileCache(cacheKey, tile);
+  return tile;
 };
+
+/**
+ * 生成图片水印瓦片：图片按 imageWidth 等比缩放、套用透明度（globalAlpha），
+ * 旋转后按外接矩形铺排使 repeat 拼接无缝；同样按 dpr 放大保证高分屏清晰。
+ */
+function generateImageWatermarkCanvas(
+  img: HTMLImageElement,
+  imageWidth: number,
+  alpha: number | undefined,
+  rotate: number,
+  gapX: number,
+  gapY: number
+): { data: string; w: number; h: number } {
+  const naturalW = img.naturalWidth > 0 ? img.naturalWidth : 1;
+  const naturalH = img.naturalHeight > 0 ? img.naturalHeight : 1;
+  const scale = imageWidth > 0 ? imageWidth / naturalW : 1;
+  const drawW = Math.max(1, Math.round(naturalW * scale));
+  const drawH = Math.max(1, Math.round(naturalH * scale));
+  const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+  const cacheKey = `img|${img.src}|${drawW}x${drawH}|${alpha ?? 1}|${rotate}|${gapX}|${gapY}|${dpr}`;
+  const cached = tileCache.get(cacheKey);
+  if (cached) return cached;
+  const rad = (rotate * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  const tileW = Math.ceil(drawW * cos + drawH * sin) + gapX * 2;
+  const tileH = Math.ceil(drawW * sin + drawH * cos) + gapY * 2;
+  const canvasW = Math.max(1, Math.round(tileW * dpr));
+  const canvasH = Math.max(1, Math.round(tileH * dpr));
+  const can: HTMLCanvasElement = document.createElement("canvas");
+  can.width = canvasW;
+  can.height = canvasH;
+  const ctx = can.getContext("2d") as CanvasRenderingContext2D;
+  ctx.scale(canvasW / tileW, canvasH / tileH);
+  ctx.translate(tileW / 2, tileH / 2);
+  ctx.rotate(rad);
+  ctx.globalAlpha = typeof alpha === "number" ? Math.min(1, Math.max(0, alpha)) : 1;
+  ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+  const tile = { data: can.toDataURL("image/png"), w: tileW, h: tileH };
+  storeTileCache(cacheKey, tile);
+  return tile;
+}
+
+/** 图片水印加载缓存：url → 加载完成的 Image；失败单独标记，避免坏图反复请求 */
+const watermarkImages = new Map<string, HTMLImageElement>();
+const watermarkImagesFailed = new Set<string>();
+
+/**
+ * 确保图片水印就绪：已加载返回 Image；未加载启动加载并返回 null，
+ * onload 后派发 WATERMARK_IMAGE_READY_EVENT（预览方监听刷新）并回调 onReady
+ * （全局/局部水印据此整体重绘）。
+ */
+function ensureImage(url: string, onReady: () => void): HTMLImageElement | null {
+  const cached = watermarkImages.get(url);
+  if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
+  if (watermarkImagesFailed.has(url)) return null;
+  const img = new Image();
+  img.onload = () => {
+    if (img.naturalWidth > 0) {
+      watermarkImages.set(url, img);
+    } else {
+      watermarkImagesFailed.add(url);
+    }
+    try {
+      window.dispatchEvent(new CustomEvent(WATERMARK_IMAGE_READY_EVENT, { detail: { url } }));
+    } catch {
+      // 事件派发失败不影响水印
+    }
+    onReady();
+  };
+  img.onerror = () => {
+    // 加载失败：回退文字水印，标记后不再反复请求
+    watermarkImagesFailed.add(url);
+  };
+  img.src = url;
+  return null;
+}
 
 /** 组装水印文案行：配置文案（支持多行）+ 溯源信息（当前用户/时间） */
 export function buildWatermarkLines(config: Partial<WatermarkRuntimeConfig>): string[] {
@@ -493,7 +608,7 @@ export function setupWatermark(): void {
  */
 export function buildWatermarkTile(
   config: Partial<WatermarkConfig> & { dark?: boolean }
-): { data: string; w: number; h: number; lines: string[] } {
+): { data: string; w: number; h: number; lines: string[]; imagePending?: boolean } {
   const alpha = typeof config.alpha === "number" ? config.alpha : undefined;
   const runtime: Partial<WatermarkRuntimeConfig> = {};
   const color = withAlpha(config.color, alpha);
@@ -507,9 +622,41 @@ export function buildWatermarkTile(
   if (typeof config.gapX === "number" && config.gapX >= 0) runtime.gapX = config.gapX;
   if (typeof config.gapY === "number" && config.gapY >= 0) runtime.gapY = config.gapY;
   runtime.text = config.text;
+  if (typeof config.alpha === "number") runtime.alpha = config.alpha;
+  // 图片水印字段透传（配置后优先于文字；暗色可单独指定 imageDark）
+  if (typeof config.image === "string" && config.image) runtime.image = config.image;
+  if (typeof config.imageDark === "string" && config.imageDark) runtime.imageDark = config.imageDark;
+  if (typeof config.imageWidth === "number" && config.imageWidth > 0) runtime.imageWidth = config.imageWidth;
   const merged = { ...defaultConfig, ...runtime } as WatermarkRuntimeConfig;
   const lines = buildWatermarkLines({ ...merged, trace: false });
-  const textColor = config.dark === true && merged.darkColor ? merged.darkColor : merged.textColor;
+  const dark = config.dark === true;
+  const imageUrl = (dark && merged.imageDark ? merged.imageDark : merged.image) || "";
+  if (imageUrl) {
+    // 预览用图片：就绪返回图片瓦片；未就绪先回退文字瓦片并标记 imagePending，
+    // ensureImage 的 onload 内已派发 WATERMARK_IMAGE_READY_EVENT，无需重复回调
+    const image = ensureImage(imageUrl, () => {});
+    if (image) {
+      const tile = generateImageWatermarkCanvas(
+        image,
+        merged.imageWidth ?? 120,
+        merged.alpha,
+        merged.rotate,
+        merged.gapX,
+        merged.gapY
+      );
+      return { ...tile, lines, imagePending: false };
+    }
+    const fallback = generateWatermarkCanvas(
+      lines,
+      resolveFont(merged),
+      dark && merged.darkColor ? merged.darkColor : merged.textColor,
+      merged.rotate,
+      merged.gapX,
+      merged.gapY
+    );
+    return { ...fallback, lines, imagePending: true };
+  }
+  const textColor = dark && merged.darkColor ? merged.darkColor : merged.textColor;
   const { data, w, h } = generateWatermarkCanvas(
     lines,
     resolveFont(merged),
@@ -518,7 +665,7 @@ export function buildWatermarkTile(
     merged.gapX,
     merged.gapY
   );
-  return { data, w, h, lines };
+  return { data, w, h, lines, imagePending: false };
 }
 
 // 创建全局水印
@@ -533,18 +680,35 @@ const createGlobalWatermark = (config: WatermarkRuntimeConfig) => {
   container.setAttribute("role", "presentation");
   container.setAttribute("aria-hidden", "true");
 
-  // 文案：配置文案 + 溯源信息；颜色：暗色主题优先用 darkColor
-  const lines = buildWatermarkLines(config);
+  // 暗色主题优先用 imageDark / darkColor
   const dark = document.documentElement.classList.contains("dark");
-  const textColor = dark && config.darkColor ? config.darkColor : config.textColor;
-  const { data, w, h } = generateWatermarkCanvas(
-    lines,
-    resolveFont(config),
-    textColor,
-    config.rotate,
-    config.gapX,
-    config.gapY
-  );
+  const imageUrl = (dark && config.imageDark ? config.imageDark : config.image) || "";
+  // 图片水印优先：未就绪先按文字瓦片渲染，onload 回调整体重绘
+  const image = imageUrl ? ensureImage(imageUrl, () => applyGlobalWatermark()) : null;
+  let tile: { data: string; w: number; h: number };
+  if (image) {
+    tile = generateImageWatermarkCanvas(
+      image,
+      config.imageWidth ?? 120,
+      config.alpha,
+      config.rotate,
+      config.gapX,
+      config.gapY
+    );
+  } else {
+    // 文案：配置文案 + 溯源信息；颜色：暗色主题优先用 darkColor
+    const lines = buildWatermarkLines(config);
+    const textColor = dark && config.darkColor ? config.darkColor : config.textColor;
+    tile = generateWatermarkCanvas(
+      lines,
+      resolveFont(config),
+      textColor,
+      config.rotate,
+      config.gapX,
+      config.gapY
+    );
+  }
+  const { data, w, h } = tile;
 
   // 设置全局水印样式：关键属性带 !important，防止页面注入样式表（含 CSSOM insertRule）压过内联样式
   const styles: Record<string, string> = {
@@ -608,24 +772,38 @@ const createLocalWatermark = (el: HTMLElement, config: WatermarkRuntimeConfig) =
   el.style.backgroundImage = "";
   el.style.backgroundSize = "";
 
-  // 应用新水印（与全局同款瓦片算法；透传旋转角度与间距）
-  const lines: string[] = Array.isArray(config.text)
-    ? config.text.filter((s): s is string => Boolean(s))
-    : [config.text].filter((s): s is string => Boolean(s));
-  // 暗色主题优先用 darkColor（与全局水印同规则）
+  // 暗色主题优先用 imageDark / darkColor（与全局水印同规则）
   const dark = document.documentElement.classList.contains("dark");
-  const textColor = dark && config.darkColor ? config.darkColor : config.textColor;
-  const { data, w, h } = generateWatermarkCanvas(
-    lines.length ? lines : [defaultConfig.text],
-    resolveFont(config),
-    textColor,
-    config.rotate,
-    config.gapX,
-    config.gapY
-  );
-  el.style.backgroundImage = `url(${data})`;
+  const imageUrl = (dark && config.imageDark ? config.imageDark : config.image) || "";
+  const image = imageUrl ? ensureImage(imageUrl, () => createLocalWatermark(el, config)) : null;
+  let tile: { data: string; w: number; h: number };
+  if (image) {
+    tile = generateImageWatermarkCanvas(
+      image,
+      config.imageWidth ?? 120,
+      config.alpha,
+      config.rotate,
+      config.gapX,
+      config.gapY
+    );
+  } else {
+    // 应用新水印（与全局同款瓦片算法；透传旋转角度与间距）
+    const lines: string[] = Array.isArray(config.text)
+      ? config.text.filter((s): s is string => Boolean(s))
+      : [config.text].filter((s): s is string => Boolean(s));
+    const textColor = dark && config.darkColor ? config.darkColor : config.textColor;
+    tile = generateWatermarkCanvas(
+      lines.length ? lines : [defaultConfig.text],
+      resolveFont(config),
+      textColor,
+      config.rotate,
+      config.gapX,
+      config.gapY
+    );
+  }
+  el.style.backgroundImage = `url(${tile.data})`;
   el.style.backgroundRepeat = "repeat";
-  el.style.backgroundSize = `${w}px ${h}px`;
+  el.style.backgroundSize = `${tile.w}px ${tile.h}px`;
   el.style.zIndex = String(config.zIndex);
   // 登记供主题切换重绘（Map 去重：同一元素 mounted/updated 只保留最新配置）
   localWatermarks.set(el, config);

@@ -125,6 +125,12 @@ export interface WatermarkConfig {
   color?: string;
   /** 暗色主题水印颜色（缺省沿用 color） */
   darkColor?: string;
+  /** 图片水印地址（配置后优先于文字水印；亮色主题） */
+  image?: string;
+  /** 暗色主题图片水印地址（缺省沿用 image） */
+  imageDark?: string;
+  /** 图片水印显示宽度（px），高度等比缩放，缺省 120 */
+  imageWidth?: number;
   /** 透明度 0~1 */
   alpha?: number;
   /** 旋转角度（度） */
