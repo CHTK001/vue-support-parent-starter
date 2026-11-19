@@ -88,7 +88,7 @@
           class="rail__list"
           @scroll.passive="onRailScroll"
         >
-          <div v-if="msgLoading && !msgItems.length" class="rail__state">加载中…</div>
+          <ReSkeleton v-if="msgLoading && !msgItems.length" loading animated :rows="5" class="rail__skeleton" />
           <div v-else-if="!filteredItems.length" class="rail__state">
             {{ keyword || typeFilter !== 'all' ? '没有匹配的模板' : '暂无模板，点右上角「新建模板」创建' }}
             <span v-if="docError" class="rail__warn">文档模板服务暂不可用</span>
@@ -346,11 +346,11 @@
         </div>
 
         <!-- 空态 -->
-        <div v-else class="detail__empty">
-          <span class="detail__empty-mark"><ReIcon name="Files" :size="24" /></span>
-          <b>还没有选择模板</b>
-          <span>从左侧选择模板查看预览；点右上角「新建模板」创建</span>
-        </div>
+        <ReEmpty
+          v-else
+          class="detail__empty"
+          description="还没有选择模板：从左侧选择模板查看预览；点右上角「新建模板」创建"
+        />
       </section>
     </div>
 
@@ -425,6 +425,8 @@ import ReIcon from '@repo/ui/re-icon'
 import ReInput from '@repo/ui/re-input'
 import ReSelect from '@repo/ui/re-select'
 import ReRailSplit, { readRailWidth } from '@repo/ui/re-rail-split'
+import ReEmpty from '@repo/ui/re-empty'
+import ReSkeleton from '@repo/ui/re-skeleton'
 
 import { templateApi } from '../api/templateApi'
 import {
@@ -1213,6 +1215,10 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
 }
 
+.rail__skeleton {
+  padding: 12px;
+}
+
 .rail__warn {
   display: block;
   margin-top: 6px;
@@ -1428,29 +1434,7 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   padding: 40px 20px;
-  color: var(--text-tertiary);
-
-  b {
-    font-size: 14px;
-    color: var(--text-secondary);
-  }
-
-  span {
-    font-size: 12px;
-  }
-}
-
-.detail__empty-mark {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 4px;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  border-radius: 12px;
 }
 
 .detail__fill {

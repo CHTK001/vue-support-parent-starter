@@ -37,7 +37,7 @@
 
     <!-- ==================== 只读画布 ==================== -->
     <div class="preview__body" ref="bodyRef">
-      <div class="preview__empty" v-if="loading">加载中...</div>
+      <ReSkeleton v-if="loading" loading animated :rows="8" class="preview__skeleton" />
       <div
         v-else-if="!tpl"
         class="preview__empty preview__empty--error"
@@ -84,6 +84,7 @@ import ReIcon from '@repo/ui/re-icon'
 import ReButton from '@repo/ui/re-button'
 import ReInput from '@repo/ui/re-input'
 import ReDrawer from '@repo/ui/re-drawer'
+import ReSkeleton from '@repo/ui/re-skeleton'
 import RePrinter from '../components/RePrinter.vue'
 
 import { templateApi } from '../api/templateApi'
@@ -370,6 +371,10 @@ onBeforeUnmount(() => {
 
 .preview__empty--error {
   color: var(--el-text-color-regular);
+}
+
+.preview__skeleton {
+  padding: 24px;
 }
 
 .preview__canvas {

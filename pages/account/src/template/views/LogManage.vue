@@ -22,11 +22,7 @@
       v-model:page-size="query.size"
     >
       <template #empty>
-        <div class="page-empty">
-          <span class="page-empty__icon"><ReIcon name="Document" :size="22" /></span>
-          <span class="page-empty__title">还没有调用记录</span>
-          <span class="page-empty__desc">模板被预览 / 设计 / 打印时会产生记录，包含调用参数、时间和来源 IP。</span>
-        </div>
+        <ReEmpty description="还没有调用记录：模板被预览 / 设计 / 打印时会产生记录，包含调用参数、时间和来源 IP。" />
       </template>
       <template #actionType="{ row }">
         <el-tag :type="actionTypeMeta(row.action).type" size="small" effect="plain" round>
@@ -52,7 +48,7 @@ import { ElMessage } from 'element-plus'
 
 import ReTable from '@repo/ui/re-table'
 import ReTime from '@repo/ui/re-time'
-import ReIcon from '@repo/ui/re-icon'
+import ReEmpty from '@repo/ui/re-empty'
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from '@repo/ui/re-table'
 
 import { templateApi } from '../api/templateApi'
@@ -133,49 +129,6 @@ function handleReset(): void {
   height: 100%;
   background: var(--el-bg-color);
   overflow: hidden;
-}
-
-/* 操作日志空态：复用于 ReTable 的 `#empty` 插槽 */
-.page-empty {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  gap: 6px;
-  padding: 24px;
-
-  b {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--el-text-color-regular);
-  }
-
-  span {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
-}
-
-.page-empty__icon {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 4px;
-  color: var(--el-color-primary);
-  background: var(--el-color-primary-light-9);
-  border-radius: 12px;
-  opacity: 0.9;
-}
-
-.page-empty__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-regular);
-}
-
-.page-empty__desc {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
 }
 
 .mono {

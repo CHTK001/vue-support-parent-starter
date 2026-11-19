@@ -32,12 +32,15 @@ import {
   ArrowDown as ArrowDownIcon,
   ArrowRight as ArrowRightIcon,
   Link as LinkIcon,
+  Search as SearchIcon,
   ChatDotRound as ChatDotRoundIcon,
 } from '@element-plus/icons-vue'
 import { channelApi } from '../channelApi'
 import type {
   ChannelSummary,
   ChannelConnectionSummary,
+  ChannelHealthLogPoint,
+  ChannelHealthState,
   ChannelAccount,
   MagpieProvider,
   MagpieQuota,
@@ -251,6 +254,61 @@ const connState = (conn: ChannelConnectionSummary): 'valid' | 'stale' | 'unknown
   conn.status === 'valid' ? 'valid' : conn.status === 'expired' || conn.status === 'invalid' ? 'stale' : 'unknown'
 const connStateText = (conn: ChannelConnectionSummary): string =>
   ({ valid: '有效', stale: '待刷新', unknown: '未知' })[connState(conn)]
+
+// ---------- 健康探针徽标（只读展示） ----------
+// 状态机与调度在 AI 侧探针里，账号模块只转发最近一次结论；这里只负责把
+// 结论摆上屏：UNKNOWN/ONLINE/WARNING/DOWN/RATE_LIMITED → 样式键 + 人话。
+const healthStateInfo = (state?: string): { key: string; label: string } | null => {
+  if (!state) return null
+  return ({
+    ONLINE: { key: 'online', label: '在线' },
+    WARNING: { key: 'warning', label: '告警' },
+    DOWN: { key: 'down', label: '已下线' },
+    RATE_LIMITED: { key: 'ratelimited', label: '限流中' },
+    UNKNOWN: { key: 'unknown', label: '未探测' },
+  } as Record<string, { key: string; label: string }>)[state] ?? null
+}
+const healthLabel = (state?: string): string => healthStateInfo(state)?.label ?? ''
+const healthKey = (state?: string): string => healthStateInfo(state)?.key ?? ''
+/** 健康徽标悬浮提示：结论 · 上次探针时间 · 延迟 · 连续失败 · 人工熔断 · 错误摘要 */
+const healthTip = (conn: ChannelConnectionSummary): string => {
+  const parts: string[] = []
+  const info = healthStateInfo(conn.healthState)
+  if (info) parts.push(`探针结论：${info.label}`)
+  if (conn.healthLastProbeAt) parts.push(`上次探测 ${shortTime(conn.healthLastProbeAt)}`)
+  if (typeof conn.healthLatency === 'number' && conn.healthLatency >= 0) parts.push(`延迟 ${conn.healthLatency}ms`)
+  if (conn.healthConsecutiveFailures) parts.push(`连续失败 ${conn.healthConsecutiveFailures} 次`)
+  if (conn.healthCircuitState === 'OPEN') parts.push('已人工熔断（不参与路由）')
+  else if (conn.healthCircuitState === 'CLOSED') parts.push('已人工放行（无视探针结论）')
+  if (conn.healthError) parts.push(conn.healthError)
+  return parts.join(' · ')
+}
+/** 渠道级健康聚合：取全部账号里最差的状态；一个账号都没探测过就不显示 */
+const HEALTH_WORST_ORDER = ['DOWN', 'RATE_LIMITED', 'WARNING', 'UNKNOWN', 'ONLINE'] as const
+const channelHealth = (summary?: ChannelSummary): { key: string; label: string; hint: string } | null => {
+  const states = (summary?.connections ?? [])
+    .map((c) => c.healthState)
+    .filter((s): s is string => !!healthStateInfo(s))
+  if (!states.length) return null
+  const worst = HEALTH_WORST_ORDER.find((s) => states.includes(s)) ?? 'ONLINE'
+  const info = healthStateInfo(worst)!
+  const count = states.filter((s) => s === worst).length
+  const reasons: Record<string, string> = {
+    DOWN: '探针连续失败，这些账号已被路由剔除',
+    RATE_LIMITED: '触达上游限流（429），由计费/重试层处理',
+    WARNING: '探测偏慢或间歇失败',
+    UNKNOWN: '尚未完成首次探测',
+    ONLINE: '探针正常',
+  }
+  return {
+    key: info.key,
+    label: count > 1 ? `${info.label} ×${count}` : info.label,
+    hint: `健康探针：${info.label}${count > 1 ? `（${count} 个账号）` : ''} — ${reasons[worst] ?? ''}`,
+  }
+}
+const channelHealthLabel = (summary?: ChannelSummary): string => channelHealth(summary)?.label ?? ''
+const channelHealthKey = (summary?: ChannelSummary): string => channelHealth(summary)?.key ?? ''
+const channelHealthHint = (summary?: ChannelSummary): string => channelHealth(summary)?.hint ?? ''
 
 // ---------- 取数 ----------
 async function loadChannels() {
@@ -1871,11 +1929,57 @@ const MODEL_CARD_PAGE = 60
 /** 当前这一页画到第几个模型 */
 const modelLimit = ref<number>(MODEL_CARD_PAGE)
 
-/** 真正渲染的模型卡（前 {@link MODEL_CARD_PAGE} 个，或用户已展开） */
-const visibleModels = computed(() => sortedModels.value.slice(0, modelLimit.value))
+// ---------- 模型搜索 / 筛选 ----------
+/** 模型搜索关键字：匹配模型 ID 与别名（网关上游动辄数百个模型，先缩小范围再勾选） */
+const modelSearch = ref('')
+/** 价格筛选：all=全部 / free=免费 / paid=付费（口径与模型卡的「免费」标签一致） */
+const modelPriceFilter = ref<'all' | 'free' | 'paid'>('all')
+/** 任务类型筛选：all=全部，其余取值是模型卡能力标签的样式键（chat / image / …） */
+const modelTaskFilter = ref('all')
 
-/** 还有多少个模型没画（为 0 时不显示「展开全部」） */
-const modelHiddenCount = computed(() => Math.max(0, sortedModels.value.length - visibleModels.value.length))
+/** 当前渠道模型里实际出现过的任务类型（按模型卡同一套 modelTaskKey 归纳，保持口径一致） */
+const modelTaskOptions = computed(() => {
+  const ORDER = ['chat', 'image', 'video', 'model3d', 'vector', 'audio']
+  const LABELS: Record<string, string> = {
+    chat: '对话',
+    image: '图片',
+    video: '视频',
+    model3d: '3D',
+    vector: '向量/重排',
+    audio: '音频/语音',
+  }
+  const present = new Set<string>()
+  for (const m of detailSummary()?.models ?? []) present.add(modelTaskKey(m))
+  return ORDER.filter((k) => present.has(k)).map((k) => ({ value: k, label: LABELS[k] }))
+})
+
+/** 搜索 + 价格 + 任务类型三重筛选后的模型清单（visibleModels 在它之上再分页） */
+const filteredModels = computed(() => {
+  const kw = modelSearch.value.trim().toLowerCase()
+  return sortedModels.value.filter((m: any) => {
+    if (kw && !String(m?.model ?? '').toLowerCase().includes(kw) && !String(m?.alias ?? '').toLowerCase().includes(kw)) return false
+    if (modelPriceFilter.value === 'free' && !modelIsFree(m)) return false
+    if (modelPriceFilter.value === 'paid' && modelIsFree(m)) return false
+    if (modelTaskFilter.value !== 'all' && modelTaskKey(m) !== modelTaskFilter.value) return false
+    return true
+  })
+})
+
+/** 是否处于筛选状态（决定「无匹配」空态与收起按钮的口径） */
+const modelFilterActive = computed(
+  () => modelSearch.value.trim() !== '' || modelPriceFilter.value !== 'all' || modelTaskFilter.value !== 'all',
+)
+
+// 关键字 / 筛选一变，分页回到第一屏：避免上一个条件里「展开全部」的状态跨条件残留
+watch([modelSearch, modelPriceFilter, modelTaskFilter], () => {
+  modelLimit.value = MODEL_CARD_PAGE
+})
+
+/** 真正渲染的模型卡（筛选后的前 {@link MODEL_CARD_PAGE} 个，或用户已展开） */
+const visibleModels = computed(() => filteredModels.value.slice(0, modelLimit.value))
+
+/** 还有多少个（筛选后的）模型没画（为 0 时不显示「展开全部」） */
+const modelHiddenCount = computed(() => Math.max(0, filteredModels.value.length - modelLimit.value))
 
 // ---------- 渠道账号（/api/accounts，按 channelKey 归属） ----------
 /*
@@ -2850,6 +2954,469 @@ watch(
   },
   { immediate: true },
 )
+
+// ---------- 健康探针历史（只读） ----------
+// 探针每分钟把最新态写进 sys_account_channel_health（upsert 覆盖），同时同事务追加
+// 一行时序历史；这里经 /api/channels/health-history 读回，画延迟趋势与状态时间线。
+/** 健康历史时间窗选项 */
+const HEALTH_WINDOWS = [
+  { hours: 6, label: '6小时' },
+  { hours: 24, label: '24小时' },
+  { hours: 168, label: '7天' },
+]
+/** 健康页签可选的账号：只列真实连接——网关托管行没有可查的 connectionId */
+const healthConns = computed(() => displayConnections(detailSummary()).filter((conn) => !conn.hosted))
+const healthConnId = ref('')
+const healthWindow = ref(24)
+const healthLogs = ref<ChannelHealthLogPoint[]>([])
+const healthLoading = ref(false)
+
+/** 拉取选中账号在所选时间窗内的探针历史；选中账号失效时自动改选第一个 */
+async function loadHealthHistory() {
+  const conns = healthConns.value
+  if (!conns.length) {
+    healthLogs.value = []
+    return
+  }
+  if (!conns.some((conn) => conn.connectionId === healthConnId.value)) {
+    healthConnId.value = conns[0]!.connectionId
+  }
+  healthLoading.value = true
+  try {
+    healthLogs.value = await channelApi.healthHistory(healthConnId.value, healthWindow.value)
+  } catch {
+    // 健康历史是辅助信息：单路失败静默置空，页面按「暂无记录」渲染，不打断渠道页
+    healthLogs.value = []
+  } finally {
+    healthLoading.value = false
+  }
+}
+
+watch(detailTab, (tab) => {
+  if (tab === 'health') void loadHealthHistory()
+})
+watch([healthConnId, healthWindow], () => {
+  if (detailTab.value === 'health') void loadHealthHistory()
+})
+watch(
+  () => healthConns.value.map((conn) => conn.connectionId).join('|'),
+  () => {
+    if (detailTab.value === 'health') void loadHealthHistory()
+  },
+)
+
+/**
+ * 延迟趋势图（手绘 SVG）几何：x=时间、y=延迟。
+ *
+ * <p>有延迟的点连成折线；探测失败（下线/限流常无延迟）的点落到基线附近标红，
+ * 与底部状态色带互为印证。ReChart 面向拓扑/矩阵/桑基等视图，没有时间折线，
+ * 这里按「实现要最简」直接手绘。</p>
+ */
+const healthChart = computed(() => {
+  const W = 760
+  const H = 176
+  const padL = 44
+  const logs = healthLogs.value
+  const now = Date.now()
+  const from = now - healthWindow.value * 3600_000
+  const iw = W - padL - 12
+  const ih = H - 14 - 24
+  const x = (t: number) => padL + Math.max(0, Math.min(1, (t - from) / (now - from))) * iw
+  const lats = logs.map((l) => l.latencyMs).filter((v): v is number => typeof v === 'number' && v >= 0)
+  const maxLat = Math.max(10, ...lats) * 1.15
+  const y = (v: number) => 14 + (1 - v / maxLat) * ih
+  const pts = logs.filter((l) => typeof l.latencyMs === 'number' && l.latencyMs >= 0)
+  return {
+    W,
+    H,
+    padL,
+    path: pts.map((l, i) => `${i ? 'L' : 'M'}${x(l.createdAt).toFixed(1)},${y(l.latencyMs!).toFixed(1)}`).join(' '),
+    dots: pts.map((l) => ({ cx: x(l.createdAt), cy: y(l.latencyMs!), key: healthKey(l.state), t: l.createdAt, latency: l.latencyMs! })),
+    downs: logs
+      .filter((l) => !(typeof l.latencyMs === 'number' && l.latencyMs >= 0))
+      .map((l) => ({ cx: x(l.createdAt), t: l.createdAt })),
+    band: logs.map((l, i) => ({
+      key: healthKey(l.state) || 'unknown',
+      x: padL + (i * iw) / Math.max(logs.length, 1),
+      w: iw / Math.max(logs.length, 1),
+    })),
+    ticks: [0, maxLat / 2, maxLat].map((v) => ({ v: Math.round(v), y: y(v) })),
+    xlabels: [from, (from + now) / 2, now].map((t) => ({ t, x: x(t) })),
+  }
+})
+
+/** 汇总指标：样本数 / 在线率 / 平均与最大延迟 / 异常次数（下线 + 限流） */
+const healthStats = computed(() => {
+  const logs = healthLogs.value
+  const lats = logs.map((l) => l.latencyMs).filter((v): v is number => typeof v === 'number' && v >= 0)
+  return {
+    total: logs.length,
+    onlineRate: logs.length ? Math.round((logs.filter((l) => l.state === 'ONLINE').length / logs.length) * 100) : null,
+    down: logs.filter((l) => l.state === 'DOWN' || l.state === 'RATE_LIMITED').length,
+    avg: lats.length ? Math.round(lats.reduce((a, b) => a + b, 0) / lats.length) : null,
+    max: lats.length ? Math.max(...lats) : null,
+  }
+})
+
+/** 最近探针记录：最新在前，最多 30 条 */
+const healthRecent = computed(() => healthLogs.value.slice(-30).reverse())
+
+// ---------- 健康操作（仅管理员）：立即探活 / 全部探活 / 人工熔断 ----------
+// 探针与熔断是 AI 侧健康机的运维动作，端点早已存在（/v2/channels/**，
+// @Permission("admin")），页面只补操作入口，后端零改动。按钮统一用 isAdminUser
+// 包住：非管理员不渲染，绕过 UI 直发请求也会被后端 403。
+/** 正在单连探活的连接（connectionId → true），按钮转圈用 */
+const probingIds = ref<Record<string, boolean>>({})
+/** 全部探活进行中 */
+const probingAll = ref(false)
+
+/**
+ * 立即探活单个账号。
+ *
+ * <p>结论就地写回连接摘要（徽标立即变色），不整表重载——和改名同一口径：
+ * 用户正在看的模型开关、积分读数不该因为一次探针被重置。探完若正是健康页签
+ * 选中账号，顺带刷新它的历史与熔断位。</p>
+ */
+async function probeConnectionNow(conn: ChannelConnectionSummary) {
+  if (!isAdminUser.value || conn.hosted || !conn.connectionId) return
+  if (probingIds.value[conn.connectionId]) return
+  probingIds.value = { ...probingIds.value, [conn.connectionId]: true }
+  try {
+    const row = await channelApi.probeConnection(conn.connectionId)
+    const name = conn.label ?? conn.connectionId
+    const latency =
+      typeof row?.lastProbeLatency === 'number' && row.lastProbeLatency >= 0 ? `（${row.lastProbeLatency}ms）` : ''
+    if (row?.state === 'ONLINE') ElMessage.success(`「${name}」探活在线${latency}`)
+    else if (row?.state === 'WARNING') ElMessage.warning(`「${name}」探活告警${latency}`)
+    else if (row?.state === 'RATE_LIMITED') ElMessage.warning(`「${name}」触发上游限流，请稍后再试`)
+    else if (row?.state === 'DOWN') ElMessage.error(`「${name}」探活失败：${row?.lastProbeError || '连接不可用'}`)
+    else ElMessage.info(`「${name}」探针结论：${healthLabel(row?.state) || row?.state || '未知'}`)
+    conn.healthState = row?.state ?? conn.healthState
+    conn.healthLastProbeAt = row?.lastProbeAt ?? Date.now()
+    conn.healthLatency = row?.lastProbeLatency ?? null
+    conn.healthCircuitState = row?.circuitState ?? conn.healthCircuitState
+    if (healthConnId.value === conn.connectionId) {
+      if (detailTab.value === 'health') void loadHealthHistory()
+      void loadCircuit()
+    }
+  } catch (e: any) {
+    ElMessage.error('探活失败：' + (e?.message ?? e))
+  } finally {
+    const next = { ...probingIds.value }
+    delete next[conn.connectionId]
+    probingIds.value = next
+  }
+}
+
+/** 全部探活进度（done/total），按钮上显示 x/y */
+const probeProgress = ref({ done: 0, total: 0 })
+
+/**
+ * 全部探活：前端受控并发池（同时 4 路）逐个调单连探活接口。
+ *
+ * <p>不用后端的全局探活接口：连接多时后端同步逐个探测，一个长尾就拖住整批；
+ * 并发池把耗时压到约四分之一，进度 x/y 直接挂在按钮上，用户看得到还剩多少。
+ * 单连结论就地写回连接摘要（徽标即时变色），失败静默计数，最后汇总一条消息。</p>
+ */
+async function probeAllNow() {
+  if (!isAdminUser.value || probingAll.value) return
+  const conns = healthConns.value
+  if (!conns.length) return
+  probingAll.value = true
+  probeProgress.value = { done: 0, total: conns.length }
+  let failed = 0
+  const runOne = async (conn: ChannelConnectionSummary) => {
+    try {
+      const row = await channelApi.probeConnection(conn.connectionId)
+      conn.healthState = row?.state ?? conn.healthState
+      conn.healthLastProbeAt = row?.lastProbeAt ?? Date.now()
+      conn.healthLatency = row?.lastProbeLatency ?? null
+      conn.healthCircuitState = row?.circuitState ?? conn.healthCircuitState
+      if (!row?.state || row.state === 'DOWN' || row.state === 'RATE_LIMITED') failed += 1
+    } catch {
+      failed += 1
+    } finally {
+      probeProgress.value = { ...probeProgress.value, done: probeProgress.value.done + 1 }
+    }
+  }
+  try {
+    const POOL = 4
+    let cursor = 0
+    const workers = Array.from({ length: Math.min(POOL, conns.length) }, async () => {
+      while (cursor < conns.length) {
+        await runOne(conns[cursor++]!)
+      }
+    })
+    await Promise.all(workers)
+    ElMessage.success(
+      failed
+        ? `探活完成：${conns.length - failed} 个正常，${failed} 个异常`
+        : `已探活 ${conns.length} 个账号，全部正常`,
+    )
+    if (detailTab.value === 'health') {
+      if (healthMode.value === 'overview') void loadHealthOverview()
+      else {
+        void loadHealthHistory()
+        void loadCircuit()
+      }
+    }
+  } finally {
+    probingAll.value = false
+  }
+}
+
+/** 选中账号的最新健康行（含人工熔断位）；健康页签工具条据此渲染熔断开关 */
+const healthCircuitRow = ref<ChannelHealthState | null>(null)
+const circuitSaving = ref(false)
+
+/** 拉取选中账号的熔断状态；失败静默置空（非管理员 / 服务抖动时不渲染操作区即可） */
+async function loadCircuit() {
+  const id = healthConnId.value
+  if (!id || !isAdminUser.value) {
+    healthCircuitRow.value = null
+    return
+  }
+  try {
+    healthCircuitRow.value = await channelApi.getCircuit(id)
+  } catch {
+    healthCircuitRow.value = null
+  }
+}
+
+watch(
+  () => [detailTab.value, healthConnId.value] as const,
+  ([tab]) => {
+    if (tab === 'health') void loadCircuit()
+  },
+)
+
+/** 人工熔断位的人话（AUTO 为缺省值：后端老数据可能不回该字段） */
+const circuitLabel = (state?: string): string =>
+  ({ AUTO: '自动跟随探针', OPEN: '已人工熔断', CLOSED: '已人工放行' })[state ?? 'AUTO'] ?? (state || '自动跟随探针')
+
+/**
+ * 设定选中账号的人工熔断位。
+ *
+ * <p>OPEN / CLOSED 是覆盖探针结论的强操作：弹确认框并允许填原因（可留空）；
+ * 恢复 AUTO 不需要原因，直接执行。成功后就地同步连接摘要上的熔断徽标。</p>
+ */
+async function setConnectionCircuit(state: 'OPEN' | 'CLOSED' | 'AUTO') {
+  const conn = healthConns.value.find((c) => c.connectionId === healthConnId.value)
+  if (!conn || !isAdminUser.value || circuitSaving.value) return
+  let reason = ''
+  if (state !== 'AUTO') {
+    const name = conn.label ?? conn.connectionId
+    const tip = state === 'OPEN'
+      ? `熔断后「${name}」不再参与路由（即使探针在线）。原因可留空。`
+      : `放行后「${name}」无视探针结论继续路由（排障用）。原因可留空。`
+    try {
+      const { value } = await ElMessageBox.prompt(tip, state === 'OPEN' ? '人工熔断' : '人工放行', {
+        inputPlaceholder: '原因（可留空）',
+        confirmButtonText: state === 'OPEN' ? '确认熔断' : '确认放行',
+        cancelButtonText: '取消',
+        type: 'warning',
+      })
+      reason = String(value ?? '').trim()
+    } catch {
+      return
+    }
+  }
+  circuitSaving.value = true
+  try {
+    const row = await channelApi.setCircuit(conn.connectionId, state, reason || undefined)
+    healthCircuitRow.value = row
+    conn.healthCircuitState = row?.circuitState ?? state
+    ElMessage.success(
+      state === 'AUTO'
+        ? '已恢复自动跟随探针'
+        : state === 'OPEN'
+          ? '已人工熔断：该账号不再参与路由'
+          : '已人工放行：排障期间无视探针结论',
+    )
+  } catch (e: any) {
+    ElMessage.error('设置失败：' + (e?.message ?? e))
+  } finally {
+    circuitSaving.value = false
+  }
+}
+
+// ---------- 健康页签增强（P1/P2）：总览矩阵 / 自动刷新 / 账号卡筛选排序 ----------
+/** 视图模式：总览按连接一行看全渠道，详情看单个账号的趋势与记录 */
+const healthMode = ref<'overview' | 'detail'>('overview')
+
+/** 人工熔断三档（与后端契约一致）：AUTO 跟随探针 / OPEN 强制熔断 / CLOSED 强制放行 */
+const CIRCUIT_OPTIONS = [
+  { value: 'AUTO', label: '自动' },
+  { value: 'OPEN', label: '熔断' },
+  { value: 'CLOSED', label: '放行' },
+] as const
+
+/** 健康风险序：熔断 > 下线 > 限流 > 告警 > 未探测 > 在线（账号卡排序与总览矩阵共用） */
+function connRiskRank(conn: ChannelConnectionSummary): number {
+  if (conn.healthCircuitState === 'OPEN') return 0
+  return (
+    ({ DOWN: 1, RATE_LIMITED: 2, WARNING: 3, UNKNOWN: 4, ONLINE: 5 } as Record<string, number>)[
+      conn.healthState ?? 'UNKNOWN'
+    ] ?? 4
+  )
+}
+
+/** 总览矩阵数据：connectionId → 该连接在所选时间窗内的探针历史 */
+const healthOverviewLogs = ref<Record<string, ChannelHealthLogPoint[]>>({})
+const healthOverviewLoading = ref(false)
+
+/** 并发拉取全部账号的探针历史（4 路池）；单个失败按空处理，不拖垮整版 */
+async function loadHealthOverview() {
+  const conns = healthConns.value
+  if (!conns.length) {
+    healthOverviewLogs.value = {}
+    return
+  }
+  healthOverviewLoading.value = true
+  const next: Record<string, ChannelHealthLogPoint[]> = {}
+  let cursor = 0
+  const workers = Array.from({ length: Math.min(4, conns.length) }, async () => {
+    while (cursor < conns.length) {
+      const conn = conns[cursor++]!
+      try {
+        next[conn.connectionId] = await channelApi.healthHistory(conn.connectionId, healthWindow.value)
+      } catch {
+        next[conn.connectionId] = []
+      }
+    }
+  })
+  await Promise.all(workers)
+  healthOverviewLogs.value = next
+  healthOverviewLoading.value = false
+}
+
+/** 总览矩阵行：最新结论 + 在线率 + 均延迟 + 迷你趋势线，按风险序排列 */
+const healthOverviewRows = computed(() => {
+  const W = 120
+  const H = 28
+  return healthConns.value
+    .map((conn) => {
+      const logs = healthOverviewLogs.value[conn.connectionId] ?? []
+      const lats = logs.map((l) => l.latencyMs).filter((v): v is number => typeof v === 'number' && v >= 0)
+      const state = logs.length ? logs[logs.length - 1]!.state : conn.healthState ?? 'UNKNOWN'
+      // sparkline：延迟点降采样到 ≤40 个画一条迷你折线；不足 2 点画不出来，给「无样本」
+      const pts = logs.filter((l) => typeof l.latencyMs === 'number' && l.latencyMs >= 0)
+      const step = Math.max(1, Math.ceil(pts.length / 40))
+      const sampled = pts.filter((_, i) => i % step === 0)
+      const maxLat = Math.max(1, ...sampled.map((l) => l.latencyMs!))
+      const x = (i: number) => 2 + (sampled.length <= 1 ? 0 : (i / (sampled.length - 1)) * (W - 4))
+      const y = (v: number) => H - 3 - (v / maxLat) * (H - 6)
+      const path = sampled.map((l, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(l.latencyMs!).toFixed(1)}`).join(' ')
+      return {
+        conn,
+        state,
+        onlineRate: logs.length
+          ? Math.round((logs.filter((l) => l.state === 'ONLINE').length / logs.length) * 100)
+          : null,
+        avgLatency: lats.length ? Math.round(lats.reduce((a, b) => a + b, 0) / lats.length) : null,
+        spark: { path, w: W, h: H },
+      }
+    })
+    .sort((a, b) => connRiskRank(a.conn) - connRiskRank(b.conn))
+})
+
+/** 总览行点击下钻：选中该账号并切到详情（历史与熔断位由既有 watcher 拉取） */
+function drillDownHealth(conn: ChannelConnectionSummary) {
+  healthConnId.value = conn.connectionId
+  healthMode.value = 'detail'
+}
+
+/** 详情当前选中的账号（空态探活入口用） */
+const selectedHealthConn = computed(
+  () => healthConns.value.find((c) => c.connectionId === healthConnId.value) ?? null,
+)
+
+// ---------- 健康自动刷新（60s，仅页面可见且停在健康页签时） ----------
+let healthTimer: ReturnType<typeof setInterval> | null = null
+
+function stopHealthTimer() {
+  if (healthTimer) {
+    clearInterval(healthTimer)
+    healthTimer = null
+  }
+}
+
+function startHealthTimer() {
+  stopHealthTimer()
+  healthTimer = setInterval(() => {
+    // 后台页签不刷：探针数据分钟级更新，回前台后下一个周期自然会追上
+    if (document.visibilityState !== 'visible') return
+    if (detailTab.value !== 'health') return
+    if (healthMode.value === 'overview') void loadHealthOverview()
+    else {
+      void loadHealthHistory()
+      void loadCircuit()
+    }
+  }, 60_000)
+}
+
+watch(healthMode, (mode) => {
+  if (detailTab.value !== 'health') return
+  if (mode === 'overview') void loadHealthOverview()
+  else {
+    void loadHealthHistory()
+    void loadCircuit()
+  }
+})
+
+watch(detailTab, (tab) => {
+  // 进入健康页签启动自动刷新，离开即停；总览/详情各自的数据由上面的 watcher 补拉
+  if (tab === 'health') {
+    startHealthTimer()
+    if (healthMode.value === 'overview') void loadHealthOverview()
+  } else {
+    stopHealthTimer()
+  }
+})
+
+watch(healthWindow, () => {
+  if (detailTab.value === 'health' && healthMode.value === 'overview') void loadHealthOverview()
+})
+
+watch(
+  () => healthConns.value.map((conn) => conn.connectionId).join('|'),
+  () => {
+    if (detailTab.value === 'health' && healthMode.value === 'overview') void loadHealthOverview()
+  },
+)
+
+onBeforeUnmount(stopHealthTimer)
+
+// ---------- 账号卡筛选 / 排序：全部 / 异常 / 熔断 + 异常优先 ----------
+const ACCOUNT_FILTERS = [
+  { key: 'all', label: '全部' },
+  { key: 'abnormal', label: '异常' },
+  { key: 'circuit', label: '熔断' },
+] as const
+const accountHealthFilter = ref<'all' | 'abnormal' | 'circuit'>('all')
+const accountRiskFirst = ref(false)
+
+/**
+ * 账号卡的展示行：先按筛选 chips 过滤，再按「异常优先」排序。
+ *
+ * <p>默认保持原序（主账号置顶、按绑定时间）；开启异常优先后风险高的账号顶到
+ * 最前，同风险内仍保持主账号优先、绑定时间升序。</p>
+ */
+const accountCards = computed(() => {
+  const rows = displayConnections(detailSummary())
+  const f = accountHealthFilter.value
+  const filtered =
+    f === 'all'
+      ? rows
+      : rows.filter((conn) => (f === 'circuit' ? conn.healthCircuitState === 'OPEN' : connRiskRank(conn) <= 3))
+  if (!accountRiskFirst.value) return filtered
+  return [...filtered].sort(
+    (a, b) =>
+      connRiskRank(a) - connRiskRank(b) ||
+      Number(!!b.primary) - Number(!!a.primary) ||
+      (a.createdAt ?? 0) - (b.createdAt ?? 0),
+  )
+})
 
 /** 页头图标：上游取网关内联的软件图标，渠道取本地品牌图 */
 const detailIcon = computed<string>(() => {
@@ -3847,6 +4414,10 @@ const detailTabs = computed(() => {
     label: kindOf(summary) === 'IMAGE' ? '出图' : '模型',
     icon: 'DataAnalysis',
   })
+  // 健康探针历史：只对有真实连接（非网关托管行）的渠道开放——托管行没有可查的 connectionId。
+  if (displayConnections(summary).some((conn) => !conn.hosted)) {
+    tabs.push({ name: 'health', label: '健康', icon: 'Odometer' })
+  }
   // 积分不再单独成页：额度已经画在账号卡片里，单开一页只是把同一份数据读两遍。
   if (summary?.supportsTask && !hostedOnly(summary)) {
     tabs.push({ name: 'tasks', label: '任务', icon: 'Trophy' })
@@ -4209,6 +4780,29 @@ async function refreshCredit(conn: ChannelConnectionSummary): Promise<void> {
     }
   }
   await loadCredit(conn)
+}
+
+/** 「刷新全部余额」进行中：任一账号还在查就算进行中，按钮禁用防重复点 */
+const refreshAllCreditBusy = ref(false)
+
+/**
+ * 一键刷新本渠道全部账号的积分读数。
+ *
+ * <p>多账号渠道此前只能逐个点刷新图标；这里并发拉取、互不阻塞，单个账号
+ * 失败不影响其它账号（错误仍落在各自的卡片上）。上游已下线余额接口的账号
+ * （retired）跳过：刷新也不会有读数。</p>
+ */
+async function refreshAllCredit(): Promise<void> {
+  const conns = displayConnections(detailSummary()).filter(
+    (conn) => !creditState.value[conn.connectionId]?.data?.retired,
+  )
+  if (!conns.length) return
+  refreshAllCreditBusy.value = true
+  try {
+    await Promise.allSettled(conns.map((conn) => refreshCredit(conn)))
+  } finally {
+    refreshAllCreditBusy.value = false
+  }
 }
 
 /**
@@ -4868,6 +5462,16 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 <span class="chm-panel__chip is-task" v-if="detailSummary()!.supportsTask && !hostedOnly(detailSummary())">任务</span>
                 <span class="chm-panel__chip is-free" v-if="detailBrand.free"
                       title="免登录 / 免费授权渠道，不产生费用">免费</span>
+                <!--
+                  渠道级健康徽标：取全部账号里最差的探针状态（DOWN > 限流 > 告警 > 未探测 > 在线）。
+                  全渠道都没探测过就不显示；DOWN 时提示里会注明「路由已剔除」。
+                -->
+                <span
+                  v-if="channelHealthLabel(detailSummary())"
+                  class="chm-panel__chip"
+                  :class="'is-health-' + channelHealthKey(detailSummary())"
+                  :title="channelHealthHint(detailSummary())"
+                >{{ channelHealthLabel(detailSummary()) }}</span>
               </template>
             </span>
           </div>
@@ -5014,14 +5618,42 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 <div class="chm-panel__sect-title" title="本渠道在这里有几个登录态账号：与页头的「网关 N 条上游」不是同一件事">
                   <el-icon aria-hidden="true"><ConnectionIcon /></el-icon>
                   已授权账号 <i>{{ displayConnections(detailSummary()).length }}</i>
+                  <!-- 一键刷新全部余额：多账号渠道不必逐个点刷新图标；retired 账号自动跳过 -->
+                  <button
+                    v-if="creditSupported(detailSummary())"
+                    type="button"
+                    class="chm-models__op is-ghost chm-accs__refreshall"
+                    :disabled="refreshAllCreditBusy"
+                    @click.stop="refreshAllCredit()"
+                  >{{ refreshAllCreditBusy ? '刷新中…' : '刷新全部余额' }}</button>
                   <!--
                     自动签到是全局开关，已挪到左栏标题下的页级一行（对所有渠道生效），
                     这里不再重复画一个看着像「本渠道设置」的开关。
                   -->
                 </div>
+                <!--
+                  账号多时先筛再排：异常 = 告警/下线/限流/熔断；熔断 = 人工熔断位 OPEN。
+                  「异常优先」把有风险的账号顶到最前（熔断 > 下线 > 限流 > 告警 > 未探测 > 在线）。
+                -->
+                <div v-if="displayConnections(detailSummary()).length > 1" class="chm-accs__filters">
+                  <div class="chm-health__wins" role="group" aria-label="账号健康筛选">
+                    <button
+                      v-for="f in ACCOUNT_FILTERS"
+                      :key="f.key"
+                      type="button"
+                      class="chm-health__win"
+                      :class="{ 'is-on': accountHealthFilter === f.key }"
+                      @click="accountHealthFilter = f.key"
+                    >{{ f.label }}</button>
+                  </div>
+                  <label class="chm-accs__risk" title="熔断/下线/限流/告警的账号排在前面">
+                    <el-switch v-model="accountRiskFirst" size="small" />
+                    <span>异常优先</span>
+                  </label>
+                </div>
                 <div class="chm-accs">
                   <article
-                    v-for="conn in displayConnections(detailSummary())"
+                    v-for="conn in accountCards"
                     :key="conn.connectionId"
                     class="chm-acc"
                     :class="{ 'is-stale': connState(conn) !== 'valid', 'is-primary': conn.primary }"
@@ -5044,6 +5676,31 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                             class="chm-acc__expire"
                             :class="{ 'is-expired': connExpireText(conn) === '已过期' }"
                           >{{ connExpireText(conn) }}</span>
+                          <!--
+                            健康探针结论（只读）：AI 侧探针写入、账号模块转发的最近一次状态。
+                            探针没覆盖到的连接（免登录渠道 / 探针关闭 / 尚未轮到）没有该字段，不显示。
+                          -->
+                          <span
+                            v-if="healthLabel(conn.healthState)"
+                            class="chm-acc__health"
+                            :class="'is-' + healthKey(conn.healthState)"
+                            :title="healthTip(conn)"
+                          >{{ healthLabel(conn.healthState) }}</span>
+                          <!--
+                            人工熔断位徽标：只在 OPEN / CLOSED 两个非默认态出现——
+                            熔断/放行是覆盖探针结论的强操作，账号卡上必须一眼可见；
+                            AUTO 是常态，不占视觉。
+                          -->
+                          <span
+                            v-if="conn.healthCircuitState === 'OPEN'"
+                            class="chm-acc__circuit is-open"
+                            title="已人工熔断：该账号不参与路由"
+                          >熔断</span>
+                          <span
+                            v-else-if="conn.healthCircuitState === 'CLOSED'"
+                            class="chm-acc__circuit is-closed"
+                            title="已人工放行：排障期间无视探针结论"
+                          >放行</span>
                           <span
                             v-if="conn.checkinAt"
                             class="chm-acc__checkin"
@@ -5065,6 +5722,13 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                                   layout="square" size="mini" icon="Refresh" tip="刷新账号信息"
                                   :disabled="busyFor(detailChannel, 'refresh')"
                                   @click.stop="refreshAccount(detailChannel, conn)" />
+                        <!--
+                          立即探活（仅管理员）：手动触发一次 AI 侧探针，结论就地更新健康徽标。
+                          与「刷新凭据」分开：探活只读上游可达性，不写凭据。
+                        -->
+                        <ReButton v-if="!conn.hosted && isAdminUser" layout="square" size="mini" icon="Odometer"
+                                  tip="立即探活" :loading="probingIds[conn.connectionId]"
+                                  @click.stop="probeConnectionNow(conn)" />
                         <!--
                           有积分能力的渠道：签到收进积分行（额度变化就在旁边）；
                           没有积分能力才把签到留在操作行里。
@@ -5244,6 +5908,7 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                       </template>
                     </section>
                   </article>
+                  <div v-if="!accountCards.length" class="chm-card__empty">没有符合筛选条件的账号</div>
                 </div>
               </div>
 
@@ -5473,6 +6138,30 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                     </template>
                   </div>
                 </div>
+                <!-- 搜索 + 筛选：模型多的渠道（网关上游可达数百个）先缩小范围，再谈勾选 -->
+                <div v-if="(detailSummary()!.models ?? []).length" class="chm-models__filter">
+                  <el-input
+                    v-model="modelSearch"
+                    class="chm-models__search"
+                    size="small"
+                    clearable
+                    placeholder="搜索模型名称或别名"
+                    :prefix-icon="SearchIcon"
+                  />
+                  <div class="chm-models__segs" role="group" aria-label="按价格筛选">
+                    <button type="button" class="chm-models__op" :class="{ 'is-primary': modelPriceFilter === 'all' }"
+                            @click.stop="modelPriceFilter = 'all'">全部</button>
+                    <button type="button" class="chm-models__op" :class="{ 'is-primary': modelPriceFilter === 'free' }"
+                            @click.stop="modelPriceFilter = 'free'">免费</button>
+                    <button type="button" class="chm-models__op" :class="{ 'is-primary': modelPriceFilter === 'paid' }"
+                            @click.stop="modelPriceFilter = 'paid'">付费</button>
+                  </div>
+                  <el-select v-if="modelTaskOptions.length > 1" v-model="modelTaskFilter"
+                             class="chm-models__task" size="small" aria-label="按任务类型筛选">
+                    <el-option label="全部类型" value="all" />
+                    <el-option v-for="opt in modelTaskOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  </el-select>
+                </div>
                 <!--
                   免登录 / 文生图渠道的模型是客户端内置表：不需要（也不能）从上游拉取，
                   但启用状态同样保存在后台，勾选后点「保存」即生效。
@@ -5539,6 +6228,10 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                       ? '网关还没有下发模型目录，点「拉取模型」让网关去上游同步'
                       : modelsPullable(detailSummary()) ? '该渠道暂无模型，点「拉取模型」同步上游目录' : '该渠道未声明内置模型' }}
                   </div>
+                  <!-- 有模型但被搜索/筛选拦掉了：明说「没匹配」，别让人以为渠道没模型 -->
+                  <div v-else-if="modelFilterActive && !filteredModels.length" class="chm-card__empty">
+                    没有匹配的模型：换个关键字，或放宽「免费/付费 / 任务类型」筛选
+                  </div>
                 </div>
                 <!--
                   网关上游可以一次给几百个模型（OpenRouter 493 个）。全画出来是一面
@@ -5549,10 +6242,10 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                   v-if="modelHiddenCount > 0"
                   type="button"
                   class="chm-models__op chm-models__more"
-                  @click.stop="modelLimit = sortedModels.length"
+                  @click.stop="modelLimit = filteredModels.length"
                 >还有 {{ modelHiddenCount }} 个模型未显示，展开全部</button>
                 <button
-                  v-else-if="sortedModels.length > MODEL_CARD_PAGE"
+                  v-else-if="modelLimit > MODEL_CARD_PAGE"
                   type="button"
                   class="chm-models__op chm-models__more"
                   @click.stop="modelLimit = MODEL_CARD_PAGE"
@@ -5649,6 +6342,221 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 :focus-providers="focusPluginProviders"
                 @changed="loadChannels()"
               />
+            </div>
+
+            <!-- ════════ 健康（探针历史，只读） ════════ -->
+            <!--
+              延迟趋势用页面内轻量 SVG 手绘（ReChart 面向拓扑/矩阵/桑基，没有时间折线视图）；
+              数据来自 /api/channels/health-history（账号模块转发的探针时序历史，保留 7 天）。
+            -->
+            <div v-else-if="tab.name === 'health'" class="chm-panel__tabbody">
+              <div class="chm-health">
+                <!--
+                  工具条分两组：左 = 视图切换（总览/详情）+ 账号 + 时间窗；
+                  右 = 熔断位 + 全部探活 + 说明。页面可见时每 60s 静默跟进一次。
+                -->
+                <div class="chm-health__bar">
+                  <div class="chm-health__bar-l">
+                    <div class="chm-health__wins" role="group" aria-label="健康视图">
+                      <button type="button" class="chm-health__win" :class="{ 'is-on': healthMode === 'overview' }"
+                              @click="healthMode = 'overview'">总览</button>
+                      <button type="button" class="chm-health__win" :class="{ 'is-on': healthMode === 'detail' }"
+                              @click="healthMode = 'detail'">详情</button>
+                    </div>
+                    <el-select v-if="healthMode === 'detail'" v-model="healthConnId" size="small" class="chm-health__conn" aria-label="选择账号查看健康历史">
+                      <el-option
+                        v-for="conn in healthConns"
+                        :key="conn.connectionId"
+                        :label="conn.label || '未命名'"
+                        :value="conn.connectionId"
+                      />
+                    </el-select>
+                    <div class="chm-health__wins" role="group" aria-label="时间窗">
+                      <button
+                        v-for="w in HEALTH_WINDOWS"
+                        :key="w.hours"
+                        type="button"
+                        class="chm-health__win"
+                        :class="{ 'is-on': healthWindow === w.hours }"
+                        @click="healthWindow = w.hours"
+                      >{{ w.label }}</button>
+                    </div>
+                  </div>
+                  <div class="chm-health__bar-r">
+                    <!--
+                      健康操作（仅管理员）：人工熔断位 + 全部探活。
+                      端点在 AI 侧 /v2/channels/**（@Permission("admin")）；非管理员
+                      不渲染这些控件，绕过 UI 直发请求也会被后端 403。
+                    -->
+                    <template v-if="isAdminUser && healthMode === 'detail' && healthCircuitRow">
+                      <span
+                        class="chm-health__circuit"
+                        :class="'is-' + (healthCircuitRow.circuitState || 'AUTO').toLowerCase()"
+                        :title="healthCircuitRow.circuitReason
+                          ? `人工熔断位：${circuitLabel(healthCircuitRow.circuitState)} · 原因：${healthCircuitRow.circuitReason}`
+                          : `人工熔断位：${circuitLabel(healthCircuitRow.circuitState)}`"
+                      >{{ circuitLabel(healthCircuitRow.circuitState) }}</span>
+                      <!-- 熔断三档分段开关：当前档高亮；OPEN/CLOSED 是覆盖探针的强操作，setConnectionCircuit 里弹确认 -->
+                      <div class="chm-health__seg" role="group" aria-label="人工熔断开关">
+                        <button
+                          v-for="opt in CIRCUIT_OPTIONS"
+                          :key="opt.value"
+                          type="button"
+                          class="chm-health__win"
+                          :class="{ 'is-on': (healthCircuitRow.circuitState || 'AUTO') === opt.value }"
+                          :aria-pressed="(healthCircuitRow.circuitState || 'AUTO') === opt.value"
+                          :disabled="circuitSaving"
+                          @click="setConnectionCircuit(opt.value)"
+                        >{{ opt.label }}</button>
+                      </div>
+                    </template>
+                    <ReButton v-if="isAdminUser && healthConns.length" class="chm-health__probeall"
+                              size="small" :loading="probingAll" @click="probeAllNow">
+                      {{ probingAll ? `探活中 ${probeProgress.done}/${probeProgress.total}` : '全部探活' }}
+                    </ReButton>
+                    <span class="chm-health__note" title="探针每分钟探测一次；历史保留 7 天，超期由定时任务清理">探针每分钟一次 · 历史保留 7 天</span>
+                  </div>
+                </div>
+                <!--
+                  总览：每个账号一行（结论 / 在线率 / 均延迟 / 迷你趋势），按风险序排列，
+                  点行下钻到该账号的详情。多账号时先看这一眼，就不用挨个切着查。
+                -->
+                <div v-if="healthMode === 'overview'" class="chm-health__overview">
+                  <div v-if="healthOverviewLoading && !healthOverviewRows.length" class="chm-health__skeleton" aria-label="健康总览加载中">
+                    <span class="chm-skel" style="width: 42%"></span>
+                    <span class="chm-skel" style="width: 68%"></span>
+                    <span class="chm-skel" style="width: 55%"></span>
+                    <span class="chm-skel" style="width: 61%"></span>
+                  </div>
+                  <div v-else-if="!healthOverviewRows.length" class="chm-card__empty">
+                    该渠道没有可探活的本地账号——网关托管账号的健康在网关侧查看
+                  </div>
+                  <div v-else class="chm-health__matrix" role="list" aria-label="账号健康总览">
+                    <button
+                      v-for="row in healthOverviewRows"
+                      :key="row.conn.connectionId"
+                      type="button"
+                      role="listitem"
+                      class="chm-health__orow"
+                      :title="`查看「${row.conn.label || '未命名'}」的探针趋势与记录`"
+                      @click="drillDownHealth(row.conn)"
+                    >
+                      <span class="chm-acc__health" :class="'is-' + healthKey(row.state)">{{ healthLabel(row.state) || '未探测' }}</span>
+                      <span class="chm-health__orow-name">{{ row.conn.label || '未命名' }}</span>
+                      <span v-if="row.conn.healthCircuitState === 'OPEN'" class="chm-acc__circuit is-open">熔断</span>
+                      <span class="chm-health__orow-metric">在线率 <b :class="{ 'is-bad': (row.onlineRate ?? 100) < 90 }">{{ row.onlineRate ?? '—' }}%</b></span>
+                      <span class="chm-health__orow-metric">均延迟 <b>{{ row.avgLatency ?? '—' }}ms</b></span>
+                      <svg v-if="row.spark.path" class="chm-health__spark" :viewBox="`0 0 ${row.spark.w} ${row.spark.h}`" aria-hidden="true">
+                        <path :d="row.spark.path" />
+                      </svg>
+                      <span v-else class="chm-health__spark chm-health__spark--empty">无样本</span>
+                      <el-icon class="chm-health__orow-go" aria-hidden="true"><ArrowRightIcon /></el-icon>
+                    </button>
+                  </div>
+                </div>
+                <!-- 详情：单个账号的延迟趋势 + 状态时间线 + 最近记录 -->
+                <div v-else class="chm-health__detail">
+                  <div v-if="healthLoading" class="chm-health__skeleton" aria-label="健康历史加载中">
+                    <span class="chm-skel" style="width: 46%"></span>
+                    <span class="chm-skel chm-skel--chart"></span>
+                    <span class="chm-skel" style="width: 72%"></span>
+                    <span class="chm-skel" style="width: 58%"></span>
+                    <span class="chm-skel" style="width: 64%"></span>
+                  </div>
+                  <div v-else-if="!healthLogs.length" class="chm-health__empty">
+                    <p>暂无探针历史——该账号可能尚未被探针覆盖，或所选时间窗内没有记录</p>
+                    <!--
+                      空态探活入口（仅管理员）：没有历史时与其干等下一轮探针，
+                      不如当场探一次；结论会写回徽标并开始积累历史。
+                    -->
+                    <ReButton
+                      v-if="isAdminUser && selectedHealthConn"
+                      size="small"
+                      :loading="!!probingIds[selectedHealthConn.connectionId]"
+                      @click="probeConnectionNow(selectedHealthConn)"
+                    >立即探活</ReButton>
+                    <p v-else class="chm-health__empty-hint">探针每分钟自动运行，无需手动操作</p>
+                  </div>
+                  <template v-else>
+                  <div class="chm-health__stats">
+                    <span>样本 <b>{{ healthStats.total }}</b></span>
+                    <span>在线率 <b :class="{ 'is-bad': (healthStats.onlineRate ?? 100) < 90 }">{{ healthStats.onlineRate ?? '—' }}%</b></span>
+                    <span>平均延迟 <b>{{ healthStats.avg ?? '—' }}ms</b></span>
+                    <span>最大延迟 <b>{{ healthStats.max ?? '—' }}ms</b></span>
+                    <span>异常（下线/限流） <b :class="{ 'is-bad': healthStats.down > 0 }">{{ healthStats.down }}</b> 次</span>
+                  </div>
+                  <div class="chm-health__chart" role="img" aria-label="延迟趋势与状态时间线">
+                    <svg :viewBox="`0 0 ${healthChart.W} ${healthChart.H}`" class="chm-hchart">
+                      <!-- y 轴刻度线 -->
+                      <g v-for="tk in healthChart.ticks" :key="'y' + tk.v">
+                        <line class="chm-hchart__grid" :x1="healthChart.padL" :x2="healthChart.W - 12" :y1="tk.y" :y2="tk.y" />
+                        <text class="chm-hchart__tick" :x="healthChart.padL - 6" :y="tk.y + 3" text-anchor="end">{{ tk.v }}</text>
+                      </g>
+                      <!-- 状态时间线色带：每个探针点一格，按结论着色 -->
+                      <rect
+                        v-for="(seg, i) in healthChart.band"
+                        :key="'b' + i"
+                        class="chm-hchart__seg"
+                        :class="'is-' + seg.key"
+                        :x="seg.x"
+                        :y="healthChart.H - 20"
+                        :width="Math.max(seg.w, 1)"
+                        height="6"
+                      />
+                      <!-- 延迟折线与数据点 -->
+                      <path class="chm-hchart__line" :d="healthChart.path" />
+                      <circle
+                        v-for="(d, i) in healthChart.dots"
+                        :key="'d' + i"
+                        class="chm-hchart__dot"
+                        :class="'is-' + d.key"
+                        :cx="d.cx"
+                        :cy="d.cy"
+                        r="2.5"
+                      ><title>{{ shortTime(d.t) }} · {{ d.latency }}ms</title></circle>
+                      <!-- 无延迟的异常点（下线/限流）落到基线标红 -->
+                      <circle
+                        v-for="(d, i) in healthChart.downs"
+                        :key="'f' + i"
+                        class="chm-hchart__dot is-down"
+                        :cx="d.cx"
+                        :cy="healthChart.H - 26"
+                        r="3"
+                      ><title>{{ shortTime(d.t) }} · 探测失败</title></circle>
+                      <!-- x 轴时间标签：起点 / 中点 / 现在 -->
+                      <text
+                        v-for="(lb, i) in healthChart.xlabels"
+                        :key="'t' + i"
+                        class="chm-hchart__tick"
+                        :x="lb.x"
+                        :y="healthChart.H - 4"
+                        :text-anchor="i === 0 ? 'start' : i === 2 ? 'end' : 'middle'"
+                      >{{ shortTime(lb.t) }}</text>
+                    </svg>
+                    <div class="chm-health__legend">
+                      <span><i class="chm-hchart__seg is-online"></i>在线</span>
+                      <span><i class="chm-hchart__seg is-warning"></i>告警</span>
+                      <span><i class="chm-hchart__seg is-down"></i>下线</span>
+                      <span><i class="chm-hchart__seg is-ratelimited"></i>限流</span>
+                      <span><i class="chm-hchart__seg is-unknown"></i>未探测</span>
+                    </div>
+                  </div>
+                  <div class="chm-health__list">
+                    <div class="chm-panel__sect-title">最近探针记录（最新在前）</div>
+                    <ul>
+                      <li v-for="(log, i) in healthRecent" :key="i" class="chm-health__row">
+                        <span class="chm-health__time">{{ shortTime(log.createdAt) }}</span>
+                        <span class="chm-acc__health" :class="'is-' + healthKey(log.state)">{{ healthLabel(log.state) || log.state }}</span>
+                        <span class="chm-health__latency">{{ typeof log.latencyMs === 'number' && log.latencyMs >= 0 ? log.latencyMs + 'ms' : '—' }}</span>
+                        <span v-if="log.httpStatus" class="chm-health__http">HTTP {{ log.httpStatus }}</span>
+                        <span v-if="log.error" class="chm-health__error" :title="log.error">{{ log.error }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                  </template>
+                </div>
+                </template>
+              </div>
             </div>
           </template>
         </ReTabs>
@@ -6469,6 +7377,28 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   background: color-mix(in srgb, #14b8a6 16%, transparent);
   color: #0f9d8f;
 }
+/* 渠道级健康徽标：取全部账号里最差的探针状态，配色与账号卡健康徽标一致 */
+.chm-panel__chip.is-health-online {
+  background: color-mix(in srgb, var(--el-color-success, #67c23a) 14%, transparent);
+  color: var(--el-color-success, #67c23a);
+}
+.chm-panel__chip.is-health-warning {
+  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 16%, transparent);
+  color: var(--el-color-warning, #e6a23c);
+}
+.chm-panel__chip.is-health-ratelimited {
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 10%, transparent);
+  color: var(--el-color-danger, #f56c6c);
+}
+.chm-panel__chip.is-health-down {
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 16%, transparent);
+  color: var(--el-color-danger, #f56c6c);
+  font-weight: 600;
+}
+.chm-panel__chip.is-health-unknown {
+  background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
+  color: var(--el-text-color-secondary, #909399);
+}
 
 /* ===== 详情页签（ReTabs 容器） ===== */
 .chm-panel__tabs {
@@ -6971,6 +7901,31 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   align-items: center;
   gap: 4px;
 }
+/* 模型搜索/筛选行：关键字 + 价格分组 + 任务类型，模型多时先缩小范围再勾选 */
+.chm-models__filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chm-models__search {
+  width: 220px;
+  flex: none;
+}
+.chm-models__segs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.chm-models__task {
+  width: 132px;
+  flex: none;
+}
+/* 「刷新全部余额」：挂在「已授权账号」标题行尾，靠右、比标题轻一档 */
+.chm-accs__refreshall {
+  margin-left: auto;
+  padding: 2px 8px;
+}
 .chm-models__op {
   border: 1px solid var(--border-default, #e2e9f3);
   background: var(--bg-container, #fff);
@@ -7287,6 +8242,245 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-acc__state.is-unknown {
   background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
   color: var(--el-text-color-secondary, #909399);
+}
+/* 健康探针徽标：AI 侧探针的最近一次结论（只读），淡底配色与状态徽章同方案 */
+.chm-acc__health {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
+  color: var(--el-text-color-secondary, #909399);
+}
+.chm-acc__health.is-online {
+  background: color-mix(in srgb, var(--el-color-success, #67c23a) 14%, transparent);
+  color: var(--el-color-success, #67c23a);
+}
+.chm-acc__health.is-warning {
+  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 16%, transparent);
+  color: var(--el-color-warning, #e6a23c);
+}
+.chm-acc__health.is-ratelimited {
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 10%, transparent);
+  color: var(--el-color-danger, #f56c6c);
+}
+.chm-acc__health.is-down {
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 16%, transparent);
+  color: var(--el-color-danger, #f56c6c);
+  font-weight: 600;
+}
+/* 人工熔断位徽标：只在 OPEN / CLOSED 非默认态出现（AUTO 不渲染），与健康徽标同排 */
+.chm-acc__circuit {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 99px;
+}
+.chm-acc__circuit.is-open {
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 18%, transparent);
+  color: var(--el-color-danger, #f56c6c);
+}
+.chm-acc__circuit.is-closed {
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 14%, transparent);
+  color: var(--el-color-primary, #409eff);
+}
+
+/* ===== 健康页签：延迟趋势（手绘 SVG 折线）+ 状态时间线 + 最近探针记录 ===== */
+.chm-health {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.chm-health__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.chm-health__conn {
+  width: 220px;
+}
+.chm-health__wins {
+  display: inline-flex;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.chm-health__win {
+  border: 0;
+  background: transparent;
+  padding: 4px 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-regular, #606266);
+  cursor: pointer;
+}
+.chm-health__win + .chm-health__win {
+  border-left: 1px solid var(--el-border-color, #dcdfe6);
+}
+.chm-health__win.is-on {
+  background: var(--el-color-primary, #409eff);
+  color: #fff;
+}
+.chm-health__note {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--el-text-color-secondary, #909399);
+}
+/* 健康操作区（仅管理员渲染）：熔断位徽标 + 三档开关 + 全部探活 */
+.chm-health__circuit {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--el-text-color-secondary, #909399) 14%, transparent);
+  color: var(--el-text-color-secondary, #909399);
+}
+.chm-health__circuit.is-open {
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 18%, transparent);
+  color: var(--el-color-danger, #f56c6c);
+}
+.chm-health__circuit.is-closed {
+  background: color-mix(in srgb, var(--el-color-primary, #409eff) 14%, transparent);
+  color: var(--el-color-primary, #409eff);
+}
+.chm-health__circuit-ops {
+  display: inline-flex;
+  align-items: center;
+}
+.chm-health__probeall {
+  margin-left: 2px;
+}
+.chm-health__stats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+}
+.chm-health__stats b {
+  color: var(--el-text-color-primary, #303133);
+  font-variant-numeric: tabular-nums;
+}
+.chm-health__stats b.is-bad {
+  color: var(--el-color-danger, #f56c6c);
+}
+.chm-health__chart {
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 8px;
+  padding: 10px 10px 6px;
+}
+.chm-hchart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.chm-hchart__grid {
+  stroke: var(--el-border-color-lighter, #ebeef5);
+  stroke-width: 1;
+}
+.chm-hchart__tick {
+  font-size: 10px;
+  fill: var(--el-text-color-secondary, #909399);
+}
+.chm-hchart__line {
+  fill: none;
+  stroke: var(--el-color-primary, #409eff);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chm-hchart__dot.is-online {
+  fill: var(--el-color-success, #67c23a);
+}
+.chm-hchart__dot.is-warning {
+  fill: var(--el-color-warning, #e6a23c);
+}
+.chm-hchart__dot.is-down {
+  fill: var(--el-color-danger, #f56c6c);
+}
+.chm-hchart__dot.is-ratelimited {
+  fill: var(--el-color-danger, #f56c6c);
+  fill-opacity: 0.7;
+}
+.chm-hchart__dot.is-unknown {
+  fill: var(--el-text-color-secondary, #909399);
+}
+/* 色带一格一结论：SVG rect 吃 fill、图例 <i> 吃 background，两处同色 */
+.chm-hchart__seg {
+  fill: var(--el-text-color-secondary, #909399);
+  background: var(--el-text-color-secondary, #909399);
+}
+.chm-hchart__seg.is-online {
+  fill: var(--el-color-success, #67c23a);
+  background: var(--el-color-success, #67c23a);
+}
+.chm-hchart__seg.is-warning {
+  fill: var(--el-color-warning, #e6a23c);
+  background: var(--el-color-warning, #e6a23c);
+}
+.chm-hchart__seg.is-down {
+  fill: var(--el-color-danger, #f56c6c);
+  background: var(--el-color-danger, #f56c6c);
+}
+.chm-hchart__seg.is-ratelimited {
+  fill: var(--el-color-danger, #f56c6c);
+  fill-opacity: 0.7;
+  background: var(--el-color-danger, #f56c6c);
+  opacity: 0.7;
+}
+.chm-hchart__seg.is-unknown {
+  fill: var(--el-text-color-secondary, #909399);
+  background: var(--el-text-color-secondary, #909399);
+}
+.chm-health__legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary, #909399);
+  padding: 6px 2px 0;
+}
+.chm-health__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.chm-health__legend .chm-hchart__seg {
+  width: 14px;
+  height: 6px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.chm-health__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 12px;
+  border-bottom: 1px dashed var(--el-border-color-lighter, #ebeef5);
+}
+.chm-health__time {
+  color: var(--el-text-color-secondary, #909399);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.chm-health__latency {
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.chm-health__http {
+  color: var(--el-text-color-secondary, #909399);
+  flex-shrink: 0;
+}
+.chm-health__error {
+  color: var(--el-color-danger, #f56c6c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 /* 主账号徽章：与状态徽章同尺寸，但用品牌色区分「身份」而非「健康度」 */
 .chm-acc__primary {
@@ -7884,6 +9078,167 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 }
 .chm-empty__hint--muted {
   color: var(--text-tertiary, #94a3b8);
+}
+
+/* ===== 健康页签增强（P1+P2）：工具条分组 / 总览矩阵 / 分段熔断 / 骨架 / 账号卡筛选 ===== */
+/* 工具条左右两组：左 = 视图切换 + 账号 + 时间窗；右 = 熔断位 + 全部探活 + 说明 */
+.chm-health__bar-l,
+.chm-health__bar-r {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.chm-health__bar-r {
+  margin-left: auto;
+}
+.chm-health__bar-r .chm-health__note {
+  margin-left: 0;
+}
+/* 熔断三档分段开关：复用时间窗按钮的画法；保存中禁用并降透明度 */
+.chm-health__seg {
+  display: inline-flex;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.chm-health__seg .chm-health__win:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+/* 总览矩阵：每个账号一行（结论 / 名称 / 在线率 / 均延迟 / 迷你趋势），点行下钻 */
+.chm-health__matrix {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--el-border-color-lighter, #ebeef5);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.chm-health__orow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  color: var(--el-text-color-regular, #606266);
+}
+.chm-health__orow + .chm-health__orow {
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+.chm-health__orow:hover {
+  background: var(--el-fill-color-light, #f5f7fa);
+}
+.chm-health__orow-name {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--el-text-color-primary, #303133);
+}
+.chm-health__orow-metric {
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary, #909399);
+}
+.chm-health__orow-metric b {
+  color: var(--el-text-color-primary, #303133);
+  font-variant-numeric: tabular-nums;
+}
+.chm-health__orow-metric b.is-bad {
+  color: var(--el-color-danger, #f56c6c);
+}
+.chm-health__spark {
+  flex-shrink: 0;
+  width: 120px;
+  height: 28px;
+}
+.chm-health__spark path {
+  fill: none;
+  stroke: var(--el-color-primary, #409eff);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.chm-health__spark--empty {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  text-align: center;
+  line-height: 28px;
+}
+.chm-health__orow-go {
+  flex-shrink: 0;
+  color: var(--el-text-color-placeholder, #c0c4cc);
+}
+.chm-health__orow:hover .chm-health__orow-go {
+  color: var(--el-color-primary, #409eff);
+}
+/* 加载骨架：比一句「加载中」更能表达页面即将长什么样 */
+.chm-health__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+.chm-skel {
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--el-fill-color-light, #f0f2f5) 25%,
+    var(--el-fill-color, #f4f4f5) 37%,
+    var(--el-fill-color-light, #f0f2f5) 63%
+  );
+  background-size: 400% 100%;
+  animation: chm-skel 1.3s ease infinite;
+}
+.chm-skel--chart {
+  height: 132px;
+  border-radius: 8px;
+}
+@keyframes chm-skel {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+/* 详情空态：一句解释 + 管理员的「立即探活」入口 */
+.chm-health__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 0 22px;
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 12px;
+}
+.chm-health__empty p {
+  margin: 0;
+}
+.chm-health__empty-hint {
+  color: var(--el-text-color-placeholder, #c0c4cc);
+}
+/* 账号卡筛选：chips 复用时间窗按钮的画法，右侧「异常优先」开关 */
+.chm-accs__filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 10px;
+}
+.chm-accs__risk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary, #909399);
+  cursor: pointer;
 }
 
 </style>

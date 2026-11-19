@@ -83,13 +83,15 @@
 
     <!-- ==================== selector 模式：轻量打印机列表 ==================== -->
     <div v-else class="re-printer__list">
-      <div v-if="loading" class="re-printer__empty">加载中...</div>
-      <div v-else-if="!printers.length" class="re-printer__empty">
-        暂无打印机，请先
+      <ReSkeleton v-if="loading" loading animated :rows="4" class="re-printer__skeleton" />
+      <ReEmpty
+        v-else-if="!printers.length"
+        class="re-printer__empty"
+        description="暂无打印机，请先添加或发现打印机"
+      >
         <ReButton type="primary" text @click="openForm">添加打印机</ReButton>
-        或
         <ReButton text @click="onDiscover">发现打印机</ReButton>
-      </div>
+      </ReEmpty>
       <div v-else class="re-printer__items">
         <div
           v-for="printer in printers"
@@ -172,6 +174,8 @@ import ReIcon from '@repo/ui/re-icon'
 import ReButton from '@repo/ui/re-button'
 import ReTable from '@repo/ui/re-table'
 import ReDialog from '@repo/ui/re-dialog'
+import ReEmpty from '@repo/ui/re-empty'
+import ReSkeleton from '@repo/ui/re-skeleton'
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from '@repo/ui/re-table'
 import type { PrinterConfig } from '../types/template'
 import { templateApi } from '../api/templateApi'
@@ -454,6 +458,10 @@ defineExpose({ reload })
   display: flex;
   flex-direction: column;
   overflow: auto;
+}
+
+.re-printer__skeleton {
+  padding: 16px;
 }
 
 .re-printer__items {

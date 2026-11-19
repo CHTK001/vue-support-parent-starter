@@ -173,6 +173,7 @@
               class="ws-frame"
               :class="{ active: currentAct?.actNo === a.actNo }"
               type="button"
+              data-role="act-frame"
               :data-actno="a.actNo"
               @click="selectAct(a)"
             >
@@ -311,6 +312,7 @@
                   class="ws-scene-tab"
                   :class="{ active: currentSceneId === s.id }"
                   type="button"
+                  data-role="scene-tab"
                   :data-id="s.id"
                   @click="selectScene(s)"
                 >{{ s.name }}</button>
@@ -843,7 +845,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { MoreFilled, Plus, VideoPlay, Loading, Fold, Expand } from '@element-plus/icons-vue'
+import { MoreFilled, Plus, VideoPlay, Loading, Fold, Expand, Edit } from '@element-plus/icons-vue'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ReDialog from '@repo/ui/re-dialog'
@@ -1794,6 +1796,11 @@ function openNpcEdit(n: WorldNpc) {
     if (r.fromNpcId === n.id || r.toNpcId === n.id) relDraft[r.id] = r.affinity ?? 0
   }
   npcEditVisible.value = true
+}
+
+/** 点选/取消选中一位演员：下一轮观演由 TA 先开口（选中态显示在演员轨与脚灯条上） */
+function toggleMention(npcId: number) {
+  mentionNpc.value = mentionNpc.value === npcId ? null : npcId
 }
 
 async function confirmEditNpc() {
