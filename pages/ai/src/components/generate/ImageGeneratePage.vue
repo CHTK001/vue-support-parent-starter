@@ -649,6 +649,16 @@
                 >
                   滑动
                 </button>
+                <button
+                  type="button"
+                  class="wg-compare-mode"
+                  :class="{ 'is-on': compareMode === 'fade' }"
+                  :aria-pressed="compareMode === 'fade'"
+                  title="把两张图叠放，调透明度交叉淡入对照"
+                  @click="setCompareMode('fade')"
+                >
+                  叠加
+                </button>
               </span>
               <button
                 v-for="n in compareTask.urls.length"
@@ -688,7 +698,7 @@
             </figure>
           </div>
           <div
-            v-else
+            v-else-if="compareMode === 'slide'"
             ref="compareSlideEl"
             class="wg-compare-slide"
             tabindex="0"
@@ -731,6 +741,62 @@
               <span class="wg-compare-slide-tag is-right">第 {{ compareSlideSides.right.index + 1 }} 张</span>
             </template>
             <span v-else class="wg-compare-lost">滑动对比至少需要 2 张结果</span>
+          </div>
+          <!--
+            叠加淡入：两张图叠满同一容器，上层图整体调透明度，适合比构图和色调。
+            透明度滑杆 0~100，方向键每次微调 5%；左右角标实时标出两张各占多少。
+          -->
+          <div
+            v-else-if="compareMode === 'fade'"
+            class="wg-compare-fade"
+            tabindex="0"
+            role="slider"
+            aria-label="叠加对比：拖动滑杆调透明度，或用方向键微调"
+            :aria-valuenow="Math.round(compareFade)"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            @keydown.left.prevent="nudgeCompareFade(-5)"
+            @keydown.right.prevent="nudgeCompareFade(5)"
+          >
+            <template v-if="compareSlideSides">
+              <img
+                v-if="!mediaFailed(compareSlideSides.left.url)"
+                class="wg-compare-fade-img"
+                :src="mediaSrc(compareSlideSides.left.url)"
+                :alt="'第 ' + (compareSlideSides.left.index + 1) + ' 张结果'"
+                decoding="async"
+                draggable="false"
+              />
+              <span v-else class="wg-compare-lost">已丢失</span>
+              <img
+                v-if="!mediaFailed(compareSlideSides.right.url)"
+                class="wg-compare-fade-img is-top"
+                :style="{ opacity: compareFade / 100 }"
+                :src="mediaSrc(compareSlideSides.right.url)"
+                :alt="'第 ' + (compareSlideSides.right.index + 1) + ' 张结果'"
+                decoding="async"
+                draggable="false"
+              />
+              <span v-else class="wg-compare-lost">已丢失</span>
+              <div class="wg-compare-fade-ctl">
+                <span class="wg-compare-fade-tag">
+                  第 {{ compareSlideSides.left.index + 1 }} 张 {{ 100 - Math.round(compareFade) }}%
+                </span>
+                <input
+                  v-model.number="compareFade"
+                  class="wg-compare-fade-range"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  :aria-label="'第 ' + (compareSlideSides.right.index + 1) + ' 张的叠加透明度'"
+                />
+                <span class="wg-compare-fade-tag">
+                  第 {{ compareSlideSides.right.index + 1 }} 张 {{ Math.round(compareFade) }}%
+                </span>
+              </div>
+            </template>
+            <span v-else class="wg-compare-lost">叠加对比至少需要 2 张结果</span>
           </div>
         </div>
 
@@ -1987,6 +2053,29 @@ const hasRunningTask = computed(() => {
 const runningCount = computed(
   () => tasks.value.filter((t) => t.status === 'PENDING' || t.status === 'RUNNING').length,
 )
+
+/**
+ * 生成中把数量带进浏览器标签页标题：切去别的标签页也能瞄一眼还剩几个在跑。
+ * 只给自己的标题加/摘固定前缀，不保存整条原标题——路由中途改标题也不会还原错。
+ */
+const DOC_TITLE_RUNNING = /（\d+ 个生成中）/
+
+watch(runningCount, (n) => {
+  if (n > 0) {
+    const base = DOC_TITLE_RUNNING.test(document.title)
+      ? document.title.replace(DOC_TITLE_RUNNING, '')
+      : document.title
+    document.title = `（${n} 个生成中）${base}`
+  } else if (DOC_TITLE_RUNNING.test(document.title)) {
+    document.title = document.title.replace(DOC_TITLE_RUNNING, '')
+  }
+})
+
+onUnmounted(() => {
+  if (DOC_TITLE_RUNNING.test(document.title)) {
+    document.title = document.title.replace(DOC_TITLE_RUNNING, '')
+  }
+})
 
 /** 点「N 个生成中」徽章：回到画廊并只看进行中的任务，不必自己开筛选弹层 */
 const focusRunning = () => {
@@ -4144,8 +4233,22 @@ const compareOnIndexes = computed(() => {
   return t.urls.map((_, i) => i).filter((i) => !compareOff.value.has(i))
 })
 
-/** 对比方式：grid=并排铺开，slide=两张叠放、拖动分割线对照 */
-const compareMode = ref<'grid' | 'slide'>('grid')
+/** 上次选的对比方式记到本地，下次打开沿用 */
+const COMPARE_MODE_KEY = 'ai-guada:generate-compare-mode'
+
+const loadCompareMode = (): 'grid' | 'slide' | 'fade' => {
+  try {
+    const raw = localStorage.getItem(COMPARE_MODE_KEY)
+    return raw === 'slide' || raw === 'fade' ? raw : 'grid'
+  } catch {
+    return 'grid'
+  }
+}
+
+/** 对比方式：grid=并排铺开，slide=两张叠放拖分割线，fade=两张叠放调透明度淡入 */
+const compareMode = ref<'grid' | 'slide' | 'fade'>(loadCompareMode())
+/** 叠加模式里上层图的透明度（0-100）：100=上层完全不透明，0=完全露出下层 */
+const compareFade = ref(60)
 /** 滑动模式里分割线位置（0-100，左图占前 compareSplit%） */
 const compareSplit = ref(50)
 const compareSlideEl = ref<HTMLElement | null>(null)
@@ -4167,11 +4270,24 @@ const compareSlideSides = computed<{ left: { index: number; url: string }; right
   return { left: { index: a, url: ua }, right: { index: b, url: ub } }
 })
 
-const setCompareMode = (mode: 'grid' | 'slide') => {
+const setCompareMode = (mode: 'grid' | 'slide' | 'fade') => {
   compareMode.value = mode
   if (mode === 'slide') {
     compareSplit.value = 50
   }
+  if (mode === 'fade') {
+    compareFade.value = 60
+  }
+  try {
+    localStorage.setItem(COMPARE_MODE_KEY, mode)
+  } catch {
+    /* 隐私模式等场景 localStorage 不可写：只是不记忆偏好，功能不受影响 */
+  }
+}
+
+/** 叠加模式的方向键微调：每次 5%，不便拖滑杆的用户也能调 */
+const nudgeCompareFade = (delta: number) => {
+  compareFade.value = Math.min(100, Math.max(0, compareFade.value + delta))
 }
 
 const updateCompareSplit = (event: PointerEvent) => {
@@ -4217,8 +4333,9 @@ const openCompare = (task: GenerateTask) => {
   }
   compareTask.value = task
   compareOff.value = new Set()
-  compareMode.value = 'grid'
+  compareMode.value = loadCompareMode()
   compareSplit.value = 50
+  compareFade.value = 60
   nextTick(() => {
     document.querySelector<HTMLElement>('.wg-compare')?.focus()
   })
@@ -7074,6 +7191,62 @@ onUnmounted(() => {
 
 .wg-compare-slide-tag.is-right {
   right: 10px;
+}
+
+/* 叠加淡入：两张图叠满同一容器，上层图整体调透明度，比构图/色调用 */
+.wg-compare-fade {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: #171b26;
+  user-select: none;
+}
+
+.wg-compare-fade-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.wg-compare-fade-ctl {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px 10px;
+  background: linear-gradient(rgba(10, 12, 18, 0), rgba(10, 12, 18, 0.72));
+}
+
+.wg-compare-fade-tag {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.72);
+  color: rgba(238, 241, 248, 0.85);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.wg-compare-fade-range {
+  flex: 1;
+  height: 4px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #eef1f8;
 }
 
 /* ---------- 05 沉浸舞台 ---------- */
