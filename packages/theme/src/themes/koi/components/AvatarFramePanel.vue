@@ -2,7 +2,26 @@
   <div class="avatar-frame-panel">
     <div class="avatar-frame-toolbar">
       <span class="avatar-frame-toolbar-label">显示头像框</span>
-      <el-switch v-model="frameShow" @change="persistShow" />
+      <div class="avatar-frame-toolbar-actions">
+        <span class="avatar-frame-collect" title="头像框与饰品的收集进度">
+          收集
+          <span class="avatar-frame-collect-bar">
+            <span class="avatar-frame-collect-fill" :style="{ width: collectPercent + '%' }"></span>
+          </span>
+          {{ collectedCount }}/{{ collectTotal }}
+        </span>
+        <el-button
+          size="small"
+          text
+          type="primary"
+          :icon="Refresh"
+          :loading="randomDressing"
+          @click="randomDress"
+        >
+          随机换装
+        </el-button>
+        <el-switch v-model="frameShow" @change="persistShow" />
+      </div>
     </div>
 
     <template v-if="frameShow">
@@ -38,7 +57,15 @@
 
       <!-- 组合套装：框 + 挂件 + 昵称牌一键换装（纯前端推荐组合） -->
       <section class="avatar-frame-group">
-        <h4 class="avatar-frame-group-title" @click="setsOpen = !setsOpen">
+        <h4
+          class="avatar-frame-group-title"
+          role="button"
+          tabindex="0"
+          :aria-expanded="setsOpen"
+          @click="setsOpen = !setsOpen"
+          @keydown.enter.prevent="setsOpen = !setsOpen"
+          @keydown.space.prevent="setsOpen = !setsOpen"
+        >
           <span>组合套装</span>
           <span class="avatar-frame-group-count">{{ AVATAR_SETS.length }}</span>
           <el-icon class="avatar-frame-chevron" :class="{ 'is-collapsed': !setsOpen }" :size="12">
@@ -71,9 +98,78 @@
         </div>
       </section>
 
+      <!-- 我的搭配：本机保存的「框 + 挂件 + 昵称牌」组合，一键应用 -->
+      <section class="avatar-frame-group">
+        <h4
+          class="avatar-frame-group-title"
+          role="button"
+          tabindex="0"
+          :aria-expanded="outfitsOpen"
+          @click="outfitsOpen = !outfitsOpen"
+          @keydown.enter.prevent="outfitsOpen = !outfitsOpen"
+          @keydown.space.prevent="outfitsOpen = !outfitsOpen"
+        >
+          <span>我的搭配</span>
+          <span class="avatar-frame-group-count">{{ outfits.length }}</span>
+          <el-button
+            size="small"
+            text
+            type="primary"
+            class="avatar-frame-outfit-save"
+            @click.stop="openSaveOutfit"
+          >
+            存当前搭配
+          </el-button>
+          <el-icon class="avatar-frame-chevron" :class="{ 'is-collapsed': !outfitsOpen }" :size="12">
+            <ArrowDown />
+          </el-icon>
+        </h4>
+        <div v-show="outfitsOpen" class="avatar-frame-set-list">
+          <div v-for="outfit in outfits" :key="outfit.id" class="avatar-frame-set">
+            <img
+              v-if="outfitPoster(outfit)"
+              class="avatar-frame-set-img"
+              :src="outfitPoster(outfit)"
+              :alt="outfit.name"
+              loading="lazy"
+            />
+            <span v-else class="avatar-frame-set-img avatar-frame-set-img--none">—</span>
+            <div class="avatar-frame-set-info">
+              <span class="avatar-frame-set-name">{{ outfit.name }}</span>
+              <span class="avatar-frame-set-desc">{{ outfitDesc(outfit) }}</span>
+            </div>
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              :loading="applyingOutfit === outfit.id"
+              @click="applyOutfit(outfit)"
+            >
+              应用
+            </el-button>
+            <el-popconfirm title="删除这套搭配？" width="150" @confirm="removeOutfit(outfit.id)">
+              <template #reference>
+                <el-button size="small" text type="danger">删除</el-button>
+              </template>
+            </el-popconfirm>
+          </div>
+          <p v-if="!outfits.length" class="avatar-frame-outfit-empty">
+            还没有保存的搭配；戴好头像框和饰品后点「存当前搭配」。
+          </p>
+        </div>
+      </section>
+
       <template v-if="visibleGroups.length">
         <section v-for="group in visibleGroups" :key="group.title" class="avatar-frame-group">
-          <h4 class="avatar-frame-group-title" @click="toggleGroup(group.title)">
+          <h4
+            class="avatar-frame-group-title"
+            role="button"
+            tabindex="0"
+            :aria-expanded="!isCollapsed(group.title)"
+            @click="toggleGroup(group.title)"
+            @keydown.enter.prevent="toggleGroup(group.title)"
+            @keydown.space.prevent="toggleGroup(group.title)"
+          >
             <span>{{ group.title }}</span>
             <span class="avatar-frame-group-count">{{ group.items.length }}</span>
             <el-icon class="avatar-frame-chevron" :class="{ 'is-collapsed': isCollapsed(group.title) }" :size="12">
@@ -81,9 +177,10 @@
             </el-icon>
           </h4>
           <div v-show="!isCollapsed(group.title)" class="avatar-frame-grid">
-            <div
+            <button
               v-for="frame in group.items"
               :key="frame.id"
+              type="button"
               class="avatar-frame-item"
               :class="{ 'is-selected': selectedFrame === frame.id }"
               @click="activateFrame(frame)"
@@ -123,7 +220,7 @@
               </span>
               <span v-if="acquireLabel(frame)" class="avatar-frame-acquire">{{ acquireLabel(frame) }}</span>
               <el-icon v-if="selectedFrame === frame.id" class="avatar-frame-check"><CircleCheckFilled /></el-icon>
-            </div>
+            </button>
           </div>
         </section>
       </template>
@@ -144,7 +241,7 @@
           <div
             v-if="previewFrame && hasFrameVisual(previewFrame)"
             class="avatar-frame-img"
-            :style="frameLayerStyle(previewFrame, 120)"
+            :style="previewLayerStyle"
           ></div>
           <span v-else class="koi-avatar-default-frame" :style="defaultFrameLayerStyle(120)"></span>
           <el-avatar :size="120" :src="avatar" />
@@ -163,6 +260,22 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 保存当前搭配：起个名字存到本机 -->
+    <el-dialog v-model="outfitSaveVisible" width="320px" append-to-body destroy-on-close title="保存当前搭配">
+      <el-input
+        v-model="outfitSaveName"
+        maxlength="20"
+        show-word-limit
+        placeholder="搭配名称，如：日常 / 开会"
+        @keyup.enter="saveCurrentOutfit"
+      />
+      <p class="avatar-frame-outfit-hint">保存当前头像框与挂件/昵称牌组合，仅存本机。</p>
+      <template #footer>
+        <el-button size="small" @click="outfitSaveVisible = false">取消</el-button>
+        <el-button size="small" type="primary" @click="saveCurrentOutfit">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -177,8 +290,8 @@
  * 成功后刷新登录用户信息并 emit updated。
  */
 import { computed, onMounted, ref } from "vue";
-import { ArrowDown, CircleCheckFilled, Lock, Search, ZoomIn } from "@element-plus/icons-vue";
-import { msgError, msgSuccess } from "@repo/core";
+import { ArrowDown, CircleCheckFilled, Lock, Refresh, Search, ZoomIn } from "@element-plus/icons-vue";
+import { msgError, msgSuccess, msgWarning } from "@repo/core";
 import { resolveUserDisplayInfo, Http } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
@@ -201,8 +314,12 @@ import {
   isOrnamentExpired,
   isOrnamentOwned,
   ornamentCatalog,
+  ornamentWear,
+  ornamentsForSlot,
   wearOrnament,
 } from "./ornaments/store";
+import { ORNAMENT_SLOTS } from "./ornaments/types";
+import { loadOutfits, newOutfitId, persistOutfits, type AvatarOutfit } from "./avatarOutfits";
 
 /** 兜底「默认光环」选项（id=0）：字典不含透明占位帧时，保证始终能取下头像框 */
 const DEFAULT_FRAME_OPTION: AvatarFrame = {
@@ -324,12 +441,18 @@ const hoveredFrame = ref(0);
 /** poster 404 的帧（旧生肖/常规素材无 poster），永久回退 APNG */
 const posterBroken = ref<Set<number>>(new Set());
 
-/** 卡片预览图地址：hover 取 APNG 动图，其余取 poster 静帧 */
+/** 减少动态偏好：与 OrnamentBadge 的 CSS 口径一致，hover 不再切 APNG 动图 */
+const reducedMotion =
+  typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-reduced-motion: reduce)")
+    : null;
+
+/** 卡片预览图地址：hover 取 APNG 动图，其余取 poster 静帧；减少动态时保持静帧 */
 function cardSrc(frame: AvatarFrame): string | undefined {
   if (!frame.image) return undefined;
   const poster = avatarFramePosterPath(frame.image);
   if (!poster || posterBroken.value.has(frame.id)) return resolveAvatarFrameUrl(frame.image);
-  if (hoveredFrame.value === frame.id) return resolveAvatarFrameUrl(frame.image);
+  if (hoveredFrame.value === frame.id && !reducedMotion?.matches) return resolveAvatarFrameUrl(frame.image);
   return resolveAvatarFrameUrl(poster);
 }
 
@@ -345,13 +468,60 @@ function onPosterError(frame: AvatarFrame): void {
 const setsOpen = ref(true);
 const applyingSet = ref("");
 
-/** 套装封面：取套装头像框的 poster（无 poster 回退 APNG） */
-function setPoster(set: AvatarSet): string | undefined {
-  const frame = avatarFrameDict.value.find((f) => f.id === set.frameId);
+/** 头像框封面：优先 poster 静帧（无 poster 回退 APNG） */
+function framePosterById(frameId: number): string | undefined {
+  const frame = avatarFrameDict.value.find((f) => f.id === frameId);
   if (!frame?.image) return undefined;
   const poster = avatarFramePosterPath(frame.image);
   const usePoster = poster && !posterBroken.value.has(frame.id);
   return resolveAvatarFrameUrl(usePoster ? (poster as string) : frame.image);
+}
+
+/** 套装封面 */
+function setPoster(set: AvatarSet): string | undefined {
+  return framePosterById(set.frameId);
+}
+
+/** 搭配方案封面 */
+function outfitPoster(outfit: AvatarOutfit): string | undefined {
+  return framePosterById(outfit.frameId);
+}
+
+/**
+ * 按编码逐件「未领取先领取 → 佩戴」；任何一件失败不影响其余。
+ *
+ * @returns 未换上的饰品名单（用于套装 / 搭配的半失败提示）
+ */
+async function wearOrnamentsByCodes(codes: string[]): Promise<string[]> {
+  if (!isOrnamentEnabled()) return [];
+  const failed: string[] = [];
+  for (const code of codes) {
+    const item = ornamentCatalog.value.find((o) => o.code === code);
+    if (!item || isOrnamentExpired(item)) {
+      failed.push(item?.name ?? code);
+      continue;
+    }
+    if (!isOrnamentOwned(item)) {
+      const ok = await acquireOrnament(item);
+      if (!ok) {
+        failed.push(item.name);
+        continue;
+      }
+    }
+    if (!wearOrnament(item.slot, item)) failed.push(item.name);
+  }
+  return failed;
+}
+
+/** 组合穿戴的结果提示：全成 → 成功；半失败 → 警告并列出未换上的件 */
+function notifyDressResult(name: string, frameOk: boolean, failed: string[]): void {
+  if (!frameOk) {
+    // 头像框失败已由佩戴链路 toast，这里只补饰品侧的半失败
+    if (failed.length) msgWarning(`饰品未换上：${failed.join("、")}`);
+    return;
+  }
+  if (failed.length) msgWarning(`已换上「${name}」，部分饰品未穿戴：${failed.join("、")}`);
+  else msgSuccess(`已换上「${name}」`);
 }
 
 /**
@@ -363,19 +533,9 @@ async function applySet(set: AvatarSet): Promise<void> {
   applyingSet.value = set.key;
   try {
     const frame = avatarFrameDict.value.find((f) => f.id === set.frameId);
-    if (frame) await activateFrame(frame);
-    if (isOrnamentEnabled()) {
-      for (const code of set.ornamentCodes) {
-        const item = ornamentCatalog.value.find((o) => o.code === code);
-        if (!item || isOrnamentExpired(item)) continue;
-        if (!isOrnamentOwned(item)) {
-          const ok = await acquireOrnament(item);
-          if (!ok) continue;
-        }
-        wearOrnament(item.slot, item);
-      }
-    }
-    msgSuccess(`已换上「${set.name}」`);
+    const frameOk = frame ? await activateFrame(frame) : true;
+    const failed = await wearOrnamentsByCodes(set.ornamentCodes);
+    notifyDressResult(set.name, frameOk, failed);
     emit("updated");
   } finally {
     applyingSet.value = "";
@@ -406,6 +566,126 @@ async function applyBirthdayPick(): Promise<void> {
 function isLocked(frame: AvatarFrame): boolean {
   return isAvatarFrameLocked(frame) && !ownedIds.value.has(frame.id);
 }
+
+/* ==================== 我的搭配（localStorage） ==================== */
+
+const outfitsOpen = ref(true);
+const outfits = ref<AvatarOutfit[]>(loadOutfits());
+const applyingOutfit = ref("");
+const outfitSaveVisible = ref(false);
+const outfitSaveName = ref("");
+
+/** 搭配描述：框名 + 饰品名（编码可能已下架，查不到就显示编码） */
+function outfitDesc(outfit: AvatarOutfit): string {
+  const frame = avatarFrameDict.value.find((f) => f.id === outfit.frameId);
+  const parts = [frame?.name ?? "不佩戴"];
+  for (const code of outfit.ornamentCodes) {
+    parts.push(ornamentCatalog.value.find((o) => o.code === code)?.name ?? code);
+  }
+  return parts.join(" · ");
+}
+
+function openSaveOutfit(): void {
+  outfitSaveName.value = "";
+  outfitSaveVisible.value = true;
+}
+
+/** 当前佩戴（框 + 挂件/昵称牌）存成一套方案 */
+function saveCurrentOutfit(): void {
+  const name = outfitSaveName.value.trim() || `搭配 ${outfits.value.length + 1}`;
+  const codes = ORNAMENT_SLOTS.map((slot) => ornamentWear[slot]?.code).filter(
+    (c): c is string => Boolean(c),
+  );
+  outfits.value = [
+    {
+      id: newOutfitId(),
+      name,
+      frameId: selectedFrame.value || 0,
+      ornamentCodes: codes,
+      createdAt: Date.now(),
+    },
+    ...outfits.value,
+  ].slice(0, 20);
+  persistOutfits(outfits.value);
+  outfitSaveVisible.value = false;
+  msgSuccess(`已保存「${name}」`);
+}
+
+/** 一键应用方案：与套装同一链路（框 → /v2/user/update，饰品 → wearOrnament） */
+async function applyOutfit(outfit: AvatarOutfit): Promise<void> {
+  if (applyingOutfit.value) return;
+  applyingOutfit.value = outfit.id;
+  try {
+    let frameOk = true;
+    if (outfit.frameId) {
+      const frame = avatarFrameDict.value.find((f) => f.id === outfit.frameId);
+      frameOk = frame ? await activateFrame(frame) : false;
+    } else {
+      frameOk = await activateFrame(DEFAULT_FRAME_OPTION);
+    }
+    const failed = await wearOrnamentsByCodes(outfit.ornamentCodes);
+    notifyDressResult(outfit.name, frameOk, failed);
+    emit("updated");
+  } finally {
+    applyingOutfit.value = "";
+  }
+}
+
+function removeOutfit(id: string): void {
+  outfits.value = outfits.value.filter((o) => o.id !== id);
+  persistOutfits(outfits.value);
+}
+
+/* ==================== 随机换装 ==================== */
+
+const randomDressing = ref(false);
+
+function pickRandom<T>(list: T[]): T | undefined {
+  return list.length ? list[Math.floor(Math.random() * list.length)] : undefined;
+}
+
+/** 从可戴项里随机搭一套：头像框 + 每个饰品槽位各一件 */
+async function randomDress(): Promise<void> {
+  if (randomDressing.value) return;
+  randomDressing.value = true;
+  try {
+    const frame = pickRandom(avatarFrameDict.value.filter((f) => hasFrameVisual(f) && !isLocked(f)));
+    const frameOk = frame ? await activateFrame(frame) : true;
+    const codes: string[] = [];
+    for (const slot of ORNAMENT_SLOTS) {
+      const item = pickRandom(
+        ornamentsForSlot(slot).filter((o) => isOrnamentOwned(o) && !isOrnamentExpired(o)),
+      );
+      if (item) codes.push(item.code);
+    }
+    const failed = await wearOrnamentsByCodes(codes);
+    notifyDressResult("随机搭配", frameOk, failed);
+    emit("updated");
+  } finally {
+    randomDressing.value = false;
+  }
+}
+
+/* ==================== 收集进度 ==================== */
+
+const collectTotal = computed(() => {
+  const frames = avatarFrameDict.value.filter(hasFrameVisual).length;
+  if (!isOrnamentEnabled()) return frames;
+  return frames + ornamentCatalog.value.length;
+});
+
+const collectedCount = computed(() => {
+  const frames = avatarFrameDict.value.filter((f) => hasFrameVisual(f) && !isLocked(f)).length;
+  if (!isOrnamentEnabled()) return frames;
+  const ornaments = ornamentCatalog.value.filter(
+    (o) => isOrnamentOwned(o) && !isOrnamentExpired(o),
+  ).length;
+  return frames + ornaments;
+});
+
+const collectPercent = computed(() =>
+  collectTotal.value ? Math.round((collectedCount.value / collectTotal.value) * 100) : 0,
+);
 
 /** 读取用户已获取的限定帧（过期记录视为未持有） */
 async function loadOwned(): Promise<void> {
@@ -489,6 +769,17 @@ const previewHint = computed<string>(() => {
   return "动态素材 · 佩戴后随头像等比缩放";
 });
 
+/** 试戴弹层的框层样式；减少动态时换 poster 静帧，不播 APNG */
+const previewLayerStyle = computed<Record<string, string>>(() => {
+  const frame = previewFrame.value;
+  if (!frame || !hasFrameVisual(frame)) return {};
+  if (reducedMotion?.matches) {
+    const poster = avatarFramePosterPath(frame.image ?? "");
+    if (poster) return frameLayerStyle({ ...frame, image: poster }, 120);
+  }
+  return frameLayerStyle(frame, 120);
+});
+
 function openPreview(frame: AvatarFrame): void {
   previewFrame.value = frame;
   previewVisible.value = true;
@@ -501,11 +792,15 @@ async function wearPreview(): Promise<void> {
   await activateFrame(frame);
 }
 
-/** 点选头像框：限定帧先解锁，佩戴同时打开显示 */
-async function activateFrame(frame: AvatarFrame): Promise<void> {
-  if (selectedFrame.value === frame.id) return;
+/**
+ * 点选头像框：限定帧先解锁，佩戴同时打开显示。
+ *
+ * @returns 佩戴是否成功（未变化视为成功，便于套装 / 搭配的整体结果提示）
+ */
+async function activateFrame(frame: AvatarFrame): Promise<boolean> {
+  if (selectedFrame.value === frame.id) return true;
   const previous = selectedFrame.value;
-  if (isLocked(frame) && !(await acquireFrame(frame.id))) return;
+  if (isLocked(frame) && !(await acquireFrame(frame.id))) return false;
   const visible = hasFrameVisual(frame);
   selectedFrame.value = frame.id;
   const ok = await persistWear({ sysUserAvatarFrame: frame.id, sysUserAvatarFrameShow: visible ? 1 : 0 }, previous);
@@ -513,6 +808,7 @@ async function activateFrame(frame: AvatarFrame): Promise<void> {
     frameShow.value = visible;
     msgSuccess(visible ? "已佩戴头像框" : "已取下头像框");
   }
+  return ok;
 }
 
 /** 显隐开关：关闭后仍保留佩戴记录，只隐藏头像框 */
@@ -731,6 +1027,9 @@ onMounted(() => {
   padding: 12px 8px;
   border-radius: 12px;
   border: 1px solid var(--el-border-color);
+  background: transparent;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -854,5 +1153,92 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   text-align: center;
+}
+
+/* ==================== 工具栏扩展：收集进度 / 随机换装 ==================== */
+
+.avatar-frame-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar-frame-collect {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+.avatar-frame-collect-bar {
+  width: 56px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--el-fill-color);
+  overflow: hidden;
+}
+
+.avatar-frame-collect-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--el-color-primary);
+  transition: width 0.3s;
+}
+
+/* ==================== 我的搭配 ==================== */
+
+.avatar-frame-outfit-save {
+  height: 20px;
+  margin-left: 2px;
+  font-size: 11px;
+}
+
+.avatar-frame-outfit-empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-placeholder);
+}
+
+.avatar-frame-set-img--none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-placeholder);
+}
+
+.avatar-frame-outfit-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 键盘可达：卡片与折叠标题的焦点环 */
+.avatar-frame-item:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
+}
+
+.avatar-frame-group-title:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 减少动态：hover 位移与折叠箭头一并静止 */
+@media (prefers-reduced-motion: reduce) {
+  .avatar-frame-item:hover {
+    transform: none;
+  }
+
+  .avatar-frame-chevron {
+    transition: none;
+  }
 }
 </style>

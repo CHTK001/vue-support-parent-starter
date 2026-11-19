@@ -366,6 +366,26 @@ export function isOrnamentExpired(item: Ornament): boolean {
   return (Number.isFinite(catalog) && catalog <= now) || (Number.isFinite(grant) && grant <= now);
 }
 
+/** 临近过期提示窗口：7 天内才在卡片上打角标 */
+const EXPIRE_SOON_MS = 7 * 24 * 3600 * 1000;
+
+/**
+ * 临近过期的角标文案（如「3 天后过期」）；永久有效、已过期或超过 7 天返回 null。
+ *
+ * <p>目录级 expire 与领取记录 expireAt 取更近的一个，口径与 {@link isOrnamentExpired} 一致。</p>
+ */
+export function ornamentExpireHint(item: Ornament): string | null {
+  const now = Date.now();
+  const times = [parseTime(item.expire), parseTime(ornamentGrants.value[item.id])].filter((t) =>
+    Number.isFinite(t),
+  );
+  if (!times.length) return null;
+  const diff = Math.min(...times) - now;
+  if (diff <= 0 || diff > EXPIRE_SOON_MS) return null;
+  const days = Math.ceil(diff / (24 * 3600 * 1000));
+  return days <= 1 ? "即将过期" : `${days}天后过期`;
+}
+
 /**
  * 是否拥有（默认款人人有；限定款看领取记录）
  *

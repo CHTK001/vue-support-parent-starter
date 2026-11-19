@@ -23,6 +23,7 @@ import {
   isOrnamentWorn,
   nameplateStyle,
   ornamentCatalog,
+  ornamentExpireHint,
   ornamentLoading,
   ornamentWear,
   ornamentsForSlot,
@@ -276,6 +277,9 @@ onMounted(() => {
 
           <span v-if="isOrnamentExpired(item)" class="op-card__badge op-card__badge--expired">
             已过期
+          </span>
+          <span v-else-if="ornamentExpireHint(item)" class="op-card__badge op-card__badge--soon">
+            {{ ornamentExpireHint(item) }}
           </span>
           <span v-else-if="!isOrnamentOwned(item)" class="op-card__badge">领取</span>
           <el-icon
@@ -685,6 +689,10 @@ onMounted(() => {
 
 .op-card__badge--expired {
   background: var(--el-text-color-placeholder);
+}
+
+.op-card__badge--soon {
+  background: var(--el-color-warning);
 }
 
 .op-note {
