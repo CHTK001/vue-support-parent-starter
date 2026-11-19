@@ -323,6 +323,22 @@
 
           <div v-if="stageRow" class="wg-stage-body">
             <section class="wg-stage-main">
+              <!-- 参考图随行：放大看结果时，来源构图仍在一旁，不用退回画廊对答案 -->
+              <div
+                v-if="stageRow.task.referenceImage"
+                v-viewer="viewerOptions"
+                class="wg-stage-ref"
+                aria-label="本任务的参考图"
+              >
+                <span class="wg-stage-ref-label">参考图</span>
+                <img
+                  v-if="!mediaFailed(stageRow.task.referenceImage)"
+                  :src="mediaSrc(stageRow.task.referenceImage)"
+                  alt="参考图"
+                  :style="{ aspectRatio: refRatioOf(stageRow.task) }"
+                />
+                <span v-else class="wg-stage-ref-lost">参考图已丢失</span>
+              </div>
               <!-- 说明浮层压在画面上：题目 + 规格 + 操作，全部贴着这张图 -->
               <figure class="wg-stage-figure" v-viewer="viewerOptions">
                 <!--
@@ -341,15 +357,19 @@
                   v-if="stageRow.task.type === 'video' && stageItem && !mediaFailed(stageItem.url)"
                   :src="mediaVideoSrc(stageItem.url)"
                   class="wg-stage-media"
+                  :class="{ 'is-loaded': loadedImages.has(stageItem.key) }"
                   controls
                   preload="metadata"
+                  @loadeddata="markLoaded(stageItem.key)"
                 />
                 <img
                   v-else-if="stageItem && !mediaFailed(stageItem.url)"
                   :src="mediaSrc(stageItem.url)"
                   class="wg-stage-media"
+                  :class="{ 'is-loaded': loadedImages.has(stageItem.key) }"
                   :alt="stageRow.task.prompt"
                   decoding="async"
+                  @load="markLoaded(stageItem.key)"
                 />
                 <div v-else class="wg-stage-lost" role="img" aria-label="原图已丢失">原图已丢失</div>
 
@@ -374,6 +394,16 @@
                   </div>
 
                   <div class="wg-stage-acts">
+                    <button
+                      v-if="stageRow.task.prompt"
+                      type="button"
+                      class="wg-stage-act"
+                      aria-label="复制提示词"
+                      title="复制提示词"
+                      @click="copyPrompt(stageRow.task.prompt)"
+                    >
+                      <WgIcon :d="ICONS.copy" />
+                    </button>
                     <button
                       type="button"
                       class="wg-stage-act"
@@ -1300,6 +1330,15 @@
           class="wg-file"
           @change="onFilePicked"
         />
+
+        <!-- 参考图上传后的裁剪弹层：按目标画幅定构图，取消则退回整图直用的原流程 -->
+        <GenerateRefCropper
+          :open="refCropOpen"
+          :src="refCropSrc"
+          :aspect-ratio="refCropRatio"
+          @update:open="onRefCropOpenChange"
+          @confirm="onRefCropConfirm"
+        />
       </footer>
     </section>
   </div>
@@ -1357,6 +1396,7 @@ import 'viewerjs/dist/viewer.css'
 /** 图片预览指令：在 .wg-grid 上使用，v-viewer="viewerOptions" 传 viewerjs 配置 */
 const vViewer = viewerDirective({ name: 'viewer' })
 import GenerateComposer from './GenerateComposer.vue'
+import GenerateRefCropper from './GenerateRefCropper.vue'
 import RePageHead from '@/components/ui/RePageHead.vue'
 import PickerPopover from '@/components/ui/PickerPopover.vue'
 import { getModelAvatarPath } from '../../utils/modelUtils'
@@ -2326,7 +2366,28 @@ const stageStep = (delta: number) => {
   stageItemIndex.value = (stageSafeIndex.value + delta + items.length) % items.length
 }
 
-/** 舞台键盘：Esc 回画廊、←/→ 换张。只在舞台生效，不抢画廊里方向键的滚动 */
+/** Home/End：跳到当前任务的首张 / 末张；单张任务则跳到最早 / 最新一条记录 */
+const stageJumpEdge = (edge: 'start' | 'end') => {
+  const items = stageItems.value
+  if (!items.length) {
+    return
+  }
+  if (items.length === 1) {
+    const list = resultRows.value
+    if (list.length < 2) {
+      return
+    }
+    const current = Math.max(0, list.findIndex((row) => row.id === stageRow.value?.id))
+    const next = edge === 'start' ? 0 : list.length - 1
+    if (next !== current) {
+      stagePickTask(list[next])
+    }
+    return
+  }
+  stageItemIndex.value = edge === 'start' ? 0 : items.length - 1
+}
+
+/** 舞台键盘：Esc 回画廊、←/→ 换张、Home/End 跳首末。只在舞台生效，不抢画廊里方向键的滚动 */
 const onCanvasKeydown = (ev: KeyboardEvent) => {
   if (viewMode.value !== 'stage') {
     return
@@ -2340,6 +2401,12 @@ const onCanvasKeydown = (ev: KeyboardEvent) => {
   } else if (ev.key === 'ArrowRight') {
     ev.preventDefault()
     stageStep(1)
+  } else if (ev.key === 'Home') {
+    ev.preventDefault()
+    stageJumpEdge('start')
+  } else if (ev.key === 'End') {
+    ev.preventDefault()
+    stageJumpEdge('end')
   }
 }
 
@@ -2355,7 +2422,13 @@ const fanCardStyle = (index: number) => ({
  * 其余情况返回空值，不使用内联样式。
  */
 const thumbStyle = (row: Row, index: number) => {
-  if (resultLayout(row) === 'single') {
+  const layout = resultLayout(row)
+  if (layout === 'single') {
+    return { aspectRatio: aspectOf(row.task.size) }
+  }
+  // 画廊里 2–4 张任务的内图也按任务画幅出比例：与单张瀑布流保持同一节奏，
+  // 方图与横竖图混排时不再「单张有高差、多张全是方块」。
+  if (viewMode.value === 'gallery' && (layout === 'pair' || layout === 'quad')) {
     return { aspectRatio: aspectOf(row.task.size) }
   }
   return isFanCard(row, index) ? fanCardStyle(index) : undefined
@@ -2786,6 +2859,22 @@ const clearReference = () => {
   referenceMeta.value = null
 }
 
+/**
+ * 参考图裁剪流程状态。
+ * 上传后先弹裁剪层（按当前画幅比例定构图）；确认 → 裁剪产物走 shrink 落库；
+ * 取消 → 退回「整图直接用」的原流程，不强迫用户裁剪。
+ */
+const refCropOpen = ref(false)
+const refCropSrc = ref('')
+let pendingRefFile: File | null = null
+let refCropApplied = false
+
+/** 裁剪目标比例取当前选中画幅；没有画幅信息时给 undefined（自由裁剪） */
+const refCropRatio = computed<number | undefined>(() => {
+  const matched = /^(\d+)\s*[x×*]\s*(\d+)$/i.exec((size.value || '').trim())
+  return matched ? Number(matched[1]) / Number(matched[2]) : undefined
+})
+
 const onFilePicked = async (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -2793,6 +2882,39 @@ const onFilePicked = async (event: Event) => {
     return
   }
   input.value = ''
+  // 上一张还在缩放：再开选择框会让两次结果互相覆盖
+  if (shrinkingRef.value) {
+    message.info('上一张图还在处理中')
+    return
+  }
+  pendingRefFile = file
+  refCropApplied = false
+  refCropSrc.value = await readAsDataUrl(file)
+  refCropOpen.value = true
+}
+
+const onRefCropOpenChange = (open: boolean) => {
+  refCropOpen.value = open
+  // 关闭且不是确认后自动关（confirm 里已置位）→ 视为取消，用原图直接走老流程
+  if (!open && !refCropApplied && pendingRefFile) {
+    const file = pendingRefFile
+    pendingRefFile = null
+    void applyReferenceFile(file)
+  }
+}
+
+const onRefCropConfirm = (payload: { dataUrl: string; width: number; height: number }) => {
+  refCropApplied = true
+  pendingRefFile = null
+  const blob = dataUrlToBlob(payload.dataUrl)
+  void applyReferenceFile(new File([blob], 'reference.jpg', { type: 'image/jpeg' }))
+}
+
+/** 把选中的图缩放后写入参考图位（裁剪确认与取消直用两条路共用） */
+const applyReferenceFile = async (file: File) => {
+  if (shrinkingRef.value) {
+    return
+  }
   shrinkingRef.value = true
   try {
     const result = await shrinkReference(file)
@@ -2810,6 +2932,18 @@ const onFilePicked = async (event: Event) => {
   } finally {
     shrinkingRef.value = false
   }
+}
+
+/** data URL → Blob：裁剪产物要转回 File 才能复用 shrinkReference 管线 */
+const dataUrlToBlob = (dataUrl: string): Blob => {
+  const [head, body] = dataUrl.split(',')
+  const mime = /:(.*?);/.exec(head)?.[1] ?? 'image/jpeg'
+  const binary = atob(body)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return new Blob([bytes], { type: mime })
 }
 
 /**
@@ -5229,6 +5363,26 @@ onUnmounted(() => {
   background: var(--color-secondary-surface);
 }
 
+/* 画廊 2–4 张任务：内图与单张同口径，按任务画幅出比例（比例由 thumbStyle
+   写进 .wg-thumb 的内联 aspect-ratio），媒体绝对铺满，不再一律裁成方图。
+   尺寸未知时 aspectOf 回落 1:1，与旧行为一致。 */
+.wg-list.is-gallery .wg-grid.is-pair .wg-media,
+.wg-list.is-gallery .wg-grid.is-quad .wg-media,
+.wg-list.is-gallery .wg-grid.is-pair .wg-media-lost,
+.wg-list.is-gallery .wg-grid.is-quad .wg-media-lost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.wg-list.is-gallery .wg-grid.is-pair .wg-media,
+.wg-list.is-gallery .wg-grid.is-quad .wg-media {
+  object-fit: contain;
+  background: var(--color-secondary-surface);
+}
+
 /* 有参考图且只有 1 张结果时，参考图不再与结果同尺度并排，
    缩回窄档（120px），让成片视觉上占主导。 */
 .wg-list.is-gallery .wg-card-media.is-ref-peer .wg-ref-src {
@@ -5866,6 +6020,7 @@ onUnmounted(() => {
   .wg-stage-back,
   .wg-stage-navbtn,
   .wg-stage-act,
+  .wg-stage-media,
   .wg-stage-film-item,
   .wg-stage-rail-item,
   .wg-icon {
@@ -6061,6 +6216,47 @@ onUnmounted(() => {
   max-height: 100%;
   object-fit: contain;
   cursor: zoom-in;
+  /* 大图解码完成前保持透明，避免先弹灰块再被图盖住的二次闪烁（与画廊 wg-media 同口径） */
+  opacity: 0;
+  transition: opacity 0.22s ease-out;
+}
+
+.wg-stage-media.is-loaded {
+  opacity: 1;
+}
+
+/* 参考图随行条：贴在画框上方，小尺寸还原构图，点击进 viewer 看原图 */
+.wg-stage-ref {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.wg-stage-ref-label {
+  flex: 0 0 auto;
+  color: var(--stg-dim);
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.wg-stage-ref img {
+  display: block;
+  height: 84px;
+  max-width: 180px;
+  object-fit: cover;
+  border: 1px solid var(--stg-line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: zoom-in;
+}
+
+.wg-stage-ref-lost {
+  padding: 6px 10px;
+  border: 1px dashed var(--stg-line);
+  border-radius: 8px;
+  color: var(--stg-dim);
+  font-size: 12px;
 }
 
 /* 虚化底：比画框大一圈，边缘被 overflow 裁掉，避免模糊后露出硬边 */
