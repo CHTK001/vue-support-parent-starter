@@ -163,6 +163,14 @@ socketConfig:
   #   enable: true
   #   protocol: sse
   #   path: /sse/connect
+  #
+  # 切「独立 SSE Server」（推荐：推送不占主应用吞吐）：
+  #   enable: true
+  #   protocol: sse-server
+  #   path: /sse/connect          # 独立 Server 也只注册这一条 POST
+  #   urls: http://<sse-host>:<sse-port>
+  # 后端对应 plugin.socket.protocol=sse-server + plugin.socket.room[0].port=<sse-port>；
+  # 客户端不配 urls 时会回退同源，等于又走回主应用端口，必须配 urls 才是真独立。
   # SSE 的 token 走 x-oauth-token / Authorization 请求头，不再写进 URL；
   # 当前仍保留 socket.io，等后端 SSE 端点部署并验收后再切。
   enable: true
