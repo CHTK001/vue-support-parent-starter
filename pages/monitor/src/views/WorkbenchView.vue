@@ -14,10 +14,14 @@ import { useRouter } from "vue-router";
 import { getConfig, getGlobalSocketConfig, useSocketService } from "@repo/core";
 import { http, unwrapResult } from "@repo/utils";
 import ReTable from "@repo/ui/re-table";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { queryHosts, testConnectHost } from "@pages/server/src/api";
-import { fetchAlarmEvents, alarmLevel, isUnhandled, type AlarmEvent } from "../api/monitorApi";
+import { fetchAlarmEvents, alarmLevel, isUnhandled, handleAlarmEvent, type AlarmEvent } from "../api/monitorApi";
+import { getAlarmSummary, getAlarmTrend } from "../api/index";
 import { getTsharkStatus, type TsharkRuntimeStatus } from "../api";
+import { serverNodeSummary, subscribeServerStream, type ServerNodeSummary } from "../api/serviceManage";
+import { confirmThen } from "../utils/confirmThen";
+import { metricLabel, statusOf } from "./alarm/alarmView";
 
 const router = useRouter();
 const socket = useSocketService();
@@ -29,6 +33,30 @@ const alarmsError = ref("");
 const hosts = ref<any[]>([]);
 const events = ref<AlarmEvent[]>([]);
 const lastRefresh = ref("");
+
+/** 后端告警统计（取代前端全量拉+分桶） */
+interface AlarmStatsSummary {
+  todayTotal: number;
+  unprocessed: number;
+  processed: number;
+  falseAlarm: number;
+  levelDistribution: Record<string, number>;
+}
+const alarmSummary = ref<AlarmStatsSummary | null>(null);
+/** 后端告警趋势：{ time, count }[]，后端按小时正序返回 */
+const alarmTrendData = ref<{ time: string; count: number }[]>([]);
+
+/** 服务节点运行态摘要 */
+const nodesSummary = ref<ServerNodeSummary | null>(null);
+const nodesLoadError = ref("");
+let serverStreamHandle: { close: () => void } | undefined;
+
+/** 告警处理弹窗（行内处理 / 误报） */
+const handleVisible = ref(false);
+const handleTarget = ref<AlarmEvent | null>(null);
+const handleRemark = ref("");
+const handleFalseAlarm = ref(false);
+const handleSubmitting = ref(false);
 
 const tsharkStatus = ref<TsharkRuntimeStatus | null>(null);
 const tsharkError = ref("");
@@ -59,7 +87,6 @@ interface CapabilityChip {
 }
 
 const LEVELS = ["P0", "P1", "P2", "P3", "P4"] as const;
-const LEVEL_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3, P4: 4 };
 const LEVEL_COLORS: Record<string, string> = {
   P0: "var(--sev-p0-text, var(--status-error))",
   P1: "var(--sev-p1-text, var(--status-warning))",
@@ -88,9 +115,12 @@ const socketTarget = computed(() => {
 
 const enabledCount = computed(() => hosts.value.filter(h => Number(h.serverHostStatus) !== 0).length);
 const onlineCount = computed(() => hosts.value.filter(h => Number(h.serverHostOnline) === 1).length);
-const unhandledCount = computed(() => events.value.filter(isUnhandled).length);
-const totalAlarms = computed(() => events.value.length);
+const unhandledCount = computed(() => alarmSummary.value?.unprocessed ?? events.value.filter(isUnhandled).length);
+const totalAlarms = computed(() => alarmSummary.value?.todayTotal ?? events.value.length);
 const levelCounts = computed(() => {
+  const dist = alarmSummary.value?.levelDistribution;
+  if (dist) return dist;
+  // 后端统计接口不可用时退回事件列表口径：只影响首屏数字，不影响“统计走后端”的主路径
   const m: Record<string, number> = { P0: 0, P1: 0, P2: 0, P3: 0, P4: 0 };
   for (const e of events.value) m[alarmLevel(e)]++;
   return m;
@@ -128,31 +158,22 @@ const avgDelay = computed(() => {
 });
 const hostOnline = computed(() => hosts.value.filter(h => Number(h.serverHostOnline) === 1).length);
 
-const HOUR = 3600_000;
-const alarmTrend = computed(() => {
-  const now = Date.now();
-  const buckets = Array.from({ length: 24 }, (_, i) => {
-    const d = new Date(now - (23 - i) * HOUR);
-    return { hour: d.getHours(), count: 0, top: "P4" };
-  });
-  for (const e of events.value) {
-    const t = parseAlarmTime(e.msMonitorAlarmEventTriggerTime);
-    if (t == null) continue;
-    const age = now - t;
-    if (age < 0 || age >= 24 * HOUR) continue;
-    const idx = 23 - Math.floor(age / HOUR);
-    if (idx < 0 || idx > 23) continue;
-    buckets[idx].count += 1;
-    const lv = alarmLevel(e);
-    if ((LEVEL_ORDER[lv] ?? 9) < (LEVEL_ORDER[buckets[idx].top] ?? 9)) buckets[idx].top = lv;
-  }
-  return buckets;
-});
-const trendMax = computed(() => Math.max(1, ...alarmTrend.value.map(b => b.count)));
-/** 落在近 24 小时窗口内的事件数（totalAlarms 含窗口外的历史事件） */
-const trendTotal = computed(() => alarmTrend.value.reduce((sum, b) => sum + b.count, 0));
+/** 服务节点运行态汇总 */
+const nodesTotal = computed(() => nodesSummary.value?.total ?? 0);
+const nodesRunning = computed(() => nodesSummary.value?.running ?? 0);
+const nodesStopped = computed(() => nodesSummary.value?.stopped ?? 0);
+const nodesError = computed(() => nodesSummary.value?.error ?? 0);
+const nodesUnknown = computed(() => nodesSummary.value?.unknown ?? 0);
+const nodesPlugins = computed(() => nodesSummary.value?.plugins ?? 0);
+
+/** 后端告警趋势（按后端返回的时间轴正序） */
+const trendMax = computed(() => Math.max(1, ...alarmTrendData.value.map(b => b.count)));
+const trendTotal = computed(() => alarmTrendData.value.reduce((sum, b) => sum + b.count, 0));
 const trendLabels = computed(() =>
-  [0, 6, 12, 18, 23].map(i => (i === 23 ? "现在" : `${String(alarmTrend.value[i]?.hour ?? 0).padStart(2, "0")}:00`)),
+  [0, 6, 12, 18, 23]
+    .map(i => alarmTrendData.value[i])
+    .filter(Boolean)
+    .map(b => b!.time),
 );
 
 function checkOf(key: string): DiagCheck | undefined {
@@ -326,12 +347,151 @@ async function loadAlarms(): Promise<void> {
   }
 }
 
+/** 后端告警统计 + 趋势（取代前端全量拉+分桶） */
+async function loadAlarmStats(): Promise<void> {
+  try {
+    const [summary, trend] = await Promise.all([getAlarmSummary(), getAlarmTrend(24)]);
+    alarmSummary.value = summary;
+    alarmTrendData.value = trend ?? [];
+  } catch (e) {
+    alarmsError.value = alarmsError.value || describeError(e);
+  }
+}
+
+/** 服务节点运行态摘要 */
+async function loadServerNodes(): Promise<void> {
+  try {
+    nodesSummary.value = await serverNodeSummary();
+    nodesLoadError.value = "";
+  } catch (e) {
+    nodesLoadError.value = describeError(e);
+  }
+}
+
+/** 订阅服务节点状态流：节点定义/运行态变更时静默重取摘要 */
+function bindServerStream(): void {
+  serverStreamHandle = subscribeServerStream({
+    onChanged: () => void loadServerNodes(),
+    onError: e => {
+      nodesLoadError.value = describeError(e);
+    },
+  });
+}
+
+/** 把毫秒时长格式化为人类可读文本 */
+function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "—";
+  const totalSec = Math.round(ms / 1000);
+  if (totalSec < 60) return `${totalSec} 秒`;
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  if (min < 60) return `${min} 分${sec ? ` ${sec} 秒` : ""}`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${h} 小时${m ? ` ${m} 分` : ""}`;
+}
+
+/** 主机离线时长文本（未在线且有最近在线时间时显示） */
+function hostOfflineText(h: any): string {
+  if (Number(h.serverHostOnline) === 1) return "在线";
+  const t = parseAlarmTime(h.serverHostOnlineTime);
+  if (t == null) return "离线";
+  return `离线 ${formatDuration(Date.now() - t)}`;
+}
+
+/** 主机数据陈旧度文本（仅在线且超过 5 分钟未采集时提示；离线时长由延迟列表达） */
+function hostStaleText(h: any): string {
+  if (!isHostOnline(h)) return "";
+  const t = parseAlarmTime(h.serverHostLastCollectTime);
+  if (t == null) return "";
+  const min = Math.floor((Date.now() - t) / 60_000);
+  if (min < 5) return "";
+  return `数据 ${min} 分钟未更新`;
+}
+
+/** 指标值的可读文本（整数原样，小数最多两位） */
+function fmtNum(v: unknown): string {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "—";
+  return Number.isInteger(n) ? String(n) : n.toFixed(2);
+}
+
+/** 告警处理耗时（MTTR）文本 */
+function mttrText(row: AlarmEvent): string {
+  const status = String(row.msMonitorAlarmEventStatus || "").toUpperCase();
+  if (status === "NEW") return "处理中";
+  const end = parseAlarmTime(row.msMonitorAlarmEventHandleTime as unknown as string);
+  const start = parseAlarmTime(row.msMonitorAlarmEventTriggerTime);
+  if (start == null || end == null) return "—";
+  return formatDuration(end - start);
+}
+
+/** 告警处理态标签 */
+function alarmStatusLabel(row: AlarmEvent): { label: string; tone: "ok" | "warn" | "error" | "mute" } {
+  const s = statusOf(row.msMonitorAlarmEventStatus);
+  switch (s) {
+    case "new": return { label: "未处理", tone: "error" };
+    case "processed": return { label: "已处理", tone: "ok" };
+    case "false": return { label: "误报", tone: "mute" };
+    default: return { label: "—", tone: "mute" };
+  }
+}
+
+function openHost(h: any): void {
+  // 深链到该主机的「指标监控」页签：只读，不会触发 SSH 会话
+  router.push(`/assets?hostId=${h.id}&tab=metrics`);
+}
+
+function openHandle(row: AlarmEvent): void {
+  const status = String(row.msMonitorAlarmEventStatus || "").toUpperCase();
+  if (status !== "NEW") return;
+  handleTarget.value = row;
+  handleRemark.value = "";
+  handleFalseAlarm.value = false;
+  handleVisible.value = true;
+}
+
+/** 行内「误报」：与「处理」共用弹窗，只是预先勾上误报开关 */
+function openFalseAlarm(row: AlarmEvent): void {
+  const status = String(row.msMonitorAlarmEventStatus || "").toUpperCase();
+  if (status !== "NEW") return;
+  handleTarget.value = row;
+  handleRemark.value = "";
+  handleFalseAlarm.value = true;
+  handleVisible.value = true;
+}
+
+async function submitHandle(): Promise<void> {
+  const row = handleTarget.value;
+  if (!row) return;
+  const ok = await confirmThen(
+    ElMessageBox.confirm,
+    `确定将「${row.msMonitorAlarmEventMetricName || String(row.id)}」标记为 ${handleFalseAlarm.value ? "误报" : "已处理"}？`,
+    "处理告警",
+    { type: "warning" },
+  );
+  if (!ok) return;
+  handleSubmitting.value = true;
+  try {
+    await handleAlarmEvent(row.id, handleRemark.value || (handleFalseAlarm.value ? "误报" : "已处理"), handleFalseAlarm.value);
+    handleVisible.value = false;
+    await Promise.all([loadAlarms(), loadAlarmStats()]);
+    ElMessage.success("处理完成");
+  } catch (e) {
+    ElMessage.error(String((e as Error)?.message ?? e));
+  } finally {
+    handleSubmitting.value = false;
+    handleTarget.value = null;
+  }
+}
+
 async function fetchAll(silent = false): Promise<void> {
   if (!silent) loading.value = true;
   loadError.value = "";
   hostsError.value = "";
   alarmsError.value = "";
-  await Promise.all([loadHosts(), loadAlarms()]);
+  nodesLoadError.value = "";
+  await Promise.all([loadHosts(), loadAlarms(), loadAlarmStats(), loadServerNodes()]);
   lastAlarmPollAt = Date.now();
   hasFetched = true;
   if (hostsError.value && alarmsError.value) {
@@ -561,6 +721,7 @@ onMounted(() => {
   void fetchAll();
   void loadTsharkStatus();
   bindSocket();
+  bindServerStream();
   startPolling();
   document.addEventListener("visibilitychange", onVisibility);
 });
@@ -579,6 +740,7 @@ onBeforeUnmount(() => {
   unsubOnline?.();
   unsubMetrics?.();
   unsubAlarm?.();
+  serverStreamHandle?.close();
 });
 </script>
 
@@ -694,15 +856,18 @@ onBeforeUnmount(() => {
               :key="h.id"
               type="button"
               class="host-row"
-              @click="router.push('/assets')"
+              @click="openHost(h)"
             >
               <span class="host-dot" :class="isHostOnline(h) ? 'is-on' : 'is-off'" />
               <span class="host-avatar">{{ (h.serverHostName || "?").slice(0, 1).toUpperCase() }}</span>
               <span class="host-main">
                 <span class="host-name">{{ h.serverHostName || "未命名主机" }}</span>
                 <span class="host-meta">{{ h.serverHostAddress || "—" }}:{{ h.serverHostPort || "—" }} · {{ groupLabel(h) }}</span>
+                <span v-if="hostStaleText(h)" class="host-stale">{{ hostStaleText(h) }}</span>
               </span>
-              <span class="host-delay">{{ delayText(h) }}</span>
+              <span class="host-delay" :class="{ off: !isHostOnline(h) }">
+                {{ isHostOnline(h) ? delayText(h) : hostOfflineText(h) }}
+              </span>
               <span class="host-remote" :class="{ on: isHostRemote(h) }">{{ isHostRemote(h) ? "远控开" : "远控关" }}</span>
               <span class="host-metrics">
                 <template v-if="metricItems(h).some(m => m.has)">
@@ -762,15 +927,14 @@ onBeforeUnmount(() => {
         <div class="trend" :class="{ 'is-empty': trendTotal === 0 }">
           <div class="trend-bars">
             <span
-              v-for="(b, i) in alarmTrend"
-              :key="i"
+              v-for="(b, i) in alarmTrendData"
+              :key="b.time ?? i"
               class="trend-bar"
-              :class="{ 'is-current': i === 23, 'is-zero': b.count === 0 }"
+              :class="{ 'is-current': i === alarmTrendData.length - 1, 'is-zero': b.count === 0 }"
               :style="{
                 height: b.count ? `${Math.max(8, (b.count / trendMax) * 100)}%` : '3px',
-                background: b.count ? LEVEL_COLORS[b.top] : undefined,
               }"
-              :title="`${b.hour}:00 · ${b.count} 条`"
+              :title="`${b.time} · ${b.count} 条`"
             />
           </div>
           <div class="trend-axis">
@@ -803,8 +967,9 @@ onBeforeUnmount(() => {
           class="alarm-table"
           :layout-table="{ minHeight: 0 }"
           :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+          table-id="workbench-alarms"
         >
-          <ReTableColumn label="级别" width="76" align="center">
+          <ReTableColumn label="级别" width="70" align="center">
             <template #default="{ row }">
               <span class="tag" :class="`sev-${alarmLevel(row)}`">{{ alarmLevel(row) }}</span>
             </template>
@@ -814,19 +979,38 @@ onBeforeUnmount(() => {
           </ReTableColumn>
           <ReTableColumn label="指标" min-width="130">
             <template #default="{ row }">
-              <span class="truncate">{{ row.msMonitorAlarmEventMetricName || "—" }}</span>
+              <span class="truncate">{{ metricLabel(row.msMonitorAlarmEventMetricName) }}</span>
             </template>
           </ReTableColumn>
-          <ReTableColumn label="时间" width="96">
+          <ReTableColumn label="实际值/阈值" width="128">
             <template #default="{ row }">
-              <span class="mono dim">{{ (row.msMonitorAlarmEventTriggerTime || "").slice(5, 16) }}</span>
+              <span class="mono">{{ fmtNum(row.msMonitorAlarmEventAlarmValue) }}/{{ fmtNum(row.msMonitorAlarmEventThreshold) }}</span>
+            </template>
+          </ReTableColumn>
+          <ReTableColumn label="处理态" width="76" align="center">
+            <template #default="{ row }">
+              <span class="tag" :class="`tone-${alarmStatusLabel(row).tone}`">{{ alarmStatusLabel(row).label }}</span>
+            </template>
+          </ReTableColumn>
+          <ReTableColumn label="处理耗时" width="92" align="right">
+            <template #default="{ row }">
+              <span class="mono dim">{{ mttrText(row) }}</span>
+            </template>
+          </ReTableColumn>
+          <ReTableColumn label="操作" width="110" align="center">
+            <template #default="{ row }">
+              <span v-if="isUnhandled(row)" class="row-actions">
+                <ReButton text size="small" type="primary" @click.stop="openHandle(row)">处理</ReButton>
+                <ReButton text size="small" @click.stop="openFalseAlarm(row)">误报</ReButton>
+              </span>
+              <span v-else class="dim">—</span>
             </template>
           </ReTableColumn>
         </ReTable>
       </section>
 
       <!-- 快捷操作：按能力可用性收敛 -->
-      <section class="wb-card span-7">
+      <section class="wb-card span-12">
         <header class="card-head">
           <div>
             <span class="card-title">快捷操作</span>
@@ -845,6 +1029,52 @@ onBeforeUnmount(() => {
           <ReButton class="quick-tile" icon="Cpu" show-text @click="router.push('/monitor/server')">监控大屏</ReButton>
           <ReButton class="quick-tile" icon="Bell" show-text @click="router.push('/alarms')">告警中心</ReButton>
           <ReButton class="quick-tile" icon="Monitor" show-text @click="router.push('/assets')">主机资产</ReButton>
+          <ReButton class="quick-tile" icon="SetUp" show-text @click="router.push('/services')">服务管理</ReButton>
+        </div>
+      </section>
+
+      <!-- 服务节点运行态：协议服务端的整体存活面（运行/停止/异常/未知/插件） -->
+      <section class="wb-card span-7">
+        <header class="card-head">
+          <div>
+            <span class="card-title">服务节点</span>
+            <span class="card-sub">{{ nodesRunning }}/{{ nodesTotal }} 运行中 · {{ nodesPlugins }} 个插件</span>
+          </div>
+          <ReButton text size="small" icon="ArrowRight" @click="router.push('/services')">服务管理</ReButton>
+        </header>
+        <div v-if="nodesLoadError" class="section-error">
+          <span>{{ nodesLoadError }}</span>
+          <ReButton text size="small" type="primary" @click="fetchAll()">重试</ReButton>
+        </div>
+        <div v-if="!nodesTotal" class="empty-state">
+          <ReEmpty description="还没有协议服务节点，去服务管理页创建" />
+          <ReButton type="primary" size="small" icon="Plus" @click="router.push('/services')">去创建节点</ReButton>
+        </div>
+        <div v-else class="node-grid">
+          <div class="node-cell">
+            <span class="node-num">{{ nodesTotal }}</span>
+            <span class="node-label">节点总数</span>
+          </div>
+          <div class="node-cell is-ok">
+            <span class="node-num">{{ nodesRunning }}</span>
+            <span class="node-label">运行中</span>
+          </div>
+          <div class="node-cell is-mute">
+            <span class="node-num">{{ nodesStopped }}</span>
+            <span class="node-label">已停止</span>
+          </div>
+          <div class="node-cell is-err">
+            <span class="node-num">{{ nodesError }}</span>
+            <span class="node-label">异常</span>
+          </div>
+          <div class="node-cell is-warn">
+            <span class="node-num">{{ nodesUnknown }}</span>
+            <span class="node-label">未知</span>
+          </div>
+          <div class="node-cell">
+            <span class="node-num">{{ nodesPlugins }}</span>
+            <span class="node-label">插件</span>
+          </div>
         </div>
       </section>
 
@@ -904,6 +1134,34 @@ onBeforeUnmount(() => {
       </div>
       <p v-if="diagAt" class="drawer-time">上次检测 {{ diagAt }}</p>
     </el-drawer>
+
+    <!-- 告警处理弹窗：行内「处理 / 误报」共用，误报只是预勾选开关 -->
+    <ReDialog v-model="handleVisible" title="处理告警事件" width="440px">
+      <div v-if="handleTarget" class="dlg-meta">
+        <span>
+          <span class="dlg-level" :class="`sev-${alarmLevel(handleTarget)}`">{{ alarmLevel(handleTarget) }}</span>
+          · <b>{{ handleTarget.msMonitorAlarmEventMonitorName || "—" }}</b>
+        </span>
+        <span class="dlg-dim">
+          {{ metricLabel(handleTarget.msMonitorAlarmEventMetricName) }}
+          = {{ fmtNum(handleTarget.msMonitorAlarmEventAlarmValue) }}
+          （阈值 {{ fmtNum(handleTarget.msMonitorAlarmEventThreshold) }}）
+          · {{ handleTarget.msMonitorAlarmEventTriggerTime || "—" }}
+        </span>
+      </div>
+      <ReInput v-model="handleRemark" type="textarea" :rows="3" placeholder="处理备注（可留空）" />
+      <ReSwitch v-model="handleFalseAlarm" active-text="标记为误报" style="margin-top: 10px" />
+      <template #footer>
+        <ReButton @click="handleVisible = false">取消</ReButton>
+        <ReButton
+          type="primary"
+          icon="Check"
+          show-text
+          :loading="handleSubmitting"
+          @click="submitHandle"
+        >确认处理</ReButton>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -1023,6 +1281,7 @@ onBeforeUnmount(() => {
 }
 .span-7 { grid-column: span 7; }
 .span-5 { grid-column: span 5; }
+.span-12 { grid-column: span 12; }
 
 .wb-card {
   background: var(--bg-container);
@@ -1078,6 +1337,8 @@ onBeforeUnmount(() => {
 .host-name { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .host-meta { font-size: 11px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .host-delay { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text-secondary); text-align: right; }
+.host-delay.off { color: var(--status-warning); }
+.host-stale { font-size: 10px; color: var(--status-warning); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .host-remote {
   font-size: 10px; font-weight: 600;
   padding: 1px 6px;
@@ -1108,6 +1369,56 @@ onBeforeUnmount(() => {
 .sev-P0, .sev-P1 { color: var(--status-error); }
 .sev-P2 { color: var(--status-warning); }
 .sev-P3, .sev-P4 { color: var(--text-tertiary); }
+
+/* ── 服务节点运行态 ──────────────────────────────── */
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.node-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-muted, rgba(0, 0, 0, 0.02));
+}
+.node-num {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+.node-cell.is-ok .node-num { color: var(--status-success); }
+.node-cell.is-err .node-num { color: var(--status-error); }
+.node-cell.is-warn .node-num { color: var(--status-warning); }
+.node-cell.is-mute .node-num { color: var(--text-tertiary); }
+.node-label { font-size: 11px; color: var(--text-tertiary); }
+
+/* ── 告警处理态标签 ─────────────────────────────── */
+.tone-ok { color: var(--status-success); }
+.tone-error { color: var(--status-error); }
+.tone-warn { color: var(--status-warning); }
+.tone-mute { color: var(--text-tertiary); }
+.row-actions { display: inline-flex; align-items: center; gap: 2px; }
+
+/* ── 处理弹窗 ───────────────────────────────────── */
+.dlg-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.dlg-meta b { color: var(--text-primary); }
+.dlg-level { font-weight: 600; }
+.dlg-dim { color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
 
 /* ── 告警趋势 ──────────────────────────────────────── */
 .trend { position: relative; display: flex; flex-direction: column; gap: 6px; padding-top: 2px; flex: 1; }

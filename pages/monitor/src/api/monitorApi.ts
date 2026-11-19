@@ -32,6 +32,10 @@ export interface AlarmEvent {
   msMonitorAlarmEventLevel: string;
   msMonitorAlarmEventStatus: string;
   msMonitorAlarmEventTriggerTime: string;
+  /** 处理备注（未处理时为空） */
+  msMonitorAlarmEventHandleRemark?: string;
+  /** 处理时间（未处理时为空，与触发时间之差即处理耗时） */
+  msMonitorAlarmEventHandleTime?: string;
 }
 
 /**
