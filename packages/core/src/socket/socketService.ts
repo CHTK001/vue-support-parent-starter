@@ -214,7 +214,8 @@ export function createSocketService(config: SocketServiceConfig): SocketTemplate
       return createWebSocketService(wsConfig);
     }
 
-    case "sse": {
+    case "sse":
+    case "sse-server": {
       const sseConfig: SseConfig = {
         urls: config.urls || [],
         path: config.path,

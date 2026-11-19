@@ -12,7 +12,12 @@
 import type { InjectionKey, Ref } from "vue";
 
 /** 支持的 Socket 协议类型 */
-export type ProtocolType = "socketio" | "websocket" | "sse";
+/**
+ * 协议类型。
+ * - `sse`：同源嵌入式 SSE（主应用吞吐）
+ * - `sse-server`：独立部署的 SSE Server（单独端口），客户端行为与 `sse` 一致，仅用于区分部署形态
+ */
+export type ProtocolType = "socketio" | "websocket" | "sse" | "sse-server";
 
 /** subscribe 消息结构（module + event 分发模式） */
 export interface WsMessage {
