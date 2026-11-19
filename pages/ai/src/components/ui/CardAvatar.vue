@@ -5,6 +5,8 @@
     class="object-cover flex-shrink-0"
     :class="sizeClass"
     :style="radiusStyle"
+    loading="lazy"
+    decoding="async"
     @error="onError"
   />
   <div

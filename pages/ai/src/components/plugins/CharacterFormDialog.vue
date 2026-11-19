@@ -1,7 +1,7 @@
 <template>
   <ReDialog :close-on-click-modal="true"
     v-model="visible"
-    :title="isEdit ? '编辑角色' : '新建角色'"
+    :title="isEdit ? t('plugins.characters.form.editTitle') : t('plugins.characters.form.addTitle')"
     width="640px"
     align-center
     append-to-body
@@ -19,31 +19,31 @@
       <section class="cf-section">
         <div class="cf-section-head">
           <span class="cf-section-ico"><el-icon :size="15"><Info24Regular /></el-icon></span>
-          <span class="cf-section-title">基本信息</span>
+          <span class="cf-section-title">{{ t('plugins.characters.form.sectionBasic') }}</span>
         </div>
 
-        <el-form-item label="角色名称" prop="title">
-          <el-input v-model="form.title" placeholder="如：资深前端工程师" clearable maxlength="40" show-word-limit />
+        <el-form-item :label="t('plugins.characters.form.nameLabel')" prop="title">
+          <el-input v-model="form.title" :placeholder="t('plugins.characters.form.namePlaceholder')" clearable maxlength="40" show-word-limit />
         </el-form-item>
 
         <div class="cf-grid">
-          <el-form-item label="角色标识" prop="code">
+          <el-form-item :label="t('plugins.characters.form.codeLabel')" prop="code">
             <el-input
               v-model="form.code"
-              placeholder="留空自动生成"
+              :placeholder="t('plugins.characters.form.codePlaceholder')"
               :disabled="isEdit"
               clearable
             />
           </el-form-item>
-          <el-form-item label="分类">
+          <el-form-item :label="t('plugins.characters.form.categoryLabel')">
             <el-select v-model="form.category" class="cf-full">
               <el-option v-for="c in categoryOptions" :key="c" :label="c" :value="c" />
             </el-select>
           </el-form-item>
         </div>
 
-        <el-form-item label="头像地址（可选）">
-          <el-input v-model="form.avatar" placeholder="https://... 留空使用默认头像" clearable>
+        <el-form-item :label="t('plugins.characters.form.avatarLabel')">
+          <el-input v-model="form.avatar" :placeholder="t('plugins.characters.form.avatarPlaceholder')" clearable>
             <template #prefix><el-icon><Image24Regular /></el-icon></template>
           </el-input>
         </el-form-item>
@@ -53,19 +53,19 @@
       <section class="cf-section">
         <div class="cf-section-head">
           <span class="cf-section-ico"><el-icon :size="15"><Edit24Regular /></el-icon></span>
-          <span class="cf-section-title">角色设定</span>
+          <span class="cf-section-title">{{ t('plugins.characters.form.sectionProfile') }}</span>
         </div>
 
-        <el-form-item label="一句话描述">
-          <el-input v-model="form.description" placeholder="这个角色擅长什么？" clearable maxlength="120" show-word-limit />
+        <el-form-item :label="t('plugins.characters.form.descLabel')">
+          <el-input v-model="form.description" :placeholder="t('plugins.characters.form.descPlaceholder')" clearable maxlength="120" show-word-limit />
         </el-form-item>
 
-        <el-form-item label="系统提示词" prop="systemPrompt">
+        <el-form-item :label="t('plugins.characters.form.promptLabel')" prop="systemPrompt">
           <el-input
             v-model="form.systemPrompt"
             type="textarea"
             :autosize="{ minRows: 7, maxRows: 16 }"
-            placeholder="描述角色的身份、能力、工作原则与输出要求……"
+            :placeholder="t('plugins.characters.form.promptPlaceholder')"
             class="cf-prompt"
           />
         </el-form-item>
@@ -75,17 +75,17 @@
       <section class="cf-section">
         <div class="cf-section-head">
           <span class="cf-section-ico"><el-icon :size="15"><WrenchScrewdriver24Regular /></el-icon></span>
-          <span class="cf-section-title">模型与参数（可选）</span>
+          <span class="cf-section-title">{{ t('plugins.characters.form.sectionModel') }}</span>
         </div>
 
         <div class="cf-grid">
-          <el-form-item label="绑定模型">
+          <el-form-item :label="t('plugins.characters.form.modelLabel')">
             <el-select
               v-model="form.modelId"
               class="cf-full"
               clearable
               filterable
-              placeholder="不绑定则用默认模型"
+              :placeholder="t('plugins.characters.form.modelPlaceholder')"
             >
               <el-option-group
                 v-for="group in modelGroups"
@@ -102,7 +102,7 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="随机性 Temperature">
+          <el-form-item :label="t('plugins.characters.form.temperatureLabel')">
             <ReNumberInput
               v-model="form.temperature"
               :min="0"
@@ -111,19 +111,19 @@
               :precision="1"
               controls-position="right"
               class="cf-full"
-              placeholder="默认"
+              :placeholder="t('plugins.characters.form.temperaturePlaceholder')"
             />
           </el-form-item>
         </div>
-        <div class="cf-hint">绑定模型仅在使用该角色时生效，不影响其它会话。</div>
+        <div class="cf-hint">{{ t('plugins.characters.form.modelHint') }}</div>
       </section>
     </el-form>
 
     <template #footer>
       <div class="cf-footer">
-        <el-button class="cf-btn" @click="visible = false">取消</el-button>
+        <el-button class="cf-btn" @click="visible = false">{{ t('plugins.characters.cancel') }}</el-button>
         <el-button class="cf-btn" type="primary" :loading="saving" @click="handleSave">
-          {{ isEdit ? '保存修改' : '创建角色' }}
+          {{ isEdit ? t('plugins.characters.form.saveEdit') : t('plugins.characters.form.create') }}
         </el-button>
       </div>
     </template>
@@ -133,6 +133,7 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import ReDialog from '@repo/ui/re-dialog'
 import {
@@ -142,6 +143,8 @@ import { apiService } from '@/services/ApiService'
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 
 const emit = defineEmits<{ saved: [] }>()
+
+const { t } = useI18n()
 
 const categoryOptions = [
   '研发效能', '数据分析', '写作办公', '营销运营', '通用助手', '专业翻译与学习', '生活规划',
@@ -190,11 +193,11 @@ async function loadModelGroups() {
 }
 
 const rules = computed(() => ({
-  title: { required: true, message: '请输入角色名称', trigger: 'blur' },
-  systemPrompt: { required: true, message: '请输入系统提示词', trigger: 'blur' },
+  title: { required: true, message: t('plugins.characters.form.nameRequired'), trigger: 'blur' },
+  systemPrompt: { required: true, message: t('plugins.characters.form.promptRequired'), trigger: 'blur' },
   code: {
     pattern: /^[a-zA-Z0-9_-]*$/,
-    message: '标识仅支持字母、数字、下划线、短横线',
+    message: t('plugins.characters.form.codePattern'),
     trigger: 'blur',
   },
 }))
@@ -250,16 +253,16 @@ async function handleSave() {
     }
     if (isEdit.value && editingId.value) {
       await apiService.updateCharacter(editingId.value, payload)
-      message.success('角色已更新')
+      message.success(t('plugins.characters.form.updated'))
     } else {
       await apiService.createCharacter(payload)
-      message.success('角色已创建')
+      message.success(t('plugins.characters.form.created'))
     }
     visible.value = false
     emit('saved')
   } catch (e: any) {
     console.error('保存角色失败:', e)
-    message.error(e?.message || '保存失败')
+    message.error(e?.message || t('plugins.characters.form.saveFailed'))
   } finally {
     saving.value = false
   }

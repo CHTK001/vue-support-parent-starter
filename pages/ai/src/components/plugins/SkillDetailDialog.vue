@@ -20,20 +20,20 @@
     </div>
     <div v-else-if="skill" class="detail-body">
       <div class="detail-title">{{ skill.name }}</div>
-      <div class="detail-desc">{{ skill.description || '（无描述）' }}</div>
+      <div class="detail-desc">{{ skill.description || t('plugins.skills.detail.noDescription') }}</div>
 
       <div class="detail-content-card">
         <div class="markdown-doc prose dark:prose-invert max-w-none" v-html="rendered"></div>
         <div v-if="truncated" class="detail-truncated">
-          完整内容较长，仅展示前 8000 字符
+          {{ t('plugins.skills.detail.truncated') }}
         </div>
       </div>
     </div>
 
     <template #footer>
-      <el-button v-if="skill?.installed" type="success" disabled>已安装</el-button>
+      <el-button v-if="skill?.installed" type="success" disabled>{{ t('plugins.skills.detail.installed') }}</el-button>
       <el-button v-else type="primary" :loading="installing" @click="skill && emit('install', skill)">
-        添加
+        {{ t('plugins.market.cta.skills') }}
       </el-button>
     </template>
   </ReDialog>
@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Loading } from '@element-plus/icons-vue';
 import ReDialog from '@repo/ui/re-dialog';
 import CardAvatar from '@/components/ui/CardAvatar.vue';
@@ -71,6 +72,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', v: boolean): void;
   (e: 'install', skill: SkillDetailTarget): void;
 }>();
+
+const { t } = useI18n();
 
 const { parseMarkdown } = useMarkdown();
 const MAX_CHARS = 8000;
@@ -110,7 +113,7 @@ async function load() {
       });
       const payload = resp?.data ?? resp;
       if (!payload?.available) {
-        error.value = '该技能暂无可预览内容（源未返回 SKILL.md）';
+        error.value = t('plugins.skills.detail.noPreviewContent');
         return;
       }
       raw = payload.content || '';
@@ -120,7 +123,7 @@ async function load() {
       raw = resp.content || '';
     } else {
       if (!props.skill.zipUrl) {
-        error.value = '该技能未提供可预览的 ZIP 包';
+        error.value = t('plugins.skills.detail.noZipPreview');
         return;
       }
       const preview = await apiService.previewMarketSkill(props.skill.zipUrl);
@@ -135,7 +138,7 @@ async function load() {
     }
   } catch (e: any) {
     console.error('加载技能详情失败:', e);
-    error.value = e?.message || '加载 SKILL.md 失败';
+    error.value = e?.message || t('plugins.skills.detail.loadFailed');
   } finally {
     loading.value = false;
   }

@@ -1,23 +1,23 @@
 <template>
   <ReDialog :close-on-click-modal="true" :model-value="visible" @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="isEdit ? '编辑 MCP 服务器' : '添加 MCP 服务器'" width="600px" align-center destroy-on-close
+    :title="isEdit ? t('plugins.mcp.editTitle') : t('plugins.mcp.addTitle')" width="600px" align-center destroy-on-close
     append-to-body>
     <el-form label-position="top" class="mf-form" @submit.prevent>
       <!-- 基本信息 -->
       <section class="mf-section">
         <div class="mf-section-head">
           <span class="mf-section-ico"><el-icon :size="14"><Info24Regular /></el-icon></span>
-          <span class="mf-section-title">基本信息</span>
+          <span class="mf-section-title">{{ t('plugins.mcp.form.sectionBasic') }}</span>
         </div>
-        <el-form-item label="名称" required>
-          <el-input v-model="form.name" placeholder="例如 DeepWiki" clearable maxlength="40" />
+        <el-form-item :label="t('plugins.mcp.form.nameLabel')" required>
+          <el-input v-model="form.name" :placeholder="t('plugins.mcp.form.namePlaceholder')" clearable maxlength="40" />
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="t('plugins.mcp.form.descLabel')">
           <el-input v-model="form.description" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }"
-            placeholder="该 MCP 的用途说明" />
+            :placeholder="t('plugins.mcp.form.descPlaceholder')" />
         </el-form-item>
-        <el-form-item label="图标（图片 URL 或图标名，可留空）">
-          <el-input v-model="form.icon" placeholder="https://example.com/icon.png 或 BookSearch20Regular" clearable />
+        <el-form-item :label="t('plugins.mcp.form.iconLabel')">
+          <el-input v-model="form.icon" :placeholder="t('plugins.mcp.form.iconPlaceholder')" clearable />
         </el-form-item>
       </section>
 
@@ -25,7 +25,7 @@
       <section class="mf-section">
         <div class="mf-section-head">
           <span class="mf-section-ico"><el-icon :size="14"><PlugConnected24Regular /></el-icon></span>
-          <span class="mf-section-title">连接方式</span>
+          <span class="mf-section-title">{{ t('plugins.mcp.form.sectionConnection') }}</span>
         </div>
 
         <div class="mf-transport">
@@ -34,7 +34,12 @@
             :key="opt.value"
             class="mf-transport-item"
             :class="{ active: form.transportType === opt.value }"
+            role="button"
+            tabindex="0"
+            :aria-pressed="form.transportType === opt.value"
             @click="form.transportType = opt.value"
+            @keydown.enter.prevent="form.transportType = opt.value"
+            @keydown.space.prevent="form.transportType = opt.value"
           >
             <el-icon class="mf-transport-ico" :size="17"><component :is="opt.icon" /></el-icon>
             <span class="mf-transport-label">{{ opt.label }}</span>
@@ -46,12 +51,12 @@
 
         <!-- HTTP / SSE -->
         <template v-if="form.transportType !== 'stdio'">
-          <el-form-item label="服务地址" required class="mf-mt">
+          <el-form-item :label="t('plugins.mcp.urlLabel')" required class="mf-mt">
             <el-input v-model="form.url" placeholder="https://example.com/mcp" clearable>
               <template #prefix><el-icon><Globe24Regular /></el-icon></template>
             </el-input>
           </el-form-item>
-          <el-form-item label="请求头（JSON 对象，可留空）">
+          <el-form-item :label="t('plugins.mcp.form.headersLabel')">
             <el-input v-model="form.headersText" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }"
               :placeholder='headersPlaceholder' class="mf-mono" />
           </el-form-item>
@@ -59,16 +64,16 @@
 
         <!-- stdio -->
         <template v-else>
-          <el-form-item label="启动命令" required class="mf-mt">
+          <el-form-item :label="t('plugins.mcp.form.commandLabel')" required class="mf-mt">
             <el-input v-model="form.command" :placeholder="isWindows ? 'npx.cmd' : 'npx'" clearable>
               <template #prefix><el-icon><WindowConsole20Regular /></el-icon></template>
             </el-input>
           </el-form-item>
-          <el-form-item label="参数（每行一个；也可用空格分隔）">
+          <el-form-item :label="t('plugins.mcp.form.argsLabel')">
             <el-input v-model="form.argsText" type="textarea" :autosize="{ minRows: 3, maxRows: 8 }"
               :placeholder="argsPlaceholder" class="mf-mono" />
           </el-form-item>
-          <el-form-item label="环境变量（JSON 对象，可留空）">
+          <el-form-item :label="t('plugins.mcp.form.envLabel')">
             <el-input v-model="form.envText" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }"
               :placeholder='envPlaceholder' class="mf-mono" />
           </el-form-item>
@@ -78,8 +83,8 @@
 
     <template #footer>
       <div class="mf-footer">
-        <el-button class="mf-btn" @click="emit('update:visible', false)">取消</el-button>
-        <el-button class="mf-btn" type="primary" :loading="saving" @click="handleSave">确定</el-button>
+        <el-button class="mf-btn" @click="emit('update:visible', false)">{{ t('plugins.mcp.cancel') }}</el-button>
+        <el-button class="mf-btn" type="primary" :loading="saving" @click="handleSave">{{ t('plugins.mcp.form.confirm') }}</el-button>
       </div>
     </template>
   </ReDialog>
@@ -88,6 +93,7 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { reactive, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import ReDialog from '@repo/ui/re-dialog'
 import {
@@ -107,13 +113,15 @@ const emit = defineEmits<{
   'save': [payload: { id?: string; data: any }]
 }>()
 
+const { t } = useI18n()
+
 const isWindows = navigator.platform.toLowerCase().includes('win')
 const isEdit = !!props.initial?.mcp_server_id
 
 const transportOptions = [
   { label: 'Streamable HTTP', value: 'streamable_http', icon: Globe24Regular },
   { label: 'SSE', value: 'sse', icon: PlugConnected24Regular },
-  { label: 'stdio 进程', value: 'stdio', icon: Desktop24Regular },
+  { label: t('plugins.mcp.form.transportStdio'), value: 'stdio', icon: Desktop24Regular },
 ]
 
 const headersPlaceholder = '{ "Authorization": "Bearer xxx" }'
@@ -191,7 +199,7 @@ function parseJsonObject(text: string, label: string): Record<string, string> | 
     }
     return obj
   } catch {
-    message.error(`${label} 不是合法的 JSON 对象`)
+    message.error(t('plugins.mcp.form.invalidJson', { label }))
     throw new Error(`invalid ${label}`)
   }
 }
@@ -207,7 +215,7 @@ function splitArgs(text: string): string[] {
 
 function handleSave() {
   if (!form.name.trim()) {
-    message.error('请填写名称')
+    message.error(t('plugins.mcp.form.nameRequired'))
     return
   }
 
@@ -215,19 +223,19 @@ function handleSave() {
   try {
     if (form.transportType === 'stdio') {
       if (!form.command.trim()) {
-        message.error('请填写启动命令')
+        message.error(t('plugins.mcp.form.commandRequired'))
         return
       }
       transport = { type: 'stdio', command: form.command.trim(), args: splitArgs(form.argsText) }
-      const env = parseJsonObject(form.envText, '环境变量')
+      const env = parseJsonObject(form.envText, t('plugins.mcp.form.envField'))
       if (env) transport.env = env
     } else {
       if (!form.url.trim()) {
-        message.error('请填写服务地址')
+        message.error(t('plugins.mcp.form.urlRequired'))
         return
       }
       transport = { type: form.transportType, url: form.url.trim() }
-      const headers = parseJsonObject(form.headersText, '请求头')
+      const headers = parseJsonObject(form.headersText, t('plugins.mcp.form.headersField'))
       if (headers) transport.headers = headers
     }
   } catch {

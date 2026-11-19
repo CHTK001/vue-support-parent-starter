@@ -1,7 +1,7 @@
 <template>
   <ReDialog :close-on-click-modal="true"
     v-model="visible"
-    title="添加本地工具"
+    :title="t('plugins.localTools.form.title')"
     width="520px"
     align-center
     append-to-body
@@ -15,10 +15,10 @@
       class="ct-form"
       @submit.prevent
     >
-      <el-form-item label="工具名称（可选）">
+      <el-form-item :label="t('plugins.localTools.form.nameLabel')">
         <el-input
           v-model="form.name"
-          placeholder="留空则读取清单中的名称"
+          :placeholder="t('plugins.localTools.form.namePlaceholder')"
           clearable
           maxlength="40"
         >
@@ -26,10 +26,10 @@
         </el-input>
       </el-form-item>
 
-      <el-form-item label="工具目录" prop="path">
+      <el-form-item :label="t('plugins.localTools.form.pathLabel')" prop="path">
         <el-input
           v-model="form.path"
-          placeholder="如 D:\\tools\\my-plugin"
+          :placeholder="t('plugins.localTools.form.pathPlaceholder')"
           clearable
         >
           <template #prefix><el-icon><Folder24Regular /></el-icon></template>
@@ -39,16 +39,15 @@
       <div class="ct-tip">
         <el-icon class="ct-tip-ico"><Info24Regular /></el-icon>
         <div class="ct-tip-text">
-          目录中需包含 <code>plugin.json</code> 或 <code>package.json</code> 清单；
-          若所选目录本身没有清单，会自动扫描它的一级子目录。
+          {{ t('plugins.localTools.form.tipBefore') }} <code>plugin.json</code> {{ t('plugins.localTools.form.tipOr') }} <code>package.json</code> {{ t('plugins.localTools.form.tipAfter') }}
         </div>
       </div>
     </el-form>
 
     <template #footer>
       <div class="ct-footer">
-        <el-button class="ct-btn" @click="visible = false">取消</el-button>
-        <el-button class="ct-btn" type="primary" :loading="saving" @click="handleSave">添加</el-button>
+        <el-button class="ct-btn" @click="visible = false">{{ t('plugins.localTools.form.cancel') }}</el-button>
+        <el-button class="ct-btn" type="primary" :loading="saving" @click="handleSave">{{ t('plugins.localTools.form.confirm') }}</el-button>
       </div>
     </template>
   </ReDialog>
@@ -57,6 +56,7 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import ReDialog from '@repo/ui/re-dialog'
 import {
@@ -66,13 +66,15 @@ import { apiService } from '@/services/ApiService'
 
 const emit = defineEmits<{ saved: [] }>()
 
+const { t } = useI18n()
+
 const visible = ref(false)
 const saving = ref(false)
 const formRef = ref<any>(null)
 const form = ref({ name: '', path: '' })
 
 const rules = {
-  path: { required: true, message: '请输入工具目录路径', trigger: 'blur' },
+  path: { required: true, message: t('plugins.localTools.form.pathRequired'), trigger: 'blur' },
 }
 
 function open() {
@@ -92,14 +94,14 @@ async function handleSave() {
   try {
     const res = await apiService.addCustomTool(form.value.name.trim(), form.value.path.trim())
     if (!res.success) {
-      message.error(res.message || '添加失败')
+      message.error(res.message || t('plugins.localTools.form.addFailed'))
       return
     }
-    message.success(`已添加 ${res.count ?? ''} 个工具`)
+    message.success(t('plugins.localTools.form.addedCount', { count: res.count ?? '' }))
     visible.value = false
     emit('saved')
   } catch (e: any) {
-    message.error(e?.message || '添加失败')
+    message.error(e?.message || t('plugins.localTools.form.addFailed'))
   } finally {
     saving.value = false
   }

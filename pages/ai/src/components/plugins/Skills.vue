@@ -38,79 +38,9 @@
         <input ref="zipInputRef" type="file" accept=".zip,application/zip" class="hidden-file-input"
             @change="onZipPicked" />
 
-        <!-- Skills 列表（已合并到下方市场，保留占位避免布局抖动） -->
-        <div class="space-y-4" v-if="false">
-            <!-- 技能卡片列表 -->
-            <div class="grid gap-y-4 gap-x-3" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
-                <div v-for="skill in skills" :key="skill.id"
-                    class="plugin-card re-surface re-surface--dense flex flex-col overflow-hidden cursor-pointer"
-                    :style="skill.enabled === false ? { opacity: 0.6 } : {}"
-                    @click="handleViewDocumentation(skill.id)">
-                    <div class="flex items-center gap-2.5 mb-3">
-                        <PluginIcon :icon="skill.manifest.icon" :name="skill.manifest.name || skill.id" />
-                        <h3 class="font-semibold text-gray-900 dark:text-[var(--el-text-color-primary)] truncate flex-1 min-w-0" style="font-size: var(--size-text-sm);">
-                            {{ skill.manifest.name || skill.id }}
-                        </h3>
-                        <el-tag v-if="skill.source === 'system'" type="success" effect="light">{{ t('plugins.skills.sourceBuiltin') }}</el-tag>
-                        <el-tag v-else-if="skill.source === 'agents'" type="warning" effect="light">{{ t('plugins.skills.sourceShared') }}</el-tag>
-                        <el-tag v-if="skill.manifest.version" type="info" effect="plain">v{{ skill.manifest.version }}</el-tag>
-                    </div>
-
-                    <p class="text-gray-400 dark:text-[var(--el-text-color-secondary)] line-clamp-2 h-[2.5rem]" style="font-size: calc(var(--size-text-base) - 2px);">
-                    {{ skill.manifest.description || t('plugins.skills.noDescription') }}
-                    </p>
-
-                    <div class="flex items-center justify-end gap-2 mt-3">
-                        <el-button link @click.stop="handleReloadSkill(skill.id)"
-                            :loading="reloadingSkills.has(skill.id)">
-                            {{ t('plugins.skills.reload') }}
-                        </el-button>
-                        <el-button v-if="skill.source !== 'system' && skill.source !== 'agents'" link type="danger"
-                            @click.stop="handleUninstallSkill(skill.id)"
-                            :loading="uninstallingSkills.has(skill.id)">
-                            {{ t('plugins.skills.uninstall') }}
-                        </el-button>
-                        <LTooltip v-else-if="skill.source === 'agents'" :content="t('plugins.skills.sharedTooltip')" placement="top">
-                            <el-button link type="danger" disabled>
-                                {{ t('plugins.skills.uninstall') }}
-                            </el-button>
-                        </LTooltip>
-                        <el-switch
-                            :model-value="skill.enabled !== false"
-                            :loading="updatingSkills.has(skill.id)"
-                            @update:model-value="(val: string | number | boolean) => handleToggleSkill(skill.id, !!val)"
-                            @click.stop
-
-                            inline-prompt
-                            :active-text="t('common.enable')"
-                            :inactive-text="t('common.disable')"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <!-- 空状态 -->
-            <div v-if="!loading && skills.length === 0"
-                class="re-surface overflow-hidden">
-                <div class="p-12 text-center">
-                    <el-icon size="64" class="mb-4 opacity-50 text-gray-400">
-                        <InboxOutlined />
-                    </el-icon>
-                    <div class="text-xl font-medium text-gray-600 dark:text-[var(--el-text-color-primary)] mb-2">
-                        {{ t('plugins.skills.empty') }}
-                    </div>
-                    <div class="text-sm text-gray-500 dark:text-[var(--el-text-color-secondary)] mb-4">
-                        {{ t('plugins.skills.emptyHint') }}
-                    </div>
-                    <el-button type="primary" @click="handleShowInstallDialog">
-                        <template #icon>
-                            <UploadOutlined />
-                        </template>
-                        {{ t('plugins.skills.install') }}
-                    </el-button>
-                </div>
-            </div>
-        </div>
+        <!-- 计数 + 排序工具条 -->
+        <MarketToolbar v-if="!loadingMarket && marketSkills.length" market="skills"
+            :total="marketSkills.length" :filtered="marketFilteredCount" />
 
         <!-- 技能市场（整页：分类标签 + 分组 + 紧凑条目） -->
         <div class="skill-market">
@@ -154,13 +84,18 @@
 
                     <!-- 分组列表 -->
                     <div v-for="g in marketGroups" :key="g.cat" class="market-group">
-                        <div class="market-group-head" @click="toggleGroup(g.cat)">
+                        <div class="market-group-head" role="button" tabindex="0"
+                            @click="toggleGroup(g.cat)"
+                            @keydown.enter.self.prevent="toggleGroup(g.cat)"
+                            @keydown.space.self.prevent="toggleGroup(g.cat)">
                             <span class="market-group-title">{{ g.cat }}</span>
                             <span class="market-group-arrow" :class="{ collapsed: collapsedGroups.has(g.cat) }">›</span>
                         </div>
                         <div v-show="!collapsedGroups.has(g.cat)" class="market-grid">
                             <div v-for="skill in g.items" :key="skill.id" class="market-cell market-cell--clickable"
-                                @click="openSkillDetail(skill)">
+                                role="button" tabindex="0" @click="openSkillDetail(skill)"
+                                @keydown.enter.self.prevent="openSkillDetail(skill)"
+                                @keydown.space.self.prevent="openSkillDetail(skill)">
                                 <PluginIcon :icon="skill.icon" :name="skill.name" class="market-cell-icon" />
                                 <div class="market-cell-body">
                                     <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(skill.name, marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
@@ -179,15 +114,8 @@
                     </div>
 
                     <!-- 搜索无结果空态 -->
-                    <div v-if="marketGroups.length === 0" class="market-empty">
-                        <svg class="market-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="11" cy="11" r="7" />
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                        </svg>
-                        <div class="market-empty__title">{{ t('plugins.skills.searchNoResult') }}</div>
-                        <div class="market-empty__hint">&ldquo;{{ marketKeyword }}&rdquo;</div>
-                    </div>
+                    <MarketEmpty v-if="marketGroups.length === 0" market="skills"
+                        :title="t('plugins.skills.searchNoResult')" :hint="marketKeyword" clearable />
                  </template>
 
                  <!-- 顶部搜索结果：后台「本地 + 在线」Provider SPI 实时检索 -->
@@ -214,7 +142,10 @@
                             </div>
                             <div class="market-grid">
                                 <div v-for="skill in marketSearchResults" :key="'msr-'+skill.id"
-                                    class="market-cell market-cell--clickable" @click="openSkillDetail(skill)">
+                                    class="market-cell market-cell--clickable" role="button" tabindex="0"
+                                    @click="openSkillDetail(skill)"
+                                    @keydown.enter.self.prevent="openSkillDetail(skill)"
+                                    @keydown.space.self.prevent="openSkillDetail(skill)">
                                     <PluginIcon :icon="skill.icon" :name="skill.name" class="market-cell-icon" />
                                     <div class="market-cell-body">
                                         <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(skill.name, marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
@@ -233,58 +164,13 @@
                                 </div>
                             </div>
                         </div>
-                        <div v-else class="market-empty">
-                            <svg class="market-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="11" cy="11" r="7" />
-                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                            </svg>
-                            <div class="market-empty__title">{{ t('plugins.skills.searchNoResult') }}</div>
-                            <div class="market-empty__hint">&ldquo;{{ marketKeyword }}&rdquo;</div>
-                        </div>
+                        <MarketEmpty v-else market="skills"
+                            :title="t('plugins.skills.searchNoResult')" :hint="marketKeyword" clearable />
                     </template>
                  </template>
                 </template>
             </template>
         </div>
-
-        <!-- 查看文档对话框 -->
-        <ReDialog :close-on-click-modal="true" v-model="showDocDialog" :title="currentSkillName + ' - SKILL.md'" width="800px"
-            align-center destroy-on-close>
-
-            <div v-if="loadingDoc" class="flex justify-center items-center py-12">
-                <el-icon class="is-loading" size="32">
-                    <Loading />
-                </el-icon>
-            </div>
-            <div v-else-if="docError" class="py-12 text-center text-red-500">
-                {{ docError }}
-            </div>
-            <div v-else>
-                <!-- 元信息表格 -->
-                <div v-if="parsedMeta.length > 0" class="skill-meta-table mb-6">
-                    <ReTable
-                        :data="parsedMeta"
-                        :columns="metaColumns"
-                        engine="element"
-                        :settings="{ border: false }"
-                        :layout-table="{ minHeight: 0 }"
-                        style="width: 100%"
-                        :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
-                    >
-                        <template #col-key="{ row }">
-                            <span class="meta-key">{{ row.key }}</span>
-                        </template>
-                        <template #col-value="{ row }">
-                            <span class="meta-value">{{ row.value }}</span>
-                        </template>
-                    </ReTable>
-                </div>
-                <!-- 正文内容 -->
-                <div class="markdown-doc prose dark:prose-invert max-w-none" v-html="parsedDocumentation">
-                </div>
-            </div>
-        </ReDialog>
 
         <!-- 安装 Skill 对话框 -->
         <ReDialog :close-on-click-modal="true" v-model="showInstallDialog" :title="t('plugins.skills.installTitle')" width="760px" align-center destroy-on-close>
@@ -398,7 +284,10 @@
                                 <div v-if="localCatalog.length > 0" class="catalog-result-label">{{ t('plugins.skills.sourceOnline') }}</div>
                                 <div class="market-grid dialog-market-grid">
                                     <div v-for="skill in filteredMarketCatalog" :key="'o-'+skill.id"
-                                        class="market-cell market-cell--clickable" @click="openSkillDetail(skill)">
+                                        class="market-cell market-cell--clickable" role="button" tabindex="0"
+                                        @click="openSkillDetail(skill)"
+                                        @keydown.enter.self.prevent="openSkillDetail(skill)"
+                                        @keydown.space.self.prevent="openSkillDetail(skill)">
                                         <PluginIcon :icon="skill.icon" :name="skill.name" class="market-cell-icon" />
                                         <div class="market-cell-body">
                                             <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(skill.name, marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
@@ -507,19 +396,17 @@ import { ref, onMounted, computed, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElButton, ElTag, ElIcon, ElUpload, ElMessageBox } from 'element-plus';
-import { RefreshOutlined, InboxOutlined, DescriptionOutlined, UploadOutlined, DeleteOutlined, SearchOutlined, PlusOutlined } from '@vicons/material'
-import { RefreshRight, Loading, UploadFilled, Document, Close } from '@element-plus/icons-vue'
-import { ArrowDownload16Regular, ArrowClockwise16Regular } from '@vicons/fluent'
+import { InboxOutlined, UploadOutlined, SearchOutlined, PlusOutlined } from '@vicons/material'
+import { UploadFilled, Document, Close } from '@element-plus/icons-vue'
+import { ArrowDownload16Regular } from '@vicons/fluent'
 import { apiService } from '@/services/ApiService'
 import { type MarketSkillWithStatus } from '@/services/SkillMarketService'
-import { useMarkdown } from '@/composables/useMarkdown'
 import { openInExternalBrowser } from '@/utils/browserUtils'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
-import LTooltip from '@/components/ui/LTooltip.vue'
 import ReDialog from '@repo/ui/re-dialog'
-import ReTable from '@repo/ui/re-table'
-import type { ReTableColumn } from '@repo/ui/re-table'
 import SkillDetailDialog from './SkillDetailDialog.vue'
+import MarketEmpty from './MarketEmpty.vue'
+import MarketToolbar from './MarketToolbar.vue'
 import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
 
@@ -543,145 +430,9 @@ interface Skill {
     enabled?: boolean
 }
 
-const loading = ref(false)
-const scanning = ref(false)
 const reloadingSkills = ref<Set<string>>(new Set())
 const skills = ref<Skill[]>([])
 const { t } = useI18n()
-
-// 文档查看相关状态
-const showDocDialog = ref(false)
-const loadingDoc = ref(false)
-const docError = ref<string | null>(null)
-const documentation = ref('')
-const currentSkillName = ref('')
-const currentSkillId = ref('')
-
-// Markdown 解析
-const { parseMarkdown } = useMarkdown()
-
-// 解析 YAML frontmatter
-//
-// 带索引签名：这份数据要直接喂给 ReTable 的 `:data`，而 ReTable 的泛型约束是
-// `Record<string, unknown>[]`。没有索引签名时 TS 会判 `SkillMeta[]` 不可赋值，
-// 补上后既是原始形状，也可直接当表格行用。
-interface SkillMeta {
-    key: string
-    value: string
-    [k: string]: unknown
-}
-
-const parsedMeta = computed((): SkillMeta[] => {
-    const content = documentation.value
-    if (!content) return []
-
-    const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n/)
-    if (!match) return []
-
-    const yamlContent = match[1]
-    const lines = yamlContent.split('\n')
-    const result: SkillMeta[] = []
-
-    let i = 0
-    while (i < lines.length) {
-        const line = lines[i]
-        const trimmed = line.trim()
-        if (!trimmed || trimmed.startsWith('#')) {
-            i++
-            continue
-        }
-
-        const colonIndex = trimmed.indexOf(':')
-        if (colonIndex === -1) {
-            i++
-            continue
-        }
-
-        const key = trimmed.substring(0, colonIndex).trim()
-        let value = trimmed.substring(colonIndex + 1).trim()
-
-        // 处理多行字符串：> 或 | 折叠符
-        if (value === '>' || value === '|' || value === '>-' || value === '|-') {
-            const multilineValues: string[] = []
-            i++
-            // 收集缩进行
-            while (i < lines.length) {
-                const nextLine = lines[i]
-                if (nextLine.match(/^\s+/)) {
-                    multilineValues.push(nextLine.trim())
-                    i++
-                } else if (nextLine.trim() === '') {
-                    // 空行：多行字符串中的空行保留一个标记
-                    multilineValues.push('')
-                    i++
-                } else {
-                    break
-                }
-            }
-            if (multilineValues.length > 0) {
-                // 过滤尾部空行
-                while (multilineValues.length > 0 && multilineValues[multilineValues.length - 1] === '') {
-                    multilineValues.pop()
-                }
-                result.push({ key, value: multilineValues.join(' ') })
-            }
-            continue
-        }
-
-        // 处理数组格式：tags 等
-        if (value === '' && trimmed.endsWith(':')) {
-            const arrayItems: string[] = []
-            i++
-            while (i < lines.length) {
-                const nextLine = lines[i]
-                if (nextLine.match(/^\s+-\s+/)) {
-                    const item = nextLine.replace(/^\s+-\s*/, '').trim()
-                    if (item) arrayItems.push(item)
-                    i++
-                } else if (nextLine.trim() && !nextLine.match(/^\s+/)) {
-                    break
-                } else {
-                    i++
-                }
-            }
-            if (arrayItems.length > 0) {
-                result.push({ key, value: arrayItems.join(', ') })
-            }
-            continue
-        }
-
-        // 去除引号
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
-            value = value.slice(1, -1)
-        }
-
-        if (key && value) {
-            result.push({ key, value })
-        }
-        i++
-    }
-
-    return result
-})
-
-const metaColumns: ReTableColumn[] = [
-    { prop: 'key', label: 'Key', width: 120, slot: 'key' },
-    { prop: 'value', label: 'Value', minWidth: 220, slot: 'value' },
-]
-
-// 提取正文（去掉 frontmatter）
-const bodyContent = computed(() => {
-    const content = documentation.value
-    if (!content) return ''
-
-    const match = content.match(/^---\s*\n[\s\S]*?\n---\s*\n([\s\S]*)$/)
-    return match ? match[1].trim() : content.trim()
-})
-
-const parsedDocumentation = computed(() => {
-    return parseMarkdown(bodyContent.value)
-})
 
 // 安装相关状态
 const showInstallDialog = ref(false)
@@ -708,13 +459,6 @@ interface LocalCatalogItem {
 const localCatalog = ref<LocalCatalogItem[]>([])
 const loadingCatalog = ref(false)
 const installingCatalog = ref('')
-
-// 在线市场分类与筛选
-const marketCategories = computed<string[]>(() => {
-    const set = new Set<string>()
-    marketSkills.value.forEach(s => (s.labels || []).forEach(l => set.add(l)))
-    return Array.from(set)
-})
 
 const filteredMarketCatalog = computed<MarketSkillWithStatus[]>(() => {
     let list = marketSkills.value
@@ -790,14 +534,20 @@ function marketStatusMatch(s: MarketSkillWithStatus): boolean {
     return s.localStatus === st
 }
 
+/** 排序：name = 按名称字典序；default = 目录原序 */
+function sortMarketSkills(list: MarketSkillWithStatus[]): MarketSkillWithStatus[] {
+    if (pluginsMarket.skills.sort !== 'name') return list
+    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+}
+
 const marketGroups = computed<{ cat: string; items: MarketSkillWithStatus[] }[]>(() => {
     if (marketTab.value === MARKET_FEATURED) {
         return marketLabels.value
-            .map(l => ({ cat: l, items: marketSkills.value.filter(s => firstLabel(s) === l && marketKeywordMatch(s) && marketStatusMatch(s)) }))
+            .map(l => ({ cat: l, items: sortMarketSkills(marketSkills.value.filter(s => firstLabel(s) === l && marketKeywordMatch(s) && marketStatusMatch(s))) }))
             .filter(g => g.items.length > 0)
     }
     const l = marketTab.value
-    return [{ cat: l, items: marketSkills.value.filter(s => (s.labels || []).includes(l) && marketKeywordMatch(s) && marketStatusMatch(s)) }]
+    return [{ cat: l, items: sortMarketSkills(marketSkills.value.filter(s => (s.labels || []).includes(l) && marketKeywordMatch(s) && marketStatusMatch(s))) }]
 })
 
 function toggleGroup(cat: string) {
@@ -813,6 +563,12 @@ const marketSearching = ref(false)
 const marketSearchResults = ref<MarketSkillWithStatus[]>([])
 const marketSearchLocalMap = ref<Record<string, LocalCatalogItem>>({})
 const marketHasSearch = computed(() => marketKeyword.value.trim() !== '')
+
+/** 工具条「已筛出 N 条」：浏览态 = 各组命中之和；搜索态 = 搜索命中 */
+const marketFilteredCount = computed(() => {
+    if (marketHasSearch.value) return marketSearchResults.value.length
+    return marketGroups.value.reduce((n, g) => n + g.items.length, 0)
+})
 
 function mapLocalCatalogSearchEntry(it: any): MarketSkillWithStatus {
     return {
@@ -1062,8 +818,6 @@ function refreshMarketSkillStatus() {
  * 加载 Skills 列表
  */
 async function loadSkills() {
-    loading.value = true
-
     try {
         const response = await apiService.fetchSkills()
         skills.value = Array.isArray(response?.items) ? response.items : []
@@ -1074,8 +828,6 @@ async function loadSkills() {
         const errorMsg = err.message || t('plugins.skills.loadFailed')
         message.error(errorMsg)
         skills.value = []
-    } finally {
-        loading.value = false
     }
 }
 
@@ -1125,33 +877,6 @@ async function handleReloadSkill(skillId: string) {
         message.error(errorMsg)
     } finally {
         reloadingSkills.value.delete(skillId)
-    }
-}
-
-/**
- * 查看 Skill 文档
- */
-async function handleViewDocumentation(skillId: string) {
-    showDocDialog.value = true
-    loadingDoc.value = true
-    docError.value = null
-    documentation.value = ''
-
-    // 获取 skill 名称用于标题
-    const skill = skills.value.find(s => s.id === skillId)
-    currentSkillName.value = skill?.manifest.name || skillId
-    currentSkillId.value = skillId
-
-    try {
-        const response = await apiService.fetchSkillDocumentation(skillId)
-        documentation.value = response.content || t('plugins.skills.docNoContent')
-    } catch (err: any) {
-        console.error('获取 Skill 文档失败:', err)
-        const errorMsg: string = err.message || t('plugins.skills.docLoadFailed')
-        docError.value = errorMsg
-        message.error(errorMsg)
-    } finally {
-        loadingDoc.value = false
     }
 }
 
@@ -1589,44 +1314,6 @@ onMounted(async () => {
     font-weight: 600;
 }
 
-/* 元信息表格样式 */
-.skill-meta-table {
-    /* 原值 8px → md 档 */
-    border-radius: var(--el-radius-md, 8px);
-    overflow: hidden;
-    border: 1px solid var(--el-border-color-lighter);
-    font-size: 0.9em;
-}
-
-.skill-meta-table :deep(.el-table__header th) {
-    background: var(--el-fill-color-light);
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    font-weight: 600;
-    color: var(--el-text-color-regular);
-}
-
-.skill-meta-table :deep(.el-table__cell) {
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.skill-meta-table :deep(.el-table__row:last-child) .el-table__cell {
-    border-bottom: none;
-}
-
-.skill-meta-table .meta-key {
-    background-color: var(--el-fill-color-light);
-    font-weight: 600;
-    color: var(--el-text-color-regular);
-    white-space: nowrap;
-}
-
-.skill-meta-table .meta-value {
-    color: var(--el-text-color-primary);
-    word-break: break-word;
-}
-
 /* All tags: flat gray style, no colored borders */
 .skills-page :deep(.el-tag) {
     background-color: var(--el-fill-color-light);
@@ -1872,35 +1559,6 @@ onMounted(async () => {
 }
 .market-cell--clickable:focus-visible {
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-/* ───── 搜索无结果空态 ───── */
-.market-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 56px 16px;
-    color: var(--el-text-color-secondary);
-}
-.market-empty__icon {
-    width: 40px;
-    height: 40px;
-    margin-bottom: 12px;
-    opacity: 0.45;
-}
-.market-empty__title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--el-text-color-regular);
-}
-.market-empty__hint {
-    font-size: 12px;
-    margin-top: 4px;
-    max-width: 80%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 /* ───── 骨架屏 ───── */

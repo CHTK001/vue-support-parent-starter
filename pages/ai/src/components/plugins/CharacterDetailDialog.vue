@@ -23,11 +23,11 @@
     </div>
     <div v-else-if="detail" class="detail-body">
       <div class="detail-title">{{ detail.title }}</div>
-      <div class="detail-desc">{{ detail.description || '（无描述）' }}</div>
+      <div class="detail-desc">{{ detail.description || t('plugins.characters.detail.noDescription') }}</div>
 
       <!-- 擅长领域 -->
       <div v-if="detail.tags?.length" class="detail-section">
-        <div class="detail-section-title">擅长领域</div>
+        <div class="detail-section-title">{{ t('plugins.characters.detail.tagsTitle') }}</div>
         <div class="detail-chip-row">
           <span v-for="tag in detail.tags" :key="tag" class="detail-chip">{{ tag }}</span>
         </div>
@@ -35,13 +35,16 @@
 
       <!-- 试试这样问我 -->
       <div v-if="detail.prompts?.length" class="detail-section">
-        <div class="detail-section-title">试试这样问我</div>
+        <div class="detail-section-title">{{ t('plugins.characters.detail.promptsTitle') }}</div>
         <div class="detail-prompt-list">
           <div
             v-for="(p, idx) in detail.prompts"
             :key="idx"
             class="detail-prompt-item"
+            role="button"
+            tabindex="0"
             @click="handleUsePrompt(p)"
+            @keydown.enter.prevent="handleUsePrompt(p)"
           >
             <span class="detail-prompt-text">{{ p }}</span>
             <ArrowRight24Regular class="detail-prompt-arrow" />
@@ -51,7 +54,7 @@
 
       <!-- 内置技能 -->
       <div v-if="detail.skills?.length" class="detail-section">
-        <div class="detail-section-title">内置技能 {{ detail.skills.length }}</div>
+        <div class="detail-section-title">{{ t('plugins.characters.detail.skillsTitle', { count: detail.skills.length }) }}</div>
         <div class="detail-skill-list">
           <div v-for="sk in detail.skills" :key="sk.id" class="detail-skill-item">
             <div class="detail-skill-tile">
@@ -65,9 +68,9 @@
 
     <template #footer>
       <div class="detail-footer">
-        <el-button v-if="detail?.added" type="success" disabled>已召唤</el-button>
+        <el-button v-if="detail?.added" type="success" disabled>{{ t('plugins.characters.statusSummoned') }}</el-button>
         <el-button v-else type="primary" :loading="adding" @click="detail && emit('summon', detail)">
-          召唤
+          {{ t('plugins.characters.summon') }}
         </el-button>
       </div>
     </template>
@@ -76,6 +79,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Loading } from '@element-plus/icons-vue'
 import { ArrowRight24Regular, Apps20Regular } from '@vicons/fluent'
 import ReDialog from '@repo/ui/re-dialog'
@@ -102,6 +106,8 @@ const emit = defineEmits<{
   (e: 'use-prompt', detail: CharacterCatalogDetail, prompt: string): void
 }>()
 
+const { t } = useI18n()
+
 const loading = ref(false)
 const error = ref('')
 const detail = ref<CharacterCatalogDetail | null>(null)
@@ -115,7 +121,7 @@ async function load() {
     detail.value = await apiService.fetchBuiltinCharacterDetail(props.item.id)
   } catch (e: any) {
     console.error('加载角色详情失败:', e)
-    error.value = e?.message || '加载详情失败'
+    error.value = e?.message || t('plugins.characters.detail.loadFailed')
   } finally {
     loading.value = false
   }

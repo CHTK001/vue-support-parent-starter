@@ -1,17 +1,17 @@
 <template>
   <ReDialog :close-on-click-modal="true" :model-value="visible" @update:model-value="(v: boolean) => emit('update:visible', v)"
-    :title="target?.name || 'MCP 详情'" width="620px" align-center destroy-on-close>
+    :title="target?.name || t('plugins.mcp.detail.title')" width="620px" align-center destroy-on-close>
     <div class="mcp-detail" v-if="target">
       <div class="mcp-detail__head">
         <PluginIcon :icon="target.icon" :name="target.name" size="md" />
         <div class="mcp-detail__headinfo">
           <div class="mcp-detail__name">{{ target.name }}</div>
           <div class="mcp-detail__badges">
-            <el-tag v-if="target.official" type="primary" effect="light">官方</el-tag>
-            <el-tag v-if="target.requiresKey" type="warning" effect="light">需 API Key</el-tag>
-            <el-tag v-if="target.requiresConfig" type="warning" effect="light">需补充配置</el-tag>
-            <el-tag v-if="!target.installable" type="info" effect="light">第三方仓库</el-tag>
-            <el-tag v-if="installed" type="success" effect="light">已安装</el-tag>
+            <el-tag v-if="target.official" type="primary" effect="light">{{ t('plugins.mcp.detail.official') }}</el-tag>
+            <el-tag v-if="target.requiresKey" type="warning" effect="light">{{ t('plugins.mcp.detail.requiresKey') }}</el-tag>
+            <el-tag v-if="target.requiresConfig" type="warning" effect="light">{{ t('plugins.mcp.detail.requiresConfig') }}</el-tag>
+            <el-tag v-if="!target.installable" type="info" effect="light">{{ t('plugins.mcp.detail.thirdParty') }}</el-tag>
+            <el-tag v-if="installed" type="success" effect="light">{{ t('plugins.mcp.installed') }}</el-tag>
           </div>
         </div>
       </div>
@@ -19,45 +19,46 @@
       <p class="mcp-detail__desc">{{ target.description }}</p>
 
       <div class="mcp-detail__transport">
-        <div class="mcp-detail__transportlabel">传输配置</div>
+        <div class="mcp-detail__transportlabel">{{ t('plugins.mcp.detail.transportTitle') }}</div>
         <template v-if="transport">
           <div class="mcp-detail__row">
-            <span class="mcp-detail__k">类型</span>
+            <span class="mcp-detail__k">{{ t('plugins.mcp.detail.typeLabel') }}</span>
             <span class="mcp-detail__v">{{ typeLabel(transport.type) }}</span>
           </div>
           <div class="mcp-detail__row" v-if="transport.url">
-            <span class="mcp-detail__k">地址</span>
+            <span class="mcp-detail__k">{{ t('plugins.mcp.detail.urlLabel') }}</span>
             <span class="mcp-detail__v mcp-detail__v--mono">{{ transport.url }}</span>
           </div>
           <div class="mcp-detail__row" v-if="transport.command">
-            <span class="mcp-detail__k">命令</span>
+            <span class="mcp-detail__k">{{ t('plugins.mcp.commandLabel') }}</span>
             <span class="mcp-detail__v mcp-detail__v--mono">{{ commandLine }}</span>
           </div>
         </template>
         <div v-else class="mcp-detail__hint">
-          该条目来自第三方仓库，源侧未提供可直连配置，请参考仓库说明手动填写传输。
+          {{ t('plugins.mcp.detail.noTransportHint') }}
         </div>
       </div>
 
       <div class="mcp-detail__docs" v-if="docsUrl">
         <el-button link type="primary" @click="openDocs">
-          <el-icon class="mr-1"><LinkOutlined /></el-icon>查看文档 / 仓库
+          <el-icon class="mr-1"><LinkOutlined /></el-icon>{{ t('plugins.mcp.detail.viewDocs') }}
         </el-button>
       </div>
     </div>
 
     <template #footer>
       <el-button v-if="target && !target.installable && !installed" type="primary"
-        @click="emit('configure', target)">手动配置</el-button>
+        @click="emit('configure', target)">{{ t('plugins.mcp.manualConfig') }}</el-button>
       <el-button v-if="target && target.installable && !installed" type="primary"
-        :loading="installing" @click="emit('install', target)">安装</el-button>
-      <el-button v-if="installed" type="success" disabled>已安装</el-button>
+        :loading="installing" @click="emit('install', target)">{{ t('plugins.mcp.install') }}</el-button>
+      <el-button v-if="installed" type="success" disabled>{{ t('plugins.mcp.installed') }}</el-button>
     </template>
   </ReDialog>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import { LinkOutlined } from '@vicons/material'
@@ -76,6 +77,8 @@ const emit = defineEmits<{
   'configure': [any]
 }>()
 
+const { t } = useI18n()
+
 const transport = computed(() =>
   props.target && typeof props.target.transport === 'object' ? props.target.transport : null)
 
@@ -92,7 +95,7 @@ function typeLabel(type: string) {
   const map: Record<string, string> = {
     streamable_http: 'Streamable HTTP',
     sse: 'SSE',
-    stdio: '本机进程 (stdio)',
+    stdio: t('plugins.mcp.detail.typeStdioShort'),
     http: 'Streamable HTTP',
   }
   return map[type] || type

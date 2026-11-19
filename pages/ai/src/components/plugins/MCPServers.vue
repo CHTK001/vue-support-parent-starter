@@ -30,6 +30,10 @@
           </el-button>
         </div>
 
+        <!-- 计数 + 排序工具条 -->
+        <MarketToolbar v-if="!loadingInitial && builtinList.length" market="mcp"
+          :total="builtinList.length" :filtered="marketFilteredCount" />
+
         <!-- 初始骨架：加载内置推荐 -->
         <div v-if="loadingInitial" class="market-skeleton" aria-hidden="true">
           <div class="market-skeleton__tabs">
@@ -54,13 +58,15 @@
           <!-- 默认浏览：分类由市场壳左栏索引驱动（精选 = 按首标签分组展示全部） -->
           <template v-if="!hasKeyword">
             <div v-for="g in groups" :key="g.cat" class="market-group">
-              <div class="market-group-head" @click="toggleGroup(g.cat)">
+              <div class="market-group-head" role="button" tabindex="0" @click="toggleGroup(g.cat)"
+                @keydown.enter.self.prevent="toggleGroup(g.cat)" @keydown.space.self.prevent="toggleGroup(g.cat)">
                 <span class="market-group-title">{{ g.cat }}</span>
                 <span class="market-group-arrow" :class="{ collapsed: collapsed.has(g.cat) }">›</span>
               </div>
               <div v-show="!collapsed.has(g.cat)" class="market-grid">
                 <div v-for="card in g.items" :key="card.id" class="market-cell market-cell--clickable"
-                  @click="openDetail(card)">
+                  role="button" tabindex="0" @click="openDetail(card)"
+                  @keydown.enter.self.prevent="openDetail(card)" @keydown.space.self.prevent="openDetail(card)">
                   <PluginIcon :icon="card.icon" :name="card.name" class="market-cell-icon" />
                   <div class="market-cell-body">
                     <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(card.name, keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
@@ -102,7 +108,8 @@
                 </div>
                 <div class="market-grid">
                   <div v-for="card in searchBuiltin" :key="card.id"
-                    class="market-cell market-cell--clickable" @click="openDetail(card)">
+                    class="market-cell market-cell--clickable" role="button" tabindex="0" @click="openDetail(card)"
+                    @keydown.enter.self.prevent="openDetail(card)" @keydown.space.self.prevent="openDetail(card)">
                     <PluginIcon :icon="card.icon" :name="card.name" class="market-cell-icon" />
                     <div class="market-cell-body">
                       <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(card.name, keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
@@ -123,7 +130,8 @@
                 </div>
                 <div class="market-grid">
                   <div v-for="card in onlineResults" :key="card.id"
-                    class="market-cell market-cell--clickable" @click="openDetail(card)">
+                    class="market-cell market-cell--clickable" role="button" tabindex="0" @click="openDetail(card)"
+                    @keydown.enter.self.prevent="openDetail(card)" @keydown.space.self.prevent="openDetail(card)">
                     <PluginIcon :icon="card.icon" :name="card.name" class="market-cell-icon" />
                     <div class="market-cell-body">
                       <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(card.name, keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
@@ -135,15 +143,8 @@
                 </div>
               </div>
 
-              <div v-if="!searchBuiltin.length && !onlineResults.length" class="market-empty">
-                <svg class="market-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="7" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <div class="market-empty__title">{{ t('plugins.mcp.noMatchTitle') }}</div>
-                <div class="market-empty__hint">{{ t('plugins.mcp.noMatchHint', { keyword }) }}</div>
-              </div>
+              <MarketEmpty v-if="!searchBuiltin.length && !onlineResults.length" market="mcp"
+                :title="t('plugins.mcp.noMatchTitle')" :hint="t('plugins.mcp.noMatchHint', { keyword })" clearable />
             </template>
           </template>
         </template>
@@ -160,7 +161,8 @@
 
         <div v-if="boundList.length" class="manage-grid">
           <div v-for="s in boundList" :key="s.mcp_server_id" class="manage-card">
-            <div class="manage-card__main" @click="openDetail(s)">
+            <div class="manage-card__main" role="button" tabindex="0" @click="openDetail(s)"
+              @keydown.enter.self.prevent="openDetail(s)" @keydown.space.self.prevent="openDetail(s)">
               <PluginIcon :icon="s.icon" :name="s.name" size="md" />
               <div class="manage-card__body">
                 <div class="manage-card__name">{{ s.name }}</div>
@@ -192,10 +194,7 @@
           </div>
         </div>
 
-        <div v-else class="market-empty">
-          <el-icon size="40" class="mb-3 opacity-40"><InboxOutlined /></el-icon>
-          <div class="market-empty__title">{{ t('plugins.mcp.manageEmpty') }}</div>
-        </div>
+        <MarketEmpty v-else market="mcp" :title="t('plugins.mcp.manageEmpty')" />
       </template>
     </template>
 
@@ -242,7 +241,7 @@ import {isAdmin, message} from '@repo/core'
 import { ElMessageBox } from 'element-plus';
 import {
   PlusOutlined, SettingsOutlined, LockOutlined, DeleteOutlined,
-  EditOutlined, InboxOutlined, ArrowBackOutlined, WifiTetheringOutlined,
+  EditOutlined, ArrowBackOutlined, WifiTetheringOutlined,
 } from '@vicons/material'
 import { mcpApi } from '@/services/javaApi'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
@@ -251,6 +250,8 @@ import ReDialog from '@repo/ui/re-dialog'
 import McpDetailDialog from './McpDetailDialog.vue'
 import McpServerFormDialog from './McpServerFormDialog.vue'
 import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
+import MarketEmpty from './MarketEmpty.vue'
+import MarketToolbar from './MarketToolbar.vue'
 
 const { t } = useI18n()
 const admin = ref(isAdmin())
@@ -287,14 +288,25 @@ function statusMatch(c: any): boolean {
   if (!st) return true
   return (st === 'installed') === isInstalled(c)
 }
+/** 排序：name = 按名称字典序；default = 目录原序 */
+function sortCards(list: any[]): any[] {
+  if (pluginsMarket.mcp.sort !== 'name') return list
+  return [...list].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+}
 const groups = computed(() => {
   if (activeTab.value === FEATURED) {
     return labels.value
-      .map((l) => ({ cat: l, items: builtinList.value.filter((c) => firstLabel(c) === l && statusMatch(c)) }))
+      .map((l) => ({ cat: l, items: sortCards(builtinList.value.filter((c) => firstLabel(c) === l && statusMatch(c))) }))
       .filter((g) => g.items.length)
   }
   const l = activeTab.value
-  return [{ cat: l, items: builtinList.value.filter((c) => c.labels?.includes(l) && statusMatch(c)) }]
+  return [{ cat: l, items: sortCards(builtinList.value.filter((c) => c.labels?.includes(l) && statusMatch(c))) }]
+})
+
+/** 工具条「已筛出 N 条」：浏览态 = 各组命中之和；搜索态 = 内置 + 在线命中 */
+const marketFilteredCount = computed(() => {
+  if (hasKeyword.value) return searchBuiltin.value.length + onlineResults.value.length
+  return groups.value.reduce((n, g) => n + g.items.length, 0)
 })
 function toggleGroup(cat: string) {
   if (collapsed.value.has(cat)) collapsed.value.delete(cat)
@@ -674,23 +686,6 @@ onMounted(async () => {
   font-weight: 700;
 }
 .market-cell--clickable { cursor: pointer; }
-
-/* ===== 空态 ===== */
-.market-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 56px 16px;
-  color: var(--el-text-color-secondary);
-}
-.market-empty__icon { width: 40px; height: 40px; margin-bottom: 12px; opacity: 0.45; }
-.market-empty__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-regular);
-}
-.market-empty__hint { font-size: 12px; margin-top: 4px; }
 
 /* ===== 骨架屏 ===== */
 .skel {

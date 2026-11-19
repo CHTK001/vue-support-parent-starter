@@ -33,6 +33,10 @@
       </el-button>
     </div>
 
+    <!-- 计数 + 排序工具条 -->
+    <MarketToolbar v-if="!loading && globalTools.length" market="local-tools"
+      :total="globalTools.length" :filtered="filteredTools.length" />
+
     <div class="space-y-4">
       <!-- 骨架屏 -->
       <div v-if="loading" class="lt-skeleton-grid">
@@ -51,7 +55,11 @@
           :key="tool.pluginId"
           class="lt-card"
           :class="{ 'lt-card--off': !tool.enabled }"
+          role="button"
+          tabindex="0"
           @click="showDetail(tool)"
+          @keydown.enter.self.prevent="showDetail(tool)"
+          @keydown.space.self.prevent="showDetail(tool)"
         >
           <!-- 顶部：图标 + 来源标签 -->
           <div class="lt-card__top">
@@ -93,10 +101,8 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="!loading && filteredTools.length === 0" class="lt-empty">
-        <el-icon size="40" class="mb-3 opacity-40"><InboxOutlined /></el-icon>
-        <div class="text-sm" style="color: var(--el-text-color-secondary)">{{ t('plugins.localTools.empty') }}</div>
-      </div>
+      <MarketEmpty v-if="!loading && filteredTools.length === 0" market="local-tools"
+        :title="t('plugins.localTools.empty')" :clearable="globalTools.length > 0" />
     </div>
 
     <!-- Detail Dialog -->
@@ -144,7 +150,7 @@
 import { ref, computed, onMounted, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus';
-import { LockOutlined, InboxOutlined, PlusOutlined } from '@vicons/material'
+import { LockOutlined, PlusOutlined } from '@vicons/material'
 import {isAdmin, message} from '@repo/core'
 import { apiService } from '@/services/ApiService'
 import { getLocale } from '@/locales'
@@ -153,6 +159,8 @@ import PluginIcon from '@/components/ui/PluginIcon.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import CustomToolDialog from './CustomToolDialog.vue'
 import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
+import MarketEmpty from './MarketEmpty.vue'
+import MarketToolbar from './MarketToolbar.vue'
 
 const { t } = useI18n()
 const admin = ref(isAdmin())
@@ -300,7 +308,7 @@ const filteredTools = computed(() => {
   const slice = pluginsMarket['local-tools']
   const kw = slice.keyword.trim().toLowerCase()
   const catSource = SOURCE_CATS.find(c => c.label === slice.category)?.source
-  return globalTools.value.filter(tool => {
+  const list = globalTools.value.filter(tool => {
     const matchCat = !catSource || tool.source === catSource
     const matchKw = !kw
       || tool.displayName.toLowerCase().includes(kw)
@@ -310,6 +318,11 @@ const filteredTools = computed(() => {
       || (slice.status === 'enabled' ? tool.enabled : !tool.enabled)
     return matchCat && matchKw && matchStatus
   })
+  // 排序：name = 按显示名字典序；default = 后端返回原序
+  if (slice.sort === 'name') {
+    return [...list].sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-Hans-CN'))
+  }
+  return list
 })
 
 // 回填市场壳：类目 / 状态分桶 / 总数（真实计数，Bento 卡与左栏索引展示用）
@@ -343,8 +356,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.lt-forbidden,
-.lt-empty {
+.lt-forbidden {
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -10,6 +10,9 @@ export type MarketKey = 'characters' | 'skills' | 'mcp' | 'local-tools'
 
 export type MarketStatusTone = 'success' | 'warning' | 'info' | 'neutral'
 
+/** 市场排序方式：default = 目录原序；name = 按名称字典序 */
+export type MarketSort = 'default' | 'name'
+
 export interface MarketStatusBucket {
   /** 状态键（选中后写入 slice.status） */
   key: string
@@ -28,6 +31,8 @@ export interface MarketSlice {
   category: string
   /** 当前状态（'' = 全部，取值为某个 MarketStatusBucket.key） */
   status: string
+  /** 排序方式（MarketToolbar 写入，各市场列表 computed 消费） */
+  sort: MarketSort
   /** 市场条目总数（真实计数） */
   total: number
   /** 类目清单（不含「全部」） */
@@ -45,6 +50,7 @@ function makeSlice(): MarketSlice {
     keyword: '',
     category: '',
     status: '',
+    sort: 'default',
     total: 0,
     categories: [],
     categoryCounts: {},

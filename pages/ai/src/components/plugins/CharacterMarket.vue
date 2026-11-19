@@ -10,6 +10,10 @@
       <el-button class="pm-banner-cta" type="primary" plain @click="openDetail(featuredItem)">{{ t('plugins.market.featuredCta') }}</el-button>
     </div>
 
+    <!-- 计数 + 排序工具条 -->
+    <MarketToolbar v-if="!loading && visibleItems.length" market="characters"
+      :total="visibleItems.length" :filtered="filteredItems.length" />
+
     <!-- 骨架屏 -->
     <div v-if="loading" class="market-grid">
       <div v-for="i in 8" :key="i" class="market-card skeleton-card">
@@ -22,9 +26,8 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="filteredItems.length === 0" class="market-empty">
-      <el-empty :description="t('plugins.characters.empty')" />
-    </div>
+    <MarketEmpty v-else-if="filteredItems.length === 0" market="characters"
+      :title="t('plugins.characters.empty')" clearable />
 
     <!-- 卡片网格 -->
     <div v-else class="market-grid">
@@ -33,7 +36,11 @@
         :key="item.id"
         class="market-card"
         :class="{ 'market-card--custom': item.custom }"
+        role="button"
+        tabindex="0"
         @click="item.custom ? formRef?.openEdit(item) : openDetail(item)"
+        @keydown.enter.self.prevent="item.custom ? formRef?.openEdit(item) : openDetail(item)"
+        @keydown.space.self.prevent="item.custom ? formRef?.openEdit(item) : openDetail(item)"
       >
         <!-- 内置角色：渐变封面带（与自建卡形成瀑布高低差）；自建卡无封面 -->
         <div v-if="!item.custom" class="market-card-cover">
@@ -103,6 +110,8 @@ import {isAdmin, message} from '@repo/core'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import CharacterDetailDialog from './CharacterDetailDialog.vue'
 import CharacterFormDialog from './CharacterFormDialog.vue'
+import MarketEmpty from './MarketEmpty.vue'
+import MarketToolbar from './MarketToolbar.vue'
 import { apiService } from '@/services/ApiService'
 import { useSelectedCharacter } from '@/composables/useSelectedCharacter'
 import { usePrefillInput } from '@/composables/usePrefillInput'
@@ -144,8 +153,8 @@ const keyword = computed({
 })
 /** 类目筛选上提到市场壳共享状态（左栏索引）；store 里 '' = 全部 */
 const activeCategory = computed({
-  get: () => pluginsMarket.characters.category || '全部',
-  set: (v: string) => { pluginsMarket.characters.category = v === '全部' ? '' : v },
+  get: () => pluginsMarket.characters.category,
+  set: (v: string) => { pluginsMarket.characters.category = v },
 })
 
 const quickLoadingId = ref('')
@@ -156,16 +165,20 @@ const detailTarget = ref<CharacterCatalogItem | null>(null)
 /** 本周精选位：取内置目录第一个角色（真实数据） */
 const featuredItem = computed(() => items.value.find(i => !i.custom) || null)
 
+/** 当前用户可见的角色（非管理员隐藏管理员模板 / 审计角色） */
+const visibleItems = computed(() => items.value.filter(item => {
+  if (!showAdminOnlyTemplates) {
+    if ((item as any).adminOnly) return false
+    if (item.custom && (item as any).code === 'prompt-auditor') return false
+  }
+  return true
+}))
+
 const filteredItems = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   const st = pluginsMarket.characters.status
-  return items.value.filter(item => {
-    // 仅管理员可见模板 / 自建审计角色：非管理员隐藏
-    if (!showAdminOnlyTemplates) {
-      if ((item as any).adminOnly) return false
-      if (item.custom && (item as any).code === 'prompt-auditor') return false
-    }
-    const matchCat = activeCategory.value === '全部' || item.category === activeCategory.value
+  const list = visibleItems.value.filter(item => {
+    const matchCat = !activeCategory.value || item.category === activeCategory.value
     const matchKw = !kw
       || item.title.toLowerCase().includes(kw)
       || item.description.toLowerCase().includes(kw)
@@ -175,6 +188,11 @@ const filteredItems = computed(() => {
       || (st === 'available' ? !item.custom && !item.added : !!(item.custom || item.added))
     return matchCat && matchKw && matchStatus
   })
+  // 排序：name = 按名称字典序；default = 目录原序
+  if (pluginsMarket.characters.sort === 'name') {
+    return [...list].sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN'))
+  }
+  return list
 })
 
 async function load() {
@@ -306,13 +324,7 @@ async function handleUsePrompt(detail: CharacterCatalogDetail, prompt: string) {
 
 // 回填市场壳：类目 / 状态分桶 / 总数（真实计数，Bento 卡与左栏索引展示用）
 watchEffect(() => {
-  const visible = items.value.filter(i => {
-    if (!showAdminOnlyTemplates) {
-      if ((i as any).adminOnly) return false
-      if (i.custom && (i as any).code === 'prompt-auditor') return false
-    }
-    return true
-  })
+  const visible = visibleItems.value
   const counts: Record<string, number> = {}
   visible.forEach(i => { counts[i.category] = (counts[i.category] || 0) + 1 })
   syncMarketSlice('characters', {
@@ -536,10 +548,6 @@ onMounted(() => {
   border-radius: var(--el-radius-xs, 4px);
   background: var(--el-fill-color-light);
 }
-.market-empty {
-  padding: 48px 0;
-}
-
 /* 尊重系统「减少动态效果」偏好：卡片浮起立即生效 */
 @media (prefers-reduced-motion: reduce) {
   .market-card {
