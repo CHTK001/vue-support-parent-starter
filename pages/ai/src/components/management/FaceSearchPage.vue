@@ -2019,6 +2019,9 @@ html.dark .fs-root {
   background: var(--fs-card);
   cursor: pointer;
   outline: none;
+  /* 渲染级虚拟化：命中多时视口外的卡片跳过布局与绘制（卡片 = 1:1 人脸图 + 头尾两行） */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
   transition:
     transform var(--el-transition-duration-fast, 0.2s) ease,
     box-shadow var(--el-transition-duration-fast, 0.2s) ease,

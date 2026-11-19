@@ -2825,6 +2825,10 @@ defineExpose({ reload: refresh })
   overflow: hidden;
   background: var(--bg-container, #fff);
   cursor: pointer;
+  /* 渲染级虚拟化：胶片条一页可达 200 张，视口外的条目跳过布局与绘制；
+     contain-intrinsic-size 以「图 1:1 + 说明行」的常见高度占位，渲染后记真实尺寸 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
 }
 .il-film__ph { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
 .il-film__cap {

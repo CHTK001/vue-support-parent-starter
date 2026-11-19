@@ -1396,6 +1396,9 @@ html.dark .reid-root {
   background: var(--reid-card);
   cursor: pointer;
   outline: none;
+  /* 渲染级虚拟化：检索命中多时（topK 由后端定），视口外的卡片跳过布局与绘制 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 132px;
   transition:
     transform var(--el-transition-duration-fast, 0.2s) ease,
     box-shadow var(--el-transition-duration-fast, 0.2s) ease,
