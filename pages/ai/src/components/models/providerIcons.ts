@@ -24,6 +24,10 @@ export const PROVIDER_ICONS: Record<string, string> = {
   google: 'google.svg',
   azure: 'azure.png',
   'aws-bedrock': 'aws-bedrock.png',
+  // 华为云 MAAS / Cloudflare Workers AI 用 Simple Icons 的官方品牌色标（红 / 橙），
+  // 深色主题下不用反色
+  'huawei-maas': 'huawei.svg',
+  'cloudflare-workers-ai': 'cloudflare.svg',
   xai: 'xai.svg',
   mistral: 'mistral.svg',
   groq: 'groq.svg',
@@ -36,6 +40,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
 
   // ===== 聚合 / 路由 =====
   openrouter: 'openrouter.svg',
+  duckduckgo: 'duckduckgo.svg',
   commandcode: 'commandcode.png',
   agnes: 'agnes.svg',
   opencode: 'opencode.svg',
@@ -103,7 +108,9 @@ export const PROVIDER_ICONS: Record<string, string> = {
   free: '/images/logo.png',
   'openai-compatible': 'openai-compatible.svg',
   moss: 'moss.svg',
+  // 自建网关：New API / Sub2API 都用各自仓库/官网的品牌标
   newapi: 'newapi.png',
+  sub2api: 'sub2api.svg',
   tempr: 'tempr.svg',
 
   // ===== 本地 / 其他 =====
@@ -115,7 +122,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
 
   // ===== OAuth 渠道 =====
   cline: 'cline.svg',
-  'cline-pass': 'cline-pass.png',
+  'cline-pass': 'cline.svg',
   qoder: 'qoder.png',
   'qoder-cn': 'qoder.png',
   gemini: 'gemini.svg',
@@ -159,6 +166,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
   crossmodel: 'crossmodel.png',
   crusoe: 'crusoe.png',
   daoxe: 'daoxe.png',
+  deepinfra: 'deepinfra.png',
   digitalocean: 'digitalocean.png',
   dinference: 'dinference.png',
   drun: 'drun.png',
@@ -180,6 +188,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
   hetzner: 'hetzner.png',
   'hpc-ai': 'hpc-ai.png',
   hyper: 'hyper.png',
+  hyperbolic: 'hyperbolic.png',
   iflowcn: 'iflowcn.png',
   impossibl: 'impossibl.png',
   inception: 'inception.png',
@@ -218,6 +227,8 @@ export const PROVIDER_ICONS: Record<string, string> = {
   nan: 'nan.png',
   'nano-gpt': 'nano-gpt.png',
   nearai: 'nearai.png',
+  // Nous Research 官方推理端点，标是官网 portal 的 favicon（黑描边 + 白底，深色下不用反色）
+  'nous-portal': 'nous.png',
   nebius: 'nebius.png',
   neosmith: 'neosmith.png',
   neuralwatt: 'neuralwatt.png',
@@ -247,6 +258,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
   sarvam: 'sarvam.png',
   scaleway: 'scaleway.png',
   'scnet-token-plan': 'scnet-token-plan.png',
+  scnet: 'scnet-token-plan.png',
   'scx-ai': 'scx-ai.png',
   stackit: 'stackit.png',
   standardcompute: 'standardcompute.png',
@@ -269,10 +281,15 @@ export const PROVIDER_ICONS: Record<string, string> = {
   vispark: 'vispark.png',
   vivgrid: 'vivgrid.png',
   vultr: 'vultr.png',
+  // Vercel AI Gateway：Simple Icons 的黑色三角标，深色主题需反色
+  vercel: 'vercel.svg',
+  // Voyage AI：官方 favicon（绿色叶片），只有嵌入 / 重排接口
+  voyage: 'voyage.png',
   'wafer.ai': 'wafer.ai.png',
   wallaby: 'wallaby.png',
-  wandb: 'wandb.png',
-  coreweave: 'wandb.png',
+  // W&B Inference 已并入 CoreWeave，品牌图统一用 CoreWeave 标记
+  wandb: 'coreweave.png',
+  coreweave: 'coreweave.png',
   xiaomi: 'xiaomi.png',
   'xiaomi-token-plan-ams': 'xiaomi.png',
   'xiaomi-token-plan-cn': 'xiaomi.png',
@@ -287,15 +304,67 @@ export const PROVIDER_ICONS: Record<string, string> = {
 
   // ===== 特殊别名 =====
   'openai-response': 'openai.svg',
-  huiqing: 'huiqing.svg',
+  huiqing: 'huqing.svg',
   mock: 'mock.svg',
-  xqapi: 'xqapi.svg',
-  shusheng: 'shusheng.svg',
+  xqapi: 'xqapi.png',
+  shusheng: 'shusheng.png',
   '360': '360.svg',
 }
 
-// 以下常量由 model.utils.ts 导入使用
+/**
+ * 纯单色（黑 / 深灰）品牌图：深色主题下与背景同色，渲染出来几乎是一块黑的，
+ * 用户看到的就是「图标不见了 / 图标不对」。
+ *
+ * <p>判定口径来自像素扫描：图标有效像素平均色度 ≤ 6 且亮度 &lt; 95（没有任何品牌色），
+ * 且图形本身是深色描边。这类图在 {@code html.dark} 下由 ProviderLogo 统一反色；
+ * 浅色主题保持原图。带品牌色的图（如 Meta 蓝、SambaNova 紫）不在此集合内。</p>
+ *
+ * <p>新增品牌时：先看它在深色底上是否还能看清，看不清再把 id 加进来。
+ * 有黑色实心底 + 白色细节的图标（opencode / kilo 这类方块标）不要加：
+ * 反色会把整块翻成白底，反而不像原品牌。</p>
+ */
+export const MONO_DARK_ICONS = new Set<string>([
+  'agnes',
+  'aimlapi',
+  'amd',
+  'baidu',
+  'berget',
+  'cline',
+  'cline-pass',
+  'commandcode',
+  'digitalocean',
+  'dots',
+  'drun',
+  'gemini',
+  'groq',
+  'impossibl',
+  'inception',
+  'inference',
+  'inferx',
+  'jiekou',
+  'mock',
+  'neuralwatt',
+  'novita-ai',
+  'ollama',
+  'ollama-cloud',
+  'onnx',
+  'openai',
+  'openai-response',
+  'openrouter',
+  'pareto',
+  'perplexity',
+  'perplexity-agent',
+  'raccoon',
+  'sarvam',
+  'tinfoil',
+  'trae',
+  'trustedrouter',
+  'vercel',
+  'xai',
+  'zenmux',
+])
 
+// 以下常量由 model.utils.ts 导入使用
 // 模板库所有 id（含已下载图标的），用于 resolveProviderBrand 兜底匹配
 const TEMPLATE_BRAND_IDS = new Set(PROVIDER_TEMPLATES.map((t) => String(t.id).toLowerCase()))
 
@@ -326,6 +395,23 @@ const DOMAIN_BRANDS: Array<[string, string]> = [
   ['tencent', 'tencent'],
   ['modelscope', 'modelscope'],
   ['dashscope', 'qwen'],
+  // 蚂蚁百灵（Ant Ling）：官方提交域名 api.ant-ling.com
+  ['ant-ling', 'bailing'],
+  // 华为云 MAAS / ClinePass / Nous Portal / Voyage / Cloudflare / Vercel 的官方入口域名
+  ['modelarts', 'huawei-maas'],
+  ['cline.bot', 'cline'],
+  ['nousresearch', 'nous-portal'],
+  ['voyageai', 'voyage'],
+  ['cloudflare', 'cloudflare-workers-ai'],
+  ['vercel', 'vercel'],
+  // 常用推理 / 聚合平台：DeepInfra、Hyperbolic、Cortecs、NanoGPT、Requesty、AI/ML API、Abacus
+  ['deepinfra', 'deepinfra'],
+  ['hyperbolic', 'hyperbolic'],
+  ['cortecs', 'cortecs'],
+  ['nano-gpt', 'nano-gpt'],
+  ['requesty', 'requesty'],
+  ['aimlapi', 'aimlapi'],
+  ['abacus', 'abacus'],
   ['qianfan', 'baidu'],
   ['baidu', 'baidu'],
   ['360', '360ai'],
@@ -381,6 +467,23 @@ const NAME_BRANDS: Array<[string, string]> = [
   ['modelscope', 'modelscope'], ['魔搭', 'modelscope'],
   ['qwen', 'qwen'], ['通义', 'qwen'], ['千问', 'qwen'], ['dashscope', 'qwen'], ['阿里', 'qwen'],
   ['qianfan', 'baidu'], ['千帆', 'baidu'], ['文心', 'baidu'], ['baidu', 'baidu'], ['百度', 'baidu'],
+  // 蚂蚁百灵（Ant Ling）：名字里带「百灵 / 蚂蚁 / bailing / antling」都归到百灵品牌。
+  // 注意这里是去掉空格连字符后的小写名，'ant-ling' 落成 'antling'。
+  ['bailing', 'bailing'], ['百灵', 'bailing'], ['蚂蚁', 'bailing'], ['antling', 'bailing'],
+  // 华为云 MAAS（ModelArts）/ Vercel / Nous / Voyage / Cloudflare 的名称兜底
+  ['huawei', 'huawei-maas'], ['华为', 'huawei-maas'], ['modelarts', 'huawei-maas'],
+  ['vercel', 'vercel'],
+  ['nousresearch', 'nous-portal'], ['nousportal', 'nous-portal'],
+  ['voyage', 'voyage'],
+  ['cloudflare', 'cloudflare-workers-ai'],
+  // 常用推理 / 聚合平台的名称兜底
+  ['deepinfra', 'deepinfra'],
+  ['hyperbolic', 'hyperbolic'],
+  ['cortecs', 'cortecs'],
+  ['nanogpt', 'nano-gpt'],
+  ['requesty', 'requesty'],
+  ['aimlapi', 'aimlapi'],
+  ['abacus', 'abacus'],
   ['360', '360ai'],
   ['mistral', 'mistral'],
   ['groq', 'groq'],
@@ -411,6 +514,7 @@ const NAME_BRANDS: Array<[string, string]> = [
   ['b.ai', 'bai'],
   ['shusheng', 'shusheng'],
   ['书生', 'shusheng'],
+  ['书生·端砚', 'shusheng'],
 ]
 
 /**

@@ -548,15 +548,9 @@ import ReRichText from "@repo/ui/re-rich-text";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import KnowledgeFilePreview from "../components/KnowledgeFilePreview.vue";
+import { GRADE_LEVEL_OPTIONS } from "../utils/dict";
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
-
-const GRADE_LEVELS = [
-  { label: "小学", value: "PRIMARY" },
-  { label: "初中", value: "JUNIOR" },
-  { label: "高中", value: "SENIOR" },
-  { label: "大学", value: "UNIVERSITY" },
-] as const;
 
 /** 已提交的过滤条件（openCreate 预填用） */
 const filter = reactive({ keyword: "", subject: "", gradeLevel: "", grade: "" });
@@ -598,10 +592,10 @@ const previewFile = ref<KnowledgeFileItem | null>(null);
 const gradeLevelLabel = (v?: string) =>
   gradeLevelOptions.value.find((lv) => lv.value === v)?.label || v || "";
 
-/** 学段下拉：优先维度数据 dropdown，回退内置枚举 */
+/** 学段下拉：优先维度数据 dropdown，回退内置枚举（utils/dict） */
 const gradeLevelMeta = ref<Array<{ label: string; value: string }>>([]);
 const gradeLevelOptions = computed(() =>
-  gradeLevelMeta.value.length ? gradeLevelMeta.value : GRADE_LEVELS.map((lv) => ({ ...lv })),
+  gradeLevelMeta.value.length ? gradeLevelMeta.value : GRADE_LEVEL_OPTIONS,
 );
 
 /** 学段已选时学科随维度收敛（listSubjects 支持 gradeLevel） */

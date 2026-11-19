@@ -10,21 +10,10 @@
  *   const { context } = await createContextApp({});
  *   deviceRoutes.forEach(r => context.router.addRoute("layout", r));
  *
- * 提供的页面：
- *   - DeviceView：设备工作台（设备列表 / 分组 / 机房拓扑，都在页面内）
- *   - DeviceProviderView：厂商接入（接入凭据 / 厂商任务）
- *   - DeviceTopoView：机房拓扑（区域 → 网段 → 设备 → 通道）
- *   - DeviceTaskView：定时任务（路由别名，实际重定向到 /device/provider?tab=tasks，
- *     真实实现为组件 ReVendorTaskPanel）
+ * 页面视图不再从包根 re-export：路由一律经 ./router 的懒加载 import() 引用，
+ * 宿主需要具体页面时请走深路径（如 @pages/device/src/views/DeviceView.vue），
+ * 避免包根把全部页面组件拖进宿主入口 chunk（见 前端加载性能优化清单 C1）。
  */
-export { default as DeviceView } from './views/DeviceView.vue'
-export { default as DeviceProviderView } from './views/DeviceProviderView.vue'
-export { default as DeviceTopoView } from './views/DeviceTopoView.vue'
-export { default as DeviceTaskView } from './views/DeviceTaskView.vue'
-export { default as DeviceVehicleView } from './views/DeviceVehicleView.vue'
-export { default as DeviceVehiclePassView } from './views/DeviceVehiclePassView.vue'
-export { default as DeviceAttendanceView } from './views/DeviceAttendanceView.vue'
-export { default as DevicePersonView } from './views/DevicePersonView.vue'
 export { deviceRoutes, deviceMenus } from './router'
 export { deviceApi } from './api/deviceApi'
 export * from './types/device'

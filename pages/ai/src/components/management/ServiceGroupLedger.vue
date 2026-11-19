@@ -646,6 +646,7 @@ async function loadModels() {
   modelsLoading.value = true
   modelError.value = ''
   try {
+    // 只要已开启的模型（口径由账号模块判定）
     const body: any = await adminApi.get('/api/providers')
     const list = Array.isArray(body) ? body : (body?.data || [])
     const out: Array<{ key: string; label: string; models: string[] }> = []
@@ -654,7 +655,7 @@ async function loadModels() {
       const arr = Array.isArray(p?.models) ? p.models : []
       const codes: string[] = []
       for (const m of arr) {
-        if (!m || m.enabled === false) continue
+        if (!m) continue
         const code = String(m.model || m.modelName || m.name || '').trim()
         if (!code || seen.has(code)) continue
         seen.add(code)

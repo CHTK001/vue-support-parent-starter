@@ -151,6 +151,15 @@ function toFrame(row: Record<string, unknown>): AvatarFrame {
 }
 
 /**
+ * 静帧 poster 路径（与 APNG 同名、扩展名 .png）。
+ * <p>仅生成器新产的灵动/星座框有 poster；生肖/常规旧素材没有，
+ * 调用方需对 &lt;img&gt; 挂 @error 回退到 APNG 原图。</p>
+ */
+export function avatarFramePosterPath(image: string): string | undefined {
+  return image.endsWith(".apng") ? `${image.slice(0, -5)}.png` : undefined;
+}
+
+/**
  * 载入头像框字典
  * <p>同一页面多个渲染点共用一次请求；失败时保留兜底字典，不抛错。</p>
  */

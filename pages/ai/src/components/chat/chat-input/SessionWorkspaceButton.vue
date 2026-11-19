@@ -48,7 +48,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { isRemoteWorkspacePath } from '@/utils/workspacePath'
 
 const props = defineProps<{
-  /** 会话当前的执行目录；未设置时为 null（回落到账号 agent 目录） */
+  /** 会话当前的执行目录；未设置时为 null（回落到账号工作目录） */
   workspacePath?: string | null
   /**
    * 形态：

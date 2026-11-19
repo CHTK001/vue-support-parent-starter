@@ -125,6 +125,7 @@ interface FlowNodeTypeDef {
 | `propertiesTitle`  | `string`            | `"属性"`      | 停靠区标题                               |
 | `menuItems`        | `FlowMenuItem[]`    | 内置四项      | 右键菜单项；`[]` 即关掉右键菜单          |
 | `nodeComponent`    | `Component \| null` | `null`        | 自定义节点体组件，替代内置卡片            |
+| `traceOnSelect`    | `boolean`           | `false`       | 选中节点/连线时自动高亮上下游链路（上游蓝、下游青、其余压暗） |
 
 ### 交互开关的边界
 
@@ -151,8 +152,8 @@ const menuItems: FlowMenuItem[] = [
 
 - `action` 复用内置实现（`rename` / `locate` / `copy` / `delete`），`onClick` 自己处理；
   两者都给时 `onClick` 优先。
-- `onClick` 的上下文是 `{ node, event }`。**没有 `edge`**：引擎只绑了 `node:contextmenu`，
-  给一个恒为 `null` 的字段属于投机性接口，不给。
+- `onClick` 的上下文是 `{ node, edge, event }`：右键节点时 `edge` 为 `null`，
+  右键**连线**时 `node` 为 `null`、`edge` 是被点的连线（内置连线菜单：删除 / 定位）。
 - 传 `[]` 等于关掉右键菜单（`<ul>` 根本不渲染，而不是留个空壳浮层吃掉点击）。
 
 ### 自定义节点体（`nodeComponent`）
@@ -208,6 +209,8 @@ updateNode(id, { label?, data?, color?, iconPath? })
 updateEdge(id, { kind?, label?, transfer?, data? })
 removeNodes(ids) removeEdges(ids) removeSelected()
 copySelected(cut) paste() selectNode(id) focusNode(id) nodeClientRect(id)
+alignSelected(mode)                  // 多选对齐 / 等距分布（left/center-x/…/distribute-y）
+getSelectedNodeIds() clearSelection() setTraceEnabled(on)
 toLocalPoint(clientX, clientY)
 zoomBy(delta) resetZoom() getScale() fit() fitCenter()
 undo() redo() canUndo() canRedo()
@@ -216,11 +219,38 @@ checkStructure(startType?, endType?)   // 前端预检，后端仍是最终裁�
 dispose()
 ```
 
+### 连线校验钩子（`canConnect`）
+
+```ts
+new FlowGraphEngine({
+  // ...
+  canConnect: ({ from, to, fromPort, toPort }) => {
+    return from.id !== to.id; // 业务规则自己定，返回 false 即拒绝
+  },
+});
+```
+
+内置规则（DAG 端口方向、菱形出边名额、禁自环/重边）全部通过后才会调用；
+返回 `false` 时 X6 把预览线收回，不会产生 `edge:connected`。拒绝提示由宿主自理。
+
+## 快捷键
+
+| 键位 | 行为 |
+| --- | --- |
+| `Delete` / `Backspace` | 删除选中节点/连线 |
+| `Ctrl+Z` / `Ctrl+Shift+Z` / `Ctrl+Y` | 撤销 / 重做 |
+| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | 复制 / 剪切 / 粘贴（节点连同出入边） |
+| `Ctrl+D` | 克隆选中（复制并立即粘贴） |
+| `Ctrl+A` | 全选 |
+| `↑` `↓` `←` `→` | 微移选中节点 10px；按住 `Shift` 加速到 40px |
+| `Esc` | 清空选区 / 退出多选 |
+
 ## 结构预检规则
 
 `checkStructure` 只给提示、不阻断编辑：空图、缺开始（`NO_START`）、多个开始（`MULTI_START`）、
 缺结束（`NO_END`）、多个结束（`MULTI_END`，warning）、自环（`SELF_LOOP`）、
-非结束节点无出边（`DANGLING`）、非开始节点无入边（`ISOLATED`）。
+非结束节点无出边（`DANGLING`）、非开始节点无入边（`ISOLATED`）、
+跨节点环形依赖（`CYCLE`，Tarjan 检测，问题条定位到环上节点）。
 **保存/执行前必须以后端 `CollectGraph` 的校验结果为准。**
 
 ## 用法示例（节选自采集平台设计器）

@@ -109,12 +109,17 @@ function contextFromRoute(): ApmTabContext | null {
   const traceId = pick("traceId");
   const entity = pick("entity");
   const minutes = Number(pick("minutes"));
+  const start = Number(pick("start"));
+  const end = Number(pick("end"));
   if (service) context.service = service;
   if (endpoint) context.endpoint = endpoint;
   if (instance) context.instance = instance;
   if (traceId) context.traceId = traceId;
   if (entity) context.entity = entity;
   if (Number.isFinite(minutes) && minutes > 0) context.minutes = minutes;
+  // 自定义区间（毫秒）：告警下钻 / 分享链接会带 start&end，比 minutes 更具体
+  if (Number.isFinite(start) && start > 0) context.startTime = start;
+  if (Number.isFinite(end) && end > 0) context.endTime = end;
   return Object.keys(context).length ? context : null;
 }
 
@@ -246,6 +251,12 @@ function onOpenTab(event: Event): void {
     return;
   }
   stashApmTabContext(context);
+  if (name === active.value) {
+    // 重复打开当前页签：active 不变、watch 不触发，常驻面板收不到激活事件，
+    // 刚暂存的上下文会一直滞留 —— 这里手动广播一次，让面板把它消费掉。
+    window.dispatchEvent(new CustomEvent(APM_TAB_ACTIVATED_EVENT, { detail: { tab: name } }));
+    return;
+  }
   active.value = name;
 }
 

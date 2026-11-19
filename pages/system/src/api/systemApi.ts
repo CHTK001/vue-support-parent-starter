@@ -27,6 +27,7 @@ import type {
   SysRole,
   SysService,
   SysServicePlan,
+  SysServiceStats,
   SysTenantService,
   SysSetting,
   SysSettingHistory,
@@ -862,6 +863,29 @@ export function tenantStats() {
     .then<ApiResult<SysTenantStats>>((r) => r.data);
 }
 
+/** 服务统计 */
+export function serviceStats() {
+  return http()
+    .get("/v2/service/stats")
+    .then<ApiResult<SysServiceStats>>((r) => r.data);
+}
+
+/** 初始化租户独立库业务表（幂等，遗留租户补救用） */
+export function initTenantDatabase(sysTenantId: string) {
+  return http()
+    .put("/v2/tenant/init-database")
+    .query({ sysTenantId })
+    .then<ApiResult<string>>((r) => r.data);
+}
+
+/** 同步租户库管理员（幂等，建库建表失败或人工改坏后的补救入口） */
+export function syncTenantAdmin(sysTenantId: string) {
+  return http()
+    .put("/v2/tenant/sync-admin")
+    .query({ sysTenantId })
+    .then<ApiResult<string>>((r) => r.data);
+}
+
 /**
  * 租户创建进度：能力说明。
  *
@@ -1382,7 +1406,7 @@ export function updateMessageTemplate(data: SysMessageTemplate) {
 }
 
 /** 删除消息模板 */
-export function deleteMessageTemplate(sysMessageTemplateId: number) {
+export function deleteMessageTemplate(sysMessageTemplateId: string) {
   return http()
     .delete("/v2/message/template/delete")
     .query({ sysMessageTemplateId })
@@ -1573,10 +1597,18 @@ export function bindTotp(code: string) {
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
-/** 解绑 TOTP */
+/** 解绑 TOTP（解绑当前登录用户自己） */
 export function unbindTotp() {
   return http()
     .put("/v2/user/totp/unbind")
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
+/** 管理员强制解绑指定用户的 TOTP */
+export function unbindTotpForUser(userId: number) {
+  return http()
+    .put("/v2/user/totp/admin/unbind")
+    .query({ sysUserId: userId })
     .then<ApiResult<boolean>>((r) => r.data);
 }
 

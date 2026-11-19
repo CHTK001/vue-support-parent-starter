@@ -16,7 +16,15 @@ import { http, unwrapResult } from "@repo/utils";
 import ReTable from "@repo/ui/re-table";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { queryHosts, testConnectHost } from "@pages/server/src/api";
-import { fetchAlarmEvents, alarmLevel, isUnhandled, handleAlarmEvent, type AlarmEvent } from "../api/monitorApi";
+import {
+  fetchAlarmEvents,
+  fetchAlarmWindows,
+  alarmLevel,
+  isUnhandled,
+  handleAlarmEvent,
+  type AlarmEvent,
+  type AlarmMaintenanceWindow,
+} from "../api/monitorApi";
 import { getAlarmSummary, getAlarmTrend } from "../api/index";
 import { getTsharkStatus, type TsharkRuntimeStatus } from "../api";
 import { serverNodeSummary, subscribeServerStream, type ServerNodeSummary } from "../api/serviceManage";
@@ -33,6 +41,20 @@ const alarmsError = ref("");
 const hosts = ref<any[]>([]);
 const events = ref<AlarmEvent[]>([]);
 const lastRefresh = ref("");
+/** 自动刷新开关：关闭后仍有 socket 推送与手动刷新 */
+const autoRefresh = ref(true);
+/** 秒级时钟：驱动刷新倒计时、趋势末桶标注与维护窗口判定 */
+const nowTick = ref(Date.now());
+/** 页面是否在后台（后台标签页不轮询） */
+const pageHidden = ref(typeof document !== "undefined" ? document.hidden : false);
+/** 主机健康卡：搜索与异常过滤（纯前端筛选，不额外请求） */
+const hostQuery = ref("");
+const onlyAbnormal = ref(false);
+/** 维护窗口（后端为唯一判定方，这里只做提示） */
+const alarmWindows = ref<AlarmMaintenanceWindow[]>([]);
+const windowsError = ref("");
+/** 首屏静默探测得到的远控/文件能力（不进诊断抽屉，避免污染诊断摘要口径） */
+const probedCaps = ref<Record<string, { ok: boolean; detail: string }>>({});
 
 /** 后端告警统计（取代前端全量拉+分桶） */
 interface AlarmStatsSummary {
@@ -134,6 +156,24 @@ const levelCounts = computed(() => {
  * 两者不能混用；圆环占比统一按本值计算，避免跨天时占比超过 360°。</p>
  */
 const levelTotal = computed(() => LEVELS.reduce((sum, lv) => sum + (levelCounts.value[lv] ?? 0), 0));
+/**
+ * 级别占比文案。
+ *
+ * <p>{@code levelDistribution} 是全表累计口径，「高危/中危」卡片必须显式标注
+ * 「累计」并给出占累计比例，否则会和「未处理」「今日」混读。</p>
+ *
+ * @param n 该级别（或各级别之和）的累计条数
+ * @returns 形如 "38%" 的占比，累计为 0 时返回 "0%"
+ */
+function shareOf(n: number): string {
+  const total = levelTotal.value;
+  if (!total) return "0%";
+  return `${Math.round((n / total) * 100)}%`;
+}
+const highRiskCount = computed(() => (levelCounts.value.P0 ?? 0) + (levelCounts.value.P1 ?? 0));
+const midRiskCount = computed(() => levelCounts.value.P2 ?? 0);
+const highRiskShare = computed(() => shareOf(highRiskCount.value));
+const midRiskShare = computed(() => shareOf(midRiskCount.value));
 const donutStyle = computed(() => {
   const total = levelTotal.value;
   if (total === 0) return { background: "var(--border-subtle)" };
@@ -154,13 +194,29 @@ const recentAlarms = computed(() =>
     .slice(0, 5),
 );
 
-const hostRows = computed(() =>
-  [...hosts.value].sort((a, b) => {
+/** 主机是否需要关注：离线，或在线但采集数据已陈旧 */
+function isHostAbnormal(h: any): boolean {
+  return !isHostOnline(h) || Boolean(hostStaleText(h));
+}
+const abnormalHostCount = computed(() => hosts.value.filter(isHostAbnormal).length);
+const hostRows = computed(() => {
+  // 读一次秒级时钟，让「数据 N 分钟未更新」的异常判定随轮询一起刷新
+  void nowTick.value;
+  let list = onlyAbnormal.value ? hosts.value.filter(isHostAbnormal) : [...hosts.value];
+  const q = hostQuery.value.trim().toLowerCase();
+  if (q) {
+    list = list.filter(h =>
+      [h.serverHostName, h.serverHostAddress, groupLabel(h)]
+        .filter(Boolean)
+        .some(s => String(s).toLowerCase().includes(q)),
+    );
+  }
+  return list.sort((a, b) => {
     const ao = Number(a.serverHostOnline) === 1 ? 1 : 0;
     const bo = Number(b.serverHostOnline) === 1 ? 1 : 0;
     return bo - ao || String(a.serverHostName ?? "").localeCompare(String(b.serverHostName ?? ""));
-  }),
-);
+  });
+});
 const avgDelay = computed(() => {
   const vals = hosts.value.map(h => Number(h.serverHostDelayMs)).filter(v => Number.isFinite(v) && v >= 0);
   return vals.length ? `${Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)} ms` : "—";
@@ -184,13 +240,87 @@ const trendLabels = computed(() =>
     .filter(Boolean)
     .map(b => b!.time),
 );
+/** 趋势末桶是不完整的当前小时，必须标明「进行中」，否则会被读成整点掉量 */
+const trendLastHint = computed(() => {
+  const last = alarmTrendData.value[alarmTrendData.value.length - 1];
+  if (!last) return "";
+  const d = new Date(nowTick.value);
+  return `${last.time} 起进行中 · 截至 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+});
+
+/** 铃盘时间（秒级时钟驱动，轮询倒计时与维护窗口都基于它） */
+const nowDate = computed(() => new Date(nowTick.value));
+
+/**
+ * "HH:mm" 解析为当日分钟数（与后端 {@code toDayMinutes} 同一口径）。
+ *
+ * @param hhmm 待解析时间串
+ * @returns 分钟数，格式非法返回 null
+ */
+function toDayMinutes(hhmm: string | null | undefined): number | null {
+  if (!hhmm) return null;
+  const parts = String(hhmm).trim().split(":");
+  if (parts.length !== 2) return null;
+  const h = Number(parts[0]);
+  const m = Number(parts[1]);
+  if (!Number.isFinite(h) || !Number.isFinite(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return h * 60 + m;
+}
+/**
+ * 当前命中的维护窗口。
+ *
+ * <p>只做展示提示，判定口径与后端 {@code AlarmEngineServiceImpl#inMaintenanceWindow} 保持一致：
+ * enabled=1；weekdays 逗号分隔 0~6（周日=0，空=每天）；start&lt;end 为同日区间，
+ * 否则跨午夜；起止相同视为全天；级别空 = 全局静默。</p>
+ */
+const activeWindow = computed<AlarmMaintenanceWindow | null>(() => {
+  const d = nowDate.value;
+  const nowMinutes = d.getHours() * 60 + d.getMinutes();
+  const weekday = String(d.getDay());
+  for (const w of alarmWindows.value) {
+    if (Number(w.msMonitorAlarmMaintenanceWindowEnabled) !== 1) continue;
+    const wd = (w.weekdays ?? "").trim();
+    if (wd && !wd.split(",").map(s => s.trim()).includes(weekday)) continue;
+    const start = toDayMinutes(w.startTime);
+    const end = toDayMinutes(w.endTime);
+    if (start == null || end == null) continue;
+    const inRange = start < end
+      ? nowMinutes >= start && nowMinutes < end
+      : nowMinutes >= start || nowMinutes < end;
+    if (inRange) return w;
+  }
+  return null;
+});
+const activeWindowText = computed(() => {
+  const w = activeWindow.value;
+  if (!w) return "";
+  const scope = (w.msMonitorAlarmMaintenanceWindowLevel ?? "").trim();
+  const range = w.startTime === w.endTime ? "全天" : `${w.startTime}–${w.endTime}`;
+  return `${w.windowName || `窗口 #${w.id}`} · ${range} · ${scope || "全局静默"}：期间命中规则的告警不会产生新事件`;
+});
+
+/** 轮询倒计时（秒）：实时通道已连接或暂停时不显示 */
+const nextRefreshIn = computed(() => {
+  if (!autoRefresh.value || realtimeConnected.value || pageHidden.value) return 0;
+  const elapsed = nowTick.value - lastPollAt;
+  if (!lastPollAt || elapsed < 0) return Math.ceil(POLL_MS / 1000);
+  return Math.max(0, Math.ceil((POLL_MS - elapsed) / 1000));
+});
+/** 状态带右侧的运行态说明 */
+const railMetaText = computed(() => {
+  if (pageHidden.value) return "页面在后台，暂停轮询";
+  if (!autoRefresh.value) return "自动刷新已暂停";
+  if (realtimeConnected.value) return "实时通道已连接，按推送更新";
+  if (!socketEnabled.value) return `未启用实时通道，${nextRefreshIn.value}s 后轮询`;
+  return `实时通道未连接，${nextRefreshIn.value}s 后轮询`;
+});
 
 function checkOf(key: string): DiagCheck | undefined {
   return diagChecks.value.find(c => c.key === key);
 }
 const capabilities = computed<CapabilityChip[]>(() => {
-  const remote = checkOf("remote");
-  const files = checkOf("files");
+  const remote = checkOf("remote") ?? probedCaps.value.remote;
+  const files = checkOf("files") ?? probedCaps.value.files;
   const t = tsharkStatus.value;
   return [
     {
@@ -300,7 +430,15 @@ function metricItems(h: any): { key: string; label: string; value: number; has: 
 const POLL_MS = 30_000;
 /** 告警轮询间隔：全量事件列表比主机列表重得多，降频到 2 分钟 */
 const ALARM_POLL_MS = 120_000;
+/** 告警推送合并窗口：突发多条推送只触发一次补拉 */
+const ALARM_DEBOUNCE_MS = 1_200;
+/** 告警推送合并上限：持续推送时也必须定期刷新 */
+const ALARM_MAX_WAIT_MS = 6_000;
 let pollTimer: ReturnType<typeof setInterval> | undefined;
+let clockTimer: ReturnType<typeof setInterval> | undefined;
+let alarmRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+let alarmRefreshFirstAt = 0;
+let lastPollAt = 0;
 let lastAlarmPollAt = 0;
 let hostsLoading = false;
 let alarmsLoading = false;
@@ -309,13 +447,15 @@ let hasFetched = false;
 
 function startPolling(): void {
   if (pollTimer) return;
+  lastPollAt = Date.now();
   pollTimer = setInterval(() => {
+    lastPollAt = Date.now();
     // 后台标签页不轮询：监控页常驻时不该一直打后端。
-    if (document.hidden || realtimeConnected.value) return;
+    if (document.hidden || realtimeConnected.value || !autoRefresh.value) return;
     void loadHosts();
     if (Date.now() - lastAlarmPollAt >= ALARM_POLL_MS) {
       lastAlarmPollAt = Date.now();
-      void loadAlarms();
+      void Promise.all([loadAlarms(), loadAlarmStats()]);
     }
   }, POLL_MS);
 }
@@ -324,6 +464,51 @@ function stopPolling(): void {
     clearInterval(pollTimer);
     pollTimer = undefined;
   }
+}
+/** 秒级时钟：只在页面可见时跑，避免后台空转 */
+function startClock(): void {
+  if (clockTimer) return;
+  nowTick.value = Date.now();
+  clockTimer = setInterval(() => {
+    if (document.hidden) return;
+    nowTick.value = Date.now();
+  }, 1_000);
+}
+function stopClock(): void {
+  if (clockTimer) {
+    clearInterval(clockTimer);
+    clockTimer = undefined;
+  }
+}
+/** 手动暂停/继续自动刷新（socket 推送不受影响） */
+function toggleAutoRefresh(): void {
+  autoRefresh.value = !autoRefresh.value;
+  if (autoRefresh.value) {
+    startPolling();
+    void fetchAll(true);
+    ElMessage.success("已恢复自动刷新");
+  } else {
+    stopPolling();
+    ElMessage.info("已暂停自动刷新，仍可手动刷新");
+  }
+}
+/**
+ * 告警推送合并刷新。
+ *
+ * <p>推送载荷没有事件 id，既不能本地插入真实行（处理按钮会打错 id），
+ * 也不能每条推送都全量重拉；这里做 trailing debounce + 上限：静默 1.2s 后补拉，
+ * 但持续推送时最多 6s 一定补拉一次。</p>
+ */
+function scheduleAlarmRefresh(): void {
+  const now = Date.now();
+  if (!alarmRefreshFirstAt) alarmRefreshFirstAt = now;
+  if (alarmRefreshTimer) clearTimeout(alarmRefreshTimer);
+  const wait = Math.min(ALARM_DEBOUNCE_MS, Math.max(0, alarmRefreshFirstAt + ALARM_MAX_WAIT_MS - now));
+  alarmRefreshTimer = setTimeout(() => {
+    alarmRefreshTimer = undefined;
+    alarmRefreshFirstAt = 0;
+    void Promise.all([loadAlarms(), loadAlarmStats()]);
+  }, wait);
 }
 
 /** 拉主机列表（独立节流，轮询与手动刷新互不打断） */
@@ -356,7 +541,43 @@ async function loadAlarms(): Promise<void> {
   }
 }
 
-/** 后端告警统计 + 趋势（取代前端全量拉+分桶） */
+/** 拉告警维护窗口：仅用于页面提示，其余判定已下沉到后端 */
+async function loadAlarmWindows(): Promise<void> {
+  try {
+    alarmWindows.value = (await fetchAlarmWindows()) ?? [];
+    windowsError.value = "";
+  } catch {
+    windowsError.value = "维护窗口加载失败";
+    alarmWindows.value = [];
+  }
+}
+
+/** 首屏静默探测远控/文件能力：不弹错误提示，只把结果写入能力条 */
+async function probeCapabilities(): Promise<void> {
+  const next: Record<string, { ok: boolean; detail: string }> = {};
+  await Promise.all([
+    (async () => {
+      try {
+        const r = await http().get("/control/sessions").noToast(true).timeout(8000);
+        const list = unwrapResult<any[]>(r);
+        next.remote = { ok: true, detail: `${Array.isArray(list) ? list.length : 0} 个活跃会话，/control 已挂载` };
+      } catch (e) {
+        next.remote = { ok: false, detail: probeDetail(e, "/control/sessions", "远控模块未挂载 / 未引入 starter") };
+      }
+    })(),
+    (async () => {
+      try {
+        await http().get("/fs/default").query({ format: "json" }).noToast(true).timeout(8000);
+        next.files = { ok: true, detail: "default 根目录可访问" };
+      } catch (e) {
+        next.files = { ok: false, detail: probeDetail(e, "/fs/default", "文件服务未挂载或桶名不匹配") };
+      }
+    })(),
+  ]);
+  probedCaps.value = next;
+}
+
+/** 拉告警统计摘要（不遮挡事件列表） */
 async function loadAlarmStats(): Promise<void> {
   try {
     const [summary, trend] = await Promise.all([getAlarmSummary(), getAlarmTrend(24)]);
@@ -732,9 +953,12 @@ function onVisibility(): void {
 onMounted(() => {
   void fetchAll();
   void loadTsharkStatus();
+  void probeCapabilities();
+  void loadAlarmWindows();
   bindSocket();
   bindServerStream();
   startPolling();
+  startClock();
   document.addEventListener("visibilitychange", onVisibility);
 });
 watch(realtimeConnected, connected => {
@@ -748,7 +972,9 @@ watch(realtimeConnected, connected => {
 });
 onBeforeUnmount(() => {
   stopPolling();
+  stopClock();
   document.removeEventListener("visibilitychange", onVisibility);
+  clearTimeout(alarmRefreshTimer);
   unsubOnline?.();
   unsubMetrics?.();
   unsubAlarm?.();
@@ -762,6 +988,15 @@ onBeforeUnmount(() => {
       <template #actions>
         <ReButton show-text icon="FirstAidKit" size="small" @click="openDiagnostics(true)">运行诊断</ReButton>
         <ReButton show-text icon="RefreshRight" size="small" :loading="loading" @click="fetchAll()">刷新</ReButton>
+        <ReButton
+          show-text
+          icon="RefreshRight"
+          size="small"
+          :loading="!autoRefresh"
+          @click="toggleAutoRefresh"
+        >
+          {{ autoRefresh ? "自动刷新" : "暂停刷新" }}
+        </ReButton>
         <ReButton show-text icon="Setting" type="primary" size="small" @click="router.push('/assets')">管理资产</ReButton>
       </template>
     </ReSectionHead>
@@ -786,7 +1021,7 @@ onBeforeUnmount(() => {
       <span class="rail-meta">
         {{ lastRefresh ? `数据 ${lastRefresh}` : "数据 —" }}
         <span class="rail-sep">·</span>
-        {{ realtimeConnected ? "实时通道已连接" : socketEnabled ? "实时通道未连接，30s 轮询" : "未启用实时通道，30s 轮询" }}
+        {{ railMetaText }}
       </span>
     </section>
 
@@ -809,39 +1044,52 @@ onBeforeUnmount(() => {
           style="--accent: var(--status-error)"
           role="link"
           tabindex="0"
+          title="未处理 = 事件状态为 NEW 的告警；今日新增 = 后端告警统计 todayTotal"
           @click="router.push('/alarms')"
           @keydown.enter="router.push('/alarms')"
         >
           <div class="stat-label">未处理告警</div>
           <div class="stat-value">{{ unhandledCount }}</div>
-          <div class="stat-trend is-down">今日告警 {{ totalAlarms }}</div>
+          <div class="stat-trend">累计待办 · 今日新增 {{ totalAlarms }}</div>
         </div>
         <div
           class="stat-card is-clickable"
           style="--accent: var(--sev-p0-text, var(--status-error))"
           role="link"
           tabindex="0"
+          title="级别分布是后端全表累计；高危口径 = P0 + P1 合并"
           @click="router.push('/alarms')"
           @keydown.enter="router.push('/alarms')"
         >
-          <div class="stat-label">高危告警 P0+P1</div>
-          <div class="stat-value">{{ levelCounts.P0 + levelCounts.P1 }}</div>
-          <div class="stat-trend">需立即处理</div>
+          <div class="stat-label">高危累计 P0+P1</div>
+          <div class="stat-value">{{ highRiskCount }}</div>
+          <div class="stat-trend">含已处理/误报 · 占累计 {{ highRiskShare }}</div>
         </div>
         <div
           class="stat-card is-clickable"
           style="--accent: var(--sev-p2-text, var(--status-warning))"
           role="link"
           tabindex="0"
+          title="级别分布是后端全表累计；中危口径 = P2"
           @click="router.push('/alarms')"
           @keydown.enter="router.push('/alarms')"
         >
-          <div class="stat-label">中危告警 P2</div>
-          <div class="stat-value">{{ levelCounts.P2 }}</div>
-          <div class="stat-trend">当班处理</div>
+          <div class="stat-label">中危累计 P2</div>
+          <div class="stat-value">{{ midRiskCount }}</div>
+          <div class="stat-trend">含已处理/误报 · 占累计 {{ midRiskShare }}</div>
         </div>
       </div>
     </ReSkeleton>
+
+    <!-- 维护窗口提示条：后端为唯一判定方，这里只做当前命中窗口的展示 -->
+    <div v-if="activeWindowText" class="maintenance-banner" role="status">
+      <span class="maintenance-banner-mark">静</span>
+      <span class="maintenance-banner-body">
+        <span class="maintenance-banner-name">维护窗口生效中</span>
+        <span class="maintenance-banner-text">{{ activeWindowText }}</span>
+      </span>
+      <span v-if="windowsError" class="maintenance-banner-error">{{ windowsError }}</span>
+    </div>
 
     <div class="dash-grid">
       <!-- 主机健康：把已经取到、但原来只用来计数的字段真正展示出来 -->
@@ -857,10 +1105,35 @@ onBeforeUnmount(() => {
           <span>{{ hostsError }}</span>
           <ReButton text size="small" type="primary" @click="fetchAll()">重试</ReButton>
         </div>
-        <ReSkeleton v-else :loading="loading" :rows="2" :count="2" animated>
+        <template v-else>
+          <div class="host-tools">
+            <div class="host-search">
+              <ReInput
+                v-model="hostQuery"
+                size="small"
+                clearable
+                placeholder="搜索主机名 / 地址 / 分组"
+              />
+            </div>
+            <ReButton
+              v-if="hosts.length"
+              text
+              size="small"
+              :class="{ 'is-on': onlyAbnormal }"
+              title="只显示离线或数据已陈旧的主机"
+              @click="onlyAbnormal = !onlyAbnormal"
+            >
+              只看异常 <span class="filter-count">{{ abnormalHostCount }}</span>
+            </ReButton>
+          </div>
+          <ReSkeleton :loading="loading" :rows="2" :count="2" animated>
           <div v-if="!hosts.length" class="empty-state">
             <ReEmpty description="还没有主机资产，先添加一台主机" />
             <ReButton type="primary" size="small" icon="Plus" @click="router.push('/assets')">去添加主机</ReButton>
+          </div>
+          <div v-else-if="!hostRows.length" class="empty-state">
+            <ReEmpty description="没有匹配的主机" />
+            <ReButton text size="small" @click="hostQuery = ''; onlyAbnormal = false">清空筛选</ReButton>
           </div>
           <div v-else class="host-list">
             <button
@@ -901,6 +1174,7 @@ onBeforeUnmount(() => {
             </button>
           </div>
         </ReSkeleton>
+        </template>
       </section>
 
       <!-- 告警构成 -->
@@ -954,6 +1228,9 @@ onBeforeUnmount(() => {
           </div>
           <div class="trend-axis">
             <span v-for="(l, i) in trendLabels" :key="i">{{ l }}</span>
+          </div>
+          <div class="trend-foot">
+            <span class="trend-foot-note">{{ alarmTrendData.length ? trendLastHint : "" }}</span>
           </div>
           <div v-if="trendTotal === 0" class="trend-empty">过去 24 小时无告警</div>
         </div>
@@ -1317,7 +1594,54 @@ onBeforeUnmount(() => {
 .card-sub { font-size: 11px; color: var(--text-tertiary); }
 
 /* ── 主机健康 ───────────────────────────────────────── */
-.host-list { display: flex; flex-direction: column; }
+.host-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.host-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.host-search { width: 200px; max-width: 100%; }
+.filter-count { margin-left: 2px; color: var(--status-warning); font-variant-numeric: tabular-nums; }
+/* 只看异常开关：选中态用主色描边，与「远控开」这类状态标签区分开 */
+.host-tools .el-button.is-on {
+  color: var(--brand-500);
+  background: var(--brand-weak-bg, color-mix(in srgb, var(--brand-500) 10%, transparent));
+}
+
+/* ── 维护窗口提示条 ──────────────────────────────── */
+.maintenance-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-container);
+  border: 1px solid color-mix(in srgb, var(--status-warning) 45%, var(--border-subtle));
+  border-radius: var(--radius-md, 8px);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.maintenance-banner-mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--status-warning) 16%, transparent);
+  color: var(--status-warning);
+  font-size: 11px;
+  font-weight: 700;
+}
+.maintenance-banner-body { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; min-width: 0; flex: 1; }
+.maintenance-banner-name { font-weight: 600; color: var(--status-warning); }
+.maintenance-banner-error { color: var(--status-error); font-size: 11px; }
 .host-row {
   display: grid;
   grid-template-columns: 8px 28px minmax(120px, 1.4fr) 58px 62px minmax(180px, 0.9fr);
@@ -1459,6 +1783,8 @@ onBeforeUnmount(() => {
 .trend-bar.is-zero { background: var(--border-subtle); opacity: 1; }
 .trend-bar.is-current { opacity: 1; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-500) 45%, transparent); }
 .trend-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-tertiary); }
+.trend-foot { min-height: 14px; }
+.trend-foot-note { font-size: 10px; color: var(--text-tertiary); }
 .trend-empty {
   position: absolute;
   inset: 12px 0 18px;

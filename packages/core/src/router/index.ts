@@ -27,6 +27,7 @@ import {
   stringifyQuery as stringifyQueryRaw,
   type LocationQuery,
   type LocationQueryRaw,
+  type RouteLocationRaw,
   type RouteRecordRaw,
 } from "vue-router";
 import { getConfig } from "@repo/config";
@@ -140,6 +141,54 @@ export function createAppRouter(options: CreateAppRouterOptions = {}) {
         }
       : {}),
   });
+
+  // 字符串 location 的 query 收口：vue-router 对字符串 location 由 parseURL 直接拼
+  // fullPath（`path + searchString + hash`，原样保留 query 字符串），**不会调用
+  // stringifyQuery**。于是 router.push("/projects?releaseId=5") 会把明文写进地址栏，
+  // 绕过上面的地址栏加密。转成 { path, query, hash } 后走对象分支，fullPath 由
+  // stringifyQuery 重新生成，业务参数才会被加密；query 在解析回来时仍解密为明文。
+  // 不含 query、或 query 出现在 hash 之后的字符串原样返回（与 vue-router 解析一致）。
+  if (queryCryptoEnabled) {
+    const normalizeQueryLocation = (to: unknown): unknown => {
+      if (typeof to === "string") {
+        const hashPos = to.indexOf("#");
+        const searchPos = to.indexOf("?");
+        if (searchPos < 0 || (hashPos >= 0 && searchPos > hashPos)) return to;
+        const search = to.slice(searchPos + 1, hashPos < 0 ? undefined : hashPos);
+        if (!search) return to;
+        return {
+          path: to.slice(0, searchPos) || "/",
+          query: parseQueryRaw(search),
+          hash: hashPos < 0 ? "" : to.slice(hashPos),
+        };
+      }
+      // 对象形态 { path: "/projects?releaseId=5" }：vue-router 只用 path 匹配路由，
+      // query 取自 rawLocation.query（undefined），path 内嵌的 query 会被整段丢弃。
+      if (to && typeof to === "object" && typeof (to as { path?: unknown }).path === "string") {
+        const raw = to as { path: string; query?: LocationQueryRaw; hash?: string };
+        const hashPos = raw.path.indexOf("#");
+        const searchPos = raw.path.indexOf("?");
+        if (searchPos < 0 || (hashPos >= 0 && searchPos > hashPos)) return to;
+        const search = raw.path.slice(searchPos + 1, hashPos < 0 ? undefined : hashPos);
+        if (!search) return to;
+        return {
+          ...raw,
+          path: raw.path.slice(0, searchPos) || "/",
+          query: { ...parseQueryRaw(search), ...(raw.query ?? {}) },
+          hash: raw.hash || (hashPos < 0 ? "" : raw.path.slice(hashPos)),
+        };
+      }
+      return to;
+    };
+    const asRaw = (to: unknown) => normalizeQueryLocation(to) as RouteLocationRaw;
+    const pushRaw = router.push.bind(router);
+    const replaceRaw = router.replace.bind(router);
+    const resolveRaw = router.resolve.bind(router);
+    router.push = ((to: RouteLocationRaw) => pushRaw(asRaw(to))) as typeof router.push;
+    router.replace = ((to: RouteLocationRaw) => replaceRaw(asRaw(to))) as typeof router.replace;
+    router.resolve = ((to: RouteLocationRaw, current?: Parameters<typeof resolveRaw>[1]) =>
+      resolveRaw(asRaw(to), current)) as typeof router.resolve;
+  }
 
   // hash 模式启动归一化：把遗留的 pathname（如 /login、/collect/datasource/list）改回 base，
   // 只保留 # 后面的路由。否则地址栏会长期停留在 /login#/xxx，刷新/分享都会带出不正常路径。

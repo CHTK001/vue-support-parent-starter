@@ -21,6 +21,7 @@
         :settings="{ border: false }"
         style="width: 100%"
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        table-id="terminal-snippets-v2"
       >
         <template #col-actions="{ row }">
           <el-button text type="primary" @click="handleEdit(snippetOf(row))">编辑</el-button>

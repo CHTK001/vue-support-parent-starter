@@ -75,10 +75,29 @@ export interface FlowGraphData {
 /** 结构自检结果 */
 export interface FlowStructureIssue {
   level: "error" | "warning";
-  code: "NO_START" | "MULTI_START" | "NO_END" | "MULTI_END" | "DANGLING" | "ISOLATED" | "SELF_LOOP";
+  code:
+    | "NO_START"
+    | "MULTI_START"
+    | "NO_END"
+    | "MULTI_END"
+    | "DANGLING"
+    | "ISOLATED"
+    | "SELF_LOOP"
+    | "CYCLE";
   message: string;
   cellId?: string;
 }
+
+/** 多选对齐 / 等距分布的模式（FlowGraphEngine.alignSelected 的入参） */
+export type FlowAlignMode =
+  | "left"
+  | "center-x"
+  | "right"
+  | "top"
+  | "center-y"
+  | "bottom"
+  | "distribute-x"
+  | "distribute-y";
 
 /** 当前选中对象 */
 export type FlowSelection =

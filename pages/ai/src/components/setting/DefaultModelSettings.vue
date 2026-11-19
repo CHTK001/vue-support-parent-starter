@@ -1589,6 +1589,7 @@ const loadModels = () => {
         try {
             models.value = []
             providers.value = []
+            // 只要已开启的模型（口径由账号模块判定）
             const providersBody = await adminApi.get('/api/providers')
             // adminApi 可能已解包为数组，也可能返回 {data}，两种形态都要兼容
             const providersData = Array.isArray(providersBody) ? providersBody : providersBody?.data || []
@@ -1602,7 +1603,6 @@ const loadModels = () => {
                 // （external=true）才真正可用、可被选为默认；未配置时不出现在下拉中。
                 const isOnnxProvider = provider.provider_id === 'onnx' || provider.platform === 'onnx'
                 const providerModels = (provider.models || [])
-                    .filter(m => m.enabled !== false)
                     // ONNX 提供商：external=true（绑定外部目录）或 available=true（已注册、权重在）
                     // 的模型都可选。此前只认 external，导致 ModelRegistry 里已注册的内置模型
                     // （scrfd-face-detector / arc-face / resnet 等，available=true 但 external=false）

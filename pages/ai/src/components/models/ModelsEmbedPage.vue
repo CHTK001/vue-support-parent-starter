@@ -36,6 +36,7 @@
         :provider="currentProvider"
         :models="currentModels"
         :model-presets="modelPresets"
+        :refresh-tick="creditRefreshTick"
         @changed="reload"
         @edit-provider="handleEditProvider"
         @delete-provider="handleDeleteProvider(currentProvider)"
@@ -66,7 +67,7 @@ import { apiService } from '../../services/ApiService'
 import { adminApi } from '@/framework/context'
 import { message } from '@repo/core'
 import { usePopup } from '../../composables/usePopup'
-import { PROVIDER_TEMPLATES } from './model.constants'
+import { PROVIDER_TEMPLATES, sortTemplatesByHot } from './model.constants'
 import { mapProvider, mapModel } from './model.utils'
 
 const { t } = useI18n()
@@ -119,10 +120,10 @@ const currentModels = computed(() =>
   models.value.filter((m) => m.providerId === currentProviderId.value),
 )
 
-// 可添加模板：过滤已添加类型（与 ModelsPage.availableTemplates 同口径）
+// 可添加模板：过滤已添加类型（与 ModelsPage.availableTemplates 同口径，热门置顶）
 const availableTemplates = computed(() => {
   const added = new Set(providers.value.map((p: any) => p.provider))
-  return PROVIDER_TEMPLATES.filter((tpl: any) => !added.has(tpl.id))
+  return sortTemplatesByHot(PROVIDER_TEMPLATES.filter((tpl: any) => !added.has(tpl.id)))
 })
 
 const onProviderChange = () => {
@@ -158,8 +159,12 @@ const handleDeleteProvider = async (p: any) => {
 }
 const handleTemplateClick = (template: any) => formRef.value.openFromTemplate(template)
 
+// 供应商保存成功后递增，驱动余额面板强制重拉（与 /models 页同口径）
+const creditRefreshTick = ref(0)
+
 const handleSaved = async () => {
   await reload()
+  creditRefreshTick.value++
 }
 
 // 账号渠道 provider 跳转入口（嵌入页场景）

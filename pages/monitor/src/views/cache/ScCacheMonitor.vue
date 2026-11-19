@@ -88,7 +88,7 @@
           <ReEmpty v-else-if="keyList.length === 0" description="该缓存下暂无键" layout="modern" :image-size="60" />
           <div v-else class="key-list">
             <div
-              v-for="(key, idx) in keyList"
+              v-for="(key, idx) in visibleKeys"
               :key="key"
               :class="['key-item', { active: selectedKey === key }]"
               @click="selectKey(key)"
@@ -105,6 +105,9 @@
               >
                 <ReIcon name="Close" />
               </ReButton>
+            </div>
+            <div v-if="railLimit < keyList.length" class="key-load-more">
+              <ReButton text @click="loadMoreRail">加载更多（已显示 {{ visibleKeys.length }} / {{ keyList.length }}）</ReButton>
             </div>
           </div>
         </div>
@@ -197,6 +200,15 @@ const selectedCache = ref('')
 const keyList = ref<string[]>([])
 const selectedKey = ref('')
 
+/** 键列表渐进渲染步长：SCAN 可能返回上万键，一次性 v-for 会冻结页面 */
+const RAIL_STEP = 200
+/** 当前已渲染条数 */
+const railLimit = ref(RAIL_STEP)
+/** 实际渲染的键切片 */
+const visibleKeys = computed(() => keyList.value.slice(0, railLimit.value))
+/** 加载下一批 */
+const loadMoreRail = () => { if (railLimit.value < keyList.value.length) railLimit.value += RAIL_STEP }
+
 const cacheValue = ref('')
 const cacheType = ref('STRING')
 const cacheSize = ref(0)
@@ -244,6 +256,7 @@ const refreshKeyList = async () => {
   if (!selectedCache.value) return
   const keys = await resolveKeys(selectedCache.value)
   keyList.value = keys ?? []
+  railLimit.value = RAIL_STEP
 }
 
 /** 解析当前 Redis 采集任务并按前缀扫描键名；无任务或失败返回 null */
@@ -267,6 +280,7 @@ const selectCache = async (prefix: string) => {
   cacheValue.value = ''
   const keys = await resolveKeys(prefix)
   keyList.value = keys ?? []
+  railLimit.value = RAIL_STEP
 }
 
 const selectKey = async (key: string) => {
@@ -543,6 +557,7 @@ refreshAll()
 }
 
 .key-list { display: flex; flex-direction: column; gap: 4px; }
+.key-load-more { text-align: center; padding: 6px 0 2px; }
 .key-item {
   display: flex;
   align-items: center;

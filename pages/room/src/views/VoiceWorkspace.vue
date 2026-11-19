@@ -34,7 +34,12 @@ function stopMic(): void {
 async function toggleMic(): Promise<void> {
   if (!micOn.value) {
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          noiseSuppression: noiseSuppression.value,
+          echoCancellation: echoCancellation.value,
+        },
+      });
     } catch {
       // 权限被拒 / 无可用设备：保持关闭态并给出可感知提示
       micStream = null;
@@ -63,10 +68,33 @@ onBeforeUnmount(() => {
   stopMic();
 });
 
-/** 切换降噪 */
-function toggle(ns: boolean): void {
-  noiseSuppression.value = ns;
-  store.signal(JSON.stringify({ event: "voice", data: "ns", v: ns }));
+/**
+ * 切换降噪 / 回声消除。
+ *
+ * <p>两个开关彼此独立：各自翻转自己的状态位，把约束实时应用到本端
+ * 麦克风轨道（{@code applyConstraints}），并经信令告知对端（data 取
+ * {@code ns} / {@code aec}，v 为新值）。</p>
+ *
+ * @param kind {@code "ns"} 降噪；{@code "aec"} 回声消除
+ */
+async function toggleDsp(kind: "ns" | "aec"): Promise<void> {
+  if (kind === "ns") {
+    noiseSuppression.value = !noiseSuppression.value;
+  } else {
+    echoCancellation.value = !echoCancellation.value;
+  }
+  const track = micStream?.getAudioTracks()[0];
+  if (track) {
+    try {
+      await track.applyConstraints({
+        noiseSuppression: noiseSuppression.value,
+        echoCancellation: echoCancellation.value,
+      });
+    } catch {
+      // 部分设备/浏览器不支持热更新约束：状态位已更新，下次开麦生效
+    }
+  }
+  store.signal(JSON.stringify({ event: "voice", data: kind, v: kind === "ns" ? noiseSuppression.value : echoCancellation.value }));
 }
 </script>
 
@@ -80,7 +108,7 @@ function toggle(ns: boolean): void {
             <span class="rm-dot" :class="{ 'is-ok': peerReady, 'is-bad': !peerReady }" />
           </div>
 
-          <div class="rm-voice__wave">
+          <div class="rm-voice__wave" :class="{ 'is-live': micOn }">
             <div class="rm-wave__bar" v-for="i in 20" :key="i" />
           </div>
 
@@ -99,9 +127,9 @@ function toggle(ns: boolean): void {
               type="button"
               class="rm-media__btn"
               :class="{ on: noiseSuppression }"
-              title="降噪"
+              :title="noiseSuppression ? '关闭降噪' : '开启降噪'"
               aria-label="降噪开关"
-              @click="toggle(true)"
+              @click="toggleDsp('ns')"
             >
               <ReIcon name="Headphones" :size="18" />
             </button>
@@ -109,9 +137,9 @@ function toggle(ns: boolean): void {
               type="button"
               class="rm-media__btn"
               :class="{ on: echoCancellation }"
-              title="回声消除"
+              :title="echoCancellation ? '关闭回声消除' : '开启回声消除'"
               aria-label="回声消除开关"
-              @click="toggle(false)"
+              @click="toggleDsp('aec')"
             >
               <ReIcon name="Monitor" :size="18" />
             </button>
@@ -150,7 +178,12 @@ function toggle(ns: boolean): void {
   height: 10px;
   border-radius: 3px;
   background: var(--el-color-primary-light-5, #d9e7ff);
+  opacity: 0.45;
+}
+/* 只在麦克风开启时跳动：关麦/未连接时波形静止在基线高度，不再假动 */
+.rm-voice__wave.is-live .rm-wave__bar {
   animation: wave 1s ease-in-out infinite;
+  opacity: 1;
 }
 @keyframes wave {
   0%,

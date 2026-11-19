@@ -18,7 +18,6 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ElMessageBox } from "element-plus";
 import { message } from "@repo/core";
 // 自带样式：路由工厂可能被宿主直接深导入（不经过包根 index.ts），
 // 因此把 CSS 挂在页面组件上，保证任何挂载方式都有一份样式。
@@ -79,6 +78,14 @@ const currentHost = computed(() => hosts.value.find((h) => h.id === hostId.value
 function hostLabel(h: DockerHost): string {
   return `${h.serverHostName || "未命名主机"}（${h.serverHostAddress || "-"}）`;
 }
+
+/** 主机下拉选项；空列表给禁用占位，避免下拉框显示裸 0 */
+const hostOptions = computed(() => {
+  if (!hosts.value.length) {
+    return [{ label: hostsLoading.value ? "读取主机…" : "暂无主机", value: 0, disabled: true }];
+  }
+  return hosts.value.map((h) => ({ label: hostLabel(h), value: h.id }));
+});
 
 /** 读取主机台账 */
 async function loadHosts(): Promise<void> {
@@ -337,17 +344,16 @@ function openInstall(preset: { image?: string; registryId?: string; template?: D
   installOpen.value = true;
 }
 
-/** 批量动作（启停删逐个调接口；删除用同步版，要求确认） */
-async function batchAction(action: "start" | "stop" | "remove"): Promise<void> {
+/** 批量动作（启停重启删逐个调接口；删除用同步版，要求确认） */
+async function batchAction(action: "start" | "stop" | "restart" | "remove"): Promise<void> {
   const ids = selectedIds.value.slice();
   if (!ids.length) return;
-  const label = { start: "启动", stop: "停止", remove: "删除" }[action];
-  const ok = await ElMessageBox.confirm(`确认 ${label} ${ids.length} 个已选容器？`, label, {
-    confirmButtonText: action === "remove" ? "删除" : "执行",
-    cancelButtonText: "取消",
-    type: action === "remove" ? "warning" : "info",
-  });
-  if (!ok) return;
+  const label = { start: "启动", stop: "停止", restart: "重启", remove: "删除" }[action];
+  try {
+    await message.confirm(`确认 ${label} ${ids.length} 个已选容器？`, label, action === "remove" ? "删除" : "执行");
+  } catch {
+    return; // 用户取消（message.confirm 取消时 reject）
+  }
   let failed = 0;
   for (const c of containers.value) {
     if (!ids.includes(c.id) || !hostId.value) continue;
@@ -452,10 +458,14 @@ onBeforeUnmount(() => {
     <div class="dk-head">
       <span class="dk-title"><ReIcon name="Box" :size="16" /> Docker</span>
 
-      <select v-model.number="hostId" class="dk-select" :disabled="embedded || hostsLoading || !hosts.length" title="选择主机">
-        <option v-if="!hosts.length" :value="0">{{ hostsLoading ? "读取主机…" : "暂无主机" }}</option>
-        <option v-for="h in hosts" :key="h.id" :value="h.id">{{ hostLabel(h) }}</option>
-      </select>
+      <ReSelect
+        v-model="hostId"
+        :data="hostOptions"
+        size="small"
+        :disabled="embedded || hostsLoading || !hosts.length"
+        placeholder="选择主机"
+        style="width: 280px"
+      />
 
       <span v-if="hostsError" class="dk-pill is-bad">{{ hostsError }}</span>
 
@@ -526,6 +536,9 @@ onBeforeUnmount(() => {
             <span class="dk-spacer" />
             <ReButton layout="square" :disabled="!hostId" @click="batchAction('start')">
               <ReIcon name="VideoPlay" :size="13" /> 批量启动
+            </ReButton>
+            <ReButton layout="square" :disabled="!hostId" @click="batchAction('restart')">
+              <ReIcon name="RefreshRight" :size="13" /> 批量重启
             </ReButton>
             <ReButton layout="square" :disabled="!hostId" @click="batchAction('stop')" type="danger">
               <ReIcon name="VideoPause" :size="13" /> 批量停止

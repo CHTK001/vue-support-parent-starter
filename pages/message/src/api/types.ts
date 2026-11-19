@@ -59,7 +59,7 @@ export interface ChannelInfo {
 
 /** 消息模板 */
 export interface MessageTemplate {
-  sysMessageTemplateId?: number;
+  sysMessageTemplateId?: string;
   /** 提供商ID */
   sysMessageProviderId?: number;
   /** 模板编码 */
@@ -148,7 +148,7 @@ export interface ApiResult<T = unknown> {
 /** 模板预览请求 */
 export interface TemplatePreviewRequest {
   /** 模板ID */
-  sysMessageTemplateId?: number;
+  sysMessageTemplateId?: string;
   /** 模板参数 */
   params?: Record<string, unknown>;
 }

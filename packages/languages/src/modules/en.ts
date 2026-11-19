@@ -1017,6 +1017,7 @@ export default {
       recent: "Recent",
       actions: "Actions",
       menus: "Menus",
+      searching: "Searching…",
       actionHint: {
         refresh: "Clear cache and reload",
         theme: "Switch theme mode",

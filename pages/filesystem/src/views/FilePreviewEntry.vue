@@ -24,11 +24,12 @@
   </ol>
 -->
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, ref, shallowRef, type Component } from "vue";
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallowRef, type Component } from "vue";
 import PreviewOfficePanel from "../components/PreviewOfficePanel.vue";
 import FvPanelBase from "../components/fv/FvPanelBase.vue";
 import { isClientRenderable } from "../utils/officeRenderer";
 import { base64ToUtf8, specFor, TEXT_EXTENSIONS, type RendererSpec } from "../utils/previewEntryRenderers";
+import { resolveObjectUrl } from "../api/filestorageApi";
 
 /* ==================== 专用面板组件注册表（file-viewer 不支持的格式） ==================== */
 
@@ -128,6 +129,55 @@ const rendererLoading = ref(false);
 /** 文本类预览是否因超出读取上限被截断（标题栏给出明确提示，避免误以为文件就这么长） */
 const truncated = ref(false);
 
+/* ---- 头栏增强：扩展名徽标 + 「更多」菜单收纳低频动作 ---- */
+
+/** 标题旁的扩展名徽标（如 XLSX / OFD），空扩展名不显示 */
+const typeBadge = computed(() => {
+  const ext = extensionOf(displayTitle.value);
+  return ext ? ext.toUpperCase() : "";
+});
+
+/** 「更多」菜单展开态与锚点元素 */
+const moreOpen = ref(false);
+const moreRef = ref<HTMLElement | null>(null);
+
+/** 410 令牌过期自动续期的会话级防循环标记 */
+const FPE_410_KEY = "fpe-410-retried";
+
+/* ==================== 头栏动作与取数进度 ==================== */
+
+/** 开发态标记：通道徽章仅调试可见，不向终端用户暴露内部通道名 */
+const isDev = import.meta.env.DEV;
+/** 可下载的字节直链（票据直链兜底；能解析桶键时优先签票据下载） */
+const downloadUrl = ref("");
+/** 可解析出的桶键（下载动作优先用它签短时票据，与各前端直渲面板同口径） */
+const dlBucketKey = shallowRef<{ bucket: string; objectKey: string } | null>(null);
+/** 压缩包内条目路径（下载时区分「下载本体」与「新标签打开条目字节」） */
+const dlInner = ref("");
+/** 是否具备下载出口（头栏与失败/不支持态共用） */
+const canDownloadSource = computed(() => Boolean(downloadUrl.value || dlBucketKey.value));
+/** 大文件流式取数进度（字节），仅 loading 态展示 */
+const loadProgress = ref<{ loaded: number; total: number | null } | null>(null);
+/** 复制链接成功的一次性反馈 */
+const copied = ref(false);
+/** 打印仅对渲染出可打印 DOM 的通道开放（Office 直渲与纯文本；canvas 类打印无意义） */
+const printable = computed(() => state.value === "office" || (state.value === "client" && activeSpec.value?.presetId === "text"));
+
+/** 取数进度文案（如 1.2 MB / 3.4 MB） */
+const progressText = computed(() => {
+  const p = loadProgress.value;
+  if (!p || p.loaded <= 0) return "";
+  const loaded = formatSize(p.loaded);
+  return p.total && p.total > 0 ? `${loaded} / ${formatSize(p.total)}` : loaded;
+});
+
+/** 进度条宽度；总量未知时由 CSS 做不定长流动动画 */
+const progressWidth = computed(() => {
+  const p = loadProgress.value;
+  if (!p || !p.total || p.total <= 0) return "";
+  return `${Math.min(100, Math.round((p.loaded / p.total) * 100))}%`;
+});
+
 const loadingVisible = computed(() => state.value === "loading" || (state.value === "client" && rendererLoading.value));
 
 /**
@@ -219,15 +269,26 @@ function withParam(u: string, param: string): string {
  * <p>入口拿到的 url 是文件直链，从路径首段解析桶名。查询失败（私有桶 401、
  * 跨域失败、配置不可读）一律按「未开启」处理——退回服务端通道，绝不臆测放行。</p>
  */
+/** 桶下载开关的进程内缓存：同一桶的重复预览免一次 ?config=true 往返（顶层态每次打开都会问） */
+const openDownloadCache = new Map<string, { until: number; value: boolean }>();
+const OPEN_DOWNLOAD_CACHE_TTL_MS = 5 * 60 * 1000;
+
 async function openDownloadOf(fileUrl: string): Promise<boolean> {
   try {
     const u = new URL(fileUrl, window.location.origin);
     const bucket = u.pathname.split("/").filter(Boolean)[0];
     if (!bucket) return false;
-    const res = await fetch(`${u.origin}/${encodeURIComponent(decodeURIComponent(bucket))}?config=true`);
-    if (!res.ok) return false;
+    const key = decodeURIComponent(bucket);
+    const hit = openDownloadCache.get(key);
+    if (hit && hit.until > Date.now()) {
+      return hit.value;
+    }
+    const res = await fetch(`${u.origin}/${encodeURIComponent(key)}?config=true`);
+    if (!res.ok) return false; // 失败不缓存，网络/权限恢复后立即可重试
     const cfg = (await res.json()) as { openDownload?: boolean };
-    return cfg.openDownload === true;
+    const value = cfg.openDownload === true;
+    openDownloadCache.set(key, { until: Date.now() + OPEN_DOWNLOAD_CACHE_TTL_MS, value });
+    return value;
   } catch {
     return false;
   }
@@ -251,6 +312,10 @@ function dispatch(
 ): void {
   displayTitle.value = fileName;
   displaySize.value = opts.size ?? null;
+  downloadUrl.value = opts.bytesUrl ?? "";
+  dlBucketKey.value = opts.bucketKey ?? null;
+  dlInner.value = opts.inner ?? "";
+  loadProgress.value = null;
   const ext = extensionOf(fileName);
 
   // 1) Office 家族：preset-office（自带魔数校正 / 密文检测 / 选区统计）
@@ -422,15 +487,181 @@ function reload(): void {
   window.location.reload();
 }
 
+/**
+ * 下载原文件。
+ *
+ * <p>能解析出桶键时与各前端直渲面板同口径：签短时票据，顶层对象带
+ * {@code download=true} 走附件下载；包内条目网关固定内联响应，改为新标签
+ * 打开条目字节。解析不出桶键（票据直链场景）时退回令牌直链兜底。</p>
+ */
+async function downloadSource(): Promise<void> {
+  if (dlBucketKey.value) {
+    const params: Record<string, string> = dlInner.value
+      ? { preview: "true", inner: dlInner.value }
+      : { download: "true" };
+    const url = await resolveObjectUrl(dlBucketKey.value.bucket, dlBucketKey.value.objectKey, { params }).catch(() => "");
+    if (url) {
+      window.open(url, "_blank", "noopener");
+      return;
+    }
+  }
+  if (downloadUrl.value) {
+    // 顶层下载直链本身已带 download=true，避免重复拼接
+    const u = /[?&]download=true(&|$)/.test(downloadUrl.value) ? downloadUrl.value : withParam(downloadUrl.value, "download=true");
+    window.open(u, "_blank", "noopener");
+  }
+}
+
+/** 复制当前预览链接（剪贴板 API 不可用时退回 execCommand） */
+async function copyLink(): Promise<void> {
+  const text = window.location.href;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    copied.value = true;
+    window.setTimeout(() => {
+      copied.value = false;
+    }, 1600);
+  } catch (e) {
+    console.warn("[FilePreviewEntry] 复制链接失败", e);
+  }
+}
+
+/** 新标签打开当前预览 */
+function openNewTab(): void {
+  window.open(window.location.href, "_blank", "noopener");
+}
+
+/** 全屏切换（对整页预览容器） */
+function toggleFullscreen(): void {
+  if (document.fullscreenElement) {
+    void document.exitFullscreen();
+    return;
+  }
+  void document.documentElement.requestFullscreen?.().catch(() => {});
+}
+
+/** 打印（仅可打印通道显示按钮；打印时信息栏隐藏，见样式 print 段） */
+function printPreview(): void {
+  window.print();
+}
+
+/* ==================== 键盘快捷键与「更多」菜单 ==================== */
+
+/**
+ * 全局快捷键：Ctrl/Cmd+P 触发打印（仅可打印通道）；Esc 收起「更多」菜单
+ * （全屏退出由浏览器原生处理，此处不抢）。
+ */
+function onGlobalKeydown(e: KeyboardEvent): void {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p" && printable.value) {
+    e.preventDefault();
+    printPreview();
+    return;
+  }
+  if (e.key === "Escape" && moreOpen.value) {
+    moreOpen.value = false;
+  }
+}
+
+/** 点击「更多」菜单外部时收起 */
+function onDocPointerDown(e: MouseEvent): void {
+  if (moreOpen.value && moreRef.value && !moreRef.value.contains(e.target as Node)) {
+    moreOpen.value = false;
+  }
+}
+
+function toggleMore(): void {
+  moreOpen.value = !moreOpen.value;
+}
+
+function closeMore(): void {
+  moreOpen.value = false;
+}
+
+/** 菜单内复制链接：保留「已复制」反馈片刻再收起菜单 */
+async function copyLinkFromMenu(): Promise<void> {
+  await copyLink();
+  window.setTimeout(closeMore, 900);
+}
+
 /* ==================== 拉取字节 ==================== */
 
-/** fetch 直链为字节（失败抛出可读错误） */
+/** 当前取数的 AbortController（取消加载用；同一时刻只有一个取数在跑） */
+let activeAbort: AbortController | null = null;
+
+/** 用户取消当前取数：中断 fetch 与流式读取，进入可重试的取消态 */
+function cancelLoad(): void {
+  activeAbort?.abort();
+}
+
+/** fetch 直链为字节（失败抛出可读错误）；流式读取并回报进度；可被 cancelLoad 中断 */
 async function fetchBytes(url: string): Promise<Uint8Array> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`读取文件失败：HTTP ${res.status}`);
+  const ac = new AbortController();
+  activeAbort = ac;
+  try {
+    const res = await fetch(url, { signal: ac.signal });
+    if (!res.ok) {
+      throw new Error(`读取文件失败：HTTP ${res.status}`);
+    }
+    const len = Number(res.headers.get("content-length") || "0");
+    beginProgress(len > 0 ? len : null);
+    return await readStreamWithProgress(res, Number.POSITIVE_INFINITY);
+  } finally {
+    if (activeAbort === ac) {
+      activeAbort = null;
+    }
   }
-  return new Uint8Array(await res.arrayBuffer());
+}
+
+/** 记录取数起点（total 为已知总字节数，未知传 null） */
+function beginProgress(total: number | null): void {
+  loadProgress.value = { loaded: 0, total };
+}
+
+/** 流式读取响应体并回报进度；cap 为最大读取字节数（Infinity 表示不限制） */
+async function readStreamWithProgress(res: Response, cap: number): Promise<Uint8Array> {
+  const reader = res.body?.getReader();
+  if (!reader) {
+    return new Uint8Array(await res.arrayBuffer());
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (total < cap) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value?.byteLength) continue;
+    const remain = cap - total;
+    const take = value.byteLength > remain ? value.subarray(0, remain) : value;
+    chunks.push(take);
+    total += take.byteLength;
+    if (loadProgress.value) {
+      loadProgress.value = { loaded: total, total: loadProgress.value.total };
+    }
+    if (take.byteLength < value.byteLength) break;
+  }
+  try {
+    await reader.cancel();
+  } catch {
+    // 取消失败不影响已读到的内容
+  }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return merged;
 }
 
 /**
@@ -453,42 +684,39 @@ async function fetchBytesCapped(url: string, maxBytes: number): Promise<{ bytes:
   if (maxBytes <= 0) {
     return { bytes: await fetchBytes(url), truncated: false };
   }
-  const res = await fetch(url, { headers: { Range: `bytes=0-${maxBytes - 1}` } });
-  if (!res.ok) {
-    throw new Error(`读取文件失败：HTTP ${res.status}`);
-  }
-  if (res.status === 206) {
-    const total = Number((res.headers.get("content-range") || "").split("/")[1] || "0");
-    return { bytes: new Uint8Array(await res.arrayBuffer()), truncated: total > maxBytes };
-  }
-  const reader = res.body?.getReader();
-  if (!reader) {
-    return { bytes: new Uint8Array(await res.arrayBuffer()), truncated: false };
-  }
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  while (total < maxBytes) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (!value?.byteLength) continue;
-    const remain = maxBytes - total;
-    const take = value.byteLength > remain ? value.subarray(0, remain) : value;
-    chunks.push(take);
-    total += take.byteLength;
-    if (take.byteLength < value.byteLength) break;
-  }
+  const ac = new AbortController();
+  activeAbort = ac;
   try {
-    await reader.cancel();
-  } catch {
-    // 取消失败不影响已读到的内容
+    const res = await fetch(url, { headers: { Range: `bytes=0-${maxBytes - 1}` }, signal: ac.signal });
+    if (!res.ok) {
+      throw new Error(`读取文件失败：HTTP ${res.status}`);
+    }
+    if (!res.body) {
+      // 无流式能力（极老浏览器）：一次性读入；206 按 Content-Range 判截断
+      const buf = new Uint8Array(await res.arrayBuffer());
+      if (res.status === 206) {
+        const totalRange = Number((res.headers.get("content-range") || "").split("/")[1] || "0");
+        return { bytes: buf, truncated: totalRange > maxBytes };
+      }
+      return { bytes: buf, truncated: false };
+    }
+    if (res.status === 206) {
+      const total = Number((res.headers.get("content-range") || "").split("/")[1] || "0");
+      beginProgress(Math.min(total || maxBytes, maxBytes));
+      const bytes = await readStreamWithProgress(res, maxBytes);
+      return { bytes, truncated: total > maxBytes };
+    }
+    // 服务端忽略 Range（老版本 / 反向代理剥头）：整包流式读到上限即 cancel，
+    // 绝不把整个响应读进内存；此时必然按「已截断」处理（与原实现语义一致）
+    const len = Number(res.headers.get("content-length") || "0");
+    beginProgress(len > 0 ? Math.min(len, maxBytes) : maxBytes);
+    const bytes = await readStreamWithProgress(res, maxBytes);
+    return { bytes, truncated: true };
+  } finally {
+    if (activeAbort === ac) {
+      activeAbort = null;
+    }
   }
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return { bytes: merged, truncated: true };
 }
 
 /**
@@ -510,19 +738,47 @@ function textPreviewLimit(fileName: string): number {
   return specFor(fileName)?.presetId === "text" ? TEXT_PREVIEW_LIMIT : 0;
 }
 
+/**
+ * 引导阶段是否需要预取整包字节。
+ *
+ * <p>必须与 {@link dispatch} 的分流顺序一致：Office 家族（isClientRenderable）
+ * 与 class/log/arrow 专用面板都只吃 bytesUrl / 桶键（面板自行取数并展示进度），
+ * 只有 file-viewer 客户端渲染器（specFor 命中）才需要字节构造 File。
+ * 命中免取字节时，面板立即挂载、首帧不再等整包下载——加载延迟优化的大头。</p>
+ */
+function needsBootBytes(fileName: string): boolean {
+  if (isClientRenderable(fileName)) {
+    return false;
+  }
+  const ext = extensionOf(fileName);
+  if (ext === "class" || ext === "log" || ext === "arrow" || ext === "feather" || ext === "ipc") {
+    return false;
+  }
+  return specFor(fileName) != null;
+}
+
 /* ==================== 启动 ==================== */
 
 onMounted(async (): Promise<void> => {
+  window.addEventListener("keydown", onGlobalKeydown);
+  document.addEventListener("click", onDocPointerDown);
   // ---- 内嵌态：后端壳注入引导参数，直接取字节渲染 ----
   const boot = window.__FILE_PREVIEW_BOOT__;
   if (boot?.bytesUrl) {
     channelLabel.value = "boot";
     try {
       const name = boot.fileName || "file";
-      const got = await fetchBytesCapped(boot.bytesUrl, textPreviewLimit(name));
-      truncated.value = got.truncated;
-      const bytes = got.bytes;
       const bucketKey = boot.bucket && boot.key ? { bucket: boot.bucket, objectKey: boot.key } : null;
+      // 按需取字节：只有客户端渲染器需要整包字节；Office / 专用面板先分发后自行取数，
+      // 首帧不再等整包下载（加载延迟优化）
+      let bytes: Uint8Array | undefined;
+      if (needsBootBytes(name)) {
+        const got = await fetchBytesCapped(boot.bytesUrl, textPreviewLimit(name));
+        truncated.value = got.truncated;
+        bytes = got.bytes;
+      }
+      // 引导完成：清除 410 自动续期标记，同一标签页后续再过期仍可自动重试
+      window.sessionStorage.removeItem(FPE_410_KEY);
       dispatch(name, {
         bytes,
         bytesUrl: boot.bytesUrl,
@@ -531,9 +787,24 @@ onMounted(async (): Promise<void> => {
         size: boot.size,
       });
     } catch (e) {
-      // 令牌过期（410）等场景：整页刷新重拿壳（服务端会注入新令牌）
+      const msg = (e as Error)?.message ?? "";
       console.warn("[FilePreviewEntry] 引导字节获取失败", e);
-      fail(`${(e as Error)?.message ?? "预览字节获取失败"}，请点击重试（将重新获取预览链接）`);
+      // 用户主动取消：中性提示，不算错误
+      if ((e as DOMException)?.name === "AbortError") {
+        fail("已取消加载，可点击重试重新拉取");
+        return;
+      }
+      // 令牌过期（410）：整页刷新重拿壳（服务端会注入新令牌），会话内只自动重试一次防循环
+      if (msg.includes("HTTP 410")) {
+        if (!window.sessionStorage.getItem(FPE_410_KEY)) {
+          window.sessionStorage.setItem(FPE_410_KEY, "1");
+          window.location.reload();
+          return;
+        }
+        fail("预览链接已过期且自动续期未成功，请点击重试");
+        return;
+      }
+      fail(`${msg || "预览字节获取失败"}，请点击重试（将重新获取预览链接）`);
     }
     return;
   }
@@ -577,12 +848,21 @@ onMounted(async (): Promise<void> => {
   if (canDownload) {
     try {
       const url = withParam(fileUrl, "download=true");
-      const got = await fetchBytesCapped(url, textPreviewLimit(fileName));
-      truncated.value = got.truncated;
-      dispatch(fileName, { bytes: got.bytes, bytesUrl: url, bucketKey: parseBucketKey(fileUrl) });
+      // 按需取字节（与内嵌态同口径）：Office / 专用面板先分发后自行取数
+      let bytes: Uint8Array | undefined;
+      if (needsBootBytes(fileName)) {
+        const got = await fetchBytesCapped(url, textPreviewLimit(fileName));
+        truncated.value = got.truncated;
+        bytes = got.bytes;
+      }
+      dispatch(fileName, { bytes, bytesUrl: url, bucketKey: parseBucketKey(fileUrl) });
       return;
     } catch (e) {
       console.warn("[FilePreviewEntry] 下载直链取数失败", e);
+      if ((e as DOMException)?.name === "AbortError") {
+        fail("已取消加载，可点击重试重新拉取");
+        return;
+      }
       fail((e as Error)?.message ?? "文件获取失败");
       return;
     }
@@ -592,6 +872,13 @@ onMounted(async (): Promise<void> => {
   iframeSrc.value = withParam(withParam(fileUrl, "preview=true&render=server"), keywordParam ? `kw=${encodeURIComponent(keywordParam)}` : "");
   displayTitle.value = fileName;
   state.value = "iframe";
+});
+
+/** 卸载清理：解绑全局监听、中断在途取数 */
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onGlobalKeydown);
+  document.removeEventListener("click", onDocPointerDown);
+  activeAbort?.abort();
 });
 </script>
 
@@ -605,8 +892,31 @@ onMounted(async (): Promise<void> => {
       <span v-if="truncated" class="fpe__trunc" :title="`文本类预览最多读取 ${formatSize(TEXT_PREVIEW_LIMIT)}，其余内容请下载后查看`">
         仅显示前 {{ formatSize(TEXT_PREVIEW_LIMIT) }}
       </span>
-      <span class="fpe__badge" :title="`预览通道：${channelLabel}`">{{ channelLabel }}</span>
-      <button class="fpe__retry" type="button" @click="reload">重试</button>
+      <!-- 扩展名类型徽标：比纯文件名更快识别类型 -->
+      <span v-if="typeBadge" class="fpe__ext" :title="`文件类型：${typeBadge}`">{{ typeBadge }}</span>
+      <!-- 通道徽章仅开发态可见：通道名是内部调试信息，不向终端用户暴露 -->
+      <span v-if="isDev && channelLabel" class="fpe__badge" :title="`预览通道：${channelLabel}`">{{ channelLabel }}</span>
+      <div class="fpe__actions">
+        <button v-if="canDownloadSource" class="fpe__btn" type="button" title="下载原文件" @click="downloadSource">下载</button>
+        <button class="fpe__btn" type="button" title="进入/退出全屏" @click="toggleFullscreen">全屏</button>
+        <!-- 低频动作收纳进「更多」菜单，窄屏不再依赖换行 -->
+        <div ref="moreRef" class="fpe__more">
+          <button
+            class="fpe__btn"
+            type="button"
+            title="更多操作"
+            aria-haspopup="menu"
+            :aria-expanded="moreOpen"
+            @click="toggleMore"
+          >更多 ▾</button>
+          <div v-if="moreOpen" class="fpe__menu" role="menu">
+            <button class="fpe__menu-item" type="button" role="menuitem" @click="copyLinkFromMenu">{{ copied ? "已复制" : "复制链接" }}</button>
+            <button class="fpe__menu-item" type="button" role="menuitem" @click="openNewTab(); closeMore()">新窗口打开</button>
+            <button v-if="printable" class="fpe__menu-item" type="button" role="menuitem" @click="printPreview(); closeMore()">打印</button>
+          </div>
+        </div>
+        <button class="fpe__btn" type="button" title="重新加载预览" @click="reload">重试</button>
+      </div>
     </header>
 
     <main class="fpe__body">
@@ -650,22 +960,43 @@ onMounted(async (): Promise<void> => {
         :src="iframeSrc"
         allowfullscreen
       />
-      <!-- 加载中 -->
+      <!-- 加载中（大文件流式取数时同步展示进度） -->
       <div v-else-if="loadingVisible" class="fpe__placeholder">
         <span class="fpe__spinner" aria-hidden="true"></span>
         <span>加载中…</span>
+        <template v-if="loadProgress">
+          <span v-if="progressText" class="fpe__progress-text">{{ progressText }}</span>
+          <div
+            class="fpe__progress"
+            :class="{ 'fpe__progress--indeterminate': !progressWidth }"
+            role="progressbar"
+            :aria-valuenow="progressWidth ? parseInt(progressWidth, 10) : undefined"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <div class="fpe__progress-fill" :style="progressWidth ? { width: progressWidth } : undefined"></div>
+          </div>
+        </template>
+        <button v-if="state === 'loading'" class="fpe__btn" type="button" title="取消本次加载" @click="cancelLoad">取消加载</button>
       </div>
 
       <!-- 不支持 -->
       <div v-else-if="state === 'unsupported'" class="fpe__placeholder">
         <div class="fpe__unsupported-ico">📄</div>
         <div class="fpe__unsupported-msg">{{ message }}</div>
+        <div v-if="canDownloadSource" class="fpe__placeholder-actions">
+          <button class="fpe__btn fpe__btn--primary" type="button" @click="downloadSource">下载原文件</button>
+        </div>
       </div>
 
       <!-- 错误 -->
       <div v-else-if="state === 'error'" class="fpe__placeholder fpe__placeholder--error">
         <div class="fpe__unsupported-ico">⚠️</div>
         <div class="fpe__unsupported-msg">{{ message }}</div>
+        <div class="fpe__placeholder-actions">
+          <button class="fpe__btn fpe__btn--primary" type="button" @click="reload">重试</button>
+          <button v-if="canDownloadSource" class="fpe__btn" type="button" @click="downloadSource">下载原文件</button>
+        </div>
       </div>
     </main>
   </div>
@@ -724,7 +1055,65 @@ onMounted(async (): Promise<void> => {
   margin-left: auto;
 }
 
-.fpe__retry {
+/* 扩展名类型徽标：紧跟标题，帮助快速识别文件类型 */
+.fpe__ext {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--brand-50, #e8f0fe);
+  color: var(--brand-600, #0860ca);
+  border: 1px solid var(--brand-100, #d2e3fc);
+  flex-shrink: 0;
+}
+
+/* 「更多」菜单：收纳低频动作，窄屏不再依赖换行 */
+.fpe__more {
+  position: relative;
+  display: inline-block;
+}
+
+.fpe__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 132px;
+  padding: 4px;
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--border-default, #d0d7de);
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 8px 24px rgba(31, 35, 40, 0.12);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+}
+
+.fpe__menu-item {
+  font-size: 12px;
+  text-align: left;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary, #24292f);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fpe__menu-item:hover {
+  background: var(--bg-hover, #f6f8fa);
+}
+
+/* 头栏动作区：按钮组靠右，移动端可换行 */
+.fpe__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.fpe__btn {
   font-size: 12px;
   padding: 3px 12px;
   border-radius: var(--radius-md, 6px);
@@ -732,12 +1121,24 @@ onMounted(async (): Promise<void> => {
   background: var(--bg-container, #fff);
   color: var(--text-primary, #24292f);
   cursor: pointer;
+  white-space: nowrap;
   transition: background-color 0.2s var(--ease-out, ease), border-color 0.2s var(--ease-out, ease);
 }
 
-.fpe__retry:hover {
+.fpe__btn:hover {
   background: var(--bg-hover, #f6f8fa);
   border-color: var(--border-strong, #a6b1bd);
+}
+
+.fpe__btn--primary {
+  background: var(--brand-500, #0969da);
+  border-color: var(--brand-500, #0969da);
+  color: #fff;
+}
+
+.fpe__btn--primary:hover {
+  background: var(--brand-600, #0860ca);
+  border-color: var(--brand-600, #0860ca);
 }
 
 .fpe__body {
@@ -792,6 +1193,43 @@ onMounted(async (): Promise<void> => {
   }
 }
 
+/* 取数进度：已知总量按百分比填充，未知总量做不定长流动 */
+.fpe__progress {
+  width: 220px;
+  max-width: 60vw;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-fill, #eef2f7);
+  overflow: hidden;
+}
+
+.fpe__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand-500, #0969da);
+  transition: width 0.25s var(--ease-out, ease);
+}
+
+.fpe__progress--indeterminate .fpe__progress-fill {
+  width: 36%;
+  animation: fpe-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes fpe-indeterminate {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+.fpe__progress-text {
+  font-size: 12px;
+  color: var(--text-tertiary, #57606a);
+  font-variant-numeric: tabular-nums;
+}
+
 .fpe__unsupported-ico {
   font-size: 34px;
 }
@@ -803,6 +1241,14 @@ onMounted(async (): Promise<void> => {
   word-break: break-all;
 }
 
+/* 失败 / 不支持态的出口按钮（重试 / 下载原文件） */
+.fpe__placeholder-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 /* ===== 响应式（移动端信息栏收窄） ===== */
 @media (max-width: 768px) {
   .fpe__bar {
@@ -810,10 +1256,29 @@ onMounted(async (): Promise<void> => {
     gap: 8px;
   }
   .fpe__title {
-    max-width: 46vw;
+    max-width: 40vw;
   }
   .fpe__badge {
     display: none;
+  }
+  .fpe__actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+/* ===== 打印：隐藏信息栏与占位态，仅输出预览内容（仅可打印通道开放打印按钮） ===== */
+@media print {
+  .fpe {
+    height: auto;
+    background: #fff;
+  }
+  .fpe__bar,
+  .fpe__placeholder {
+    display: none;
+  }
+  .fpe__body {
+    flex: 1 0 auto;
   }
 }
 
@@ -822,8 +1287,14 @@ onMounted(async (): Promise<void> => {
   .fpe__spinner {
     animation-duration: 2s;
   }
-  .fpe__retry {
+  .fpe__btn {
     transition: none;
+  }
+  .fpe__progress-fill {
+    transition: none;
+  }
+  .fpe__progress--indeterminate .fpe__progress-fill {
+    animation: none;
   }
 }
 </style>

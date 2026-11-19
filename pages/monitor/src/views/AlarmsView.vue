@@ -215,8 +215,9 @@
  * @author CH
  * @since 4.0.0
  */
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { message } from '@repo/core'
+import { usePersistentFilters } from '@repo/utils'
 import {
   ReCanvasTable,
   ReCanvasTelemetry,
@@ -454,7 +455,12 @@ const emptyHint = computed(() =>
 
 // ==================== 筛选 ====================
 
-const filters = reactive<AlarmFilters>({ ...EMPTY_ALARM_FILTERS })
+/** 筛选持久化：localStorage 记忆 + 路由 query 同步；切走再回来、分享带参链接都不丢筛选 */
+const { filters } = usePersistentFilters<AlarmFilters>({
+  key: 'monitor.alarms',
+  defaults: { ...EMPTY_ALARM_FILTERS },
+  queryKeys: ['keyword', 'level', 'status', 'hour'],
+})
 
 const stageFilters = computed(() => [
   { key: 'keyword', kind: 'search' as const, placeholder: '搜索主机 / 指标', width: 210 },

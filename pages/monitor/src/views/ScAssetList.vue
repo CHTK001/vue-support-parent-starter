@@ -37,7 +37,7 @@
       </div>
     </ReCard>
 
-    <ReTable :data="filtered" :loading="loading" border stripe class="asset-table" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
+    <ReTable :data="filtered" :loading="loading" border stripe class="asset-table" :config="{ pagination: { enable: false }, toolbar: { enable: false } }" table-id="sc-asset-list">
       <ReTableColumn prop="monitorName" label="资产名称" min-width="160">
         <template #default="{ row }"><span class="name-cell">{{ row.monitorName }}</span></template>
       </ReTableColumn>
@@ -154,6 +154,7 @@ import type { ReThreeContext } from '@repo/ui/re-three'
 // ReStatCard 走 main.ts 全局注册（defineThemeComponent 的 component 导出是
 // 主题异步加载器，直接 import 当组件用会渲染成 [object Promise]）
 import { message } from '@repo/core'
+import { usePersistentFilters } from '@repo/utils'
 import { getMonitors, saveMonitor, delMonitor, getAgentStatus, getServerHosts } from '../api'
 
 const list = ref<any[]>([])
@@ -162,7 +163,12 @@ const loading = ref(false)
 const showDialog = ref(false)
 const editId = ref<number | null>(null)
 const form = ref<any>({ monitorEnabled: 1, monitorPort: 22, serviceType: 'SERVER' })
-const filters = ref({ keyword: '', serviceType: '', enabled: '' })
+/** 筛选持久化：localStorage 记忆 + 路由 query 同步，切走再回来不丢筛选 */
+const { filters } = usePersistentFilters({
+  key: 'monitor.assetList',
+  defaults: { keyword: '', serviceType: '', enabled: '' },
+  queryKeys: ['keyword', 'serviceType', 'enabled'],
+})
 const serverHosts = ref<any[]>([])
 const serverHostLoading = ref(false)
 
@@ -301,12 +307,12 @@ const summary = computed(() => [
 
 const filtered = computed(() => {
   let r = list.value
-  if (filters.value.keyword) {
-    const kw = filters.value.keyword.toLowerCase()
+  if (filters.keyword) {
+    const kw = filters.keyword.toLowerCase()
     r = r.filter(x => (x.monitorName || '').toLowerCase().includes(kw) || (x.monitorHost || '').toLowerCase().includes(kw))
   }
-  if (filters.value.serviceType) r = r.filter(x => x.serviceType === filters.value.serviceType)
-  if (filters.value.enabled !== '') r = r.filter(x => x.monitorEnabled === Number(filters.value.enabled))
+  if (filters.serviceType) r = r.filter(x => x.serviceType === filters.serviceType)
+  if (filters.enabled !== '') r = r.filter(x => x.monitorEnabled === Number(filters.enabled))
   return r
 })
 

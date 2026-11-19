@@ -134,6 +134,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import QRCode from "qrcode";
 import { htmlToMathText, renderMixedText, renderRichWithMath } from "../../utils/mathText";
+import { gradeLevelLabel } from "../../utils/dict";
 
 /** 导出 / 预览内容模式 */
 export type PaperExportMode = "paper" | "answer-sheet" | "answer-key" | "answered";
@@ -220,15 +221,6 @@ const props = withDefaults(
 );
 
 defineOptions({ name: "PaperPreview" });
-
-/** 学段码值 → 中文名（与 edu_question / edu_paper 落库值一致） */
-const GRADE_LEVEL_LABELS: Record<string, string> = {
-  PRIMARY: "小学",
-  JUNIOR: "初中",
-  SENIOR: "高中",
-  UNIVERSITY: "大学",
-  OTHER: "其他",
-};
 
 /** 纸张规格（按 96dpi 折算的屏幕像素近似值） */
 const PAPER_SIZES: Record<string, { width: number; height: number }> = {
@@ -436,7 +428,8 @@ const metaLine = computed(() => {
   if (props.header.subject) {
     parts.push(props.header.subject);
   }
-  const level = GRADE_LEVEL_LABELS[props.header.gradeLevel ?? ""] ?? "";
+  // 学段码值/中文标签统一走 utils/dict 转中文（卷头两种落库写法都认）
+  const level = gradeLevelLabel(props.header.gradeLevel);
   const gradeText = `${level}${props.header.grade || ""}`;
   if (gradeText) {
     parts.push(gradeText);

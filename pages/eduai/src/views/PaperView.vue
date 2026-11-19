@@ -1,5 +1,6 @@
 <template>
   <div class="page-container">
+      <ReConfirmDialog ref="confirmDialog" />
       <ReTable
         ref="tableRef"
         :loader="loadPapers"
@@ -332,9 +333,10 @@
 import { message } from "@repo/core";
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessageBox } from 'element-plus';
 import { Printer, Picture } from '@element-plus/icons-vue';
 import { eduaiApi } from '../api/eduaiApi';
+import { errText as errorText } from '../api/errorText';
+import { GRADE_LEVEL_OPTIONS, gradeDisplayName, gradeLevelToCode, matchGradeValue } from '../utils/dict';
 import type { EduGrade, Paper, PaperComposePayload, PaperTemplate } from '../api/types';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
@@ -343,6 +345,10 @@ import type { PreviewHeader, PreviewQuestion } from '../components/paper/PaperPr
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
 import { ReRadioGroup, ReRadio } from "@repo/ui/re-kit";
+import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
+
+/** 统一确认弹窗（ReDialog 实现，替代 ElMessageBox.confirm） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 
 const pageNo = ref(1);
 const pageSize = ref(20);
@@ -519,62 +525,6 @@ const editForm = reactive({
  * el-select 找不到对应 option 就会把绑定值（库里存的 "3"）原样显示出来，
  * 看起来像「下拉里是一串数字」。这里独立取一次，两处互不依赖。</p>
  */
-/**
- * 年级展示名：把 edu_grade.grade_name 的数字写法转成中文。
- *
- * <p>{@code edu_grade.grade_name} 存的是 "1"/"2"/…，而 {@code edu_paper.paper_grade}
- * 与 {@code edu_question.question_grade} 用的是「三年级」这类中文名，三处口径不一致。
- * 下拉直接把 gradeName 当标签渲染就会显示成一串数字，这里只修展示层，
- * 绑定值仍用 grade_name 原值，避免动到库里已有的两种写法。</p>
- *
- * @param name edu_grade.grade_name 原值
- * @returns 中文展示名；非纯数字时原样返回
- */
-const CN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
-
-function gradeDisplayName(name?: string): string {
-  const s = (name ?? '').trim();
-  if (!s) {
-    return '';
-  }
-  if (/^\d{1,2}$/.test(s)) {
-    const n = Number(s);
-    return CN_NUM[n] ? `${CN_NUM[n]}年级` : s;
-  }
-  // 已经是中文名，但要补全「年级」后缀（有的存「三」没存「三年级」）
-  return /年级$/.test(s) ? s : `${s}年级`;
-}
-
-/**
- * 把库里存的年级写法归一到当前下拉 option 的 value。
- *
- * <p>库里混着 "3"（AI 组卷写进来的）与 "三年级"（历史数据）两种；
- * 下拉的 value 用的是 edu_grade.grade_name，直接绑定会出现「有值但无对应 option」
- * 从而原样显示的问题。这里双向匹配一次，匹配不上才退回原值。</p>
- *
- * @param stored 库里存的年级值
- * @param options 当前学段下的年级候选
- * @returns 能与某个 option 对应的 value
- */
-function matchGradeValue(stored: string | undefined, options: EduGrade[]): string {
-  const s = (stored ?? '').trim();
-  if (!s || !options.length) {
-    return s;
-  }
-  if (options.some((g) => g.gradeName === s)) {
-    return s;
-  }
-  // "3" -> 展示名 "三年级" -> 找到 gradeName 为 "3" 的项
-  const byLabel = options.find((g) => gradeDisplayName(g.gradeName) === s);
-  if (byLabel) {
-    return byLabel.gradeName;
-  }
-  // "三年级" -> 去掉后缀 "三" -> 找到展示名匹配（覆盖存了 "三" 的情况）
-  const short = s.replace(/年级$/, '');
-  const byShort = options.find((g) => g.gradeName === short || gradeDisplayName(g.gradeName) === s);
-  return byShort ? byShort.gradeName : s;
-}
-
 const editGradeOptions = computed(() => {
   const label = GRADE_LEVEL_OPTIONS.find((o) => o.value === editForm.gradeLevel)?.label;
   if (!label) {
@@ -724,43 +674,6 @@ const doGenerate = async () => {
 };
 
 /* ==================== 新建试卷 ==================== */
-
-/** 学段码值与中文标签；后端 gradeLevel 落库为中文，筛选年级前必须先码值转 label */
-const GRADE_LEVEL_OPTIONS = [
-  { value: 'PRIMARY', label: '小学' },
-  { value: 'JUNIOR', label: '初中' },
-  { value: 'SENIOR', label: '高中' },
-  { value: 'UNIVERSITY', label: '大学' },
-  { value: 'OTHER', label: '其他' },
-];
-
-/**
- * 学段码值（PRIMARY/JUNIOR/…）→ 中文标签，用于打印抬头这类面向人的文案。
- *
- * @param code 码值；也接受中文名，认不出时原样返回
- * @returns 中文标签
- */
-const gradeLevelLabel = (code: unknown): string => {
-  const s = code == null ? '' : String(code);
-  if (!s) return '';
-  return GRADE_LEVEL_OPTIONS.find((o) => o.value === s || o.label === s)?.label ?? s;
-};
-
-/**
- * 库里存的学段中文名 → 接口/下拉用的码值。
- *
- * <p>列表行的 paperGradeLevel 是后端落库的中文名，回填到以码值绑定的下拉前必须转换；
- * 认不出的值原样返回，避免把历史脏数据清空。</p>
- *
- * @param label 库里的学段值（中文名或已经是码值）
- * @returns 对应码值；无法识别时返回入参本身
- */
-const gradeLevelToCode = (label?: string): string => {
-  if (!label) {
-    return '';
-  }
-  return GRADE_LEVEL_OPTIONS.find((o) => o.value === label || o.label === label)?.value ?? label;
-};
 
 const createDialogVisible = ref(false);
 const creating = ref(false);
@@ -1002,16 +915,7 @@ const paperStatusCode = (row: Paper): number => Number(row.paperStatus ?? 0);
 
 /** 二次确认：取消返回 false，不抛异常 */
 const confirmStatusChange = async (title: string, message: string): Promise<boolean> => {
-  try {
-    await ElMessageBox.confirm(message, title, {
-      type: 'warning',
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  return (await confirmDialog.value?.open(message, { title })) ?? false;
 };
 
 /** 发布：题分合计必须等于满分（后端闸门），发布后不可再改 */
@@ -1196,24 +1100,6 @@ const stopPrintMode = () => {
 const doPrint = () => {
   window.print();
 };
-
-/**
- * 从异常里取出「对用户有用」的文案。
- *
- * <p>后端业务错误把原因放在响应体的 msg 里（如「试卷存在重复或缺失的题项编号」），
- * 直接用 axios 的 message 只会得到 Request failed with status code 400。</p>
- *
- * @param e 捕获到的异常
- * @returns 可展示的错误文案
- */
-function errorText(e: unknown): string {
-  const resp = (e as { response?: { data?: { msg?: string; message?: string } } } | null)?.response;
-  const bizMsg = resp?.data?.msg || resp?.data?.message;
-  if (typeof bizMsg === 'string' && bizMsg.trim()) {
-    return bizMsg.trim();
-  }
-  return e instanceof Error ? e.message : String(e);
-}
 
 /**
  * 归一化时间字符串为「YYYY-MM-DD HH:mm」。

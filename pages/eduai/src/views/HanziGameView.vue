@@ -1,5 +1,6 @@
 <template>
   <div class="hg">
+    <ReConfirmDialog ref="confirmDialog" />
     <div class="hg-inner">
       <header class="hg-head">
         <h1 class="hg-title k">
@@ -14,6 +15,12 @@
           <span class="hg-bar__step">第 <b>{{ questions.length ? index + 1 : 0 }}</b> / {{ questions.length }} 题</span>
           <span class="hg-bar__score">答对 <b>{{ score }}</b></span>
           <el-button size="small" @click="load">换一批</el-button>
+          <el-button size="small" @click="openWrongBook">错题本{{ wrongCount ? `（${wrongCount}）` : "" }}</el-button>
+        </div>
+
+        <!-- 每题对错进度点条：一眼看到这一批的走势 -->
+        <div v-if="questions.length" class="hg-dots" aria-hidden="true">
+          <span v-for="i in questions.length" :key="i" class="hg-dots__dot" :class="dotClass(i - 1)" />
         </div>
 
         <div v-if="!current" class="hg-empty">
@@ -23,11 +30,23 @@
         <template v-else>
           <!-- 字画：有图片用图片，否则把字本身当字形图展示 -->
           <div class="hg-card">
+            <button v-if="canSpeak" type="button" class="hg-card__speak" aria-label="朗读这个字" @click="speakCurrent">🔊 听一听</button>
             <div class="hg-card__art">
-              <img v-if="current.image" :src="current.image" :alt="current.char" class="hg-card__img" />
+              <!-- 字画裂图回落：加载失败退回楷体字形，保证题干始终可读 -->
+              <img
+                v-if="current.image && !imageFailed"
+                :src="current.image"
+                :alt="current.char"
+                class="hg-card__img"
+                @error="imageFailed = true"
+              />
               <span v-else class="hg-card__char k">{{ current.char }}</span>
             </div>
             <div class="hg-card__ask">{{ askText }}</div>
+            <!-- 对/错印章：判分后盖在字画上（reduced-motion 下直接显示不动画） -->
+            <span v-if="answered" class="hg-stamp k" :class="isCorrect ? 'is-ok' : 'is-no'" aria-hidden="true">
+              {{ isCorrect ? "对" : "错" }}
+            </span>
           </div>
 
           <div class="hg-options" :class="{ 'hg-options--strokes': isOrder }">
@@ -47,11 +66,34 @@
           <!-- 笔顺题：把已点的笔画显示出来，点满即判分 -->
           <div v-if="isOrder" class="hg-tapped">
             已点：<b>{{ tapped.length ? tapped.join(" ") : "—" }}</b>
+            <span class="hg-tapped__count">{{ tapped.length }}/{{ orderTotal }}</span>
             <span class="hg-tapped__hint">（按第 1 笔、第 2 笔…的顺序点）</span>
+            <span class="hg-tapped__acts">
+              <button
+                type="button"
+                class="hg-tapped__undo"
+                :disabled="answered || !tapped.length"
+                @click="undoStroke"
+              >
+                ↩ 撤销上一笔
+              </button>
+              <button
+                type="button"
+                class="hg-tapped__undo"
+                :disabled="answered || !tapped.length"
+                @click="resetStrokes"
+              >
+                ↺ 重置
+              </button>
+            </span>
           </div>
 
-          <p v-if="answered" class="hg-feedback" :class="{ 'is-ok': picked === current.answer }">
-            {{ picked === current.answer ? "答对了！" : "正确答案：" + current.answer }}
+          <p v-if="answered" class="hg-feedback" :class="{ 'is-ok': isCorrect }" aria-live="polite">
+            {{ isCorrect ? "答对了！" : "正确答案：" + current.answer }}
+          </p>
+          <!-- 连击鼓励：独立徽标，不改动判分回显文案 -->
+          <p v-if="answered && isCorrect && streak >= 2" class="hg-streak" aria-live="polite">
+            🔥 连对 {{ streak }} 题，太棒了！
           </p>
 
           <!-- 答完即学习卡：把维护字段（笔顺/部首/结构/释义）讲清楚 -->
@@ -64,7 +106,17 @@
               <div><dt>结构</dt><dd>{{ current.structure || "—" }}</dd></div>
               <div class="hg-learn__full">
                 <dt>笔顺</dt>
-                <dd class="hg-learn__strokes k">{{ current.strokeOrder || "—" }}</dd>
+                <dd>
+                  <!-- 内置笔顺命中时内嵌逐笔动画（inline 复用悬停书写组件），否则回落静态笔顺文字 -->
+                  <HanziHoverWrite
+                    v-if="learnStrokeChar"
+                    :key="learnStrokeChar"
+                    inline
+                    visible
+                    :character="learnStrokeChar"
+                  />
+                  <span v-else class="hg-learn__strokes k">{{ current.strokeOrder || "—" }}</span>
+                </dd>
               </div>
               <div class="hg-learn__full"><dt>释义 / 组词</dt><dd>{{ current.meaning || "—" }}</dd></div>
             </dl>
@@ -74,11 +126,77 @@
       </template>
 
       <div v-else class="hg-done">
+        <div class="hg-done__stars" aria-hidden="true">
+          <span v-for="s in 3" :key="s" class="hg-done__star" :class="{ 'is-on': s <= stars }">★</span>
+        </div>
         <div class="hg-done__score">{{ score }} / {{ questions.length }}</div>
         <p class="hg-done__tip">{{ doneTip }}</p>
+        <!-- 本批错字回顾：答错的字在成绩页再认一遍 -->
+        <div v-if="batchWrong.length" class="hg-done__wrong">
+          <span class="hg-done__wrong-label">本批错字：</span>
+          <span v-for="ch in batchWrong" :key="ch" class="hg-done__wrong-char k">{{ ch }}</span>
+        </div>
+        <p v-else class="hg-done__perfect">本批全对，没有错字 🎉</p>
         <el-button type="primary" size="large" @click="load">再练一批</el-button>
+        <el-button size="large" @click="openWrongBook">看错题本</el-button>
       </div>
     </div>
+
+    <!-- 错题本：本地暂存的答错记录回顾（只做回顾，不出题，出题仍由服务端负责） -->
+    <el-dialog v-model="wrongOpen" title="错题本" width="540" append-to-body>
+      <p class="hg-wrong__tip">按最近答错排前，最多留 50 条。回顾读音与笔顺，再练一批会更稳。</p>
+      <ul v-if="wrongList.length" class="hg-wrong__list">
+        <li
+          v-for="(w, i) in wrongList"
+          :key="`${w.char}-${w.type}-${i}`"
+          class="hg-wrong__item"
+          :class="{ 'is-open': wrongKey(w) === wrongExpandedKey }"
+        >
+          <span class="hg-wrong__char k">{{ w.char }}</span>
+          <span class="hg-wrong__meta">
+            <b>{{ typeLabel(w.type) }}</b>
+            <span>你的答案：{{ w.picked || "—" }}</span>
+            <span>正确答案：{{ w.answer || "—" }}<template v-if="w.pinyin"> · 读音 {{ w.pinyin }}</template></span>
+          </span>
+          <span class="hg-wrong__time">{{ shortTime(w.time) }}</span>
+          <button
+            type="button"
+            class="hg-wrong__toggle"
+            :aria-label="`${wrongKey(w) === wrongExpandedKey ? "收起" : "展开"} ${w.char} 的笔顺演示`"
+            @click="toggleWrong(w)"
+          >
+            {{ wrongKey(w) === wrongExpandedKey ? "▾" : "▸" }}
+          </button>
+          <button
+            type="button"
+            class="hg-wrong__del"
+            :aria-label="`删除错题：${w.char}`"
+            @click="removeWrong(w)"
+          >
+            ✕
+          </button>
+          <!-- 展开面板：内置笔顺命中时直接放逐笔动画，否则回落笔顺文字 -->
+          <div v-if="wrongKey(w) === wrongExpandedKey" class="hg-wrong__panel">
+            <HanziHoverWrite
+              v-if="HANZI_STROKE_BUILTIN[w.char]"
+              :key="`wrong-${w.char}`"
+              inline
+              visible
+              :character="w.char"
+            />
+            <p v-else class="hg-wrong__strokes">
+              <span v-if="w.strokeOrder" class="k">笔顺：{{ w.strokeOrder }}</span>
+              <span v-else>这个字暂无笔顺演示，先看读音和释义吧。</span>
+            </p>
+          </div>
+        </li>
+      </ul>
+      <div v-else class="hg-wrong__empty">错题本是空的，继续保持！</div>
+      <template #footer>
+        <el-button @click="wrongOpen = false">关闭</el-button>
+        <el-button type="danger" plain :disabled="!wrongList.length" @click="clearWrong">清空错题本</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -93,10 +211,19 @@
  * 逻辑 / 接口 / 题型（识读 / 笔画数 / 笔顺排序）全部保持。</p>
  */
 import { message } from "@repo/core";
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 import { eduaiApi } from "../api/eduaiApi";
 import type { HanziQuestion } from "../api/types";
+import { errText } from "../api/errorText";
+import { STUDY_PROGRESS_PER_ROUND, useStudyReport } from "../composables/useStudyReport";
+import { addHanziWrong, clearHanziWrong, listHanziWrong, removeHanziWrong, type HanziWrongEntry } from "../data/hanziWrongBook";
+import { HANZI_STROKE_BUILTIN } from "../data/hanziStrokes";
+import HanziHoverWrite from "../components/HanziHoverWrite.vue";
+import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
+
+/** 统一确认弹窗（ReDialog 实现，替代 ElMessageBox.confirm） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 
 /**
  * 可选学段：父组件不传时按全库出题。
@@ -111,10 +238,35 @@ const score = ref(0);
 const answered = ref(false);
 const picked = ref("");
 const finished = ref(false);
+/** 学习行为上报：仅在学生端内嵌时真正发请求 */
+const { report: reportStudyRound } = useStudyReport();
 /** 笔顺题：已按顺序点下的笔画 */
 const tapped = ref<string[]>([]);
+/** 连击：当前连续答对数（答错清零，换批复位） */
+const streak = ref(0);
+/** 每题对错记录（下标对齐 questions）：驱动进度点条与本批错字回顾 */
+const results = ref<boolean[]>([]);
+/** 错题本中当前展开笔顺演示的条目键 */
+const wrongExpandedKey = ref("");
+
+// ==================== 错题本（本地暂存） ====================
+const wrongOpen = ref(false);
+const wrongList = ref<HanziWrongEntry[]>([]);
+const wrongCount = ref(0);
 
 const current = computed<HanziQuestion | null>(() => questions.value[index.value] ?? null);
+
+/** 字画图加载失败回落：换题即复位，失败时显示楷体字本身 */
+const imageFailed = ref(false);
+watch(current, () => {
+  imageFailed.value = false;
+});
+
+/** 学习卡内嵌笔顺动画：仅内置笔顺数据命中时启用，否则回落静态笔顺文字 */
+const learnStrokeChar = computed(() => {
+  const ch = (current.value?.char || "").trim().charAt(0);
+  return ch && HANZI_STROKE_BUILTIN[ch] ? ch : "";
+});
 const isLast = computed(() => index.value >= questions.value.length - 1);
 /** 当前是否为笔顺（顺序）题 */
 const isOrder = computed(() => current.value?.type === "order");
@@ -145,16 +297,71 @@ function optionClass(opt: string): string {
   return opt === picked.value ? "is-wrong" : "is-dim";
 }
 
+/** 本题是否答对（仅判分后有意义） */
+const isCorrect = computed(() => answered.value && !!current.value && picked.value === current.value.answer);
+/** 笔顺题总笔画数（答案为笔画名连串，长度即笔画数） */
+const orderTotal = computed(() => current.value?.answer?.length ?? 0);
+/** 听一听：读音题未答前不朗读（避免直接剧透答案），其余随时可听 */
+const canSpeak = computed(() => {
+  const q = current.value;
+  if (!q) {
+    return false;
+  }
+  return q.type !== "pinyin" || answered.value;
+});
+/** 成绩星级：≥90% 三星、≥70% 两星、≥50% 一星，否则零星 */
+const stars = computed(() => {
+  const n = questions.value.length;
+  if (!n) {
+    return 0;
+  }
+  const p = score.value / n;
+  if (p >= 0.9) return 3;
+  if (p >= 0.7) return 2;
+  if (p >= 0.5) return 1;
+  return 0;
+});
+/** 本批答错的字（去重、按出题顺序），成绩页回顾用 */
+const batchWrong = computed(() => {
+  const out: string[] = [];
+  questions.value.forEach((q, i) => {
+    if (results.value[i] === false && !out.includes(q.char)) {
+      out.push(q.char);
+    }
+  });
+  return out;
+});
+
 /**
  * 判分。
  *
  * @param value 用户给出的答案（读音 / 笔画数 / 拼好的笔顺串）
  */
 function judge(value: string) {
+  const q = current.value;
   picked.value = value;
   answered.value = true;
-  if (value === current.value?.answer) {
+  if (!q) {
+    return;
+  }
+  const ok = value === q.answer;
+  results.value[index.value] = ok;
+  if (ok) {
     score.value += 1;
+    streak.value += 1;
+  } else {
+    streak.value = 0;
+    // 答错进错题本（本地暂存，仅供回顾；出题仍由服务端负责），带读音/笔顺快照便于展开回顾
+    addHanziWrong({
+      char: q.char,
+      type: q.type,
+      picked: value,
+      answer: q.answer,
+      time: new Date().toISOString(),
+      pinyin: q.pinyin || undefined,
+      strokeOrder: q.strokeOrder || undefined,
+    });
+    wrongCount.value = listHanziWrong().length;
   }
 }
 
@@ -186,10 +393,62 @@ function tapStroke(stroke: string) {
   }
 }
 
+/** 撤销上一笔（仅判分前可用；判分后按钮禁用） */
+function undoStroke() {
+  if (answered.value || !tapped.value.length) {
+    return;
+  }
+  tapped.value.pop();
+}
+
+/** 重置本笔顺题已点的笔画（判分前可用） */
+function resetStrokes(): void {
+  if (answered.value) {
+    return;
+  }
+  tapped.value = [];
+}
+
+/** 朗读当前字（浏览器 TTS，零依赖；不支持或失败时静默忽略） */
+function speakCurrent(): void {
+  const ch = current.value?.char;
+  if (!ch || typeof window === "undefined" || !("speechSynthesis" in window)) {
+    return;
+  }
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(ch);
+    u.lang = "zh-CN";
+    u.rate = 0.85;
+    window.speechSynthesis.speak(u);
+  } catch {
+    /* 朗读失败不影响答题 */
+  }
+}
+
+/** 进度点条样式：对 / 错 / 当前题 */
+function dotClass(i: number): string {
+  const r = results.value[i];
+  if (r === true) {
+    return "is-right";
+  }
+  if (r === false) {
+    return "is-wrong";
+  }
+  return i === index.value ? "is-current" : "";
+}
+
 /** 下一题；已是最后一题则进入成绩页 */
 function next() {
   if (isLast.value) {
     finished.value = true;
+    // 一批答完即上报：每题 1 分，正确数即 score
+    reportStudyRound({
+      moduleCode: "hanzi-learn",
+      questionCount: questions.value.length,
+      correctCount: score.value,
+      progressDelta: STUDY_PROGRESS_PER_ROUND,
+    });
     return;
   }
   index.value += 1;
@@ -209,6 +468,65 @@ const doneTip = computed(() => {
   return score.value >= n * 0.6 ? "不错，再练一批就更熟了。" : "别急，对照笔顺与释义再来一遍。";
 });
 
+// ==================== 错题本交互 ====================
+function openWrongBook(): void {
+  wrongList.value = listHanziWrong();
+  wrongOpen.value = true;
+}
+
+/** 清空错题本：删除类操作，先确认再执行 */
+async function clearWrong() {
+  if (!wrongList.value.length) {
+    return;
+  }
+  const ok = await confirmDialog.value?.open(`确认清空错题本里的 ${wrongList.value.length} 条记录吗？`, {
+    title: "清空错题本",
+    danger: true,
+  });
+  if (!ok) {
+    return;
+  }
+  clearHanziWrong();
+  wrongList.value = [];
+  wrongCount.value = 0;
+  message.success("错题本已清空");
+}
+
+/** 删除单条错题（char+type 为去重键，单条免确认；清空才需要确认） */
+function removeWrong(w: HanziWrongEntry): void {
+  removeHanziWrong(w.char, w.type);
+  wrongList.value = listHanziWrong();
+  wrongCount.value = wrongList.value.length;
+}
+
+/** 错题去重键（与存储侧 addHanziWrong / removeHanziWrong 一致） */
+function wrongKey(w: HanziWrongEntry): string {
+  return `${w.char}-${w.type}`;
+}
+
+/** 展开/收起错题的笔顺演示（同一时刻最多展开一条） */
+function toggleWrong(w: HanziWrongEntry): void {
+  const k = wrongKey(w);
+  wrongExpandedKey.value = wrongExpandedKey.value === k ? "" : k;
+}
+
+function typeLabel(type: string): string {
+  if (type === "pinyin") return "读音题";
+  if (type === "strokes") return "笔画题";
+  if (type === "order") return "笔顺题";
+  return "练习题";
+}
+
+/** 时间显示：MM-DD HH:mm（解析失败返回空串） */
+function shortTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return "";
+  }
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 /** 拉一批题（服务端自动出题） */
 async function load() {
   index.value = 0;
@@ -217,6 +535,8 @@ async function load() {
   picked.value = "";
   tapped.value = [];
   finished.value = false;
+  streak.value = 0;
+  results.value = [];
   try {
     questions.value = (await eduaiApi.hanziPractice({ count: 8, gradeLevel: props.level })) ?? [];
     if (!questions.value.length) {
@@ -224,11 +544,12 @@ async function load() {
     }
   } catch (e) {
     questions.value = [];
-    message.error(`出题失败：${e instanceof Error ? e.message : String(e)}`);
+    message.error(`出题失败：${errText(e) || "请稍后重试"}`);
   }
 }
 
 onMounted(() => {
+  wrongCount.value = listHanziWrong().length;
   void load();
 });
 </script>
@@ -319,6 +640,35 @@ onMounted(() => {
   font-size: 14px;
   color: var(--el-text-color-regular);
   margin-right: auto;
+}
+
+/* 每题对错进度点条：压在主色带上，白点=当前、绿点=对、红点=错 */
+.hg-dots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 0 2px 12px;
+}
+.hg-dots__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--el-border-radius-circle, 50%);
+  background: color-mix(in srgb, var(--el-color-white) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-white) 55%, transparent);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.hg-dots__dot.is-current {
+  background: var(--el-color-white);
+  transform: scale(1.3);
+}
+.hg-dots__dot.is-right {
+  background: var(--el-color-success-light-5, #b3e19d);
+  border-color: transparent;
+}
+.hg-dots__dot.is-wrong {
+  background: var(--el-color-danger-light-5, #fab6b6);
+  border-color: transparent;
 }
 
 /* 空态：白卡托底 */
@@ -443,6 +793,26 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
+/* 撤销上一笔：轻量胶囊按钮，判分后禁用 */
+.hg-tapped__undo {
+  margin-left: auto;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-full, 9999px);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.hg-tapped__undo:hover:not(:disabled) {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.hg-tapped__undo:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 /* 判分回显：白卡 + 左侧色条跟随文字颜色 */
 .hg-feedback {
   margin: 12px 0 0;
@@ -530,6 +900,86 @@ onMounted(() => {
   color: var(--el-text-color-regular);
 }
 
+/* 错题本 */
+.hg-wrong__tip {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.hg-wrong__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 50vh;
+  overflow: auto;
+}
+.hg-wrong__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.hg-wrong__item:last-child {
+  border-bottom: none;
+}
+.hg-wrong__char {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 800;
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-light);
+  flex-shrink: 0;
+}
+.hg-wrong__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.hg-wrong__meta b {
+  color: var(--el-color-danger);
+  font-size: 12px;
+}
+.hg-wrong__time {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+/* 单条删除：圆形小按钮，悬停转危险色 */
+.hg-wrong__del {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-circle, 50%);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.hg-wrong__del:hover {
+  color: var(--el-color-danger);
+  border-color: var(--el-color-danger);
+}
+.hg-wrong__empty {
+  padding: 24px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
 /* 窄屏 */
 @media (max-width: 640px) {
   .hg-title {
@@ -569,9 +1019,14 @@ onMounted(() => {
 @media (pointer: coarse) {
   .hg-bar :deep(.el-button),
   .hg-opt,
+  .hg-tapped__undo,
   .hg-learn :deep(.el-button),
   .hg-done :deep(.el-button) {
     min-height: 44px;
+  }
+  .hg-wrong__del {
+    width: 34px;
+    height: 34px;
   }
 }
 

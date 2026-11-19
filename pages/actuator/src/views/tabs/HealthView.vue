@@ -11,6 +11,7 @@
     :count-text="`共 ${nodes.length} 项`"
     :loading="loading"
     :error="error"
+    :error-kind="errorKind"
     auto-refresh
     :updated-at="updatedAt"
     @refresh="reload"
@@ -124,7 +125,7 @@ interface HealthNode {
   details: string;
 }
 
-const { data, loading, error, updatedAt, reload, hit } = useActuatorPanel("health");
+const { data, loading, error, errorKind, updatedAt, reload, hit } = useActuatorPanel("health");
 
 /** 整体状态：Actuator 没给时用破折号，不假装 UP */
 const status = computed(() => String((data.value as { status?: unknown } | null)?.status ?? "-"));

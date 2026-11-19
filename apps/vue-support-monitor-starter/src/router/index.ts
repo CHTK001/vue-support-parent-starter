@@ -64,10 +64,10 @@ import { apmConfig } from "@pages/apm/src/config";
 // 页面路由由 @pages/actuator/src/routes 产出（视图、API、路由同源）。
 // 深导入 src/routes：包根 index.ts 会求值卡片贡献项，本文件只需要路由。
 import { actuatorRoutes } from "@pages/actuator/src/routes";
-// 账号管理（账号资产 + 模板管理 + 消息模板）：源码在后端项目
-// spring-support-account-starter/web（包名 @account/web），这里只合并它的隐藏子路由
-// （打印机管理 / 调用日志 / 设计器 / 预览），供模板工作台的 router.push({name}) 命中。
-import { templateChildRoutes } from "@account/web/src/router";
+// 账号管理（账号资产 + 模板管理 + 消息模板）：@pages/account（2026-11-19 自后端仓迁入），
+// 这里只合并它的隐藏子路由（打印机管理 / 调用日志 / 设计器 / 预览），
+// 供模板工作台的 router.push({name}) 命中。
+import { templateChildRoutes } from "@pages/account/src/router";
 // 已并入又移除的包（留档，避免有人再加回来）：
 //   - 2026-11-02 曾并入 achievement / collect / job / message / signin / task 六包；
 //   - 本次再移除 @pages/system（systemRoutes 与下方「日志管理」分组）。
@@ -391,11 +391,11 @@ export const monitorRoutes: RouteConfigsTable[] = [
     children: [
       {
         // 账号管理（账号资产 + 模板管理 + 消息模板）：页面本体、API、隐藏子路由
-        // 都在 @account/web（后端项目 spring-support-account-starter/web）里，
+        // 都在 @pages/account（2026-11-19 自后端仓迁入 pages/account）里，
         // 宿主只挂这两条，不再各自维护模板库代码。
         path: "/account-assets",
         name: "AccountAssets",
-        component: () => import("@account/web/src/account/views/ScAccountAssets.vue"),
+        component: () => import("@pages/account/src/account/views/ScAccountAssets.vue"),
         meta: { title: "账号资产", icon: "Key", showLink: true, rank: 1 },
       },
       // 密钥管理：独立的密钥页（只管密钥本身）。账号表单引用密钥时按类型挑选；
@@ -403,7 +403,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/secret-assets",
         name: "SecretAssets",
-        component: () => import("@account/web/src/account/views/ScSecretAssets.vue"),
+        component: () => import("@pages/account/src/account/views/ScSecretAssets.vue"),
         meta: { title: "密钥管理", icon: "Lock", showLink: true, rank: 2 },
       },
       // 模板管理：统一入口（文档模板 + 消息模板，消息模板是其中一种类型），
@@ -411,7 +411,7 @@ export const monitorRoutes: RouteConfigsTable[] = [
       {
         path: "/template",
         name: "TemplateHome",
-        component: () => import("@account/web/src/template/views/TemplateView.vue"),
+        component: () => import("@pages/account/src/template/views/TemplateView.vue"),
         meta: { title: "模板管理", icon: "MagicStick", showLink: true, rank: 3 },
       },
       ...templateChildRoutes.filter((route) => route.name !== "TemplateHome"),

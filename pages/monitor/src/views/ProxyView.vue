@@ -22,7 +22,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import type { Component } from "vue";
 import { ElMessageBox } from "element-plus";
 import { CircleCheck, DataAnalysis, Postcard, Tickets } from "@element-plus/icons-vue";
-import { http, unwrapResult } from "@repo/utils";
+import { http, unwrapResult, usePersistentFilters } from "@repo/utils";
 import ReStatCard from "@repo/ui/re-stat-card";
 
 const BASE = "/ms/server/proxy";
@@ -60,7 +60,12 @@ const freeList = ref<FreeProxy[]>([]);
 const fetching = ref(false);
 const checking = ref(false);
 const loading = ref(false);
-const filters = reactive({ protocol: "", status: "", keyword: "" });
+/** 筛选持久化：localStorage 记忆 + 路由 query 同步，切走再回来不丢筛选 */
+const { filters } = usePersistentFilters({
+  key: "monitor.proxy",
+  defaults: { protocol: "", status: "", keyword: "" },
+  queryKeys: ["keyword", "protocol", "status"],
+});
 
 const formVisible = ref(false);
 const saving = ref(false);

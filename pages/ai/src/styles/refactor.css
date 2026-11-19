@@ -48,38 +48,6 @@
      深色主题换成近黑字 —— 深色下语义色是被提亮的，白字压上去只有 2.2~2.8:1。 */
   --color-on-accent: #ffffff;
 
-  /* 按钮配色（实心 / 明文 / 禁用）。每组四个值：
-       solid  实心底     —— 文字用 --color-on-accent
-       hover  悬停/按下底 —— 比 solid 更深，文字不变仍 ≥4.5:1
-       ink    明文态文字色 —— 压在 tint 浅底上 ≥4.5:1
-       tint   明文态浅底
-     语义色一律取 700 档：600 档当实心底只有 3.3 / 3.19:1，
-     当明文墨色只有 3.0 / 2.86:1（人脸库「一键修复模型名」实测 2.86）。 */
-  --btn-primary-solid: var(--brand-600);   /* 白字 5.17 */
-  --btn-primary-hover: var(--brand-700);   /* 白字 6.70 */
-  --btn-primary-ink: var(--brand-600);     /* 压 brand-50 4.75 */
-  --btn-primary-tint: var(--brand-50);
-  --btn-success-solid: #15803d;            /* 白字 5.02 */
-  --btn-success-hover: #166534;            /* 白字 6.67 */
-  --btn-success-ink: #15803d;              /* 压 #dcfce7 4.57 */
-  --btn-success-tint: #dcfce7;
-  --btn-warning-solid: #b45309;            /* 白字 5.02 */
-  --btn-warning-hover: #92400e;            /* 白字 6.37 */
-  --btn-warning-ink: #92400e;              /* 压 #fef3c7 6.37 */
-  --btn-warning-tint: #fef3c7;
-  --btn-danger-solid: #b91c1c;             /* 白字 6.47 */
-  --btn-danger-hover: #991b1b;             /* 白字 7.90 */
-  --btn-danger-ink: #b91c1c;               /* 压 #fee2e2 5.30 */
-  --btn-danger-tint: #fee2e2;
-  /* 禁用态：中性浅底 + 二级文字（浅色 6.93 / 深色 4.90），不再叠 opacity */
-  --btn-disabled-text: var(--text-secondary);
-  --btn-disabled-bg: var(--bg-hover);
-  --btn-disabled-border: var(--border-default);
-  /* 圆形主 CTA 的渐变胶囊：两端都按白字 4.5:1 校过
-     （#2563eb 5.17 / #6d28d9 7.10）。不用 --brand-gradient —— 深色主题里
-     它被提亮成 #3b82f6 起，白字只有 3.68:1。 */
-  --btn-gradient: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%);
-
   /* 副色：紫罗兰（渐变紫色端，与主色互补） */
   --color-secondary: #7c3aed;
   --color-secondary-50: #f5f3ff;
@@ -294,27 +262,6 @@ html.dark {
      所以实心底改用近黑字：5.09 / 8.22 / 8.72 / 6.77。
      明文态反过来要提亮墨色（浅色那套 700 档在深底上只有 2.5 级）。 */
   --color-on-accent: #0b1220;
-  --btn-primary-solid: var(--brand-600);   /* #3b82f6，近黑字 5.09 */
-  --btn-primary-hover: var(--brand-400);   /* #60a5fa，近黑字 7.36 */
-  --btn-primary-ink: var(--brand-400);     /* #60a5fa 压 #15202f 6.46 */
-  --btn-primary-tint: #15202f;
-  --btn-success-solid: #22c55e;            /* 近黑字 8.22 */
-  --btn-success-hover: #4ade80;            /* 近黑字 10.74 */
-  --btn-success-ink: #4ade80;              /* 压 #14321f 8.00 */
-  --btn-success-tint: #14321f;
-  --btn-warning-solid: #f59e0b;            /* 近黑字 8.72 */
-  --btn-warning-hover: #fbbf24;            /* 近黑字 11.22 */
-  --btn-warning-ink: #fbbf24;              /* 压 #332715 8.72 */
-  --btn-warning-tint: #332715;
-  --btn-danger-solid: #f87171;             /* 近黑字 6.77 */
-  --btn-danger-hover: #fca5a5;             /* 近黑字 9.86 */
-  --btn-danger-ink: #fca5a5;               /* 压 #3a1d1d 8.06 */
-  --btn-danger-tint: #3a1d1d;
-  --btn-disabled-text: #94a3b8;            /* 压 #263449 4.90 */
-  --btn-disabled-bg: #263449;
-  --btn-disabled-border: #313b4d;
-  /* 深色下渐变两端都要压深，否则白字掉到 3.68:1 */
-  --btn-gradient: linear-gradient(135deg, #1d4ed8 0%, #5b21b6 100%);
 }
 
 /* ############################################################################
@@ -645,144 +592,6 @@ html.dark *::-webkit-scrollbar-thumb:hover {
    6. Element Plus 组件重绘
    ############################################################################ */
 
-/* ---------- 按钮 ---------- */
-.el-button {
-  border-radius: var(--r);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-.el-button--default {
-  background: var(--color-surface);
-  border-color: var(--color-surface-border);
-  color: var(--color-text);
-}
-.el-button--default:hover {
-  color: var(--color-primary);
-  border-color: var(--color-primary-300);
-  background: var(--color-primary-50);
-  background-color: var(--color-primary-50);
-}
-/* ── 按钮配色：实心 / 明文 / 禁用 三态 × 四语义色 ──────────────────────────
-   为什么直接写 color / background-color / border-color，而不是只给
-   --el-button-* 变量赋值：Element Plus 的 el-button.css 是**按需引入**，
-   在本文件之后加载（实测 sheet 39，本文件 sheet 9），而且它自己就在
-   .el-button--primary 里直接写了
-       --el-button-disabled-text-color: var(--el-color-white)
-       --el-button-disabled-bg-color:  var(--el-color-primary-light-5)
-   —— 白字压浅蓝底 1.8:1（人脸库「人脸登记入库」「登记入库」）；
-   .el-button--primary.is-plain.is-disabled 里又直接写了
-       color: var(--el-color-primary-light-5)
-   —— 浅蓝字压浅蓝底 2.86 级（人脸库「一键修复模型名」）。
-   同特异性只能比加载顺序，而顺序上 EP 在后，改多少次变量都会被它盖掉。
-   所以这里用 html 前缀把特异性抬到 EP 之上，直接写属性；
-   颜色仍然全部来自 token，深浅主题自动跟随。
-
-   特异性阶梯（EP 最高的是 .el-button--primary.is-plain.is-disabled = 0,3,0）：
-     实心   html .el-button:is(类型):where(:not(变体…))      = 0,2,1
-     明文   html .el-button:is(类型):is(.is-plain,.is-dashed)  = 0,3,1
-     明文悬停 同上 + :hover                                    = 0,4,1
-     禁用   html .el-button:is(类型):is(.is-disabled:hover…)   = 0,5,1
-   注意 :is() 的权重取参数里最高的那个，不是相加 —— 把「类型」和「变体」
-   拆进两个 :is() 才不会误判成 (0,6,0) 之类，也才压得住 EP 的 plain+disabled。 */
-html .el-button:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--error) {
-  --btn-solid: var(--btn-primary-solid);
-  --btn-solid-hover: var(--btn-primary-hover);
-  --btn-soft-ink: var(--btn-primary-ink);
-  --btn-soft-tint: var(--btn-primary-tint);
-}
-/* 四组语义色各自覆盖：选择器必须与上面同权重（0,2,1），靠顺序拿最后一票 */
-html .el-button:is(.el-button--success) {
-  --btn-solid: var(--btn-success-solid);
-  --btn-solid-hover: var(--btn-success-hover);
-  --btn-soft-ink: var(--btn-success-ink);
-  --btn-soft-tint: var(--btn-success-tint);
-}
-html .el-button:is(.el-button--warning) {
-  --btn-solid: var(--btn-warning-solid);
-  --btn-solid-hover: var(--btn-warning-hover);
-  --btn-soft-ink: var(--btn-warning-ink);
-  --btn-soft-tint: var(--btn-warning-tint);
-}
-html .el-button:is(.el-button--danger, .el-button--error) {
-  --btn-solid: var(--btn-danger-solid);
-  --btn-solid-hover: var(--btn-danger-hover);
-  --btn-soft-ink: var(--btn-danger-ink);
-  --btn-soft-tint: var(--btn-danger-tint);
-}
-
-/* 实心：底色 + 反色文字。悬停/按下统一用「更深一档」，文字色不变，
-   对比度只会更高（浅色 5.17 → 6.70，深色 5.09 → 7.36）。 */
-html .el-button:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--error):where(:not(.is-plain, .is-dashed, .is-text, .is-link, .is-disabled)) {
-  color: var(--color-on-accent);
-  background-color: var(--btn-solid);
-  border-color: var(--btn-solid);
-}
-html .el-button:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--error):where(:not(.is-plain, .is-dashed, .is-text, .is-link, .is-disabled)):hover {
-  color: var(--color-on-accent);
-  background-color: var(--btn-solid-hover);
-  border-color: var(--btn-solid-hover);
-}
-
-/* 明文 / 虚线：浅底 + 同族墨色。墨色按 4.5:1 选过档，
-   悬停时翻成实心（EP 的原行为），文字跟着切成反色。 */
-html .el-button:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--error):is(.is-plain, .is-dashed) {
-  color: var(--btn-soft-ink);
-  background-color: var(--btn-soft-tint);
-  border-color: var(--btn-soft-ink);
-}
-html .el-button:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--error):is(.is-plain, .is-dashed):hover:not(.is-disabled) {
-  color: var(--color-on-accent);
-  background-color: var(--btn-solid);
-  border-color: var(--btn-solid);
-}
-
-/* 禁用：中性底 + 二级文字（浅色 6.93:1 / 深色 4.90:1）。
-   不再叠 opacity —— 它会把对比度再砍一半（原来中性禁用只有 2.56:1）。
-   实心、明文两种禁用都用同一套中性色，一眼看得出「不能点」，
-   又不会像 EP 那样白字压浅底完全读不出来。 */
-html .el-button:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--error):is(.is-disabled, .is-disabled:hover, .is-disabled:focus, .is-disabled:active) {
-  color: var(--btn-disabled-text);
-  background-color: var(--btn-disabled-bg);
-  border-color: var(--btn-disabled-border);
-  opacity: 1;
-}
-/* 中性（无 type）按钮的禁用态同样换成中性底，去掉 opacity 衰减 */
-html .el-button.is-disabled,
-html .el-button.is-disabled:hover,
-html .el-button.is-disabled:focus,
-html .el-button.is-disabled:active {
-  color: var(--btn-disabled-text);
-  background-color: var(--btn-disabled-bg);
-  border-color: var(--btn-disabled-border);
-  opacity: 1;
-}
-/* text / link 型禁用保持透明底（EP 用 !important 锁了底色），只校文字色 */
-html .el-button.is-text.is-disabled,
-html .el-button.is-link.is-disabled {
-  color: var(--btn-disabled-text);
-  opacity: 1;
-}
-/* 圆形/全圆角主按钮 → 蓝紫渐变胶囊（页面主 CTA）。
-   写在实心之后：同为 (0,2,1) 时靠顺序拿到最后一票。
-   渐变两端在深色主题里另外压深（见 --btn-gradient），白字始终 ≥5:1。 */
-html .el-button--primary.is-round:where(:not(.is-disabled)),
-html .el-button--primary.is-circle:where(:not(.is-disabled)) {
-  background: var(--btn-gradient);
-  border-color: transparent;
-  color: var(--color-primary-text);
-  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.28);
-}
-html .el-button--primary.is-round:where(:not(.is-disabled)):hover,
-html .el-button--primary.is-circle:where(:not(.is-disabled)):hover {
-  background: var(--btn-gradient);
-  box-shadow: 0 12px 26px rgba(79, 70, 229, 0.36);
-  filter: brightness(1.05);
-}
-.el-button.is-text,
-.el-button.is-link {
-  box-shadow: none;
-}
-
 /* ---------- 输入 / 文本域 / 选择 ---------- */
 .el-input__wrapper,
 .el-textarea__inner,
@@ -933,15 +742,15 @@ html .el-button--primary.is-circle:where(:not(.is-disabled)):hover {
 }
 .el-select__popper .el-select-dropdown__item:has(.opt-two-line) {
   height: auto;
-  min-height: 34px;
-  padding: 7px 10px;
-  margin: 2px 4px;
-  line-height: 1.4;
+  min-height: 38px;
+  padding: 8px 12px;
+  margin: 3px 6px;
+  line-height: 1.45;
 }
 .el-select__popper .opt-two-line {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 .el-select__popper .opt-main {
   font-size: 12.5px;
@@ -965,12 +774,12 @@ html .el-button--primary.is-circle:where(:not(.is-disabled)):hover {
   overflow: hidden;
 }
 .el-table th.el-table__cell {
-  background: var(--el-fill-color-light) !important;
+  background: var(--el-fill-color-light);
   color: var(--color-text-gray);
   font-weight: 700;
 }
 .el-table__body tr:hover > td.el-table__cell {
-  background: var(--color-primary-50) !important;
+  background: var(--color-primary-50);
 }
 .el-table__inner-wrapper::before,
 .el-table--border::after {
@@ -1086,7 +895,7 @@ html .el-button--primary.is-circle:where(:not(.is-disabled)):hover {
 }
 .el-pagination.is-background .el-pager li.is-active {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 .el-pagination.is-background .el-pager li:not(.is-active):hover {
   color: var(--color-primary);
@@ -1147,6 +956,17 @@ html .el-button--primary.is-circle:where(:not(.is-disabled)):hover {
 .el-tooltip__popper {
   border-radius: var(--r-sm);
   font-weight: 500;
+}
+/* EP 的 dark tooltip 默认拿「主文字色」当背景（--el-text-color-primary），
+   而本项目把该变量桥接成了主题文字色：亮色下是黑底白字；暗色下文字色变浅灰白，
+   tooltip 就成了「浅底白字」，几乎读不清（API 地址「检测协议」提示即此症状）。
+   dark tooltip 的语义就是深底浅字，这里固定下来，不随主题文字色翻转。 */
+.el-tooltip__popper.is-dark {
+  background: #0f172a;
+  color: #ffffff;
+}
+.el-tooltip__popper.is-dark .el-popper__arrow::before {
+  background: #0f172a;
 }
 .el-popover.el-popper {
   border-radius: var(--r);

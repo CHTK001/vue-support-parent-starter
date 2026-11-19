@@ -294,6 +294,13 @@ export const usageApi = {
    * 记忆抽取各占一行，分开统计才能看出 token 到底花在哪一块。</p>
    */
   callType: (params?: any) => http.get('/usage/call-type', { params }),
+  /**
+   * 按「天 × 调用状态」聚合（失败分析卡数据源）。
+   *
+   * <p>成功/失败分开按天聚合，前端据此算失败率走势与失败集中日；
+   * 后端未部署（404）时调用方需 .catch 兜底为空，不弹错。</p>
+   */
+  failures: (params?: any) => http.get('/usage/failures', { params }),
   syncLogs: (params?: any) => http.get('/usage/sync-logs', { params }),
   parsers: (params?: any) => http.get('/usage/parsers', { params }),
   /**

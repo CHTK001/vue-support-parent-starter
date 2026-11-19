@@ -187,6 +187,8 @@ export function useUsageBoard() {
   const rateUsd = ref(7.1);
   const rateEur = ref(7.8);
   const tokenScale = ref<"auto" | "raw">("auto");
+  /** 今日预算阈值（元）：0 = 未启用；来自用量设置 usage_daily_budget（浏览器侧消费） */
+  const dailyBudget = ref(0);
   const fmtToken = (v: number | null | undefined): string =>
     tokenScale.value === "raw" ? formatNumber(v) : formatCompact(v);
 
@@ -243,6 +245,10 @@ export function useUsageBoard() {
           if (row.field === "usage_token_scale") {
             tokenScale.value = row.value === "raw" ? "raw" : "auto";
           }
+          if (row.field === "usage_daily_budget") {
+            const b = Number(row.value);
+            dailyBudget.value = Number.isFinite(b) && b > 0 ? b : 0;
+          }
         }
       }
     } catch {
@@ -275,6 +281,44 @@ export function useUsageBoard() {
       sub: ["首字 " + money(stats.avgFirstTokenLatency) + "ms"],
     },
   ]);
+
+  // ---------- 区间环比（当前区间 vs 等长上一窗口） ----------
+  /** 上一窗口统计快照；未拉到（无时间边界/请求失败）时为 null，不显示假涨跌 */
+  const prevStats = ref<null | { totalCalls: number; totalTokens: number; totalCost: number }>(null);
+
+  /**
+   * 由当前筛选窗口推导等长的上一窗口。
+   *
+   * <p>只处理显式 [start, end]：无边界（全部时间）没有「上一窗」，返回 null。
+   * 日期解析失败/零长区间同样返回 null，宁可没有环比也不出错误读数。</p>
+   */
+  function shiftRangeBack(): { startTime: string; endTime: string } | null {
+    const { startTime, endTime } = timeParams.value;
+    if (!startTime || !endTime) return null;
+    const s = new Date(startTime.replace(" ", "T")).getTime();
+    const e = new Date(endTime.replace(" ", "T")).getTime();
+    if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return null;
+    const dur = e - s;
+    const fmt = (t: number) => {
+      const d = new Date(t);
+      const p = (n: number) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    };
+    return { startTime: fmt(s - dur), endTime: fmt(s) };
+  }
+
+  /** KPI 环比：key → 相对上一窗口的百分比变化（基数 0 时为 null，不显示） */
+  const statDeltas = computed<Record<string, number | null>>(() => {
+    const out: Record<string, number | null> = {};
+    const prev = prevStats.value;
+    if (!prev) return out;
+    const pct = (cur: number, old: number) =>
+      old > 0 ? Number((((cur - old) / old) * 100).toFixed(1)) : null;
+    out.token = pct(Number(stats.totalTokens) || 0, prev.totalTokens);
+    out.requests = pct(Number(stats.totalCalls) || 0, prev.totalCalls);
+    out.cost = pct(Number(stats.totalCost) || 0, prev.totalCost);
+    return out;
+  });
 
   // 时间筛选：默认「今天」，首屏取数必须带上时间边界——
   // ReTable 的首批取数跑在 setup 期、parent 的 onMounted 之前，
@@ -453,6 +497,92 @@ export function useUsageBoard() {
   // ---------- 数据加载 ----------
   const summaryRows = ref<any[]>([]);
   const trendData = ref<Array<{ date: string; input: number; output: number; cached: number; total: number; calls: number; cost: number; latAvg: number }>>([]);
+
+  // ---------- 今日预算 / 本月费用预测 ----------
+  function todayStr(): string {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+
+  /**
+   * 今日费用：优先取热力图序列（近 371 天日汇总，不随筛选窗口变化，含今天）。
+   *
+   * <p>趋势序列跟随时间筛选——下钻到别的日子、或筛选区间不含今天时会查不到，
+   * 那时若仍从趋势取数会把「查不到」误显示成 ¥0。热力图未就绪/加载失败时
+   * 退回趋势序列（筛选窗口含今天时仍能取到）。</p>
+   */
+  const todayCost = computed(() => {
+    const t = todayStr();
+    const hm = heatmapDays.value.find((r) => r.date === t);
+    if (hm) return Number(hm.cost) || 0;
+    const row = trendData.value.find((r) => r.date === t);
+    return row ? Number(row.cost) || 0 : 0;
+  });
+
+  /** 今日预算状态：used/pct 与预警档位（<80 正常，≥80 预警，≥100 超支） */
+  const budgetState = computed(() => {
+    const budget = dailyBudget.value;
+    if (!(budget > 0)) {
+      return { enabled: false, used: todayCost.value, pct: 0, tone: "info" as const, label: "未设置预算" };
+    }
+    const pct = Math.min(100, (todayCost.value / budget) * 100);
+    const tone = pct >= 100 ? "error" : pct >= 80 ? "warning" : "success";
+    return {
+      enabled: true,
+      used: todayCost.value,
+      pct: Number(pct.toFixed(1)),
+      tone,
+      label: `${currencySymbol.value}${money(todayCost.value)} / ${currencySymbol.value}${money(budget)}`,
+    };
+  });
+
+  /**
+   * 本月费用预测：月内已有日均摊到整月。
+   *
+   * <p>月累计优先从热力图序列取（不随筛选窗口变化，稳定覆盖本月 1 号至今），
+   * 热力图未就绪时退回趋势序列。按「今天几号」折算日均再乘全月天数。
+   * 样本不足（月累计为 0）返回 null，面板显示占位而不编数。</p>
+   */
+  const costForecast = computed(() => {
+    const t = todayStr();
+    const month = t.slice(0, 7);
+    const src = heatmapDays.value.length
+      ? heatmapDays.value
+      : trendData.value.map((r) => ({ date: String(r.date).slice(0, 10), cost: Number(r.cost) || 0 }));
+    const mtd = src.reduce((s, r) => (r.date.startsWith(month) ? s + (Number(r.cost) || 0) : s), 0);
+    if (!(mtd > 0)) return null;
+    const daysInMonth = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
+    const daysElapsed = Math.max(1, Number(t.slice(8, 10)));
+    const dailyAvg = mtd / daysElapsed;
+    return { mtd, dailyAvg, forecast: dailyAvg * daysInMonth, daysElapsed, daysInMonth };
+  });
+
+  /**
+   * 未来 7 / 30 天费用预测：取各自回看窗口（含今日）的费用合计。
+   *
+   * <p>与「本月外推」互补：月外推回答「这个月会花多少」，这两个窗口回答
+   * 「按近期节奏，接下来一周 / 一个月会花多少」。样本源与月预测一致：
+   * 热力图日汇总优先，未就绪时退回趋势序列。</p>
+   */
+  const costForecastWindows = computed(() => {
+    const src = heatmapDays.value.length
+      ? heatmapDays.value
+      : trendData.value.map((r) => ({ date: String(r.date).slice(0, 10), cost: Number(r.cost) || 0 }));
+    if (!src.length) return null;
+    const endTime = new Date(todayStr() + "T00:00:00").getTime();
+    if (!Number.isFinite(endTime)) return null;
+    const sumSince = (days: number) => {
+      const start = endTime - (days - 1) * 86400000;
+      let sum = 0;
+      for (const r of src) {
+        const ts = new Date(`${r.date}T00:00:00`).getTime();
+        if (Number.isFinite(ts) && ts >= start && ts <= endTime) sum += Number(r.cost) || 0;
+      }
+      return sum;
+    };
+    return { next7: sumSince(7), next30: sumSince(30) };
+  });
   /**
    * 调用类型拆分行（后端 /usage/call-type 原样）。
    *
@@ -513,6 +643,7 @@ export function useUsageBoard() {
     modelTrend: false,
     callType: false,
     spine: false,
+    failures: false,
   });
   /** 各路由最近一次的报错，null 表示该路由正常 */
   const routeErrors = reactive<Record<string, string | null>>({
@@ -523,6 +654,7 @@ export function useUsageBoard() {
     modelTrend: null,
     callType: null,
     spine: null,
+    failures: null,
   });
   /** 按路由压缩的“加载中”：驱动顶栏底边 2px 流光条，任一路在飞就亮灯 */
   const refreshing = computed(() => Object.values(routeLoading).some(Boolean));
@@ -538,6 +670,7 @@ export function useUsageBoard() {
     routeErrors.modelTrend = null;
     routeErrors.callType = null;
     routeErrors.spine = null;
+    routeErrors.failures = null;
   }
 
   const FAULT_LABELS: Record<string, string> = {
@@ -548,6 +681,7 @@ export function useUsageBoard() {
     modelTrend: "模型趋势",
     callType: "调用类型拆分",
     spine: "刻度尺",
+    failures: "失败分析",
   };
 
   /** 本次拉数失败的路由中文说明；没有则返回 null（一次汇总提醒，不做 N 连弹） */
@@ -578,7 +712,7 @@ export function useUsageBoard() {
     }
   }
 
-  /** 统计快照：写 `stats`，触发 KPI 数字滚动 */
+  /** 统计快照：写 `stats`，触发 KPI 数字滚动；并拉等长上一窗口算环比 */
   async function loadStatistics(seq: number) {
     routeLoading.statistics = true;
     try {
@@ -587,8 +721,27 @@ export function useUsageBoard() {
       Object.assign(stats, res.data || {});
       // 数字滚动：数据落定后再动画，否则会滚到一半被下一次刷新打断
       runCountUp();
+      // 环比基数：等长的上一窗口。主查询失败时不算（拿旧窗口比新窗口会出假涨跌）
+      const prevRange = shiftRangeBack();
+      if (prevRange) {
+        try {
+          const pres: any = await usageApi.statistics(prevRange);
+          if (loadSeq !== seq) return;
+          const d = pres?.data || {};
+          prevStats.value = {
+            totalCalls: Number(d.totalCalls) || 0,
+            totalTokens: Number(d.totalTokens) || 0,
+            totalCost: Number(d.totalCost) || 0,
+          };
+        } catch {
+          prevStats.value = null;
+        }
+      } else {
+        prevStats.value = null;
+      }
     } catch (e: any) {
       routeErrors.statistics = e?.message || e;
+      prevStats.value = null;
     } finally {
       routeLoading.statistics = false;
     }
@@ -701,6 +854,8 @@ export function useUsageBoard() {
       // 热力图看的是近 53 周的长期节奏，与顶部时间筛选无关：
       // 首次进入拉一次，之后切筛选不重复打 371 天的聚合查询
       loadHeatmap(),
+      // 失败分析（天×状态聚合），随筛选联动刷新
+      loadFailures(seq),
     ]);
     // 检查回退到了更晚的版本（本次拉数被覆盖）
     if (loadSeq !== seq) return;
@@ -737,6 +892,112 @@ export function useUsageBoard() {
       routeLoading.callType = false;
     }
   }
+
+  // ==================== 失败请求分析（天 × 状态） ====================
+  /** 失败分析原始行（后端 /usage/failures，按天×状态聚合） */
+  const failurePoints = ref<Array<{
+    statDate: string;
+    status: string;
+    calls: number;
+    totalTokens: number;
+    totalCost: number;
+  }>>([]);
+
+  /**
+   * 拉取失败分析。旧部署没有 /usage/failures（404）时留空即可：
+   * 不弹错、不阻断其它路由，与 callType 的兜底口径一致。
+   */
+  async function loadFailures(seq: number) {
+    routeLoading.failures = true;
+    try {
+      const res: any = await usageApi.failures(timeParams.value);
+      if (loadSeq !== seq) return;
+      const rows: any[] = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      failurePoints.value = rows.map((r) => ({
+        statDate: String(r?.statDate ?? r?.stat_date ?? ""),
+        status: String(r?.status ?? "success"),
+        calls: Number(r?.calls) || 0,
+        totalTokens: Number(r?.totalTokens ?? r?.total_tokens) || 0,
+        totalCost: Number(r?.totalCost ?? r?.total_cost) || 0,
+      }));
+    } catch (e: any) {
+      const msg = String(e?.message ?? e ?? "");
+      routeErrors.failures = /404/.test(msg) ? null : msg;
+      failurePoints.value = [];
+    } finally {
+      routeLoading.failures = false;
+    }
+  }
+
+  /** 失败汇总：失败次数/占比、失败 Token 与费用、最集中的日期 */
+  const failureSummary = computed(() => {
+    let failedCalls = 0, successCalls = 0, failedTokens = 0, failedCost = 0;
+    const perDay = new Map<string, number>();
+    for (const p of failurePoints.value) {
+      if (p.status === "failed") {
+        failedCalls += p.calls;
+        failedTokens += p.totalTokens;
+        failedCost += p.totalCost;
+        perDay.set(p.statDate, (perDay.get(p.statDate) || 0) + p.calls);
+      } else {
+        successCalls += p.calls;
+      }
+    }
+    const total = failedCalls + successCalls;
+    let worstDay: string | null = null;
+    let worst = 0;
+    perDay.forEach((v, k) => {
+      if (v > worst) { worst = v; worstDay = k; }
+    });
+    return {
+      failedCalls,
+      successCalls,
+      total,
+      failedTokens,
+      failedCost,
+      worstDay,
+      rate: total > 0 ? Number(((failedCalls / total) * 100).toFixed(2)) : null,
+    };
+  });
+
+  /**
+   * 失败分析图：成功/失败按天堆叠柱 + 失败率折线（右轴）。
+   *
+   * <p>只画请求次数维度——失败分析关心的是「哪天不稳」，Token/费用在失败行上
+   * 通常是半截请求的残留，画上去反而误导。没有样本的天不返回（后端 GROUP BY
+   * 不会产出空桶），轴上自然断开。</p>
+   */
+  const failureTrendOption = computed<EChartsOption>(() => {
+    const dates = [...new Set(failurePoints.value.map((p) => p.statDate))].filter(Boolean).sort();
+    const pick = (d: string, status: string) =>
+      failurePoints.value.find((p) => p.statDate === d && p.status === status)?.calls ?? 0;
+    const failed = dates.map((d) => pick(d, "failed"));
+    const success = dates.map((d) => pick(d, "success"));
+    const rate = dates.map((d, i) => {
+      const t = failed[i] + success[i];
+      return t > 0 ? Number(((failed[i] / t) * 100).toFixed(2)) : null;
+    });
+    return {
+      tooltip: {
+        trigger: "axis",
+        confine: true,
+        axisPointer: { type: "shadow" },
+        valueFormatter: (v: any) => formatNumber(Number(v)),
+      },
+      legend: { show: true, data: ["成功", "失败", "失败率"], top: 0, itemWidth: 14, itemHeight: 8, itemGap: 10, textStyle: { fontSize: 10 } },
+      grid: { left: 44, right: 44, top: 30, bottom: 24 },
+      xAxis: { type: "category", data: dates, axisLabel: { fontSize: 10, hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "请求", nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10, formatter: (v: number) => formatCompact(v) }, splitLine: { lineStyle: { type: "dashed" } } },
+        { type: "value", name: "失败率", nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10, formatter: "{value}%" }, max: 100, splitLine: { show: false } },
+      ],
+      series: [
+        { name: "成功", type: "bar", stack: "calls", barMaxWidth: 18, itemStyle: { color: "#67C23A", borderRadius: [3, 3, 0, 0] }, data: success },
+        { name: "失败", type: "bar", stack: "calls", barMaxWidth: 18, itemStyle: { color: "#F56C6C", borderRadius: [3, 3, 0, 0] }, data: failed },
+        { name: "失败率", type: "line", yAxisIndex: 1, smooth: true, showSymbol: true, symbolSize: 5, data: rate, lineStyle: { width: 2 }, color: "#E6A23C" },
+      ],
+    };
+  });
 
   /** 调用类型的四个固定桶（顺序即展示顺序） */
   const CALL_TYPE_BUCKETS = [
@@ -855,6 +1116,15 @@ export function useUsageBoard() {
   }
   const appDist = computed<DistRow[]>(() =>
     rollUp(summaryRows.value, appKeyOf),
+  );
+  /**
+   * 服务商维度分布：按服务商中文名 roll up（同一服务商多渠道时合并展示）。
+   *
+   * <p>模型维度回答「哪个模型贵」，服务商维度回答「该找哪家供应商优化/砍价」；
+   * 未知服务商显式落「未知」桶，不从榜上悄悄消失。</p>
+   */
+  const providerDist = computed<DistRow[]>(() =>
+    rollUp(summaryRows.value, (r) => (r.provider ? providerDisplay(r.provider) : "未知服务商")),
   );
 
   /**
@@ -1331,6 +1601,9 @@ export function useUsageBoard() {
   const emptyCellBg = ref("#e6e8eb");
   // 热力图 hover 强调边框色：canvas 不认 var()，取计算后的主文本色真实值。
   const textPrimary = ref("#1d2129");
+  // 图表轴/图例文字色：canvas 不认 var()，取计算后的令牌真实值（随主题 / 深色变化）。
+  const textSecondary = ref("#4e5969");
+  const textPlaceholder = ref("#909399");
   function readSurfaceBg() {
     const host = document.querySelector(".usage-page") || document.documentElement;
     const cs = getComputedStyle(host);
@@ -1340,6 +1613,8 @@ export function useUsageBoard() {
       cs.getPropertyValue("--el-fill-color").trim() ||
       "#e6e8eb";
     textPrimary.value = cs.getPropertyValue("--el-text-color-primary").trim() || "#1d2129";
+    textSecondary.value = cs.getPropertyValue("--el-text-color-secondary").trim() || "#4e5969";
+    textPlaceholder.value = cs.getPropertyValue("--el-text-color-placeholder").trim() || "#909399";
   }
   let themeObserver: MutationObserver | null = null;
   onMounted(() => {
@@ -1471,6 +1746,22 @@ export function useUsageBoard() {
   });
 
   /**
+   * 热力图格子点击 → 该格日期：按点击的 x/y 索引回查网格推算，
+   * 供「点格下钻单日」复用刻度尺链路；图例 / 坐标轴等非格子点击返回 null。
+   */
+  function heatmapCellDate(params: any): string | null {
+    if (params?.componentType && params.componentType !== "series") return null;
+    const v = params?.value;
+    if (!Array.isArray(v) || v.length < 2) return null;
+    const col = heatGrid.value[Number(v[0])];
+    const y = Number(v[1]);
+    if (!col || !Number.isInteger(y) || y < 0 || y > 6) return null;
+    const dd = new Date(col.weekStart + "T00:00:00");
+    dd.setDate(dd.getDate() + y);
+    return fmtDate(dd);
+  }
+
+  /**
    * 用量热力图 option：GitHub 风格，周一~周日 7 行 × 53 周列。
    *
    * <p>紫色色阶对齐 koi 品牌族（与页面其它图表同源）；x 轴只标月份变化的
@@ -1522,7 +1813,7 @@ export function useUsageBoard() {
         axisLine: { show: false },
         axisLabel: {
           fontSize: 10,
-          color: "var(--el-text-color-placeholder)",
+          color: textPlaceholder.value,
           interval: 0,
           hideOverlap: true,
         },
@@ -1533,7 +1824,7 @@ export function useUsageBoard() {
         splitArea: { show: false },
         axisTick: { show: false },
         axisLine: { show: false },
-        axisLabel: { fontSize: 10, color: "var(--el-text-color-placeholder)", hideOverlap: true },
+        axisLabel: { fontSize: 10, color: textPlaceholder.value, hideOverlap: true },
       },
       visualMap: {
         min: 0,
@@ -1545,7 +1836,7 @@ export function useUsageBoard() {
         itemWidth: 10,
         itemHeight: 10,
         itemGap: 3,
-        textStyle: { fontSize: 10, color: "var(--el-text-color-placeholder)" },
+        textStyle: { fontSize: 10, color: textPlaceholder.value },
         inRange: {
           // 首档=随主题的中性空态灰（0 值 / 未来格明确区别于有数据格，
           // 也不再是近白紫连成一片）；其后为 GitHub 风格紫色阶（对齐 koi 品牌紫族）。
@@ -1657,14 +1948,30 @@ export function useUsageBoard() {
     { key: "model", label: "模型" },
     { key: "group", label: "分组" },
     { key: "app", label: "应用" },
+    { key: "provider", label: "服务商" },
+    { key: "callType", label: "调用类型" },
   ] as const;
   type DistScope = (typeof distScopes)[number]["key"];
   const distScope = ref<DistScope>("model");
   const distMetric = ref<ChartType>("token");
 
+  /** 调用类型口径的分布行：桶名即行名（已是中文），请求数取 calls */
+  const callTypeDist = computed<DistRow[]>(() =>
+    callTypeRows.value.map((r) => ({
+      name: r.label,
+      requests: r.calls,
+      promptTokens: r.promptTokens,
+      completionTokens: r.completionTokens,
+      totalTokens: r.totalTokens,
+      cost: r.cost,
+    })),
+  );
+
   const distRows = computed<DistRow[]>(() => {
     if (distScope.value === "group") return groupDist.value;
     if (distScope.value === "app") return appDist.value;
+    if (distScope.value === "provider") return providerDist.value;
+    if (distScope.value === "callType") return callTypeDist.value;
     return modelDist.value;
   });
   /** 当前口径的看板（颜色/占比/汇总），与构成图同一套算法，颜色能对上 */
@@ -2067,7 +2374,7 @@ export function useUsageBoard() {
       yAxis: {
         type: "value",
         name: metric === "token" ? "Token" : `费用(${currencySymbol.value})`,
-        nameTextStyle: { fontSize: 11, color: "var(--el-text-color-secondary)" },
+        nameTextStyle: { fontSize: 11, color: textSecondary.value },
         axisLabel: {
           formatter: (v: number) => (metric === "token" ? fmtToken(v) : money(v)),
         },
@@ -2135,6 +2442,9 @@ export function useUsageBoard() {
     const barBase = { barMaxWidth: 20, itemStyle: { borderRadius: [3, 3, 0, 0] } };
     const lineBase = { smooth: true, showSymbol: false };
     let series: any[];
+    // 均线只在「日粒度且样本 ≥7 天」时才真的加入 series；legend 必须与 series
+    // 同步（ECharts 会对 legend 里存在而 series 里没有的名字刷 warning）
+    let maAdded = false;
     if (metric === "token") {
       const mk = (name: string, key: "input" | "output" | "cached", dashed = false) => ({
         name,
@@ -2145,6 +2455,34 @@ export function useUsageBoard() {
         ...(isBar ? {} : { areaStyle: { opacity: dashed ? 0.06 : 0.12 } }),
       });
       series = [mk("输入 Token", "input"), mk("输出 Token", "output"), mk("缓存读取", "cached", true)];
+      // 7 日均线 + 3σ 突增标注（仅日粒度：小时桶样本太少，均线与σ都无意义）
+      const totals = rows.map((r) => Number(r.total) || 0);
+      const isDaily = rows.length > 0 && rows[0].date.length === 10;
+      if (isDaily && totals.length >= 7) {
+        const ma = totals.map((_, i) => {
+          const win = totals.slice(Math.max(0, i - 6), i + 1);
+          return Number((win.reduce((s, v) => s + v, 0) / win.length).toFixed(1));
+        });
+        series.push({
+          name: "7日均线", type: "line", smooth: true, showSymbol: false, z: 3,
+          data: ma, color: "#909399", lineStyle: { type: "dashed", width: 1.5 },
+        });
+        maAdded = true;
+        const mean = totals.reduce((s, v) => s + v, 0) / totals.length;
+        const std = Math.sqrt(totals.reduce((s, v) => s + (v - mean) ** 2, 0) / totals.length);
+        if (std > 0) {
+          // 突增钉在堆叠最上层的「缓存读取」系列上：柱状模式下钉子坐标正好落在柱顶
+          const spikes = totals.map((v, i) => ({ v, i })).filter((x) => x.v > mean + 3 * std);
+          if (spikes.length) {
+            (series[2] as any).markPoint = {
+              symbol: "pin", symbolSize: 30,
+              itemStyle: { color: "#E6A23C" },
+              label: { fontSize: 9, color: "#fff", formatter: "突增" },
+              data: spikes.map((x) => ({ coord: [x.i, x.v], name: "突增", value: x.v })),
+            };
+          }
+        }
+      }
     } else if (metric === "cost") {
       series = [{ name: "费用", type: trendChartType.value, ...(isBar ? barBase : lineBase), data: rows.map((r) => Number(trendAux.value.cost.get(r.date) || 0)) }];
     } else if (metric === "calls") {
@@ -2168,7 +2506,7 @@ export function useUsageBoard() {
         axisPointer: { type: "line", lineStyle: { type: "dashed" } },
         valueFormatter: (v: any) => fmt(Number(v)),
       },
-      legend: { show: metric === "token", data: ["输入 Token", "输出 Token", "缓存读取"], top: 0, itemWidth: 14, itemHeight: 8, itemGap: 10, textStyle: { fontSize: 10 } },
+      legend: { show: metric === "token", data: maAdded ? ["输入 Token", "输出 Token", "缓存读取", "7日均线"] : ["输入 Token", "输出 Token", "缓存读取"], top: 0, itemWidth: 14, itemHeight: 8, itemGap: 10, textStyle: { fontSize: 10 } },
       grid: { left: 50, right: 18, top: 32, bottom: 26 },
       xAxis: { type: "category", boundaryGap: isBar, data: dates, axisLabel: { fontSize: 10 } },
       yAxis: { type: "value", axisLabel: { formatter: (v: number) => fmt(v), fontSize: 10 } },
@@ -2408,6 +2746,20 @@ export function useUsageBoard() {
   const detailLoading = ref(false);
   const detailTotal = ref(0);
   const detailModelFilter = ref("");
+  /** 明细多维筛选：分组 / 服务商 / 状态（后端 /usage/list 同名参数） */
+  const detailGroupFilter = ref("");
+  const detailProviderFilter = ref("");
+  const detailStatusFilter = ref("");
+
+  /**
+   * Top5/构成联动：把明细表过滤切到该模型（滚动到明细区由页面负责）。
+   *
+   * <p>「其他 N 项」是聚合块不是真实模型，点了不给过滤，避免明细表查空。</p>
+   */
+  function selectDetailModel(name: string) {
+    if (!name || name.startsWith("其他 ")) return;
+    detailModelFilter.value = name;
+  }
   /**
    * 费用等敏感数据是否可见（默认隐藏）。
    *
@@ -2451,8 +2803,28 @@ export function useUsageBoard() {
     if (detailModelFilter.value) {
       p.model = detailModelFilter.value;
     }
+    if (detailGroupFilter.value) {
+      p.groupName = detailGroupFilter.value;
+    }
+    if (detailProviderFilter.value) {
+      p.provider = detailProviderFilter.value;
+    }
+    if (detailStatusFilter.value) {
+      p.status = detailStatusFilter.value;
+    }
     return p;
   });
+
+  /** 明细筛选候选：分组（当前区间实际出现过的），供下拉选择 */
+  const detailGroupOptions = computed<string[]>(() =>
+    [...new Set(summaryRows.value.map((r) => String(r.group || "")).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+  );
+  /** 明细筛选候选：服务商（原始 id 为值、中文名为标签），按显示名排序 */
+  const detailProviderOptions = computed<Array<{ value: string; label: string }>>(() =>
+    [...new Set(summaryRows.value.map((r) => String(r.provider || "")).filter(Boolean))]
+      .map((p) => ({ value: p, label: providerDisplay(p) }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+  );
 
   /**
    * ReTable 的 loader（后端分页）。
@@ -2715,7 +3087,7 @@ export function useUsageBoard() {
     modelRingOption, groupRingOption, miniRingOption, boardColumns, percentNum, percent,
     miniSparkOption,
     topkRows, topkScope, TOPK_SCOPES, topkColor,
-    heatmapOption, heatmapMetric, heatmapLoading,
+    heatmapOption, heatmapMetric, heatmapLoading, heatmapCellDate,
     cacheTrendOption,
     modelBarMetric, modelBarDates, modelBarOption,
     trendData, trendOption, trendMetric, trendChartType,
@@ -2728,5 +3100,11 @@ export function useUsageBoard() {
     endpointDisplay, providerDisplay, providerTag, nameColor, isSuspiciousSpeed, formatTime,
     currencySymbol,
     routeErrors,
+    // ── 用量页增强（环比/预算/预测/失败分析/服务商维度/明细联动） ──
+    statDeltas, dailyBudget, budgetState, costForecast, costForecastWindows,
+    failurePoints, failureSummary, failureTrendOption,
+    providerDist, selectDetailModel,
+    detailGroupFilter, detailProviderFilter, detailStatusFilter,
+    detailGroupOptions, detailProviderOptions,
   };
 }

@@ -531,6 +531,9 @@ export default createVite({
     "@pages/filesystem": "pages/filesystem",
     "@pages/datasource": "pages/datasource",
     "@pages/debug": "pages/debug",
+    // CDP 工作台 UI（@pages/cdp）：与根 tsconfig / createVite 共享别名同口径，
+    // 指向 src（业务深导入写 @pages/cdp/components/...、@pages/cdp/client）。
+    "@pages/cdp": "pages/cdp/src",
     "@pages/device": "pages/device",
     "@pages/docker": "pages/docker",
     // pages/tunnel 已交付：内网穿透路由（单页面 TunnelPage，提供方在页内选）
@@ -545,10 +548,10 @@ export default createVite({
     "@lucasmarkes/hairline": fileURLToPath(
       new URL("../../packages/ui/src/components/ReEmpty/hairlineStub.ts", import.meta.url),
     ),
-    // 账号管理（含模板管理 / 消息模板）的前端源码已并入后端项目
-    // spring-support-account-starter/web；宿主只挂路由，页面本体、API、路由声明
-    // 都在该包里（包名 @account/web）。
-    "@account/web": "../spring-support-parent-starter/spring-support-account-starter/web",
+    // 账号管理（含模板管理 / 消息模板）前端：@pages/account（2026-11-19 自后端仓
+    // spring-support-account-starter/web 迁入 pages/account）；宿主只挂路由，
+    // 页面本体、API、路由声明都在该包里。
+    "@pages/account": "pages/account",
     // APM 观测台：页面根（业务以 "@pages/apm/src/..." 引用，alias 必须指向 pages/apm）
     "@pages/apm": "pages/apm",
     // Actuator 观测（@pages/actuator）：独立 /actuator 页面（11 端点页签）+ 大屏卡片，
@@ -624,6 +627,10 @@ export default createVite({
         // 忽略掉即可。Vite 自带的默认忽略只含 test-results/，不含 playwright-report/。
         /[/\\]playwright-report[/\\]/,
         /[/\\]test-results[/\\]/,
+        // dev 看门狗日志由常驻 dev 实例持续写入（Windows 下句柄常驻）。
+        // Vite 8 原生 watcher 对被锁文件建 watch 直接 EBUSY → dev 进程 exit 1
+        // （与 public/wasm 的 EBUSY 崩溃同源），纯日志文件不参与 HMR，忽略即可。
+        /[/\\]dev-watchdog\.log$/,
       ],
     },
     // 启动预编译：预热入口与首屏视图源码文件，首次加载不再现场 transform（避免 5s~1min 卡顿）。
@@ -889,6 +896,24 @@ export default createVite({
   // 以下 UserConfig 级字段必须放进 config：createVite 只透传 server / config，
   // 顶层 cacheDir / optimizeDeps 会被工厂忽略（见 createVite.ts CreateViteOptions）。
   config: {
+    // element-plus 2.14.x 起移除了 loading-directive / loading-service 独立组件目录
+    //（样式统一并入 components/loading），但 ElementPlusResolver（unplugin-vue-components）
+    // 与依赖预构建产物仍按旧路径注入 import('element-plus/es/components/loading-*/style/css')。
+    // 旧路径在 2.14.7 里不存在 → dev import-analysis 直接 500（登录页白屏），
+    // build 也会因无法解析而失败。这里把旧路径重写到现存的 loading 样式入口，
+    // dev 与 build 同时生效；element-plus 官方恢复该目录后可移除。
+    resolve: {
+      alias: [
+        {
+          find: "element-plus/es/components/loading-directive/style/css",
+          replacement: "element-plus/es/components/loading/style/css",
+        },
+        {
+          find: "element-plus/es/components/loading-service/style/css",
+          replacement: "element-plus/es/components/loading/style/css",
+        },
+      ],
+    },
     // 依赖预构建缓存目录：默认落到 app 内 .vite-cache（独立于 node_modules/.vite，
     // 不随 node_modules 重建/清理丢失，也不被多 worktree 共用的 junction 缓存污染）。
     // 需要把缓存放到别的盘时：VITE_CACHE_DIR=E:/vite-cache/monitor pnpm dev

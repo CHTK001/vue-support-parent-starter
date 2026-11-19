@@ -305,6 +305,17 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   xsd: FvTextPanel,
   // .mf（Java MANIFEST.MF / METAFONT 源文件）为纯文本，按文本渲染
   mf: FvTextPanel,
+  // 日历（ics/ical/icalendar/ifb）、名片（vcf/vcard）、Visio XML（vdx）、
+  // InDesign XML（idms/inx）、ER Mapper 头（ers）均为纯文本，按文本渲染
+  ics: FvTextPanel,
+  ical: FvTextPanel,
+  icalendar: FvTextPanel,
+  ifb: FvTextPanel,
+  vcf: FvTextPanel,
+  vcard: FvTextPanel,
+  vdx: FvTextPanel,
+  idms: FvTextPanel,
+  inx: FvTextPanel,
   // renderer-doc
   xmind: FvDocPanel,
   epub: FvDocPanel,
@@ -323,12 +334,12 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   pdd: FvBinaryPanel,
   psdt: FvDesignPanel,
   ait: FvDesignPanel,
-  idml: FvDesignPanel,
+  // idml 是 InDesign 的 ZIP 包：renderer-design 无解析器，按压缩包结构检视
+  idml: FvArchivePanel,
   icml: FvBinaryPanel,
-  idms: FvDesignPanel,
-  inx: FvDesignPanel,
+  // xfl 是 Flash 的 ZIP/XFL 工程，与 fla 同走二进制检视（Binary Inspector 解析 ZIP 条目）
   fla: FvBinaryPanel,
-  xfl: FvDesignPanel,
+  xfl: FvBinaryPanel,
   xd: FvDesignPanel,
   indd: FvDesignPanel,
   indt: FvDesignPanel,
@@ -372,6 +383,7 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   scs: FvSignaturePanel,
   asice: FvSignaturePanel,
   sce: FvSignaturePanel,
+  // ers（Evidence Record Syntax，RFC 4998）由 renderer-signature 的 ERS 解析器渲染
   ers: FvSignaturePanel,
   asc: FvSignaturePanel,
   sig: FvBinaryPanel,
@@ -490,7 +502,13 @@ const FV_PANEL_BY_EXT: Record<string, Component> = {
   dwg: FvCadPanel,
   dwf: FvCadPanel,
   dwfx: FvCadPanel,
-  xps: FvCadPanel,
+  // XPS/OXPS（固定版式 ZIP 包）与 Visio OOXML（vsdx/vssx/vstx）均为 ZIP 容器，
+  // 无版式/矢量渲染器，按压缩包结构检视（条目清单真实可读）
+  xps: FvArchivePanel,
+  oxps: FvArchivePanel,
+  vsdx: FvArchivePanel,
+  vssx: FvArchivePanel,
+  vstx: FvArchivePanel,
   // renderer-archive（原生 ARCHIVE_EXTS 由 ArchivePreviewPanel 先接管，长尾落 fv）
   zip: FvArchivePanel,
   zipx: FvArchivePanel,

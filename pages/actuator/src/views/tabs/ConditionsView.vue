@@ -13,6 +13,7 @@
     :count-text="`共 ${matched.length} 项 · 命中 ${positiveCount} / 未命中 ${negativeCount}`"
     :loading="loading"
     :error="error"
+    :error-kind="errorKind"
     density
     auto-refresh
     :updated-at="updatedAt"
@@ -64,7 +65,7 @@ import ActTablePager from "../ActTablePager.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
 import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 
-const { data, loading, error, keyword, updatedAt, reload, hit } = useActuatorPanel("conditions");
+const { data, loading, error, errorKind, keyword, updatedAt, reload, hit } = useActuatorPanel("conditions");
 
 interface ConditionRow {
   ctx: string;

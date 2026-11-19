@@ -18,6 +18,7 @@
   <ApmGate>
     <div class="apm-bar apm-toolbar">
       <span class="apm-trace-id apm-mono">{{ traceId ? `Trace ${traceId}` : "未指定链路" }}</span>
+      <ReButton v-if="traceId" layout="square" icon="CopyDocument" tip="复制 TraceId" @click="copyTraceId" />
       <span class="apm-bar__spacer" />
       <ReButton icon="Back" show-text @click="goBack">返回列表</ReButton>
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
@@ -77,6 +78,17 @@
             <div class="apm-card-head">
               <span class="apm-card-h">Span 瀑布</span>
               <div class="apm-bar" style="gap: 8px">
+                <ReSelect
+                  v-model="serviceFilter"
+                  :options="serviceOptions"
+                  placeholder="全部服务"
+                  clearable
+                  filterable
+                  style="width: 168px"
+                />
+                <ReInput v-model="keyword" placeholder="按端点 / 组件过滤" clearable style="width: 180px" />
+                <el-checkbox v-model="errorOnly" label="仅看错误" />
+                <ReInput v-model="slowMs" placeholder="慢于(ms)" clearable style="width: 100px" />
                 <el-checkbox v-model="showAll" label="显示内部 span" />
                 <span class="apm-count">{{ visibleSpans.length }} / {{ spans.length }}</span>
               </div>
@@ -87,7 +99,7 @@
             <div
               v-for="span in visibleSpans"
               :key="`${span.segmentId || ''}:${span.spanId}`"
-              :class="['apm-waterfall__row', { 'is-error': span.error }]"
+              :class="['apm-waterfall__row', { 'is-error': span.error, 'is-slow': isSlow(span) }]"
               :style="{ paddingLeft: 6 + span.depth * 14 + 'px' }"
               @click="toggle(span)"
             >
@@ -97,11 +109,16 @@
               </div>
               <div class="apm-waterfall__track" :title="`${fmtMs(span.durationMs)} @ ${fmtClock(span.startTime)}`">
                 <i
-                  :class="['apm-waterfall__bar', { 'is-error': span.error, 'is-remote': !span.parentSpanId }]"
+                  :class="[
+                    'apm-waterfall__bar',
+                    { 'is-error': span.error, 'is-remote': !span.parentSpanId, 'is-slow': isSlow(span) },
+                  ]"
                   :style="{ left: span.leftPercent + '%', width: span.widthPercent + '%' }"
                 />
               </div>
-              <div class="apm-waterfall__ms">{{ fmtMs(span.durationMs) }}</div>
+              <div class="apm-waterfall__ms" :class="{ 'apm-warn': isSlow(span) && !span.error }">
+                {{ fmtMs(span.durationMs) }}
+              </div>
             </div>
           </div>
         </ReCard>
@@ -115,6 +132,7 @@
                 <ReTag v-if="selected.error" type="danger" size="small" style="margin-left: 8px">ERROR</ReTag>
               </span>
               <span class="apm-mono apm-muted">{{ selected.spanId }}</span>
+              <ReButton layout="square" icon="CopyDocument" tip="复制 SpanId" @click="copyText(selected.spanId, 'SpanId')" />
             </div>
           </template>
 
@@ -174,10 +192,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { message } from "@repo/core";
 import { Back, CircleCheck, Clock, Connection, Timer } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
+import ReInput from "@repo/ui/re-input";
+import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReStatCard from "@repo/ui/re-stat-card";
 import ReTag from "@repo/ui/re-tag";
@@ -203,6 +224,11 @@ const loading = ref(false);
 const showAll = ref(true);
 const selectedId = ref("");
 const selected = ref<LayoutSpan | null>(null);
+/** 瀑布排障过滤：服务 / 关键字 / 仅错误 / 慢阈值 */
+const serviceFilter = ref("");
+const keyword = ref("");
+const errorOnly = ref(false);
+const slowMs = ref("");
 
 /**
  * span 排序与缩进：
@@ -255,13 +281,69 @@ const spans = computed<LayoutSpan[]>(() => {
     });
 });
 
-/** 「显示内部 span」关闭时只留跨服务调用与根 span，避免上千个内部 span 糊成一片 */
+/** 服务图例：链路经过的服务去重，供「按服务过滤」下拉 */
+const serviceOptions = computed(() =>
+  [...new Set(spans.value.map((s) => s.serviceName).filter((name): name is string => !!name))]
+    .sort()
+    .map((name) => ({ label: name, value: name })),
+);
+
+/** 慢阈值（毫秒）：未填 / 非正数视为未启用 */
+function slowThreshold(): number {
+  const value = Number(slowMs.value);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/** 是否命中「慢于 X ms」：给行与条子加高亮 */
+function isSlow(span: LayoutSpan): boolean {
+  const threshold = slowThreshold();
+  return threshold > 0 && span.durationMs >= threshold;
+}
+
+/**
+ * 瀑布可见 span：排障过滤叠加在「显示内部 span」之上。
+ * 「显示内部 span」关闭时只留跨服务调用与根 span，避免上千个内部 span 糊成一片；
+ * 关键字匹配端点 / 组件 / 服务名，便于在几百个 span 里锁定目标。
+ */
 const visibleSpans = computed(() => {
-  if (showAll.value) {
-    return spans.value;
-  }
-  return spans.value.filter((s) => !s.parentSpanId || s.error);
+  const threshold = slowThreshold();
+  const kw = keyword.value.trim().toLowerCase();
+  return spans.value.filter((s) => {
+    if (!showAll.value && s.parentSpanId && !s.error) {
+      return false;
+    }
+    if (serviceFilter.value && s.serviceName !== serviceFilter.value) {
+      return false;
+    }
+    if (errorOnly.value && !s.error) {
+      return false;
+    }
+    if (threshold > 0 && s.durationMs < threshold) {
+      return false;
+    }
+    if (kw && !`${s.endpointName || ""} ${s.component || ""} ${s.serviceName || ""}`.toLowerCase().includes(kw)) {
+      return false;
+    }
+    return true;
+  });
 });
+
+/** 复制 TraceId / SpanId：排障时贴给后端或日志检索用 */
+async function copyText(text: string, label: string) {
+  if (!text) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    message.success(`${label} 已复制`);
+  } catch {
+    message.error(`${label} 复制失败，请手动选择复制`);
+  }
+}
+
+function copyTraceId() {
+  copyText(traceId.value, "TraceId");
+}
 
 const errorSpans = computed(() => spans.value.filter((s) => s.error));
 const serviceCount = computed(() => new Set(spans.value.map((s) => s.serviceName).filter(Boolean)).size);
@@ -301,6 +383,8 @@ function goBack() {
       ...(route.query.service ? { service: String(route.query.service) } : {}),
       ...(route.query.endpoint ? { endpoint: String(route.query.endpoint) } : {}),
       ...(route.query.minutes ? { minutes: String(route.query.minutes) } : {}),
+      ...(route.query.start ? { start: String(route.query.start) } : {}),
+      ...(route.query.end ? { end: String(route.query.end) } : {}),
     },
   });
 }

@@ -72,7 +72,7 @@
           <div class="apm-card-head">
             <span class="apm-card-h">指标趋势</span>
             <div class="apm-bar" style="gap: 8px">
-              <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="loadMetrics" />
+              <ApmTimeWindow v-model="timeWindow" @change="loadMetrics" />
               <ReButton icon="Refresh" :loading="metricsLoading" @click="loadMetrics" />
             </div>
           </div>
@@ -176,27 +176,20 @@ import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
 import ReInput from "@repo/ui/re-input";
-import ReSelect from "@repo/ui/re-select";
 import ReStatCard from "@repo/ui/re-stat-card";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ApmGate from "../components/ApmGate.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
 import MetricChart from "../components/MetricChart.vue";
 import { getMetrics, listEndpoints, listInstances } from "../api/apmApi";
 import type { ApmEndpoint, ApmInstance, ApmMetricSeries, ApmTag } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
 import { openApmTab } from "../tabs";
-import {
-  WINDOW_OPTIONS,
-  errorRateClass,
-  errorRateText,
-  fmtAgo,
-  fmtMs,
-  fmtNum,
-  fmtPercent,
-  latencyClass,
-} from "../utils/format";
+import { errorRateClass, errorRateText, fmtAgo, fmtMs, fmtNum, fmtPercent, latencyClass } from "../utils/format";
+import { timeQuery, timeWindowQuery } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const route = useRoute();
 const router = useRouter();
@@ -211,9 +204,9 @@ const loading = ref(false);
 const endpointsLoading = ref(false);
 const metricsLoading = ref(false);
 const endpointKeyword = ref("");
-const minutes = ref(30);
+/** 时间窗：预设分钟数或自定义区间（指标趋势 / 下钻链路共用） */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: 30 });
 const metricsHint = ref("后端未返回该服务的指标");
-const windowOptions = WINDOW_OPTIONS;
 
 const instanceRows = computed(() => instances.value as unknown as Record<string, unknown>[]);
 const endpointRows = computed(() => endpoints.value as unknown as Record<string, unknown>[]);
@@ -258,7 +251,7 @@ async function tryMetric(name: string): Promise<ApmMetricSeries | null> {
       name,
       scope: "SERVICE",
       service: serviceName.value,
-      minutes: minutes.value,
+      ...timeQuery(timeWindow.value),
       step: "MINUTE",
     });
     return result?.points?.length ? result : null;
@@ -331,7 +324,7 @@ function goBack() {
  * 不带 service 过去就得在链路页重选一次服务 —— 那一步是纯浪费。</p>
  */
 function goTraces() {
-  router.push({ path: ROUTE_PREFIX, query: { tab: "traces", service: serviceName.value, minutes: String(minutes.value) } });
+  router.push({ path: ROUTE_PREFIX, query: { tab: "traces", service: serviceName.value, ...timeWindowQuery(timeWindow.value) } });
 }
 
 /** 跳到剖析页并带上当前服务：剖析必须先选服务，用户不该再手点一遍 */
@@ -341,7 +334,11 @@ function goProfiles() {
 
 /** 跳到对比页并预选当前服务（页内跳转，用一次性上下文，不污染 URL） */
 function goCompare() {
-  openApmTab("compare", { service: serviceName.value, minutes: minutes.value });
+  const win = timeWindow.value;
+  openApmTab("compare", {
+    service: serviceName.value,
+    ...(win.startTime && win.endTime ? { startTime: win.startTime, endTime: win.endTime } : { minutes: win.minutes || 30 }),
+  });
 }
 
 /**
@@ -361,7 +358,7 @@ function onEndpointRowClick(row: Record<string, unknown>): void {
       tab: "traces",
       service: serviceName.value,
       ...(endpoint ? { endpoint } : {}),
-      minutes: String(minutes.value),
+      ...timeWindowQuery(timeWindow.value),
     },
   });
 }

@@ -1,5 +1,6 @@
 <template>
   <div class="page-container">
+    <ReConfirmDialog ref="confirmDialog" />
     <!-- 左：维度脊柱 —— 学段 → 年级 的只读层级；点学段筛右侧学科，点年级直接编辑 -->
     <aside class="taxo">
       <div class="taxo__head">
@@ -278,6 +279,27 @@
         </template>
       </ReTabs>
     </div>
+
+    <!-- 批量导入学科：textarea 每行一条「名称|编码」，逐行调单条保存接口 -->
+    <ReDialog
+      v-model="importDialogVisible"
+      width="560px"
+      title="批量导入学科"
+      :close-on-click-modal="false"
+    >
+      <p class="import-tip">每行一条，格式：学科名称|学科编码（如：语文|chinese）。编码用小写字母/数字，不能与现有学科重复。</p>
+      <el-input
+        v-model="importText"
+        type="textarea"
+        :rows="8"
+        :disabled="importRunning"
+        placeholder="每行一条：学科名称|学科编码"
+      />
+      <template #footer>
+        <el-button :disabled="importRunning" @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importRunning" @click="confirmImport">开始导入</el-button>
+      </template>
+    </ReDialog>
 
     <!-- 新增/编辑学科（对齐原型） -->
     <ReDialog
@@ -691,7 +713,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import {
   Aim,
   MagicStick,
@@ -716,6 +737,7 @@ import {
 } from "@element-plus/icons-vue";
 import type { Component } from "vue";
 import { eduaiApi } from "../api/eduaiApi";
+import { GRADE_LEVEL_OPTIONS } from "../utils/dict";
 import type { EduClass, EduGrade, EduStudent, EduSubject, GradeLevelOption, PaperTemplate } from "../api/types";
 import ReRichText from "@repo/ui/re-rich-text";
 import ReDialog from "@repo/ui/re-dialog";
@@ -723,18 +745,15 @@ import ReTabs from "@repo/ui/re-tabs";
 import type { ReTabsItem } from "@repo/ui/re-tabs";
 import ReInputNumber from "@repo/ui/re-input-number";
 import type { ReTableColumn } from "@repo/ui/re-table";
+import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
 
-const FALLBACK_GRADE_LEVELS: GradeLevelOption[] = [
-  { value: "PRIMARY", label: "小学" },
-  { value: "JUNIOR", label: "初中" },
-  { value: "SENIOR", label: "高中" },
-  { value: "UNIVERSITY", label: "大学" },
-];
+/** 统一确认弹窗（ReDialog 实现，替代 ElMessageBox.confirm） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 
-/** 学段下拉：优先 dimensionDropdown.gradeLevels，回退内置枚举 */
+/** 学段下拉：优先 dimensionDropdown.gradeLevels，回退内置枚举（utils/dict） */
 const gradeLevelMeta = ref<GradeLevelOption[]>([]);
 const gradeLevelOptions = computed<GradeLevelOption[]>(() =>
-  gradeLevelMeta.value.length ? gradeLevelMeta.value : FALLBACK_GRADE_LEVELS,
+  gradeLevelMeta.value.length ? gradeLevelMeta.value : GRADE_LEVEL_OPTIONS,
 );
 
 /** 对话框图标选项（对齐原型 8 枚） */
@@ -959,12 +978,12 @@ const toggleSubject = async (row: EduSubject) => {
 };
 
 const confirmDeleteSubject = async (row: EduSubject) => {
-  try {
-    await ElMessageBox.confirm(`确认删除学科「${row.subjectName}」?`, "提示", { type: "warning" });
-    await removeSubject(row);
-  } catch {
-    /* cancel */
-  }
+  const ok = await confirmDialog.value?.open(`确认删除学科「${row.subjectName}」?`, {
+    title: "删除学科",
+    danger: true,
+  });
+  if (!ok) return;
+  await removeSubject(row);
 };
 
 const removeSubject = async (row: EduSubject) => {
@@ -977,8 +996,84 @@ const removeSubject = async (row: EduSubject) => {
   }
 };
 
+/**
+ * 批量导入学科：弹 textarea，每行一条「学科名称|学科编码」，
+ * 逐行调用单条保存接口（后端无批量端点），最后汇总成败并刷新列表。
+ */
+const importDialogVisible = ref(false);
+const importText = ref("");
+const importRunning = ref(false);
+
 const onImport = () => {
-  message.info("批量导入开发中，可先逐条新增");
+  importText.value = "";
+  importDialogVisible.value = true;
+};
+
+const confirmImport = async () => {
+  const lines = importText.value
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (!lines.length) {
+    message.warning("请先粘贴要导入的学科，每行一条");
+    return;
+  }
+  // 行内解析与判重：名称/编码必填，编码统一小写，批内与现有学科都不能重复
+  const parsed: { name: string; code: string }[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const parts = lines[i].split(/[|,，\t]/).map((p) => p.trim()).filter(Boolean);
+    const name = parts[0] ?? "";
+    const code = (parts[1] ?? "").toLowerCase();
+    if (!name || !code) {
+      message.warning(`第 ${i + 1} 行格式有误：「${lines[i]}」，应为「学科名称|学科编码」`);
+      return;
+    }
+    if (parsed.some((p) => p.code === code)) {
+      message.warning(`第 ${i + 1} 行编码「${code}」与本批前面的行重复`);
+      return;
+    }
+    parsed.push({ name, code });
+  }
+  const exists = new Set(subjects.value.map((s) => String(s.subjectCode || "").toLowerCase()));
+  const dup = parsed.find((p) => exists.has(p.code));
+  if (dup) {
+    message.warning(`学科编码「${dup.code}」已存在，请换一个编码`);
+    return;
+  }
+  importRunning.value = true;
+  const failed: string[] = [];
+  let ok = 0;
+  try {
+    for (let i = 0; i < parsed.length; i++) {
+      try {
+        await eduaiApi.saveSubject({
+          subjectName: parsed[i].name,
+          subjectCode: parsed[i].code,
+          subjectSortOrder: subjects.value.length + i,
+          subjectStatus: 1,
+          subjectIcon: "book",
+          subjectColor: "#3b82f6",
+        });
+        ok += 1;
+      } catch {
+        failed.push(parsed[i].name);
+      }
+    }
+  } finally {
+    importRunning.value = false;
+  }
+  if (ok) {
+    message.success(
+      `导入完成：成功 ${ok} 条${failed.length ? `，失败 ${failed.length} 条（${failed.join("、")}）` : ""}`,
+    );
+  } else {
+    message.error(`导入失败：${failed.join("、")}`);
+  }
+  if (!failed.length) {
+    importText.value = "";
+    importDialogVisible.value = false;
+  }
+  void loadSubjects();
 };
 
 // ==================== 年级 ====================
@@ -2629,6 +2724,14 @@ onMounted(() => {
 /* ---------- 组卷模板 ---------- */
 .template-dialog .block-title ~ .block-title {
   margin-top: 14px;
+}
+
+/* ---------- 批量导入学科 ---------- */
+.import-tip {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 </style>
 

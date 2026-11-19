@@ -12,21 +12,26 @@ import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 import {
   expireTenantServices,
+  listForService,
   listForTenant,
   pageForSubscription,
 } from "@pages/system/api/systemApi";
-import type { SysTenant, SysTenantService } from "@pages/system/api/types";
+import type { SysService, SysTenant, SysTenantService } from "@pages/system/api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import TenantServiceBindDialog from "@pages/system/views/components/TenantServiceBindDialog.vue";
 
 const tableRef = ref();
 const tenants = ref<SysTenant[]>([]);
+const services = ref<SysService[]>([]);
 const selectedTenantId = ref<string>("");
 const bindVisible = ref(false);
 const bindTenant = ref<SysTenant>({});
 const expiring = ref(false);
 
-const query = ref<{ page: number; pageSize: number; sysTenantId?: string }>({ page: 1, pageSize: 10 });
+const query = ref<{ page: number; pageSize: number; sysTenantId?: string; sysServiceId?: number }>({
+  page: 1,
+  pageSize: 10,
+});
 
 const searchFilters = computed(() => [
   {
@@ -39,15 +44,35 @@ const searchFilters = computed(() => [
       value: tenant.sysTenantId,
     })),
   },
+  {
+    key: "sysServiceId",
+    label: "服务",
+    type: "select" as const,
+    placeholder: "全部服务",
+    options: services.value.map((service) => ({
+      label: service.sysServiceName,
+      value: service.sysServiceId,
+    })),
+  },
 ]);
+
+/** 当前已加载行（本页），用于「本页实收合计」 */
+const pageRows = ref<SysTenantService[]>([]);
+
+/** 本页金额合计：分页接口没有后台汇总，只统计当前页已加载的行并如实标注范围 */
+const pageAmountTotal = computed(() =>
+  pageRows.value.reduce((sum, row) => sum + (Number(row.sysTenantServicePayAmount) || 0), 0),
+);
 
 async function loadSubscriptions({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForSubscription({
     page,
     pageSize,
     sysTenantId: (params.sysTenantId as string) || undefined,
+    sysServiceId: (params.sysServiceId as number) || undefined,
   });
-  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+  pageRows.value = (res?.data?.data ?? []) as SysTenantService[];
+  return { total: res?.data?.total ?? 0, data: pageRows.value as unknown as Record<string, unknown>[] };
 }
 
 const payChannelText: Record<string, string> = {
@@ -59,6 +84,18 @@ const payChannelText: Record<string, string> = {
 function channelText(channel?: string) {
   if (!channel) return "线下收款";
   return payChannelText[channel] ?? channel;
+}
+
+/** 到期状态：超过 30 天视为正常；30 天内视为临期；已到期前端仍展示，后端清理任务会随后处理 */
+function deadlineState(validTime?: string): { type: "success" | "warning" | "danger" | "info"; text: string } {
+  if (!validTime) return { type: "info", text: "长期有效" };
+  const time = new Date(String(validTime).replace(/-/g, "/")).getTime();
+  if (Number.isNaN(time)) return { type: "info", text: String(validTime) };
+  const now = Date.now();
+  const days = Math.ceil((time - now) / 86_400_000);
+  if (days < 0) return { type: "danger", text: `已过期 ${Math.abs(days)} 天` };
+  if (days <= 30) return { type: "warning", text: `临期 ${days} 天` };
+  return { type: "success", text: "正常" };
 }
 
 /** 选中租户后打开录入弹窗：弹窗内是「该租户的完整订阅清单」 */
@@ -90,6 +127,7 @@ function openBindForRow(row: Record<string, unknown>) {
 
 function handleSuccess() {
   tableRef.value?.reload();
+  void loadSubscriptionServiceOptions();
 }
 
 async function handleExpire() {

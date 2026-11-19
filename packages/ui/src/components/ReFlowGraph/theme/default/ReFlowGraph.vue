@@ -24,6 +24,7 @@ import ReButton from "../../../ReButton/ReButton.vue";
 import { FlowGraphEngine } from "../../internals/engine";
 import { resolveFlowIcon } from "../../internals/icons";
 import type {
+  FlowAlignMode,
   FlowEdge,
   FlowGraphData,
   FlowMenuItem,
@@ -95,6 +96,13 @@ const props = withDefaults(
      * 需要内容就靠 `node.getData()` 读业务数据自己渲染。
      */
     nodeComponent?: Component | null;
+    /**
+     * 选中节点/连线时自动高亮其上下游链路（链路追踪），缺省关。
+     *
+     * 打开后：单选节点 → 上游连线染蓝、下游连线染青、其余压暗；
+     * 多选或清空选中即恢复。只改视觉（view class），不进撤销栈、不触发 change。
+     */
+    traceOnSelect?: boolean;
   }>(),
   {
     data: () => ({ nodes: [], edges: [] }),
@@ -113,6 +121,7 @@ const props = withDefaults(
     zoom: true,
     nodeDraggable: true,
     activeEdgeIds: () => [],
+    traceOnSelect: false,
   },
 );
 
@@ -160,6 +169,8 @@ const ui = reactive({
   edges: 0,
 });
 const selection = ref<FlowSelection>(null);
+/** 当前框选中的节点数；≥2 时显示对齐/分布工具条（引擎 onSelect 回调里同步） */
+const alignCount = ref(0);
 
 /**
  * 选中对象徽标文案（UI 稿面板头胶囊「抽取节点」）：节点给「类型 + 节点」
@@ -282,10 +293,17 @@ const panelStyle = computed(() => {
   return { width };
 });
 
-/** 调色板按 group 分段 */
+/** 调色板搜索词：按名称 / 类型标识过滤，命中项保留在原分组里，空组整体隐藏 */
+const paletteSearch = ref("");
+
+/** 调色板按 group 分段（套用搜索过滤） */
 const palette = computed(() => {
+  const kw = paletteSearch.value.trim().toLowerCase();
   const groups: { name: string; items: FlowNodeTypeDef[] }[] = [];
   props.nodeTypes.forEach((t) => {
+    if (kw && !`${t.label} ${t.type}`.toLowerCase().includes(kw)) {
+      return;
+    }
     const name = t.group ?? "节点";
     let bucket = groups.find((g) => g.name === name);
     if (!bucket) {
@@ -294,7 +312,7 @@ const palette = computed(() => {
     }
     bucket.items.push(t);
   });
-  return groups;
+  return groups.filter((g) => g.items.length > 0);
 });
 
 function iconOf(t: FlowNodeTypeDef): string {
@@ -383,6 +401,7 @@ onMounted(async () => {
     zoom: props.zoom,
     nodeDraggable: props.nodeDraggable,
     nodeComponent: props.nodeComponent,
+    traceOnSelect: props.traceOnSelect,
     handlers: {
       onReady: (eng) => {
         eng.setData(props.data ?? { nodes: [], edges: [] });
@@ -399,6 +418,8 @@ onMounted(async () => {
       },
       onSelect: (sel) => {
         selection.value = sel;
+        // ≥2 个节点被框选时浮出对齐/分布工具条；单选或清空自然收回
+        alignCount.value = engine.value?.getSelectedNodeIds().length ?? 0;
         emit("select", sel);
       },
       onChange: (data) => {
@@ -596,6 +617,49 @@ function resetZoom() {
   engine.value?.resetZoom();
   ui.scale = 1;
 }
+
+/** 对齐工具条的动作清单（顺序即渲染顺序） */
+const alignActions: Array<{ mode: FlowAlignMode; label: string; tip: string }> = [
+  { mode: "left", label: "左对齐", tip: "左缘对齐" },
+  { mode: "center-x", label: "水平居中", tip: "垂直中线对齐" },
+  { mode: "right", label: "右对齐", tip: "右缘对齐" },
+  { mode: "top", label: "上对齐", tip: "顶缘对齐" },
+  { mode: "center-y", label: "垂直居中", tip: "水平中线对齐" },
+  { mode: "bottom", label: "下对齐", tip: "底缘对齐" },
+  { mode: "distribute-x", label: "横向等距", tip: "保持首尾，横向等距分布" },
+  { mode: "distribute-y", label: "纵向等距", tip: "保持首尾，纵向等距分布" },
+];
+
+/** 执行一项对齐 / 等距分布（引擎侧会包 batch，一次撤销整体回滚） */
+function alignSelected(mode: FlowAlignMode) {
+  engine.value?.alignSelected(mode);
+}
+
+/**
+ * 导出 X6 原生 JSON 并触发下载。
+ *
+ * 注意这是 {@link FlowGraphEngine.toJSON | toJSON} 的图形快照（含 shape 名与 attrs），
+ * **不是跨版本稳定的持久化格式**；业务持久化应走 `getData()` 的 FlowGraphData。
+ */
+function exportJson() {
+  const data = engine.value?.toJSON();
+  if (!data) {
+    return;
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "flow.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 链路追踪开关：初值在引擎构造时已传入，这里只负责后续变化跟随
+watch(
+  () => props.traceOnSelect,
+  (v) => engine.value?.setTraceEnabled(!!v),
+);
 
 function removeSelected() {
   engine.value?.removeSelected();
@@ -836,6 +900,11 @@ defineExpose({
         <ReButton layout="square" icon="Histogram" :type="ui.minimap ? 'primary' : ''" @click="ui.minimap = !ui.minimap">缩略图</ReButton>
         <ReButton v-if="!readonly" layout="square" icon="CircleCheck" @click="runCheck">结构校验</ReButton>
       </div>
+      <i class="flow-tb-sep" />
+      <div class="flow-tb-group">
+        <ReButton layout="square" icon="Download" tip="把当前画布导出为 PNG 图片" @click="engine?.exportPNG()">导出 PNG</ReButton>
+        <ReButton layout="square" icon="Download" tip="导出 X6 原生 JSON 快照（含图形属性，非业务持久化格式）" @click="exportJson">导出 JSON</ReButton>
+      </div>
       <div class="flow-tb-spacer" />
       <div class="flow-tb-stat">
         <span>{{ ui.nodes }} 节点</span><i>/</i><span>{{ ui.edges }} 连线</span><i>/</i>
@@ -847,6 +916,13 @@ defineExpose({
     <!-- 主体 -->
     <div class="flow-main">
       <aside v-if="showPalette && !readonly" class="flow-palette">
+        <div class="flow-palette-search">
+          <input v-model="paletteSearch" class="flow-palette-search-input" type="text"
+                 placeholder="搜索节点名称 / 类型" />
+          <span v-if="paletteSearch" class="flow-palette-search-clear" title="清空搜索"
+                @click="paletteSearch = ''">&#215;</span>
+        </div>
+        <div v-if="!palette.length" class="flow-palette-empty">没有匹配「{{ paletteSearch }}」的节点</div>
         <div v-for="g in palette" :key="g.name" class="flow-palette-group">
           <div class="flow-palette-title">{{ g.name }}</div>
           <div class="flow-palette-items">
@@ -889,6 +965,16 @@ defineExpose({
         <div v-if="!ui.nodes && !readonly" class="flow-empty">
           <div class="flow-empty-title">从左侧拖入节点开始编排</div>
           <div class="flow-empty-sub">拖动节点边缘的圆点可连线，空格 + 拖拽平移画布，Ctrl + 滚轮缩放</div>
+        </div>
+        <!-- 多选对齐 / 等距分布工具条：框选 ≥2 个节点时浮出 -->
+        <div v-if="alignCount >= 2" class="flow-align-bar">
+          <span class="flow-align-bar-label">已选 {{ alignCount }} 个节点</span>
+          <i class="flow-align-bar-sep" />
+          <button v-for="a in alignActions" :key="a.mode" class="flow-align-bar-btn"
+                  :title="a.tip" @click="alignSelected(a.mode)">{{ a.label }}</button>
+          <i class="flow-align-bar-sep" />
+          <button class="flow-align-bar-btn flow-align-bar-btn--dim" title="退出多选（Esc）"
+                  @click="engine?.clearSelection()">&#215;</button>
         </div>
       </div>
 
@@ -1088,6 +1174,34 @@ defineExpose({
   border-right: 1px solid var(--flow-line);
 }
 .flow-palette-title { margin: 6px 2px; font-size: 11px; letter-spacing: 0.5px; color: #a4abb5; }
+.flow-palette-search { position: relative; margin-bottom: 8px; }
+.flow-palette-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 22px 5px 8px;
+  font-size: 12px;
+  color: #4e5969;
+  background: #f5f7fa;
+  border: 1px solid var(--flow-line);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+.flow-palette-search-input::placeholder { color: #a8b0bb; }
+.flow-palette-search-input:focus { border-color: var(--flow-accent); background: #fff; }
+.flow-palette-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  font-size: 14px;
+  line-height: 1;
+  color: #a8b0bb;
+  cursor: pointer;
+  transform: translateY(-50%);
+  user-select: none;
+}
+.flow-palette-search-clear:hover { color: #4e5969; }
+.flow-palette-empty { padding: 14px 4px; font-size: 12px; color: #a8b0bb; text-align: center; }
 .flow-palette-items { display: flex; flex-direction: column; gap: 4px; }
 .flow-chip {
   display: flex;
@@ -1115,6 +1229,42 @@ defineExpose({
 .flow-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .flow-canvas-wrap { position: relative; flex: 1; min-width: 0; }
 .flow-canvas { position: absolute; inset: 0; }
+
+/* 多选对齐 / 等距分布工具条：框选 ≥2 节点时浮在画布顶部居中 */
+.flow-align-bar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--flow-line);
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(15, 23, 32, 0.12);
+  transform: translateX(-50%);
+}
+.flow-align-bar-label { padding: 0 6px; font-size: 12px; color: #4e5969; white-space: nowrap; }
+.flow-align-bar-sep { width: 1px; height: 14px; margin: 0 4px; background: var(--flow-line); }
+.flow-align-bar-btn {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: #4e5969;
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+.flow-align-bar-btn:hover {
+  color: var(--flow-accent);
+  background: color-mix(in srgb, var(--flow-accent) 8%, #fff);
+  border-color: color-mix(in srgb, var(--flow-accent) 30%, #fff);
+}
+.flow-align-bar-btn--dim { color: #a8b0bb; }
 .flow-minimap {
   position: absolute;
   right: 12px;
@@ -1448,16 +1598,24 @@ defineExpose({
 :deep(.flow-edge-bird) { pointer-events: none; }
 
 :deep(.flow-bird-body) { fill: var(--el-color-primary); }
-:deep(.flow-bird-torso) { opacity: 0.95; }
-:deep(.flow-bird-tail),
+:deep(.flow-bird-torso),
 :deep(.flow-bird-head) { fill: var(--el-color-primary); }
+/* 尾羽比身体深一档，分叉燕尾才有层次 */
+:deep(.flow-bird-tail) {
+  fill: color-mix(in srgb, var(--el-color-primary) 72%, #000);
+}
+/* 肚皮用固定浅色：主题的 light-8 在暗色下会混成近黑，看起来像身体破了个洞 */
+:deep(.flow-bird-belly) { fill: #eaf4ff; }
+:deep(.flow-bird-beak) { fill: var(--el-color-warning); }
 :deep(.flow-bird-eye) { fill: #fff; }
+:deep(.flow-bird-pupil) { fill: #303133; }
+:deep(.flow-bird-glint) { fill: #fff; }
 
-/* 翅膀：以靠近躯干的一角为轴扇动，0.3s 一个来回，肉眼能明确看出在扑 */
+/* 翅膀：以肩部翼根为轴扇动，0.3s 一个来回，肉眼能明确看出在扑 */
 :deep(.flow-bird-wing) {
   fill: var(--el-color-primary-light-3);
   transform-box: fill-box;
-  transform-origin: 12% 88%;
+  transform-origin: 88% 88%;
   animation: re-flow-bird-flap 0.3s ease-in-out infinite alternate;
 }
 @keyframes re-flow-bird-flap {
@@ -1465,15 +1623,23 @@ defineExpose({
   to { transform: rotate(30deg) scaleY(1.08); }
 }
 
-/* 数据包裹：起点躺着的那份、鸟叼着的那份、放入终点的那份共用同一套配色 */
+/* 数据包裹（信封）：起点躺着的那份、鸟叼着的那份、放入终点的那份共用同一套配色 */
 :deep(.flow-parcel-fill) {
   fill: var(--el-color-warning);
   stroke: var(--el-bg-color, #fff);
   stroke-width: 0.9;
 }
-:deep(.flow-parcel-shine) {
-  fill: var(--el-color-warning-light-5, #fcd34d);
-  opacity: 0.85;
+:deep(.flow-parcel-flap) {
+  fill: none;
+  stroke: var(--el-bg-color, #fff);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+:deep(.flow-parcel-seal) {
+  fill: var(--el-color-danger);
+  stroke: var(--el-bg-color, #fff);
+  stroke-width: 0.6;
 }
 
 /*
@@ -1500,6 +1666,27 @@ defineExpose({
 }
 :deep(.flow-edge-focus .x6-edge.flow-edge-active .flow-edge-line) {
   filter: drop-shadow(0 0 3px color-mix(in srgb, var(--el-color-primary) 55%, transparent));
+}
+
+/*
+ * 链路追踪：选中节点/连线后，上游连线染主蓝、下游染青，其余连线压暗。
+ *
+ * 颜色通道走 view class（engine.applyTrace 打的标记），不进撤销栈；
+ * 压暗用画布级 .flow-tracing + :not() 选择器，不必逐边记类名。
+ */
+:deep(.flow-edge-trace-up .flow-edge-line) {
+  stroke: var(--el-color-primary);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--el-color-primary) 45%, transparent));
+}
+:deep(.flow-edge-trace-down .flow-edge-line) {
+  stroke: var(--el-color-success);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--el-color-success) 45%, transparent));
+}
+:deep(.flow-tracing .x6-edge:not(.flow-edge-trace-up):not(.flow-edge-trace-down) .flow-edge-line) {
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
 }
 
 /* 无障碍：用户要求减少动态效果时，去掉虚线流动与翅膀扇动，只保留静态高亮 */

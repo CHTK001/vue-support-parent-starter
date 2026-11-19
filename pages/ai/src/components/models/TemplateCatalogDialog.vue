@@ -55,8 +55,11 @@
           <ProviderLogo :pid="tpl.id" :name="tpl.name" size="md" />
         </div>
         <div class="tc-info">
-          <span class="tc-name">{{ tpl.name }}</span>
-          <span class="tc-desc">{{ tpl.description }}</span>
+          <div class="tc-title">
+            <span class="tc-name">{{ tpl.name }}</span>
+            <span v-if="isHotTemplate(tpl)" class="tc-hot">热门</span>
+          </div>
+          <span v-if="tpl.description" class="tc-desc">{{ tpl.description }}</span>
           <span v-if="tpl.keywords?.length" class="tc-tags">
             <span v-for="kw in tpl.keywords.slice(0, 3)" :key="kw" class="tc-tag">{{ kw }}</span>
           </span>
@@ -79,6 +82,7 @@ import { ref, computed } from 'vue'
 import { SearchOutlined, CloseOutlined, AddOutlined, StorefrontOutlined } from '@vicons/material'
 import ReDialog from '@repo/ui/re-dialog'
 import ProviderLogo from './ProviderLogo.vue'
+import { isHotTemplate } from './model.constants'
 
 const props = defineProps<{ templates: any[] }>()
 const emit = defineEmits<{ select: [template: any] }>()
@@ -139,6 +143,7 @@ defineExpose({ open })
   line-height: 1.3;
 }
 .tc-header-title {
+  text-align: left;
   font-size: 15px;
   font-weight: 700;
   color: var(--el-text-color-primary);
@@ -252,6 +257,12 @@ defineExpose({ open })
   gap: 3px;
   overflow: hidden;
 }
+.tc-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 .tc-name {
   font-size: 13px;
   font-weight: 700;
@@ -259,6 +270,17 @@ defineExpose({ open })
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* 热门供应商角标：与列表置顶顺序（HOT_PROVIDER_IDS）同源，仅作视觉提示 */
+.tc-hot {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--el-border-radius-round);
+  background: color-mix(in srgb, var(--el-color-warning) 16%, transparent);
+  color: var(--el-color-warning-dark-2, var(--el-color-warning));
+  font-weight: 600;
 }
 .tc-desc {
   font-size: 11px;

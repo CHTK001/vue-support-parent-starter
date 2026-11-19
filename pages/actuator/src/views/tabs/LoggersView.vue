@@ -14,6 +14,7 @@
     :count-text="`共 ${rows.length} 项`"
     :loading="loading"
     :error="error"
+    :error-kind="errorKind"
     density
     @refresh="reload"
   >
@@ -24,6 +25,9 @@
       </label>
       <ElButton size="small" :disabled="!changedLevels.size" :loading="reverting" @click="revertLevels">
         一键还原{{ changedLevels.size ? `（${changedLevels.size}）` : "" }}
+      </ElButton>
+      <ElButton size="small" @click="logVisible = true">
+        变更记录{{ changeLog.length ? `（${changeLog.length}）` : "" }}
       </ElButton>
       <ElButton size="small" @click="exportCsv">导出 CSV</ElButton>
     </template>
@@ -63,6 +67,23 @@
       </ReTable>
       <ActTablePager v-model:page="page" v-model:page-size="pageSize" :total="total" />
     </div>
+
+    <ElDrawer v-model="logVisible" title="日志级别变更记录" size="480px" class="act-changelog-drawer">
+      <div class="act-changelog__ops">
+        <ElButton size="small" :disabled="!changeLog.length" @click="clearChangeLog">清空记录</ElButton>
+        <span class="act-changelog__hint">仅存本机浏览器 · 最近 100 条</span>
+      </div>
+      <div v-if="!changeLog.length" class="act__empty">暂无变更记录</div>
+      <ol v-else class="act-changelog">
+        <li v-for="(entry, index) in changeLog" :key="`${entry.time}-${index}`" class="act-changelog__row">
+          <span class="act-changelog__time">{{ formatLogTime(entry.time) }}</span>
+          <span class="act-changelog__name" :title="entry.name">{{ entry.name }}</span>
+          <span class="act-changelog__delta" :class="{ 'is-revert': entry.revert }">
+            {{ entry.revert ? `还原为 ${levelText(entry.to)}` : `${levelText(entry.from)} → ${levelText(entry.to)}` }}
+          </span>
+        </li>
+      </ol>
+    </ElDrawer>
   </TabShell>
 </template>
 
@@ -74,7 +95,7 @@
  * 是「用户以为改成了」的旧值，比报错更误导。</p>
  */
 import { computed, ref, watch } from "vue";
-import { ElButton, ElMessage, ElMessageBox, ElOption, ElSelect, ElSwitch } from "element-plus";
+import { ElButton, ElDrawer, ElMessage, ElMessageBox, ElOption, ElSelect, ElSwitch } from "element-plus";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import TabShell from "../TabShell.vue";
@@ -84,7 +105,7 @@ import { useActuatorPanel } from "../useActuatorPanel";
 import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 import { setActuatorLogger } from "../../api/actuatorCardApi";
 
-const { data, loading, error, keyword, reload, hit } = useActuatorPanel("loggers");
+const { data, loading, error, errorKind, keyword, reload, hit } = useActuatorPanel("loggers");
 
 /** 服务端支持的级别 + 「继承」（提交时转成 null） */
 const levels = computed<string[]>(() => ["INHERITED", ...((data.value?.levels as string[] | undefined) ?? [])]);
@@ -183,8 +204,14 @@ async function revertLevels(): Promise<void> {
   const failed: string[] = [];
   for (const [name, level] of entries) {
     try {
+      // 还原前的实际配置值（该 logger 本会话可能被改过不止一次）
+      const before = String(
+        (data.value?.loggers as Record<string, { configuredLevel?: string }> | undefined)?.[name]?.configuredLevel ||
+          "INHERITED",
+      );
       await setActuatorLogger(name, level);
       changedLevels.value.delete(name);
+      appendChangeLog({ time: Date.now(), name, from: before, to: level, revert: true });
     } catch {
       failed.push(name);
     }
@@ -198,8 +225,30 @@ async function revertLevels(): Promise<void> {
   }
 }
 
+/** 级别显示文案：INHERITED 显示为「继承」 */
+function levelText(level: string): string {
+  return level === "INHERITED" ? "继承" : level;
+}
+
+/**
+ * 修改日志级别。
+ *
+ * <p>这是全页签唯一的常驻写入口，误触成本高（改错级别轻则刷屏、重则淹掉故障日志），
+ * 所以把「选中即提交」改成「确认后提交」：确认浮层写清 logger 与从什么改成什么；
+ * 用户取消时静默重取一次，把下拉框显示弹回当前生效配置。</p>
+ */
 async function changeLoggerLevel(name: string, level: string, previous: string): Promise<void> {
-  if (!name) return;
+  if (!name || level === previous) return;
+  try {
+    await ElMessageBox.confirm(
+      `将把 logger「${name}」的日志级别从「${levelText(previous)}」改为「${levelText(level)}」。`,
+      "修改日志级别",
+      { confirmButtonText: "确认修改", cancelButtonText: "取消", type: "warning" },
+    );
+  } catch {
+    void reload(true); // 用户取消：回填当前配置值
+    return;
+  }
   saving.value = name;
   try {
     await setActuatorLogger(name, level);
@@ -210,7 +259,8 @@ async function changeLoggerLevel(name: string, level: string, previous: string):
     } else if (level !== previous) {
       changedLevels.value.set(name, previous);
     }
-    ElMessage.success(`已将「${name}」级别设为 ${level === "INHERITED" ? "继承" : level}`);
+    appendChangeLog({ time: Date.now(), name, from: previous, to: level });
+    ElMessage.success(`已将「${name}」级别设为 ${levelText(level)}`);
     await reload(true);
   } catch (err) {
     ElMessage.error((err as Error)?.message ?? "修改日志级别失败");
@@ -218,5 +268,81 @@ async function changeLoggerLevel(name: string, level: string, previous: string):
   } finally {
     saving.value = "";
   }
+}
+
+/* ---------- 变更记录（localStorage 留痕，跨会话可查） ---------- */
+
+/** 单条变更记录 */
+interface LoggerChangeEntry {
+  /** 发生时间（ms） */
+  time: number;
+  /** logger 名 */
+  name: string;
+  /** 改动前级别（INHERITED = 继承） */
+  from: string;
+  /** 改动后级别 */
+  to: string;
+  /** 是否批量还原动作 */
+  revert?: boolean;
+}
+
+/** localStorage 键：变更记录只存本机，不上传 */
+const CHANGE_LOG_KEY = "actuator.logger.changes";
+
+/** 最多保留条数：排障回看足够，又不至于撑爆 localStorage */
+const CHANGE_LOG_MAX = 100;
+
+/** 变更记录（新在前） */
+const changeLog = ref<LoggerChangeEntry[]>(readChangeLog());
+
+/** 变更记录抽屉 */
+const logVisible = ref(false);
+
+function readChangeLog(): LoggerChangeEntry[] {
+  try {
+    const raw = localStorage.getItem(CHANGE_LOG_KEY);
+    const list = raw ? (JSON.parse(raw) as LoggerChangeEntry[]) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 追加一条记录并落盘；存储被禁用（隐私模式 / 配额）时静默放弃，不影响写操作本身 */
+function appendChangeLog(entry: LoggerChangeEntry): void {
+  const list = [entry, ...changeLog.value].slice(0, CHANGE_LOG_MAX);
+  changeLog.value = list;
+  try {
+    localStorage.setItem(CHANGE_LOG_KEY, JSON.stringify(list));
+  } catch {
+    // 记录是辅助台账，存不下就算了
+  }
+}
+
+/** 清空变更记录（删除类操作，需确认；确认后不执行删除以外的写操作） */
+async function clearChangeLog(): Promise<void> {
+  if (!changeLog.value.length) return;
+  try {
+    await ElMessageBox.confirm("清空后无法恢复，确认清空全部变更记录？", "清空变更记录", {
+      confirmButtonText: "清空",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch {
+    return; // 用户取消
+  }
+  changeLog.value = [];
+  try {
+    localStorage.removeItem(CHANGE_LOG_KEY);
+  } catch {
+    // 忽略存储异常
+  }
+  ElMessage.success("已清空变更记录");
+}
+
+/** 记录时间 → 本地可读时间 */
+function formatLogTime(time: number): string {
+  const date = new Date(time);
+  return Number.isNaN(date.getTime()) ? String(time) : date.toLocaleString("zh-CN", { hour12: false });
 }
 </script>

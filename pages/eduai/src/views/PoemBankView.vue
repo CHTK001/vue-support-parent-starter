@@ -9,6 +9,7 @@
     诗页默认表格且不持久化（:layout-persist="false"），右上角切换器可随时切到视图看整段正文。
   -->
   <div class="page-container">
+    <ReConfirmDialog ref="confirmDialog" />
     <div class="top-zone">
       <div class="page-header">
         <div class="page-header__left">
@@ -359,7 +360,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import { Close, Delete, EditPen, Plus, Reading, RefreshLeft, Search, View } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn, ReTableSwitchLayout } from "@repo/ui/components/ReTable/types";
@@ -370,6 +370,10 @@ import ScPoemPreview from "../components/ScPoemPreview.vue";
 import { DYNASTY_OPTIONS, POEM_TAG_OPTIONS } from "../constants/dimensions";
 import { flattenPreview, normalizePoemContent, parseTags } from "../utils/poemText";
 import ReDialog from "@repo/ui/re-dialog";
+import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
+
+/** 统一确认弹窗（ReDialog 实现，替代 ElMessageBox.confirm） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 
 /** 学段与对应年级（与后端入库值保持一致） */
 const GRADE_LEVELS = ["小学", "初中", "高中", "大学"] as const;
@@ -637,9 +641,11 @@ async function save() {
 }
 
 async function remove(row: Poem) {
-  try {
-    await ElMessageBox.confirm(`确认删除《${row.poemTitle}》？`, "删除确认", { type: "warning" });
-  } catch {
+  const ok = await confirmDialog.value?.open(`确认删除《${row.poemTitle}》？`, {
+    title: "删除确认",
+    danger: true,
+  });
+  if (!ok) {
     return;
   }
   try {

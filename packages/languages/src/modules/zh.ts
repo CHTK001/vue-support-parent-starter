@@ -1024,6 +1024,7 @@ export default {
       recent: "最近访问",
       actions: "动作",
       menus: "菜单",
+      searching: "搜索中…",
       actionHint: {
         refresh: "清缓存并重新加载",
         theme: "切换主题模式",

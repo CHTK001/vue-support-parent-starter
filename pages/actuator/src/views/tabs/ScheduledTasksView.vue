@@ -14,6 +14,7 @@
     :count-text="`共 ${scheduledRows.length} 个只读任务`"
     :loading="loading || managedLoading"
     :error="error"
+    :error-kind="errorKind"
     @refresh="refresh"
   >
     <div class="act-sched-managed">
@@ -124,7 +125,7 @@ import {
   type ManagedScheduleTask,
 } from "../../api/actuatorCardApi";
 
-const { data, loading, error, updatedAt, reload } = useActuatorPanel("scheduledtasks");
+const { data, loading, error, errorKind, updatedAt, reload } = useActuatorPanel("scheduledtasks");
 
 /* ---------- 可编辑任务（动态调度注册中心） ---------- */
 

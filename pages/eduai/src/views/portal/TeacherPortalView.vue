@@ -246,7 +246,7 @@
             :min="2000"
             :max="2100"
             controls-position="right"
-            @update:model-value="(v?: number) => (stuDialog.enrollYear = v ?? null)"
+            @update:model-value="(v: number | null | undefined) => (stuDialog.enrollYear = v ?? null)"
           />
         </el-form-item>
         <el-form-item label="身份证号">
@@ -423,21 +423,13 @@ import ReTag from "@repo/ui/re-tag";
 import PaperComposeView from "../PaperComposeView.vue";
 import MarkingWorkbench from "../../components/marking/MarkingWorkbench.vue";
 import ReConfirmDialog from "../../components/shared/ReConfirmDialog.vue";
+import { gradeLevelLabel as gradeLevelLabelOf } from "../../utils/dict";
 
 /** 统一确认弹窗实例（删除学生 / 撤回布置 / 归档等二次确认） */
 const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 
 /** 路由实例：退出登录后回登录页（不整页刷新，避免闪白） */
 const router = useRouter();
-
-/** 学段码值 → 中文标签（试卷/班级展示共用） */
-const GRADE_LEVEL_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "PRIMARY", label: "小学" },
-  { value: "JUNIOR", label: "初中" },
-  { value: "SENIOR", label: "高中" },
-  { value: "UNIVERSITY", label: "大学" },
-  { value: "OTHER", label: "其他" },
-];
 
 /** 教师端页签：默认三项内置能力；后台「门户菜单」配了 TEACHER 作用域时以配置为准 */
 interface TeacherTab {
@@ -540,12 +532,12 @@ function gradesFor(level: string) {
   return dropdown.value.grades.filter((g) => g.gradeLevel === level);
 }
 
+/**
+ * 学段 → 中文标签；空值展示为「—」（列表占位），提取逻辑走 utils/dict。
+ */
 function gradeLevelLabel(code?: string | null): string {
   const s = code == null ? "" : String(code);
-  if (!s) {
-    return "—";
-  }
-  return GRADE_LEVEL_OPTIONS.find((o) => o.value === s || o.label === s)?.label ?? s;
+  return s ? gradeLevelLabelOf(s) : "—";
 }
 
 /** 拉取绑定状态、概览、班级与字典 */

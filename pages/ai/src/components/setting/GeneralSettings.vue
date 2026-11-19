@@ -578,6 +578,8 @@ const filteredProviders = computed(() => {
 const loadModels = async () => {
   if (models.value.length > 0) return
   try {
+    // 只要已开启的模型：「哪些模型对外供给」由账号模块判定（接口缺省只返回已开启行），
+    // 前端不再自己过滤 enabled，避免同一口径多处实现
     const providersBody = await adminApi.get('/api/providers')
     const providersData = Array.isArray(providersBody) ? providersBody : providersBody?.data || []
     providers.value = []
@@ -585,7 +587,6 @@ const loadModels = async () => {
     providersData.forEach((provider: any) => {
       if (!provider.provider_id) return
       const providerModels = (provider.models || [])
-        .filter((m: any) => m.enabled !== false)
         // 行结构与「默认模型」弹框同一份（类型 / 标签 / 输入输出 / 延迟 / 通道信息），
         // 这样压缩模型的候选列表不再把所有模型一律标成「对话」。
         .map((m: any) => mapProviderModel(provider, m))

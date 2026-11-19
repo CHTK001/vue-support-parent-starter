@@ -270,6 +270,7 @@ import type { Idiom, IdiomGameData } from "../api/types";
 import IdiomLearnCards, { type LearnCard } from "../components/IdiomLearnCards.vue";
 import { usePortalModuleHost } from "./portal/portalHost";
 import { routeUrl } from "../utils/routeUrl";
+import { STUDY_PROGRESS_PER_ROUND, useStudyReport } from "../composables/useStudyReport";
 
 const router = useRouter();
 
@@ -641,6 +642,9 @@ const accuracy = computed(() => {
   return Math.round((totalPairs.value / total) * 100);
 });
 
+/** 学习行为上报：仅在学生端内嵌时真正发请求（老师/管理员在后台试玩不落库） */
+const { report: reportStudyRound } = useStudyReport();
+
 function finishGame() {
   gameCompleted.value = true;
   stats.value.totalScore += score.value;
@@ -653,6 +657,15 @@ function finishGame() {
   }
   stats.value.todayPlays += 1;
   saveStats();
+  // 结算即上报：后端据此累加模块进度与当日汇总，学生端首页的进度/打卡才不是空转
+  reportStudyRound({
+    moduleCode: "idiom-game",
+    studyMinutes: Math.max(1, Math.round(elapsedSec.value / 60)),
+    questionCount: totalPairs.value + wrongCount.value,
+    correctCount: totalPairs.value,
+    points: score.value,
+    progressDelta: STUDY_PROGRESS_PER_ROUND,
+  });
 }
 
 // ==================== 推荐成语 ====================

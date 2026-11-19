@@ -4,7 +4,15 @@
       <template #header>
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-semibold text-el-text">资产列表</h3>
-          <el-button type="primary" @click="handleAdd">新增资产</el-button>
+          <div class="flex items-center gap-2">
+            <el-input
+              v-model="filterKeyword"
+              placeholder="搜索名称 / 主机地址"
+              clearable
+              style="width: 220px"
+            />
+            <el-button type="primary" @click="handleAdd">新增资产</el-button>
+          </div>
         </div>
       </template>
 
@@ -14,15 +22,20 @@
            原表无 height/maxHeight → layout-table.minHeight=0：抑制 ReTable 缺省开启的
            fill（表头固定内滚）与空态 440px min-height，保持「内容多高表多高 + 整页滚动」。 -->
       <ReTable
-        :data="assets"
+        :data="filteredAssets"
         :columns="assetColumns"
+        :loading="loading"
         engine="element"
         :layout-table="{ minHeight: 0 }"
         :settings="{ border: false }"
         style="width: 100%"
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
         table-id="asset-list"
+        empty-text="暂无资产，点击右上角「新增资产」添加"
       >
+        <template #col-serviceType="{ row }">
+          {{ serviceTypeLabel(assetOf(row).serviceType) }}
+        </template>
         <template #col-monitorEnabled="{ row }">
           <el-tag :type="assetOf(row).monitorEnabled === 1 ? 'success' : 'danger'">
             {{ assetOf(row).monitorEnabled === 1 ? '运行中' : '已停用' }}
@@ -36,15 +49,15 @@
     </el-card>
 
     <ReDialog v-model="showDialog" :title="editId ? '编辑资产' : '新增资产'" width="520px" destroy-on-close>
-      <el-form :model="form" label-position="top">
+      <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="资产名称">
+            <el-form-item label="资产名称" prop="monitorName">
               <el-input v-model="form.monitorName" placeholder="例如：prod-web-01" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="主机地址">
+            <el-form-item label="主机地址" prop="monitorHost">
               <el-input v-model="form.monitorHost" placeholder="192.168.1.100" />
             </el-form-item>
           </el-col>
@@ -89,7 +102,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import type { FormInstance, FormRules } from 'element-plus'
 import { message } from '@repo/core'
 import { getMonitors, saveMonitor, delMonitor } from '../../api'
 
@@ -135,8 +149,39 @@ function assetOf(row: Record<string, unknown>): Asset {
 }
 
 const assets = ref<Asset[]>([])
+const loading = ref(false)
+const filterKeyword = ref('')
 const showDialog = ref(false)
 const editId = ref<number | null>(null)
+const formRef = ref<FormInstance>()
+
+/** 服务类型文案（列表如实展示全部类型，与表单口径一致） */
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  SERVER: '服务器',
+  REDIS: 'Redis',
+  MYSQL: 'MySQL',
+}
+function serviceTypeLabel(t: string): string {
+  return SERVICE_TYPE_LABELS[t] ?? t
+}
+
+/** 关键字过滤（名称 / 主机地址包含即命中，纯前端过滤已加载全量） */
+const filteredAssets = computed(() => {
+  const kw = filterKeyword.value.trim().toLowerCase()
+  if (!kw) return assets.value
+  return assets.value.filter(
+    (a) =>
+      (a.monitorName ?? '').toLowerCase().includes(kw) ||
+      (a.monitorHost ?? '').toLowerCase().includes(kw),
+  )
+})
+
+/** 必填项前端提示；格式/判重等业务校验以后端为准 */
+const rules: FormRules = {
+  monitorName: [{ required: true, message: '请输入资产名称', trigger: 'blur' }],
+  monitorHost: [{ required: true, message: '请输入主机地址', trigger: 'blur' }],
+}
+
 const form = ref<Partial<Asset>>({
   monitorPort: 22,
   serviceType: 'SERVER',
@@ -145,11 +190,15 @@ const form = ref<Partial<Asset>>({
 })
 
 const loadAssets = async () => {
+  loading.value = true
   try {
     const res = await getMonitors()
-    assets.value = res.filter((a: any) => a.serviceType === 'SERVER')
+    // 不按 serviceType 过滤：表单允许建 REDIS/MYSQL 等资产，列表必须全量如实展示
+    assets.value = res
   } catch (e: any) {
     message.error(e?.message || '加载资产失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -179,6 +228,11 @@ const handleDelete = async (id: number) => {
 }
 
 const handleSubmit = async () => {
+  try {
+    await formRef.value?.validate()
+  } catch {
+    return // 必填校验不通过：字段下方已出提示，不继续提交
+  }
   try {
     await saveMonitor(editId.value || 0, form.value)
     showDialog.value = false

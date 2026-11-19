@@ -105,6 +105,12 @@ function handleProviderChange() {
   loadList();
 }
 
+/** 关键字检索：回车 / 查询按钮共用，从第一页开始查 */
+function handleSearch() {
+  query.page = 1;
+  loadList();
+}
+
 function handleReset() {
   query.sysMessageLogTarget = undefined;
   query.sysMessageCode = undefined;
@@ -130,10 +136,11 @@ function handlePageChange(p: number) {
   loadList();
 }
 
-/** 清理日志 */
+/** 清理日志：弹窗取消与接口失败分开处理，失败必须给用户可见提示 */
 async function handleClean() {
+  let value: string;
   try {
-    const { value } = await ElMessageBox.prompt(
+    ({ value } = await ElMessageBox.prompt(
       "输入截止日期（格式：YYYY-MM-DD），将删除该日期及之前的全部日志，此操作不可恢复",
       "清理日志",
       {
@@ -149,12 +156,16 @@ async function handleClean() {
         },
         type: "warning",
       },
-    );
+    ));
+  } catch {
+    return; // 用户取消，忽略
+  }
+  try {
     const res = await cleanLog(`${value}T00:00:00`);
     message.success(`已清理 ${res?.data ?? 0} 条日志`);
     loadList();
-  } catch {
-    // 用户取消，忽略
+  } catch (e) {
+    message.error((e as Error)?.message ?? "清理失败，请稍后重试");
   }
 }
 
@@ -225,7 +236,7 @@ onMounted(() => {
           placeholder="接收人"
           clearable
           class="filter-field"
-          @keyup.enter="handleReset"
+          @keyup.enter="handleSearch"
         />
         <el-select v-model="query.sysMessageCode" placeholder="返回码" clearable class="filter-field filter-field--sm">
           <el-option label="成功" value="SUCCESS" />
@@ -241,7 +252,7 @@ onMounted(() => {
           <el-option label="未读" :value="0" />
         </el-select>
         <div class="filter-spacer" />
-        <ReButton type="primary" size="small" :icon="Search" @click="loadList">查询</ReButton>
+        <ReButton type="primary" size="small" :icon="Search" @click="handleSearch">查询</ReButton>
         <ReButton size="small" :icon="Refresh" @click="handleReset">重置</ReButton>
       </div>
       <ReTable

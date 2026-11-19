@@ -39,45 +39,118 @@
             </button>
           </div>
 
+          <!--
+            供应商搜索：供应商一多靠滚动找太慢。
+            匹配名称 / 标识 / 平台三处——用户可能记得的是「doubao」而不是中文名。
+          -->
+          <div class="mw-aside-search">
+            <el-input
+              v-model="providerSearch"
+              size="small"
+              clearable
+              placeholder="搜索供应商"
+            >
+              <template #prefix>
+                <el-icon :size="13"><SearchOutlined /></el-icon>
+              </template>
+            </el-input>
+          </div>
+
           <ul class="mw-list">
             <li
-              v-for="p in providers"
+              v-for="p in visibleProviders"
               :key="p.id"
               class="mw-item"
               :class="{ active: p.id === currentProviderId, selected: isSelected(p) }"
               @click="selectProvider(p)"
             >
-              <!-- 供应商勾选框：平时隐形（保留占位，避免悬停时整行左右跳），
-                   悬停或已选中时显形；勾中任何一个后页头那排批删操作自动出现。 -->
-              <span v-if="canWrite" class="mw-item-check" @click.stop>
-                <el-checkbox
-                  :model-value="isSelected(p)"
-                  :title="isSelected(p) ? '取消选择' : '选择该供应商'"
-                  @change="toggleSelectProvider(p)"
-                />
-              </span>
-              <ProviderLogo :pid="getProviderIcon(p)" :name="p.name" size="md" />
-              <div class="mw-item-text">
-                <span class="mw-item-name">{{ p.name }}</span>
-                <span class="mw-item-meta">
-                  {{ p.models?.length || 0 }} 模型 · {{ enabledOf(p) }} 启用
+              <div class="mw-item-row">
+                <!-- 供应商勾选框：平时隐形（保留占位，避免悬停时整行左右跳），
+                     悬停或已选中时显形；勾中任何一个后页头那排批删操作自动出现。 -->
+                <span v-if="canWrite" class="mw-item-check" @click.stop>
+                  <el-checkbox
+                    :model-value="isSelected(p)"
+                    :title="isSelected(p) ? '取消选择' : '选择该供应商'"
+                    @change="toggleSelectProvider(p)"
+                  />
+                </span>
+                <ProviderLogo :pid="getProviderIcon(p)" :name="p.name" size="md" />
+                <div class="mw-item-text">
+                  <span class="mw-item-name">{{ p.name }}</span>
+                  <!-- 一条模型都没有：提示独占一行，不跟计数挤在一起；
+                       右侧空状态里还有「从上游获取」入口。 -->
+                  <span v-if="(p.models?.length || 0) === 0" class="mw-item-hint">待获取</span>
+                  <!-- 有模型：一行模型名摘要（超出省略，title 给全量）。
+                       启用数量与进度不再挤在这里 —— 挪到卡片右侧的竖向汇总，
+                       与「余额」共用同一块位置，一屏只读一处结论。 -->
+                  <span
+                    v-else
+                    class="mw-item-models"
+                    :title="modelNamesOf(p).join('、')"
+                  >
+                    {{ modelNamesOf(p).join(' · ') }}
+                  </span>
+                  <!--
+                    能力构成：这个供应商到底能干什么，一眼可见（文/图/视/音 + 各自条数）。
+                    渠道覆盖 chat + image 之后，用户不用点进去才知道有没有出图模型。
+                  -->
+                  <span v-if="capsOf(p).length" class="mw-item-caps">
+                    <span
+                      v-for="c in capsOf(p)"
+                      :key="c.key"
+                      class="mw-cap"
+                      :class="'kind-' + c.key"
+                      :title="`${c.label} ${c.n} 个`"
+                    >
+                      <el-icon :size="11"><component :is="c.icon" /></el-icon>
+                      <span class="mw-cap-n">{{ c.n }}</span>
+                    </span>
+                  </span>
+                </div>
+                <!--
+                  卡片右侧汇总：标签/数值两行 + 竖向细条，贴在状态点左边。
+                  有余额报余额与剩余占比（主色条），没有余额报启用模型数
+                  与启用占比（绿色条）；一屏只读一处结论，卡片高度也不再变。
+                -->
+                <span
+                  class="mw-item-stat"
+                  :class="{ 'is-credit': cardStat(p).credit }"
+                  :title="cardStat(p).title"
+                >
+                  <span class="mw-item-stat-text">
+                    <span class="mw-item-stat-k">{{ cardStat(p).label }}</span>
+                    <span class="mw-item-stat-v">{{ cardStat(p).value }}</span>
+                  </span>
+                  <span class="mw-item-stat-gauge" aria-hidden="true">
+                    <i :style="{ height: cardStat(p).percent + '%' }"></i>
+                  </span>
+                </span>
+                <!-- 余额低量告警：后端按 extra.credit_warn_threshold 判定，触发时行内透出；
+                     阈值与当前余额的精确值在悬浮提示里，明细看右侧余额面板 -->
+                <span
+                  v-if="creditOf(p).warn?.triggered"
+                  class="mw-item-warn"
+                  :title="creditWarnTitle(p)"
+                >低于阈值</span>
+                <span class="mw-item-tail">
+                  <span class="mw-item-status" :class="enabledOf(p) > 0 ? 'on' : 'off'"></span>
+                  <button
+                    v-if="canWrite && p.id !== 'agent'"
+                    class="mw-item-del"
+                    type="button"
+                    title="删除供应商"
+                    @click.stop="handleDeleteProvider(p)"
+                  >
+                    <el-icon :size="15"><DeleteOutlined /></el-icon>
+                  </button>
                 </span>
               </div>
-              <span class="mw-item-tail">
-                <span class="mw-item-status" :class="enabledOf(p) > 0 ? 'on' : 'off'"></span>
-                <button
-                  v-if="canWrite && p.id !== 'agent'"
-                  class="mw-item-del"
-                  type="button"
-                  title="删除供应商"
-                  @click.stop="handleDeleteProvider(p)"
-                >
-                  <el-icon :size="15"><DeleteOutlined /></el-icon>
-                </button>
-              </span>
             </li>
             <li v-if="providers.length === 0" class="mw-list-empty">
               暂无供应商，请从模板库添加
+            </li>
+            <li v-else-if="visibleProviders.length === 0" class="mw-list-empty">
+              没有匹配「{{ providerSearch }}」的供应商
             </li>
           </ul>
 
@@ -96,6 +169,7 @@
             :models="currentModels"
             :model-presets="modelPresets"
             :can-write="canWrite"
+            :refresh-tick="creditRefreshTick"
             @changed="reload"
             @edit-provider="handleEditProvider"
             @delete-provider="handleDeleteProvider(currentProvider)"
@@ -136,10 +210,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { AddOutlined, CloudOutlined, StorefrontOutlined, DeleteOutlined } from '@vicons/material'
+import { AddOutlined, CloudOutlined, StorefrontOutlined, DeleteOutlined, SearchOutlined } from '@vicons/material'
+import {
+  TextT24Regular, Image24Regular, Video24Regular, Speaker224Regular,
+} from '@vicons/fluent'
 import PageHeader from '@/components/PageHeader.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ModelsProviderDetail from './ModelsProviderDetail.vue'
@@ -150,9 +227,9 @@ import { apiService } from '../../services/ApiService'
 import { adminApi } from '@/framework/context'
 import { message, isAdmin } from '@repo/core'
 import { usePopup } from '../../composables/usePopup'
-import { PROVIDER_TEMPLATES } from './model.constants'
+import { PROVIDER_TEMPLATES, sortTemplatesByHot } from './model.constants'
 import ProviderLogo from './ProviderLogo.vue'
-import { mapProvider, mapModel } from './model.utils'
+import { mapProvider, mapModel, inferModelType } from './model.utils'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -261,10 +338,129 @@ const getProviderIcon = (item: any) => item.provider || item.id
 const enabledOf = (p: any) =>
   (Array.isArray(p.models) ? p.models : []).filter((m: any) => m.enabled !== false).length
 
+/**
+ * 供应商的模型名清单（左栏摘要用）。
+ *
+ * <p>只做展示：一行放不下由 CSS 省略，完整清单在 title 里；
+ * 因此这里返回全量，不做截断。</p>
+ *
+ * @param p 供应商对象
+ * @returns 模型名数组；无模型返回空数组
+ */
+const modelNamesOf = (p: any): string[] =>
+  (Array.isArray(p?.models) ? p.models : [])
+    .map((m: any) => String(m?.modelName || m?.model || '').trim())
+    .filter(Boolean)
+
+/**
+ * 启用占比（0-100）：左栏进度条的长度。
+ *
+ * <p>分母是该供应商的全部模型（含停用），分子是已启用数——
+ * 「开启了总量的多少」是用户在这里唯一想知道的结论。</p>
+ *
+ * @param p 供应商对象
+ * @returns 百分比整数；无模型时为 0
+ */
+const enablePercentOf = (p: any): number => {
+  const total = Array.isArray(p?.models) ? p.models.length : 0
+  return total > 0 ? Math.round((enabledOf(p) / total) * 100) : 0
+}
+
+/** 左栏供应商搜索词（匹配名称 / 标识 / 平台） */
+const providerSearch = ref('')
+
+/**
+ * 当前搜索命中的供应商。
+ *
+ * <p>没有搜索词时原样返回，保持后端给的顺序；搜索只做本地过滤，
+ * 不重新请求 `/api/providers`（供应商数量是一屏级别，本地过滤足够）。</p>
+ */
+const visibleProviders = computed(() => {
+  const keyword = providerSearch.value.trim().toLowerCase()
+  if (!keyword) return providers.value
+  return providers.value.filter((p: any) => [p.name, p.id, p.provider, p.rawPlatform]
+    .some((field) => String(field ?? '').toLowerCase().includes(keyword)))
+})
+
+/** 能力徽标定义：顺序即展示顺序（文本 → 图片 → 视频 → 音频） */
+const CAP_DEFS = [
+  { key: 'text', label: '文本', icon: TextT24Regular },
+  { key: 'image', label: '图片', icon: Image24Regular },
+  { key: 'video', label: '视频', icon: Video24Regular },
+  { key: 'audio', label: '音频', icon: Speaker224Regular },
+]
+/** 归到「音频」的模型类型（前端类型表里语音识别/合成是分开的） */
+const AUDIO_TYPES = new Set(['audio', 'speech', 'tts', 'asr', 'voice', 'music'])
+/** 不参与能力统计的类型：向量检索类模型对「这个渠道能干什么」没有解释力 */
+const NON_CAP_TYPES = new Set(['embedding', 'rerank', 'vector'])
+
+/**
+ * 把模型类型折叠成四类能力之一。
+ *
+ * @param modelType 规范模型类型
+ * @returns 能力 key；不参与统计时返回空串
+ */
+const capKeyOf = (modelType: string): string => {
+  const type = String(modelType || '').toLowerCase()
+  if (!type) return 'text'
+  if (NON_CAP_TYPES.has(type)) return ''
+  if (AUDIO_TYPES.has(type)) return 'audio'
+  if (type === 'video') return 'video'
+  if (type === 'image' || type === 'image_cv' || type === 'ocr' || type === 'detection' || type === 'face' || type === 'layout') {
+    return 'image'
+  }
+  return 'text'
+}
+
+/**
+ * 供应商的能力构成（每类模型各有多少条）。
+ *
+ * <p>渠道管理把 chat 与 image 模型放在同一个供应商下，只看「N 模型」无法回答
+ * 「这个渠道能不能出图」；这里按模型类型折叠成文/图/视/音四类计数，
+ * 左栏一行就能看出供应商覆盖了几种能力。</p>
+ *
+ * @param p 供应商对象
+ * @returns 有模型的能力项（含条数），按固定顺序排列
+ */
+/**
+ * 模型行声明的任务类型（顶层 tasks 或渠道落库的 metrics.tasks）。
+ *
+ * @param m 模型行
+ * @returns 小写任务类型列表
+ */
+const tasksOf = (m: any): string[] => {
+  const out: string[] = []
+  for (const source of [m?.tasks, m?.metrics?.tasks]) {
+    if (!Array.isArray(source)) continue
+    for (const t of source) {
+      const key = String(t ?? '').trim().toLowerCase()
+      if (key && !out.includes(key)) out.push(key)
+    }
+  }
+  return out
+}
+
+const capsOf = (p: any) => {
+  const counts = new Map<string, number>()
+  for (const m of (Array.isArray(p?.models) ? p.models : [])) {
+    // 3D 模型（model_3d）在四类能力里没有位置，类型表也认不出它；
+    // 硬算会把 Forge 这类图生 3D 渠道标成「文本」渠道，宁可不计入。
+    if (tasksOf(m).includes('model_3d')) continue
+    const key = capKeyOf(inferModelType(m))
+    if (!key) continue
+    counts.set(key, (counts.get(key) || 0) + 1)
+  }
+  return CAP_DEFS
+    .filter((def) => counts.get(def.key))
+    .map((def) => ({ ...def, n: counts.get(def.key) ?? 0 }))
+}
+
 // 加载供应商与模型
 const reload = async () => {
   try {
-    const body = await adminApi.get('/api/providers')
+    // 与 model.api.ts fetchModels 同口径：显式 enabled_only=0 取全量，
+    // 模型管理页要看到停用行才能重新开启（接口缺省只返回已开启的模型）
+    const body = await adminApi.get('/api/providers?enabled_only=0')
     const rawList = Array.isArray(body) ? body : body?.data || []
     const list = rawList.map(mapProvider)
     providers.value = list
@@ -296,12 +492,254 @@ const currentModels = computed(() =>
   models.value.filter((m) => m.providerId === currentProviderId.value),
 )
 
-// 可添加模板：过滤已添加类型。
+/**
+ * 卡片底部汇总是否该查余额：与详情页余额条同一判定。
+ *
+ * <p>本地推理（ONNX / ollama）、路由组没有可查的上游余额；非管理员调
+ * /credit 会 403。其余只要配了上游地址（或显式 credit_url）才查。</p>
+ *
+ * @param p 供应商对象
+ * @returns 需要查余额时为 true
+ */
+const creditQueryable = (p: any): boolean => {
+  if (!p || !canWrite.value) return false
+  const plat = String(p.rawPlatform || '').toLowerCase()
+  if (plat === 'router-group' || plat === 'onnx' || plat === 'ollama' || plat === 'agent') return false
+  return !!(String(p.apiUrl || '').trim() || String(p.extra?.credit_url || '').trim())
+}
+
+/** 一个供应商的原始余额读数（remain=null 表示没有可展示的余额） */
+type CreditReading = {
+  remain: number | null
+  total: number | null
+  currency: string
+  /** 余额低量告警判定（后端按 extra.credit_warn_threshold 在实时回源路径返回） */
+  warn?: { threshold?: number | string; remain?: number | string; triggered?: boolean } | null
+}
+
+/** 币种码 -> 符号；未收录的币种原样带码显示，不猜符号 */
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  CNY: '¥', RMB: '¥', USD: '$', EUR: '€', GBP: '£', JPY: '¥', HKD: 'HK$',
+}
+
+/** 空值安全的数字转换：'12.3' / 12.3 都收，'' / null / 非数字返回 null */
+const numOrNull = (v: any): number | null => {
+  if (v === null || v === undefined || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+/** 余额读数按供应商 id 存放：每张卡片各报各的，不共用「当前选中」那一份 */
+const creditMap = ref<Record<string, CreditReading>>({})
+
+/**
+ * 把余额读数转成展示文案 / 剩余占比 / 悬浮说明。
+ *
+ * <p>后端 total 可能是空（上游只给余额不给额度），此时只报金额、不画占比条，
+ * 避免用「余额 / 0」算出假的 100%。金额格式与详情页余额条一致。</p>
+ */
+function toCreditView(st: CreditReading) {
+  if (st.remain === null) {
+    return {
+      remain: null as number | null,
+      text: '',
+      short: '',
+      percent: null as number | null,
+      title: '',
+      warn: null as CreditReading['warn'],
+    }
+  }
+  const code = String(st.currency || '').toUpperCase()
+  const symbol = CURRENCY_SYMBOLS[code]
+  const abs = Math.abs(st.remain)
+  const amount = abs >= 1000
+    ? Math.round(abs).toLocaleString('zh-CN')
+    : (Math.round(abs * 100) / 100).toFixed(2)
+  // 已知币种写成 -¥0.10；上游自定义单位（如「墨点」）写成 56,259 墨点，
+  // 不硬造符号，也不把单位塞到数字前面；负数把负号提到最前。
+  const body = symbol ? `${symbol}${amount}` : code ? `${amount} ${code}` : amount
+  const text = `${st.remain < 0 ? '-' : ''}${body}`
+  // 卡片左侧那个窄列放不下 4 位以上金额：大额压成「5.6万 / 1亿」。
+  // 单位不能丢 —— 已知币种仍用符号前缀（$1亿），上游自定义单位跟在
+  // 数字后面（5.6万墨点）；精确金额与占比留在悬浮提示里。
+  const compact = compactAmount(abs)
+  const shortBody = symbol
+    ? `${symbol}${compact}`
+    : !code
+      ? compact
+      : /^[\u4e00-\u9fa5]+$/.test(code)
+        ? `${compact}${code}`
+        : `${compact} ${code}`
+  const short = `${st.remain < 0 ? '-' : ''}${shortBody}`
+  const percent = st.total && st.total > 0
+    ? Math.max(0, Math.min(100, Math.round((st.remain / st.total) * 100)))
+    : null
+  return {
+    remain: st.remain,
+    text,
+    short,
+    percent,
+    warn: st.warn ?? null,
+    title: percent === null
+      ? `剩余余额 ${text}（上游未给额度，无法算占比）`
+      : `剩余 ${text}，占总额度 ${percent}%`,
+  }
+}
+
+/**
+ * 万 / 亿 级金额压缩成短标签。
+ *
+ * @param abs 金额绝对值
+ * @returns 如 5.6万、1亿、100万、999、12.34
+ */
+function compactAmount(abs: number): string {
+  /** 最多一位小数，整数不带 .0 */
+  const trim1 = (n: number): string => {
+    const s = n.toFixed(1)
+    return s.endsWith('.0') ? s.slice(0, -2) : s
+  }
+  if (abs >= 1e8) return `${trim1(abs / 1e8)}亿`
+  if (abs >= 1e4) {
+    // 9999.6万 这种会被四舍五入成 1 万万的写法，直接进位到「亿」
+    if (abs >= 9999.5e4) return `${trim1(abs / 1e8)}亿`
+    return `${trim1(abs / 1e4)}万`
+  }
+  if (abs >= 100) return Math.round(abs).toLocaleString('zh-CN')
+  return (Math.round(abs * 100) / 100).toFixed(2)
+}
+
+/** 没有读数时的统一空值（同一引用，避免每张卡片各建一个） */
+const NO_CREDIT = Object.freeze(toCreditView({ remain: null, total: null, currency: '' }))
+
+/** 渲染用的余额视图表：卡片按 id 取，不在模板里反复格式化数字 */
+const creditViews = computed(() => {
+  const out: Record<string, ReturnType<typeof toCreditView>> = {}
+  for (const [key, st] of Object.entries(creditMap.value)) out[key] = toCreditView(st)
+  return out
+})
+
+/**
+ * 取某个供应商的余额视图。
+ *
+ * @param p 供应商对象
+ * @returns 余额视图；没有读数时为 {@link NO_CREDIT}
+ */
+const creditOf = (p: any) => creditViews.value[String(p?.providerId || p?.id || '')] || NO_CREDIT
+
+/**
+ * 行内「低于阈值」徽标的悬浮说明：给全量数字，避免窄列省略号误读。
+ *
+ * @param p 供应商对象
+ * @returns 告警说明文案
+ */
+const creditWarnTitle = (p: any): string => {
+  const warn: any = creditOf(p).warn || {}
+  return `当前余额 ${warn.remain ?? '—'} 已低于告警阈值 ${warn.threshold ?? '—'}，请及时充值或调整阈值`
+}
+
+/**
+ * 卡片左侧汇总的读数：查到余额报余额，没有余额报启用模型数。
+ *
+ * @param p 供应商对象
+ * @returns 标签 / 数值 / 竖向条高度（0~100）/ 悬浮说明
+ */
+const cardStat = (p: any) => {
+  const c = creditOf(p)
+  if (c.remain !== null) {
+    return {
+      credit: true,
+      label: '余额',
+      value: c.short,
+      percent: c.percent ?? 0,
+      title: c.title,
+    }
+  }
+  const total = p?.models?.length || 0
+  return {
+    credit: false,
+    label: '启用',
+    value: `${enabledOf(p)}/${total}`,
+    percent: enablePercentOf(p),
+    title: `已启用 ${enabledOf(p)} / ${total}`,
+  }
+}
+
+/** 已排队 / 正在查的供应商 id：重复 reload 不重复出网 */
+const creditPending = new Set<string>()
+const creditQueue: any[] = []
+let creditActive = 0
+/** 并发上限：/credit 会真出网探测上游计费页（后端 5 分钟内命中缓存），一次最多 3 个 */
+const CREDIT_CONCURRENCY = 3
+
+/**
+ * 查一个供应商的余额并写入读数表。
+ *
+ * <p>查不到（ok=false / 上游 302 / 没有余额字段）就不写 —— 卡片继续显示
+ * 启用模型汇总，绝不把占位 0 当成「余额 0.00」。</p>
+ *
+ * @param p 供应商对象
+ */
+async function loadCredit(p: any) {
+  const key = String(p?.providerId || p?.id || '')
+  if (!key || !creditQueryable(p)) return
+  try {
+    const res: any = await adminApi.get(`/api/providers/${encodeURIComponent(key)}/credit`)
+    const data = res?.data ?? res
+    // 后端 ok=false 表示这次没查成（上游 302 / 计费页解析失败 / 超时），
+    // total 里那对 0 只是占位，不能当「余额 0.00」展示。
+    const queried = data?.ok !== false
+    let remain = queried ? numOrNull(data?.total?.remain) : null
+    let total = queried ? numOrNull(data?.total?.total) : null
+    let currency = String(data?.currency || '')
+    if (remain === null && Array.isArray(data?.keys)) {
+      // 单个 Key 的读数（多 Key 渠道汇总）：只合计查成功且有余额的行
+      const okRows = data.keys.filter((k: any) => k && k.ok === true && numOrNull(k?.remain) !== null)
+      if (okRows.length) {
+        remain = okRows.reduce((sum: number, k: any) => sum + (numOrNull(k.remain) as number), 0)
+        currency = currency || String(okRows[0]?.currency || '')
+        if (total === null) total = numOrNull(okRows[0]?.total)
+      }
+    }
+    if (remain === null) return
+    creditMap.value = { ...creditMap.value, [key]: { remain, total, currency, warn: data?.warn ?? null } }
+  } catch {
+    // 单张卡片查不到余额不是页面错误：它继续显示启用模型汇总
+  }
+}
+
+/** 排队 + 限流：避免一屏十几张卡片同时向上游发起计费查询 */
+function queueCredit(p: any) {
+  const key = String(p?.providerId || p?.id || '')
+  if (!key || creditMap.value[key] || creditPending.has(key)) return
+  creditPending.add(key)
+  creditQueue.push(p)
+  pumpCreditQueue()
+}
+
+/** 维持最多 {@link CREDIT_CONCURRENCY} 个余额请求在飞 */
+function pumpCreditQueue() {
+  while (creditActive < CREDIT_CONCURRENCY && creditQueue.length > 0) {
+    const p = creditQueue.shift()
+    creditActive += 1
+    void loadCredit(p).finally(() => {
+      creditActive -= 1
+      creditPending.delete(String(p?.providerId || p?.id || ''))
+      pumpCreditQueue()
+    })
+  }
+}
+
+// 供应商列表就绪 / 刷新后，给每张卡片补一次余额读数（后端 5 分钟内命中缓存）
+watch(() => providers.value, (list) => {
+  for (const p of list) if (creditQueryable(p)) queueCredit(p)
+}, { immediate: true })
+
+// 可添加模板：过滤已添加类型，热门供应商置顶（顺序见 HOT_PROVIDER_IDS）。
 // 路由组例外：同一平台允许建多个不同策略的组（后端对 router-group 不做平台+名称判重），
 // 因此不按品牌去重，始终保留，用户可创建「主力组 / 备用组」等多个路由组。
 const availableTemplates = computed(() => {
   const added = new Set(providers.value.map((p) => p.provider))
-  return PROVIDER_TEMPLATES.filter((tpl) => tpl.id === 'router-group' || !added.has(tpl.id))
+  return sortTemplatesByHot(PROVIDER_TEMPLATES.filter((tpl) => tpl.id === 'router-group' || !added.has(tpl.id)))
 })
 
 const selectProvider = (p: any) => {
@@ -310,14 +748,18 @@ const selectProvider = (p: any) => {
 const handleCreate = () => formRef.value.openCreate()
 const openCatalog = () => catalogRef.value.open()
 
-const handleEditProvider = () => {
-  if (currentProvider.value) formRef.value.openEdit(currentProvider.value)
+const handleEditProvider = (opts?: { focusSection?: 'balance' }) => {
+  if (currentProvider.value) formRef.value.openEdit(currentProvider.value, opts)
 }
 
 const handleTemplateClick = (template: any) => formRef.value.openFromTemplate(template)
 
+// 供应商保存成功后递增，驱动余额面板强制重拉（改了密钥/口径/告警阈值后立即生效）
+const creditRefreshTick = ref(0)
+
 const handleSaved = async () => {
   await reload()
+  creditRefreshTick.value++
 }
 
 // 账号渠道 provider 表单内「前往渠道管理页绑定账号」的跳转入口
@@ -338,16 +780,30 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.models-workspace { gap: 0; }
+/* 工作区：页面底色 + 两栏各一张卡片。
+   以前两栏直接铺满内容区、底色与页面同值（都是 #fff），整页连成一片白，
+   卡片、边框、投影全部看不出来（用户反馈「像没有样式」）。
+   这里让页面底色露出来，左右两栏各自成为一张带描边与投影的卡片。 */
+.models-workspace {
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-page, var(--color-bg));
+}
 
 /* 左侧栏 */
 .mw-aside {
   display: flex;
   flex-direction: column;
-  width: 264px;
+  /* 卡片右侧多了一列「竖向汇总」（细条 + 两行文字），需要比原来宽：
+     320px 起步，宽屏按 22vw 放宽到 360px，名称不被挤成省略号；
+     更窄的窗口维持 320px，优先保证右侧工作区可用。 */
+  width: clamp(320px, 22vw, 360px);
   flex-shrink: 0;
-  border-right: 1px solid var(--border-subtle, var(--color-surface-border));
+  border: 1px solid var(--border-subtle, var(--color-surface-border));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
   background: var(--color-surface);
+  overflow: hidden;
 }
 .mw-aside-head {
   display: flex;
@@ -375,6 +831,129 @@ onMounted(async () => {
   transition: color 0.15s ease, background 0.15s ease;
 }
 .mw-round:hover { color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
+/* 供应商搜索：与列表左右内边距对齐，控件本身自带边框，不再加外框 */
+.mw-aside-search { padding: 0 10px 8px; }
+/* 一条模型都没有的供应商：提示独占一行（不与计数挤在一行），
+   避免「0 模型 · 0 启用 待获取」挤成一串读不出重点 */
+.mw-item-hint {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 15px;
+  border-radius: 4px;
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+}
+/* 模型名摘要：只占一行，超出省略；完整清单由 title 提供 */
+.mw-item-models {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--color-text-gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 卡片右侧汇总：一条竖向细条 + 「标签 / 数值」两行，贴在状态点左边。
+   竖向排是为了不占卡片高度：卡片仍是单行，图标与名称保持在同一基线。
+   数值右对齐只能靠 justify-content: flex-end —— 前面的 .mw-item-text 是 flex: 1，
+    已把剩余空间吃干，自由空间为 0 时 margin-left: auto 会算成 0，汇总块就贴在
+    该列左边缘，金额长短不同便参差不齐。宽度固定 60px + 内容靠右才成一条竖线。
+   有余额用主色条，没有余额用成功绿条（与启用占比同色）。 */
+.mw-item-stat {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+  width: 60px;
+}
+.mw-item-stat-gauge {
+  position: relative;
+  width: 3px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  background: var(--bg-fill, var(--color-surface-border));
+  overflow: hidden;
+}
+.mw-item-stat-gauge i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  border-radius: 2px;
+  background: var(--el-color-success);
+  transition: height 0.2s ease;
+}
+/* 余额：读数是「还剩多少」，用主色区分于「启用占比」的成功绿 */
+.mw-item-stat.is-credit .mw-item-stat-gauge i { background: var(--el-color-primary); }
+/* 余额低量告警徽标：warning 色小胶囊，挤在汇总条与状态点之间；触发才出现 */
+.mw-item-warn {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 45%, transparent);
+  white-space: nowrap;
+}
+.mw-item-stat-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 0;
+  /* 数字列必须能收缩：否则超长金额会把图标和名称往左挤 */
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-align: right;
+}
+.mw-item-stat-k {
+  font-size: 9.5px;
+  line-height: 1.1;
+  color: var(--color-text-disabled);
+  white-space: nowrap;
+}
+.mw-item-stat-v {
+  font-size: 11px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  /* 极端长单位（如 points）超出时省略，完整金额在 title 里 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 能力构成：文/图/视/音 + 条数，颜色与模型管理页的模态配色一致 */
+.mw-item-caps {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+.mw-cap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 14px;
+  border-radius: 4px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+}
+.mw-cap-n { font-variant-numeric: tabular-nums; }
+.mw-cap.kind-text { color: var(--el-color-primary); }
+.mw-cap.kind-image { color: var(--el-color-warning); }
+.mw-cap.kind-video { color: var(--el-color-danger); }
+.mw-cap.kind-audio { color: var(--el-color-info); }
 
 .mw-list {
   list-style: none;
@@ -386,15 +965,31 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* 全局 tokens.css 的 `* { scrollbar-width: thin; scrollbar-color: ... }`
+     会让 Chromium 忽略本应用自己那套 8px 经典滚动条（style.css / refactor.css
+     的 ::-webkit-scrollbar 伪元素），退化成不占轨道、静止时几乎看不见的细覆盖条 ——
+     供应商一多就像「内容被截断、没有滚动条」。这里把两个标准属性复位成 auto，
+     让全局的经典滚动条样式重新生效；stable 预留轨道，避免供应商数量跨过
+     一屏时列表宽度跳 8px。 */
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+  scrollbar-gutter: stable;
 }
+/* 卡片：勾选 / 图标 / 名称模型 / 右侧汇总 / 状态，全部在同一行。
+   .mw-item-row 承担这一行的横向排版，卡片本身只管内边距。 */
 .mw-item {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
   padding: 8px 9px;
   border-radius: var(--radius-md, 8px);
   cursor: pointer;
   transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.mw-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 .mw-item:hover { background: var(--bg-hover, var(--color-surface-border)); }
 /* 选中态：淡主色胶囊 + 左内侧一条主色线。
@@ -413,7 +1008,6 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 .mw-item.active .mw-item-name { color: var(--color-primary); }
-.mw-item-meta { font-size: 11px; color: var(--color-text-gray); margin-top: 1px; }
 
 /* 供应商勾选框：平时隐形但保留 18px 占位，悬停 / 已选中 / 键盘聚焦时显形。
    保留占位是为了避免悬停时整行左右跳动。选中态不再依赖「多选模式」——
@@ -508,7 +1102,15 @@ onMounted(async () => {
 }
 
 /* 右侧工作区 */
-.mw-main { flex: 1; min-width: 0; background: var(--color-surface); }
+.mw-main {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-subtle, var(--color-surface-border));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+  background: var(--color-surface);
+  overflow: hidden;
+}
 .mw-main-empty {
   display: flex;
   flex-direction: column;

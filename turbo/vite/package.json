@@ -14,6 +14,11 @@
     }
   },
   "dependencies": {
-    "@vitejs/plugin-react": "catalog:"
+    "@vitejs/plugin-react": "catalog:",
+    "unplugin-auto-import": "^20.3.0",
+    "unplugin-vue-components": "^30.0.0"
+  },
+  "devDependencies": {
+    "vue": "catalog:"
   }
 }

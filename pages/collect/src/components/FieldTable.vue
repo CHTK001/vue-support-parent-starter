@@ -234,7 +234,7 @@ function addField(): void {
           :controls="false"
           placeholder="组号"
           :model-value="field.group ?? 1"
-          @update:model-value="(value: number | undefined) => patch(index, { group: Number(value ?? 1) })"
+          @update:model-value="(value: number | null | undefined) => patch(index, { group: Number(value ?? 1) })"
         />
         <!-- 只有选了「属性 attr」才有属性名 -->
         <ReInput

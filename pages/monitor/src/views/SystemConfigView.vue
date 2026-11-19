@@ -6,6 +6,7 @@ import { onMounted, ref } from "vue";
 
 import {http, message} from "@repo/core";
 import { unwrapResult } from "@repo/utils";
+import { copyText } from "../utils/clipboard";
 
 interface ConfigField {
   key: string;
@@ -208,6 +209,16 @@ const sipForm = ref({
 });
 const sipCmds = ref<Record<string, string>>({});
 
+/** 复制 SIP 认证密钥到剪贴板 */
+async function copySipSecret(): Promise<void> {
+  const ok = await copyText(sipForm.value.secret);
+  if (ok) {
+    message.success("密钥已复制");
+  } else {
+    message.error("复制失败");
+  }
+}
+
 async function load(): Promise<void> {
   loading.value = true;
   try {
@@ -373,7 +384,12 @@ onMounted(load);
             </label>
             <label class="sc-field">
               <span class="sc-label">认证密钥</span>
-              <ReInput v-model="sipForm.secret" placeholder="lvzhou2011" class="sc-mono" />
+              <div class="sc-secret-row">
+                <div class="sc-secret-field">
+                  <ReInput v-model="sipForm.secret" type="password" show-password :trim="false" placeholder="请输入认证密钥" class="sc-mono" />
+                </div>
+                <ReButton layout="square" icon="CopyDocument" tip="复制密钥" @click="copySipSecret" />
+              </div>
             </label>
           </div>
 
@@ -439,6 +455,17 @@ onMounted(load);
 }
 @media (max-width: 900px) {
   .sc-grid-2 { grid-template-columns: 1fr; }
+}
+
+/* SIP 认证密钥：密码框与复制按钮同行（ReInput 外包一层负责在 flex 里撑宽） */
+.sc-secret-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sc-secret-field {
+  flex: 1;
+  min-width: 0;
 }
 
 .sc-card {

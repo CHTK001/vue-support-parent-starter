@@ -135,6 +135,7 @@ onMounted(load);
         border
         empty-text="暂无注册节点"
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        table-id="online-nodes"
       >
         <ReTableColumn prop="applicationName" label="应用名" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">{{ row.applicationName || "—" }}</template>

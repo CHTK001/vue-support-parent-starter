@@ -13,12 +13,13 @@
  * 后端为 sysMenuXxx，通过 toVM / toEntity 双向映射。
  */
 import { message } from "@repo/core";
-import { computed, nextTick, onMounted, ref, watch, defineAsyncComponent } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, defineAsyncComponent } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
   Plus,
   Delete,
   Refresh,
+  RefreshRight,
   Search,
   Edit,
   MoreFilled,
@@ -29,7 +30,7 @@ import {
   Expand,
   Fold,
 } from "@element-plus/icons-vue";
-import { listMenuTree, saveMenu, updateMenu, deleteMenu, batchSaveMenuButtons, batchDeleteMenuButtons, evaluateMenuCondition } from "../api/systemApi";
+import { listMenuTree, saveMenu, updateMenu, deleteMenu, batchSaveMenuButtons, batchDeleteMenuButtons, evaluateMenuCondition, refreshMenuCache } from "../api/systemApi";
 // (http 直连已迁移为 systemApi 具名函数，此处不再引入)
 import type { SysMenu } from "../api/types";
 import ReTable from "@repo/ui/re-table";
@@ -356,6 +357,53 @@ function splitHighlight(text?: string): [string, string, string] {
   return [s.slice(0, i), s.slice(i, i + kw.length), s.slice(i + kw.length)];
 }
 
+/**
+ * 搜索时自动展开命中节点的祖先链，并滚动定位到首个命中：
+ * 「收起全部」后再搜索时，深层命中会被折叠状态挡住、看不到高亮。
+ * 用树实例直接展开（不重建整树，避免滚动位置丢失），250ms 防抖跟随输入。
+ */
+function collectHitKeys(nodes: MenuVM[], kw: string, ancestors: number[], out: Set<number>) {
+  nodes.forEach((n) => {
+    if (n.menuType === 3) return;
+    const self =
+      (n.menuName ?? "").toLowerCase().includes(kw) ||
+      (n.name ?? "").toLowerCase().includes(kw) ||
+      (n.path ?? "").toLowerCase().includes(kw);
+    const chain = n.menuId != null ? [...ancestors, n.menuId] : ancestors;
+    if (self) chain.forEach((k) => out.add(k));
+    if (n.children?.length) collectHitKeys(n.children, kw, chain, out);
+  });
+}
+/** 搜索命中时需要强制展开的祖先链 key（配合 treeKey 重建生效） */
+const searchExpandedKeys = ref<number[]>([]);
+let searchExpandTimer: ReturnType<typeof setTimeout> | null = null;
+watch(keyword, (kw) => {
+  if (searchExpandTimer) {
+    clearTimeout(searchExpandTimer);
+    searchExpandTimer = null;
+  }
+  const k = kw.trim().toLowerCase();
+  if (!k) {
+    searchExpandedKeys.value = [];
+    return;
+  }
+  searchExpandTimer = setTimeout(async () => {
+    searchExpandTimer = null;
+    const keys = new Set<number>();
+    collectHitKeys(list.value, k, [], keys);
+    if (!keys.size) return;
+    // el-tree 实例的 getNode(...).expand() 在当前版本上静默无效，
+    // 改用本项目既有的 default-expanded-keys + treeKey 重建口径（与 toggleExpandAll 一致）
+    searchExpandedKeys.value = [...keys];
+    treeKey.value += 1;
+    await nextTick();
+    document.querySelector(".menu-tree .menu-tree-node__hit")?.closest(".el-tree-node")?.scrollIntoView({ block: "nearest" });
+  }, 250);
+});
+onBeforeUnmount(() => {
+  if (searchExpandTimer) clearTimeout(searchExpandTimer);
+});
+
 /** 树上条件徽标的短文案（完整说明放 el-tag 的 title 提示里） */
 function conditionBadgeLabel(showType?: string): string {
   const map: Record<string, string> = {
@@ -431,6 +479,22 @@ async function loadList() {
 
 function refresh() {
   loadList();
+}
+
+/** 菜单缓存刷新进行中（按钮 loading） */
+const cacheRefreshing = ref(false);
+/** 手动刷新后端菜单/路由缓存：改完菜单路由不生效时的兜底入口（前端只触发，刷新逻辑在后端） */
+async function handleRefreshCache() {
+  if (cacheRefreshing.value) return;
+  cacheRefreshing.value = true;
+  try {
+    await refreshMenuCache();
+    message.success("菜单缓存已刷新");
+  } catch (e) {
+    message.error((e as Error)?.message ?? "菜单缓存刷新失败");
+  } finally {
+    cacheRefreshing.value = false;
+  }
 }
 
 /** 上移 / 下移：与相邻兄弟节点交换 sysMenuSort */
@@ -630,6 +694,15 @@ const formRules = {
   path: [
     { required: true, message: "请输入菜单path", trigger: "blur" },
     { validator: (_r: unknown, v: string, cb: (e?: Error) => void) => { /^\/[a-zA-Z0-9:]+(\/[a-zA-Z0-9:]+)*$/.test(v) ? cb() : cb(new Error("菜单Path必须斜杠开头")); }, trigger: "blur" },
+    // 同级 path 即时判重：仅做前端快速提示，最终判重以后端为准
+    { validator: (_r: unknown, v: string, cb: (e?: Error) => void) => {
+        const val = (v ?? "").trim();
+        if (!val) return cb();
+        const parentId = form.value.parentId ?? 0;
+        const siblings = parentId === 0 ? list.value : findById(list.value, parentId)?.children ?? [];
+        const dup = siblings.some((s) => s.menuType !== 3 && s.menuId !== form.value.menuId && (s.path ?? "") === val);
+        dup ? cb(new Error("同级已存在相同 Path 的菜单")) : cb();
+      }, trigger: "blur" },
   ],
   component: [{ validator: (_r: unknown, v: string, cb: (e?: Error) => void) => {
     const need = form.value.menuType === 2 && form.value.linkMode === "component";
@@ -1208,6 +1281,9 @@ onMounted(() => {
               <el-tooltip content="刷新" placement="top">
                 <el-button type="info" icon="Refresh" circle plain @click="refresh" />
               </el-tooltip>
+              <el-tooltip content="刷新菜单缓存" placement="top">
+                <el-button class="menu-cache-refresh" type="warning" icon="RefreshRight" circle plain :loading="cacheRefreshing" @click="handleRefreshCache" />
+              </el-tooltip>
             </div>
           </div>
           <div class="menu-panel-title__desc menu-tree-desc">维护目录、菜单与权限入口</div>
@@ -1235,7 +1311,7 @@ onMounted(() => {
             node-key="menuId"
             :props="treeProps"
             :default-expand-all="expandAll"
-            :default-expanded-keys="expandAll ? expandedKeys : []"
+            :default-expanded-keys="expandAll ? expandedKeys : searchExpandedKeys"
             :expand-on-click-node="false"
             draggable
             :allow-drag="allowTreeDrag"

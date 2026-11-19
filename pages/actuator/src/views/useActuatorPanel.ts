@@ -19,6 +19,19 @@ import { isUnavailableError, unavailableHint } from "../cards/useCardResource";
 import { ACTUATOR_ENDPOINTS, type ActuatorTab } from "../endpoints";
 import { ACTUATOR_TAB_ACTIVATED_EVENT } from "../tabs";
 
+/**
+ * 面板错误分型。
+ *
+ * <p>外壳（TabShell）据此决定错误框长什么样：</p>
+ * <ul>
+ *   <li>{@code unavailable} —— 端点没暴露（404/405/501），重试永远不会成功，
+ *       显示「怎么开启」的接入指引，不给重试按钮；</li>
+ *   <li>{@code retriable} —— 网络 / 后端 500 / 解析失败，真故障，给重试按钮；
+ *       用户不用为「是不是自己点错了」猜半天（2026-11-19 configprops 500 即此类）。</li>
+ * </ul>
+ */
+export type PanelErrorKind = "" | "unavailable" | "retriable";
+
 /** 面板 composable 返回 */
 export interface ActuatorPanel {
   /** 端点原始 JSON（未取到时为 null） */
@@ -27,6 +40,8 @@ export interface ActuatorPanel {
   loading: Ref<boolean>;
   /** 错误文案（端点未暴露时是接入指引） */
   error: Ref<string>;
+  /** 错误分型（error 非空时有效）：外壳据此决定给「接入指引」还是「重试按钮」 */
+  errorKind: Ref<PanelErrorKind>;
   /** 关键字过滤词（页签自己决定要不要用） */
   keyword: Ref<string>;
   /** 最近一次成功拉取的时间戳（ms） */
@@ -60,7 +75,10 @@ function errorText(err: unknown): string {
   const data = e.response?.data;
   if (typeof data === "string" && data.trim()) return `${status ? `[${status}] ` : ""}${data.slice(0, 200)}`;
   if (data && typeof data === "object") {
-    const msg = (data as { message?: string; error?: string }).message ?? (data as { error?: string }).error;
+    // 统一响应 advice 的错误信封用的是 msg 字段（如 {"code":"S9999C0000","msg":"系统繁忙，请稍后重试"}），
+    // 与 message / error 一起兜，别让 500 只剩一句干巴巴的 "Request failed with status code 500"
+    const body = data as { message?: string; error?: string; msg?: string };
+    const msg = body.message ?? body.msg ?? body.error;
     if (msg) return `${status ? `[${status}] ` : ""}${msg}`;
   }
   if (e.message) return e.message;
@@ -79,6 +97,7 @@ export function useActuatorPanel(tab: ActuatorTab): ActuatorPanel {
   const data = ref<Record<string, unknown> | null>(null);
   const loading = ref(false);
   const error = ref("");
+  const errorKind = ref<PanelErrorKind>("");
   const keyword = ref("");
   const updatedAt = ref(0);
 
@@ -98,10 +117,13 @@ export function useActuatorPanel(tab: ActuatorTab): ActuatorPanel {
       data.value = (res as Record<string, unknown>) ?? null;
       updatedAt.value = Date.now();
       error.value = "";
+      errorKind.value = "";
       loaded = true;
     } catch (err) {
       if (tag !== ticker) return;
-      error.value = isUnavailableError(err) ? unavailableHint(path) : errorText(err);
+      const unavailable = isUnavailableError(err);
+      errorKind.value = unavailable ? "unavailable" : "retriable";
+      error.value = unavailable ? unavailableHint(path) : errorText(err);
       if (!silent) {
         data.value = null;
       }
@@ -201,5 +223,5 @@ export function useActuatorPanel(tab: ActuatorTab): ActuatorPanel {
     }));
   }
 
-  return { data, loading, error, keyword, updatedAt, reload, hit, entries };
+  return { data, loading, error, errorKind, keyword, updatedAt, reload, hit, entries };
 }

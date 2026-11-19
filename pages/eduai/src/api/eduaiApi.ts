@@ -70,6 +70,7 @@ import type {
   TeacherMarkingTask,
   StudentWrongQuestion,
   PaperAssignVO,
+  StudentPaperSubmitPayload,
   MarkingFinishPreview,
   BatchMarkingResult,
   WrongSource,
@@ -1164,6 +1165,28 @@ export const eduaiApi = {
     http()
       .get(`/v2/edu/paper-assign/paper/${paperId}`)
       .then<Paper>(unwrap),
+  /**
+   * 学生：开始作答某张布置给本班的试卷（脱敏详情）。
+   *
+   * <p>不能复用 {@code myClassPaperDetail}：那个接口给学生返回的是**含标准答案
+   * 与解析**的完整详情（教师端同款），在线作答时学生抓一下报文就能抄答案。
+   * 本接口走学生中心的学生视角授权，题目只带题干/选项，answer/analysis 恒为空。</p>
+   */
+  studentAnswerPaper: (paperId: number) =>
+    http()
+      .get(`/v2/edu/student/papers/${paperId}/answer`)
+      .then<Paper>(unwrap),
+  /**
+   * 学生：提交在线作答，进入 AI 阅卷。
+   *
+   * <p>返回阅卷任务标识，用 {@code studentMarkingResult(taskId)} 轮询结果；
+   * 同一考试同一学生只允许一份答题卡，重复提交后端会拒绝。</p>
+   */
+  studentSubmitPaper: (paperId: number, payload: StudentPaperSubmitPayload) =>
+    http()
+      .post(`/v2/edu/student/papers/${paperId}/submit`)
+      .data(payload as unknown as Record<string, unknown>)
+      .then<string>(unwrap),
 
   /**
    * 指定学段的模块清单（学生端首页用）。

@@ -1,5 +1,7 @@
 <template>
   <div class="page-container">
+    <ReConfirmDialog ref="confirmDialog" />
+    <RePromptDialog ref="promptDialog" />
     <div class="top-zone">
       <div class="page-header">
         <div class="page-header__left">
@@ -395,7 +397,7 @@
                     :max="2100"
                     controls-position="right"
                     style="width: 100%"
-                    @update:model-value="(v?: number) => (stuForm.studentEnrollYear = v ?? null)"
+                    @update:model-value="(v: number | null | undefined) => (stuForm.studentEnrollYear = v ?? null)"
                   />
                 </el-form-item>
                 <el-form-item label="状态">
@@ -670,7 +672,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import { useRouter } from "vue-router";
 import { Close, Delete, EditPen, Grid, Key, Plus, Reading, RefreshLeft, Search, Star, View,
   Calendar, CircleCheck, Collection, CreditCard, Iphone, Link, OfficeBuilding, Postcard, School, User } from "@element-plus/icons-vue";
@@ -684,6 +685,12 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
 import { routeUrl } from "../utils/routeUrl";
 import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
+import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
+import RePromptDialog from "../components/shared/RePromptDialog.vue";
+
+/** 统一确认/输入弹窗（ReDialog 实现，替代 ElMessageBox.confirm / prompt） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
+const promptDialog = ref<InstanceType<typeof RePromptDialog> | null>(null);
 
 const loading = ref(false);
 const saving = ref(false);
@@ -1153,13 +1160,11 @@ async function saveStudent() {
 }
 
 async function removeStudent(row: EduStudent) {
-  try {
-    await ElMessageBox.confirm(
-      `确定删除学生「${row.studentName ?? row.studentNo}」？其学习进度与每日汇总会一并清除，且不可恢复。`,
-      "删除学生",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
-    );
-  } catch {
+  const ok = await confirmDialog.value?.open(
+    `确定删除学生「${row.studentName ?? row.studentNo}」？其学习进度与每日汇总会一并清除，且不可恢复。`,
+    { title: "删除学生", danger: true },
+  );
+  if (!ok) {
     return;
   }
   try {
@@ -1179,27 +1184,21 @@ async function removeStudent(row: EduStudent) {
  * 口令规则由后端 StudentPasswordSupport 统一校验，前端不重复实现。</p>
  */
 async function openResetPassword(row: EduStudent) {
-  let input = "";
-  try {
-    const result = await ElMessageBox.prompt(
-      `为学生「${row.studentName ?? row.studentNo}」设置新的登录口令。该学生需用新口令重新登录。`,
-      "重置登录密码",
-      {
-        type: "warning",
-        confirmButtonText: "重置",
-        cancelButtonText: "取消",
-        inputType: "password",
-        inputPlaceholder: "6-32 位，建议字母与数字组合",
-        inputValidator: (value: string) => {
-          const raw = (value ?? "").trim();
-          if (raw.length < 6) return "口令至少 6 位";
-          if (raw.length > 32) return "口令最多 32 位";
-          return true;
-        },
+  const input = await promptDialog.value?.open(
+    `为学生「${row.studentName ?? row.studentNo}」设置新的登录口令。该学生需用新口令重新登录。`,
+    {
+      title: "重置登录密码",
+      inputType: "password",
+      placeholder: "6-32 位，建议字母与数字组合",
+      confirmText: "重置",
+      validator: (value: string) => {
+        if (value.length < 6) return "口令至少 6 位";
+        if (value.length > 32) return "口令最多 32 位";
+        return true;
       },
-    );
-    input = result.value;
-  } catch {
+    },
+  );
+  if (!input) {
     return;
   }
   try {
@@ -1218,27 +1217,21 @@ async function openResetPassword(row: EduStudent) {
  * 与 {@link openResetPassword} 同一套交互，避免同一个能力出现两种操作方式。</p>
  */
 async function openResetTeacherPassword(row: EduTeacher) {
-  let input = "";
-  try {
-    const result = await ElMessageBox.prompt(
-      `为教师「${row.teacherName ?? row.teacherNo}」设置新的登录口令。该教师需用新口令重新登录老师端。`,
-      "重置登录口令",
-      {
-        type: "warning",
-        confirmButtonText: "重置",
-        cancelButtonText: "取消",
-        inputType: "password",
-        inputPlaceholder: "6-32 位，建议字母与数字组合",
-        inputValidator: (value: string) => {
-          const raw = (value ?? "").trim();
-          if (raw.length < 6) return "口令至少 6 位";
-          if (raw.length > 32) return "口令最多 32 位";
-          return true;
-        },
+  const input = await promptDialog.value?.open(
+    `为教师「${row.teacherName ?? row.teacherNo}」设置新的登录口令。该教师需用新口令重新登录老师端。`,
+    {
+      title: "重置登录口令",
+      inputType: "password",
+      placeholder: "6-32 位，建议字母与数字组合",
+      confirmText: "重置",
+      validator: (value: string) => {
+        if (value.length < 6) return "口令至少 6 位";
+        if (value.length > 32) return "口令最多 32 位";
+        return true;
       },
-    );
-    input = result.value;
-  } catch {
+    },
+  );
+  if (!input) {
     return;
   }
   try {
@@ -1315,11 +1308,11 @@ async function removeClass(row: EduClass) {
     message.warning(`该班级下还有 ${inClass} 名学生，请先转班或删学生`);
     return;
   }
-  try {
-    await ElMessageBox.confirm(`确定删除班级「${row.className}」？`, "删除班级", {
-      type: "warning", confirmButtonText: "删除", cancelButtonText: "取消",
-    });
-  } catch {
+  const ok = await confirmDialog.value?.open(`确定删除班级「${row.className}」？`, {
+    title: "删除班级",
+    danger: true,
+  });
+  if (!ok) {
     return;
   }
   try {
@@ -1379,11 +1372,11 @@ async function saveTeacher() {
 }
 
 async function removeTeacher(row: EduTeacher) {
-  try {
-    await ElMessageBox.confirm(`确定删除教师「${row.teacherName ?? row.teacherNo}」？`, "删除教师", {
-      type: "warning", confirmButtonText: "删除", cancelButtonText: "取消",
-    });
-  } catch {
+  const ok = await confirmDialog.value?.open(`确定删除教师「${row.teacherName ?? row.teacherNo}」？`, {
+    title: "删除教师",
+    danger: true,
+  });
+  if (!ok) {
     return;
   }
   try {

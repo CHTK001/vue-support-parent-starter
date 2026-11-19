@@ -1251,3 +1251,353 @@
 .act-metrics__tag-select {
   width: 150px;
 }
+
+/* ==========================================================================
+   16. 第三轮增强：错误分型 / 流量概览 / 请求样本 / 快照对比 / 变更记录 / 趋势线
+   ========================================================================== */
+
+/* 错误分型：徽章（未暴露=中性灰蓝，后端异常=红）+ 可重试时的重试按钮 */
+.act__err-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.act__err-badge {
+  flex: none;
+  padding: 1px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.act__err-badge.is-unavailable {
+  color: var(--el-color-info, #909399);
+  border-color: color-mix(in srgb, var(--el-color-info, #909399) 32%, transparent);
+  background: color-mix(in srgb, var(--el-color-info, #909399) 12%, transparent);
+}
+
+.act__err-badge.is-retriable {
+  color: var(--status-error, var(--el-color-danger, #f56c6c));
+  border-color: color-mix(in srgb, var(--status-error, #f56c6c) 32%, transparent);
+  background: color-mix(in srgb, var(--status-error, #f56c6c) 12%, transparent);
+}
+
+.act__err-text {
+  min-width: 0;
+  word-break: break-all;
+}
+
+.act__err-retry {
+  margin-left: 4px;
+}
+
+/* 请求映射：热点 / 慢接口 Top5 概览（点击行 = 把该接口填进表格过滤词） */
+.act-traffic {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.act-traffic__panel {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-container, var(--el-bg-color, #fff));
+}
+
+.act-traffic__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-traffic__sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+.act-traffic__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.act-traffic__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.act-traffic__row:hover {
+  background: var(--bg-hover, var(--el-fill-color-light, #f5f7fa));
+}
+
+.act-traffic__rank {
+  flex: none;
+  width: 16px;
+  text-align: center;
+  font-style: italic;
+  font-weight: 700;
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+.act-traffic__row:first-child .act-traffic__rank {
+  color: var(--status-warning, var(--el-color-warning, #e6a23c));
+}
+
+.act-traffic__path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-secondary, var(--el-text-color-regular, #5c6270));
+}
+
+.act-traffic__value {
+  flex: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-traffic__empty {
+  padding: 8px 0;
+  font-size: 12px;
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+/* 最近 HTTP 请求样本抽屉 */
+.act-exchange__ops {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.act-exchange__hint {
+  font-size: 11.5px;
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+.act-exchange__status {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.act-exchange__status.is-ok {
+  color: var(--status-success, var(--el-color-success, #67c23a));
+}
+
+.act-exchange__status.is-redirect {
+  color: var(--el-color-info, #909399);
+}
+
+.act-exchange__status.is-warn {
+  color: var(--status-warning, var(--el-color-warning, #e6a23c));
+}
+
+.act-exchange__status.is-error,
+.act-exchange__status.is-unknown {
+  color: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+/* 线程快照对比：汇总 chips + 行内小标签 */
+.act-thread-diff {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.act-thread-diff__title {
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-diff-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-full, 9999px);
+  background: var(--bg-container, var(--el-bg-color, #fff));
+  color: var(--text-secondary, var(--el-text-color-regular, #5c6270));
+  font-variant-numeric: tabular-nums;
+}
+
+.act-diff-chip.is-added {
+  color: var(--status-success, var(--el-color-success, #67c23a));
+  border-color: color-mix(in srgb, var(--status-success, #67c23a) 32%, transparent);
+}
+
+.act-diff-chip.is-removed {
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-diff-chip.is-flipped {
+  color: var(--status-warning, var(--el-color-warning, #e6a23c));
+  border-color: color-mix(in srgb, var(--status-warning, #e6a23c) 32%, transparent);
+}
+
+.act-diff-chip.is-blocked {
+  color: var(--status-error, var(--el-color-danger, #f56c6c));
+  border-color: color-mix(in srgb, var(--status-error, #f56c6c) 32%, transparent);
+  background: color-mix(in srgb, var(--status-error, #f56c6c) 8%, transparent);
+}
+
+.act-diff-tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 10.5px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.act-diff-tag.is-added {
+  color: var(--status-success, var(--el-color-success, #67c23a));
+  background: color-mix(in srgb, var(--status-success, #67c23a) 12%, transparent);
+}
+
+.act-diff-tag.is-flipped {
+  color: var(--status-warning, var(--el-color-warning, #e6a23c));
+  background: color-mix(in srgb, var(--status-warning, #e6a23c) 12%, transparent);
+}
+
+.act-diff-tag.is-blocked {
+  color: var(--status-error, var(--el-color-danger, #f56c6c));
+  background: color-mix(in srgb, var(--status-error, #f56c6c) 12%, transparent);
+}
+
+/* 日志级别变更记录抽屉 */
+.act-changelog__ops {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.act-changelog__hint {
+  font-size: 11.5px;
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+.act-changelog {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.act-changelog__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 12px;
+  border-bottom: 1px dashed var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+}
+
+.act-changelog__time {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+  font-variant-numeric: tabular-nums;
+}
+
+.act-changelog__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-changelog__delta {
+  flex: none;
+  color: var(--status-warning, var(--el-color-warning, #e6a23c));
+}
+
+.act-changelog__delta.is-revert {
+  color: var(--status-success, var(--el-color-success, #67c23a));
+}
+
+/* 指标主读数趋势（sparkline） */
+.act-spark {
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-elevated, var(--el-fill-color-lighter, #f5f7fa));
+}
+
+.act-spark__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.act-spark__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, var(--el-text-color-regular, #5c6270));
+}
+
+.act-spark__meta {
+  font-size: 11px;
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+.act-spark__chart {
+  display: block;
+  width: 100%;
+  height: 48px;
+}
+
+.act-sparkline {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.act-sparkline__line {
+  fill: none;
+  stroke: var(--brand-500, #6d5dfc);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.act-sparkline__area {
+  fill: color-mix(in srgb, var(--brand-500, #6d5dfc) 14%, transparent);
+  stroke: none;
+}
+
+.act-sparkline__dot {
+  fill: var(--brand-500, #6d5dfc);
+}

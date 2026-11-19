@@ -36,7 +36,13 @@ import {
   Search,
   TakeawayBox,
 } from "@element-plus/icons-vue";
-import { getArchiveEntriesWithWasm, resolveObjectUrl, unzipObject } from "../api/filestorageApi";
+import {
+  getArchiveEntriesWithWasm,
+  getInnerArchiveEntries,
+  isArchiveFileName,
+  resolveObjectUrl,
+  unzipObject,
+} from "../api/filestorageApi";
 import type { ArchiveEntry, ArchiveScanResponse } from "../api/filestorageApi";
 import { fileSvg, fileTypeText } from "../utils/fileKind";
 
@@ -80,6 +86,35 @@ const searchOpen = ref(false);
 const searchInputRef = ref<{ focus: () => void }>();
 /** 已展开的目录路径集合（根节点恒展开） */
 const expandedDirs = ref<Set<string>>(new Set([""]));
+
+/**
+ * 嵌套压缩包层级栈（原位下钻）。
+ *
+ * <p>点击包内的压缩包条目时不再跳新页面，而是在当前视图内展开：把当前层
+ * 状态压栈、切到嵌套包；返回时弹出栈顶还原。栈第 i 项保存的是第 i 层
+ * 压缩包的状态（离开该层继续下钻时压入）。</p>
+ */
+interface ArchiveLevelState {
+  /** 该层压缩包显示名 */
+  name: string;
+  /** 该层压缩包在顶层对象内的完整条目路径（顶层为空串） */
+  fullPath: string;
+  /** 该层结构数据 */
+  scan: ArchiveScanResponse;
+  /** 离开时的目录路径 */
+  currentPath: string;
+  /** 离开时的目录展开集合 */
+  expandedDirs: Set<string>;
+}
+
+/** 祖先压缩包层状态栈；空数组 = 当前就在顶层压缩包 */
+const levelStack = ref<ArchiveLevelState[]>([]);
+/** 当前层压缩包在顶层对象内的完整条目路径（顶层为空串） */
+const currentFullPath = ref("");
+/** 当前层压缩包显示名（跨层面包屑末段） */
+const currentName = ref(props.fileName);
+/** 嵌套包下钻加载中（防连点 + 遮罩提示） */
+const drilling = ref(false);
 
 /** 目录树节点 */
 interface DirNode {
@@ -249,8 +284,27 @@ const breadcrumbs = computed(() => {
 /** 面包屑文字：图里展示的是完整层级链（`包名 / 子目录 / 子目录`），不是只有末级 */
 const breadcrumbText = computed(() => breadcrumbs.value.map((c) => c.name).join(" / "));
 
-/** 是否存在上一级（决定返回按钮是否可用） */
-const canGoBack = computed(() => currentPath.value !== "");
+/** 跨层浏览路径：祖先压缩包层 + 当前层内目录段（下钻后替代单层面包屑） */
+const nestedCrumbs = computed(() => {
+  const crumbs: Array<{ name: string; level: number; path: string; archive: boolean }> = [];
+  levelStack.value.forEach((level, index) => {
+    crumbs.push({ name: level.name, level: index, path: "", archive: true });
+  });
+  crumbs.push({ name: currentName.value, level: levelStack.value.length, path: "", archive: true });
+  const segments = currentPath.value ? currentPath.value.split("/") : [];
+  segments.forEach((segment, index) => {
+    crumbs.push({
+      name: segment,
+      level: -1,
+      path: segments.slice(0, index + 1).join("/"),
+      archive: false,
+    });
+  });
+  return crumbs;
+});
+
+/** 是否存在上一级（目录或嵌套包层级；决定返回按钮是否可用） */
+const canGoBack = computed(() => currentPath.value !== "" || levelStack.value.length > 0);
 
 /** 全部目录（面包屑下拉里的「跳转到…」） */
 const allDirs = computed<DirNode[]>(() => {
@@ -354,6 +408,9 @@ async function load(): Promise<void> {
     scan.value = res;
     currentPath.value = "";
     expandedDirs.value = new Set([""]);
+    levelStack.value = [];
+    currentFullPath.value = "";
+    currentName.value = props.fileName;
   } catch (e) {
     scan.value = null;
     errorMessage.value = (e as Error)?.message ?? "压缩包解析失败";
@@ -374,10 +431,33 @@ function enterDir(path: string): void {
   expandedDirs.value = next;
 }
 
-/** 返回上一级 */
+/** 返回上一级：先退目录，目录已到根则弹出一层嵌套压缩包 */
 function goBack(): void {
-  const slash = currentPath.value.lastIndexOf("/");
-  currentPath.value = slash > 0 ? currentPath.value.slice(0, slash) : "";
+  if (currentPath.value) {
+    const slash = currentPath.value.lastIndexOf("/");
+    currentPath.value = slash > 0 ? currentPath.value.slice(0, slash) : "";
+    return;
+  }
+  popLevel();
+}
+
+/** 弹出嵌套层级栈顶，还原上一层压缩包的浏览状态 */
+function popLevel(): void {
+  const prev = levelStack.value.pop();
+  if (!prev) return;
+  scan.value = prev.scan;
+  currentName.value = prev.name;
+  currentFullPath.value = prev.fullPath;
+  currentPath.value = prev.currentPath;
+  expandedDirs.value = prev.expandedDirs;
+  errorMessage.value = "";
+}
+
+/** 沿跨层面包屑直接回到指定祖先层（栈下标） */
+function popToLevel(level: number): void {
+  if (level < 0 || level >= levelStack.value.length) return;
+  levelStack.value = levelStack.value.slice(0, level + 1);
+  popLevel();
 }
 
 /** 切换目录展开状态 */
@@ -405,12 +485,52 @@ function onSearchBlur(): void {
   }
 }
 
-/** 点击条目：目录进入，文件交父组件预览 */function onEntryClick(entry: ArchiveEntry): void {
+/** 点击条目：目录进入；嵌套压缩包原位下钻；其余文件交父组件预览 */
+function onEntryClick(entry: ArchiveEntry): void {
   if (entry.directory) {
     enterDir(entry.path);
     return;
   }
+  if (isArchiveFileName(entry.name)) {
+    void drillDown(entry);
+    return;
+  }
   emit("open-entry", entry.path);
+}
+
+/**
+ * 原位下钻进包内嵌套压缩包。
+ *
+ * <p>取该条目字节在前端 WASM 扫描（{@link getInnerArchiveEntries}），成功后把
+ * 当前层压栈并切换视图；失败仅提示，当前层保持不变（失败的下钻不抹掉
+ * 已浏览内容）。服务端「解压到…」只支持顶层对象，深层保持只读浏览。</p>
+ */
+async function drillDown(entry: ArchiveEntry): Promise<void> {
+  if (drilling.value) return;
+  const currentScan = scan.value;
+  if (!currentScan) return;
+  drilling.value = true;
+  try {
+    const fullPath = currentFullPath.value ? `${currentFullPath.value}/${entry.path}` : entry.path;
+    const nested = await getInnerArchiveEntries(props.bucket, props.objectKey, fullPath, entry.name);
+    levelStack.value.push({
+      name: currentName.value,
+      fullPath: currentFullPath.value,
+      scan: currentScan,
+      currentPath: currentPath.value,
+      expandedDirs: expandedDirs.value,
+    });
+    scan.value = nested;
+    currentName.value = entry.name;
+    currentFullPath.value = fullPath;
+    currentPath.value = "";
+    expandedDirs.value = new Set([""]);
+  } catch (e) {
+    console.warn("[ArchivePreviewPanel] 嵌套压缩包解析失败", e);
+    message.error((e as Error)?.message ?? "嵌套压缩包解析失败");
+  } finally {
+    drilling.value = false;
+  }
 }
 
 /** 下载压缩包本体 */
@@ -462,6 +582,10 @@ async function extractTo(): Promise<void> {
 <template>
   <section class="arc" aria-label="压缩包内容预览">
   
+    <!-- 嵌套包下钻加载遮罩 -->
+    <div v-if="drilling" class="arc__drilling" role="status" aria-live="polite">
+      <span class="arc__drilling-text">正在展开嵌套压缩包…</span>
+    </div>
 
     <!-- ===== 统计条 ===== -->
     <div class="arc__stats">
@@ -490,6 +614,14 @@ async function extractTo(): Promise<void> {
     <!-- ===== 工具条：返回 / 面包屑 / 搜索 / 视图 / 刷新 / 下载 / 解压 ===== -->
     <div class="arc__toolbar">
   
+      <el-button
+        v-if="canGoBack"
+        :icon="ArrowLeft"
+        title="返回上一级"
+        aria-label="返回上一级"
+        @click="goBack"
+      >返回</el-button>
+
       <div class="arc__toolbar-spacer" />
 
       <el-input
@@ -529,6 +661,27 @@ async function extractTo(): Promise<void> {
       <el-button :icon="Refresh" :loading="loading" title="刷新" aria-label="刷新" @click="load" />
       <el-button :icon="Download" title="下载压缩包" @click="downloadSelf"></el-button>
 
+    </div>
+
+    <!-- ===== 跨层面包屑：下钻进嵌套包后展示完整层级链 ===== -->
+    <div v-if="nestedCrumbs.length > 1" class="arc__crumbs" aria-label="浏览路径">
+      <template v-for="(crumb, index) in nestedCrumbs" :key="`${index}-${crumb.path}`">
+        <span v-if="index" class="arc__crumbs-sep">/</span>
+        <button
+          v-if="crumb.archive && crumb.level < levelStack.length"
+          type="button"
+          class="arc__crumb-link arc__crumb-link--archive"
+          title="返回该层压缩包"
+          @click="popToLevel(crumb.level)"
+        >{{ crumb.name }}</button>
+        <span v-else-if="crumb.archive" class="arc__crumb-current">{{ crumb.name }}</span>
+        <button
+          v-else
+          type="button"
+          class="arc__crumb-link"
+          @click="enterDir(crumb.path)"
+        >{{ crumb.name }}</button>
+      </template>
     </div>
 
     <!-- ===== 主体：左树 + 右表 ===== -->
@@ -596,6 +749,11 @@ async function extractTo(): Promise<void> {
                 <span v-if="entry.directory" class="arc__cell-badge">
                   {{ childCountOf(entry) }} 项
                 </span>
+                <span
+                  v-else-if="isArchiveFileName(entry.name)"
+                  class="arc__cell-badge arc__cell-badge--archive"
+                  title="嵌套压缩包，点击在当前视图内展开"
+                >压缩包</span>
               </td>
               <td class="arc__col-size">{{ entry.directory ? "-" : formatSize(entry.size) }}</td>
               <td class="arc__col-type">{{ entryTypeText(entry) }}</td>
@@ -649,6 +807,7 @@ async function extractTo(): Promise<void> {
 .arc {
   display: flex;
   flex-direction: column;
+  position: relative;
   min-height: 0;
   height: 100%;
   border: 1px solid var(--el-border-color-lighter);
@@ -732,6 +891,66 @@ async function extractTo(): Promise<void> {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ---- 跨层面包屑（嵌套包下钻） ---- */
+.arc__crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.arc__crumbs-sep {
+  color: var(--el-text-color-placeholder);
+}
+
+.arc__crumb-link {
+  max-width: 200px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arc__crumb-link:hover {
+  text-decoration: underline;
+}
+
+.arc__crumb-link--archive {
+  font-weight: 600;
+}
+
+/* 面包屑语境下的当前层压缩包名：加粗、不可点 */
+.arc__crumbs .arc__crumb-current {
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
+
+/* ---- 嵌套包下钻遮罩 ---- */
+.arc__drilling {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--el-bg-color) 72%, transparent);
+}
+
+.arc__drilling-text {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 
 .arc__search {
@@ -916,6 +1135,12 @@ async function extractTo(): Promise<void> {
   background: var(--el-fill-color);
   color: var(--el-text-color-secondary);
   font-size: 12px;
+}
+
+/* 嵌套压缩包条目徽标：提示可原位下钻 */
+.arc__cell-badge--archive {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
 }
 
 .arc__empty {

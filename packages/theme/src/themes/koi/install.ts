@@ -11,18 +11,44 @@
  *   });
  *
  * 本安装器职责：
- *   - 注册 ElementPlus + 全部图标
+ *   - 注册 ElementPlus 按需样式基线（反馈类命令式 API + koi 覆盖到的组件）与 v-loading 指令
+ *   - 注册全部图标
  *   - 注册 koi 业务组件 / 指令
  *   - 注入 koi SVG sprite
  *   - provide 公共 App 需要的 UI 上下文（语言 / 尺寸），供 @repo/app 的 App.vue 读取
+ *
+ * ElementPlus 组件本体不再全量注册（app.use(ElementPlus) 已移除）：模板里的 <el-*>
+ * 由 createVite 的 unplugin-vue-components + ElementPlusResolver 在编译期按需导入
+ * （含组件样式）；locale 交给 @repo/app 的 el-config-provider 统一提供。
  */
 import type { App } from "vue";
 import { storeToRefs } from "pinia";
 import type { Router } from "vue-router";
-import ElementPlus from "element-plus";
-import "element-plus/dist/index.css";
+import { ElLoadingDirective } from "element-plus";
 import "element-plus/theme-chalk/dark/css-vars.css";
-import zhCn from "element-plus/es/locale/lang/zh-cn";
+// 反馈类命令式 API（ElMessage / ElMessageBox / ElNotification / ElLoading.service）不经
+// 模板编译，unplugin-vue-components 无法注入其样式 → 必须显式引入（会级联带上 base 变量）。
+import "element-plus/es/components/message/style/css";
+import "element-plus/es/components/message-box/style/css";
+import "element-plus/es/components/notification/style/css";
+import "element-plus/es/components/loading/style/css";
+// koi 主题样式覆盖了下列组件的类名与局部变量（element.scss / index.scss / radius.scss /
+// popover.scss / wallpaper.scss）。这些组件的按需样式若只被懒加载页面引用，其 CSS 会落在
+// 懒加载 chunk，运行时插入 <head> 的顺序晚于本文件引入的 koi 覆盖层，同权重选择器会被
+// EP 基线反超（主题色 / 圆角 / 表格等失效）。因此在入口先统一引入，固化
+// 「EP 基线在前、koi 覆盖在后」的层叠顺序。
+import "element-plus/es/components/container/style/css";
+import "element-plus/es/components/button/style/css";
+import "element-plus/es/components/card/style/css";
+import "element-plus/es/components/dialog/style/css";
+import "element-plus/es/components/empty/style/css";
+import "element-plus/es/components/form/style/css";
+import "element-plus/es/components/form-item/style/css";
+import "element-plus/es/components/menu/style/css";
+import "element-plus/es/components/pagination/style/css";
+import "element-plus/es/components/popover/style/css";
+import "element-plus/es/components/table/style/css";
+import "element-plus/es/components/tooltip/style/css";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "animate.css";
 // koi 主题样式：覆盖 ElPlus CSS 变量（菜单/header/布局主题色等），必须在 element-plus 样式之后引入
@@ -44,7 +70,7 @@ import { installForcedLogin } from "./forcedLogin";
 export interface InstallKoiOptions {
   /** 应用路由实例（由调用方创建，注入以配合业务路由） */
   router?: Router;
-  /** 是否自动注册 ElementPlus（默认 true） */
+  /** 是否注册 ElementPlus 的 v-loading 指令（默认 true；组件本体已改为编译期按需解析） */
   elementPlus?: boolean;
   /** 是否注册 ElementPlus 全部图标为全局组件（默认 true） */
   elementIcons?: boolean;
@@ -60,7 +86,9 @@ export async function installKoi(app: App, options: InstallKoiOptions = {}): Pro
   // 框架侧保持原样，业务 main.ts 请务必在 mount 后调用一次 setupSvgSprite。
 
   if (elementPlus) {
-    app.use(ElementPlus, { locale: zhCn });
+    // v-loading 是本仓唯一以指令形式使用的 EP 能力；unplugin-vue-components 不解析指令，
+    // 必须在应用上显式注册（组件本体走编译期按需导入，locale 由 el-config-provider 提供）。
+    app.directive("loading", ElLoadingDirective);
   }
 
   if (elementIcons) {

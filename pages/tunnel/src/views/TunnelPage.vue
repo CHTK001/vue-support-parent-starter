@@ -22,9 +22,10 @@
  * @author CH
  * @since 4.0.0.52
  */
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, toRef, watch } from "vue";
 import { ElMessageBox } from "element-plus";
 import { msgError, msgSuccess } from "@repo/core";
+import { usePersistentFilters } from "@repo/utils";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
@@ -130,8 +131,20 @@ const runningCount = computed(() => rows.value.filter((row) => stateOf(row) === 
 const errorCount = computed(() => rows.value.filter((row) => stateOf(row) === "error").length);
 const stoppedCount = computed(() => rows.value.filter((row) => stateOf(row) === "stopped").length);
 
-/** 状态筛选 */
-const filter = ref<"all" | TunnelState>("all");
+/**
+ * 左栏筛选（状态 + 搜索词）持久化：localStorage 记忆 + 路由 query 同步。
+ *
+ * <p>切走再切回来筛选不丢；带 {@code ?state=error&search=xxx} 的链接可直接分享定位。
+ * query 里的脏值（不在状态枚举内）回落后立即归位为「全部」。</p>
+ */
+const { filters: listFilters } = usePersistentFilters({
+  key: "tunnel.list",
+  defaults: { state: "all" as "all" | TunnelState, search: "" },
+  queryKeys: ["state", "search"],
+});
+if (!["all", "running", "error", "stopped"].includes(listFilters.state)) {
+  listFilters.state = "all";
+}
 
 const filters = computed(() => [
   { value: "all" as const, label: "全部", count: rows.value.length },
@@ -140,8 +153,11 @@ const filters = computed(() => [
   { value: "stopped" as const, label: "已停止", count: stoppedCount.value },
 ]);
 
-/** 左栏搜索词：名称 / 端口 / 域名 / 公网地址都能命中 */
-const search = ref("");
+/** 状态筛选（与 listFilters.state 双向同步，保留原模板变量名） */
+const filter = toRef(listFilters, "state");
+
+/** 左栏搜索词：名称 / 端口 / 域名 / 公网地址都能命中（与 listFilters.search 双向同步） */
+const search = toRef(listFilters, "search");
 
 /** 通过筛选与搜索并排序后的链路：异常 → 在线 → 已停止，稳定排序 */
 const visibleRows = computed(() => {
@@ -221,8 +237,55 @@ interface ProviderGroup {
   markClass: string;
   total: number;
   running: number;
-  available: boolean;
+  /** true 可用 / false 不可用 / null 未知（拿不到该提供方的元数据） */
+  available: boolean | null;
+  /** 组头可用性 chip 文案：可用 / 不可用 / 未安装… / 未知 */
+  chipText: string;
+  /** 组头可用性 chip 配色档 */
+  chipClass: string;
+  /** chip 悬停说明：不可用给后端探测到的原因，未知给解释 */
+  chipTitle: string;
   rows: TunnelView[];
+}
+
+/**
+ * 不可用原因（读后端能力探测结果，前端只做展示映射，不自行判定可用性）。
+ *
+ * @param info 提供方描述；清单加载失败或提供方未注册时拿不到
+ * @returns 分号分隔的原因；无探测依据时返回空串（chip 回退笼统「不可用」）
+ */
+function unavailableReason(info: TunnelProviderInfo | undefined): string {
+  if (!info || info.available !== false) {
+    return "";
+  }
+  const caps = info.capabilities ?? {};
+  const reasons: string[] = [];
+  if (caps.binaryAvailable === false) {
+    reasons.push("未安装客户端");
+  }
+  // 凭据字段各提供方不同：cloudflared=tokenConfigured / ngrok=authtokenConfigured / tailscale=authKeyConfigured
+  const credLabels: Record<string, string> = {
+    tokenConfigured: "未配置 Token",
+    authtokenConfigured: "未配置 Authtoken",
+    authKeyConfigured: "未配置 AuthKey",
+  };
+  for (const [field, label] of Object.entries(credLabels)) {
+    if (caps[field] === false) {
+      reasons.push(label);
+    }
+  }
+  return reasons.join("；");
+}
+
+/** chip 上的短原因（title 里给全因） */
+function shortUnavailable(hint: string): string {
+  if (hint.includes("未安装")) {
+    return "未安装";
+  }
+  if (hint.includes("未配置")) {
+    return "未配置";
+  }
+  return "不可用";
 }
 
 /** 左栏分组：已注册提供方的顺序优先，未注册的排在后面 */
@@ -244,6 +307,9 @@ const groups = computed<ProviderGroup[]>(() => {
     .map((key) => {
       const list = buckets.get(key) ?? [];
       const info = providers.value.find((item) => String(item.name) === key);
+      // 元数据拿不到（清单加载失败 / 提供方未注册）时是「未知」，不能谎报「不可用」
+      const available = info ? info.available : null;
+      const hint = unavailableReason(info);
       return {
         provider: key,
         label: info?.displayName ?? key,
@@ -251,7 +317,14 @@ const groups = computed<ProviderGroup[]>(() => {
         markClass: providerMarkClass(key),
         total: list.length,
         running: list.filter((row) => stateOf(row) === "running").length,
-        available: info ? info.available : true,
+        available,
+        chipText: available === null ? "未知" : available ? "可用" : shortUnavailable(hint),
+        chipClass: available === null ? "chip--muted" : available ? "chip--success" : "chip--warn",
+        chipTitle: available === null
+          ? "未获取到该提供方的能力信息"
+          : available
+            ? ""
+            : hint || "运行环境不具备执行条件",
         rows: list,
       };
     });
@@ -609,11 +682,18 @@ async function reload() {
   }
 }
 
-/** 拉提供方清单（后端没部署时这里会失败，页面给出可重试的提示） */
+/** 提供方清单加载状态：区分「加载中 / 成功 / 失败」，失败时组头可用性回退「未知」 */
+const providersState = ref<"loading" | "ready" | "failed">("loading");
+
+/** 拉提供方清单（失败时列表照常展示，左栏给出可重试的短提示） */
 async function reloadProviders() {
+  providersState.value = "loading";
   try {
     providers.value = await listTunnelProviders();
+    providersState.value = "ready";
   } catch (e) {
+    providers.value = [];
+    providersState.value = "failed";
     msgError(`提供方加载失败：${errText(e)}`);
   }
 }
@@ -945,8 +1025,14 @@ async function save() {
         </div>
 
         <div class="nav__list">
-          <p v-if="!providers.length" class="nav__note nav__note--warn">
-            后端没有返回任何提供方：请确认监控服务已引入内网穿透模块，并且 <code>/ms/tunnel</code> 可访问。
+          <p v-if="providersState === 'failed'" class="nav__note nav__note--warn">
+            提供方信息加载失败，组头可用性暂以「未知」显示。
+            <button type="button" class="nav__retry" @click="reloadProviders">重试</button>
+          </p>
+          <p v-else-if="providersState === 'loading'" class="nav__note">正在加载提供方…</p>
+          <p v-else-if="!providers.length" class="nav__note">
+            监控服务未注册内网穿透提供方。
+            <button type="button" class="nav__retry" @click="reloadProviders">重新检测</button>
           </p>
           <p v-else-if="loading && !rows.length" class="nav__note">正在加载隧道…</p>
           <p v-else-if="!groups.length" class="nav__note">
@@ -958,8 +1044,8 @@ async function save() {
               <span class="pmark" :class="`pmark--${group.markClass}`">{{ group.mark }}</span>
               <span class="grp__name">{{ group.label }}</span>
               <span class="grp__n">{{ group.total }} 条 · {{ group.running }} 在线</span>
-              <span class="chip grp__chip" :class="group.available ? 'chip--success' : 'chip--warn'">
-                {{ group.available ? "可用" : "不可用" }}
+              <span class="chip grp__chip" :class="group.chipClass" :title="group.chipTitle">
+                {{ group.chipText }}
               </span>
             </div>
 
@@ -1020,7 +1106,12 @@ async function save() {
               :key="row.id"
               class="lane"
               :class="{ 'is-sel': selected?.id === row.id }"
+              role="button"
+              :tabindex="0"
+              :aria-pressed="selected?.id === row.id"
               @click="selectedId = row.id"
+              @keydown.enter.prevent="selectedId = row.id"
+              @keydown.space.prevent="selectedId = row.id"
             >
               <div class="node">
                 <div class="nbox nbox--local" :class="boxClass(row)">
@@ -1500,7 +1591,7 @@ async function save() {
   background: var(--bg-container);
   color: var(--brand-600);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(15, 18, 33, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .seg__n {
@@ -1623,6 +1714,26 @@ async function save() {
   font-size: 11px;
 }
 
+/* 失败重试：提示行内的小号按钮，不把用户赶出列表 */
+.nav__retry {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-container);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 10.5px;
+  line-height: 1.5;
+  cursor: pointer;
+  vertical-align: 1px;
+}
+
+.nav__retry:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 .grp {
   margin-top: 10px;
 }
@@ -1648,13 +1759,15 @@ async function save() {
   flex: none;
   display: grid;
   place-items: center;
-  color: #fff;
+  color: var(--text-inverse);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.02em;
   background: var(--brand-500);
 }
 
+/* 提供方品牌标识色（ngrok 墨黑 / Cloudflare 橙 / Tailscale 深蓝）：等同 logo 的固定品牌色，
+   不随明暗主题切换；两种主题下白字均可读，故不接入主题令牌。 */
 .pmark--ngrok {
   background: #1f2430;
 }

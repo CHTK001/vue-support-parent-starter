@@ -7,7 +7,8 @@
  * @since 4.0.0
  */
 import { message } from "@repo/core";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { useDialogPrerender } from "../utils/dialogPrerender";
 import {
@@ -27,6 +28,8 @@ import {
   type AlarmMaintenanceWindow,
 } from "../api/monitorApi";
 import { ReFormItem } from "@repo/ui/re-kit";
+
+const route = useRoute();
 
 const tab = ref<"policy" | "rule" | "window">("policy");
 const policies = ref<AlarmPolicy[]>([]);
@@ -335,10 +338,23 @@ const rulesGrouped = computed(() => {
   return [...map.entries()];
 });
 
+function setTabFromQuery(): void {
+  const q = route.query.tab;
+  if (q === "rule" || q === "window" || q === "policy") tab.value = q;
+}
 onMounted(() => {
+  setTabFromQuery();
   fetchAll();
   windowTimer = window.setInterval(() => { now.value = new Date(); }, WINDOW_TICK_MS);
 });
+// ⌘K 命令面板 / 外部深链在已打开的页面上换 tab 参数：组件实例复用，onMounted 不会重跑，
+// 需要监听 query 变化重新切页签（同为首次进入提供一次兜底）。
+watch(
+  () => route.query.tab,
+  () => {
+    if (route.path === "/alarm-policies") setTabFromQuery();
+  },
+);
 onUnmounted(() => {
   if (windowTimer !== undefined) window.clearInterval(windowTimer);
 });

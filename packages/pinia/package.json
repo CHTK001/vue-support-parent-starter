@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "rimraf": "catalog:"
+    "rimraf": "catalog:",
+    "vue": "catalog:"
   }
 }

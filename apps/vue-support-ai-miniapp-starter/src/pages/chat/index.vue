@@ -34,8 +34,23 @@
       class="chat-body"
       scroll-y
       :scroll-into-view="scrollAnchor"
-      :scroll-with-animation="true"
+      :scroll-with-animation="scrollAnimated"
+      :lower-threshold="80"
+      @scroll="handleScroll"
+      @scrolltolower="handleReachBottom"
     >
+      <!-- 切会话时先给骨架，避免"空白等消息" -->
+      <view v-if="loadingHistory && messages.length === 0" class="chat-skeleton">
+        <view
+          v-for="row in 3"
+          :key="row"
+          class="skeleton-row"
+          :class="{ 'skeleton-row--right': row % 2 === 0 }"
+        >
+          <view class="skeleton-bubble" />
+        </view>
+      </view>
+
       <view v-if="messages.length === 0 && !loadingHistory" class="chat-empty">
         <text class="chat-empty-title">开始对话</text>
         <text class="chat-empty-desc">发送第一条消息，自动创建会话</text>
@@ -50,10 +65,13 @@
       >
         <view class="msg-bubble">
           <view v-if="msg.thinking" class="msg-thinking">
-            <text class="msg-thinking-label">思考过程</text>
-            <text class="msg-thinking-text">{{ msg.thinking }}</text>
+            <view class="msg-thinking-head" @tap="toggleThinking(msg)">
+              <text class="msg-thinking-label">思考过程{{ msg.thinkingOpen ? "（收起）" : "（展开）" }}</text>
+            </view>
+            <text v-if="msg.thinkingOpen" class="msg-thinking-text">{{ msg.thinking }}</text>
           </view>
-          <text v-if="msg.text" class="msg-text">{{ msg.text }}</text>
+          <text v-if="msg.role === 'user' && msg.text" class="msg-text">{{ msg.text }}</text>
+          <markdown-body v-else-if="msg.blocks.length" class="msg-text" :blocks="msg.blocks" />
           <view v-if="msg.statusText" class="msg-status">
             <text>{{ msg.statusText }}</text>
           </view>
@@ -65,15 +83,17 @@
       <view id="msg-bottom" class="chat-body-bottom"></view>
     </scroll-view>
 
-    <!-- 输入区 -->
+    <!-- 输入区：多行自适应（上限 5 行左右，超出内部滚动） -->
     <view class="chat-footer">
       <view class="chat-input-wrap">
-        <wd-input
+        <wd-textarea
           v-model="inputText"
-          placeholder="输入消息…"
+          placeholder="输入消息，回车发送"
           confirm-type="send"
-          :confirm-hold="true"
+          :auto-height="true"
+          :show-confirm-bar="false"
           :adjust-position="true"
+          :cursor-spacing="24"
           :disabled="sending"
           no-border
           @confirm="handleSend"
@@ -89,6 +109,11 @@
         发送
       </wd-button>
       <wd-button v-else type="error" custom-class="send-btn" @click="handleStop">停止</wd-button>
+    </view>
+
+    <!-- 用户上滑看历史时出现，避免被流式输出拽回底部 -->
+    <view v-if="!autoFollow && messages.length" class="back-bottom" @tap="backToBottom">
+      <text class="back-bottom-text">回到底部</text>
     </view>
 
     <!-- 框架浮层宿主（useToast / useMessage 需要） -->
@@ -116,6 +141,7 @@ import {
   type StreamEvent,
 } from "../../api/chat";
 import { clearToken, getToken } from "../../api/http";
+import { parseMarkdown, type MarkdownBlock } from "../../utils/markdown";
 import { useMessage } from "wot-design-uni/components/wd-message-box";
 import { useToast } from "wot-design-uni/components/wd-toast";
 
@@ -124,23 +150,37 @@ interface ViewMessage {
   role: "user" | "assistant";
   text: string;
   thinking: string;
+  /** 助手消息的 Markdown 解析结果（用户消息为纯文本，不走这里） */
+  blocks: MarkdownBlock[];
+  /** 思考过程是否展开（流式期间自动展开，可手动收起） */
+  thinkingOpen: boolean;
   status: "done" | "streaming" | "error";
   statusText?: string;
 }
 
 /** 服务端消息 → 视图消息（历史加载与轮询回填共用一处映射） */
 function toViewMessage(item: MessageItem): ViewMessage {
+  const text = messageText(item);
   return {
     id: item.id,
     role: item.role,
-    text: messageText(item),
+    text,
     thinking: messageReasoning(item),
+    blocks: item.role === "assistant" ? parseMarkdown(text) : [],
+    thinkingOpen: false,
     status: item.state?.isStreaming ? "streaming" : "done",
   };
 }
 
 /** 当前流式请求句柄（模块级，避免被响应式代理） */
 let activeStream: { abort: () => void } | null = null;
+
+/**
+ * 流式渲染节流：正文增量不进模板，改为每 80ms 重解析一次 Markdown 再渲染。
+ * 一秒钟几十个 chunk 时不至于每块都跑一遍正则 + 触发一次布局。
+ */
+let renderTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingMessage: ViewMessage | null = null;
 
 export default {
   setup() {
@@ -158,6 +198,12 @@ export default {
       loadingHistory: false,
       sessionPanelVisible: false,
       scrollAnchor: "",
+      /** 是否跟随最新消息（用户上滑后关闭，回到底部/发消息后恢复） */
+      autoFollow: true,
+      /** 上一次滚动位置，用来判断"用户正在往上翻" */
+      lastScrollTop: 0,
+      /** 流式时关闭滚动动画，避免每个节拍都做一次动画 */
+      scrollAnimated: true,
     };
   },
   onShow() {
@@ -168,6 +214,7 @@ export default {
     this.loadSessions();
   },
   onUnload() {
+    this.clearRenderTimer();
     this.abortStream();
   },
   methods: {
@@ -180,11 +227,15 @@ export default {
       }
     },
 
-    /** 切会话 / 新建前统一收尾：中断流、复位发送态、收起面板 */
+    /** 切会话 / 新建前统一收尾：中断流、复位发送态、收起面板、恢复跟随 */
     resetStreamState() {
+      this.clearRenderTimer();
       this.abortStream();
       this.sending = false;
       this.sessionPanelVisible = false;
+      this.autoFollow = true;
+      this.lastScrollTop = 0;
+      this.scrollAnimated = true;
     },
 
     switchSession(sessionId: string) {
@@ -195,6 +246,9 @@ export default {
       this.resetStreamState();
       this.currentSessionId = sessionId;
       this.currentTitle = this.sessions.find((s) => s.id === sessionId)?.title || "对话";
+      // 先清空再加载：否则会短暂显示上一个会话的消息，骨架屏也不会出现
+      this.messages = [];
+      this.scrollAnchor = "";
       this.loadMessages();
     },
 
@@ -228,6 +282,7 @@ export default {
         // 取消：什么都不做
         return;
       }
+      this.clearRenderTimer();
       this.abortStream();
       clearToken();
       uni.reLaunch({ url: "/pages/login/index" });
@@ -243,7 +298,9 @@ export default {
       try {
         const items = await fetchSessionMessages(this.currentSessionId, 50);
         this.messages = items.map(toViewMessage);
-        this.scrollToBottom();
+        this.autoFollow = true;
+        this.scrollAnimated = true;
+        this.scrollToBottom(true);
       } catch (error: any) {
         if (!silent) {
           this.toast.show({ msg: error?.message || "加载消息失败" });
@@ -274,6 +331,8 @@ export default {
         role: "user",
         text: content,
         thinking: "",
+        blocks: [],
+        thinkingOpen: false,
         status: "done",
       });
       this.messages.push({
@@ -281,12 +340,16 @@ export default {
         role: "assistant",
         text: "",
         thinking: "",
+        blocks: [],
+        thinkingOpen: true,
         status: "streaming",
       });
       // 取响应式代理引用，保证后续赋值能触发视图更新
       const placeholder = this.messages[this.messages.length - 1] as ViewMessage;
       this.sending = true;
-      this.scrollToBottom();
+      this.autoFollow = true;
+      this.scrollAnimated = true;
+      this.scrollToBottom(true);
 
       // 环境不支持分块响应 → 直接走降级路径
       if (!chunkedSupported()) {
@@ -308,13 +371,15 @@ export default {
               this.sending = false;
               // 仅当仍是当前流时才清句柄，防止旧流的迟到回调清掉新流
               if (activeStream === stream) activeStream = null;
+              this.queueMessageUpdate(placeholder, true);
             },
             onDone: () => {
               if (placeholder.status === "streaming") placeholder.status = "done";
               this.sending = false;
               if (activeStream === stream) activeStream = null;
+              // 把节流窗口里最后一段正文刷出来，再用服务端权威数据回填
+              this.queueMessageUpdate(placeholder, true);
               this.loadSessions();
-              // 用服务端权威数据回填（拿到真实消息 id / 用量等）
               this.loadMessages(true);
             },
           },
@@ -329,11 +394,11 @@ export default {
       switch (event.type) {
         case "think":
           msg.thinking += event.reasoningContent || "";
-          this.scrollToBottom();
           break;
         case "text":
           msg.text += event.content || "";
-          this.scrollToBottom();
+          // 节流重解析：正文不进模板，按 80ms 节拍统一刷新
+          this.queueMessageUpdate(msg);
           break;
         case "tool_call":
           msg.statusText = `正在调用工具 ${event.toolCalls?.[0]?.name || ""}…`;
@@ -351,11 +416,17 @@ export default {
             msg.status = "error";
             msg.statusText = String(event.error);
           }
+          this.queueMessageUpdate(msg, true);
           break;
         default:
           // create / compression_* / trace 等事件不直接渲染
           break;
       }
+    },
+
+    /** 折叠/展开某条消息的思考过程 */
+    toggleThinking(msg: ViewMessage) {
+      msg.thinkingOpen = !msg.thinkingOpen;
     },
 
     // ---------- 降级：fire-and-forget + 轮询历史 ----------
@@ -385,6 +456,7 @@ export default {
             const view = toViewMessage(last);
             if (view.text) placeholder.text = view.text;
             if (view.thinking) placeholder.thinking = view.thinking;
+            this.queueMessageUpdate(placeholder, true);
             if (!streaming) {
               placeholder.status = "done";
               placeholder.statusText = "";
@@ -410,6 +482,8 @@ export default {
         last.status = "done";
         last.statusText = "已停止生成";
       }
+      // 把节流窗口里最后一段正文刷出来（停止时不再有 onDone）
+      if (last) this.queueMessageUpdate(last, true);
       if (this.currentSessionId) {
         try {
           await stopStream(this.currentSessionId);
@@ -430,15 +504,74 @@ export default {
       }
     },
 
-    // ---------- 工具 ----------
-    scrollToBottom() {
+    // ---------- 滚动跟随 ----------
+    /** 只有"用户往上滑"才关闭跟随：程序滚动只会向下，不会误判 */
+    handleScroll(event: any) {
+      const top = Number(event?.detail?.scrollTop ?? 0);
+      if (top < this.lastScrollTop - 12) this.autoFollow = false;
+      this.lastScrollTop = top;
+    },
+
+    /** 滑到底（scrolltolower）恢复跟随 */
+    handleReachBottom() {
+      this.autoFollow = true;
+    },
+
+    backToBottom() {
+      this.autoFollow = true;
+      this.scrollAnimated = true;
+      this.forceScroll();
+    },
+
+    /** 仅跟随模式下滚动；force 用于发送、切会话、回到底部 */
+    scrollToBottom(force = false) {
+      if (!force && !this.autoFollow) return;
+      this.forceScroll();
+    },
+
+    forceScroll() {
       this.scrollAnchor = "";
       this.$nextTick(() => {
-        this.scrollAnchor = this.messages.length
-          ? `msg-${this.messages.length - 1}`
-          : "msg-bottom";
+        this.scrollAnchor = this.messages.length ? `msg-${this.messages.length - 1}` : "msg-bottom";
       });
     },
+
+    // ---------- 流式渲染节流 ----------
+    queueMessageUpdate(msg: ViewMessage, immediate = false) {
+      pendingMessage = msg;
+      if (immediate) {
+        this.clearRenderTimer();
+        this.flushRender();
+        return;
+      }
+      if (renderTimer) return;
+      renderTimer = setTimeout(() => {
+        renderTimer = null;
+        this.flushRender();
+      }, 80);
+    },
+
+    flushRender() {
+      const message = pendingMessage;
+      pendingMessage = null;
+      if (message) {
+        message.blocks = message.role === "assistant" ? parseMarkdown(message.text) : [];
+      }
+      if (this.autoFollow) {
+        this.scrollAnimated = false;
+        this.forceScroll();
+      }
+    },
+
+    clearRenderTimer() {
+      if (renderTimer) {
+        clearTimeout(renderTimer);
+        renderTimer = null;
+      }
+      pendingMessage = null;
+    },
+
+    // ---------- 工具 ----------
 
     formatTime(value?: string): string {
       if (!value) return "";
@@ -640,36 +773,95 @@ export default {
 /* ---------- 输入区 ---------- */
 .chat-footer {
   display: flex;
-  align-items: center;
-  padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  align-items: flex-end;
+  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
   background: #ffffff;
   border-top: 1rpx solid #e7e9ec;
 }
 
+/* 多行输入：默认单行高度，随内容增高，上限约 5 行后内部滚动 */
 .chat-input-wrap {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   min-width: 0;
-  height: 80rpx;
+  min-height: 80rpx;
+  max-height: 260rpx;
+  overflow-y: auto;
   background: #f5f6f8;
-  border-radius: 40rpx;
-  padding: 0 28rpx;
+  border-radius: 24rpx;
+  padding: 10rpx 24rpx;
   box-sizing: border-box;
 }
 
-.chat-input-wrap :deep(.wd-input) {
+.chat-input-wrap :deep(.wd-textarea) {
   flex: 1;
-  padding: 0;
+  width: 100%;
   background: transparent;
 }
 
-.chat-input-wrap :deep(.wd-input__inner) {
+.chat-input-wrap :deep(.wd-textarea__inner) {
+  width: 100%;
+  min-height: 60rpx;
   font-size: 28rpx;
+  line-height: 1.5;
 }
 
 .send-btn {
   margin-left: 20rpx;
   flex-shrink: 0;
+}
+
+/* ---------- 骨架屏（切会话首屏） ---------- */
+.chat-skeleton {
+  padding-top: 8rpx;
+}
+
+.skeleton-row {
+  display: flex;
+  margin-bottom: 24rpx;
+}
+
+.skeleton-row--right {
+  justify-content: flex-end;
+}
+
+.skeleton-bubble {
+  width: 62%;
+  height: 96rpx;
+  border-radius: 20rpx;
+  background: #e9ecf1;
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ---------- 思考过程折叠 ---------- */
+.msg-thinking-head {
+  padding: 2rpx 0;
+}
+
+/* ---------- 回到底部 ---------- */
+.back-bottom {
+  position: fixed;
+  right: 32rpx;
+  bottom: calc(190rpx + env(safe-area-inset-bottom));
+  padding: 12rpx 24rpx;
+  border-radius: 32rpx;
+  background: rgba(31, 35, 41, 0.78);
+  z-index: 10;
+}
+
+.back-bottom-text {
+  font-size: 24rpx;
+  color: #ffffff;
 }
 </style>

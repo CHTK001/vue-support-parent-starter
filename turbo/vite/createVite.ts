@@ -28,6 +28,13 @@ import react from "@vitejs/plugin-react";
 import vueSetupExtend from "vite-plugin-vue-setup-extend";
 import UnoCSS from "unocss/vite";
 import { presetWind3, presetAttributify, presetIcons, presetTypography, transformerDirectives, transformerVariantGroup, type UserConfig as UnoConfig } from "unocss";
+// Element Plus 按需解析（与 koi install / ai main 的显式指令注册、命令式 API 样式引入配合）：
+// 模板里的 <el-*> 由 Components 在编译期注入具名导入 + 组件样式；AutoImport 兜底
+// ElMessage 等命令式 API 的具名导入。反馈类组件样式不经模板编译，仍需应用入口显式
+// import（见 packages/theme/src/themes/koi/install.ts 与 pages/ai/src/main.js）。
+import AutoImport from "unplugin-auto-import/vite";
+import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
+import Components from "unplugin-vue-components/vite";
 import path from "node:path";
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -74,10 +81,13 @@ const REPO_ALIAS: Record<string, string> = {
   "@pages/message": "pages/message/src",
   "@pages/tunnel": "pages/tunnel/src",
   "@pages/channel": "pages/channel/src",
+  "@pages/cdp": "pages/cdp/src",
   "@repo/env": "packages/env/src",
   "@repo/images": "packages/images/src",
   "@repo/languages": "packages/languages/src",
   "@repo/pages": "packages/pages/src",
+  // 监控大屏卡片共享契约（仅类型 + 运行时注册表，无 UI 组件）
+  "@repo/monitor-cards": "packages/monitor-cards/src",
   "@repo/pinia": "packages/pinia/src",
   "@repo/theme": "packages/theme/src",
   "@repo/ui": "packages/ui/src",
@@ -1095,11 +1105,11 @@ function fix304ContentType(): Plugin {
             }
           }
         };
-        res.end = (...args): any => {
+        res.end = (...args: any[]): any => {
           inject(res.statusCode);
           return origEnd(...args);
         };
-        res.writeHead = (statusCode: number, ...args): any => {
+        res.writeHead = (statusCode: number, ...args: any[]): any => {
           inject(statusCode);
           return origWriteHead(statusCode, ...args);
         };
@@ -1128,6 +1138,12 @@ export function createVite(options: CreateViteOptions = {}): UserConfig {
     if (options.vueSetupExtend ?? false) {
       plugins.push(vueSetupExtend());
     }
+    // Element Plus 按需解析：组件与样式在编译期按需注入，应用入口不再全量
+    // app.use(ElementPlus) / import "element-plus/dist/index.css"（见 koi install.ts）。
+    // dts 关闭：本配置被 monorepo 多应用共享，避免每个应用构建时都生成
+    // components.d.ts / auto-imports.d.ts 的噪音与相互覆盖。
+    plugins.push(AutoImport({ resolvers: [ElementPlusResolver()], dts: false }));
+    plugins.push(Components({ resolvers: [ElementPlusResolver()], dts: false }));
   }
   if (options.appName) {
     plugins.push(serveAppConfig(options.appName, root));
@@ -1171,7 +1187,11 @@ const isDesktop = options.electron || options.tauri;
 
   // 构建分包（lib 分离部署）：合并用户 build 与共享 manualChunks，
   // 并把 options.config 里的 build 拆出来，防止展开顺序覆盖分包注入。
-  const { build: userConfigBuild, ...restConfig } = options.config ?? {};
+  // options.config 的类型声明 Omit 掉了 resolve，但应用运行期确实会传
+  //（monitor 用 config.resolve.alias 重写 element-plus loading 样式路径），
+  // 这里按 UserConfig 取出 resolve 与 build，剩余字段继续透传。
+  const appConfig = (options.config ?? {}) as UserConfig;
+  const { build: userConfigBuild, resolve: userConfigResolve, ...restConfig } = appConfig;
   const mergedBuild = mergeBuild(userConfigBuild);
 
   return defineConfig({
@@ -1206,7 +1226,17 @@ const isDesktop = options.electron || options.tauri;
     },
     plugins,
     resolve: {
+      // 应用级 config.resolve.alias 必须是「追加」而非「整体覆盖」：本对象末尾的
+      // ...restConfig 会把应用 config 里的 resolve 整体展开，若不做合并，工厂装配的
+      // @repo/* / @pages/* 别名全部丢失 —— main.ts 首个 @pages/* import 即 500，
+      // 登录页白屏（2026-11-19 monitor 实测）。这里把应用传入的 alias 拼在数组最前
+      // （与 options.alias 覆盖 REPO_ALIAS 的「应用优先」口径一致），工厂别名全部保留。
       alias: [
+        ...(Array.isArray(userConfigResolve?.alias)
+          ? userConfigResolve.alias
+          : userConfigResolve?.alias
+            ? Object.entries(userConfigResolve.alias).map(([find, replacement]) => ({ find, replacement }))
+            : []),
         {
           find: /^echarts$/,
           replacement: path.resolve(WORKSPACE_ROOT, "packages/ui/src/shared/echarts-compat"),

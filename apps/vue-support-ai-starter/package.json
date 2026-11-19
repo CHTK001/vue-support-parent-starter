@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@pages/ai": "workspace:*",
+    "@pages/cdp": "workspace:*",
     "@pages/channel": "workspace:*",
     "@pages/filesystem": "workspace:*",
     "@repo/config": "workspace:*",
@@ -73,7 +74,7 @@
     "unocss": "catalog:",
     "unplugin-auto-import": "^20.3.0",
     "unplugin-vue-components": "^30.0.0",
-    "vite": "^7.3.0",
+    "vite": "catalog:",
     "vite-plugin-clean": "^2.0.1",
     "vite-plugin-inspect": "^11.3.3",
     "vue-tsc": "catalog:"

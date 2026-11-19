@@ -13,6 +13,7 @@
     :count-text="`共 ${rows.length} 项`"
     :loading="loading"
     :error="error"
+    :error-kind="errorKind"
     density
     auto-refresh
     :updated-at="updatedAt"
@@ -50,7 +51,7 @@ import ActTablePager from "../ActTablePager.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
 import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 
-const { data, loading, error, keyword, updatedAt, reload, hit } = useActuatorPanel("beans");
+const { data, loading, error, errorKind, keyword, updatedAt, reload, hit } = useActuatorPanel("beans");
 
 interface BeanRow {
   ctx: string;

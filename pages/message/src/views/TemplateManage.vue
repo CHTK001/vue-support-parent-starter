@@ -162,15 +162,11 @@ async function handleStatus(row: MessageTemplate) {
   loadList();
 }
 
-/** 手动同步远端模板 */
+/** 手动同步远端模板（模板统一收敛到账号侧模板库，按渠道同步） */
 async function handleSync() {
-  if (!query.sysMessageProviderId) {
-    message.warning("请先选择提供商");
-    return;
-  }
   syncLoading.value = true;
   try {
-    const res = await syncTemplate(query.sysMessageProviderId);
+    const res = await syncTemplate();
     message.success(`同步完成，共 ${res?.data ?? 0} 个模板`);
     loadList();
   } finally {

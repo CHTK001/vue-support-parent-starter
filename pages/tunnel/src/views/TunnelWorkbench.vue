@@ -174,41 +174,55 @@ function updateTunnelRecord(id: string, model: TunnelRecord) {
   return api.value.update(id, model);
 }
 
+/** 行级操作忙碌态：同一行操作进行中时禁止重复触发 */
+const rowBusy = ref<Record<string, boolean>>({});
+
+/** 统一执行行操作：失败给出提示（最新状态由 SSE 回推），进行中防重入 */
+async function runRowAction(id: string, action: () => Promise<unknown>, successText: string) {
+  if (rowBusy.value[id]) return;
+  rowBusy.value = { ...rowBusy.value, [id]: true };
+  try {
+    await action();
+    ElMessage.success(successText);
+  } catch (e) {
+    ElMessage.error((e as Error)?.message ?? "操作失败");
+  } finally {
+    rowBusy.value = { ...rowBusy.value, [id]: false };
+  }
+}
+
 function deleteTunnelRecord(id: string) {
-  return api.value.delete(id);
+  return runRowAction(id, () => api.value.delete(id), "删除成功");
 }
 
 function startTunnelRecord(id: string) {
-  return api.value.start(id);
+  return runRowAction(id, () => api.value.start(id), "已启动");
 }
 
 function stopTunnelRecord(id: string) {
-  return api.value.stop(id);
+  return runRowAction(id, () => api.value.stop(id), "已停止");
 }
 
 function onFormSubmit() {
   formRef.value!.validate((valid) => {
     if (!valid) return;
     formLoading.value = true;
-    if (selected.value) {
-      updateTunnelRecord(selected.value.id, formModel.value)
-        .then(() => {
+    const done = selected.value
+      ? updateTunnelRecord(selected.value.id, formModel.value).then(() => {
           ElMessage.success("更新成功");
           drawerVisible.value = false;
         })
-        .finally(() => {
-          formLoading.value = false;
-        });
-    } else {
-      createTunnelRecord(formModel.value)
-        .then(() => {
+      : createTunnelRecord(formModel.value).then(() => {
           ElMessage.success("创建成功");
           drawerVisible.value = false;
-        })
-        .finally(() => {
-          formLoading.value = false;
         });
-    }
+    done
+      .catch((e: unknown) => {
+        ElMessage.error((e as Error)?.message ?? "保存失败");
+      })
+      .finally(() => {
+        formLoading.value = false;
+      });
   });
 }
 
@@ -289,7 +303,7 @@ function onRowClick(row: TunnelView) {
             @confirm="row.running ? stopTunnelRecord(row.id) : startTunnelRecord(row.id)"
           >
             <template #reference>
-              <el-button size="small" :type="row.running ? 'danger' : 'success'" plain>
+              <el-button size="small" :type="row.running ? 'danger' : 'success'" plain :loading="rowBusy[row.id]">
                 {{ row.running ? "停止" : "启动" }}
               </el-button>
             </template>
@@ -297,7 +311,7 @@ function onRowClick(row: TunnelView) {
           <el-button size="small" plain @click="openEdit(row as TunnelView)">编辑</el-button>
           <el-popconfirm title="确定要删除该隧道吗？" @confirm="deleteTunnelRecord(row.id)">
             <template #reference>
-              <el-button size="small" type="danger" plain>删除</el-button>
+              <el-button size="small" type="danger" plain :loading="rowBusy[row.id]">删除</el-button>
             </template>
           </el-popconfirm>
         </template>

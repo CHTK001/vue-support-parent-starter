@@ -145,6 +145,23 @@ export interface ChannelConnectionSummary {
   checkinAt?: number | null
   /** 最近一次签到的人话摘要（如「workbuddy 处理 1 个账号」）；无则不回字段 */
   checkinMessage?: string
+  /**
+   * 最近一次健康探针结论（UNKNOWN/ONLINE/WARNING/DOWN/RATE_LIMITED）。
+   *
+   * <p>由 AI 侧探针写入、账号模块只读转发的字段；探针未覆盖到的连接
+   * （免登录渠道、探针关闭、尚未轮到）不回字段，前端不显示健康徽标。</p>
+   */
+  healthState?: string
+  /** 人工熔断位：AUTO 跟随探针 / OPEN 强制熔断 / CLOSED 强制放行 */
+  healthCircuitState?: string
+  /** 最近探针时间（毫秒） */
+  healthLastProbeAt?: number | null
+  /** 最近探针延迟（毫秒） */
+  healthLatency?: number | null
+  /** 连续失败次数 */
+  healthConsecutiveFailures?: number | null
+  /** 最近探针错误摘要（后端已截断到 200 字）；无错误时缺省 */
+  healthError?: string | null
   /** 连接所属渠道标识 */
   channel?: string
   /**
@@ -296,9 +313,99 @@ export interface ChannelSummary {
   }>
 }
 
+/** 渠道健康探针历史点（追加式时序行，按时间升序） */
+export interface ChannelHealthLogPoint {
+  /** 本次探针结论（UNKNOWN/ONLINE/WARNING/DOWN/RATE_LIMITED） */
+  state: string
+  /** 本次探针延迟（毫秒） */
+  latencyMs?: number | null
+  /** 本次探针 HTTP 状态码 */
+  httpStatus?: number | null
+  /** 错误摘要（后端已截断）；无错误时为空 */
+  error?: string | null
+  /** 记录时间（毫秒） */
+  createdAt: number
+}
+
+/**
+ * 渠道健康状态行（AI 侧探针的最新态）。
+ *
+ * <p>对应 {@code sys_account_channel_health}：探针每分钟 upsert 一行；
+ * 手动探活 / 人工熔断接口的返回值也是它。字段只挑页面要用的，其余原样缺省。</p>
+ */
+export interface ChannelHealthState {
+  /** 连接标识（与渠道页连接摘要的 connectionId 同一 id 空间） */
+  connectionId: string
+  /** 渠道键（平台） */
+  channel?: string
+  /** 渠道展示名 */
+  label?: string
+  /** 探针结论（UNKNOWN/ONLINE/WARNING/DOWN/RATE_LIMITED） */
+  state?: string
+  /** 人工熔断位：AUTO 跟随探针 / OPEN 强制熔断 / CLOSED 强制放行 */
+  circuitState?: string
+  /** 人工熔断/放行的原因说明 */
+  circuitReason?: string | null
+  /** 人工熔断状态变更时间（毫秒） */
+  circuitUpdatedAt?: number | null
+  /** 最近探针时间（毫秒） */
+  lastProbeAt?: number | null
+  /** 最近探针延迟（毫秒） */
+  lastProbeLatency?: number | null
+  /** 最近探针 HTTP 状态码 */
+  lastProbeStatus?: number | null
+  /** 最近探针错误摘要 */
+  lastProbeError?: string | null
+  /** 连续失败次数 */
+  consecutiveFailures?: number
+  /** 累计成功次数 */
+  successes?: number
+  /** 累计失败次数 */
+  failures?: number
+}
+
 export const channelApi = {
   /** GET /api/channels —— 全部渠道（含未绑定账号的） */
   list: () => unwrapPayload<ChannelSummary[]>(apiHttp.get('/api/channels')),
+  /**
+   * GET /api/channels/health-history?connectionId=&hours= —— 连接健康探针历史。
+   *
+   * 连接不可见（他人 / 已删除）时后端返回空列表而不是 404，前端按「无数据」渲染空态。
+   */
+  healthHistory: (connectionId: string, hours = 24) =>
+    unwrapPayload<ChannelHealthLogPoint[]>(
+      apiHttp.get('/api/channels/health-history').query({ connectionId, hours }),
+    ),
+  /**
+   * POST /v2/channels/health/{connectionId}/probe —— 立即探活单个连接（管理员）。
+   *
+   * <p>端点在 AI 侧健康控制器（{@code @Permission("admin")}）；返回探完的最新
+   * 状态行，页面据此就地刷新徽标。非管理员 / 已删除连接由后端拒绝。</p>
+   */
+  probeConnection: (connectionId: string) =>
+    unwrapPayload<ChannelHealthState>(
+      apiHttp.post(`/v2/channels/health/${encodeURIComponent(connectionId)}/probe`),
+    ),
+  /**
+   * GET /v2/channels/{connectionId}/circuit —— 查询人工熔断位。
+   *
+   * <p>注意路由前缀：熔断端点不在 {@code /health} 下，是
+   * {@code /v2/channels/{connectionId}/circuit}。</p>
+   */
+  getCircuit: (connectionId: string) =>
+    unwrapPayload<ChannelHealthState>(
+      apiHttp.get(`/v2/channels/${encodeURIComponent(connectionId)}/circuit`),
+    ),
+  /**
+   * PUT /v2/channels/{connectionId}/circuit —— 设定人工熔断位（管理员）。
+   *
+   * <p>{@code state}：{@code OPEN} 强制熔断（不参与路由）/ {@code CLOSED} 强制放行
+   * （无视探针结论，排障用）/ {@code AUTO} 恢复自动跟随探针。{@code reason} 可选。</p>
+   */
+  setCircuit: (connectionId: string, state: 'OPEN' | 'CLOSED' | 'AUTO', reason?: string) =>
+    unwrapPayload<ChannelHealthState>(
+      apiHttp.put(`/v2/channels/${encodeURIComponent(connectionId)}/circuit`).data({ state, reason }),
+    ),
   /** POST /api/channels/{channel}/start-login —— 发起绑定，返回轮询句柄 */
   startLogin: (channel: string) =>
     unwrapPayload<{ channel: string; handle: Record<string, any> }>(

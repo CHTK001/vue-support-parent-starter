@@ -66,6 +66,7 @@
         :context-menu="packetMenu"
         :empty-text="emptyText"
         :layout-table="{ fill: true }"
+        table-id="tshark-packets"
         virtual-scroll
         :virtual-scroll-gt="50"
         @context-menu-select="onPacketMenuSelect"

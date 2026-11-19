@@ -201,6 +201,7 @@ defineExpose({ reload });
         stripe
         border
         height="100%"
+        table-id="server-oper-log"
       />
     </div>
 

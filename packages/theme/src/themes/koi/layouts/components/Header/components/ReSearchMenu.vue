@@ -44,9 +44,9 @@
             <p class="search-menu__placeholder-desc">{{ $t("header.commandPalette.hint") }}</p>
           </div>
 
-          <el-scrollbar v-else-if="resultList.length" max-height="380">
+          <el-scrollbar v-else-if="displayList.length || isSearchingSources" max-height="380">
             <div ref="menuListRef" class="search-menu__list">
-              <template v-for="item in resultList" :key="item.id">
+              <template v-for="item in displayList" :key="item.id">
                 <div v-if="item.groupLabel" class="search-menu__group">{{ item.groupLabel }}</div>
                 <div
                   :class="['search-menu__item', { 'is-active': item.id === activeId }]"
@@ -64,6 +64,11 @@
                   <span v-if="item.id === activeId" class="search-menu__item-enter">↵</span>
                 </div>
               </template>
+              <div v-if="isSearchingSources && !sourceItems.length" class="search-menu__item search-menu__item--loading">
+                <div class="search-menu__item-meta">
+                  <span class="search-menu__item-title">{{ $t("header.commandPalette.searching") }}</span>
+                </div>
+              </div>
             </div>
           </el-scrollbar>
 
@@ -120,6 +125,8 @@ import {
   clearSessionStorage,
   clearAuthCacheKeepToken,
 } from "@repo/utils";
+import { paletteSources } from "./paletteRegistry";
+import type { PaletteSourceItem } from "./paletteRegistry";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -270,6 +277,68 @@ const isShowSearch = ref(false);
 const keyword = ref("");
 const resultList = ref<PaletteItem[]>([]);
 
+/** 业务数据源结果（异步，晚于壳内静态结果到达） */
+const sourceItems = ref<PaletteItem[]>([]);
+/** 异步请求序号：只有最新一次发起的查询允许落盘，防快速输入时旧结果覆盖新结果 */
+let sourceRequestSeq = 0;
+
+/** 正在等待业务源返回（结果区显示轻量「搜索中…」，避免空白闪烁） */
+const isSearchingSources = ref(false);
+
+/** 渲染列表：壳内静态结果先行，业务源结果随后（各自带分组标题） */
+const displayList = computed<PaletteItem[]>(() => [...resultList.value, ...sourceItems.value]);
+
+/**
+ * 查询全部已注册业务源，把结果并入现有分组。
+ *
+ * <p>各源并发执行、Promise.allSettled 兜底：某个源失败只丢弃它自己，
+ * 不影响其它源与壳内静态结果。状态只在“最新一次”请求里被接受，
+ * 快速输入时旧请求的迟到结果直接丢弃。</p>
+ */
+async function queryPaletteSources(kw: string): Promise<void> {
+  const seq = ++sourceRequestSeq;
+  // 壳内静态结果（菜单/动作/最近）由 watch(keyword) 的 debounce 重建；
+  // 这里等它先落一次再追加业务源，避免再次双份渲染
+  await Promise.resolve();
+  const sources = paletteSources.value;
+  if (sources.length === 0) return;
+  isSearchingSources.value = true;
+  try {
+    const settled = await Promise.allSettled(
+      sources.map(async (source) => {
+        const items = await source.query(kw);
+        if (!Array.isArray(items)) return [];
+        return sourceItemsFrom(source.key, source.groupLabel, source.icon, items);
+      }),
+    );
+    if (seq !== sourceRequestSeq) return; // 已有更新的输入，丢弃本次结果
+    const merged = settled
+      .filter((r): r is PromiseFulfilledResult<PaletteItem[]> => r.status === "fulfilled")
+      .flatMap((r) => r.value);
+    sourceItems.value = merged;
+  } finally {
+    if (seq === sourceRequestSeq) isSearchingSources.value = false;
+  }
+}
+
+/** 源结果 → 面板条目（首条带分组标题；hint 为空时回落到“跳转目标”） */
+function sourceItemsFrom(
+  key: string,
+  groupLabel: string,
+  groupIcon: string | undefined,
+  items: PaletteSourceItem[],
+): PaletteItem[] {
+  return items.map((item, i) => ({
+    id: item.id || `${key}:${i}`,
+    kind: "menu",
+    title: item.title,
+    hint: item.hint || String(item.path),
+    icon: item.icon || groupIcon,
+    path: item.path,
+    ...(i === 0 ? { groupLabel } : {}),
+  }));
+}
+
 /** 结果组装：菜单 → 动作 → 最近；空输入时只给「动作 + 最近」 */
 function buildResults(): void {
   const kw = keyword.value.trim().toLowerCase();
@@ -291,6 +360,10 @@ function buildResults(): void {
       ...withGroup(recentItems.value, t("header.commandPalette.recent")),
       ...withGroup(ACTIONS.value, t("header.commandPalette.actions")),
     ];
+    // 清空输入时不需要业务源，直接落壳内静态结果；在途请求一并作废
+    sourceRequestSeq++;
+    sourceItems.value = [];
+    isSearchingSources.value = false;
     activeId.value = resultList.value[0]?.id ?? "";
     return;
   }
@@ -308,6 +381,8 @@ function buildResults(): void {
     ...withGroup(recents, t("header.commandPalette.recent")),
   ];
   activeId.value = resultList.value[0]?.id ?? "";
+  // 关键字搜索：壳内静态结果先展示，业务源结果异步追加到面板尾部（含分组标题）
+  void queryPaletteSources(kw);
 }
 
 const debouncedBuild = useDebounceFn(buildResults, 150);
@@ -327,8 +402,11 @@ watch(isShowSearch, (val) => {
     });
   } else {
     document.removeEventListener("keydown", keyboardOperation);
+    sourceRequestSeq++; // 面板已关闭，作废仍在途的业务请求
     keyword.value = "";
     resultList.value = [];
+    sourceItems.value = [];
+    isSearchingSources.value = false;
     activeId.value = "";
   }
 });
@@ -340,11 +418,11 @@ const scrollActiveIntoView = () => {
 };
 
 const moveActive = (direction: number) => {
-  const length = resultList.value.length;
+  const length = displayList.value.length;
   if (length === 0) return;
-  const index = resultList.value.findIndex((item) => item.id === activeId.value);
+  const index = displayList.value.findIndex((item) => item.id === activeId.value);
   const newIndex = (index + direction + length) % length;
-  activeId.value = resultList.value[newIndex].id;
+  activeId.value = displayList.value[newIndex].id;
   scrollActiveIntoView();
 };
 
@@ -381,7 +459,7 @@ function invoke(item: PaletteItem): void {
 }
 
 const invokeActive = () => {
-  const item = resultList.value.find((i) => i.id === activeId.value);
+  const item = displayList.value.find((i) => i.id === activeId.value);
   if (item) invoke(item);
 };
 
@@ -563,6 +641,12 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   font-size: 12px;
   color: var(--el-text-color-placeholder);
+}
+
+.search-menu__item--loading {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.65;
 }
 
 .search-menu__footer {

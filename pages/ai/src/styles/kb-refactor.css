@@ -1589,6 +1589,60 @@
 }
 
 /* 图谱视图 */
+/* 工具栏统计 chips：数字 + 标签，替代一行纯文字；过滤时附「/ 总数」与「筛选中」 */
+.kb-gstats {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kb-sp-2);
+  padding: 3px 10px;
+  border: 1px solid var(--kb-line-soft);
+  border-radius: 999px;
+  background: var(--kb-fill);
+}
+
+.kb-gstats__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.kb-gstats__n {
+  font-family: var(--kb-mono);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+  color: var(--kb-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-gstats__label {
+  font-size: 11px;
+  color: var(--kb-ink-3);
+}
+
+.kb-gstats__total {
+  font-family: var(--kb-mono);
+  font-size: 11px;
+  color: var(--kb-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.kb-gstats__div {
+  width: 1px;
+  height: 12px;
+  background: var(--kb-line);
+}
+
+.kb-gstats__filter {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--kb-accent-soft);
+  color: var(--kb-accent);
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
 .kb-graphview {
   display: flex;
   flex-direction: column;
@@ -1603,7 +1657,10 @@
   border-radius: var(--kb-r-lg);
   overflow: hidden;
   position: relative;
-  background: var(--kb-card);
+  /* 细点阵底：给「关系图纸」的质感，又不干扰节点读数 */
+  background-color: var(--kb-card);
+  background-image: radial-gradient(circle, var(--kb-line-soft) 1px, transparent 1px);
+  background-size: 22px 22px;
   /* 画布 + 节点详情侧栏并排；侧栏未选中节点时不占位 */
   display: flex;
   align-items: stretch;
@@ -1637,7 +1694,9 @@
   padding: 6px 10px;
   border: 1px solid var(--kb-line);
   border-radius: var(--kb-r-md);
-  background: var(--kb-card);
+  background: color-mix(in srgb, var(--kb-card) 82%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 6%));
   font-size: 12px;
   line-height: 1.5;
@@ -1692,6 +1751,14 @@
   background: var(--kb-card);
   box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 6%));
   text-align: center;
+}
+
+/* 空态顶部小插图：三点连线，呼应「实体—关系」 */
+.kb-graph__blank-art {
+  display: block;
+  width: 120px;
+  height: 64px;
+  margin: 0 auto var(--kb-sp-2);
 }
 
 .kb-graph__blank-t {
@@ -1760,6 +1827,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--kb-sp-2);
+  /* 打开详情时从右侧轻轻滑入，而不是生硬地闪现 */
+  animation: kb-gedetail-in var(--kb-dur, 0.2s) var(--kb-ease, ease);
+}
+
+@keyframes kb-gedetail-in {
+  from { transform: translateX(12px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 .kb-gedetail__head {
@@ -1768,6 +1842,40 @@
   justify-content: space-between;
   gap: var(--kb-sp-2);
   min-width: 0;
+}
+
+.kb-gedetail__headmain {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+/* 实体类型徽章：色点 + 类型名，颜色与画布分组同源 */
+.kb-gedetail__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--kb-fill);
+  border: 1px solid var(--kb-line-soft);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--kb-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kb-gedetail__tagdot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
 }
 
 .kb-gedetail__name {
@@ -1843,6 +1951,39 @@
   border-radius: var(--kb-r-sm);
   background: var(--kb-canvas);
   font-size: 12px;
+  cursor: pointer;
+  transition: border-color var(--kb-dur) var(--kb-ease), background var(--kb-dur) var(--kb-ease);
+}
+
+.kb-gedetail__relation:hover,
+.kb-gedetail__relation:focus-visible {
+  border-color: var(--kb-accent);
+  background: var(--kb-accent-soft);
+  outline: none;
+}
+
+/* 对端实体类型色点：与画布分组配色同源 */
+.kb-gedetail__relation-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+/* 末尾箭头：提示「可点过去定位到对端」 */
+.kb-gedetail__relation-go {
+  flex: none;
+  margin-left: auto;
+  color: var(--kb-ink-3);
+  font-size: 14px;
+  line-height: 1;
+  transition: transform var(--kb-dur) var(--kb-ease), color var(--kb-dur) var(--kb-ease);
+}
+
+.kb-gedetail__relation:hover .kb-gedetail__relation-go,
+.kb-gedetail__relation:focus-visible .kb-gedetail__relation-go {
+  color: var(--kb-accent);
+  transform: translateX(2px);
 }
 
 .kb-gedetail__relation-type {
@@ -3302,12 +3443,6 @@
   }
 }
 
-/* ---------- 9.13 暗色 ---------- */
-html.dark .kb-create__art,
-html.dark .kb-tpl__cover {
-  background: var(--kb-fill);
-}
-
 /* 生成图谱失败的明细列表：条目数不定，用紧凑行而不是再套一层卡面 */
 .kb-genfail {
   margin: 4px 0 2px;
@@ -3481,21 +3616,6 @@ html.dark .kb-tpl__cover {
   font-family: var(--kb-mono);
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
-}
-
-.kb-filelist .file-row .el-tag {
-  font-variant-numeric: tabular-nums;
-}
-
-.kb-filelist .file-row .el-tag::before {
-  content: "";
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-right: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  vertical-align: 1px;
 }
 
 .kb-filelist__foot {
@@ -4528,12 +4648,6 @@ html.dark .kb-tpl__cover {
   border-radius: 0;
 }
 
-.kb-filelist .file-row .el-tag {
-  border-color: transparent;
-  border-radius: var(--kb-r-sm);
-  background: none;
-}
-
 .kb-filelist__foot {
   border-top-color: var(--kb-line);
   background: none;
@@ -4883,13 +4997,13 @@ html.dark .kb-tpl__cover {
 }
 
 /* ############################################################################
-   13. RAG 未配置门禁（分屏 Hero · 2026-11-14 定版）
+   13. RAG 未配置门禁（组件库基线 · 2026-11-19 重构）
    ----------------------------------------------------------------------------
-   左「为什么要配」+ 三枚状态灯，右「配置清单」一张略微左倾的纸：本页唯一允许
-   有阴影的地方 —— 它是从台账里抽出来递到眼前的一张单子，不是页面的第四栏。
-   读数全部来自 /v2/rag/status（config / needLlmConfig / embeddingReady /
-   needVectorStorageConfig），前端不另算一套就绪判定；配好后本页自动让位。
-   本节自成一组类名（.kb-gate__*），不覆盖 §11 的任何规则。
+   门禁页由 ReCard 承载：左「为什么要配」+ 三项检查用 ReTag 标签显示就绪态，
+   右「配置清单」回显 /v2/rag/status 的真实读数；缺项与「去配置 / 重新检测」
+   放在卡片 footer。读数全部来自 /v2/rag/status（config / needLlmConfig /
+   embeddingReady / needVectorStorageConfig），前端不另算一套就绪判定；
+   配好后本页自动让位。本节只保留外层容器，不覆盖 §11 的任何规则。
    ############################################################################ */
 .kb-gate {
   flex: 1;
@@ -4905,204 +5019,13 @@ html.dark .kb-tpl__cover {
   );
 }
 
-/* margin:auto 而不是 justify-content:center：内容比容器高时，居中不会把顶部裁掉 */
-.kb-gate__split {
-  margin: auto;
-  width: 100%;
-  max-width: 1140px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
-  align-items: center;
-  gap: 52px;
-}
+/* 门禁页已回归组件库基线（ReCard + ReTag + ReButton）：
+   原先的 .kb-gate__split / __lead / __eyebrow / __title / __desc / __acts /
+   __checks / __check / __dot / __val / __sheet / __flag / __sheet-t /
+   __dl / __row 手写 BEM 已全部移除，版式改由 ReCard + Tailwind 栅格承载；
+   本节只保留 .kb-gate 外层容器（占满内容区 + 背景光晕）及其内边距断点。 */
 
-.kb-gate__lead {
-  min-width: 0;
-}
-
-.kb-gate__eyebrow {
-  display: block;
-  font-family: var(--kb-mono);
-  font-size: 11px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--kb-accent);
-}
-
-.kb-gate__title {
-  margin: 14px 0 0;
-  font-family: var(--kb-serif);
-  font-size: clamp(26px, 2.8vw, 38px);
-  font-weight: 600;
-  line-height: 1.3;
-  letter-spacing: 0.015em;
-  color: var(--kb-ink);
-}
-
-.kb-gate__desc {
-  margin: 12px 0 0;
-  max-width: 34em;
-  font-size: 13.5px;
-  line-height: 1.8;
-  color: var(--kb-ink-2);
-}
-
-.kb-gate__acts {
-  display: flex;
-  align-items: center;
-  gap: var(--kb-sp-3);
-  margin-top: 24px;
-}
-
-/* 门禁页两颗键：方角 + 同一高度。ReButton 默认是胶囊，这里显式压回 koi 的 6px。
-   选择器写到 0,3,0：ReButton 的 scoped 规则是 `.re-button[data-v-*]`（0,2,0），
-   同权重只能靠引入顺序取胜，这里不赌顺序。 */
-.kb-gate .kb-gate__acts .re-button {
-  height: 34px;
-  border-radius: var(--kb-r-md);
-}
-
-.kb-gate__checks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--kb-sp-2);
-  margin: var(--kb-sp-5) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.kb-gate__check {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 11px;
-  border: 1px solid var(--kb-line);
-  border-radius: var(--kb-r-md);
-  background: var(--kb-card);
-  font-size: 12px;
-  color: var(--kb-ink-2);
-}
-
-.kb-gate__dot {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--kb-ink-3);
-}
-
-/* 状态读数用等宽字并压小一号：它是「值」，不是标签 */
-.kb-gate__val {
-  font-family: var(--kb-mono);
-  font-size: 11px;
-  color: var(--kb-ink-3);
-}
-
-.kb-gate__check.is-bad .kb-gate__dot {
-  background: var(--kb-err);
-}
-
-.kb-gate__check.is-bad .kb-gate__val {
-  color: var(--kb-err);
-}
-
-.kb-gate__check.is-ok .kb-gate__dot {
-  background: var(--kb-ok);
-}
-
-.kb-gate__check.is-ok .kb-gate__val {
-  color: var(--kb-ok);
-}
-
-.kb-gate__sheet {
-  position: relative;
-  padding: 20px 24px 14px;
-  border: 1px solid var(--kb-line);
-  border-radius: 14px;
-  background: var(--kb-card);
-  transform: rotate(-1.2deg);
-  /* 阴影也用令牌混色，不写死 rgb：暗色下自然变淡，换主色不跟着脏 */
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--el-color-black) 5%, transparent),
-    0 18px 44px -14px color-mix(in srgb, var(--el-color-black) 22%, transparent);
-}
-
-/* 待配置张数骑在纸上沿：全屏唯一的重色，扫一眼就知道还差几项 */
-.kb-gate__flag {
-  position: absolute;
-  top: -10px;
-  right: 20px;
-  padding: 2px 9px;
-  border-radius: var(--kb-r-sm);
-  background: var(--kb-err);
-  color: var(--el-color-white);
-  font-family: var(--kb-mono);
-  font-size: 10.5px;
-  line-height: 1.7;
-}
-
-.kb-gate__sheet-t {
-  margin: 0;
-  font-family: var(--kb-serif);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--kb-ink);
-}
-
-.kb-gate__dl {
-  display: flex;
-  flex-direction: column;
-  margin: 10px 0 0;
-}
-
-.kb-gate__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--kb-sp-3);
-  padding: 7px 0;
-  border-top: 1px solid var(--kb-line-soft);
-}
-
-.kb-gate__row:first-child {
-  border-top: 0;
-}
-
-.kb-gate__row dt {
-  min-width: 0;
-  font-size: 12.5px;
-  line-height: 1.4;
-  color: var(--kb-ink-2);
-}
-
-/* 原始配置键：留给会去配置文件里核对的人，字号比中文标签低一档，不抢主位 */
-.kb-gate__row dt em {
-  display: block;
-  font-family: var(--kb-mono);
-  font-size: 10.5px;
-  font-style: normal;
-  line-height: 1.5;
-  color: var(--kb-ink-3);
-  overflow-wrap: anywhere;
-}
-
-.kb-gate__row dd {
-  margin: 0;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--kb-mono);
-  font-size: 11.5px;
-  color: var(--kb-ink-2);
-}
-
-.kb-gate__row.is-bad dd {
-  color: var(--kb-err);
-}
-
-/* 单栏：清单不再倾斜，标题降一档，别在窄屏上撑出两层滚动 */
+/* 收窄时只调内边距，卡片本身由 ReCard + 栅格自适应单栏 */
 @media (max-width: 1200px) {
   .kb-gate {
     padding: 28px 40px;
@@ -5113,29 +5036,11 @@ html.dark .kb-tpl__cover {
   .kb-gate {
     padding: 24px 28px;
   }
-
-  .kb-gate__split {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 28px;
-    max-width: 560px;
-  }
-
-  .kb-gate__sheet {
-    transform: none;
-  }
-
-  .kb-gate__title {
-    font-size: 30px;
-  }
 }
 
 @media (max-width: 640px) {
   .kb-gate {
     padding: 20px 16px;
-  }
-
-  .kb-gate__acts {
-    flex-wrap: wrap;
   }
 }
 

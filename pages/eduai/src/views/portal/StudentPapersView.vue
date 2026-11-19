@@ -2,13 +2,21 @@
   <div class="sp">
     <div class="sp-head">
       <h2 class="sp-title">我的试卷</h2>
-      <p class="sp-sub">老师布置给本班的试卷都在这里，点「查看试卷」看题目。</p>
+      <p class="sp-sub">老师布置给本班的试卷都在这里，点「开始作答」在线答题，交卷后自动进入 AI 阅卷。</p>
     </div>
 
     <div v-loading="loading" class="sp-list">
       <article v-for="p in papers" :key="p.assignId" class="sp-card">
         <div class="sp-card__main">
-          <div class="sp-card__name">{{ p.paperName || "未命名试卷" }}</div>
+          <div class="sp-card__name">
+            {{ p.paperName || "未命名试卷" }}
+            <el-tag
+              v-if="taskOf(p)"
+              size="small"
+              class="sp-card__tag"
+              :type="statusType(taskOf(p)!.markingTaskStatus)"
+            >{{ statusLabel(taskOf(p)!.markingTaskStatus) }}</el-tag>
+          </div>
           <div class="sp-card__meta">
             <span class="sp-chip">{{ p.paperSubject || "未设学科" }}</span>
             <span class="sp-chip">{{ p.paperGradeLevel || "—" }}{{ p.paperGrade ? " · " + p.paperGrade : "" }}</span>
@@ -22,7 +30,10 @@
           </div>
         </div>
         <div class="sp-card__ops">
-          <el-button type="primary" @click="openPaper(p)">查看试卷</el-button>
+          <el-button @click="openPaper(p)">查看试卷</el-button>
+          <el-button type="primary" @click="openAnswer(p)">
+            {{ taskOf(p) ? "查看结果" : "开始作答" }}
+          </el-button>
         </div>
       </article>
 
@@ -52,6 +63,13 @@
         <div v-if="detail && !(detail.questions || []).length" class="sp-empty">这份试卷还没有题目。</div>
       </div>
     </ReDialog>
+
+    <!-- 在线作答（全屏覆盖）：已提交过的卷子会直接进入结果态 -->
+    <StudentPaperAnswerView
+      v-if="answeringPaperId !== null"
+      :paper-id="answeringPaperId"
+      @close="closeAnswer"
+    />
   </div>
 </template>
 
@@ -61,17 +79,46 @@
  *
  * 数据来自 /v2/edu/paper-assign/my-class：**按登录态定位自己的班级**，
  * 不接受客户端传班级 ID，所以看不到别班的卷，也不会越权。
- * 只展示，不做提交（答题/阅卷是另一条链路）。
+ * 在线作答走学生中心的新端点（/v2/edu/student/papers/{id}/answer|submit），
+ * 是否已作答按本人阅卷任务（marking_task_student_id = 登录账号）与试卷交叉匹配。
  */
 import { message } from "@repo/core";
 import { onMounted, ref } from "vue";
 
 import { eduaiApi } from "../../api/eduaiApi";
-import type { Paper, PaperAssignVO } from "../../api/types";
+import type { Paper, PaperAssignVO, TeacherMarkingTask } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
+import StudentPaperAnswerView from "./StudentPaperAnswerView.vue";
 
 const loading = ref(false);
 const papers = ref<PaperAssignVO[]>([]);
+/** 本人的阅卷任务：与试卷按 paperId 交叉匹配出「已作答/阅卷中/已完成」 */
+const tasks = ref<TeacherMarkingTask[]>([]);
+/** 正在在线作答的试卷；非空时全屏覆盖作答页 */
+const answeringPaperId = ref<number | null>(null);
+
+const statusLabel = (n?: number) =>
+  ({ 0: "待处理", 1: "阅卷中", 2: "已完成", 3: "阅卷失败" })[Number(n ?? 0)] ?? "待处理";
+const statusType = (n?: number) => {
+  const code = Number(n ?? 0);
+  return code === 2 ? "success" : code === 3 ? "danger" : code === 1 ? "warning" : "info";
+};
+
+/** 找某张卷对应的本人阅卷任务（没有 = 还没作答） */
+function taskOf(p: PaperAssignVO): TeacherMarkingTask | undefined {
+  return tasks.value.find((t) => t.markingTaskPaperId === p.paperId);
+}
+
+/** 关闭作答页后刷新：任务状态/成绩要反映最新一次提交 */
+function closeAnswer(): void {
+  answeringPaperId.value = null;
+  void load();
+}
+
+/** 打开在线作答（已提交过的卷子在作答页内直接看结果） */
+function openAnswer(p: PaperAssignVO): void {
+  answeringPaperId.value = p.paperId;
+}
 
 const detailVisible = ref(false);
 const detailLoading = ref(false);
@@ -85,6 +132,12 @@ async function load() {
     message.error(e instanceof Error ? e.message : "加载试卷失败");
   } finally {
     loading.value = false;
+  }
+  // 阅卷任务拉失败不挡试卷列表：状态匹配不到就都按「未作答」显示
+  try {
+    tasks.value = (await eduaiApi.studentMarkingTasks(50)) || [];
+  } catch {
+    tasks.value = [];
   }
 }
 
@@ -117,6 +170,7 @@ onMounted(() => {
 
 <style scoped>
 .sp {
+  position: relative;
   padding: 4px 2px 16px;
 }
 .sp-head {
@@ -157,6 +211,9 @@ onMounted(() => {
 .sp-card__name {
   font-weight: 700;
   color: var(--el-text-color-primary);
+}
+.sp-card__tag {
+  margin-left: 8px;
 }
 .sp-card__meta {
   display: flex;

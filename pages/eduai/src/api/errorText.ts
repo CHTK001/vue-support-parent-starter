@@ -9,8 +9,11 @@ import { message } from "@repo/core";
  * 「提交失败: undefined」——用户既看不到后端原因，也会被弹两次提示。</p>
  *
  * <p>后端业务码与 msg 并没有丢，仍在 `error.response.data` 里，因此按
- * `response.data.msg` → `bizMsg` → `message` 的顺序取；全都取不到时返回空串，
- * 由调用方决定不再重复弹窗（框架已经提示过）。</p>
+ * `response.data.msg` → `bizMsg` → 顶层 `msg` → `message` 的顺序取；全都取不到时
+ * 返回空串，由调用方决定不再重复弹窗（框架已经提示过）。</p>
+ *
+ * <p>顶层 `msg` 兜的是「拦截器把响应体对象本身 reject 出来」的形状
+ * （如学生端登录页拿到的 `{ msg: "密码错误…" }`），它不是 AxiosError。</p>
  */
 
 
@@ -18,6 +21,8 @@ import { message } from "@repo/core";
 export interface ApiErrorLike {
   message?: string;
   bizMsg?: string;
+  /** 拦截器直接 reject 响应体对象时的业务提示（非 AxiosError 形状） */
+  msg?: string;
   response?: { data?: { msg?: string; message?: string } };
 }
 
@@ -25,7 +30,7 @@ export interface ApiErrorLike {
 export function errText(e: unknown): string {
   const err = e as ApiErrorLike | null | undefined;
   if (!err) return "";
-  const candidates = [err.response?.data?.msg, err.bizMsg, err.message];
+  const candidates = [err.response?.data?.msg, err.bizMsg, err.msg, err.message];
   for (const c of candidates) {
     const t = typeof c === "string" ? c.trim() : "";
     // 框架置空后是 undefined；也要挡掉字面量 "undefined"/"null" 这类占位

@@ -8,10 +8,12 @@
 import { watch, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMarkdown } from "../../composables/useMarkdown";
+import { usePopup } from "../../composables/usePopup";
 import { previewUrl } from "../../utils/workspacePreview";
 
 const { marked } = useMarkdown()
 const { t } = useI18n();
+const { toast } = usePopup();
 
 // 定义 Props - 类型化
 const props = defineProps<{
@@ -128,6 +130,12 @@ function onDelegatedClick(event: MouseEvent): void {
     if (!target) {
         return;
     }
+    // 代码块一键复制（useMarkdown 渲染器在 .code-header 里内置 .copy-code-button）
+    const copyButton = target instanceof Element ? target.closest('.copy-code-button') : null;
+    if (copyButton) {
+        copyCodeBlock(copyButton as HTMLElement);
+        return;
+    }
     const isPreviewButton = target.classList?.contains('md-preview-button') ?? false;
     const isOpenButton = target.classList?.contains('md-preview-open') ?? false;
     if (!isPreviewButton && !isOpenButton) {
@@ -177,6 +185,21 @@ function openPreviewInNewTab(html: string): void {
         // 弹窗被拦截时退回内建预览
         void previewUrl(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
     }
+}
+
+/** 复制代码块内容到剪贴板，轻提示告知结果 */
+function copyCodeBlock(button: HTMLElement): void {
+    const block = button.closest('.custom-code-block');
+    const codeEl = block?.querySelector('pre code') ?? block?.querySelector('code');
+    const text = codeEl?.textContent ?? '';
+    if (!text.trim()) {
+        return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+        toast.success(t('chat.turn.codeCopied'));
+    }).catch(() => {
+        toast.error(t('common.copyFailed'));
+    });
 }
 
 onMounted(() => {

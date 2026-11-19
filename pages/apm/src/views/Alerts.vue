@@ -36,11 +36,12 @@
       <span v-if="entity" class="apm-bar" style="gap: 6px">
         <ReTag type="danger" round closable @close="entity = ''">实体：{{ entity }}</ReTag>
       </span>
-      <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
+      <ApmTimeWindow v-model="timeWindow" @change="load" />
       <ReButton icon="Search" type="primary" :loading="loading" @click="load">查询</ReButton>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ scopedAlarms.length }} 条告警 · {{ byEntity.length }} 个实体 · {{ byScope.length }} 类作用域</span>
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
+      <ApmAutoRefresh @refresh="load" />
     </div>
 
     <ReSkeleton v-if="loading && !alarms.length" :rows="6" animated />
@@ -179,14 +180,23 @@ import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTag from "@repo/ui/re-tag";
 import ApmGate from "../components/ApmGate.vue";
+import ApmAutoRefresh from "../components/ApmAutoRefresh.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
 import { listAlerts, listServices } from "../api/apmApi";
 import type { ApmAlarm } from "../api/apmApi";
 import { useApmPalette } from "../composables/useApmPalette";
 import { useApmStatus } from "../composables/useApmStatus";
 import { consumeApmTabContext, openApmTab } from "../tabs";
-import { WINDOW_OPTIONS, fmtAgo, fmtAxisClock, fmtTime } from "../utils/format";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
+import { fmtAgo, fmtAxisClock, fmtTime } from "../utils/format";
+import { DEFAULT_WINDOW_MINUTES, timeQuery } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const { present, ensure } = useApmStatus();
+
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "alerts";
 /** canvas 里 var(--el-*) 是无效值，颜色必须取计算后的实色（见 useApmPalette） */
 const palette = useApmPalette();
 
@@ -196,10 +206,10 @@ const service = ref("");
 const keyword = ref("");
 /** 实体筛选（从总览 / 告警页下钻过来时带上的名字） */
 const entity = ref("");
-const minutes = ref(180);
+/** 时间窗：预设分钟数或自定义区间；聚合与趋势都按窗口跨度自适应 */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: 180 });
 const loading = ref(false);
 const expanded = ref<string[]>([]);
-const windowOptions = WINDOW_OPTIONS;
 
 const serviceOptions = computed(() => services.value.map((s) => ({ label: s, value: s })));
 
@@ -213,6 +223,15 @@ function toggle(rule: string) {
   }
 }
 
+/** 当前时间窗 → 跳转上下文：自定义区间给起止，预设给分钟数 */
+function windowContext(): { minutes?: number; startTime?: number; endTime?: number } {
+  const win = timeWindow.value;
+  if (win.startTime && win.endTime) {
+    return { startTime: win.startTime, endTime: win.endTime };
+  }
+  return { minutes: win.minutes || DEFAULT_WINDOW_MINUTES };
+}
+
 /**
  * 排行榜一行 → 告警页只看这个实体。
  *
@@ -222,7 +241,7 @@ function toggle(rule: string) {
  * @param entity 实体名（服务 / 「实例 of 服务」/「端点 in 服务」）
  */
 function openAlarmsOf(entity: string): void {
-  openApmTab("alarms", { entity, minutes: minutes.value });
+  openApmTab("alarms", { entity, ...windowContext() });
 }
 
 /**
@@ -251,12 +270,21 @@ function rollupEvents(alarm: ApmAlarm): { text: string; count: number }[] {
   return [...map.values()];
 }
 
+/** 窗口跨度（分钟）：自定义区间按起止差，预设按分钟数 */
+const windowMinutes = computed(() => {
+  const win = timeWindow.value;
+  if (win.startTime && win.endTime && win.endTime > win.startTime) {
+    return Math.max(1, Math.round((win.endTime - win.startTime) / 60_000));
+  }
+  return win.minutes || DEFAULT_WINDOW_MINUTES;
+});
+
 /** 时间桶粒度：窗口越长桶越粗，否则柱子数上千根读不出形状 */
 const bucketMinutes = computed(() => {
-  if (minutes.value <= 60) {
+  if (windowMinutes.value <= 60) {
     return 5;
   }
-  if (minutes.value <= 360) {
+  if (windowMinutes.value <= 360) {
     return 15;
   }
   return 60;
@@ -371,7 +399,7 @@ const trendOption = computed<EChartsOption>(() => {
   const bucketMs = bucketMinutes.value * 60_000;
   const end = Date.now();
   const start = Math.min(...scopedAlarms.value.map((a) => a.startTime), end);
-  const from = Math.floor((start || end - minutes.value * 60_000) / bucketMs) * bucketMs;
+  const from = Math.floor((start || end - windowMinutes.value * 60_000) / bucketMs) * bucketMs;
 
   const buckets = new Map<number, number>();
   for (const alarm of scopedAlarms.value) {
@@ -431,7 +459,7 @@ async function load() {
       (await listAlerts({
         service: service.value || undefined,
         keyword: keyword.value || undefined,
-        minutes: minutes.value,
+        ...timeQuery(timeWindow.value),
       })) || [];
     alarms.value = list;
     // 默认展开命中次数最多的那个实体
@@ -452,16 +480,40 @@ async function loadServices() {
   }
 }
 
+/** 把跳转上下文落到筛选条件（实体 / 服务 / 时间窗） */
+function applyContext(context: ApmTabContext): void {
+  if (context.entity) {
+    entity.value = context.entity;
+  }
+  if (context.service) {
+    service.value = context.service;
+  }
+  if (context.startTime && context.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
+}
+
 onMounted(async () => {
   // 从告警页 / 总览点某个实体过来时带着名字：直接按它筛，省一次回填
   const context = consumeApmTabContext();
-  if (context?.entity) {
-    entity.value = context.entity;
-  }
-  if (context?.minutes) {
-    minutes.value = context.minutes;
+  if (context) {
+    applyContext(context);
   }
   await loadServices();
+  load();
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：再次切到本页签时 onMounted 不会重跑，
+ * 一次性上下文在这里接住；普通切回也重取一次，聚合与排行跟着换新。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (context) {
+    applyContext(context);
+  }
   load();
 });
 </script>

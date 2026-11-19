@@ -22,6 +22,14 @@ export default {
     checkedAt: '检测时间',
     unset: '未选择',
     defaulted: '默认',
+    // embedding_engine 是后端由 embedding_model 推导的引擎，不是可配置项（rag_embedding_model 设置项已移除）
+    derived: '随模型推导',
+    // H1：按错误类型分类提示，避免统一吞成「系统繁忙」
+    networkError: '网络不可达，请检查连接后重试',
+    unauthorized: '会话已过期，请重新登录',
+    javaVersion: '后端未以 Java 预览特性启动，请在启动参数中加入 --enable-preview 后重试',
+    serverError: '服务器出错，请稍后重试或联系管理员',
+    checking: '检测中…',
   },
 
   // ── 共用状态文本 ──

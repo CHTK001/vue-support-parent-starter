@@ -65,7 +65,7 @@ export function createMonitorRoutes(options: MonitorRoutesOptions = {}): RouteCo
 
     // ==================== 模板管理（已并入账号管理） ====================
     // 模板库（hiprint 绘制/消息/组卷模板）不再是独立菜单：它是「账号管理」页里的
-    // 一个视图（账号资产 / 模板管理 / 消息模板），页面与路由都由 @account/web 提供。
+    // 一个视图（账号资产 / 模板管理 / 消息模板），页面与路由都由 @pages/account 提供。
     // 原先的 /grp-template 分组 + /templates（TemplateManageView.vue）已删除，
     // 避免侧边栏出现两个模板入口、以及监控侧再抄一份模板台账。
 

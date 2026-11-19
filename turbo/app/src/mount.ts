@@ -25,7 +25,8 @@ export interface MountAppOptions extends CreateAppOptions {
 /** 创建 + 安装 + 挂载 */
 export async function mountApp(options: MountAppOptions): Promise<AppInstance> {
   const { mountEl, ...rest } = options;
-  return createContextApp(rest).mount(mountEl ?? "#app");
+  // 本便捷入口只服务 Web（挂载到选择器）；显式钉住 platform 让返回类型收窄为 VueAppBuilder
+  return createContextApp({ ...rest, platform: "web" }).mount(mountEl ?? "#app");
 }
 
 export default mountApp;

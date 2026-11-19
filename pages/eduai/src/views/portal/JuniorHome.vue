@@ -51,8 +51,10 @@
           :key="m.moduleCode"
           type="button"
           class="jp-card"
-          @click="emit('open', m.moduleCode)"
+          :class="{ 'is-wip': !isReady(m) }"
+          @click="onOpen(m)"
         >
+          <span v-if="!isReady(m)" class="jp-wip">建设中</span>
           <span class="jp-card__no">{{ i + 1 }}</span>
           <div class="jp-card__top">
             <span
@@ -99,9 +101,21 @@ import type { StudentOverview } from "../../api/types";
 const props = defineProps<{
   overview: StudentOverview | null;
   modules: PortalModule[];
+  /** 已内嵌（可玩）的模块编码；未内嵌的卡片灰态展示「建设中」且不可点 */
+  readyCodes: string[];
 }>();
 
 const emit = defineEmits<{ (e: "open", moduleCode: string): void }>();
+
+/** 该模块是否已内嵌可玩 */
+function isReady(m: PortalModule): boolean {
+  return props.readyCodes.includes(m.moduleCode);
+}
+
+/** 卡片点击：未内嵌模块直接忽略（卡片已灰态 + 建设中角标，不再弹窗打断） */
+function onOpen(m: PortalModule): void {
+  if (isReady(m)) emit("open", m.moduleCode);
+}
 
 const today = computed(() => props.overview?.today);
 const total = computed(() => props.overview?.total);
@@ -294,6 +308,29 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 }
 .jp-card:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+/* 建设中：灰态卡片 + 角标，点击被 onOpen 门禁忽略 */
+.jp-card.is-wip {
+  cursor: not-allowed;
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+.jp-card.is-wip:hover {
+  transform: none;
+  box-shadow: 0 10px 24px color-mix(in srgb, #2b3a8f 10%, transparent);
+}
+.jp-wip {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  z-index: 1;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-full, 9999px);
 }
 .jp-card__no {
   position: absolute;

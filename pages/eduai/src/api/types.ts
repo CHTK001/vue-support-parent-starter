@@ -207,6 +207,14 @@ export interface PaperAssignVO {
   assignTime?: string | null;
 }
 
+/** 学生在线作答提交（POST /v2/edu/student/papers/{paperId}/submit） */
+export interface StudentPaperSubmitPayload {
+  /** 答题内容 JSON（可选，随答题卡一并落库） */
+  content?: string;
+  /** 逐题作答：题目 ID + 作答内容（选择题传选项字母，主观题传文本） */
+  answers: Array<{ questionId: number; answer: string }>;
+}
+
 export interface PaperQuestionAddItem {
   /** 题目标识 */
   questionId: number;

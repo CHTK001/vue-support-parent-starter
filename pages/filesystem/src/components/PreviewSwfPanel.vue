@@ -372,6 +372,9 @@ async function load(): Promise<void> {
 
     await el.load({
       url: blobUrl,
+      // 显式自动播放：Ruffle 默认策略下会停在「影片信息 + 播放按钮」覆盖层不渲染画面；
+      // 预览弹层由用户点开即是播放意图，直接起播（被浏览器拦截时 Ruffle 自行回退点击播放）
+      autoplay: "on",
       // 全屏走播放器原生 requestFullscreen，工具条按钮与右键菜单共用
       allowFullscreen: true,
       backgroundColor: "#000000",

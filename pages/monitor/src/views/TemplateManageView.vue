@@ -742,6 +742,7 @@ onMounted(async () => {
           :columns="columns"
           pagination
           @row-click="onDetail"
+          table-id="template-list"
         >
           <!-- 状态列 | ReTag 带圆点 -->
           <template #col-status="{ row }: { row: Record<string, unknown> }">
@@ -908,7 +909,7 @@ onMounted(async () => {
       <div class="analysis-body">
         <!-- 调用日志 -->
         <div v-if="analysisTab === 'log'" class="analysis-section">
-          <ReTable :data="logsList" :columns="logsColumns" :loading="logsLoading" :border="true" />
+          <ReTable :data="logsList" :columns="logsColumns" :loading="logsLoading" :border="true" table-id="template-analysis-logs" />
         </div>
         <!-- 质量分析 -->
         <div v-if="analysisTab === 'quality'" class="analysis-section">
@@ -926,7 +927,7 @@ onMounted(async () => {
         </div>
         <!-- 提供商 -->
         <div v-if="analysisTab === 'provider'" class="analysis-section">
-          <ReTable :data="providers" :columns="providerColumns" :loading="providersLoading" :border="true" />
+          <ReTable :data="providers" :columns="providerColumns" :loading="providersLoading" :border="true" table-id="template-analysis-providers" />
         </div>
       </div>
     </ReCard>

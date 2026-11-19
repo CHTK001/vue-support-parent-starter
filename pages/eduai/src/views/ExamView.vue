@@ -1,5 +1,6 @@
 <template>
   <div class="page-container">
+    <ReConfirmDialog ref="confirmDialog" />
     <ReTable
       ref="tableRef"
       :loader="loadExams"
@@ -97,13 +98,16 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { reactive, ref } from 'vue';
-import { ElMessageBox } from 'element-plus';
 import { eduaiApi } from '../api/eduaiApi';
 import { createPageLoader, numParam, pageLoadError, strParam, useSnapshotSearch } from '../api/pageLoader';
 import type { EduClass, Exam, Paper } from '../api/types';
 import type { ReTableSearchConfig } from '@repo/ui/re-table';
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
+import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
+
+/** 统一确认弹窗（ReDialog 实现，替代 ElMessageBox.confirm） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 
 const pageNo = ref(1);
 const pageSize = ref(20);
@@ -232,13 +236,11 @@ const save = async () => {
 };
 
 const remove = async (row: Exam) => {
-  try {
-    await ElMessageBox.confirm(`确认删除考试 ${row.examName}？`, "删除考试", {
-      type: "warning",
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-    });
-  } catch {
+  const ok = await confirmDialog.value?.open(`确认删除考试 ${row.examName}？`, {
+    title: "删除考试",
+    danger: true,
+  });
+  if (!ok) {
     return;
   }
   try {

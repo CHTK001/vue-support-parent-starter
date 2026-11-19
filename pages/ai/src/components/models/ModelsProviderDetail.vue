@@ -48,6 +48,23 @@
         </div>
         <div class="d-band-actions">
           <!--
+            官网入口（右上）：地址来自后端供应商登记表，213 家模板默认都有主站。
+            本机 ONNX / 路由组 / 自建供应商没有对外站点，后端回空，这里不渲染。
+            target=_blank + rel=noopener：外部站点拿不到本页的 window.opener。
+          -->
+          <el-button
+            v-if="website"
+            tag="a"
+            round
+            :href="website"
+            target="_blank"
+            rel="noopener noreferrer"
+            :title="`打开官网：${website}`"
+          >
+            <template #icon><LinkOutlined /></template>
+            官网
+          </el-button>
+          <!--
             路由组：没有上游地址、没有自己的模型行，只做「成员来自模型库 + 组内策略」，
             因此隐藏「编辑供应商 / 添加模型 / 同步」，成员在下方配置面板里维护。
           -->
@@ -89,11 +106,23 @@
         <el-icon size="42" class="d-empty-icon"><Box16Regular /></el-icon>
         <p class="d-empty-title">{{ t('settings.providerDetail.noModels') }}</p>
         <p class="d-empty-desc">{{ t('settings.providerDetail.noModelsDesc') }}</p>
-        <!-- 非管理员没有新增模型的权限，空状态就不再挂一个点了必 403 的按钮 -->
-        <el-button v-if="canWrite" type="primary" round class="mt-5" @click="handleAdd">
-          <template #icon><PlusOutlined /></template>
-          {{ t('settings.providerDetail.addModel') }}
-        </el-button>
+        <!--
+          空状态的两个入口：
+          「从上游获取」把该供应商此刻的模型目录整批列出来（渠道类供应商即便是
+          豆包/通义这种免登录生成渠道也能拉到），这才是「一个模型都没有」时
+          最该点的那颗按钮；「手动添加」留给上游目录不可用的场景。
+          非管理员没有写权限，空状态不再挂点了必 403 的按钮。
+        -->
+        <div v-if="canWrite" class="d-empty-actions">
+          <el-button type="primary" round @click="handleFetchFromEmpty">
+            <template #icon><Download /></template>
+            从上游获取模型
+          </el-button>
+          <el-button round @click="handleAdd">
+            <template #icon><PlusOutlined /></template>
+            {{ t('settings.providerDetail.addModel') }}
+          </el-button>
+        </div>
       </div>
 
       <!-- 模型区（路由组没有自己的模型行，整块不渲染） -->
@@ -133,6 +162,23 @@
                 <el-icon :size="15"><GridViewOutlined /></el-icon>
               </button>
             </div>
+            <!-- 排序：两个视图共用一套状态（卡片没有表头，从工具栏设）。
+                 与搜索框同宽档，放视图切换与搜索之间，不挤批量工具栏。 -->
+            <el-select
+              v-model="sortModel"
+              size="small"
+              class="model-sort-select"
+              title="排序方式"
+              aria-label="排序方式"
+            >
+              <el-option label="默认排序" value="default" />
+              <el-option label="价格从低到高" value="price-asc" />
+              <el-option label="价格从高到低" value="price-desc" />
+              <el-option label="速度从快到慢" value="speed-desc" />
+              <el-option label="速度从慢到快" value="speed-asc" />
+              <el-option label="RPM 从高到低" value="rpm-desc" />
+              <el-option label="名称 A→Z" value="modelName-asc" />
+            </el-select>
             <!-- 搜索框：支持模型名 / 类型 / 子类型 / 能力关键词 -->
             <el-input
               v-model="modelSearch"
@@ -146,11 +192,49 @@
               </template>
             </el-input>
 
+            <!--
+              模型目录导出 CSV：勾选了就只导勾选的，否则导当前筛选+排序结果。
+              只读动作，不限 canWrite——看得到目录就能导出去盘点。
+            -->
+            <el-button
+              size="small"
+              class="csv-export-btn"
+              title="导出模型目录为 CSV"
+              @click="exportModelsCsv"
+            >
+              <template #icon><Download /></template>
+              CSV
+            </el-button>
+
             <!-- 批量操作工具栏：**保持原逻辑——勾中卡片才出现**（空态/未选不渲染、不占位）。
                  全选 / 反选放在「批量删除」旁边，与其它批量动作同一条工具栏里。
                  整块只在可写时出现：勾选、启停、批量删除全是 admin-only 接口。 -->
             <div v-if="canWrite && selected.length > 0" class="batch-toolbar">
               <span class="batch-count">已选 {{ selected.length }} 个</span>
+              <!--
+                模型对比：勾中 2~4 个后可并排比较指标 / 能力 / 价格。
+                纯前端只读、不调接口；入口挂在批量工具栏，复用同一套勾选状态。
+              -->
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                :disabled="compareDisabled"
+                :title="compareTip"
+                @click="openCompare"
+              >对比</el-button>
+              <!--
+                批量测延迟：勾中的模型分小批并发探测（每批 4 个，避免打爆探活端点），
+                结果回填到卡片延迟展示与「+N」明细；静默跑，结束一次性汇总。
+              -->
+              <el-button
+                size="small"
+                type="info"
+                plain
+                :loading="batchTesting"
+                :disabled="batchTesting"
+                @click="batchTestLatency"
+              >测延迟</el-button>
               <el-button size="small" type="success" @click="batchEnable">启用</el-button>
               <el-button size="small" type="warning" @click="batchDisable">停用</el-button>
               <el-button
@@ -206,10 +290,22 @@
                 {{ t(`common.contextSize.${tag.key}`) }}
               </span>
             </div>
+            <!-- 能力过滤：按输入/输出能力位筛选，多选 = 并集；数据与能力图标条同源 -->
+            <div class="ctx-filter">
+              <span class="ctx-filter-title">能力</span>
+              <span v-for="tag in CAPABILITY_TAGS" :key="tag.key" class="ctx-tag"
+                :class="{ 'ctx-tag-active': capFilter.includes(tag.key) }"
+                :title="tag.title"
+                @click="toggleCapFilter(tag.key)">
+                {{ tag.label }}
+              </span>
+            </div>
           </div>
         </div>
         <div v-if="filteredModels.length === 0" class="ctx-no-match">
-          {{ t('common.contextSize.noMatch') }}
+          <p>{{ t('common.contextSize.noMatch') }}</p>
+          <!-- 空态可操作：一键清空搜索词与全部筛选档位，不留死胡同 -->
+          <el-button size="small" link type="primary" @click="clearModelFilters">清除筛选条件</el-button>
         </div>
         <!--
           列表视图：与卡片同一份 filteredModels / 筛选 / 批量选择，换成密排行。
@@ -219,16 +315,50 @@
         <div v-else-if="viewMode === 'list'" class="model-list">
           <div class="ml-head">
             <span></span>
-            <span>模型</span>
+            <button
+              type="button"
+              class="ml-sort"
+              :class="{ 'is-on': sortKey === 'modelName' }"
+              title="按模型名排序"
+              @click="toggleSort('modelName')"
+            >
+              模型<span class="ml-sort-arrow">{{ sortArrow('modelName') }}</span>
+            </button>
+            <span>别名</span>
             <span>能力</span>
             <span>输入 / 输出</span>
-            <span class="ml-c-price">价格</span>
-            <span class="ml-c-speed">速度</span>
+            <button
+              type="button"
+              class="ml-sort ml-c-price"
+              :class="{ 'is-on': sortKey === 'price' }"
+              title="按价格排序（输入 + 输出，缺值排最后）"
+              @click="toggleSort('price')"
+            >
+              价格<span class="ml-sort-arrow">{{ sortArrow('price') }}</span>
+            </button>
+            <button
+              type="button"
+              class="ml-sort ml-c-speed"
+              :class="{ 'is-on': sortKey === 'speed' }"
+              title="按速度排序（本机实测优先，缺值排最后）"
+              @click="toggleSort('speed')"
+            >
+              速度<span class="ml-sort-arrow">{{ sortArrow('speed') }}</span>
+            </button>
+            <button
+              type="button"
+              class="ml-sort ml-c-rpm"
+              :class="{ 'is-on': sortKey === 'rpm' }"
+              title="按 RPM 排序（缺值排最后）"
+              @click="toggleSort('rpm')"
+            >
+              RPM<span class="ml-sort-arrow">{{ sortArrow('rpm') }}</span>
+            </button>
             <span class="ml-c-sw">启用</span>
             <span></span>
           </div>
           <div
-            v-for="model in filteredModels"
+            v-for="model in visibleModels"
             :key="getModelId(model)"
             class="ml-row"
             :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-off': !model.isActive }"
@@ -260,17 +390,61 @@
                 fit="contain"
                 @error="avatarFailed.add(getModelId(model))"
               />
-              <!-- 名称 + 描述两行：描述是模型副标题，显示在模型名下方（没有就整行不占位） -->
+              <!-- 名称 + 描述两行：名称固定显示模型真实名称（去命名空间前缀），
+                   别名移到独立的「别名」列，避免别名把真实模型名顶掉 -->
               <span class="ml-name-body">
-                <span
-                  class="ml-name-text"
-                  :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)"
-                >{{ model.alias || getModelDisplayName(model.modelName) }}</span>
+                <span class="ml-name-text" :title="model.modelName">
+                  <template v-for="(seg, si) in displayNameSegments(model)" :key="si"><mark v-if="seg.hit" class="ml-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template>
+                </span>
                 <span v-if="model.description" class="ml-name-desc" :title="model.description">
                   {{ model.description }}
                 </span>
               </span>
               <span v-if="model.external" class="ml-badge">外部目录</span>
+            </span>
+
+            <!-- 别名：与「能力」列同一套胶囊语言（同高、同圆角、同描边）。
+                 胶囊可点 → 行内编辑（Enter / 失焦保存，Esc 取消，清空即清除别名）；
+                 没设别名时按模型 ID 兜底，用虚线边 + 浅色区分。
+                 无原生 id 的行不可编辑：更新接口按 provider_id + model 定位，点了必 404。 -->
+            <span
+              class="ml-alias"
+              :class="{ 'is-fallback': !model.alias, 'is-editing': editingAliasId === getModelId(model) }"
+              :title="editingAliasId === getModelId(model)
+                ? '编辑别名：Enter 保存，Esc 取消'
+                : model.alias
+                  ? `别名：${model.alias}（点击编辑）`
+                  : `未设置别名，显示模型 ID：${model.modelName}（点击设置）`"
+            >
+              <input
+                v-if="editingAliasId === getModelId(model)"
+                :ref="setAliasInput"
+                v-model="aliasDraft"
+                class="ml-alias-input"
+                type="text"
+                maxlength="64"
+                placeholder="别名（留空清除）"
+                @keyup.enter="saveAlias(model)"
+                @keyup.esc="cancelAliasEdit"
+                @blur="saveAlias(model)"
+              />
+              <button
+                v-else
+                type="button"
+                class="ml-alias-chip"
+                :class="{ 'is-editable': aliasEditable(model) }"
+                :disabled="!aliasEditable(model)"
+                @click="startAliasEdit(model)"
+              >{{ model.alias || model.modelName }}</button>
+              <button
+                v-if="editingAliasId !== getModelId(model)"
+                type="button"
+                class="ml-alias-copy"
+                title="复制模型 ID"
+                @click="copyModelId(model)"
+              >
+                <el-icon :size="13"><CopyDocument /></el-icon>
+              </button>
             </span>
 
             <!-- 能力：与卡片同一组图标胶囊（图标 + 悬停 tip），列的宽度不够时折叠成 +N -->
@@ -281,11 +455,13 @@
               :max="3"
               :icon-size="15"
               :popover-width="200"
+              :arrow-between="['in:', 'out:']"
             />
 
             <span class="ml-cell" :title="listMeta(model).ioTitle">{{ listMeta(model).io }}</span>
             <span class="ml-cell ml-c-price" :title="listMeta(model).priceTitle">{{ listMeta(model).price }}</span>
             <span class="ml-cell ml-c-speed" :title="listMeta(model).speedTitle">{{ listMeta(model).speed }}</span>
+            <span class="ml-cell ml-c-rpm" :title="listMeta(model).rpmTitle">{{ listMeta(model).rpm }}</span>
 
             <span class="ml-c-sw">
               <el-switch
@@ -318,7 +494,7 @@
           </div>
         </div>
         <div v-else class="model-grid">
-          <article v-for="model in filteredModels" :key="model.id" class="mc"
+          <article v-for="model in visibleModels" :key="model.id" class="mc"
             :class="{ 'is-selected': selected.includes(getModelId(model)), 'is-off': !model.isActive }">
             <div class="mc-head">
               <!-- 模型没有专属 logo、或那张图根本加载不出来时，先回退到**这一行真正接的上游通道**
@@ -336,8 +512,52 @@
                 :name="getModelDisplayName(model.modelName)" type="assistant" :round="false" fit="contain"
                 @error="avatarFailed.add(getModelId(model))" />
               <div class="mc-head-text min-w-0">
-                <span class="mc-name" :title="model.alias ? `${model.alias} · ${model.modelName}` : getModelDisplayName(model.modelName)">
-                  {{ model.alias || getModelDisplayName(model.modelName) }}
+                <!-- 卡片与列表同口径：真实模型名为主，别名降为名字下方的小字，
+                     不再让 alias 顶掉真实名（与列表视图「模型 / 别名」两列一致） -->
+                <span class="mc-name-row">
+                  <span class="mc-name" :title="getModelDisplayName(model.modelName)">
+                    <template v-for="(seg, si) in displayNameSegments(model)" :key="si"><mark v-if="seg.hit" class="ml-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template>
+                  </span>
+                  <!-- 最近一次探测延迟：测完立即可见，卡片间横向比较不用再翻「+N」明细 -->
+                  <span
+                    v-if="model.modelLastLatency != null"
+                    class="mc-probe"
+                    :title="`最近一次探测延迟 ${model.modelLastLatency}ms`"
+                  >{{ model.modelLastLatency }}ms</span>
+                </span>
+                <!-- 卡片别名：与列表别名同一套行内编辑（复用 startAliasEdit/saveAlias，
+                     Enter/失焦保存、Esc 取消、清空即清除）。没设别名且可编辑时给一个
+                     虚线「设别名」入口，否则卡片上没有设置别名的入口。 -->
+                <span
+                  v-if="model.alias || aliasEditable(model) || editingAliasId === getModelId(model)"
+                  class="mc-alias"
+                  :class="{ 'is-empty': !model.alias, 'is-editing': editingAliasId === getModelId(model) }"
+                  :title="editingAliasId === getModelId(model)
+                    ? '编辑别名：Enter 保存，Esc 取消'
+                    : model.alias
+                      ? `别名：${model.alias}（点击编辑）`
+                      : `未设置别名，显示模型 ID：${model.modelName}（点击设置）`"
+                >
+                  <input
+                    v-if="editingAliasId === getModelId(model)"
+                    :ref="setAliasInput"
+                    v-model="aliasDraft"
+                    class="ml-alias-input"
+                    type="text"
+                    maxlength="64"
+                    placeholder="别名（留空清除）"
+                    @keyup.enter="saveAlias(model)"
+                    @keyup.esc="cancelAliasEdit"
+                    @blur="saveAlias(model)"
+                  />
+                  <button
+                    v-else
+                    type="button"
+                    class="ml-alias-chip"
+                    :class="{ 'is-editable': aliasEditable(model), 'is-empty-chip': !model.alias }"
+                    :disabled="!aliasEditable(model)"
+                    @click="startAliasEdit(model)"
+                  >{{ model.alias || '设别名' }}</button>
                 </span>
                 <!-- 模型描述：显示在模型名下方的一行小字（没有描述不占位） -->
                 <span v-if="model.description" class="mc-desc" :title="model.description">
@@ -372,9 +592,8 @@
 
             <!--
               能力：输入 / 输出能力合成一条图标带（图标 + 悬停 tip）。
-              以前拆成「输入 → 输出」两组用箭头连起来，图标一多就换行、
-              把卡片撑高；而且同一项能力在列表视图里也要能对齐，
-              所以两种视图统一走 capabilityItems()。
+              输入组与输出组之间用「→」指向：方向关系是能力语义的一部分。
+              图标一多时箭头只出现在可见标签内的分组边界处，两种视图统一走 capabilityItems()。
             -->
             <div v-if="capabilityItems(model).length" class="mc-caps">
               <ModelTagStrip
@@ -382,11 +601,12 @@
                 :max="8"
                 :icon-size="15"
                 :popover-width="200"
+                :arrow-between="['in:', 'out:']"
               />
             </div>
 
             <!-- 参数与官方指标：手填值优先，缺失回退指标表（sys_ai_model_metrics）。
-                 恒定 4 格：输入 / 输出（文生图换成 张数 / 参考图）、价格、速度。
+                 恒定 5 格：输入 / 输出（文生图换成 张数 / 参考图）、价格、速度、RPM。
                  缺值一律显示 —；每格都带一条恒定占位的副行（首字 TTFT 放副行），
                  所以同一栏里每张卡的格数、格高完全相同 —— 这是卡片等高的前提。
                  曾经有智能 / 全知两格，多数模型缺采占「—」，噪音大于信息，已删除。 -->
@@ -395,11 +615,20 @@
                 v-for="(item, mi) in cardMeta(model)"
                 :key="item.label"
                 class="mc-meta-item"
-                :class="{ 'is-lead': mi === 0, 'is-empty': item.value === '—' }"
+                :class="{ 'is-lead': mi === 0, 'is-empty': item.value === '—', 'is-best': isBestMeta(model, item.label) }"
                 :title="item.title"
               >
-                <span class="mc-meta-label">{{ item.label }}</span>
+                <span class="mc-meta-label">
+                  {{ item.label }}
+                  <!-- 同供应商最优徽标：不占布局高度，钉在指标格右上角 -->
+                  <i v-if="isBestMeta(model, item.label)" class="mc-best-chip" title="本供应商同类指标最优">优</i>
+                </span>
                 <span class="mc-meta-val">{{ item.value }}</span>
+                <!-- 速度 / RPM 的同供应商相对宽度微条：轨道恒定渲染（只有这两格带 bar 键），
+                     有值才填充；两格轨道都在，卡片等高不被破坏 -->
+                <i v-if="item.bar !== undefined" class="mc-meta-bar" aria-hidden="true">
+                  <b v-if="item.bar != null" :style="{ width: item.bar + '%' }" />
+                </i>
                 <!-- 副行空着也占位：否则「有没有首字 / HLE」会把同排卡片撑出不同高度 -->
                 <span class="mc-meta-sub">{{ item.sub }}</span>
               </span>
@@ -452,6 +681,13 @@
             </div>
           </article>
         </div>
+
+        <!-- 分页尾部：两种视图共用。命中数多于当前已渲染数时出现，点击放行下一页 -->
+        <div v-if="hasMoreModels" class="model-load-more">
+          <button type="button" class="ml-more-btn" @click="loadMoreModels">
+            加载更多（已显示 {{ visibleModels.length }} / {{ filteredModels.length }}）
+          </button>
+        </div>
       </template>
 
       <!--
@@ -466,7 +702,16 @@
       v-if="showCreditPanel && provider?.providerId"
       compact
       :provider-id="provider.providerId"
+      :refresh-tick="props.refreshTick ?? 0"
+      @edit-provider="emit('edit-provider', $event)"
     />
+    <!-- 余额密钥未配置的引导：A 方案下没配密钥就不渲染余额面板，
+         但「静默消失」会让人找不到余额去哪了，给一行提示 + 去配置入口
+         （打开供应商表单，在余额密钥段补 credit_key）。 -->
+    <div v-else-if="creditHintVisible && provider?.providerId" class="credit-missing-hint">
+      <span>未配置余额密钥，暂不能查询余额</span>
+      <el-button size="small" type="primary" link @click="emit('edit-provider', { focusSection: 'balance' })">去配置</el-button>
+    </div>
 
     <!-- 同步结果：限制 / 计费标准 / 模型描述三段分开显示，失败原因与已尝试链路一并给出 -->
     <el-dialog v-model="syncReportVisible" title="同步结果" width="560px" append-to-body>
@@ -480,6 +725,58 @@
       </div>
       <template #footer>
         <el-button type="primary" round @click="syncReportVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!--
+      模型对比：把勾中的 2~4 个模型并排成一张表。
+      维度行 = 类型 / 状态 / cardMeta 的恒定指标格（输入·输出·价格·速度·RPM）/ 能力；
+      价格、速度、RPM 三行自动把最优值标绿（价格低者优、速度与 RPM 高者优），
+      缺数据的模型不参与该行的「最优」判定，也不冒充最优。
+    -->
+    <el-dialog v-model="compareVisible" title="模型对比" width="880px" append-to-body class="cmp-dialog">
+      <div class="cmp-scroll">
+        <table class="cmp-table">
+          <thead>
+            <tr>
+              <th class="cmp-dim">维度</th>
+              <th v-for="col in compareColumns" :key="getModelId(col.model)" class="cmp-col">
+                <span class="cmp-col-name" :title="col.model.modelName">
+                  {{ getModelDisplayName(col.model.modelName) }}
+                </span>
+                <span class="cmp-col-alias">{{ col.model.alias || col.model.modelName }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in compareRows" :key="row.key">
+              <td class="cmp-dim">{{ row.label }}</td>
+              <td
+                v-for="col in compareColumns"
+                :key="getModelId(col.model)"
+                class="cmp-cell"
+                :class="{ 'is-best': row.best && bestIds[row.best] === getModelId(col.model) }"
+                :title="row.title(col)"
+              >
+                <span class="cmp-value">{{ row.value(col) }}</span>
+                <span v-if="row.sub(col)" class="cmp-sub">{{ row.sub(col) }}</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="cmp-dim">能力</td>
+              <td v-for="col in compareColumns" :key="getModelId(col.model)" class="cmp-cell">
+                <span v-if="capabilityItems(col.model).length" class="cmp-caps">
+                  <span v-for="cap in capabilityItems(col.model)" :key="cap.key" class="cmp-cap">{{ cap.label }}</span>
+                </span>
+                <span v-else class="cmp-muted">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <template #footer>
+        <el-button round @click="copyCompareText">复制结果</el-button>
+        <el-button type="primary" round @click="compareVisible = false">关闭</el-button>
       </template>
     </el-dialog>
 
@@ -501,13 +798,14 @@
       ref="fetchRef"
       @select="handleFetchSelect"
       @imported="emit('changed')"
+      @import-finished="handleFetchImportFinished"
       @manual="handleManualAdd"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch } from 'vue'
+import { ref, computed, reactive, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { message } from '@repo/core'
 import Avatar from '../ui/Avatar.vue'
@@ -523,7 +821,7 @@ import {
   Speaker224Regular, Video24Regular, Group24Regular, Scan24Regular,
   Folder24Regular,
 } from '@vicons/fluent'
-import { Timer } from '@element-plus/icons-vue'
+import { Timer, Download, CopyDocument } from '@element-plus/icons-vue'
 import { apiService } from '../../services/ApiService'
 import { modelApi } from '@/services/javaApi'
 import { usePopup } from '../../composables/usePopup'
@@ -557,6 +855,8 @@ const props = defineProps<{
    * 进入时传 false，整块写入口不渲染 —— 否则用户看到按钮、点了必然 403。</p>
    */
   canWrite?: boolean
+  /** 保存后刷新信号：透传给余额面板，保存成功后强制重拉余额 */
+  refreshTick?: number
 }>()
 
 const canWrite = computed(() => props.canWrite !== false)
@@ -564,7 +864,8 @@ const canWrite = computed(() => props.canWrite !== false)
 const emit = defineEmits<{
   back: []
   changed: []
-  'edit-provider': []
+  /** opts.focusSection='balance'：从「去配置」入口进来，编辑表单直接聚焦余额密钥 */
+  'edit-provider': [opts?: { focusSection?: 'balance' }]
   'delete-provider': []
 }>()
 
@@ -578,6 +879,33 @@ const fetchRef = ref<any>(null)
 
 /** 选中的档位 key 集合（多选 = 并集；空 = 不过滤） */
 const ctxFilter = ref<string[]>([])
+
+/**
+ * 能力筛选档位：按输入 / 输出能力位过滤，多选 = 并集（与上下文档位同语义）。
+ * key 与 capabilityItems() 的 key 同源（in:image / out:image …），
+ * label 用业务叫法（理解 / 生成），比「输入·图片」更像一个筛选词。
+ */
+const CAPABILITY_TAGS = [
+  { key: 'in:image', label: '图片理解', title: '输入能力含图片：可读图、可做图生图' },
+  { key: 'out:image', label: '图片生成', title: '输出能力含图片：文生图 / 图生图' },
+  { key: 'in:audio', label: '音频理解', title: '输入能力含音频：语音识别 / 听写' },
+  { key: 'out:audio', label: '音频生成', title: '输出能力含音频：语音合成' },
+  { key: 'out:video', label: '视频生成', title: '输出能力含视频' },
+  { key: 'vector', label: '向量', title: '含向量能力：嵌入 / 检索（输入或输出）' },
+] as const
+const capFilter = ref<string[]>([])
+const toggleCapFilter = (key: string) => {
+  const idx = capFilter.value.indexOf(key)
+  if (idx >= 0) capFilter.value.splice(idx, 1)
+  else capFilter.value.push(key)
+}
+/** 模型是否具备某能力位：与能力图标条同一份数据（config.input/outputCapabilities） */
+const hasCapability = (model: any, key: string) => {
+  if (key === 'vector') {
+    return capabilityItems(model).some((i) => i.key === 'in:vector' || i.key === 'out:vector')
+  }
+  return capabilityItems(model).some((i) => i.key === key)
+}
 
 /** 关键字搜索 */
 const modelSearch = ref('')
@@ -696,6 +1024,96 @@ const matchesSearch = (m: any, kw: string) => {
   )
 }
 
+/* ---------- 模型排序：列表表头与工具栏下拉共用一套状态 ----------
+ * 三态切换：换键 = 升序 → 同键再点 = 降序 → 第三次 = 取消回默认排序。
+ * 排序值取指标原始数值（不是展示串）：价格 = 输入+输出价之和，
+ * 速度 = 本机实测优先、官方指标兜底，RPM = 模型级 → 供应商级回退。
+ * 缺值恒排最后（不随方向翻转），避免「—」把有数据的行冲散。 */
+type ModelSortKey = '' | 'modelName' | 'price' | 'speed' | 'rpm'
+
+/**
+ * 排序偏好持久化：与 viewMode 同一口径 —— 这是长期使用习惯，
+ * 不该每次进页面都回默认。读时校验取值，脏数据（版本变更 / 手改）回默认。
+ */
+const SORT_PREF_KEY = 'ai.modelManage.sort'
+const SORT_KEY_VALUES: readonly ModelSortKey[] = ['', 'modelName', 'price', 'speed', 'rpm']
+const readSortPref = (): { key: ModelSortKey; dir: 'asc' | 'desc' } => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SORT_PREF_KEY) || 'null')
+    const key = raw?.key
+    const dir = raw?.dir
+    if (SORT_KEY_VALUES.includes(key) && (dir === 'asc' || dir === 'desc')) {
+      return { key, dir }
+    }
+  } catch {
+    // 读失败按默认排序，不影响首屏
+  }
+  return { key: '', dir: 'asc' }
+}
+const sortPref = readSortPref()
+const sortKey = ref<ModelSortKey>(sortPref.key)
+const sortDir = ref<'asc' | 'desc'>(sortPref.dir)
+watch([sortKey, sortDir], ([key, dir]) => {
+  try {
+    localStorage.setItem(SORT_PREF_KEY, JSON.stringify({ key, dir }))
+  } catch {
+    // 写失败只是记不住偏好，无需提示
+  }
+})
+
+/** 排序键取数：名称比字符串，其余比数值；拿不到返回 null（恒排最后） */
+function sortValueOf(m: any, key: Exclude<ModelSortKey, ''>): string | number | null {
+  if (key === 'modelName') return String(m?.modelName || '')
+  const mt = m?.metrics || {}
+  if (key === 'price') {
+    const pIn = numOrNull(mt.price_input_per_musd)
+    const pOut = numOrNull(mt.price_output_per_musd)
+    return pIn == null && pOut == null ? null : (pIn ?? 0) + (pOut ?? 0)
+  }
+  if (key === 'speed') {
+    return numOrNull(mt.avg_output_speed_tps) ?? numOrNull(mt.output_speed_tps)
+  }
+  return modelRpm(m)
+}
+
+const toggleSort = (key: Exclude<ModelSortKey, ''>) => {
+  if (sortKey.value !== key) {
+    sortKey.value = key
+    sortDir.value = 'asc'
+  } else if (sortDir.value === 'asc') {
+    sortDir.value = 'desc'
+  } else {
+    sortKey.value = ''
+  }
+}
+
+/** 表头箭头：未参与排序显示双向箭头（灰色），参与后显示实际方向 */
+const sortArrow = (key: Exclude<ModelSortKey, ''>) =>
+  sortKey.value === key ? (sortDir.value === 'asc' ? '↑' : '↓') : '⇅'
+
+/** 工具栏下拉用的合并值（卡片视图没有表头，从工具栏设排序） */
+const sortModel = computed({
+  get: () => (sortKey.value ? `${sortKey.value}-${sortDir.value}` : 'default'),
+  set: (v: string) => {
+    if (!v || v === 'default') {
+      sortKey.value = ''
+      return
+    }
+    const [k, d] = v.split('-')
+    sortKey.value = (k as ModelSortKey) || ''
+    sortDir.value = d === 'desc' ? 'desc' : 'asc'
+  },
+})
+
+/** 搜索无结果的「清除筛选」：把搜索词与全部筛选档位一键清空 */
+const clearModelFilters = () => {
+  modelSearch.value = ''
+  ctxFilter.value = []
+  capFilter.value = []
+  statusFilter.value = ''
+  typeFilter.value = ''
+}
+
 /** 命中档位标签的模型（过滤只影响展示；增删改仍走全量 props.models） */
 const filteredModels = computed(() => {
   const kw = modelSearch.value.trim().toLowerCase()
@@ -704,9 +1122,26 @@ const filteredModels = computed(() => {
     if (statusFilter.value === 'active' && !m.isActive) return false
     if (statusFilter.value === 'inactive' && m.isActive) return false
     if (typeFilter.value && m.modelType !== typeFilter.value) return false
+    if (capFilter.value.length && !capFilter.value.some((k) => hasCapability(m, k))) return false
     if (kw && !matchesSearch(m, kw)) return false
     return true
   })
+  // 用户点过表头/下拉排序：完全按用户口径排，不再叠加「启用优先」
+  if (sortKey.value) {
+    const key = sortKey.value
+    const dir = sortDir.value === 'asc' ? 1 : -1
+    return [...matched].sort((a: any, b: any) => {
+      const va = sortValueOf(a, key)
+      const vb = sortValueOf(b, key)
+      if (va == null && vb == null) return 0
+      if (va == null) return 1
+      if (vb == null) return -1
+      if (typeof va === 'string' || typeof vb === 'string') {
+        return String(va).localeCompare(String(vb)) * dir
+      }
+      return (va - vb) * dir
+    })
+  }
   // 已启用优先，同状态按后台 sort_order 升序，避免把排序规则丢掉
   return [...matched].sort((a: any, b: any) => {
     if (!!a.isActive !== !!b.isActive) return a.isActive ? -1 : 1
@@ -715,6 +1150,36 @@ const filteredModels = computed(() => {
     return ao - bo || String(a.modelName || '').localeCompare(String(b.modelName || ''))
   })
 })
+
+/* ---------- 分页渲染：模型很多时先画前 N 条，点「加载更多」再放行下一页 ----------
+ * 分页只影响「画出来多少」，批量全选 / 反选仍作用于全量 filteredModels
+ * （见 toggleSelectAllFiltered / invertSelection）。
+ * 只在「筛选条件 / 供应商 / 模型条数」变化时回到第一页：启停开关这类
+ * 不改条数的操作不重置，否则翻到后面几页后点一个开关，行就从眼前消失。 */
+const MODEL_PAGE_SIZE = 50
+const visibleCount = ref(MODEL_PAGE_SIZE)
+const visibleModels = computed(() => filteredModels.value.slice(0, visibleCount.value))
+const hasMoreModels = computed(() => filteredModels.value.length > visibleModels.value.length)
+const loadMoreModels = () => {
+  visibleCount.value += MODEL_PAGE_SIZE
+}
+watch(
+  [
+    () => props.provider?.id ?? props.provider?.provider_id,
+    () => props.models.length,
+    modelSearch,
+    statusFilter,
+    typeFilter,
+    ctxFilter,
+    capFilter,
+    sortKey,
+    sortDir,
+  ],
+  () => {
+    visibleCount.value = MODEL_PAGE_SIZE
+  },
+  { deep: true },
+)
 
 /**
  * 是否为 ONNX 本地推理供应商。
@@ -749,6 +1214,18 @@ const isRouterGroup = computed(
 )
 
 /**
+ * 官网地址（页头右上「官网」入口）。
+ *
+ * <p>地址由后端供应商登记表下发（213 家模板统一维护的公共数据），不是库里的列。
+ * 本机 ONNX、路由组、自建供应商没有对外站点，后端回 null 时这里就不渲染入口 ——
+ * 不拿上游 API 地址顶替，点开 404 比没有入口更糟。</p>
+ */
+const website = computed<string>(() => {
+  const raw = String((props.provider as any)?.website ?? '').trim()
+  return /^https?:\/\/[^\s]+$/i.test(raw) ? raw : ''
+})
+
+/**
  * 是否显示「余额与用量」面板。
  *
  * <p>只有配了上游地址的远程供应商才有可查的余额：路由组没有自己的上游，
@@ -756,10 +1233,32 @@ const isRouterGroup = computed(
  * 不留一个点了必然没数的区块。余额接口回传脱敏后的 Key 列表，按 admin 权限保护，
  * 非管理员整块不出现（否则请求必然 403）。</p>
  */
+/**
+ * 余额密钥是否显式配置（extra.credit_key）。
+ *
+ * <p>后端 resolveCreditKeys 已是同一口径：只认显式配置的余额密钥，不再静默沿用
+ * 渠道 API Key。前端展示必须与之一致 —— 没配余额密钥就不渲染余额栏，
+ * 避免「没配余额密钥却显示余额」的误导，也避免一个点「刷新」必然落空的假入口。</p>
+ */
+const hasCreditKey = computed(() => {
+  const raw: any = props.provider?.extra?.credit_key
+  if (Array.isArray(raw)) return raw.some((k) => String(k ?? '').trim() !== '')
+  return String(raw ?? '').trim() !== ''
+})
+
 const showCreditPanel = computed(
   () => canWrite.value && !isOnnx.value && !isRouterGroup.value
     && (!!String(props.provider?.apiUrl || '').trim()
-      || !!String(props.provider?.extra?.credit_url || '').trim()),
+      || !!String(props.provider?.extra?.credit_url || '').trim())
+    && hasCreditKey.value,
+)
+
+/** 有上游地址但没配余额密钥：余额面板不渲染（A 方案），但不静默消失——给「去配置」引导 */
+const creditHintVisible = computed(
+  () => canWrite.value && !isOnnx.value && !isRouterGroup.value
+    && (!!String(props.provider?.apiUrl || '').trim()
+      || !!String(props.provider?.extra?.credit_url || '').trim())
+    && !hasCreditKey.value,
 )
 
 /** 路由组供应商的平台标识（与后端 ProviderRouteTargets.ROUTER_GROUP_PLATFORM 一致） */
@@ -979,8 +1478,8 @@ const providerPriceLine = (group: ProviderPriceGroup): string => {
  * 官方估价与速度 / 智能指数来自指标表（sys_ai_model_metrics），
  * 由后端 toProviderModelResponse 合并进 model.metrics。</p>
  *
- * <p><b>恒定 6 格</b>：输入 / 输出 / 价格 / 速度 / 智能 / 全知（文生图前两格换成
- * 「张数 / 参考图」）。缺数据显示 —；首字延迟（TTFT）与 HLE 折进对应格的副行；
+ * <p><b>恒定 5 格</b>：输入 / 输出 / 价格 / 速度 / RPM（文生图前两格换成
+ * 「张数 / 参考图」）。缺数据显示 —；首字延迟（TTFT）折进速度格的副行；
  * 最近使用与延迟不进格子，走 {@link extraMeta} 的「+N」角标。</p>
  *
  * <p>为什么格数必须固定：此前只有前四项恒定，智能 / 全知 / 首字 / HLE 是
@@ -989,11 +1488,145 @@ const providerPriceLine = (group: ProviderPriceGroup): string => {
  * 「全知」就撑高一行）。固定成 6 格后，同一栏里每张卡宽度相同、换行结果也完全
  * 相同，卡片自然等高，也能横向逐格比较。</p>
  */
+/** 模型级 RPM：模型配置 / 指标表优先，缺省回退供应商级限流（extra.requests_per_minute，对该供应商全部模型生效） */
+const modelRpm = (model: any): number | null => {
+  const cfgRpm = numOrNull(model?.config?.rpm)
+  const mtRpm = numOrNull(model?.metrics?.requests_per_minute)
+  const providerRpm = numOrNull((props.provider as any)?.extra?.requests_per_minute)
+  return cfgRpm ?? mtRpm ?? providerRpm
+}
+
+/**
+ * 速度 / RPM 微条形图的同供应商标尺：分母取当前供应商全量模型的最大值。
+ * 只认有限正值；全缺省（分母 ≤ 0）时 barPct 返回 null，不画填充。
+ */
+const metricScale = computed(() => {
+  let maxSpeed = 0
+  let maxRpm = 0
+  for (const m of props.models as any[]) {
+    const mt = m?.metrics || {}
+    const s = numOrNull(mt.avg_output_speed_tps) ?? numOrNull(mt.output_speed_tps)
+    if (s != null && s > maxSpeed) maxSpeed = s
+    const r = modelRpm(m)
+    if (r != null && r > maxRpm) maxRpm = r
+  }
+  return { maxSpeed, maxRpm }
+})
+/** 相对宽度（0-100）：缺值或无标尺返回 null；下限 3%，小值也留一条可读的缝 */
+const barPct = (raw: number | null, max: number): number | null => {
+  if (raw == null || max <= 0) return null
+  return Math.max(3, Math.min(100, Math.round((raw / max) * 100)))
+}
+
+/**
+ * 同供应商「最优」标记：给速度最快 / RPM 最高 / 价格最低的指标格打上「优」徽标。
+ *
+ * <p>至少 2 个模型有值、且值存在差异才打标 —— 只有一个模型有数据、或全员同值时，
+ * 「最优」没有信息量，不打。价格取「输入+输出 每百万 token 总价」最低，
+ * 两边价格都采到才参与比价；并列最优全部打标。</p>
+ */
+const BEST_META_LABELS: Record<string, 'speed' | 'rpm' | 'price'> = {
+  速度: 'speed',
+  RPM: 'rpm',
+  价格: 'price',
+}
+const bestMetaMap = computed(() => {
+  const models = props.models as any[]
+  const map = new Map<string, Set<string>>()
+  const mark = (m: any, key: string) => {
+    const id = getModelId(m)
+    let set = map.get(id)
+    if (!set) {
+      set = new Set()
+      map.set(id, set)
+    }
+    set.add(key)
+  }
+  /** 通用挑选：read 取值，isBetter 判优；有值模型不足 2 个或全员同值时不打标 */
+  const pickBest = (
+    key: string,
+    read: (m: any) => number | null,
+    isBetter: (v: number, best: number) => boolean,
+  ) => {
+    const vals: Array<{ m: any; v: number }> = []
+    for (const m of models) {
+      const v = read(m)
+      if (v != null) vals.push({ m, v })
+    }
+    if (vals.length < 2) return
+    let hasDiff = false
+    for (const x of vals) {
+      if (x.v !== vals[0].v) {
+        hasDiff = true
+        break
+      }
+    }
+    if (!hasDiff) return
+    let best = vals[0].v
+    for (const x of vals) {
+      if (isBetter(x.v, best)) best = x.v
+    }
+    for (const x of vals) {
+      if (x.v === best) mark(x.m, key)
+    }
+  }
+  pickBest(
+    'speed',
+    (m) => numOrNull(m?.metrics?.avg_output_speed_tps) ?? numOrNull(m?.metrics?.output_speed_tps),
+    (v, best) => v > best,
+  )
+  pickBest('rpm', (m) => modelRpm(m), (v, best) => v > best)
+  pickBest(
+    'price',
+    (m) => {
+      const pIn = numOrNull(m?.metrics?.price_input_per_musd)
+      const pOut = numOrNull(m?.metrics?.price_output_per_musd)
+      return pIn != null && pOut != null ? pIn + pOut : null
+    },
+    (v, best) => v < best,
+  )
+  return map
+})
+/** 该模型该格是否为同供应商最优（指标格 label → 判据，见 BEST_META_LABELS） */
+const isBestMeta = (model: any, label: string): boolean => {
+  const key = BEST_META_LABELS[label]
+  return key != null && (bestMetaMap.value.get(getModelId(model))?.has(key) ?? false)
+}
+
+/**
+ * 搜索命中分段：把文本按当前搜索词切成「命中 / 未命中」段，模板对命中段渲染 <mark>。
+ *
+ * <p>不区分大小写；搜索词为空时整体作为一段（不高亮）。用模板分段而不是 v-html：
+ * 模型名来自后端数据，分段渲染不需要转义，也不引入 HTML 注入面。</p>
+ */
+const nameSegments = (text: string, query: string): Array<{ text: string; hit: boolean }> => {
+  const q = query.trim().toLowerCase()
+  if (!q) return [{ text, hit: false }]
+  const segs: Array<{ text: string; hit: boolean }> = []
+  const lower = text.toLowerCase()
+  let i = 0
+  while (i < text.length) {
+    const idx = lower.indexOf(q, i)
+    if (idx < 0) {
+      segs.push({ text: text.slice(i), hit: false })
+      break
+    }
+    if (idx > i) segs.push({ text: text.slice(i, idx), hit: false })
+    segs.push({ text: text.slice(idx, idx + q.length), hit: true })
+    i = idx + q.length
+  }
+  return segs
+}
+
+/** 模型显示名按当前搜索词分段（卡片视图与列表视图共用） */
+const displayNameSegments = (model: any) =>
+  nameSegments(getModelDisplayName(model.modelName), modelSearch.value)
+
 const cardMeta = (model: any) => {
   const cfg = model?.config || {}
   const mt = model?.metrics || {}
-  /** 固定 6 格；sub 是副行，空串也照样渲染占位，避免「有没有副行」撑出高度差 */
-  const items: Array<{ label: string; value: string; title: string; sub?: string }> = []
+  /** 固定 6 格；sub 是副行，空串也照样渲染占位，避免「有没有副行」撑出高度差；bar 是微条形图宽度（0-100，仅速度/RPM 有此键） */
+  const items: Array<{ label: string; value: string; title: string; sub?: string; bar?: number | null }> = []
   /** 无数据占位：缺值就显示它 */
   const EMPTY = '—'
 
@@ -1125,10 +1758,25 @@ const cardMeta = (model: any) => {
       ttftSec != null ? `首字延迟（TTFT，官方中位）：${ttftSec.toFixed(2)}s` : '首字延迟：指标源未采集',
     ].join('；'),
     sub: ttftSec != null ? `首字 ${Math.round(ttftSec * 1000)}ms` : '',
+    bar: barPct(speed, metricScale.value.maxSpeed),
+  })
+
+  // ⑤ RPM：每分钟请求数上限。模型级有值用模型级，否则回退供应商级限流；
+  //    恒定渲染（缺数据显示 —），维持同一屏卡片等高。
+  const rpm = modelRpm(model)
+  const rpmModelLevel = numOrNull(model?.config?.rpm) ?? numOrNull(model?.metrics?.requests_per_minute)
+  items.push({
+    label: 'RPM',
+    value: rpm != null ? fmtNum(rpm) : EMPTY,
+    title: rpm != null
+      ? `请求频率上限：${rpm} 次/分钟${rpmModelLevel != null ? '（模型级）' : '（供应商级限流，对本供应商全部模型生效）'}`
+      : '每分钟请求数上限：未配置（可在供应商表单「高级 → 网络与限流 → 每分钟请求数」设置）',
+    bar: barPct(rpm, metricScale.value.maxRpm),
   })
 
   // ⑤⑥ 智能 / 全知：Artificial Analysis 跑分与知识准确-幻觉指数。用户反馈这类
-  //    指标噪音大于信息（多数模型缺采，显示「—」占格），已删除，卡片恒定 4 格。
+  //    指标噪音大于信息（多数模型缺采，显示「—」占格），已删除；
+  //    卡片恒定 5 格（输入 / 输出 / 价格 / 速度 / RPM）。
   //    如需看智能维度，去「模型指标」页的智能指数排行与性价比象限。
 
   return items
@@ -1319,18 +1967,19 @@ const capabilityItems = (model: any) => {
 }
 
 /**
- * 列表视图的三列短值：输入/输出、价格、速度。
+ * 列表视图的短值单元格：输入/输出、价格、速度、RPM。
  *
- * <p>与卡片指标区同一套取数口径（{@link cardMeta}），只是把四格压成三个单元格：
+ * <p>与卡片指标区同一套取数口径（{@link cardMeta}），只是把五格压成四个单元格：
  * 文生图没有 token 概念，前两格本来就不是「输入/输出」，所以合并成一格
  * 「张数 · 参考图」。标题（title）沿用 cardMeta 的完整说明，悬停可看单位与来源。</p>
  *
  * @param model 模型行
- * @returns 三个单元格的文本与悬停说明
+ * @returns 四个单元格的文本与悬停说明
  */
 const listMeta = (model: any) => {
   const meta = cardMeta(model)
   const [first, second, price, speed] = meta
+  const rpm = meta[4]
   const isImage = model?.modelType === 'image'
   return {
     io: isImage
@@ -1341,6 +1990,8 @@ const listMeta = (model: any) => {
     priceTitle: price?.title || '',
     speed: speed?.value || '—',
     speedTitle: speed?.title || '',
+    rpm: rpm?.value || '—',
+    rpmTitle: rpm?.title || '',
   }
 }
 
@@ -1356,10 +2007,16 @@ const handleManualAdd = () => {
 }
 const handleEdit = (model: any) => formRef.value.openEdit(model)
 
-const testLatency = async (model: any) => {
+/**
+ * 单模型测延迟：调探活接口并回填本机延迟。
+ *
+ * <p>silent=true 时只回填数据、不弹提示、返回是否成功，供批量测延迟复用；
+ * 默认保持原行为（成功/失败各弹一条提示）。</p>
+ */
+const testLatency = async (model: any, silent = false): Promise<boolean> => {
   const providerId = model?.providerId ?? props.provider?.id ?? props.provider?.provider_id
   const modelName = model?.model ?? model?.modelName ?? model?.name
-  if (!providerId || !modelName || model.testing || model.hasNativeId === false) return
+  if (!providerId || !modelName || model.testing || model.hasNativeId === false) return false
   model.testing = true
   try {
     const res: any = await modelApi.testProviderModelLatency(providerId, modelName)
@@ -1375,13 +2032,15 @@ const testLatency = async (model: any) => {
         latency_ms: latency,
       }
     }
-    message.success(latency != null ? `测试延迟：${latency}ms` : '延迟测试完成', { duration: 2500 })
+    if (!silent) message.success(latency != null ? `测试延迟：${latency}ms` : '延迟测试完成', { duration: 2500 })
+    return latency != null
   } catch (error: any) {
     const detail = error?.response?.data?.message
       || error?.response?.data?.msg
       || error?.message
       || '延迟测试失败'
-    message.error(String(detail), { duration: 2500 })
+    if (!silent) message.error(String(detail), { duration: 2500 })
+    return false
   } finally {
     model.testing = false
   }
@@ -1612,6 +2271,82 @@ const handleToggle = async (model: any) => {
 /** 模型唯一标识：优先后端 id，回退模型名 */
 const getModelId = (m: any) => m.id || m.modelName
 
+/* ---------- 别名行内编辑 + 复制模型 ID（列表视图） ----------
+ * 别名保存走 updateModelAlias 的最小更新体（provider_id + model + alias）：
+ * 后端 applyModelInput 按字段存在与否覆盖，不会触碰 capabilities 等其余列。 */
+const editingAliasId = ref('')
+const aliasDraft = ref('')
+const aliasInputEl = ref<HTMLInputElement | null>(null)
+
+/** 函数 ref：编辑输入框挂载时聚焦（写在脚本里，避免模板内联箭头函数的类型噪音） */
+const setAliasInput = (el: unknown) => {
+  aliasInputEl.value = (el as HTMLInputElement | null) ?? null
+}
+
+/** 别名可编辑：可写 + 有原生记录（复合主键能定位到渠道模型表里的那一行） */
+const aliasEditable = (model: any) =>
+  canWrite.value && model.hasNativeId !== false && !!model.id && !!model.modelName
+
+const startAliasEdit = (model: any) => {
+  if (!aliasEditable(model)) return
+  editingAliasId.value = getModelId(model)
+  aliasDraft.value = String(model.alias || '')
+  nextTick(() => aliasInputEl.value?.focus())
+}
+
+const cancelAliasEdit = () => {
+  editingAliasId.value = ''
+  aliasDraft.value = ''
+}
+
+const saveAlias = async (model: any) => {
+  // 失焦与 Enter 都会触发：只有仍处于「该行编辑中」才继续，避免双写
+  if (editingAliasId.value !== getModelId(model)) return
+  const next = aliasDraft.value.trim()
+  const prev = String(model.alias || '')
+  editingAliasId.value = ''
+  aliasDraft.value = ''
+  if (next === prev) return
+  try {
+    await apiService.updateModelAlias(
+      model.providerId || props.provider?.providerId,
+      model.modelName,
+      next,
+    )
+    model.alias = next
+    message.success(next ? '别名已更新' : '别名已清除', { duration: 2000 })
+  } catch (error: any) {
+    const detail = error?.response?.data?.message
+      || error?.response?.data?.msg
+      || error?.message
+      || '别名保存失败'
+    message.error(String(detail), { duration: 3000 })
+  }
+}
+
+const copyModelId = async (model: any) => {
+  const id = String(model.modelName || '').trim()
+  if (!id) return
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(id)
+    } else {
+      // 非安全上下文（http）没有 clipboard API：退回隐藏 textarea 复制
+      const ta = document.createElement('textarea')
+      ta.value = id
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      ta.remove()
+    }
+    message.success('模型 ID 已复制', { duration: 2000 })
+  } catch {
+    message.error('复制失败，请手动选择复制', { duration: 2000 })
+  }
+}
+
 const toggleSelect = (m: any) => {
   const id = getModelId(m)
   const idx = selected.value.indexOf(id)
@@ -1631,6 +2366,223 @@ const toggleSelectAllFiltered = () => {
 }
 
 const findModel = (id: string) => props.models.find((m: any) => getModelId(m) === id)
+
+/* ---------- 模型对比：勾选 2~4 个并排比较（纯前端，不调接口） ----------
+ * 数据全部复用卡片的取数口径（cardMeta / capabilityItems / sortValueOf），
+ * 保证「卡片上看到什么，对比表里就是什么」，不另派生一套展示值。 */
+const compareVisible = ref(false)
+/** 对比上限：超过 4 列后常规屏宽要横向滚动，逐列扫读反而变难 */
+const COMPARE_MAX = 4
+
+const compareDisabled = computed(() =>
+  selected.value.length < 2 || selected.value.length > COMPARE_MAX,
+)
+const compareTip = computed(() => {
+  if (selected.value.length < 2) return '勾选 2~4 个模型后可对比'
+  if (selected.value.length > COMPARE_MAX) return `最多同时对比 ${COMPARE_MAX} 个模型`
+  return '并排比较已选模型的指标 / 能力 / 价格'
+})
+
+const openCompare = () => {
+  if (selected.value.length < 2) {
+    message.warning('至少勾选 2 个模型才能对比')
+    return
+  }
+  if (selected.value.length > COMPARE_MAX) {
+    message.warning(`最多同时对比 ${COMPARE_MAX} 个模型，当前已选 ${selected.value.length} 个`)
+    return
+  }
+  compareVisible.value = true
+}
+
+/** 对比列：按勾选顺序取模型，并预计算各自的指标格（cardMeta） */
+const compareColumns = computed(() =>
+  selected.value
+    .map((id) => findModel(id))
+    .filter((m: any) => !!m)
+    .map((m: any) => ({ model: m, metas: cardMeta(m) })),
+)
+
+/**
+ * 对比行：类型 / 状态 + cardMeta 的恒定指标格。
+ * best 标记该行是否做「最优」高亮：价格（第 3 格）低者优，速度、RPM（第 4、5 格）高者优。
+ */
+const compareRows = computed(() => {
+  const cols = compareColumns.value
+  const rows: Array<{
+    key: string
+    label: string
+    best: '' | 'price' | 'speed' | 'rpm'
+    value: (c: { model: any; metas: any[] }) => string
+    sub: (c: { model: any; metas: any[] }) => string
+    title: (c: { model: any; metas: any[] }) => string
+  }> = [
+    {
+      key: 'type',
+      label: '类型',
+      best: '',
+      value: (c) => typeMeta(c.model.modelType).label,
+      sub: (c) => subTypeLabel(c.model.subType),
+      title: () => '模型类型 / 细分类型',
+    },
+    {
+      key: 'status',
+      label: '状态',
+      best: '',
+      value: (c) => (c.model.isActive ? '启用' : '停用'),
+      sub: () => '',
+      title: () => '当前启用状态',
+    },
+  ]
+  const first = cols[0]
+  if (!first) return rows
+  /** 与 cardMeta 的固定格序对齐：输入 / 输出 / 价格 / 速度 / RPM */
+  const bestByKey = ['', '', 'price', 'speed', 'rpm'] as const
+  first.metas.forEach((_, idx: number) => {
+    rows.push({
+      key: `metric-${idx}`,
+      label: first.metas[idx]?.label || `指标 ${idx + 1}`,
+      best: bestByKey[idx] || '',
+      value: (c) => c.metas[idx]?.value ?? '—',
+      sub: (c) => c.metas[idx]?.sub || '',
+      title: (c) => c.metas[idx]?.title || '',
+    })
+  })
+  // 费用估算：按指标表单价，1M 输入 + 1M 输出一次的合计（USD）。
+  // 与「价格」行同源（sortValueOf 'price' 同为 pIn+pOut），这里不再做最优高亮——
+  // 价格行已经标了；且部分模型只采到单边价，估算置 — 时被标优反而误导。
+  rows.push({
+    key: 'cost-estimate',
+    label: '估算·1M入+1M出',
+    best: '',
+    value: (c) => {
+      const pIn = numOrNull(c.model?.metrics?.price_input_per_musd)
+      const pOut = numOrNull(c.model?.metrics?.price_output_per_musd)
+      return pIn != null && pOut != null ? humanMoney(pIn + pOut, 'USD') : '—'
+    },
+    sub: (c) => {
+      const pIn = numOrNull(c.model?.metrics?.price_input_per_musd)
+      const pOut = numOrNull(c.model?.metrics?.price_output_per_musd)
+      return pIn != null && pOut != null ? 'USD' : ''
+    },
+    title: () => '按指标表单价估算：输入 100 万 token + 输出 100 万 token 的合计费用（美元）。峰谷价、按次计费不在此口径内',
+  })
+  return rows
+})
+
+/** 每个可比较维度的最优模型 ID：价格低者优，速度 / RPM 高者优；缺值不参与判定 */
+const bestIds = computed(() => {
+  const pick = (key: 'price' | 'speed' | 'rpm', lowerIsBetter: boolean) => {
+    let bestId = ''
+    let bestVal: number | null = null
+    for (const col of compareColumns.value) {
+      const v = sortValueOf(col.model, key)
+      // price / speed / rpm 三键必为数值；typeof 同时排除 null（缺值不参与判定）
+      if (typeof v !== 'number') continue
+      if (bestVal == null || (lowerIsBetter ? v < bestVal : v > bestVal)) {
+        bestVal = v
+        bestId = getModelId(col.model)
+      }
+    }
+    return bestId
+  }
+  return { price: pick('price', true), speed: pick('speed', false), rpm: pick('rpm', false) }
+})
+
+/**
+ * 把对比表拼成制表符分隔的纯文本，方便直接贴进群聊 / 文档。
+ * 与弹层同一套数据源（compareRows / capabilityItems），复制出去的和看到的一致。
+ */
+const copyCompareText = async () => {
+  const cols = compareColumns.value
+  if (!cols.length) return
+  const lines: string[] = [`模型对比（${cols.length} 个）`]
+  lines.push(`维度\t${cols.map((c) => getModelDisplayName(c.model.modelName)).join('\t')}`)
+  for (const row of compareRows.value) {
+    lines.push(`${row.label}\t${cols.map((c) => row.value(c)).join('\t')}`)
+  }
+  lines.push(
+    `能力\t${cols.map((c) => capabilityItems(c.model).map((i) => i.label).join('、') || '—').join('\t')}`,
+  )
+  const text = lines.join('\n')
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      // 非安全上下文（http）没有 clipboard API：退回隐藏 textarea 复制
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      ta.remove()
+    }
+    message.success('对比结果已复制', { duration: 2000 })
+  } catch {
+    message.error('复制失败，请手动选择复制', { duration: 2000 })
+  }
+}
+
+/**
+ * 模型目录导出 CSV：勾选了就只导勾选的，否则导当前筛选 + 排序后的全量结果。
+ * 带 UTF-8 BOM，Excel 双击打开中文不乱码；指标值用 cardMeta 的展示串（含单位），
+ * 价格拆成输入 / 输出两列原始数值，方便在表格里再算账。
+ */
+const exportModelsCsv = () => {
+  const picked = selected.value.map(findModel).filter((m: any) => !!m)
+  const list = picked.length ? picked : filteredModels.value
+  if (!list.length) {
+    message.info('当前没有可导出的模型')
+    return
+  }
+  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`
+  // 混合类型时表头按第一个模型叫法（对话=输入/输出，文生图=张数/参考图）
+  const headMetas = cardMeta(list[0])
+  const header = [
+    '模型名称',
+    '别名',
+    '类型',
+    '状态',
+    headMetas[0]?.label || '指标1',
+    headMetas[1]?.label || '指标2',
+    '输入价($/百万token)',
+    '输出价($/百万token)',
+    '速度(t/s)',
+    'RPM',
+    '能力',
+  ]
+  const lines = list.map((m: any) => {
+    const metas = cardMeta(m)
+    const mt = m?.metrics || {}
+    const type = typeMeta(m.modelType).label
+      + (subTypeLabel(m.subType) ? `/${subTypeLabel(m.subType)}` : '')
+    return [
+      m.modelName,
+      m.alias || '',
+      type,
+      m.isActive ? '启用' : '停用',
+      metas[0]?.value ?? '—',
+      metas[1]?.value ?? '—',
+      numOrNull(mt.price_input_per_musd) ?? '',
+      numOrNull(mt.price_output_per_musd) ?? '',
+      metas[3]?.value ?? '—',
+      metas[4]?.value ?? '—',
+      capabilityItems(m).map((i) => i.label).join('、'),
+    ].map(esc).join(',')
+  })
+  const csv = '\uFEFF' + [header.map(esc).join(','), ...lines].join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const tag = String(props.provider?.providerId || 'models').replace(/[^\w.-]+/g, '_')
+  a.download = `models-${tag}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  message.success(`已导出 ${list.length} 个模型`, { duration: 2000 })
+}
 
 /** 批量启用：只处理当前停用的模型，避免把已启用模型也切一遍 */
 const batchEnable = async () => {
@@ -1662,6 +2614,41 @@ const batchDisable = async () => {
       return handleToggle(m)
     }),
   )
+}
+
+/** 批量测延迟进行中：按钮转圈并禁用，防止重复点击叠跑 */
+const batchTesting = ref(false)
+/**
+ * 批量测延迟：对勾中的模型分小批并发探测（每批 4 个），逐个静默回填延迟，
+ * 结束一次性汇总。只测有后端 id 的模型；无 id 的（如内置 Agent 供应商的模型行）
+ * 跳过并在汇总里说明。
+ */
+const batchTestLatency = async () => {
+  if (batchTesting.value) return
+  const chosen = [...selected.value]
+  const targets = chosen.map(findModel).filter((m: any) => m && m.hasNativeId !== false && m.testing !== true)
+  if (!targets.length) {
+    message.info('所选模型没有可测试的后端 id')
+    return
+  }
+  batchTesting.value = true
+  let ok = 0
+  try {
+    for (let i = 0; i < targets.length; i += 4) {
+      const results = await Promise.allSettled(
+        targets.slice(i, i + 4).map((m: any) => testLatency(m, true)),
+      )
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value === true) ok += 1
+      }
+    }
+    const skipped = chosen.length - targets.length
+    const tail = skipped > 0 ? `，跳过 ${skipped} 个无后端 id 的模型` : ''
+    message.success(`批量测延迟完成：成功 ${ok} / ${targets.length}${tail}`, { duration: 3000 })
+  } finally {
+    batchTesting.value = false
+    selected.value = []
+  }
 }
 
 /** 批量删除进行中（防止连点重复提交） */
@@ -1715,7 +2702,20 @@ const handleRequestFetch = () =>
   // false：这条是从模型表单里点「获取」来的，失败时不要回退 openAdd()，
   // 否则会把表单里已经填好的模型名/参数清空
   fetchRef.value.open(props.provider, props.models, false)
+/**
+ * 空状态里的「从上游获取模型」：列表拉不到时回退到手工表单。
+ *
+ * <p>空状态本身就是「一个模型都没有」，此时回退到新建表单是合理的兜底；
+ * 从模型表单里点「获取」那条路径不能这么干（会清空用户已填字段）。</p>
+ */
+const handleFetchFromEmpty = () => fetchRef.value.open(props.provider, props.models, true)
 const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
+/**
+ * 「全部录入」成功后，fetch 弹框自身会关闭，但背后从表单里点开的
+ * 「新建模型」弹框不会连带关——这里补上，避免用户面对已录完的空表单
+ * 还要手动点「取消」。表单没打开时 close 无副作用。
+ */
+const handleFetchImportFinished = () => formRef.value?.close?.()
 </script>
 
 <style scoped>
@@ -1731,7 +2731,19 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 
 /* 详情滚动区：垂直滚动即可；内容（超长模型名 / 极窄窗口下的卡片网格）一律不产生横向滚动条。
    背景：模型管理里超长文字（如 NewAPI 模板描述）曾把整页顶出水平滚动条（用户需求 1）。 */
-.detail-scroll { flex: 1; min-height: 0; scrollbar-gutter: stable both-edges; overflow-x: hidden; }
+/* 与 ModelsPage 的 .mw-list 同因：全局 tokens.css 的 `* { scrollbar-width: thin;
+   scrollbar-color: ... }` 会让 Chromium 忽略本应用自己的 8px 经典滚动条伪元素，
+   模型一多只剩一条几乎看不见的覆盖细条（表现为「模型页缺少滚动条」）。
+   复位两个标准属性为 auto，让 style.css / refactor.css 的 ::-webkit-scrollbar
+   样式重新生效；gutter 仍 stable，滚动条出现/消失不抖动。 */
+.detail-scroll {
+  flex: 1;
+  min-height: 0;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+  overflow-x: hidden;
+}
 
 /* 供应商头部：实色表面 + 发丝描边 + 极淡投影。
    不用渐变：这一版把「彩色」全部留给模型卡片的顶部色带与指标块，
@@ -1739,10 +2751,15 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .d-band {
   display: flex;
   align-items: center;
+  /* 窄窗口（侧栏固定 320px）时按钮组整体换到第二行，
+     而不是把名称挤成 0 宽 —— 名称是该页唯一的定位信息。 */
+  flex-wrap: wrap;
   gap: 14px;
   padding: 15px 17px;
   border-radius: var(--radius-lg, 12px);
-  background: var(--color-surface);
+  /* 抬升面而不是容器底色：详情区本身已经是白色卡片，头部再用同一个白
+     会与下面的模型区连成一整块（用户反馈「和背景一个颜色」）。 */
+  background: var(--bg-elevated, var(--color-surface));
   border: 1px solid var(--border-subtle, var(--color-surface-border));
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
 }
@@ -1762,7 +2779,10 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   );
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
-.d-band-info { flex: 1; min-width: 0; }
+/* 160px：名称/地址至少要保住这么宽，再窄就整体换到第二行。
+   按 16:10 笔记本到 2K 屏实测：1600px 以上按钮组都能留在同一行，
+   1366px 以下整体换行；不需要为每个供应商单独判断。 */
+.d-band-info { flex: 1 1 160px; min-width: 0; }
 .d-band-name-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .d-band-name {
   margin: 0;
@@ -1785,7 +2805,18 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   font-family: inherit;
   cursor: help;
 }
-.d-band-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.d-band-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  /* 按钮整体换行后仍可能比卡片宽（1100px 左右）：允许按钮自己再折一行，
+     否则「添加模型」会被裁在卡片外面。 */
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+  max-width: 100%;
+  margin-left: auto;
+}
 .d-del-btn {
   --el-button-text-color: var(--el-color-danger);
   --el-button-border-color: color-mix(in srgb, var(--el-color-danger) 35%, var(--color-surface-border));
@@ -1809,6 +2840,8 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .d-empty-icon { color: var(--color-text-disabled); }
 .d-empty-title { margin: 16px 0 0; font-size: 15px; font-weight: 600; color: var(--color-text-gray); }
 .d-empty-desc { margin: 6px 0 0; font-size: 13px; color: var(--color-text-disabled); }
+/* 空状态的两个入口并排：主操作「从上游获取」在左，次操作「手动添加」在右 */
+.d-empty-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
 
 /* 区块标题 */
 .d-section-head { display: flex; flex-direction: column; gap: 8px; margin: 20px 2px 12px; }
@@ -1896,6 +2929,91 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   font-size: 12px; color: var(--el-text-color-secondary); 
   border-radius: 4px;
 }
+
+/* 模型对比弹层：第一列维度固定宽，模型列等宽并排；最优值高亮 */
+.cmp-scroll { overflow-x: auto; }
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.cmp-table th,
+.cmp-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  text-align: left;
+  vertical-align: top;
+}
+.cmp-table thead th {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  background: var(--bg-elevated, var(--el-fill-color-light));
+}
+.cmp-dim {
+  width: 72px;
+  min-width: 72px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  /* 横向滚动时维度列钉在左侧：4 列并排在窄屏下不用来回扫读 */
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--el-bg-color);
+}
+.cmp-table thead .cmp-dim { z-index: 2; }
+.cmp-col-name {
+  display: block;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+.cmp-col-alias {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+.cmp-cell { min-width: 150px; }
+.cmp-value { display: block; color: var(--el-text-color-primary); }
+.cmp-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  margin-top: 2px;
+}
+.cmp-cell.is-best .cmp-value {
+  color: var(--el-color-success);
+  font-weight: 600;
+}
+.cmp-cell.is-best .cmp-value::after {
+  content: '最优';
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 400;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+.cmp-caps { display: flex; flex-wrap: wrap; gap: 4px; }
+.cmp-cap {
+  font-size: 11px;
+  line-height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  border: 1px solid var(--el-border-color-lighter);
+  white-space: nowrap;
+}
+.cmp-muted { color: var(--el-text-color-disabled); }
 /* 「全选 / 反选」已改为 el-button，旧的文字链样式不再需要 */
 
 /* 上下文大小过滤（与模型选择卡片共用同一套标签） */
@@ -1937,10 +3055,50 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   font-size: 13px;
   color: var(--color-text-disabled);
 }
+.ctx-no-match p {
+  margin: 0 0 8px;
+}
+
+/* 工具栏排序下拉：与搜索框同宽档的小选择器，两个视图共用 */
+.model-sort-select {
+  width: 132px;
+  flex: 0 0 auto;
+}
+
+/* 列表表头可点排序：继承表头字号/颜色，箭头小一号弱化，
+   参与排序时主色加粗；数字列沿用 ml-c-* 的对齐类不破网格 */
+.ml-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ml-sort:hover {
+  color: var(--el-color-primary);
+}
+.ml-sort.is-on {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.ml-sort-arrow {
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.45;
+}
+.ml-sort.is-on .ml-sort-arrow {
+  opacity: 1;
+}
 
 /* ===== 列表视图 =====
    与卡片视图吃同一份 filteredModels / 筛选 / 批量选择，换成一行一个模型：
-   勾选 · 名称与 logo · 能力图标条 · 输入输出 · 价格 · 速度 · 启用开关 · 操作。
+   勾选 · 名称与 logo · 能力图标条 · 输入输出 · 价格 · 速度 · RPM · 启用开关 · 操作。
 
    列宽用 minmax 让中间两列吃掉多余宽度，其余给固定值（数字列要能上下对齐）；
    右栏再窄就整块横向滚动，而不是把名称压成「…」（模型名是识别主键，
@@ -1954,10 +3112,13 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 .ml-head,
 .ml-row {
   display: grid;
-  grid-template-columns: 26px minmax(150px, 2fr) minmax(112px, 1.2fr) 88px 78px 68px 48px 92px;
+  /* 10 列：勾选 · 模型 · 别名 · 能力 · 输入/输出 · 价格 · 速度 · RPM · 启用 · 操作 */
+  grid-template-columns:
+    26px minmax(150px, 1.8fr) minmax(110px, 1.1fr) minmax(112px, 1.2fr)
+    88px 78px 68px 62px 48px 92px;
   align-items: center;
   gap: 8px;
-  min-width: 700px;
+  min-width: 900px;
   padding: 0 12px;
 }
 /* 竖分隔线：表格要有「格」，否则密排行只看得到横线，价格/速度这类数字列
@@ -2036,6 +3197,129 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 9%, transparent);
 }
+/* 别名：沿用「能力」列的胶囊语言（同高 22px、同圆角、同描边），
+   内容从图标换成文字；单行截断，完整值在 title 里。
+   未设别名 = 展示模型 ID 兜底，用虚线边 + 等宽字体区分「兜底 ID」与「用户起的别名」。 */
+.ml-alias {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.ml-alias-chip {
+  min-width: 0;
+  max-width: 100%;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--el-radius-md, 8px);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+/* 可编辑胶囊（有原生记录 + 可写）：hover 提示可点，禁用态收回 */
+.ml-alias-chip.is-editable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.ml-alias-chip.is-editable:hover {
+  border-color: var(--el-color-primary-light-5, var(--el-border-color));
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color);
+}
+.ml-alias-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+/* 行内编辑输入框：外观对齐胶囊（同高、同圆角、同字号），聚焦描主色 */
+.ml-alias-input {
+  min-width: 0;
+  width: 100%;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--el-radius-md, 8px);
+  border: 1px solid var(--el-color-primary-light-5, var(--el-border-color));
+  background: var(--el-bg-color, #fff);
+  color: var(--el-text-color-primary);
+  font-size: 11px;
+  line-height: 20px;
+  outline: none;
+}
+.ml-alias-input:focus {
+  border-color: var(--el-color-primary);
+}
+/* 复制模型 ID 的小图标钮：贴在胶囊右侧，hover 才显色，不抢别名视觉 */
+.ml-alias-copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-gray);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.ml-alias-copy:hover {
+  opacity: 1;
+  color: var(--el-color-primary);
+  background: var(--el-fill-color);
+}
+.ml-alias.is-fallback .ml-alias-chip {
+  border-style: dashed;
+  background: transparent;
+  color: var(--color-text-gray);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+/* 分页尾部：模型很多时先画前 50 条，这里放「加载更多」。居中、轻量，
+   不与批量工具栏争视觉；点击只是放行下一页渲染，不改筛选与选中。 */
+.model-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 2px;
+}
+.ml-more-btn {
+  height: 28px;
+  padding: 0 14px;
+  border-radius: var(--el-radius-full, 9999px);
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 26px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.ml-more-btn:hover {
+  border-color: var(--el-color-primary-light-5, var(--el-border-color));
+  color: var(--el-color-primary);
+  background: var(--el-fill-color);
+}
+
+/* 余额密钥未配置的引导行：贴在余额面板同一位置，轻提示 + 「去配置」入口 */
+.credit-missing-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: var(--el-radius-base);
+  border: 1px dashed var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter, transparent);
+  font-size: 12px;
+  color: var(--color-text-gray);
+}
 .ml-cell {
   min-width: 0;
   overflow: hidden;
@@ -2048,6 +3332,7 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 }
 .ml-c-price { text-align: right; }
 .ml-c-speed { text-align: right; }
+.ml-c-rpm { text-align: right; }
 .ml-c-sw { display: inline-flex; justify-content: center; }
 .ml-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 1px; }
 
@@ -2153,6 +3438,32 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   font-size: 14px; font-weight: 700; color: var(--color-text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* 名称行：模型名 + 探测延迟小徽标同行；min-width:0 保住名称自身的省略号截断 */
+.mc-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+/* 搜索命中高亮：卡片与列表共用；分段渲染不引入 v-html，无注入面 */
+.ml-hl {
+  border-radius: 2px;
+  padding: 0 1px;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+/* 最近一次探测延迟：测完立即可见，不必再点开「+N」明细逐个找 */
+.mc-probe {
+  flex: none;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-success, #16a34a);
+  background: color-mix(in srgb, var(--color-success, #16a34a) 12%, transparent);
+}
 /* 卡片副标题（模型描述）：最多两行，超出省略；完整内容在 title 里。
    限制行数是卡片等高的前提之一：描述长短差异极大（「本地 OCR」vs 一段介绍），
    不限高会把同排卡片撑成高低不齐。 */
@@ -2166,6 +3477,41 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   line-height: 1.45;
   color: var(--color-text-gray);
   word-break: break-word;
+}
+/* 卡片别名小字：跟在真实模型名下方，单行截断，完整值在 title 里。
+   与描述同字号但更淡，并加「别名」前缀，避免和描述混在一起分不清。 */
+.mc-alias {
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-text-gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-alias::before {
+  content: '别名 ';
+  opacity: 0.65;
+}
+/* 卡片别名行内编辑：复用列表同款胶囊 / 输入框语言。
+   未设别名时不加「别名」前缀（按钮文案本身是「设别名」），虚线边提示可设置。 */
+.mc-alias.is-empty::before {
+  content: none;
+}
+.mc-alias.is-editing {
+  display: block;
+}
+.mc-alias .ml-alias-chip {
+  display: inline-block;
+  max-width: 100%;
+}
+.mc-alias .ml-alias-chip.is-empty-chip {
+  border-style: dashed;
+  background: transparent;
+  color: var(--color-text-disabled);
+}
+.mc-alias .ml-alias-input {
+  height: 22px;
 }
 /* .mc-type / .mc-type.sub 已随标签改造移除：类型、细分类型、特性
    统一由 ModelTagStrip 以「图标 + tooltip」渲染，不再占用文字宽度。 */
@@ -2199,6 +3545,7 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   border-top: 1px solid var(--border-subtle, var(--color-surface-border));
 }
 .mc-meta-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 1px;
@@ -2214,6 +3561,23 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
 /* 首个指标：主色淡底 + 主色数值，作为这张卡的「主指标」 */
 .mc-meta-item.is-lead {
   background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+}
+/* 同供应商最优：数值转主色，格右上角钉一枚小「优」徽标 */
+.mc-meta-item.is-best .mc-meta-val {
+  color: var(--color-primary);
+}
+.mc-best-chip {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-style: normal;
+  font-size: 9px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 .mc-meta-label {
   font-size: 10px;
@@ -2243,6 +3607,25 @@ const handleFetchSelect = (model: any) => formRef.value.prefillFromFetch(model)
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* 速度 / RPM 微条形图：轨道只在这两格渲染（bar 键恒在），
+   填充宽度 = 本模型值 / 本供应商最大值，同屏卡片可直接比大小 */
+.mc-meta-bar {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  height: 3px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-gray) 22%, transparent);
+}
+.mc-meta-bar b {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  background: var(--color-primary);
 }
 /* 附加信息角标（最近使用 / 延迟）：骑在指标区分隔线上，绝对定位不参与布局，
    所以「有附加信息」不会把卡片撑高。悬停看明细。 */

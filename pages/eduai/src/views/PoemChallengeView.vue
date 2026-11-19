@@ -168,6 +168,7 @@
 import { computed, ref } from "vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { PoemChallengeItem, PoemChallengeMode } from "../api/types";
+import { STUDY_PROGRESS_PER_ROUND, useStudyReport } from "../composables/useStudyReport";
 
 /** 学段；「全部」不限学段，避免某个学段暂无数据时直接开不出题 */
 const ALL_LEVEL = "全部";
@@ -384,9 +385,20 @@ function optionClass(i: number) {
   return "is-wrong";
 }
 
+/** 学习行为上报：仅在学生端内嵌时真正发请求 */
+const { report: reportStudyRound } = useStudyReport();
+
 function next() {
   if (index.value + 1 >= items.value.length) {
     stage.value = "result";
+    // 一轮玩完即上报：七种玩法统一按「题数/答对数/积分」落库
+    reportStudyRound({
+      moduleCode: "poetry",
+      questionCount: items.value.length,
+      correctCount: results.value.filter(Boolean).length,
+      points: score.value,
+      progressDelta: STUDY_PROGRESS_PER_ROUND,
+    });
     return;
   }
   index.value += 1;

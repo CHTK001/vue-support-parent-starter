@@ -745,6 +745,7 @@ const loadModels = () => {
   if (modelsLoadPromise) return modelsLoadPromise
   modelsLoadPromise = (async () => {
     try {
+      // 只要已开启的模型（口径由账号模块判定）
       const body = await adminApi.get('/api/providers')
       const data = Array.isArray(body) ? body : body?.data || []
       // ONNX 本地推理供应商是否还在：删掉它之后不再把引擎清单挂回选择器
@@ -756,7 +757,6 @@ const loadModels = () => {
       for (const p of data) {
         const isOnnx = p.provider_id === 'onnx' || p.platform === 'onnx'
         const list = (p.models || [])
-          .filter((m: any) => m.enabled !== false)
           .filter((m: any) => (isOnnx ? (m.external === true || m.available === true) : true))
           .map((m: any) => {
             const type = inferModelType(m)

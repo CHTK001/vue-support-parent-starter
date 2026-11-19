@@ -19,7 +19,7 @@ export interface MessageSendRequest {
   /** 接收人 */
   target?: string[];
   /** 模板ID */
-  sysMessageTemplateId?: number;
+  sysMessageTemplateId?: string;
   /** 消息标题 */
   subject?: string;
   /** 模板参数 */
@@ -129,18 +129,18 @@ export function updateTemplate(data: MessageTemplate) {
 }
 
 /** 删除模板 */
-export function deleteTemplate(sysMessageTemplateId: number) {
+export function deleteTemplate(sysMessageTemplateId: string) {
   return http()
     .delete("/v2/message/template/delete")
     .query({ sysMessageTemplateId })
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
-/** 手动同步模板 */
-export function syncTemplate(sysMessageProviderId: number) {
+/** 手动同步运营商模板到账号侧模板库(channel: EMAIL/SMS，为空默认 SMS) */
+export function syncTemplate(channel?: string) {
   return http()
     .post("/v2/message/template/sync")
-    .query({ sysMessageProviderId })
+    .query(channel ? { channel } : {})
     .then<ApiResult<number>>((r) => r.data);
 }
 

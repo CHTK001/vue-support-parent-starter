@@ -14,6 +14,9 @@
 
     <!-- 聚合与调度 -->
     <SettingsCard title="聚合与调度">
+      <SettingsRow label="余额定时刷新" description="开启后每 5 分钟自动刷新已启用供应商的余额快照；关闭后仅在打开余额面板或手动同步时查询">
+        <el-switch v-model="byField('credit_refresh_enabled').value" />
+      </SettingsRow>
       <SettingsRow label="定时聚合间隔" description="最小 60 秒，默认 3600（1 小时）">
         <ReNumberInput v-model="byField('usage_report_interval').value"
           :min="60" :step="60" controls-position="right" />
@@ -107,6 +110,7 @@ const schema = reactive<SettingSchema[]>([
   // 「连接器聊天用量开关」（enable_connector_usage）已随后端 2026-11-10 的删除一并下线：
   // 该字段不再出现在 UsageGlobalSettingProvider 定义里，也没有任何消费方。
   { field: 'usage_timewheel_enabled', label: '后台时间轮调度', valueType: 'BOOLEAN', type: 'switch', value: false, desc: '开启后用量同步改用时间轮调度' },
+  { field: 'credit_refresh_enabled', label: '余额定时刷新', valueType: 'BOOLEAN', type: 'switch', value: true, desc: '开启后每 5 分钟自动刷新已启用供应商的余额快照；关闭后仅在打开余额面板或手动同步时查询' },
   { field: 'usage_report_interval', label: '定时聚合间隔', valueType: 'NUMBER', type: 'number', value: 3600 },
   { field: 'usage_sync_providers', label: 'Provider 白名单', valueType: 'STRING', type: 'text', value: '' },
   {
@@ -129,7 +133,9 @@ const schema = reactive<SettingSchema[]>([
   { field: 'usage_rate_eur', label: '欧元汇率', valueType: 'NUMBER', type: 'number', value: 7.8 },
 ]);
 
-const switchItems = computed(() => schema.filter((i) => i.type === 'switch' && i.field !== 'usage_currency_auto_convert'));
+// credit_refresh_enabled 在「聚合与调度」卡片单独渲染，不进「用量统计」的开关清单
+const switchItems = computed(() => schema.filter((i) => i.type === 'switch'
+  && i.field !== 'usage_currency_auto_convert' && i.field !== 'credit_refresh_enabled'));
 function byField(field: string) {
   return schema.find((i) => i.field === field)!;
 }

@@ -23,6 +23,7 @@ import {
   importUsers,
   downloadUserTemplate,
   unbindTotp,
+  unbindTotpForUser,
 } from "../api/systemApi";
 import type { SysDept, SysPost, SysRole, SysUser, SysUserUpdate, SysUserLog, SysLog } from "../api/types";
 import { pageForUserLog, pageForSysLog } from "../api/systemApi";
@@ -362,7 +363,7 @@ async function handleUnbindTotp(row: Record<string, unknown>) {
     return;
   }
   try {
-    await unbindTotp();
+    await unbindTotpForUser(user.sysUserId);
     message.success("已解绑 2FA");
     tableRef.value?.reload();
   } catch (e) {
@@ -866,12 +867,30 @@ async function batchResetPassword() {
     return;
   }
   importLoading.value = true;
+  // 行级名称映射：失败清单要落到「谁失败了」，而不是只报数量
+  const nameById = new Map<number, string>(
+    selection.value.map((r: Record<string, unknown>) => [
+      r.sysUserId as number,
+      String(r.sysUserNickname || r.sysUserUsername || r.sysUserId),
+    ]),
+  );
   try {
-    // 逐个调用，后端无批量接口时退化处理
-    const promises = ids.map((id) => resetUserPassword(id));
-    await Promise.allSettled(promises);
-    const successCount = ids.length;
-    message.success(`已重置 ${successCount} 个用户密码`);
+    // 逐个调用，后端无批量接口时退化处理；按实际结果分组汇报，失败不掩盖
+    const results = await Promise.allSettled(ids.map((id) => resetUserPassword(id)));
+    const failures = results.flatMap((r, i) =>
+      r.status === "rejected" ? [{ id: ids[i], reason: (r.reason as Error)?.message ?? "未知错误" }] : [],
+    );
+    const successCount = ids.length - failures.length;
+    if (!failures.length) {
+      message.success(`已重置 ${ids.length} 个用户密码`);
+    } else {
+      const summary =
+        successCount > 0
+          ? `已重置 ${successCount} 个、失败 ${failures.length} 个`
+          : `批量重置失败，${failures.length} 个均未成功`;
+      const detail = failures.map((f) => `${nameById.get(f.id) ?? `ID ${f.id}`}：${f.reason}`).join("；");
+      message.error(`${summary} —— ${detail}`);
+    }
     selection.value = [];
     tableRef.value?.reload();
   } catch (e) {

@@ -1409,6 +1409,8 @@ async function handleDelete() {
 
         if (result.success) {
             message.success(t('common.deleteSuccess'));
+            // 删除成功后强制刷新目录树，避免残留已删除节点
+            refreshTree();
             // 如果删除的是已打开的文件标签，关闭对应标签
             const deleteTabKey = `file:${node.path}`;
             const deleteTab = tabStore.tabs.find(t => t.key === deleteTabKey);
@@ -1604,6 +1606,7 @@ async function openInFileManager() {
         }
     } catch (error: any) {
         console.error('Failed to open workspace folder:', error);
+        message.error(t('chat.workspace.openFolderFailed'));
     }
 }
 

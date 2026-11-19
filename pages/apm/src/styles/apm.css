@@ -353,6 +353,16 @@
   border-color: var(--apm-line-strong);
 }
 
+/* 可下钻的 KPI 卡：整卡可点；悬停用各卡片自己的语义色（--k）勾边，
+   提示「这个数字能点进去」，仍然不浮动 —— 与上方读数卡同一克制 */
+.apm-kpi.is-clickable {
+  cursor: pointer;
+}
+
+.apm-kpi.is-clickable:hover {
+  border-color: var(--k);
+}
+
 .apm-kpi {
   display: flex;
   flex-direction: column;
@@ -1113,6 +1123,15 @@
 
 .apm-waterfall__bar.is-remote {
   background: var(--apm-info);
+}
+
+/* 慢 span：排障时把超过阈值的行/条子染成警示色，与错误红区分开 */
+.apm-waterfall__row.is-slow .apm-waterfall__name {
+  color: var(--apm-warn);
+}
+
+.apm-waterfall__bar.is-slow {
+  background: var(--apm-warn);
 }
 
 .apm-waterfall__ms {

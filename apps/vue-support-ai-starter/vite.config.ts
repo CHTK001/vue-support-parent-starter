@@ -126,16 +126,14 @@ const EVENTS_POLYFILL = createRequire(path.join(__dirname, 'package.json')).reso
 const SHARED_PUBLIC_DIR = path.join(WORKSPACE_ROOT, 'public')
 // 后端地址。
 //
-// 默认值必须是**远端**，不能是 localhost —— 本项目的约定是后端只部署在
-// 192.168.50.198、本机不跑后台（「不要再我本机运行后台」）。此前默认
-// `http://localhost:8787`，于是任何人在本机 `pnpm dev` 后打开页面，
-// 登录都会走 vite 代理打到 192.168.50.198 之外的 localhost:8787，
-// 得到 HTTP 500（代理无处可转），表现为「登录一直失败、停在 /login」，
-// 而真正原因（代理指向一个不存在的本机后端）完全看不出来。
+// 默认指向本机 `127.0.0.1:8787`（本机 `pnpm dev` 起的 AI 后端）。
+// 历史默认值曾是远端 instabox 域名，代价是「本机没起后端」时看起来像前端坏了：
+// vite 把 /v2 代理到一个未发布的远端地址，登录接口返回 404「This URL is not published」，
+// 而登录页完全正常、点「登录」毫无提示——排查成本极高。
 //
-// 需要指向别处时用 AI_API_TARGET 覆盖，例如本机临时起了后端：
-//   AI_API_TARGET=http://localhost:8787 pnpm dev
-const AI_API_TARGET = process.env.AI_API_TARGET ?? 'https://8787-agqwzohzg2gmh5l2nuiqybemja.instabox.tech'
+// 需要指向远端或别的端口时用 AI_API_TARGET 覆盖，例如：
+//   AI_API_TARGET=https://8787-xxxx.instabox.tech pnpm dev
+const AI_API_TARGET = process.env.AI_API_TARGET ?? 'http://127.0.0.1:8787'
 
 /** 精确映射：框架 createApp 约定按这些 URL 拉取配置与 wasm 产物 */
 const EXACT_ASSETS: Record<string, string> = {
@@ -522,6 +520,9 @@ export default defineConfig({
       // 少这一行 dev server 报 Failed to resolve import "@pages/channel"，
       // 整个系统设置页（含渠道管理）都打不出来。
       { find: '@pages/channel', replacement: path.resolve(WORKSPACE_ROOT, 'pages/channel/src') },
+      // 账号登录弹窗（后端内嵌浏览器实时画面）已抽离到独立包 @pages/cdp。
+      // 少这一行 ProviderFormDialog 的「账号登录 · 自动获取余额密钥」弹窗编译不过。
+      { find: '@pages/cdp', replacement: path.resolve(WORKSPACE_ROOT, 'pages/cdp/src') },
       // SystemSettings.vue 的「文件存储」页直接复用 @repo/filesystem 的 FileStorageManage。
       // 少这一行会让 dev server 报 Failed to resolve import "@pages/filesystem"，
       // 整个 SystemSettings.vue 编译 500 —— 连带着系统设置页内的所有面板

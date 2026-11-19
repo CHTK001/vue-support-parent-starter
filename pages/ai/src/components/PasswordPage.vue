@@ -405,15 +405,6 @@ onMounted(async (): Promise<void> => {
     box-shadow: 0 0 0 1px var(--el-color-primary) inset;
 }
 
-:deep(.el-button--primary) {
-    --el-button-bg-color: var(--el-color-primary);
-    --el-button-border-color: var(--el-color-primary);
-    --el-button-hover-bg-color: var(--el-color-primary-dark-2);
-    --el-button-hover-border-color: var(--el-color-primary-dark-2);
-    --el-button-active-bg-color: var(--el-color-primary-dark-2);
-    --el-button-active-border-color: var(--el-color-primary-dark-2);
-}
-
 :deep(.el-form-item__label) {
     font-weight: 500;
     color: var(--el-text-color-regular);

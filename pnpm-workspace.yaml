@@ -4,10 +4,12 @@ packages:
   - "turbo/*"
   - "apps/*"
   - "pages/*"
-  # 账号管理（账号资产 + 模板管理 + 消息模板）的前端源码已并入后端项目：
-  # spring-support-parent-starter/spring-support-account-starter/web（包名 @account/web）。
-  # 源码在后端仓、依赖仍用本仓的 @repo/* 共享包，故登记为本工作区的外部成员。
-  - "../spring-support-parent-starter/spring-support-account-starter/web"
+  # 账号管理前端（账号资产 + 模板管理 + 消息模板）曾以外部成员登记在后端仓
+  # spring-support-account-starter/web（包名 @account/web）；2026-11-19 前后端分离，
+  # 迁入本仓 pages/account（包名 @pages/account），由上面 pages/* 通配覆盖，
+  # 不再需要外部成员登记。
+  # 注意：根 package.json 的 build/dev/lint/clean 仍用 pnpm -r 原生递归执行
+  #（历史上因外部成员 turbo 不支持仓库根之外的工作区包；现虽无外部成员，仍保留 pnpm -r）。
   # vue-support-spider-starter 已下线 (2026-09-26)：旧爬虫控制台，能力已被
   # apps/vue-support-collect-scheduler-starter（原 vue-support-collect-starter 更名）承接。
   # 与后端 spring-support-spider-starter 同步退役。源码已删除（见下方 ! 条目对应的删除提交），
@@ -40,6 +42,14 @@ overrides:
 catalog:
   typescript: ^5.7.3
   "@vitejs/plugin-react": ^5.0.0
+  # 2026-11-18 曾试升 3.6.0-rc.15 全量开启 Vapor：实测登录页 $t（globalProperties）在 Vapor
+  # 组件不可用、unplugin-vue-components@30 不往 Vapor 产物注入 el-*、AssetsView 编译 500，
+  # 已回退稳定版；待 vue 3.6 正式版 + 生态（unplugin-vue-components / vue-i18n）适配后再评估
+  # （结论记录见 前端验收报告.md 附录B）。createVite 的 vapor 选项基建保留，默认不开。
+  # 注意：依赖 pinia / vue-i18n / unplugin-* 这类带 vue peer 的包、自己却不直接依赖 vue 的
+  # 包（如 packages/pinia、packages/languages、turbo/vite），必须显式声明 devDependencies
+  # "vue": "catalog:"，否则 peer 会按锁file残留自动解析，可能 resurrect 出第二个 vue 版本
+  # （两份 @vue 类型并存会让 vue-tsc 报 Store<..> 不能赋给 StoreGeneric）。
   vue: ^3.5.45
   vue-router: ^4.6.4
   pinia: ^3.0.4
@@ -65,8 +75,8 @@ catalog:
   "@tanstack/vue-query": ^5.104.5
   devtools-detector: ^2.0.22
   socket.io-client: ^4.8.1
-  vite: ^8.2.0
-  "@vitejs/plugin-vue": ^6.0.10
+  vite: ^8.3.8
+  "@vitejs/plugin-vue": ^6.0.11
   vue-tsc: ^2.2.0
   js-cookie: ^3.0.5
   leaflet: ^1.9.4

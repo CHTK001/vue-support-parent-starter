@@ -24,25 +24,7 @@ registerMenuViewModules({
 export * from "./api/filestorageApi";
 
 /**
- * 文件存储管理页组件。
- *
- * 供其它应用（而非仅后端菜单路由）直接嵌入使用，例如把文件服务器
- * 挂到「系统配置 → 文件存储」作为查看入口。
+ * 页面视图不再从包根 re-export（FileStorageManage / UploadTaskView / FileCollabManage）：
+ * 消费方一律走深路径（如 @pages/filesystem/src/views/FileStorageManage.vue），
+ * 避免包根把三个重组件拖进宿主入口 chunk（见 前端加载性能优化清单 A1）。
  */
-export { default as FileStorageManage } from "./views/FileStorageManage.vue";
-
-/**
- * 上传任务页组件。
- *
- * 供其它应用（而非仅后端菜单路由）直接嵌入使用，
- * 例如宿主侧栏「文件管理 → 文件管理」二级菜单项。
- */
-export { default as UploadTaskView } from "./views/UploadTaskView.vue";
-
-/**
- * 协同管理页组件。
- *
- * 供其它应用（而非仅后端菜单路由）直接嵌入使用，
- * 例如宿主侧栏「文件管理 → 协同管理」二级菜单项。
- */
-export { default as FileCollabManage } from "./views/FileCollabManage.vue";

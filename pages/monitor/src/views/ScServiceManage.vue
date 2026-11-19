@@ -640,6 +640,7 @@ function tabCtx(name: string): ServiceTab | undefined {
             row-key="id"
             empty-text="没有命中条件的服务"
             :border="false"
+            table-id="service-manage"
             @row-click="onRowClick"
             @context-menu-select="onContextMenuSelect"
           >

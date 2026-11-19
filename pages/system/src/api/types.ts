@@ -580,7 +580,7 @@ export interface SysTenant extends Auditable {
   /** 主库IP（sysTenantHost 为空时作为地址回退） */
   sysTenantIp?: string;
   /**
-   * 引用的数据源台账 id（ms_datasource.id）
+   * 引用的数据源台账 id（datasource_info.id）
    *
    * - `null` / `0`：用本租户自填的 host/port/账号/口令（存量行为）
    * - `-1`：用平台自身实例，只填库名即可
@@ -717,6 +717,13 @@ export interface SysTenantStats {
   enabled?: number;
   disabled?: number;
   subscribed?: number;
+}
+
+/** 服务统计 */
+export interface SysServiceStats {
+  total?: number;
+  enabled?: number;
+  disabled?: number;
 }
 
 /* ================== 服务管理（租户菜单分配依赖） ================== */
@@ -896,7 +903,7 @@ export interface SysMessageAdmin extends Auditable {
 
 /** 消息模板 */
 export interface SysMessageTemplate {
-  sysMessageTemplateId?: number;
+  sysMessageTemplateId?: string;
   sysMessageTemplateCode: string;
   sysMessageTemplateName?: string;
   sysMessageTemplateTitle?: string;
@@ -937,13 +944,13 @@ export interface SysMessageLog {
 
 /** 模板预览请求 */
 export interface TemplatePreviewRequest {
-  sysMessageTemplateId: number;
+  sysMessageTemplateId: string;
   params?: Record<string, unknown>;
 }
 
 /** 模板预览响应 */
 export interface TemplatePreviewResponse {
-  sysMessageTemplateId?: number;
+  sysMessageTemplateId?: string;
   title?: string;
   content?: string;
   unresolvedParams?: string[];
@@ -952,7 +959,7 @@ export interface TemplatePreviewResponse {
 
 /** 按模板发送请求（按模板ID） */
 export interface MessageTemplateSendRequest {
-  sysMessageTemplateId: number;
+  sysMessageTemplateId: string;
   target: string[];
   subject?: string;
   params?: Record<string, unknown>;

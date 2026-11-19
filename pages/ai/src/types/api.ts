@@ -56,6 +56,13 @@ export interface ModelProvider {
     protocol?: string  // 协议类型 (openai, openai-response, gemini, anthropic)
     apiBase?: string
     apiUrl?: string
+    /**
+     * 官网地址（后端供应商登记表下发，213 家模板默认都有主站）。
+     * 本机 ONNX / 路由组 / 自建供应商没有对外站点，字段缺省。
+     */
+    website?: string
+    /** 官方文档入口（与官网分开：文档讲用法，官网讲产品与定价） */
+    doc?: string
     apiKey?: string
     apiKeySet: boolean
     isActive: boolean

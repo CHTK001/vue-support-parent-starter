@@ -98,6 +98,9 @@ const DEFAULT_MOUNT_EL = "#app";
 
 /** Vue 应用构建器：收集 routes / app / plugins / components / css，统一装配挂载 */
 export class VueAppBuilder {
+  /** 平台标识（与小程序构建器同一个字段，便于运行期判定） */
+  readonly platform = "web" as const;
+
   private routesTree: RouteConfigsTable[] = [];
   private appComponent?: Component;
   private plugins: Plugin[] = [];
@@ -106,6 +109,8 @@ export class VueAppBuilder {
   private cssUrls: string[] = [];
   private uiOptions?: { components?: string[]; plugins?: Plugin[]; preset?: string };
   private hostDescs: Array<Component | { component: Component; [key: string]: unknown }> = [];
+  /** 显式声明的菜单（{@link menus}）；非空时优先于路由推导 */
+  private explicitMenus: StaticMenuItem[] = [];
 
   constructor(private options: CreateVueAppOptions = {}) {}
 
@@ -148,6 +153,38 @@ export class VueAppBuilder {
    */
   widgets(list: readonly AppContribution[]): this {
     this.contributions.push(...list);
+    return this;
+  }
+
+  /**
+   * 显式声明侧边栏菜单（链式）。
+   *
+   * <p>此前菜单只能由 {@link routes} 隐式推导（{@code buildMenuFromRoutes}）：路由的
+   * {@code meta.title} 就是菜单文案，{@code meta.hidden} 就是「不进菜单」。这对
+   * 「路由与菜单一一对应」的应用足够，但下面这几类做不到，只能退回手写 store：</p>
+   *
+   * <ul>
+   *   <li>{@code mode: "remote"}：菜单以后端下发为准，本地点什么都会在启动时被覆盖；</li>
+   *   <li>同一路由要挂两个入口（如「资产」与「我的资产」指向同一页面、仅参数不同）；</li>
+   *   <li>纯外链 / 纯动作菜单项，根本没有对应 route。</li>
+   * </ul>
+   *
+   * <p>与自动推导的关系：<b>显式声明优先</b>。一旦调用过本方法，启动时就不再用路由
+   * 推导的菜单覆盖它 —— 否则「声明了却被打回原样」比没有这个方法更难受。
+   * 多次调用累加，按声明顺序展示。</p>
+   *
+   * <pre>{@code
+   * createContextApp({ appName: "xxx" })
+   *   .routes(routes)
+   *   .menus([{ path: "/home", meta: { title: "首页" } }])
+   *   .mount("#app");
+   * }</pre>
+   *
+   * @param list 菜单项（结构同路由表，但不需要 component）
+   * @returns this
+   */
+  menus(list: readonly StaticMenuItem[]): this {
+    this.explicitMenus.push(...list);
     return this;
   }
 
@@ -230,8 +267,15 @@ export class VueAppBuilder {
     applyLoaderDeployPolicy();
 
     // ①.6 路由树 → 侧边栏菜单
-    // 业务 main.ts 可在 mount 前注册带 isRemoteFallback 的兜底菜单；已注册时不要覆盖。
-    if (mode === "router" && !getStaticMenu().length) {
+    // 显式 .menus() 优先：调用方既然点明了菜单，就不该再被路由推导覆盖
+    // （mode: "remote" 或「一路由多入口」时，推导结果一定是错的）。
+    if (this.explicitMenus.length) {
+      const existing = getStaticMenu();
+      // 已有兜底菜单（业务在 mount 前注册的 isRemoteFallback）时保持追加语义，
+      // 不整段替换 —— 否则会把调用方更早声明的入口一起冲掉。
+      registerStaticMenu([...existing, ...this.explicitMenus] as StaticMenuItem[]);
+    } else if (mode === "router" && !getStaticMenu().length) {
+      // 业务 main.ts 可在 mount 前注册带 isRemoteFallback 的兜底菜单；已注册时不要覆盖。
       // remote 模式：菜单以后端为准，业务路由只注册 URL、不显示为菜单（仅保留首页入口）
       const hideBusiness = context.config.route.mode === "remote";
       registerStaticMenu(

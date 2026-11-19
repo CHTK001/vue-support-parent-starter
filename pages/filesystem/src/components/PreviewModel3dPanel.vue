@@ -259,6 +259,11 @@ function fitView(): void {
   }
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
+  // NaN 包围盒（坏几何）不会通过 isEmpty() 暴露，这里显式兜底，
+  // 避免相机位置 / 视锥体被 NaN 毒化后整屏空白。
+  if (![size.x, size.y, size.z, center.x, center.y, center.z].every(Number.isFinite)) {
+    return;
+  }
   const maxDim = Math.max(size.x, size.y, size.z) || 1;
   const dist = (maxDim / (2 * Math.tan((camera.fov * Math.PI) / 360))) * 1.5;
   camera.position.copy(center).addScaledVector(new THREE.Vector3(1, 0.8, 1).normalize(), dist);
@@ -313,13 +318,21 @@ function buildScene(object: THREE.Object3D, meshCountN: number, triCount: number
   const box = new THREE.Box3().setFromObject(object);
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
+  // 空几何 / 坏数据会让包围盒含 NaN；一个 NaN 就会毒化相机与地面网格，
+  // 整屏只剩背景色。这里兜底成原点 + 单位尺寸，保证场景永远可渲染。
+  if (![center.x, center.y, center.z].every(Number.isFinite)) {
+    center.set(0, 0, 0);
+  }
+  if (![size.x, size.y, size.z].every(Number.isFinite)) {
+    size.set(1, 1, 1);
+  }
   object.position.sub(center);
   scene.add(object);
 
   // 网格地面（帮助判断比例），随模型尺寸缩放
   const maxDim = Math.max(size.x, size.y, size.z) || 1;
   const grid = new THREE.GridHelper(maxDim * 2, 20, 0x888888, 0xbbbbbb);
-  grid.position.y = box.min.y - center.y;
+  grid.position.y = Number.isFinite(box.min.y) ? box.min.y - center.y : 0;
   (grid.material as THREE.Material).opacity = 0.35;
   (grid.material as THREE.Material).transparent = true;
   scene.add(grid);

@@ -138,6 +138,19 @@
 
     <!-- 当前区间有用量时铺满整版式；无用量时收敛成一块整页空态（见下方 v-else） -->
     <template v-if="board.hasAnyUsage">
+    <!-- 预算阈值横幅：≥80% 预警 / ≥100% 超支；未启用或未达阈值不出现 -->
+    <div
+      v-if="board.budgetState.enabled && board.budgetState.pct >= 80"
+      class="usage-budget-banner"
+      :class="board.budgetState.pct >= 100 ? 'is-error' : 'is-warning'"
+      role="status"
+    >
+      <span class="usage-budget-banner__dot" aria-hidden="true" />
+      <span class="usage-budget-banner__text">
+        {{ board.budgetState.pct >= 100 ? '今日预算已超支' : '今日预算已接近上限' }}
+        · 已用 {{ board.budgetState.pct }}%（{{ board.budgetState.label }}）
+      </span>
+    </div>
     <!-- ── 核心读数：四格横带，Token 格带输入/输出迷你环 ── -->
     <section class="usage-kpis">
       <article
@@ -149,6 +162,13 @@
         <div class="usage-kpi__head">
           <i class="usage-kpi__mark" />
           <span class="usage-kpi__label">{{ card.label }}</span>
+          <!-- 区间环比：当前区间 vs 等长上一窗口；无上一窗基数（首窗/全部时间）不显示 -->
+          <span
+            v-if="deltaText(card.key)"
+            class="usage-kpi__delta"
+            :class="deltaCls(card.key)"
+            :title="deltaTitle(card.key)"
+          >{{ deltaText(card.key) }}</span>
         </div>
         <div class="usage-kpi__value">
           {{ card.value }}<span v-if="card.unit" class="usage-kpi__unit">{{ card.unit }}</span>
@@ -175,6 +195,54 @@
         <span class="usage-deriv__hint">{{ d.hint }}</span>
       </li>
     </ul>
+
+    <!-- ── 预算与预测：今日预算消耗 + 本月费用外推 ── -->
+    <section class="usage-budget" aria-label="今日预算与本月费用预测">
+      <article class="usage-budget__card usage-card">
+        <div class="usage-budget__head">
+          <span class="usage-budget__title">今日预算</span>
+          <span class="usage-budget__badge" :class="`is-${board.budgetState.tone}`">
+            {{ board.budgetState.enabled ? (board.budgetState.pct >= 100 ? '已超支' : board.budgetState.pct >= 80 ? '接近上限' : '正常') : '未启用' }}
+          </span>
+        </div>
+        <div
+          class="usage-budget__bar"
+          role="progressbar"
+          :aria-valuenow="board.budgetState.pct"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-label="`今日预算已用 ${board.budgetState.pct}%`"
+        >
+          <i class="usage-budget__fill" :class="`is-${board.budgetState.tone}`" :style="{ width: `${board.budgetState.pct}%` }" />
+        </div>
+        <div class="usage-budget__foot">
+          <span>{{ board.budgetState.label }}</span>
+          <span v-if="board.budgetState.enabled" class="usage-budget__pct">{{ board.budgetState.pct }}%</span>
+        </div>
+      </article>
+
+      <article class="usage-budget__card usage-card">
+        <div class="usage-budget__head">
+          <span class="usage-budget__title">本月费用预测</span>
+          <span v-if="board.costForecast" class="usage-budget__badge is-info">
+            日均 {{ board.currencySymbol }}{{ board.money(board.costForecast.dailyAvg) }}
+          </span>
+        </div>
+        <div class="usage-budget__forecast">
+          <template v-if="board.costForecast">
+            <span class="usage-budget__forecast-num">{{ board.currencySymbol }}{{ board.money(board.costForecast.forecast) }}</span>
+            <span class="usage-budget__forecast-hint">
+              按本月 {{ board.costForecast.daysElapsed }}/{{ board.costForecast.daysInMonth }} 天日均外推 · 月累计 {{ board.currencySymbol }}{{ board.money(board.costForecast.mtd) }}
+            </span>
+          </template>
+          <span v-else class="usage-budget__forecast-hint">本月暂无费用数据，暂无法预测</span>
+        </div>
+        <div v-if="board.costForecastWindows" class="usage-budget__windows" aria-label="未来费用预测">
+          <span>未来7天 <b>{{ board.currencySymbol }}{{ board.money(board.costForecastWindows.next7) }}</b></span>
+          <span>未来30天 <b>{{ board.currencySymbol }}{{ board.money(board.costForecastWindows.next30) }}</b></span>
+        </div>
+      </article>
+    </section>
 
     <!-- ── 用量构成：按调用类型拆分，工具/记忆各自独立成行 ── -->
     <section class="usage-calltype usage-card" aria-label="用量构成（按调用类型）">
@@ -341,8 +409,8 @@
           </div>
         </header>
 
-        <div class="usage-panel__chart usage-panel__chart--tight">
-          <ReEcharts v-if="board.trendData.length" :option="board.trendOption" height="178px" notMerge />
+        <div class="usage-panel__chart usage-panel__chart--tight" title="点击某天的柱/点，整页下钻到该日">
+          <ReEcharts v-if="board.trendData.length" :option="board.trendOption" height="178px" notMerge @click="onTrendClick" />
           <div v-else class="usage-empty usage-empty--sm">
             <el-empty
               :description="board.routeErrors.trend ? '趋势加载失败，点右上角刷新重试' : '暂无趋势数据'"
@@ -505,7 +573,11 @@
         <ol class="usage-ranks__list">
           <li v-for="(r, i) in board.modelRankTop5" :key="r.name" class="usage-rank">
             <span class="usage-rank__no" :class="`is-${i + 1}`">{{ i + 1 }}</span>
-            <span class="usage-rank__name" :title="r.name">{{ r.name }}</span>
+            <span
+              class="usage-rank__name is-link"
+              :title="`${r.name}（点击查看该模型明细）`"
+              @click="jumpToDetail(r.name)"
+            >{{ r.name }}</span>
             <span class="usage-rank__bar"><i :style="{ width: board.rankBarWidth(r, board.modelRankTop5) }" /></span>
             <span class="usage-rank__value">{{ board.rankValue(r) }}</span>
             <span class="usage-rank__pct">{{ board.rankPct(r, board.modelRankTop5) }}</span>
@@ -587,6 +659,35 @@
       </article>
     </section>
 
+    <!-- ── 失败请求分析：成功/失败按天堆叠 + 失败率走势（右轴） ── -->
+    <section class="usage-panel usage-card usage-fail" aria-label="失败请求分析">
+      <header class="usage-panel__head">
+        <div class="usage-panel__title-wrap">
+          <h2 class="usage-panel__title">失败请求分析</h2>
+          <span class="usage-panel__meta">
+            <template v-if="board.failureSummary.total > 0">
+              失败 {{ board.formatNumber(board.failureSummary.failedCalls) }} / {{ board.formatNumber(board.failureSummary.total) }} 次
+              · 失败率 {{ board.failureSummary.rate }}%
+              <template v-if="board.failureSummary.worstDay">· 最集中 {{ board.failureSummary.worstDay }}</template>
+            </template>
+            <template v-else>当前区间暂无失败记录</template>
+          </span>
+        </div>
+        <span v-if="board.failureSummary.failedCalls > 0" class="usage-fail__loss">
+          失败消耗 {{ board.fmtToken(board.failureSummary.failedTokens) }} tokens · {{ board.currencySymbol }}{{ board.money(board.failureSummary.failedCost) }}
+        </span>
+      </header>
+      <div v-if="board.failurePoints.length" class="usage-panel__chart usage-panel__chart--tight">
+        <ReEcharts :option="board.failureTrendOption" height="168px" notMerge />
+      </div>
+      <div v-else class="usage-empty usage-empty--sm">
+        <el-empty
+          :description="board.routeErrors.failures ? '失败分析加载失败，点右上角刷新重试' : '当前区间暂无失败请求'"
+          :image-size="40"
+        />
+      </div>
+    </section>
+
     <!-- ── 用量热力图：最近 53 周的每日用量（GitHub 风格，与时间筛选无关） ── -->
     <section class="usage-panel usage-card usage-heat" aria-label="近 53 周用量热力图">
       <header class="usage-panel__head">
@@ -608,12 +709,12 @@
         </div>
       </header>
       <div v-loading="board.heatmapLoading" class="usage-heat__body">
-        <ReEcharts :option="board.heatmapOption" height="196px" notMerge />
+        <ReEcharts :option="board.heatmapOption" height="196px" notMerge @click="onHeatmapClick" />
       </div>
     </section>
 
     <!-- ── 明细（默认 9 列，其余在「列」里按需打开，内部滚动） ── -->
-    <div class="usage-detail-wrap">
+    <div ref="detailWrapRef" class="usage-detail-wrap">
       <UsageDetailTable :board="board" compact />
     </div>
     </template>
@@ -690,6 +791,11 @@
         </div>
       </div>
       <template #footer>
+        <el-button
+          v-if="board.treemapSelected && !board.treemapSelected.name.startsWith('其他 ')"
+          type="primary"
+          @click="jumpToDetail(board.treemapSelected.name)"
+        >查看该模型明细</el-button>
         <el-button @click="board.closeTreemapDialog()">关</el-button>
       </template>
     </ReDialog>
@@ -756,7 +862,7 @@
  * 刻度标签密度）与派生读数文案。构成图仍用 ECharts treemap 画：切片直接取
  * {@code modelBoard.items}，颜色、占比、排序与分布表完全一致。</p>
  */
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import type { EChartsOption } from 'echarts'
 import ReEcharts from '@repo/ui/re-echarts'
 import ReDialog from '@repo/ui/re-dialog'
@@ -768,6 +874,61 @@ import UsageDetailTable from './UsageDetailTable.vue'
 const isAdminUser = isAdmin()
 
 const board = reactive(useUsageBoard())
+
+// ==================== 用量页增强：环比徽标 / 图表下钻 / Top5→明细联动 ====================
+
+/** 明细区锚点：Top5 / 构成点击后滚动到这里 */
+const detailWrapRef = ref<HTMLElement | null>(null)
+
+/**
+ * KPI 环比（当前区间 vs 等长上一窗口）。
+ *
+ * <p>费用是成本项：涨=坏（红）、跌=好（绿）；Token/请求数是经营量，只标方向不评判。
+ * 没有上一窗基数（首次进入 / 全部时间 / 上一窗查询失败）时不显示，宁缺毋假。</p>
+ */
+function deltaOf(key: string): { text: string; cls: string; title: string } | null {
+  const d = board.statDeltas?.[key]
+  if (d == null || !Number.isFinite(d)) return null
+  const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→'
+  const sign = d > 0 ? '+' : ''
+  return {
+    text: `${arrow} ${Math.abs(d)}%`,
+    cls: key === 'cost' ? (d > 0 ? 'is-bad' : d < 0 ? 'is-good' : 'is-neutral') : 'is-neutral',
+    title: `较上一等长区间${sign}${d}%`,
+  }
+}
+/** 模板取值：text 为空即不渲染徽标（避免模板里做非空断言） */
+function deltaText(key: string): string { return deltaOf(key)?.text ?? '' }
+function deltaCls(key: string): string { return deltaOf(key)?.cls ?? '' }
+function deltaTitle(key: string): string { return deltaOf(key)?.title ?? '' }
+
+/**
+ * 趋势图点击下钻：按 dataIndex 找回完整日期（小时桶也落回当天），
+ * 复用刻度尺的下钻/还原逻辑，不另开一条筛选通道。图例/标注点击不触发。
+ */
+function onTrendClick(params: any) {
+  if (params?.componentType !== 'series') return
+  const i = Number(params?.dataIndex)
+  if (!Number.isInteger(i) || i < 0 || i >= board.trendData.length) return
+  const date = String(board.trendData[i]?.date || '').slice(0, 10)
+  if (date) board.selectSpineDay(date)
+}
+
+/**
+ * 热力图点击下钻：点某格 = 点那一天，复用刻度尺的下钻/还原链路。
+ * 图例（色阶）与坐标轴标签点击不触发。
+ */
+function onHeatmapClick(params: any) {
+  const date = board.heatmapCellDate(params)
+  if (date) board.selectSpineDay(date)
+}
+
+/** Top5 / 构成 → 明细联动：切明细的模型过滤 + 关闭弹层 + 滚动到明细表 */
+function jumpToDetail(model?: string | null) {
+  if (model) board.selectDetailModel(String(model))
+  if (board.treemapDetailVisible) board.treemapDetailVisible = false
+  detailWrapRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 /** 趋势图的口径（与 composable 的 trendMetric 一一对应）与说明文案 */
 const trendMetrics = [
@@ -1243,6 +1404,95 @@ function pctStyle(r: any) {
 .usage-kpi.is-success { --usage-tone: var(--u-success, #00b42a); }
 .usage-kpi.is-warning { --usage-tone: var(--u-warning, #ff7d00); }
 .usage-kpi__head { display: flex; align-items: center; gap: 6px; }
+
+/* ── KPI 环比徽标（当前区间 vs 等长上一窗口） ── */
+.usage-kpi__delta {
+  margin-left: auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.usage-kpi__delta.is-good { color: #2fbf71; background: rgba(47, 191, 113, 0.14); }
+.usage-kpi__delta.is-bad { color: #f56c6c; background: rgba(245, 108, 108, 0.14); }
+.usage-kpi__delta.is-neutral { color: var(--el-text-color-secondary, #909399); background: var(--el-fill-color, rgba(144, 147, 153, 0.12)); }
+
+/* ── 预算与费用预测（双卡横带） ── */
+.usage-budget { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.usage-budget__card { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+.usage-budget__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.usage-budget__title { font-size: 11px; font-weight: 650; color: var(--el-text-color-primary); }
+.usage-budget__badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color, rgba(144, 147, 153, 0.12));
+  white-space: nowrap;
+}
+.usage-budget__badge.is-success { color: #2fbf71; background: rgba(47, 191, 113, 0.14); }
+.usage-budget__badge.is-warning { color: #e6a23c; background: rgba(230, 162, 60, 0.16); }
+.usage-budget__badge.is-error { color: #f56c6c; background: rgba(245, 108, 108, 0.16); }
+.usage-budget__badge.is-info { color: var(--el-color-primary, #165dff); background: var(--el-color-primary-light-9, rgba(22, 93, 255, 0.1)); }
+.usage-budget__bar { height: 6px; border-radius: 999px; background: var(--el-fill-color-light); overflow: hidden; }
+.usage-budget__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--el-color-success, #2fbf71);
+  transition: width 0.35s var(--ease-out, cubic-bezier(0.4, 0, 0.2, 1));
+}
+.usage-budget__fill.is-warning { background: #e6a23c; }
+.usage-budget__fill.is-error { background: #f56c6c; }
+.usage-budget__fill.is-info { background: var(--el-fill-color-dark, #909399); }
+.usage-budget__foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.usage-budget__pct { font-weight: 650; color: var(--el-text-color-primary); }
+.usage-budget__forecast { display: flex; align-items: baseline; gap: 8px; min-height: 6px; }
+.usage-budget__forecast-num {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.usage-budget__forecast-hint { font-size: 10.5px; color: var(--el-text-color-placeholder); }
+.usage-budget__windows { display: flex; gap: 16px; font-size: 10.5px; color: var(--el-text-color-secondary); }
+.usage-budget__windows b { font-weight: 650; color: var(--el-text-color-primary); }
+
+/* 预算阈值横幅：页内提示条，随预算档位变色（≥80% 预警 / ≥100% 超支） */
+.usage-budget-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px; margin-bottom: 8px;
+  border-radius: var(--el-border-radius-base, 6px); font-size: 12px;
+}
+.usage-budget-banner.is-warning { color: #e6a23c; background: rgba(230, 162, 60, 0.12); border: 1px solid rgba(230, 162, 60, 0.35); }
+.usage-budget-banner.is-error { color: #f56c6c; background: rgba(245, 108, 108, 0.12); border: 1px solid rgba(245, 108, 108, 0.35); }
+.usage-budget-banner__dot { flex: none; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+.usage-budget-banner__text { font-weight: 600; }
+
+/* ── 失败请求分析 ── */
+.usage-fail__loss {
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Top5 → 明细联动：模型名可点 ── */
+.usage-rank__name.is-link { cursor: pointer; }
+.usage-rank__name.is-link:hover { text-decoration: underline; color: var(--u-primary, #165dff); }
 .usage-kpi__mark { width: 6px; height: 6px; flex-shrink: 0; border-radius: 2px; background: var(--usage-tone); }
 .usage-kpi__label { font-size: 11px; font-weight: 500; color: var(--el-text-color-secondary); white-space: nowrap; }
 .usage-kpi__value {

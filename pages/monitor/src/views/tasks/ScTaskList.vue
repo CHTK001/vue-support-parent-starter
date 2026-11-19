@@ -28,7 +28,7 @@
       </div>
     </ReCard>
 
-    <ReTable :data="filtered" :loading="loading" border stripe class="task-table" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
+    <ReTable :data="filtered" :loading="loading" border stripe class="task-table" :config="{ pagination: { enable: false }, toolbar: { enable: false } }" table-id="task-list">
       <ReTableColumn prop="taskName" label="任务名称" min-width="160">
         <template #default="{ row }"><span class="name-cell">{{ row.taskName }}</span></template>
       </ReTableColumn>
@@ -124,6 +124,7 @@ import { ref, computed, onMounted, shallowRef } from 'vue'
 import * as THREE from 'three'
 import type { ReThreeContext } from '@repo/ui/re-three'
 import { message } from '@repo/core'
+import { usePersistentFilters } from '@repo/utils'
 import { getTasks, saveTask, delTask, getMonitors, setTaskEnabled, triggerCollect } from '../../api'
 
 const tasks = ref<any[]>([])
@@ -133,7 +134,12 @@ const loading = ref(false)
 const showDialog = ref(false)
 const editId = ref<number | null>(null)
 const form = ref<any>({ taskType: 'COLLECT', taskEnabled: 1 })
-const filters = ref({ monitorId: '', taskType: '' })
+/** 筛选持久化：localStorage 记忆 + 路由 query 同步，切走再回来不丢筛选 */
+const { filters } = usePersistentFilters({
+  key: 'monitor.taskList',
+  defaults: { monitorId: '', taskType: '' },
+  queryKeys: ['monitorId', 'taskType'],
+})
 
 const summary = computed(() => [
   { label: '任务总数', value: tasks.value.length, color: 'var(--el-color-primary)' },
@@ -152,8 +158,8 @@ const statMeta = computed(() => [
 
 const filtered = computed(() => {
   let r = tasks.value
-  if (filters.value.monitorId) r = r.filter(x => x.monitorId === filters.value.monitorId)
-  if (filters.value.taskType) r = r.filter(x => x.taskType === filters.value.taskType)
+  if (filters.monitorId) r = r.filter(x => x.monitorId === filters.monitorId)
+  if (filters.taskType) r = r.filter(x => x.taskType === filters.taskType)
   return r
 })
 
@@ -239,7 +245,7 @@ const fetchList = async () => {
   loading.value = true
   try {
     const [t, m] = await Promise.all([
-      filters.value.monitorId ? getTasks(Number(filters.value.monitorId)) : getTasks(),
+      filters.monitorId ? getTasks(Number(filters.monitorId)) : getTasks(),
       getMonitors(),
     ])
     tasks.value = (t || []).map(normalizeTask)

@@ -8,8 +8,8 @@
  *
  * <p><strong>代理</strong>：/v2（业务接口：chat / setting / auth / user / models /
  * usage 等）与 /api（管理接口：providers / mcp / agents / services / skills 等）
- * 统一转给 AI_API_TARGET（默认 http://localhost:8787，CLI 上通过
- * set AI_API_TARGET=http://localhost:8787 或 export AI_API_TARGET= 覆盖）。
+ * 统一转给 AI_API_TARGET（默认 http://127.0.0.1:8787，CLI 上通过
+ * set AI_API_TARGET=http://127.0.0.1:8787 或 export AI_API_TARGET= 覆盖）。
  * vite 没有读对目标时流量会静默导到旧后端，登录与弹窗检查全是假失败，
  * 所以验收脚本每次跑之前必须先用 curl 确认 /api/providers 返回 200 + 2 行。</p>
  *
@@ -25,7 +25,7 @@ import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 
 /** 开发包入口：base 走同源，@/ 指向 pages/ai/src 业务层（createVite 共享 @repo/* 别名录不包含此层）。 */
-const apiTarget = process.env.AI_API_TARGET ?? "http://localhost:8787";
+const apiTarget = process.env.AI_API_TARGET ?? "http://127.0.0.1:8787";
 
 export default createVite({
   appName: "vue-support-ai-starter",

@@ -30,11 +30,12 @@
         style="min-width: 320px; flex: 1"
         @change="load"
       />
-      <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
+      <ApmTimeWindow v-model="timeWindow" @change="load" />
       <ReSelect v-model="step" :options="stepOptions" style="width: 110px" @change="load" />
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ series.length }} 条曲线 · {{ selectedServices.length }} 个服务</span>
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
+      <ApmAutoRefresh @refresh="load" />
     </div>
 
     <ReSkeleton v-if="loading && !series.length" :rows="6" animated />
@@ -117,14 +118,23 @@ import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ApmGate from "../components/ApmGate.vue";
+import ApmAutoRefresh from "../components/ApmAutoRefresh.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
 import MetricChart from "../components/MetricChart.vue";
 import { getMetricsBatch, getMultiTopology, listMetricDefinitions, listServices } from "../api/apmApi";
 import type { ApmMetricDefinition, ApmMetricSeries, ApmScope, ApmStep, ApmTopology } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { consumeApmTabContext } from "../tabs";
-import { WINDOW_OPTIONS, fmtNum } from "../utils/format";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
+import { fmtNum } from "../utils/format";
+import { timeQuery } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const { present, ensure } = useApmStatus();
+
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "compare";
 
 /** 后端单次批量上限是 24 条曲线，这里限制服务数避免误点 */
 const MAX_SERVICES = 6;
@@ -133,14 +143,14 @@ const services = ref<string[]>([]);
 const selectedServices = ref<string[]>([]);
 const definitions = ref<ApmMetricDefinition[]>([]);
 const metricName = ref("service_resp_time");
-const minutes = ref(60);
+/** 时间窗：预设分钟数或自定义区间 */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: 60 });
 const step = ref<ApmStep>("MINUTE");
 const series = ref<ApmMetricSeries[]>([]);
 const topology = ref<ApmTopology | null>(null);
 const loading = ref(false);
 const emptyHint = ref("没有数据");
 
-const windowOptions = WINDOW_OPTIONS;
 const stepOptions = [
   { label: "秒级", value: "SECOND" },
   { label: "分钟", value: "MINUTE" },
@@ -287,7 +297,7 @@ async function load() {
   try {
     series.value =
       (await getMetricsBatch([metricName.value], selectedServices.value, {
-        minutes: minutes.value,
+        ...timeQuery(timeWindow.value),
         step: step.value,
       })) || [];
     if (!series.value.some((s) => s.points?.length)) {
@@ -300,7 +310,7 @@ async function load() {
 
   try {
     // 合并拓扑：一次请求拿齐所选服务的节点与调用边（后端有批量接口时不会逐个查）
-    topology.value = await getMultiTopology(selectedServices.value, { minutes: minutes.value });
+    topology.value = await getMultiTopology(selectedServices.value, { ...timeQuery(timeWindow.value) });
   } catch {
     topology.value = null;
   } finally {
@@ -316,6 +326,11 @@ onMounted(async () => {
   // 从服务详情 / 服务列表点「对比」过来时带着服务名：直接预选它，
   // 再补一个服务凑成对照 —— 否则落地后还得手点两个服务。
   const context = consumeApmTabContext();
+  if (context?.startTime && context?.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context?.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
   try {
     services.value = ((await listServices({})) || []).map((s) => s.name);
   } catch {
@@ -334,6 +349,28 @@ onMounted(async () => {
     }
   }
   selectedServices.value = preset.slice(0, MAX_SERVICES);
+  load();
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：从服务详情「对比」入口再次切到本页签时
+ * {@link onMounted} 不会重跑，一次性上下文（服务 / 时间窗）在这里接住。
+ * 普通切回不重查 —— 批量指标 + 拓扑是两笔重请求，新鲜度由自动刷新兜底。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (!context) {
+    return;
+  }
+  if (context.startTime && context.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
+  // 跳转指定的服务插到队首：对比的「主客体」就是从它出发的
+  if (context.service && services.value.includes(context.service) && !selectedServices.value.includes(context.service)) {
+    selectedServices.value = [context.service, ...selectedServices.value].slice(0, MAX_SERVICES);
+  }
   load();
 });
 

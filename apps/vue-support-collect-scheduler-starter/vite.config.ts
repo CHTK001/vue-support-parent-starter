@@ -52,6 +52,13 @@ const hubKeepsPrefix =
   process.env.COLLECT_HUB_KEEP_PREFIX === "1" || hubTarget.includes(":18190");
 const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, "");
 
+// /collect/api 前缀是否剥离：验收/联调指向「根 context」后端（如本机 8082 全量
+// 后端，/v2/user/login、/ms/datasource/** 都不带 /collect/api 前缀）时必须剥；
+// 默认不剥——生产 18190 的 context-path 就是 /collect/api，剥了请求会落在容器层
+// 拿 Tomcat 原生 404。用法：
+//   COLLECT_API_STRIP_PREFIX=1 COLLECT_API_TARGET=http://127.0.0.1:8082 pnpm dev
+const apiStripPrefix = process.env.COLLECT_API_STRIP_PREFIX === "1";
+
 // dev 代理必须在转发前摘掉 Origin/Referer，否则后端会判成跨域并 403。
 // 为什么：changeOrigin 只改 Host，浏览器 POST 里的 Origin 会原样送到 192.168.50.198:18190；
 // 而后端自 393306437（2026-10-02「收紧 CORS 任意 Origin 反射」）起只放行显式
@@ -258,6 +265,17 @@ export default createVite({
       },
       "/collect/api": {
         target: apiTarget,
+        changeOrigin: true,
+        ...(apiStripPrefix ? { rewrite: stripCollectApiPrefix } : {}),
+        configure: stripOriginHeaders,
+      },
+      // 渠道 widget（@pages/channel 贡献给 home 仪表板）走 account-starter 的
+      // 绝对契约路径 /api/channels，不在本应用 /collect/api 上下文之下，dev 需
+      // 单独一条代理。缺省指向本机全量后端 8082（与 monitor 的 /api/channels
+      // 同一口径），可用 COLLECT_CHANNEL_API_TARGET 覆盖；生产同源部署时
+      // /api/** 由后端自身提供，不经过此代理。
+      "/api": {
+        target: process.env.COLLECT_CHANNEL_API_TARGET ?? "http://127.0.0.1:8082",
         changeOrigin: true,
         configure: stripOriginHeaders,
       },

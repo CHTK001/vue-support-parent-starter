@@ -128,10 +128,15 @@ import type { ApmService } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
 import { consumeApmTabContext } from "../tabs";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
 import { errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
 
 const router = useRouter();
 const { present, ensure } = useApmStatus();
+
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "services";
 
 const items = ref<ApmService[]>([]);
 const loading = ref(false);
@@ -246,14 +251,34 @@ async function load() {
   }
 }
 
+/** 把跳转上下文落到筛选条件（关键词 = 服务名） */
+function applyContext(context: ApmTabContext): void {
+  if (context.service) {
+    keyword.value = context.service;
+  }
+}
+
 onMounted(async () => {
   // 从总览点「慢服务」跳过来时带着服务名：直接落到该服务，不用再手选一次。
   // 上下文是一次性的（consume 后即清），刷新页面不会莫名其妙被旧筛选粘住。
   const context = consumeApmTabContext();
-  if (context?.service) {
-    keyword.value = context.service;
+  if (context) {
+    applyContext(context);
   }
   await load();
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：从总览点「慢服务」再次切到本页签时
+ * {@link onMounted} 不会重跑，服务名关键词在这里接住。
+ * 普通切回也重取一次 —— 服务列表是总览数据的同源明细，旧列表会误导判断。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (context) {
+    applyContext(context);
+  }
+  load();
 });
 </script>
 

@@ -14,6 +14,7 @@
     :count-text="`共 ${rows.length} 项`"
     :loading="loading"
     :error="error"
+    :error-kind="errorKind"
     density
     auto-refresh
     :updated-at="updatedAt"
@@ -37,6 +38,15 @@
       </div>
       <ElButton size="small" @click="exportCsv">导出 CSV</ElButton>
     </template>
+    <div v-if="threadDiff" class="act-thread-diff">
+      <span class="act-thread-diff__title">与上次快照对比</span>
+      <span class="act-diff-chip is-added">新增 {{ threadDiff.added.length }}</span>
+      <span class="act-diff-chip is-removed">消失 {{ threadDiff.removedCount }}</span>
+      <span class="act-diff-chip is-flipped">状态翻转 {{ threadDiff.flipped.length }}</span>
+      <span class="act-diff-chip" :class="{ 'is-blocked': threadDiff.stillBlocked.length }">
+        持续 BLOCKED {{ threadDiff.stillBlocked.length }}
+      </span>
+    </div>
     <div class="act-table-wrap">
       <ReTable
         :data="tableRows"
@@ -50,6 +60,12 @@
         class="act-table"
         @row-click="openStack"
       >
+        <template #col-name="{ row }">
+          <span class="act-thread__name">{{ row.name }}</span>
+          <span v-if="rowDiffTag(String(row.name))" class="act-diff-tag" :class="`is-${rowDiffTag(String(row.name))}`">
+            {{ rowDiffTagText(String(row.name)) }}
+          </span>
+        </template>
         <template #col-state="{ row }">
           <ReTag :type="threadStateTypeOfRow(row)" effect="light" round>{{ row.state }}</ReTag>
         </template>
@@ -101,7 +117,7 @@ import { csvStamp, exportRowsToCsv } from "../csvExport";
 import { useActuatorPanel } from "../useActuatorPanel";
 import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 
-const { data, loading, error, keyword, updatedAt, reload, hit } = useActuatorPanel("threaddump");
+const { data, loading, error, errorKind, keyword, updatedAt, reload, hit } = useActuatorPanel("threaddump");
 
 interface ThreadRow {
   name: string;
@@ -156,6 +172,75 @@ const rowsAll = computed<ThreadRow[]>(() => {
   });
 });
 
+/* ---------- 快照对比：连续两次成功快照的差异（新增 / 消失 / 状态翻转 / 持续阻塞） ---------- */
+
+/** 一次对比结果 */
+interface ThreadDiff {
+  /** 新出现的线程名 */
+  added: string[];
+  /** 已消失的线程数（只给计数，明细不挡筛选） */
+  removedCount: number;
+  /** 状态翻转的线程 */
+  flipped: { name: string; from: string; to: string }[];
+  /** 连续两次快照都处于 BLOCKED 的线程（锁等待 / 死锁前兆） */
+  stillBlocked: string[];
+}
+
+const threadDiff = ref<ThreadDiff | null>(null);
+
+/** 上一次成功快照（对比基线；首帧只入基线不出差异） */
+const prevThreads = ref<ThreadRow[]>([]);
+
+watch(rowsAll, (list) => {
+  if (!data.value) return; // 失败清场后的空数据不参与对比
+  if (!prevThreads.value.length) {
+    prevThreads.value = list; // 首帧：只建基线
+    return;
+  }
+  const prev = new Map(prevThreads.value.map((row) => [row.name, row]));
+  const curr = new Map(list.map((row) => [row.name, row]));
+  const added = list.filter((row) => !prev.has(row.name)).map((row) => row.name);
+  let removedCount = 0;
+  const flipped: ThreadDiff["flipped"] = [];
+  const stillBlocked: string[] = [];
+  prev.forEach((oldRow, name) => {
+    const newRow = curr.get(name);
+    if (!newRow) {
+      removedCount += 1;
+      return;
+    }
+    if (oldRow.state !== newRow.state) flipped.push({ name, from: oldRow.state, to: newRow.state });
+    if (oldRow.state === "BLOCKED" && newRow.state === "BLOCKED") stillBlocked.push(name);
+  });
+  threadDiff.value = { added, removedCount, flipped, stillBlocked };
+  prevThreads.value = list;
+});
+
+/** 差异集合（行内标签查表用） */
+const diffSets = computed(() => ({
+  added: new Set(threadDiff.value?.added ?? []),
+  flipped: new Set(threadDiff.value?.flipped.map((item) => item.name) ?? []),
+  blocked: new Set(threadDiff.value?.stillBlocked ?? []),
+}));
+
+/** 行内差异标签类型（空串 = 无） */
+function rowDiffTag(name: string): string {
+  const sets = diffSets.value;
+  if (sets.added.has(name)) return "added";
+  if (sets.flipped.has(name)) return "flipped";
+  if (sets.blocked.has(name)) return "blocked";
+  return "";
+}
+
+/** 行内差异标签文案 */
+function rowDiffTagText(name: string): string {
+  const tag = rowDiffTag(name);
+  if (tag === "added") return "新增";
+  if (tag === "flipped") return "状态翻转";
+  if (tag === "blocked") return "持续阻塞";
+  return "";
+}
+
 /* ---------- 快捷状态筛选：查死锁时点 BLOCKED 直达，不用输关键字 ---------- */
 
 /** 选中的状态（空串 = 全部；再点一次取消） */
@@ -197,7 +282,7 @@ watch(stateFilter, resetPage);
 const tableRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);
 
 const columns: ReTableColumn[] = [
-  { prop: "name", label: "线程", minWidth: 240, fixed: "left", showOverflowTooltip: true },
+  { prop: "name", label: "线程", minWidth: 240, fixed: "left", showOverflowTooltip: true, slot: "name" },
   { prop: "state", label: "状态", width: 120, align: "center", slot: "state" },
   { prop: "daemon", label: "守护", width: 70, align: "center", slot: "daemon" },
   { prop: "blockedCount", label: "阻塞", width: 120, align: "center", slot: "blockedCount" },

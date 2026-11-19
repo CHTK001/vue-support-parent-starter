@@ -16,6 +16,7 @@
     :count-text="`共 ${rows.length} 项`"
     :loading="loading"
     :error="error"
+    :error-kind="errorKind"
     density
     auto-refresh
     :updated-at="updatedAt"
@@ -40,8 +41,35 @@
         <ElSwitch v-model="onlyTraffic" size="small" />
         仅看有流量
       </label>
+      <ElButton size="small" @click="openExchanges">最近请求</ElButton>
       <ElButton size="small" @click="exportCsv">导出 CSV</ElButton>
     </template>
+    <div class="act-traffic">
+      <div class="act-traffic__panel">
+        <p class="act-traffic__title">热点接口 Top5<span class="act-traffic__sub">按请求次数 · 点击过滤表格</span></p>
+        <ol v-if="hotEndpoints.length" class="act-traffic__list">
+          <li v-for="(row, index) in hotEndpoints" :key="row.predicate" class="act-traffic__row" @click="searchMapping(row)">
+            <span class="act-traffic__rank">{{ index + 1 }}</span>
+            <span v-if="row.method" class="act-method" :class="`is-${row.method.toLowerCase()}`">{{ row.method }}</span>
+            <span class="act-traffic__path" :title="row.predicate">{{ row.predicate }}</span>
+            <span class="act-traffic__value">{{ row.count }} 次</span>
+          </li>
+        </ol>
+        <div v-else class="act-traffic__empty">还没有接口被调用过</div>
+      </div>
+      <div class="act-traffic__panel">
+        <p class="act-traffic__title">慢接口 Top5<span class="act-traffic__sub">按平均延迟 · 点击过滤表格</span></p>
+        <ol v-if="slowEndpoints.length" class="act-traffic__list">
+          <li v-for="(row, index) in slowEndpoints" :key="row.predicate" class="act-traffic__row" @click="searchMapping(row)">
+            <span class="act-traffic__rank">{{ index + 1 }}</span>
+            <span v-if="row.method" class="act-method" :class="`is-${row.method.toLowerCase()}`">{{ row.method }}</span>
+            <span class="act-traffic__path" :title="row.predicate">{{ row.predicate }}</span>
+            <span class="act-traffic__value"><ReTime :value="costMs(row.avgMs)" format="duration" placeholder="-" /></span>
+          </li>
+        </ol>
+        <div v-else class="act-traffic__empty">还没有可比较的耗时数据</div>
+      </div>
+    </div>
     <div class="act-table-wrap">
       <ReTable
         :data="tableRows"
@@ -76,6 +104,37 @@
       </ReTable>
       <ActTablePager v-model:page="page" v-model:page-size="pageSize" :total="total" />
     </div>
+
+    <ElDrawer v-model="exVisible" title="最近 HTTP 请求样本" size="680px" class="act-exchange-drawer">
+      <div class="act-exchange__ops">
+        <ElButton size="small" :loading="exLoading" @click="loadExchanges">刷新样本</ElButton>
+        <span class="act-exchange__hint">服务端默认只保留最近 100 条 · timeTaken 已换算为毫秒</span>
+      </div>
+      <div v-if="exError" class="act__empty is-error">{{ exError }}</div>
+      <ReTable
+        v-else
+        :data="exchanges"
+        :columns="exchangeColumns"
+        engine="element"
+        size="small"
+        :pagination="false"
+        :toolbar="false"
+        :settings="{ border: false }"
+        :layout-table="{ fill: true }"
+        class="act-table"
+      >
+        <template #col-time="{ row }">{{ formatExchangeTime(row.timestamp) }}</template>
+        <template #col-method="{ row }">
+          <span v-if="row.method" class="act-method" :class="`is-${String(row.method).toLowerCase()}`">{{ row.method }}</span>
+          <template v-else>-</template>
+        </template>
+        <template #col-uri="{ row }">{{ shortUri(row.uri) }}</template>
+        <template #col-status="{ row }">
+          <span class="act-exchange__status" :class="statusToneClass(Number(row.status))">{{ row.status || "-" }}</span>
+        </template>
+        <template #col-timeMs="{ row }">{{ row.timeMs }} ms</template>
+      </ReTable>
+    </ElDrawer>
   </TabShell>
 </template>
 
@@ -87,7 +146,7 @@
  * {@code updatedAt}，这里监听这个时间戳再取统计，保证两侧永远同一轮。</p>
  */
 import { computed, ref, watch } from "vue";
-import { ElButton, ElMessage, ElOption, ElSelect, ElSwitch } from "element-plus";
+import { ElButton, ElDrawer, ElMessage, ElOption, ElSelect, ElSwitch } from "element-plus";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
@@ -97,9 +156,16 @@ import ActTablePager from "../ActTablePager.vue";
 import { csvStamp, exportRowsToCsv } from "../csvExport";
 import { useActuatorPanel } from "../useActuatorPanel";
 import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
-import { getRestfulApiStats, matchRestfulStat, type RestfulApiStats } from "../../api/actuatorCardApi";
+import {
+  getHttpExchanges,
+  getRestfulApiStats,
+  matchRestfulStat,
+  type HttpExchangeRow,
+  type RestfulApiStats,
+} from "../../api/actuatorCardApi";
+import { isUnavailableError, unavailableHint } from "../../cards/useCardResource";
 
-const { data, loading, error, keyword, updatedAt, reload, hit } = useActuatorPanel("mappings");
+const { data, loading, error, errorKind, keyword, updatedAt, reload, hit } = useActuatorPanel("mappings");
 
 /** RESTful 统计（拉失败时保持 undefined：统计列显示弱化横线，不影响映射本身） */
 const stats = ref<RestfulApiStats | undefined>(undefined);
@@ -150,7 +216,8 @@ function setMethodFilter(method: string): void {
   methodFilter.value = method ?? "";
 }
 
-const rows = computed<MappingRow[]>(() => {
+/** 全量合并行（映射 × 统计，不过滤）：流量概览不受关键字 / 方法筛选影响，始终看全局 */
+const baseRows = computed<MappingRow[]>(() => {
   const contexts = (data.value?.contexts as Record<string, unknown> | undefined) ?? {};
   const out: MappingRow[] = [];
   Object.entries(contexts).forEach(([ctx, context]) => {
@@ -174,11 +241,38 @@ const rows = computed<MappingRow[]>(() => {
       });
     });
   });
-  return out
+  return out;
+});
+
+const rows = computed<MappingRow[]>(() =>
+  baseRows.value
     .filter((row) => hit(row.handler, row.predicate))
     .filter((row) => !methodFilter.value || row.method === methodFilter.value)
-    .filter((row) => !onlyTraffic.value || row.count > 0);
-});
+    .filter((row) => !onlyTraffic.value || row.count > 0),
+);
+
+/* ---------- 流量概览（纯前端聚合，不发请求） ---------- */
+
+/** 热点接口 Top5：按请求次数倒序 */
+const hotEndpoints = computed<MappingRow[]>(() =>
+  baseRows.value
+    .filter((row) => row.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5),
+);
+
+/** 慢接口 Top5：按平均延迟倒序（只看真实被调用过、耗时大于 0 的接口） */
+const slowEndpoints = computed<MappingRow[]>(() =>
+  baseRows.value
+    .filter((row) => row.count > 0 && row.avgMs > 0)
+    .sort((a, b) => b.avgMs - a.avgMs)
+    .slice(0, 5),
+);
+
+/** 点概览行 → 把映射条件填进过滤词，表格立刻聚焦这条接口 */
+function searchMapping(row: MappingRow): void {
+  keyword.value = row.predicate;
+}
 
 /* ---------- 整表排序 → 分页 ---------- */
 
@@ -233,4 +327,64 @@ const columns: ReTableColumn[] = [
   { prop: "ips", label: "访问 IP", minWidth: 150, showOverflowTooltip: true, sortable: "custom", slot: "ips" },
   { prop: "ctx", label: "上下文", width: 110, align: "center", sortable: "custom" },
 ];
+
+/* ---------- 最近 HTTP 请求样本（/actuator/httpexchanges，按需取数） ---------- */
+
+const exVisible = ref(false);
+const exLoading = ref(false);
+const exError = ref("");
+const exchanges = ref<HttpExchangeRow[]>([]);
+
+const exchangeColumns: ReTableColumn[] = [
+  { prop: "timestamp", label: "时间", width: 170, slot: "time" },
+  { prop: "method", label: "方法", width: 84, align: "center", slot: "method" },
+  { prop: "uri", label: "请求路径", minWidth: 300, showOverflowTooltip: true, slot: "uri" },
+  { prop: "status", label: "状态码", width: 90, align: "center", slot: "status" },
+  { prop: "timeMs", label: "耗时", width: 100, align: "right", slot: "timeMs" },
+];
+
+/** 打开抽屉；样本为空时才首取，之后点「刷新样本」手动更新（样本不是常驻数据） */
+function openExchanges(): void {
+  exVisible.value = true;
+  if (!exchanges.value.length && !exError.value) void loadExchanges();
+}
+
+async function loadExchanges(): Promise<void> {
+  exLoading.value = true;
+  exError.value = "";
+  try {
+    exchanges.value = await getHttpExchanges();
+  } catch (err) {
+    exchanges.value = [];
+    // 未暴露（404/405/501）给接入指引，其余给原始错误；样本是旁证数据，不影响映射表
+    exError.value = isUnavailableError(err)
+      ? unavailableHint("httpexchanges")
+      : ((err as Error)?.message ?? "加载请求样本失败");
+  } finally {
+    exLoading.value = false;
+  }
+}
+
+/** ISO-8601（UTC）→ 本地可读时间；解析失败退回原文 */
+function formatExchangeTime(ts: unknown): string {
+  const raw = String(ts ?? "");
+  const ms = Date.parse(raw);
+  return Number.isNaN(ms) ? raw || "-" : new Date(ms).toLocaleString("zh-CN", { hour12: false });
+}
+
+/** 完整 URI 去掉协议与主机，只留路径与查询串：短得多，也足够定位接口 */
+function shortUri(uri: unknown): string {
+  const raw = String(uri ?? "");
+  const stripped = raw.replace(/^https?:\/\/[^/]+/i, "");
+  return stripped || raw || "-";
+}
+
+/** 状态码配色：2xx 绿、3xx 蓝灰、4xx 橙、5xx / 未知 红 */
+function statusToneClass(status: number): string {
+  if (!status) return "is-unknown";
+  if (status < 300) return "is-ok";
+  if (status < 400) return "is-redirect";
+  if (status < 500) return "is-warn";
+  return "is-error";
+}
 </script>

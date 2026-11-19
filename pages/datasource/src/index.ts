@@ -104,3 +104,7 @@ export { default as DesignTableDialog } from "./components/console/CreateTableDi
 //
 // registerMonitorDatasourceSchema 仍导出，供需要提前注册的首屏场景显式调用（幂等）。
 export { registerMonitorDatasourceSchema } from "./schema/monitorSchemaProvider";
+
+// 数据源侧贡献给 home 仪表板的 widget（app 侧用 .widgets(defineWidgetContribution(datasourceWidgets)) 接线；
+// 宿主建议从 ./widgets/datasourceWidgets 深路径导入，避免包根求值连带注册菜单映射与台账 API）
+export { datasourceWidgets } from "./widgets/datasourceWidgets";

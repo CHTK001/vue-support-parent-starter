@@ -291,6 +291,20 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   xsd: TEXT_SPEC,
   // .mf：Java MANIFEST.MF / METAFONT 源文件，均为纯文本，按文本渲染
   mf: TEXT_SPEC,
+  // ---- 日历 / 名片 / Visio XML / InDesign XML / ER Mapper 头：均为纯文本，按文本渲染 ----
+  // ics/ical/icalendar/ifb 是 iCalendar 文本；vcf/vcard 是 vCard 文本；
+  // vdx 是 Visio 的 XML 文本；idms/inx 是 InDesign 的 XML 文本；
+  // ers 是 ER Mapper 栅格头（ASCII 关键字文本）。
+  // 这些格式没有专用渲染器，但内容本身是结构化文本，文本面板即真实渲染通道。
+  ics: TEXT_SPEC,
+  ical: TEXT_SPEC,
+  icalendar: TEXT_SPEC,
+  ifb: TEXT_SPEC,
+  vcf: TEXT_SPEC,
+  vcard: TEXT_SPEC,
+  vdx: TEXT_SPEC,
+  idms: TEXT_SPEC,
+  inx: TEXT_SPEC,
   // ---- renderer-mindmap / epub / email（doc 组，file-viewer 按扩展名自选）----
   xmind: DOC_SPEC,
   epub: DOC_SPEC,
@@ -304,12 +318,12 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   pdd: DESIGN_SPEC,
   psdt: DESIGN_SPEC,
   ait: DESIGN_SPEC,
-  idml: DESIGN_SPEC,
+  // idml 是 InDesign 的 ZIP 包：renderer-design 无解析器，按压缩包结构检视
+  idml: ARCHIVE_SPEC,
   icml: DESIGN_SPEC,
-  idms: DESIGN_SPEC,
-  inx: DESIGN_SPEC,
+  // xfl 是 Flash 的 ZIP/XFL 工程，与 fla 同走二进制检视（Binary Inspector 解析 ZIP 条目）
   fla: DESIGN_SPEC,
-  xfl: DESIGN_SPEC,
+  xfl: BINARY_SPEC,
   xd: DESIGN_SPEC,
   indd: DESIGN_SPEC,
   indt: DESIGN_SPEC,
@@ -456,8 +470,14 @@ const SPEC_BY_EXT: Record<string, RendererSpec> = {
   dwg: CAD_SPEC,
   dwf: CAD_SPEC,
   dwfx: CAD_SPEC,
-  xps: CAD_SPEC,
   // ---- renderer-archive：压缩包 ----
+  // XPS/OXPS（固定版式文档 ZIP 包）与 Visio OOXML（vsdx/vssx/vstx）均为 ZIP 容器：
+  // 无版式/矢量渲染器，按压缩包结构检视（条目清单真实可读）。
+  xps: ARCHIVE_SPEC,
+  oxps: ARCHIVE_SPEC,
+  vsdx: ARCHIVE_SPEC,
+  vssx: ARCHIVE_SPEC,
+  vstx: ARCHIVE_SPEC,
   zip: ARCHIVE_SPEC,
   zipx: ARCHIVE_SPEC,
   "7z": ARCHIVE_SPEC,

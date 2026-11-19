@@ -283,7 +283,11 @@ const ReRadioGroup = defineComponent({
     // 不声明 type 会让 TS 把该 prop 推成 undefined，导致 v-model 绑任何值都报
     // 「Type 'number' is not assignable to type 'undefined'」。这里显式放开。
     modelValue: {
-      type: [String, Number, Boolean, Object, Array] as PropType<string | number | boolean | object>,
+      // 表单字段空值常态是 null/undefined（数字清空、未选择），类型与
+      // ReInputNumber 的 number | null | undefined 口径对齐；运行时校验数组不变。
+      type: [String, Number, Boolean, Object, Array] as PropType<
+        string | number | boolean | object | null | undefined
+      >,
       default: undefined,
     },
     /** 尺寸（segmented 形态吃 el-segmented 的 large/default/small） */

@@ -18,32 +18,38 @@
 <template>
   <ApmGate v-slot="{ status }">
     <div class="apm-bar apm-toolbar">
-      <ReSelect v-model="minutes" :options="windowOptions" style="width: 136px" @change="loadAll" />
+      <ApmTimeWindow v-model="timeWindow" @change="loadAll" />
       <span class="apm-bar__spacer" />
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="loadAll" />
+      <ApmAutoRefresh @refresh="loadAll" />
     </div>
 
     <ReSkeleton v-if="loading && !loaded" :rows="6" animated />
 
     <template v-else>
-      <!-- ── 四个数：和宿主统计卡同一种读法 ─────────────────── -->
+      <!-- ── 四个数：和宿主统计卡同一种读法；每个数都能点进它背后的明细 ── -->
       <div class="apm-kpis">
-        <div class="apm-kpi" style="--accent: var(--el-color-primary)">
+        <div class="apm-kpi is-clickable" style="--accent: var(--el-color-primary)" title="查看服务清单" @click="go('services')">
           <div class="apm-kpi__label">服务</div>
           <div class="apm-kpi__value">{{ services.length }}<small>个</small></div>
-          <div class="apm-kpi__sub">最近 {{ minutes }} 分钟内有调用</div>
+          <div class="apm-kpi__sub">{{ windowLabel(timeWindow) }}内有调用</div>
         </div>
-        <div class="apm-kpi" style="--accent: var(--el-color-success)">
+        <div class="apm-kpi is-clickable" style="--accent: var(--el-color-success)" title="查看这段时间的调用明细" @click="go('traces')">
           <div class="apm-kpi__label">调用量</div>
           <div class="apm-kpi__value">{{ fmtNum(totalCalls) }}<small>次</small></div>
-          <div class="apm-kpi__sub">最近 {{ minutes }} 分钟累计</div>
+          <div class="apm-kpi__sub">{{ windowLabel(timeWindow) }}累计</div>
         </div>
-        <div class="apm-kpi" style="--accent: var(--el-color-danger)">
+        <div class="apm-kpi is-clickable" style="--accent: var(--el-color-danger)" title="查看当前告警" @click="go('alarms')">
           <div class="apm-kpi__label">错误率</div>
           <div class="apm-kpi__value" :class="errorTone">{{ errorText[0] }}<small>{{ errorText[1] }}</small></div>
           <div class="apm-kpi__sub">按调用量加权</div>
         </div>
-        <div class="apm-kpi" style="--accent: var(--el-color-warning)">
+        <div
+          class="apm-kpi is-clickable"
+          style="--accent: var(--el-color-warning)"
+          title="查看响应时间曲线"
+          @click="go('metrics', { metric: 'service_resp_time' })"
+        >
           <div class="apm-kpi__label">平均耗时</div>
           <div class="apm-kpi__value">{{ avgText[0] }}<small>{{ avgText[1] }}</small></div>
           <div class="apm-kpi__sub">按调用量加权</div>
@@ -75,7 +81,16 @@
           <section class="apm-card">
             <div class="apm-card-head">
               <span class="apm-card-h">成功率</span>
-              <span class="apm-card-note">SLO 99.0%</span>
+              <!-- SLO 是运维定的口径，不是前端写死的常数：可调，存 localStorage -->
+              <template v-if="sloEditing">
+                <ReInput v-model="sloDraft" size="small" style="width: 86px" @keyup.enter="saveSlo" />
+                <ReButton size="small" type="primary" @click="saveSlo">保存</ReButton>
+                <ReButton size="small" @click="sloEditing = false">取消</ReButton>
+              </template>
+              <template v-else>
+                <span class="apm-card-note">SLO {{ sloTargetLabel }}</span>
+                <button type="button" class="apm-link" @click="startSloEdit">调整</button>
+              </template>
             </div>
             <div class="apm-readout" :class="successTone">{{ fmtPercent(successRate) }}</div>
             <span class="apm-meter">
@@ -209,7 +224,7 @@
 
       <!-- ── 页脚：这块数据是什么时候的 ──────────────────────── -->
       <div class="apm-bar apm-foot">
-        <span class="apm-count">窗口 {{ minutes }} 分钟 · 更新于 {{ updatedAt || "—" }}</span>
+        <span class="apm-count">窗口 {{ windowLabel(timeWindow) }} · 更新于 {{ updatedAt || "—" }}</span>
         <span class="apm-bar__spacer" />
         <span class="apm-count">能力 {{ status.capabilities.length }} 项</span>
       </div>
@@ -221,23 +236,32 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import ReButton from "@repo/ui/re-button";
+import ReInput from "@repo/ui/re-input";
 import ReSkeleton from "@repo/ui/re-skeleton";
-import ReSelect from "@repo/ui/re-select";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ApmGate from "../components/ApmGate.vue";
+import ApmAutoRefresh from "../components/ApmAutoRefresh.vue";
 import ApmGraph from "../components/ApmGraph.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
 import MetricChart from "../components/MetricChart.vue";
 import { getMetrics, getOverview, getTopology, listAlarms, listServices } from "../api/apmApi";
 import type { ApmAlarm, ApmHealth, ApmMetricSeries, ApmService, ApmTopology } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
-import { openApmTab } from "../tabs";
+import { consumeApmTabContext, openApmTab } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
 import type { ApmTabContext } from "../tabs";
-import { WINDOW_OPTIONS, errorRateClass, errorRateText, fmtAgo, fmtMs, fmtNum, fmtPercent, fmtTime, latencyClass } from "../utils/format";
+import { message } from "@repo/core";
+import { errorRateClass, errorRateText, fmtAgo, fmtMs, fmtNum, fmtPercent, fmtTime, latencyClass } from "../utils/format";
+import { DEFAULT_WINDOW_MINUTES, timeQuery, windowLabel } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const { present, ensure, refresh, status } = useApmStatus();
+
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "overview";
 
 const router = useRouter();
 
@@ -252,9 +276,57 @@ const alarms = ref<ApmAlarm[]>([]);
 const latencySeries = ref<ApmMetricSeries[]>([]);
 const health = ref<ApmHealth | null>(null);
 
-const minutes = ref(30);
-const windowOptions = WINDOW_OPTIONS;
+/** 时间窗：预设分钟数或自定义区间 */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: DEFAULT_WINDOW_MINUTES });
 const updatedAt = ref("");
+
+/* ── SLO 目标：可调，存 localStorage，全站共用一个口径 ── */
+
+/** localStorage 键：SLO 是运维定的口径，换页面不该变 */
+const SLO_STORAGE_KEY = "apm:slo-target";
+const sloTarget = ref(99);
+const sloEditing = ref(false);
+const sloDraft = ref("");
+
+const sloTargetLabel = computed(() => `${sloTarget.value.toFixed(1)}%`);
+
+function startSloEdit(): void {
+  sloDraft.value = sloTarget.value.toFixed(1);
+  sloEditing.value = true;
+}
+
+/** 保存 SLO 目标：0~100 之间保留一位小数，写 localStorage 让下次进来还认 */
+function saveSlo(): void {
+  const value = Number(sloDraft.value);
+  if (!Number.isFinite(value) || value <= 0 || value > 100) {
+    message.error("SLO 目标需在 0 ~ 100 之间");
+    return;
+  }
+  sloTarget.value = Math.round(value * 10) / 10;
+  try {
+    localStorage.setItem(SLO_STORAGE_KEY, String(sloTarget.value));
+  } catch {
+    /* 存储不可用时本次会话内仍然生效 */
+  }
+  sloEditing.value = false;
+  message.success(`SLO 目标已设为 ${sloTargetLabel.value}`);
+}
+
+/** 读回 SLO 目标：脏数据一律退回默认 99，不让 localStorage 把页面打坏 */
+function loadSlo(): void {
+  try {
+    const stored = localStorage.getItem(SLO_STORAGE_KEY);
+    if (!stored) {
+      return;
+    }
+    const value = Number(stored);
+    if (Number.isFinite(value) && value > 0 && value <= 100) {
+      sloTarget.value = Math.round(value * 10) / 10;
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 /* ── 四个读数：全部由服务清单加权得出，和服务行同源 ───────── */
 
@@ -302,9 +374,13 @@ const errorTone = computed(() => {
   return "";
 });
 
+/**
+ * 成功率的脸色：低于 SLO 即警告，再低一档（SLO - 4）才算事故红。
+ * 阈值跟着可配置的 SLO 走，不再是写死的 99 / 95。
+ */
 const successTone = computed(() => {
-  if (successRate.value < 95) return "is-bad";
-  if (successRate.value < 99) return "is-warn";
+  if (successRate.value < sloTarget.value - 4) return "is-bad";
+  if (successRate.value < sloTarget.value) return "is-warn";
   return "";
 });
 
@@ -354,26 +430,27 @@ function shortVersion(version?: string | null): string {
   return version.split(/[-+]/)[0];
 }
 
+/** 当前时间窗 → 跳转上下文：自定义区间给起止，预设给分钟数 */
+function windowContext(): ApmTabContext {
+  const win = timeWindow.value;
+  if (win.startTime && win.endTime) {
+    return { startTime: win.startTime, endTime: win.endTime };
+  }
+  return { minutes: win.minutes || DEFAULT_WINDOW_MINUTES };
+}
+
 /**
- * 切页签。
- *
- * <p>不走 `router.push`：宿主给路由组件挂了 `:key="route.fullPath"`，
- * 换 query 会重建整页，页签保活就白做了。这里发一个事件，由工作台切页签。</p>
- *
- * @param tab 页签名
- */
-/**
- * 跨页签跳转，带上当前窗口与服务名。
+ * 跨页签跳转，带上当前窗口与定位上下文。
  *
  * <p>不走 `router.push`：宿主给路由组件挂了 `:key="route.fullPath"`，
  * 换 query 会重建整页，页签保活就白做了。这里发一个事件，由工作台切页签，
  * 同时把上下文暂存下来 —— 落地页据此预填筛选，不用再选一次。</p>
  *
  * @param tab 页签名
- * @param context 可选的定位上下文（服务名 / 端点 / 时间窗）
+ * @param context 可选的定位上下文（服务名 / 端点 / 时间窗 / 指标名）
  */
 function go(tab: string, context?: ApmTabContext): void {
-  openApmTab(tab, { minutes: minutes.value, ...context });
+  openApmTab(tab, { ...windowContext(), ...context });
 }
 
 /**
@@ -405,14 +482,18 @@ function alarmTitle(alarm: ApmAlarm): string {
 
 /**
  * 包一层「失败返回默认值」：三个接口里任何一个挂了，其余两块照常显示。
+ * 失败会被计数，loadAll 结束后统一给出可见提示，避免「失败」被误读成「空数据」。
  *
  * @param task 请求
  * @param fallback 失败时的值
  */
+let failedRequests = 0;
+
 async function safe<T>(task: Promise<T>, fallback: T): Promise<T> {
   try {
     return await task;
   } catch {
+    failedRequests += 1;
     return fallback;
   }
 }
@@ -421,7 +502,7 @@ async function safe<T>(task: Promise<T>, fallback: T): Promise<T> {
 async function tryMetric(name: string, service: string): Promise<ApmMetricSeries | null> {
   if (!service) return null;
   try {
-    const series = await getMetrics({ name, service, scope: "SERVICE", minutes: minutes.value, step: "MINUTE" });
+    const series = await getMetrics({ name, service, scope: "SERVICE", ...timeQuery(timeWindow.value), step: "MINUTE" });
     return series?.points?.length ? series : null;
   } catch {
     return null;
@@ -460,12 +541,13 @@ async function loadAll(): Promise<void> {
   await ensure();
   if (!present.value) return;
   loading.value = true;
+  failedRequests = 0;
   try {
     const [ov, topo, svc, alarmList] = await Promise.all([
-      safe(getOverview({ minutes: minutes.value }), null as { health: ApmHealth } | null),
-      safe(getTopology({ minutes: minutes.value }), { nodes: [], calls: [] } as ApmTopology),
-      safe(listServices({ minutes: minutes.value }), [] as ApmService[]),
-      safe(listAlarms({ minutes: minutes.value }), [] as ApmAlarm[]),
+      safe(getOverview({ ...timeQuery(timeWindow.value) }), null as { health: ApmHealth } | null),
+      safe(getTopology({ ...timeQuery(timeWindow.value) }), { nodes: [], calls: [] } as ApmTopology),
+      safe(listServices({ ...timeQuery(timeWindow.value) }), [] as ApmService[]),
+      safe(listAlarms({ ...timeQuery(timeWindow.value) }), [] as ApmAlarm[]),
     ]);
     health.value = ov?.health ?? null;
     topology.value = topo;
@@ -473,6 +555,9 @@ async function loadAll(): Promise<void> {
     alarms.value = alarmList;
     updatedAt.value = fmtTime(Date.now());
     loaded.value = true;
+    if (failedRequests > 0) {
+      message.warning(`有 ${failedRequests} 项数据加载失败，当前显示可能不完整，请稍后刷新重试`);
+    }
   } finally {
     loading.value = false;
   }
@@ -491,6 +576,32 @@ async function reload(): Promise<void> {
 }
 
 onMounted(() => {
+  loadSlo();
+  // 从 URL / 跳转上下文带时间窗过来时按它取数（与其它页签同口径）
+  const context = consumeApmTabContext();
+  if (context?.startTime && context?.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context?.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
+  loadAll();
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：深链或其它页签带时间窗切回本页时
+ * {@link onMounted} 不会重跑，一次性上下文在这里接住。
+ * 普通切回不重查 —— 总览一次要拉拓扑 + 服务 + 告警三份数据，新鲜度由自动刷新兜底。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (!context) {
+    return;
+  }
+  if (context.startTime && context.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
   loadAll();
 });
 </script>

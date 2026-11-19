@@ -1,5 +1,7 @@
 <template>
   <div class="koi-shell-header-actions">
+    <!-- 业务自定义操作（ReDialog #header-actions 插槽透传），排在内置壳按钮左侧 -->
+    <slot />
     <el-tooltip v-if="showMinimize" content="最小化" placement="bottom">
       <button type="button" class="koi-toolbar-btn" aria-label="最小化" @click="$emit('minimize')">
         <el-icon size="14"><Minus /></el-icon>
@@ -34,13 +36,13 @@ withDefaults(
     enabled?: boolean;
     /** 是否显示最小化按钮（默认隐藏，靠 showMinimize 开关开启） */
     showMinimize?: boolean;
-    /** 是否显示全屏按钮（默认隐藏，靠 showFullscreen 开关开启） */
+    /** 是否显示全屏按钮（默认显示，传 false 关闭） */
     showFullscreen?: boolean;
   }>(),
   {
     enabled: true,
     showMinimize: false,
-    showFullscreen: false,
+    showFullscreen: true,
   },
 );
 

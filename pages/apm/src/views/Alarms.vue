@@ -23,11 +23,12 @@
       <ReTag v-if="entity" type="danger" round closable @close="clearEntity">
         实体：{{ entity }}
       </ReTag>
-      <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
+      <ApmTimeWindow v-model="timeWindow" @change="load" />
       <ReButton icon="Search" type="primary" :loading="loading" @click="load">查询</ReButton>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ visibleAlarms.length }} 条告警</span>
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
+      <ApmAutoRefresh @refresh="load" />
     </div>
 
     <ReSkeleton v-if="loading && !alarms.length" :rows="6" animated />
@@ -66,6 +67,11 @@
             <span class="apm-muted">{{ fmtTime(alarm.startTime) }} · {{ fmtAgo(alarm.startTime) }}</span>
           </div>
           <p class="alarm-msg">{{ alarm.message || "（无描述）" }}</p>
+          <!-- 下钻：告警只说「出事了」，现场在链路和日志里；围绕事发时间开小窗，一步跳过去 -->
+          <div class="alarm-foot">
+            <ReButton size="small" icon="Link" @click="drillTrace(alarm)">查链路</ReButton>
+            <ReButton size="small" icon="Document" @click="drillLogs(alarm)">查日志</ReButton>
+          </div>
           <div v-if="otherEvents(alarm).length" class="apm-kv alarm-events">
             <div v-for="(event, i) in otherEvents(alarm).slice(0, 2)" :key="i" class="apm-kv__row">{{ event }}</div>
             <div v-if="otherEvents(alarm).length > 2" class="apm-kv__more">另有 {{ otherEvents(alarm).length - 2 }} 条同类事件</div>
@@ -97,15 +103,24 @@ import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTag from "@repo/ui/re-tag";
 import ApmGate from "../components/ApmGate.vue";
+import ApmAutoRefresh from "../components/ApmAutoRefresh.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
 import { listAlarms, listServices } from "../api/apmApi";
 import type { ApmAlarm } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
-import { consumeApmTabContext } from "../tabs";
-import { WINDOW_OPTIONS, fmtAgo, fmtTime } from "../utils/format";
+import { consumeApmTabContext, openApmTab } from "../tabs";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
+import { fmtAgo, fmtTime } from "../utils/format";
+import { DRILL_MARGIN_MS, timeQuery } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const router = useRouter();
 const { present, ensure } = useApmStatus();
+
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "alarms";
 
 const alarms = ref<ApmAlarm[]>([]);
 const services = ref<string[]>([]);
@@ -113,9 +128,9 @@ const service = ref("");
 const keyword = ref("");
 /** 实体筛选（来自总览 / 告警分析的下钻）：OAP 没有按实体名查询的参数，只能本地过滤 */
 const entity = ref("");
-const minutes = ref(60);
+/** 时间窗：预设分钟数或自定义区间（告警下钻按事发时间 ± 边距） */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: 60 });
 const loading = ref(false);
-const windowOptions = WINDOW_OPTIONS;
 
 const serviceOptions = computed(() => services.value.map((s) => ({ label: s, value: s })));
 
@@ -153,6 +168,32 @@ function openService(name: string): void {
 }
 
 /**
+ * 告警下钻的公共上下文：围绕事发时间开一个 ±5 分钟的小窗。
+ *
+ * <p>告警页的默认窗口是 60 分钟，直接带着它去查链路，现场早被淹在
+ * 几千条无关 span 里；按「事发时间 ± 边距」收窄，跳过去就是案发现场。
+ * 实体名是已观测服务时顺带带上服务筛选。</p>
+ */
+function drillContext(alarm: ApmAlarm) {
+  const service = alarm.serviceName || (isKnownService(alarm.name) ? alarm.name || "" : "");
+  return {
+    ...(service ? { service } : {}),
+    startTime: Math.max(0, alarm.startTime - DRILL_MARGIN_MS),
+    endTime: alarm.startTime + DRILL_MARGIN_MS,
+  };
+}
+
+/** 查链路：切到链路页签，按事发时间小窗过滤 */
+function drillTrace(alarm: ApmAlarm): void {
+  openApmTab("traces", drillContext(alarm));
+}
+
+/** 查日志：切到日志页签，同一时间窗 */
+function drillLogs(alarm: ApmAlarm): void {
+  openApmTab("logs", drillContext(alarm));
+}
+
+/**
  * 事件里通常把告警本身的描述又重复一遍（只多一个 `Alarm: ` 前缀），
  * 原样列出来就是同一句话贴两遍 —— 同义的剔掉，剩下的才是「同时命中的其它规则」。
  */
@@ -183,7 +224,7 @@ async function load() {
       (await listAlarms({
         service: service.value || undefined,
         keyword: keyword.value || undefined,
-        minutes: minutes.value,
+        ...timeQuery(timeWindow.value),
       })) || [];
   } catch (e) {
     alarms.value = [];
@@ -201,14 +242,41 @@ async function loadServices() {
   }
 }
 
+/** 把跳转上下文落到筛选条件（实体 / 服务 / 时间窗） */
+function applyContext(context: ApmTabContext): void {
+  if (context.entity) {
+    entity.value = context.entity;
+  }
+  if (context.service) {
+    service.value = context.service;
+  }
+  if (context.startTime && context.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
+}
+
 onMounted(async () => {
   // 从总览点「某条告警」、或从告警分析点「某个实体」过来时带着实体名：
   // 直接按它过滤，省掉「跳过来再想起来是哪条 → 再打一遍字」。
   const context = consumeApmTabContext();
-  if (context?.entity) {
-    entity.value = context.entity;
+  if (context) {
+    applyContext(context);
   }
   await loadServices();
+  load();
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：再次切到本页签时 onMounted 不会重跑，
+ * 一次性上下文在这里接住；普通切回也重取一次，避免看到切走前的旧流水。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (context) {
+    applyContext(context);
+  }
   load();
 });
 </script>
@@ -270,5 +338,11 @@ onMounted(async () => {
 
 .alarm-tags {
   margin-top: 8px;
+}
+
+.alarm-foot {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
 }
 </style>

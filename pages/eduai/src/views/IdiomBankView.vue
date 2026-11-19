@@ -1,5 +1,6 @@
 <template>
   <div class="page-container">
+    <ReConfirmDialog ref="confirmDialog" />
     <!-- 上区：页头 + 右侧悬浮正方形统计卡 -->
     <div class="top-zone">
       <div class="page-header">
@@ -299,7 +300,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import { Close, Collection, Delete, EditPen, Plus, RefreshLeft, Search, View } from "@element-plus/icons-vue";
 import { eduaiApi } from "../api/eduaiApi";
 import { createPageLoader, pageLoadError, strParam } from "../api/pageLoader";
@@ -308,6 +308,10 @@ import ReTable from "@repo/ui/components/ReTable/ReTable.vue";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
 import IdiomHoverPreview from "../components/IdiomHoverPreview.vue";
+import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
+
+/** 统一确认弹窗（ReDialog 实现，替代 ElMessageBox.confirm） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 
 const GRADE_LEVELS = ["小学", "初中", "高中", "大学"] as const;
 const GRADES_BY_LEVEL: Record<string, string[]> = {
@@ -558,13 +562,11 @@ const save = async () => {
 };
 
 async function remove(row: Idiom) {
-  try {
-    await ElMessageBox.confirm(`确认删除成语「${row.idiomContent}」吗？`, "删除成语", {
-      type: "warning",
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-    });
-  } catch {
+  const ok = await confirmDialog.value?.open(`确认删除成语「${row.idiomContent}」吗？`, {
+    title: "删除成语",
+    danger: true,
+  });
+  if (!ok) {
     return;
   }
   try {

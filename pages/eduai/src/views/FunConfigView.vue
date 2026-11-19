@@ -1,5 +1,6 @@
 <template>
   <div class="pm">
+    <ReConfirmDialog ref="confirmDialog" />
     <!-- 页头：标题 + 保存 -->
     <header class="pm-hd">
       <div class="pm-hd__text">
@@ -365,7 +366,6 @@
  */
 import { computed, onActivated, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
-import { ElMessageBox } from "element-plus";
 import { RefreshLeft, Search } from "@element-plus/icons-vue";
 import { message } from "@repo/core";
 import { errText } from "../api/errorText";
@@ -373,6 +373,10 @@ import { eduaiApi } from "../api/eduaiApi";
 import type { FunConfig } from "../api/types";
 import { BUILTIN_MODULE_CODES, FIXED_CAPABILITY_CODES, modulesOf, stageLabel, type Stage } from "./portal/modules";
 import PortalMenuPreview from "../components/PortalMenuPreview.vue";
+import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
+
+/** 统一确认弹窗（ReDialog 实现，替代 ElMessageBox.confirm） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 
 /** 配置范围：三个学生学段 + 教师端 + 通用（学段为空的遗留管理端模块） */
 const SCOPES = [
@@ -624,9 +628,8 @@ async function load(): Promise<void> {
  */
 async function reload(key?: string): Promise<void> {
   if (dirty.value) {
-    try {
-      await ElMessageBox.confirm("有未保存的修改，刷新会丢失，确定继续？", "提示", { type: "warning" });
-    } catch {
+    const ok = await confirmDialog.value?.open("有未保存的修改，刷新会丢失，确定继续？", { title: "提示" });
+    if (!ok) {
       return;
     }
   }
@@ -943,13 +946,11 @@ async function restoreDefaults(): Promise<void> {
     message.info("通用模块没有默认目录");
     return;
   }
-  try {
-    await ElMessageBox.confirm(
-      "将内置入口的名称 / 图标 / 配色 / 顺序恢复为默认，并重新启用？自定义入口不受影响。",
-      "恢复默认",
-      { type: "warning" },
-    );
-  } catch {
+  const ok = await confirmDialog.value?.open(
+    "将内置入口的名称 / 图标 / 配色 / 顺序恢复为默认，并重新启用？自定义入口不受影响。",
+    { title: "恢复默认" },
+  );
+  if (!ok) {
     return;
   }
   const catalog = defaultCatalog();
@@ -1281,13 +1282,11 @@ async function saveAll(): Promise<void> {
  * @param row 菜单行
  */
 async function removeItem(row: MenuRow): Promise<void> {
-  try {
-    await ElMessageBox.confirm(
-      `确定删除「${row.moduleName}」吗？停用只是隐藏入口，删除后需要重新添加。`,
-      "删除菜单项",
-      { type: "warning" },
-    );
-  } catch {
+  const ok = await confirmDialog.value?.open(
+    `确定删除「${row.moduleName}」吗？停用只是隐藏入口，删除后需要重新添加。`,
+    { title: "删除菜单项", danger: true },
+  );
+  if (!ok) {
     return;
   }
   if (row.configId == null) {
@@ -1315,14 +1314,10 @@ onBeforeRouteLeave(async () => {
   if (!dirty.value) {
     return true;
   }
-  try {
-    await ElMessageBox.confirm("有未保存的修改，确定离开？返回本页后仍可继续保存。", "提示", {
-      type: "warning",
-    });
-    return true;
-  } catch {
-    return false;
-  }
+  const ok = await confirmDialog.value?.open("有未保存的修改，确定离开？返回本页后仍可继续保存。", {
+    title: "提示",
+  });
+  return ok === true;
 });
 
 /** 关标签/刷新前提示未保存 */

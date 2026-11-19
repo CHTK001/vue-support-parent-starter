@@ -107,12 +107,10 @@ export function createSseClient<T = unknown>(
           onOpen?.();
           return;
         }
-        if (response.status === 401 || response.status === 403) {
-          onError?.(new Error(`SSE 鉴权失败: ${response.status}`));
-          closed = true;
-          controller.abort();
-          return;
-        }
+        // 401/403 不再永久放弃：登录瞬间令牌可能正在轮换（旧 accessToken 已失效、
+        // 新 token 尚未写回 storage），首连会撞上瞬时 403。把它当普通失败抛给
+        // onerror 的重连逻辑（计入 maxReconnectAttempts），令牌稳定后连接自愈；
+        // 真正长期无权限的调用方也会因重试次数耗尽而停下（默认 5 次）。
         throw new Error(`SSE 连接失败: ${response.status}`);
       },
       onmessage: (msg) => {

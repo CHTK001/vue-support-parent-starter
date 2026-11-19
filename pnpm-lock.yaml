@@ -384,67 +384,6 @@ importers:
         specifier: 'catalog:'
         version: 4.6.4(vue@3.5.45(typescript@5.9.3))
 
-  ../spring-support-parent-starter/spring-support-account-starter/web:
-    dependencies:
-      '@element-plus/icons-vue':
-        specifier: 'catalog:'
-        version: 2.3.2(vue@3.5.45(typescript@5.9.3))
-      '@repo/app':
-        specifier: workspace:*
-        version: link:../../../vue-support-parent-starter/turbo/app
-      '@repo/config':
-        specifier: workspace:*
-        version: link:../../../vue-support-parent-starter/packages/config
-      '@repo/core':
-        specifier: workspace:*
-        version: link:../../../vue-support-parent-starter/packages/core
-      '@repo/pinia':
-        specifier: workspace:*
-        version: link:../../../vue-support-parent-starter/packages/pinia
-      '@repo/re-map':
-        specifier: workspace:*
-        version: link:../../../vue-support-parent-starter/packages/ui/re-map
-      '@repo/ui':
-        specifier: workspace:*
-        version: link:../../../vue-support-parent-starter/packages/ui
-      '@repo/utils':
-        specifier: workspace:*
-        version: link:../../../vue-support-parent-starter/packages/utils
-      axios:
-        specifier: 'catalog:'
-        version: 1.19.0
-      element-plus:
-        specifier: 'catalog:'
-        version: 2.14.7(vue@3.5.45(typescript@5.9.3))
-      jquery:
-        specifier: 'catalog:'
-        version: 3.7.1
-      pinia:
-        specifier: 'catalog:'
-        version: 3.0.4(typescript@5.9.3)(vue@3.5.45(typescript@5.9.3))
-      vue:
-        specifier: 'catalog:'
-        version: 3.5.45(typescript@5.9.3)
-      vue-plugin-hiprint:
-        specifier: 'catalog:'
-        version: 0.0.62
-      vue-router:
-        specifier: 'catalog:'
-        version: 4.6.4(vue@3.5.45(typescript@5.9.3))
-    devDependencies:
-      rimraf:
-        specifier: 'catalog:'
-        version: 6.1.3
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vite:
-        specifier: 'catalog:'
-        version: 8.3.8(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1)(terser@5.51.2)
-      vue-tsc:
-        specifier: 'catalog:'
-        version: 2.2.12(typescript@5.9.3)
-
   apps/vue-support-ai-miniapp-starter:
     dependencies:
       '@dcloudio/uni-app':
@@ -462,6 +401,9 @@ importers:
       vue:
         specifier: 3.4.21
         version: 3.4.21(typescript@5.9.3)
+      wot-design-uni:
+        specifier: 1.14.0
+        version: 1.14.0(vue@3.4.21(typescript@5.9.3))
     devDependencies:
       '@dcloudio/types':
         specifier: ^3.4.8
@@ -475,6 +417,9 @@ importers:
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.1
+      sass:
+        specifier: 'catalog:'
+        version: 1.104.1
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -1073,9 +1018,6 @@ importers:
 
   apps/vue-support-monitor-starter:
     dependencies:
-      '@account/web':
-        specifier: workspace:*
-        version: link:../../../spring-support-parent-starter/spring-support-account-starter/web
       '@codemirror/autocomplete':
         specifier: ^6.20.3
         version: 6.20.3
@@ -1097,6 +1039,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: 'catalog:'
         version: 2.3.2(vue@3.5.45(typescript@5.9.3))
+      '@pages/account':
+        specifier: workspace:*
+        version: link:../../pages/account
       '@pages/actuator':
         specifier: workspace:*
         version: link:../../pages/actuator
@@ -1106,6 +1051,9 @@ importers:
       '@pages/bigscreen':
         specifier: workspace:*
         version: link:../../pages/screen
+      '@pages/cdp':
+        specifier: workspace:*
+        version: link:../../pages/cdp
       '@pages/channel':
         specifier: workspace:*
         version: link:../../pages/channel
@@ -2147,6 +2095,67 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
+  pages/account:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.45(typescript@5.9.3))
+      '@repo/app':
+        specifier: workspace:*
+        version: link:../../turbo/app
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/pinia':
+        specifier: workspace:*
+        version: link:../../packages/pinia
+      '@repo/re-map':
+        specifier: workspace:*
+        version: link:../../packages/ui/re-map
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      axios:
+        specifier: 'catalog:'
+        version: 1.19.0
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.7(vue@3.5.45(typescript@5.9.3))
+      jquery:
+        specifier: 'catalog:'
+        version: 3.7.1
+      pinia:
+        specifier: 'catalog:'
+        version: 3.0.4(typescript@5.9.3)(vue@3.5.45(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.45(typescript@5.9.3)
+      vue-plugin-hiprint:
+        specifier: 'catalog:'
+        version: 0.0.62
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.6.4(vue@3.5.45(typescript@5.9.3))
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.8(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1)(terser@5.51.2)
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.12(typescript@5.9.3)
+
   pages/achievement:
     dependencies:
       '@element-plus/icons-vue':
@@ -2208,6 +2217,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: 'catalog:'
         version: 2.3.2(vue@3.5.45(typescript@5.9.3))
+      '@pages/cdp':
+        specifier: workspace:*
+        version: link:../cdp
       '@pages/filesystem':
         specifier: workspace:*
         version: link:../filesystem
@@ -2656,6 +2668,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: 'catalog:'
         version: 2.3.2(vue@3.5.45(typescript@5.9.3))
+      '@pages/cdp':
+        specifier: workspace:*
+        version: link:../cdp
       '@repo/app':
         specifier: workspace:*
         version: link:../../turbo/app
@@ -11648,6 +11663,12 @@ packages:
   word@0.3.0:
     resolution: {integrity: sha512-OELeY0Q61OXpdUfTp+oweA/vtLVg5VDOXh+3he3PNzLGG/y0oylSOC1xRVj0+l4vQ3tj/bB1HVHv1ocXkQceFA==}
     engines: {node: '>=0.8'}
+
+  wot-design-uni@1.14.0:
+    resolution: {integrity: sha512-FaBXtmxxAkZNZUxR2xeKBg/Agck+SPaFFFeCvbBzAFeqM/5m2Y/v/7te7rhMJpZFkMoAgtJR1yaWR0DnjOmTnA==}
+    engines: {HBuilderX: ^3.8.7}
+    peerDependencies:
+      vue: '>=3.2.47'
 
   wrap-ansi@6.2.0:
     resolution: {integrity: sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA==}
@@ -21594,6 +21615,10 @@ snapshots:
   word-wrap@1.2.5: {}
 
   word@0.3.0: {}
+
+  wot-design-uni@1.14.0(vue@3.4.21(typescript@5.9.3)):
+    dependencies:
+      vue: 3.4.21(typescript@5.9.3)
 
   wrap-ansi@6.2.0:
     dependencies:

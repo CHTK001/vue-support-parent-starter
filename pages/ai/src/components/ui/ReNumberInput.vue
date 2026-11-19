@@ -111,7 +111,7 @@ const innerValue = computed<number | undefined>({
  * @param current 当前值
  * @param prev 变更前的值
  */
-function onChange(current: number | undefined, prev: number | undefined) {
+function onChange(current: number | undefined, prev?: number) {
   emit('change', current, prev)
 }
 

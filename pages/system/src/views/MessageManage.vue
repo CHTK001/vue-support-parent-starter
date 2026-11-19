@@ -9,7 +9,7 @@
  *
  * 短信 / 邮件模板的**唯一编辑入口就是本页的「消息模板」页签**。
  * 原先 pages/message 的 TemplateManage.vue 打同一组 `/v2/message/template/*` 接口却另做一套表单，
- * 已从其路由与菜单注册里下线；统一模板库（@account/web 的 TemplateView）是 provider 维度的只读视图 + 打印/预览。
+ * 已从其路由与菜单注册里下线；统一模板库（@pages/account 的 TemplateView）是 provider 维度的只读视图 + 打印/预览。
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref, watch, nextTick, defineAsyncComponent, getCurrentInstance } from "vue";
@@ -399,7 +399,7 @@ const tplQuery = ref<{
 });
 
 const tplTableRef = ref();
-const tplActionLoading = ref<number>(0);
+const tplActionLoading = ref<string>("");
 
 async function loadTemplatesPage({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   // 状态未选择时传空串（后端实体默认值为 1，不传会把禁用模板过滤掉）
@@ -550,7 +550,7 @@ async function handleTplDelete(row: Record<string, unknown>) {
   } catch (e) {
     message.error((e as Error)?.message ?? "删除失败");
   } finally {
-    tplActionLoading.value = 0;
+    tplActionLoading.value = "";
   }
 }
 

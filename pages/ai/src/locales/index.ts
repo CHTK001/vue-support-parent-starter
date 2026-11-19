@@ -58,7 +58,8 @@ export { i18n, STORAGE_KEY }
  * 在非组件上下文中使用翻译（stores / composables / utils）
  */
 export function t(key: string, named?: Record<string, unknown>): string {
-  return i18n.global.t(key, named as any)
+  // mergeMessages 深合并出的消息树类型展开过深（TS2589），断言成宽松签名调用
+  return (i18n.global as any).t(key, named as any)
 }
 
 /**

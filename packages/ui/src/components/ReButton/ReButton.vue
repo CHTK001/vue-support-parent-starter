@@ -13,6 +13,11 @@
  *   - showText：默认 undefined=自动（有插槽文字就显示，没有则仅图标+tooltip）；
  *                显式 false=强制仅图标+tooltip（文字只做悬浮提示）；显式 true=强制显示文字
  *   - iconSize：按钮宽高（默认 32px，仅 iconOnly 时生效）
+ *   - loading：与图标互斥 —— spinner 出现时图标必须让位。三种布局都按
+ *                「有 spinner 就没有图标」渲染；el 布局的两个分支用
+ *                `v-if="!loading"` 包住图标槽，否则 ElButton 的 loading 图标
+ *                和默认插槽里的图标会并排出现（2026-11-15 实测账号资产页
+ *                「校验凭据」按钮同时转了 spinner 和毛笔图标）。
  * 维护约束：模板必须保持单根，v-if/v-else-if 分支之间不得放顶层注释 ——
  *   dev 下编译器会保留注释并把条件链拆成多根 Fragment，$el 不再是按钮元素，
  *   外层 el-popconfirm / el-tooltip 便解析不到触发元素（确认框弹不出来）。
@@ -339,12 +344,14 @@ function onClick(e: MouseEvent): void {
         v-bind="$attrs"
         @click="onClick"
       >
-        <slot name="icon">
-          <ReIcon v-if="icon && !iconIsComponent" :name="iconName" :size="animIconSize" class="re-button__icon" />
-          <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
-            <component :is="icon" />
-          </ElIcon>
-        </slot>
+        <template v-if="!loading">
+          <slot name="icon">
+            <ReIcon v-if="icon && !iconIsComponent" :name="iconName" :size="animIconSize" class="re-button__icon" />
+            <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
+              <component :is="icon" />
+            </ElIcon>
+          </slot>
+        </template>
       </ElButton>
     </ElTooltip>
   </span>
@@ -366,12 +373,14 @@ function onClick(e: MouseEvent): void {
     v-bind="$attrs"
     @click="onClick"
   >
-    <slot name="icon">
-      <ReIcon v-if="icon && !iconIsComponent" :name="iconName" :size="animIconSize" class="re-button__icon" />
-      <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
-        <component :is="icon" />
-      </ElIcon>
-    </slot>
+    <template v-if="!loading">
+      <slot name="icon">
+        <ReIcon v-if="icon && !iconIsComponent" :name="iconName" :size="animIconSize" class="re-button__icon" />
+        <ElIcon v-else-if="iconIsComponent" class="re-button__icon">
+          <component :is="icon" />
+        </ElIcon>
+      </slot>
+    </template>
     <slot />
   </ElButton>
 </template>

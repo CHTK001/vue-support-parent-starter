@@ -14,11 +14,11 @@
  * <p>宿主（system / eduai）要复用 AI 业务页，应走 /menu、/embed 或具体组件路径。</p>
  */
 import { createApp } from "vue";
-// Element Plus 全局插件（所有 el-* 组件 / 指令 / ElMessage 的 DOM 与尺寸）：
-// 页面代码此前只导入了 element-plus 的 CSS 与个别组件（ElConfigProvider），
-// 从没有 app.use(ElementPlus) —— 导致全部 el-* 退化成 0×0 的未解析自定义元素，
-// 验收测试里点击它们永远报 "element is not visible"。
-import ElementPlus from "element-plus";
+// Element Plus 按需化：组件本体由 createVite 的 unplugin-vue-components +
+// ElementPlusResolver 在编译期按需导入（含组件样式）；这里只保留 v-loading 指令 ——
+// unplugin 不解析指令，必须显式注册。locale / size 由 SingleApp.vue 的
+// el-config-provider 统一提供，不再 app.use(ElementPlus)。
+import { ElLoadingDirective } from "element-plus";
 
 import App from "./App.vue";
 // 路由与守卫统一由 vue 框架提供（@repo/core 的 createAppRouter /
@@ -36,7 +36,55 @@ import { useAuthStore } from "./stores/auth";
 import { sessionHash, isSessionHash } from "./utils/sessionHash";
 import NProgress from "nprogress";
 
-import "element-plus/dist/index.css";
+// 反馈类命令式 API（ElMessage / ElMessageBox / ElNotification / ElLoading.service）
+// 不经模板编译，unplugin-vue-components 无法注入其样式 → 必须显式引入（会级联带上 base 变量）。
+import "element-plus/es/components/message/style/css";
+import "element-plus/es/components/message-box/style/css";
+import "element-plus/es/components/notification/style/css";
+import "element-plus/es/components/loading/style/css";
+// ai 设计层（refactor.css / kb-refactor.css / svc-refactor.css /
+// focus-reset.css）在入口覆盖了下列 EP 组件的类名与局部变量。这些组件的按需样式若只被
+// 懒加载页面引用，其 CSS 会落在懒加载 chunk，运行时插入 <head> 的顺序晚于本文件后面的
+// 覆盖层，同权重选择器会被 EP 基线反超（主题色 / 圆角 / 表格 / 弹层等失效）。因此在
+// 入口先统一引入，固化「EP 基线在前、ai 覆盖在后」的层叠顺序。
+// （textarea 样式并入 input，无需单列；.el-popper 基线随 tooltip/popover 的 popper 链带入。）
+import "element-plus/es/components/alert/style/css";
+import "element-plus/es/components/avatar/style/css";
+import "element-plus/es/components/badge/style/css";
+import "element-plus/es/components/breadcrumb/style/css";
+import "element-plus/es/components/button/style/css";
+import "element-plus/es/components/card/style/css";
+import "element-plus/es/components/cascader/style/css";
+import "element-plus/es/components/checkbox/style/css";
+import "element-plus/es/components/collapse/style/css";
+import "element-plus/es/components/color-picker/style/css";
+import "element-plus/es/components/date-picker/style/css";
+import "element-plus/es/components/descriptions/style/css";
+import "element-plus/es/components/dialog/style/css";
+import "element-plus/es/components/divider/style/css";
+import "element-plus/es/components/drawer/style/css";
+import "element-plus/es/components/dropdown/style/css";
+import "element-plus/es/components/empty/style/css";
+import "element-plus/es/components/form/style/css";
+import "element-plus/es/components/form-item/style/css";
+import "element-plus/es/components/icon/style/css";
+import "element-plus/es/components/input/style/css";
+import "element-plus/es/components/input-number/style/css";
+import "element-plus/es/components/link/style/css";
+import "element-plus/es/components/menu/style/css";
+import "element-plus/es/components/pagination/style/css";
+import "element-plus/es/components/popover/style/css";
+import "element-plus/es/components/progress/style/css";
+import "element-plus/es/components/radio/style/css";
+import "element-plus/es/components/select/style/css";
+import "element-plus/es/components/skeleton/style/css";
+import "element-plus/es/components/slider/style/css";
+import "element-plus/es/components/switch/style/css";
+import "element-plus/es/components/table/style/css";
+import "element-plus/es/components/tabs/style/css";
+import "element-plus/es/components/tag/style/css";
+import "element-plus/es/components/tooltip/style/css";
+import "element-plus/es/components/tree/style/css";
 import "element-plus/theme-chalk/dark/css-vars.css";
 // koi 登录页（packages/theme）用 Uno 原子类；虚拟样式必须早于 tailwind.css，
 // 让同名工具类与 reset 由 Tailwind 决定（本应用主体仍是 Tailwind v4）。
@@ -479,9 +527,9 @@ async function bootstrapAndMount() {
   app.use(pinia);
   app.use(router);
   app.use(i18n);
-  // 注册 Element Plus 全局插件：没有它，所有 <el-* /> 渲染成 0×0 的未解析自定义元素
-  // （<el-dialog /> 类直引的组件除外，如 ReDialog 直引 ElDialog）。
-  app.use(ElementPlus);
+  // v-loading 指令显式注册：unplugin-vue-components 只解析 <el-*> 组件、不解析指令，
+  // 漏注册时模板里的 v-loading 会被 Vue 当成未解析指令跳过（不报错但无加载遮罩）。
+  app.directive("loading", ElLoadingDirective);
   // 注册 vue 体系权限指令（v-admin / v-superadmin / v-role / v-perm / v-menu）。
   // 不注册时模板里的 v-admin 会被 Vue 当成「未解析指令」直接跳过（控制台
   // Failed to resolve directive: admin），元素对所有人可见 —— GlobalSidebar 的

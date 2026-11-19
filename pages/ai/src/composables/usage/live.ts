@@ -33,7 +33,7 @@ export function useUsageLive(getTimeParams: () => TimeParams) {
       case "connecting": return "实时连接中…";
       case "live": return "实时";
       case "paused": return "已暂停";
-      default: return "连接失败，已退回定时刷新";
+      default: return "连接失败，点刷新重试";
     }
   });
 

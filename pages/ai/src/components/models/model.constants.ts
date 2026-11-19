@@ -209,6 +209,17 @@ export const PROVIDER_SOURCE_LABEL: Record<string, string> = {
   local: '本地',
   cloud: '云 API',
 }
+/**
+ * 供应商模板的端点变体：同一家厂商、不同 baseUrl（如火山方舟的标准端点
+ * 与 Coding Plan 编程套餐端点）。变体只覆盖差异字段，其余随主模板。
+ */
+export interface ProviderTemplateVariant {
+  id: string
+  name: string
+  description?: string
+  defaultApiUrl: string
+}
+
 export interface ProviderTemplate {
   id: string
   name: string
@@ -225,6 +236,8 @@ export interface ProviderTemplate {
   defaultAuthHeader?: string
   /** 认证值前缀（defaultAuthMode='custom' 时生效） */
   defaultAuthPrefix?: string
+  /** 同一家厂商的其它接入端点：新增渠道表单里切换，选中后回填变体地址 */
+  variants?: ProviderTemplateVariant[]
 }
 
 export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
@@ -277,10 +290,11 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'stepfun', name: '阶跃星辰', description: '阶跃星辰 Step 系列模型', protocol: 'openai', defaultApiUrl: 'https://api.stepfun.com/v1', keywords: ['step2', 'steplinear'] },
   { id: 'qianfan', name: '百度千帆', description: '百度智能云大模型平台', protocol: 'openai', defaultApiUrl: 'https://qianfan.baidubce.com/v2', keywords: ['ernie', '文心', 'wenxin', 'baidu'] },
   { id: 'baidu', name: '百度智能云', description: '百度智能云文心/千帆模型', protocol: 'openai', defaultApiUrl: 'https://qianfan.baidubce.com/v2', keywords: ['ernie', 'wenxin', 'baidu'] },
-  { id: 'sensenova', name: 'SenseNova 商汤', description: '商汤科技大模型平台', protocol: 'openai', defaultApiUrl: 'https://token.sensenova.cn/v1', keywords: ['sensenova', 'sensetime'] },
+  { id: 'sensenova', name: '商汤日日新 SenseNova', description: '商汤科技日日新（SenseNova）大模型平台，OpenAI 兼容接口', protocol: 'openai', defaultApiUrl: 'https://token.sensenova.cn/v1', keywords: ['sensenova', 'sensetime', '日日新', '商汤', 'ririxin'] },
   { id: 'moss', name: 'Moss', description: 'Moss 开放平台（mosi.cn），语音合成 / 图像生成', protocol: 'openai', defaultApiUrl: 'https://api.mosi.cn/v1', keywords: ['moss', 'mosi', 'moss-tts'] },
-  { id: 'volcengine', name: '火山引擎', description: '字节跳动豆包 Doubao 模型', protocol: 'openai', defaultApiUrl: 'https://ark.cn-beijing.volces.com/api/v3', keywords: ['doubao', 'ark', '豆包'] },
-  { id: 'volcengine', name: '火山方舟', description: '火山方舟大模型服务平台（豆包）', protocol: 'openai', defaultApiUrl: 'https://ark.cn-beijing.volces.com/api/v3', keywords: ['doubao', '豆包', 'ep-'] },
+  // 火山引擎（豆包 / 火山方舟）合并为一个入口：doubao 是本家别名（keywords 命中），
+  // Coding Plan 编程套餐端点（/api/coding/v3）是本家变体，新增渠道表单里切换。
+  { id: 'volcengine', name: '火山引擎', description: '字节跳动豆包 Doubao 模型（火山方舟）', protocol: 'openai', defaultApiUrl: 'https://ark.cn-beijing.volces.com/api/v3', keywords: ['doubao', 'ark', '豆包', 'ep-', 'volcengine-coding-plan', 'coding', 'plan'], variants: [{ id: 'volcengine-coding-plan', name: 'Coding Plan 端点', description: '火山方舟编程套餐端点（/api/coding/v3）', defaultApiUrl: 'https://ark.cn-beijing.volces.com/api/coding/v3' }] },
   { id: 'spark', name: '讯飞星火', description: '科大讯飞星火大模型', protocol: 'openai', defaultApiUrl: 'https://spark-api.cn-huabei-1.xf-yun.com/v1', keywords: ['spark', 'xfyun', '讯飞'] },
   { id: 'flytek', name: '科大讯飞', description: '讯飞开放平台星火系列', protocol: 'openai', defaultApiUrl: 'https://spark-api.cn-huabei-1.xf-yun.com/v1', keywords: ['spark', 'xfyun'] },
   { id: 'baidu-wenxin', name: '文心一言', description: '百度文心一言大模型', protocol: 'openai', defaultApiUrl: 'https://qianfan.baidubce.com/v2', keywords: ['wenxin', 'ernie', 'baidu'] },
@@ -288,11 +302,35 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'hunyuan', name: '腾讯混元', description: '腾讯混元 Hunyuan 大模型', protocol: 'openai', defaultApiUrl: 'https://api.hunyuan.cloud.tencent.com/v1', keywords: ['hunyuan'] },
   { id: 'modelscope', name: '魔搭 ModelScope', description: '阿里达摩院模型社区，免费使用多种开源模型', protocol: 'openai', defaultApiUrl: 'https://api-inference.modelscope.cn/v1', keywords: ['damo', '魔搭'] },
   { id: '360ai', name: '360 智脑', description: '360 安全智脑大模型', protocol: 'openai', defaultApiUrl: 'https://api.360.cn/v1', keywords: ['360', 'zhibo'] },
-  { id: 'doubao', name: '豆包', description: '字节跳动豆包大模型（火山引擎）', protocol: 'openai', defaultApiUrl: 'https://ark.cn-beijing.volces.com/api/v3', keywords: ['doubao', '豆包', 'volcengine'] },
-  { id: 'shusheng', name: '书生', description: '书生大模型平台（好未来 InternAgent）', protocol: 'openai', defaultApiUrl: 'https://discovery-api.intern-ai.org.cn/v1', keywords: ['shusheng', '书生'] },
+  { id: 'shusheng', name: '书生·端砚', description: '上海人工智能实验室书生（InternLM）大模型平台', protocol: 'openai', defaultApiUrl: 'https://discovery-api.intern-ai.org.cn/v1', keywords: ['shusheng', '书生', 'internlm', '浦语', '上海人工智能实验室'] },
+  // 蚂蚁百灵（Ant Ling）：蚂蚁集团 Ling / Ming 两个模型家族的官方入口。
+  // 地址与控制台取自官方文档 developer.ant-ling.com（OpenAI 兼容，Bearer 鉴权）。
+  { id: 'bailing', name: '蚂蚁百灵', description: '蚂蚁集团 Ling / Ming 系列大模型官方 API，OpenAI 兼容接口', protocol: 'openai', defaultApiUrl: 'https://api.ant-ling.com/v1', keywords: ['bailing', '百灵', '蚂蚁百灵', 'ant-ling', 'antling', 'ling', 'ming', 'inclusionai'] },
+
+  // ===== 国产套餐 / 区域站（地址取自 models.dev 的官方端点，不猜值） =====
+  { id: 'alibaba-coding-plan-cn', name: '阿里云百炼 Coding Plan（国内）', description: '阿里云百炼编程套餐端点（国内站），OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://coding.dashscope.aliyuncs.com/v1', keywords: ['alibaba', 'bailian', '百炼', 'coding', 'plan', 'qwen'] },
+  { id: 'alibaba-coding-plan', name: '阿里云百炼 Coding Plan（国际）', description: '阿里云百炼编程套餐端点（国际站），OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://coding-intl.dashscope.aliyuncs.com/v1', keywords: ['alibaba', 'bailian', '百炼', 'coding', 'plan'] },
+  { id: 'alibaba-token-plan-cn', name: '阿里云百炼 Token 套餐（国内）', description: '阿里云百炼 Token 套餐端点（国内站），OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1', keywords: ['alibaba', 'bailian', '百炼', 'token', 'plan'] },
+  { id: 'alibaba-token-plan', name: '阿里云百炼 Token 套餐（国际）', description: '阿里云百炼 Token 套餐端点（国际站），OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1', keywords: ['alibaba', 'bailian', '百炼', 'token', 'plan'] },
+  // Qwen Cloud（百炼国际站）：与国内 dashscope 是同一家、不同站点，地址取自 models.dev 的 alibaba
+  { id: 'alibaba', name: 'Qwen Cloud（百炼国际站）', description: '阿里云百炼国际站（DashScope International），Qwen 系列模型，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', keywords: ['qwen', 'dashscope', 'alibaba', 'intl', '百炼', '国际站'] },
+  { id: 'zhipuai-coding-plan', name: '智谱 Coding Plan', description: '智谱 GLM 编程套餐端点（bigmodel.cn）', protocol: 'openai', defaultApiUrl: 'https://open.bigmodel.cn/api/coding/paas/v4', keywords: ['zhipu', 'glm', '智谱', 'coding', 'plan'] },
+  { id: 'moonshotai', name: '月之暗面（国际站）', description: 'Moonshot AI 国际站 Kimi 模型 API', protocol: 'openai', defaultApiUrl: 'https://api.moonshot.ai/v1', keywords: ['moonshot', 'kimi', '月之暗面'] },
+  { id: 'kimi-code-plan-cn', name: 'Kimi 编程套餐（kimi.com）', description: 'Kimi 编程套餐端点（kimi.com 国内站）', protocol: 'openai', defaultApiUrl: 'https://api.kimi.com/coding/v1', keywords: ['kimi', 'moonshot', 'coding', 'plan'] },
+  { id: 'kimi-code-plan-global', name: 'Kimi 编程套餐（kimi.ai）', description: 'Kimi 编程套餐端点（kimi.ai 国际站）', protocol: 'openai', defaultApiUrl: 'https://api.kimi.ai/coding/v1', keywords: ['kimi', 'moonshot', 'coding', 'plan'] },
+  { id: 'stepfun-step-plan', name: '阶跃星辰 Step Plan（国内）', description: '阶跃星辰 Step 编程套餐端点（国内站）', protocol: 'openai', defaultApiUrl: 'https://api.stepfun.com/step_plan/v1', keywords: ['stepfun', 'step', 'plan', '阶跃'] },
+  { id: 'stepfun-ai', name: '阶跃星辰（国际站）', description: '阶跃星辰 Step 系列模型国际站 API', protocol: 'openai', defaultApiUrl: 'https://api.stepfun.ai/v1', keywords: ['stepfun', 'step', '阶跃'] },
+  { id: 'stepfun-ai-step-plan', name: '阶跃星辰 Step Plan（国际）', description: '阶跃星辰 Step 编程套餐端点（国际站）', protocol: 'openai', defaultApiUrl: 'https://api.stepfun.ai/step_plan/v1', keywords: ['stepfun', 'step', 'plan'] },
+  { id: 'drun', name: 'D.Run 中国', description: 'D.Run 算力平台模型服务（国内站），OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://chat.d.run/v1', keywords: ['drun', 'd.run'] },
+  { id: 'kuae-cloud-coding-plan', name: '摩尔线程 KUAE Coding Plan', description: '摩尔线程 KUAE 云编程套餐端点，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://coding-plan-endpoint.kuaecloud.net/v1', keywords: ['kuae', 'mthreads', '摩尔线程', 'coding', 'plan'] },
+  { id: 'moark', name: 'Moark', description: 'Moark 开放平台（moark.com）文本生成接口', protocol: 'openai', defaultApiUrl: 'https://moark.com/v1', keywords: ['moark'] },
+  { id: 'qihang-ai', name: '启航 QiHang', description: '启航 AI 网关（qhaigc.net），OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://api.qhaigc.net/v1', keywords: ['qihang', '启航', 'qhaigc'] },
+
 
   // ===== 云厂商 =====
   { id: 'azure', name: 'Azure OpenAI', description: '微软 Azure OpenAI 服务', protocol: 'openai', defaultApiUrl: 'https://YOUR-RESOURCE.openai.azure.com/openai/v1', keywords: ['microsoft', 'azure-openai'] },
+  // 华为云 MAAS：ModelArts Studio 的模型即服务，官方 OpenAI 兼容入口（地址取自 models.dev）
+  { id: 'huawei-maas', name: '华为云 MAAS', description: '华为云 ModelArts Studio 模型即服务，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://api.modelarts-maas.com/openai/v1', keywords: ['huawei', '华为云', 'modelarts', 'maas', '盘古'] },
   { id: 'aws-bedrock', name: 'AWS Bedrock', description: '亚马逊 Bedrock 模型平台', protocol: 'openai', defaultApiUrl: 'https://bedrock-runtime.us-east-1.amazonaws.com', keywords: ['amazon', 'amazon', 'claude'] },
 
   // ===== 本地推理 =====
@@ -303,178 +341,102 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   // 落库时 platform 由名称反推成 onnx，后端统一把 id 也落成 'onnx'。
   { id: 'onnx', name: 'ONNX 本地推理', description: '本地 ONNX 模型（OCR / 人脸 / 向量 / 版面分析），模型文件放在服务器上', protocol: 'openai', keywords: ['onnx', '本地推理', '离线', 'ocr', 'local'] },
 
-  // ===== NewAPI =====
-  { id: 'newapi', name: 'NewAPI', description: '国产 API 聚合平台，支持 GPT、Claude、DeepSeek 等数十个模型', protocol: 'openai', defaultApiUrl: 'https://newapi.io', keywords: ['newapi', 'newapi.io', 'apihub'] },
+  // ===== 自建网关 / 中转 =====
+  // 这两类都是「自建部署」：没有统一的上游地址，地址填自己的部署域名，Key 用该实例签发的令牌。
+  { id: 'newapi', name: 'New API', description: '开源自建 AI 网关（One API 增强版），地址填自己的部署域名', protocol: 'openai', keywords: ['new-api', 'newapi', 'one-api', '网关', '聚合', '中转'] },
+  { id: 'sub2api', name: 'Sub2API', description: '开源自建订阅转 API 中转，Claude/OpenAI/Gemini/Grok 订阅统一接入', protocol: 'openai', keywords: ['sub2api', 'sub-api', '订阅转api', '拼车', '中转'] },
 
-  // ===== 自定义 =====
   // ===== 小红书 / Dots Studio =====
   // Dots Studio 只认 api-key 请求头，不认标准的 Authorization: Bearer
   { id: 'dots', name: 'Dots Studio', description: '小红书 Dots Studio 点点大模型', protocol: 'openai', defaultApiUrl: 'https://note3-prev-api.askdiandian.com/v1', keywords: ['dots', '点点', 'rednote'], defaultAuthMode: 'api_key_header' },
 
-  // ===== Models.dev 扩展厂商（185 家，键与 sys_ai_provider_metric 一致） =====
-  { id: '302ai', name: '302.AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.302.ai/v1', keywords: ['302', 'ai'] },
-  { id: 'abacus', name: 'Abacus', description: '', protocol: 'openai', defaultApiUrl: 'https://routellm.abacus.ai/v1', keywords: ['abacus'] },
-  { id: 'abliteration-ai', name: 'abliteration.ai', description: '', protocol: 'openai', defaultApiUrl: 'https://api.abliteration.ai/v1', keywords: ['abliteration', 'ai'] },
-  { id: 'above', name: 'above.dev', description: '', protocol: 'openai', defaultApiUrl: 'https://api.above.dev/v1', keywords: ['above', 'dev'] },
-  { id: 'agentrouter', name: 'AgentRouter', description: '', protocol: 'openai', defaultApiUrl: 'https://agentrouter.org/v1', keywords: ['agentrouter'] },
-  { id: 'ai-router', name: 'AI-ROUTER', description: '', protocol: 'openai', defaultApiUrl: 'https://api.ai-router.dev/v1', keywords: ['ai', 'router'] },
-  { id: 'ai21', name: 'AI21 Labs', description: '', protocol: 'openai', defaultApiUrl: 'https://api.ai21.com/studio/v1', keywords: ['ai21', 'labs'] },
-  { id: 'aiand', name: 'ai&', description: '', protocol: 'openai', defaultApiUrl: 'https://api.aiand.com/v1', keywords: ['ai'] },
-  { id: 'aimlapi', name: 'AI/ML API', description: '', protocol: 'openai', defaultApiUrl: 'https://api.aimlapi.com/v1', keywords: ['ai', 'ml', 'api'] },
-  { id: 'ainetcafe', name: 'ainetcafe', description: '', protocol: 'openai', defaultApiUrl: 'https://microquickjs.com/v1', keywords: ['ainetcafe'] },
-  { id: 'aixy', name: 'Aixy', description: '', protocol: 'openai', defaultApiUrl: 'https://api.aixy-gateway.com/v1', keywords: ['aixy'] },
-  { id: 'aki-io', name: 'AKI.IO', description: '', protocol: 'openai', defaultApiUrl: 'https://aki.io/v1', keywords: ['aki', 'io'] },
-  { id: 'ambient', name: 'Ambient', description: '', protocol: 'openai', defaultApiUrl: 'https://api.ambient.xyz/v1', keywords: ['ambient'] },
-  { id: 'amd', name: 'AMD', description: '', protocol: 'openai', defaultApiUrl: 'https://developer.amd.com.cn/radeon/api/v1', keywords: ['amd'] },
-  { id: 'anyapi', name: 'AnyAPI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.anyapi.ai/v1', keywords: ['anyapi'] },
-  { id: 'arcee', name: 'Arcee', description: '', protocol: 'openai', defaultApiUrl: 'https://api.arcee.ai/api/v1', keywords: ['arcee'] },
-  { id: 'auriko', name: 'Auriko', description: '', protocol: 'openai', defaultApiUrl: 'https://api.auriko.ai/v1', keywords: ['auriko'] },
-  { id: 'baseten', name: 'Baseten', description: '', protocol: 'openai', defaultApiUrl: 'https://inference.baseten.co/v1', keywords: ['baseten'] },
-  { id: 'bee', name: 'Bee by HEOSSI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.bee.heossi.com/bee', keywords: ['bee', 'by', 'heossi'] },
-  { id: 'berget', name: 'Berget.AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.berget.ai/v1', keywords: ['berget', 'ai'] },
-  { id: 'blueclaw', name: 'Blue Claw', description: '', protocol: 'openai', defaultApiUrl: 'https://openai.blueclaw.network/v1', keywords: ['blue', 'claw'] },
-  { id: 'bothub', name: 'Bothub', description: '', protocol: 'openai', defaultApiUrl: 'https://openai.bothub.ru/v1', keywords: ['bothub'] },
-  { id: 'boundless', name: 'Boundless', description: '', protocol: 'openai', defaultApiUrl: 'https://api.inference.boundless.network/v1', keywords: ['boundless'] },
-  { id: 'chutes', name: 'Chutes', description: '', protocol: 'openai', defaultApiUrl: 'https://llm.chutes.ai/v1', keywords: ['chutes'] },
-  { id: 'clarifai', name: 'Clarifai', description: '', protocol: 'openai', defaultApiUrl: 'https://api.clarifai.com/v2/ext/openai/v1', keywords: ['clarifai'] },
-  { id: 'claudinio', name: 'Claudinio', description: '', protocol: 'openai', defaultApiUrl: 'https://api.claudin.io/v1', keywords: ['claudinio'] },
-  { id: 'cline', name: 'ClinePass', description: '', protocol: 'openai', defaultApiUrl: 'https://api.cline.bot/api/v1', keywords: ['clinepass'] },
-  { id: 'cloudferro-sherlock', name: 'CloudFerro Sherlock', description: '', protocol: 'openai', defaultApiUrl: 'https://api-sherlock.cloudferro.com/openai/v1/', keywords: ['cloudferro', 'sherlock'] },
-  { id: 'coralbricks', name: 'CoralBricks', description: '', protocol: 'openai', defaultApiUrl: 'https://inference.coralbricks.ai/v1', keywords: ['coralbricks'] },
-  { id: 'cortecs', name: 'Cortecs', description: '', protocol: 'openai', defaultApiUrl: 'https://api.cortecs.ai/v1', keywords: ['cortecs'] },
-  { id: 'crossmodel', name: 'CrossModel', description: '', protocol: 'openai', defaultApiUrl: 'https://api.crossmodel.ai/v1', keywords: ['crossmodel'] },
-  { id: 'crusoe', name: 'Crusoe', description: '', protocol: 'openai', defaultApiUrl: 'https://api.inference.crusoecloud.com/v1', keywords: ['crusoe'] },
-  { id: 'daoxe', name: 'DaoXE', description: '', protocol: 'openai', defaultApiUrl: 'https://daoxe.com/v1', keywords: ['daoxe'] },
-  { id: 'digitalocean', name: 'DigitalOcean', description: '', protocol: 'openai', defaultApiUrl: 'https://inference.do-ai.run/v1', keywords: ['digitalocean'] },
-  { id: 'dinference', name: 'DInference', description: '', protocol: 'openai', defaultApiUrl: 'https://api.dinference.com/v1', keywords: ['dinference'] },
-  { id: 'drun', name: 'D.Run (China)', description: '', protocol: 'openai', defaultApiUrl: 'https://chat.d.run/v1', keywords: ['d', 'run', 'china'] },
-  { id: 'ebcloud', name: 'EBCloud', description: '', protocol: 'openai', defaultApiUrl: 'https://maas-api.ebcloud.com/v1', keywords: ['ebcloud'] },
-  { id: 'echo', name: 'Echo', description: '', protocol: 'openai', defaultApiUrl: 'https://echo.tracerml.ai/v1', keywords: ['echo'] },
-  { id: 'edenai', name: 'Eden AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.edenai.run/v3', keywords: ['eden', 'ai'] },
-  { id: 'empiriolabs', name: 'EmpirioLabs AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.empiriolabs.ai/v1', keywords: ['empiriolabs', 'ai'] },
-  { id: 'engy', name: 'engy', description: '', protocol: 'openai', defaultApiUrl: 'https://api.engy.ai/v1', keywords: ['engy'] },
-  { id: 'evroc', name: 'evroc', description: '', protocol: 'openai', defaultApiUrl: 'https://models.think.evroc.com/v1', keywords: ['evroc'] },
-  { id: 'fastrouter', name: 'FastRouter', description: '', protocol: 'openai', defaultApiUrl: 'https://go.fastrouter.ai/api/v1', keywords: ['fastrouter'] },
-  { id: 'fireworks-ai', name: 'Fireworks AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.fireworks.ai/inference/v1/', keywords: ['fireworks', 'ai'] },
-  { id: 'freemodel', name: 'FreeModel', description: '', protocol: 'openai', defaultApiUrl: 'https://cc.freemodel.dev/v1', keywords: ['freemodel'] },
-  { id: 'friendli', name: 'Friendli', description: '', protocol: 'openai', defaultApiUrl: 'https://api.friendli.ai/serverless/v1', keywords: ['friendli'] },
-  { id: 'frogbot', name: 'FrogBot', description: '', protocol: 'openai', defaultApiUrl: 'https://app.frogbot.ai/api/v1', keywords: ['frogbot'] },
-  { id: 'github-copilot', name: 'GitHub Copilot', description: '', protocol: 'openai', defaultApiUrl: 'https://api.githubcopilot.com', keywords: ['github', 'copilot'] },
-  { id: 'gmicloud', name: 'GMI Cloud', description: '', protocol: 'openai', defaultApiUrl: 'https://api.gmi-serving.com/v1', keywords: ['gmi', 'cloud'] },
-  { id: 'greenpt', name: 'GreenPT', description: '', protocol: 'openai', defaultApiUrl: 'https://api.greenpt.ai/v1', keywords: ['greenpt'] },
-  { id: 'helicone', name: 'Helicone', description: '', protocol: 'openai', defaultApiUrl: 'https://ai-gateway.helicone.ai/v1', keywords: ['helicone'] },
-  { id: 'hetzner', name: 'Hetzner', description: '', protocol: 'openai', defaultApiUrl: 'https://inference.hetzner.com/api/v1', keywords: ['hetzner'] },
-  { id: 'hpc-ai', name: 'HPC-AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.hpc-ai.com/inference/v1', keywords: ['hpc', 'ai'] },
-  { id: 'hyper', name: 'Charm Hyper', description: '', protocol: 'openai', defaultApiUrl: 'https://hyper.charm.land/v1', keywords: ['charm', 'hyper'] },
-  { id: 'iflowcn', name: 'iFlow', description: '', protocol: 'openai', defaultApiUrl: 'https://apis.iflow.cn/v1', keywords: ['iflow'] },
-  { id: 'impossibl', name: 'Impossibl', description: '', protocol: 'openai', defaultApiUrl: 'https://api.impossibl.com/v1', keywords: ['impossibl'] },
-  { id: 'inception', name: 'Inception', description: '', protocol: 'openai', defaultApiUrl: 'https://api.inceptionlabs.ai/v1/', keywords: ['inception'] },
-  { id: 'inceptron', name: 'Inceptron', description: '', protocol: 'openai', defaultApiUrl: 'https://api.inceptron.io/v1', keywords: ['inceptron'] },
-  { id: 'inco', name: 'Inco', description: '', protocol: 'openai', defaultApiUrl: 'https://api.inco.ai/v1', keywords: ['inco'] },
-  { id: 'infer', name: 'Infer by Flow7', description: '', protocol: 'openai', defaultApiUrl: 'https://infer.flow7.org/v1', keywords: ['infer', 'by', 'flow7'] },
-  { id: 'inference', name: 'Inference', description: '', protocol: 'openai', defaultApiUrl: 'https://inference.net/v1', keywords: ['inference'] },
-  { id: 'inferx', name: 'InferX', description: '', protocol: 'openai', defaultApiUrl: 'https://model.inferx.net/endpoints/v1', keywords: ['inferx'] },
-  { id: 'io-net', name: 'IO.NET', description: '', protocol: 'openai', defaultApiUrl: 'https://api.intelligence.io.solutions/api/v1', keywords: ['io', 'net'] },
-  { id: 'iteracompute', name: 'IteraCompute', description: '', protocol: 'openai', defaultApiUrl: 'https://api.iteracompute.com/v1', keywords: ['iteracompute'] },
-  { id: 'jalapeno', name: 'Jalapeno Cloud', description: '', protocol: 'openai', defaultApiUrl: 'https://api.jalapeno-cloud.ai/v1', keywords: ['jalapeno', 'cloud'] },
-  { id: 'jiekou', name: 'Jiekou.AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.jiekou.ai/openai', keywords: ['jiekou', 'ai'] },
-  { id: 'kenari', name: 'Kenari', description: '', protocol: 'openai', defaultApiUrl: 'https://kenari.id/v1', keywords: ['kenari'] },
-  { id: 'kilo', name: 'Kilo Gateway', description: '', protocol: 'openai', defaultApiUrl: 'https://api.kilo.ai/api/gateway', keywords: ['kilo', 'gateway'] },
-  { id: 'klokintegration', name: 'klokintegration.se', description: '', protocol: 'openai', defaultApiUrl: 'https://api-gw.klok.ipaas.se/proxy/kloker-key/v1', keywords: ['klokintegration', 'se'] },
-  { id: 'kosmik', name: 'Kosmik Compute', description: '', protocol: 'openai', defaultApiUrl: 'https://api.koscompute.com/v1', keywords: ['kosmik', 'compute'] },
-  { id: 'kuae-cloud-coding-plan', name: 'KUAE Cloud Coding Plan', description: '', protocol: 'openai', defaultApiUrl: 'https://coding-plan-endpoint.kuaecloud.net/v1', keywords: ['kuae', 'cloud', 'coding', 'plan'] },
-  { id: 'lilac', name: 'Lilac', description: '', protocol: 'openai', defaultApiUrl: 'https://api.getlilac.com/v1', keywords: ['lilac'] },
-  { id: 'liquid', name: 'Liquid Inference', description: '', protocol: 'openai', defaultApiUrl: 'https://router.inference.ai.exchange/v1', keywords: ['liquid', 'inference'] },
-  { id: 'llama', name: 'Llama', description: '', protocol: 'openai', defaultApiUrl: 'https://api.llama.com/compat/v1/', keywords: ['llama'] },
-  { id: 'llmgateway', name: 'DevPass (LLM Gateway)', description: '', protocol: 'openai', defaultApiUrl: 'https://api.llmgateway.io/v1', keywords: ['devpass', 'llm', 'gateway'] },
-  { id: 'llmgateway-providers', name: 'LLM Gateway', description: '', protocol: 'openai', defaultApiUrl: 'https://api.llmgateway.io/v1', keywords: ['llm', 'gateway'] },
-  { id: 'llmtech', name: 'LLM Tech', description: '', protocol: 'openai', defaultApiUrl: 'https://api.llmtech.eu/v1', keywords: ['llm', 'tech'] },
-  { id: 'llmtr', name: 'LLMTR', description: '', protocol: 'openai', defaultApiUrl: 'https://llmtr.com/v1', keywords: ['llmtr'] },
-  { id: 'longcat', name: 'LongCat', description: '', protocol: 'openai', defaultApiUrl: 'https://api.longcat.chat/openai', keywords: ['longcat'] },
-  { id: 'lowrouter', name: 'LowRouter', description: '', protocol: 'openai', defaultApiUrl: 'https://api.lowrouter.ai/v1', keywords: ['lowrouter'] },
-  { id: 'lucidquery', name: 'LucidQuery', description: '', protocol: 'openai', defaultApiUrl: 'https://api.lucidquery.com/v1', keywords: ['lucidquery'] },
-  { id: 'meganova', name: 'Meganova', description: '', protocol: 'openai', defaultApiUrl: 'https://api.meganova.ai/v1', keywords: ['meganova'] },
-  { id: 'melious', name: 'Melious', description: '', protocol: 'openai', defaultApiUrl: 'https://api.melious.ai/v1', keywords: ['melious'] },
-  { id: 'merge-gateway', name: 'Merge Gateway', description: '', protocol: 'openai', defaultApiUrl: 'https://api-gateway.merge.dev/v1/ai-sdk', keywords: ['merge', 'gateway'] },
-  { id: 'meta', name: 'Meta', description: '', protocol: 'openai', defaultApiUrl: 'https://api.meta.ai/v1', keywords: ['meta'] },
-  { id: 'mixlayer', name: 'Mixlayer', description: '', protocol: 'openai', defaultApiUrl: 'https://models.mixlayer.ai/v1', keywords: ['mixlayer'] },
-  { id: 'moark', name: 'Moark', description: '', protocol: 'openai', defaultApiUrl: 'https://moark.com/v1', keywords: ['moark'] },
-  { id: 'modal', name: 'Modal', description: '', protocol: 'openai', defaultApiUrl: 'https://inference.us-west.modal.direct/v1', keywords: ['modal'] },
-  { id: 'model-oracle-ai', name: 'Model Oracle AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.modeloracle.com/api/v1', keywords: ['model', 'oracle', 'ai'] },
-  { id: 'modelis', name: 'Modelis', description: '', protocol: 'openai', defaultApiUrl: 'https://modelishub.com/v1', keywords: ['modelis'] },
-  { id: 'morph', name: 'Morph', description: '', protocol: 'openai', defaultApiUrl: 'https://api.morphllm.com/v1', keywords: ['morph'] },
-  { id: 'nan', name: 'NaN', description: '', protocol: 'openai', defaultApiUrl: 'https://api.nan.builders/v1', keywords: ['nan'] },
-  { id: 'nano-gpt', name: 'NanoGPT', description: '', protocol: 'openai', defaultApiUrl: 'https://nano-gpt.com/api/v1', keywords: ['nanogpt'] },
-  { id: 'nearai', name: 'NEAR AI Cloud', description: '', protocol: 'openai', defaultApiUrl: 'https://cloud-api.near.ai/v1', keywords: ['near', 'ai', 'cloud'] },
-  { id: 'nebius', name: 'Nebius Token Factory', description: '', protocol: 'openai', defaultApiUrl: 'https://api.tokenfactory.nebius.com/v1', keywords: ['nebius', 'token', 'factory'] },
-  { id: 'neosmith', name: 'NeoSmith', description: '', protocol: 'openai', defaultApiUrl: 'https://router.neosmith.ai/v1', keywords: ['neosmith'] },
-  { id: 'neuralwatt', name: 'Neuralwatt', description: '', protocol: 'openai', defaultApiUrl: 'https://api.neuralwatt.com/v1', keywords: ['neuralwatt'] },
-  { id: 'novita-ai', name: 'Novita AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.novita.ai/openai', keywords: ['novita', 'ai'] },
-  { id: 'oci', name: 'OCI Generative AI', description: '', protocol: 'openai', defaultApiUrl: 'https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/openai/v1', keywords: ['oci', 'generative', 'ai'] },
-  { id: 'ofox', name: 'Ofox', description: '', protocol: 'openai', defaultApiUrl: 'https://api.ofox.ai/v1', keywords: ['ofox'] },
-  { id: 'ollama-cloud', name: 'Ollama Cloud', description: '', protocol: 'openai', defaultApiUrl: 'https://ollama.com/v1', keywords: ['ollama', 'cloud'] },
-  { id: 'opencode-go', name: 'OpenCode Go', description: '', protocol: 'openai', defaultApiUrl: 'https://opencode.ai/inference/go/openai/v1', keywords: ['opencode', 'go'] },
-  { id: 'openreason', name: 'OpenReason', description: '', protocol: 'openai', defaultApiUrl: 'https://api.openreason.app/v1', keywords: ['openreason'] },
-  { id: 'opper', name: 'Opper', description: '', protocol: 'openai', defaultApiUrl: 'https://api.opper.ai/v3/compat', keywords: ['opper'] },
-  { id: 'orcarouter', name: 'OrcaRouter', description: '', protocol: 'openai', defaultApiUrl: 'https://api.orcarouter.ai/v1', keywords: ['orcarouter'] },
-  { id: 'ovhcloud', name: 'OVHcloud AI Endpoints', description: '', protocol: 'openai', defaultApiUrl: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1', keywords: ['ovhcloud', 'ai', 'endpoints'] },
-  { id: 'pareto', name: 'Pareto Inference', description: '', protocol: 'openai', defaultApiUrl: 'https://api.paretoinference.com/v1', keywords: ['pareto', 'inference'] },
-  { id: 'pendra', name: 'Pendra', description: '', protocol: 'openai', defaultApiUrl: 'https://api.pendra.ai/api/v1', keywords: ['pendra'] },
-  { id: 'perplexity-agent', name: 'Perplexity Agent', description: '', protocol: 'openai', defaultApiUrl: 'https://api.perplexity.ai/v1', keywords: ['perplexity', 'agent'] },
-  { id: 'pioneer', name: 'Pioneer', description: '', protocol: 'openai', defaultApiUrl: 'https://api.fastino.ai/v1', keywords: ['pioneer'] },
-  { id: 'poe', name: 'Poe', description: '', protocol: 'openai', defaultApiUrl: 'https://api.poe.com/v1', keywords: ['poe'] },
-  { id: 'poolside', name: 'Poolside', description: '', protocol: 'openai', defaultApiUrl: 'https://inference.poolside.ai/v1', keywords: ['poolside'] },
-  { id: 'prime', name: 'Prime Inference', description: '', protocol: 'openai', defaultApiUrl: 'https://api.pinference.ai/api/v1', keywords: ['prime', 'inference'] },
-  { id: 'qihang-ai', name: 'QiHang', description: '', protocol: 'openai', defaultApiUrl: 'https://api.qhaigc.net/v1', keywords: ['qihang'] },
+  // ===== Models.dev 扩展厂商（精选，键与 sys_ai_provider_metric 一致） =====
+  // 口径（2026-11-18）：
+  //   1) 国外优先「官方」——模型自研或自有算力的厂商（DeepInfra、Hyperbolic、
+  //      Cortecs 这类托管推理），以及云厂商的推理服务；
+  //   2) 中转站 / 聚合网关只保留常见的几个（OpenRouter、OpenCode、commandcode、
+  //      Kilo、Poe、New API、Sub2API、ClinePass、Vercel AI Gateway、NanoGPT、
+  //      Requesty、AI/ML API、Abacus），冷门聚合（AgentRouter、Eden AI、Helicone、
+  //      LLM Gateway、Opper…）走「自定义供应商」添加，不占模板库；
+  //   3) 国内的中转聚合（302.AI、接口 AI、ZenMux、Agnes、b.ai、启航）保留，方便直接用。
+  { id: '302ai', name: '302.AI', description: '按量付费 AI 聚合平台，一张 Key 调用数百个模型', protocol: 'openai', defaultApiUrl: 'https://api.302.ai/v1', keywords: ['302', 'ai'] },
+  { id: 'abacus', name: 'Abacus.AI', description: 'Abacus.AI 的 RouteLLM 模型路由服务，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://routellm.abacus.ai/v1', keywords: ['abacus', 'routellm', 'router'] },
+  { id: 'ai21', name: 'AI21 Labs', description: 'AI21 Labs Jamba 系列模型官方 API', protocol: 'openai', defaultApiUrl: 'https://api.ai21.com/studio/v1', keywords: ['ai21', 'labs'] },
+  { id: 'aimlapi', name: 'AI/ML API', description: 'AI/ML API 聚合平台，文本 / 图像 / 视频模型统一入口', protocol: 'openai', defaultApiUrl: 'https://api.aimlapi.com/v1', keywords: ['aimlapi', 'ai/ml', 'aggregator'] },
+  { id: 'amd', name: 'AMD', description: 'AMD Radeon 开发者平台模型推理接口', protocol: 'openai', defaultApiUrl: 'https://developer.amd.com.cn/radeon/api/v1', keywords: ['amd'] },
+  { id: 'arcee', name: 'Arcee', description: 'Arcee AI 开源模型推理 API', protocol: 'openai', defaultApiUrl: 'https://api.arcee.ai/api/v1', keywords: ['arcee'] },
+  { id: 'baseten', name: 'Baseten', description: '模型部署与推理托管平台', protocol: 'openai', defaultApiUrl: 'https://inference.baseten.co/v1', keywords: ['baseten'] },
+  { id: 'chutes', name: 'Chutes', description: '去中心化算力推理，托管开源模型', protocol: 'openai', defaultApiUrl: 'https://llm.chutes.ai/v1', keywords: ['chutes'] },
+  { id: 'clarifai', name: 'Clarifai', description: '视觉与多模态 AI 平台，OpenAI 兼容入口', protocol: 'openai', defaultApiUrl: 'https://api.clarifai.com/v2/ext/openai/v1', keywords: ['clarifai'] },
+  // ClinePass 走 API Key（api.cline.bot）；id 不能叫 cline —— 'cline' 是设备码登录的账号渠道，
+  // 表单会切到账号绑定 UI，这里用 models.dev 的 id 'cline-pass' 区分
+  { id: 'cline-pass', name: 'ClinePass', description: 'Cline 编程助手的订阅套餐端点，OpenAI 兼容（API Key）', protocol: 'openai', defaultApiUrl: 'https://api.cline.bot/api/v1', keywords: ['cline', 'clinepass', 'coding', 'plan'] },
+  // Cloudflare Workers AI：地址里必须带自己的 Account ID，模板给的是官方占位形态
+  { id: 'cloudflare-workers-ai', name: 'Cloudflare Workers AI', description: 'Cloudflare Workers AI 推理（把地址中的 {account_id} 换成自己的账号 ID）', protocol: 'openai', defaultApiUrl: 'https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1', keywords: ['cloudflare', 'workers', 'ai'] },
+  { id: 'cortecs', name: 'Cortecs', description: 'Cortecs 欧洲模型推理平台，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://api.cortecs.ai/v1', keywords: ['cortecs'] },
+  { id: 'deepinfra', name: 'DeepInfra', description: 'DeepInfra 托管开源模型推理，OpenAI 兼容入口', protocol: 'openai', defaultApiUrl: 'https://api.deepinfra.com/v1/openai', keywords: ['deepinfra', 'serverless'] },
+  { id: 'crusoe', name: 'Crusoe', description: 'Crusoe Cloud 托管推理服务', protocol: 'openai', defaultApiUrl: 'https://api.inference.crusoecloud.com/v1', keywords: ['crusoe'] },
+  { id: 'digitalocean', name: 'DigitalOcean', description: 'DigitalOcean Gradient 模型推理平台', protocol: 'openai', defaultApiUrl: 'https://inference.do-ai.run/v1', keywords: ['digitalocean'] },
+  { id: 'fireworks-ai', name: 'Fireworks AI', description: '开源模型推理托管，支持微调与低延迟', protocol: 'openai', defaultApiUrl: 'https://api.fireworks.ai/inference/v1/', keywords: ['fireworks', 'ai'] },
+  { id: 'friendli', name: 'Friendli', description: 'FriendliAI 高吞吐推理引擎', protocol: 'openai', defaultApiUrl: 'https://api.friendli.ai/serverless/v1', keywords: ['friendli'] },
+  { id: 'github-copilot', name: 'GitHub Copilot', description: 'GitHub Copilot 模型端点，需 Copilot 订阅', protocol: 'openai', defaultApiUrl: 'https://api.githubcopilot.com', keywords: ['github', 'copilot'] },
+  { id: 'gmicloud', name: 'GMI Cloud', description: 'GMI Cloud GPU 云的模型推理', protocol: 'openai', defaultApiUrl: 'https://api.gmi-serving.com/v1', keywords: ['gmi', 'cloud'] },
+  { id: 'hetzner', name: 'Hetzner', description: '德国云厂商 Hetzner 的推理服务', protocol: 'openai', defaultApiUrl: 'https://inference.hetzner.com/api/v1', keywords: ['hetzner'] },
+  { id: 'hyperbolic', name: 'Hyperbolic', description: 'Hyperbolic 去中心化 GPU 云推理，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://api.hyperbolic.xyz/v1', keywords: ['hyperbolic'] },
+  { id: 'iflowcn', name: 'iFlow', description: '心流 AI 助手开放接口（iflow.cn）', protocol: 'openai', defaultApiUrl: 'https://apis.iflow.cn/v1', keywords: ['iflow'] },
+  { id: 'inception', name: 'Inception', description: 'Inception Labs Mercury 扩散式大模型 API', protocol: 'openai', defaultApiUrl: 'https://api.inceptionlabs.ai/v1/', keywords: ['inception'] },
+  { id: 'inference', name: 'Inference', description: 'Inference.net 去中心化推理服务', protocol: 'openai', defaultApiUrl: 'https://inference.net/v1', keywords: ['inference'] },
+  { id: 'io-net', name: 'IO.NET', description: '去中心化 GPU 云推理服务（IO.NET）', protocol: 'openai', defaultApiUrl: 'https://api.intelligence.io.solutions/api/v1', keywords: ['io', 'net'] },
+  { id: 'jiekou', name: 'Jiekou.AI', description: '接口 AI 聚合平台，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://api.jiekou.ai/openai', keywords: ['jiekou', 'ai'] },
+  { id: 'kilo', name: 'Kilo Gateway', description: 'Kilo Code 的模型网关', protocol: 'openai', defaultApiUrl: 'https://api.kilo.ai/api/gateway', keywords: ['kilo', 'gateway'] },
+  { id: 'liquid', name: 'Liquid Inference', description: 'Liquid AI（LFM）模型推理服务', protocol: 'openai', defaultApiUrl: 'https://router.inference.ai.exchange/v1', keywords: ['liquid', 'inference'] },
+  { id: 'llama', name: 'Llama', description: 'Meta Llama API 官方兼容端点', protocol: 'openai', defaultApiUrl: 'https://api.llama.com/compat/v1/', keywords: ['llama'] },
+  { id: 'longcat', name: 'LongCat', description: '美团 LongCat 大模型 API', protocol: 'openai', defaultApiUrl: 'https://api.longcat.chat/openai', keywords: ['longcat'] },
+  { id: 'meta', name: 'Meta', description: 'Meta AI（Llama）模型 API', protocol: 'openai', defaultApiUrl: 'https://api.meta.ai/v1', keywords: ['meta'] },
+  { id: 'modal', name: 'Modal', description: 'Modal 无服务器 GPU 推理平台', protocol: 'openai', defaultApiUrl: 'https://inference.us-west.modal.direct/v1', keywords: ['modal'] },
+  { id: 'morph', name: 'Morph', description: 'Morph LLM 高速代码编辑模型 API', protocol: 'openai', defaultApiUrl: 'https://api.morphllm.com/v1', keywords: ['morph'] },
+  { id: 'nano-gpt', name: 'NanoGPT', description: 'NanoGPT 按量付费聚合平台，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://nano-gpt.com/api/v1', keywords: ['nano', 'gpt', 'nanogpt'] },
+  { id: 'nearai', name: 'NEAR AI Cloud', description: 'NEAR 去中心化 AI 云推理服务', protocol: 'openai', defaultApiUrl: 'https://cloud-api.near.ai/v1', keywords: ['near', 'ai', 'cloud'] },
+  { id: 'nebius', name: 'Nebius Token Factory', description: 'Nebius Token Factory 托管推理服务', protocol: 'openai', defaultApiUrl: 'https://api.tokenfactory.nebius.com/v1', keywords: ['nebius', 'token', 'factory'] },
+  { id: 'novita-ai', name: 'Novita AI', description: 'GPU 云与开源模型推理平台', protocol: 'openai', defaultApiUrl: 'https://api.novita.ai/openai', keywords: ['novita', 'ai'] },
+  { id: 'nous-portal', name: 'Nous Portal', description: 'Nous Research 官方推理端点（Hermes 系列模型）', protocol: 'openai', defaultApiUrl: 'https://inference-api.nousresearch.com/v1', keywords: ['nous', 'nousresearch', 'hermes'] },
+  { id: 'oci', name: 'OCI Generative AI', description: '甲骨文云 Generative AI 推理服务', protocol: 'openai', defaultApiUrl: 'https://inference.generativeai.us-chicago-1.oci.oraclecloud.com/openai/v1', keywords: ['oci', 'generative', 'ai'] },
+  { id: 'ollama-cloud', name: 'Ollama Cloud', description: 'Ollama 官方云端托管推理', protocol: 'openai', defaultApiUrl: 'https://ollama.com/v1', keywords: ['ollama', 'cloud'] },
+  { id: 'opencode-go', name: 'OpenCode Go', description: 'OpenCode Go 编程套餐模型端点', protocol: 'openai', defaultApiUrl: 'https://opencode.ai/inference/go/openai/v1', keywords: ['opencode', 'go'] },
+  { id: 'ovhcloud', name: 'OVHcloud AI Endpoints', description: 'OVHcloud 欧洲云 AI 推理服务', protocol: 'openai', defaultApiUrl: 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1', keywords: ['ovhcloud', 'ai', 'endpoints'] },
+  { id: 'perplexity-agent', name: 'Perplexity Agent', description: 'Perplexity Agent API（Sonar）', protocol: 'openai', defaultApiUrl: 'https://api.perplexity.ai/v1', keywords: ['perplexity', 'agent'] },
+  { id: 'pioneer', name: 'Pioneer', description: 'Fastino 的模型微调与推理平台', protocol: 'openai', defaultApiUrl: 'https://api.fastino.ai/v1', keywords: ['pioneer'] },
+  { id: 'poe', name: 'Poe', description: 'Quora Poe 的模型 API', protocol: 'openai', defaultApiUrl: 'https://api.poe.com/v1', keywords: ['poe'] },
+  { id: 'poolside', name: 'Poolside', description: 'Poolside 代码模型 API', protocol: 'openai', defaultApiUrl: 'https://inference.poolside.ai/v1', keywords: ['poolside'] },
+  { id: 'prime', name: 'Prime Inference', description: 'Prime Intellect 去中心化推理', protocol: 'openai', defaultApiUrl: 'https://api.pinference.ai/api/v1', keywords: ['prime', 'inference'] },
   { id: 'qiniu-ai', name: 'Qiniu 七牛', description: '七牛云 AI 大模型推理（OpenAI 兼容）', protocol: 'openai', defaultApiUrl: 'https://api.qnaigc.com/v1', keywords: ['qiniu', '七牛', '七牛云', 'qnaigc'] },
-  { id: 'reflection', name: 'Reflection', description: '', protocol: 'openai', defaultApiUrl: 'https://api.reflection.ai/openai/v1', keywords: ['reflection'] },
-  { id: 'regolo-ai', name: 'Regolo AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.regolo.ai/v1', keywords: ['regolo', 'ai'] },
-  { id: 'requesty', name: 'Requesty', description: '', protocol: 'openai', defaultApiUrl: 'https://router.requesty.ai/v1', keywords: ['requesty'] },
-  { id: 'routing-run', name: 'routing.run', description: '', protocol: 'openai', defaultApiUrl: 'https://api.routing.run/v1', keywords: ['routing', 'run'] },
-  { id: 'runinfra', name: 'RunInfra', description: '', protocol: 'openai', defaultApiUrl: 'https://api.runinfra.ai/v1', keywords: ['runinfra'] },
-  { id: 'sakana', name: 'Sakana AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.sakana.ai/v1', keywords: ['sakana', 'ai'] },
-  { id: 'sambanova', name: 'SambaNova', description: '', protocol: 'openai', defaultApiUrl: 'https://api.sambanova.ai/v1', keywords: ['sambanova'] },
-  { id: 'sarvam', name: 'Sarvam AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.sarvam.ai/v1', keywords: ['sarvam', 'ai'] },
-  { id: 'scaleway', name: 'Scaleway', description: '', protocol: 'openai', defaultApiUrl: 'https://api.scaleway.ai/v1', keywords: ['scaleway'] },
-  { id: 'scnet-token-plan', name: 'SCNet Token Plan', description: '', protocol: 'openai', defaultApiUrl: 'https://api.scnet.cn/api/llm/v1', keywords: ['scnet', 'token', 'plan'] },
-  { id: 'scx-ai', name: 'SCX.ai', description: '', protocol: 'openai', defaultApiUrl: 'https://api.scx.ai/v1', keywords: ['scx', 'ai'] },
-  { id: 'stackit', name: 'STACKIT', description: '', protocol: 'openai', defaultApiUrl: 'https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1', keywords: ['stackit'] },
-  { id: 'standardcompute', name: 'Standard Compute', description: '', protocol: 'openai', defaultApiUrl: 'https://api.stdcmpt.com/v1', keywords: ['standard', 'compute'] },
-  { id: 'subconscious', name: 'Subconscious', description: '', protocol: 'openai', defaultApiUrl: 'https://api.subconscious.dev/v1', keywords: ['subconscious'] },
-  { id: 'submodel', name: 'submodel', description: '', protocol: 'openai', defaultApiUrl: 'https://llm.submodel.ai/v1', keywords: ['submodel'] },
-  { id: 'synthetic', name: 'Synthetic', description: '', protocol: 'openai', defaultApiUrl: 'https://api.synthetic.new/openai/v1', keywords: ['synthetic'] },
-  { id: 'tempr', name: 'Tempr Gateway', description: '', protocol: 'openai', defaultApiUrl: 'https://api.temprhq.io/v1', keywords: ['tempr', 'gateway'] },
-  { id: 'tencent-coding-plan', name: 'Tencent Coding Plan (China)', description: '', protocol: 'openai', defaultApiUrl: 'https://api.lkeap.cloud.tencent.com/coding/v3', keywords: ['tencent', 'coding', 'plan', 'china'] },
-  { id: 'tencent-token-plan', name: 'Tencent Token Plan', description: '', protocol: 'openai', defaultApiUrl: 'https://api.lkeap.cloud.tencent.com/plan/v3', keywords: ['tencent', 'token', 'plan'] },
-  { id: 'tencent-tokenhub', name: 'Tencent TokenHub', description: '', protocol: 'openai', defaultApiUrl: 'https://tokenhub.tencentmaas.com/v1', keywords: ['tencent', 'tokenhub'] },
-  { id: 'tensorx', name: 'TensorX', description: '', protocol: 'openai', defaultApiUrl: 'https://api.tensorx.ai/v1', keywords: ['tensorx'] },
-  { id: 'the-grid-ai', name: 'The Grid AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.thegrid.ai/v1', keywords: ['the', 'grid', 'ai'] },
-  { id: 'thinkingmachines', name: 'Thinking Machines', description: '', protocol: 'openai', defaultApiUrl: 'https://tinker.thinkingmachines.dev/services/tinker-prod/anthropic/api/v1', keywords: ['thinking', 'machines'] },
-  { id: 'tinfoil', name: 'Tinfoil', description: '', protocol: 'openai', defaultApiUrl: 'https://inference.tinfoil.sh/v1', keywords: ['tinfoil'] },
-  { id: 'tokengo', name: 'TokenGo', description: '', protocol: 'openai', defaultApiUrl: 'https://api.tokengo.com/v1', keywords: ['tokengo'] },
-  { id: 'tokenrouter', name: 'TokenRouter', description: '', protocol: 'openai', defaultApiUrl: 'https://api.tokenrouter.com/v1', keywords: ['tokenrouter'] },
-  { id: 'trustedrouter', name: 'TrustedRouter', description: '', protocol: 'openai', defaultApiUrl: 'https://api.trustedrouter.com/v1', keywords: ['trustedrouter'] },
-  { id: 'umans-ai', name: 'Umans AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.code.umans.ai/v1', keywords: ['umans', 'ai'] },
-  { id: 'umans-ai-coding-plan', name: 'Umans AI Coding Plan', description: '', protocol: 'openai', defaultApiUrl: 'https://api.code.umans.ai/v1', keywords: ['umans', 'ai', 'coding', 'plan'] },
-  { id: 'unorouter', name: 'UnoRouter', description: '', protocol: 'openai', defaultApiUrl: 'https://api.unorouter.com/v1', keywords: ['unorouter'] },
-  { id: 'upstage', name: 'Upstage', description: '', protocol: 'openai', defaultApiUrl: 'https://api.upstage.ai/v1/solar', keywords: ['upstage'] },
-  { id: 'vancine', name: 'Vancine', description: '', protocol: 'openai', defaultApiUrl: 'https://vancine.com/v1', keywords: ['vancine'] },
-  { id: 'vispark', name: 'Vispark', description: '', protocol: 'openai', defaultApiUrl: 'https://api.lab.vispark.in/v1', keywords: ['vispark'] },
-  { id: 'vivgrid', name: 'Vivgrid', description: '', protocol: 'openai', defaultApiUrl: 'https://api.vivgrid.com/v1', keywords: ['vivgrid'] },
-  { id: 'vultr', name: 'Vultr', description: '', protocol: 'openai', defaultApiUrl: 'https://api.vultrinference.com/v1', keywords: ['vultr'] },
-  { id: 'wafer.ai', name: 'Wafer', description: '', protocol: 'openai', defaultApiUrl: 'https://pass.wafer.ai/v1', keywords: ['wafer'] },
-  { id: 'wallaby', name: 'Wallaby', description: '', protocol: 'openai', defaultApiUrl: 'https://api.wallabytoken.com/v1', keywords: ['wallaby'] },
-  { id: 'wandb', name: 'CoreWeave', description: '', protocol: 'openai', defaultApiUrl: 'https://api.inference.wandb.ai/v1', keywords: ['coreweave'] },
-  { id: 'xiaomi', name: 'Xiaomi', description: '', protocol: 'openai', defaultApiUrl: 'https://api.xiaomimimo.com/v1', keywords: ['xiaomi'] },
-  { id: 'xiaomi-token-plan-ams', name: 'Xiaomi Token Plan (Europe)', description: '', protocol: 'openai', defaultApiUrl: 'https://token-plan-ams.xiaomimimo.com/v1', keywords: ['xiaomi', 'token', 'plan', 'europe'] },
-  { id: 'xiaomi-token-plan-cn', name: 'Xiaomi Token Plan (China)', description: '', protocol: 'openai', defaultApiUrl: 'https://token-plan-cn.xiaomimimo.com/v1', keywords: ['xiaomi', 'token', 'plan', 'china'] },
-  { id: 'xiaomi-token-plan-sgp', name: 'Xiaomi Token Plan (Singapore)', description: '', protocol: 'openai', defaultApiUrl: 'https://token-plan-sgp.xiaomimimo.com/v1', keywords: ['xiaomi', 'token', 'plan', 'singapore'] },
-  { id: 'xpersona', name: 'Xpersona', description: '', protocol: 'openai', defaultApiUrl: 'https://www.xpersona.co/v1', keywords: ['xpersona'] },
-  { id: 'zai', name: 'Z.AI', description: '', protocol: 'openai', defaultApiUrl: 'https://api.z.ai/api/paas/v4', keywords: ['z', 'ai'] },
-  { id: 'zai-coding-plan', name: 'Z.AI Coding Plan', description: '', protocol: 'openai', defaultApiUrl: 'https://api.z.ai/api/coding/paas/v4', keywords: ['z', 'ai', 'coding', 'plan'] },
-  { id: 'zeldoc', name: 'Zeldoc', description: '', protocol: 'openai', defaultApiUrl: 'https://api.zeldoc.ai/v1', keywords: ['zeldoc'] },
-  { id: 'zenifra', name: 'Zenifra', description: '', protocol: 'openai', defaultApiUrl: 'https://ai.zenifra.com/v1', keywords: ['zenifra'] },
-  { id: 'zenmux', name: 'ZenMux', description: '', protocol: 'openai', defaultApiUrl: 'https://zenmux.ai/api/v1', keywords: ['zenmux'] },
+  { id: 'reflection', name: 'Reflection', description: 'Reflection AI 推理端点', protocol: 'openai', defaultApiUrl: 'https://api.reflection.ai/openai/v1', keywords: ['reflection'] },
+  { id: 'requesty', name: 'Requesty', description: 'Requesty LLM 路由网关，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://router.requesty.ai/v1', keywords: ['requesty', 'router'] },
+  { id: 'sakana', name: 'Sakana AI', description: 'Sakana AI 模型 API', protocol: 'openai', defaultApiUrl: 'https://api.sakana.ai/v1', keywords: ['sakana', 'ai'] },
+  { id: 'sambanova', name: 'SambaNova', description: 'SambaNova 云推理（RDU 芯片）', protocol: 'openai', defaultApiUrl: 'https://api.sambanova.ai/v1', keywords: ['sambanova'] },
+  { id: 'sarvam', name: 'Sarvam AI', description: '印度多语言模型 API（Sarvam AI）', protocol: 'openai', defaultApiUrl: 'https://api.sarvam.ai/v1', keywords: ['sarvam', 'ai'] },
+  { id: 'scaleway', name: 'Scaleway', description: '法国云厂商 Scaleway 生成式 AI 推理', protocol: 'openai', defaultApiUrl: 'https://api.scaleway.ai/v1', keywords: ['scaleway'] },
+  { id: 'scnet-token-plan', name: 'SCNet Token Plan', description: '超算互联网 Token 套餐端点', protocol: 'openai', defaultApiUrl: 'https://api.scnet.cn/api/llm/v1', keywords: ['scnet', 'token', 'plan'] },
+  { id: 'stackit', name: 'STACKIT', description: '德国 STACKIT 云的模型服务', protocol: 'openai', defaultApiUrl: 'https://api.openai-compat.model-serving.eu01.onstackit.cloud/v1', keywords: ['stackit'] },
+  { id: 'synthetic', name: 'Synthetic', description: 'Synthetic.new 推理服务', protocol: 'openai', defaultApiUrl: 'https://api.synthetic.new/openai/v1', keywords: ['synthetic'] },
+  { id: 'tencent-coding-plan', name: 'Tencent Coding Plan (China)', description: '腾讯云编程套餐模型端点', protocol: 'openai', defaultApiUrl: 'https://api.lkeap.cloud.tencent.com/coding/v3', keywords: ['tencent', 'coding', 'plan', 'china'] },
+  { id: 'tencent-token-plan', name: 'Tencent Token Plan', description: '腾讯云 Token 套餐端点', protocol: 'openai', defaultApiUrl: 'https://api.lkeap.cloud.tencent.com/plan/v3', keywords: ['tencent', 'token', 'plan'] },
+  { id: 'tencent-tokenhub', name: 'Tencent TokenHub', description: '腾讯 TokenHub 模型服务', protocol: 'openai', defaultApiUrl: 'https://tokenhub.tencentmaas.com/v1', keywords: ['tencent', 'tokenhub'] },
+  { id: 'thinkingmachines', name: 'Thinking Machines', description: 'Thinking Machines 的 Tinker 推理 API', protocol: 'openai', defaultApiUrl: 'https://tinker.thinkingmachines.dev/services/tinker-prod/anthropic/api/v1', keywords: ['thinking', 'machines'] },
+  { id: 'tinfoil', name: 'Tinfoil', description: '机密计算推理服务（tinfoil.sh）', protocol: 'openai', defaultApiUrl: 'https://inference.tinfoil.sh/v1', keywords: ['tinfoil'] },
+  { id: 'upstage', name: 'Upstage', description: '韩国 Upstage Solar 模型 API', protocol: 'openai', defaultApiUrl: 'https://api.upstage.ai/v1/solar', keywords: ['upstage'] },
+  { id: 'vercel', name: 'Vercel AI Gateway', description: 'Vercel AI 网关，OpenAI 兼容入口（ai-gateway.vercel.sh）', protocol: 'openai', defaultApiUrl: 'https://ai-gateway.vercel.sh/v1', keywords: ['vercel', 'gateway', 'ai'] },
+  // Voyage AI 只有嵌入 / 重排接口，没有对话类模型
+  { id: 'voyage', name: 'Voyage AI', description: 'Voyage AI 向量化与重排模型 API（嵌入专用）', protocol: 'openai', defaultApiUrl: 'https://api.voyageai.com/v1', keywords: ['voyage', 'embedding', 'rerank', '向量', '嵌入'] },
+  { id: 'vultr', name: 'Vultr', description: 'Vultr 云 GPU 推理服务', protocol: 'openai', defaultApiUrl: 'https://api.vultrinference.com/v1', keywords: ['vultr'] },
+  { id: 'wandb', name: 'CoreWeave', description: 'CoreWeave 推理服务（原 W&B Inference）', protocol: 'openai', defaultApiUrl: 'https://api.inference.wandb.ai/v1', keywords: ['coreweave'] },
+  { id: 'xiaomi', name: 'Xiaomi', description: '小米 MiMo 大模型 API', protocol: 'openai', defaultApiUrl: 'https://api.xiaomimimo.com/v1', keywords: ['xiaomi'] },
+  { id: 'xiaomi-token-plan-ams', name: 'Xiaomi Token Plan (Europe)', description: '小米 MiMo Token 套餐（欧洲）', protocol: 'openai', defaultApiUrl: 'https://token-plan-ams.xiaomimimo.com/v1', keywords: ['xiaomi', 'token', 'plan', 'europe'] },
+  { id: 'xiaomi-token-plan-cn', name: 'Xiaomi Token Plan (China)', description: '小米 MiMo Token 套餐（中国）', protocol: 'openai', defaultApiUrl: 'https://token-plan-cn.xiaomimimo.com/v1', keywords: ['xiaomi', 'token', 'plan', 'china'] },
+  { id: 'xiaomi-token-plan-sgp', name: 'Xiaomi Token Plan (Singapore)', description: '小米 MiMo Token 套餐（新加坡）', protocol: 'openai', defaultApiUrl: 'https://token-plan-sgp.xiaomimimo.com/v1', keywords: ['xiaomi', 'token', 'plan', 'singapore'] },
+  { id: 'zai', name: 'Z.AI', description: '智谱 GLM 国际站 API（Z.AI）', protocol: 'openai', defaultApiUrl: 'https://api.z.ai/api/paas/v4', keywords: ['z', 'ai'] },
+  { id: 'zai-coding-plan', name: 'Z.AI Coding Plan', description: '智谱 GLM 编程套餐端点', protocol: 'openai', defaultApiUrl: 'https://api.z.ai/api/coding/paas/v4', keywords: ['z', 'ai', 'coding', 'plan'] },
+  { id: 'zenmux', name: 'ZenMux', description: '多模型统一网关（zenmux.ai）', protocol: 'openai', defaultApiUrl: 'https://zenmux.ai/api/v1', keywords: ['zenmux'] },
 
   // ===== 自定义 =====
 
@@ -484,6 +446,48 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 
 // logo 由 ProviderLogo 组件统一处理：优先 .png，失败回退 .svg，均失败走 CardAvatar 首字母。
 // 此处不再维护任何 logo 映射配置。
+
+/**
+ * 热门供应商：模板库置顶顺序（国内可直接开通的在前，其次国际主流）。
+ * 只影响展示顺序与卡片角标，不改变模板本身的声明顺序与判重口径。
+ */
+export const HOT_PROVIDER_IDS: string[] = [
+  'deepseek',
+  'qwen',
+  'volcengine',
+  'openai',
+  'anthropic',
+  'google',
+  'zhipu',
+  'moonshot',
+  'siliconflow',
+  'openrouter',
+  'xai',
+  'mistral',
+  'minimax',
+  'tencent',
+  'ollama',
+  'free-channel',
+  'router-group',
+]
+
+const HOT_RANK = new Map(HOT_PROVIDER_IDS.map((id, i) => [id, i]))
+
+/** 是否热门模板（模板库卡片上的「热门」角标） */
+export const isHotTemplate = (tpl: { id?: string } | null | undefined): boolean =>
+  !!tpl?.id && HOT_RANK.has(tpl.id)
+
+/**
+ * 热门置顶排序：热门按 HOT_PROVIDER_IDS 的顺序排在最前，其余保持原有声明顺序。
+ * 用稳定分组而不是整体重排，避免非热门模板在每次新增供应商时跳位。
+ */
+export const sortTemplatesByHot = <T extends { id?: string }>(list: T[]): T[] => {
+  const hot: T[] = []
+  const rest: T[] = []
+  list.forEach((tpl) => (isHotTemplate(tpl) ? hot : rest).push(tpl))
+  hot.sort((a, b) => (HOT_RANK.get(a.id!) ?? 0) - (HOT_RANK.get(b.id!) ?? 0))
+  return [...hot, ...rest]
+}
 
 // 模型类型选项（与系统配置「默认模型」选择器的类型体系保持一致）
 // 注意：检测已是明确的规范类型，表单/保存/回显三处会同步；识别/矫正仍只在行内提示层，

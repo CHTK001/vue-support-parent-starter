@@ -18,12 +18,13 @@
         @change="load"
       />
       <ReInput v-model="keyword" placeholder="按日志内容 / traceId 过滤" clearable style="width: 260px" @keyup.enter="load" />
-      <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
+      <ApmTimeWindow v-model="timeWindow" @change="load" />
       <!-- 服务与时间窗都是选了就查，只有关键字需要显式提交；
            因此这里不再单独放「刷新」——它和查询做的是同一件事，只会多一个按钮。 -->
       <ReButton icon="Search" type="primary" :loading="loading" @click="load">查询</ReButton>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ logs.length }} 条日志</span>
+      <ApmAutoRefresh @refresh="load" />
     </div>
 
     <ReSkeleton v-if="loading && !logs.length" :rows="8" animated />
@@ -99,22 +100,32 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ApmGate from "../components/ApmGate.vue";
+import ApmAutoRefresh from "../components/ApmAutoRefresh.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
 import { listLogs, listServices } from "../api/apmApi";
 import type { ApmLogRecord } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
-import { WINDOW_OPTIONS, fmtTime } from "../utils/format";
+import { consumeApmTabContext } from "../tabs";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
+import { fmtTime } from "../utils/format";
+import { timeQuery, timeWindowQuery } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const router = useRouter();
 const { present, ensure } = useApmStatus();
+
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "logs";
 
 const logs = ref<ApmLogRecord[]>([]);
 const services = ref<string[]>([]);
 const service = ref("");
 const keyword = ref("");
-const minutes = ref(60);
+/** 时间窗：预设分钟数或自定义区间（从链路 / 告警带时间窗跳过来时用） */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: 60 });
 const loading = ref(false);
-const windowOptions = WINDOW_OPTIONS;
 
 const rows = computed(() => logs.value as unknown as Record<string, unknown>[]);
 const serviceOptions = computed(() => services.value.map((s) => ({ label: s, value: s })));
@@ -154,7 +165,7 @@ function shortId(traceId: string): string {
  *
  *  只带 traceId 的话，详情页「返回列表」会退成默认筛选（全部服务、
  *  默认时间窗），一条日志点进去再退回来就丢了上下文 —— 这正是
- *  「要点好几次」的来源。TraceDetail 的 goBack 会原样还原这三个参数。
+ *  「要点好几次」的来源。TraceDetail 的 goBack 会原样还原这些参数。
  */
 function openTrace(row: ApmLogRecord) {
   router.push({
@@ -162,7 +173,7 @@ function openTrace(row: ApmLogRecord) {
     query: {
       traceId: String(row.traceId ?? ""),
       ...(row.serviceName ? { service: row.serviceName } : {}),
-      minutes: String(minutes.value),
+      ...timeWindowQuery(timeWindow.value),
     },
   });
 }
@@ -183,7 +194,7 @@ async function load() {
       (await listLogs({
         service: service.value || undefined,
         keyword: keyword.value || undefined,
-        minutes: minutes.value,
+        ...timeQuery(timeWindow.value),
         pageSize: 200,
       })) || [];
   } catch (e) {
@@ -202,8 +213,37 @@ async function loadServices() {
   }
 }
 
+/** 把跳转上下文落到筛选条件（服务 / 时间窗） */
+function applyContext(context: ApmTabContext): void {
+  if (context.service) {
+    service.value = context.service;
+  }
+  if (context.startTime && context.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
+}
+
 onMounted(async () => {
+  // 从链路 / 告警带上下文跳过来：直接按它筛选，别让人重选一遍
+  const context = consumeApmTabContext();
+  if (context) {
+    applyContext(context);
+  }
   await loadServices();
+  load();
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：从告警下钻再次切到本页签时 onMounted 不会重跑，
+ * 一次性上下文（事发时间小窗）在这里接住；普通切回也重取一次，日志才不会停在旧的一屏。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (context) {
+    applyContext(context);
+  }
   load();
 });
 </script>

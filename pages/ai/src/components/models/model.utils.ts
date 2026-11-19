@@ -335,7 +335,9 @@ export function inferModelType(m: any): string {
   }
   // 上游「从提供商获取」行没有 capabilities，只有 tasks / task；
   // 不读它们的话，拉取列表与预填表单里的模型类型会一律落成 text。
-  for (const task of listOf(m?.tasks)) {
+  // 渠道管理落库的行把任务类型写在 metrics.tasks（实体表没有该列），
+  // 只读顶层 tasks 会让这些模型的类型退回按名字猜。
+  for (const task of [...listOf(m?.tasks), ...listOf(m?.metrics?.tasks)]) {
     const key = String(task || '').toLowerCase()
     if (TASK_TO_TYPE[key]) {
       return TASK_TO_TYPE[key]

@@ -15,11 +15,13 @@ import type { UsageFormat } from "./format";
 export const MODEL_BAR_TOP_N = 8;
 export const MODEL_LATENCY_TOP_N = 6;
 
-/** 同一模型在不同日期必须拿到同一个颜色，故颜色按模型名做稳定映射而非按下标 */
+/** 同一模型在不同日期必须拿到同一个颜色，故颜色按模型名做稳定映射而非按下标。
+    色板对齐 koi 设计令牌：主色 #6d5dfc（brand-500）打头，辅以品牌紫族与
+    监控域语义色，canvas 渲染需真实色值（var() 在 canvas 不生效）。 */
 const MODEL_COLORS = [
-  "#5B8FF9", "#5AD8A6", "#5D7092", "#F6BD16", "#6F5EF9",
-  "#6DC8EC", "#945FB9", "#FF9845", "#1E9493", "#FF99C3",
-  "#269A99", "#8D6DFF", "#E8684A", "#4EA3D1", "#C9A227",
+  "#6d5dfc", "#8f83fd", "#5a4bd9", "#b3a9fe", "#7c6cf0",
+  "#8b5cf6", "#3b82f6", "#06b6d4", "#14b8a6", "#2fbf71",
+  "#f59e0b", "#ff4c4c", "#0ea5e9", "#f7ba1e", "#9fdb1d",
 ];
 
 /** 模型名 -> 颜色。按首次出现顺序占坑，保证跨刷新/跨筛选不跳色 */

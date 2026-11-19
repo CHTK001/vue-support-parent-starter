@@ -248,7 +248,7 @@ function typeOf(key: string): string {
       :controls="false"
       :placeholder="param.tip || ''"
       :model-value="numberValue"
-      @update:model-value="(v: number | undefined) => emit('update', v)"
+      @update:model-value="(v: number | null | undefined) => emit('update', v)"
     />
     <ReSwitch
       v-else-if="param.type === 'switch'"

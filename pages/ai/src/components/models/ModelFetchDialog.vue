@@ -2,7 +2,7 @@
   <ReDialog
     v-model="visible"
     :title="t('settings.providerDetail.fetchModelsTitle')"
-    width="600px"
+    width="720px"
     align-center
     class="model-fetch-dialog"
     append-to-body
@@ -34,10 +34,43 @@
             ? t('settings.providerDetail.clearFreeSelection')
             : t('settings.providerDetail.selectAllFree', { n: freeRows.length }) }}
         </el-button>
+        <!--
+          全选当前筛选结果：网关渠道路径下动辄上百个模型，逐条勾不现实。
+          只勾「筛选后且还没入库」的行，按钮上把条数写出来，
+          避免用户以为这是「全选全部 186 条」。
+        -->
+        <el-button
+          v-if="filteredImportable.length > 0"
+          :disabled="fetching"
+          @click="toggleSelectFiltered"
+        >
+          {{ allFilteredSelected
+            ? '取消全选'
+            : `全选当前 ${filteredImportable.length} 条` }}
+        </el-button>
+        <!--
+          只看未加入：一次拉取常带回上百条，其中大半库里已经有了。
+          勾上后列表只留「还没入库」的行，和「全部录入」提交的集合完全一致。
+          没有任何已加入行时整颗不渲染（没什么可过滤的）。
+        -->
+        <el-checkbox
+          v-if="knownInFetched > 0"
+          v-model="onlyImportable"
+          size="small"
+          class="fetch-only-new"
+        >
+          只看未加入
+        </el-checkbox>
       </div>
       <div class="fetch-actions">
         <span class="fetch-selected-count">
-          {{ t('settings.providerDetail.selectedCount', { n: selected.length }) }}
+          <!-- 拉到的总数 / 已加入 / 已选：三个数字回答「还差多少」，比只给已选有用。
+               「已加入」只统计本次拉取里已经在库的行，不把库内其它模型算进来。 -->
+          共 {{ fetched.length }} 条
+          <template v-if="knownInFetched > 0">
+            · 已加入 {{ knownInFetched }}
+          </template>
+          · 已选 {{ selected.length }}
         </span>
         <el-button
           type="primary"
@@ -51,18 +84,19 @@
             : t('settings.providerDetail.importSelected', { n: selected.length }) }}
         </el-button>
         <!--
-          一键批量录入：整批走后端 POST /providers/{id}/models/import-all，
-          后端负责调上游取目录 + 落库（已存在的跳过），用户不必逐条点「选择」。
+          一键批量录入：只提交本次拉取里还没入库的行，整批走后端
+          POST /providers/{id}/models/import-all，后端负责落库（已存在的跳过）。
+          条数写进按钮，用户点之前就知道会新增多少。
         -->
         <el-button
           :loading="importingAll"
-          :disabled="fetched.length === 0 || fetching"
+          :disabled="importableRows.length === 0 || fetching"
           @click="handleImportAll"
         >
           <template #icon><Download /></template>
           {{ importingAll
             ? t('settings.providerDetail.importing')
-            : t('settings.providerDetail.importAll', { n: fetched.length }) }}
+            : t('settings.providerDetail.importAll', { n: importableRows.length }) }}
         </el-button>
       </div>
 
@@ -88,14 +122,17 @@
             </header>
             <ul class="fetch-list">
               <li v-for="model in group.rows" :key="model.modelName" class="fetch-row"
-                :class="{ 'is-picked': isSelected(model) }"
+                :class="{ 'is-picked': isSelected(model), 'is-known': isKnown(model) }"
                 @click="toggleRow(model)">
                 <!-- 多选：默认不勾，用户逐条勾选后「录入选中」批量落库。
                      整行可点：点行内任意空白处就是勾上/取消，不必非要点中那个小方块；
-                     方块自己 .stop，否则 change 与冒泡会各勾一次、等于没点。 -->
+                     方块自己 .stop，否则 change 与冒泡会各勾一次、等于没点。
+                     已加入的行不参与勾选（disabled）：再选一次只会走「已存在」跳过，
+                     却让「已选 N 条」这个数字骗人。 -->
                 <el-checkbox
                   class="fetch-check"
                   :model-value="isSelected(model)"
+                  :disabled="isKnown(model)"
                   @click.stop
                   @change="toggleRow(model)"
                 />
@@ -163,7 +200,10 @@
                     {{ describeFetchRow(model) }}
                   </div>
                 </div>
-                <el-button link type="primary" @click.stop="handleSelect(model)">
+                <!-- 已加入的行给出明确的静止状态，不再给「选择」按钮：
+                     点了只会预填一个已经存在的模型，用户会以为没生效。 -->
+                <span v-if="isKnown(model)" class="fetch-known-badge">已加入</span>
+                <el-button v-else link type="primary" @click.stop="handleSelect(model)">
                   {{ t('settings.providerDetail.select') }}
                 </el-button>
               </li>
@@ -200,7 +240,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Model } from '@/types/api'
 import ReDialog from '@repo/ui/re-dialog'
@@ -233,6 +273,11 @@ const emit = defineEmits<{
   select: [model: any]
   /** 已经批量录入完成，父组件据此刷新供应商的模型列表 */
   imported: []
+  /**
+   * 全部录入（或渠道逐条）全部成功后发出：父组件据此关闭背后已打开的
+   * 「新建模型」表单弹框——fetch 弹框自身关闭不会连带关掉它。
+   */
+  importFinished: []
   /** 打开手动新建模型表单（列表看不看得到都行，这里是逃生口） */
   manual: []
 }>()
@@ -243,6 +288,8 @@ const visible = ref(false)
 const fetching = ref(false)
 const importing = ref(false)
 const searchName = ref('')
+/** 只看未加入：渠道拉出来上百条时，过滤掉库内已有的行 */
+const onlyImportable = ref(false)
 const fetched = ref<any[]>([])
 /** 正在批量录入「全部」 */
 const importingAll = ref(false)
@@ -251,12 +298,19 @@ const selected = ref<string[]>([])
 const loadError = ref('')
 /** 当前参数：open() 记住供应商，fetch 失败后「重新拉取」按钮用 */
 const currentProvider = ref<any>(null)
-/** 免费渠道提示：extra.routes 未配置时后端只回传 hint，前端展示它而不是空状态 */
+/** 免费渠道提示：后端合并路由为空时只回传 hint，前端展示它而不是空状态 */
 const routeHint = ref('')
 /** 当前供应商标识：批量录入要按它落库，open 时记下，避免再以 props 里猜 */
 const providerId = ref('')
 /** 本次 open 的是否渠道 provider（决定 handleImportAll 走逐条 createModel 还是后端 import-all） */
 const openIsChannel = ref(false)
+/**
+ * 本次列出的目录是否来自「免登录渠道」的内置清单。
+ *
+ * <p>免登录渠道的清单本身就是可用集合，逐条录入时应当直接启用；
+ * 账号渠道的目录只是「上游有这些模型」，仍然默认不启用。</p>
+ */
+const openKeyless = ref(false)
 /** 是否已经真正执行过拉取（用于区分「还没拉取」和「拉完了但没数据」） */
 const hasFetched = ref(false)
 let existingModels: any[] = []
@@ -264,8 +318,11 @@ let existingModels: any[] = []
  * 已知在库里的模型名（打开时来自既有模型，每次录入成功后并入返回的新行）。
  * 用来判断「上游这次没返回的，是不是本来就录过了」——否则上游短返回时会误报
  * 「部分录入」，让用户对着已经录全的列表反复点。
+ *
+ * <p>用 {@code reactive(Set)} 而不是裸 Set：行上的「已加入」标记要在录入成功后
+ * 立刻消失，裸 Set 的 {@code add()} 不会触发视图更新。</p>
  */
-const knownPresent = new Set<string>()
+const knownPresent = reactive(new Set<string>())
 /** 拉取列表行的模型名（上游条目字段名不统一，modelName/name/id 三处都可能有） */
 const fetchRowName = (m: any) => String(m?.modelName ?? m?.name ?? m?.id ?? '')
 
@@ -310,13 +367,54 @@ const isSelected = (m: any) => selected.value.includes(fetchRowName(m))
 const toggleRow = (m: any) => {
   const key = fetchRowName(m)
   if (!key) return
+  // 已经加入当前供应商的模型不参与勾选：再选一次只会走「已存在」跳过，
+  // 却让「已选 N 条」这个数字骗人。
+  if (knownPresent.has(key)) return
   const index = selected.value.indexOf(key)
   if (index >= 0) selected.value.splice(index, 1)
   else selected.value.push(key)
 }
 
+/** 这一行是否已经在库里（已加入当前供应商） */
+const isKnown = (m: any): boolean => {
+  const key = fetchRowName(m)
+  return !!key && knownPresent.has(key)
+}
+
+/** 本次拉取里还没入库的行：只有这些值得勾选 / 批量录入 */
+const importableRows = computed(() => fetched.value.filter((m: any) => !isKnown(m)))
+
+/** 本次拉取里已经在库的行数（用于「共 N 条 · 已加入 M」的口径） */
+const knownInFetched = computed(() => fetched.value.filter((m: any) => isKnown(m)).length)
+
+/** 当前筛选结果里还没入库的行 */
+const filteredImportable = computed(() => filtered.value.filter((m: any) => !isKnown(m)))
+
+/** 当前筛选结果是否已全选（只算还没入库的行） */
+const allFilteredSelected = computed(() =>
+  filteredImportable.value.length > 0
+  && filteredImportable.value.every((m: any) => isSelected(m)))
+
+/**
+ * 全选 / 取消全选当前筛选结果。
+ *
+ * <p>只作用于「筛选后且还没入库」的行：用户搜完 duckduckgo 再点全选，
+ * 拿到的就是这 5 条，而不是把 186 条网关模型一起勾上。</p>
+ */
+const toggleSelectFiltered = () => {
+  const keys = filteredImportable.value.map(fetchRowName).filter(Boolean)
+  if (allFilteredSelected.value) {
+    selected.value = selected.value.filter((k) => !keys.includes(k))
+    return
+  }
+  for (const key of keys) {
+    if (!selected.value.includes(key)) selected.value.push(key)
+  }
+}
+
 /** 当前筛选结果里的免费模型（价格已知且输入输出均为 0） */
-const freeRows = computed(() => filtered.value.filter((m) => modelPriceOf(m).free))
+const freeRows = computed(() =>
+  filtered.value.filter((m: any) => !isKnown(m) && modelPriceOf(m).free))
 
 /** 免费行是否已全选 */
 const allFreeSelected = computed(() =>
@@ -395,9 +493,20 @@ const ioTitleOf = (m: any): string => {
 }
 
 const filtered = computed(() => {
-  if (!searchName.value) return fetched.value
+  // 「只看未加入」先过一遍：渠道拉出来的 186 条里常常已经录了大半，
+  // 用户要的是「还差哪些」，不是再从头翻一遍。
+  const rows = onlyImportable.value
+    ? fetched.value.filter((m) => !isKnown(m))
+    : fetched.value
+  if (!searchName.value) return rows
   const term = searchName.value.toLowerCase()
-  return fetched.value.filter((m) => m.modelName.toLowerCase().includes(term))
+  // 除模型名外，同时匹配来源渠道（provider，如 duckduckgo）与描述：
+  // 渠道模型的模型名不含渠道名（如 gpt-6-luna ← duckduckgo 渠道），
+  // 只按名称搜会漏掉整个渠道，用户没法按「来源」挑模型
+  return rows.filter((m) =>
+    m.modelName.toLowerCase().includes(term)
+    || String((m as any).provider || '').toLowerCase().includes(term)
+    || String((m as any).description || '').toLowerCase().includes(term))
 })
 
 /** 输入模态的展示顺序，同时是「具体程度」顺序：越靠后越具体（文本 → 向量） */
@@ -573,10 +682,14 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
   currentProvider.value = provider
   // 账号渠道 provider：模型目录由渠道管理页统一管理，不走云端 fetchRemoteModels（没有 apiKey）
   const channelProviderFlag = isChannelProvider(provider)
-  const channelPlatform = String(provider?.platform || provider?.provider || provider?.id || '').toLowerCase()
-  // FreeChannel 是模型路由表聚合，不是 OAuth 渠道：即使不配置自身 Key，也应直接
-  // 读取后端 extra.routes 的路由键清单，而不是拦在「请先配 API 地址与 Key」。
+  // 原始平台标识（后端 sys_account_channel.platform，如 DUCKDUCKGO / IMAGE-POLLINATIONS）。
+  // ⚠️ 不能用 provider.platform：mapProvider 已把 platform 覆盖成「品牌名」，
+  // 认不出品牌时会变成 custom，拿去查渠道会落到一个不存在的渠道上。
   const rawPlatform = String(provider?.rawPlatform || provider?.platform || provider?.provider || '').toLowerCase()
+  const channelPlatform = String(rawPlatform || provider?.id || '').toLowerCase()
+  // FreeChannel 是路由聚合渠道，不是 OAuth 渠道：即使不配置自身 Key，也应直接
+  // 读取后端运行时合并的模型清单（渠道管理已启用模型 + 静态兜底），
+  // 而不是拦在「请先配 API 地址与 Key」。
   const freeChannelProvider = rawPlatform === 'free-channel' || rawPlatform === 'free'
   // 免登录内置渠道（DuckDuckGo 等）：没有地址、没有 Key，模型目录由后端 ChatClient
   // 扩展提供；渠道管理物化出来的 chat-<渠道> 行同样按这个口径处理（不走去 /api/channels 查账号）
@@ -593,6 +706,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
     // 渠道 provider：从渠道管理页拉取已启用模型（渠道总开关 + 单模型开关双重过滤）
     providerId.value = provider?.id || provider?.provider_id || ''
     openIsChannel.value = true
+    openKeyless.value = false
     existingModels = models || []
     knownPresent.clear()
     for (const m of existingModels) {
@@ -600,6 +714,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
       if (n) knownPresent.add(n)
     }
     searchName.value = ''
+    onlyImportable.value = false
     fetched.value = []
     selected.value = []
     loadError.value = ''
@@ -612,12 +727,77 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
       const allChannels: any[] = (res as any)?.data ?? res
       const channelList = Array.isArray(allChannels) ? allChannels : []
       const hit = channelList.find((c: any) => c.channel === channelPlatform || c.providerId === provider?.id)
-      if (!hit) throw new Error('未找到该渠道信息，请先到渠道管理页绑定账号')
-      if (hit.enabled === false) throw new Error('该渠道当前未启用，请在渠道管理页开启总开关')
-      // 从渠道摘要的 models 字段取已启用模型
-      const rawModels: any[] = Array.isArray(hit.models) ? hit.models : []
-      const enabledModels = rawModels.filter((m: any) => m.enabled !== false)
-      const apiModels: any[] = enabledModels.map((m: any) => {
+      // /api/channels 只列「需要登录账号」的 AI 渠道；文生图 / 视频 / 3D 这类免登录
+      // 内置渠道不在里面，但它们在 /api/providers 里同样是 oauth 形态的行。
+      // 所以这里不再一找不到就报错：先按渠道标识问一次内置目录，能拿到就照常展示。
+      if (hit && hit.enabled === false) throw new Error('该渠道当前未启用，请在渠道管理页开启总开关')
+      // 渠道摘要里的 models 是「这个渠道已导入的模型行」（含未启用），不是「已启用」。
+      // 获取模型要回答的是「这个渠道有哪些模型」：只取 enabled 会让 82 个模型的渠道
+      // 只显示 1 个，其它渠道看起来一个都没有。
+      let rawModels: any[] = Array.isArray(hit?.models) ? hit.models : []
+      // 免登录渠道不在 /api/channels 里（那份清单只有账号渠道），但从渠道管理页
+      // 「拉取模型」落库的行是真实存在的。不补这一次读取，弹框只显示实时目录，
+      // 目录为空（如视频渠道）时还会误报「未找到该渠道」。
+      if (!hit) {
+        try {
+          const cfg: any = await channelApi.modelConfig(channelPlatform)
+          const savedRows = (cfg?.data ?? cfg)?.models
+          if (Array.isArray(savedRows) && savedRows.length) rawModels = savedRows
+        } catch {
+          // 渠道存在但还没有落库行：保持空列表，由实时目录决定
+        }
+      }
+      // 实时目录：账号渠道 = 该账号此刻可用的模型（未绑定账号时拿不到，不算错误）；
+      // 免登录渠道 = 客户端内置清单（含文生图 / 视频 / 3D 渠道的生成模型）。
+      let liveModels: any[] = []
+      // 后端确认这是免登录渠道（keyless）：此时「0 个模型」是实现没声明清单，
+      // 不是渠道不存在，提示语要分开，否则用户会去找一个已经存在的渠道。
+      let liveKeyless = false
+      try {
+        const primary = (hit?.connections ?? []).find((x: any) => x?.primary)
+        const live: any = await channelApi.listModels(
+          channelPlatform,
+          primary?.label ? { label: primary.label } : {},
+        )
+        const liveBody = live?.data ?? live
+        if (liveBody?.keyless === true) {
+          openKeyless.value = true
+          liveKeyless = true
+        }
+        const rows = liveBody?.models
+        if (Array.isArray(rows)) liveModels = rows
+      } catch (error: any) {
+        // 「还没有绑定账号」是正常状态：库里已导入的行依然可用，只在顶部说明原因。
+        const msg = String(error?.message ?? '').trim()
+        if (msg) routeHint.value = msg
+      }
+      // 渠道摘要、库内行、内置目录全都拿不到：说明这个 provider 既不是账号渠道，
+      // 也没有对应 SPI，报一条能指导操作的话，而不是给一个空列表。
+      if (!hit && liveModels.length === 0 && rawModels.length === 0) {
+        throw new Error(liveKeyless
+          ? '该渠道的实现尚未声明模型清单，无法从上游获取'
+          : '未找到该渠道信息，请先到渠道管理页确认渠道已启用')
+      }
+      // 免登录渠道的清单为空但库里已有行：说明实现没声明目录，展示已落库的模型，
+      // 顶部说明原因，而不是把用户已有模型藏起来。
+      if (liveKeyless && liveModels.length === 0 && rawModels.length > 0 && !routeHint.value) {
+        routeHint.value = '该渠道实现未声明模型清单，以下为已落库的模型'
+      }
+      // 以模型名为键合并：库里行优先（带 enabled / alias / 价格 / 上下文窗口），
+      // 实时目录补上「还没导入」的模型。这样每个渠道都能列出自己的 chat + image 模型。
+      const merged = new Map<string, any>()
+      for (const m of rawModels) {
+        const name = m.model || m.modelName || m.alias || m.id
+        if (name) merged.set(String(name), { ...m })
+      }
+      for (const m of liveModels) {
+        const name = m.id || m.name || m.model
+        if (!name) continue
+        const key = String(name)
+        const saved = merged.get(key)
+        merged.set(key, saved ? { ...m, ...saved } : { ...m })
+      }
+      const apiModels: any[] = [...merged.values()].map((m: any) => {
         // 不要把渠道管理返回的价格、modality、tasks 等元数据裁掉；模型列表要能说明
         // 输入/输出能力以及是否免费。渠道摘要字段可能是 contextWindow 驼峰形式。
         const modelName = m.model || m.modelName || m.alias || m.id
@@ -686,6 +866,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
 
   providerId.value = provider?.id || provider?.provider_id || ''
   openIsChannel.value = false
+  openKeyless.value = false
   existingModels = models || []
   knownPresent.clear()
   for (const m of existingModels) {
@@ -706,10 +887,11 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
     if (data && data.success === false) {
       throw new Error(data.error || t('settings.providerDetail.fetchFailed'))
     }
-    // 免费渠道：模型列表来自后端 extra.routes 路由表（不是调上游 /models），
-    // 行用 route_keys 标记（key 即路由键，也是模型名，命中 ChatClient.route(model) 的路由键）。
-    // 未配置路由表时只有 hint 没有模型——后端不抛错，前端也不抛：给用户提示，
-    // 让用户去供应商列表配好路由再拉。
+    // 免费渠道：模型列表来自后端运行时合并的路由表（渠道管理已启用模型 +
+    // 静态兜底 + Magpie 网关，不是调上游 /models），行用 route_keys 标记
+    // （key 即路由键，也是模型名，命中 ChatClient.route(model) 的路由键）。
+    // 无可用模型时只有 hint 没有模型——后端不抛错，前端也不抛：给用户提示，
+    // 让用户去渠道管理启用模型、检查上游连接后再拉。
     const dataField = data?.data as any | undefined
     const isFreeChannel = Boolean(data?.route_keys) || Boolean(dataField?.route_keys)
     const routeHintMessage = (data?.hint as string | undefined) || (dataField?.hint as string | undefined) || ''
@@ -752,7 +934,7 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
     // 明确清除旧错误：上游拉取成功，不能留上一次的痕迹
     loadError.value = ''
     if (isFreeChannel) {
-      // 有路由表时提示拉取完成；未配置路由时只展示 hint（空列表不是成功，不要贺电）
+      // 有模型时提示拉取完成；无可用模型时只展示 hint（空列表不是成功，不要贺电）
       if (routeHintMessage) {
         message.warning(routeHintMessage, { duration: 5000 })
       } else if (enriched.length) {
@@ -979,6 +1161,26 @@ const handleSelect = (model: any) => {
 }
 
 /**
+ * 取模型行自己声明的任务类型。
+ *
+ * <p>渠道行（尤其视频 / 3D）的 {@code tasks} 是后端 SPI 给的权威能力，
+ * {@code inferModelType} 认不出 {@code model_3d} 时会退回 {@code text}，
+ * 直接用它会把这个模型录成「对话」。所以先信 {@code tasks}，再按类型兜底。</p>
+ *
+ * @param m 上游模型行
+ * @returns 任务类型；无声明返回空串
+ */
+const rowTask = (m: any): string => {
+  const list = Array.isArray(m?.tasks) ? m.tasks : []
+  for (const t of list) {
+    const key = String(t ?? '').trim().toLowerCase()
+    if (key) return key
+  }
+  const single = String(m?.task ?? '').trim().toLowerCase()
+  return single
+}
+
+/**
  * 把一行上游模型整理成「保存模型」接口的入参。
  *
  * <p>渠道 provider 没有后端 import-all 通路，只能逐条 createModel；
@@ -996,10 +1198,12 @@ const createModelPayload = (m: any) => {
     modelName: fetchRowName(m),
     alias: m?.alias || '',
     modelType: type,
-    enabled: true,
+    // 开关取自上游行，不预设常量：账号渠道没声明就按关闭录入，由管理员按需开启；
+    // 免登录渠道（对话 / 出图 / 视频 / 3D）的清单本身就是可用集合，直接启用。
+    enabled: openKeyless.value ? true : m?.enabled === true,
     sort_order: 0,
     config: cfg,
-    capabilities: [{ task: TYPE_TO_TASK[type] || 'chat', traits: [] }],
+    capabilities: [{ task: rowTask(m) || TYPE_TO_TASK[type] || 'chat', traits: [] }],
     attachment: caps.includes('attachment'),
     reasoning: caps.includes('reasoning'),
     tool_call: caps.includes('tool_call'),
@@ -1017,13 +1221,16 @@ const createModelPayload = (m: any) => {
 }
 
 /**
- * 一键批量录入（全部）。
+ * 一键批量录入（全部还没入库的行）。
+ *
+ * <p>不再把已加入的模型一起提交：它们在库里已有行，重复提交只会得到一串
+ * 「已存在」跳过，用户看到的「录入 N 条」和他实际新增的数量对不上。</p>
  */
 const handleImportAll = async () => {
-  if (importingAll.value || importing.value || !providerId.value || fetched.value.length === 0) return
+  if (importingAll.value || importing.value || !providerId.value || importableRows.value.length === 0) return
   importingAll.value = true
   try {
-    await doImport(fetched.value, true)
+    await doImport(importableRows.value, true)
   } finally {
     importingAll.value = false
   }
@@ -1079,6 +1286,7 @@ const doImport = async (rows: any[], isAll: boolean) => {
         { duration: 3000 },
       )
       emit('imported')
+      emit('importFinished')
       visible.value = false
       return
     }
@@ -1117,6 +1325,7 @@ const doImport = async (rows: any[], isAll: boolean) => {
       { duration: 3000 },
     )
     emit('imported')
+    emit('importFinished')
     visible.value = false
   } catch (error: any) {
     message.error(
@@ -1148,8 +1357,14 @@ const doImport = async (rows: any[], isAll: boolean) => {
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 窄屏 / 多颗辅助按钮时折行，不把搜索框压成一条细缝 */
+  flex-wrap: wrap;
+  row-gap: 8px;
 }
 .fetch-input { flex: 1; min-width: 0; }
+/* 只看未加入：Element Plus 的 el-checkbox 自带 30px 右外边距，
+   放在这排按钮末尾会把「全部录入」挤到换行，压掉 */
+.fetch-only-new { flex-shrink: 0; margin-right: 0; font-size: 12px; }
 /* 多选批量录入：勾选态 + 底部操作条 */
 .fetch-actions {
   display: flex;
@@ -1166,6 +1381,21 @@ const doImport = async (rows: any[], isAll: boolean) => {
 }
 .fetch-check { flex-shrink: 0; margin-right: 10px; }
 .fetch-row.is-picked { background: color-mix(in srgb, var(--color-primary) 8%, transparent); }
+/* 已加入的行：整行降饱和 + 不可点勾选，视觉上「这条已经处理过」。
+   不用 opacity，否则文字会跟着发灰、读不清。 */
+.fetch-row.is-known { cursor: default; background: var(--el-fill-color-lighter); }
+.fetch-row.is-known:hover { background: var(--el-fill-color-lighter); }
+.fetch-row.is-known .fetch-name { color: var(--el-text-color-secondary); }
+.fetch-known-badge {
+  flex-shrink: 0;
+  padding: 0 8px;
+  font-size: 11.5px;
+  line-height: 20px;
+  border-radius: 10px;
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+  white-space: nowrap;
+}
 .fetch-price {
   flex-shrink: 0;
   padding: 0 6px;

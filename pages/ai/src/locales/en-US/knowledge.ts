@@ -22,6 +22,14 @@ export default {
     checkedAt: 'Checked at',
     unset: 'Not set',
     defaulted: 'Default',
+    // embedding_engine is derived by the backend from the embedding model; it is not a config item (rag_embedding_model was removed)
+    derived: 'Derived from model',
+    // H1: classify errors by type (avoid swallowing everything as "system busy")
+    networkError: 'Network unreachable, please check your connection and retry',
+    unauthorized: 'Session expired, please sign in again',
+    javaVersion: 'Backend not started with Java preview features; add --enable-preview to startup args and retry',
+    serverError: 'Server error, please retry later or contact administrator',
+    checking: 'Checking…',
   },
 
 

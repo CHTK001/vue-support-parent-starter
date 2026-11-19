@@ -932,17 +932,8 @@ export async function getArchiveEntriesWithWasm(
   key: string,
   fileName: string,
 ): Promise<ArchiveScanResponse> {
-  // 获取文件名后缀用于判断是否支持WASM扫描
-  const ext = getFileNameExtension(fileName);
-  const archiveExts = [
-    "zip", "rar", "tar", "gz", "tgz", "tar.gz",
-    "bz2", "tbz2", "tar.bz2", "xz", "txz", "tar.xz",
-    "7z", "zst", "tzst", "tar.zst", "lz4", "tar.lz4",
-    "lzma", "tar.lzma", "jar", "war", "ear", "apk", "ipa",
-  ];
-
   // If not a supported archive type, skip WASM and go straight to backend
-  if (!archiveExts.includes(ext.toLowerCase())) {
+  if (!isArchiveFileName(fileName)) {
     return getArchiveEntries(bucket, key);
   }
 
@@ -978,78 +969,11 @@ export async function getArchiveEntriesWithWasm(
     }
 
     // Backend returned raw archive bytes - try WASM scanning
-    // Lazy-load archive-wasm
-    const archiveWasm = await import("archive-wasm");
-
-    const entries = archiveWasm.extractAll(new Uint8Array(res.data), {
-      recursive: false,
-      normalize: true,
-      ignoreDotDir: true,
-      sizeLimit: 128n * 1024n * 1024n, // 128MB limit, matches backend
-    });
-
-    if (!entries || entries.length === 0) {
-      return {
-        name: fileName,
-        extension: ext.toLowerCase(),
-        archiveSize: res.data.byteLength,
-        fileCount: 0,
-        dirCount: 0,
-        totalSize: 0,
-        compressRate: 0,
-        entries: [],
-      };
+    // 超限的包不进 WASM（整包字节要驻留 wasm 堆，易 OOM），交后端扫描
+    if (res.data.byteLength > MAX_WASM_SCAN_BYTES) {
+      return getArchiveEntries(bucket, key);
     }
-
-    // Convert entries to our format
-    const archiveEntries: ArchiveEntry[] = [];
-    for (const entry of entries) {
-      const path = entry.path ?? "";
-      if (!path || path === ".") continue;
-
-      const isDir = entry.type === "DIR";
-      const name = path.split("/").pop() || path;
-      const size = entry.size ? Number(entry.size) : 0;
-
-      let modified = 0;
-      if (entry.mtime && typeof entry.mtime === "bigint" && entry.mtime > 0n) {
-        modified = Number(entry.mtime / 1000000n);
-      }
-
-      archiveEntries.push({
-        path,
-        name,
-        directory: isDir,
-        size: isDir ? 0 : size,
-        compressedSize: -1,
-        modified,
-      });
-    }
-
-    // Fill implicit directories
-    const allEntries = fillImplicitDirs(archiveEntries);
-
-    const fileEntries = allEntries.filter((e) => !e.directory);
-    const dirEntries = allEntries.filter((e) => e.directory);
-    const totalSize = fileEntries.reduce((sum, e) => sum + e.size, 0);
-
-    const compressRate = totalSize > 0 ? Math.round((res.data.byteLength * 100) / totalSize) : 0;
-
-    return {
-      name: fileName,
-      extension: ext.toLowerCase(),
-      archiveSize: res.data.byteLength,
-      fileCount: fileEntries.length,
-      dirCount: dirEntries.length,
-      totalSize,
-      compressRate,
-      entries: allEntries.sort((a, b) => {
-        if (a.directory !== b.directory) {
-          return a.directory ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name, "zh-Hans-CN");
-      }),
-    };
+    return scanArchiveBytesWithWasm(new Uint8Array(res.data), fileName);
   } catch (e) {
     // WASM failed - fall back to backend ?format=archive JSON endpoint
     console.warn("[archive] WASM scanning failed, falling back to backend:", (e as Error)?.message ?? e);
@@ -1063,6 +987,179 @@ export async function getArchiveEntriesWithWasm(
 function getFileNameExtension(fileName: string): string {
   const parts = fileName.toLowerCase().split(".");
   return parts.length > 1 ? parts[parts.length - 1] : "";
+}
+
+/**
+ * 支持前端 WASM 扫描的压缩包扩展名清单。
+ *
+ * <p>判定口径与后端一致（zip / rar / tar 系 / 7z / jar / apk 等）；
+ * {@code tar.gz} 这类双扩展名按「最后一个点后的段落」命中 {@code gz} 同样覆盖。</p>
+ */
+const ARCHIVE_EXTENSIONS = [
+  "zip", "rar", "tar", "gz", "tgz", "tar.gz",
+  "bz2", "tbz2", "tar.bz2", "xz", "txz", "tar.xz",
+  "7z", "zst", "tzst", "tar.zst", "lz4", "tar.lz4",
+  "lzma", "tar.lzma", "jar", "war", "ear", "apk", "ipa",
+];
+
+/**
+ * 前端 WASM 扫描的压缩包字节上限（与后端解压上限一致）。
+ *
+ * <p>WASM 扫描时整个压缩包字节要驻留 wasm 堆；超过该上限不再进前端扫描，
+ * 交由后端 {@link getArchiveEntries} 扫描，或提示用户先解压。</p>
+ */
+const MAX_WASM_SCAN_BYTES = 128 * 1024 * 1024;
+
+/**
+ * 判断文件名是否为压缩包（按扩展名）。
+ *
+ * @param fileName 文件名（可含路径，只按扩展名判断）
+ * @return true 表示是受支持的压缩包类型
+ */
+export function isArchiveFileName(fileName: string): boolean {
+  const name = fileName.slice(fileName.lastIndexOf("/") + 1);
+  return ARCHIVE_EXTENSIONS.includes(getFileNameExtension(name).toLowerCase());
+}
+
+/**
+ * 用前端 WASM (archive-wasm / libarchive) 把压缩包原始字节扫描成结构清单。
+ *
+ * <p>供两个入口复用：顶层对象经 {@link getArchiveEntriesWithWasm} 取字节后扫描；
+ * 包内嵌套压缩包经 {@link getInnerArchiveEntries} 取条目字节后扫描。</p>
+ *
+ * <p>性能口径：用 {@code extract()} 生成器逐条目<b>只读元数据</b>（路径/类型/大小/时间）。
+ * 生成器模式下 {@code entry.data} 是惰性 getter，不访问就完全不解压、不为条目分配
+ * 数据内存，扫描期内存占用 O(1)；相比 {@code extractAll} 的「全量解压进内存」
+ * （且有 128MB 上限），列清单的成本从「解压整个包」降到「读一遍条目头」，
+ * 大包扫描是数量级提升。</p>
+ *
+ * @param bytes    压缩包原始字节
+ * @param fileName 压缩包文件名（写入响应的 name / extension）
+ * @return 压缩包结构
+ */
+export async function scanArchiveBytesWithWasm(
+  bytes: Uint8Array,
+  fileName: string,
+): Promise<ArchiveScanResponse> {
+  const archiveWasm = await import("archive-wasm");
+
+  // 逐条目只读元数据；绝不触碰 entry.data（触碰即触发该条目解压）
+  const archiveEntries: ArchiveEntry[] = [];
+  for (const entry of archiveWasm.extract(bytes, {
+    normalize: true,
+    ignoreDotDir: true,
+  })) {
+    const path = entry.path ?? "";
+    if (!path || path === ".") continue;
+
+    const isDir = entry.type === "DIR";
+    const name = path.split("/").pop() || path;
+    const size = entry.size ? Number(entry.size) : 0;
+
+    let modified = 0;
+    if (entry.mtime && typeof entry.mtime === "bigint" && entry.mtime > 0n) {
+      modified = Number(entry.mtime / 1000000n);
+    }
+
+    archiveEntries.push({
+      path,
+      name,
+      directory: isDir,
+      size: isDir ? 0 : size,
+      compressedSize: -1,
+      modified,
+    });
+  }
+
+  // Fill implicit directories
+  const allEntries = fillImplicitDirs(archiveEntries);
+
+  const fileEntries = allEntries.filter((e) => !e.directory);
+  const dirEntries = allEntries.filter((e) => e.directory);
+  const totalSize = fileEntries.reduce((sum, e) => sum + e.size, 0);
+
+  const compressRate = totalSize > 0 ? Math.round((bytes.byteLength * 100) / totalSize) : 0;
+
+  return {
+    name: fileName,
+    extension: getFileNameExtension(fileName),
+    archiveSize: bytes.byteLength,
+    fileCount: fileEntries.length,
+    dirCount: dirEntries.length,
+    totalSize,
+    compressRate,
+    entries: allEntries.sort((a, b) => {
+      if (a.directory !== b.directory) {
+        return a.directory ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name, "zh-Hans-CN");
+    }),
+  };
+}
+
+/**
+ * 读取压缩包内某个条目的原始字节（嵌套压缩包下钻用）。
+ *
+ * <p>包内条目走 {@code preview=true&inner=} 通道，网关固定内联回条目字节；
+ * 再补 {@code raw=true} 双保险跳过任何渲染兜底。令牌只走请求头，不进 URL。</p>
+ *
+ * @param bucket    存储桶名
+ * @param key       顶层压缩包对象 Key
+ * @param innerPath 条目在顶层压缩包内的完整路径（多层嵌套时为逐层拼接后的全路径）
+ * @return 条目原始字节
+ */
+export async function fetchInnerEntryBytes(
+  bucket: string,
+  key: string,
+  innerPath: string,
+): Promise<Uint8Array> {
+  let url = await resolveObjectUrl(bucket, key, { params: { preview: "true", inner: innerPath } });
+  if (!url) {
+    throw new Error("获取包内条目地址失败");
+  }
+  url = rawBytesUrl(url);
+  const res = await fetch(url, { headers: authHeaders() });
+  if (!res.ok) {
+    throw new Error(`读取包内文件失败：HTTP ${res.status}`);
+  }
+  const declared = Number(res.headers.get("content-length") || "0");
+  if (declared > MAX_WASM_SCAN_BYTES) {
+    throw new Error(
+      `包内文件约 ${(declared / 1048576).toFixed(0)}MB，超过前端扫描上限（128MB），请先在页面中解压后再预览`,
+    );
+  }
+  const ab = await res.arrayBuffer();
+  if (!ab.byteLength) {
+    throw new Error("包内文件返回空响应体");
+  }
+  return new Uint8Array(ab);
+}
+
+/**
+ * 查询压缩包内嵌套压缩包的条目清单（原位下钻）。
+ *
+ * <p>取该条目字节后在前端 WASM 扫描，不依赖服务端 {@code ?format=archive}
+ * （该通道只对顶层对象生效）。扫描失败（损坏 / 加密 / 不支持的算法）时抛出
+ * 可读错误，由调用方以提示呈现、当前浏览层级保持不变。</p>
+ *
+ * @param bucket    存储桶名
+ * @param key       顶层压缩包对象 Key
+ * @param innerPath 嵌套压缩包条目的全路径（逐层拼接）
+ * @param fileName  嵌套压缩包文件名（判型 / 展示用）
+ * @return 嵌套压缩包结构
+ */
+export async function getInnerArchiveEntries(
+  bucket: string,
+  key: string,
+  innerPath: string,
+  fileName: string,
+): Promise<ArchiveScanResponse> {
+  try {
+    const bytes = await fetchInnerEntryBytes(bucket, key, innerPath);
+    return await scanArchiveBytesWithWasm(bytes, fileName);
+  } catch (e) {
+    throw new Error(toErrorMessage(e, `解析嵌套压缩包「${fileName}」`));
+  }
 }
 
 /**

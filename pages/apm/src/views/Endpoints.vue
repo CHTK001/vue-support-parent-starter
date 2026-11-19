@@ -134,10 +134,15 @@ import type { ApmEndpoint } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
 import { consumeApmTabContext } from "../tabs";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
 import { errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
 
 const router = useRouter();
 const { present, ensure } = useApmStatus();
+
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "endpoints";
 
 const endpoints = ref<ApmEndpoint[]>([]);
 const services = ref<string[]>([]);
@@ -248,5 +253,20 @@ onMounted(async () => {
   }
   await loadServices();
   load();
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：从服务页签跳过来时 {@link onMounted} 不会重跑，
+ * 服务名在这里接住。普通切回不自动重查 —— 未选服务时本页要按服务清单
+ * 逐个并发查询，每次切页签都打一遍会把 OAP 打满；新鲜度交给自动刷新。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (context?.service) {
+    service.value = context.service;
+  }
+  if (context) {
+    load();
+  }
 });
 </script>

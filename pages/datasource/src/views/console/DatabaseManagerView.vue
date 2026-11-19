@@ -114,6 +114,11 @@
                 @click="onPageChange(tableData.page + 1)"
               />
             </span>
+            <!-- 持久统计：当前页行数 + 本次加载耗时。行数按「后端实际返回」算，
+                 不按 pageSize 猜 —— 末页 / 过滤后行数本来就少于页容量。 -->
+            <span class="dbm-pager-stat" data-testid="dbm-pager-stat">
+              {{ tableData.rows.length }} 行 · {{ tableLoadElapsedMs }} ms
+            </span>
           </div>
         </template>
         <!-- 表视图设置簇：与 .dbm-table-view 同一 v-if 条件，表页签激活才出现 -->
@@ -251,6 +256,11 @@
                     />
                     <ReIcon name="Grid" :size="14" class="dbm-tree-icon dbm-table-icon" />
                     <span class="dbm-tree-label" :title="table.remark || table.name">{{ table.name }}</span>
+                    <span
+                      v-if="tableRowCounts[db + '.' + table.name] !== undefined"
+                      class="dbm-tree-count dbm-table-row-count"
+                      :title="`约 ${tableRowCounts[db + '.' + table.name]} 行`"
+                    >{{ tableRowCounts[db + '.' + table.name] }}</span>
                     <span v-if="table.remark" class="dbm-tree-remark">{{ table.remark }}</span>
                   </div>
                   <div v-if="tableOpen(db, table.name)" class="dbm-tree-children">
@@ -466,6 +476,27 @@
                 v-if="activeFilters.length"
                 class="dbm-filter-badge"
               >{{ activeFilters.length }} 个条件</span>
+              <span class="dbm-filter-sep" />
+              <!-- 全表搜索：任意列 LIKE。与 WHERE 同一条通道（见 combinedWhere），
+                   聚焦棕条即可得「搜全表」；与高级筛选同时生效时按 AND 组合。 -->
+              <span class="dbm-filter-input-wrap dbm-search-input-wrap">
+                <ReIcon name="Search" :size="13" class="dbm-search-input__icon" />
+                <ReInput
+                  v-model="tableSearchQuery"
+                  data-testid="dbm-table-search"
+                  class="dbm-mono dbm-filter-input"
+                  placeholder="全表搜索（任意列包含，Enter）"
+                  clearable
+                  @keyup.enter="applyFilter"
+                />
+              </span>
+              <ReButton
+                layout="square"
+                type="primary"
+                icon="Search"
+                tip="全表搜索（Enter）"
+                @click="applyFilter"
+              />
             </template>
             <span class="dbm-spacer" />
             <!-- 全空列默认折叠必须能看见、能点开：否则用户只会觉得「列怎么少了」 -->
@@ -526,6 +557,11 @@
             :table-id="tableGridId"
             :header-show-overflow-tooltip="true"
             show-selection
+            show-index
+            index-label="#"
+            index-width="46"
+            index-align="center"
+            index-fixed="left"
             stripe
             size="mini"
             :height="findOpen ? 'calc(100% - 92px)' : 'calc(100% - 56px)'"
@@ -564,6 +600,26 @@
                     @keyup.esc="cancelCell"
                     @blur="onEditBlur(row, col)"
                   />
+                  <!-- 显式确认：✓ 保存 / × 取消。失焦与 Enter 已经能提交，
+                       但「改完想确认」没有可见落点，用户只能凭手感赌 blur 会提交；
+                       这两个按钮把保存 / 取消变成显式动作。
+                       @mousedown.prevent 同 NULL 按钮：不让按下瞬间先触发 blur 提交。 -->
+                  <button
+                    type="button"
+                    class="dbm-cell-null-btn dbm-cell-save-btn"
+                    title="保存（Enter）"
+                    data-testid="dbm-cell-save"
+                    @mousedown.prevent
+                    @click.stop="saveCell(row, col)"
+                  >✓</button>
+                  <button
+                    type="button"
+                    class="dbm-cell-null-btn dbm-cell-cancel-btn"
+                    title="取消（Esc）"
+                    data-testid="dbm-cell-cancel"
+                    @mousedown.prevent
+                    @click.stop="cancelCell"
+                  >×</button>
                   <!-- 显式写 NULL：清空输入框保存的是空串（所见即所得），
                        NULL 变成一个需要明确点一下的动作，不再靠「清空」去猜。
                        数字列没有空串语义，空就是 NULL，不需要这个按钮；
@@ -845,9 +901,11 @@
             </div>
             <ReTable
               v-if="queryResult.columns && queryResult.columns.length > 0"
+              ref="queryGridRef"
               :data="queryResult.rows || []"
               :columns="queryColumns"
               :pagination="false"
+              :table-id="queryGridId"
               stripe
               border
               size="mini"
@@ -2285,6 +2343,7 @@ import type { DbTemporalKind } from "../../utils/dbTemporal";
 // 「走 JDBC 协议」的类型判定：jdbc / clickhouse / duckdb 共用同一套元数据管线
 import { isJdbcFamilyType } from "../../jdbcTypes";
 import ReTable from "@repo/ui/re-table";
+import type { ReTableContextMenuItem } from "@repo/ui/re-table";
 import ReContextMenu from "@repo/ui/re-context-menu";
 import ReProcessTask from "@repo/ui/re-process-task";
 import type { ReContextMenuItem } from "@repo/ui/re-context-menu";
@@ -2814,6 +2873,7 @@ async function toggleTable(table: string, db: string): Promise<void> {
     return;
   }
   expandedTables.value.add(key);
+  void ensureTableRowCount(db, table);
   if (!tableColumnsCache[key]) {
     tableColumnsCache[key] = [];
     columnLoading[key] = true;
@@ -2835,6 +2895,53 @@ async function toggleTable(table: string, db: string): Promise<void> {
  */
 function columnsOf(db: string, table: string): DbColumnInfo[] {
   return tableColumnsCache[tableNodeKey(db, table)] || [];
+}
+
+/**
+ * 表节点行数徽标缓存：键 = {@code 库.表}，值 = 行数（缺失 = 还没取过）。
+ *
+ * <p>取一次总数是全表扫描（COUNT(*)/COUNT(1)），懒加载 + 缓存防止每次展开
+ * 树都要打一遍；表数据页签打开 / 刷新时顺带刷新（数据可能已经变了）。</p>
+ */
+const tableRowCounts = ref<Record<string, number>>({});
+
+/** 行数徽标请求是否在途：防止同表连点展开时并发打两遍 COUNT */
+const tableRowCountLoading = ref<Record<string, boolean>>({});
+
+/**
+ * 懒加载某张表的行数（仅当还没有缓存时）。
+ *
+ * @param db    库名
+ * @param table 表名
+ */
+async function ensureTableRowCount(db: string, table: string): Promise<void> {
+  const key = tableNodeKey(db, table);
+  if (key in tableRowCounts.value || tableRowCountLoading.value[key]) return;
+  tableRowCountLoading.value[key] = true;
+  try {
+    // countTotal=true 只求 total，pageSize=1 不拖整页数据：
+    // 后端按 count 参数跳过 COUNT 的时机是相反的 —— count=true 才会算总数
+    const result = await fetchTableData(table, 1, 1, undefined, undefined, currentDatasourceId.value, db, true);
+    if (result.total !== undefined) {
+      // 0 也缓存：空表也是「已知行数」，否则每次展开都重复打一遍 COUNT
+      tableRowCounts.value[key] = result.total;
+    }
+  } catch {
+    // 行数是锦上添花的装饰，失败静默：树不能因为 COUNT 挂了就用不了
+  } finally {
+    tableRowCountLoading.value[key] = false;
+  }
+}
+
+/**
+ * 主动刷新某张表的行数徽标（表数据页签打开 / 数据刷新时调用）。
+ *
+ * @param db    库名
+ * @param table 表名
+ */
+function refreshTableRowCount(db: string, table: string): void {
+  delete tableRowCounts.value[tableNodeKey(db, table)];
+  void ensureTableRowCount(db, table);
 }
 const activeTable = ref<string>("");
 
@@ -2887,6 +2994,14 @@ const activeSqlModel = computed<string>({
 const viewPref = loadViewPref();
 
 const tableData = reactive<DbTableDataResult>({ columns: [], rows: [], total: 0, page: 1, pageSize: viewPref.pageSize });
+
+/**
+ * 最近一次表数据加载耗时（毫秒）。
+ *
+ * <p>只在「请求真正生效」时更新：过期响应（seq 不匹配）不计数，
+ * 否则切表瞬间旧请求晚到会把耗时统计污染成上一张表的值。</p>
+ */
+const tableLoadElapsedMs = ref(0);
 
 // ==================== 数据视图：表头/行显示开关 + 总数开关 ====================
 /**
@@ -3082,6 +3197,41 @@ async function saveColumnRemark(db: string, tableName: string, column: string, r
 /** WHERE 过滤条件（已应用值） */
 const filterWhere = ref("");
 /**
+ * 全表搜索关键词（任意列 LIKE，Navicat 式）。
+ *
+ * <p>与 {@link filterWhere} 独立：搜索框只是把「关键词 → OR 条件」这件事
+ * 收进一个输入框，最终仍拼进同一条 where 通道（后端 sanitizeWhere 只拦
+ * 语句分隔符与注释符，LIKE / OR / 括号全部放行，见 DbConsoleController）。</p>
+ */
+const tableSearchQuery = ref("");
+
+/**
+ * 合并「自由 WHERE + 全表搜索」为最终下发的 where 条件。
+ *
+ * <p>两者都是自由文本通道：回到 {@code loadTableData} 时只认一个 where 参数，
+ * 这里把搜索词展开成 {@code (col1 LIKE '%q%' OR col2 LIKE '%q%' …)} 再与
+ * 用户手写的 WHERE 按 AND 组合。列名取自已加载的真实列（tableData.columns
+ * 或本次行的键），不猜表结构；空结果返回 undefined（不过滤）。</p>
+ *
+ * @returns 合并后的 WHERE；无任何条件时返回 undefined
+ */
+function combinedWhere(): string | undefined {
+  const parts: string[] = [];
+  const kw = tableSearchQuery.value.trim();
+  if (kw) {
+    const cols = tableData.columns.length ? tableData.columns : (tableData.rows[0] ? Object.keys(tableData.rows[0]) : []);
+    if (cols.length > 0) {
+      // LIKE 里的单引号按 SQL 字面量规则转义；% / _ 留给用户当通配符
+      const esc = kw.replace(/'/g, "''");
+      parts.push(`(${cols.map(c => `\`${c}\` LIKE '%${esc}%'`).join(" OR ")})`);
+    }
+  }
+  if (filterWhere.value.trim()) {
+    parts.push(`(${filterWhere.value.trim()})`);
+  }
+  return parts.length > 0 ? parts.join(" AND ") : undefined;
+}
+/**
  * WHERE 过滤条是否展开。
  *
  * <p>默认**折叠**：表页签一打开就是「干净的网格」，WHERE 那行只在需要时出现
@@ -3112,6 +3262,7 @@ function resetTableQueryState() {
   sortState.prop = "";
   sortState.order = "";
   filterWhere.value = "";
+  tableSearchQuery.value = "";
   activeFilters.value = [];
   filterDraft.value = [];
 }
@@ -3178,6 +3329,7 @@ function applyFilter(): void {
  */
 function clearFilter(): void {
   filterWhere.value = "";
+  tableSearchQuery.value = "";
   activeFilters.value = [];
   filterDraft.value = [];
   applyFilter();
@@ -3199,7 +3351,7 @@ const activeFilters = ref<DbFilterCondition[]>([]);
  * <p>两套机制独立（见上），但对「过滤条该不该自己弹开」这件事是一回事：
  * 只要数据被过滤了，条件就必须摆在明面上。</p>
  */
-const filterActive = computed(() => filterWhere.value.trim() !== "" || activeFilters.value.length > 0);
+const filterActive = computed(() => filterWhere.value.trim() !== "" || tableSearchQuery.value.trim() !== "" || activeFilters.value.length > 0);
 watch(filterActive, (active) => {
   if (active) filterBarOpen.value = true;
 });
@@ -3439,7 +3591,18 @@ const GRID_MENU_VIEW = [
   { key: "drop", label: "删除视图", icon: Delete },
 ];
 
-const gridMenuItems = computed(() => (activeIsView.value ? GRID_MENU_VIEW : GRID_MENU_TABLE));
+const gridMenuItems = computed<ReTableContextMenuItem[]>(() => {
+  const base = activeIsView.value ? GRID_MENU_VIEW : GRID_MENU_TABLE;
+  // 多选时在「复制该行（插入副本）」之前插入「复制选中的 N 行为 INSERT」：
+  // 批量复制是复制该行的高频升级形态，放最前面最顺手。
+  if (selection.value.length > 1) {
+    return [
+      { key: "copy-insert-selection", label: `复制选中的 ${selection.value.length} 行为 INSERT`, icon: CopyDocument },
+      ...base,
+    ];
+  }
+  return base;
+});
 
 /**
  * 生成 SELECT 语句（视图行唯一的复制形态：视图不可写，复制出来只能是查它的语句）
@@ -3467,6 +3630,27 @@ function rowToInsert(row: Record<string, unknown>): string {
   const cols = tableData.columns.length ? tableData.columns : Object.keys(row);
   const values = cols.map(c => sqlLiteral(row[c])).join(", ");
   return `INSERT INTO ${tab.tableName} (${cols.map(c => `\`${c}\``).join(", ")}) VALUES (${values});`;
+}
+
+/**
+ * 把多行拼成一条多值 INSERT（Navicat 式复制选中的 N 行为 INSERT）。
+ *
+ * <p>列以第一行为准：网格里每行的列序一致，直接取首行键即可；
+ * 空选择 / 空表直接返回空串，不弹「复制的是一堆空行」。</p>
+ *
+ * <p>自增列按 {@link duplicateRow} 同一口径剔除：多选复制的典型用途就是
+ * 「把这份数据再插一份」，带着自增 ID 插回去必然撞主键。单行「复制为
+ * INSERT 语句」保留全列（那是一份所见即所得的完整语句）。</p>
+ *
+ * @param rows 选中行
+ * @returns 多值 INSERT；无行时返回空串
+ */
+function rowsToInsert(rows: Record<string, unknown>[]): string {
+  const tab = activeTabObj.value;
+  if (!tab?.tableName || rows.length === 0) return "";
+  const cols = (tableData.columns.length ? tableData.columns : Object.keys(rows[0])).filter(c => !isAutoIncrement(c));
+  const values = rows.map(r => `(${cols.map(c => sqlLiteral(r[c])).join(", ")})`).join(",\n  ");
+  return `INSERT INTO ${tab.tableName} (${cols.map(c => `\`${c}\``).join(", ")}) VALUES\n  ${values};`;
 }
 
 /**
@@ -3517,6 +3701,7 @@ function onGridMenuSelect(item: { key: string }, ctx: { row: Record<string, unkn
     case "edit": openEditRowDialog(ctx.row); break;
     case "duplicate": void duplicateRow(ctx.row); break;
     case "copy-insert": void copyText(rowToInsert(ctx.row)); break;
+    case "copy-insert-selection": void copyText(rowsToInsert(selection.value)); break;
     case "copy-update": void copyText(rowToUpdate(ctx.row)); break;
     case "copy-json": void copyText(JSON.stringify(ctx.row, null, 2)); break;
     case "copy-select": void copyText(rowToSelect(ctx.row)); break;
@@ -6447,6 +6632,7 @@ function showResultSet(r: DbStatementResult | undefined): void {
     affectedRows: r?.affectedRows,
     message: r?.message,
   });
+  fitQueryResultColumns();
 }
 
 // ---------- 查询历史（落 localStorage，刷新后仍在） ----------
@@ -7107,6 +7293,8 @@ function openTableData(tableName: string, database = activeDatabase.value) {
   // 但不能只清不恢复 —— 用户为这张表配好的条件会白配。
   restoreTablePref(tab);
   tableData.page = 1;
+  // 行数徽标：打开表时顺带刷新一次，数据可能已经被别的会话改过
+  void refreshTableRowCount(tab.database ?? activeDatabase.value, tableName);
   // 元数据（注释 / 类型 / 主键）随表走：命中缓存时这里一次请求都不发，
   // 但必须重新应用一次 —— 否则 B 表的表头注释与主键会留在 A 表上。
   void loadTableMeta(tab);
@@ -8351,11 +8539,12 @@ function restoreTablePref(tab: { tableName?: string; database?: string }, notify
   tabPrefRestoring = true;
   try {
     filterWhere.value = pref?.filterWhere ?? "";
+    tableSearchQuery.value = pref?.searchQuery ?? "";
     activeFilters.value = (pref?.filters ?? []).map(f => ({ ...f }));
   } finally {
     tabPrefRestoring = false;
   }
-  if (notify && pref && (pref.filterWhere || pref.filters.length > 0)) {
+  if (notify && pref && (pref.filterWhere || pref.searchQuery || pref.filters.length > 0)) {
     message.info(`已恢复该表的筛选条件（${pref.filters.length} 个条件）`);
   }
 }
@@ -8364,13 +8553,14 @@ function restoreTablePref(tab: { tableName?: string; database?: string }, notify
 function persistTablePref(): void {
   const key = tablePrefKey();
   if (!key) return;
-  if (!filterWhere.value && activeFilters.value.length === 0) {
+  if (!filterWhere.value && !tableSearchQuery.value && activeFilters.value.length === 0) {
     // 没有筛选就别留空记录，否则容量上限会被一堆空条目占满
     clearTablePref(key);
     return;
   }
   saveTablePref(key, {
     filterWhere: filterWhere.value,
+    searchQuery: tableSearchQuery.value,
     filters: activeFilters.value.map(f => ({ ...f })),
   });
 }
@@ -8379,6 +8569,7 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
   if (!tab?.tableName) return;
   const seq = ++tableDataReqSeq.value;
   tableLoading.value = true;
+  const started = Date.now();
   try {
     const result = await fetchTableData(
       tab.tableName,
@@ -8389,13 +8580,14 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
       currentDatasourceId.value,
       tab.database,
       showTotal.value,
-      filterWhere.value || undefined,
+      combinedWhere(),
       activeFilters.value.length > 0 ? activeFilters.value : undefined,
     );
     // 期间可能已切表/切页签：过期响应直接丢弃，否则会把网格写回上一张表
     if (seq !== tableDataReqSeq.value || activeTab.value !== tab.id) {
       return;
     }
+    tableLoadElapsedMs.value = Date.now() - started;
     Object.assign(tableData, result);
     if (!showTotal.value) {
       // 后端已经按 count 参数跳过 COUNT(*)（count=false 时 total 回 -1）：
@@ -8614,7 +8806,7 @@ async function silentRefreshTableData(tab: Tab | undefined) {
       currentDatasourceId.value,
       tab.database,
       showTotal.value,
-      filterWhere.value || undefined,
+      combinedWhere(),
       activeFilters.value.length > 0 ? activeFilters.value : undefined,
     );
     if (seq !== tableDataReqSeq.value || activeTab.value !== tab.id) {
@@ -8731,6 +8923,7 @@ async function executeQuery() {
     resultSets.value = [{ ...result }];
     activeResultSet.value = 0;
     pushQueryHistory(tab.sql, describeResult(result));
+    fitQueryResultColumns();
   } catch (e) {
     const msg = "执行失败: " + String((e as Error)?.message ?? e);
     queryResult.message = msg;
@@ -9017,6 +9210,7 @@ async function executeExplain(): Promise<void> {
     Object.assign(queryResult, result);
     resultSets.value = [{ ...result }];
     activeResultSet.value = 0;
+    fitQueryResultColumns();
     message.success(`执行计划已生成（${Date.now() - started} ms）`);
   } catch (e) {
     message.error(`生成执行计划失败: ${String((e as Error)?.message ?? e)}`);
@@ -9507,6 +9701,44 @@ interface DataGridWidthApi {
 
 /** 数据网格实例（只用到列宽那几个方法） */
 const dataGridRef = ref<DataGridWidthApi | null>(null);
+
+/**
+ * 查询结果网格实例。
+ *
+ * <p>与 {@link dataGridRef} 独立：两个表格的列宽状态不该互相干扰，
+ * 表视图的「重置列宽 / 设置列宽」全部走 dataGridRef，查询结果只在这
+ * 里用 autoFit。</p>
+ */
+const queryGridRef = ref<DataGridWidthApi | null>(null);
+
+/**
+ * 查询结果表存储键。
+ *
+ * <p>查询结果列随 SQL 动态变化，如果让它回落到路由 path 命名空间，
+ * 会与设计视图的索引 / 外键表共享同一份列宽缓存 —— 用户在查询结果
+ * 里拖的宽度会串到索引表上。这里按数据源独立一份命名空间。</p>
+ */
+const queryGridId = computed(() =>
+  currentDatasourceId.value ? `dbm-query:${currentDatasourceId.value}` : "dbm-query",
+);
+
+/**
+ * 查询结果落盘后自动适配列宽。
+ *
+ * <p>查询列是每次 SQL 动态生成的，默认宽度只靠列定义兜底，长文本列
+ * 常常放不下。只在列数 ≤ 50 时适配：量字 + 整表重排会抢主线程，
+ * 百列大结果集场景不做（与表视图「重置列宽」按钮的 autoFit 走的是
+ * 同一个 re-table 能力，这里只是自动触发）。</p>
+ *
+ * <p>结果要等 v-if 把表格渲染出来 ref 才有实例，故包一层 nextTick。</p>
+ */
+function fitQueryResultColumns(): void {
+  const cols = queryResult.columns ?? [];
+  if (cols.length === 0 || cols.length > 50) return;
+  void nextTick(() => {
+    queryGridRef.value?.autoFitColumns();
+  });
+}
 
 /**
  * 重量表头高度。
@@ -11377,6 +11609,12 @@ onBeforeUnmount(() => {
   transition: background 0.14s ease, color 0.14s ease;
 }
 .dbm-tree-node:hover .dbm-tree-count { background: var(--el-fill-color-dark, var(--el-fill-color)); }
+/* 表节点行数徽标与库节点计数不同：库节点计数顶在行尾（flex-end），
+   表节点徽标紧跟表名、备注排最后（flex 顺序决定备注占尾）。
+   这里只撤销 margin-left:auto，其余药丸样式与 .dbm-tree-count 共用。 */
+.dbm-table-row-count {
+  margin-left: 6px;
+}
 .dbm-tree-node.active .dbm-tree-count {
   background: var(--el-color-primary-light-8);
   color: var(--el-color-primary);
@@ -12504,6 +12742,31 @@ onBeforeUnmount(() => {
   color: var(--el-color-primary);
   border-color: var(--el-color-primary);
 }
+/* ✓ 保存 / × 取消：比 NULL 更窄一点，z 序不受 flex 影响，排在最右 */
+.dbm-cell-save-btn,
+.dbm-cell-cancel-btn {
+  flex: none;
+  padding: 1px 5px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+.dbm-cell-save-btn {
+  color: var(--el-color-success);
+  border-color: var(--el-color-success-light-5);
+}
+.dbm-cell-save-btn:hover {
+  color: #fff;
+  background: var(--el-color-success);
+  border-color: var(--el-color-success);
+}
+.dbm-cell-cancel-btn {
+  color: var(--el-text-color-secondary);
+}
+.dbm-cell-cancel-btn:hover {
+  color: var(--el-color-danger);
+  border-color: var(--el-color-danger);
+}
 
 /* 设计视图子页签（胶囊分段） */
 .dbm-subtabs {
@@ -12562,6 +12825,15 @@ onBeforeUnmount(() => {
   color: var(--el-text-color-secondary);
 }
 .dbm-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
+/* 表视图持久统计（行数 + 耗时）：紧贴翻页器右侧，弱化字号不抢主操作 */
+.dbm-pager-stat {
+  margin-left: 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  user-select: none;
+}
 
 /* 添加用户：权限多选网格 */
 .dbm-user-grants { display: flex; flex-wrap: wrap; gap: 4px 16px; }
@@ -12808,6 +13080,20 @@ onBeforeUnmount(() => {
   display: block;
 }
 .dbm-filter-input-wrap :deep(.el-input) { width: 100%; }
+/* 全表搜索输入框：视觉上比自由 WHERE 略窄，左侧放放大镜图标。
+   ReIcon 是 inline 元素，包一层内联-flex 让 icon 与输入框垂直居中。 */
+.dbm-search-input-wrap {
+  flex: 0 1 260px;
+  max-width: 32vw;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dbm-search-input-wrap :deep(.el-input) { flex: 1 1 auto; min-width: 0; }
+.dbm-search-input__icon {
+  flex: none;
+  color: var(--el-text-color-placeholder);
+}
 /* 已生效条件数：用户得知道「现在看到的行是被筛过的」 */
 .dbm-filter-badge {
   flex: none;

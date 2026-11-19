@@ -33,6 +33,7 @@ const form = ref<AppSettings>({
 
 const saving = ref(false);
 const loaded = ref(false);
+const loadError = ref("");
 
 watch(
   () => settingsStore.settings,
@@ -45,7 +46,7 @@ watch(
   { immediate: true, deep: true },
 );
 
-/** 从后端加载设置并同步到表单 */
+/** 从后端加载设置并同步到表单（失败给出错误条 + 重试，不再只弹 toast） */
 async function load() {
   try {
     const s = await settingsStore.loadSettings();
@@ -53,13 +54,18 @@ async function load() {
       form.value = { ...form.value, ...s };
       loaded.value = true;
     }
+    loadError.value = "";
   } catch (e: any) {
-    message.error(`设置加载失败：${e?.message ?? e}`);
+    loadError.value = e?.message ?? String(e);
   }
 }
 
-/** 保存设置到后端 */
+/** 保存设置到后端（启用代理时先做地址格式前置校验） */
 async function onSave() {
+  if (form.value.proxyEnabled && !/^https?:\/\/\S+$/i.test((form.value.proxyUrl ?? "").trim())) {
+    message.error("代理地址格式不正确，需形如 http://host:port");
+    return;
+  }
   saving.value = true;
   try {
     await settingsStore.saveSettings(form.value);
@@ -85,6 +91,17 @@ onMounted(() => {
           <span>全局设置</span>
         </div>
       </template>
+
+      <el-alert
+        v-if="loadError"
+        type="error"
+        :title="`设置加载失败：${loadError}`"
+        :closable="false"
+        show-icon
+        class="load-error"
+      >
+        <el-button size="small" type="primary" plain @click="load()">重试</el-button>
+      </el-alert>
 
       <el-form label-width="140px" label-position="left" size="default">
         <el-divider content-position="left">数据源</el-divider>
@@ -159,5 +176,8 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   width: 100%;
+}
+.load-error {
+  margin-bottom: 12px;
 }
 </style>

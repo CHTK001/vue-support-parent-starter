@@ -132,12 +132,22 @@ export const listRoomFiles = (roomId: string, keyword?: string) =>
     .query({ roomId, keyword })
     .then((r) => unwrapResult<RoomFile[]>(r));
 
-/** 上传文件（SSE 回显进度） */
-export const uploadRoomFile = (roomId: string, file: File) =>
-  http()
+/** 上传文件（multipart；axios onUploadProgress 回传真实进度） */
+export const uploadRoomFile = (roomId: string, file: File, onProgress?: (pct: number) => void) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return http()
     .post(`${B}/room/${encodeURIComponent(roomId)}/files`)
-    .data({ file })
+    .data(fd)
+    .uploadProgress((e) => {
+      if (onProgress && e.total) onProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
+    })
     .then((r) => unwrapResult<RoomFile>(r));
+};
 
-/** 下载文件 */
-export const downloadRoomFile = (id: string) => `${B}/room/files/${encodeURIComponent(id)}/download`;
+/** 下载文件（走统一 http 实例携带鉴权，返回 Blob 交给 downloadBlob 落盘） */
+export const downloadRoomFileBlob = (id: string) =>
+  http()
+    .get(`${B}/room/files/${encodeURIComponent(id)}/download`)
+    .responseType("blob")
+    .then((r) => r.data as Blob);

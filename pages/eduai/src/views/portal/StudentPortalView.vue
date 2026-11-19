@@ -77,15 +77,23 @@
         v-else-if="stage === 'PRIMARY'"
         :overview="overview"
         :modules="modules"
+        :ready-codes="embeddedCodes"
         @open="openModule"
       />
       <JuniorHome
         v-else-if="stage === 'JUNIOR'"
         :overview="overview"
         :modules="modules"
+        :ready-codes="embeddedCodes"
         @open="openModule"
       />
-      <SeniorHome v-else :overview="overview" :modules="modules" @open="openModule" />
+      <SeniorHome
+        v-else
+        :overview="overview"
+        :modules="modules"
+        :ready-codes="embeddedCodes"
+        @open="openModule"
+      />
     </template>
 
     <!--
@@ -138,6 +146,7 @@
           :class="{ 'is-ready': !!EMBEDDED[m.moduleCode] }"
           @click="openModule(m.moduleCode)"
         >
+          <span v-if="!EMBEDDED[m.moduleCode]" class="portal-allmods__wip">建设中</span>
           <span
             class="portal-allmods__ic"
             :style="{ background: `linear-gradient(135deg, ${m.color}, ${m.colorTo})` }"
@@ -226,7 +235,7 @@
  * 学生不该看到管理员那套导航。
  */
 import { message } from "@repo/core";
-import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from "vue";
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import {
@@ -283,6 +292,9 @@ const EMBEDDED: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   insect: defineAsyncComponent(() => import("../InsectView.vue")),
 };
 
+/** 已内嵌模块码集合：传给三个首页做「建设中」灰态（唯一事实源 = EMBEDDED 的键） */
+const embeddedCodes = Object.keys(EMBEDDED);
+
 /** 当前内嵌打开的模块；null 表示停留在学生端首页 */
 const activeModule = ref<{
   code: string;
@@ -292,6 +304,44 @@ const activeModule = ref<{
 
 /** 「查看更多功能」面板是否展开（就地覆盖在首页之上，不跳路由） */
 const showAllModules = ref(false);
+
+/**
+ * 静默刷新首页数据（不进加载态、失败不弹提示）。
+ *
+ * <p>学生玩完模块回到首页时，跑道小人、进度条、彩旗必须反映最新进度。
+ * 布局对路由组件按 {@code route.fullPath} 做 key 且套了 keep-alive：首页实例
+ * 若被缓存复用，从内嵌模块返回时 onMounted 不会重跑，数据就停在进入模块之前。
+ * 这里在关闭模块时补一拍刷新，保证「回来即看到进步」；若实例未被缓存，
+ * 本次请求与重挂载的 load() 重叠一次，开销可忽略。</p>
+ */
+async function refreshOverview(): Promise<void> {
+  try {
+    const ov = await eduaiApi.studentOverview();
+    // 期间若已退出登录/解绑，不要把 bound=false 的空壳盖到首页上
+    if (ov?.bound) {
+      overview.value = ov;
+    }
+  } catch {
+    // 静默失败：沿用旧数据，学生下次返回模块时会再试
+  }
+}
+
+/**
+ * 页面回到前台时静默刷新首页数据。
+ *
+ * <p>学生把标签页切走再切回来（或在别的设备上学了一段时间），跑道上的进度
+ * 应当是最新值。模块进行中不刷 —— 此时首页被模块覆盖，刷了也看不见，还可能
+ * 与模块内的计数请求打架；首次加载中也不刷，交给 load() 自己收尾。</p>
+ */
+function onPortalVisibilityChange(): void {
+  if (document.visibilityState !== "visible") {
+    return;
+  }
+  if (loading.value || activeModule.value) {
+    return;
+  }
+  void refreshOverview();
+}
 
 /**
  * 收起当前内嵌模块，回到学生端首页。
@@ -306,6 +356,8 @@ const showAllModules = ref(false);
 function closeModule(): void {
   activeModule.value = null;
   showAllModules.value = false;
+  // 回首页即刷新进度（见 refreshOverview 注释）
+  void refreshOverview();
   if (typeof route.query.m !== "string" || !route.query.m) {
     return;
   }
@@ -802,6 +854,11 @@ async function submitChangePassword() {
 onMounted(() => {
   adoptImpersonationToken();
   void load();
+  // 切走再切回前台：静默补一拍进度，保证「回来即最新」（见 onPortalVisibilityChange）
+  document.addEventListener("visibilitychange", onPortalVisibilityChange);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("visibilitychange", onPortalVisibilityChange);
 });
 </script>
 
@@ -1245,6 +1302,7 @@ onMounted(() => {
   align-content: start;
 }
 .portal-allmods__item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1273,6 +1331,19 @@ onMounted(() => {
 .portal-allmods__item:not(.is-ready) {
   cursor: not-allowed;
   opacity: 0.55;
+}
+/* 「建设中」角标：与灰态配合，明确告知该模块暂未开放 */
+.portal-allmods__wip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-radius-full, 9999px);
 }
 .portal-allmods__ic {
   display: inline-flex;

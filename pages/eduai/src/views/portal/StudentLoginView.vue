@@ -159,6 +159,7 @@ import { onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import mascotBook from "../../assets/mascot-book.png";
+import { errText } from "../../api/errorText";
 
 const router = useRouter();
 
@@ -205,40 +206,25 @@ function isStudentAccountMissing(e: unknown): boolean {
 }
 
 /**
- * 把任意「抛出物」转成可展示的文案。
+ * 把任意「抛出物」转成可展示的文案；取不到业务提示时给统一的登录失败文案。
  *
- * <p>不能直接 `String(e)`：抛出物不保证是 Error —— 实测本页登录失败时它在浏览器里
- * 被渲染成 `[object Object]`（红字），而 `String({msg: "..."})` 恰好就是那串字符，
- * 真正的后端提示（如「密码错误，还剩 N 次尝试机会」）被整段吞掉。</p>
+ * <p>提取逻辑统一走 `api/errorText` 的 errText：按响应体 msg → bizMsg → 顶层 msg →
+ * message 取，只回显我们自己服务端给的业务提示，不会把整个异常对象印出来。</p>
  *
- * <p>兜底顺序：字符串化的后端提示 → Error.message → {msg|message|error} → 统一文案。
- * 每一步都只接受**我们自己服务端给的业务提示**；</p>
- *
- * <p><b>这里刻意没有 JSON.stringify 兜底</b>：之前有，结果是把整个 AxiosError
- * 序列化后印在密码框正下方 —— 里面有 {@code config.headers}（Authorization 令牌）、
- * {@code config.data}（<b>明文口令</b>）、{@code stack}。502（网关/重启窗口）这种
- * 场景 {@code error.message} 又恰好被 httpCrypto 置空，于是每次都走到这条分支。
- * 任何网络层异常都不该把请求内容回显到页面上，所以宁可只给统一文案。</p>
+ * <p><b>安全口径不变</b>：绝不 JSON.stringify 整个异常 —— 里面有
+ * {@code config.headers}（Authorization 令牌）与 {@code config.data}（明文口令）。</p>
  *
  * @param e 捕获到的任意异常
  * @returns 可直接渲染的中文文案
  */
 function errorText(e: unknown): string {
+  // 字符串抛出物（拦截器/业务层直接 throw 的提示）原样透出
   if (typeof e === "string" && e.trim()) {
     return e;
   }
-  if (e instanceof Error && typeof e.message === "string" && e.message.trim()) {
-    return e.message;
-  }
-  const box = e as { msg?: unknown; message?: unknown; error?: unknown } | null | undefined;
-  for (const candidate of [box?.msg, box?.message, box?.error]) {
-    if (typeof candidate === "string" && candidate.trim()) {
-      return candidate;
-    }
-  }
   // 到这里说明抛出物里没有一句能给人看的话（502、空响应、被剥掉 message 的网络异常）。
   // 不再回显对象，统一给一句能指导下一步的文案。
-  return "登录失败，请检查网络后重试；若持续失败请联系老师或管理员";
+  return errText(e) || "登录失败，请检查网络后重试；若持续失败请联系老师或管理员";
 }
 
 /**

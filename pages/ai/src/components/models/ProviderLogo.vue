@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { ElImage } from 'element-plus'
-import { PROVIDER_ICONS } from './providerIcons'
+import { MONO_DARK_ICONS, PROVIDER_ICONS } from './providerIcons'
 
 const props = withDefaults(defineProps<{
   pid?: string
@@ -75,6 +75,14 @@ const onError = () => {
   // 图板映射资源缺失时降级为首字头像，不再额外请求一个猜测扩展名的 URL。
   currentSrc.value = null
 }
+
+/**
+ * 该品牌是否为「纯单色深色图标」。
+ *
+ * <p>这类图在深色主题下与背景同色（黑压黑），需要一个反色补偿；
+ * 品牌色图标不反色，避免把品牌色一起翻掉。见 {@link MONO_DARK_ICONS}。</p>
+ */
+const monoDark = computed(() => MONO_DARK_ICONS.has(String(props.pid || '').toLowerCase()))
 </script>
 
 <template>
@@ -82,6 +90,7 @@ const onError = () => {
     v-if="currentSrc"
     :src="currentSrc"
     fit="contain"
+    :class="{ 'pl-mono': monoDark }"
     :style="{ ...sizeStyle, 'border-radius': 'var(--size-surface-radius)' }"
     @error="onError"
   />
@@ -93,3 +102,36 @@ const onError = () => {
     {{ (props.name || '?').trim().charAt(0) || '?' }}
   </div>
 </template>
+
+<style scoped>
+/*
+ * 图片必须撑满外层方框，否则「同一行图标大小不一」。
+ *
+ * <p>el-image 的内层 &lt;img&gt; 靠 element-plus 的 image 组件样式拿
+ * {@code width:100%;height:100%}。本应用按需引入 EP（main.js 只显式引了
+ * message / dialog 等组件的 style）并未引入 image 的样式，内层图就退回
+ * 素材原始像素：16px 的 google / openrouter / xai 只有 16px，34px 的
+ * qwen 是 34px，48x48 的 openai 被外层 40px 裁到 40px —— 模板库同一网格里
+ * 就会出现「有的图标大、有的小一半」。这里在组件内固化尺寸，不依赖宿主
+ * 是否加载了 EP 的 image 样式；fit=contain 的 object-fit 由 el-image 内联
+ * 提供，两处一致的写法在已加载 EP 样式时也不会产生差异。</p>
+ */
+:deep(.el-image__inner),
+:deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/*
+ * 纯单色深色图标的深色主题补偿。
+ *
+ * 这类品牌图是黑/深灰描边 + 透明底（如 OpenAI 结、Ollama 羊驼、xAI 的 X），
+ * 直接放在深色卡片上等于「黑压黑」，看起来像图标丢了或图错了。
+ * 反色只发生在深色主题，且只作用于 MONO_DARK_ICONS 里的品牌；
+ * 带品牌色的图标与浅色主题都不动。
+ */
+:global(html.dark) .pl-mono {
+  filter: invert(1) hue-rotate(180deg);
+}
+</style>

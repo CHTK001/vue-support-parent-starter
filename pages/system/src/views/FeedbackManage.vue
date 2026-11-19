@@ -312,7 +312,8 @@ async function submitIssue() {
 const pieOption = computed<EChartsOption>(() => {
   const arr = statistic.value.typeStatistics ?? [];
   return {
-    color: ["#5b8ff9", "#5ad8a6", "#5d7092", "#f6bd16", "#e86452", "#6dc8ec", "#945fb9"],
+    /* 不写死 color：交给 ReEcharts injectTheme 按当前主题色注入调色板
+       （option 里显式 color 会覆盖注入值，导致换主题色图表不跟随） */
     tooltip: { trigger: "item", formatter: "{b}: {c} 条 ({d}%)" },
     legend: {
       bottom: 0,

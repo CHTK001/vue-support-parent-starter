@@ -1007,6 +1007,15 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
                         : 'success';
                   }
                 }
+                // 单次工具耗时：结束 trace 由后端 spanEnd 产出，同一行就带
+                // 「开始时刻(timestamp) + 结束时刻(endTimestamp)」，相减即得耗时。
+                // 必须落到 metadata.durationMs —— MessageToolCalls.durationFor()
+                // 只读 metadata，放在行顶层等于没写，流式期间工具行仍看不到秒数。
+                const endTs = Number(tr.endTimestamp || 0);
+                const startTs = Number(tr.timestamp || 0);
+                if (row && tr.spanEnd && endTs > startTs) {
+                  row.metadata = { ...(row.metadata || {}), durationMs: endTs - startTs };
+                }
               }
             }
           }

@@ -14,7 +14,7 @@
   <ApmGate v-slot="{ status }">
     <div class="apm-bar apm-toolbar">
       <!-- 时间窗是唯一的数据口径，选了就查；其余都是「这张图怎么画」，挪进图卡头 -->
-      <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
+      <ApmTimeWindow v-model="timeWindow" @change="load" />
       <span class="apm-count">{{ data?.nodes?.length ?? 0 }} 个节点 · {{ data?.calls?.length ?? 0 }} 条边 · {{ data?.layers?.length ?? 0 }} 层</span>
       <span class="apm-bar__spacer" />
       <span class="apm-muted">拖拽旋转 · 滚轮缩放</span>
@@ -71,25 +71,32 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
-import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReSwitch from "@repo/ui/re-switch";
 import ReThree from "@repo/ui/re-three";
 import type { ReThreeContext } from "@repo/ui/re-three";
 import ApmGate from "../components/ApmGate.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
 import { getInfra3D } from "../api/apmApi";
 import type { ApmInfra3D, ApmInfraNode } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
-import { WINDOW_OPTIONS } from "../utils/format";
+import { consumeApmTabContext } from "../tabs";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
+import { timeQuery } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const { present, ensure } = useApmStatus();
 
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "infra-3d";
+
 const data = ref<ApmInfra3D | null>(null);
 const loading = ref(false);
-const minutes = ref(30);
+/** 时间窗：预设分钟数或自定义区间 */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: 30 });
 const autoRotate = ref(false);
 const showEdges = ref(true);
-const windowOptions = WINDOW_OPTIONS;
 
 /** 画布高度固定：3D 场景需要一个确定的视口，跟着内容撑开会一直抖 */
 const stageHeight = "560px";
@@ -374,7 +381,7 @@ async function load() {
   }
   loading.value = true;
   try {
-    data.value = await getInfra3D({ minutes: minutes.value });
+    data.value = await getInfra3D({ ...timeQuery(timeWindow.value) });
     if (ctx) {
       buildScene(ctx);
     }
@@ -393,10 +400,39 @@ watch(showEdges, () => {
   }
 });
 
+/** 把跳转上下文落到时间窗（本页只有时间一个维度） */
+function applyContext(context: ApmTabContext): void {
+  if (context.startTime && context.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
+}
+
 // 首屏取一次数据：没有 onMounted 的话页面会一直停在「该时间窗口内没有拓扑数据」，
 // 用户以为是没数据，其实是根本没请求。ReThree 的 ready 在挂载后才来，因此
 // 数据先到、场景后建也是安全的（buildScene 里对 ctx 判空，onReady 里也会重建）。
-onMounted(load);
+onMounted(() => {
+  // 深链 / 页签跳转带时间窗过来时按它取数
+  const context = consumeApmTabContext();
+  if (context) {
+    applyContext(context);
+  }
+  load();
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：再次切到本页签时上下文在这里接住。
+ * 普通切回不重查 —— 3D 场景重建开销大，新鲜度由时间窗控件手动刷新兜底。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (!context) {
+    return;
+  }
+  applyContext(context);
+  load();
+});
 
 onBeforeUnmount(() => {
   unbindInteraction();

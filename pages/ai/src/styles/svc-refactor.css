@@ -632,7 +632,7 @@ html.dark .svc {
 }
 @keyframes svc-scan { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 
-.svc-table { --el-table-border-color: var(--svc-rule); width: 100%; }
+.svc-table { width: 100%; }
 .svc-table .el-table {
   --el-table-border-color: var(--svc-rule);
   --el-table-text-color: var(--svc-ink);
@@ -920,19 +920,13 @@ html.dark .svc {
   background: var(--svc-surface-2);
   transition: box-shadow var(--svc-dur-fast) ease;
 }
-.svc .el-input__wrapper:hover, .svc .el-select__wrapper:hover {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--svc-accent) 40%, var(--svc-rule-strong)) inset;
-}
 .svc .el-input__wrapper.is-focus, .svc .el-select__wrapper.is-focused {
-  /* 聚焦不再描一圈边框：3px 环 + 1px 强调边是全页唯一会跳出来的描边，
-     和「卡面靠 1px 细线分界」的口径打架；聚焦只把底色提到卡面白。 */
+  /* 聚焦不换描边（全站聚焦口径收口在 focus-reset.css），只把底色提到卡面。 */
   background: var(--svc-surface);
-  box-shadow: 0 0 0 1px var(--svc-rule-strong) inset !important;
 }
 .svc .el-input__inner { font-family: var(--svc-sans); font-size: 12px; color: var(--svc-ink); }
 .svc .el-select__selected-item { font-size: 12px; }
-.svc .el-switch.is-checked .el-switch__core { background: var(--svc-accent); border-color: var(--svc-accent); }
-.svc .el-button { border-radius: var(--svc-r-sm); font-size: 12px; font-weight: 500; }
+.svc .el-button { font-size: 12px; }
 .svc .el-button:focus-visible { outline: 2px solid var(--svc-accent); outline-offset: 1px; }
 .svc-btn__icon { margin-right: 4px; font-size: 14px; }
 

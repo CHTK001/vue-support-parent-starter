@@ -51,6 +51,32 @@ const unitSuffix = computed(() => {
   return units.size === 1 ? String([...units][0]) : "";
 });
 
+/** 出现过的单位（按序列顺序去重）：超过一种就需要第二根轴 */
+const unitList = computed(() => {
+  const units: string[] = [];
+  for (const s of props.series) {
+    const unit = s.unit || "";
+    if (unit && !units.includes(unit)) {
+      units.push(unit);
+    }
+  }
+  return units;
+});
+
+/**
+ * 是否启用双轴：响应时间（ms）与调用量（cpm）这类量纲差几个数量级的指标
+ * 共用一根轴时，必有一条被压成直线；单位不同就分左右两根轴。
+ */
+const dualAxis = computed(() => unitList.value.length > 1);
+
+/** 序列归属哪根轴：第一种单位在左轴，其余都归右轴（双轴够用，三轴只会更乱） */
+function axisIndexOf(series: ApmMetricSeries): number {
+  if (!dualAxis.value) {
+    return 0;
+  }
+  return unitList.value.indexOf(series.unit || "") <= 0 ? 0 : 1;
+}
+
 const option = computed<EChartsOption>(() => {
   const p = palette.value;
   const list = props.series.filter((s) => (s.points?.length ?? 0) > 0);
@@ -73,6 +99,23 @@ const option = computed<EChartsOption>(() => {
       map.set(point.time, normalizeMetricValue(point.value, s.unit));
     }
     return map;
+  });
+
+  // 双轴时右轴不画网格线，避免两组虚线叠在一起
+  const makeYAxis = (axis: number) => ({
+    type: "value" as const,
+    axisLabel: {
+      show: !props.compact,
+      fontSize: 10,
+      color: p.faint,
+      formatter: (value: number) => `${value}${dualAxis.value ? unitList.value[axis] ?? "" : unitSuffix.value}`,
+    },
+    axisLine: { show: false },
+    axisTick: { show: false },
+    splitLine: {
+      show: !props.compact && axis === 0,
+      lineStyle: { color: p.line, type: "dashed" as const },
+    },
   });
 
   return {
@@ -109,26 +152,13 @@ const option = computed<EChartsOption>(() => {
       axisTick: { show: false },
       splitLine: { show: false },
     },
-    yAxis: {
-      type: "value",
-      axisLabel: {
-        show: !props.compact,
-        fontSize: 10,
-        color: p.faint,
-        formatter: (value: number) => `${value}${unitSuffix.value}`,
-      },
-      axisLine: { show: false },
-      axisTick: { show: false },
-      splitLine: {
-        show: !props.compact,
-        lineStyle: { color: p.line, type: "dashed" },
-      },
-    },
+    yAxis: dualAxis.value ? [makeYAxis(0), makeYAxis(1)] : makeYAxis(0),
     series: list.map((s, i) => {
       const color = colors[i % colors.length];
       return {
         name: s.label || s.name,
         type: "line" as const,
+        yAxisIndex: axisIndexOf(s),
         smooth: 0.35,
         showSymbol: false,
         // 缺口补出来的 null 必须让线断掉：连过去等于凭空断言「这段时间也在跑」

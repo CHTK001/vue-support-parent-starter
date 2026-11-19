@@ -10,7 +10,7 @@
     <template #meta>
       <!-- 实时状态：微呼吸绿点 + 文案；有流量时补一枚速率胶囊 -->
       <div class="live-status" :class="`is-${board.liveState}`"
-        :title="board.liveState === 'error' ? '实时连接失败，已退回手动刷新' : board.rangeLabel">
+        :title="board.liveState === 'error' ? '实时连接失败，点刷新重试' : board.rangeLabel">
         <span class="live-dot" :class="{ 'is-pulsing': board.liveState === 'live' }" />
         <span class="live-text">{{ board.liveLabel }}</span>
         <span v-if="board.liveRate > 0" class="live-rate">{{ board.fmtToken(board.liveRate) }}/分</span>

@@ -73,7 +73,7 @@
                 :max="100"
                 size="small"
                 controls-position="right"
-                @update:model-value="(v: number | undefined) => emit('setCartScore', item.questionId, Number(v) || 1)"
+                @update:model-value="(v: number | null | undefined) => emit('setCartScore', item.questionId, Number(v) || 1)"
               />
             </div>
           </div>
@@ -99,7 +99,7 @@
               <el-option v-for="s in subjectOptions" :key="s.value" :label="s.label" :value="s.value" />
             </el-select>
             <el-select v-model="filters.gradeLevel" clearable placeholder="学段" @change="onGradeLevelChange">
-              <el-option v-for="lv in GRADE_LEVELS" :key="lv.code" :label="lv.label" :value="lv.code" />
+              <el-option v-for="lv in GRADE_LEVEL_OPTIONS" :key="lv.value" :label="lv.label" :value="lv.value" />
             </el-select>
             <el-select v-model="filters.grade" clearable placeholder="年级" @change="runSearch">
               <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
@@ -192,6 +192,8 @@ import { Search, ShoppingCart } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInputNumber from "@repo/ui/re-input-number";
 import { eduaiApi } from "../../api/eduaiApi";
+import { errText as errorText } from "../../api/errorText";
+import { GRADE_LEVEL_OPTIONS, gradeLevelToCode } from "../../utils/dict";
 import type { MarketQuestion } from "../../api/types";
 import { renderMathSummary } from "../../utils/mathText";
 import ReDialog from "@repo/ui/re-dialog";
@@ -226,20 +228,6 @@ const emit = defineEmits<{
 }>();
 
 /* ==================== 常量（与 PaperComposeView 题库市场一致） ==================== */
-
-/** 学段词表（与后端 gradeLevels 的 value 码值一致，下拉 value 绑 code） */
-const GRADE_LEVELS = [
-  { code: "PRIMARY", label: "小学" },
-  { code: "JUNIOR", label: "初中" },
-  { code: "SENIOR", label: "高中" },
-  { code: "UNIVERSITY", label: "大学" },
-  { code: "OTHER", label: "其他" },
-];
-
-/** 年级行里的 gradeLevel 存的是中文标签（小学/初中/…），转成码值再与下拉的 code 比较 */
-const GRADE_LEVEL_LABEL_TO_CODE: Record<string, string> = Object.fromEntries(
-  GRADE_LEVELS.map((g) => [g.label, g.code]),
-);
 
 const QUESTION_TYPES = [
   { value: "SINGLE_CHOICE", label: "单选题" },
@@ -300,7 +288,8 @@ const gradeOptions = computed(() => {
       if (!g.gradeLevel) {
         return true;
       }
-      return (GRADE_LEVEL_LABEL_TO_CODE[g.gradeLevel] ?? g.gradeLevel) === level;
+      // 年级行里的 gradeLevel 存的是中文标签（小学/初中/…），转成码值再与下拉的 code 比较
+      return gradeLevelToCode(g.gradeLevel) === level;
     })
     .map((g) => g.gradeName as string);
 });
@@ -359,10 +348,6 @@ const diffClass = (n?: number) => {
   }
   return "is-red";
 };
-
-function errorText(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
 
 /* ==================== 数据加载 ==================== */
 
@@ -577,8 +562,8 @@ watch(
     }
     if (!filtersTouched.value) {
       filters.subject = props.initialSubject || "";
-      // 卷头的学段是中文标签（初中），下拉绑的是码值（JUNIOR）；已是码值时查表落空原样传入
-      filters.gradeLevel = GRADE_LEVEL_LABEL_TO_CODE[props.initialGradeLevel] ?? props.initialGradeLevel;
+      // 卷头的学段是中文标签（初中），下拉绑的是码值（JUNIOR）；已是码值时原样传入
+      filters.gradeLevel = gradeLevelToCode(props.initialGradeLevel);
       filters.grade = props.initialGrade || "";
     }
     void ensureDimensions();

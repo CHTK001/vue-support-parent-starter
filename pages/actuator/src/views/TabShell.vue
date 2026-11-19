@@ -73,7 +73,17 @@
       </div>
     </div>
 
-    <div v-if="error" class="act__empty is-error">{{ error }}</div>
+    <div v-if="error" class="act__empty is-error">
+      <span class="act__err-line">
+        <span class="act__err-badge" :class="errorKind === 'unavailable' ? 'is-unavailable' : 'is-retriable'">
+          {{ errorKind === "unavailable" ? "未暴露" : "后端异常" }}
+        </span>
+        <span class="act__err-text">{{ error }}</span>
+      </span>
+      <ReButton v-if="errorKind === 'retriable'" size="small" class="act__err-retry" @click="emit('refresh')">
+        重试
+      </ReButton>
+    </div>
     <div v-else class="act__body">
       <slot />
     </div>
@@ -108,6 +118,11 @@ const props = withDefaults(
     /** 错误文案；非空时内容区换成提示 */
     error?: string;
     /**
+     * 错误分型："unavailable" = 端点未暴露（重试无意义，只给接入指引）；
+     * "retriable" = 网络 / 后端故障（错误框里带「重试」按钮）。
+     */
+    errorKind?: string;
+    /**
      * 是否显示「紧凑 / 舒适」密度切换。
      *
      * <p>只有表格页需要：卡片页与主从页没有行高可切，摆上去只会让人点了没反应。</p>
@@ -129,6 +144,7 @@ const props = withDefaults(
     countText: "",
     loading: false,
     error: "",
+    errorKind: "",
     density: false,
     autoRefresh: false,
     updatedAt: 0,

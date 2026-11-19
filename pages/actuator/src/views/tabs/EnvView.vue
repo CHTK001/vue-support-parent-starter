@@ -14,6 +14,7 @@
     :count-text="`共 ${total} 项`"
     :loading="loading"
     :error="error"
+    :error-kind="errorKind"
     auto-refresh
     :updated-at="updatedAt"
     @refresh="reload"
@@ -61,7 +62,7 @@ import { ElEmpty } from "element-plus";
 import TabShell from "../TabShell.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
 
-const { data, loading, error, keyword, updatedAt, reload, hit } = useActuatorPanel("env");
+const { data, loading, error, errorKind, keyword, updatedAt, reload, hit } = useActuatorPanel("env");
 
 interface PropertySource {
   name: string;

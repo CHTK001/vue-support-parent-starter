@@ -10,3 +10,7 @@
  */
 export { default as ChannelManagementPage } from './components/ChannelManagementPage.vue';
 export * from './channelApi';
+
+// 渠道侧贡献给 home 仪表板的 widget（app 侧用 .widgets(defineWidgetContribution(channelWidgets)) 接线；
+// 宿主建议从 ./widgets/channelWidgets 深路径导入，避免连带拖入 ChannelManagementPage 整页）
+export { channelWidgets } from "./widgets/channelWidgets";

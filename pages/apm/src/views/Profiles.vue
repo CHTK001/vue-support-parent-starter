@@ -19,9 +19,17 @@
         placeholder="选择服务（必选）"
         filterable
         style="width: 260px"
+        @change="onServiceChange"
+      />
+      <ReSelect
+        v-model="endpoint"
+        :options="endpointOptions"
+        placeholder="端点（留空 = 该服务全部端点）"
+        filterable
+        clearable
+        style="width: 320px"
         @change="loadTasks"
       />
-      <ReInput v-model="endpoint" placeholder="端点名（留空 = 该服务全部端点）" clearable style="width: 300px" @keyup.enter="loadTasks" />
       <ReButton icon="Search" type="primary" :loading="loading" @click="loadTasks">查询</ReButton>
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ tasks.length }} 个剖析任务</span>
@@ -153,24 +161,30 @@ import ReButton from "@repo/ui/re-button";
 import ReCard from "@repo/ui/re-card";
 import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
-import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
 import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ApmGate from "../components/ApmGate.vue";
-import { getProfileAnalysis, listProfileTasks, listProfiledSegments, listServices } from "../api/apmApi";
+import { getProfileAnalysis, listEndpoints, listProfileTasks, listProfiledSegments, listServices } from "../api/apmApi";
 import type { ApmProfileAnalysis, ApmProfileStack, ApmProfileTask, ApmProfiledSegment } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { consumeApmTabContext } from "../tabs";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
 import { fmtMs, fmtNum, fmtTime, latencyClass } from "../utils/format";
 
 const { present, ensure } = useApmStatus();
 
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "profiles";
+
 const services = ref<string[]>([]);
 const service = ref("");
 const endpoint = ref("");
+/** 端点下拉：随所选服务拉取，剖析任务按端点过滤 */
+const endpoints = ref<string[]>([]);
 const tasks = ref<ApmProfileTask[]>([]);
 const loading = ref(false);
 
@@ -191,6 +205,7 @@ const analysisLoading = reactive<Record<string, boolean>>({});
 const expanded = reactive<Record<string, boolean>>({});
 
 const serviceOptions = computed(() => services.value.map((s) => ({ label: s, value: s })));
+const endpointOptions = computed(() => endpoints.value.map((e) => ({ label: e, value: e })));
 
 const segmentColumns: ReTableColumn[] = [
   { prop: "traceId", label: "链路", minWidth: 150, slot: "traceId" },
@@ -274,6 +289,26 @@ async function loadServices() {
   } catch {
     services.value = [];
   }
+}
+
+/** 端点下拉选项：来自该服务的端点清单，避免手拼端点名拼错 */
+async function loadEndpointOptions() {
+  endpoints.value = [];
+  if (!service.value) {
+    return;
+  }
+  try {
+    endpoints.value = ((await listEndpoints(service.value, undefined, {})) || []).map((e) => e.name);
+  } catch {
+    /* 端点清单拉不到时仍可按「全部端点」查任务 */
+  }
+}
+
+/** 服务变化：端点下拉跟着换，已选端点清空（不同服务的端点取值空间不同） */
+async function onServiceChange() {
+  endpoint.value = "";
+  await loadEndpointOptions();
+  loadTasks();
 }
 
 async function loadTasks() {
@@ -362,6 +397,7 @@ onMounted(async () => {
   const preset = firstQuery(route.query.service) || context?.service || "";
   if (preset) {
     service.value = preset;
+    await loadEndpointOptions();
     await loadTasks();
     return;
   }
@@ -369,6 +405,7 @@ onMounted(async () => {
   // 等于「进页面看到一片空态 → 再点两次」，而第一个服务正是最常看的那一个。
   if (!service.value && serviceOptions.value.length) {
     service.value = serviceOptions.value[0].value as string;
+    await loadEndpointOptions();
     await loadTasks();
   }
 });
@@ -389,11 +426,26 @@ watch(
     const next = firstQuery(value);
     if (next && next !== service.value) {
       service.value = next;
-      endpoint.value = "";
-      loadTasks();
+      onServiceChange();
     }
   },
 );
+
+/**
+ * 页签常驻保活（v-show 切换）：从服务详情等入口 openApmTab 跳到本页签时
+ * onMounted 与上面的 query watch 都不会触发（openApmTab 不改 URL），
+ * 一次性上下文（服务名）只能在这里接住。没有上下文不重载 —— 剖析任务查询不轻。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (!context?.service) {
+    return;
+  }
+  if (context.service !== service.value) {
+    service.value = context.service;
+    void onServiceChange();
+  }
+});
 </script>
 
 <style scoped>

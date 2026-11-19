@@ -116,6 +116,46 @@ export async function getRestfulApiStats(): Promise<RestfulApiStats> {
   return unwrapEnvelope(res.data) as RestfulApiStats;
 }
 
+/** 最近 HTTP 请求样本（页面要用的最小字段集；来自 /actuator/httpexchanges） */
+export interface HttpExchangeRow {
+  /** 发生时间（ISO-8601，UTC） */
+  timestamp?: string;
+  /** HTTP 方法（GET / POST…） */
+  method?: string;
+  /** 完整请求 URI（含协议与主机；展示时通常去掉前缀只留路径） */
+  uri?: string;
+  /** 响应状态码（取不到为 0） */
+  status: number;
+  /** 服务端耗时（ms；Actuator 原始 timeTaken 单位是秒，这里统一换算） */
+  timeMs: number;
+}
+
+/**
+ * 拉取最近的 HTTP 请求样本（Spring Boot {@code HttpExchangeRepository}）。
+ *
+ * <p>请求映射 + RESTful 统计回答「哪些接口在被调用、平均多快」，这份样本回答
+ * 「最近具体打了哪些请求、单次结果如何」。后端未暴露该端点时抛错，由调用方降级。</p>
+ */
+export async function getHttpExchanges(): Promise<HttpExchangeRow[]> {
+  const res = await getActuatorEndpoint("httpexchanges");
+  const list = (res as { exchanges?: unknown[] } | null)?.exchanges ?? [];
+  return list.map((item) => {
+    const exchange = item as {
+      timestamp?: string;
+      request?: { method?: string; uri?: string };
+      response?: { status?: number };
+      timeTaken?: number;
+    };
+    return {
+      timestamp: exchange.timestamp,
+      method: exchange.request?.method,
+      uri: exchange.request?.uri,
+      status: Number(exchange.response?.status ?? 0),
+      timeMs: Math.round(Number(exchange.timeTaken ?? 0) * 1000),
+    };
+  });
+}
+
 /**
  * 从 Actuator 请求映射 predicate 解析方法 + 路径，匹配 RESTful 统计。
  *

@@ -24,6 +24,19 @@
         style="width: 240px"
         @change="load"
       />
+      <!-- 叠加指标：比如响应时间叠上调用量，一条看「多慢」，一条看「多少」；
+           单位不同时图表自动切双轴，不必再开第二个页面来回对时间轴。 -->
+      <ReSelect
+        v-model="compareNames"
+        :options="metricOptions"
+        placeholder="叠加指标（可选）"
+        multiple
+        filterable
+        collapse-tags
+        :multiple-limit="3"
+        style="min-width: 250px"
+        @change="load"
+      />
       <ReSelect
         v-if="scope !== 'ALL'"
         v-model="entityService"
@@ -56,12 +69,13 @@
       />
       <!-- 时间窗是每次都要动的；粒度（秒/分/时/天）是偶尔才动的，
            把它挪到图表卡头，紧挨着它影响的那张图，工具条少一层。 -->
-      <ReSelect v-model="minutes" :options="windowOptions" style="width: 140px" @change="load" />
+      <ApmTimeWindow v-model="timeWindow" @change="load" />
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ scopeText }}{{ entityService ? ` · ${entityService}` : "" }}</span>
+      <ApmAutoRefresh @refresh="load" />
     </div>
 
-    <ReSkeleton v-if="loading && !series" :rows="6" animated />
+    <ReSkeleton v-if="loading && !hasPoints" :rows="6" animated />
 
     <ReCard v-else :radius="12" shadow="never">
       <template #header>
@@ -71,18 +85,18 @@
           <span v-if="name && name !== (currentDefinition?.label || name)" class="apm-mono apm-muted">{{ name }}</span>
           <span class="apm-bar__spacer" />
           <span v-if="currentDefinition?.description" class="apm-card-note">{{ currentDefinition.description }}</span>
-          <span class="apm-card-note">{{ series?.points?.length ?? 0 }} 个数据点 · 单位 {{ unit || "—" }}</span>
+          <span class="apm-card-note">{{ primarySeries?.points?.length ?? 0 }} 个数据点 · 单位 {{ unit || "—" }}</span>
           <!-- 粒度贴着它影响的曲线放：改这里就是改这张图的采样密度 -->
           <ReSelect v-model="step" :options="stepOptions" style="width: 102px" @change="load" />
           <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
         </div>
       </template>
-      <MetricChart v-if="series?.points?.length" :series="[series]" height="380px" />
+      <MetricChart v-if="hasPoints" :series="seriesList" height="380px" />
       <ReEmpty v-else :image-size="70" :description="emptyHint" />
     </ReCard>
 
-    <!-- 数值明细：图上读不出具体峰值 -->
-    <ReCard v-if="series?.points?.length" :radius="12" shadow="never">
+    <!-- 数值明细：图上读不出具体峰值（多指标时只列主指标，叠加指标以图例曲线为准） -->
+    <ReCard v-if="primarySeries?.points?.length" :radius="12" shadow="never">
       <template #header><span class="apm-card-h">数值明细</span></template>
       <ReTable
         :data="pointRows"
@@ -118,24 +132,37 @@ import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ApmGate from "../components/ApmGate.vue";
+import ApmAutoRefresh from "../components/ApmAutoRefresh.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
 import MetricChart from "../components/MetricChart.vue";
 import { getMetrics, listEndpoints, listInstances, listMetricDefinitions, listServices } from "../api/apmApi";
 import type { ApmMetricDefinition, ApmMetricSeries, ApmScope, ApmStep } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { consumeApmTabContext } from "../tabs";
-import { WINDOW_OPTIONS, fmtNum, fmtTime } from "../utils/format";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
+import { message } from "@repo/core";
+import { fmtNum, fmtTime } from "../utils/format";
+import { timeQuery } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const { present, ensure } = useApmStatus();
+
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "metrics";
 
 const scope = ref<ApmScope>("SERVICE");
 const name = ref("service_resp_time");
 const entityService = ref("");
 const instance = ref("");
 const endpoint = ref("");
-const minutes = ref(60);
+/** 时间窗：预设分钟数或自定义区间 */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: 60 });
+/** 叠加指标：与主指标画进同一张图，单位不同时自动切双轴 */
+const compareNames = ref<string[]>([]);
 const step = ref<ApmStep>("MINUTE");
 const definitions = ref<ApmMetricDefinition[]>([]);
-const series = ref<ApmMetricSeries | null>(null);
+const seriesList = ref<ApmMetricSeries[]>([]);
 const loading = ref(false);
 const emptyHint = ref("没有数据");
 
@@ -143,7 +170,6 @@ const services = ref<string[]>([]);
 const instances = ref<string[]>([]);
 const endpoints = ref<string[]>([]);
 
-const windowOptions = WINDOW_OPTIONS;
 const scopeOptions = [
   { label: "服务", value: "SERVICE" },
   { label: "实例", value: "SERVICE_INSTANCE" },
@@ -160,12 +186,14 @@ const stepOptions = [
 const metricOptions = computed(() => definitions.value.map((d) => ({ label: d.label || d.name, value: d.name })));
 const scopeText = computed(() => scopeOptions.find((item) => item.value === scope.value)?.label ?? "");
 const currentDefinition = computed(() => definitions.value.find((d) => d.name === name.value) ?? null);
-const unit = computed(() => currentDefinition.value?.unit ?? series.value?.unit ?? "");
+const primarySeries = computed(() => seriesList.value[0] ?? null);
+const hasPoints = computed(() => seriesList.value.some((s) => s.points?.length));
+const unit = computed(() => currentDefinition.value?.unit ?? primarySeries.value?.unit ?? "");
 const serviceOptions = computed(() => services.value.map((v) => ({ label: v, value: v })));
 const instanceOptions = computed(() => instances.value.map((v) => ({ label: v, value: v })));
 const endpointOptions = computed(() => endpoints.value.map((v) => ({ label: v, value: v })));
 
-const pointRows = computed(() => (series.value?.points ?? []) as unknown as Record<string, unknown>[]);
+const pointRows = computed(() => (primarySeries.value?.points ?? []) as unknown as Record<string, unknown>[]);
 
 const pointColumns: ReTableColumn[] = [
   { prop: "time", label: "时间", minWidth: 180, slot: "time", sortable: true },
@@ -185,6 +213,8 @@ async function onScopeChange() {
   if (!definitions.value.some((d) => d.name === name.value)) {
     name.value = definitions.value[0]?.name ?? "";
   }
+  // 叠加指标同样按作用域取定义：切了作用域后不在清单里的一并丢弃
+  compareNames.value = compareNames.value.filter((n) => definitions.value.some((d) => d.name === n));
   load();
 }
 
@@ -230,38 +260,50 @@ async function load() {
   loading.value = true;
   emptyHint.value = "没有数据";
   try {
-    series.value = await getMetrics({
-      name: name.value,
-      scope: scope.value,
-      // OAP 的 Entity 里，实例与端点都需要所属服务名
-      service: scope.value === "ALL" ? undefined : entityService.value || undefined,
-      instance: scope.value === "SERVICE_INSTANCE" ? instance.value || undefined : undefined,
-      endpoint: scope.value === "ENDPOINT" ? endpoint.value || undefined : undefined,
-      minutes: minutes.value,
-      step: step.value,
-    });
-    if (!series.value?.points?.length) {
+    // 主指标 + 叠加指标一起查：allSettled 保证个别指标失败不拖垮整张图
+    const requested = [name.value, ...compareNames.value.filter((n) => n && n !== name.value)];
+    const results = await Promise.allSettled(
+      requested.map((metric) =>
+        getMetrics({
+          name: metric,
+          scope: scope.value,
+          // OAP 的 Entity 里，实例与端点都需要所属服务名
+          service: scope.value === "ALL" ? undefined : entityService.value || undefined,
+          instance: scope.value === "SERVICE_INSTANCE" ? instance.value || undefined : undefined,
+          endpoint: scope.value === "ENDPOINT" ? endpoint.value || undefined : undefined,
+          ...timeQuery(timeWindow.value),
+          step: step.value,
+        }),
+      ),
+    );
+    seriesList.value = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+    const failed = results.length - seriesList.value.length;
+    if (failed > 0) {
+      message.warning(`${failed} 个指标查询失败，图中只画返回成功的部分`);
+    }
+    if (!hasPoints.value) {
       emptyHint.value =
         scope.value !== "ALL" && !entityService.value
           ? "先在上方选择一个服务：SkyWalking 的服务级指标挂在具体实体上，不选实体只有空图"
           : `指标 ${name.value} 在该时间窗口内没有数据（后端可能未开启该指标采集）`;
     }
   } catch (e) {
-    series.value = null;
+    seriesList.value = [];
     emptyHint.value = `查询失败：${(e as Error)?.message ?? e}`;
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(async () => {
-  await ensure();
-  if (!present.value) {
-    return;
-  }
+/**
+ * 按跳转上下文落位并取数：首屏与「页签切回」共用同一套落位逻辑，
+ * 避免两处各写一份后出现「下钻过来和刷新进来行为不一样」。
+ *
+ * @param context 一次性跳转上下文；首屏直接进入时为 null
+ */
+async function bootstrap(context: ApmTabContext | null): Promise<void> {
   // 从其它页跳过来时带着服务/端点：优先用它，别覆盖成「第一个服务」。
   // 带端点说明来源是端点维度的排障，作用域直接落到「端点」，省一次手选。
-  const context = consumeApmTabContext();
   if (context?.instance) {
     scope.value = "SERVICE_INSTANCE";
   } else if (context?.endpoint) {
@@ -272,12 +314,21 @@ onMounted(async () => {
   } catch {
     services.value = [];
   }
-  // 服务级指标必须带实体：默认落到第一个服务，页面一打开就有图看
-  if (!entityService.value) {
-    entityService.value = context?.service || services.value[0] || "";
+  // 服务级指标必须带实体：跳转指定了服务就用它（与已选不同时换过来），
+  // 否则落到第一个服务，页面一打开就有图看
+  if (context?.service) {
+    if (context.service !== entityService.value) {
+      entityService.value = context.service;
+      instance.value = "";
+      endpoint.value = "";
+    }
+  } else if (!entityService.value) {
+    entityService.value = services.value[0] || "";
   }
-  if (context?.minutes) {
-    minutes.value = context.minutes;
+  if (context?.startTime && context?.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context?.minutes) {
+    timeWindow.value = { minutes: context.minutes };
   }
   // 端点 / 实例的取值空间挂在服务下，先把下拉补齐再回填上下文里的选择
   if (entityService.value && (scope.value === "ENDPOINT" || scope.value === "SERVICE_INSTANCE")) {
@@ -290,7 +341,41 @@ onMounted(async () => {
     instance.value = context.instance;
   }
   await loadDefinitions();
+  // 作用域换过之后原指标可能不在新清单里（端点作用域没有 service_resp_time），
+  // 与 onScopeChange 同口径退到第一个可用指标，否则查询必然报错
+  if (!definitions.value.some((d) => d.name === name.value)) {
+    name.value = definitions.value[0]?.name ?? "";
+  }
+  // 总览 KPI 下钻会指定指标（如 service_resp_time）：定义里真的有才采用
+  if (context?.metric && definitions.value.some((d) => d.name === context.metric)) {
+    name.value = context.metric;
+  }
   load();
+}
+
+onMounted(async () => {
+  await ensure();
+  if (!present.value) {
+    return;
+  }
+  await bootstrap(consumeApmTabContext());
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：总览 KPI 下钻再次切到本页签时
+ * {@link onMounted} 不会重跑，一次性上下文（指标名 / 服务 / 实体 / 时间窗）在这里接住。
+ * 普通切回不重查 —— 批量指标查询较重，新鲜度由自动刷新兜底。
+ */
+useApmTabActivated(TAB_NAME, async () => {
+  const context = consumeApmTabContext();
+  if (!context) {
+    return;
+  }
+  await ensure();
+  if (!present.value) {
+    return;
+  }
+  await bootstrap(context);
 });
 </script>
 

@@ -24,3 +24,7 @@ export { default as PaperConfigPanel } from "./components/setting/PaperConfigPan
 export { default as PaperConfigPage } from "./components/setting/PaperConfigPage.vue";
 export { default as ModelsProviderList } from "./components/setting/ModelsProviderList.vue";
 export { default as ChannelHealthPage } from "./components/management/ChannelHealthPage.vue";
+
+// AI 控制台贡献给 home 仪表板的 widget（app 侧用 .widgets(defineWidgetContribution(aiWidgets)) 接线；
+// 宿主建议从 ./widgets/aiWidgets 深路径导入，避免包根连带 re-export 整页组件）
+export { aiWidgets } from "./widgets/aiWidgets";

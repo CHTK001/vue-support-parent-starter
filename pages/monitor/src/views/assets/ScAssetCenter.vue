@@ -63,6 +63,7 @@
       class="asset-table"
       empty-text="暂无资产"
       :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+      table-id="asset-center"
     >
       <ReTableColumn label="大类" width="90" align="center">
         <template #default="{ row }">
@@ -151,7 +152,7 @@
                 <div class="flag" :class="hostDetail.remoteEnabled ? 'on' : 'off'">远控 {{ onOff(hostDetail.remoteEnabled) }}</div>
               </ReCol>
             </ReRow>
-            <ReTable :data="hostDetail.channels || []" border empty-text="无服务节点" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
+            <ReTable :data="hostDetail.channels || []" border empty-text="无服务节点" :config="{ pagination: { enable: false }, toolbar: { enable: false } }" table-id="asset-center-host-channels">
               <ReTableColumn prop="name" label="节点" min-width="140" />
               <ReTableColumn prop="protocol" label="协议" width="90" align="center" />
               <ReTableColumn prop="port" label="端口" width="80" align="center" />
@@ -216,7 +217,7 @@
               通道
               <span class="section-extra">已启用 {{ deviceDetail.enabledChannelCount }} / {{ deviceDetail.channelCount }}</span>
             </h4>
-            <ReTable :data="deviceDetail.channels || []" border empty-text="无通道" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
+            <ReTable :data="deviceDetail.channels || []" border empty-text="无通道" :config="{ pagination: { enable: false }, toolbar: { enable: false } }" table-id="asset-center-device-channels">
               <ReTableColumn prop="channelNo" label="通道号" width="80" align="center" />
               <ReTableColumn prop="channelName" label="通道名称" min-width="140" />
               <ReTableColumn prop="channelType" label="类型" width="100" align="center" />
@@ -235,7 +236,7 @@
               共 {{ currentMonitors.length }} 项 · 活跃告警 {{ currentActiveAlarmCount }} 条
             </span>
           </h4>
-          <ReTable :data="currentMonitors" border :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
+          <ReTable :data="currentMonitors" border :config="{ pagination: { enable: false }, toolbar: { enable: false } }" table-id="asset-center-monitors">
             <ReTableColumn prop="name" label="监控项" min-width="140" />
             <ReTableColumn prop="host" label="地址" min-width="130" />
             <ReTableColumn prop="serviceType" label="服务类型" width="100" align="center" />
@@ -266,6 +267,7 @@
 <script setup lang="ts" name="ScAssetCenter">
 import { ref, computed, onMounted } from 'vue'
 import { message } from '@repo/core'
+import { usePersistentFilters } from '@repo/utils'
 import ReSectionHead from '@repo/ui/re-section-head'
 import ReEmpty from '@repo/ui/re-empty'
 import {
@@ -281,10 +283,11 @@ import {
 
 const list = ref<AssetBrief[]>([])
 const loading = ref(false)
-const filters = ref<{ keyword: string; assetType: '' | AssetType; online: '' | string }>({
-  keyword: '',
-  assetType: '',
-  online: '',
+/** 筛选持久化：localStorage 记忆 + 路由 query 同步，切走再回来不丢筛选 */
+const { filters } = usePersistentFilters<{ keyword: string; assetType: '' | AssetType; online: '' | string }>({
+  key: 'monitor.assetCenter',
+  defaults: { keyword: '', assetType: '', online: '' },
+  queryKeys: ['keyword', 'assetType', 'online'],
 })
 
 const typeOptions = [
@@ -316,7 +319,7 @@ const summary = computed(() => [
 
 /** 大类与在线状态在后端已按需过滤，这里只做关键字的即时反馈，避免每次输入都打接口 */
 const filtered = computed(() => {
-  const kw = filters.value.keyword.trim().toLowerCase()
+  const kw = filters.keyword.trim().toLowerCase()
   if (!kw) return list.value
   return list.value.filter(
     a =>
@@ -342,8 +345,8 @@ const currentActiveAlarmCount = computed(
 async function fetchList() {
   loading.value = true
   try {
-    const kw = filters.value.keyword.trim()
-    list.value = (await searchAssets(kw || undefined, filters.value.assetType || undefined)) ?? []
+    const kw = filters.keyword.trim()
+    list.value = (await searchAssets(kw || undefined, filters.assetType || undefined)) ?? []
   } catch (e: any) {
     message.error(e?.message || '资产加载失败')
   } finally {

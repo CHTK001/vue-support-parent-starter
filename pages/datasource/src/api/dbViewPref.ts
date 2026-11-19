@@ -86,6 +86,8 @@ export interface DbViewPref {
 /** 每表查询偏好 */
 export interface DbTablePref {
   filterWhere: string;
+  /** 全表搜索关键词（任意列 LIKE；与 filterWhere 同通道，见 DatabaseManagerView.combinedWhere） */
+  searchQuery: string;
   filters: DbFilterCondition[];
   /** 最近使用时刻（毫秒），用于容量淘汰 */
   at: number;
@@ -215,6 +217,7 @@ export function loadTablePref(key: string): DbTablePref | null {
   const rec = raw as Record<string, unknown>;
   return {
     filterWhere: typeof rec.filterWhere === "string" ? rec.filterWhere : "",
+    searchQuery: typeof rec.searchQuery === "string" ? rec.searchQuery : "",
     filters: sanitizeFilters(rec.filters),
     at: Number.isFinite(Number(rec.at)) ? Number(rec.at) : 0,
   };

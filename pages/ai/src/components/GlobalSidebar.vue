@@ -1603,6 +1603,9 @@ const handleAIRenameSession = async (session: any) => {
   try {
     const result = await apiService.generateSessionTitle(session.id)
     if (result?.title && result.title !== session.title) {
+      // 生成接口只返回标题、不落库（与「手动重命名」的 updateSession 口径不同），
+      // 这里必须显式持久化，否则刷新后标题回退到生成前的旧值。
+      await apiService.updateSession(session.id, { title: result.title })
       sessionStore.updateSessionTitle(session.id, result.title)
       toast.success(t('ui.sidebar.aiRenamed'))
     } else if (result?.skipped) {

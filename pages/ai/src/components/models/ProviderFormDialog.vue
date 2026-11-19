@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, reactive, watch, computed } from 'vue'
+import { ref, reactive, watch, computed, nextTick } from 'vue'
 
 import {
   Add24Regular, Link24Regular, Eye24Regular, EyeOff24Regular, Delete24Regular,
-  Info24Regular, Key24Regular, ChevronDown24Regular, CloudCheckmark24Regular,
+  Key24Regular, ChevronDown24Regular, CloudCheckmark24Regular,
   CloudArrowDown24Regular, Folder24Regular, Search24Regular, BranchFork24Regular,
+  ArrowSync24Regular,
 } from '@vicons/fluent'
 import { useI18n } from 'vue-i18n'
 import ReSelect from '@repo/ui/re-select'
@@ -41,6 +42,8 @@ const detectSeq = ref(0)
 const detectUrl = ref('')
 const detectRows = ref<{ protocol: string; label: string; icon: string; ok: boolean; message: string; url?: string }[]>([])
 const detectFoot = ref('')
+// 用户在检测结果里「点击采用」的协议：命中的行高亮，重开检测时清空
+const appliedProtocol = ref('')
 /**
  * 检测结果行状态，三档分开看：
  * <ul>
@@ -58,21 +61,127 @@ function detectRowState(row: { ok: boolean; message: string }): 'ok' | 'na' | 'b
 const DETECT_STATE_LABEL: Record<'ok' | 'na' | 'bad', string> = { ok: '可用', na: '不支持', bad: '连不上' }
 
 /**
- * 余额查询方式（extra.credit_kind）。
+ * 余额查询类型（extra.credit_kind）。
  *
- * <p>{@code auto} 不落库：后端按「厂商官方 → OpenAI 官方 → OpenAI 兼容计费」自动回落，
- * 第一条查到数的胜出。其余值直接指定唯一实现，并可覆盖地址与字段表达式。
+ * <p>{@code auto} 不落库：后端按「厂商官方 → OpenAI 官方 → OpenAI 兼容计费 → Moss 非官方」
+ * 自动回落，第一条查到数的胜出；{@code official} 落 registry（官方余额登记表）；
+ * {@code custom} 落 custom（字段映射，支持 JSONPath / XPath）。
  * 实现在 datasearch-starter 的 credit SPI 里，与渠道管理页共用同一套口径。</p>
  */
-const CREDIT_KINDS = [
-  { value: 'auto', label: '自动识别（推荐）', short: '自动' },
-  { value: 'billing', label: 'OpenAI 兼容计费接口（one-api / new-api / voapi）', short: '兼容计费' },
-  { value: 'host', label: '厂商官方（DeepSeek / Moonshot / 硅基流动 / OpenRouter）', short: '厂商官方' },
-  { value: 'openai', label: 'OpenAI 官方', short: 'OpenAI' },
-  { value: 'expression', label: '自定义地址 + 字段表达式', short: '自定义' },
+const CREDIT_TYPES = [
+  { value: 'auto', label: '自动获取（推荐）', short: '自动' },
+  { value: 'official', label: '官方 API', short: '官方' },
+  { value: 'custom', label: '自定义映射（JSONPath / XPath）', short: '自定义' },
+]
+
+/**
+ * 自定义映射左侧的下拉项：后端组装余额读数需要的字段。
+ * remain 排第一段算剩余，used 排第二段算已用，currency 只定币种不产出读数。
+ */
+const CREDIT_FIELDS = [
+  { value: 'remain', label: '剩余余额' },
+  { value: 'used', label: '已用余额' },
+  { value: 'currency', label: '币种' },
 ]
 const apiKeyList = ref<string[]>([])
 const showKey = ref<Record<number, boolean>>({})
+/** 余额密钥多行列表：与 API Key 同一套「每行一个 + 密码态」交互，保存时按换行拼成 extra.credit_key */
+const creditKeyList = ref<string[]>([])
+const showCreditKey = ref<Record<number, boolean>>({})
+/** 余额密钥试查（「测试查询」按钮）：进行中标记 + 逐 Key 结果行（成功带读数、失败带原因） */
+const creditTesting = ref(false)
+const creditTestResult = ref<null | { ok: boolean; lines: string[] }>(null)
+/** 第一个余额密钥输入框实例：详情页「去配置」直达余额区时聚焦它 */
+const creditKeyFirstRef = ref<any>(null)
+const setCreditKeyRef = (el: any, index: number) => {
+  if (index === 0) creditKeyFirstRef.value = el
+}
+/** 「去配置」直达：余额区本就默认展开，把焦点落到第一个密钥输入框即可落地可填 */
+const focusCreditKeyInput = () => {
+  nextTick(() => creditKeyFirstRef.value?.focus?.())
+}
+
+/**
+ * 余额密钥列表 → 落库文本（后端 splitCreditKeys 兼容换行 / 逗号 / 分号）。
+ *
+ * <p>必须从列表现算：`v-model="creditKeyList[i]"`、push、splice 都只改数组元素，
+ * 不会替换 ref 本身，浅层 watch 收不到变化 —— 若保存时读 form.creditKey，
+ * 新填 / 新加 / 删掉的余额密钥会被整体漏掉（表现为「填了余额密钥，保存后没了」）。</p>
+ */
+const creditKeysText = () =>
+  creditKeyList.value.map((k) => k.trim()).filter(Boolean).join('\n')
+
+/** 告警接收人取值 → 正整数用户 ID 数组（数组项或逗号 / 分号 / 空白分隔文本均可；非法项丢弃，保存前另有轻校验拦截） */
+const parseWarnReceivers = (text: string | Array<string | number>) => {
+  const raw = Array.isArray(text) ? text.join(',') : String(text || '')
+  return raw.split(/[,，;；\s]+/).map((s) => s.trim()).filter(Boolean)
+    .map((s) => Number(s)).filter((n) => Number.isInteger(n) && n > 0)
+}
+
+/** 多选框归一：把粘贴 / 手输的「1,2 3；4」拆成单值并去重，避免整串留在校验黑名单 */
+const normalizeReceivers = (vals: Array<string | number> | string) => {
+  const raw = Array.isArray(vals) ? vals.join(',') : String(vals || '')
+  return [...new Set(raw.split(/[,，;；\s]+/).map((s) => s.trim()).filter(Boolean))]
+}
+
+/**
+ * 自定义余额映射的编辑行：左侧后端字段下拉，右侧 JSONPath / XPath 表达式。
+ * 保存时写进 extra.credit_mapping，后端 custom 实现逐字段取数。
+ */
+interface CreditMappingRow {
+  /** 后端字段：remain（剩余）/ used（已用）/ currency（币种） */
+  field: string
+  /** 取值表达式：$.data.balance 或 //balance/text() */
+  expression: string
+}
+
+/** 映射编辑行：默认给「剩余 + 已用」两行，够覆盖最常见口径 */
+const creditMappingRows = ref<CreditMappingRow[]>([
+  { field: 'remain', expression: '' },
+  { field: 'used', expression: '' },
+])
+
+/** 新增一条空映射行 */
+const addCreditMappingRow = () => creditMappingRows.value.push({ field: 'remain', expression: '' })
+
+/** 删除一条映射行（至少保留一行输入位） */
+const removeCreditMappingRow = (index: number) => {
+  if (creditMappingRows.value.length > 1) {
+    creditMappingRows.value.splice(index, 1)
+    return
+  }
+  creditMappingRows.value[0] = { field: 'remain', expression: '' }
+}
+
+/**
+ * 旧版整条表达式 → 映射行（兼容历史 extra.credit_expression）。
+ * 旧口径是「分号分隔，前一段剩余、后一段已用」，$ 开头是美元前缀不是路径符，
+ * 这里去掉币种前缀、补成 JSONPath 形态展示。
+ */
+const rowsFromLegacyExpression = (text: string): CreditMappingRow[] => {
+  const segments = String(text || '').split(';').map((s) => s.trim()).filter(Boolean)
+  if (!segments.length) return []
+  const toPath = (segment: string) => {
+    const body = /^[¥￥$€£]/.test(segment) ? segment.slice(1).trim() : segment
+    return body.startsWith('$') ? body : `$.${body}`
+  }
+  const rows: CreditMappingRow[] = []
+  if (segments[0]) rows.push({ field: 'remain', expression: toPath(segments[0]) })
+  if (segments[1]) rows.push({ field: 'used', expression: toPath(segments[1]) })
+  return rows.length ? rows : [{ field: 'remain', expression: '' }]
+}
+
+/**
+ * 历史 credit_kind → 新三分类。
+ * registry / host / openai 算「官方 API」；custom / expression 算「自定义映射」；
+ * billing（OpenAI 兼容计费）已被自动回落覆盖，连同其它未知值一并并回「自动获取」。
+ */
+const creditTypeFromKind = (kind: unknown): 'auto' | 'official' | 'custom' => {
+  const saved = String(kind || '').trim().toLowerCase()
+  if (['registry', 'host', 'openai'].includes(saved)) return 'official'
+  if (['custom', 'expression'].includes(saved)) return 'custom'
+  return 'auto'
+}
 
 /** 本地推理提供商（ONNX）：apikey 语义是本地模型路径，而非远程密钥 */
 const isLocalProvider = computed(() => (providerType.value || '').toLowerCase().includes('onnx'))
@@ -109,21 +218,84 @@ const form = reactive({
   passthroughResp: '',
   // 用量/指标接口（extra.metrics_url）：拉价格、延迟等指标数据的端点
   metricsUrl: '',
-  // 余额查询口径（extra.credit_kind / credit_url / credit_expression）：auto 不落库，
-  // 由后端按厂商与地址自动回落；选了具体实现才写这三个键
-  creditKind: 'auto',
+  // 余额查询口径（extra.credit_kind / credit_url / credit_mapping
+  // / credit_ua / credit_headers）：auto 不落库，由后端按厂商与地址自动回落；
+  // official 落 registry；custom 落字段映射。
+  // 余额密钥不放在 form 里，独立维护 creditKeyList，保存时现算（见 creditKeysText）
+  creditType: 'auto',
   creditUrl: '',
-  creditExpression: '',
+  // 余额查询透传：User-Agent 覆盖与额外请求头（"名称: 值" 每行一个）
+  creditUa: '',
+  creditHeadersText: '',
+  // AK/SK 签名类余额接口（如阿里云百炼走阿里云 BSS 账户余额）的访问密钥，
+  // 落 extra.credit_access_key / extra.credit_secret_key；Bearer 类余额接口不读这两个字段
+  creditAccessKey: '',
+  creditSecretKey: '',
+  // 余额低量告警（extra.credit_warn_threshold / credit_warn_receivers）：
+  // 实时查到余额 ≤ 阈值时给接收人（用户 ID 列表）推站内消息；都空 = 不告警
+  creditWarnThreshold: '',
+  creditWarnReceivers: [] as string[],
   // 供应商级限流（extra.max_concurrency / max_accounts / requests_per_minute），null = 不限制
   maxConcurrency: null as number | null,
   maxAccounts: null as number | null,
   rpm: null as number | null,
 })
 
+/**
+ * 余额查询可选的 User-Agent 样本。
+ *
+ * <p>部分上游的余额接口按 UA 判断请求方是不是浏览器 / 官方客户端，默认的编程库 UA
+ * 会被直接 403。这里存一组常见浏览器的完整 UA：点输入框右侧的刷新图标就随机填一个，
+ * 不必让用户自己去复制。</p>
+ */
+const CREDIT_UA_SAMPLES: string[] = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Safari/605.1.15',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+]
+
+/**
+ * 随机填入一个余额查询 User-Agent。
+ *
+ * <p>避免连续两次抽到同一串（当前已有值会被排除），并去掉与已有值重复的样本。</p>
+ */
+const randomCreditUa = () => {
+  const current = form.creditUa.trim()
+  const pool = CREDIT_UA_SAMPLES.filter((ua) => ua !== current)
+  const list = pool.length ? pool : CREDIT_UA_SAMPLES
+  form.creditUa = list[Math.floor(Math.random() * list.length)]
+}
+
 /** 编辑态下保留的原始 extra，保存时合并回去，避免覆盖掉本表单不管理的键 */
 const origExtra = ref<Record<string, any>>({})
 
 const selectedTemplate = ref<any>(null)
+
+/** 模板端点变体（同一家厂商的不同 baseUrl，如火山方舟标准端点与 Coding Plan 端点） */
+const templateVariants = computed<any[]>(() => (selectedTemplate.value?.variants || []) as any[])
+
+/** 当前选中的端点变体 id（空串 = 模板默认端点） */
+const activeVariantId = ref('')
+
+/**
+ * 切换端点变体：回填该变体的默认地址（用户仍可手改）。
+ *
+ * @param variant 变体；null 表示回到模板默认端点
+ */
+const selectVariant = (variant: any) => {
+  if (!variant) {
+    activeVariantId.value = ''
+    form.apiUrl = selectedTemplate.value?.defaultApiUrl || selectedTemplate.value?.defaultUrl || ''
+    return
+  }
+  activeVariantId.value = String(variant.id || '')
+  if (variant.defaultApiUrl) {
+    form.apiUrl = variant.defaultApiUrl
+  }
+}
 
 /** 当前认证方式对应的落库三元组 */
 const resolvedAuth = computed(() => {
@@ -170,6 +342,9 @@ const channelProviderId = computed(() => {
   return CHANNEL_PROVIDER_IDS.has(brand) ? brand : ''
 })
 
+/** 余额密钥条数：多行列表里的非空行数（与后端 splitCreditKeys 的多账号口径一致），摘要里显示「余额密钥×N」 */
+const creditKeyCount = computed(() => creditKeyList.value.map((s) => s.trim()).filter(Boolean).length)
+
 /** 高级设置折叠时的摘要：不用展开也知道配了什么，避免「看着空白其实配了一堆」 */
 const advancedSummary = computed(() => {
   const parts: string[] = []
@@ -181,10 +356,12 @@ const advancedSummary = computed(() => {
   if (splitList(form.passthroughResp).length) parts.push('透传响应头')
   if (splitList(form.passthroughReq).length) parts.push('透传请求头')
   if (form.metricsUrl.trim()) parts.push('用量接口')
-  if (form.creditKind && form.creditKind !== 'auto') {
-    const hit = CREDIT_KINDS.find((k) => k.value === form.creditKind)
-    parts.push(`余额 ${hit ? hit.short : form.creditKind}`)
+  if (form.creditType && form.creditType !== 'auto') {
+    const hit = CREDIT_TYPES.find((k) => k.value === form.creditType)
+    parts.push(`余额 ${hit ? hit.short : form.creditType}`)
   }
+  if (creditKeyCount.value === 1) parts.push('余额密钥')
+  else if (creditKeyCount.value > 1) parts.push(`余额密钥×${creditKeyCount.value}`)
   if (proxyMode.value === 'custom') parts.push('自定义代理')
   if (form.maxConcurrency) parts.push(`并发 ${form.maxConcurrency}`)
   if (form.maxAccounts) parts.push(`账号 ${form.maxAccounts}`)
@@ -252,15 +429,52 @@ const buildExtra = () => {
   const metricsUrl = form.metricsUrl.trim()
   if (metricsUrl) extra.metrics_url = metricsUrl
   else delete extra.metrics_url
-  // 余额查询口径：auto 不落库（后端按厂商与地址自动回落），选了实现才写键
-  if (form.creditKind && form.creditKind !== 'auto') extra.credit_kind = form.creditKind
+  // 余额查询口径：auto 不落库（后端自动回落），official 落 registry、custom 落 custom
+  if (form.creditType === 'official') extra.credit_kind = 'registry'
+  else if (form.creditType === 'custom') extra.credit_kind = 'custom'
   else delete extra.credit_kind
+  // 余额专用密钥：Moss 这类「查询令牌 ≠ 渠道 Key」的上游用它。
+  // 清空时必须落空串而不是删键：删键与「历史数据未配置」无法区分，
+  // 后端会把渠道 API Key 再次回填成余额密钥，导致「删了又回来」
+  extra.credit_key = creditKeysText()
+  // AK/SK 签名类余额接口的访问密钥（如阿里云百炼查 BSS 账户余额）；空则删键
+  const creditAccessKey = form.creditAccessKey.trim()
+  if (creditAccessKey) extra.credit_access_key = creditAccessKey
+  else delete extra.credit_access_key
+  const creditSecretKey = form.creditSecretKey.trim()
+  if (creditSecretKey) extra.credit_secret_key = creditSecretKey
+  else delete extra.credit_secret_key
+  // 余额低量告警：阈值（数字）+ 接收人（正整数用户 ID 数组）；任一缺省删键（不告警）
+  const warnThreshold = Number(form.creditWarnThreshold)
+  if (form.creditWarnThreshold !== '' && form.creditWarnThreshold != null && Number.isFinite(warnThreshold)) {
+    extra.credit_warn_threshold = warnThreshold
+  } else {
+    delete extra.credit_warn_threshold
+  }
+  const warnReceivers = parseWarnReceivers(form.creditWarnReceivers)
+  if (warnReceivers.length) extra.credit_warn_receivers = warnReceivers
+  else delete extra.credit_warn_receivers
+  // 自定义映射：仅 custom 落库，空行丢弃
+  const creditMapping = form.creditType === 'custom'
+    ? creditMappingRows.value
+        .map((r) => ({ field: r.field, expression: r.expression.trim() }))
+        .filter((r) => r.expression)
+    : []
+  if (creditMapping.length) extra.credit_mapping = creditMapping
+  else delete extra.credit_mapping
+  // 余额接口地址：仅 custom 支持覆盖（official 用登记表地址，auto 由后端回落）
   const creditUrl = form.creditUrl.trim()
-  if (creditUrl) extra.credit_url = creditUrl
+  if (creditUrl && form.creditType === 'custom') extra.credit_url = creditUrl
   else delete extra.credit_url
-  const creditExpression = form.creditExpression.trim()
-  if (creditExpression) extra.credit_expression = creditExpression
-  else delete extra.credit_expression
+  // 余额查询 UA / 自定义请求头：透传给余额接口（空则删键，走后端默认值）
+  const creditUa = form.creditUa.trim()
+  if (creditUa) extra.credit_ua = creditUa
+  else delete extra.credit_ua
+  const creditHeaders = parseHeaders(form.creditHeadersText)
+  if (Object.keys(creditHeaders).length) extra.credit_headers = creditHeaders
+  else delete extra.credit_headers
+  // 字段映射已接管取数：配了映射就清掉旧版整条表达式，避免两套口径并存
+  if (form.creditType === 'custom' && creditMapping.length) delete extra.credit_expression
   // 透传头：逗号/换行分隔，数组落库
   for (const [field, key] of [['passthroughReq', 'passthrough_request_headers'],
     ['passthroughResp', 'passthrough_response_headers']] as const) {
@@ -283,18 +497,9 @@ const buildExtra = () => {
   else delete extra.auth_header
   if (auth.authPrefix) extra.auth_prefix = auth.authPrefix
   else delete extra.auth_prefix
-  // 免费渠道：模型目录不在上游，路由表（extra.routes）是本表单唯一来源，
-  // 不管是新增还是编辑，行清单就是路由表的全部；非免费渠道则保留 origExtra 里的路径
-  if (isFreeChannelProvider.value) {
-    const routes = routesFromRows(formRoutes.value)
-    if (Object.keys(routes).length) {
-      extra.routes = routes
-    } else {
-      delete extra.routes
-    }
-  } else {
-    delete extra.routes
-  }
+  // extra.routes 不再由本表单维护：免费渠道的模型清单来自渠道管理动态合并的
+  // 路由（mergedRoutes），静态 routes 由后端作为兜底读取，这里随 origExtra 原样保留，
+  // 避免「打开表单点一次保存」就把库里已有的静态路由覆盖或删掉。
   return extra
 }
 
@@ -302,25 +507,7 @@ watch(apiKeyList, (list) => {
   form.apiKey = list.filter(k => k.trim()).join(',')
 })
 
-/**
- * 单条免费渠道路由（extra.routes 的编辑态表示）。
- *
- * <p>key 是模型标识（模型名 / 模型名前缀），路由目标按
- * {@code { provider, base_url, api_key }} 覆盖上游地址与凭据；
- * api_key 留空时由客户端回落到供应商维度的全局 Key。</p>
- */
-interface RouteTableRow {
-  /** 路由 key（模型名 / 模型名前缀，也是模型列表行里露出的模型名） */
-  key: string
-  /** 上游 provider 标识（openai、kilo、openrouter …，留空按 OpenAI 兼容协议） */
-  provider: string
-  /** 上游基础地址 */
-  baseUrl: string
-  /** 该目标的 API Key（留空 = 沿用供应商全局 Key） */
-  apiKey: string
-}
-
-/** 当前供应商是否是免费渠道：只有它能按模型名路由到不同上游 */
+/** 当前供应商是否是免费渠道：模型清单来自渠道管理，按所选模型自动切上游 */
 const isFreeChannelProvider = computed(() => {
   const brand = String(providerType.value || '').toLowerCase()
   return brand === 'free-channel' || brand === 'free'
@@ -337,76 +524,55 @@ const isRouterGroupProvider = computed(() => String(providerType.value || '').to
  */
 const isKeylessChannelProviderFlag = computed(() => isKeylessChannelProvider({ platform: providerType.value }))
 
-/** 路由表编辑行：点击「添加」时新增，保存时写回 extra.routes */
-const formRoutes = ref<RouteTableRow[]>([])
-
-/** 路由表提示（格式错误 / 重复 key 等错误信息，保存时一起提示） */
-const routeHint = ref<string>('')
-
-/** 把 extra.routes 映射为可编辑行（字段名同时兼容下划线/驼峰） */
-const rowsFromRoutes = (routes: any): RouteTableRow[] => {
-  if (!routes || typeof routes !== 'object') return []
-  return Object.entries(routes).map(([key, target]: [string, any]) => ({
-    key: String(key).trim(),
-    provider: String(target?.provider || target?.protocol || '').trim(),
-    baseUrl: String(target?.base_url || target?.baseUrl || target?.url || target?.endpoint || '')
-      .trim(),
-    apiKey: String(target?.api_key || target?.apiKey || '').trim(),
-  }))
-}
-
 /**
- * 把可编辑行写回 extra.routes。
+ * 余额接口需要 AK/SK 签名的供应商文案；无需签名时为 null。
  *
- * <p>丢弃无 key / 无可用目标的行，行内同 key 只留第一条，结构符合后端
- * {@link ProviderRouteTargets} 的解析约定（provider / base_url / api_key）。</p>
+ * <p>与后端登记表 provider-credit-endpoints.json 的 signType 口径对齐：只有
+ * 阿里云 BSS（百炼 / DashScope / 通义，别名挂在 aliyun-bss 上）、火山引擎 Billing
+ * （volc-billing）、百度智能云财务（baidu-bce）、七牛云（qiniu）四族走账户级
+ * AK/SK 签名余额接口；商汤（SenseNova）等其他厂商没有签名余额接口，不显示
+ * 该输入行，避免误导用户以为要填阿里云的密钥。</p>
  */
-const routesFromRows = (rows: RouteTableRow[]): Record<string, any> => {
-  const out: Record<string, any> = {}
-  const seen = new Set<string>()
-  for (const r of rows) {
-    const key = String(r.key || '').trim()
-    if (!key || seen.has(key)) continue
-    const target: Record<string, any> = {
-      provider: String(r.provider || '').trim(),
-      base_url: String(r.baseUrl || '').trim(),
-      api_key: String(r.apiKey || '').trim(),
+const creditAkSk = computed(() => {
+  const brand = String(providerType.value || '').trim().toLowerCase()
+  // 平台名认不出时，阿里云再按上游域名兜底（与后端 isAliyunBailianProvider 的域名判断一致）
+  let host = ''
+  try {
+    host = new URL(form.apiUrl).hostname.toLowerCase()
+  } catch {
+    host = ''
+  }
+  if (/^(aliyun-bss|aliyun-bailian|dashscope|bailian|qwen|tongyi|aliyun)$/.test(brand)
+    || host.endsWith('aliyuncs.com')) {
+    return {
+      akPlaceholder: '阿里云 RAM AccessKey ID（仅签名类余额接口需要）',
+      skPlaceholder: '阿里云 RAM AccessKey Secret（仅签名类余额接口需要）',
+      note: '阿里云百炼（DashScope）的 sk- Key 没有厂商余额接口，查余额走阿里云 BSS 账户余额：需填一对有「费用中心只读」权限的阿里云 RAM AccessKey。',
     }
-    if (!Object.values(target).some(Boolean)) continue
-    seen.add(key)
-    out[key] = target
   }
-  return out
-}
-
-/**
- * 路由表保存前校验（不阻断保存，只汇报问题）。
- *
- * <p>dup key / 空 key 是写坏库的干因素：空 key 行被丢弃，同 key 只留一条，
- * 多余信息静默丢失。error 置位后保存按钮依旧可用。</p>
- */
-const validateRoutes = () => {
-  routeHint.value = ''
-  const rows = formRoutes.value.filter(r => String(r.key || '').trim())
-  const keys = rows.map((r) => String(r.key || '').trim())
-  const seen = new Set<string>()
-  const dup = keys.find((k) => seen.has(k) || seen.add(k))
-  if (dup) {
-    routeHint.value = '路由表存在重复 key：' + dup
-    return false
+  if (brand === 'volc-billing') {
+    return {
+      akPlaceholder: '火山引擎 AccessKey ID（签名类余额接口需要）',
+      skPlaceholder: '火山引擎 SecretAccessKey（签名类余额接口需要）',
+      note: '火山引擎账户余额走 Billing 签名接口：需填一对有计费只读权限的火山引擎 AK/SK。',
+    }
   }
-  if (!rows.length) {
-    routeHint.value = '未配置路由表：所有模型名会回落到供应商的默认（base_url）地址'
-    return true
+  if (brand === 'baidu-bce') {
+    return {
+      akPlaceholder: '百度智能云 AccessKey ID（签名类余额接口需要）',
+      skPlaceholder: '百度智能云 SecretAccessKey（签名类余额接口需要）',
+      note: '百度智能云现金余额走财务签名接口：需填一对有财务只读权限的百度智能云 AK/SK。',
+    }
   }
-  return true
-}
-
-/** 新增一条空路由行 */
-const addRouteRow = () => formRoutes.value.push({ key: '', provider: '', baseUrl: '', apiKey: '' })
-
-/** 删除一行，行内同 key 只留第一条 */
-const removeRouteRow = (idx: number) => formRoutes.value.splice(idx, 1)
+  if (brand === 'qiniu') {
+    return {
+      akPlaceholder: '七牛云 AccessKey（签名类余额接口需要）',
+      skPlaceholder: '七牛云 SecretKey（签名类余额接口需要）',
+      note: '七牛云账户余额走财务签名接口：需填一对七牛云 AK/SK。',
+    }
+  }
+  return null
+})
 
 const resetForm = () => {
   Object.assign(form, {
@@ -419,18 +585,28 @@ const resetForm = () => {
     extraBodyText: '', passthroughReq: '', passthroughResp: '',
     maxConcurrency: null, maxAccounts: null, rpm: null,
     metricsUrl: '',
-    creditKind: 'auto', creditUrl: '', creditExpression: '',
+    creditType: 'auto', creditUrl: '',
+    creditUa: '', creditHeadersText: '',
+    creditAccessKey: '', creditSecretKey: '', creditWarnThreshold: '', creditWarnReceivers: [],
   })
   apiKeyList.value = []
+  creditKeyList.value = [''] // 余额密钥默认展示一行，贴合单账号主流程
+  showCreditKey.value = {}
+  // 映射行回到默认两行（剩余 + 已用）：上一家的映射配置不能带进新表单
+  creditMappingRows.value = [
+    { field: 'remain', expression: '' },
+    { field: 'used', expression: '' },
+  ]
   localModelPath.value = ''
   providerModelRoot.value = ''
   externalVisible.value = false
   testResult.value = null
+  // 上一家的试查结论不带进新表单
+  creditTestResult.value = null
   showKey.value = {}
   selectedTemplate.value = null
+  activeVariantId.value = ''
   origExtra.value = {}
-  formRoutes.value = []
-  routeHint.value = ''
   proxyCustom.value = false
   // 检测协议结果是「这一次地址」的探测记录：换一家供应商还留着上一家的结果
   // 会让人以为新地址已经测过（实测：重开编辑弹框仍显示旧的四行）。
@@ -442,6 +618,8 @@ const resetForm = () => {
   detectUrl.value = ''
   // 每次打开表单都从折叠态开始：上一家的「高级」展开状态不该带到新供应商
   advancedOpen.value = false
+  // 二级分组（请求 / 余额 / Key 管理 / 网络与限流）同样回到全展开
+  Object.assign(sectionOpen, { request: true, balance: true, keys: true, network: true })
 }
 
 const openCreate = () => {
@@ -459,6 +637,7 @@ const openFromTemplate = (template: any) => {
   providerId.value = ''
   providerType.value = template.id
   selectedTemplate.value = template
+  activeVariantId.value = '' // 从默认端点开始，变体由用户在表单里切换
   form.name = template.name
   form.protocol = template.protocol
   form.apiUrl = template.defaultApiUrl || template.defaultUrl || ''
@@ -470,7 +649,7 @@ const openFromTemplate = (template: any) => {
   dialogVisible.value = true
 }
 
-const openEdit = (provider: any) => {
+const openEdit = (provider: any, opts?: { focusSection?: 'balance' }) => {
   resetForm()
   isEditMode.value = true
   providerId.value = provider.id
@@ -508,9 +687,39 @@ const openEdit = (provider: any) => {
   form.passthroughReq = listToText(origExtra.value.passthrough_request_headers)
   form.passthroughResp = listToText(origExtra.value.passthrough_response_headers)
   form.metricsUrl = String(origExtra.value.metrics_url || '')
-  form.creditKind = String(origExtra.value.credit_kind || 'auto')
+  // 余额口径回填：registry / host / openai → 官方 API；custom / expression → 自定义映射；
+  // billing 与自动回落重合，按「自动获取」处理
+  form.creditType = creditTypeFromKind(origExtra.value.credit_kind)
+  // 余额密钥多行回显：按后端 splitCreditKeys 同口径拆分（换行 / 逗号 / 分号，含全角）
+  const creditKeys = String(origExtra.value.credit_key || '')
+    .split(/[\r\n,;，；]+/).map((s) => s.trim()).filter(Boolean)
+  creditKeyList.value = creditKeys.length ? creditKeys : ['']
+  showCreditKey.value = {}
   form.creditUrl = String(origExtra.value.credit_url || '')
-  form.creditExpression = String(origExtra.value.credit_expression || '')
+  // 余额透传回填：UA 原样；请求头兼容 {name:value} 与 [{name,value}] 两种落库形态
+  form.creditUa = String(origExtra.value.credit_ua || '')
+  const savedHeaders = Array.isArray(origExtra.value.credit_headers)
+    ? Object.fromEntries(origExtra.value.credit_headers
+        .map((h: any) => [String(h?.name || '').trim(), String(h?.value ?? '').trim()])
+        .filter(([k]) => k))
+    : origExtra.value.credit_headers
+  form.creditHeadersText = headersToText(savedHeaders)
+  // AK/SK 签名类余额接口的访问密钥回显（阿里云百炼等走 BSS 账户余额的渠道）
+  form.creditAccessKey = String(origExtra.value.credit_access_key || '')
+  form.creditSecretKey = String(origExtra.value.credit_secret_key || '')
+  // 余额低量告警回显：阈值原样；接收人兼容数组与逗号文本两种落库形态，拆成多选值
+  form.creditWarnThreshold = origExtra.value.credit_warn_threshold ?? ''
+  const savedReceivers = Array.isArray(origExtra.value.credit_warn_receivers)
+    ? origExtra.value.credit_warn_receivers.join(',') : String(origExtra.value.credit_warn_receivers || '')
+  form.creditWarnReceivers = savedReceivers.split(/[,，;；\s]+/).map((s) => s.trim()).filter(Boolean)
+  // 映射行回填：优先 credit_mapping；历史 credit_expression 按「分号分段」拆成 remain / used
+  const savedMapping = Array.isArray(origExtra.value.credit_mapping) ? origExtra.value.credit_mapping : []
+  const mappingRows = savedMapping.length
+    ? savedMapping.map((m: any) => ({ field: String(m?.field || 'remain'), expression: String(m?.expression || '') }))
+    : rowsFromLegacyExpression(String(origExtra.value.credit_expression || ''))
+  creditMappingRows.value = mappingRows.length
+    ? mappingRows
+    : [{ field: 'remain', expression: '' }, { field: 'used', expression: '' }]
   form.maxConcurrency = numOrNull(origExtra.value.max_concurrency)
   form.maxAccounts = numOrNull(origExtra.value.max_accounts)
   form.rpm = numOrNull(origExtra.value.requests_per_minute)
@@ -523,7 +732,9 @@ const openEdit = (provider: any) => {
   form.authPrefix = provider.authPrefix || provider.extra?.auth_prefix || ''
   form.existingKeyCount = provider.api_key_count ?? provider.api_keys?.length ?? 0
   form.existingKeyMask = provider.api_key_mask || provider.apiKeyMask || ''
-  apiKeyList.value = [...(provider.api_keys || provider.apiKeyList || [])]
+  // 清空过 Key 的供应商回显空列表时补一个空输入框，与「永远保留一个输入框」的编辑交互一致
+  const loadedKeys = [...(provider.api_keys || provider.apiKeyList || [])]
+  apiKeyList.value = loadedKeys.length ? loadedKeys : ['']
   // 本地推理（ONNX）：apikey 存的就是本地模型路径，回填到路径输入框
   if ((brand || '').toLowerCase().includes('onnx')) {
     localModelPath.value = provider.api_keys?.[0] || provider.apiKeyList?.[0] || ''
@@ -538,11 +749,10 @@ const openEdit = (provider: any) => {
   } else {
     channelConnections.value = []
   }
-  // 免费渠道：模型目录是 extra.routes 路由表（不是上游 /models），
-  // 路由表的维护入口就是本表单：行清单是 extra.routes 的唯一来源
-  formRoutes.value = rowsFromRoutes(provider.extra?.routes)
-  if (!isFreeChannelProvider.value) formRoutes.value = []
   dialogVisible.value = true
+  // 「去配置」直达：余额区默认展开，再把焦点落到第一个密钥输入框，
+  // 用户从详情页点过来即落地可填，不用自己在长表单里翻
+  if (opts?.focusSection === 'balance') focusCreditKeyInput()
 }
 
 defineExpose({ openCreate, openFromTemplate, openEdit })
@@ -566,6 +776,31 @@ const removeApiKeyAt = (index: number) => {
 }
 const toggleKey = (i: number) => { showKey.value[i] = !showKey.value[i] }
 
+// 余额密钥不另存一份镜像：保存时用 creditKeysText() 从列表现算，
+// 否则 v-model 直接改数组元素（不替换 ref）会绕过 watch，填了也不落库。
+const addCreditKey = () => creditKeyList.value.push('')
+/** 行内删除：多行直接删掉该行，只剩一行时清空内容（永远保留一个输入框） */
+const removeCreditKeyAt = (index: number) => {
+  if (creditKeyList.value.length > 1) {
+    const hadKey = String(creditKeyList.value[index] || '').trim() !== ''
+    creditKeyList.value.splice(index, 1)
+    // 显隐标记按行下标记录：删中间一行后整体前移，避免错位
+    const next: Record<number, boolean> = {}
+    Object.keys(showCreditKey.value).forEach((k) => {
+      const i = Number(k)
+      if (i < index) next[i] = showCreditKey.value[i]
+      else if (i > index) next[i - 1] = showCreditKey.value[i]
+    })
+    showCreditKey.value = next
+    // 删除现在真正生效（后端不再回填渠道 Key），给一句后果提示让用户知道影响
+    if (hadKey) message.info('已删除该余额密钥：保存后此 Key 将不再查询余额')
+  } else if (creditKeyList.value.length === 1) {
+    if (String(creditKeyList.value[0] || '').trim() !== '') message.info('已清空余额密钥：保存后将不再查询余额')
+    creditKeyList.value[0] = ''
+  }
+}
+const toggleCreditKey = (i: number) => { showCreditKey.value[i] = !showCreditKey.value[i] }
+
 /** 检测协议：对同一 API 地址按 OpenAI / Responses / Claude / Gemini 四种形态各探测一次。
  *  判定口径（与后端一致）：只要不是 404 都算「该地址支持此协议形态」 */
 const openDetectProtocol = async () => {
@@ -579,6 +814,7 @@ const openDetectProtocol = async () => {
   detecting.value = true
   detectRows.value = []
   detectFoot.value = ''
+  appliedProtocol.value = ''
   const auth = resolvedAuth.value
   try {
     const res: any = await adminApi.post('/api/providers/detect-protocol', {
@@ -610,6 +846,47 @@ const openDetectProtocol = async () => {
   }
 }
 
+/** 模型列表端点的已知路径后缀（与后端 modelListCandidates 的拼接互逆）：
+ *  点击结果行时从探测 URL 剥掉它，还原出可用的 API base 回填地址栏。 */
+const DETECT_PATH_SUFFIXES = [
+  '/v1beta/openai/models', '/v1beta/models', '/gemini/v1beta/models', '/gemini/models',
+  '/openai/v1/models', '/openai/models', '/openai/v1/chat/completions',
+  '/cc/v1/models', '/cc/models', '/cc/v1/messages', '/v1/messages',
+  '/v1/models', '/v1/chat/completions', '/chat/completions', '/models',
+]
+/** 从探测 URL（完整模型列表端点，Gemini 行还带掩码后的 key query）还原 API base */
+const baseUrlFromProbeUrl = (probeUrl: string): string => {
+  let u = String(probeUrl || '').trim()
+  const q = u.indexOf('?')
+  if (q >= 0) {
+    u = u.slice(0, q)
+  }
+  u = u.replace(/\/+$/, '')
+  for (const suffix of DETECT_PATH_SUFFIXES) {
+    // 长度必须大于后缀：防止把「用户恰好把端点当地址填」的输入整个剥空
+    if (u.length > suffix.length && u.toLowerCase().endsWith(suffix)) {
+      return u.slice(0, u.length - suffix.length)
+    }
+  }
+  return u
+}
+/** 点击检测结果行：直接采用该协议形态 —— 标准端点还原成 API base 回填地址栏，协议切到对应项 */
+const applyDetectRow = (row: { protocol: string; url?: string }) => {
+  if (row.url) {
+    const base = baseUrlFromProbeUrl(row.url)
+    if (base) {
+      // 先同步探测基准地址：否则下面改 apiUrl 会触发「地址改动 → 结果作废」的 watch，
+      // 结果区立刻收起，用户看不到自己采用了哪一行
+      detectUrl.value = base
+      form.apiUrl = base
+    }
+  }
+  if (protocolOptions.some((o) => o.value === row.protocol)) {
+    form.protocol = row.protocol
+    appliedProtocol.value = row.protocol
+  }
+}
+
 const handleTestConnection = async () => {
   if (!form.apiUrl.trim()) {
     testResult.value = { success: false, message: t('settings.models.apiUrlFirst') }
@@ -626,12 +903,15 @@ const handleTestConnection = async () => {
   const auth = resolvedAuth.value
   // 认证三件套与代理按「即将落库的值」一起传：Dots Studio 这类只认 api-key 头的
   // 服务商，测试时不带 auth_header 会把有效 Key 判成 401（假失败）。
+  // 空串必须发 undefined（JSON 里缺字段）：后端把 auth_prefix="" 当成「显式不要前缀」，
+  // 不会给 Authorization 补默认的 Bearer，标准 OpenAI 兼容上游就会对有效 Key 回 401；
+  // 落库时空串本来就会被删键（buildExtra），这里保持同一口径。
   const testPayload = {
     apiUrl: form.apiUrl,
     protocol: form.protocol,
     auth_scheme: auth.authScheme,
-    auth_header: auth.authHeader,
-    auth_prefix: auth.authPrefix,
+    auth_header: auth.authHeader || undefined,
+    auth_prefix: auth.authPrefix || undefined,
     proxy: form.proxyUrl.trim() || undefined,
   }
   try {
@@ -674,6 +954,57 @@ const handleTestConnection = async () => {
     testResult.value = { success: false, message: e?.message || t('settings.models.connectionFailed') }
   } finally {
     testing.value = false
+  }
+}
+
+/**
+ * 余额密钥试查（「测试查询」按钮）：把表单里即将保存的余额配置
+ * （地址 / 口径 / 密钥 / AK·SK / UA / 头 / 映射）发给后端 credit-test 当场跑一遍，
+ * 逐 Key 回成功读数或失败原因；不落库、不影响详情页缓存，改完 Key 立刻能验证。
+ */
+const handleTestCreditKeys = async () => {
+  const keys = creditKeyList.value.map((k) => k.trim()).filter(Boolean)
+  // AK/SK 签名型（阿里云 BSS / 火山 Billing / 百度财务 / 七牛）可不填余额密钥：
+  // AK/SK 配齐时放行空 keys，后端用占位 Key 走签名链路试查（读数行标「AK/SK」）
+  const akskReady = !!creditAkSk.value
+    && !!String(form.creditAccessKey || '').trim()
+    && !!String(form.creditSecretKey || '').trim()
+  if (!keys.length && !akskReady) {
+    creditTestResult.value = { ok: false, lines: [creditAkSk.value ? '请先填写余额密钥，或配齐 AccessKey / SecretKey 再测试' : '请先填写余额密钥再测试'] }
+    return
+  }
+  creditTesting.value = true
+  creditTestResult.value = null
+  try {
+    // extra 用 buildExtra() 的即将落库口径（含 credit_* 与 auth_header / auth_prefix），
+    // 测的就是「保存后会生效」的那套配置，而不是库里的旧值
+    const res: any = await apiService.testProviderCredit({
+      url: form.apiUrl.trim(),
+      platform: providerType.value,
+      auth_scheme: resolvedAuth.value.authScheme,
+      extra: buildExtra(),
+      keys,
+    })
+    const rows: any[] = Array.isArray(res?.keys) ? res.keys : []
+    if (!rows.length) {
+      creditTestResult.value = { ok: false, lines: [String(res?.message || '未能查询余额')] }
+      return
+    }
+    const lines = rows.map((r) => {
+      const label = String(r.mask || `Key ${(r.index ?? 0) + 1}`)
+      if (r.ok) {
+        const remain = r.remain != null ? r.remain : '?'
+        const currency = r.currency ? ` ${r.currency}` : ''
+        const used = r.used != null ? `，已用 ${r.used}` : ''
+        return `${label}：剩余 ${remain}${currency}${used}`
+      }
+      return `${label}：失败 —— ${String(r.error || '未返回余额')}`
+    })
+    creditTestResult.value = { ok: rows.some((r) => r.ok), lines }
+  } catch (e: any) {
+    creditTestResult.value = { ok: false, lines: [String(e?.message || '测试请求失败')] }
+  } finally {
+    creditTesting.value = false
   }
 }
 
@@ -755,8 +1086,30 @@ const handleSave = async () => {
   if (form.authMode === 'custom' && !form.authHeader.trim()) {
     message.warning('请填写自定义认证的请求头名称'); return
   }
-  // 免费渠道：路由表是模型来源，保存前校准并提示（不阻断保存）
-  if (isFreeChannelProvider.value) validateRoutes()
+  // 余额密钥轻校验：重复行会重复出网查询，还会把同一份余额重复计入汇总
+  const seenCreditKeys = new Set<string>()
+  for (const raw of creditKeyList.value) {
+    const key = raw.trim()
+    if (!key) continue
+    if (seenCreditKeys.has(key)) {
+      message.warning('余额密钥存在重复行，请去重后再保存')
+      return
+    }
+    seenCreditKeys.add(key)
+  }
+  // 余额告警轻校验：阈值必须是数字；接收人只认正整数用户 ID（与 sys_message_receiver_id 对齐）
+  if (form.creditWarnThreshold !== '' && form.creditWarnThreshold != null
+      && !Number.isFinite(Number(form.creditWarnThreshold))) {
+    message.warning('余额告警阈值必须是数字')
+    return
+  }
+  const badReceivers = form.creditWarnReceivers
+    .map((s) => String(s).trim()).filter(Boolean)
+    .filter((s) => !/^[1-9]\d*$/.test(s))
+  if (badReceivers.length) {
+    message.warning(`告警接收人「${badReceivers.join('、')}」不是有效的用户 ID（正整数）`)
+    return
+  }
   // 本地推理（ONNX）：凭证就是本地模型路径，鉴权卡片整体不适用
   const effectiveApiKey = isLocalProvider.value
     ? localModelPath.value.trim()
@@ -782,7 +1135,9 @@ const handleSave = async () => {
     // 凭证必须走 credentials：后端 ApiProviderController#updateProvider 只认 body.credentials，
     // 顶层 apiKey 不在它的字段表里 —— 早先这里发 apiKey，接口照样 200、前端照样弹「已更新」，
     // 但 Key 一个字节都没落库（用户报的「key 无法修改、无法保存」）。
-    if (newApiKeys.length > 0) updateData.credentials = { api_key: newApiKeys.join(',') }
+    // 删光 Key 也必须显式提交空串：credentials 不在 body 里后端就整段跳过写入，
+    // 旧 Key 会在下次打开表单时「复活」（用户报的「密钥删除保存不了，数据还原回去」）。
+    updateData.credentials = { api_key: newApiKeys.join(',') }
     // 代理必须「空也提交」：表单改成 直连 / 自定义 两态后，选直连的语义是
     // 「把代理清掉」。以前只在非空时才带 proxy，用户从自定义改回直连永远清不掉，
     // 后端 body.containsKey("proxy") 才写库，所以空串要显式发出去。
@@ -826,6 +1181,9 @@ const handleSave = async () => {
 
 /** 高级设置折叠态：默认收起，只留「高级」一行，和简洁版式一致 */
 const advancedOpen = ref(false)
+/** 高级设置二级分组的折叠态：请求 / 余额 / Key 管理 / 网络与限流，默认全部展开 */
+const sectionOpen = reactive({ request: true, balance: true, keys: true, network: true })
+const toggleSection = (key: 'request' | 'balance' | 'keys' | 'network') => { sectionOpen[key] = !sectionOpen[key] }
 
 /**
  * 代理模式：表单只有一个 proxyUrl 字段。
@@ -858,6 +1216,22 @@ watch(() => form.apiUrl, (v) => {
   detecting.value = false
   detectRows.value = []
   detectFoot.value = ''
+})
+
+/**
+ * 手动把地址改成既不是模板默认端点、也不是任何变体端点时，取消「已选变体」高亮，
+ * 避免切换器显示的选项与实际地址对不上。
+ */
+watch([() => form.apiUrl, selectedTemplate], ([v, tpl]) => {
+  const variants = (tpl?.variants || []) as any[]
+  if (!variants.length) return
+  const cur = String(v || '').trim()
+  const known = [tpl?.defaultApiUrl, tpl?.defaultUrl, ...variants.map((x) => x?.defaultApiUrl)]
+    .map((u) => String(u || '').trim())
+    .filter(Boolean)
+  if (cur && !known.includes(cur)) {
+    activeVariantId.value = ''
+  }
 })
 
 /** 弹窗标题：名字还没填时不要渲染成「添加 」这种半截文案 */
@@ -1000,6 +1374,20 @@ const protocolOptions = [
       <div v-else class="pf-line">
         <span class="pf-line-label"><span class="pf-req">*</span>{{ t('settings.models.apiUrl') }}</span>
         <div class="pf-line-ctrl">
+          <!-- 端点变体切换：同一家厂商的多个接入端点（如火山方舟标准端点 / Coding Plan 端点）。
+               切换只回填该端点的默认地址，用户仍可手改；地址被改成未知值时高亮自动取消。 -->
+          <div v-if="templateVariants.length" class="pf-variant-row">
+            <button type="button" class="pf-variant-btn" :class="{ 'is-active': !activeVariantId }" @click="selectVariant(null)">默认端点</button>
+            <button
+              v-for="v in templateVariants"
+              :key="v.id"
+              type="button"
+              class="pf-variant-btn"
+              :class="{ 'is-active': activeVariantId === v.id }"
+              :title="v.description || v.name"
+              @click="selectVariant(v)"
+            >{{ v.name }}</button>
+          </div>
           <el-input v-model="form.apiUrl" placeholder="https://api.example.com/v1" clearable>
     <template #suffix>
       <el-tooltip content="检测协议" placement="top" :show-after="200">
@@ -1014,7 +1402,14 @@ const protocolOptions = [
        状态三档：可用（非 404 响应）/ 不支持（404，没有该协议的模型列表端点）/ 连不上（网络异常）。 -->
   <div v-if="detectVisible" class="pf-detect">
     <div v-if="detecting && detectRows.length === 0" class="pf-detect-empty">正在检测…</div>
-    <div v-for="row in detectRows" :key="row.protocol" class="pf-detect-row" :class="'is-' + detectRowState(row)">
+    <!-- 行可点击：点一下就把该协议的标准端点回填 API 地址、并切到该协议（applyDetectRow） -->
+    <div
+      v-for="row in detectRows"
+      :key="row.protocol"
+      class="pf-detect-row"
+      :class="['is-' + detectRowState(row), { 'is-applied': appliedProtocol === row.protocol }]"
+      @click="applyDetectRow(row)"
+    >
       <span v-if="row.icon === 'openai-response'" class="pf-proto-stack">
         <ProviderLogo pid="openai" :name="row.label" :size="18" />
         <i class="pf-proto-badge">R</i>
@@ -1025,6 +1420,7 @@ const protocolOptions = [
       <span class="pf-detect-url">{{ row.url }}</span>
       <span class="pf-detect-state">{{ DETECT_STATE_LABEL[detectRowState(row)] }}</span>
       <span class="pf-detect-msg">{{ row.message }}</span>
+      <span v-if="row.ok" class="pf-detect-apply">点击采用</span>
     </div>
     <p v-if="detectFoot && detectRows.length" class="pf-detect-foot">{{ detectFoot }}</p>
   </div>
@@ -1235,7 +1631,12 @@ const protocolOptions = [
         </button>
 
         <div v-show="advancedOpen" class="pf-more-body">
-          <div class="pf-section">请求</div>
+          <!-- 二级分组可折叠：点击组头收起 / 展开，默认全展开 -->
+          <button type="button" class="pf-section" :class="{ 'is-open': sectionOpen.request }" :aria-expanded="sectionOpen.request" @click="toggleSection('request')">
+            <span>请求</span>
+            <el-icon :size="12" class="pf-section-arrow"><ChevronDown24Regular /></el-icon>
+          </button>
+          <template v-if="sectionOpen.request">
           <div class="pf-line">
             <span class="pf-line-label">请求头</span>
             <div class="pf-line-ctrl">
@@ -1273,28 +1674,6 @@ const protocolOptions = [
             </div>
           </div>
 
-          <!-- 余额：给提供商详情的「余额与用量」用，每个 Key 各查一次 -->
-          <div class="pf-line">
-            <span class="pf-line-label">余额</span>
-            <div class="pf-line-ctrl">
-              <ReSelect v-model="form.creditKind" class="w-full" layout="default" placeholder="自动识别">
-                <el-option v-for="k in CREDIT_KINDS" :key="k.value" :label="k.label" :value="k.value" />
-              </ReSelect>
-              <template v-if="form.creditKind !== 'auto'">
-                <el-input v-model="form.creditUrl" placeholder="余额接口地址（留空用该方式的默认地址）" />
-                <el-input v-model="form.creditExpression"
-                  placeholder="字段表达式：前一段剩余、后一段已用，如 $data.total_available; $data.total_used" />
-              </template>
-              <p class="pf-note">
-                决定「提供商详情 → 余额与用量」怎么查：每个 Key 单独查一次，前一段算剩余、后一段算已用，总量是两者之和。
-              </p>
-              <p v-if="form.creditKind === 'auto'" class="pf-note">
-                自动识别依次尝试：厂商官方 → OpenAI 官方 → OpenAI 兼容计费，第一条查到数的胜出；都不通时到详情页的
-                「余额与用量」看已尝试链路，再按上游实际地址自配「自定义地址 + 表达式」。
-              </p>
-            </div>
-          </div>
-
           <div class="pf-line">
             <span class="pf-line-label">额外请求体</span>
             <div class="pf-line-ctrl">
@@ -1319,7 +1698,177 @@ const protocolOptions = [
               <p class="pf-note">调用方带来的这些头原样转给上游（多个用逗号分隔）。</p>
             </div>
           </div>
+          </template>
 
+          <!-- 余额：独立分类。查询类型三选一；Moss 这类「查询令牌 ≠ 渠道 Key」的上游另配余额密钥 -->
+          <button type="button" class="pf-section" :class="{ 'is-open': sectionOpen.balance }" :aria-expanded="sectionOpen.balance" @click="toggleSection('balance')">
+            <span>余额</span>
+            <!-- 摘要徽章：折叠时也能一眼看到这家配了几个余额密钥；未配置时引导展开填写 -->
+            <span class="pf-section-badge" :class="{ 'is-empty': !creditKeyCount }">
+              {{ creditKeyCount ? `已配 ${creditKeyCount} 个密钥` : '未配置' }}
+            </span>
+            <el-icon :size="12" class="pf-section-arrow"><ChevronDown24Regular /></el-icon>
+          </button>
+          <template v-if="sectionOpen.balance">
+          <div class="pf-line">
+            <span class="pf-line-label">查询类型</span>
+            <div class="pf-line-ctrl">
+              <ReSelect v-model="form.creditType" class="w-full" layout="default" placeholder="自动获取">
+                <el-option v-for="k in CREDIT_TYPES" :key="k.value" :label="k.label" :value="k.value" />
+              </ReSelect>
+              <p class="pf-note">
+                决定「提供商详情 → 余额与用量」怎么查：每个 Key 单独查一次，前一段算剩余、后一段算已用，总量是两者之和。
+              </p>
+              <p v-if="form.creditType === 'auto'" class="pf-note">
+                自动获取依次尝试：厂商官方 → OpenAI 官方 → OpenAI 兼容计费 → Moss 非官方，第一条查到数的胜出；
+                都不通时到详情页「余额与用量」看已尝试链路，再改用官方 API 或自定义映射。
+              </p>
+            </div>
+          </div>
+          <div class="pf-line">
+            <span class="pf-line-label">密钥</span>
+            <div class="pf-line-ctrl">
+              <!-- 与 API Key 同一套多行交互：每行一个账号，密码态 + 眼睛切换 + 增删行 -->
+              <div class="pf-keys">
+                <div v-for="(key, index) in creditKeyList" :key="index" class="key-row">
+                  <el-input
+                    v-model="creditKeyList[index]"
+                    placeholder="余额查询密钥，留空则不查询余额"
+                    :type="showCreditKey[index] ? 'text' : 'password'"
+                    :ref="(el: any) => setCreditKeyRef(el, index)"
+                  >
+                    <template #prefix><el-icon :size="14"><Key24Regular /></el-icon></template>
+                    <template #suffix>
+                      <button class="key-eye" type="button" @click="toggleCreditKey(index)" :title="showCreditKey[index] ? '隐藏' : '显示'">
+                        <el-icon :size="15"><Eye24Regular v-if="!showCreditKey[index]" /><EyeOff24Regular v-else /></el-icon>
+                      </button>
+                    </template>
+                  </el-input>
+                  <button
+                    class="key-remove"
+                    type="button"
+                    :title="creditKeyList.length > 1 ? '删除这个密钥' : '清空这个密钥'"
+                    @click="removeCreditKeyAt(index)"
+                  >
+                    <el-icon :size="14"><Delete24Regular /></el-icon>
+                  </button>
+                </div>
+              </div>
+              <div class="pf-inline">
+                <button class="pf-add" type="button" @click="addCreditKey">
+                  <el-icon :size="13"><Add24Regular /></el-icon>添加密钥
+                </button>
+                <el-button size="small" plain :loading="creditTesting" @click="handleTestCreditKeys">测试查询</el-button>
+              </div>
+              <!-- 试查结果：逐 Key 一行，成功带读数、失败带原因（只读探测，不落库不影响详情页缓存） -->
+              <div v-if="creditTestResult" class="pf-credit-test" :class="creditTestResult.ok ? 'is-success' : 'is-error'">
+                <p v-for="(line, i) in creditTestResult.lines" :key="i">{{ line }}</p>
+              </div>
+              <p class="pf-note">
+                专用于查余额的令牌，支持多账号：每行一个，逐个查询、分别展示并汇总；
+                Moss 填门户 Cookie 里 moss_studio_prod_access_token 的值；留空则不查询余额（不再自动沿用 API Key）。
+              </p>
+              <p v-if="creditAkSk" class="pf-note">
+                AK/SK 签名型供应商可不填余额密钥：配齐下方 AccessKey / SecretKey 即可查余额，读数以「AK/SK」标识。
+              </p>
+            </div>
+          </div>
+          <!-- 仅余额接口需要 AK/SK 签名的供应商显示（阿里云 BSS / 火山 Billing / 百度财务 / 七牛）；商汤等不显示 -->
+          <div v-if="creditAkSk" class="pf-line">
+            <span class="pf-line-label">AccessKey / SecretKey</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.creditAccessKey" type="password" show-password autocomplete="new-password"
+                :placeholder="creditAkSk.akPlaceholder" />
+              <el-input v-model="form.creditSecretKey" type="password" show-password autocomplete="new-password"
+                :placeholder="creditAkSk.skPlaceholder" />
+              <p class="pf-note">
+                {{ creditAkSk.note }}
+              </p>
+            </div>
+          </div>
+          <div class="pf-line">
+            <span class="pf-line-label">余额告警阈值</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.creditWarnThreshold" placeholder="如 20；留空不告警" />
+              <p class="pf-note">查询到余额 ≤ 该值时推送站内告警；同一供应商 6 小时内最多提醒一次，避免每次刷新都重复打扰。</p>
+            </div>
+          </div>
+          <div class="pf-line">
+            <span class="pf-line-label">告警接收人</span>
+            <div class="pf-line-ctrl">
+              <el-select
+                v-model="form.creditWarnReceivers"
+                class="pf-receivers"
+                multiple
+                filterable
+                allow-create
+                default-first-option
+                placeholder="输入用户 ID 后回车添加，可粘贴「1,2」批量"
+                @change="form.creditWarnReceivers = normalizeReceivers($event)"
+              >
+                <el-option v-for="id in form.creditWarnReceivers" :key="id" :label="id" :value="id" />
+              </el-select>
+              <p class="pf-note">填消息中心可投递的用户 ID（正整数，不是登录账号）；回车逐个添加或粘贴「1,2」批量录入。留空则只在余额面板提示、不推送。</p>
+            </div>
+          </div>
+          <div class="pf-line">
+            <span class="pf-line-label">User-Agent</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.creditUa" placeholder="余额查询 User-Agent（留空用后端默认）">
+                <template #suffix>
+                  <el-tooltip content="随机填入一个常见浏览器的 User-Agent" placement="top">
+                    <el-icon :size="15" class="pf-ua-random" @click="randomCreditUa">
+                      <ArrowSync24Regular />
+                    </el-icon>
+                  </el-tooltip>
+                </template>
+              </el-input>
+              <p class="pf-note">部分上游按 UA 识别客户端；余额接口拒绝时，可点右侧图标随机换一个浏览器 UA，或照抄官方客户端的 UA。</p>
+            </div>
+          </div>
+          <div class="pf-line">
+            <span class="pf-line-label">自定义请求头</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.creditHeadersText" type="textarea" :autosize="{ minRows: 2, maxRows: 6 }"
+                placeholder="随余额请求一起发送的额外请求头，每行一个：名称: 值" />
+              <p class="pf-note">例如余额接口要求的 Referer、X-Requested-With 等；留空不附加。</p>
+            </div>
+          </div>
+          <template v-if="form.creditType === 'custom'">
+            <div class="pf-line">
+              <span class="pf-line-label">接口地址</span>
+              <div class="pf-line-ctrl">
+                <el-input v-model="form.creditUrl" placeholder="余额接口地址（留空用供应商上游地址）" />
+                <p class="pf-note">自定义映射的取数地址；响应是 JSON 用 JSONPath，是 XML 用 XPath。</p>
+              </div>
+            </div>
+            <div class="pf-line">
+              <span class="pf-line-label">字段映射</span>
+              <div class="pf-line-ctrl">
+                <div v-for="(row, i) in creditMappingRows" :key="i" class="pf-mapping-row">
+                  <ReSelect v-model="row.field" class="pf-mapping-field" layout="default">
+                    <el-option v-for="f in CREDIT_FIELDS" :key="f.value" :label="f.label" :value="f.value" />
+                  </ReSelect>
+                  <el-input v-model="row.expression" class="pf-mapping-expr"
+                    placeholder="$.data.available 或 //balance/text()" />
+                  <el-button class="pf-mapping-del" text type="danger" @click="removeCreditMappingRow(i)">删除</el-button>
+                </div>
+                <el-button text type="primary" @click="addCreditMappingRow">+ 添加映射</el-button>
+                <p class="pf-note">
+                  左侧是后端组装读数要用的字段（剩余排第一段、已用排第二段、币种只定单位）；
+                  右侧表达式以 / 开头按 XPath 解析，否则按 JSONPath 解析。
+                </p>
+              </div>
+            </div>
+          </template>
+          </template>
+
+          <!-- Key 策略 / 自动限流：Key 的轮换与切换策略，归属 Key 管理而非余额 -->
+          <button type="button" class="pf-section" :class="{ 'is-open': sectionOpen.keys }" :aria-expanded="sectionOpen.keys" @click="toggleSection('keys')">
+            <span>Key 管理</span>
+            <el-icon :size="12" class="pf-section-arrow"><ChevronDown24Regular /></el-icon>
+          </button>
+          <template v-if="sectionOpen.keys">
           <div class="pf-line">
             <span class="pf-line-label">Key 策略</span>
             <div class="pf-line-ctrl">
@@ -1342,7 +1891,13 @@ const protocolOptions = [
             </div>
           </div>
 
-          <div class="pf-section">网络与限流</div>
+          </template>
+
+          <button type="button" class="pf-section" :class="{ 'is-open': sectionOpen.network }" :aria-expanded="sectionOpen.network" @click="toggleSection('network')">
+            <span>网络与限流</span>
+            <el-icon :size="12" class="pf-section-arrow"><ChevronDown24Regular /></el-icon>
+          </button>
+          <template v-if="sectionOpen.network">
 
           <div class="pf-line">
             <span class="pf-line-label">代理</span>
@@ -1387,56 +1942,7 @@ const protocolOptions = [
               <p class="pf-note">同一供应商每分钟最多几次请求；0 或留空 = 不限制。</p>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- 免费渠道：模型目录不在上游，路由表（extra.routes）是本表单维护的模型级配置——
-           key 即模型名/模型名前缀，route 按模型命中并覆盖上游地址与凭据 -->
-      <div v-if="isFreeChannelProvider" class="pf-routes">
-        <div class="pf-routes-head">
-          <span class="pf-routes-title">模型路由表</span>
-          <span class="pf-note">按模型名（key）指定上游 provider / 地址 / Key</span>
-          <el-button class="pf-routes-add" link type="primary" @click="addRouteRow">
-            <el-icon :size="13"><Add24Regular /></el-icon>添加路由
-          </el-button>
-        </div>
-        <div class="route-list">
-          <!-- 错误提示：重复 key/空 key 等，保存时统一展示 -->
-          <div v-if="routeHint" class="route-hint">
-            <el-icon class="route-hint-icon" :size="14"><Info24Regular /></el-icon>
-            <span class="route-hint-text">{{ routeHint }}</span>
-          </div>
-          <!-- 没有行时给一个友好的默认态 -->
-          <div v-if="formRoutes.length === 0" class="route-empty">
-            尚未添加路由：模型名会回落到供应商默认地址。
-          </div>
-          <div v-for="(row, idx) in formRoutes" :key="idx" class="route-row">
-            <div class="route-row-main">
-              <div class="route-key">
-                <span class="route-key-label">key（模型名）</span>
-                <el-input v-model="row.key" placeholder="模型名，如 glm-4.7" size="small" clearable />
-              </div>
-              <div class="route-target">
-                <div class="route-target-col">
-                  <span class="route-target-label">provider</span>
-                  <el-input v-model="row.provider" placeholder="留空按 OpenAI 兼容协议" size="small" clearable />
-                </div>
-                <div class="route-target-col">
-                  <span class="route-target-label">base_url</span>
-                  <el-input v-model="row.baseUrl" placeholder="https://…/v1" size="small" clearable />
-                </div>
-              </div>
-              <div class="route-key">
-                <span class="route-key-label">api_key</span>
-                <el-input v-model="row.apiKey" placeholder="留空 = 沿用供应商全局 Key" size="small" clearable type="password" show-password />
-              </div>
-            </div>
-            <div class="route-row-foot">
-              <el-button class="pf-foot-btn-delete" link type="danger" @click="removeRouteRow(idx)">
-                删除
-              </el-button>
-            </div>
-          </div>
+          </template>
         </div>
       </div>
     </div>
@@ -1559,6 +2065,15 @@ const protocolOptions = [
   min-width: 0;
 }
 .pf-line-ctrl.pf-inline { flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* 告警接收人多选：占满控制列宽度，已选 ID 以标签呈现，可逐个移除 */
+.pf-receivers { width: 100%; }
+/* 余额 UA 输入框右侧的「随机换一个 UA」图标 */
+.pf-ua-random {
+  cursor: pointer;
+  color: var(--el-text-color-secondary);
+  transition: color 0.15s;
+}
+.pf-ua-random:hover { color: var(--el-color-primary); }
 .pf-note {
   margin: 0;
   font-size: 11.5px;
@@ -1580,6 +2095,9 @@ const protocolOptions = [
 /* 多协议端点：协议名 + 地址一行 */
 .pf-endpoint { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: center; }
 .pf-endpoint-name { font-size: 12px; color: var(--el-text-color-secondary); }
+/* 自定义余额映射行：左字段下拉、右表达式、行尾删除按钮 */
+.pf-mapping-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.pf-mapping-field { width: 110px; }
 /* 限流三项：数字框不铺满整行 */
 .pf-num { width: 160px; }
 /* 必填标记：只在真正会挡住保存的字段上出现 */
@@ -1616,25 +2134,47 @@ const protocolOptions = [
   color: var(--el-color-primary); background: var(--el-color-primary-light-9);
 }
 .pf-more-hint { margin-left: 4px; font-size: 11px; color: var(--el-text-color-disabled); }
-/* 高级区分组标题：请求 / 网络与限流，用上间距与小字号建立层级，不加边框噪音 */
+/* 高级区分组标题：请求 / 余额 / Key 管理 / 网络与限流。
+   做成可点击的折叠头：右侧横线延伸 + 箭头旋转提示开合，不加边框噪音 */
 .pf-section {
-  margin-top: 4px; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+  display: flex; align-items: center; gap: 4px;
+  width: 100%; margin-top: 4px; padding: 2px 0;
+  font-size: 11px; font-weight: 600; letter-spacing: .04em;
   color: var(--el-text-color-secondary);
+  background: transparent; border: none; cursor: pointer;
+  transition: color 0.15s ease;
 }
+.pf-section:hover { color: var(--el-color-primary); }
 .pf-section::after {
-  content: ''; display: block; margin-top: 6px; height: 1px;
+  content: ''; flex: 1; height: 1px;
   background: var(--el-border-color-lighter);
+}
+.pf-section-arrow {
+  flex-shrink: 0; color: var(--el-text-color-disabled);
+  transition: transform 0.18s ease;
+}
+.pf-section.is-open .pf-section-arrow { transform: rotate(180deg); }
+/* 余额分区标题右侧的摘要徽章：配了几把密钥一眼可见；未配置时用警告色轻提示 */
+.pf-section-badge {
+  flex-shrink: 0;
+  margin-left: 2px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--el-color-success-dark-2);
+  background: var(--el-color-success-light-9);
+  border: 1px solid color-mix(in srgb, var(--el-color-success) 25%, transparent);
+}
+.pf-section-badge.is-empty {
+  color: var(--el-color-warning-dark-2);
+  background: var(--el-color-warning-light-9);
+  border-color: color-mix(in srgb, var(--el-color-warning) 30%, transparent);
 }
 .pf-more-arrow { transition: transform 0.18s ease; }
 .pf-more-arrow.is-open { transform: rotate(180deg); }
 .pf-more-body { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; }
-
-/* 模型路由表（免费渠道专属） */
-.pf-routes { border-top: 1px solid var(--el-border-color-lighter); padding-top: 8px; }
-.pf-routes-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.pf-routes-title { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); }
-.pf-routes-add { margin-left: auto; }
-
 
 /* ReSelect（@repo/ui）自带 modern 样式，用 :not(.re-select) 把它排除在本文件的
    通用输入框覆盖之外，避免两套圆角/边框规则互相打架 */
@@ -1760,6 +2300,28 @@ const protocolOptions = [
   border-color: color-mix(in srgb, var(--el-color-danger) 30%, transparent);
 }
 
+/* 余额密钥试查结果：与连接测试同族的浅底色块，逐 Key 一行（成功带读数、失败带原因） */
+.pf-credit-test {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  animation: pf-fade-in 0.25s ease;
+  border: 1px solid transparent;
+}
+.pf-credit-test p { margin: 0; }
+.pf-credit-test.is-success {
+  background: var(--el-color-success-light-9);
+  color: var(--el-color-success-dark-2);
+  border-color: color-mix(in srgb, var(--el-color-success) 30%, transparent);
+}
+.pf-credit-test.is-error {
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger-dark-2);
+  border-color: color-mix(in srgb, var(--el-color-danger) 30%, transparent);
+}
+
 @keyframes pf-fade-in {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1781,65 +2343,6 @@ const protocolOptions = [
 .pf-footer-btns { display: flex; justify-content: flex-end; gap: 10px; margin-left: auto; }
 /* 按钮配色回归 Element Plus 默认：此前这里自造了背景色 / 边框色 / 主色阴影，
    与全局按钮口径不一致（悬停还会整块变色）。 */
-
-/* 模型路由表（免费渠道专属：extra.routes 编辑态） */
-.route-list { padding-top: 10px; display: flex; flex-direction: column; gap: 10px; }
-.route-empty {
-  text-align: center;
-  padding: 20px 0;
-  font-size: 12.5px;
-  color: var(--el-text-color-regular);
-}
-.route-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  background: var(--el-color-warning-light-9);
-  border: 1px solid color-mix(in srgb, var(--el-color-warning) 30%, transparent);
-  padding: 8px 10px;
-  border-radius: 6px;
-  line-height: 1.6;
-}
-.route-hint-icon { color: var(--el-color-warning); flex-shrink: 0; margin-top: 1px; }
-.route-row {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: var(--el-bg-color-overlay);
-  overflow: hidden;
-}
-.route-row-main { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
-.route-key { display: flex; align-items: center; gap: 8px; }
-.route-key-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--el-text-color-regular);
-  min-width: 68px;
-  flex-shrink: 0;
-}
-.route-target { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
-.route-target-col { display: flex; align-items: center; gap: 8px; }
-.route-target-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--el-text-color-regular);
-  min-width: 52px;
-  flex-shrink: 0;
-}
-.route-row-foot {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 12px;
-  border-top: 1px solid var(--el-border-color-light);
-}
-.pf-foot-btn-delete {
-  font-size: 12px;
-  color: var(--el-color-danger);
-  border-radius: var(--el-radius-md, 8px);
-  transition: all 0.15s ease;
-}
-.pf-foot-btn-delete:hover { background: var(--el-color-danger-light-9); }
 .pf-proto-icon { display: inline-flex; align-items: center; justify-content: center; }
 /* OpenAI Response：openai logo + 右下角 R 小标（同一品牌家族，只是 Responses 变体） */
 .pf-proto-stack { position: relative; display: inline-flex; align-items: center; justify-content: center; }
@@ -1865,13 +2368,31 @@ const protocolOptions = [
   color: var(--el-color-primary);
   border-color: #fff;
 }
+/* 端点变体切换：小药丸按钮排，选中用主色描边（与检测协议行的「已采用」同语言） */
+.pf-variant-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.pf-variant-btn {
+  padding: 3px 10px; font-size: 12px; line-height: 18px; cursor: pointer;
+  border: 1px solid var(--el-border-color); border-radius: 999px;
+  background: var(--el-fill-color-blank, #fff); color: var(--el-text-color-regular);
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+.pf-variant-btn:hover { border-color: var(--el-color-primary-light-5); color: var(--el-color-primary); }
+.pf-variant-btn.is-active {
+  border-color: var(--el-color-primary); color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9); font-weight: 600;
+}
 .pf-detect-btn { border: none; padding: 0 4px; }
 .pf-detect { display: flex; flex-direction: column; gap: 8px; }
 .pf-detect-empty { padding: 12px 0; color: var(--el-text-color-secondary); }
 .pf-detect-row {
   display: flex; align-items: center; gap: 10px; padding: 9px 12px;
   border: 1px solid var(--el-border-color-lighter); border-radius: 8px;
+  cursor: pointer; transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+/* 行可点：hover 提示可选用；已采用的行用主色描边固定住 */
+.pf-detect-row:hover { border-color: var(--el-color-primary-light-5); }
+.pf-detect-row.is-applied { border-color: var(--el-color-primary); box-shadow: 0 0 0 1px var(--el-color-primary) inset; }
+.pf-detect-apply { flex: none; font-size: 11px; color: var(--el-color-primary); white-space: nowrap; }
 .pf-detect-row.is-ok { border-color: var(--el-color-success-light-5); background: var(--el-color-success-light-9); }
 /* 404 是正常结论（这个地址就是没有该协议的端点），用中性色，不要报警色 */
 .pf-detect-row.is-na { border-color: var(--el-border-color-lighter); background: var(--el-fill-color-lighter); }
@@ -1889,4 +2410,20 @@ const protocolOptions = [
 <style>
 /* 弹框在 body 下（teleport），scoped 打不到，这里非 scoped 限定 .provider-modal。
    聚焦相关样式已全部删除，聚焦前后不改变描边与颜色。 */
+
+/* 认证方式 / Key 策略的下拉项是「名称 + 说明」两行。
+   ReSelect 组件内部固定绑定自己的 popper-class（re-select__popper--rich），
+   外部传入的 popper-class 不会落到弹层上，所以不能按弹层类名限制定位；
+   这里用 :has() 直接锁定含两行内容的选项，把默认 34px 的单行高度撑成两行高度，
+   否则两行文字会被压进一行的高度里，看起来挤成一块。
+   !important 用于压过 ReSelect 内部 .re-select[data-v-*] .el-select-dropdown__item。 */
+.el-select-dropdown__item:has(.opt-two-line) {
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: 1.5 !important;
+  padding: 7px 12px !important;
+}
+.el-select-dropdown__item:has(.opt-two-line) .opt-two-line {
+  gap: 3px;
+}
 </style>

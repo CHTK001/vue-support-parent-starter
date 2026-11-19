@@ -14,9 +14,10 @@ const rawApi = createClient(rootHttp, { unwrap: false });
  * 前端误判为会话过期而登出），成功时模型列表可能落在 {@code items}、
  * {@code data.items} 或 {@code data} 数组三种位置。</p>
  *
- * <p>免费渠道（free-channel）不走上游目录，模型列表来自供应商 extra.routes
- * 路由表：行是路由键（{@code id}/{@code name} 与 {@code modelName} 均为路由键名），
- * 整体由 {@code route_keys} 标记，未配置路由表时只有 {@code hint} 没有模型——
+ * <p>免费渠道（free-channel）不走上游目录，模型列表来自后端运行时合并的路由表
+ * （渠道管理动态收集的已启用模型 + {@code extra.routes} 静态兜底 + Magpie 网关）：
+ * 行是路由键（{@code id}/{@code name} 与 {@code modelName} 均为路由键名），
+ * 整体由 {@code route_keys} 标记，无可用模型时只有 {@code hint} 没有模型——
  * 前端需要展示 {@code hint} 而不是空状态。</p>
  */
 export interface RemoteModelsResponse {
@@ -69,6 +70,12 @@ export interface ModelApi {
   fetchModelMetrics(providerId: string, model: string): Promise<Record<string, any>>;
   createModel(data: any): Promise<Model>;
   updateModel(modelId: string, data: any): Promise<Model>;
+  /**
+   * 别名最小更新：body 只带 provider_id + model + alias。
+   * 不走 buildProviderModelBody（它会把缺省 capabilities 补成 chat、冲掉模型既有配置）；
+   * 后端 applyModelInput 按字段存在与否覆盖，只送 alias 就只改别名。
+   */
+  updateModelAlias(providerId: string, modelName: string, alias: string): Promise<any>;
   deleteModel(modelId: string): Promise<boolean>;
   batchDeleteProviderModels(ids: string[]): Promise<{ success: boolean; deletedCount: number }>;
   toggleModelFavorite(modelId: string): Promise<any>;
@@ -91,6 +98,31 @@ export interface ModelApi {
     /** 认证值前缀覆盖，可空 */
     auth_prefix?: string;
   }): Promise<{ success: boolean; message?: string; latency?: number | null }>;
+  /** 已解包：余额密钥试查载荷，与详情页余额面板同构（keys[] 逐 Key 成败） */
+  testProviderCredit(data: {
+    /** 上游地址（表单里的 apiUrl） */
+    url: string;
+    /** 厂商标识（表单里的 providerType），可空 */
+    platform?: string;
+    /** 认证方案，可空 */
+    auth_scheme?: string;
+    /** 表单即将保存的 extra 片段（credit_* 与 auth_header / auth_prefix） */
+    extra?: Record<string, any>;
+    /** 余额密钥列表（每行一个，逐 Key 试查） */
+    keys: string[];
+  }): Promise<{
+    ok?: boolean;
+    message?: string;
+    keys?: Array<{
+      index?: number;
+      mask?: string;
+      ok?: boolean;
+      remain?: number | null;
+      used?: number | null;
+      currency?: string | null;
+      error?: string | null;
+    }>;
+  }>;
   deleteProvider(providerId: string): Promise<boolean>;
   /** 批量删除供应商行（级联其模型与连接，Body 为 ids 数组，整批拦截） */
   batchDeleteProviders(ids: string[]): Promise<{ success: boolean; deletedCount: number }>;
@@ -204,8 +236,9 @@ function buildProviderModelBody(data: any) {
 
 export const modelApi: ModelApi = {
   async fetchModels(this: ApiContext): Promise<PaginatedResponse<ModelProvider>> {
-    // 调用 /api/providers 获取供应商和模型数据
-    const body = await rawApi.get('/api/providers');
+    // 调用 /api/providers 获取供应商和模型数据；模型管理页要看到停用行才能重新开启，
+    // 显式传 enabled_only=0 取全量（接口缺省只返回已开启的模型）
+    const body = await rawApi.get('/api/providers?enabled_only=0');
     const items = ((body as any)?.data ?? []) as ModelProvider[];
     // 转换成前端期望的分页格式：该接口一次返回全量，分页字段按实际条数补齐
     return {
@@ -272,6 +305,24 @@ export const modelApi: ModelApi = {
     return await rawApi.put('/api/provider-models', buildProviderModelBody(data));
   },
 
+  /**
+   * 别名最小更新（行内编辑用）。
+   *
+   * <p>刻意绕开 {@link buildProviderModelBody}：它按「完整表单」组装 body，
+   * 会把缺省 capabilities 补成 chat，把模型既有的能力配置冲掉。这里手拼
+   * 最小 body（provider_id + model + alias），后端 applyModelInput 按字段
+   * 存在与与否覆盖，只送 alias 就只改别名列。空串 = 清除别名。</p>
+   */
+  async updateModelAlias(this: ApiContext, providerId: string, modelName: string, alias: string) {
+    return await rawApi.put('/api/provider-models', {
+      provider_id: providerId,
+      model: {
+        model: modelName,
+        alias: String(alias ?? ''),
+      },
+    });
+  },
+
   async deleteModel(this: ApiContext, modelId: string) {
     // 后端接口格式：DELETE /api/provider-models?provider_id=xxx&model=xxx
     // modelId格式：providerId:modelName。模型名本身可含冒号（如 qwen2.5:7b），
@@ -330,6 +381,35 @@ export const modelApi: ModelApi = {
       success: boolean;
       message?: string;
       latency?: number | null;
+    };
+  },
+
+  /**
+   * 余额密钥试查（编辑页「测试查询」）：把表单里即将保存的余额配置
+   * （地址 / 口径 / 密钥 / AK·SK / UA / 头 / 映射）发给后端当场跑一遍，
+   * 不落库、不进缓存。返回与详情页余额面板同构的载荷（keys[] 逐 Key 成败）。
+   */
+  async testProviderCredit(this: ApiContext, data: {
+    url: string;
+    platform?: string;
+    auth_scheme?: string;
+    extra?: Record<string, any>;
+    keys: string[];
+  }) {
+    const body: any = await rawApi.post('/api/providers/credit-test', data);
+    const payload = body && typeof body === 'object' && 'data' in body ? body.data : body;
+    return (payload ?? { ok: false, keys: [], message: '空响应' }) as {
+      ok?: boolean;
+      message?: string;
+      keys?: Array<{
+        index?: number;
+        mask?: string;
+        ok?: boolean;
+        remain?: number | null;
+        used?: number | null;
+        currency?: string | null;
+        error?: string | null;
+      }>;
     };
   },
 

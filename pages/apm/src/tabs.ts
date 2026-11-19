@@ -203,10 +203,16 @@ export interface ApmTabContext {
   instance?: string;
   /** 时间窗（分钟），跟随来源页，避免「跳过去窗口又变回 30 分钟」 */
   minutes?: number;
-  /** 要直接打开的链路 */
+  /** 要定位的链路 */
   traceId?: string;
   /** 要定位的告警实体 */
   entity?: string;
+  /** 要定位的指标名（总览 KPI 下钻到指标页时预选曲线） */
+  metric?: string;
+  /** 自定义时间窗起点（毫秒）：告警下钻等场景按「事发时间 ± 边距」精确定位 */
+  startTime?: number;
+  /** 自定义时间窗终点（毫秒） */
+  endTime?: number;
 }
 
 /**

@@ -521,6 +521,7 @@ const groupedModelOptions = computed(() => {
 // 加载可对话模型（过滤掉 embedding / CV / ONNX 视觉等非对话模型）
 async function loadModelOptions(force = false) {
   if (modelOptions.value.length && !force) return
+  // 只要已开启的模型（口径由账号模块判定）
   const body = await adminApi.get('/api/providers')
   const providersData = Array.isArray(body) ? body : body?.data || []
   const cvHints = ['embedding', 'embed', 'whisper', 'asr', 'ocr', 'face', 'detect', 'segment',
@@ -529,7 +530,7 @@ async function loadModelOptions(force = false) {
   const out: any[] = []
   providersData.forEach((provider: any) => {
     const list = provider.models || []
-    list.filter((m: any) => m.enabled !== false).forEach((m: any) => {
+    list.forEach((m: any) => {
       const tasks = (m.capabilities || []).map((c: any) => c.task)
       const isChat = ['chat', 'text_generation', 'realtime_conversation'].some((t) => tasks.includes(t))
       const lname = String(m.model || '').toLowerCase()

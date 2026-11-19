@@ -13,6 +13,18 @@
         <span class="ud-hint">{{ board.rangeLabel }}</span>
       </div>
       <div class="ud-actions">
+        <!-- 多维过滤：分组/服务商/状态。值都进 detailQueryParams，ReTable watch 到
+             params 变化会自动回到第 1 页重新取数，无需手动触发 -->
+        <el-select v-model="board.detailGroupFilter" placeholder="按分组" clearable filterable class="ud-filter ud-filter--sel">
+          <el-option v-for="g in board.detailGroupOptions" :key="g" :label="g" :value="g" />
+        </el-select>
+        <el-select v-model="board.detailProviderFilter" placeholder="按服务商" clearable filterable class="ud-filter ud-filter--sel">
+          <el-option v-for="p in board.detailProviderOptions" :key="p.value" :label="p.label" :value="p.value" />
+        </el-select>
+        <el-select v-model="board.detailStatusFilter" placeholder="按状态" clearable class="ud-filter ud-filter--sel ud-filter--status">
+          <el-option label="成功" value="success" />
+          <el-option label="失败" value="failed" />
+        </el-select>
         <!-- 模型过滤：值进了 detailQueryParams，ReTable 会 watch params 变化
              自动回到第 1 页重新取数，无需再手动触发 -->
         <el-input v-model="board.detailModelFilter" placeholder="按模型筛选" clearable class="ud-filter" />
@@ -59,7 +71,7 @@
         <template #col-model="{ row }">
           <div class="ud-cell-model">
             <span class="ud-model-name" :title="row.sysAiUsageModel || '-'">{{ row.sysAiUsageModel || '-' }}</span>
-            <!-- 解码速率：hover 弹完整阶段明细（首字/解码窗口/总耗 + Token 明细 + 速率）。 -->
+            <!-- 解码速率：hover 弹完整阶段明细（首字/前段等待/总耗 + Token 明细 + 速率）。 -->
             <el-popover trigger="hover" placement="top" :show-arrow="true" :width="265">
               <template #reference>
                 <span class="ud-model-sub is-speed" :style="{ color: board.speedColor(row) }">{{ board.formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
@@ -71,7 +83,7 @@
                   <span class="sp-val" :style="{ color: board.getFirstColor(row) }">{{ board.formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
                 </div>
                 <div class="speed-pop-row">
-                  <span class="sp-label">解码窗口</span>
+                  <span class="sp-label">前段等待</span>
                   <span class="sp-val" :style="{ color: board.decodeWindowColor(row) }">{{ board.formatLatency(board.decodeWindowMs(row)) }}</span>
                 </div>
                 <div class="speed-pop-row">
@@ -101,7 +113,7 @@
                   <span class="sp-val" :style="{ color: board.speedColor(row) }">{{ board.formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
                 </div>
                 <div v-if="board.isSuspiciousSpeed(row)" class="speed-pop-note">{{ board.speedTitle(row) }}</div>
-                <div class="speed-pop-hint">绿/橙/红 = 快/中/慢；解码窗口或总耗时不足 1s 标灰（批量推送假象/疑似缓存回放）</div>
+                <div class="speed-pop-hint">绿/橙/红 = 快/中/慢；前段等待或总耗时不足 1s 标灰（批量推送假象/疑似缓存回放）</div>
               </div>
             </el-popover>
           </div>
@@ -112,7 +124,13 @@
             {{ userDisplay(row) }}
           </ReTag>
         </template>
-        <template #col-provider="{ row }"><span :title="row.sysAiUsageProvider || ''">{{ board.providerDisplay(row.sysAiUsageProvider) }}</span></template>
+        <template #col-provider="{ row }">
+          <span class="ud-provider">
+            <i class="ud-provider__dot" :style="{ background: board.nameColor(row.sysAiUsageProvider) }" />
+            <span class="ud-provider__name" :title="row.sysAiUsageProvider || ''">{{ board.providerDisplay(row.sysAiUsageProvider) }}</span>
+            <span v-if="board.providerTag(row.sysAiUsageProvider)" class="ud-provider__tag">{{ board.providerTag(row.sysAiUsageProvider) }}</span>
+          </span>
+        </template>
         <template #col-endpoint="{ row }">
           <span class="ud-cell-endpoint">{{ board.endpointDisplay(row) }}</span>
         </template>
@@ -175,17 +193,20 @@
           <el-popover trigger="hover" placement="top" :show-arrow="true" :width="220">
             <template #reference>
               <div class="ud-latency-inline">
-                <span class="ud-latency-vbar" :style="{ backgroundColor: board.getTotalColor(row) }"></span>
+                <!-- 色条自上而下由首字色渐变到总耗时色：一条记录的两个阶段（等首字 / 解码）在同一根条上连成一段 -->
+                <span class="ud-latency-vbar" :style="{ background: board.latencyBarGradient(row) }"></span>
                 <div class="ud-latency-lines">
-                  <div class="ud-latency-line"><span class="ud-latency-k">首字等待</span><span class="ud-latency-v" :style="{ color: board.getFirstColor(row) }">{{ board.formatLatency(row.sysAiUsageFirstTokenLatency) }}</span></div>
+                  <div class="ud-latency-line"><span class="ud-latency-k">首字</span><span class="ud-latency-v" :style="{ color: board.getFirstColor(row) }">{{ board.formatLatency(row.sysAiUsageFirstTokenLatency) }}</span></div>
                   <div class="ud-latency-line"><span class="ud-latency-k">总耗时</span><span class="ud-latency-v" :style="{ color: board.getTotalColor(row) }">{{ board.formatLatency(row.sysAiUsageTotalLatency) }}</span></div>
+                  <div class="ud-latency-line"><span class="ud-latency-k">每秒</span><span class="ud-latency-v" :style="{ color: board.speedColor(row) }">{{ board.formatSpeed(row.sysAiUsageTokensPerSecond) }}</span></div>
+                  <div class="ud-latency-line"><span class="ud-latency-k">前段等待</span><span class="ud-latency-v" :style="{ color: board.decodeWindowColor(row) }">{{ board.formatLatency(board.decodeWindowMs(row)) }}</span></div>
                 </div>
               </div>
             </template>
             <div class="latency-pop">
               <div class="latency-pop-row">
                 <span class="latency-pop-dot" :style="{ background: board.getFirstColor(row) }"></span>
-                <span class="latency-pop-label">首字等待</span>
+                <span class="latency-pop-label">首字</span>
                 <span class="latency-pop-value" :style="{ color: board.getFirstColor(row) }">{{ board.formatLatency(row.sysAiUsageFirstTokenLatency) }}</span>
               </div>
               <div class="latency-pop-row">
@@ -195,8 +216,13 @@
               </div>
               <div class="latency-pop-row">
                 <span class="latency-pop-dot" :style="{ background: board.speedColor(row) }"></span>
-                <span class="latency-pop-label">解码速率</span>
+                <span class="latency-pop-label">每秒</span>
                 <span class="latency-pop-value" :style="{ color: board.speedColor(row) }">{{ board.formatSpeed(row.sysAiUsageTokensPerSecond) }}</span>
+              </div>
+              <div class="latency-pop-row">
+                <span class="latency-pop-dot" :style="{ background: board.decodeWindowColor(row) }"></span>
+                <span class="latency-pop-label">前段等待</span>
+                <span class="latency-pop-value" :style="{ color: board.decodeWindowColor(row) }">{{ board.formatLatency(board.decodeWindowMs(row)) }}</span>
               </div>
               <div class="latency-pop-divider"></div>
               <div class="latency-pop-row">
@@ -358,8 +384,11 @@ const visibleColumns = computed(() =>
 .ud-title-wrap { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .ud-title { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--el-text-color-primary); white-space: nowrap; }
 .ud-hint { font-size: 12px; color: var(--el-text-color-placeholder); white-space: nowrap; }
-.ud-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ud-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; row-gap: 6px; }
 .ud-filter { width: 180px; }
+/* 新增的多维筛选：分组/服务商下拉带搜索，状态只有两档取窄 */
+.ud-filter--sel { width: 150px; }
+.ud-filter--status { width: 110px; }
 .ud-cost-toggle { margin-left: 8px; }
 .ud-body { padding: 0 0 10px; min-width: 0; }
 .ud-cols-btn { padding: 0 6px; }
@@ -375,6 +404,8 @@ const visibleColumns = computed(() =>
 .usage-detail.is-compact .ud-title { font-size: 12.5px; }
 .usage-detail.is-compact .ud-hint { font-size: 10px; }
 .usage-detail.is-compact .ud-filter { width: 132px; }
+.usage-detail.is-compact .ud-filter--sel { width: 126px; }
+.usage-detail.is-compact .ud-filter--status { width: 100px; }
 .usage-detail.is-compact .ud-actions { gap: 6px; }
 .usage-detail.is-compact .ud-cost-toggle { margin-left: 2px; font-size: 11px; }
 .usage-detail.is-compact .ud-body {
@@ -433,10 +464,10 @@ const visibleColumns = computed(() =>
 .ud-tk .tk-cache-line { color: var(--el-color-info); }
 
 .ud-latency-inline { display: inline-flex; align-items: stretch; gap: 8px; cursor: default; }
-.ud-latency-vbar { width: 4px; border-radius: var(--el-radius-full, 9999px); flex-shrink: 0; }
+.ud-latency-vbar { width: 4px; min-height: 44px; border-radius: var(--el-radius-full, 9999px); flex-shrink: 0; }
 .ud-latency-lines { display: flex; flex-direction: column; gap: 2px; }
 .ud-latency-line { display: flex; align-items: baseline; gap: 6px; }
-.ud-latency-k { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
+.ud-latency-k { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; width: 48px; }
 .ud-latency-v { font-size: 12px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* —— popover 内容（速率/Token/耗时共用外观） —— */
@@ -478,4 +509,19 @@ const visibleColumns = computed(() =>
 .tk-detail-row .td-val.tk-in { color: var(--el-color-success); font-weight: 500; }
 .tk-detail-row .td-val.tk-out { color: var(--el-color-primary); font-weight: 500; }
 .tk-detail-row .td-val.tk-cache { color: var(--el-color-info); font-weight: 500; }
+
+/* 服务商列：色点 + 名称 + 平台 tag */
+.ud-provider { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; }
+.ud-provider__dot { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
+.ud-provider__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ud-provider__tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
+  border: 1px solid var(--el-border-color-lighter);
+}
 </style>

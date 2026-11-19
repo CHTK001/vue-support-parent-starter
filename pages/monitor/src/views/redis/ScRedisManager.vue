@@ -36,9 +36,12 @@
             <p class="empty-text">暂无数据，请先扫描</p>
           </div>
           <div v-else>
-            <div v-for="k in filteredKeys" :key="k" :class="['key-item', { active: selectedKey === k }]" @click="selectedKey = k; loadValue()" :title="k">
+            <div v-for="k in visibleKeys" :key="k" :class="['key-item', { active: selectedKey === k }]" @click="selectedKey = k; loadValue()" :title="k">
               <span class="key-text">{{ k }}</span>
               <ReButton text type="danger" @click.stop="handleDeleteKey(k)" class="del-btn"><ReIcon name="Close" /></ReButton>
+            </div>
+            <div v-if="railLimit < filteredKeys.length" class="load-more">
+              <ReButton text @click="loadMoreRail">加载更多（已显示 {{ visibleKeys.length }} / {{ filteredKeys.length }}）</ReButton>
             </div>
           </div>
         </div>
@@ -75,7 +78,7 @@
 </template>
 
 <script setup lang="ts" name="ReRedisManager">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { message } from '@repo/core'
 import { getMonitors, getTasks, scanRedisKeys, getRedisValue, setRedisValue, delRedisKeys, expireRedisKey } from '../../api'
 
@@ -95,6 +98,18 @@ const filteredKeys = computed(() => {
   const f = keyFilter.value.toLowerCase()
   return keys.value.filter(k => k.toLowerCase().includes(f))
 })
+
+/** 键列表渐进渲染步长：SCAN 可能返回上万键，一次性 v-for 会冻结页面 */
+const RAIL_STEP = 200
+/** 当前已渲染条数 */
+const railLimit = ref(RAIL_STEP)
+/** 实际渲染的键切片 */
+const visibleKeys = computed(() => filteredKeys.value.slice(0, railLimit.value))
+/** 加载下一批 */
+const loadMoreRail = () => { if (railLimit.value < filteredKeys.value.length) railLimit.value += RAIL_STEP }
+
+// 筛选词变化时回到第一屏
+watch(keyFilter, () => { railLimit.value = RAIL_STEP })
 
 const getMonitorLabel = (monitorId: number) => {
   const m = monitorMap.value.get(monitorId)
@@ -118,6 +133,7 @@ const doScan = async () => {
   try {
     const result = await scanRedisKeys(selectedTaskId.value, scanPattern.value)
     keys.value = result.keys || []
+    railLimit.value = RAIL_STEP
   } catch (e: any) { message.error(e.message || '扫描失败') }
   finally { scanLoading.value = false }
 }
@@ -249,6 +265,10 @@ onMounted(loadMonitors)
 .key-skeleton {
   flex: 1;
   padding: 12px;
+}
+.load-more {
+  text-align: center;
+  padding: 6px 0 2px;
 }
 .value-empty {
   flex: 1;

@@ -100,17 +100,27 @@ function rowId(row: Record<string, unknown>): string {
   return asTask(row).id;
 }
 
-/** 刷新任务列表 */
-async function refresh() {
-  loading.value = true;
+/** 请求序号：轮询与手动刷新并发时，只采纳最新一次的响应 */
+let refreshSeq = 0;
+
+/**
+ * 刷新任务列表。
+ * @param silent 静默模式（4s 轮询用）：不置 loading，避免「刷新」按钮每 4 秒闪一次转圈
+ */
+async function refresh(silent = false) {
+  const seq = ++refreshSeq;
+  if (!silent) loading.value = true;
   try {
-    tasks.value = await getActiveTasks();
+    const list = await getActiveTasks();
+    if (seq !== refreshSeq) return; // 过期响应：已有更新的一次在途/落地，丢弃
+    tasks.value = list;
     loadError.value = "";
   } catch (e: any) {
+    if (seq !== refreshSeq) return;
     // 失败不再伪装成空态：记录错误，由表格上方错误条展示（4s 轮询场景不弹 toast 防刷屏）
     loadError.value = e?.message ?? String(e);
   } finally {
-    loading.value = false;
+    if (seq === refreshSeq) loading.value = false;
   }
 }
 
@@ -188,18 +198,43 @@ function goWorkspace() {
   router.push("/workspace");
 }
 
-/** 轮询任务状态 */
+/** 轮询任务状态（静默，不打转圈） */
 function poll() {
-  refresh();
+  refresh(true);
+}
+
+/** 启动轮询（幂等） */
+function startPolling() {
+  if (!timer) timer = setInterval(poll, 4000);
+}
+
+/** 停止轮询 */
+function stopPolling() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+}
+
+/** 标签页不可见时暂停轮询，回到前台立即补一次静默刷新再恢复 */
+function onVisibilityChange() {
+  if (document.hidden) {
+    stopPolling();
+  } else {
+    refresh(true);
+    startPolling();
+  }
 }
 
 onMounted(() => {
   refresh();
-  timer = setInterval(poll, 4000);
+  startPolling();
+  document.addEventListener("visibilitychange", onVisibilityChange);
 });
 
 onBeforeUnmount(() => {
-  if (timer) clearInterval(timer);
+  stopPolling();
+  document.removeEventListener("visibilitychange", onVisibilityChange);
 });
 </script>
 
@@ -212,7 +247,7 @@ onBeforeUnmount(() => {
         <el-tag type="info" effect="plain">{{ tasks.length }} 个任务</el-tag>
       </div>
       <div class="tasks-actions">
-        <el-button :icon="'Refresh'" :loading="loading" @click="refresh">刷新</el-button>
+        <el-button :icon="'Refresh'" :loading="loading" @click="refresh()">刷新</el-button>
         <el-button type="primary" :icon="'Plus'" @click="goWorkspace" text>新建任务</el-button>
       </div>
     </div>
@@ -225,7 +260,7 @@ onBeforeUnmount(() => {
       show-icon
       class="tasks-error"
     >
-      <el-button size="small" type="primary" plain @click="refresh">重试</el-button>
+      <el-button size="small" type="primary" plain @click="refresh()">重试</el-button>
     </el-alert>
 
     <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，

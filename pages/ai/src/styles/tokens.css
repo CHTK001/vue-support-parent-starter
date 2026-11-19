@@ -37,11 +37,20 @@
 
   /* ========== 背景 ========== */
   --bg-page: #f2f6fc;          /* 页面底 */
+  /* 容器底 / 卡片面 —— 必须在本文件里自给，不能指望「全局层」：
+     2026-11-18 的同值收敛把它当成 @repo/theme 同值令牌删掉了，但本应用的
+     main.js 只引入本地 tokens.css，@repo/theme 的 tokens.css 从未被加载，
+     结果亮色下 --bg-container 是空值 → --color-surface / --el-bg-color /
+     --el-fill-color-blank 全部失效，侧栏、卡片、弹层背景退回透明，
+     整页发白像「没有样式」（深色块仍保留该令牌，所以只有亮色塌陷）。 */
+  --bg-container: #ffffff;     /* 卡片 / 容器面 */
   --bg-elevated: #f8fafc;      /* 悬浮层 / 次级面 */
   --bg-fill: #f1f5fb;          /* 输入框 / 填充 */
   --bg-hover: #f1f5fb;         /* 悬浮态 */
 
   /* ========== 文本 ========== */
+  /* 反色文字：压在品牌色 / 深底上的白字，同样缺亮色定义（深色块用 #0f172a） */
+  --text-inverse: #ffffff;
   --text-primary: #0f172a;
   --text-secondary: #475569;
   /* 三级文字：原 #94a3b8 在 #ffffff / #f1f5fb / #f2f6fc 上只有 2.56 / 2.34 / 2.36，

@@ -387,6 +387,16 @@ ol > *:not(li) {
   height: 15px;
 }
 
+/* 复制按钮默认半隐，悬停 / 键盘聚焦代码块时显形；点击反馈由宿主的 toast 给出 */
+.custom-code-block .copy-code-button {
+  opacity: 0.4;
+}
+
+.custom-code-block:hover .copy-code-button,
+.custom-code-block .copy-code-button:focus-visible {
+  opacity: 1;
+}
+
 /* 暗色模式样式 - 已整合到各元素选择器中 */
 
 /* HLJS 语法高亮暗色主题 - 使用 VS Code Dark+ 配色 */

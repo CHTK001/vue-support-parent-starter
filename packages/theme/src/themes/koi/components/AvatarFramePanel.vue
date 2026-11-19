@@ -6,10 +6,38 @@
     </div>
 
     <template v-if="frameShow">
-      <template v-if="groups.length">
-        <section v-for="group in groups" :key="group.title" class="avatar-frame-group">
-          <h4 class="avatar-frame-group-title">{{ group.title }}</h4>
-          <div class="avatar-frame-grid">
+      <div class="avatar-frame-filters">
+        <el-input
+          v-model="keyword"
+          size="small"
+          placeholder="搜索头像框"
+          clearable
+          :prefix-icon="Search"
+          class="avatar-frame-search"
+        />
+        <div class="avatar-frame-chips">
+          <button
+            v-for="chip in typeChips"
+            :key="chip.value"
+            type="button"
+            class="avatar-frame-chip"
+            :class="{ 'is-active': activeType === chip.value }"
+            @click="activeType = chip.value"
+          >
+            {{ chip.label }}
+          </button>
+        </div>
+      </div>
+      <template v-if="visibleGroups.length">
+        <section v-for="group in visibleGroups" :key="group.title" class="avatar-frame-group">
+          <h4 class="avatar-frame-group-title" @click="toggleGroup(group.title)">
+            <span>{{ group.title }}</span>
+            <span class="avatar-frame-group-count">{{ group.items.length }}</span>
+            <el-icon class="avatar-frame-chevron" :class="{ 'is-collapsed': isCollapsed(group.title) }" :size="12">
+              <ArrowDown />
+            </el-icon>
+          </h4>
+          <div v-show="!isCollapsed(group.title)" class="avatar-frame-grid">
             <div
               v-for="frame in group.items"
               :key="frame.id"
@@ -18,8 +46,19 @@
               @click="activateFrame(frame)"
             >
               <div class="avatar-frame-preview">
+                <!-- 卡片默认显示 poster 静帧（省流省电），hover 才切 APNG 动图；旧素材无 poster 时回退原图 -->
+                <img
+                  v-if="cardSrc(frame)"
+                  class="avatar-frame-poster"
+                  :src="cardSrc(frame)"
+                  :alt="frame.name"
+                  loading="lazy"
+                  @error="onPosterError(frame)"
+                  @mouseenter="hoveredFrame = frame.id"
+                  @mouseleave="hoveredFrame = 0"
+                />
                 <div
-                  v-if="hasFrameVisual(frame)"
+                  v-else-if="hasFrameVisual(frame)"
                   class="avatar-frame-img"
                   :style="frameLayerStyle(frame, 52)"
                 ></div>
@@ -36,12 +75,17 @@
                 </span>
               </div>
               <span class="avatar-frame-name">{{ frame.name }}</span>
+              <span v-if="acquireLabel(frame)" class="avatar-frame-acquire">{{ acquireLabel(frame) }}</span>
               <el-icon v-if="selectedFrame === frame.id" class="avatar-frame-check"><CircleCheckFilled /></el-icon>
             </div>
           </div>
         </section>
       </template>
-      <el-empty v-else description="暂无可用头像框" :image-size="80" />
+      <el-empty
+        v-else
+        :description="groups.length ? '没有匹配的头像框' : '暂无可用头像框'"
+        :image-size="80"
+      />
     </template>
 
     <!-- 大图试戴：52px 卡片预览看不清动效细节，弹出 120px「头像+框」组合预览，确认后再佩戴 -->
@@ -87,19 +131,21 @@
  * 成功后刷新登录用户信息并 emit updated。
  */
 import { computed, onMounted, ref } from "vue";
-import { CircleCheckFilled, Lock, ZoomIn } from "@element-plus/icons-vue";
+import { ArrowDown, CircleCheckFilled, Lock, Search, ZoomIn } from "@element-plus/icons-vue";
 import { msgError, msgSuccess } from "@repo/core";
 import { resolveUserDisplayInfo, Http } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 import {
   avatarFrameDict,
+  avatarFramePosterPath,
   defaultFrameLayerStyle,
   frameLayerStyle,
   hasFrameVisual,
   isAvatarFrameEnabled,
   isAvatarFrameLocked,
   loadAvatarFrames,
+  resolveAvatarFrameUrl,
   type AvatarFrame,
 } from "./avatarFrames";
 
@@ -154,6 +200,90 @@ const selectedFrame = ref<number>(0);
 const frameShow = ref(false);
 /** 已解锁的限定帧 ID（含未过期判断） */
 const ownedIds = ref<Set<number>>(new Set());
+
+/* ==================== 搜索 / 类型筛选 / 分组折叠 ==================== */
+
+const keyword = ref("");
+const activeType = ref("all");
+
+const typeChips = [
+  { label: "全部", value: "all" },
+  { label: "常规", value: "regular" },
+  { label: "灵动", value: "dynamic" },
+  { label: "生肖", value: "zodiac" },
+  { label: "星座", value: "constellation" },
+  { label: "限定", value: "limited" },
+];
+
+/** 分组标题 → 筛选类型（不佩戴/神兽无独立筛选位，仅「全部」下展示） */
+const TYPE_BY_TITLE: Record<string, string> = {
+  不佩戴: "none",
+  常规: "regular",
+  灵动: "dynamic",
+  生肖: "zodiac",
+  星座: "constellation",
+  神兽: "beast",
+  限定: "limited",
+};
+
+/** 按关键字 + 类型筛选后的分组（搜索时强制展开全部分组） */
+const visibleGroups = computed<FrameGroup[]>(() => {
+  const kw = keyword.value.trim().toLowerCase();
+  return groups.value
+    .filter((g) => {
+      if (activeType.value === "all") return true;
+      return TYPE_BY_TITLE[g.title] === activeType.value;
+    })
+    .map((g) => ({
+      title: g.title,
+      items: kw ? g.items.filter((f) => f.name.toLowerCase().includes(kw)) : g.items,
+    }))
+    .filter((g) => g.items.length);
+});
+
+const collapsedTitles = ref<Set<string>>(new Set());
+
+function toggleGroup(title: string): void {
+  const next = new Set(collapsedTitles.value);
+  if (next.has(title)) next.delete(title);
+  else next.add(title);
+  collapsedTitles.value = next;
+}
+
+function isCollapsed(title: string): boolean {
+  // 搜索时强制展开，避免「搜到了却折叠着看不见」
+  if (keyword.value.trim()) return false;
+  return collapsedTitles.value.has(title);
+}
+
+/** 限定帧的获取途径标注（佩戴前点卡片仍会自动解锁） */
+function acquireLabel(frame: AvatarFrame): string {
+  if (!isAvatarFrameLocked(frame)) return "";
+  if (frame.acquire === "birthday") return "生日限定";
+  return "限定获取";
+}
+
+/* ==================== poster 静帧 + hover 播放 ==================== */
+
+const hoveredFrame = ref(0);
+/** poster 404 的帧（旧生肖/常规素材无 poster），永久回退 APNG */
+const posterBroken = ref<Set<number>>(new Set());
+
+/** 卡片预览图地址：hover 取 APNG 动图，其余取 poster 静帧 */
+function cardSrc(frame: AvatarFrame): string | undefined {
+  if (!frame.image) return undefined;
+  const poster = avatarFramePosterPath(frame.image);
+  if (!poster || posterBroken.value.has(frame.id)) return resolveAvatarFrameUrl(frame.image);
+  if (hoveredFrame.value === frame.id) return resolveAvatarFrameUrl(frame.image);
+  return resolveAvatarFrameUrl(poster);
+}
+
+function onPosterError(frame: AvatarFrame): void {
+  if (!frame.image || !avatarFramePosterPath(frame.image)) return;
+  const next = new Set(posterBroken.value);
+  next.add(frame.id);
+  posterBroken.value = next;
+}
 
 /** 未解锁的限定帧才展示锁标记 */
 function isLocked(frame: AvatarFrame): boolean {
@@ -323,15 +453,82 @@ onMounted(() => {
   color: var(--el-text-color-regular);
 }
 
+.avatar-frame-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.avatar-frame-search {
+  width: 100%;
+}
+
+.avatar-frame-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.avatar-frame-chip {
+  padding: 2px 10px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 999px;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.avatar-frame-chip:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+.avatar-frame-chip.is-active {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
 .avatar-frame-group {
   margin-bottom: 18px;
 }
 
 .avatar-frame-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0 0 10px;
   font-size: 12px;
   font-weight: 500;
   color: var(--el-text-color-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.avatar-frame-group-count {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  text-align: center;
+}
+
+.avatar-frame-chevron {
+  margin-left: auto;
+  color: var(--el-text-color-placeholder);
+  transition: transform 0.2s;
+}
+
+.avatar-frame-chevron.is-collapsed {
+  transform: rotate(-90deg);
 }
 
 .avatar-frame-grid {
@@ -384,9 +581,31 @@ onMounted(() => {
   pointer-events: none;
 }
 
+.avatar-frame-poster {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 .avatar-frame-name {
   font-size: 12px;
   color: var(--el-text-color-regular);
+}
+
+.avatar-frame-acquire {
+  margin-top: -4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
+  font-size: 10px;
+  line-height: 14px;
 }
 
 .avatar-frame-lock {

@@ -25,9 +25,12 @@ import {
   updateServicePlanStatus,
   updateServiceStatus,
 } from "@pages/system/api/systemApi";
-import type { SysMenu, SysService, SysServicePlan } from "@pages/system/api/types";
+import type { SysMenu, SysService, SysServiceStats, SysServicePlan } from "@pages/system/api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import ReDialog from "@repo/ui/re-dialog";
+import ReStatCard from "@repo/ui/re-stat-card";
+import { Goods, CircleCheck, CircleClose } from "@element-plus/icons-vue";
+import { serviceStats } from "@pages/system/api/systemApi";
 
 const tableRef = ref();
 
@@ -64,6 +67,18 @@ const searchFilters = computed(() => [
     ],
   },
 ]);
+
+/** 服务统计卡；新增/编辑/启停/删除后刷新 */
+const serviceStat = ref<SysServiceStats>({});
+
+async function loadServiceStats() {
+  try {
+    const res = await serviceStats();
+    serviceStat.value = res?.data ?? {};
+  } catch (e) {
+    console.warn("[service] 统计加载失败", e);
+  }
+}
 
 const dialogVisible = ref(false);
 const saving = ref(false);
@@ -273,6 +288,7 @@ async function handleSubmit() {
     message.success(isEdit.value ? "服务已更新" : "服务已新增");
     dialogVisible.value = false;
     tableRef.value?.reload();
+    void loadServiceStats();
   } catch (e) {
     message.error((e as Error)?.message ?? "保存失败");
   } finally {
@@ -298,6 +314,7 @@ async function handleStatusChange(row: Record<string, unknown>) {
     await updateServiceStatus(service.sysServiceId, next);
     message.success(`${action}成功`);
     tableRef.value?.reload();
+    void loadServiceStats();
   } catch (e) {
     message.error((e as Error)?.message ?? `${action}失败`);
   } finally {
@@ -322,6 +339,7 @@ async function handleDelete(row: Record<string, unknown>) {
     await deleteService(service.sysServiceId);
     message.success("删除成功");
     tableRef.value?.reload();
+    void loadServiceStats();
   } catch (e) {
     message.error((e as Error)?.message ?? "删除失败");
   } finally {
@@ -378,12 +396,40 @@ const columns: ReTableColumn[] = [
 ];
 
 onMounted(() => {
+  void loadServiceStats();
   tableRef.value?.reload();
 });
 </script>
 
 <template>
   <div class="system-page">
+    <div class="tenant-stat-row">
+      <ReStatCard
+        size="compact"
+        title="服务总数"
+        :value="serviceStat.total ?? 0"
+        desc="全部服务产品"
+        :icon="Goods"
+        icon-color="var(--el-color-primary)"
+      />
+      <ReStatCard
+        size="compact"
+        title="启用中"
+        :value="serviceStat.enabled ?? 0"
+        desc="可被订阅"
+        :icon="CircleCheck"
+        icon-color="var(--el-color-success)"
+      />
+      <ReStatCard
+        size="compact"
+        title="已停用"
+        :value="serviceStat.disabled ?? 0"
+        desc="暂停售卖"
+        :icon="CircleClose"
+        icon-color="var(--el-color-danger)"
+      />
+    </div>
+
     <ReTable
       ref="tableRef"
       table-id="tenant-service-manage"
@@ -540,6 +586,15 @@ onMounted(() => {
   height: 100%;
   box-sizing: border-box;
 }
+
+/* 顶部统计卡：响应式网格，紧凑卡片与表格共用一条页面主列 */
+.tenant-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  flex: none;
+}
+
 .plan-tip {
   margin-bottom: 10px;
   font-size: 12px;

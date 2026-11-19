@@ -46,13 +46,14 @@
       <button
         type="button"
         class="next-task__action"
+        :disabled="toggling"
         :aria-pressed="state.enabled"
         :aria-label="state.enabled ? 'AI 联想当前已开启，点击关闭本会话的联想' : 'AI 联想当前已关闭，点击开启本会话的联想'"
         @click="onToggle"
       >
         <!-- 旧文案「关闭本会话/开启本会话」是动作而非状态，用户看不出当前到底是开还是关；
              这里显式写成「联想：已开启（点击关闭）」——状态在前、动作在后。 -->
-        {{ state.enabled ? '联想：已开启（点击关闭）' : '联想：已关闭（点击开启）' }}
+        {{ toggling ? '保存中…' : state.enabled ? '联想：已开启（点击关闭）' : '联想：已关闭（点击开启）' }}
       </button>
     </header>
 
@@ -79,6 +80,7 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { apiService } from '@/services/ApiService'
 import { useSessionStore } from '@/stores/session'
+import { message } from '@repo/core'
 import type { SessionNextTaskItem, SessionNextTaskState } from '@/services/modules/session-next-task.api'
 
 const props = defineProps<{
@@ -102,6 +104,7 @@ const emit = defineEmits<{
 const state = ref<SessionNextTaskState | null>(null)
 const collapsed = ref(false)
 const refreshing = ref(false)
+const toggling = ref(false)
 /** 后端不可用（端点未上线 / 404）时不再反复请求 */
 const unsupported = ref(false)
 
@@ -287,13 +290,18 @@ async function onRefresh(): Promise<void> {
  */
 async function onToggle(): Promise<void> {
   const sessionId = props.sessionId
-  if (!sessionId || !state.value) {
+  if (!sessionId || !state.value || toggling.value) {
     return
   }
+  toggling.value = true
   try {
     state.value = await apiService.saveSessionNextTaskEnabled(sessionId, !state.value.enabled)
   } catch (error) {
     console.error('[NextTask] 保存开关失败:', error)
+    // 开关状态以服务端为准：失败时明确告知，而不是让用户以为已保存
+    message.error('保存联想开关失败，请稍后重试')
+  } finally {
+    toggling.value = false
   }
 }
 

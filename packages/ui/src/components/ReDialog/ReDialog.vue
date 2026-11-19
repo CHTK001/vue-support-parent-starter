@@ -6,7 +6,9 @@
  * 增强：
  *   - layout："el"（默认 el-dialog）/ "modern"（现代化扁平弹窗，异步加载）
  *   - draggable：可拖拽头部移动弹窗（默认 true，未传即可拖）
- *   - fullscreenable：右上角显示全屏切换
+ *   - fullscreenable：右上角显示全屏切换（默认开启，不需要的业务显式传 :fullscreenable="false"）
+ *   - #header-actions 插槽：自带标题栏右上角（全屏按钮左侧）追加自定义内容；
+ *     传了 #header 插槽的弹窗不渲染该插槽（header 由业务自治）
  *   - confirmLoading：确认按钮 loading 态（常用于提交场景）
  *   - cancelText / okText：确认/取消按钮文案
  *   - footer 三态：未传时只渲染业务自定义 #footer 插槽、不渲染自带按钮；
@@ -62,7 +64,7 @@ const props = withDefaults(
      * 到边就停，不会越出视口，也不会回弹；业务真要自由空间就显式传 <code>overflow="true"</code>（放开钳制）。</p>
      */
     overflow?: boolean;
-    /** 是否可全屏 */
+    /** 右上角全屏切换按钮（默认显示；不需要时传 false 关闭） */
     fullscreenable?: boolean;
     /** 初始全屏 */
     fullscreen?: boolean;
@@ -115,7 +117,8 @@ const props = withDefaults(
     // 同 showFooter，Boolean prop「未传且无默认值」会被 Vue 强转成 false，
     // 三态里的「未传」将永远不可达，必须显式 default: undefined 透传。
     overflow: undefined,
-    fullscreenable: false,
+    // 全屏按钮默认显示：右上角自带「全屏/退出全屏」切换；不需要的业务显式传 :fullscreenable="false"
+    fullscreenable: true,
     fullscreen: false,
     confirmLoading: false,
     okText: "确定",
@@ -378,6 +381,9 @@ const showCloseFab = computed(() => props.headless);
     <template v-if="$slots.footer" #footer="scope">
       <slot name="footer" v-bind="scope" />
     </template>
+    <template #header-actions>
+      <slot name="header-actions" />
+    </template>
   </ModernLayout>
 
   <!-- 默认 el-dialog 布局 -->
@@ -420,10 +426,11 @@ const showCloseFab = computed(() => props.headless);
     </template>
 
     <!-- 无业务 header 时，draggable / fullscreenable 使用自带 header（拖拽 + 全屏按钮） -->
-    <template v-else-if="(draggable || fullscreenable) && !headless" #header>
+    <template v-else-if="(draggable || fullscreenable || !!$slots['header-actions']) && !headless" #header>
       <div class="re-dialog__header-inner">
         <span class="re-dialog__title">{{ title }}</span>
         <div class="re-dialog__header-actions">
+          <slot name="header-actions" />
           <ElButton
             v-if="fullscreenable"
             link

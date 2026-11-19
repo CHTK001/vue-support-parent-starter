@@ -27,6 +27,7 @@ const props = withDefaults(
     destroyOnClose?: boolean;
     modal?: boolean;
     draggable?: boolean;
+    /** 右上角全屏切换按钮（默认显示；不需要时传 false 关闭） */
     fullscreenable?: boolean;
     fullscreen?: boolean;
     confirmLoading?: boolean;
@@ -62,7 +63,8 @@ const props = withDefaults(
     destroyOnClose: false,
     modal: true,
     draggable: false,
-    fullscreenable: false,
+    // 与基类 ReDialog 对齐：全屏按钮默认显示
+    fullscreenable: true,
     fullscreen: false,
     confirmLoading: false,
     okText: "确定",
@@ -210,6 +212,7 @@ if (typeof document !== "undefined") {
           >
             <span class="rm-dialog__title">{{ title }}</span>
             <div class="rm-dialog__header-actions">
+              <slot name="header-actions" />
               <button v-if="fullscreenable" class="rm-dialog__header-btn" type="button" @click="toggleFullscreen">
                 {{ isFullscreen ? '⤢' : '⤡' }}
               </button>

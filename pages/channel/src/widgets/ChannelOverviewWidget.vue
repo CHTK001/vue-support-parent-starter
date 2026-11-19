@@ -15,7 +15,7 @@
 
     <!-- 正常 -->
     <div v-else class="chow__grid">
-      <div v-for="s in stats" :key="s.label" class="chow__tile">
+      <div v-for="s in stats" :key="s.label" class="chow__tile" :class="{ 'is-danger': s.danger }">
         <div class="chow__tile-head">
           <el-icon :size="16" class="chow__tile-icon">
             <component :is="s.icon" />
@@ -37,11 +37,11 @@
  * 登记进 home 的 widget 注册表，app 侧在 {@code main.ts} 用 {@code .widgets(...)}
  * 接线。home 与 widget 之间没有任何反向依赖。</p>
  *
- * <p>四个口径全部来自 <b>同一次</b> {@code GET /api/channels}，不额外发请求；
+ * <p>六个口径全部来自 <b>同一次</b> {@code GET /api/channels}，不额外发请求；
  * 接口失败整卡退化为错误态并给重试（单接口不存在「部分失败」）。</p>
  */
 import { computed, defineAsyncComponent, onMounted, ref } from "vue";
-import { CircleCheck, Connection, Cpu, Link, Loading, WarningFilled } from "@element-plus/icons-vue";
+import { CircleCheck, Connection, Cpu, Link, Loading, Timer, WarningFilled } from "@element-plus/icons-vue";
 import { channelApi } from "../channelApi";
 import type { WidgetItem } from "@repo/theme/koi/views/home/types.ts";
 
@@ -57,16 +57,22 @@ const enabledCount = ref<number | null>(null);
 const connectionCount = ref<number | null>(null);
 /** 渠道模型清单条数（各渠道 models 求和） */
 const modelCount = ref<number | null>(null);
+/** 异常账号连接数（status=expired/invalid，与渠道页「待刷新」口径一致） */
+const abnormalCount = ref<number | null>(null);
+/** 48 小时内到期的凭据数（已过期的计入异常，不在这里重复计） */
+const expiringCount = ref<number | null>(null);
 /** 首次加载中 */
 const loading = ref(true);
 /** 整体失败：接口挂了，卡片退化为错误态 */
 const errorText = ref("");
 
 const stats = computed(() => [
-  { label: "渠道总数", value: totalCount.value ?? "—", icon: Connection },
-  { label: "启用渠道", value: enabledCount.value ?? "—", icon: CircleCheck },
-  { label: "已绑定连接", value: connectionCount.value ?? "—", icon: Link },
-  { label: "模型清单", value: modelCount.value ?? "—", icon: Cpu },
+  { label: "渠道总数", value: totalCount.value ?? "—", icon: Connection, danger: false },
+  { label: "启用渠道", value: enabledCount.value ?? "—", icon: CircleCheck, danger: false },
+  { label: "已绑定连接", value: connectionCount.value ?? "—", icon: Link, danger: false },
+  { label: "模型清单", value: modelCount.value ?? "—", icon: Cpu, danger: false },
+  { label: "异常账号", value: abnormalCount.value ?? "—", icon: WarningFilled, danger: (abnormalCount.value ?? 0) > 0 },
+  { label: "48h 内到期", value: expiringCount.value ?? "—", icon: Timer, danger: false },
 ]);
 
 async function load(): Promise<void> {
@@ -78,11 +84,22 @@ async function load(): Promise<void> {
     enabledCount.value = channels.filter((c) => c.enabled !== false).length;
     connectionCount.value = channels.reduce((n, c) => n + (c.connections?.length ?? 0), 0);
     modelCount.value = channels.reduce((n, c) => n + (c.models?.length ?? 0), 0);
+    // 异常 / 临期口径与渠道管理页一致：expired/invalid 算异常；未过期但 48h 内到期算临期
+    const conns = channels.flatMap((c) => c.connections ?? []);
+    abnormalCount.value = conns.filter((c) => c.status === "expired" || c.status === "invalid").length;
+    const EXPIRE_SOON_MS = 48 * 3_600_000;
+    expiringCount.value = conns.filter((c) => {
+      if (!c.expiresAt) return false;
+      const diff = Number(c.expiresAt) - Date.now();
+      return diff > 0 && diff <= EXPIRE_SOON_MS;
+    }).length;
   } catch {
     totalCount.value = null;
     enabledCount.value = null;
     connectionCount.value = null;
     modelCount.value = null;
+    abnormalCount.value = null;
+    expiringCount.value = null;
     errorText.value = "渠道概览数据获取失败";
   } finally {
     loading.value = false;
@@ -122,10 +139,20 @@ onMounted(load);
 .chow__grid {
   height: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* 六个指标：3 列 × 2 行铺满，不额外加高 widget */
+  grid-template-columns: repeat(3, 1fr);
   grid-template-rows: 1fr 1fr;
   gap: 10px;
   padding: 4px;
+}
+/* 异常账号 > 0：整块淡红底，让「有问题」在仪表板上先于数字被看到 */
+.chow__tile.is-danger {
+  border-color: var(--el-color-danger-light-7, #fde2e2);
+  background: var(--el-color-danger-light-9, #fef0f0);
+}
+.chow__tile.is-danger .chow__tile-icon,
+.chow__tile.is-danger .chow__tile-value {
+  color: var(--el-color-danger);
 }
 
 .chow__tile {

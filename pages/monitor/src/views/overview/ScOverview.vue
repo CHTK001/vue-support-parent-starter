@@ -32,8 +32,8 @@
     <ReSectionHead class="export-head" title="指标导出" :description="'按当前筛选导出采集指标历史数据  ' + liveTime">
       <template #actions>
         <span class="live-dot"></span>
-        <ReButton show-text icon="Download" type="primary" @click="downloadAllMetrics">导出全部</ReButton>
-        <ReButton show-text icon="Download" @click="downloadMetrics">导出选中</ReButton>
+        <ReButton show-text icon="Download" type="primary" :loading="exportLoading" @click="downloadAllMetrics">导出全部</ReButton>
+        <ReButton show-text icon="Download" :loading="exportLoading" @click="downloadMetrics">导出近 24h</ReButton>
       </template>
     </ReSectionHead>
 
@@ -93,7 +93,6 @@ import { getOverview, exportMetricHistory, exportAllMetricHistory } from '../../
 const data = ref({ total: 0, enabled: 0, disabled: 0, serverCount: 0, redisCount: 0, dbCount: 0 })
 const loading = ref(false)
 const exportLoading = ref(false)
-const exportProgress = ref(0)
 
 const serverPct = computed(() => data.value.total > 0 ? Math.round(data.value.serverCount / data.value.total * 100) : 0)
 const redisPct = computed(() => data.value.total > 0 ? Math.round(data.value.redisCount / data.value.total * 100) : 0)
@@ -124,7 +123,6 @@ onMounted(async () => {
 
 const downloadAllMetrics = async () => {
   exportLoading.value = true
-  exportProgress.value = 0
   try {
     const blob = await exportAllMetricHistory()
     const url = window.URL.createObjectURL(new Blob([blob], { type: 'text/csv;charset=utf-8' }))
@@ -135,8 +133,10 @@ const downloadAllMetrics = async () => {
     link.click()
     link.remove()
     window.URL.revokeObjectURL(url)
+    message.success('已导出全部指标历史')
   } catch (e) {
     console.error('导出失败', e)
+    message.error('导出失败，请稍后重试')
   } finally {
     exportLoading.value = false
   }
@@ -155,8 +155,10 @@ const downloadMetrics = async () => {
     link.click()
     link.remove()
     window.URL.revokeObjectURL(url)
+    message.success('已导出近 24 小时指标历史')
   } catch (e) {
     console.error('导出失败', e)
+    message.error('导出失败，请稍后重试')
   } finally {
     exportLoading.value = false
   }

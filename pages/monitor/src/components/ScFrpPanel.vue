@@ -508,6 +508,7 @@ const mapColumns: ReTableColumn[] = [
               stripe
               height="100%"
               empty-text="还没有暴露规则"
+              table-id="frp-exposes"
             >
               <template #col-ruleId="{ row }">
                 <ReButton link icon="Delete" tip="撤销这条规则" @click="revoke('expose', row as FrpRuleItem)" />
@@ -536,6 +537,7 @@ const mapColumns: ReTableColumn[] = [
               stripe
               height="100%"
               empty-text="还没有映射规则"
+              table-id="frp-maps"
             >
               <template #col-ruleId="{ row }">
                 <ReButton link icon="Delete" tip="撤销这条规则" @click="revoke('map', row as FrpRuleItem)" />

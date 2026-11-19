@@ -30,6 +30,8 @@ export function useSessionChat(
       try {
         const result = await apiService.generateSessionTitle(sessionId);
         if (!result.skipped && result.title && currentSession.value) {
+          // 生成接口不落库，必须自己 PUT 持久化，否则刷新后标题回退
+          await apiService.updateSession(sessionId, { title: result.title });
           currentSession.value.title = result.title;
           sessionStore.updateSessionTitle(sessionId, result.title);
         }

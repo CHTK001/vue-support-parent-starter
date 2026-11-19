@@ -328,6 +328,8 @@ import { usePopup } from '@/composables/usePopup';
 import { useRouter } from 'vue-router';
 import { useSessionStore } from '@/stores/session';
 import { useGoalStore, formatTokenCounter, DEFAULT_GOAL_TOKEN_BUDGET } from '@/stores/goal';
+import { useAuthStore } from '@/stores/auth';
+import { saveInputDraft, loadInputDraft, clearInputDraft } from '@/utils/inputDraft';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
 import { mcpApi } from '@/services/javaApi';
@@ -376,6 +378,7 @@ const isMobile = breakpoints.smaller('lg') // md = 768px
 const { confirm, notify } = usePopup();
 const router = useRouter();
 const sessionStore = useSessionStore();
+const authStore = useAuthStore();
 const { t } = useI18n()
 
 // 响应式数据
@@ -482,12 +485,19 @@ const moveHistory = (delta: number) => {
  * 换行被吞成空格，用户拿回来的是「压平」的历史。</p>
  *
  * @param text 纯文本（可含换行）
+ * @param quiet true = 静默填入（不抢焦点、光标不跳），草稿回填用；
+ *              缺省 false = 填入后聚焦到文本末尾（历史选中、手动填回）
  */
-const setDraftText = (text: string) => {
+const setDraftText = (text: string, quiet = false) => {
   if (!editor.value) return;
   const paragraphs = text.split(/\r?\n/).map((line) =>
     line ? { type: 'paragraph', content: [{ type: 'text', text: line }] } : { type: 'paragraph' },
   );
+  if (quiet) {
+    editor.value.chain().clearContent().insertContent(paragraphs).run();
+    editorContent.value = editor.value.getText();
+    return;
+  }
   editor.value.chain().focus().clearContent().insertContent(paragraphs).run();
   editor.value.commands.focus('end');
   editorContent.value = editor.value.getText();
@@ -510,6 +520,85 @@ const removeHistory = (id: string) => {
 const removeHistoryMany = (ids: string[]) => {
   emit('history-remove-many', ids);
 };
+
+/* ===== 输入草稿持久化（2026-11-19）=====
+   正在输入、尚未发送的文本按「用户 + 会话」落盘（IndexedDB + AES，见 utils/inputDraft）：
+   刷新页面、切换会话再切回来，打了一半的内容还在；发送后编辑器清空，草稿随之清除。
+   只持久化文本；附件、技能徽标等仍是会话内的临时状态。 */
+/** 草稿写入防抖定时器 */
+let draftSaveTimer: ReturnType<typeof setTimeout> | null = null;
+/** 上次落盘的草稿（会话 + 文本）：内容没变就不重复写 IndexedDB */
+let lastDraftKey = '';
+let lastDraftValue = '';
+
+/**
+ * 立即把当前编辑器内容写成该会话的草稿（跳过防抖）。
+ *
+ * <p>切会话、组件卸载时必须立刻落盘，否则防抖窗口里最后敲的几个字会丢。
+ * 只读/编辑态不写：前者不是自己的会话，后者的内容由父组件经 props.value 管理。</p>
+ *
+ * @param sid 会话 ID（空串跳过）
+ */
+const flushInputDraft = (sid: string) => {
+  if (draftSaveTimer) {
+    clearTimeout(draftSaveTimer);
+    draftSaveTimer = null;
+  }
+  if (!sid || props.readonly || props.editing) return;
+  const text = editorContent.value;
+  if (lastDraftKey === sid && lastDraftValue === text) return;
+  lastDraftKey = sid;
+  lastDraftValue = text;
+  const user = authStore.user?.username;
+  if (text.trim()) {
+    void saveInputDraft(text, user, sid);
+  } else {
+    void clearInputDraft(user, sid);
+  }
+};
+
+/** 打字期间防抖写盘：停顿 400ms 才落一次，避免每个字符一次 IndexedDB 往返 */
+const scheduleInputDraftSave = () => {
+  const sid = props.sessionId == null ? '' : String(props.sessionId);
+  if (!sid || props.readonly || props.editing) return;
+  if (draftSaveTimer) clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    draftSaveTimer = null;
+    flushInputDraft(sid);
+  }, 400);
+};
+
+watch(editorContent, () => {
+  scheduleInputDraftSave();
+});
+
+/**
+ * 把本会话保存过的草稿填回编辑器（静默填入，不抢焦点）。
+ *
+ * <p>只在编辑器为空、且父组件没有推入正式内容（props.value）时回填：
+ * 前者避免覆盖正在输入的内容，后者让编辑消息等流程照常优先。</p>
+ */
+const restoreInputDraft = async () => {
+  const sid = props.sessionId == null ? '' : String(props.sessionId);
+  if (!sid || props.readonly || props.editing || !editor.value) return;
+  if (editor.value.getText().trim() || String(props.value ?? '').trim()) return;
+  const text = await loadInputDraft(authStore.user?.username, sid);
+  if (!text || !editor.value) return;
+  // 等待读取期间会话可能又切走、内容可能已被填上：都不再覆盖
+  if (String(props.sessionId ?? '') !== sid || props.editing) return;
+  if (editor.value.getText().trim() || String(props.value ?? '').trim()) return;
+  setDraftText(text, true);
+};
+
+// 切会话：旧会话草稿立刻落盘（不等防抖），再回填新会话的草稿
+watch(() => props.sessionId, (sid, oldSid) => {
+  if (oldSid != null && String(oldSid)) {
+    flushInputDraft(String(oldSid));
+  }
+  lastDraftKey = '';
+  lastDraftValue = '';
+  void restoreInputDraft();
+}, { immediate: true });
 
 // 命令选择弹窗 ref
 const commandPickerRef = ref<any>();
@@ -2885,6 +2974,9 @@ onMounted(() => {
     });
     editor.value = tiptapEditor;
 
+    // 编辑器就绪后回填本会话草稿（刷新页面 / 切回会话场景，见 utils/inputDraft）
+    void restoreInputDraft();
+
     // 将编辑器处理器挂载到 DOM 元素，供全局右键菜单使用（解耦方式）
     const editorEl = document.querySelector('.message-editor') as (HTMLElement & { __editorHandler?: unknown }) | null;
     if (editorEl) {
@@ -2916,6 +3008,8 @@ onMounted(() => {
 
 // 清理事件监听器和预览 URL
 onUnmounted(() => {
+  // 卸载前把未落盘的草稿立即写入（不等防抖）
+  flushInputDraft(props.sessionId == null ? '' : String(props.sessionId));
   document.removeEventListener('click', handleClickOutside);
   if (modelOpenTimer) clearTimeout(modelOpenTimer)
   if (modelCloseTimer) clearTimeout(modelCloseTimer)

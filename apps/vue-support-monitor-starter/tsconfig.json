@@ -47,6 +47,11 @@
       // 调试中心（CDP）：并进「分析管理」菜单 -> /debug，视图 + API + 路由同源
       "@pages/debug/*": ["../../pages/debug/*"],
       "@pages/debug": ["../../pages/debug/src/index.ts"],
+      // CDP 工作台 UI（@pages/cdp）：浏览器式壳（@pages/debug）从这里取工作台组件
+      // 与客户端通道。与根 tsconfig / createVite 共享别名同口径：@pages/cdp 指
+      // pages/cdp/src（不是包根），业务深导入写 @pages/cdp/components/...。
+      "@pages/cdp/*": ["../../pages/cdp/src/*"],
+      "@pages/cdp": ["../../pages/cdp/src/index.ts"],
       "@pages/device/*": ["../../pages/device/*"],
       "@pages/device": ["../../pages/device/src/index.ts"],
       // APM 观测台（@pages/apm）：路由入口 = @pages/apm/src/routes
@@ -78,10 +83,10 @@
       // src/router/index.ts 的 @pages/bigscreen/src/routes 是 TS2307。
       "@pages/bigscreen/*": ["../../pages/screen/*"],
       "@pages/bigscreen": ["../../pages/screen/src/index.ts"],
-      // 账号管理（账号资产 + 模板管理 + 消息模板）：源码在后端项目
-      // spring-support-account-starter/web，位于本工作区之外，故必须显式给出路径。
-      "@account/web/*": ["../../../spring-support-parent-starter/spring-support-account-starter/web/*"],
-      "@account/web": ["../../../spring-support-parent-starter/spring-support-account-starter/web/src/index.ts"],
+      // 账号管理（账号资产 + 模板管理 + 消息模板）：@pages/account
+      //（2026-11-19 自后端仓 spring-support-account-starter/web 迁入 pages/account）。
+      "@pages/account/*": ["../../pages/account/*"],
+      "@pages/account": ["../../pages/account/src/index.ts"],
       // ReMap 内部用（workspace 包，pages/device 已声明依赖；此处给 TS 提供解析，
       // 与根 tsconfig 的 "@repo/re-map"、device-starter 同一口径）
       "@repo/re-map": ["../../packages/ui/re-map"],
@@ -106,8 +111,8 @@
       "../../pages/device/src/**/*.d.ts",
       "../../pages/debug/src/**/*.d.ts",
       "../../pages/screen/src/**/*.d.ts",
-      // 账号管理前端（外部项目）的全局声明：jquery / vue-plugin-hiprint 的 UMD 类型、
+      // 账号管理前端（@pages/account）的全局声明：jquery / vue-plugin-hiprint 的 UMD 类型、
       // window.$ / window.hiprint 扩展。缺了它模板设计器与预览页全是 TS7016/TS2551。
-      "../../../spring-support-parent-starter/spring-support-account-starter/web/src/**/*.d.ts"
+      "../../pages/account/src/**/*.d.ts"
   ]
 }

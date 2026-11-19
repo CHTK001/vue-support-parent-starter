@@ -49,6 +49,8 @@ const props = withDefaults(
     menuItems?: FlowMenuItem[];
     /** 自定义节点体组件 */
     nodeComponent?: Component | null;
+    /** 选中节点/连线时自动高亮上下游链路，缺省关 */
+    traceOnSelect?: boolean;
   }>(),
   {
     data: () => ({ nodes: [], edges: [] }),
@@ -65,6 +67,7 @@ const props = withDefaults(
     zoom: true,
     nodeDraggable: true,
     activeEdgeIds: () => [],
+    traceOnSelect: false,
   },
 );
 
@@ -121,6 +124,7 @@ defineExpose({
     :zoom="zoom"
     :node-draggable="nodeDraggable"
     :active-edge-ids="activeEdgeIds"
+    :trace-on-select="traceOnSelect"
     :menu-items="menuItems"
     :node-component="nodeComponent"
     @ready="(e: FlowGraphEngine) => emit('ready', e)"

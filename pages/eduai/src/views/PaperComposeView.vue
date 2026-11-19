@@ -202,7 +202,7 @@
                     :step="1"
                     style="width: 78px"
                     class="compose-row__answer-lines"
-                    @update:model-value="onAnswerLinesChange(q, $event)"
+                    @update:model-value="(v: number | null | undefined) => onAnswerLinesChange(q, v ?? undefined)"
                   />
                   <span class="compose-row__preset">
                     <el-button size="small" :type="q.answerLines === 3 ? 'primary' : 'default'" @click="onAnswerLinesChange(q, 3)">少</el-button>
@@ -510,7 +510,7 @@
         </el-form-item>
         <el-form-item label="学段">
           <el-select v-model="aiForm.gradeLevel" placeholder="选择学段" style="width: 100%" @change="aiForm.grade = ''">
-            <el-option v-for="lv in GRADE_LEVELS" :key="lv.code" :label="lv.label" :value="lv.code" />
+            <el-option v-for="lv in GRADE_LEVEL_OPTIONS" :key="lv.value" :label="lv.label" :value="lv.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="年级">
@@ -604,6 +604,8 @@ import ReButton from "@repo/ui/re-button";
 import ReInputNumber from "@repo/ui/re-input-number";
 import ReRichText from "@repo/ui/re-rich-text";
 import { eduaiApi } from "../api/eduaiApi";
+import { errText as errorText } from "../api/errorText";
+import { GRADE_LEVEL_OPTIONS, gradeLevelToCode } from "../utils/dict";
 import type { EduAiCapability, MarketQuestion, PaperComposePayload, PaperTemplate } from "../api/types";
 import { usePaperCart, toCartItem, type CartItem } from "../composables/usePaperCart";
 import PaperPreview, { type PaperExportMode } from "../components/paper/PaperPreview.vue";
@@ -713,20 +715,6 @@ interface RemovedQuestion {
 
 /* ==================== 常量 ==================== */
 
-/** 学段词表（与 edu_question 落库值一致） */
-const GRADE_LEVELS = [
-  { code: "PRIMARY", label: "小学" },
-  { code: "JUNIOR", label: "初中" },
-  { code: "SENIOR", label: "高中" },
-  { code: "UNIVERSITY", label: "大学" },
-  { code: "OTHER", label: "其他" },
-];
-
-/** 学段中文标签 → 码值（年级行 gradeLevel 与卷头回传都是中文标签，下拉绑的是码值） */
-const GRADE_LEVEL_LABEL_TO_CODE: Record<string, string> = Object.fromEntries(
-  GRADE_LEVELS.map((lv) => [lv.label, lv.code]),
-);
-
 const QUESTION_TYPES = [
   { value: "SINGLE_CHOICE", label: "单选题" },
   { value: "MULTIPLE_CHOICE", label: "多选题" },
@@ -761,10 +749,6 @@ const SETTINGS_PREVIEW_WIDTH = 440;
 
 /* ==================== 展示小工具 ==================== */
 
-const levelLabel = (code?: string) => GRADE_LEVELS.find((lv) => lv.code === code)?.label ?? "";
-
-/** 学段中文标签 → 码值（levelLabel 的反向；卷头与后端回传的是中文标签，弹框下拉绑码值） */
-const levelCodeOf = (label?: string) => GRADE_LEVELS.find((lv) => lv.label === label)?.code ?? "";
 const typeLabel = (t?: string) => QUESTION_TYPES.find((x) => x.value === t)?.label ?? t ?? "-";
 
 /** 主观题类型（这类题在组卷页允许调整答题区行数，默认留 3 行） */
@@ -845,25 +829,6 @@ function clampScore(score?: number): number {
     return 5;
   }
   return Math.min(maxQuestionScore.value, Math.max(1, Math.round(n)));
-}
-
-/**
- * 从异常里取出「对用户有用」的文案。
- *
- * <p>后端业务错误会带 {@code msg}（如「试卷总分必须为 100 分，当前为 30 分」），
- * 直接用 axios 的 message 只会得到「Request failed with status code 400」，
- * 用户看不到该改什么。这里按优先级取：响应体 msg → 响应体 message → Error.message。</p>
- *
- * @param e 捕获到的异常
- * @returns 可展示的错误文案
- */
-function errorText(e: unknown): string {
-  const resp = (e as { response?: { data?: { msg?: string; message?: string } } } | null)?.response;
-  const bizMsg = resp?.data?.msg || resp?.data?.message;
-  if (typeof bizMsg === "string" && bizMsg.trim()) {
-    return bizMsg.trim();
-  }
-  return e instanceof Error ? e.message : String(e);
 }
 
 /* ==================== 路由参数 ==================== */
@@ -1265,7 +1230,8 @@ const aiGradeOptions = computed(() => {
       if (!g.gradeLevel) {
         return true;
       }
-      return (GRADE_LEVEL_LABEL_TO_CODE[g.gradeLevel] ?? g.gradeLevel) === level;
+      // 年级行 gradeLevel 存的是中文标签（小学/初中/…），转成码值再与下拉的 code 比较
+      return gradeLevelToCode(g.gradeLevel) === level;
     })
     .map((g) => g.gradeName as string);
 });
@@ -1293,7 +1259,7 @@ async function loadAiCapability(): Promise<void> {
 function openAiCompose(): void {
   aiForm.subject = header.subject || "";
   // 卷头学段是中文标签（如「初中」），弹框下拉绑码值，预填时转码，否则下拉显示不出来
-  aiForm.gradeLevel = levelCodeOf(header.gradeLevel) || "";
+  aiForm.gradeLevel = gradeLevelToCode(header.gradeLevel) || "";
   aiForm.grade = header.grade || "";
   aiForm.count = aiForm.count > 0 ? aiForm.count : 10;
   aiForm.score = aiForm.score > 0 ? aiForm.score : 5;

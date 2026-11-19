@@ -52,7 +52,7 @@ const imageUrls = computed(() => loadedImages.value.map((item) => item.url));
 /**
  * 把解析成功的路径归一化成去重 key。
  *
- * 同一个文件常被绝对路径（`/opt/…/admin/agent/85/x.png`）和相对路径
+ * 同一个文件常被绝对路径（`/opt/…/admin/85/x.png`）和相对路径
  * （`85/x.png`、`x.png`）各提到一次——字符串不同、落盘同一份，
  * 不归一就会在页面上出现两张一模一样的图。
  * 规则：去开头斜杠 → 截掉 `/{sessionId}/` 及其之前的部分 → 去 `{sessionId}/` 前缀。

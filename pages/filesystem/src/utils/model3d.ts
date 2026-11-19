@@ -582,18 +582,33 @@ function rhinoMeshToGeometry(mesh: RhinoMesh): THREE.BufferGeometry | null {
   const positions = new Float32Array(vcount * 3);
   for (let i = 0; i < vcount; i++) {
     const v = vlist.get(i);
-    if (!v || v.length < 3) {
+    // 顶点必须是「有限数值的数组形式」。rhino3dm 的 Mesh 顶点是数组形式
+    // （length + 下标访问），而 SubD 顶点不是 —— 旧代码 `v.length < 3` 对
+    // undefined 恒为 false，undefined 写进 Float32Array 变 NaN，包围盒、
+    // 相机、地面网格随之全 NaN，最终整屏只剩背景色（3dm 空白根因）。
+    if (
+      !v ||
+      typeof v.length !== "number" ||
+      !Number.isFinite(v.length) ||
+      v.length < 3 ||
+      !Number.isFinite(Number(v[0])) ||
+      !Number.isFinite(Number(v[1])) ||
+      !Number.isFinite(Number(v[2]))
+    ) {
       return null;
     }
+    const x = Number(v[0]);
+    const y = Number(v[1]);
+    const z = Number(v[2]);
     // Rhino Z-up → three Y-up
-    positions[i * 3] = v[0];
-    positions[i * 3 + 1] = v[2];
-    positions[i * 3 + 2] = -v[1];
+    positions[i * 3] = x;
+    positions[i * 3 + 1] = z;
+    positions[i * 3 + 2] = -y;
   }
   const indices: number[] = [];
   for (let i = 0; i < fcount; i++) {
     const face = flist.get(i);
-    if (!face || face.length < 4) {
+    if (!face || typeof face.length !== "number" || face.length < 4) {
       continue;
     }
     const k = face[0];
@@ -664,7 +679,7 @@ async function parseRhino(bytes: ArrayBuffer, callbacks: ParseCallbacks): Promis
     triangles += geometry.index ? geometry.index.count / 3 : 0;
   }
   if (meshCount === 0) {
-    throw new Error("该 3DM 不含可渲染的网格（曲线 / B-Rep 对象暂不三角化，请下载后用 Rhino 查看）");
+    throw new Error("该 3DM 不含可渲染的网格（曲线 / B-Rep / 细分曲面等对象暂不三角化，请下载后用 Rhino 查看）");
   }
   return { object: group, meshCount, triangleCount: Math.round(triangles) };
 }

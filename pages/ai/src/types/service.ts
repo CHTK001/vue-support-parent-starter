@@ -48,6 +48,12 @@ export interface TraceEntry {
     toolName?: string
     text?: string
     timestamp: number
+    /** 区间标识：同一次工具调用/模型调用的开始与结束两条 trace 共享（可空） */
+    spanId?: string
+    /** 区间结束时刻（毫秒）；0 表示点事件 */
+    endTimestamp?: number
+    /** 是否为区间结束标记（工具结果 / 模型调用完成） */
+    spanEnd?: boolean
 }
 
 /**

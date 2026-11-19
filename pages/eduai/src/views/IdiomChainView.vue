@@ -74,6 +74,8 @@
 import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { eduaiApi } from "../api/eduaiApi";
+import { errText } from "../api/errorText";
+import { STUDY_PROGRESS_PER_ROUND, useStudyReport } from "../composables/useStudyReport";
 
 /**
  * 可选学段：父组件（学生端）会传当前学段。
@@ -95,6 +97,8 @@ const answer = ref("");
 const message = ref("");
 const lastOk = ref(false);
 const finished = ref(false);
+/** 学习行为上报：仅在学生端内嵌时真正发请求 */
+const { report: reportStudyRound } = useStudyReport();
 /** 是否用了「全库回落」（本学段无内容） */
 const scopeAll = ref(false);
 
@@ -125,7 +129,7 @@ async function start() {
       ElMessage.warning("成语库不足，暂时无法出题");
     }
   } catch (e) {
-    ElMessage.error(`出题失败：${e instanceof Error ? e.message : String(e)}`);
+    ElMessage.error(`出题失败：${errText(e) || "请稍后重试"}`);
   }
 }
 
@@ -147,10 +151,19 @@ async function submit() {
       answer.value = "";
       if (chain.value.length - 1 >= target.value) {
         finished.value = true;
+        // 达成目标即上报：接龙每条都由服务端校验，接上的都算对
+        const linked = chain.value.length - 1;
+        reportStudyRound({
+          moduleCode: "idiom-chain",
+          questionCount: linked,
+          correctCount: linked,
+          points: linked * 10,
+          progressDelta: STUDY_PROGRESS_PER_ROUND,
+        });
       }
     }
   } catch (e) {
-    ElMessage.error(`校验失败：${e instanceof Error ? e.message : String(e)}`);
+    ElMessage.error(`校验失败：${errText(e) || "请稍后重试"}`);
   }
 }
 
@@ -170,7 +183,7 @@ async function hint() {
       lastOk.value = false;
     }
   } catch (e) {
-    ElMessage.error(`提示失败：${e instanceof Error ? e.message : String(e)}`);
+    ElMessage.error(`提示失败：${errText(e) || "请稍后重试"}`);
   }
 }
 

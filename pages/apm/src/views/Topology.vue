@@ -19,10 +19,11 @@
         style="width: 240px"
         @change="load"
       />
-      <ReSelect v-model="minutes" :options="windowOptions" style="width: 150px" @change="load" />
+      <ApmTimeWindow v-model="timeWindow" @change="load" />
       <span class="apm-bar__spacer" />
       <span class="apm-count">{{ topology?.nodes?.length ?? 0 }} 个节点 · {{ topology?.calls?.length ?? 0 }} 条调用边</span>
       <ReButton icon="Refresh" :loading="loading" title="刷新" @click="load" />
+      <ApmAutoRefresh @refresh="load" />
     </div>
 
     <ReSkeleton v-if="loading && !topology" :rows="6" animated />
@@ -135,22 +136,32 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ApmGate from "../components/ApmGate.vue";
+import ApmAutoRefresh from "../components/ApmAutoRefresh.vue";
 import ApmGraph from "../components/ApmGraph.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
 import { getTopology, listServices } from "../api/apmApi";
 import type { ApmTopology, ApmTopologyNode } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
 import { ROUTE_PREFIX } from "../config";
-import { WINDOW_OPTIONS, errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
+import { consumeApmTabContext } from "../tabs";
+import type { ApmTabContext } from "../tabs";
+import { errorRateClass, errorRateText, fmtMs, fmtNum, latencyClass } from "../utils/format";
+import { timeQuery } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const router = useRouter();
 const { present, ensure } = useApmStatus();
 
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "topology";
+
 const topology = ref<ApmTopology | null>(null);
 const loading = ref(false);
 const service = ref("");
-const minutes = ref(30);
+/** 时间窗：预设分钟数或自定义区间 */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: 30 });
 const services = ref<string[]>([]);
-const windowOptions = WINDOW_OPTIONS;
 
 const nodes = computed<ApmTopologyNode[]>(() => topology.value?.nodes ?? []);
 const nodeRows = computed(() => nodes.value as unknown as Record<string, unknown>[]);
@@ -243,14 +254,45 @@ async function load() {
   }
   loading.value = true;
   try {
-    topology.value = await getTopology({ service: service.value || undefined, minutes: minutes.value });
+    topology.value = await getTopology({ service: service.value || undefined, ...timeQuery(timeWindow.value) });
   } finally {
     loading.value = false;
   }
 }
 
+/** 把跳转上下文落到筛选条件（服务 / 时间窗） */
+function applyContext(context: ApmTabContext): void {
+  if (context.service) {
+    service.value = context.service;
+  }
+  if (context.startTime && context.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
+}
+
 onMounted(() => {
+  // 深链 / 页签跳转带时间窗过来时按它取数：不接住的话「总览刚设了 6 小时窗，
+  // 点查看拓扑又变回 30 分钟」，下钻动线到这里就断了。
+  const context = consumeApmTabContext();
+  if (context) {
+    applyContext(context);
+  }
   loadServices();
+  load();
+});
+
+/**
+ * 页签常驻保活（v-show 切换）：再次切到本页签时上下文在这里接住。
+ * 普通切回不重查 —— 拓扑查询重，新鲜度由自动刷新兜底。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (!context) {
+    return;
+  }
+  applyContext(context);
   load();
 });
 </script>

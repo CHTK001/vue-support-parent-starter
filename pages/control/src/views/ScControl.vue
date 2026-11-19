@@ -122,7 +122,7 @@
              @mousedown="onMouseDown"
              @mouseup="onMouseUp"
              @mousemove="onMouseMove"
-             @wheel.prevent="onWheel"
+             @wheel="onWheel"
              @contextmenu.prevent>
           <video id="remoteVideo" ref="videoRef" preload="auto" muted></video>
 
@@ -854,6 +854,8 @@
 
   function onWheel(e: WheelEvent): void {
     if (!controls.connected || !videoRef.value) return
+    // 已连接时才拦截默认滚动（滚轮转发给远端）；未连接时保持页面可正常滚动
+    e.preventDefault()
     const { x, y } = mapPixel(e)
     const delta = e.deltaY > 0 ? -1 : 1
     sendMouse({ type: 'mouse', path: 'control', timestamp: Date.now(), x, y, button: 'middle', action: 'wheel', delta })

@@ -1,5 +1,7 @@
 <template>
   <div class="page-container">
+    <ReConfirmDialog ref="confirmDialog" />
+    <RePromptDialog ref="promptDialog" />
     <!-- 上区：渐变页头 + 右侧悬浮正方形统计卡 -->
     <div class="top-zone">
       <div class="page-header">
@@ -14,7 +16,7 @@
           <div class="stat-card__body">
             <div class="stat-card__title">{{ st.title }}</div>
             <div class="stat-card__value">{{ st.value }}</div>
-            <div v-if="st.hint" class="stat-card__hint" v-html="st.hint" />
+            <div v-if="st.hint" class="stat-card__hint">{{ st.hint }}</div>
           </div>
           <div class="stat-card__icon" :style="{ background: st.bg }">
             <el-icon :size="22"><component :is="st.icon" /></el-icon>
@@ -416,7 +418,7 @@
                 style="width: 100%"
                 @change="onGradeLevelChange"
               >
-                <el-option v-for="lv in GRADE_LEVELS" :key="lv.code" :label="lv.label" :value="lv.code" />
+                <el-option v-for="lv in GRADE_LEVEL_OPTIONS" :key="lv.value" :label="lv.label" :value="lv.value" />
               </el-select>
             </el-form-item>
             <el-form-item label="年级" required>
@@ -700,7 +702,6 @@
  * - 编辑对话框与批量导入逻辑保持原样
  */
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import {
   CircleCheck,
   CircleClose,
@@ -729,17 +730,15 @@ import type { ReTableColumn } from "@repo/ui/re-table";
 import {isAdmin, message} from "@repo/core";
 import ScFormulaField from "../components/ScFormulaField.vue";
 import { htmlToMathText, renderMathSummary, renderMixedText, renderRichWithMath } from "../utils/mathText";
+import { GRADE_LEVEL_OPTIONS, gradeLevelLabel as levelLabel } from "../utils/dict";
 import ReDialog from "@repo/ui/re-dialog";
 import ReInputNumber from "@repo/ui/re-input-number";
+import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
+import RePromptDialog from "../components/shared/RePromptDialog.vue";
 
-/** 学段词表：码值与 edu_question 落库值一致 */
-const GRADE_LEVELS = [
-  { code: "PRIMARY", label: "小学" },
-  { code: "JUNIOR", label: "初中" },
-  { code: "SENIOR", label: "高中" },
-  { code: "UNIVERSITY", label: "大学" },
-  { code: "OTHER", label: "其他" },
-];
+/** 统一确认/输入弹窗（ReDialog 实现，替代 ElMessageBox.confirm / prompt） */
+const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
+const promptDialog = ref<InstanceType<typeof RePromptDialog> | null>(null);
 
 const QUESTION_TYPES = [
   { value: "SINGLE_CHOICE", label: "单选题" },
@@ -767,9 +766,6 @@ const AUDIT_OPTIONS = [
   { label: "已通过", value: 1 },
   { label: "驳回", value: 2 },
 ];
-
-const levelLabel = (code?: string | null) =>
-  !code ? "" : GRADE_LEVELS.find((lv) => lv.code === code)?.label ?? "";
 
 const typeLabel = (t?: string) => QUESTION_TYPES.find((x) => x.value === t)?.label ?? t ?? "-";
 
@@ -1057,7 +1053,7 @@ const gradeMetaOptions = computed(() => {
     而后端 gradeMeta[].gradeLevel 返回的是中文（小学/初中/…）。
     直接拿码值比中文永远不命中，会让年级下拉列出全部 16 项、学段筛选形同失效。
   */
-  const levelName = level ? (GRADE_LEVELS.find((lv) => lv.code === level)?.label ?? level) : "";
+  const levelName = levelLabel(level);
   const list = gradeMeta.value.filter((g) => !levelName || !g.gradeLevel || g.gradeLevel === levelName);
   if (!list.length) return gradeMeta.value;
   return list;
@@ -1343,17 +1339,16 @@ const onSelectionChange = (rows: Question[]) => {
 const auditOne = async (row: Question, passed: boolean) => {
   let remark = "";
   if (!passed) {
-    try {
-      const { value } = await ElMessageBox.prompt("请填写驳回理由（将展示给题目作者）", "驳回题目", {
-        confirmButtonText: "确认驳回",
-        cancelButtonText: "取消",
-        inputPlaceholder: "如：答案与解析不一致",
-        inputValidator: (v) => !!v?.trim() || "驳回理由不能为空",
-      });
-      remark = (value || "").trim();
-    } catch {
+    const input = await promptDialog.value?.open("请填写驳回理由（将展示给题目作者）", {
+      title: "驳回题目",
+      placeholder: "如：答案与解析不一致",
+      confirmText: "确认驳回",
+      validator: (v) => !!v.trim() || "驳回理由不能为空",
+    });
+    if (!input) {
       return;
     }
+    remark = input;
   }
   try {
     await eduaiApi.auditQuestion(row.questionId, passed, remark || undefined);
@@ -1373,29 +1368,24 @@ const batchAudit = async (passed: boolean) => {
   }
   let remark = "";
   if (!passed) {
-    try {
-      const { value } = await ElMessageBox.prompt(
-        `批量驳回 ${selectedIds.value.length} 题，请填写理由（将展示给题目作者）`,
-        "批量驳回",
-        {
-          confirmButtonText: "确认驳回",
-          cancelButtonText: "取消",
-          inputPlaceholder: "如：题干表述不清",
-          inputValidator: (v) => !!v?.trim() || "驳回理由不能为空",
-        },
-      );
-      remark = (value || "").trim();
-    } catch {
+    const input = await promptDialog.value?.open(
+      `批量驳回 ${selectedIds.value.length} 题，请填写理由（将展示给题目作者）`,
+      {
+        title: "批量驳回",
+        placeholder: "如：题干表述不清",
+        confirmText: "确认驳回",
+        validator: (v) => !!v.trim() || "驳回理由不能为空",
+      },
+    );
+    if (!input) {
       return;
     }
+    remark = input;
   } else {
-    try {
-      await ElMessageBox.confirm(`确认批量通过 ${selectedIds.value.length} 题吗？`, "批量通过", {
-        type: "success",
-        confirmButtonText: "通过",
-        cancelButtonText: "取消",
-      });
-    } catch {
+    const ok = await confirmDialog.value?.open(`确认批量通过 ${selectedIds.value.length} 题吗？`, {
+      title: "批量通过",
+    });
+    if (!ok) {
       return;
     }
   }
@@ -1410,13 +1400,11 @@ const batchAudit = async (passed: boolean) => {
 };
 
 const remove = async (row: Question) => {
-  try {
-    await ElMessageBox.confirm(`确认删除题目「${plainText(row.questionStem || "").slice(0, 30) || row.questionId}」吗？`, "删除题目", {
-      type: "warning",
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-    });
-  } catch {
+  const ok = await confirmDialog.value?.open(
+    `确认删除题目「${plainText(row.questionStem || "").slice(0, 30) || row.questionId}」吗？`,
+    { title: "删除题目", danger: true },
+  );
+  if (!ok) {
     return;
   }
   try {

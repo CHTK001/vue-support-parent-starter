@@ -9,60 +9,110 @@
     <PageHeader :title="t('knowledge.page.title')" />
 
     <!-- RAG 未配置：整页只提示，不显示搜索框 / 新建按钮 / 卡片数据。
-         版式「分屏 Hero」：左边说清为什么要配 + 三枚状态灯，右边一张配置清单。
-         清单不回显成表单，只回显 /v2/rag/status 的真实读数，配好后本页自动让位。 -->
-    <div v-if="!ragReady" class="kb-gate">
-      <div class="kb-gate__split">
-        <div class="kb-gate__lead">
-          <span class="kb-gate__eyebrow">RAG · READY CHECK</span>
-          <h2 class="kb-gate__title">{{ t('knowledge.ragGate.title') }}</h2>
-          <p class="kb-gate__desc">
-            {{ ragStatus?.embeddingIssue || ragStatus?.message || t('knowledge.ragGate.desc') }}
-          </p>
-          <div class="kb-gate__acts">
-            <ReButton type="primary" :round="false" @click="goToConfig(ragStatus?.configPath)">
-              {{ t('knowledge.ragGate.goConfig') }}
-            </ReButton>
-            <ReButton type="default" :round="false" :loading="ragChecking" @click="fetchRagStatus()">
-              {{ t('knowledge.ragGate.recheck') }}
-            </ReButton>
-          </div>
-          <ul class="kb-gate__checks">
-            <li
-              v-for="check in ragGateChecks"
-              :key="check.key"
-              class="kb-gate__check"
-              :class="check.ok ? 'is-ok' : 'is-bad'"
-            >
-              <span class="kb-gate__dot"></span>{{ check.label }}
-              <span class="kb-gate__val">
-                {{ check.ok ? t('knowledge.ragGate.ready') : t('knowledge.ragGate.pending') }}
-              </span>
-            </li>
-          </ul>
-        </div>
+         回归组件库基线：ReCard 承载门禁，三项检查用 ReTag 标签显示就绪态，
+         缺项下方直接放「去配置」主按钮，「重新检测」做轻量次按钮 + loading，
+         检测中禁用按钮，不再维护独立的 kb-gate__* 手写 BEM。 -->
+    <div v-if="!ragReady" class="kb-gate" role="region" :aria-label="t('knowledge.ragGate.title')">
+      <!-- 定宽容器放在 ReCard 外面：ReCard 是 inheritAttrs:false，class 不会落在外层 flex 子项上 -->
+      <div class="w-full max-w-[960px] m-auto">
+        <ReCard :title="t('knowledge.ragGate.title')">
+          <template #extra>
+            <ReTag v-if="!ragStatusFailed && ragGateMissing > 0" type="danger" size="small" class="text-[10px]">
+              {{ t('knowledge.ragGate.missing', { n: ragGateMissing }) }}
+            </ReTag>
+          </template>
 
-        <aside class="kb-gate__sheet">
-          <span v-if="ragGateMissing > 0" class="kb-gate__flag">
-            {{ t('knowledge.ragGate.missing', { n: ragGateMissing }) }}
-          </span>
-          <h3 class="kb-gate__sheet-t">{{ t('knowledge.ragGate.sheet') }}</h3>
-          <dl class="kb-gate__dl">
+          <!-- 左右分屏：左「为什么要配 + 三项检查」，右「配置清单」回显 /v2/rag/status 真实读数 -->
+          <div
+            class="grid grid-cols-1 gap-6 mt-2"
+            :class="ragStatusFailed ? '' : 'lg:grid-cols-2'"
+          >
+            <div class="space-y-3">
+              <p class="text-sm text-[var(--rm-text-secondary)] leading-relaxed">
+                {{ ragStatus?.embeddingIssue || ragStatus?.message || t('knowledge.ragGate.desc') }}
+              </p>
+              <div v-if="!ragStatusFailed" class="flex flex-wrap gap-2">
+                <ReTag
+                  v-for="check in ragGateChecks"
+                  :key="check.key"
+                  :type="check.ok ? 'success' : 'danger'"
+                  size="small"
+                  class="text-[10px]"
+                >
+                  {{ check.label }}
+                  <span class="font-mono text-[10px] opacity-70 ml-1">
+                    {{ check.ok ? t('knowledge.ragGate.ready') : t('knowledge.ragGate.pending') }}
+                  </span>
+                </ReTag>
+              </div>
+            </div>
+
             <div
-              v-for="row in ragGateRows"
-              :key="row.key"
-              class="kb-gate__row"
-              :class="{ 'is-bad': row.bad }"
+              v-if="!ragStatusFailed"
+              class="border border-[var(--rm-border-light)] rounded-lg p-3 bg-[var(--el-bg-color)]"
             >
-              <dt>{{ row.label }}<em>{{ row.key }}</em></dt>
-              <dd :title="row.value">{{ row.value }}</dd>
+              <h3 class="text-xs font-semibold text-[var(--rm-text-secondary)] uppercase tracking-wider mb-3">
+                {{ t('knowledge.ragGate.sheet') }}
+              </h3>
+              <div class="space-y-1.5">
+                <div
+                  v-for="row in ragGateRows"
+                  :key="row.key"
+                  class="flex items-center justify-between gap-3 px-1 py-1 border-b border-[var(--rm-border-light)] last:border-0"
+                >
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-sm text-[var(--rm-text-secondary)]">{{ row.label }}</span>
+                    <span class="text-[10px] font-mono text-[var(--rm-text-disabled)]">{{ row.key }}</span>
+                  </div>
+                  <span
+                    class="text-xs font-mono truncate max-w-[160px]"
+                    :title="row.value"
+                    :class="
+                      row.bad
+                        ? 'text-[var(--el-color-danger)] font-medium'
+                        : row.defaulted
+                          ? 'text-[var(--rm-text-disabled)]'
+                          : 'text-[var(--rm-text-secondary)]'
+                    "
+                  >
+                    {{ row.bad ? t('knowledge.ragGate.unset') : row.value }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-1 py-1.5 border-t border-[var(--rm-border-light)] mt-1 pt-1.5">
+                  <span class="text-xs text-[var(--rm-text-secondary)]">{{ t('knowledge.ragGate.checkedAt') }}</span>
+                  <span class="text-xs font-mono text-[var(--rm-text-disabled)]" :title="ragCheckedAt">
+                    {{ ragCheckedAt || '—' }}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div class="kb-gate__row">
-              <dt>{{ t('knowledge.ragGate.checkedAt') }}</dt>
-              <dd :title="ragCheckedAt">{{ ragCheckedAt || '—' }}</dd>
+          </div>
+
+          <template #footer>
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <ReButton
+                  type="primary"
+                  :round="false"
+                  :disabled="!ragStatus?.configPath"
+                  @click="goToConfig(ragStatus?.configPath)"
+                >
+                  {{ t('knowledge.ragGate.goConfig') }}
+                </ReButton>
+                <ReButton
+                  type="default"
+                  :round="false"
+                  :loading="ragChecking"
+                  :disabled="ragChecking"
+                  @click="fetchRagStatus"
+                >
+                  {{ t('knowledge.ragGate.recheck') }}
+                </ReButton>
+              </div>
+              <span v-if="ragChecking" class="text-xs text-[var(--rm-text-secondary)] font-mono">{{ t('knowledge.ragGate.checking') }}</span>
             </div>
-          </dl>
-        </aside>
+          </template>
+        </ReCard>
       </div>
     </div>
 
@@ -692,15 +742,20 @@
               <div class="kb-toolbar">
                 <!-- 说明文字压缩到一行：整段说明此前占了中栏三分之一高度，
                      而它只在第一次检索前才有用 -->
-                <span class="kb-docview__count">
-                  <template v-if="isGraphFiltered">
-                    实体 {{ graphNodes.length }} / {{ graphView.entityCount }} ·
-                    关系 {{ graphEdges.length }} / {{ graphView.relationCount }}
-                  </template>
-                  <template v-else>
-                    实体 {{ graphView.entityCount }} · 关系 {{ graphView.relationCount }}
-                  </template>
-                </span>
+                <div class="kb-gstats">
+                  <span class="kb-gstats__item">
+                    <b class="kb-gstats__n">{{ isGraphFiltered ? graphNodes.length : graphView.entityCount }}</b>
+                    <span class="kb-gstats__label">实体</span>
+                    <span v-if="isGraphFiltered" class="kb-gstats__total">/ {{ graphView.entityCount }}</span>
+                  </span>
+                  <i class="kb-gstats__div" aria-hidden="true" />
+                  <span class="kb-gstats__item">
+                    <b class="kb-gstats__n">{{ isGraphFiltered ? graphEdges.length : graphView.relationCount }}</b>
+                    <span class="kb-gstats__label">关系</span>
+                    <span v-if="isGraphFiltered" class="kb-gstats__total">/ {{ graphView.relationCount }}</span>
+                  </span>
+                  <span v-if="isGraphFiltered" class="kb-gstats__filter">筛选中</span>
+                </div>
                 <el-tooltip placement="bottom-start" effect="light" :show-after="150">
                   <template #content>
                     <div class="leading-relaxed max-w-[320px]">
@@ -795,6 +850,12 @@
 
                   <div v-if="!graphLoading && graphView.nodes.length === 0" class="kb-graph__blank">
                     <div class="kb-graph__blank-card">
+                      <svg class="kb-graph__blank-art" viewBox="0 0 120 64" fill="none" aria-hidden="true">
+                        <path d="M18 48 L60 16 L102 48" stroke="var(--kb-line)" stroke-width="2" stroke-linecap="round" />
+                        <circle cx="18" cy="48" r="7" fill="var(--kb-accent)" fill-opacity="0.45" />
+                        <circle cx="60" cy="16" r="8" fill="var(--kb-accent)" />
+                        <circle cx="102" cy="48" r="7" fill="var(--kb-accent)" fill-opacity="0.7" />
+                      </svg>
                       <h3 class="kb-graph__blank-t">
                         {{ graphView.placeholder ? '这张图还是空的' : '当前范围没有关系' }}
                       </h3>
@@ -832,12 +893,17 @@
 
                 <aside v-if="selectedGraphNode" class="kb-gedetail re-surface">
                   <div class="kb-gedetail__head">
-                    <h3 class="kb-gedetail__name truncate">{{ selectedGraphNode.name }}</h3>
+                    <div class="kb-gedetail__headmain">
+                      <span v-if="selectedGraphNode.type" class="kb-gedetail__tag">
+                        <i class="kb-gedetail__tagdot" :style="{ background: entityColor(selectedGraphNode.type) }" aria-hidden="true" />
+                        {{ entityTypeLabel(selectedGraphNode.type) }}
+                      </span>
+                      <h3 class="kb-gedetail__name truncate">{{ selectedGraphNode.name }}</h3>
+                    </div>
                     <ReSquareButton layout="square" class="kb-btn kb-gedetail__close" size="small" :icon="Close" tip="关闭" @click="selectedGraphNode = null" />
                   </div>
                   <div class="kb-gedetail__sub">
                     实体 ID:{{ selectedGraphNode.id }}
-                    <template v-if="selectedGraphNode.type"> · {{ entityTypeLabel(selectedGraphNode.type) }}</template>
                   </div>
                   <div class="kb-gedetail__metrics">
                     <div class="kb-gedetail__metric">
@@ -847,9 +913,14 @@
                   </div>
                   <h4 class="kb-gedetail__section">关系（{{ selectedNodeRelations.length }}）</h4>
                   <ul class="kb-gedetail__relations">
-                    <li v-for="r in selectedNodeRelations" :key="r.key" class="kb-gedetail__relation">
+                    <li v-for="r in selectedNodeRelations" :key="r.key" class="kb-gedetail__relation"
+                      role="button" tabindex="0" :title="`在图上定位 ${r.peer}`"
+                      @click="selectPeerInGraph(r.peerId)"
+                      @keydown.enter.prevent="selectPeerInGraph(r.peerId)">
+                      <i class="kb-gedetail__relation-dot" :style="{ background: entityColor(r.peerType) }" aria-hidden="true" />
                       <span class="kb-gedetail__relation-type">{{ r.type || '相关' }}</span>
                       <span class="kb-gedetail__relation-peer truncate">{{ r.peer }}</span>
+                      <span class="kb-gedetail__relation-go" aria-hidden="true">›</span>
                     </li>
                     <li v-if="selectedNodeRelations.length === 0" class="kb-gedetail__relation kb-gedetail__relation--empty">
                       该实体暂无关系
@@ -1356,6 +1427,8 @@ import ReSelect from '@repo/ui/re-select'
 import RePagination from '@repo/ui/re-pagination'
 import { ReAlert, ReOption } from '@repo/ui/re-kit'
 import ReButton from '@/components/ui/ReButton.vue'
+// 门禁页回归组件库基线：用 ReCard 承载 RAG 未配置提示，不再维护 kb-gate__* 手写 BEM
+import ReCard from '@/components/ui/ReCard.vue'
 // 仓库标准的正方形图标按钮（layout="square" 且内建 el-tooltip）：
 // 工具栏 / 表格操作列的「纯图标 + 悬浮提示」统一用它，避免各处再包一层 el-tooltip。
 import ReSquareButton from '@repo/ui/re-button'
@@ -2985,7 +3058,8 @@ function openEntityInGraph(name: string) {
 /**
  * 选中实体的关系列表：每条边解析出「关系类型 + 对端实体名」。
  *
- * <p>类型取边的 {@code text} 字段 —— 后端边 VO 把关系类型放在 text 上（不是 type）。</p>
+ * <p>类型取边的 {@code text} 字段 —— 后端边 VO 把关系类型放在 text 上（不是 type）。
+ * 同时带出对端实体的 id / 类型，供详情侧栏点击定位、按类型着色。</p>
  */
 const selectedNodeRelations = computed(() => {
   const node = selectedGraphNode.value
@@ -2995,6 +3069,9 @@ const selectedNodeRelations = computed(() => {
   const nameOf = new Map<string, string>(
     (graphView.nodes as Array<any>).map((n) => [String(n.id), String(n.text ?? '')]),
   )
+  const typeOf = new Map<string, string>(
+    (graphView.nodes as Array<any>).map((n) => [String(n.id), String(n?.type ?? 'other')]),
+  )
   return (graphView.edges as Array<any>)
     .filter((e) => e.from === node.id || e.to === node.id)
     .map((e, i) => {
@@ -3003,9 +3080,40 @@ const selectedNodeRelations = computed(() => {
         key: `${e.from}->${e.to}-${i}`,
         type: String(e.text ?? ''),
         peer: nameOf.get(peerId) ?? peerId,
+        peerId,
+        peerType: typeOf.get(peerId) ?? 'other',
       }
     })
 })
+
+/**
+ * 详情侧栏里点某条关系 → 图上定位对端实体，并把详情切到该实体。
+ *
+ * <p>对端节点可能还不在画布上（懒加载只渲染核心节点），此时只切详情不调用定位，
+ * 避免 centerOn 落在空节点上。</p>
+ *
+ * @param peerId 对端实体 id
+ */
+function selectPeerInGraph(peerId: string) {
+  const target = String(peerId ?? '')
+  if (!target) {
+    return
+  }
+  const onCanvas = (graphNodes.value as Array<any>).some((x) => String(x?.id) === target)
+  if (onCanvas) {
+    const api = graphCompRef.value as { centerOn?: (id: string) => Promise<void> } | null
+    api?.centerOn?.(target)
+  }
+  const n = (graphView.nodes as Array<any>).find((x) => String(x.id) === target)
+  if (n) {
+    selectedGraphNode.value = {
+      id: target,
+      name: String(n.text ?? target),
+      type: String(n?.type ?? 'other'),
+      degree: graphEdges.value.filter((e) => e.source === target || e.target === target).length,
+    }
+  }
+}
 
 function handleGraphNodeClick(detail: { id: string; data?: unknown }) {
   const node = (detail?.data ?? {}) as {
@@ -3250,6 +3358,9 @@ const ragReady = computed(() =>
 // needLlmConfig / embeddingReady / needVectorStorageConfig 就是后端的判定结果。
 const ragChecking = ref(false)
 const ragCheckedAt = ref('')
+// /rag/status 读取失败：此时既不知道是否就绪，也不知道缺哪项，
+// 不能再把三项检查与配置清单渲染成「未配置」（那是假信息），只回显已分类的原因。
+const ragStatusFailed = ref(false)
 
 const ragGateChecks = computed(() => {
   const status: any = ragStatus.value || {}
@@ -3265,24 +3376,30 @@ const ragGateMissing = computed(() => ragGateChecks.value.filter((check) => !che
 /**
  * 配置清单的行：键名照抄后端 describe() 的字段，值原样回显。
  *
- * <p>空值要分两类：llm_model / embedding / vector_storage 空 = 缺配置（红字）；
- * splitter / top_k / similarity_threshold / upload_dir 空 = 走后端默认（灰字），
- * 不能一并标红，否则用户会去删一个本来就不用填的项。</p>
+ * <p>三类显示语义，全部对齐后端口径：
+ * bad：llm_model / embedding_model / vector_storage 空 = 缺配置（红字），
+ *      与 /rag/status 的 needLlmConfig / embeddingReady / needVectorStorageConfig 一致。
+ * defaulted：splitter / top_k / similarity_threshold / upload_dir 空 = 走后端默认（灰字），
+ *      不能标红，否则用户会去删一个本来就不用填的项。
+ * 其余：embedding_engine 是后端由 embedding_model 推导出的引擎（rag_embedding_model
+ *      设置项已移除，见 RagGlobalSettingProvider），并非可配置项，空值显示「随模型推导」，
+ *      绝不能按「未选择」标红。</p>
  */
 const ragGateRows = computed(() => {
   const config: Record<string, string> = ragStatus.value?.config || {}
   const valueOf = (key: string) => String(config[key] ?? '').trim()
   const unset = t('knowledge.ragGate.unset')
-  const fallback = t('knowledge.ragGate.defaulted')
+  const defaulted = t('knowledge.ragGate.defaulted')
+  const derived = t('knowledge.ragGate.derived')
   return [
-    { key: 'llm_model', label: t('knowledge.ragGate.llm'), value: valueOf('llm_model') || unset, bad: !valueOf('llm_model') },
-    { key: 'embedding_model', label: t('knowledge.ragGate.embedding'), value: valueOf('embedding_model') || unset, bad: !valueOf('embedding_model') },
-    { key: 'embedding_engine', label: t('knowledge.ragGate.engine'), value: valueOf('embedding_engine') || unset, bad: !valueOf('embedding_engine') },
-    { key: 'vector_storage', label: t('knowledge.ragGate.vector'), value: valueOf('vector_storage') || unset, bad: !valueOf('vector_storage') },
-    { key: 'splitter', label: t('knowledge.ragGate.splitter'), value: valueOf('splitter') || fallback, bad: false },
-    { key: 'top_k', label: t('knowledge.ragGate.topK'), value: valueOf('top_k') || fallback, bad: false },
-    { key: 'similarity_threshold', label: t('knowledge.ragGate.threshold'), value: valueOf('similarity_threshold') || fallback, bad: false },
-    { key: 'upload_dir', label: t('knowledge.ragGate.uploadDir'), value: valueOf('upload_dir') || fallback, bad: false },
+    { key: 'llm_model', label: t('knowledge.ragGate.llm'), value: valueOf('llm_model') || unset, bad: !valueOf('llm_model'), defaulted: false },
+    { key: 'embedding_model', label: t('knowledge.ragGate.embedding'), value: valueOf('embedding_model') || unset, bad: !valueOf('embedding_model'), defaulted: false },
+    { key: 'embedding_engine', label: t('knowledge.ragGate.engine'), value: valueOf('embedding_engine') || derived, bad: false, defaulted: !valueOf('embedding_engine') },
+    { key: 'vector_storage', label: t('knowledge.ragGate.vector'), value: valueOf('vector_storage') || unset, bad: !valueOf('vector_storage'), defaulted: false },
+    { key: 'splitter', label: t('knowledge.ragGate.splitter'), value: valueOf('splitter') || defaulted, bad: false, defaulted: !valueOf('splitter') },
+    { key: 'top_k', label: t('knowledge.ragGate.topK'), value: valueOf('top_k') || defaulted, bad: false, defaulted: !valueOf('top_k') },
+    { key: 'similarity_threshold', label: t('knowledge.ragGate.threshold'), value: valueOf('similarity_threshold') || defaulted, bad: false, defaulted: !valueOf('similarity_threshold') },
+    { key: 'upload_dir', label: t('knowledge.ragGate.uploadDir'), value: valueOf('upload_dir') || defaulted, bad: false, defaulted: !valueOf('upload_dir') },
   ]
 })
 
@@ -3291,15 +3408,45 @@ const fetchRagStatus = async () => {
   ragChecking.value = true
   try {
     ragStatus.value = await api.get('/rag/status')
-  } catch (error) {
+    ragStatusFailed.value = false
+  } catch (error: any) {
     console.error('获取 RAG 状态失败:', error)
-    // 拉取失败视为未就绪，页面走提示分支
-    ragStatus.value = { available: false, message: t('knowledge.ragGate.fetchFailed') }
+    // 按错误类型分类提示，避免统一吞成「系统繁忙」：
+    // 网络不通 → 重试；401 → 重新登录；5xx 且携带 Java 版本错误 → 建议加 --enable-preview；
+    // 其余 5xx / 未知 → 服务器错误，稍后重试。前端只基于 HTTP 状态码与返回消息做粗粒度分类，
+    // 不臆造后端业务原因。
+    ragStatusFailed.value = true
+    ragStatus.value = { available: false, message: classifyRagError(error) }
   } finally {
     // 成功失败都要记一次检测时间：门禁页那张清单上写的是「什么时候问过后端」
     ragChecking.value = false
     ragCheckedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   }
+}
+
+/**
+ * 把 /rag/status 的报错归类成可操作的提示文案。
+ * 仅基于 HTTP 状态码 / 错误消息做粗粒度分类，不臆造后端业务原因。
+ */
+function classifyRagError(error: any): string {
+  // 与 ApiService / auth store 的取法保持一致：axios 错误在 response.status，自定义层可能直接给 status
+  const status: number | undefined = error?.response?.status ?? error?.status
+  // 网络层失败：根本没拿到状态码
+  if (!status) {
+    return t('knowledge.ragGate.networkError')
+  }
+  if (status === 401) {
+    return t('knowledge.ragGate.unauthorized')
+  }
+  if (status >= 500) {
+    const data = error?.response?.data ?? {}
+    const detail = String(data.detail ?? data.message ?? data.msg ?? '')
+    if (/UnsupportedClassVersionError|class file version|major version/i.test(detail)) {
+      return t('knowledge.ragGate.javaVersion')
+    }
+    return t('knowledge.ragGate.serverError')
+  }
+  return t('knowledge.ragGate.fetchFailed')
 }
 
 // 跳转到配置页面

@@ -44,14 +44,23 @@
       @update:page="onPageChange"
       @selection-change="onSelectionChange"
     >
-      <template #col-appKey="{ row }">
-        <span class="key-text">{{ row.appKey }}</span>
-        <el-button link type="primary" @click="copyKey(row.appKey)">复制</el-button>
+      <!-- 字段口径与后端 AiAppKeyDTO 一致：name / key / providerName / enabled / createdAt。
+           此前用的是 appName / appKey / status / createTime，后端不认这 4 个名字，
+           导致列表整列空白、编辑保存把名称写空。 -->
+      <template #col-key="{ row }">
+        <span class="key-text">{{ row.key }}</span>
+        <el-button link type="primary" @click="copyKey(row.key)">复制</el-button>
       </template>
-      <template #col-status="{ row }">
-        <el-tag :type="row.status === 1 ? 'success' : 'info'" >
-          {{ row.status === 1 ? '启用' : '禁用' }}
-        </el-tag>
+      <template #col-provider="{ row }">
+        <span>{{ row.providerName || row.provider || '-' }}</span>
+      </template>
+      <template #col-enabled="{ row }">
+        <!-- 启停走 PUT /v2/app-keys/{id}/toggle（后端只改状态列），不再要求进编辑弹窗 -->
+        <el-switch
+          :model-value="!!row.enabled"
+          :loading="!!row.__toggling"
+          @change="(val: any) => toggleEnabled(row, val)"
+        />
       </template>
       <template #col-overdraft="{ row }">
         <el-tag :type="row.overdraftEnabled ? 'warning' : 'info'" size="small">
@@ -75,11 +84,11 @@
 
     <ReDialog v-model="dialogVisible" :title="isEdit ? '编辑AppKey' : '新增AppKey'" width="500px" append-to-body>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
-        <el-form-item label="应用名称" prop="appName">
-          <el-input v-model="form.appName" placeholder="请输入应用名称" />
+        <el-form-item label="应用名称" prop="name">
+          <el-input v-model="form.name" placeholder="请输入应用名称" />
         </el-form-item>
-        <el-form-item label="AppKey" prop="appKey">
-          <el-input v-model="form.appKey" placeholder="请输入AppKey" show-password />
+        <el-form-item label="AppKey" prop="key">
+          <el-input v-model="form.key" :placeholder="isEdit ? '留空则不修改密钥' : '留空由服务端签发'" show-password />
         </el-form-item>
         <el-form-item label="提供商" prop="provider">
           <el-select v-model="form.provider" placeholder="请选择提供商" style="width: 100%">
@@ -92,7 +101,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="form.enabled" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="请输入备注" />
@@ -163,19 +172,20 @@ import RePage from '@/components/ui/RePage.vue';
 import ReButton from '@repo/ui/re-button';
 
 /**
- * 列配置：原模板里的 6 个 el-table-column 收敛为数组。
- * appKey / status 带 {@code <template #default>} → slot；「操作」原本无 prop → 合成 prop actions。
+ * 列配置：与原模板里的 el-table-column 一一对应。
+ * prop 直接沿用后端 {@code AiAppKeyDTO} 的字段名（name / key / enabled / createdAt），
+ * 不再做前端改名 —— 改名会让后端整列读不到值。
  */
 const appKeyColumns: ReTableColumn[] = [
-  { prop: 'appName', label: '应用名称', minWidth: 150 },
-  { prop: 'appKey', label: 'AppKey', minWidth: 200, slot: 'appKey' },
-  { prop: 'provider', label: '提供商', minWidth: 120 },
-  { prop: 'status', label: '状态', width: 100, align: 'center', slot: 'status' },
+  { prop: 'name', label: '应用名称', minWidth: 150 },
+  { prop: 'key', label: 'AppKey', minWidth: 200, slot: 'key' },
+  { prop: 'provider', label: '提供商', minWidth: 120, slot: 'provider' },
+  { prop: 'enabled', label: '状态', width: 100, align: 'center', slot: 'enabled' },
   { prop: 'balance', label: '余额', width: 100, align: 'right', slot: 'balance' },
   { prop: 'overdraftEnabled', label: '透支', width: 80, align: 'center', slot: 'overdraft' },
   { prop: 'minuteRate', label: '每分钟单价', width: 110, align: 'right' },
   { prop: 'totalCost', label: '累计费用', width: 110, align: 'right' },
-  { prop: 'createTime', label: '创建时间', minWidth: 160 },
+  { prop: 'createdAt', label: '创建时间', minWidth: 160 },
   { prop: 'actions', label: '操作', width: 220, fixed: 'right', align: 'center', slot: 'actions' },
 ];
 
@@ -222,6 +232,8 @@ const currentPage = ref(1);
 const pageSize = ref(20);
 const dialogVisible = ref(false);
 const isEdit = ref(false);
+/** 正在编辑的原始行：update 是按字段全量覆盖，未编辑字段要回带 */
+const editingRow = ref<any>(null);
 const submitting = ref(false);
 const formRef = ref();
 
@@ -242,11 +254,10 @@ const logsLoading = ref(false);
 const topupLogs = ref<any[]>([]);
 const currentAppKey = ref({ name: '', id: '' });
 
-const defaultForm = () => ({ id: '', appName: '', appKey: '', provider: '', status: 1, remark: '' });
+const defaultForm = () => ({ id: '', name: '', key: '', provider: '', enabled: true, remark: '' });
 const form = ref(defaultForm());
 const rules = {
-  appName: [{ required: true, message: '请输入应用名称', trigger: 'blur' }],
-  appKey: [{ required: true, message: '请输入AppKey', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入应用名称', trigger: 'blur' }],
   provider: [{ required: true, message: '请选择提供商', trigger: 'change' }],
 };
 
@@ -259,7 +270,7 @@ const rules = {
 const filteredData = computed(() => {
   let result = dataList.value;
   if (searchKeyword.value) {
-    result = result.filter((item) => item.appName?.includes(searchKeyword.value));
+    result = result.filter((item) => item.name?.includes(searchKeyword.value));
   }
   return result;
 });
@@ -271,11 +282,24 @@ function onPageChange(page: number) {
   clearSelection();
 }
 
+/**
+ * 取出响应信封里的载荷。
+ *
+ * <p>{@code /v2/app-keys} 回 {@code {code,data,msg}}（客户端是 {@code unwrap:false}），
+ * 但也可能直接回裸数组；两种都要能读，失败信封则抛出去让上层提示。</p>
+ */
+const unwrapList = (res: any): any[] => {
+  if (res && res.success === false) throw new Error(res.msg || res.message || '请求被拒绝');
+  if (Array.isArray(res)) return res;
+  const body = res?.data ?? res;
+  return Array.isArray(body) ? body : [];
+};
+
 const loadData = async () => {
   loading.value = true;
   try {
     const res: any = await appKeyApi.list();
-    dataList.value = res?.data || res?.records || res || [];
+    dataList.value = unwrapList(res);
   } catch (e: any) {
     message.error('加载失败: ' + (e.message || ''));
     dataList.value = [];
@@ -293,14 +317,43 @@ const copyKey = (key: string) => {
 
 const openCreateDialog = () => {
   isEdit.value = false;
+  editingRow.value = null;
   form.value = defaultForm();
   dialogVisible.value = true;
 };
 
 const openEditDialog = (row: any) => {
   isEdit.value = true;
-  form.value = { ...defaultForm(), ...row };
+  editingRow.value = row;
+  form.value = {
+    id: row.id,
+    name: row.name ?? '',
+    key: row.key ?? '',
+    provider: row.provider ?? '',
+    enabled: row.enabled !== false,
+    remark: row.remark ?? '',
+  };
   dialogVisible.value = true;
+};
+
+/**
+ * 表单 → 后端 DTO。
+ *
+ * <p>后端 {@code update} 是「按字段全量覆盖」（Name/Provider/Group/Model/MaxUse/MaxTokens/
+ * IpWhitelist/Remark/ExpireDatetime 全部显式 set），所以本弹窗没编辑的字段必须在
+ * {@link submitForm} 里原样带回，否则一次改名会把分组、模型限定与额度清空。</p>
+ */
+const buildPayload = () => {
+  const f = form.value;
+  const payload: Record<string, any> = {
+    name: (f.name || '').trim(),
+    provider: f.provider || null,
+    enabled: !!f.enabled,
+    remark: f.remark || null,
+  };
+  // 密钥留空 = 不修改（后端同样只在非空时才写 key/secret）
+  if (f.key && f.key.trim()) payload.key = f.key.trim();
+  return payload;
 };
 
 const submitForm = async () => {
@@ -310,13 +363,25 @@ const submitForm = async () => {
     submitting.value = true;
     try {
       if (isEdit.value) {
-        await appKeyApi.update(form.value.id, form.value);
+        const src: any = editingRow.value || {};
+        await appKeyApi.update(form.value.id, {
+          ...buildPayload(),
+          // 非本弹窗负责的字段：原样带回，避免被「全量覆盖」写成 null
+          groupId: src.groupId ?? null,
+          model: src.model ?? null,
+          maxUse: src.maxUse ?? null,
+          maxTokens: src.maxTokens ?? null,
+          ipWhitelist: src.ipWhitelist ?? null,
+          expireTime: src.expireTime ?? null,
+          overdraftEnabled: src.overdraftEnabled ?? false,
+        });
         message.success('更新成功');
       } else {
-        await appKeyApi.create(form.value);
+        await appKeyApi.create(buildPayload());
         message.success('创建成功');
       }
       dialogVisible.value = false;
+      editingRow.value = null;
       loadData();
     } catch (e: any) {
       message.error('保存失败: ' + (e.message || ''));
@@ -326,9 +391,23 @@ const submitForm = async () => {
   });
 };
 
+/** 启停切换：后端只改状态列（enabled / status），不触发全量覆盖 */
+const toggleEnabled = async (row: any, enabled: any) => {
+  row.__toggling = true;
+  try {
+    await appKeyApi.toggle(row.id, !!enabled);
+    row.enabled = !!enabled;
+    message.success(enabled ? '已启用' : '已禁用');
+  } catch (e: any) {
+    message.error('操作失败: ' + (e.message || ''));
+  } finally {
+    row.__toggling = false;
+  }
+};
+
 const deleteItem = async (row: any) => {
   try {
-    await ElMessageBox.confirm(`确定删除「${row.appName}」吗？`, '删除确认', { type: 'warning' });
+    await ElMessageBox.confirm(`确定删除「${row.name}」吗？`, '删除确认', { type: 'warning' });
     await appKeyApi.delete(row.id);
     message.success('删除成功');
     loadData();
@@ -403,7 +482,7 @@ const openLogsDialog = async (row: any) => {
   logsDialogVisible.value = true;
   try {
     const res: any = await topupApi.list(currentAppKey.value.id);
-    topupLogs.value = res?.data || [];
+    topupLogs.value = unwrapList(res);
   } catch (e: any) {
     message.error('账单加载失败: ' + (e.message || ''));
     topupLogs.value = [];

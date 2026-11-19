@@ -7,10 +7,10 @@
  * @since 4.0.0
  */
 import { message } from "@repo/core";
-import { ref, onMounted } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { ElMessageBox } from "element-plus";
 import {
-  getDownloadHistory,
+  getAllHistory,
   deleteDownloadRecord,
   clearDownloadHistory,
   buildPyramidForFile,
@@ -19,12 +19,45 @@ import type { DownloadHistoryRecord } from "@/types";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 
-const records = ref<DownloadHistoryRecord[]>([]);
-const total = ref(0);
+/**
+ * 后端 /v1/geo/history/page 只支持 page/pageSize，不支持筛选参数。
+ * 为保证筛选真实生效（而非前端摆设），这里一次性拉全量，筛选与分页都在前端完成。
+ */
+const allRecords = ref<DownloadHistoryRecord[]>([]);
 const loading = ref(false);
 const loadError = ref("");
 const page = ref(1);
 const pageSize = ref(20);
+const filterKeyword = ref("");
+const filterStatus = ref("");
+/** 日期范围 [YYYY-MM-DD, YYYY-MM-DD]，按 createdAt 的日期部分过滤 */
+const filterDate = ref<[string, string] | null>(null);
+
+/** 前端筛选：名称/图源关键字 + 状态 + 日期范围 */
+const filteredRecords = computed(() => {
+  const kw = filterKeyword.value.trim().toLowerCase();
+  const status = filterStatus.value;
+  const [dStart, dEnd] = filterDate.value ?? ["", ""];
+  return allRecords.value.filter((r) => {
+    if (kw && !`${r.name ?? ""}${r.sourceName ?? r.source ?? ""}`.toLowerCase().includes(kw)) return false;
+    if (status && (r.status ?? "") !== status) return false;
+    const day = r.createdAt?.slice(0, 10) ?? "";
+    if (dStart && (!day || day < dStart || day > dEnd)) return false;
+    return true;
+  });
+});
+
+const total = computed(() => filteredRecords.value.length);
+
+/** 当前页数据（前端分页切片） */
+const records = computed(() =>
+  filteredRecords.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value),
+);
+
+/** 筛选条件变化时回到第一页 */
+watch([filterKeyword, filterStatus, filterDate], () => {
+  page.value = 1;
+});
 
 const statusMap: Record<string, { label: string; type: string }> = {
   completed: { label: "已完成", type: "success" },
@@ -117,16 +150,14 @@ function formatDuration(s?: number) {
   return m > 0 ? `${m}分${sec}秒` : `${sec}秒`;
 }
 
-/** 刷新当前页历史列表 */
+/** 拉取全量历史（筛选与分页在前端完成） */
 async function refresh() {
   loading.value = true;
   try {
-    const res = await getDownloadHistory(page.value, pageSize.value);
-    records.value = res.records ?? [];
-    total.value = res.total ?? 0;
+    allRecords.value = await getAllHistory();
     loadError.value = "";
   } catch (e: any) {
-    // 失败不再清空列表伪装成空态：记录错误，由表格上方错误条展示
+    // 失败不再清空列表伪装成空态：保留旧数据，由表格上方错误条展示
     loadError.value = e?.message ?? String(e);
   } finally {
     loading.value = false;
@@ -174,12 +205,11 @@ async function onBuildPyramid(id: string | number) {
 }
 
 /**
- * 切换页码
+ * 切换页码（前端分页：仅移动切片窗口，不重新请求）
  * @param p 目标页码
  */
 function onPageChange(p: number) {
   page.value = p;
-  refresh();
 }
 
 onMounted(refresh);
@@ -193,9 +223,25 @@ onMounted(refresh);
         <span>下载历史</span>
         <el-tag type="info" effect="plain">{{ total }} 条记录</el-tag>
       </div>
-      <el-button type="danger" plain :disabled="total === 0" @click="onClearAll">
+      <el-button type="danger" plain :disabled="allRecords.length === 0" @click="onClearAll">
         清空历史
       </el-button>
+    </div>
+
+    <div class="history-filters">
+      <el-input v-model="filterKeyword" placeholder="搜索名称 / 图源" clearable style="width: 200px" />
+      <el-select v-model="filterStatus" placeholder="状态" clearable style="width: 130px">
+        <el-option v-for="(v, k) in statusMap" :key="k" :label="v.label" :value="k" />
+      </el-select>
+      <el-date-picker
+        v-model="filterDate"
+        type="daterange"
+        value-format="YYYY-MM-DD"
+        range-separator="至"
+        start-placeholder="开始日期"
+        end-placeholder="结束日期"
+        style="width: 260px"
+      />
     </div>
 
     <el-alert
@@ -223,7 +269,7 @@ onMounted(refresh);
       :toolbar="false"
       :layout-table="{ minHeight: 0 }"
       stripe
-      empty-text="暂无下载历史"
+      :empty-text="allRecords.length ? '暂无符合条件的历史' : '暂无下载历史'"
       class="history-table"
     >
       <template #col-sourceName="{ row }">{{ row.sourceName || row.source || "-" }}</template>
@@ -280,6 +326,13 @@ onMounted(refresh);
 }
 .history-error {
   margin-bottom: 8px;
+}
+.history-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 4px 8px;
 }
 .history-table {
   flex: 1;

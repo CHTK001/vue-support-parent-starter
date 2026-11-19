@@ -24,6 +24,22 @@
             </button>
 
             <!--
+              完成提醒开关：长任务（视频 / 多图）在后台跑完时弹一条桌面通知。
+              只在页面被切到后台时才弹，用户正盯着页面时不打扰；授权一次后记住，
+              不再重复询问。没有进行中任务时不出现，避免常驻噪声。
+            -->
+            <button
+              v-if="runningCount && !selecting"
+              type="button"
+              class="wg-chip"
+              :title="notifyEnabled ? '关闭任务完成桌面提醒' : '任务完成时桌面提醒（仅页面在后台时弹出）'"
+              @click="toggleNotify()"
+            >
+              <WgIcon :d="ICONS.bell" />
+              <span>{{ notifyEnabled ? '提醒已开' : '完成提醒' }}</span>
+            </button>
+
+            <!--
               生成类型切换。
               原来是在筛选行里放「图像 / 视频」两个行内 tab，占掉一整行左侧，
               现在收到右上角做成一个按钮 + popover：既省位置，也和「网格/列表」
@@ -200,6 +216,19 @@
             </template>
             <div class="wg-menu">
               <p class="wg-menu-title">记录管理</p>
+              <!-- 导出当前筛选结果：只导元数据（提示词/模型/参数/状态/耗时），不带图片与参考图 -->
+              <button type="button" class="wg-menu-item" :disabled="!rows.length" @click="exportHistory('csv')">
+                <span class="wg-menu-text">
+                  <span class="wg-menu-name">导出 CSV</span>
+                  <span class="wg-menu-desc">当前筛选的 {{ rows.length }} 条记录，Excel 可直接打开</span>
+                </span>
+              </button>
+              <button type="button" class="wg-menu-item" :disabled="!rows.length" @click="exportHistory('json')">
+                <span class="wg-menu-text">
+                  <span class="wg-menu-name">导出 JSON</span>
+                  <span class="wg-menu-desc">同一份清单，供程序处理或备份</span>
+                </span>
+              </button>
               <button
                 type="button"
                 class="wg-menu-item"
@@ -269,6 +298,16 @@
             >
               <WgIcon :d="ICONS.download" />
               <span>下载选中{{ selectedIds.size ? ' ' + selectedIds.size : '' }}</span>
+            </button>
+            <!-- 批量收藏：与单张收藏共用同一本地集合，已收藏的自动跳过 -->
+            <button
+              type="button"
+              class="wg-chip"
+              :disabled="!selectedIds.size"
+              @click="favoriteSelected()"
+            >
+              <WgIcon :d="ICONS.star" />
+              <span>收藏选中{{ selectedIds.size ? ' ' + selectedIds.size : '' }}</span>
             </button>
             <button type="button" class="wg-chip" @click="exitSelectMode()">退出</button>
           </template>
@@ -390,8 +429,35 @@
               </div>
               <!-- 说明浮层压在画面上：题目 + 规格 + 操作，全部贴着这张图 -->
               <figure class="wg-stage-figure" :class="{ 'is-compare': refCompareActive }" v-viewer="viewerOptions">
-                <!-- 对照模式：参考图占左半屏，与右侧结果同尺并排，「改了多少」一眼可读 -->
-                <div v-if="refCompareActive && stageRow.task.referenceImage" class="wg-stage-compare-cell">
+                <!--
+                  对照模式（图片任务）：参考图整幅叠在结果上，拖动分割线左右「擦除」对比。
+                  同构图对比时视线不用在两半之间跳：分割线扫到哪里，哪里就是参考图。
+                  题注浮层 DOM 靠后、同层级后画，点击题注不受拖动层影响。
+                  视频任务保留并排双格：擦除层会盖住 video 控件，不能拖。
+                -->
+                <div
+                  v-if="refCompareActive && stageRow.task.referenceImage && stageRow.task.type !== 'video'"
+                  class="wg-stage-wipe"
+                  @pointerdown="onWipeDown"
+                  @pointermove="onWipeMove"
+                  @pointerup="onWipeUp"
+                  @pointercancel="onWipeUp"
+                >
+                  <img
+                    class="wg-stage-wipe-ref"
+                    :style="{ clipPath: `inset(0 ${100 - wipePos}% 0 0)` }"
+                    :src="mediaSrc(stageRow.task.referenceImage)"
+                    alt="参考图"
+                    decoding="async"
+                    draggable="false"
+                  />
+                  <span class="wg-stage-compare-tag">参考图</span>
+                  <div class="wg-stage-wipe-bar" :style="{ left: wipePos + '%' }" aria-hidden="true">
+                    <i class="wg-stage-wipe-grip">⇆</i>
+                  </div>
+                </div>
+                <!-- 对照模式（视频任务）：参考图占左半屏，与右侧结果并排，保留视频控件 -->
+                <div v-else-if="refCompareActive && stageRow.task.referenceImage" class="wg-stage-compare-cell">
                   <span class="wg-stage-compare-tag">参考图</span>
                   <img :src="mediaSrc(stageRow.task.referenceImage)" alt="参考图" decoding="async" />
                 </div>
@@ -494,6 +560,30 @@
                       @click="stageItem && download(stageItem.url, stageRow!.task.type)"
                     >
                       <WgIcon :d="ICONS.download" />
+                    </button>
+                    <!-- 打包下载：多图任务一键取走全部，免逐张点 -->
+                    <button
+                      v-if="stageItems.length > 1"
+                      type="button"
+                      class="wg-stage-act"
+                      aria-label="打包下载全部结果"
+                      title="打包下载全部结果（ZIP）"
+                      :disabled="zipBusyId === stageRow.task.taskId"
+                      @click="downloadTaskZip(stageRow.task)"
+                    >
+                      <WgIcon :d="ICONS.zip" />
+                    </button>
+                    <!-- 复制图片：贴进聊天/文档；仅图片（视频帧复制无意义） -->
+                    <button
+                      v-if="stageRow.task.type === 'image'"
+                      type="button"
+                      class="wg-stage-act"
+                      aria-label="复制图片"
+                      title="复制图片到剪贴板"
+                      :disabled="copyImageBusy"
+                      @click="stageItem && copyImage(stageItem.url)"
+                    >
+                      <WgIcon :d="ICONS.copyImage" />
                     </button>
                     <button
                       type="button"
@@ -865,7 +955,10 @@
                   <WgIcon :d="ICONS.copy" />
                 </button>
 
-                <span v-if="row.kind === 'running'" class="wg-strong">{{ row.task.progress ?? 0 }}%</span>
+                <div v-if="row.kind === 'running'" class="wg-run">
+                  <span class="wg-strong">{{ row.task.progress ?? 0 }}%</span>
+                  <i class="wg-run-bar" aria-hidden="true"><b :style="{ width: runPct(row.task) + '%' }" /></i>
+                </div>
                 <template v-else-if="row.kind === 'result'">
                   <span class="wg-elapsed">{{ formatElapsed(row.task.elapsedMillis) }}</span>
                   <span class="wg-time">{{ formatTime(row.task.createdAt) }}</span>
@@ -887,6 +980,29 @@
                     @click="reuseParams(row.task)"
                   >
                     <WgIcon :d="ICONS.tune" />
+                  </button>
+                  <!-- 复用种子：把这条记录的 seed 带进高级参数，换提示词保种子微调 -->
+                  <button
+                    v-if="row.task.seed !== null && row.task.seed !== undefined"
+                    type="button"
+                    class="wg-act is-ghost"
+                    title="把这条的种子带入高级参数，换提示词保种子微调"
+                    aria-label="复用这条任务的种子"
+                    @click="reuseSeed(row.task)"
+                  >
+                    <WgIcon :d="ICONS.seed" />
+                  </button>
+                  <!-- 打包下载：多图任务一键取走全部结果，免逐张点下载 -->
+                  <button
+                    v-if="row.task.urls.length > 1"
+                    type="button"
+                    class="wg-act is-ghost"
+                    title="打包下载全部结果（ZIP）"
+                    aria-label="打包下载全部结果"
+                    :disabled="zipBusyId === row.task.taskId"
+                    @click="downloadTaskZip(row.task)"
+                  >
+                    <WgIcon :d="ICONS.zip" />
                   </button>
                   <!-- 多图对比：同一次生成的多张结果并排同屏，勾着看差异 -->
                   <button
@@ -1063,6 +1179,18 @@
                           >
                             <WgIcon :d="ICONS.download" />
                           </button>
+                          <!-- 复制图片：与舞台同口径，仅图片任务展示 -->
+                          <button
+                            v-if="row.task.type === 'image'"
+                            type="button"
+                            class="wg-icon"
+                            aria-label="复制图片"
+                            title="复制图片到剪贴板"
+                            :disabled="copyImageBusy"
+                            @click.stop="copyImage(entry.url)"
+                          >
+                            <WgIcon :d="ICONS.copyImage" />
+                          </button>
                           <button
                             type="button"
                             class="wg-icon"
@@ -1177,6 +1305,7 @@
                   <span class="wg-spark"><WgIcon :d="ICONS.sparkle" /></span>
                   <span class="wg-gen-stage">{{ stageText(row.task) }}</span>
                   <span class="wg-gen-stage-num">{{ row.task.progress ?? 0 }}%</span>
+                  <i class="wg-gen-bar" aria-hidden="true"><b :style="{ width: runPct(row.task) + '%' }" /></i>
                   <!--
                     已用时：生成中这一段进度会长时间停在同一个数（上游不返回中间进度），
                     光看一个不动的百分比像是卡死了。秒数按心跳同一事实推进——
@@ -1185,6 +1314,16 @@
                     而不是编一个假的百分比（不做时间插值是既定口径）。
                   -->
                   <span class="wg-gen-stage-elapsed">已用时 {{ elapsedSeconds(row.task) }}s</span>
+                  <!-- 停止生成：视频任务动辄几分钟，等不了就主动停（后端收敛为 CANCELED） -->
+                  <button
+                    type="button"
+                    class="wg-gen-stop"
+                    :disabled="cancelingIds.has(row.task.taskId)"
+                    @click="cancelTask(row.task)"
+                  >
+                    <WgIcon :d="ICONS.stop" />
+                    <span>{{ cancelingIds.has(row.task.taskId) ? '停止中…' : '停止生成' }}</span>
+                  </button>
                 </div>
               </div>
 
@@ -1275,13 +1414,23 @@
             <p class="wg-empty-hint">描述你想看到的画面，或者从这三条开始：</p>
             <div class="wg-empty-samples">
               <button
-                v-for="sample in EMPTY_SAMPLES"
+                v-for="sample in emptySamples"
                 :key="sample"
                 type="button"
                 class="wg-empty-sample"
                 @click="prompt = sample"
               >
                 {{ sample }}
+              </button>
+              <!-- 换一批：从灵感池再洗出三条，避免每次都看到同样的开头 -->
+              <button
+                type="button"
+                class="wg-empty-sample is-shuffle"
+                title="换一批灵感提示词"
+                @click="emptySampleSeed += 1"
+              >
+                <WgIcon :d="ICONS.refresh" class="wg-empty-sample-icon" />
+                换一批
               </button>
             </div>
           </template>
@@ -1315,6 +1464,11 @@
       <footer ref="composerRef" class="wg-composer">
         <!-- 快捷键提示：Enter 语义沿用会话输入库（Enter 发送 / Shift+Enter 换行），这里只把规则亮出来 -->
         <p class="wg-kbd-hint" aria-hidden="true">Ctrl + Enter 发送 · Shift + Enter 换行</p>
+        <!-- 灵感：没思路时随机填一条示例提示词（只填入，不自动发送），与快捷键提示对称贴左下 -->
+        <button type="button" class="wg-inspire" title="随机换一条灵感提示词" @click="pickInspiration">
+          <WgIcon :d="ICONS.sparkle" class="wg-inspire-icon" />
+          <span>灵感</span>
+        </button>
         <GenerateComposer
           v-model:value="prompt"
           v-model:style-panel-open="stylePanelOpen"
@@ -1472,6 +1626,94 @@
                 </div>
               </div>
             </PickerPopover>
+
+            <!-- 高级参数：负面提示词 / 随机种子 / 推理步数。
+                 与风格同一套「轨上一颗芯片 + 点开弹层」的语言；模型未声明的能力位
+                 不渲染对应输入，全部留空时提交不带这些字段（按模型默认处理）。 -->
+            <PickerPopover
+              v-if="mediaType === 'image' && advAvailable"
+              v-model:show="advOpen"
+              :width="300"
+              :max-height="420"
+            >
+              <template #trigger="{ toggle }">
+                <button
+                  type="button"
+                  class="wg-chip is-toolbar wg-adv-chip"
+                  :class="{ 'is-strong': advActive }"
+                  :title="advActive ? '已设置高级参数，点击修改' : '高级参数：负面提示词 / 种子 / 步数'"
+                  aria-label="高级参数"
+                  @click="toggle"
+                >
+                  <WgIcon :d="ICONS.filter" />
+                  <span>高级参数</span>
+                  <!-- 已设参数个数角标：与筛选芯片同一套 badge 语言 -->
+                  <span v-if="advActiveCount" class="wg-chip-badge">{{ advActiveCount }}</span>
+                  <WgIcon :d="ICONS.chevron" />
+                </button>
+              </template>
+              <div class="wg-menu wg-adv-menu">
+                <p class="wg-menu-title">高级参数</p>
+                <label v-if="negativeSupported" class="wg-adv-field">
+                  <span class="wg-adv-label">负面提示词</span>
+                  <textarea
+                    v-model="advNegative"
+                    class="wg-adv-textarea"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="不希望出现的元素，留空不启用"
+                  />
+                </label>
+                <!-- 负面提示词预设：高频排除词一键追加，点过的词不会重复进串 -->
+                <div v-if="negativeSupported" class="wg-adv-presets">
+                  <button
+                    v-for="preset in NEGATIVE_PRESETS"
+                    :key="preset.label"
+                    type="button"
+                    class="wg-adv-preset"
+                    :title="preset.text"
+                    @click="applyNegativePreset(preset.text)"
+                  >
+                    {{ preset.label }}
+                  </button>
+                </div>
+                <label v-if="seedSupported" class="wg-adv-field">
+                  <span class="wg-adv-label">随机种子</span>
+                  <input
+                    v-model.number="advSeed"
+                    class="wg-adv-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="≥ 0 的整数，留空随机"
+                  />
+                </label>
+                <label v-if="stepsSupported" class="wg-adv-field">
+                  <span class="wg-adv-label">推理步数</span>
+                  <input
+                    v-model.number="advSteps"
+                    class="wg-adv-input"
+                    type="number"
+                    :min="stepsMin ?? undefined"
+                    :max="stepsMax ?? undefined"
+                    step="1"
+                    :placeholder="stepsPlaceholder"
+                  />
+                </label>
+                <div class="wg-adv-foot">
+                  <p class="wg-adv-hint">留空的参数按模型默认处理</p>
+                  <button
+                    type="button"
+                    class="wg-adv-clear"
+                    :disabled="!advActive"
+                    @click="resetAdvParams"
+                  >
+                    清空
+                  </button>
+                </div>
+              </div>
+            </PickerPopover>
+
             <!--
               常用提示词夹：把好用的提示词存进本地常用夹，点按直接回填输入区。
               与「作品收藏」（收藏生成的结果）和自动「历史」（最近发过的）都不同：
@@ -1815,6 +2057,16 @@ const ICONS: Record<string, string> = {
   tune: 'M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75',
   // 多图对比：并排的两块画框
   compare: 'M4.5 5.25h5.25v13.5H4.5zM14.25 5.25h5.25v13.5h-5.25z',
+  // 种子复用：同心圆点，表达「记录里的那个种子值」
+  seed: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-6.5 0a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z',
+  // 复制图片：前后叠放的两张「纸」，与复制文本的 copy 区分
+  copyImage: 'M8.5 8.5h11v11h-11zM15.5 5.5h-10v10',
+  // 停止生成：圆圈里的方块
+  stop: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75h4.5v4.5h-4.5Z',
+  // 打包下载：带横梁的档案箱（heroicons archive-box）
+  zip: 'M20.25 7.5l-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z',
+  // 完成提醒：铃铛（heroicons bell）
+  bell: 'M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0',
   image:
     'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Z',
   video:
@@ -1978,17 +2230,67 @@ const STYLE_THUMBS: Readonly<Record<string, string>> = Object.freeze(
 const FAVORITE_KEY = 'ai-guada:generate-favorites'
 
 /**
- * 空态的三条示例提示词。
+ * 灵感提示词池：空态示例与输入条旁的「灵感」按钮共用。
  *
- * <p>空态只写「开始生成」等于把「写什么」这件难事丢回给用户；给三条可点的短句，
+ * <p>空态只写「开始生成」等于把「写什么」这件难事丢回给用户；给一批可点的短句，
  * 点一下即填进输入条（不自动提交，仍由用户按生成）。选的都是生图常见的题材，
  * 不绑定具体模型能力（不含参考图、不含视频参数）。</p>
  */
-const EMPTY_SAMPLES = [
+const INSPIRATION_POOL = [
   '雨夜的旧街，霓虹灯映在积水里',
   '清晨的窗台，一杯咖啡和一本书',
   '海边的灯塔，黄昏，长焦压缩感',
+  '雪后初晴的山谷，一条蜿蜒的小路',
+  '深秋的银杏道，落叶铺满地面',
+  '老城区的巷口，修鞋匠的摊位',
+  '沙漠中的孤树，正午烈日，广角',
+  '地铁车厢里打盹的上班族，纪实风',
+  '山顶观测站，星空银河，超广角',
+  '江南水乡的清晨，石桥与乌篷船',
+  '废弃工厂里的光斑，丁达尔效应',
+  '春日茶园，采茶人背对镜头',
+  '城市天台夜景，远处霓虹模糊成光斑',
+  '冬日湖面，一只孤独的水鸟',
+  '热带雨林的苔藓与菌类，微距',
+  '黄昏的机场舷窗，机翼与云海',
+  '老式咖啡馆吧台，暖光与蒸汽',
+  '暴雨将至的麦田，乌云压境',
 ] as const
+
+/** 空态洗牌种子：点「换一批」+1；同一种子结果稳定 */
+const emptySampleSeed = ref(1)
+
+/**
+ * 空态展示的 3 条：按种子洗牌后取前 3。
+ *
+ * <p>用种子线性同余洗牌而不是 Math.random：computed 在渲染期求值，
+ * 随机会让每次重渲染都换一批，「换一批」按钮就失去含义了。</p>
+ */
+const emptySamples = computed(() => {
+  const arr = [...INSPIRATION_POOL]
+  let s = (emptySampleSeed.value * 2654435761) % 2147483647 || 1
+  const rand = () => {
+    s = (s * 16807) % 2147483647
+    return s / 2147483647
+  }
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1))
+    const tmp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = tmp
+  }
+  return arr.slice(0, 3)
+})
+
+/**
+ * 「灵感」按钮：随机填一条与当前输入不同的提示词（只填入，不自动发送）。
+ * prompt 在下方才声明，这里只在其函数体内引用，调用发生在 setup 完成后。
+ */
+const pickInspiration = () => {
+  const current = prompt.value.trim()
+  const pool = INSPIRATION_POOL.filter((p) => p !== current)
+  prompt.value = pool[Math.floor(Math.random() * pool.length)]
+}
 
 const readFavorites = (): string[] => {
   try {
@@ -2278,6 +2580,190 @@ const styleSupported = computed(() => currentConfig.value?.style !== false)
  * 入口一起消失，免得点开发现选不了。</p>
  */
 const referenceSupported = computed(() => !!currentConfig.value?.referenceImage)
+
+/* ---------- 高级参数（负面提示词 / 随机种子 / 推理步数） ----------
+ * 能力位来自模型配置（capabilities[].generate），与风格 / 参考图同一口径：
+ * 模型声明了才在「高级参数」面板里给输入位，没声明的不露出，提交也不带。
+ * 值是会话内的一次性输入：切模型 / 切媒体类型后清空，避免把 A 模型的种子带给 B 模型。 */
+const negativeSupported = computed(() => !!currentConfig.value?.negativePrompt)
+const seedSupported = computed(() => !!currentConfig.value?.seed)
+const stepsMin = computed(() => currentConfig.value?.stepsMin ?? null)
+const stepsMax = computed(() => currentConfig.value?.stepsMax ?? null)
+const stepsDefault = computed(() => currentConfig.value?.stepsDefault ?? null)
+/** 步数只要给了任一边界/默认值就算支持，前端按 min/max 夹紧后再提交 */
+const stepsSupported = computed(
+  () => stepsMin.value !== null || stepsMax.value !== null || stepsDefault.value !== null,
+)
+/** 任一高级参数可用才渲染「高级参数」芯片 */
+const advAvailable = computed(
+  () => negativeSupported.value || seedSupported.value || stepsSupported.value,
+)
+
+const advOpen = ref(false)
+const advNegative = ref('')
+// v-model.number 在输入框清空时回填的是空串，所以留出 string 形态；提交前统一用 Number() 归一
+const advSeed = ref<number | string>('')
+const advSteps = ref<number | string>('')
+
+/** 芯片高亮与角标：已设置的参数个数（负面提示词 / 种子 / 步数各计 1） */
+const advActiveCount = computed(
+  () =>
+    (advNegative.value.trim() ? 1 : 0)
+    + (advSeed.value !== '' ? 1 : 0)
+    + (advSteps.value !== '' ? 1 : 0),
+)
+const advActive = computed(() => advActiveCount.value > 0)
+
+/* ---------- 草稿持久化：提示词与参数刷新 / 切页不丢 ----------
+ * 输入历史（rememberInput）只存「提交过」的句子；这里存「正在打、还没提交」的现场。
+ * 长提示词写到一半刷新是最痛的丢失场景，高级参数（负面词 / 种子 / 步数）同样值得保。
+ * 参考图不入草稿：base64 体积轻松撑爆 localStorage 配额，且提示词在、图重传即可。
+ *
+ * 恢复必须在 setup 期内、「切模型清空高级参数」的 watch（下方 watch([model, mediaType])）
+ * 注册之前完成：watch 只对注册之后的变更生效，先恢复后注册才不会被自己的恢复动作清掉。
+ * 唯一的交点是 2099 行的 count 钳制 watch——它只在 mediaType 变化时触发，而视频不用 count，
+ * 图像恢复时 mediaType 不变，count 不会被钳掉；模型加载后再按真实上限钳一次，正是想要的。 */
+const DRAFT_KEY = 'ai-guada:generate-draft'
+
+interface GenerateDraft {
+  prompt?: string
+  mediaType?: 'image' | 'video'
+  model?: string
+  size?: string
+  count?: number
+  duration?: number | null
+  style?: string
+  negative?: string
+  seed?: number | string
+  steps?: number | string
+}
+
+const saveDraft = () => {
+  try {
+    // 空提示词不存（并清掉旧草稿）：提交成功后 prompt 被清空，草稿随之自然失效
+    if (!prompt.value.trim()) {
+      localStorage.removeItem(DRAFT_KEY)
+      return
+    }
+    const draft: GenerateDraft = {
+      prompt: prompt.value,
+      mediaType: mediaType.value,
+      model: model.value,
+      size: size.value,
+      count: count.value,
+      duration: duration.value ?? null,
+      style: style.value,
+      negative: advNegative.value,
+      seed: advSeed.value,
+      steps: advSteps.value,
+    }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+  } catch {
+    // 隐私模式 / 配额满：草稿不可用不影响生成主流程
+  }
+}
+
+/** @return 是否真的恢复出一份草稿（有非空提示词才算），供调用方决定要不要提示 */
+const restoreDraft = (): boolean => {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) {
+      return false
+    }
+    const draft = JSON.parse(raw) as GenerateDraft
+    if (!draft.prompt?.trim()) {
+      return false
+    }
+    if (draft.mediaType === 'image' || draft.mediaType === 'video') {
+      mediaType.value = draft.mediaType
+    }
+    // 模型名可能已下架：先原样恢复，提交时的 loadModels + 后端校验会给出明确报错
+    if (draft.model) {
+      model.value = draft.model
+    }
+    if (draft.size) {
+      size.value = draft.size
+    }
+    if (typeof draft.count === 'number' && draft.count >= 1) {
+      count.value = draft.count
+    }
+    if (typeof draft.duration === 'number' && draft.duration > 0) {
+      duration.value = draft.duration
+    }
+    if (draft.style) {
+      style.value = draft.style
+    }
+    if (draft.negative) {
+      advNegative.value = draft.negative
+    }
+    if (draft.seed !== undefined && draft.seed !== null && draft.seed !== '') {
+      advSeed.value = draft.seed
+    }
+    if (draft.steps !== undefined && draft.steps !== null && draft.steps !== '') {
+      advSteps.value = draft.steps
+    }
+    prompt.value = draft.prompt
+    return true
+  } catch {
+    // 脏数据（版本变更 / 手改）：直接丢弃，不给页面留半套状态
+    try {
+      localStorage.removeItem(DRAFT_KEY)
+    } catch {
+      /* 忽略 */
+    }
+  }
+  return false
+}
+
+// 草稿回填是静默改状态：不提示，用户会奇怪输入框里怎么已经有词了
+if (restoreDraft()) {
+  message.info('已恢复上次未提交的草稿')
+}
+
+watch(
+  [prompt, mediaType, model, size, count, duration, style, advNegative, advSeed, advSteps],
+  () => saveDraft(),
+)
+
+/** 一键清空高级参数（切模型 / 切媒体类型的 watch 也走这里） */
+const resetAdvParams = () => {
+  advNegative.value = ''
+  advSeed.value = ''
+  advSteps.value = ''
+}
+
+/** 负面提示词预设：出图场景最高频的几组排除词，点击追加（已存在的不重复加） */
+const NEGATIVE_PRESETS: Array<{ label: string; text: string }> = [
+  { label: '低质量', text: 'low quality, worst quality, jpeg artifacts' },
+  { label: '水印文字', text: 'watermark, text, logo, signature' },
+  { label: '多余肢体', text: 'extra limbs, extra fingers, deformed hands' },
+  { label: '模糊', text: 'blurry, out of focus, lowres' },
+]
+const applyNegativePreset = (text: string) => {
+  const parts = advNegative.value
+    .split(/[,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (parts.some((p) => p.toLowerCase() === text.toLowerCase())) {
+    return
+  }
+  parts.push(text)
+  advNegative.value = parts.join(', ')
+}
+
+const stepsPlaceholder = computed(() => {
+  if (stepsDefault.value !== null) return `默认 ${stepsDefault.value}`
+  if (stepsMin.value !== null && stepsMax.value !== null) {
+    return `${stepsMin.value} ~ ${stepsMax.value}`
+  }
+  return '留空按模型默认'
+})
+
+// 切模型 / 切媒体类型：高级参数是针对具体模型填的，一并清空并收起面板
+watch([model, mediaType], () => {
+  advOpen.value = false
+  resetAdvParams()
+})
 
 /** @ 风格面板是否打开 */
 const stylePanelOpen = ref(false)
@@ -2853,7 +3339,7 @@ const stageJumpEdge = (edge: 'start' | 'end') => {
 /** 舞台长提示词展开状态：换一条记录自动收起，避免上一条的展开状态串台 */
 const stagePromptOpen = ref(false)
 
-/** 图生图对照：参考图与结果并排同屏（参考图字节还在才可开） */
+/** 图生图对照：参考图叠在结果上拖动对比（参考图字节还在才可开） */
 const refCompareOpen = ref(false)
 const refCompareActive = computed(
   () =>
@@ -2861,6 +3347,39 @@ const refCompareActive = computed(
     && !!stageRow.value?.task.referenceImage
     && !mediaFailed(stageRow.value.task.referenceImage),
 )
+
+/** 对照滑块位置（%）：分割线左侧显示参考图，右侧露出生成结果 */
+const wipePos = ref(50)
+const wipeDragging = ref(false)
+const updateWipe = (ev: PointerEvent, el: HTMLElement) => {
+  const rect = el.getBoundingClientRect()
+  if (rect.width <= 0) return
+  const pct = ((ev.clientX - rect.left) / rect.width) * 100
+  // 留 4% 边距：拖到头也别完全遮死一边，两侧标签始终有落点
+  wipePos.value = Math.min(96, Math.max(4, Math.round(pct * 10) / 10))
+}
+const onWipeDown = (ev: PointerEvent) => {
+  const el = ev.currentTarget as HTMLElement
+  // 捕获指针：拖出画框也持续跟手，松手即停
+  el.setPointerCapture(ev.pointerId)
+  wipeDragging.value = true
+  updateWipe(ev, el)
+}
+const onWipeMove = (ev: PointerEvent) => {
+  if (wipeDragging.value) updateWipe(ev, ev.currentTarget as HTMLElement)
+}
+const onWipeUp = (ev: PointerEvent) => {
+  wipeDragging.value = false
+  try {
+    ;(ev.currentTarget as HTMLElement).releasePointerCapture(ev.pointerId)
+  } catch {
+    /* 指针可能已释放 */
+  }
+}
+// 换一条记录 / 重开对照：分割线回到中位，不带上一次的位置
+watch(refCompareActive, (on) => {
+  if (on) wipePos.value = 50
+})
 
 watch(
   () => stageRow.value?.id,
@@ -3039,6 +3558,9 @@ const stageText = (task: GenerateTask) => {
   return '即将完成...'
 }
 
+/** 进度条宽度（%）：钳到 0-100，直接用后端 progress，不做前端插值 */
+const runPct = (task: GenerateTask) => Math.min(100, Math.max(0, task.progress ?? 0))
+
 /**
  * 无产物行占位块的标题。
  *
@@ -3094,7 +3616,99 @@ const toggleFavorite = (taskId: string) => {
   }
 }
 
+/* ---------- 参数按模型记忆：按「媒体类型|模型」存取现场 ----------
+ * 口径：记住 尺寸 / 张数 / 时长 / 风格 / 提示词，切走存档、切回恢复；
+ * 高级参数（负面词 / 种子 / 步数）仍维持「切模型即清空」——那是针对具体模型填的。
+ * 参考图不入记忆：base64 体积原因，与草稿同一口径。
+ * 只挂在用户主动的切换入口（pickModel / switchMedia）；regenerate / reuseSeed
+ * 是任务回填、直填状态，不走记忆，否则恢复值会覆盖任务原值。 */
+const PARAM_MEM_KEY = 'ai-guada:generate-param-memory'
+
+interface ParamSnapshot {
+  prompt?: string
+  size?: string
+  count?: number
+  duration?: number | null
+  style?: string
+}
+
+type ParamMemory = Record<string, ParamSnapshot>
+
+const readParamMemory = (): ParamMemory => {
+  try {
+    return JSON.parse(localStorage.getItem(PARAM_MEM_KEY) || '{}') as ParamMemory
+  } catch {
+    // 脏数据按无记忆处理，不影响切换主流程
+    return {}
+  }
+}
+
+/** 切走前存当前现场；模型未选（空名）不存 */
+const saveParamSnapshot = (media: 'image' | 'video', modelName: string) => {
+  if (!modelName) {
+    return
+  }
+  const mem = readParamMemory()
+  mem[`${media}|${modelName}`] = {
+    prompt: prompt.value,
+    size: size.value,
+    count: count.value,
+    duration: duration.value ?? null,
+    style: style.value,
+  }
+  try {
+    localStorage.setItem(PARAM_MEM_KEY, JSON.stringify(mem))
+  } catch {
+    // 存不下（隐私模式 / 配额满）就退化为仅本次会话可恢复
+  }
+}
+
+/**
+ * 切到新组合后恢复它的记忆。
+ *
+ * <p>恢复值必须过新模型的能力校验：尺寸要在新模型的 sizes 里、张数按 maxCount 夹紧、
+ * 时长要在档位表里、风格按 pickModel 同一口径（style === true 且在清单内）才回填——
+ * 记忆不能把上一个模型的能力带到新模型上。</p>
+ */
+const restoreParamSnapshot = (media: 'image' | 'video', modelName: string): string[] => {
+  const snap = readParamMemory()[`${media}|${modelName}`]
+  if (!snap) {
+    return []
+  }
+  /** 记录真正回填了的字段：一条都没恢复时调用方不必打扰用户 */
+  const restored: string[] = []
+  if (snap.prompt?.trim()) {
+    prompt.value = snap.prompt
+    restored.push('提示词')
+  }
+  const cfg = currentConfig.value
+  if (snap.size && (!cfg?.sizes?.length || cfg.sizes.includes(snap.size))) {
+    size.value = snap.size
+    restored.push('尺寸')
+  }
+  if (typeof snap.count === 'number' && snap.count >= 1) {
+    count.value = Math.min(snap.count, maxCount.value)
+    restored.push('张数')
+  }
+  if (
+    media === 'video'
+    && typeof snap.duration === 'number'
+    && snap.duration > 0
+    && (!cfg?.durations?.length || cfg.durations.includes(snap.duration))
+  ) {
+    duration.value = snap.duration
+    restored.push('时长')
+  }
+  if (snap.style && cfg?.style === true && (!cfg?.styles?.length || cfg.styles.includes(snap.style))) {
+    style.value = snap.style
+    restored.push('风格')
+  }
+  return restored
+}
+
 const pickModel = (value: string) => {
+  // 切走前把当前模型的现场存档，选完恢复新模型的记忆
+  saveParamSnapshot(mediaType.value, model.value)
   model.value = value
   const cfg = models.value.find((item) => item.model === value)?.config
   const list = cfg?.sizes
@@ -3110,6 +3724,11 @@ const pickModel = (value: string) => {
     style.value = ''
   } else if (cfg.styles?.length && !cfg.styles.includes(style.value)) {
     style.value = ''
+  }
+  const restored = restoreParamSnapshot(mediaType.value, value)
+  // 恢复是「静默改状态」：不提示，用户会以为参数自己变了
+  if (restored.length) {
+    message.info(`已恢复该模型的上次参数：${restored.join('、')}`)
   }
 }
 
@@ -3227,12 +3846,19 @@ const switchMedia = (value: 'image' | 'video') => {
   if (mediaType.value === value) {
     return
   }
+  // 切类型前把当前「类型|模型」的现场存档；新类型的默认模型定下来后再恢复它的记忆
+  saveParamSnapshot(mediaType.value, model.value)
   mediaType.value = value
   model.value = ''
   size.value = ''
   duration.value = undefined
   // 模型与历史都要按新媒体类型重载：只重载模型会让列表仍显示上一种类型的任务
-  void loadModels()
+  void loadModels().then(() => {
+    const restored = restoreParamSnapshot(value, model.value)
+    if (restored.length) {
+      message.info(`已恢复该模型的上次参数：${restored.join('、')}`)
+    }
+  })
   void loadHistory()
 }
 
@@ -3500,6 +4126,267 @@ const unmuteVideoOnInteract = (ev: MouseEvent) => {
   }
 }
 
+/* ---------- 批量下载：把一条任务的全部结果打包成 ZIP ---------- */
+
+/** CRC32 查表（ZIP 标准多项式 0xEDB88320），模块级建一次，避免每次打包重算 */
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256)
+  for (let i = 0; i < 256; i += 1) {
+    let c = i
+    for (let k = 0; k < 8; k += 1) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+    }
+    table[i] = c >>> 0
+  }
+  return table
+})()
+
+const crc32Of = (bytes: Uint8Array): number => {
+  let c = 0xffffffff
+  for (let i = 0; i < bytes.length; i += 1) {
+    c = CRC32_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8)
+  }
+  return (c ^ 0xffffffff) >>> 0
+}
+
+/**
+ * 极简 ZIP 打包（STORED 不压缩）。
+ *
+ * <p>图片 / 视频本身已是压缩格式，再压一遍没有收益，归档用 STORED 即可，
+ * 免去引入 jszip 这类依赖。条目数 = 单次任务的张数（≤10），远在 ZIP 能力之内。</p>
+ */
+function buildZipBlob(entries: Array<{ name: string; data: Uint8Array }>): Blob {
+  const encoder = new TextEncoder()
+  const u16 = (v: number) => new Uint8Array([v & 0xff, (v >>> 8) & 0xff])
+  const u32 = (v: number) =>
+    new Uint8Array([v & 0xff, (v >>> 8) & 0xff, (v >>> 16) & 0xff, (v >>> 24) & 0xff])
+  const cat = (parts: Uint8Array[]) => {
+    const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0))
+    let pos = 0
+    for (const p of parts) {
+      out.set(p, pos)
+      pos += p.length
+    }
+    return out
+  }
+
+  const body: Uint8Array[] = []
+  const central: Uint8Array[] = []
+  let offset = 0
+  for (const entry of entries) {
+    const name = encoder.encode(entry.name)
+    const crc = crc32Of(entry.data)
+    const size = entry.data.length
+    // 本地文件头 + 文件字节（STORED：crc 与两个 size 相同）
+    const local = cat([
+      u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0),
+      u32(crc), u32(size), u32(size), u16(name.length), u16(0), name,
+    ])
+    body.push(local, entry.data)
+    // 中央目录项：记录本条在包内的偏移
+    central.push(
+      cat([
+        u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0),
+        u32(crc), u32(size), u32(size), u16(name.length), u16(0), u16(0), u16(0), u16(0),
+        u32(0), u32(offset), name,
+      ]),
+    )
+    offset += local.length + size
+  }
+  const centralBytes = cat(central)
+  const eocd = cat([
+    u32(0x06054b50), u16(0), u16(0), u16(entries.length), u16(entries.length),
+    u32(centralBytes.length), u32(offset), u16(0),
+  ])
+  return new Blob([...body, centralBytes, eocd], { type: 'application/zip' })
+}
+
+/** 按字节类型定扩展名（内联图可能是 webp/jpeg），认不出再按任务类型兜底 */
+const extOfBlob = (blob: Blob, type: 'image' | 'video'): string => {
+  const map: Record<string, string> = {
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/webp': '.webp',
+    'image/gif': '.gif',
+    'video/mp4': '.mp4',
+    'video/webm': '.webm',
+  }
+  return map[blob.type] || (type === 'video' ? '.mp4' : '.png')
+}
+
+/** 打包下载进行中的任务（防重复点击） */
+const zipBusyId = ref('')
+
+/**
+ * 把一条任务的全部结果打包成 ZIP 下载。
+ *
+ * <p>多图任务逐张点下载太繁，一键打包取走。字节复用 {@link fetchMediaBlob}
+ * 的鉴权口径（令牌不进 URL），打包在浏览器本地完成，不经过后端中转。</p>
+ */
+const downloadTaskZip = async (task: GenerateTask) => {
+  const urls = (task.urls ?? []).filter(Boolean)
+  if (!urls.length) {
+    message.warning('这条记录没有可下载的文件')
+    return
+  }
+  if (zipBusyId.value) {
+    return
+  }
+  zipBusyId.value = task.taskId
+  try {
+    const blobs = await Promise.all(urls.map((url) => fetchMediaBlob(url)))
+    // 文件名用提示词前缀（洗掉路径非法字符），同前缀按序号区分
+    const base = promptName(task.prompt, 40, `generate-${task.taskId}`).replace(
+      /[\\/:*?"<>|\s]+/g,
+      '_',
+    )
+    const entries = await Promise.all(
+      blobs.map(async (blob, i) => ({
+        name: `${base}-${String(i + 1).padStart(2, '0')}${extOfBlob(blob, task.type)}`,
+        data: new Uint8Array(await blob.arrayBuffer()),
+      })),
+    )
+    const zip = buildZipBlob(entries)
+    const objectUrl = URL.createObjectURL(zip)
+    try {
+      const a = document.createElement('a')
+      a.href = objectUrl
+      a.download = `${base}.zip`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+    } finally {
+      URL.revokeObjectURL(objectUrl)
+    }
+    message.success(`已打包 ${urls.length} 个文件`)
+  } catch (error) {
+    message.error(`打包下载失败：${(error as Error)?.message || '未知错误'}`)
+  } finally {
+    zipBusyId.value = ''
+  }
+}
+
+/** 导出列：与卡片/列表展示同一套字段口径，全部取自后端任务数据，无前端推断 */
+const EXPORT_COLUMNS: Array<{ label: string; get: (t: GenerateTask) => string | number | null }> = [
+  { label: '时间', get: (t) => (t.createdAt ? formatTime(t.createdAt) : null) },
+  { label: '类型', get: (t) => t.type },
+  { label: '状态', get: (t) => t.status },
+  { label: '模型', get: (t) => t.model },
+  { label: '尺寸', get: (t) => t.size },
+  { label: '张数', get: (t) => t.count },
+  { label: '时长(秒)', get: (t) => t.duration },
+  { label: '种子', get: (t) => t.seed },
+  { label: '耗时(秒)', get: (t) => (t.elapsedMillis == null ? null : Number((t.elapsedMillis / 1000).toFixed(1))) },
+  { label: '提示词', get: (t) => t.prompt },
+  { label: '负向提示词', get: (t) => t.negativePrompt },
+  { label: '风格', get: (t) => t.style },
+  { label: '任务ID', get: (t) => t.taskId },
+]
+
+/** CSV 单元格转义：含逗号 / 引号 / 换行时整体加引号，内部引号翻倍 */
+const csvCell = (v: string | number | null): string => {
+  const s = v == null ? '' : String(v)
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+/**
+ * 导出当前筛选结果（rows，即历史区正在显示的清单）为 CSV / JSON。
+ *
+ * <p>只导元数据：提示词、模型、尺寸、种子、状态、耗时等；不带图片 URL 与
+ * 参考图 base64 —— 前者离开当前登录态不可用，后者体积大且不属于「清单」。
+ * CSV 带 BOM，Excel 直接打开中文不乱码。</p>
+ */
+const exportHistory = (fmt: 'csv' | 'json') => {
+  const list = rows.value.map((r) => r.task)
+  if (!list.length) {
+    message.info('当前筛选结果为空，没有可导出的记录')
+    return
+  }
+  let text: string
+  if (fmt === 'csv') {
+    const head = EXPORT_COLUMNS.map((c) => csvCell(c.label)).join(',')
+    const body = list.map((t) => EXPORT_COLUMNS.map((c) => csvCell(c.get(t))).join(',')).join('\n')
+    text = `\uFEFF${head}\n${body}`
+  } else {
+    text = JSON.stringify(
+      list.map((t) => {
+        const o: Record<string, unknown> = { taskId: t.taskId }
+        for (const c of EXPORT_COLUMNS) o[c.label] = c.get(t)
+        return o
+      }),
+      null,
+      2,
+    )
+  }
+  const stamp = new Date()
+  const suffix = `${stamp.getFullYear()}${pad2(stamp.getMonth() + 1)}${pad2(stamp.getDate())}-${pad2(stamp.getHours())}${pad2(stamp.getMinutes())}${pad2(stamp.getSeconds())}`
+  const blob = new Blob([text], {
+    type: fmt === 'csv' ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8',
+  })
+  const objectUrl = URL.createObjectURL(blob)
+  try {
+    const a = document.createElement('a')
+    a.href = objectUrl
+    a.download = `generate-history-${suffix}.${fmt}`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+  message.success(`已导出 ${list.length} 条记录（${fmt.toUpperCase()}）`)
+}
+
+/** JPEG/WebP → PNG（剪贴板写入只保证 image/png 可用），已是 PNG 原样返回 */
+async function toPngBlob(blob: Blob): Promise<Blob> {
+  if (blob.type === 'image/png') {
+    return blob
+  }
+  const bitmap = await createImageBitmap(blob)
+  const canvas = document.createElement('canvas')
+  canvas.width = bitmap.width
+  canvas.height = bitmap.height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    bitmap.close()
+    throw new Error('画布不可用')
+  }
+  ctx.drawImage(bitmap, 0, 0)
+  bitmap.close()
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('图片转码失败'))), 'image/png')
+  })
+}
+
+/** 复制图片进行中（防重复点击） */
+const copyImageBusy = ref(false)
+
+/**
+ * 复制出图结果到系统剪贴板（贴进聊天 / 文档 / PPT）。
+ *
+ * 取字节复用 {@link fetchMediaBlob} 的鉴权口径（令牌不进 URL）；
+ * ClipboardItem 各家只稳定支持 image/png，其他格式先转码再写入。
+ * 不支持剪贴板 API 的环境（旧 Firefox / 非安全上下文）明确提示，不静默失败。
+ */
+const copyImage = async (url: string) => {
+  if (copyImageBusy.value) {
+    return
+  }
+  if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+    message.warning('当前浏览器不支持复制图片到剪贴板，请改用下载')
+    return
+  }
+  copyImageBusy.value = true
+  try {
+    const blob = await fetchMediaBlob(url)
+    const png = await toPngBlob(blob)
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+    message.success('已复制到剪贴板')
+  } catch (e: any) {
+    message.error(`复制失败：${e?.message || '未知错误'}`)
+  } finally {
+    copyImageBusy.value = false
+  }
 }
 
 /* ============================================================================
@@ -3620,6 +4507,12 @@ const remake = (task: GenerateTask) => {
   style.value = task.style ?? ''
   count.value = task.count ?? 1
   void nextTick(() => {
+    // 切模型的清空 watch 已在 nextTick 前跑完，这里回填高级参数不会被冲掉
+    // （steps 任务记录未回传，保持为空按模型默认处理）
+    advNegative.value = task.negativePrompt || ''
+    if (task.seed !== null && task.seed !== undefined) {
+      advSeed.value = task.seed
+    }
     composerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     const editor = composerRef.value?.querySelector<HTMLElement>('.ProseMirror')
     editor?.focus()
@@ -3726,6 +4619,35 @@ const downloadSelected = () => {
   }
 }
 
+/**
+ * 批量收藏勾选中的记录。
+ *
+ * <p>与单张收藏共用同一本地集合（favorites / FAVORITE_KEY）；已收藏的自动跳过，
+ * 全部已收藏时明确说明，不静默装作成功。仅操作当前筛选视图里勾中的行，
+ * 与删除 / 下载选中同一口径。</p>
+ */
+const favoriteSelected = () => {
+  const ids = rows.value.filter((row) => selectedIds.value.has(row.id)).map((row) => row.id)
+  if (!ids.length) {
+    message.info('请先勾选要收藏的记录')
+    return
+  }
+  const added = ids.filter((id) => !favorites.value.includes(id))
+  if (!added.length) {
+    message.info('勾选的记录都已在收藏中')
+    return
+  }
+  favorites.value = [...favorites.value, ...added]
+  try {
+    localStorage.setItem(FAVORITE_KEY, JSON.stringify(favorites.value))
+  } catch {
+    // 本地存储不可用（隐私模式/配额满）时不影响本次会话内的收藏状态
+  }
+  message.success(`已收藏 ${added.length} 条`)
+}
+
+/** 清理/批量删除/清空共用同一个进行中标记，避免并发破坏性操作互相穿插 */
+const busyClearing = ref(false)
 
 /**
  * 每秒推进一次的时钟，只为「已用时」这类相对时间用。
@@ -3980,6 +4902,37 @@ const confirmClearAll = async () => {
   }
 }
 
+/** 停止请求进行中的任务（防重复点击） */
+const cancelingIds = reactive(new Set<string>())
+
+/**
+ * 停止进行中的生成任务。
+ *
+ * <p>视频生成动辄几分钟，必须能主动停。调后端取消接口收敛为 CANCELED，
+ * 成功后立刻回源一次拿权威状态；若后端还在收敛，{@link pollTask} 会按原节奏
+ * 追到终态。不在前端把状态硬写成 CANCELED——万一任务其实已经出图，硬写会掩盖真相。</p>
+ */
+const cancelTask = async (task: GenerateTask) => {
+  if (cancelingIds.has(task.taskId)) {
+    return
+  }
+  cancelingIds.add(task.taskId)
+  try {
+    const ok = await apiService.cancelGenerateTask(task.taskId)
+    if (!ok) {
+      message.warning('停止失败：任务可能已经结束')
+    } else {
+      message.success('已发送停止请求')
+    }
+    // attempt 传 90：只回源一次不再续期（pollTask 里 attempt>=90 即停）
+    void pollTask(task.taskId, 90)
+  } catch (error) {
+    message.error(`停止失败：${(error as Error)?.message || '未知错误'}`)
+  } finally {
+    cancelingIds.delete(task.taskId)
+  }
+}
+
 /**
  * 删除单条生成记录。
  *
@@ -4131,7 +5084,38 @@ const regenerate = async (task: GenerateTask) => {
       }
     : null
   await nextTick()
-  await onComposerSubmit(task.prompt)
+  // 「再次生成」按原任务回填高级参数：carry 直发、不写面板状态（上面改了
+  // model.value，切模型清空的 watch 会把状态冲掉）。steps 后端任务记录未回传，
+  // 按模型默认处理；要完整复现需后端在任务记录里补 steps 字段。
+  await onComposerSubmit(task.prompt, {
+    negativePrompt: task.negativePrompt,
+    seed: task.seed,
+  })
+}
+
+/**
+ * 把任务记录里的种子带入输入条的高级参数：「这张满意，换提示词保种子微调」。
+ * 种子写在面板状态里随下次提交下发；若任务用的不是当前模型，先切过去——
+ * 必须等切模型的清空 watch 跑完（nextTick）再写种子，否则刚写的值会被冲掉。
+ */
+const reuseSeed = async (task: GenerateTask) => {
+  if (task.seed === null || task.seed === undefined) {
+    message.warning('这条任务没有记录种子')
+    return
+  }
+  if (model.value !== task.model) {
+    model.value = task.model
+    await nextTick()
+  }
+  if (!seedSupported.value) {
+    message.warning('当前模型不支持随机种子参数')
+    return
+  }
+  advSeed.value = task.seed
+  canvasRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+  message.success(`已带入种子 ${task.seed}，改好提示词后发送`, { duration: 2500 })
+}
+
 /* ---------- 第三轮：整套参数复用 / 常用提示词夹 / 多图对比 ---------- */
 
 /** 把提示词输入区拉回视野并聚焦（Tiptap 的 ProseMirror 挂在输入条里） */
@@ -4473,6 +5457,107 @@ const onCanvasScroll = () => {
 }
 
 /** 单任务轮询：终态后落回列表 */
+/* ---------- 任务完成桌面通知（可选，仅长任务、仅页面在后台时） ---------- */
+
+/** 通知开关持久化键：授权一次以后不再问 */
+const NOTIFY_KEY = 'ai-guada:generate-notify'
+
+/** 桌面通知是否已开启（用户点过开关且浏览器已授权） */
+const notifyEnabled = ref(false)
+
+/**
+ * 这个任务值不值得弹通知。
+ *
+ * <p>只提醒长任务：视频必提醒；图片只有多图才值得提醒——
+ * 单图几十秒就出结果，用户大概率还盯着页面，弹了反而是打扰。</p>
+ */
+const notifyWorthy = (task: GenerateTask) => task.type === 'video' || (task.urls?.length ?? 0) > 1
+
+/**
+ * 打开桌面通知：先请求授权再记忆开关。
+ *
+ * <p>Notification API 在不支持 / 被拒时明确告知但不打断——桌面通知是锦上添花，
+ * 不值得为它阻塞主流程。</p>
+ */
+const enableNotify = async () => {
+  if (typeof Notification === 'undefined') {
+    message.warning('当前浏览器不支持桌面通知')
+    return
+  }
+  let permission = Notification.permission
+  if (permission === 'default') {
+    try {
+      permission = await Notification.requestPermission()
+    } catch {
+      permission = 'denied'
+    }
+  }
+  if (permission !== 'granted') {
+    message.info('浏览器未授予通知权限，可在地址栏锁形图标处手动允许')
+    return
+  }
+  notifyEnabled.value = true
+  try {
+    localStorage.setItem(NOTIFY_KEY, '1')
+  } catch {
+    // 存不下就只记本次会话
+  }
+  message.success('任务完成时会桌面提醒你（仅页面在后台时）')
+}
+
+/** 关闭桌面通知：只关本页开关，不撤销浏览器授权 */
+const disableNotify = () => {
+  notifyEnabled.value = false
+  try {
+    localStorage.removeItem(NOTIFY_KEY)
+  } catch {
+    /* 忽略 */
+  }
+}
+
+const toggleNotify = () => {
+  if (notifyEnabled.value) {
+    disableNotify()
+    message.info('已关闭完成提醒')
+  } else {
+    void enableNotify()
+  }
+}
+
+/**
+ * 任务到终态时弹一条桌面通知。
+ *
+ * <p>三重克制：只提醒长任务、只在页面被切到后台时（前台有列表状态与 toast，
+ * 再弹是打扰）、同一任务用 tag 去重。点击通知聚焦回页面。</p>
+ */
+const notifyTaskDone = (task: GenerateTask) => {
+  if (!notifyEnabled.value || !notifyWorthy(task) || !document.hidden) {
+    return
+  }
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+    return
+  }
+  const what = task.type === 'video' ? '视频' : '图片'
+  const title =
+    task.status === 'SUCCESS'
+      ? `${what}生成完成`
+      : task.status === 'FAILED'
+        ? `${what}生成失败`
+        : `${what}已取消`
+  try {
+    const notification = new Notification(title, {
+      body: (task.prompt || '').slice(0, 80),
+      tag: task.taskId,
+    })
+    notification.onclick = () => {
+      window.focus()
+      notification.close()
+    }
+  } catch {
+    // 部分环境（非安全上下文 / 扩展拦截）构造会抛；通知失败不影响轮询主流程
+  }
+}
+
 const pollTask = async (taskId: string, attempt: number) => {
   // 已被删除：停止轮询，否则终态回写会把删掉的行重新塞回列表
   if (!tasks.value.some((item) => item.taskId === taskId)) {
@@ -4490,6 +5575,8 @@ const pollTask = async (taskId: string, attempt: number) => {
       }
       if (task.status === 'SUCCESS' || task.status === 'FAILED' || task.status === 'CANCELED') {
         pollTimers.delete(taskId)
+        // 页面在后台时补一条桌面通知；前台有列表状态与 toast，不重复打扰
+        notifyTaskDone(task)
         return
       }
     }
@@ -4603,7 +5690,15 @@ const onOptimize = async () => {
 }
 
 /** GenerateComposer 提交：提示词由编辑器传入 */
-const onComposerSubmit = async (text: string) => {
+/** 「再次生成」按原任务直传的高级参数：走旁路、不经过面板状态，
+ * 因为 regenerate 改 model.value 会触发「切模型清空」的 watch，写状态必被冲掉 */
+interface GenerateCarryParams {
+  negativePrompt?: string | null
+  seed?: number | null
+  steps?: number | null
+}
+
+const onComposerSubmit = async (text: string, carry?: GenerateCarryParams) => {
   // 缩放未完成就提交：会把 undefined 当参考图发出去，或发出半张图
   if (submitting.value || shrinkingRef.value) {
     return
@@ -4635,10 +5730,41 @@ const onComposerSubmit = async (text: string) => {
     const hasStyleDesc = !desc || withStyle.includes(desc)
     const finalPrompt =
       styleSupported.value && !hasStyleDesc ? [desc, withStyle].filter(Boolean).join('，') : withStyle
+    // 高级参数：「再次生成」用原任务回传的 carry 直发；正常提交按面板值，
+    // 只在模型声明了能力位且用户填了值时下发，空值交给上游按默认处理。
+    // 种子取整并夹到 ≥0；步数按模型声明的 min/max 夹紧，防止越界被上游 400。
+    const negText = carry
+      ? String(carry.negativePrompt ?? '').trim()
+      : negativeSupported.value
+        ? advNegative.value.trim()
+        : ''
+    const rawSeed = carry
+      ? carry.seed
+      : seedSupported.value && advSeed.value !== ''
+        ? Number(advSeed.value)
+        : null
+    const seedNum =
+      rawSeed !== null && rawSeed !== undefined && Number.isFinite(rawSeed)
+        ? Math.max(0, Math.trunc(rawSeed))
+        : null
+    const rawSteps = carry
+      ? carry.steps
+      : stepsSupported.value && advSteps.value !== ''
+        ? Number(advSteps.value)
+        : null
+    let stepsNum: number | null = null
+    if (rawSteps !== null && rawSteps !== undefined && Number.isFinite(rawSteps)) {
+      stepsNum = Math.trunc(rawSteps)
+      if (stepsMin.value !== null) stepsNum = Math.max(stepsMin.value, stepsNum)
+      if (stepsMax.value !== null) stepsNum = Math.min(stepsMax.value, stepsNum)
+    }
     const task = await apiService.createGenerateTask({
       type: mediaType.value,
       model: model.value,
       prompt: finalPrompt,
+      negativePrompt: negText || undefined,
+      seed: seedNum ?? undefined,
+      steps: stepsNum ?? undefined,
       size: size.value || undefined,
       count: mediaType.value === 'image' ? count.value : undefined,
       duration: mediaType.value === 'video' ? (duration.value ?? durations.value[0]) : undefined,
@@ -4733,6 +5859,15 @@ const loadVideoAvailability = async () => {
 }
 
 onMounted(async () => {
+  // 恢复桌面通知开关：必须「用户开过 && 浏览器仍授权」才亮，缺一即视为关闭
+  try {
+    notifyEnabled.value =
+      localStorage.getItem(NOTIFY_KEY) === '1' &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted'
+  } catch {
+    notifyEnabled.value = false
+  }
   await loadModels()
   await loadHistory()
   await loadVideoAvailability()
@@ -5396,6 +6531,111 @@ onUnmounted(() => {
   background: var(--color-primary-50);
   color: var(--color-primary);
   font-weight: 500;
+}
+
+/* ---------- 高级参数弹层（负面提示词 / 种子 / 步数） ---------- */
+/* 面板：竖排字段，标签在上、控件在下，留空的参数提交时不带（按模型默认处理） */
+.wg-adv-menu {
+  padding: 4px 8px 8px;
+}
+.wg-adv-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.wg-adv-field:first-of-type {
+  margin-top: 2px;
+}
+.wg-adv-label {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-gray);
+  user-select: none;
+}
+.wg-adv-input,
+.wg-adv-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border, var(--el-border-color-lighter));
+  border-radius: 6px;
+  background: var(--color-surface, var(--el-bg-color));
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 18px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.wg-adv-input:focus,
+.wg-adv-textarea:focus {
+  border-color: var(--color-primary);
+}
+.wg-adv-textarea {
+  resize: vertical;
+  min-height: 54px;
+}
+.wg-adv-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-disabled, var(--color-text-gray));
+  opacity: 0.8;
+}
+/* 负面提示词预设 chips：紧贴 textarea 下方，一键追加高频排除词 */
+.wg-adv-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.wg-adv-preset {
+  padding: 3px 9px;
+  border: 1px solid var(--color-border, var(--el-border-color-lighter));
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--color-text-gray);
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.wg-adv-preset:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-50, transparent);
+}
+/* 面板底部：提示语与「清空」同一行，两端对齐 */
+.wg-adv-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+.wg-adv-foot .wg-adv-hint {
+  margin: 0;
+}
+.wg-adv-clear {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-gray);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.wg-adv-clear:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+.wg-adv-clear:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* ---------- 风格弹层（芯片点开的宫格） ---------- */
@@ -6423,6 +7663,35 @@ onUnmounted(() => {
   opacity: 0.85;
 }
 
+/* 停止生成：占位块是主色渐变底，按钮用白色幽灵样式，别抢进度数字的视觉焦点 */
+.wg-gen-stop {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 45%);
+  background: rgb(255 255 255 / 12%);
+  color: rgb(255 255 255 / 92%);
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.wg-gen-stop:hover:not(:disabled) {
+  border-color: rgb(255 255 255 / 85%);
+  background: rgb(255 255 255 / 22%);
+}
+.wg-gen-stop:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.wg-gen-stop .wg-svg {
+  width: 13px;
+  height: 13px;
+}
+
 /* 选择模式：勾选框 + 选中的卡面反馈。
    整块可点（不是只有那个小方框），选择模式下面片不再触发删除/重试等操作。 */
 .wg-card.is-selecting {
@@ -6687,6 +7956,18 @@ onUnmounted(() => {
   color: var(--color-primary);
 }
 
+/* 「换一批」：与示例同款外观，内联一个刷新图标 */
+.wg-empty-sample.is-shuffle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wg-empty-sample.is-shuffle .wg-svg {
+  width: 12px;
+  height: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wg-empty-sample {
     transition: none;
@@ -6795,6 +8076,37 @@ onUnmounted(() => {
   pointer-events: none;
   user-select: none;
 }
+
+/* 灵感按钮：与快捷键提示对称，贴在输入条左下（落在底部 padding 区） */
+.wg-inspire {
+  position: absolute;
+  left: 28px;
+  bottom: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--r-pill);
+  background: var(--color-surface);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-text-gray);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.wg-inspire:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-50);
+  color: var(--color-primary);
+}
+
+.wg-inspire .wg-svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* 参考图缩略图：挂在输入框内顶部（GenerateComposer 的 reference 插槽）。
    宽度固定 64px，高度由内联的 aspect-ratio（原始尺寸比例）决定，
    所以竖构图会显示成窄高条、横构图是宽扁条 —— 与用户原图一致，不会被压成方块。 */
@@ -7481,7 +8793,7 @@ onUnmounted(() => {
   color: #fff;
 }
 
-/* 对照模式：左右两半等宽，参考图与结果同尺并排 */
+/* 对照模式：图片任务走擦除滑块（参考图叠在结果上），视频任务保留并排双格（控件不能被盖） */
 .wg-stage-figure.is-compare {
   gap: 12px;
   padding: 12px;
@@ -7513,6 +8825,56 @@ onUnmounted(() => {
   max-width: 100%;
 }
 
+/* 擦除滑块：参考图按 clip-path 只露出分割线左侧，其余透出下层结果。
+   inset 12px 对齐 is-compare 的内边距，让参考图与结果渲染在同一内容框里 */
+.wg-stage-wipe {
+  position: absolute;
+  inset: 12px;
+  z-index: 2;
+  cursor: ew-resize;
+  user-select: none;
+  /* 拖动时别触发触屏滚动/手势 */
+  touch-action: none;
+}
+
+.wg-stage-wipe-ref {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+
+.wg-stage-wipe-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+.wg-stage-wipe-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(6, 8, 13, 0.72);
+  color: #e8ecf3;
+  font-size: 13px;
+  font-style: normal;
+  backdrop-filter: blur(4px);
+}
+
 .wg-stage-compare-tag {
   position: absolute;
   top: 10px;
@@ -7525,8 +8887,58 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.wg-stage-compare-cell .wg-stage-compare-tag {
+.wg-stage-compare-cell .wg-stage-compare-tag,
+.wg-stage-wipe .wg-stage-compare-tag:not(.is-result) {
   left: 10px;
+}
+
+.wg-stage-compare-tag.is-result {
+  left: auto;
+  right: 10px;
+}
+
+/* 进行中卡片的两条真实进度细条（画廊行内 wg-run / 生成占位块内 wg-gen）：
+   宽度 = 后端 progress 原值，不插值——上游不回报中间进度时它停住，是诚实表现 */
+.wg-run {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.wg-run-bar,
+.wg-gen-bar {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+}
+
+.wg-run-bar {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 3px;
+  background: var(--el-border-color);
+}
+
+.wg-gen-bar {
+  width: 76px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.wg-run-bar b,
+.wg-gen-bar b {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 0.4s ease-out;
+}
+
+.wg-gen-bar b {
+  background: #fff;
 }
 
 .wg-stage-compare-tag.is-result {

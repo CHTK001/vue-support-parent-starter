@@ -47,19 +47,27 @@ import { createContextApp } from "@repo/app";
 src/
 ├── main.ts               # uni-app 入口：createContextApp({ platform: "wechat-miniapp", ... }).mountApp()
 ├── App.vue               # 应用壳
-├── pages.json            # 页面路由（login / chat）+ easycom 通配符注册全部 wd-*
+├── pages.json            # 页面路由（login / chat / agreement）+ easycom 通配符注册全部 wd-*
 ├── manifest.json         # 小程序 manifest（mp-weixin.appid = wx0eccb54367ca6165）
-├── config.ts             # BASE_URL / 超时 / clientId 存储 key
+├── config.ts             # BASE_URL / API_PREFIX / 超时 / clientId 存储 key
 ├── api/
 │   ├── http.ts           # 业务唯一出口：拼 /v2 前缀 + 统一超时；传输/令牌/401/解包全在框架上下文
 │   ├── auth.ts           # POST /v2/auth/login
 │   ├── character.ts      # GET /v2/roles（挑选默认角色）
 │   ├── session.ts        # 会话 / 历史消息 / 停止生成
 │   └── chat.ts           # POST /v2/chat/stream（SSE 分块）+ /v2/chat/send（降级）
+├── utils/
+│   └── markdown.ts       # Markdown 轻量子集解析（AST，无 DOM 依赖，流式友好）
+├── components/
+│   ├── markdown-body/    # 块级渲染（代码块横向滚动 / 列表 / 引用 / 标题）
+│   └── md-inline/        # 行内渲染（行内代码 / 加粗 / 斜体 / 链接）
 └── pages/
-    ├── login/index.vue   # 账号密码登录
-    └── chat/index.vue    # 会话：消息列表、流式渲染、会话切换、停止生成
+    ├── login/index.vue     # 账号密码登录 + 协议勾选
+    ├── chat/index.vue      # 会话：消息列表、流式渲染、会话切换、停止生成
+    └── agreement/index.vue # 用户协议 / 隐私政策（同一页两个页签）
 ```
+
+> 自建组件放在 `src/components/<name>/<name>.vue`，与 `wd-*` 一样由 easycom 自动注册（模板零 import）。
 
 > 非组件代码取上下文用 `getMpAppContext()`（由 `@repo/app` 导出），组件内仍用 `inject("mpContext")`，两者是同一个对象。
 >
@@ -111,6 +119,16 @@ pnpm --filter vue-support-ai-miniapp-starter build:mp-weixin
 - 环境不支持分块响应时自动降级：`POST /v2/chat/send`（fire-and-forget）+ 轮询历史消息渲染结果。
 - 停止生成：`POST /v2/chat/stream/:sessionId/stop`，同时中断本地流。
 
+## 渲染与交互
+
+- **Markdown 不用 `marked` / `markdown-it`**：它们产出 HTML 字符串，而 `mp-weixin` 没有 DOM，`v-html` 不可用；`rich-text` 又拿不到代码块横向滚动与链接点击。`src/utils/markdown.ts` 只解析 AI 输出里真正会出现的结构（围栏代码块、1~3 级标题、有序/无序列表、引用、段落；行内 `` `code` `` / `**strong**` / `*em*` / `[text](href)`），产出节点树交给 `markdown-body` + `md-inline` 渲染，零依赖、包体不涨。
+- **流式友好**：未闭合的围栏把剩余内容当代码块、未闭合的行内标记按文本输出，增量过程中不会出现语法消失的跳变。解析按 **80ms 节流**（`queueMessageUpdate` / `flushRender`），一秒几十个 chunk 也只重算几次。
+- **滚动不抢屏**：只有用户自己往上滑才关闭跟随（`handleScroll` 判 `scrollTop` 下降），流式时关闭滚动动画；上滑期间出现「回到底部」，发消息/切会话恢复跟随。
+- **多行输入**：`wd-textarea` + `auto-height`，外壳上限约 5 行后内部滚动，`confirm-type="send"` 回车发送。
+- **思考过程可折叠**：流式期间默认展开，点标题收起/展开。
+- **切会话有骨架屏**，不会出现"空白等消息"。
+- **协议与隐私**：登录页复选「我已阅读并同意」（`wd-checkbox`），`pages/agreement` 一个页面两个页签。文案是**占位模板**，上线前必须换成公司实际协议并过法务。
+
 ## 注意事项
 
 - `manifest.json` 的 `mp-weixin.appid` 已填入 `wx0eccb54367ca6165`（重建后同步到产物 `project.config.json`）；AppSecret 不入库、不进源码。
@@ -123,11 +141,13 @@ pnpm --filter vue-support-ai-miniapp-starter build:mp-weixin
 | 项 | 命令 | 结果 |
 |---|---|---|
 | 类型检查 | `npx vue-tsc --noEmit` | EXIT=0 |
-| 小程序构建 | `npx uni build -p mp-weixin` | DONE Build complete |
-| 产物组件 | 扫 `dist/build/mp-weixin/` | 只含模板实际用到的 `wd-*`（11 个 / 0.19 MB），每页 `usingComponents` 与之对应 |
+| 小程序构建 | `npx uni build -p mp-weixin` | DONE Build complete（83 文件 / 0.23 MB） |
+| 产物组件 | 扫 `dist/build/mp-weixin/` | 只含模板实际用到的 `wd-*`，每页 `usingComponents` 与之对应（`markdown-body` → `md-inline` 自动登记） |
 | 通配符验证 | 模板加未 import 的 `<wd-divider>` 后构建 | `usingComponents` 自动多出 `wd-divider`；删掉后产物里消失 |
 | glob 方案验证 | `import.meta.glob(...eager)` + `components: WdComponents` | `usingComponents: {}`，**不可用**（小程序编译器要求静态可解析） |
-| 产物依赖检查 | 扫 `dist/build/mp-weixin/**/*.js` | 无 element-plus / vue-router / axios / createVueApp |
+| Markdown 解析 | `npx tsc src/utils/markdown.ts` + Node 用例 | 24/24 PASS（含全前缀增量解析不抛错） |
+| 产物依赖检查 | 扫 `dist/build/mp-weixin/**/*.js` | 无 element-plus / vue-router / axios / `@repo/ui` |
 | 适配层单测 | Node 模拟 uni 运行时（storage TTL / token / http 401 / SSE 跨块中文 / unwrap / mountApp） | 48/48 PASS |
 | 清理后校验 | 令牌无 refresh、存储无加密、`MpHttp` 只有 `request`、SSE 只在 `ctx.sse` | 单测断言通过（`token` 无 refresh 键、`Object.keys(http)===["request"]`） |
 | 真实链路 | 经 `createMpApp` 直连 `127.0.0.1:8787` | 登录 / roles(113) / sessions / 错误密码 全通过 |
+| 编码 | 7 个改动文件 | BOM=0 / NOT_UTF8=0 / REPLACEMENT_CHAR=0 |

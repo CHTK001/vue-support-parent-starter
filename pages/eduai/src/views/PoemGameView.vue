@@ -172,6 +172,7 @@
 import { computed, onBeforeUnmount, ref } from "vue";
 import { eduaiApi } from "../api/eduaiApi";
 import type { PoemGameItem } from "../api/types";
+import { STUDY_PROGRESS_PER_ROUND, useStudyReport } from "../composables/useStudyReport";
 
 /** 学段与对应年级（与古诗库入库值保持一致）；「全部」不限学段，保证任何标注下都能出题 */
 const ALL = "全部";
@@ -304,10 +305,22 @@ function optionClass(idx: number) {
   return idx === selectedIndex.value ? "is-wrong" : "";
 }
 
+/** 学习行为上报：仅在学生端内嵌时真正发请求 */
+const { report: reportStudyRound } = useStudyReport();
+
 function next() {
   if (currentIndex.value + 1 >= items.value.length) {
     stopTimer();
     stage.value = "result";
+    // 一组答完即上报：每题 10 分，正确数从 results 统计
+    reportStudyRound({
+      moduleCode: "poem",
+      studyMinutes: Math.max(1, Math.round(elapsed.value / 60)),
+      questionCount: items.value.length,
+      correctCount: results.value.filter(Boolean).length,
+      points: score.value,
+      progressDelta: STUDY_PROGRESS_PER_ROUND,
+    });
     return;
   }
   currentIndex.value += 1;

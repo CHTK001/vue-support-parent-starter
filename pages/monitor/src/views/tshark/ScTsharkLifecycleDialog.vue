@@ -148,6 +148,7 @@
         empty-text="这条流没有可展示的报文"
         @row-click="onRowClick"
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        table-id="tshark-lifecycle-steps"
       >
         <ReTableColumn prop="relativeMs" label="相对时间" width="112" align="right">
           <template #default="{ row }">

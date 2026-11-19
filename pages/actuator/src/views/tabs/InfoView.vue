@@ -13,6 +13,7 @@
     :count-text="`共 ${rows.length} 项`"
     :loading="loading"
     :error="error"
+    :error-kind="errorKind"
     auto-refresh
     :updated-at="updatedAt"
     @refresh="reload"
@@ -45,7 +46,7 @@ import { ElEmpty } from "element-plus";
 import TabShell from "../TabShell.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
 
-const { data, loading, error, updatedAt, reload, entries } = useActuatorPanel("info");
+const { data, loading, error, errorKind, updatedAt, reload, entries } = useActuatorPanel("info");
 
 const rows = computed(() => entries(data.value));
 </script>

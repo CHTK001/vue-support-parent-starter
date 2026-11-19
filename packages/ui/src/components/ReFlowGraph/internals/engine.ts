@@ -36,7 +36,7 @@ import { History } from "@antv/x6-plugin-history";
 import { MiniMap } from "@antv/x6-plugin-minimap";
 import { Export } from "@antv/x6-plugin-export";
 import type { Component } from "vue";
-import { isDagTerminalAllowed } from "./dagRules";
+import { collectTraceEdgeIds, findFlowCycle, isDagTerminalAllowed } from "./dagRules";
 import {
   DEFAULT_DIAMOND_TYPES,
   DEFAULT_NODE_COLOR,
@@ -57,6 +57,7 @@ import {
   resolveFlowType,
 } from "./shapes";
 import type {
+  FlowAlignMode,
   FlowEdge,
   FlowEdgeKind,
   FlowGraphData,
@@ -174,6 +175,33 @@ export interface FlowEngineOptions {
    * 宿主类型标识不叫 condition/branch/judge/decision 时用这个覆盖。
    */
   diamondTypes?: readonly string[];
+  /**
+   * 业务连线校验钩子（设计期拦截，优于「连上再删」）。
+   *
+   * 内置规则（端口方向、菱形出边名额、禁自环/重边）通过后调用；
+   * 返回 `false` 即拒绝本次连线——X6 会把预览线收回，不会产生 `edge:connected`。
+   * 拒绝提示由宿主自理（在钩子里弹 message 即可），引擎不代管通知。
+   *
+   * 注意这是**纯判断**：不要在钩子里改图、弹同步框阻塞拖拽。
+   */
+  canConnect?: (ctx: {
+    /** 源节点 */
+    from: FlowNode;
+    /** 目标节点 */
+    to: FlowNode;
+    /** 源端口（落在节点本体时为 undefined） */
+    fromPort?: string;
+    /** 目标端口（落在节点本体时为 undefined） */
+    toPort?: string;
+  }) => boolean;
+  /**
+   * 选中节点/连线时自动高亮其上下游链路（链路追踪）。
+   *
+   * 打开后：单选一个节点 → 上游连线染主蓝、下游连线染青、其余连线压暗；
+   * 单选一条连线 → 该边与两侧链路同法高亮。多选/清空选中即恢复。
+   * 视觉通道走 view class（与 {@link setEdgeActive} 同路），不进撤销栈、不触发 change。
+   */
+  traceOnSelect?: boolean;
   handlers?: FlowEngineHandlers;
 }
 
@@ -347,22 +375,37 @@ function buildEdgeBird(trackId: string, seed: string, flipY = false): SVGGElemen
     visual.setAttribute("transform", "scale(1,-1)");
   }
 
+  // 插画风小鸟：分层平涂（尾羽/躯干/头 → 肚皮 → 喙/眼 → 翅膀），
+  // 头身比约 1:1.6、燕式分叉尾，造型参考设计稿里「叼信封的蓝雀」
   const body = svgEl("g", { class: "flow-bird-body" });
-  body.appendChild(svgEl("path", { class: "flow-bird-tail", d: "M -8 0 L -13 -4 L -12 0 L -13 4 Z" }));
-  body.appendChild(svgEl("ellipse", { class: "flow-bird-torso", cx: -1, cy: 0, rx: 7, ry: 4.2 }));
+  body.appendChild(
+    svgEl("path", {
+      class: "flow-bird-tail",
+      d: "M -6.2 -1.6 L -13.8 -5.8 L -11.2 -0.4 L -13.6 4.2 L -6.4 1.6 Z",
+    }),
+  );
+  body.appendChild(svgEl("ellipse", { class: "flow-bird-torso", cx: -2.2, cy: 0.4, rx: 7.6, ry: 5 }));
+  body.appendChild(svgEl("circle", { class: "flow-bird-head", cx: 5, cy: -2.4, r: 4.7 }));
+  body.appendChild(svgEl("ellipse", { class: "flow-bird-belly", cx: -1.6, cy: 2.6, rx: 5, ry: 2.9 }));
+  body.appendChild(
+    svgEl("path", { class: "flow-bird-beak", d: "M 9.2 -3.4 L 13 -2.1 L 9.2 -0.7 L 9.9 -2.05 Z" }),
+  );
+  body.appendChild(svgEl("circle", { class: "flow-bird-eye", cx: 5.9, cy: -3.3, r: 1.55 }));
+  body.appendChild(svgEl("circle", { class: "flow-bird-pupil", cx: 6.35, cy: -3.3, r: 0.85 }));
+  body.appendChild(svgEl("circle", { class: "flow-bird-glint", cx: 6.7, cy: -3.75, r: 0.3 }));
   body.appendChild(
     svgEl("path", {
       class: "flow-bird-wing",
-      d: "M -3.5 -1.6 Q 1.5 -9.5 7 -3.4 Q 2 -1.2 -3.5 -1.6 Z",
+      d: "M 1.6 -1.4 C 0.6 -6.2, -3.2 -9.4, -8.6 -9.6 C -7.2 -8.3, -6.9 -7.2, -7.3 -5.9 C -5.8 -6.7, -4.6 -6.4, -3.7 -5.2 C -4.7 -4, -4.9 -2.7, -4.3 -1.5 C -2.4 -2.2, -0.4 -2, 1.6 -1.4 Z",
     }),
   );
-  body.appendChild(svgEl("path", { class: "flow-bird-head", d: "M 5.6 -2.2 L 11.4 -0.4 L 5.6 2.2 Z" }));
-  body.appendChild(svgEl("circle", { class: "flow-bird-eye", cx: 4.4, cy: -1.2, r: 0.95 }));
   visual.appendChild(body);
 
-  // 鸟爪下叼着的包裹：只在运送段可见，与起点/终点包裹的显隐严格衔接
+  // 鸟爪下拎着的信封：只在运送段可见，与起点/终点包裹的显隐严格衔接；
+  // 挂在腹下而不是压在身体上，飞行时才像「拎着东西」
   const carried = parcelBody();
   carried.setAttribute("class", "flow-edge-parcel flow-edge-carried");
+  carried.setAttribute("transform", "translate(0.6, 8.6)");
   carried.appendChild(fade("0;0;1;1;0;0", "0;0.14;0.21;0.72;0.78;1", dur, begin));
   visual.appendChild(carried);
 
@@ -427,12 +470,15 @@ function pinToEnd(trackId: string, at: 0 | 1, dur: string, begin: string): SVGAn
 /**
  * 一个数据包裹的几何（以自身中心为原点，便于被 animateMotion 直接搬运）。
  *
- * @returns {@code <g>}，内含底色块与高光
+ * <p>画成信封：封体 + 折盖线 + 火漆印；起点、叼着、终点三份共用。</p>
+ *
+ * @returns {@code <g>}，内含信封封体、折盖与封印
  */
 function parcelBody(): SVGGElement {
   const g = svgEl("g", { class: "flow-edge-parcel-body" });
-  g.appendChild(svgEl("rect", { class: "flow-parcel-fill", x: -3.6, y: -2.8, width: 7.2, height: 5.6, rx: 1.4 }));
-  g.appendChild(svgEl("rect", { class: "flow-parcel-shine", x: -2.4, y: -1.9, width: 4.8, height: 1.4, rx: 0.7 }));
+  g.appendChild(svgEl("rect", { class: "flow-parcel-fill", x: -4.4, y: -3.1, width: 8.8, height: 6.2, rx: 1.3 }));
+  g.appendChild(svgEl("path", { class: "flow-parcel-flap", d: "M -4.4 -2.4 L 0 0.4 L 4.4 -2.4" }));
+  g.appendChild(svgEl("circle", { class: "flow-parcel-seal", cx: 0, cy: 1.9, r: 1.05 }));
   return g;
 }
 
@@ -498,12 +544,17 @@ export class FlowGraphEngine {
    * 原因见该方法的注释。
    */
   private selection: Selection;
+  /** 链路追踪开关（traceOnSelect） */
+  private traceOn = false;
+  /** 当前被追踪高亮的边 id；clearTrace 按这份清单摘 class */
+  private traced: { up: string[]; down: string[] } = { up: [], down: [] };
 
   constructor(options: FlowEngineOptions) {
     this.nodeShape = ensureFlowRegistered(options.nodeComponent);
     this.diamondTypes = options.diamondTypes ?? DEFAULT_DIAMOND_TYPES;
     this.opts = options;
     this.types = options.nodeTypes ?? [];
+    this.traceOn = options.traceOnSelect ?? false;
 
     const readonly = !!options.readonly;
     // nodeDraggable 缺省 true；readonly 仍然一票否决（只读视图不该能拖）
@@ -580,6 +631,18 @@ export class FlowGraphEngine {
                 return src?.cell === sourceCell.id && src.port === sourcePort;
               });
             if (used) {
+              return false;
+            }
+          }
+          // 业务校验钩子：内置规则全过后再问宿主，宿主说不行就不连
+          if (this.opts.canConnect) {
+            const ok = this.opts.canConnect({
+              from: readFlowNode(sourceCell as X6Node),
+              to: readFlowNode(targetCell as X6Node),
+              fromPort: sourcePort ?? undefined,
+              toPort: targetPort ?? undefined,
+            });
+            if (!ok) {
               return false;
             }
           }
@@ -712,6 +775,8 @@ export class FlowGraphEngine {
       this.showEdgeTools(edge.id);
     });
     this.graph.on("selection:changed", ({ selected }) => {
+      // 链路追踪：选中变化即重算上下游高亮（内部自带「多选/清空即恢复」）
+      this.applyTrace(selected);
       const first = selected[0];
       if (!first) {
         h.onSelect?.(null);
@@ -759,9 +824,38 @@ export class FlowGraphEngine {
     this.graph.bindKey(["ctrl+c", "meta+c"], () => this.copySelected(false));
     this.graph.bindKey(["ctrl+x", "meta+x"], () => this.copySelected(true));
     this.graph.bindKey(["ctrl+v", "meta+v"], () => this.paste());
+    // 克隆 = 复制 + 立即粘贴：比 ctrl+c → ctrl+v 少一步，编排时高频用
+    this.graph.bindKey(["ctrl+d", "meta+d"], () => {
+      this.copySelected(false);
+      this.paste();
+    });
     this.graph.bindKey(["ctrl+a", "meta+a"], () => {
       this.graph.select(this.graph.getCells());
     });
+    // 方向键微移选中节点：默认 10px，按住 shift 加速到 40px。
+    // X6 的 keyboard 插件在输入框聚焦时不触发（mousetrap 语义），不会打断就地改名。
+    // 没有选中节点时不吃掉默认行为，页面/画布滚动照常。
+    const nudge = (dx: number, dy: number, e: { preventDefault: () => void; shiftKey?: boolean }) => {
+      if (this.opts.readonly) {
+        return;
+      }
+      const nodes = this.graph.getSelectedCells().filter((c): c is X6Node => c.isNode());
+      if (!nodes.length) {
+        return;
+      }
+      e.preventDefault();
+      const step = e.shiftKey ? 40 : 10;
+      this.graph.startBatch("nudge");
+      nodes.forEach((n) => {
+        const p = n.getPosition();
+        n.setPosition(Math.round(p.x + dx * step), Math.round(p.y + dy * step));
+      });
+      this.graph.stopBatch("nudge");
+    };
+    this.graph.bindKey("up", (e) => nudge(0, -1, e));
+    this.graph.bindKey("down", (e) => nudge(0, 1, e));
+    this.graph.bindKey("left", (e) => nudge(-1, 0, e));
+    this.graph.bindKey("right", (e) => nudge(1, 0, e));
     this.graph.bindKey("esc", () => {
       this.graph.cleanSelection();
       this.clearEdgeTools();
@@ -968,6 +1062,11 @@ export class FlowGraphEngine {
     this.graph.enableHistory();
     this.loading = false;
     this.opts.handlers?.onChange?.(this.getData());
+    // 灌图会整体重建 cell，旧的高亮类随旧 view 一起消失；
+    // 若追踪开着且选中还在（X6 的 selection 不随 clearCells 清空），重放一次。
+    if (this.traceOn) {
+      this.applyTrace(this.graph.getSelectedCells());
+    }
   }
 
   /**
@@ -1249,28 +1348,103 @@ export class FlowGraphEngine {
    * @param active true=加高亮动画，false=清除
    */
   setEdgeActive(id: string | null, active = false): void {
-    const cell = id ? this.graph.getCellById(id) : null;
+    if (!id) {
+      return;
+    }
+    const cell = this.graph.getCellById(id);
     if (!cell?.isEdge()) {
       return;
     }
-    const view = this.graph.findViewByCell(cell);
-    const container = view?.container as SVGGElement | undefined;
+    const container = this.edgeViewContainer(id);
     if (!container) {
       return;
     }
     container.classList.toggle("flow-edge-active", active);
     // 可视路径在 X6 默认 markup 里没有 class（markup 只在声明了 className 时才加），
-    // 所以这里自己打一个标记，供 CSS 与小鸟定位使用。
-    // 判定依据：命中区 wrap 带 cursor:pointer 且半透明，可视线 line 带 pointer-events:none。
+    // 这里补打一个标记，供 CSS 与小鸟定位使用（判定依据见 linePathOf）。
+    this.linePathOf(container)?.classList.add("flow-edge-line");
+    this.syncEdgeBird(container, id, active);
+  }
+
+  /** 连线 view 的容器（`<g class="x6-edge">`）；边不存在或还没渲染出 view 时返回 null */
+  private edgeViewContainer(id: string): SVGGElement | null {
+    const cell = this.graph.getCellById(id);
+    if (!cell?.isEdge()) {
+      return null;
+    }
+    const view = this.graph.findViewByCell(cell);
+    return (view?.container as SVGGElement | undefined) ?? null;
+  }
+
+  /**
+   * 找连线容器里的「可视路径」。
+   *
+   * 判定依据：命中区 wrap 带 cursor:pointer 且半透明，可视线 line 带
+   * pointer-events:none；退化时取最后一个（X6 默认 markup 里 line 在 wrap 之后）。
+   */
+  private linePathOf(container: SVGGElement): SVGPathElement | null {
     const paths = Array.from(container.querySelectorAll("path"));
-    const linePath =
+    return (
       paths.find((p) => p.getAttribute("pointer-events") === "none") ??
-      (paths.length > 1 ? paths[paths.length - 1] : paths[0]);
-    if (!linePath) {
+      (paths.length > 1 ? paths[paths.length - 1] : paths[0]) ??
+      null
+    );
+  }
+
+  /**
+   * 开/关「链路追踪」高亮。
+   *
+   * 打开时立即按当前选中重算一次；关闭时摘掉全部高亮。
+   */
+  setTraceEnabled(on: boolean): void {
+    this.traceOn = on;
+    if (!on) {
+      this.clearTrace();
       return;
     }
-    linePath.classList.add("flow-edge-line");
-    this.syncEdgeBird(container, id as string, active);
+    this.applyTrace(this.graph.getSelectedCells());
+  }
+
+  /**
+   * 按当前选区应用链路追踪高亮。
+   *
+   * 只在「单选一个节点或一条连线」时生效：多选时链路会糊成一片，直接整体恢复。
+   * 上游染主蓝（flow-edge-trace-up）、下游染青（flow-edge-trace-down），
+   * 其余连线由画布级 flow-tracing 类统一压暗——用 :not() 选择器，避免逐边记 class。
+   */
+  private applyTrace(selected: Cell[]): void {
+    this.clearTrace();
+    if (!this.traceOn || selected.length !== 1) {
+      return;
+    }
+    const focus = selected[0];
+    const trace = collectTraceEdgeIds(this.getData().edges, focus.id, focus.isEdge());
+    if (!trace.up.length && !trace.down.length) {
+      return;
+    }
+    this.traced = trace;
+    const mark = (ids: string[], cls: string) => {
+      ids.forEach((id) => {
+        const container = this.edgeViewContainer(id);
+        if (!container) {
+          return;
+        }
+        container.classList.add(cls);
+        this.linePathOf(container)?.classList.add("flow-edge-line");
+      });
+    };
+    mark(trace.up, "flow-edge-trace-up");
+    mark(trace.down, "flow-edge-trace-down");
+    this.graph.container?.classList.add("flow-tracing");
+  }
+
+  /** 摘掉全部链路追踪高亮 */
+  private clearTrace(): void {
+    [...this.traced.up, ...this.traced.down].forEach((id) => {
+      this.edgeViewContainer(id)?.classList.remove("flow-edge-trace-up", "flow-edge-trace-down");
+    });
+    this.traced = { up: [], down: [] };
+    this.graph.container?.classList.remove("flow-tracing");
   }
 
   /**
@@ -1444,6 +1618,76 @@ export class FlowGraphEngine {
     this.graph.select(cells);
   }
 
+  /**
+   * 多选对齐 / 等距分布。
+   *
+   * 选中节点少于 2 个时什么都不做（对齐至少要两个对象）。
+   * 坐标按各自包围盒计算：节点尺寸不一致时，对齐的是「缘」与「中线」，
+   * 而不是左上角 —— 与常见设计工具的语义一致。
+   *
+   * 整次操作包在同一个 batch 里，撤销一次即可回到对齐前。
+   *
+   * @param mode 对齐基准；`distribute-*` 表示在选中节点的当前跨度内等距分布
+   *             （首尾保持原位，只匀中间），节点已等距时视觉无变化
+   */
+  alignSelected(mode: FlowAlignMode): void {
+    const nodes = this.graph.getSelectedCells().filter((c): c is X6Node => c.isNode());
+    if (nodes.length < 2 || this.opts.readonly) {
+      return;
+    }
+    const boxes = nodes.map((n) => ({ node: n, bbox: n.getBBox() }));
+    const xs = boxes.map((b) => b.bbox.x);
+    const rights = boxes.map((b) => b.bbox.x + b.bbox.width);
+    const ys = boxes.map((b) => b.bbox.y);
+    const bottoms = boxes.map((b) => b.bbox.y + b.bbox.height);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...rights);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...bottoms);
+    /** 按给定的目标坐标函数批量挪节点；batch 保证一次撤销整体回滚 */
+    const moveAll = (placements: Array<{ node: X6Node; x: number; y: number }>) => {
+      this.graph.startBatch("flow-align");
+      placements.forEach((p) => p.node.setPosition(Math.round(p.x), Math.round(p.y)));
+      this.graph.stopBatch("flow-align");
+    };
+    switch (mode) {
+      case "left":
+        moveAll(boxes.map((b) => ({ node: b.node, x: minX, y: b.bbox.y })));
+        break;
+      case "right":
+        moveAll(boxes.map((b) => ({ node: b.node, x: maxX - b.bbox.width, y: b.bbox.y })));
+        break;
+      case "center-x":
+        moveAll(boxes.map((b) => ({ node: b.node, x: (minX + maxX) / 2 - b.bbox.width / 2, y: b.bbox.y })));
+        break;
+      case "top":
+        moveAll(boxes.map((b) => ({ node: b.node, x: b.bbox.x, y: minY })));
+        break;
+      case "bottom":
+        moveAll(boxes.map((b) => ({ node: b.node, x: b.bbox.x, y: maxY - b.bbox.height })));
+        break;
+      case "center-y":
+        moveAll(boxes.map((b) => ({ node: b.node, x: b.bbox.x, y: (minY + maxY) / 2 - b.bbox.height / 2 })));
+        break;
+      case "distribute-x": {
+        const sorted = [...boxes].sort((a, b) => a.bbox.x - b.bbox.x);
+        const first = sorted[0].bbox.x;
+        const last = sorted[sorted.length - 1].bbox.x;
+        const gap = sorted.length > 1 ? (last - first) / (sorted.length - 1) : 0;
+        moveAll(sorted.map((b, i) => ({ node: b.node, x: first + i * gap, y: b.bbox.y })));
+        break;
+      }
+      case "distribute-y": {
+        const sorted = [...boxes].sort((a, b) => a.bbox.y - b.bbox.y);
+        const first = sorted[0].bbox.y;
+        const last = sorted[sorted.length - 1].bbox.y;
+        const gap = sorted.length > 1 ? (last - first) / (sorted.length - 1) : 0;
+        moveAll(sorted.map((b, i) => ({ node: b.node, x: b.bbox.x, y: first + i * gap })));
+        break;
+      }
+    }
+  }
+
   // ------------------------------------------------------------
   // 选中 / 定位
   // ------------------------------------------------------------
@@ -1460,6 +1704,23 @@ export class FlowGraphEngine {
     }
     this.graph.cleanSelection();
     this.graph.select(cell);
+  }
+
+  /**
+   * 当前选中的节点 id 列表（框选多选后供外壳判断「是否显示对齐工具条」）。
+   *
+   * @returns 选中节点 id；顺序为 X6 选区内部顺序
+   */
+  getSelectedNodeIds(): string[] {
+    return this.graph
+      .getSelectedCells()
+      .filter((c) => c.isNode())
+      .map((c) => c.id);
+  }
+
+  /** 清空选区（对齐工具条的「退出多选」按钮走这里） */
+  clearSelection(): void {
+    this.graph.cleanSelection();
   }
 
   /**
@@ -1863,6 +2124,18 @@ export class FlowGraphEngine {
         issues.push({ level: "error", code: "SELF_LOOP", message: `节点「${e.from}」存在自环连线`, cellId: e.from });
       }
     });
+    // 跨节点环（A→B→A）：拓扑上永远跑不完，是保存前必须拦的致命错误。
+    // 自环已由 SELF_LOOP 报过，findFlowCycle 内部会跳过，不会重复计。
+    // cellId 指到环上第一个节点，问题条点击能直接定位过去。
+    const cycle = findFlowCycle(nodes, edges);
+    if (cycle.nodeIds.length) {
+      issues.push({
+        level: "error",
+        code: "CYCLE",
+        message: `流程存在环形依赖：${cycle.nodeIds.join(" → ")}，请调整连线方向`,
+        cellId: cycle.nodeIds[0],
+      });
+    }
     nodes.forEach((n) => {
       if (!outgoing.get(n.id) && n.type !== endType) {
         issues.push({ level: "error", code: "DANGLING", message: `「${n.label}」没有出边，每条分支都必须收到「结束」节点`, cellId: n.id });

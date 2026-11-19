@@ -36,6 +36,15 @@
         {{ loading ? "登录中…" : "登 录" }}
       </wd-button>
 
+      <view class="agree-row">
+        <wd-checkbox v-model="agreed" shape="square" checked-color="#2f6fed" custom-class="agree-checkbox">
+          <text class="agree-text">我已阅读并同意</text>
+        </wd-checkbox>
+        <text class="agree-link" @tap="openAgreement('user')">《用户协议》</text>
+        <text class="agree-text">和</text>
+        <text class="agree-link" @tap="openAgreement('privacy')">《隐私政策》</text>
+      </view>
+
       <view v-if="errorMsg" class="login-error">{{ errorMsg }}</view>
     </view>
   </view>
@@ -62,6 +71,7 @@ export default {
       password: "",
       loading: false,
       errorMsg: "",
+      agreed: false,
     };
   },
   computed: {
@@ -76,12 +86,20 @@ export default {
     }
   },
   methods: {
+    openAgreement(type: "user" | "privacy") {
+      uni.navigateTo({ url: `/pages/agreement/index?type=${type}` });
+    },
+
     async handleLogin() {
       if (this.loading) return;
       const username = String(this.username || "").trim();
       const password = String(this.password || "");
       if (!username || !password) {
         this.errorMsg = "请输入用户名和密码";
+        return;
+      }
+      if (!this.agreed) {
+        this.errorMsg = "请先阅读并同意《用户协议》和《隐私政策》";
         return;
       }
       this.loading = true;
@@ -166,6 +184,33 @@ export default {
   margin-top: 16rpx;
   height: 92rpx;
   font-size: 32rpx;
+}
+
+/* 协议勾选：未勾选不拦点击，提交时给明确提示（禁用按钮无反馈体验更差） */
+.agree-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 22rpx;
+}
+
+.agree-row :deep(.wd-checkbox) {
+  margin-right: 6rpx;
+  padding: 0;
+}
+
+.agree-row :deep(.wd-checkbox__shape) {
+  margin-right: 8rpx;
+}
+
+.agree-text {
+  font-size: 22rpx;
+  color: #8a9099;
+}
+
+.agree-link {
+  font-size: 22rpx;
+  color: #2f6fed;
 }
 
 .login-error {

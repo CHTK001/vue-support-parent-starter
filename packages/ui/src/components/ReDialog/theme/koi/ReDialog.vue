@@ -90,7 +90,7 @@ const props = withDefaults(
     showWindowShell?: boolean;
     /** 最小化按钮是否显示（默认仅关闭可见） */
     showMinimize?: boolean;
-    /** 全屏按钮是否显示（默认仅关闭可见） */
+    /** 全屏按钮是否显示（默认显示，传 false 关闭） */
     showFullscreen?: boolean;
     /** headless：隐藏标题栏，右上角圆形悬浮关闭按钮替代 */
     headless?: boolean;
@@ -160,7 +160,8 @@ const props = withDefaults(
     showClose: true,
     showWindowShell: true,
     showMinimize: false,
-    showFullscreen: false,
+    // 全屏按钮默认显示（与 default 主题 fullscreenable 默认值对齐）
+    showFullscreen: true,
     headless: false,
     compact: false,
     // 默认不传：交给 Element Plus 自动分配，等同于修复前的行为
@@ -683,7 +684,10 @@ defineExpose({ koiOpen, koiClose, koiQuickClose });
             @minimize="minimize"
             @toggle-fullscreen="toggleFullscreen"
             @close="koiClose"
-          />
+          >
+            <!-- 右上角操作区插槽：业务自定义内容排在壳按钮（收起/全屏/关闭）左侧 -->
+            <slot name="header-actions" />
+          </KoiShellHeaderActions>
         </template>
         <!-- headless：隐藏标题栏内容，仅保留一条极窄拖拽条 + 右上角关闭按钮 -->
         <template v-else>

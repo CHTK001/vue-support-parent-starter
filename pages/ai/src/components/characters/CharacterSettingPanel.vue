@@ -1164,6 +1164,11 @@ const getSkillEffectiveEnabled = (skill) => {
   if (skill.id in characterForm.enabledSkills) {
     return characterForm.enabledSkills[skill.id];
   }
+  // 白名单模式：未显式启用的技能（含面板打开后新出现的技能）一律视为关闭，
+  // 与 loadAllData 的初始化口径一致，避免新技能绕过白名单默认点亮
+  if (skillsAllowlistMode.value) {
+    return false;
+  }
   return skill.enabled !== false;
 };
 
@@ -1205,18 +1210,18 @@ const isMcpServerEnabled = (serverId) => {
   return !mcpDeniedServers.value.includes(serverId);
 };
 
-// 右栏能力清单的「已启用 / 总数」计数
+// 右栏能力清单的「已启用 / 总数」计数（总开关关闭时恒为 0，与面板体灰显状态一致）
 const enabledLocalToolsCount = computed(() =>
-  localTools.value.filter(t => isToolProviderEnabled(t.pluginId)).length
+  allDisabled.value ? 0 : localTools.value.filter(t => isToolProviderEnabled(t.pluginId)).length
 )
 const enabledMcpCount = computed(() =>
-  mcpServers.value.filter(s => isMcpServerEnabled(s.id)).length
+  allMcpDisabled.value ? 0 : mcpServers.value.filter(s => isMcpServerEnabled(s.id)).length
 )
 const enabledSkillsCount = computed(() =>
-  visibleSkills.value.filter(s => getSkillEffectiveEnabled(s)).length
+  allSkillsDisabled.value ? 0 : visibleSkills.value.filter(s => getSkillEffectiveEnabled(s)).length
 )
 const enabledAgentsCount = computed(() =>
-  presetCharacters.value.filter(c => getAgentEffectiveEnabled(c)).length
+  allAgentsDisabled.value ? 0 : presetCharacters.value.filter(c => getAgentEffectiveEnabled(c)).length
 )
 
 // ── 07 舱 · Console 融合：能力度量与操作记录 ──

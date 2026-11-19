@@ -93,10 +93,12 @@ export interface PlanFilters {
   type: string
   /** 状态代码；空串表示全部 */
   status: string
+  /** 开始时段桶（矩阵热力台列的起始小时，0/3/6…21）；null 表示全部时段 */
+  hour: number | null
 }
 
 /** 空筛选条件 */
-export const EMPTY_PLAN_FILTERS: PlanFilters = { keyword: '', type: '', status: '' }
+export const EMPTY_PLAN_FILTERS: PlanFilters = { keyword: '', type: '', status: '', hour: null }
 
 /** 计划类型中文与配色 */
 export const PLAN_TYPES: ReadonlyArray<{ value: string; label: string; tone: PlanTypeTone }> = [
@@ -255,18 +257,30 @@ export function toPlanViews(
 }
 
 /**
- * 关键字 + 类型 + 状态筛选。
+ * 关键字 + 类型 + 状态 + 时段筛选。
  *
- * @param views   展示行
- * @param filters 条件
+ * <p>时段与矩阵热力台同口径：把开始时刻的本地小时归入
+ * `[hour, hour + bucketHours)` 桶（默认 3 小时一桶，与 `matrix-buckets=8` 对应），
+ * 点矩阵格筛选与手动选时段得到同一批行。</p>
+ *
+ * @param views       展示行
+ * @param filters     条件
+ * @param bucketHours 时段桶宽（小时），默认 3
  */
-export function filterPlans(views: readonly PlanView[], filters: PlanFilters): PlanView[] {
+export function filterPlans(views: readonly PlanView[], filters: PlanFilters, bucketHours = 3): PlanView[] {
   const kw = filters.keyword.trim().toLowerCase()
   const type = filters.type.trim()
   const status = filters.status.trim()
+  const hour = filters.hour
   return views.filter(v => {
     if (type && v.typeCode !== type) return false
     if (status && v.statusCode !== status) return false
+    if (hour != null) {
+      // 开始时刻不可解析的行不落任何时段桶，筛选时段时直接排除
+      if (!Number.isFinite(v.startMs)) return false
+      const h = new Date(v.startMs).getHours()
+      if (h < hour || h >= hour + bucketHours) return false
+    }
     if (!kw) return true
     return (
       v.name.toLowerCase().includes(kw) ||

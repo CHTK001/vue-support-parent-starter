@@ -8,10 +8,12 @@
 import { getGlobalSocketService, message } from "@repo/core";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ElMessageBox } from "element-plus";
-import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions, tenantDatasourceCurrent, tenantBackfillDedicatedAccounts } from "@pages/system/api/systemApi";
-import type { SysTenant, TenantDatasourceOption, TenantDatasourceView, TenantAccountBackfillResult, TenantEndpointInfo } from "@pages/system/api/types";
+import { pageForTenant, updateTenant, deleteTenant, dropTenantDatabase, updateTenantStatus, resetTenantPassword, getTenant, listForTenant, tenantProvisionCapabilities, startTenantProvision, cancelTenantProvision, tenantProvisionStatus, getTenantEndpoint, tenantDatasourceOptions, tenantDatasourceCurrent, tenantBackfillDedicatedAccounts, tenantStats, initTenantDatabase, syncTenantAdmin, resetTenantMenu } from "@pages/system/api/systemApi";
+import type { SysTenant, SysTenantStats, TenantDatasourceOption, TenantDatasourceView, TenantAccountBackfillResult, TenantEndpointInfo } from "@pages/system/api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import ReProgressDialog, { type ProgressSnapshot, type ProgressStep } from "@repo/ui/re-progress-dialog";
+import ReStatCard from "@repo/ui/re-stat-card";
+import { OfficeBuilding, Coin, CircleCheck, CircleClose, Timer, Promotion, Refresh, Tools } from "@element-plus/icons-vue";
 import TenantServiceBindDialog from "@pages/system/views/components/TenantServiceBindDialog.vue";
 
 const tenantStatusOptions: Array<{ label: string; value: number }> = [
@@ -45,7 +47,15 @@ async function loadTenants({ page, pageSize, params }: ReTableLoadParams): Promi
         ? undefined
         : Number(params.sysTenantStatus),
   });
-  return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };
+  const data = (res?.data?.data ?? []) as Record<string, unknown>[];
+  loadedTenantRowMap.clear();
+  for (const row of data) {
+    const id = String(row.sysTenantId ?? "");
+    if (id) {
+      loadedTenantRowMap.set(id, row);
+    }
+  }
+  return { total: res?.data?.total ?? 0, data };
 }
 
 const tableRef = ref();
@@ -53,6 +63,90 @@ const statusLoading = ref<string>("");
 const deleteLoading = ref<string>("");
 const dropDbLoading = ref<string>("");
 const resetPasswordLoading = ref<string>("");
+
+/* ---------------- 租户运维补救（「更多」下拉） ----------------
+ * 三个入口都是遗留租户补救：初始化业务表、同步管理员、重置菜单。
+ * 各自接口幂等，失败时给出可读消息，成功后刷新列表并重拉统计。
+ */
+const operationLoading = ref<string>("");
+
+/** 记录 id -> 完整行，供 el-dropdown 命令回调可靠取行（避免命令处理器捕获到 el-table 的空占位行） */
+const loadedTenantRowMap = new Map<string, Record<string, unknown>>();
+const currentActionRow = ref<Record<string, unknown> | null>(null);
+
+/** 「更多」下拉触发：通过事件所在行 tr 反查租户ID列上的 data-uid，再取回完整行 */
+function onMoreTrigger(e: Event) {
+  const tr = (e.currentTarget as HTMLElement | null)?.closest?.("tr");
+  const uid = tr?.querySelector("[data-uid]")?.getAttribute("data-uid");
+  if (uid != null && uid !== "" && loadedTenantRowMap.has(String(uid))) {
+    currentActionRow.value = loadedTenantRowMap.get(String(uid)) ?? null;
+  }
+}
+
+/** 运维补救统一执行入口：带行级 loading 与成功/失败提示 */
+async function runTenantOperation(action: string, sysTenantId: string) {
+  if (operationLoading.value) return;
+  const id = String(sysTenantId);
+  if (!id) {
+    message.warning("缺少租户ID");
+    return;
+  }
+  operationLoading.value = id;
+  try {
+    let label = "";
+    if (action === "initDb") {
+      await initTenantDatabase(id);
+      label = "初始化业务表";
+    } else if (action === "syncAdmin") {
+      await syncTenantAdmin(id);
+      label = "同步管理员";
+    } else if (action === "resetMenu") {
+      await resetTenantMenu(id);
+      label = "重置菜单";
+    } else {
+      return;
+    }
+    message.success(`${label}完成`);
+    tableRef.value?.reload();
+    void loadTenantStats();
+  } catch (e) {
+    message.error((e as Error)?.message ?? "操作失败");
+  } finally {
+    operationLoading.value = "";
+  }
+}
+
+function handleOperationCommand(cmd: string, row: Record<string, unknown> | null) {
+  const tenant = (row ?? currentActionRow.value) as unknown as SysTenant;
+  const id = String(tenant.sysTenantId ?? "");
+  if (!id) return;
+  const labelOf = (c: string) =>
+    c === "initDb" ? "初始化业务表" : c === "syncAdmin" ? "同步管理员" : "重置菜单";
+  const confirmText =
+    cmd === "initDb"
+      ? `将为租户「${tenant.sysTenantName}」执行独立库业务表初始化（幂等，已存在的表会跳过）。确认继续？`
+      : cmd === "syncAdmin"
+        ? `将重新同步租户库管理员账号（幂等，可修复建库建表失败或人工改坏的管理员）。确认继续？`
+        : `将按租户当前订阅重新计算并推送菜单给租户端。确认继续？`;
+  void ElMessageBox.confirm(confirmText, labelOf(cmd), {
+    type: "warning",
+    confirmButtonText: "执行",
+  })
+    .then(() => runTenantOperation(cmd, id))
+    .catch(() => undefined);
+}
+
+/** 租户与服务统计卡：进入页面即加载；创建/绑定/删除后需刷新 */
+const tenantStat = ref<SysTenantStats>({});
+
+async function loadTenantStats() {
+  try {
+    const res = await tenantStats();
+    tenantStat.value = res?.data ?? {};
+  } catch (e) {
+    console.warn("[tenant] 统计加载失败", e);
+  }
+}
 
 function handleReset() {
   query.value = { page: 1, pageSize: 10 };
@@ -228,6 +322,7 @@ function handleBindService(row: Record<string, unknown>) {
 
 function handleBindSuccess() {
   tableRef.value?.reload();
+  void loadTenantStats();
 }
 
 /* ================== 租户服务地址（租户端启动自报 / 人工登记） ================== */
@@ -724,6 +819,7 @@ async function handleStatusChange(row: Record<string, unknown>) {
     await updateTenantStatus(tenant.sysTenantId, status);
     message.success(`${action}成功`);
     tableRef.value?.reload();
+    void loadTenantStats();
   } catch (e) {
     message.error((e as Error)?.message ?? `${action}失败`);
   } finally {
@@ -777,6 +873,7 @@ async function handleDelete(row: Record<string, unknown>) {
     await deleteTenant(tenant.sysTenantId!);
     message.success("删除成功");
     tableRef.value?.reload();
+    void loadTenantStats();
   } catch (e) {
     message.error((e as Error)?.message ?? "删除失败");
   } finally {
@@ -838,7 +935,7 @@ async function handleDropDatabase(row: Record<string, unknown>) {
 }
 
 const columns: ReTableColumn[] = [
-  { prop: "sysTenantName", label: "租户名称", minWidth: 150 },
+  { prop: "sysTenantName", label: "租户名称", minWidth: 150, slot: "tenantName" },
   { prop: "sysTenantUsername", label: "租户账号", width: 140 },
   { prop: "sysTenantCode", label: "租户编码", width: 140 },
   { prop: "sysTenantStatus", label: "状态", width: 100, slot: "status", align: "center" },
@@ -853,6 +950,7 @@ onMounted(() => {
   loadSelectOptions();
   // 表格的「实例来源」列要显示数据源名称，进页就取一次；失败不影响列表本身
   void loadDatasourceOptions();
+  void loadTenantStats();
   tableRef.value?.reload();
 });
 
@@ -867,6 +965,41 @@ onUnmounted(() => {
 
 <template>
   <div class="system-page">
+    <div class="tenant-stat-row">
+      <ReStatCard
+        size="compact"
+        title="租户总数"
+        :value="tenantStat.total ?? 0"
+        desc="全部租户"
+        :icon="OfficeBuilding"
+        icon-color="var(--el-color-primary)"
+      />
+      <ReStatCard
+        size="compact"
+        title="启用中"
+        :value="tenantStat.enabled ?? 0"
+        desc="正常运营"
+        :icon="CircleCheck"
+        icon-color="var(--el-color-success)"
+      />
+      <ReStatCard
+        size="compact"
+        title="已禁用"
+        :value="tenantStat.disabled ?? 0"
+        desc="已停用"
+        :icon="CircleClose"
+        icon-color="var(--el-color-danger)"
+      />
+      <ReStatCard
+        size="compact"
+        title="已订阅服务"
+        :value="tenantStat.subscribed ?? 0"
+        desc="至少开通一项服务"
+        :icon="Coin"
+        icon-color="var(--el-color-warning)"
+      />
+    </div>
+
     <ReTable
       ref="tableRef"
       table-id="system-tenant"
@@ -898,6 +1031,9 @@ onUnmounted(() => {
           </span>
         </div>
       </template>
+      <template #tenantName="{ row }">
+        <span class="tenant-name-cell" :data-uid="row.sysTenantId">{{ row.sysTenantName }}</span>
+      </template>
       <template #status="{ row }">
         <ReTag :type="row.sysTenantStatus === 0 ? 'success' : 'danger'" effect="plain" dot>
           {{ row.sysTenantStatus === 0 ? "启用" : "禁用" }}
@@ -927,6 +1063,16 @@ onUnmounted(() => {
         <ReButton layout="square" type="success" icon="Connection" tip="分配服务" v-admin @click="handleBindService(row)" />
         <ReButton v-if="row.sysTenantDbname" layout="square" type="danger" icon="DeleteFilled" tip="删除数据库" v-admin :loading="dropDbLoading === row.sysTenantId" @click="handleDropDatabase(row)" />
         <ReButton layout="square" type="danger" icon="Delete" tip="删除" v-admin :loading="deleteLoading === row.sysTenantId" @click="handleDelete(row)" />
+        <el-dropdown trigger="click" @command="(cmd: string) => handleOperationCommand(cmd, currentActionRow.value)">
+          <ReButton layout="square" type="info" icon="More" tip="更多" :loading="operationLoading === row.sysTenantId" @click="onMoreTrigger" />
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="initDb" icon="Tools" v-admin>初始化业务表</el-dropdown-item>
+              <el-dropdown-item command="syncAdmin" icon="Refresh" v-admin>同步管理员</el-dropdown-item>
+              <el-dropdown-item command="resetMenu" icon="Promotion" v-admin>重置菜单</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </template>
     </ReTable>
 
@@ -1210,6 +1356,18 @@ onUnmounted(() => {
   padding: 0;
   height: 100%;
   box-sizing: border-box;
+}
+
+/* 顶部统计卡：响应式网格，紧凑卡片与表格共用一条页面主列 */
+.tenant-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  flex: none;
+}
+
+.tenant-name-cell {
+  cursor: default;
 }
 
 /* 表格外壳（描边 / 圆角 / 卡片投影 / focus-within 转主色）已由 ReTable 插件提供 */

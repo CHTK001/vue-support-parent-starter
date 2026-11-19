@@ -95,7 +95,7 @@ const PROVIDER_LOGOS: Record<string, string> = {
   jimeng: "ByteDance.svg",
   "即梦": "ByteDance.svg",
 
-  // 书生·浦语
+  // 书生·端砚（InternLM）
   internlm: "internlm.svg",
   shusheng: "internlm.svg",
 

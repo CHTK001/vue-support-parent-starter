@@ -56,7 +56,10 @@
       "@pages/filesystem/*": ["../../pages/filesystem/*"],
       /* 渠道管理页：已从 pages/ai 抽离出的独立包（见「系统设置 → 渠道管理」） */
       "@pages/channel": ["../../pages/channel/src/index.ts"],
-      "@pages/channel/*": ["../../pages/channel/src/*"]
+      "@pages/channel/*": ["../../pages/channel/src/*"],
+      /* CDP 实时页面组件：已从 pages/ai 抽离出的独立包（账号登录弹窗） */
+      "@pages/cdp": ["../../pages/cdp/src/index.ts"],
+      "@pages/cdp/*": ["../../pages/cdp/src/*"]
     },
     
     /* 类型根目录 */
@@ -69,7 +72,8 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "../../pages/filesystem/src/**/*.d.ts",
-    "../../pages/channel/src/**/*.d.ts"
+    "../../pages/channel/src/**/*.d.ts",
+    "../../pages/cdp/src/**/*.d.ts"
   ],
   
   "exclude": [

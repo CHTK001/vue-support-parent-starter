@@ -13,6 +13,7 @@
     :count-text="`共 ${names.length} 项`"
     :loading="loading"
     :error="error"
+    :error-kind="errorKind"
     auto-refresh
     :updated-at="updatedAt"
     @refresh="reload"
@@ -76,6 +77,14 @@
           </div>
           <div v-else class="act__empty">该指标没有返回统计量</div>
 
+          <div v-if="history.length >= 2" class="act-spark">
+            <div class="act-spark__head">
+              <span class="act-spark__title">主读数趋势</span>
+              <span class="act-spark__meta">最近 {{ history.length }} 次采样 · 随刷新累加，换指标 / 标签后重置</span>
+            </div>
+            <Sparkline :values="history.map((point) => point.value)" class="act-spark__chart" />
+          </div>
+
           <template v-if="measurements.length">
             <div class="act-group__title">全部统计量</div>
             <div class="act-kv">
@@ -124,6 +133,7 @@ import { computed, ref, watch } from "vue";
 import { ElEmpty, ElMessage, ElOption, ElSelect } from "element-plus";
 import ReInput from "@repo/ui/re-input";
 import TabShell from "../TabShell.vue";
+import Sparkline from "../Sparkline.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
 import { humanBytes } from "../../cards/useMetricRows";
 import { getActuatorEndpoint } from "../../api/actuatorApi";
@@ -146,7 +156,7 @@ interface MetricDetail {
   availableTags?: MetricTag[];
 }
 
-const { data, loading, error, updatedAt, reload } = useActuatorPanel("metrics");
+const { data, loading, error, errorKind, updatedAt, reload } = useActuatorPanel("metrics");
 
 /** 指标名清单（来自 /actuator/metrics 的 names） */
 const names = computed<string[]>(() => {
@@ -206,6 +216,7 @@ async function fetchDetail(name: string, silent: boolean): Promise<void> {
     if (!query) {
       tagOptions.value = detail.value?.availableTags ?? [];
     }
+    recordSample();
   } catch (err) {
     if (tag !== ticker) return;
     ElMessage.error((err as Error)?.message ?? "加载指标明细失败");
@@ -224,6 +235,7 @@ function selectMetric(name: string, silent = false): void {
   if (name !== metricName.value) {
     metricName.value = name;
     tagSelection.value = {};
+    history.value = []; // 换指标：旧序列属于上一个指标，作废
   }
   void fetchDetail(name, silent);
 }
@@ -233,6 +245,7 @@ function setTagValue(key: string, value: string): void {
   const next = value ?? "";
   if ((tagSelection.value[key] ?? "") === next) return;
   tagSelection.value = { ...tagSelection.value, [key]: next };
+  history.value = []; // 换标签维度：序列混了不同系列，作废
   if (metricName.value) void fetchDetail(metricName.value, true);
 }
 
@@ -259,16 +272,41 @@ watch(
 
 const measurements = computed<MetricMeasurement[]>(() => detail.value?.measurements ?? []);
 
-/** 主读数：VALUE 优先，其次 COUNT / TOTAL_TIME，都没有就取第一条 */
-const primary = computed<MetricMeasurement | undefined>(() => {
-  const list = measurements.value;
+/** 主读数挑选规则：VALUE 优先，其次 COUNT / TOTAL_TIME，都没有就取第一条 */
+function pickPrimary(list: MetricMeasurement[]): MetricMeasurement | undefined {
   if (!list.length) return undefined;
   return (
     list.find((m) => m.statistic.toUpperCase() === "VALUE") ??
     list.find((m) => ["COUNT", "TOTAL_TIME"].includes(m.statistic.toUpperCase())) ??
     list[0]
   );
-});
+}
+
+/** 主读数 */
+const primary = computed<MetricMeasurement | undefined>(() => pickPrimary(measurements.value));
+
+/* ---------- 主读数趋势（本地采样，纯前端，不新增请求） ---------- */
+
+/** 一个采样点 */
+interface SamplePoint {
+  /** 采样时间（ms） */
+  time: number;
+  /** 主读数值 */
+  value: number;
+}
+
+/** 最多保留采样点数：40 次足够看出趋势，又不会无限增长 */
+const SAMPLE_MAX = 40;
+
+/** 主读数采样序列（旧 → 新）；换指标 / 换标签时清空，避免把不同系列画成一条线 */
+const history = ref<SamplePoint[]>([]);
+
+/** 明细成功返回后记一个采样点；取不到有限数值就跳过 */
+function recordSample(): void {
+  const value = pickPrimary(measurements.value)?.value;
+  if (value === undefined || !Number.isFinite(value)) return;
+  history.value = [...history.value, { time: Date.now(), value }].slice(-SAMPLE_MAX);
+}
 
 /** 上限：只有 MAX 统计量（gauge 类指标带容量上限）才有 */
 const maxMeasurement = computed<MetricMeasurement | undefined>(() =>

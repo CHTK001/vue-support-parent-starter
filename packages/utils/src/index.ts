@@ -4,6 +4,7 @@ export * from "./log";
 export * from "./indexeddb";
 export * from "./persist";
 export * from "./modules/debounce";
+export * from "./composables/usePersistentFilters";
 export * from "./types";
 
 export * from "./modules/random";

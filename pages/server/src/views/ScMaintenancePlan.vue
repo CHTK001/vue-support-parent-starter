@@ -138,11 +138,17 @@ const hostOptions = computed(() =>
 
 /* ==================== 派生 ==================== */
 
+/** 矩阵热力台列数：8 桶覆盖 24 小时 */
+const MATRIX_BUCKETS = 8
+
+/** 每桶小时数（矩阵列宽与时段筛选共用同一口径） */
+const MATRIX_BUCKET_HOURS = 24 / MATRIX_BUCKETS
+
 /** 全量展示行 */
 const allViews = computed(() => toPlanViews(plans.value, hostMap.value, now.value))
 
 /** 已筛选的展示行 */
-const views = computed(() => filterPlans(allViews.value, filters))
+const views = computed(() => filterPlans(allViews.value, filters, MATRIX_BUCKET_HOURS))
 
 /** 状态计数（全量口径，页签数字不随筛选变化） */
 const counts = computed(() => countPlans(allViews.value))
@@ -361,14 +367,19 @@ function onFilterField(key: string, value: string): void {
 }
 
 /**
- * 矩阵格子点击：按主机 + 时段筛选。
+ * 矩阵格子点击：按主机 + 时段筛选；同一格再点 = 取消这次格子筛选。
  *
  * @param lane     主机名
  * @param fromHour 时段起点小时
  */
 function onCell(lane: string, fromHour: number): void {
+  if (filters.hour === fromHour && filters.keyword === lane) {
+    filters.hour = null
+    filters.keyword = ''
+    return
+  }
   filters.keyword = lane
-  message.info(`已按「${lane}」+ ${String(fromHour).padStart(2, '0')}:00 时段筛选`)
+  filters.hour = fromHour
 }
 
 /** 清除全部条件 */
@@ -544,7 +555,7 @@ onUnmounted(() => {
     :error="error"
     empty-text="还没有维护计划"
     empty-hint="点右上角「新建计划」安排第一个窗口。"
-    :matrix-buckets="8"
+    :matrix-buckets="MATRIX_BUCKETS"
     @update:tab-value="onTab"
     @facet="onFacet"
     @filter="onFilterField"
@@ -553,7 +564,16 @@ onUnmounted(() => {
   >
     <template #actions>
       <button
-        v-if="filters.keyword || filters.type || filters.status"
+        v-if="filters.hour !== null"
+        type="button"
+        class="op-btn"
+        :title="'点击取消时段筛选'"
+        @click="filters.hour = null"
+      >
+        时段 {{ String(filters.hour).padStart(2, '0') }}:00–{{ String(filters.hour + MATRIX_BUCKET_HOURS).padStart(2, '0') }}:00 ✕
+      </button>
+      <button
+        v-if="filters.keyword || filters.type || filters.status || filters.hour !== null"
         type="button"
         class="op-btn"
         @click="clearFilters"

@@ -147,6 +147,10 @@
       "@repo/utils/*": ["packages/utils/src/*"],
       "@repo/work": ["packages/work/src"],
       "@repo/work/*": ["packages/work/src/*"],
+      // 国际化包：exports 为 "./*" -> "./src/*"，部分宿主 tsconfig 下子路径
+      // （@repo/languages/modules/zh）解析报 TS2307，与其他 @repo/* 同口径显式映射。
+      "@repo/languages": ["packages/languages/src"],
+      "@repo/languages/*": ["packages/languages/src/*"],
       "@repo/theme": ["packages/theme/src"],
       "@repo/theme/*": ["packages/theme/src/*"],
       "@repo/theme/koi": ["packages/theme/src/themes/koi"],
@@ -160,10 +164,10 @@
       "@pages/apm": ["pages/apm/src"],
       "@pages/apm/*": ["pages/apm/*"],
       "@pages/device": ["pages/device/src"],
-      // 账号管理（账号资产 + 模板管理 + 消息模板）前端源码在后端仓：
-      // spring-support-account-starter/web，包名 @account/web。
-      "@account/web": ["../spring-support-parent-starter/spring-support-account-starter/web"],
-      "@account/web/*": ["../spring-support-parent-starter/spring-support-account-starter/web/*"],
+      // 账号管理（账号资产 + 模板管理 + 消息模板）前端：@pages/account
+      //（2026-11-19 自后端仓 spring-support-account-starter/web 迁入 pages/account）。
+      "@pages/account": ["pages/account/src/index.ts"],
+      "@pages/account/*": ["pages/account/*"],
       "@pages/eduai": ["pages/eduai/src"],
       "@pages/eduai/*": ["pages/eduai/src/*"],
       "@pages/filesystem": ["pages/filesystem/src"],
@@ -181,6 +185,9 @@
       "@pages/tenant/*": ["pages/tenant/src/*"],
       "@pages/actuator": ["pages/actuator/src"],
       "@pages/actuator/*": ["pages/actuator/src/*"],
+      // 监控大屏卡片共享契约（无 UI 组件，仅类型 + 注册表）
+      "@repo/monitor-cards": ["packages/monitor-cards/src"],
+      "@repo/monitor-cards/*": ["packages/monitor-cards/src/*"],
       "@pages/server": ["pages/server/src"],
       "@pages/server/*": ["pages/server/*"],
       // Docker 独立页面包：页面根 + 深路径（宿主统一写 @pages/docker/src/...）
@@ -193,6 +200,9 @@
       /* 渠道管理页：已从 pages/ai 抽离为独立包 @pages/channel */
       "@pages/channel": ["pages/channel/src"],
       "@pages/channel/*": ["pages/channel/src/*"],
+      /* CDP 实时页面组件（账号登录弹窗）：已从 pages/ai 抽离为独立包 @pages/cdp */
+      "@pages/cdp": ["pages/cdp/src"],
+      "@pages/cdp/*": ["pages/cdp/src/*"],
       // 数据源管理页：独立页面包（bare 指向 src/index.ts，通配带路径留 src
       // 前缀，与 @pages/channel 同口径；宿主统一写 @pages/datasource/src/... 深导入）。
       "@pages/datasource": ["pages/datasource/src/index.ts"],

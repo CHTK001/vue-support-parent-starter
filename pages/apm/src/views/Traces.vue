@@ -28,8 +28,11 @@
           style="width: 220px"
         />
         <ReSelect v-model="query.state" :options="stateOptions" style="width: 110px" />
-        <ReSelect v-model="minutes" :options="windowOptions" style="width: 140px" />
+        <ApmTimeWindow v-model="timeWindow" />
         <ReInput v-model="query.keyword" placeholder="按 traceId / 端点关键词" clearable style="width: 200px" />
+        <!-- 按 traceId 直查：列表是游标分页，翻页找一条链路可能要翻很多页，直查一步到详情 -->
+        <ReInput v-model="directId" placeholder="按 traceId 直查详情" clearable style="width: 210px" @keyup.enter="openById" />
+        <ReButton layout="square" icon="Position" tip="打开该链路的瀑布详情" :disabled="!directId.trim() || opening" @click="openById" />
         <!-- 勾选即重查：排序是查询条件，不该再多点一次「查询」 -->
         <el-checkbox v-model="orderByDuration" label="按耗时倒序" @change="search" />
         <ReButton icon="Search" type="primary" :loading="loading" @click="search">查询</ReButton>
@@ -40,6 +43,7 @@
         <ReButton layout="square" icon="ArrowLeft" tip="上一页" :disabled="query.pageNum <= 1 || loading" @click="prevPage" />
         <ReButton layout="square" icon="ArrowRight" tip="下一页" :disabled="items.length < pageSize || loading" @click="nextPage" />
         <ReButton layout="square" icon="Refresh" tip="刷新" :loading="loading" @click="load" />
+        <ApmAutoRefresh @refresh="load" />
       </div>
     </div>
 
@@ -99,16 +103,25 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ApmGate from "../components/ApmGate.vue";
-import { listEndpoints, listServices, listTraces } from "../api/apmApi";
+import ApmAutoRefresh from "../components/ApmAutoRefresh.vue";
+import ApmTimeWindow from "../components/ApmTimeWindow.vue";
+import { getTrace, listEndpoints, listServices, listTraces } from "../api/apmApi";
 import type { ApmTrace, ApmTraceState } from "../api/apmApi";
 import { useApmStatus } from "../composables/useApmStatus";
 import { ROUTE_PREFIX } from "../config";
 import { consumeApmTabContext } from "../tabs";
-import { WINDOW_OPTIONS, fmtMs, fmtTime, latencyClass } from "../utils/format";
+import type { ApmTabContext } from "../tabs";
+import { useApmTabActivated } from "../composables/useApmTabActivated";
+import { fmtMs, fmtTime, latencyClass } from "../utils/format";
+import { parseTimeWindow, timeQuery, timeWindowQuery } from "../utils/timeRange";
+import type { ApmTimeWindow as ApmTimeWindowState } from "../utils/timeRange";
 
 const route = useRoute();
 const router = useRouter();
 const { present, ensure } = useApmStatus();
+
+/** 本页在 URL 上的页签名，必须与 tabs.ts 里的 name 一致 */
+const TAB_NAME = "traces";
 
 /** URL 上的单值参数（数组取第一个；外部输入不做信任） */
 function firstParam(value: unknown): string {
@@ -119,11 +132,14 @@ function firstParam(value: unknown): string {
 const pageSize = 20;
 const items = ref<ApmTrace[]>([]);
 const loading = ref(false);
-const minutes = ref(30);
+/** 时间窗：预设分钟数或自定义起止区间（告警下钻 / 分享链接会带 start&end） */
+const timeWindow = ref<ApmTimeWindowState>({ minutes: 30 });
+/** traceId 直查输入框 */
+const directId = ref("");
+const opening = ref(false);
 const orderByDuration = ref(false);
 const services = ref<string[]>([]);
 const endpoints = ref<string[]>([]);
-const windowOptions = WINDOW_OPTIONS;
 
 const query = reactive<{
   service: string;
@@ -204,7 +220,7 @@ async function load() {
         endpoint: query.endpoint || undefined,
         state: query.state,
         keyword: query.keyword || undefined,
-        minutes: minutes.value,
+        ...timeQuery(timeWindow.value),
         pageNum: query.pageNum,
         pageSize,
         orderByDuration: orderByDuration.value,
@@ -234,6 +250,38 @@ function nextPage() {
   load();
 }
 
+/**
+ * 按 traceId 直查详情。
+ *
+ * <p>列表页是游标分页，一条几小时前的链路靠翻页找要翻很久；输入框直查一步到位。
+ * 链路不存在 / 已过保留期时 getTrace 返回 null，这里给出明确提示而不是静默失败。</p>
+ */
+async function openById() {
+  const id = directId.value.trim();
+  if (!id || opening.value) {
+    return;
+  }
+  opening.value = true;
+  try {
+    const trace = await getTrace(id);
+    if (!trace) {
+      message.error("链路不存在或已过保留期（OAP 默认保留 3 天）");
+      return;
+    }
+    router.push({
+      path: `${ROUTE_PREFIX}/traces/detail`,
+      query: {
+        traceId: id,
+        ...timeWindowQuery(timeWindow.value),
+        ...(query.service ? { service: query.service } : {}),
+        ...(query.endpoint ? { endpoint: query.endpoint } : {}),
+      },
+    });
+  } finally {
+    opening.value = false;
+  }
+}
+
 /** 行点击 → 瀑布详情；把当前筛选一起带上，详情页「返回列表」才能回到同一屏 */
 function onRowClick(row: Record<string, unknown>) {
   const traceId = String(row.traceId ?? "");
@@ -244,9 +292,9 @@ function onRowClick(row: Record<string, unknown>) {
     path: `${ROUTE_PREFIX}/traces/detail`,
     query: {
       traceId,
+      ...timeWindowQuery(timeWindow.value),
       ...(query.service ? { service: query.service } : {}),
       ...(query.endpoint ? { endpoint: query.endpoint } : {}),
-      minutes: String(minutes.value),
     },
   });
 }
@@ -260,15 +308,18 @@ onMounted(async () => {
   const context = consumeApmTabContext();
   const urlService = firstParam(route.query.service);
   const urlEndpoint = firstParam(route.query.endpoint);
-  const urlMinutes = Number(firstParam(route.query.minutes));
   const service = urlService || context?.service || "";
   if (service) {
     query.service = service;
   }
-  if (urlMinutes > 0) {
-    minutes.value = urlMinutes;
+  // 时间窗：URL 的 start/end（自定义区间）优先于 minutes，再退回跳转上下文
+  const parsedWindow = parseTimeWindow({ start: route.query.start, end: route.query.end, minutes: route.query.minutes });
+  if (parsedWindow) {
+    timeWindow.value = parsedWindow;
+  } else if (context?.startTime && context?.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
   } else if (context?.minutes) {
-    minutes.value = context.minutes;
+    timeWindow.value = { minutes: context.minutes };
   }
   // 端点预填要先有该服务的端点列表，否则下拉里是个不存在的值
   if (service) {
@@ -279,6 +330,44 @@ onMounted(async () => {
     query.endpoint = endpoint;
   }
   loadServices();
+  load();
+});
+
+/**
+ * 把跳转上下文落到筛选条件（服务 / 端点 / 时间窗），再按新条件取数。
+ *
+ * @param context 一次性跳转上下文（告警下钻 / 总览点慢服务带过来）
+ */
+async function applyContext(context: ApmTabContext): Promise<void> {
+  if (context.service) {
+    query.service = context.service;
+    // 端点预填要先有该服务的端点列表，否则下拉里是个不存在的值
+    await loadEndpointsOf(context.service);
+  }
+  if (context.endpoint) {
+    query.endpoint = context.endpoint;
+  }
+  if (context.startTime && context.endTime) {
+    timeWindow.value = { minutes: 0, startTime: context.startTime, endTime: context.endTime };
+  } else if (context.minutes) {
+    timeWindow.value = { minutes: context.minutes };
+  }
+  query.pageNum = 1;
+  load();
+}
+
+/**
+ * 页签常驻保活（v-show 切换）：从告警下钻等入口再次切到本页签时
+ * {@link onMounted} 不会重跑，一次性上下文只能在这里接住。
+ * 没有上下文的普通切回也重取一次 —— 常驻面板还显示切走前的旧列表，
+ * 会让人以为「这几分钟一条链路都没有」。
+ */
+useApmTabActivated(TAB_NAME, () => {
+  const context = consumeApmTabContext();
+  if (context) {
+    void applyContext(context);
+    return;
+  }
   load();
 });
 </script>

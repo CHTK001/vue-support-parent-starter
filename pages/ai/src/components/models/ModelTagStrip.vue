@@ -1,16 +1,19 @@
 <template>
   <span class="mts" :class="{ 'mts-inline': inline }">
-    <!-- 前 N 个：图标 + tooltip（悬停出具体名称） -->
-    <LTooltip v-for="tag in visibleTags" :key="tag.key" :content="tag.label" placement="top">
-      <span
-        class="mts-chip"
-        :class="[`kind-${tag.kind || 'info'}`, { 'is-disabled': tag.disabled }]"
-        role="img"
-        :aria-label="tag.label"
-      >
-        <el-icon :size="iconSize"><component :is="tag.icon" /></el-icon>
-      </span>
-    </LTooltip>
+    <!-- 前 N 个：图标 + tooltip（悬停出具体名称）；分组边界处可插一枚指向箭头 -->
+    <template v-for="(tag, ti) in visibleTags" :key="tag.key">
+      <span v-if="ti === arrowIndex" class="mts-arrow" aria-hidden="true">→</span>
+      <LTooltip :content="tag.label" placement="top">
+        <span
+          class="mts-chip"
+          :class="[`kind-${tag.kind || 'info'}`, { 'is-disabled': tag.disabled }]"
+          role="img"
+          :aria-label="tag.label"
+        >
+          <el-icon :size="iconSize"><component :is="tag.icon" /></el-icon>
+        </span>
+      </LTooltip>
+    </template>
 
     <!-- 超出部分：+N；悬停弹出 popover 列出全部具体标签 -->
     <el-popover
@@ -75,6 +78,8 @@ const props = withDefaults(
     iconSize?: number
     /** 行内紧凑（用于表格单元格） */
     inline?: boolean
+    /** 分组箭头：形如 ['in:', 'out:'] —— 在前一组最后一条与后一组第一条之间画「→」 */
+    arrowBetween?: [string, string]
   }>(),
   {
     tags: () => [],
@@ -87,6 +92,21 @@ const props = withDefaults(
 
 const visibleTags = computed(() => props.tags.slice(0, Math.max(0, props.max)))
 const hiddenTags = computed(() => props.tags.slice(Math.max(0, props.max)))
+
+/**
+ * 箭头插入位置：后一组的第一条紧跟着前一组的最后一条、且该位置在
+ * 可见范围内（被 +N 折叠进省略号时不画，避免把行挤高）时才显示。
+ */
+const arrowIndex = computed(() => {
+  const pair = props.arrowBetween
+  if (!pair || pair.length < 2) return -1
+  for (let i = 1; i < props.tags.length; i++) {
+    if (props.tags[i]?.key.startsWith(pair[1]) && props.tags[i - 1]?.key.startsWith(pair[0])) {
+      return i < Math.max(0, props.max) ? i : -1
+    }
+  }
+  return -1
+})
 </script>
 
 <style scoped>
@@ -122,6 +142,14 @@ const hiddenTags = computed(() => props.tags.slice(Math.max(0, props.max)))
 }
 .mts-chip.is-disabled {
   opacity: 0.45;
+}
+
+/* 分组指向箭头：输入组 → 输出组；颜色压淡，不与图标胶囊抢视觉重量 */
+.mts-arrow {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
+  line-height: 1;
+  user-select: none;
 }
 
 /* 配色：按标签类别区分，与模型卡片的 cap-i.kind-* 同源语义 */
