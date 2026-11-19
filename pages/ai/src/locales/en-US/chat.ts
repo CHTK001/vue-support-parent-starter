@@ -589,6 +589,8 @@ export default {
       stagedCount: '{count} staged file(s)',
       filesCount: '{count} file(s)',
       noHistory: 'No commits yet',
+      historyLoadFailed: 'Failed to load commit history: {reason}',
+      retry: 'Retry',
       detached: 'Detached HEAD',
       loadFailed: 'Failed to load Git status',
       operateFailed: 'Git operation failed',

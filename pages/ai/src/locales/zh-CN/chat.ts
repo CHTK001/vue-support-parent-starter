@@ -597,6 +597,8 @@ export default {
       stagedCount: '已暂存 {count} 个文件',
       filesCount: '{count} 个文件',
       noHistory: '暂无提交记录',
+      historyLoadFailed: '提交历史加载失败：{reason}',
+      retry: '重试',
       detached: '游离 HEAD',
       loadFailed: '加载 Git 状态失败',
       operateFailed: 'Git 操作失败',

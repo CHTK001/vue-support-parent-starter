@@ -181,6 +181,12 @@
                     </div>
                 </li>
             </ul>
+            <!-- 加载失败必须与「确实没有提交」区分开：首轮验收里后端 502 就只显示「暂无提交记录」，
+                 用户以为仓库是空的（2026-11-18 F2）。这里给原因 + 就地重试。 -->
+            <div v-else-if="logError" class="git-diff__hint px-3 py-4 git-log-error">
+                {{ t('chat.workspace.git.historyLoadFailed', { reason: logError }) }}
+                <button class="git-link-btn" @click="loadLog">{{ t('chat.workspace.git.retry') }}</button>
+            </div>
             <p v-else class="git-diff__hint px-3 py-4">{{ t('chat.workspace.git.noHistory') }}</p>
         </div>
 
@@ -235,6 +241,8 @@ const loading = ref(false);
 const branchesLoading = ref(false);
 /** 历史加载状态 */
 const logLoading = ref(false);
+/** 历史加载失败原因：与「确实没有提交」区分开，非空时面板显示原因 + 重试 */
+const logError = ref('');
 /** 初始化仓库状态 */
 const initializing = ref(false);
 /** 暂存/取消暂存/丢弃操作状态 */
@@ -401,14 +409,19 @@ async function loadBranches(): Promise<void> {
 async function loadLog(): Promise<void> {
     if (!props.sessionId || !status.value?.repository) {
         logEntries.value = [];
+        logError.value = '';
         return;
     }
     logLoading.value = true;
+    logError.value = '';
     try {
         logEntries.value = await apiService.getGitLog(props.sessionId, 50);
     } catch (error: any) {
         console.error('[GitPanel] 加载历史失败:', error);
         logEntries.value = [];
+        // 失败原因留在面板里（而不是只 console），否则用户看到的是「暂无提交记录」，
+        // 会把后端 502 当成「仓库没有提交」。
+        logError.value = error?.message || t('chat.workspace.git.loadFailed');
     } finally {
         logLoading.value = false;
     }
@@ -648,6 +661,7 @@ watch(
         status.value = null;
         branches.value = { branches: [], remotes: [], current: '' };
         logEntries.value = [];
+        logError.value = '';
         commitMessage.value = '';
         expandedKey.value = null;
         currentDiff.value = null;
