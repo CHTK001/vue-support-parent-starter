@@ -629,6 +629,27 @@
               </span>
             </p>
             <div class="wg-compare-tools">
+              <span class="wg-compare-modes" role="group" aria-label="对比方式">
+                <button
+                  type="button"
+                  class="wg-compare-mode"
+                  :class="{ 'is-on': compareMode === 'grid' }"
+                  :aria-pressed="compareMode === 'grid'"
+                  @click="setCompareMode('grid')"
+                >
+                  并排
+                </button>
+                <button
+                  type="button"
+                  class="wg-compare-mode"
+                  :class="{ 'is-on': compareMode === 'slide' }"
+                  :aria-pressed="compareMode === 'slide'"
+                  title="把两张图叠放，拖动分割线对照"
+                  @click="setCompareMode('slide')"
+                >
+                  滑动
+                </button>
+              </span>
               <button
                 v-for="n in compareTask.urls.length"
                 :key="'cmp-t-' + n"
@@ -651,7 +672,7 @@
               </button>
             </div>
           </header>
-          <div class="wg-compare-row">
+          <div v-if="compareMode === 'grid'" class="wg-compare-row">
             <figure v-for="i in compareOnIndexes" :key="'cmp-' + i" class="wg-compare-col">
               <img
                 v-if="!mediaFailed(compareTask.urls[i])"
@@ -666,7 +687,53 @@
               </figcaption>
             </figure>
           </div>
+          <div
+            v-else
+            ref="compareSlideEl"
+            class="wg-compare-slide"
+            tabindex="0"
+            role="slider"
+            aria-label="滑动对比：左右拖动或用方向键移动分割线"
+            :aria-valuenow="Math.round(compareSplit)"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            @pointerdown="onCompareSlideDown"
+            @pointermove="onCompareSlideMove"
+            @pointerup="onCompareSlideUp"
+            @pointercancel="onCompareSlideUp"
+            @keydown.left.prevent="nudgeCompareSplit(-2)"
+            @keydown.right.prevent="nudgeCompareSplit(2)"
+          >
+            <template v-if="compareSlideSides">
+              <img
+                v-if="!mediaFailed(compareSlideSides.left.url)"
+                class="wg-compare-slide-img"
+                :src="mediaSrc(compareSlideSides.left.url)"
+                :alt="'第 ' + (compareSlideSides.left.index + 1) + ' 张结果'"
+                decoding="async"
+                draggable="false"
+              />
+              <span v-else class="wg-compare-lost">已丢失</span>
+              <img
+                v-if="!mediaFailed(compareSlideSides.right.url)"
+                class="wg-compare-slide-img is-top"
+                :src="mediaSrc(compareSlideSides.right.url)"
+                :alt="'第 ' + (compareSlideSides.right.index + 1) + ' 张结果'"
+                decoding="async"
+                draggable="false"
+                :style="{ clipPath: `inset(0 0 0 ${compareSplit}%)` }"
+              />
+              <span v-else class="wg-compare-lost">已丢失</span>
+              <span class="wg-compare-divider" :style="{ left: compareSplit + '%' }" aria-hidden="true">
+                <span class="wg-compare-grip">⇆</span>
+              </span>
+              <span class="wg-compare-slide-tag is-left">第 {{ compareSlideSides.left.index + 1 }} 张</span>
+              <span class="wg-compare-slide-tag is-right">第 {{ compareSlideSides.right.index + 1 }} 张</span>
+            </template>
+            <span v-else class="wg-compare-lost">滑动对比至少需要 2 张结果</span>
+          </div>
         </div>
+
         <!-- 骨架屏：首次加载历史期间，避免「一片空白」 -->
         <div v-if="viewMode === 'gallery' && loading && !rows.length" class="wg-list">
           <article v-for="n in 3" :key="'sk-' + n" class="wg-card is-skeleton" aria-hidden="true">
@@ -1380,6 +1447,19 @@
                     </button>
                   </div>
                 </div>
+                <template v-if="recentPrompts.length">
+                  <p class="wg-menu-title wg-recent-title">
+                    最近使用
+                    <span class="wg-menu-count">{{ recentPrompts.length }}</span>
+                  </p>
+                  <div class="wg-fav-list">
+                    <div v-for="(rp, rpi) in recentPrompts" :key="'rp-' + rpi" class="wg-fav-item">
+                      <button type="button" class="wg-fav-text" :title="rp" @click="applyPromptFav(rp)">
+                        {{ rp }}
+                      </button>
+                    </div>
+                  </div>
+                </template>
                 <div class="wg-fav-foot">
                   <button
                     type="button"
@@ -2601,20 +2681,33 @@ const stageItem = computed(() => stageItems.value[stageSafeIndex.value] ?? null)
 const stageTotal = computed(() => resultRows.value.length)
 
 /** 切换形态。切到舞台时若还没选过作品，落到最新一条，避免「切了却还是空的」 */
+/** 进舞台前的画廊滚动位置：回到画廊时恢复，翻到第 N 屏点开大图再回来不必重头翻 */
+const galleryScrollTop = ref(0)
+
 const setViewMode = (mode: ViewMode) => {
-  if (mode === 'stage' && !stageRow.value) {
-    stageTaskId.value = resultRows.value[0]?.id ?? ''
-    stageItemIndex.value = 0
+  if (mode === 'stage') {
+    if (!stageRow.value) {
+      stageTaskId.value = resultRows.value[0]?.id ?? ''
+      stageItemIndex.value = 0
+    }
+    galleryScrollTop.value = canvasRef.value?.scrollTop ?? 0
   }
   viewMode.value = mode
   // 舞台不滚动，「回到顶部」的显示状态不跨形态保留
   showBackTop.value = false
+  if (mode === 'gallery') {
+    // 等画廊重新挂载完再恢复；scrollTo 会触发 onCanvasScroll，showBackTop 一并归位
+    nextTick(() => {
+      canvasRef.value?.scrollTo({ top: galleryScrollTop.value })
+    })
+  }
 }
 
 /** 从画廊点开一张：定位到那条记录的第 index 张 */
 const openStage = (row: Row, index = 0) => {
   stageTaskId.value = row.id
   stageItemIndex.value = index
+  galleryScrollTop.value = canvasRef.value?.scrollTop ?? 0
   viewMode.value = 'stage'
   nextTick(() => canvasRef.value?.scrollTo({ top: 0 }))
 }
@@ -4034,6 +4127,9 @@ const applyPromptFav = (p: string) => {
   focusComposerInput()
 }
 
+/** 最近使用：输入历史（IndexedDB）里最近发过的提示词，弹层里只露 8 条 */
+const recentPrompts = computed(() => promptHistory.value.slice(0, 8))
+
 /* ---------- 多图对比：同一次生成的多张结果并排同屏 ---------- */
 
 const compareTask = ref<GenerateTask | null>(null)
@@ -4048,12 +4144,81 @@ const compareOnIndexes = computed(() => {
   return t.urls.map((_, i) => i).filter((i) => !compareOff.value.has(i))
 })
 
+/** 对比方式：grid=并排铺开，slide=两张叠放、拖动分割线对照 */
+const compareMode = ref<'grid' | 'slide'>('grid')
+/** 滑动模式里分割线位置（0-100，左图占前 compareSplit%） */
+const compareSplit = ref(50)
+const compareSlideEl = ref<HTMLElement | null>(null)
+let compareDragging = false
+
+/** 滑动对照的两张：取当前点亮的前两张（默认第 1、2 张） */
+const compareSlideSides = computed<{ left: { index: number; url: string }; right: { index: number; url: string } } | null>(() => {
+  const t = compareTask.value
+  const a = compareOnIndexes.value[0]
+  const b = compareOnIndexes.value[1]
+  if (!t || a === undefined || b === undefined) {
+    return null
+  }
+  const ua = t.urls[a]
+  const ub = t.urls[b]
+  if (ua === undefined || ub === undefined) {
+    return null
+  }
+  return { left: { index: a, url: ua }, right: { index: b, url: ub } }
+})
+
+const setCompareMode = (mode: 'grid' | 'slide') => {
+  compareMode.value = mode
+  if (mode === 'slide') {
+    compareSplit.value = 50
+  }
+}
+
+const updateCompareSplit = (event: PointerEvent) => {
+  const el = compareSlideEl.value
+  if (!el) {
+    return
+  }
+  const rect = el.getBoundingClientRect()
+  if (rect.width <= 0) {
+    return
+  }
+  const pct = ((event.clientX - rect.left) / rect.width) * 100
+  compareSplit.value = Math.min(100, Math.max(0, pct))
+}
+
+const onCompareSlideDown = (event: PointerEvent) => {
+  if (compareMode.value !== 'slide') {
+    return
+  }
+  compareDragging = true
+  compareSlideEl.value?.setPointerCapture(event.pointerId)
+  updateCompareSplit(event)
+}
+
+const onCompareSlideMove = (event: PointerEvent) => {
+  if (compareDragging) {
+    updateCompareSplit(event)
+  }
+}
+
+const onCompareSlideUp = () => {
+  compareDragging = false
+}
+
+/** 键盘微调：方向键每次移动 2%，不便拖动的用户也能对照 */
+const nudgeCompareSplit = (delta: number) => {
+  compareSplit.value = Math.min(100, Math.max(0, compareSplit.value + delta))
+}
+
 const openCompare = (task: GenerateTask) => {
   if (!task.urls || task.urls.length < 2) {
     return
   }
   compareTask.value = task
   compareOff.value = new Set()
+  compareMode.value = 'grid'
+  compareSplit.value = 50
   nextTick(() => {
     document.querySelector<HTMLElement>('.wg-compare')?.focus()
   })
@@ -4079,6 +4244,8 @@ const toggleCompareColumn = (i: number) => {
 const closeCompare = () => {
   compareTask.value = null
   compareOff.value = new Set()
+  compareMode.value = 'grid'
+  compareSplit.value = 50
 }
 
 const loadModels = async () => {
@@ -4797,6 +4964,13 @@ onUnmounted(() => {
   color: var(--color-text-gray);
   font-variant-numeric: tabular-nums;
   opacity: 0.8;
+}
+
+/* 常用夹里的「最近使用」段：与常用列表之间一条分隔线 */
+.wg-recent-title {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-surface-border);
 }
 
 .wg-menu-empty {
@@ -5838,6 +6012,16 @@ onUnmounted(() => {
   border-radius: var(--el-radius-lg, 12px);
 }
 
+/*
+ * 长列表渲染减压：视口外的卡片跳过渲染与布局，滚近了再按估算高度展开。
+ * 历史多了以后（几百条）首屏渲染与滚动都明显变重；contain-intrinsic-size
+ * 给一个接近真实卡高的占位值，滚动条不至于大幅跳动。
+ */
+.wg-list.is-gallery .wg-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 340px;
+}
+
 .wg-list.is-gallery .wg-card-head-right {
   gap: 6px;
   font-size: 12px;
@@ -6792,6 +6976,106 @@ onUnmounted(() => {
   color: rgba(238, 241, 248, 0.62);
   font-size: 12px;
 }
+
+/* ---------- 对比方式切换：并排 / 滑动 ---------- */
+
+.wg-compare-modes {
+  display: inline-flex;
+  margin-right: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+.wg-compare-mode {
+  height: 26px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: rgba(238, 241, 248, 0.62);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.18s, background 0.18s;
+}
+
+.wg-compare-mode.is-on {
+  background: rgba(255, 255, 255, 0.14);
+  color: #eef1f8;
+}
+
+/* 滑动对照：两张图叠满同一容器，上层用 clip-path 露出右侧部分 */
+.wg-compare-slide {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: #171b26;
+  touch-action: none;
+  cursor: ew-resize;
+  user-select: none;
+}
+
+.wg-compare-slide-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.wg-compare-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateX(-1px);
+  pointer-events: none;
+}
+
+.wg-compare-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #171b26;
+  font-size: 14px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.wg-compare-slide-tag {
+  position: absolute;
+  bottom: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.72);
+  color: rgba(238, 241, 248, 0.85);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.wg-compare-slide-tag.is-left {
+  left: 10px;
+}
+
+.wg-compare-slide-tag.is-right {
+  right: 10px;
+}
+
 /* ---------- 05 沉浸舞台 ---------- */
 
 /*
