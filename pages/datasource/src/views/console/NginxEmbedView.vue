@@ -13,7 +13,10 @@
       </div>
     </div>
 
-    <div v-if="loading" class="nge-center">看板加载中…</div>
+    <div v-if="loading" class="nge-center nge-loading" aria-busy="true">
+      <ReIcon name="Loading" :size="22" class="nge-loading-icon" />
+      <span>看板加载中…</span>
+    </div>
     <div v-else-if="error" class="nge-center nge-error nge-center-col">
       <span>{{ error }}</span>
       <button class="nge-retry" type="button" data-testid="nge-btn-retry" @click="load">重试</button>
@@ -218,6 +221,23 @@ onMounted(() => {
 .nge-center-col {
   flex-direction: column;
   gap: 10px;
+}
+
+/* 加载态：图标 + 文案替代纯文本，与概览 widget 的加载口径一致 */
+.nge-loading {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nge-loading-icon {
+  color: var(--brand-500);
+  animation: nge-spin 1.1s linear infinite;
+}
+
+@keyframes nge-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .nge-retry {

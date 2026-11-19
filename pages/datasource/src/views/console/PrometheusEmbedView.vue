@@ -13,7 +13,10 @@
       </div>
     </div>
 
-    <div v-if="loading" class="pme-center">看板加载中…</div>
+    <div v-if="loading" class="pme-center pme-loading" aria-busy="true">
+      <ReIcon name="Loading" :size="22" class="pme-loading-icon" />
+      <span>看板加载中…</span>
+    </div>
     <div v-else-if="error" class="pme-center pme-error pme-center-col">
       <span>{{ error }}</span>
       <button class="pme-retry" type="button" data-testid="pme-btn-retry" @click="load">重试</button>
@@ -215,6 +218,23 @@ onMounted(() => {
 .pme-center-col {
   flex-direction: column;
   gap: 10px;
+}
+
+/* 加载态：图标 + 文案替代纯文本，与概览 widget 的加载口径一致 */
+.pme-loading {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pme-loading-icon {
+  color: var(--brand-500);
+  animation: pme-spin 1.1s linear infinite;
+}
+
+@keyframes pme-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .pme-retry {

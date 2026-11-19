@@ -1291,6 +1291,46 @@ const batchRemove = async () => {
   await load();
 };
 
+/** 批量启用/停用进行中：防止重复提交 */
+const batchTogglingStatus = ref(false);
+
+/**
+ * 批量启用/停用：后端无批量端点，与批量置顶/删除/测试同口径逐条调用单条更新接口，
+ * Promise.allSettled 收敛；已在目标状态的条目直接跳过，不给后端制造空转请求。
+ * 载荷与 openEdit 同形（整行展开只改 status），口令等字段按「留空即不修改」语义处理。
+ */
+const batchToggleStatus = async (enable: boolean) => {
+  if (batchTogglingStatus.value) return;
+  const targets = [...selectionIds.value]
+    .map((id) => ({ id, row: list.value.find((r) => r.id === id) }))
+    .filter(
+      (t): t is { id: number; row: DataSourceInfo } =>
+        t.row != null && (enable ? t.row.status === 0 : t.row.status !== 0),
+    );
+  if (!targets.length) {
+    message.info(enable ? "选中项均已处于启用状态" : "选中项均已处于停用状态");
+    return;
+  }
+  batchTogglingStatus.value = true;
+  try {
+    const label = enable ? "启用" : "停用";
+    const results = await Promise.allSettled(
+      targets.map((t) => updateDataSource(t.id, { ...t.row, status: enable ? 1 : 0 })),
+    );
+    const ok = results.filter((r) => r.status === "fulfilled").length;
+    const fail = results.length - ok;
+    if (fail > 0) {
+      message.warning(`已${label} ${ok} 个，失败 ${fail} 个`);
+    } else {
+      message.success(`已${label} ${ok} 个数据源`);
+    }
+    clearSelection();
+    await load();
+  } finally {
+    batchTogglingStatus.value = false;
+  }
+};
+
 /** 批量测试连接进行中：防止重复提交 */
 const batchTesting = ref(false);
 
@@ -2944,6 +2984,8 @@ onMounted(load);
             <span class="ds-side__batch-ops">
               <ReButton icon="Top" :show-text="true" size="small" :disabled="selectionIds.size === 0" @click="batchToggleTop(true)">批量置顶</ReButton>
               <ReButton icon="Connection" :show-text="true" size="small" :disabled="selectionIds.size === 0" :loading="batchTesting" @click="batchTest">批量测试</ReButton>
+              <ReButton icon="Open" :show-text="true" size="small" :disabled="selectionIds.size === 0" :loading="batchTogglingStatus" @click="batchToggleStatus(true)">批量启用</ReButton>
+              <ReButton icon="TurnOff" :show-text="true" size="small" :disabled="selectionIds.size === 0" :loading="batchTogglingStatus" @click="batchToggleStatus(false)">批量停用</ReButton>
               <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain :disabled="selectionIds.size === 0" @click="batchRemove">批量删除</ReButton>
               <button type="button" class="ds-side__batch-close" title="退出批量" @click="toggleBatchMode">
                 <ReIcon name="Close" :size="12" />
@@ -2977,7 +3019,7 @@ onMounted(load);
 
           <!-- 数据源卡片列表：滚动分页（全量留内存、只挂载前 railLimit 条，触底追加） -->
           <div ref="railListRef" class="ds-side__list" @scroll="onRailScroll">
-            <p v-if="loading && !list.length" class="ds-side__hint">加载中…</p>
+            <el-skeleton v-if="loading && !list.length" class="ds-side__skeleton" :rows="5" animated />
             <ReEmpty v-else-if="!filteredList.length" description="暂无匹配的数据源" :image-size="60" />
             <template v-else>
               <div
@@ -4218,12 +4260,9 @@ onMounted(load);
 .ds-side__list::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary, #6b7280);
 }
-.ds-side__hint {
-  margin: 0;
-  padding: 16px 0;
-  text-align: center;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+/* 首屏加载骨架：替代纯文本「加载中…」，行密度对齐左栏卡片 */
+.ds-side__skeleton {
+  padding: 10px 2px;
 }
 
 /* 数据源卡片：图标块 + 名称/徽标 + 地址 + 右侧状态点。
@@ -4324,6 +4363,8 @@ onMounted(load);
 .ds-side__batch-ops {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 4px;
   margin-left: auto;
 }
