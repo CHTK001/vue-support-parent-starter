@@ -32,6 +32,7 @@
           :loading="overviewLoading"
           @click="reloadOverview"
         />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
       </div>
     </div>
 
@@ -92,6 +93,8 @@ import ReIcon from "@repo/ui/re-icon";
 import ReSelect from "@repo/ui/re-select";
 import { ReOption } from "@repo/ui/re-kit";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import PromOverviewPanel from "../../components/console/prometheus/PromOverviewPanel.vue";
 import PromQueryPanel from "../../components/console/prometheus/PromQueryPanel.vue";
 import PromMonitorPanel from "../../components/console/prometheus/PromMonitorPanel.vue";
@@ -190,6 +193,20 @@ async function onSwitchSource(id: number): Promise<void> {
     await reloadOverview();
   }
 }
+
+/**
+ * 自动刷新：总览（实例状态 / 抓取目标 / 告警）。
+ *
+ * <p>默认关闭。Prometheus 的管理页会顺带读 targets 与 alerts，属于运维巡检场景，
+ * 用户开了档位就是明确想要轮询。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: reloadOverview,
+  storageKey: "datasource.prometheus",
+});
 
 onMounted(async () => {
   try {

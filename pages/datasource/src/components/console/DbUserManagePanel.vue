@@ -182,7 +182,7 @@
  */
 import { message } from "@repo/core";
 import { onMounted, ref, watch } from "vue";
-import { ElCheckboxGroup, ElMessageBox, ElSwitch } from "element-plus";
+import { ElCheckboxGroup, ElSwitch } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReInput from "@repo/ui/re-input";
@@ -488,11 +488,7 @@ async function confirmDelete() {
     return;
   }
   try {
-    await ElMessageBox.confirm(`确认删除用户 ${u.name}@${u.host}？删除后该用户将无法登录。`, "删除用户", {
-      type: "warning",
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-    });
+    await message.confirm(`确认删除用户 ${u.name}@${u.host}？删除后该用户将无法登录。`, "删除用户", "删除", "取消", "warning");
   } catch {
     return;
   }

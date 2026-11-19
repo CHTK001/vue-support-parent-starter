@@ -182,7 +182,7 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { computed, onMounted, ref, watch } from "vue";
-import { ElCheckbox, ElMessageBox } from "element-plus";
+import { ElCheckbox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
@@ -268,12 +268,14 @@ async function confirmDelete(names: string[]) {
   }
   const batch = names.length > 1;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       batch
         ? `将永久删除选中的 ${names.length} 个备份。删除不可恢复，但配置文件本身不受影响。`
         : `将永久删除备份 ${names[0]}。删除不可恢复，但配置文件本身不受影响。`,
       "删除备份？",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+      "删除",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -486,10 +488,12 @@ async function doRestore() {
   }
   const b = pending.value;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `将用备份 ${b.name} 覆盖 ${restoreTarget.value}。回退前会自动再备份一次当前内容，因此这一步可以撤销。`,
       "确认回退配置？",
-      { type: "warning", confirmButtonText: "确认回退", cancelButtonText: "取消" },
+      "确认回退",
+      "取消",
+      "warning",
     );
   } catch {
     return;

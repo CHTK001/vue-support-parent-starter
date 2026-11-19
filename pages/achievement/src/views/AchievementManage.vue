@@ -8,7 +8,6 @@
  */
 import { message } from "@repo/core";
 import { onMounted, reactive, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import { Edit, Delete } from "@element-plus/icons-vue";
 import ReCard from "@repo/ui/re-card";
 import ReTable from "@repo/ui/re-table";
@@ -74,7 +73,7 @@ function handleEdit(row: AchievementTier) {
 }
 
 async function handleDelete(row: AchievementTier) {
-  await ElMessageBox.confirm(`Delete tier "${row.name}"?`, "Confirm", { type: "warning" });
+  await message.confirm(`Delete tier "${row.name}"?`, "Confirm");
   await deleteTier(row.id!);
   message.success("Deleted");
   tableRef.value?.reload();

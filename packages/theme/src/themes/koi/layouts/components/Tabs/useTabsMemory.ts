@@ -20,6 +20,7 @@
  * 页面不可见（切到别的窗口 / 别的 tab）时暂停采样，恢复可见后重新取基线。</p>
  */
 import { onBeforeUnmount, ref, watch, type Ref } from "vue";
+import { formatBytes } from "@repo/utils";
 
 /** Chromium 专有的 performance.memory */
 interface ChromiumMemory {
@@ -51,16 +52,6 @@ function readHeap(): number | null {
   const memory = (performance as Performance & { memory?: ChromiumMemory }).memory;
   if (!memory || typeof memory.usedJSHeapSize !== "number") return null;
   return memory.usedJSHeapSize;
-}
-
-/** 字节 → 人类可读（保留一位小数，KB 以下按 B 显示） */
-export function formatBytes(bytes: number | null): string {
-  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return "";
-  if (bytes < 1024) return `${Math.round(bytes)} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb < 10 ? kb.toFixed(1) : Math.round(kb)} KB`;
-  const mb = kb / 1024;
-  return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
 }
 
 export function useTabsMemory(activePath: Ref<string>, enabled: Ref<boolean>): TabsMemoryHandle {
@@ -158,6 +149,6 @@ export function useTabsMemory(activePath: Ref<string>, enabled: Ref<boolean>): T
   return {
     supported,
     getMemory: (path: string) => memoryMap.value[path] ?? null,
-    formatMemory: (path: string) => formatBytes(memoryMap.value[path] ?? null),
+    formatMemory: (path: string) => formatBytes(memoryMap.value[path] ?? null, { emptyText: "", digits: "smart" }),
   };
 }

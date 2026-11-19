@@ -207,7 +207,6 @@ import { useI18n } from 'vue-i18n'
 import { ElIcon,
   ElButton,
   ElTag,
-  ElMessageBox,
   ElMessage,
 } from "element-plus";
 import type { Model, ModelProvider } from '@/types/api';
@@ -229,7 +228,7 @@ import {
 import { usePopup } from '@/composables/usePopup';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
-import { isAdmin } from '@repo/core';
+import { isAdmin, message } from '@repo/core';
 import ReDialog from '@repo/ui/re-dialog';
 // 斜杠命令面板与模型选择面板：模板里按 <CommandPicker> / <ModelSelectorPanel> 使用，
 // 漏了这两行会静默降级成未解析自定义元素（控制台 Failed to resolve component），
@@ -274,7 +273,7 @@ type FileWithContent = File & { _originalContent?: string }
 const breakpoints = useBreakpoints(breakpointsTailwind)
 const isMobile = breakpoints.smaller('lg') // md = 768px
 
-const { confirm } = usePopup();
+const { confirm, toast } = usePopup();
 const { t } = useI18n()
 
 // 响应式数据
@@ -1196,8 +1195,10 @@ const handlePaste = async (event: ClipboardEvent) => {
       await processFiles(imageFiles, 'IMAGE');
     } else if (textFiles.length > 0) {
       await processFiles(textFiles, 'TEXT');
+    } else {
+      // 粘贴内容既不是图片也不是支持的文本类型：明确提示，不再静默忽略
+      toast.warning(`已忽略 ${filesToProcess.length} 个不支持的文件（仅支持图片与文本类文件）`);
     }
-    // TODO：如果既不是图片也不是支持的文本类型，会被忽略（可选加提示）
   }
 };
 
@@ -1236,6 +1237,11 @@ const handleDrop = async (event: DragEvent) => {
   }
   if (textFiles.length > 0) {
     await processFiles(textFiles, 'TEXT');
+  }
+  const ignoredCount = files.length - imageFiles.length - textFiles.length;
+  if (ignoredCount > 0) {
+    // 拖入文件既不是图片也不是支持的文本类型：明确提示，不再静默忽略
+    toast.warning(`已忽略 ${ignoredCount} 个不支持的文件（仅支持图片与文本类文件）`);
   }
 };
 
@@ -1320,16 +1326,13 @@ const submit = () => {
 // 显示上传等待对话框
 async function showUploadWaitingDialog(uploadingCount: number): Promise<boolean> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       t('chat.input.uploadingDesc', { count: uploadingCount }),
       t('chat.input.uploadingTitle'),
-      {
-        confirmButtonText: t('chat.input.continueWaiting'),
-        cancelButtonText: t('chat.input.sendDirectly'),
-        type: 'warning',
-        distinguishCancelAndClose: true,
-        closeOnClickModal: false,
-      }
+      t('chat.input.continueWaiting'),
+      t('chat.input.sendDirectly'),
+      'warning',
+      { closeOnClickModal: false },
     );
     return true; // 用户点击"继续等待"
   } catch {

@@ -8,6 +8,7 @@
       <div class="dsm-toolbar-right">
         <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
         <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" :loading="loading" @click="refresh" />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
         <ReButton layout="square" tip="新建租约" icon="Timer" data-testid="dsm-btn-lease" :disabled="!source" @click="openLeaseDialog" />
         <ReButton layout="square" type="primary" tip="新建键" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" @click="openCreate" />
       </div>
@@ -270,8 +271,8 @@
  * @since 4.0.0.43
  */
 import { message } from "@repo/core";
+import { formatBytes } from "@repo/utils";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import { View, EditPen, CopyDocument, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -283,6 +284,8 @@ import ReTag from "@repo/ui/re-tag";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import { copyToClipboard } from "../../utils/clipboard";
 import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
@@ -696,7 +699,7 @@ async function submitKey() {
  */
 async function confirmDelete(key: string) {
   try {
-    await ElMessageBox.confirm(`确定删除键 ${key} 吗？`, "删除确认", { type: "warning" });
+    await message.confirm(`确定删除键 ${key} 吗？`, "删除确认");
   } catch {
     return;
   }
@@ -725,7 +728,7 @@ async function confirmDelete(key: string) {
  */
 async function confirmDeletePrefix(path: string, count: number) {
   try {
-    await ElMessageBox.confirm(`确定删除目录 ${path} 下全部 ${count} 个键吗？`, "删除确认", { type: "warning" });
+    await message.confirm(`确定删除目录 ${path} 下全部 ${count} 个键吗？`, "删除确认");
   } catch {
     return;
   }
@@ -776,7 +779,7 @@ async function submitLease() {
  */
 async function confirmRevoke(lease: EtcdLease) {
   try {
-    await ElMessageBox.confirm(`确定撤销租约 ${lease.id} 吗？绑定的键会被一并删除。`, "撤销确认", { type: "warning" });
+    await message.confirm(`确定撤销租约 ${lease.id} 吗？绑定的键会被一并删除。`, "撤销确认");
   } catch {
     return;
   }
@@ -833,6 +836,20 @@ async function refresh() {
 }
 
 /**
+ * 自动刷新：与「刷新」按钮同一条链路（键列表 + 状态 + 当前页签）。
+ *
+ * <p>默认关闭：etcd 的键列表是按前缀递归取，开档位前应由用户确认目标实例
+ * 承受得起这个频率。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: refresh,
+  storageKey: "datasource.etcd",
+});
+
+/**
  * 十六进制 ID 缩写（集群 ID 很长，页面只展示前 12 位）。
  *
  * @param id 完整 ID
@@ -841,25 +858,6 @@ async function refresh() {
 function shortId(id?: string | null): string {
   const text = String(id || "");
   return text.length > 12 ? `${text.slice(0, 12)}…` : text;
-}
-
-/**
- * 字节数格式化。
- *
- * @param bytes 字节
- * @returns 可读文本
- */
-function formatBytes(bytes?: number | null): string {
-  if (bytes == null) {
-    return "—";
-  }
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 onMounted(refresh);

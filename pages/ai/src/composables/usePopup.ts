@@ -92,6 +92,10 @@ export function usePopup(): UsePopupReturn {
 
     /**
      * 确认对话框
+     *
+     * 统一走 @repo/core 的 message.confirm（全站唯一确认框入口）。
+     * message.confirm 取消时会 reject；这里按 usePopup 的历史契约把取消
+     * 折叠成 resolve(false)，调用方依旧可以不写 try/catch。
      */
     const confirm = (title: string, content: string, options: ConfirmOptions = {}): Promise<boolean> => {
         const {
@@ -100,22 +104,10 @@ export function usePopup(): UsePopupReturn {
             cancelText = t('common.cancel')
         } = options
 
-        return new Promise((resolve) => {
-            ElMessageBox({
-                title,
-                message: content,
-                type,
-                confirmButtonText: confirmText,
-                cancelButtonText: cancelText,
-                showCancelButton: true,
-                distinguishCancelAndClose: true,
-                dangerouslyUseHTMLString: true
-            }).then(() => {
-                resolve(true)
-            }).catch(() => {
-                resolve(false)
-            })
-        })
+        return message
+            .confirm(content, title, confirmText, cancelText, type)
+            .then(() => true)
+            .catch(() => false)
     }
 
     /**

@@ -2336,6 +2336,8 @@ const style = ref('')
 const referenceImage = ref('')
 const submitting = ref(false)
 
+const tasks = ref<GenerateTask[]>([])
+
 /**
  * 是否已有未完成的任务。
  *
@@ -2387,7 +2389,6 @@ const focusRunning = () => {
   }
 }
 
-const tasks = ref<GenerateTask[]>([])
 /** 首次加载历史期间为 true，用于骨架屏 */
 const loading = ref(false)/**
  * 是否存在可用的视频模型。
@@ -4838,11 +4839,7 @@ const deleteSelected = async () => {
     return
   }
   try {
-    await ElMessageBox.confirm(`将删除勾选的 ${ids.length} 条记录，此操作不可恢复。`, '批量删除', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-    })
+    await message.confirm(`将删除勾选的 ${ids.length} 条记录，此操作不可恢复。`, '批量删除', '删除', '取消', 'warning')
   } catch {
     return
   }
@@ -4946,12 +4943,14 @@ const removeTask = async (task: GenerateTask) => {
     return
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       task.status === 'FAILED' || task.status === 'CANCELED'
         ? '确定删除这条失败记录？'
         : '确定删除这条记录？删除后无法恢复。',
       '删除确认',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+      '删除',
+      '取消',
+      'warning',
     )
   } catch {
     // 用户点了取消
@@ -4996,10 +4995,12 @@ const clearFailedTasks = async () => {
     return
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `将删除当前已加载的 ${count} 条失败/取消记录，此操作不可恢复。`,
       '清理失败记录',
-      { type: 'warning', confirmButtonText: '清理', cancelButtonText: '取消' },
+      '清理',
+      '取消',
+      'warning',
     )
   } catch {
     return

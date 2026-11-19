@@ -423,10 +423,12 @@ const batchDeleteItems = async () => {
   const targets = selectedItems.value.filter((item: any) => !!item);
   if (!targets.length) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确定删除所选 ${targets.length} 个 AppKey 吗？删除后将无法恢复。`,
       '批量删除',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+      '删除',
+      '取消',
+      'warning',
     );
   } catch {
     return;

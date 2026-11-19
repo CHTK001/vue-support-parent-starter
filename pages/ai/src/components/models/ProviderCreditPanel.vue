@@ -294,6 +294,17 @@
             窗口内暂无余额读数或用量记录
           </p>
           <template v-else>
+            <!-- 耗尽预测：由本窗口归因数据线性外推，纯前端估算，不另发请求 -->
+            <p v-if="attrForecast" class="pc-attr__forecast" :title="attrForecastTitle">
+              <span class="pc-attr__forecast-label">耗尽预测</span>
+              <template v-if="attrForecast.burn > 0">
+                <span>
+                  当前余额合计 <b>{{ money(attrForecast.remain) }}</b>，按近 {{ attributionDays }} 天日均
+                  {{ money(attrForecast.burn) }} 消耗，预计 <b>{{ attrDaysLeftText(attrForecast.daysLeft) }}</b>后耗尽<template v-if="attrForecast.dateText">（约 {{ attrForecast.dateText }}）</template>
+                </span>
+              </template>
+              <span v-else>窗口内无净消耗，暂无耗尽风险（当前余额合计 {{ money(attrForecast.remain) }}）</span>
+            </p>
             <div v-if="attribution.keys.length" class="pc-attr__sec">
               <span class="pc-attr__sec-label" title="按窗口内逐 Key 的期初/期末成功读数差分：消耗 = 期初 − 期末，正数表示余额增加（充值）">
                 按 Key · 余额读数差分
@@ -305,6 +316,7 @@
                   <span role="columnheader">期初 → 期末</span>
                   <span role="columnheader">消耗</span>
                   <span role="columnheader">币种</span>
+                  <span role="columnheader" title="按该 Key 窗口内读数差分线性外推的可用天数；充值后以最新读数为准">预计可用</span>
                 </div>
                 <div
                   v-for="k in attribution.keys"
@@ -320,6 +332,7 @@
                     {{ attrConsumedText(k) }}<i v-if="attrIsRecharge(k)">充值</i>
                   </span>
                   <span role="cell">{{ k.currency || '—' }}</span>
+                  <span role="cell" class="pc-attr__forecast-cell" :class="attrKeyForecastTone(k)">{{ attrKeyForecastText(k) }}</span>
                 </div>
               </div>
             </div>
@@ -2172,6 +2185,83 @@ const attrModelTitle = computed(() => {
 const attrModelRowTitle = (m: CreditModelAttribution) =>
   `${m.model}：调用 ${m.calls} 次，输入 ${m.prompt_tokens} / 输出 ${m.completion_tokens} token，成本 ${m.cost} 元`
 
+/* ==================== 耗尽预测（由归因窗口数据线性外推，纯前端估算） ==================== */
+
+/** 读取数值：null/undefined 一律按缺失（NaN）处理，避免 Number(null)=0 被误当成零消耗 */
+const attrNum = (v: number | null | undefined) => (v == null ? Number.NaN : Number(v))
+
+/**
+ * 单 Key 消耗速率：日均消耗 = 窗口消耗 ÷ 天数。
+ * Key 中途接入时按首末读数的真实跨度折算，避免速率被整窗口天数稀释。
+ */
+const attrKeyRate = (k: CreditKeyAttribution): { remain: number; dailyBurn: number } | null => {
+  const remain = attrNum(k.end_remain)
+  const consumed = attrNum(k.consumed)
+  if (!Number.isFinite(remain) || !Number.isFinite(consumed)) return null
+  const spanMs = attrNum(k.last_synced_at) - attrNum(k.first_synced_at)
+  const spanDays = Number.isFinite(spanMs) && spanMs > 0 ? spanMs / 86400000 : 0
+  const denom = spanDays >= 1 ? spanDays : attributionDays.value
+  return { remain, dailyBurn: -consumed / denom }
+}
+
+/** 可用天数文案 */
+const attrDaysLeftText = (days: number | null | undefined) => {
+  if (days == null || !Number.isFinite(days)) return '—'
+  if (days < 1) return '不足1天'
+  if (days > 999) return '999+天'
+  return `${Math.round(days)}天`
+}
+
+/** Key 行「预计可用」单元格文案 */
+const attrKeyForecastText = (k: CreditKeyAttribution) => {
+  const r = attrKeyRate(k)
+  if (!r) return '—'
+  if (r.remain <= 0) return '已耗尽'
+  if (r.dailyBurn <= 0) return '净充值'
+  return attrDaysLeftText(r.remain / r.dailyBurn)
+}
+
+/** Key 行预测单元格分档标色：≤3 天危急、≤7 天预警 */
+const attrKeyForecastTone = (k: CreditKeyAttribution) => {
+  const r = attrKeyRate(k)
+  if (!r) return ''
+  if (r.remain <= 0) return 'is-urgent'
+  if (r.dailyBurn <= 0) return ''
+  const days = r.remain / r.dailyBurn
+  if (days <= 3) return 'is-urgent'
+  if (days <= 7) return 'is-warn'
+  return ''
+}
+
+/**
+ * 整体耗尽预测：合计期末余额 ÷ 合计日均消耗（各 Key 按各自真实读数跨度折算后再求和）。
+ * 无 keys 读数时返回 null 不展示。
+ */
+const attrForecast = computed(() => {
+  const keys = attribution.value?.keys ?? []
+  if (!keys.length) return null
+  let remain = 0
+  let burn = 0
+  for (const k of keys) {
+    const r = attrKeyRate(k)
+    if (!r) continue
+    if (r.remain > 0) remain += r.remain
+    if (r.dailyBurn > 0) burn += r.dailyBurn
+  }
+  const daysLeft = burn > 0 ? remain / burn : null
+  let dateText: string | null = null
+  if (daysLeft != null) {
+    const d = new Date(Date.now() + daysLeft * 86400000)
+    dateText = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  return { remain, burn, daysLeft, dateText }
+})
+
+/** 预测口径说明（悬浮展示，假设透明：线性外推、充值即失效） */
+const attrForecastTitle =
+  '按窗口内余额读数差分线性外推：日均消耗 = 消耗量 ÷ 天数（Key 中途接入时按首末读数真实跨度折算）；'
+  + '线性预测仅供参考，中途充值会使预测失效，请以最新读数为准'
+
 /** 余额定时采样运行状态（GET /credit/sample-status；失败静默，不影响面板主链路） */
 interface CreditSampleStatus {
   enabled?: boolean
@@ -3772,9 +3862,9 @@ onMounted(load)
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
-/* 按 Key：Key 掩码 / 读数 / 期初→期末 / 消耗 / 币种 */
+/* 按 Key：Key 掩码 / 读数 / 期初→期末 / 消耗 / 币种 / 预计可用 */
 .pc-attr__table.is-keys .pc-attr__row {
-  grid-template-columns: minmax(0, 1.5fr) 48px minmax(0, 1.3fr) 96px 52px;
+  grid-template-columns: minmax(0, 1.4fr) 44px minmax(0, 1.15fr) 88px 48px 64px;
 }
 /* 按模型：模型 / 调用 / Tokens / 成本 */
 .pc-attr__table.is-models .pc-attr__row {

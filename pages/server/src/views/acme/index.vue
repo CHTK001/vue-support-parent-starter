@@ -18,7 +18,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from '@repo/core'
-import { ElDropdown, ElDropdownItem, ElDropdownMenu, ElMessageBox } from 'element-plus'
+import { ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plus'
 import {
   ReCanvasBand,
   RePageStage,
@@ -352,10 +352,7 @@ function openDownload(view: CertView): void {
  */
 async function confirmRenew(view: CertView): Promise<void> {
   try {
-    await ElMessageBox.confirm(`确定续签证书「${view.domain}」？`, '续签确认', {
-      confirmButtonText: '续签',
-      type: 'warning',
-    })
+    await message.confirm(`确定续签证书「${view.domain}」？`, '续签确认', '续签', '取消', 'warning')
   } catch {
     return
   }
@@ -396,10 +393,7 @@ async function confirmRetry(view: CertView): Promise<void> {
  */
 async function confirmRevoke(view: CertView): Promise<void> {
   try {
-    await ElMessageBox.confirm(`确定吊销证书「${view.domain}」？该操作不可恢复。`, '吊销确认', {
-      confirmButtonText: '吊销',
-      type: 'error',
-    })
+    await message.confirm(`确定吊销证书「${view.domain}」？该操作不可恢复。`, '吊销确认', '吊销', '取消', 'error')
   } catch {
     return
   }
@@ -419,10 +413,7 @@ async function confirmRevoke(view: CertView): Promise<void> {
  */
 async function confirmDelete(view: CertView): Promise<void> {
   try {
-    await ElMessageBox.confirm(`确定删除证书「${view.domain}」？关联订单会一并删除。`, '删除确认', {
-      confirmButtonText: '删除',
-      type: 'error',
-    })
+    await message.confirm(`确定删除证书「${view.domain}」？关联订单会一并删除。`, '删除确认', '删除', '取消', 'error')
   } catch {
     return
   }
@@ -477,10 +468,12 @@ function handleAccountSuccess(): void {
  */
 async function confirmDeleteAccount(row: AcmeAccount): Promise<void> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确定删除账户「${row.acmeAccountEmail}」？存在关联证书时后端会拒绝。`,
       '删除确认',
-      { confirmButtonText: '删除', type: 'warning' },
+      '删除',
+      '取消',
+      'warning',
     )
   } catch {
     return

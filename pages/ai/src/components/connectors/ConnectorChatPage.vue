@@ -98,7 +98,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus';
 import { Tools } from '@element-plus/icons-vue'
 import {
   ArrowLeft24Regular, Person24Regular, People24Regular,
@@ -248,10 +247,9 @@ async function handleAiSend() {
 
 async function handleClearConversation(conv: any) {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确定要清除与「${conversationTitle(conv)}」的会话记录吗？`,
       '清除会话',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' },
     )
   } catch {
     return

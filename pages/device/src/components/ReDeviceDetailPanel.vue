@@ -715,10 +715,12 @@ async function removeRemote() {
   const device = props.device
   if (!device) return
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除厂商平台侧的设备「${device.deviceInfoName}」？将按 externalId 调用厂商删除接口，本地台账不受影响；厂商不支持删除时会返回失败。`,
       '从厂商平台删除',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+      '删除',
+      '取消',
+      'warning'
     )
   } catch {
     return

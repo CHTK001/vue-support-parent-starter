@@ -11,7 +11,6 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { message } from "@repo/core";
-import { ElMessageBox } from "element-plus";
 import { http, unwrapResult } from "@repo/utils";
 
 const props = defineProps<{
@@ -208,7 +207,7 @@ async function submitPolicy(): Promise<void> {
   }
 }
 async function removePolicy(p: AlarmPolicy): Promise<void> {
-  await ElMessageBox.confirm(`删除策略「${p.msMonitorAlarmPolicyName}」将级联删除其所有规则，确认？`, "删除确认", { type: "warning" });
+  await message.confirm(`删除策略「${p.msMonitorAlarmPolicyName}」将级联删除其所有规则，确认？`, "删除确认");
   try {
     await http().delete(`${API}/alarm/policy/${p.id}`).then(r => unwrapResult(r));
     message.success("已删除");
@@ -268,7 +267,7 @@ async function submitRule(): Promise<void> {
   }
 }
 async function removeRule(r: AlarmRule): Promise<void> {
-  await ElMessageBox.confirm(`删除该规则（${r.msMonitorAlarmRuleMetricName} ${condText(r.msMonitorAlarmRuleCondition)} ${r.msMonitorAlarmRuleThreshold}）？`, "删除确认", { type: "warning" });
+  await message.confirm(`删除该规则（${r.msMonitorAlarmRuleMetricName} ${condText(r.msMonitorAlarmRuleCondition)} ${r.msMonitorAlarmRuleThreshold}）？`, "删除确认");
   try {
     await http().delete(`${API}/alarm/rule/${r.id}`).then(r => unwrapResult(r));
     message.success("已删除");
@@ -345,7 +344,7 @@ async function submitWindow(): Promise<void> {
   }
 }
 async function removeWindow(w: AlarmWindow): Promise<void> {
-  await ElMessageBox.confirm(`删除维护窗口「${w.windowName}」？删除后该时段将不再静默告警。`, "删除确认", { type: "warning" });
+  await message.confirm(`删除维护窗口「${w.windowName}」？删除后该时段将不再静默告警。`, "删除确认");
   try {
     await http().delete(`${API}/alarm/window/${w.id}`).then(r => unwrapResult(r));
     message.success("已删除");

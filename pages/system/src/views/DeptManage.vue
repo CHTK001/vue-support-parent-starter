@@ -6,7 +6,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref, nextTick } from "vue";
-import { ElMessageBox } from "element-plus";
 import {
   OfficeBuilding,
   Plus,
@@ -306,11 +305,7 @@ async function handleDelete() {
   }
   if (deleteLoading.value) return;
   try {
-    await ElMessageBox.confirm(`确认删除机构「${dept.sysDeptName}」？`, "提示", {
-      type: "warning",
-      confirmButtonText: "确定删除",
-      cancelButtonText: "取消",
-    });
+    await message.confirm(`确认删除机构「${dept.sysDeptName}」？`, "提示", "确定删除", "取消", "warning");
   } catch {
     return;
   }

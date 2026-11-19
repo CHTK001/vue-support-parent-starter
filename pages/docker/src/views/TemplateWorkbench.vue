@@ -13,7 +13,6 @@
  * @since 4.0.0.46
  */
 import { computed, reactive, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import { message } from "@repo/core";
 import type { ReOption } from "@repo/ui/components/ReSelect/types";
 import { deleteTemplate, listNetworks, listTemplates, saveTemplate } from "../api";
@@ -302,11 +301,7 @@ async function save(): Promise<void> {
 async function remove(): Promise<void> {
   if (!form.id) return;
   try {
-    await ElMessageBox.confirm(`确认删除模板「${form.name}」？已创建的容器不受影响。`, "删除模板", {
-      type: "warning",
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-    });
+    await message.confirm(`确认删除模板「${form.name}」？已创建的容器不受影响。`, "删除模板", "删除", "取消", "warning");
   } catch {
     return;
   }

@@ -354,10 +354,9 @@ async function handleUnbindTotp(row: Record<string, unknown>) {
   const user = row as unknown as SysUser;
   if (!user.sysUserId) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认强制解绑「${user.sysUserNickname ?? user.sysUserUsername}」的二次验证（2FA）？`,
       "解绑确认",
-      { type: "warning" },
     );
   } catch {
     return;
@@ -739,10 +738,7 @@ async function handleDelete(row: Record<string, unknown>) {
   const user = row as unknown as SysUser;
   if (deleteLoading.value) return;
   try {
-    await ElMessageBox.confirm(`确认删除用户「${user.sysUserNickname ?? user.sysUserUsername}」？`, "提示", {
-      type: "warning",
-      confirmButtonText: "确定删除",
-    });
+    await message.confirm(`确认删除用户「${user.sysUserNickname ?? user.sysUserUsername}」？`, "提示", "确定删除");
   } catch {
     return;
   }
@@ -858,10 +854,9 @@ async function batchResetPassword() {
   const ids = selection.value.map((r: Record<string, unknown>) => r.sysUserId as number).filter(Boolean);
   if (!ids.length) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认重置 ${ids.length} 个用户的密码？`,
       "批量重置密码",
-      { type: "warning" },
     );
   } catch {
     return;

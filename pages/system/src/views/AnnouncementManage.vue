@@ -7,7 +7,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import { ArrowRight, BellFilled, Clock } from "@element-plus/icons-vue";
 import { pageForAnnouncement, saveAnnouncement, updateAnnouncement, deleteAnnouncement, publishAnnouncement, unpublishAnnouncement } from "../api/announcementApi";
 import type { SysAnnouncement } from "../api/announcementApi";
@@ -269,7 +268,7 @@ async function handleSave() {
 
 async function handlePublish(row: SysAnnouncement) {
   if (!row.sysAnnouncementId) return;
-  await ElMessageBox.confirm("确认发布该公告？", "提示", { type: "info" });
+  await message.confirm("确认发布该公告？", "提示", "确定", "取消", "info");
   await publishAnnouncement(row.sysAnnouncementId);
   message.success("已发布");
   tableRef.value?.reload();
@@ -277,7 +276,7 @@ async function handlePublish(row: SysAnnouncement) {
 
 async function handleUnpublish(row: SysAnnouncement) {
   if (!row.sysAnnouncementId) return;
-  await ElMessageBox.confirm("确认下架该公告？", "提示", { type: "warning" });
+  await message.confirm("确认下架该公告？", "提示");
   await unpublishAnnouncement(row.sysAnnouncementId);
   message.success("已下架");
   tableRef.value?.reload();
@@ -285,7 +284,7 @@ async function handleUnpublish(row: SysAnnouncement) {
 
 async function handleDelete(row: SysAnnouncement) {
   if (!row.sysAnnouncementId) return;
-  await ElMessageBox.confirm("确认删除该公告？", "提示", { type: "warning" });
+  await message.confirm("确认删除该公告？", "提示");
   await deleteAnnouncement(row.sysAnnouncementId);
   message.success("已删除");
   tableRef.value?.reload();

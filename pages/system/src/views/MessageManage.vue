@@ -13,7 +13,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref, watch, nextTick, defineAsyncComponent, getCurrentInstance } from "vue";
-import { ElMessageBox } from "element-plus";
 import ReTab from "@repo/ui/re-tab";
 import MessageTemplateSelect from "./components/MessageTemplateSelect.vue";
 /** 耗时着色文本：绿 / 黄 / 红标识推送快慢（同系统日志页） */
@@ -293,10 +292,7 @@ async function handleRecall(row: Record<string, unknown>) {
   const msg = row as unknown as SysMessageAdmin;
   if (msgActionLoading.value) return;
   try {
-    await ElMessageBox.confirm(`确认撤回消息「${msg.sysMessageTitle}」？`, "撤回确认", {
-      type: "warning",
-      confirmButtonText: "确定撤回",
-    });
+    await message.confirm(`确认撤回消息「${msg.sysMessageTitle}」？`, "撤回确认", "确定撤回", "取消", "warning");
   } catch {
     return;
   }
@@ -316,10 +312,7 @@ async function handleDeleteMsg(row: Record<string, unknown>) {
   const msg = row as unknown as SysMessageAdmin;
   if (msgActionLoading.value) return;
   try {
-    await ElMessageBox.confirm(`确认删除消息「${msg.sysMessageTitle}」？`, "提示", {
-      type: "warning",
-      confirmButtonText: "确定删除",
-    });
+    await message.confirm(`确认删除消息「${msg.sysMessageTitle}」？`, "提示", "确定删除", "取消", "warning");
   } catch {
     return;
   }
@@ -535,10 +528,7 @@ async function handleTplDelete(row: Record<string, unknown>) {
   const tpl = row as unknown as SysMessageTemplate;
   if (tplActionLoading.value) return;
   try {
-    await ElMessageBox.confirm(`确认删除模板「${tpl.sysMessageTemplateName}」？`, "提示", {
-      type: "warning",
-      confirmButtonText: "确定删除",
-    });
+    await message.confirm(`确认删除模板「${tpl.sysMessageTemplateName}」？`, "提示", "确定删除", "取消", "warning");
   } catch {
     return;
   }
@@ -756,9 +746,7 @@ async function doLogClean() {
     return;
   }
   try {
-    await ElMessageBox.confirm(`确认清理 ${logCleanBeforeTime.value} 之前的日志？此操作不可恢复。`, "危险操作", {
-      type: "warning",
-    });
+    await message.confirm(`确认清理 ${logCleanBeforeTime.value} 之前的日志？此操作不可恢复。`, "危险操作", "确定", "取消", "warning");
   } catch {
     return;
   }

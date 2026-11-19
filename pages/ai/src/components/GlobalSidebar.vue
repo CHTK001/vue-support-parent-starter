@@ -179,7 +179,9 @@
                   'session-drag-over': dragOverGroupId === group.id
                 }"
                 :draggable="!multiSelectMode"
+                tabindex="0"
                 @click="onSessionClick(session)"
+                @keydown.enter.prevent="onSessionClick(session)"
                 @mouseenter="openSessionHover(session, $event)"
                 @mouseleave="closeSessionHover"
                 @contextmenu.prevent="openSessionContextMenu($event, session)"
@@ -2117,9 +2119,8 @@ onUnmounted(() => {
 
 /* ============================================================================
    无障碍增强：给「可点但不可 Tab 聚焦」的非按钮元素补焦点环。
-   模板里 div/span + @click 的可点元素（导航项、分组头、会话行、主题切换、
-   设置入口、分组选择项）都没有 tabindex，本轮不改模板（结构不动），
-   故这里只保证 :focus-visible 时视觉不缺失，键盘可达性属待办（见交付报告）。
+   会话行（.session-item）已补 tabindex="0" + Enter 触发；导航项、分组头、
+   主题切换、设置入口等仍是 div/span + @click，待后续统一补键盘可达。
    优先用 outline 而不是 box-shadow：侧边栏各项 hover 时会换底色，
    box-shadow 焦点环与 hover 态互斥会闪烁。
    ============================================================================ */

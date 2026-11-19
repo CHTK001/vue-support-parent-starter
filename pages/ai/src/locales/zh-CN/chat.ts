@@ -9,6 +9,7 @@ export default {
     stopGenerating: '停止生成',
     enqueue: '加入队列',
     send: '发送',
+    sendFailedRestored: '发送失败，内容已放回输入框',
     selectModel: '请选择模型',
     plusTooltip: '指令、附件与 MCP',
     plusAria: '输入区菜单：指令、附件与 MCP',

@@ -17,7 +17,7 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { isAdmin } from '@repo/core'
+import { isAdmin, message } from '@repo/core'
 import ReDialog from '@repo/ui/re-dialog'
 import {
   // @element-plus/icons-vue 导出的名字**没有 Icon 后缀**（Refresh / Plus / Delete /
@@ -1196,7 +1196,7 @@ async function setPrimaryAccount(channel: string, conn: ChannelConnectionSummary
 async function deleteAccount(channel: string, conn: ChannelConnectionSummary) {
   const name = conn.label ?? conn.connectionId
   try {
-    await ElMessageBox.confirm(`删除账号「${name}」？`, '确认', { type: 'warning' })
+    await message.confirm(`删除账号「${name}」？`, '确认')
   } catch {
     return
   }
@@ -1932,10 +1932,10 @@ function addAccount() {
 /** 删除账号 */
 async function removeAccount(account: ChannelAccount) {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `删除账号「${account.name || account.code || account.accountId}」？`,
       '删除账号',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+      '删除',
     )
   } catch {
     return

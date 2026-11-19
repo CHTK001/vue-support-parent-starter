@@ -74,7 +74,6 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { ref, watch, onMounted } from 'vue'
-import { ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue'
 import { deviceApi } from '../api/deviceApi'
 import type { DeviceChannel } from '../types/device'
@@ -186,7 +185,7 @@ function toggleStatus(row: DeviceChannel, val: boolean) {
 }
 
 function removeChannel(row: DeviceChannel) {
-  ElMessageBox.confirm(`确认删除通道「${row.deviceChannelName}」？`, '提示', { type: 'warning' })
+  message.confirm(`确认删除通道「${row.deviceChannelName}」？`, '提示')
     .then(() => deviceApi.deleteChannel(row.deviceChannelId))
     .then(() => {
       message.success('通道已删除')

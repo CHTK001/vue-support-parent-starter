@@ -154,7 +154,8 @@
  * @since 4.0.0.42
  */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
+import { ElMessage } from 'element-plus'
 import { CircleCheck, Connection, Grid, Tickets } from '@element-plus/icons-vue'
 
 import ReButton from '@repo/ui/re-button'
@@ -373,7 +374,7 @@ async function onToggle(row: DeviceChannel): Promise<void> {
 async function onDelete(row: DeviceChannel): Promise<void> {
   const label = row.deviceChannelName || `CH${row.deviceChannelNo}`
   try {
-    await ElMessageBox.confirm(`确认删除通道「${label}」？`, '删除确认', { type: 'warning' })
+    await message.confirm(`确认删除通道「${label}」？`, '删除确认')
   } catch {
     return
   }

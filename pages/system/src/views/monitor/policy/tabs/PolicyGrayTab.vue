@@ -10,7 +10,6 @@
 import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -161,11 +160,7 @@ async function handleToggle(row: PolicyConfig, value: boolean | string | number)
 async function handleDelete(row: PolicyConfig): Promise<void> {
   if (row.sysPolicyConfigId == null) return;
   try {
-    await ElMessageBox.confirm(
-      t("policy.gray.deleteBody", { key: row.bizKey }),
-      t("policy.common.deleteConfirm"),
-      { type: "warning" },
-    );
+    await message.confirm(t("policy.gray.deleteBody", { key: row.bizKey }), t("policy.common.deleteConfirm"));
   } catch {
     return;
   }

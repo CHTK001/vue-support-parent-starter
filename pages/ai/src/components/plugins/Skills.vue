@@ -394,10 +394,11 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
+import { formatBytes as formatBytesBase } from "@repo/utils";
 import { ref, onMounted, computed, watchEffect, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { ElButton, ElTag, ElIcon, ElUpload, ElMessageBox } from 'element-plus';
+import { ElButton, ElTag, ElIcon, ElUpload } from 'element-plus';
 import { InboxOutlined, UploadOutlined, SearchOutlined, PlusOutlined } from '@vicons/material'
 import { UploadFilled, Document, Close } from '@element-plus/icons-vue'
 import { ArrowDownload16Regular } from '@vicons/fluent'
@@ -1008,11 +1009,7 @@ function clearSelectedFile() {
  * 格式化文件大小
  */
 function formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+    return formatBytesBase(bytes, { zeroText: '0 B', digits: 2, maxUnit: 'GB', trimZeros: true })
 }
 
 /**
@@ -1053,17 +1050,13 @@ async function handleInstallSkill() {
 async function handleUninstallSkill(skillId: string) {
     try {
         // 确认卸载
-        await new Promise<void>((resolve, reject) => {
-            ElMessageBox.confirm(
-                t('plugins.skills.uninstallConfirm', { id: skillId }),
-                t('plugins.skills.uninstallTitle'),
-                {
-                    confirmButtonText: t('common.ok'),
-                    cancelButtonText: t('common.cancel'),
-                    type: 'warning',
-                }
-            ).then(() => resolve()).catch(() => reject())
-        })
+        await message.confirm(
+            t('plugins.skills.uninstallConfirm', { id: skillId }),
+            t('plugins.skills.uninstallTitle'),
+            t('common.ok'),
+            t('common.cancel'),
+            'warning',
+        )
 
         uninstallingSkills.value.add(skillId)
 

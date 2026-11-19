@@ -5,9 +5,9 @@
  * 通过 v-model:visible 控制显隐，props 传入目标租户。
  * 服务、价格规格、已绑定项在打开时加载，选中采用行内复选框（ReTable 本地数据模式）。
  *
- * 一行 = 一次订阅：选服务、选时长规格、填实收金额。
+ * 一行 = 一次订阅：选服务、选时长规格、填实收金额与收款方式。
  * 不传到期时间时由后端按规格周期推算（续费是叠加，不是覆盖）。
- * 收款方式当前只有线下（OFFLINE），支付渠道暂不接入，只记账。
+ * 收款方式支持线下（OFFLINE）/线上（ONLINE）/赠送（FREE），支付渠道暂不接入，只记账。
  */
 import { message } from "@repo/core";
 import { ref, watch } from "vue";
@@ -34,6 +34,7 @@ type ServiceRow = SysService & {
   _validTime?: string;
   _planId?: number;
   _payAmount?: number | null;
+  _payChannel?: string;
   _payRemark?: string;
   /** 该服务可选规格 */
   _plans?: SysServicePlan[];
@@ -102,6 +103,7 @@ watch(
           _validTime: hit?.sysTenantServiceValidTime,
           _planId: hit?.sysTenantServicePlanId ?? plans[0]?.sysServicePlanId,
           _payAmount: hit?.sysTenantServicePayAmount ?? plans[0]?.sysServicePlanPrice ?? null,
+          _payChannel: hit?.sysTenantServicePayChannel ?? "OFFLINE",
           _payRemark: hit?.sysTenantServicePayRemark,
         };
       });
@@ -125,7 +127,7 @@ async function handleSubmit() {
         validTime: item._validTime || undefined,
         sysServicePlanId: item._planId,
         payAmount: item._payAmount ?? undefined,
-        payChannel: "OFFLINE",
+        payChannel: item._payChannel?.trim() || "OFFLINE",
         payRemark: item._payRemark,
       })),
     });
@@ -146,6 +148,7 @@ const columns: ReTableColumn[] = [
   { prop: "_planId", label: "时长规格", width: 210, slot: "plan" },
   { prop: "_validTime", label: "到期时间", width: 150, slot: "validTime" },
   { prop: "_payAmount", label: "实收金额", width: 130, slot: "payAmount" },
+  { prop: "_payChannel", label: "收款方式", width: 120, slot: "payChannel" },
   { prop: "_payRemark", label: "收款备注", minWidth: 140, slot: "payRemark" },
 ];
 </script>
@@ -154,7 +157,7 @@ const columns: ReTableColumn[] = [
   <ReDialog v-model="visible" :title="`分配服务 - ${tenant.sysTenantName}`" width="960px" destroy-on-close>
     <p class="mb-3 text-sm text-[--el-text-color-secondary]">
       一个服务按所选规格计算时长，不填到期时间时由规格周期推算（续费叠加到现有到期日）。
-      收款走线下，金额只记账，暂不接支付渠道。
+      收款方式可选线下/线上/赠送，金额只记账，暂不接支付渠道。
     </p>
     <ReTable
       :data="services"
@@ -204,6 +207,13 @@ const columns: ReTableColumn[] = [
           class="!w-28"
           placeholder="实收"
         />
+      </template>
+      <template #payChannel="{ row }">
+        <el-select v-model="row._payChannel" size="small" class="!w-24" :disabled="!row._checked">
+          <el-option label="线下收款" value="OFFLINE" />
+          <el-option label="线上支付" value="ONLINE" />
+          <el-option label="赠送" value="FREE" />
+        </el-select>
       </template>
       <template #payRemark="{ row }">
         <el-input v-model="row._payRemark" size="small" placeholder="流水号/发票号" />

@@ -8,7 +8,6 @@
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
 import { Message, Search, Refresh, Plus } from "@element-plus/icons-vue";
 import {
   deleteTemplate,
@@ -144,9 +143,7 @@ function handleSaved() {
 }
 
 async function handleDelete(row: MessageTemplate) {
-  await ElMessageBox.confirm(`确认删除模板「${row.sysMessageTemplateName}」？`, "提示", {
-    type: "warning",
-  });
+  await message.confirm(`确认删除模板「${row.sysMessageTemplateName}」？`, "提示");
   await deleteTemplate(row.sysMessageTemplateId!);
   message.success("删除成功");
   loadList();

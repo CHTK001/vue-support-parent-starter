@@ -3,7 +3,8 @@
     :anchor-el="anchorEl">
     <div class="att-popover">
       <!-- 上传图片 -->
-      <div class="att-item" @click="$emit('select-image')">
+      <div class="att-item" role="button" tabindex="0" @click="$emit('select-image')"
+        @keydown.enter.prevent="$emit('select-image')">
         <el-icon size="16" class="att-item-icon shrink-0">
           <Image24Regular />
         </el-icon>
@@ -11,7 +12,8 @@
       </div>
 
       <!-- 上传文件 -->
-      <div class="att-item" @click="$emit('select-file')">
+      <div class="att-item" role="button" tabindex="0" @click="$emit('select-file')"
+        @keydown.enter.prevent="$emit('select-file')">
         <el-icon size="16" class="att-item-icon shrink-0">
           <Attach24Regular />
         </el-icon>
@@ -26,7 +28,8 @@
           {{ t('chat.input.noKnowledgeBase') }}
         </div>
         <div v-for="kb in knowledgeBases" :key="kb.id"
-          class="att-kb-item" @click="$emit('toggle-kb', kb.id)">
+          class="att-kb-item" role="button" tabindex="0" @click="$emit('toggle-kb', kb.id)"
+          @keydown.enter.prevent="$emit('toggle-kb', kb.id)">
           <el-checkbox :model-value="selectedKbIds.includes(kb.id)" @click.stop />
           <div class="flex-1 min-w-0">
             <div class="text-xs font-medium text-gray-700 dark:text-[var(--el-text-color-regular)] truncate">{{ kb.name }}</div>
@@ -44,7 +47,8 @@
             {{ t('common.empty') }}
           </div>
           <div v-for="item in (attType._items || [])" :key="item.id"
-            class="att-kb-item" @click="toggleAttachment(attType.id, item.id)">
+            class="att-kb-item" role="button" tabindex="0" @click="toggleAttachment(attType.id, item.id)"
+            @keydown.enter.prevent="toggleAttachment(attType.id, item.id)">
             <el-checkbox :model-value="isAttachmentSelected(attType.id, item.id)" @click.stop />
             <div class="flex-1 min-w-0">
               <div class="text-xs font-medium text-gray-700 dark:text-[var(--el-text-color-regular)] truncate">{{ item.name }}</div>
@@ -172,9 +176,12 @@ function toggleAttachment(typeId: string, itemId: string) {
   transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
 }
 
-/* 菜单行是 div + @click（目前不可 Tab 聚焦），先把键盘焦点环挂好，
-   等哪天补上 tabindex 就直接生效 */
+/* 菜单行是 div + @click，已补 tabindex 键盘可达；焦点环在此生效 */
 .att-item:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.att-kb-item:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 

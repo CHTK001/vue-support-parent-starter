@@ -19,7 +19,8 @@
  * @since 4.0.0.51
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
+import { message } from "@repo/core";
 import {
   cdpCloseProxySession,
   cdpCloseTarget,
@@ -829,9 +830,25 @@ async function reloadStatus(quiet = false) {
 /**
  * 刷新目标列表（首次拿到列表时自动选中第一个页面，省掉一次点击）
  */
+/** 目标列表对账序号：连发时只应用最新一次的结果，慢响应晚到不许覆盖新数据 */
+let targetsReqSeq = 0;
+
 async function reloadTargets() {
+  const mySeq = ++targetsReqSeq;
   try {
-    const list = await cdpTargets();
+    let list = await cdpTargets();
+    // 后端 targets() 直连 Chrome /json，连接超时只有 1s：Chrome 一忙就会「成功地」
+    // 返回空列表。浏览器真被关掉时 status 会离开 STARTED；这里先复核一次，
+    // 避免一次抖动把目标面板清空、选中态丢失（采样/截屏等按钮会跟着全禁用）。
+    if (list.length === 0 && targets.value.length > 0) {
+      const st = await cdpStatus().catch(() => null);
+      if (st && st.state === "STARTED") {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        const again = await cdpTargets().catch(() => [] as CdpTarget[]);
+        if (again.length > 0) list = again;
+      }
+    }
+    if (mySeq !== targetsReqSeq) return;
     targets.value = list;
     // 刷新后旧 selectedTarget 可能已失效（浏览器重启 / 目标重建）。
     // 只处理「空串」不够：失效 ID 会让所有页面级 CDP 调用打到一个不存在的
@@ -850,9 +867,11 @@ async function reloadTargets() {
     // 目标校正后，若停在「元素」页签就自动补一次 DOM / 画面，避免刷新后左侧空着
     void ensureElementReady();
   } catch (error) {
+    if (mySeq !== targetsReqSeq) return;
     ElMessage.error("目标列表拉取失败: " + ((error as Error)?.message ?? String(error)));
     console.warn("[cdp] 目标列表拉取失败", error);
-    targets.value = [];
+    // 拉取失败不清空旧列表：瞬时故障（后端忙 / Chrome 超时）不该把面板打空，
+    // 保留上一次目标与选中态，等下一次对账或手动刷新恢复。
   }
 }
 
@@ -1042,11 +1061,7 @@ async function submitCreatePage() {
  */
 async function closePage(targetId: string) {
   try {
-    await ElMessageBox.confirm("确认关闭该页面？未保存的调试现场（日志 / 截屏 / 录制）将一并丢失", "关闭页面", {
-      type: "warning",
-      confirmButtonText: "关闭",
-      cancelButtonText: "取消",
-    });
+    await message.confirm("确认关闭该页面？未保存的调试现场（日志 / 截屏 / 录制）将一并丢失", "关闭页面", "关闭");
   } catch {
     return; // 用户取消
   }
@@ -2953,6 +2968,8 @@ async function startPerf() {
     ? [...perfCategories.value]
     : ["devtools.timeline"];
   try {
+    // Tracing.start 前先 enable，与停止路径的 Tracing.disable 成对
+    await client.call("Tracing.enable", {}, perfTarget.value);
     await client.call(
       "Tracing.start",
       {
@@ -2978,9 +2995,11 @@ async function stopPerf() {
   if (!perfRecording.value || perfStopping.value) return;
   perfStopping.value = true;
   perfStopAt.value = Date.now();
+  const stopTarget = perfTarget.value || selectedTarget.value;
   try {
-    await client.call("Tracing.end", {}, perfTarget.value || selectedTarget.value);
+    await client.call("Tracing.end", {}, stopTarget);
   } catch (error) {
+    void client.call("Tracing.disable", {}, stopTarget).catch(() => {});
     perfError.value = "停止录制失败: " + (error as Error).message;
     perfRecording.value = false;
     perfStopping.value = false;
@@ -2998,6 +3017,9 @@ async function stopPerf() {
       commitFilm();
       releaseAutoScreencast();
       analyzePerf();
+      // 兜底收尾也要把 Tracing 域收掉
+      const tid = perfTarget.value || selectedTarget.value;
+      if (tid) void client.call("Tracing.disable", {}, tid).catch(() => {});
     }
   }, 8000);
 }
@@ -3029,6 +3051,9 @@ function onTracingComplete() {
   commitFilm();
   releaseAutoScreencast();
   analyzePerf();
+  // tracingComplete 已回推，数据收完了，把 Tracing 域收掉
+  const tid = perfTarget.value || selectedTarget.value;
+  if (tid) void client.call("Tracing.disable", {}, tid).catch(() => {});
 }
 
 /** 停止录制后收回「为截图临时开启」的 screencast（用户手动开的保留） */
@@ -3318,6 +3343,8 @@ async function startCpuProfile() {
     return;
   }
   try {
+    // Profiler.start 前必须先 enable，否则 Chrome 报 -32000 "Profiler is not enabled"
+    await client.call("Profiler.enable", {}, targetId);
     await client.call("Profiler.start", {}, targetId);
     cpuProfiling.value = true;
     cpuProfile.value = null;
@@ -3384,6 +3411,8 @@ async function startHeapProfile() {
     return;
   }
   try {
+    // 先 enable 再 startSampling，与停止路径的 HeapProfiler.disable 成对
+    await client.call("HeapProfiler.enable", {}, targetId);
     await client.call("HeapProfiler.startSampling", { samplingInterval: 16384 }, targetId);
     heapProfiling.value = true;
     heapProfile.value = null;

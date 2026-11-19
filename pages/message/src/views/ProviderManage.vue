@@ -8,7 +8,6 @@
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
 import { OfficeBuilding, Message, Document, Plus, Search, Refresh, Memo } from "@element-plus/icons-vue";
 import { deleteProvider, listChannels, pageForLog, pageForProvider, pageForTemplate, updateProvider } from "../api/messageApi";
 import type { MessageProvider } from "../api/types";
@@ -190,9 +189,7 @@ function handleEdit(row: MessageProvider) {
 
 /** 删除 */
 async function handleDelete(row: MessageProvider) {
-  await ElMessageBox.confirm(`确认删除提供商「${row.sysMessageProviderName}」？`, "提示", {
-    type: "warning",
-  });
+  await message.confirm(`确认删除提供商「${row.sysMessageProviderName}」？`, "提示");
   await deleteProvider(row.sysMessageProviderId!);
   message.success("删除成功");
   loadList();

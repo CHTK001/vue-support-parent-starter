@@ -810,7 +810,6 @@
  */
 import { computed, defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
 import {
   Connection,
   Check,
@@ -2618,7 +2617,7 @@ async function onAssignSave(): Promise<void> {
 async function clearGroup(row: TreeRow): Promise<void> {
   if (!row.id) return
   try {
-    await ElMessageBox.confirm(`清空分组「${row.label}」下的全部设备？`, '确认', { type: 'warning' })
+    await message.confirm(`清空分组「${row.label}」下的全部设备？`, '确认')
   } catch { return }
   try {
     // 只清空该分组的直属设备，子分组的归属保持不变
@@ -2635,7 +2634,7 @@ async function clearGroup(row: TreeRow): Promise<void> {
 async function removeGroup(row: TreeRow): Promise<void> {
   if (!row.id) return
   try {
-    await ElMessageBox.confirm(`删除分组「${row.label}」？分组内设备将移出。`, '确认', { type: 'warning' })
+    await message.confirm(`删除分组「${row.label}」？分组内设备将移出。`, '确认')
   } catch { return }
   try {
     await deviceApi.deleteGroup(row.id)
@@ -2764,16 +2763,14 @@ async function refreshStatus(row: DeviceInfo) {
 async function toggleDeviceStatus(row: DeviceInfo, status: 'normal' | 'disabled') {
   const disabling = status === 'disabled'
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       disabling
         ? `确认禁用设备「${row.deviceInfoName}」？禁用后会断开当前连接，后台定时采集（在线检测 / 事件轮询 / 门禁记录）全部停止，设备配置保持不变。`
         : `确认启用设备「${row.deviceInfoName}」？启用后由在线检测恢复连接，后台定时采集随之恢复。`,
       disabling ? '禁用设备' : '启用设备',
-      {
-        type: disabling ? 'warning' : 'info',
-        confirmButtonText: disabling ? '禁用' : '启用',
-        cancelButtonText: '取消'
-      }
+      disabling ? '禁用' : '启用',
+      '取消',
+      disabling ? 'warning' : 'info'
     )
   } catch {
     return
@@ -2789,10 +2786,12 @@ async function toggleDeviceStatus(row: DeviceInfo, status: 'normal' | 'disabled'
 
 async function removeDevice(row: DeviceInfo) {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除设备「${row.deviceInfoName}」？删除后将断开连接，且不可恢复。`,
       '删除设备',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+      '删除',
+      '取消',
+      'warning'
     )
   } catch {
     return
@@ -2819,10 +2818,12 @@ async function batchRemove() {
   const targets = [...selection.value]
   if (!targets.length) return
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除选中的 ${targets.length} 台设备？该操作不可恢复。`,
       '批量删除',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+      '删除',
+      '取消',
+      'warning'
     )
   } catch {
     return
@@ -2843,10 +2844,12 @@ async function batchPushRemote() {
     return
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认把选中的 ${ids.length} 台设备写回厂商平台？将逐台推送新增 / 更新，失败的自动进入重试队列。`,
       '同步写回',
-      { type: 'warning', confirmButtonText: '写回', cancelButtonText: '取消' }
+      '写回',
+      '取消',
+      'warning'
     )
   } catch {
     return
@@ -2878,12 +2881,14 @@ async function batchToggleStatus(status: 'normal' | 'disabled') {
   const disabling = status === 'disabled'
   const verb = disabling ? '禁用' : '启用'
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       disabling
         ? `确认禁用选中的 ${targets.length} 台设备？禁用后会断开连接，后台定时采集（在线检测 / 事件轮询 / 门禁记录）全部停止，设备配置保持不变。`
         : `确认启用选中的 ${targets.length} 台设备？启用后由在线检测恢复连接，后台定时采集随之恢复。`,
       `批量${verb}`,
-      { type: disabling ? 'warning' : 'info', confirmButtonText: verb, cancelButtonText: '取消' }
+      verb,
+      '取消',
+      disabling ? 'warning' : 'info'
     )
   } catch {
     return

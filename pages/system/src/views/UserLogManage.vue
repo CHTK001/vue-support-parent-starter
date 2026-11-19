@@ -21,7 +21,14 @@ const ReCostText = defineAsyncComponent(() => import("@repo/ui/re-cost-text").th
 /** 品牌图标（浏览器 / 操作系统）：走 Iconify logos 集合 */
 const ReIcon = defineAsyncComponent(() => import("@repo/ui/re-icon").then((m) => m.default));
 
-const query = ref<{ page: number; pageSize: number; sysLogUsername?: string; sysLogStatus?: number }>({
+const query = ref<{
+  page: number;
+  pageSize: number;
+  sysLogUsername?: string;
+  sysLogStatus?: number;
+  /** daterange 筛选值：[开始日期, 结束日期]，格式 YYYY-MM-DD */
+  timeRange?: string[];
+}>({
   page: 1,
   pageSize: 20,
 });
@@ -35,6 +42,7 @@ const searchFilters = computed(() => [
       { label: '失败', value: 0 },
     ],
   },
+  { key: 'timeRange', label: '登录时间', type: 'daterange' as const, placeholder: '开始日期' },
 ]);
 
 function handleReset() {
@@ -47,9 +55,13 @@ const exporting = ref(false);
 async function handleExport() {
   exporting.value = true;
   try {
+    const timeRange = query.value.timeRange;
     const blob = await exportUserLog({
       sysLogUsername: query.value.sysLogUsername,
       sysLogStatus: query.value.sysLogStatus,
+      ...(Array.isArray(timeRange) && timeRange.length === 2
+        ? { startDate: timeRange[0], endDate: timeRange[1] }
+        : {}),
     });
     const url = URL.createObjectURL(blob as Blob);
     const a = document.createElement("a");
@@ -71,11 +83,15 @@ function rowClassName({ row }: { row: Record<string, unknown> }): string {
 }
 
 async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
+  const timeRange = params.timeRange as string[] | undefined;
   const queryParams = {
     page,
     pageSize,
     sysLogUsername: (params.sysLogUsername as string) || undefined,
     sysLogStatus: params.sysLogStatus === "" || params.sysLogStatus == null ? undefined : Number(params.sysLogStatus),
+    ...(Array.isArray(timeRange) && timeRange.length === 2
+      ? { startDate: timeRange[0], endDate: timeRange[1] }
+      : {}),
   };
   const res = await pageForUserLog(queryParams);
   return { total: res?.data?.total ?? 0, data: (res?.data?.data ?? []) as Record<string, unknown>[] };

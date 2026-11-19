@@ -108,7 +108,6 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { computed, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
@@ -253,11 +252,7 @@ async function confirmThen(op: "restart" | "stop") {
     return;
   }
   try {
-    await ElMessageBox.confirm(c.body, c.title, {
-      type: c.danger ? "warning" : "info",
-      confirmButtonText: `确认${labelOf(op)}`,
-      cancelButtonText: "取消",
-    });
+    await message.confirm(c.body, c.title, `确认${labelOf(op)}`, "取消", c.danger ? "warning" : "info");
   } catch {
     return;
   }

@@ -23,7 +23,6 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/core";
-import { ElMessageBox } from "element-plus";
 import { ReFormItem } from "@repo/ui/re-kit";
 import {
   bindIdentity,
@@ -450,7 +449,7 @@ function openHost(h: HaHost): void {
  * @param a 账号
  */
 async function remove(a: HaAccount): Promise<void> {
-  await ElMessageBox.confirm(`删除账号「${a.name}」？绑定关系会一并解除`, "删除确认", { type: "warning" });
+  await message.confirm(`删除账号「${a.name}」？绑定关系会一并解除`, "删除确认", "确定", "取消", "warning");
   try {
     await delIdentity(a.id);
     message.success("已删除");
@@ -464,7 +463,7 @@ async function remove(a: HaAccount): Promise<void> {
 async function batchDelete(): Promise<void> {
   const ids = selectedIds.value.slice();
   if (!ids.length) return;
-  await ElMessageBox.confirm(`删除选中的 ${ids.length} 个账号？`, "批量删除", { type: "warning" });
+  await message.confirm(`删除选中的 ${ids.length} 个账号？`, "批量删除", "确定", "取消", "warning");
   let ok = 0;
   for (const id of ids) {
     try {
@@ -847,12 +846,14 @@ async function generateKey(): Promise<void> {
  */
 async function removeKey(k: KeyRow): Promise<void> {
   const refs = keyRefCountOf(k.id);
-  await ElMessageBox.confirm(
+  await message.confirm(
     refs
       ? `删除密钥「${k.serverKeyName}」？有 ${refs} 个账号引用它，删除后这些账号将无法用公钥登录`
       : `删除密钥「${k.serverKeyName}」？`,
     "删除确认",
-    { type: "warning" },
+    "确定",
+    "取消",
+    "warning",
   );
   try {
     await delKey(k.id);

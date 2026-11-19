@@ -169,7 +169,8 @@
  * @since 4.0.0.42
  */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
+import { ElMessage } from 'element-plus'
 import { CircleCheck, Lock, Picture, Tickets, Warning } from '@element-plus/icons-vue'
 
 import ReButton from '@repo/ui/re-button'
@@ -569,10 +570,7 @@ async function onUnlock(door: DeviceDoor): Promise<void> {
   if (!filters.deviceId) return
   const label = door.deviceDoorName || `门 ${door.deviceDoorNo}`
   try {
-    await ElMessageBox.confirm(`确认远程开启「${label}」？`, '远程开门确认', {
-      type: 'warning',
-      confirmButtonText: '远程开门',
-    })
+    await message.confirm(`确认远程开启「${label}」？`, '远程开门确认', '远程开门', '取消', 'warning')
   } catch {
     return
   }

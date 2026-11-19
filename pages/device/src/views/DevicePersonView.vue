@@ -83,7 +83,8 @@
  * @since 4.0.0.52
  */
 import { computed, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
+import { ElMessage } from 'element-plus'
 import ReTable from '@repo/ui/re-table'
 import type { RePageResult, ReTableColumn, ReTableLoadParams } from '@repo/ui/re-table'
 import { deviceApi } from '../api/deviceApi'
@@ -203,7 +204,7 @@ function readBase64(file: File): Promise<string> {
 }
 
 async function removeFace(row: Record<string, any>) {
-  await ElMessageBox.confirm(`删除人员「${row.devicePersonName}」的人脸？`, '确认', { type: 'warning' })
+  await message.confirm(`删除人员「${row.devicePersonName}」的人脸？`, '确认')
   try {
     await deviceApi.deletePersonFace(row.devicePersonId)
     ElMessage.success('人脸已删除')
@@ -213,7 +214,7 @@ async function removeFace(row: Record<string, any>) {
 }
 
 async function removePerson(row: Record<string, any>) {
-  await ElMessageBox.confirm(`删除人员「${row.devicePersonName}」？`, '确认', { type: 'warning' })
+  await message.confirm(`删除人员「${row.devicePersonName}」？`, '确认')
   await deviceApi.deletePerson(row.devicePersonId)
   ElMessage.success('已删除')
   await tableRef.value?.reload()

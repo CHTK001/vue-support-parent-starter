@@ -666,15 +666,12 @@ async function discardFiles(paths: string[]): Promise<void> {
     }
     const label = paths.length === 1 ? paths[0] : t('chat.workspace.git.filesCount', { count: paths.length });
     try {
-        await ElMessageBox.confirm(
+        await message.confirm(
             t('chat.workspace.git.discardConfirm', { path: label }),
             t('chat.workspace.git.discardConfirmTitle'),
-            {
-                confirmButtonText: t('chat.workspace.git.discard'),
-                cancelButtonText: t('common.cancel'),
-                type: 'warning',
-                distinguishCancelAndClose: true,
-            },
+            t('chat.workspace.git.discard'),
+            t('common.cancel'),
+            'warning',
         );
     } catch (error) {
         return;

@@ -57,7 +57,11 @@
               <span>{{ q.stem }}</span>
               <span class="sp-q__score">{{ q.score ?? 0 }} 分</span>
             </div>
-            <pre v-if="q.options" class="sp-q__options">{{ q.options }}</pre>
+            <ol v-if="parseOptions(q.options).length" class="sp-q__opts">
+              <li v-for="(opt, oi) in parseOptions(q.options)" :key="oi">{{ optionLetter(oi) }}. {{ opt }}</li>
+            </ol>
+            <p v-if="q.answer" class="sp-q__answer">正确答案：{{ q.answer }}</p>
+            <p v-if="q.analysis" class="sp-q__analysis">解析：{{ q.analysis }}</p>
           </li>
         </ol>
         <div v-if="detail && !(detail.questions || []).length" class="sp-empty">这份试卷还没有题目。</div>
@@ -89,6 +93,7 @@ import { eduaiApi } from "../../api/eduaiApi";
 import type { Paper, PaperAssignVO, TeacherMarkingTask } from "../../api/types";
 import ReDialog from "@repo/ui/re-dialog";
 import StudentPaperAnswerView from "./StudentPaperAnswerView.vue";
+import { optionLetter, parseOptions } from "./paperOption";
 
 const loading = ref(false);
 const papers = ref<PaperAssignVO[]>([]);
@@ -144,9 +149,11 @@ async function load() {
 /**
  * 查看试卷：按需拉一次详情（含题目），不预拉全部。
  *
- * <p>走 {@code myClassPaperDetail}（按「布置给本班」授权），不能用通用
- * {@code getPaper} —— 后者按「试卷归属人」鉴权，学生不是归属人会被 400 拒掉，
- * 表现为点「查看试卷」弹出空对话框（实测 B0500S0001）。</p>
+ * <p>未交卷的走 {@code studentAnswerPaper} 脱敏详情（不含答案/解析）——
+ * 不能把含标准答案的完整详情给作答前的学生；已交卷的走
+ * {@code myClassPaperDetail} 完整详情，供对照答案复盘。两者都按
+ * 「布置给本班」授权，不能用通用 {@code getPaper} —— 后者按「试卷归属人」
+ * 鉴权，学生不是归属人会被 400 拒掉（实测 B0500S0001）。</p>
  *
  * @param row 我班的试卷记录
  */
@@ -155,7 +162,9 @@ async function openPaper(row: PaperAssignVO) {
   detailLoading.value = true;
   detail.value = null;
   try {
-    detail.value = await eduaiApi.myClassPaperDetail(row.paperId);
+    detail.value = taskOf(row)
+      ? await eduaiApi.myClassPaperDetail(row.paperId)
+      : await eduaiApi.studentAnswerPaper(row.paperId);
   } catch (e) {
     message.error(e instanceof Error ? e.message : "加载试卷详情失败");
   } finally {
@@ -281,12 +290,25 @@ onMounted(() => {
   color: var(--el-text-color-secondary);
   font-size: 12px;
 }
-.sp-q__options {
+.sp-q__opts {
   margin: 6px 0 0 22px;
-  font-family: inherit;
+  padding-left: 0;
+  list-style: none;
   font-size: 13px;
   color: var(--el-text-color-regular);
-  white-space: pre-wrap;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sp-q__answer {
+  margin: 6px 0 0 22px;
+  font-size: 13px;
+  color: var(--el-color-success);
+}
+.sp-q__analysis {
+  margin: 4px 0 0 22px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 
 /*
@@ -320,7 +342,9 @@ onMounted(() => {
     min-height: 44px;
     margin-left: 0;
   }
-  .sp-q__options {
+  .sp-q__opts,
+  .sp-q__answer,
+  .sp-q__analysis {
     margin-left: 0;
   }
 }

@@ -88,7 +88,6 @@
 import { message } from "@repo/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReDialog from "@repo/ui/re-dialog";
@@ -334,11 +333,7 @@ function openEmbed(): void {
 
 async function regenerate(): Promise<void> {
   try {
-    await ElMessageBox.confirm("重新生成后旧链接立即失效，确认继续？", "重新生成令牌", {
-      type: "warning",
-      confirmButtonText: "重新生成",
-      cancelButtonText: "取消",
-    });
+    await message.confirm("重新生成后旧链接立即失效，确认继续？", "重新生成令牌", "重新生成", "取消", "warning");
   } catch {
     return;
   }

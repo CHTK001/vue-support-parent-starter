@@ -33,6 +33,7 @@
         </div>
         <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" @click="testConnection" />
         <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" @click="refresh" />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" :steps="autoRefreshSteps" />
         <ReButton layout="square" type="primary" :tip="useSql ? 'SQL 查询' : 'Flux 查询'" icon="Search" data-testid="dsm-btn-query" @click="openQuery" />
         <ReButton layout="square" type="primary" :tip="databaseModel ? '新建数据库' : '新建 Bucket'" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" :loading="bucketSaving" @click="openCreateBucket" />
         <ReButton layout="square" tip="写入数据" icon="EditPen" data-testid="dsm-btn-write" :disabled="!source" :loading="writeSaving" @click="openWritePoint" />
@@ -442,7 +443,12 @@
                 查询结果
                 <span v-if="t.result.rows.length > 0" class="dsm-query-meta">
                   {{ t.result.rows.length }} 行 · {{ t.elapsed }} ms
-                  <span v-if="t.truncated" class="dsm-query-warn">已截断，服务端共 {{ t.totalRows }} 行，请加 limit 或收窄时间窗</span>
+                  <DsQueryTruncatedHint
+                    :truncated="t.truncated"
+                    :shown="t.result.rows.length"
+                    :total="t.totalRows"
+                    dialect="influx"
+                  />
                 </span>
               </div>
               <ReTable
@@ -532,7 +538,6 @@
 import "@repo/ui/surface";
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import { EditPen, CopyDocument, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -546,6 +551,9 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { ReFormItem, ReOption } from "@repo/ui/re-kit";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import DsQueryTruncatedHint from "../../components/console/DsQueryTruncatedHint.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import { copyToClipboard } from "../../utils/clipboard";
 import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
@@ -1186,6 +1194,24 @@ async function refresh() {
 }
 
 /**
+ * 自动刷新：只开放 30s / 60s 两档。
+ *
+ * <p>InfluxDB 页的一次 {@code refresh()} 会级联重取 Bucket 列表、度量列表与
+ * 最近数据（{@code LIMIT 500}），是 datasource 里代价最高的一条刷新链路。
+ * 这里收窄档位：曾出现过 watch 源误挂导致 15 秒打出 1148 次请求把实例压崩的事故，
+ * 给出 5s 档等于把同样的风险重新交到用户手上。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+  steps: autoRefreshSteps,
+} = useAutoRefresh({
+  onRefresh: refresh,
+  storageKey: "datasource.influxdb",
+  steps: [0, 30000, 60000],
+});
+
+/**
  * 读取当前库的最近数据（v2 用 Flux，v3 用 SQL 取第一个度量的最近数据）
  */
 async function loadBucketData() {
@@ -1374,10 +1400,12 @@ async function submitBucket() {
 async function confirmDeleteMeasurement(measurement: string) {
   if (!activeBucket.value || !measurement) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除测量「${measurement}」？该操作会删除该测量的全部数据，不可恢复。`,
       "删除测量",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" }
+      "删除",
+      "取消",
+      "warning"
     );
   } catch {
     return;
@@ -1402,12 +1430,14 @@ async function confirmDeleteMeasurement(measurement: string) {
  */
 async function confirmDeleteBucket(row: InfluxdbBucket) {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       isV3.value
         ? `确认删除数据库「${row.name}」？该操作会删除库内全部数据，不可恢复。`
         : `确认删除 Bucket「${row.name}」？该操作会删除桶内全部数据，不可恢复。`,
       "删除确认",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" }
+      "删除",
+      "取消",
+      "warning"
     );
   } catch {
     return;
@@ -1993,11 +2023,6 @@ watch(source, applyConnectionInfo);
   font-size: 12px;
   font-weight: 400;
   color: var(--el-text-color-placeholder, var(--text-tertiary));
-}
-
-.dsm-query-warn {
-  margin-left: 8px;
-  color: var(--el-color-warning, var(--status-warning, var(--apm-status-warning)));
 }
 
 .dsm-section {

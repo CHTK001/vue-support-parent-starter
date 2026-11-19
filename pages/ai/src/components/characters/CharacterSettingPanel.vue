@@ -630,7 +630,7 @@
 // @ts-nocheck - CharacterSettingPanel 组件复杂度高，临时使用@ts-nocheck
 import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
 import ReDialog from '@repo/ui/re-dialog'
 import { getLocale } from '@/locales'
 import {
@@ -1990,10 +1990,12 @@ const submitFormDraft = async () => {
 const removePromptForm = async (f: PromptForm) => {
   if (f.builtin === 1) return
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `删除形态「${f.formName || f.formKey}」后，各角色在该形态下已配置的提示词将不再生效。`,
       '删除形态',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+      '删除',
+      '取消',
+      'warning'
     )
   } catch {
     return

@@ -16,14 +16,14 @@
 
         <template v-if="type === 'image'">
             <div class="image-preview w-15 h-15 rounded-lg overflow-hidden">
-                <img :src="previewUrl" class="w-full h-full object-cover"></img>
+                <img :src="previewUrl" class="w-full h-full object-cover" :alt="name"></img>
             </div>
         </template>
         <template v-else>
             <div
                 class="flex items-center px-2 py-1.5  bg-gray-50 border border-gray-200 rounded-lg transition-all duration-200 hover:bg-gray-100 hover:border-gray-300">
                 <div class="file-icon mr-2 text-gray-500 flex items-center w-8 h-8">
-                    <img :src="fileIcon" class="w-full h-full">
+                    <img :src="fileIcon" class="w-full h-full" alt="">
                 </div>
                 <div class="file-info flex-1 min-w-32 max-w-40 ">
                     <div class="file-name text-sm font-medium text-gray-700 truncate">{{ name }}</div>
@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { ref, computed, type Component } from 'vue'
+import { formatBytes as formatBytesBase } from '@repo/utils'
 import { useI18n } from 'vue-i18n'
 
 // 导入所有图标
@@ -160,11 +161,7 @@ const fileIcon = computed((): string => {
 
 // 格式化文件大小 - 类型化
 const formatFileSize = (bytes: number | undefined): string => {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes: string[] = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return formatBytesBase(bytes, { emptyText: '0 B', digits: 2, maxUnit: 'GB', trimZeros: true })
 };
 
 // 移除文件 - 类型化

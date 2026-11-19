@@ -25,7 +25,7 @@ import type { ReStatsCardItem } from "@repo/ui/re-stats-card";
 import ReTable from "@repo/ui/re-table";
 import ReTime, { formatDuration } from "@repo/ui/re-time";
 import { getServerInfo, getRestfulApiStats } from "../../api/systemApi";
-import { createSseClient, costMs } from "@repo/utils";
+import { createSseClient, costMs, formatBytes as formatBytesBase } from "@repo/utils";
 import type { SseClient } from "@repo/utils";
 import type { ServerInfo, ServerMemory, MemoryPoolInfo, NetworkInterfaceInfo, RestfulApiStats, RestfulTopUrl, RestfulTopIp } from "../../api/types";
 import { useElColors, withAlpha } from "./echarts-colors";
@@ -176,11 +176,7 @@ onBeforeUnmount(() => {
 
 /* ============ 工具 ============ */
 function formatBytes(b?: number): string {
-  if (b === undefined || b === null || isNaN(b)) return "—";
-  if (b < 1024) return `${b} B`;
-  const u = ["KB", "MB", "GB", "TB"]; let v = b / 1024; let i = 0;
-  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
-  return `${v.toFixed(2)} ${u[i]}`;
+  return formatBytesBase(b, { digits: 2, maxUnit: "TB" });
 }
 function fmtUptime(s?: number): string {
   if (!s) return "—"; const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);

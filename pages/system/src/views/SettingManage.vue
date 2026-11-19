@@ -9,7 +9,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import {
   Edit,
   Delete,
@@ -604,7 +603,7 @@ async function handleSubmit() {
 
 async function handleDelete(row: SysSetting) {
   const setting = row;
-  await ElMessageBox.confirm(`确认删除配置「${setting.sysSettingName}」？`, "提示", { type: "warning" });
+  await message.confirm(`确认删除配置「${setting.sysSettingName}」？`, "提示");
   await deleteSetting(setting.sysSettingId!);
   message.success("删除成功");
   await refreshAll();
@@ -784,10 +783,9 @@ async function loadHistory() {
 
 async function handleRollbackSingle(record: SysSettingHistory) {
   if (!record.sysSettingHistoryId) return;
-  await ElMessageBox.confirm(
+  await message.confirm(
     `确认将「${record.sysSettingName}」回滚到 ${record.createTime} 的版本？当前值将被覆盖。`,
     "回滚确认",
-    { type: "warning" },
   );
   rollbackLoading.value = record.sysSettingHistoryId;
   try {
@@ -804,7 +802,7 @@ async function handleRollbackSingle(record: SysSettingHistory) {
 
 async function handleRollbackBatch(batchNo: string) {
   if (!batchNo) return;
-  await ElMessageBox.confirm(`确认按批次「${batchNo}」回滚所有相关配置？`, "批次回滚确认", { type: "warning" });
+  await message.confirm(`确认按批次「${batchNo}」回滚所有相关配置？`, "批次回滚确认");
   try {
     await rollbackSettingHistoryBatch(batchNo);
     message.success("批次回滚成功");

@@ -12,7 +12,6 @@
  * @since 4.0.0.46
  */
 import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import { message } from "@repo/core";
 import type { SseClient } from "@repo/utils";
 import {
@@ -236,10 +235,12 @@ async function doRemove(): Promise<void> {
   const img = selected.value;
   if (!img) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除镜像「${imageRef(img)}」？${removeForce.value ? "已勾选强制删除，被容器引用时也会移除。" : "若仍被容器引用会失败，可勾选「强制删除」重试。"}`,
       "删除镜像",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+      "删除",
+      "取消",
+      "warning",
     );
   } catch {
     return;

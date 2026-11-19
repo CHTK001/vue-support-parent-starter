@@ -1127,7 +1127,7 @@ async function handleBatchDeleteButtons() {
     return;
   }
   try {
-    await ElMessageBox.confirm(`确认删除选中的 ${selectedButtons.value.length} 个按钮？`, "提示", { type: "warning" });
+    await message.confirm(`确认删除选中的 ${selectedButtons.value.length} 个按钮？`, "提示");
   } catch {
     return;
   }

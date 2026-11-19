@@ -11,7 +11,6 @@
  */
 import { message } from "@repo/core";
 import { computed, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 
 import { countOnline, getOnlineLoginHistory, kickUser, listOnline } from "../api/systemApi";
 import type { OnlineLoginDay, OnlineLoginHistory, OnlineLoginIp, OnlineUser } from "../api/types";
@@ -71,10 +70,12 @@ function reload() {
 /** 强制下线单个用户（仅管理员及以上可调用，后端 @Permission 兜底） */
 async function handleKick(row: OnlineUser) {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认将用户「${row.username ?? row.userId ?? "-"}」强制下线？该用户所有会话将被吊销，需重新登录。`,
       "强制下线",
-      { type: "warning", confirmButtonText: "强制下线", cancelButtonText: "取消" },
+      "强制下线",
+      "取消",
+      "warning",
     );
   } catch {
     return; // 用户取消

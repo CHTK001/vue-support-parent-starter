@@ -56,6 +56,7 @@
           :loading="overviewLoading"
           @click="reloadOverview"
         />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
 
         <NginxLifecycleBar
           :datasource-id="datasourceId"
@@ -164,6 +165,8 @@ import { ReAlert, ReOption } from "@repo/ui/re-kit";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import NginxLifecycleBar from "../../components/console/NginxLifecycleBar.vue";
 import NginxOverviewPanel from "../../components/console/NginxOverviewPanel.vue";
 import NginxSitePanel from "../../components/console/NginxSitePanel.vue";
@@ -323,6 +326,20 @@ async function reloadOverview() {
 function onLifecycleChanged() {
   reloadOverview();
 }
+
+/**
+ * 自动刷新：Nginx 总览（运行状态 / 版本 / 站点数）。
+ *
+ * <p>默认关闭。Nginx 的启停由 {@code NginxLifecycleBar} 触发，这里只做读侧轮询，
+ * 不会因为开了档位就自动重启服务。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: reloadOverview,
+  storageKey: "datasource.nginx",
+});
 
 function onTemplateSaved() {
   reloadOverview();

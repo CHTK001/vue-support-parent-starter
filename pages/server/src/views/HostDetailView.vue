@@ -17,7 +17,6 @@
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
 import {useSocketService, message} from "@repo/core";
 import * as echarts from "echarts";
 import { Loading } from "@element-plus/icons-vue";
@@ -1126,11 +1125,9 @@ async function runProfileAction(key: string, task: Promise<string>): Promise<boo
   }
 }
 /** 破坏性动作前确认，取消返回 false */
-async function confirmProfileAction(message: string): Promise<boolean> {
+async function confirmProfileAction(msg: string): Promise<boolean> {
   try {
-    await ElMessageBox.confirm(message, "操作确认", {
-      type: "warning", confirmButtonText: "确定", cancelButtonText: "取消",
-    });
+    await message.confirm(msg, "操作确认");
     return true;
   } catch {
     return false;

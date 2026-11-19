@@ -19,6 +19,7 @@
         <ReButton layout="square" icon="Connection" tip="测试连接" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
         <ReButton layout="square" icon="InfoFilled" tip="服务器信息" data-testid="dsm-btn-info" :disabled="!source" @click="openInfo" />
         <ReButton layout="square" icon="Refresh" tip="刷新" data-testid="dsm-btn-refresh" :loading="loading" @click="refresh" />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
         <ReButton layout="square" type="primary" icon="Plus" tip="新建键" data-testid="dsm-btn-create" :disabled="!source" @click="openCreate" />
       </div>
     </div>
@@ -447,6 +448,8 @@ import ReTag from "@repo/ui/re-tag";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import { copyToClipboard } from "../../utils/clipboard";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
@@ -1216,6 +1219,20 @@ async function refresh() {
   await scanKeys(true);
 }
 
+/**
+ * 自动刷新：把「侧栏概览 + 当前匹配模式的键列表」按档位重取。
+ *
+ * <p>直接复用 {@link refresh}，与点「刷新」等价。默认关闭：Redis 的 SCAN 会打到
+ * 真实实例上，用户没主动开就不该按固定节奏扫库。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: refresh,
+  storageKey: "datasource.redis",
+});
+
 /** 打开服务器信息弹窗 */
 async function openInfo() {
   infoVisible.value = true;
@@ -1438,7 +1455,7 @@ function startTtlCountdown(ttl: number): void {
  */
 async function confirmDeleteKey(key: string) {
   try {
-    await ElMessageBox.confirm(`确定删除键 ${key} 吗？该操作不可恢复。`, "删除确认", { type: "warning", confirmButtonText: "删除" });
+    await message.confirm(`确定删除键 ${key} 吗？该操作不可恢复。`, "删除确认", "删除");
   } catch {
     return;
   }
@@ -1499,7 +1516,7 @@ async function confirmDeleteDir(dir: string) {
     return;
   }
   try {
-    await ElMessageBox.confirm(`确定删除目录 ${dir} 下全部 ${found.length} 个键吗？该操作不可恢复。`, "删除确认", { type: "warning", confirmButtonText: "删除" });
+    await message.confirm(`确定删除目录 ${dir} 下全部 ${found.length} 个键吗？该操作不可恢复。`, "删除确认", "删除");
   } catch {
     return;
   }
@@ -1594,7 +1611,7 @@ async function editHashField(field: string, value: string) {
  */
 async function removeHashField(field: string) {
   try {
-    await ElMessageBox.confirm(`确定删除字段 ${field} 吗？`, "删除确认", { type: "warning" });
+    await message.confirm(`确定删除字段 ${field} 吗？`, "删除确认");
   } catch {
     return;
   }
@@ -1666,7 +1683,7 @@ async function editListElement(index: number, value: string) {
  */
 async function removeListElement(index: number) {
   try {
-    await ElMessageBox.confirm(`确定删除下标 ${index} 的元素吗？删除后后续元素前移。`, "删除确认", { type: "warning" });
+    await message.confirm(`确定删除下标 ${index} 的元素吗？删除后后续元素前移。`, "删除确认");
   } catch {
     return;
   }
@@ -1741,7 +1758,7 @@ async function editSetMember(member: string) {
  */
 async function removeSetMember(member: string) {
   try {
-    await ElMessageBox.confirm(`确定删除成员 ${member} 吗？`, "删除确认", { type: "warning" });
+    await message.confirm(`确定删除成员 ${member} 吗？`, "删除确认");
   } catch {
     return;
   }
@@ -1826,7 +1843,7 @@ async function editZsetScore(member: string, score: number) {
  */
 async function removeZsetMember(member: string) {
   try {
-    await ElMessageBox.confirm(`确定删除成员 ${member} 吗？`, "删除确认", { type: "warning" });
+    await message.confirm(`确定删除成员 ${member} 吗？`, "删除确认");
   } catch {
     return;
   }

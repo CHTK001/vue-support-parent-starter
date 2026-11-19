@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { message } from '@repo/core'
+import { formatBytes as formatBytesBase } from '@repo/utils'
 import ReButton from '@repo/ui/re-button'
 
 type BodyView = 'auto' | 'form' | 'json' | 'text' | 'hex'
@@ -470,9 +471,7 @@ function dumpHex(bytes: Uint8Array): string {
 }
 
 function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-  return `${(n / 1024 / 1024).toFixed(2)} MB`
+  return formatBytesBase(n, { digits: { KB: 1, MB: 2 } })
 }
 
 async function copy(text: string, okText: string) {

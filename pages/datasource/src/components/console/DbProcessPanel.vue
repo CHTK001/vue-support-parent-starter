@@ -15,7 +15,7 @@
  */
 import { message } from "@repo/core";
 import { onMounted, ref, watch } from "vue";
-import { ElCheckbox, ElMessageBox } from "element-plus";
+import { ElCheckbox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReTable from "@repo/ui/re-table";
@@ -143,11 +143,7 @@ const killSelected = async () => {
   }
   // 批量是破坏性操作：原数据源中心弹窗有二次确认，抽成共享面板后必须保留
   try {
-    await ElMessageBox.confirm(`确认关闭选中的 ${pids.length} 个进程？`, "批量关闭进程", {
-      type: "warning",
-      confirmButtonText: "关闭",
-      cancelButtonText: "取消",
-    });
+    await message.confirm(`确认关闭选中的 ${pids.length} 个进程？`, "批量关闭进程", "关闭", "取消", "warning");
   } catch {
     return;
   }

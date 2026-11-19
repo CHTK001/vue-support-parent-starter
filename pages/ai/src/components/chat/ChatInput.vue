@@ -287,7 +287,7 @@ import {
   reactive,
   type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElIcon, ElButton, ElTag, ElMessageBox } from "element-plus";
+import { ElIcon, ElButton, ElTag, ElMessageBox, ElMessage } from "element-plus";
 import type { Model, ModelProvider } from '@/types/api';
 import { Editor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
@@ -590,16 +590,6 @@ const restoreInputDraft = async () => {
   setDraftText(text, true);
 };
 
-// 切会话：旧会话草稿立刻落盘（不等防抖），再回填新会话的草稿
-watch(() => props.sessionId, (sid, oldSid) => {
-  if (oldSid != null && String(oldSid)) {
-    flushInputDraft(String(oldSid));
-  }
-  lastDraftKey = '';
-  lastDraftValue = '';
-  void restoreInputDraft();
-}, { immediate: true });
-
 // 命令选择弹窗 ref
 const commandPickerRef = ref<any>();
 
@@ -699,7 +689,26 @@ const props = defineProps({
   historyHasMore: { type: Boolean, default: false },
   /** 正在加载更早一页消息 */
   historyLoadingMore: { type: Boolean, default: false },
+  /**
+   * 发送失败信号：父组件捕获到「消息未落库」的发送异常时 +1。
+   *
+   * <p>单向信号 prop（与本组件对建议面板用的 suggestionDismissSignal 同一口径）：
+   * 输入框收到信号就把最近一次发送的文本/附件放回编辑器，避免用户重新打字。
+   * 每次发送都会先覆盖记录，所以恢复的总是刚刚发失败的那一条。</p>
+   */
+  sendFailureSignal: { type: Number, default: 0 },
 });
+
+// 切会话：旧会话草稿立刻落盘（不等防抖），再回填新会话的草稿。
+// 必须注册在 props 声明之后：immediate 回调会同步读取 props.sessionId。
+watch(() => props.sessionId, (sid, oldSid) => {
+  if (oldSid != null && String(oldSid)) {
+    flushInputDraft(String(oldSid));
+  }
+  lastDraftKey = '';
+  lastDraftValue = '';
+  void restoreInputDraft();
+}, { immediate: true });
 
 // 计算属性
 const styleClass = computed(() => {
@@ -2330,6 +2339,10 @@ const sendMessage = async () => {
   // 已明确发出这一轮：灰字预测跟着作废（下一次生成结束会重新预测）
   clearPrediction();
 
+  // 发送失败草稿保护：先记下这次要发的内容，再乐观清空。
+  // 父组件发送失败（sendFailureSignal +1）时把文本/附件原样放回编辑器。
+  lastSentForRestore = { content, files: uploadedFiles };
+
   // 发送消息(仅包含已上传完成的文件)；content 已剥离技能徽标，skillNames 单独透传
   emit('send', {
     content,
@@ -2346,19 +2359,33 @@ const sendMessage = async () => {
   uploadFiles.value = [];
 };
 
+/** 最近一次发送的内容（发送失败时据此恢复）；每次 sendMessage 都会覆盖 */
+let lastSentForRestore: { content: string; files: ChatFile[] } | null = null;
+
+// 发送失败：把刚清空的输入放回去（文本 + 附件），并提示用户。
+// 信号只在 handleSendMessage 的同步 catch 里 +1，期间不会有新的发送覆盖 lastSentForRestore，
+// 所以恢复的必然是刚刚发失败的那一条；用户随后重新编辑/再发送都会正常覆盖或清除。
+watch(() => props.sendFailureSignal, (now, before) => {
+  if (now <= (before ?? 0)) return;
+  const failed = lastSentForRestore;
+  if (!failed || (!failed.content.trim() && failed.files.length === 0)) return;
+  setDraftText(failed.content);
+  if (failed.files.length) {
+    uploadFiles.value = failed.files;
+  }
+  ElMessage.warning(t('chat.input.sendFailedRestored'));
+});
+
 // 显示上传等待对话框
 async function showUploadWaitingDialog(uploadingCount: number): Promise<boolean> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       t('chat.input.uploadingDesc', { count: uploadingCount }),
       t('chat.input.uploadingTitle'),
-      {
-        confirmButtonText: t('chat.input.continueWaiting'),
-        cancelButtonText: t('chat.input.sendDirectly'),
-        type: 'warning',
-        distinguishCancelAndClose: true,
-        closeOnClickModal: false,
-      }
+      t('chat.input.continueWaiting'),
+      t('chat.input.sendDirectly'),
+      'warning',
+      { closeOnClickModal: false }
     );
     return true; // 用户点击"继续等待"
   } catch {

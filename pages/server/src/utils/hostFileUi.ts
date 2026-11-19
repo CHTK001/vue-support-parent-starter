@@ -9,6 +9,7 @@
  * @since 4.0.0.62
  */
 import type { ReleaseHostFileItem, ReleaseHostFileKind } from "../api/releaseHostFile";
+import { formatDateTime as formatDateTimeBase } from "@repo/utils";
 
 /** 类型筛选项（顺序即界面顺序：目录 / 安装包 / 压缩包 / 图片 / 文本 / 代码 / 音视频 / 其它） */
 export const KIND_OPTIONS: Array<{ value: ReleaseHostFileKind; label: string; icon: string }> = [
@@ -98,15 +99,7 @@ export function formatSize(size?: number | null): string {
  * @returns 展示文本；无值返回 —
  */
 export function formatDateTime(ms?: number | null): string {
-  if (!ms) {
-    return "—";
-  }
-  const d = new Date(Number(ms));
-  if (Number.isNaN(d.getTime())) {
-    return "—";
-  }
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatDateTimeBase(ms);
 }
 
 /**

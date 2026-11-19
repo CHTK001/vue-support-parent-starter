@@ -43,7 +43,6 @@
 import { message } from "@repo/core";
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus';
 import { apiService } from '@/services/ApiService'
 import { setLinkOpenMode, setAutoShowSidebar, type LinkOpenMode } from '@/utils/workspacePreview'
 import SettingsCard from './SettingsCard.vue'
@@ -104,14 +103,12 @@ async function handleClearData(): Promise<void> {
   }
 
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       t('settings.browser.clearConfirmMessage'),
       t('settings.browser.clearConfirmTitle'),
-      {
-        confirmButtonText: t('settings.browser.clearConfirmBtn'),
-        cancelButtonText: t('common.cancel'),
-        type: 'warning',
-      },
+      t('settings.browser.clearConfirmBtn'),
+      t('common.cancel'),
+      'warning',
     )
   } catch {
     return

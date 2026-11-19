@@ -173,7 +173,6 @@
 import { message } from "@repo/core";
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessageBox } from 'element-plus';
 import { Search, Refresh, Files, Delete } from '@element-plus/icons-vue';
 import { ArrowBackIosFilled } from '@vicons/material';
 import { skillsApi } from '@/services/javaApi';
@@ -306,7 +305,7 @@ async function handleToggle(row: InstalledSkill) {
 
 async function handleUninstall(row: InstalledSkill) {
   try {
-    await ElMessageBox.confirm(`确定要卸载「${row.name}」吗？`, '卸载确认', { type: 'warning' });
+    await message.confirm(`确定要卸载「${row.name}」吗？`, '卸载确认');
   } catch {
     return;
   }

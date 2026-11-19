@@ -44,8 +44,22 @@
               </div>
             </div>
 
+            <!-- 加载失败：错误态 + 重试（区别于「暂无任务」空态） -->
+            <div v-if="loadError" class="re-surface p-12 text-center">
+              <div class="w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+                <el-icon :size="28" class="text-red-400">
+                  <RefreshOutlined />
+                </el-icon>
+              </div>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('scheduler.page.loadFailed') }}</p>
+              <el-button type="primary" class="mt-4" :loading="loading" @click="loadTasks">
+                <template #icon><RefreshOutlined /></template>
+                {{ t('scheduler.page.refresh') }}
+              </el-button>
+            </div>
+
             <!-- 任务卡片网格 -->
-            <div v-if="tasks.length > 0" class="grid gap-y-4 gap-x-3" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
+            <div v-else-if="tasks.length > 0" class="grid gap-y-4 gap-x-3" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">
               <div v-for="task in tasks" :key="task.id"
                 class="task-card re-surface re-surface--dense flex flex-col overflow-hidden cursor-pointer"
                 @click="handleEditTask(task)">
@@ -139,6 +153,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { formatDateTime as formatDateTimeBase } from '@repo/utils'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElButton, ElTag, ElSwitch, ElIcon, ElTabs, ElTabPane } from 'element-plus'
@@ -170,6 +185,8 @@ const activeTab = ref<string>('tasks')
 // 任务列表
 const tasks = ref<ScheduledTask[]>([])
 const loading = ref(false)
+// 列表加载失败标记：失败时显示可重试的错误态，而不是与「暂无任务」空态混淆
+const loadError = ref(false)
 // 单次操作进行中的任务标识（立即执行 / 启停）
 const runningId = ref<string | null>(null)
 const togglingId = ref<string | null>(null)
@@ -194,8 +211,10 @@ async function loadTasks() {
   loading.value = true
   try {
     tasks.value = await apiService.fetchScheduledTasks()
+    loadError.value = false
   } catch (err: any) {
     console.error('加载定时任务失败:', err)
+    loadError.value = true
     toast.error(err.message || t('scheduler.page.loadFailed'))
   } finally {
     loading.value = false
@@ -372,12 +391,17 @@ function targetText(task: ScheduledTask): string {
  * 毫秒时间戳格式化（后端 created_at / last_run_at_ms 为 epoch millis）
  */
 function formatDateTime(value: number | null): string {
-  if (!value) return '-'
-  return new Date(value).toLocaleString('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return formatDateTimeBase(value, {
+    emptyText: '-',
+    intl: {
+      locale: 'zh-CN',
+      options: {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }
+    }
   })
 }
 

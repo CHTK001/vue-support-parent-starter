@@ -20,7 +20,6 @@
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
 import type { Component } from "vue";
-import { ElMessageBox } from "element-plus";
 import { CircleCheck, DataAnalysis, Postcard, Tickets } from "@element-plus/icons-vue";
 import { http, unwrapResult, usePersistentFilters } from "@repo/utils";
 import ReStatCard from "@repo/ui/re-stat-card";
@@ -300,7 +299,7 @@ async function saveForm(): Promise<void> {
  */
 async function removeOne(row: FreeProxy): Promise<void> {
   try {
-    await ElMessageBox.confirm(`删除代理「${row.host}:${row.port}」？`, "删除确认", { type: "warning" });
+    await message.confirm(`删除代理「${row.host}:${row.port}」？`, "删除确认");
   } catch {
     return;
   }
@@ -316,7 +315,7 @@ async function removeOne(row: FreeProxy): Promise<void> {
 /** 清空代理表 */
 async function clearAll(): Promise<void> {
   try {
-    await ElMessageBox.confirm("清空整张代理表？该操作不可撤销（可重新获取免费代理）", "清空确认", { type: "warning" });
+    await message.confirm("清空整张代理表？该操作不可撤销（可重新获取免费代理）", "清空确认");
   } catch {
     return;
   }

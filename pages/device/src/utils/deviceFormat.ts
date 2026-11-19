@@ -8,6 +8,7 @@
  */
 
 import type { DeviceInfo, DeviceStatus, OrgNode } from '../types/device'
+import { formatDateTime as formatDateTimeBase } from '@repo/utils'
 
 /**
  * 解析后端时间（兼容 `yyyy-MM-dd HH:mm:ss` 与 ISO）
@@ -22,20 +23,13 @@ export function parseDate(value?: string | Date | null): Date | null {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-/** 补零 */
-function pad(n: number): string {
-  return n < 10 ? `0${n}` : String(n)
-}
-
 /**
  * 格式化为 `yyyy-MM-dd HH:mm`
  *
  * @param value 时间
  */
 export function formatDateTime(value?: string | Date | null): string {
-  const date = parseDate(value)
-  if (!date) return '-'
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return formatDateTimeBase(value, { emptyText: '-' })
 }
 
 /**
@@ -44,9 +38,7 @@ export function formatDateTime(value?: string | Date | null): string {
  * @param value 时间
  */
 export function formatDateTimeFull(value?: string | Date | null): string {
-  const date = parseDate(value)
-  if (!date) return '-'
-  return `${formatDateTime(date)}:${pad(date.getSeconds())}`
+  return formatDateTimeBase(value, { emptyText: '-', style: 'datetime-seconds' })
 }
 
 /**

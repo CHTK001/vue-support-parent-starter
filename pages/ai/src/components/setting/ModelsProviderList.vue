@@ -11,7 +11,9 @@
         v-for="provider in items"
         :key="provider.id"
         class="provider-card"
+        tabindex="0"
         @click="$emit('item-click', provider)"
+        @keydown.enter.prevent="$emit('item-click', provider)"
       >
         <div class="pc-head">
           <div class="pc-logo">
@@ -254,6 +256,10 @@ export default {
   transition: opacity 0.18s ease;
 }
 .provider-card:hover .pc-tools { opacity: 1; }
+
+/* 键盘焦点（卡片自身 focus-visible，或 Tab 进入卡内工具按钮的 focus-within）同样显形操作区 */
+.provider-card:focus-visible .pc-tools,
+.provider-card:focus-within .pc-tools { opacity: 1; }
 .pc-icon {
   display: inline-flex;
   align-items: center;
@@ -341,9 +347,8 @@ export default {
 /* 键盘焦点可见性：供应商卡是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
    指针样式原有 cursor: pointer 已在上面声明，不重复写。
    环用主色 12% —— 卡底色是令牌化的 --el-bg-color，一档主色描边足够可见。
-   注意 .pc-tools 平时是 opacity: 0、只在 .provider-card:hover 时显形，
-   键盘用户看不到里面的操作按钮；补 tabindex 时需要一并处理显隐，
-   本次授权仅限 style 块、不改模板，故此处只报告不改。 */
+   .pc-tools 平时是 opacity: 0、在 .provider-card:hover / :focus-visible /
+   :focus-within 时显形，键盘用户 Tab 聚焦卡片后同样能看到里面的操作按钮。 */
 .provider-card {
   outline: none;
 }

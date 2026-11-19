@@ -1943,7 +1943,7 @@ async function restoreRecycleItem(item: StorageObject): Promise<void> {
 /** 彻底删除回收站对象 */
 async function purgeRecycleItem(item: StorageObject): Promise<void> {
   try {
-    await ElMessageBox.confirm(`彻底删除「${item.name}」？该操作不可恢复`, "彻底删除", { type: "warning" });
+    await message.confirm(`彻底删除「${item.name}」？该操作不可恢复`, "彻底删除");
   } catch { return; }
   actionRunning.value = true;
   try {
@@ -1964,7 +1964,7 @@ async function emptyRecycle(): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm("清空回收站？所有对象将被彻底删除", "清空回收站", { type: "warning" });
+    await message.confirm("清空回收站？所有对象将被彻底删除", "清空回收站");
   } catch { return; }
   actionRunning.value = true;
   try {
@@ -2202,7 +2202,7 @@ async function deleteSelected(): Promise<void> {
   if (selectedCount.value === 0) return;
   const targets = objects.value.filter((o) => selected.value.has(o.name));
   try {
-    await ElMessageBox.confirm(`确认将选中的 ${targets.length} 个对象移入回收站？`, "移入回收站", { type: "warning" });
+    await message.confirm(`确认将选中的 ${targets.length} 个对象移入回收站？`, "移入回收站");
   } catch { return; }
   try {
     await moveToRecycle(targets);
@@ -4163,11 +4163,7 @@ function pickFiles(): void {
 async function closeUpload(): Promise<void> {
   if (uploadItems.value.some((i) => i.status === "uploading" || i.status === "pending" || i.status === "paused")) {
     try {
-      await ElMessageBox.confirm("还有文件未上传完成，确定关闭吗？未上传的文件将被丢弃。", "关闭上传", {
-        type: "warning",
-        confirmButtonText: "关闭",
-        cancelButtonText: "继续上传",
-      });
+      await message.confirm("还有文件未上传完成，确定关闭吗？未上传的文件将被丢弃。", "关闭上传", "关闭", "继续上传", "warning");
     } catch {
       return;
     }
@@ -5364,7 +5360,7 @@ async function handleDelete(row: StorageObject): Promise<void> {
     ? [...selected.value].map((name) => ({ name } as StorageObject))
     : [row];
   const label = targets.length > 1 ? `确认将选中的 ${targets.length} 个对象移入回收站？` : `确认将「${row.name}」移入回收站？`;
-  try { await ElMessageBox.confirm(label, "移入回收站", { type: "warning" }); } catch { return; }
+  try { await message.confirm(label, "移入回收站"); } catch { return; }
   try {
     await moveToRecycle(targets);
     message.success(`已移入回收站 ${targets.length} 个对象`);
@@ -5582,10 +5578,12 @@ function copyManagedLink(row: OneTimeLinkItem): void {
 
 async function closeManagedLink(row: OneTimeLinkItem): Promise<void> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `关闭后该链接立即失效，无法再通过它访问「${row.name}」。确定关闭？`,
       "关闭访问链接",
-      { type: "warning", confirmButtonText: "关闭链接", cancelButtonText: "取消" },
+      "关闭链接",
+      "取消",
+      "warning",
     );
   } catch {
     return;

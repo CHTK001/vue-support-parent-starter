@@ -102,6 +102,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { formatDateTime as formatDateTimeBase } from '@repo/utils'
 import { useI18n } from 'vue-i18n'
 import { ElDrawer, ElTag, ElButton, ElIcon } from 'element-plus'
 import { RefreshOutlined, InboxOutlined } from '@vicons/material'
@@ -214,14 +215,19 @@ function getStatusLabel(status: string): string {
  * 格式化毫秒时间戳（后端 runs 的时间字段为 epoch millis）
  */
 function formatDateTime(value: number | null): string {
-  if (!value) return '-'
-  return new Date(value).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+  return formatDateTimeBase(value, {
+    emptyText: '-',
+    intl: {
+      locale: 'zh-CN',
+      options: {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }
+    }
   })
 }
 

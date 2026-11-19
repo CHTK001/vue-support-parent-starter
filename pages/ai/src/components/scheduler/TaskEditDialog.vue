@@ -1,5 +1,5 @@
 <template>
-  <ReDialog :close-on-click-modal="true" v-model="dialogVisible" :title="isEdit ? t('scheduler.edit.editTitle') : t('scheduler.edit.createTitle')" width="775px" align-center
+  <ReDialog :close-on-click-modal="false" v-model="dialogVisible" :title="isEdit ? t('scheduler.edit.editTitle') : t('scheduler.edit.createTitle')" width="775px" align-center
     destroy-on-close class="dialog-with-scroll" style="max-height: 70vh;">
     <div class="dialog-content">
       <el-form ref="formRef" :model="form" :rules="rules" label-position="left" label-width="100px" size="default">

@@ -3,8 +3,8 @@
  * 租户订阅页
  *
  * 订阅账本：谁买了什么服务、买的哪档规格、到期时间、实收多少、走的什么收款方式。
- * 录入订阅 = 管理员在后台直接登记 + 线下收款记账；不接支付渠道，
- * 只把金额与收款方式落库，便于事后对账。
+ * 录入订阅 = 管理员在后台直接登记，把金额与收款方式落库，便于事后对账。
+ * 收款方式支持线下/线上/赠送；不接支付渠道。
  *
  * 订阅到期后由后端定时任务清理，页面上的「清理到期订阅」用于立即执行同一段逻辑。
  */
@@ -56,14 +56,6 @@ const searchFilters = computed(() => [
   },
 ]);
 
-/** 当前已加载行（本页），用于「本页实收合计」 */
-const pageRows = ref<SysTenantService[]>([]);
-
-/** 本页金额合计：分页接口没有后台汇总，只统计当前页已加载的行并如实标注范围 */
-const pageAmountTotal = computed(() =>
-  pageRows.value.reduce((sum, row) => sum + (Number(row.sysTenantServicePayAmount) || 0), 0),
-);
-
 async function loadSubscriptions({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const res = await pageForSubscription({
     page,
@@ -71,8 +63,31 @@ async function loadSubscriptions({ page, pageSize, params }: ReTableLoadParams):
     sysTenantId: (params.sysTenantId as string) || undefined,
     sysServiceId: (params.sysServiceId as number) || undefined,
   });
-  pageRows.value = (res?.data?.data ?? []) as SysTenantService[];
-  return { total: res?.data?.total ?? 0, data: pageRows.value as unknown as Record<string, unknown>[] };
+  const data = (res?.data?.data ?? []) as SysTenantService[];
+  return {
+    total: res?.data?.total ?? 0,
+    data: data as unknown as Record<string, unknown>[],
+  };
+}
+
+/**
+ * 表尾合计：仅实收金额列显示本页合计（分页接口无后台汇总，如实只统计当前页）。
+ * 签名与 ReTable 的 summaryMethod 一致：按可见列逐列返回单元格值。
+ */
+function subscriptionSummary(params: {
+  columns: ReTableColumn[];
+  data: Array<Record<string, unknown>>;
+}): Array<string | number> {
+  const sum = params.data.reduce((acc, row) => acc + (Number(row.sysTenantServicePayAmount) || 0), 0);
+  return params.columns.map((col) => {
+    if (col.prop === "sysTenantServicePayAmount") {
+      return `¥${sum.toFixed(2)}`;
+    }
+    if (col.prop === "sysTenantName") {
+      return "本页合计";
+    }
+    return "";
+  });
 }
 
 const payChannelText: Record<string, string> = {
@@ -195,6 +210,8 @@ onMounted(async () => {
       :pagination="true"
       :params="{}"
       row-key="sysTenantServiceId"
+      :show-summary="true"
+      :summary-method="subscriptionSummary"
       v-model:page="query.page"
       v-model:page-size="query.pageSize"
       :search="{ filters: searchFilters, title: '搜索', btnMode: 'text' }"
@@ -239,14 +256,6 @@ onMounted(async () => {
       <template #action="{ row }">
         <ReButton layout="square" type="primary" icon="Edit" tip="续费/配置" v-admin @click="openBindForRow(row)" />
       </template>
-      <template #summary>
-        <div class="subscription-summary">
-          <span>本页共 <b>{{ pageRows.length }}</b> 条</span>
-          <span class="subscription-summary__divider"></span>
-          <span>本页实收合计 <b>¥{{ pageAmountTotal.toFixed(2) }}</b></span>
-          <span class="text-[--el-text-color-secondary]">（按当前筛选条件与分页，非全量汇总）</span>
-        </div>
-      </template>
     </ReTable>
 
     <TenantServiceBindDialog v-model:visible="bindVisible" :tenant="bindTenant" @success="handleSuccess" />
@@ -268,24 +277,5 @@ onMounted(async () => {
   margin-top: 2px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
-}
-
-/* 分页统计条（ReTable #summary 插槽） */
-.subscription-summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-}
-.subscription-summary b {
-  color: var(--el-color-primary);
-  font-weight: 600;
-}
-.subscription-summary__divider {
-  width: 1px;
-  height: 12px;
-  background: var(--el-border-color);
 }
 </style>

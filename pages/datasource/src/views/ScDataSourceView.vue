@@ -18,7 +18,7 @@
 import { message } from "@repo/core";
 import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { ElCheckbox, ElMessageBox } from "element-plus";
+import { ElCheckbox } from "element-plus";
 import { CircleCheck, Clock, Timer } from "@element-plus/icons-vue";
 // 组件全部显式引入：本页被采集台与监控台共用，两个应用都不保证全局注册 Re*，
 // 只靠全局注册会出现「卡片能显示但按钮/表格不渲染」的问题。
@@ -359,11 +359,7 @@ const openDriverLib = () => {
  */
 const removeDriverJar = async (jar: JdbcDriverJar) => {
   try {
-    await ElMessageBox.confirm(
-      `确定删除驱动 jar "${jar.jarName}" 吗？仍被数据源引用时后端会拒绝删除。`,
-      "删除驱动 jar",
-      { type: "warning" },
-    );
+    await message.confirm(`确定删除驱动 jar "${jar.jarName}" 吗？仍被数据源引用时后端会拒绝删除。`, "删除驱动 jar");
   } catch {
     return; // 用户取消
   }
@@ -1178,7 +1174,7 @@ const save = async () => {
 /** 删除 */
 const remove = async (item: DataSourceInfo) => {
   try {
-    await ElMessageBox.confirm(`确定删除数据源 "${item.name}" 吗？`, "删除确认", { type: "warning" });
+    await message.confirm(`确定删除数据源 "${item.name}" 吗？`, "删除确认");
   } catch {
     return;
   }
@@ -1276,10 +1272,12 @@ const batchRemove = async () => {
   if (!targets.length) return;
   const names = list.value.filter((r) => targets.includes(r.id ?? -1)).map((r) => r.name);
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除选中的 ${targets.length} 个数据源（${names.slice(0, 3).join("、")}${names.length > 3 ? " 等" : ""}）？该操作不可恢复。`,
       "批量删除",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+      "删除",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -1863,11 +1861,7 @@ const killSelectedProcesses = async () => {
     return;
   }
   try {
-    await ElMessageBox.confirm(`确认关闭选中的 ${pids.length} 个进程？`, "批量关闭进程", {
-      type: "warning",
-      confirmButtonText: "关闭",
-      cancelButtonText: "取消",
-    });
+    await message.confirm(`确认关闭选中的 ${pids.length} 个进程？`, "批量关闭进程", "关闭", "取消", "warning");
   } catch {
     return;
   }
@@ -2880,9 +2874,7 @@ const removeTunnel = async () => {
     return;
   }
   try {
-    await ElMessageBox.confirm("删除后该数据源的连接测试将直连目标库（内网不可达时会失败），确定删除？", "删除隧道", {
-      type: "warning"
-    });
+    await message.confirm("删除后该数据源的连接测试将直连目标库（内网不可达时会失败），确定删除？", "删除隧道");
   } catch {
     return;
   }

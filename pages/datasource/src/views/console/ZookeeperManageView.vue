@@ -9,6 +9,7 @@
         <ReButton layout="square" tip="集群信息" icon="Monitor" data-testid="dsm-btn-cluster" :disabled="!source" :loading="clusterLoading" @click="openCluster" />
         <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
         <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" :loading="loading" @click="refresh" />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
         <ReButton layout="square" type="primary" tip="新建节点" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" @click="openCreate" />
       </div>
     </div>
@@ -313,7 +314,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, reactive, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReEmpty from "@repo/ui/re-empty";
@@ -326,6 +326,8 @@ import ReRelationGraph from "@repo/ui/re-relation-graph";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import { copyToClipboard } from "../../utils/clipboard";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
@@ -759,6 +761,20 @@ async function refresh() {
 }
 
 /**
+ * 自动刷新：根节点树 + 当前选中节点的详情与子节点。
+ *
+ * <p>默认关闭。ZooKeeper 的 watch 语义是一次性的，这里走的是整树重取，
+ * 频率过高会明显增加会话读请求，由用户按需开启。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: refresh,
+  storageKey: "datasource.zookeeper",
+});
+
+/**
  * 探测当前数据源的 ZooKeeper 连通性，回填服务端版本与会话 ID
  */
 async function testConnection() {
@@ -845,7 +861,7 @@ async function saveNode() {
 async function deleteNode(path = activePath.value) {
   if (!path) return;
   try {
-    await ElMessageBox.confirm(`确定删除节点 ${path} 吗？`, "删除确认", { type: "warning" });
+    await message.confirm(`确定删除节点 ${path} 吗？`, "删除确认");
   } catch {
     return;
   }
@@ -870,11 +886,7 @@ async function deleteNode(path = activePath.value) {
  */
 async function deleteRecursive(path: string) {
   try {
-    await ElMessageBox.confirm(
-      `确定递归删除节点 ${path} 及其所有子孙节点吗？此操作不可恢复！`,
-      "递归删除确认",
-      { type: "warning" }
-    );
+    await message.confirm(`确定递归删除节点 ${path} 及其所有子孙节点吗？此操作不可恢复！`, "递归删除确认");
   } catch {
     return;
   }

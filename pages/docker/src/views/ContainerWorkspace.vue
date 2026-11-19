@@ -13,7 +13,6 @@
  * @since 4.0.0.46
  */
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import { message } from "@repo/core";
 import type { SseClient } from "@repo/utils";
 import {
@@ -99,10 +98,12 @@ async function runAction(action: string): Promise<void> {
   if (!props.hostId) return;
   if (action === "remove") {
     try {
-      await ElMessageBox.confirm(
+      await message.confirm(
         `确认删除容器「${props.container.name}」？删除后容器内未挂载的数据将不可恢复。`,
         "删除容器",
-        { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+        "删除",
+        "取消",
+        "warning",
       );
     } catch {
       return;

@@ -12,7 +12,6 @@
  * @since 4.0.0.46
  */
 import { computed, reactive, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import { message } from "@repo/core";
 import { deleteRegistry, listRegistries, listRegistryTypes, saveRegistry, testRegistry } from "../api";
 import type { DockerRegistry, DockerRegistryType } from "../api";
@@ -183,11 +182,13 @@ async function test(): Promise<void> {
 async function remove(): Promise<void> {
   if (!form.id || form.builtin) return;
   try {
-    await ElMessageBox.confirm(`确认删除镜像库「${form.name}」？删除后该库的检索与凭据一并失效。`, "删除镜像库", {
-      type: "warning",
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-    });
+    await message.confirm(
+      `确认删除镜像库「${form.name}」？删除后该库的检索与凭据一并失效。`,
+      "删除镜像库",
+      "删除",
+      "取消",
+      "warning",
+    );
   } catch {
     return;
   }

@@ -22,9 +22,8 @@
  * @author CH
  * @since 4.0.0.52
  */
-import { computed, onMounted, ref, toRef, watch } from "vue";
-import { ElMessageBox } from "element-plus";
-import { msgError, msgSuccess } from "@repo/core";
+import { computed, onMounted, onUnmounted, ref, toRef, watch } from "vue";
+import { message, msgError, msgSuccess } from "@repo/core";
 import { usePersistentFilters } from "@repo/utils";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
@@ -39,6 +38,7 @@ import {
   listTunnels,
   startTunnel,
   stopTunnel,
+  subscribeTunnelStream,
   updateTunnel,
 } from "../api/tunnelApi";
 import type { TunnelMode, TunnelProvider, TunnelProviderInfo, TunnelRecord, TunnelView } from "../api/types";
@@ -101,6 +101,17 @@ const rows = ref<TunnelView[]>([]);
 
 /** 列表加载态 */
 const loading = ref(false);
+
+/** 列表加载失败原因；非空时左栏与画布都显示「加载失败 + 重试」，不谎报「还没有映射」 */
+const loadError = ref("");
+
+/**
+ * 页面时基。
+ *
+ * <p>「已运行 2h14m」这类文案若直接用 {@code Date.now()} 渲染，会冻结在挂载那一刻，
+ * 之后不再变。由 10s 心跳推进本值，模板依赖它重算，同时不产生任何请求。</p>
+ */
+const now = ref(Date.now());
 
 /** 后端已注册的提供方（下拉与模式选项的唯一来源） */
 const providers = ref<TunnelProviderInfo[]>([]);
@@ -288,6 +299,47 @@ function shortUnavailable(hint: string): string {
   return "不可用";
 }
 
+/**
+ * 提供方不可用的原因（空串表示可用或未知）。
+ *
+ * <p>只在后端明确回 {@code available === false} 时拦截启动；元数据缺失（清单加载失败）
+ * 时保持可点，把判定权留在后端，不拿「未知」当「不可用」。</p>
+ *
+ * @param row 映射行
+ * @returns 原因文案；可用 / 未知时为空串
+ */
+function providerBlocked(row: TunnelView): string {
+  const info = providers.value.find((item) => item.name === row.provider);
+  if (!info || info.available !== false) {
+    return "";
+  }
+  return unavailableReason(info) || "运行环境不具备执行条件";
+}
+
+/**
+ * 启动按钮是否禁用（提供方不可用或映射已禁用）。
+ *
+ * @param row 映射行
+ * @returns 禁用则 true
+ */
+function cannotStart(row: TunnelView): boolean {
+  return row.enabled === false || Boolean(providerBlocked(row));
+}
+
+/**
+ * 启动按钮禁用时的原因（可用时为空串，交给按钮原提示）。
+ *
+ * @param row 映射行
+ * @returns 提示文案
+ */
+function startBlockedTitle(row: TunnelView): string {
+  if (row.enabled === false) {
+    return "映射已禁用：先编辑并打开「启用」";
+  }
+  const blocked = providerBlocked(row);
+  return blocked ? `提供方不可用：${blocked}` : "";
+}
+
 /** 左栏分组：已注册提供方的顺序优先，未注册的排在后面 */
 const groups = computed<ProviderGroup[]>(() => {
   const buckets = new Map<string, TunnelView[]>();
@@ -302,8 +354,11 @@ const groups = computed<ProviderGroup[]>(() => {
   }
   const registered = providers.value.map((item) => String(item.name));
   const extra = [...buckets.keys()].filter((key) => !registered.includes(key));
+  // 「全部 + 无搜索词」时，注册了却没有映射的提供方也要露头（虚线占位 + 组内新增），
+  // 否则用户看不出这台机器支持哪些提供方；一旦按状态筛选或搜索，就只保留有命中的组。
+  const showEmptyGroups = filter.value === "all" && !search.value.trim();
   return [...registered, ...extra]
-    .filter((key) => buckets.has(key))
+    .filter((key) => buckets.has(key) || showEmptyGroups)
     .map((key) => {
       const list = buckets.get(key) ?? [];
       const info = providers.value.find((item) => String(item.name) === key);
@@ -419,6 +474,10 @@ function publicHint(row: TunnelView): string {
   if (row.enabled === false) {
     return "启用后才能启动";
   }
+  const blocked = providerBlocked(row);
+  if (blocked) {
+    return `提供方不可用（${blocked}）`;
+  }
   return row.domain || row.remoteAddress || "启动后由提供方分配";
 }
 
@@ -525,7 +584,8 @@ function dateText(ts: number): string {
  * @returns 形如 2h14m
  */
 function durationText(from: number): string {
-  const seconds = Math.max(0, Math.floor((Date.now() - from) / 1000));
+  // 依赖 now：10s 心跳推进它，文案才会跟着走，而不是停在挂载那一刻
+  const seconds = Math.max(0, Math.floor((now.value - from) / 1000));
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   if (hours > 0) return `${hours}h${minutes}m`;
@@ -670,16 +730,31 @@ async function copyText(text: string) {
   }
 }
 
-/** 拉列表 */
-async function reload() {
+/**
+ * 真正拉一次列表。
+ *
+ * @param silent 失败时是否弹提示（轮询 / 回到前台用 true，手动刷新用 false）
+ */
+async function pull(silent: boolean) {
   loading.value = true;
   try {
     rows.value = await listTunnels();
+    loadError.value = "";
   } catch (e) {
-    msgError(errText(e));
+    // 失败不清空列表：保留上一帧数据，只在左栏与画布挂「加载失败 + 重试」。
+    // 清空会伪装成「还没有映射」，让人以为记录被删了。
+    loadError.value = errText(e);
+    if (!silent) {
+      msgError(errText(e));
+    }
   } finally {
     loading.value = false;
   }
+}
+
+/** 手动刷新（刷新按钮 / 重试按钮） */
+async function reload() {
+  await pull(false);
 }
 
 /** 提供方清单加载状态：区分「加载中 / 成功 / 失败」，失败时组头可用性回退「未知」 */
@@ -698,9 +773,171 @@ async function reloadProviders() {
   }
 }
 
+/* ==================== 实时状态流 ==================== */
+
+/** SSE 连接状态：事件面板角标据此显示「实时 / 重连中 / 离线」 */
+const streamState = ref<"idle" | "live" | "retrying">("idle");
+
+/** 当前订阅句柄；null 表示未订阅 */
+let stream: { close: () => void } | null = null;
+
+/** 首帧只做基线，不补事件（否则一进页面就刷出一屏「已上线」） */
+let streamSeeded = false;
+
+/** 订阅代次：close 后旧连接迟到的回调必须作废，不能把新连接的状态改回「离线」 */
+let streamGen = 0;
+
+/** 连续失败次数：共享客户端重试耗尽后不会再重连，角标要落回「离线」而不是永远「重连中」 */
+let streamFails = 0;
+
+/**
+ * 用前后两帧的差异补事件：只记运行态 / 错误文案的变化与增删。
+ *
+ * <p>服务端推的是完整快照，没有事件本身；差异在页面侧算，只补「变了的那几条」，
+ * 不把每帧都写进面板。</p>
+ *
+ * @param prev 上一帧
+ * @param next 新快照
+ */
+function diffEvents(prev: TunnelView[], next: TunnelView[]) {
+  const before = new Map(prev.map((row) => [row.id, row]));
+  for (const row of next) {
+    const old = before.get(row.id);
+    if (!old) {
+      pushEvent(`发现映射「${row.name || row.id}」`, "plain");
+      continue;
+    }
+    if (old.running !== row.running) {
+      pushEvent(`${row.name || row.id} ${row.running ? "已上线" : "已停止"}`, row.running ? "ok" : "plain");
+      continue;
+    }
+    if (row.error && row.error !== old.error) {
+      pushEvent(`${row.name || row.id} 异常：${row.error}`, "err");
+    }
+  }
+  const nextIds = new Set(next.map((row) => row.id));
+  for (const old of prev) {
+    if (!nextIds.has(old.id)) {
+      pushEvent(`映射「${old.name || old.id}」已移除`, "plain");
+    }
+  }
+}
+
+/** 订阅实时状态流（幂等：已订阅时直接返回） */
+function startStream() {
+  if (stream) {
+    return;
+  }
+  streamState.value = "retrying";
+  streamFails = 0;
+  const gen = ++streamGen;
+  stream = subscribeTunnelStream({
+    onSnapshot: (snapshot) => {
+      if (gen !== streamGen) {
+        return;
+      }
+      if (streamSeeded) {
+        diffEvents(rows.value, snapshot);
+      }
+      streamSeeded = true;
+      // 快照即完整状态：整体替换，SSE 成功也说明列表接口是通的
+      rows.value = snapshot;
+      loadError.value = "";
+    },
+    onOpen: () => {
+      if (gen !== streamGen) {
+        return;
+      }
+      streamState.value = "live";
+    },
+    onError: () => {
+      if (gen !== streamGen) {
+        return;
+      }
+      streamFails += 1;
+      // 客户端重试耗尽会抛错收场（不再有 onOpen），角标落「离线」，
+      // 等页面可见 / 用户刷新再重建；一直挂「重连中」是谎报
+      streamState.value = streamFails > 10 ? "idle" : "retrying";
+    },
+    onClose: () => {
+      if (gen !== streamGen) {
+        return;
+      }
+      streamState.value = "idle";
+    },
+  });
+}
+
+/** 主动断开实时状态流 */
+function stopStream() {
+  if (!stream) {
+    return;
+  }
+  // 先推进代次再 close：close 触发的 onClose 回调看到代次不匹配，直接作废
+  streamGen += 1;
+  stream.close();
+  stream = null;
+  streamState.value = "idle";
+}
+
+/* ==================== 定时器与可见性 ==================== */
+
+/** 10s 心跳：只推进时基（运行时长文案），不发请求 */
+let tickTimer: ReturnType<typeof setInterval> | undefined;
+
+/** 30s 兜底刷新：SSE 断连时列表仍能自愈；页面隐藏时跳过，省一次请求 */
+let pollTimer: ReturnType<typeof setInterval> | undefined;
+
+function startTimers() {
+  stopTimers();
+  tickTimer = setInterval(() => {
+    now.value = Date.now();
+  }, 10_000);
+  pollTimer = setInterval(() => {
+    if (document.visibilityState === "visible") {
+      void pull(true);
+    }
+  }, 30_000);
+}
+
+function stopTimers() {
+  if (tickTimer !== undefined) {
+    clearInterval(tickTimer);
+    tickTimer = undefined;
+  }
+  if (pollTimer !== undefined) {
+    clearInterval(pollTimer);
+    pollTimer = undefined;
+  }
+}
+
+/**
+ * 回到前台：补齐时基、拉一次全量、重建 SSE。
+ *
+ * <p>浏览器在后台可能掐掉长连接，回来时重建一次比等共享客户端把重试次数耗尽更可靠。</p>
+ */
+function onVisibilityChange() {
+  if (document.visibilityState !== "visible") {
+    return;
+  }
+  now.value = Date.now();
+  void pull(true);
+  stopStream();
+  startStream();
+}
+
 onMounted(() => {
   void reloadProviders();
   void reload().then(seedEvents);
+  startStream();
+  startTimers();
+  document.addEventListener("visibilitychange", onVisibilityChange);
+});
+
+onUnmounted(() => {
+  stopTimers();
+  stopStream();
+  document.removeEventListener("visibilitychange", onVisibilityChange);
 });
 
 /* ==================== 启停 / 删除 ==================== */
@@ -737,11 +974,7 @@ async function onToggle(row: TunnelView) {
  */
 async function onDelete(row: TunnelView) {
   try {
-    await ElMessageBox.confirm(`删除后该映射的配置会随之移除，确定删除「${row.name || row.id}」？`, "删除映射", {
-      type: "warning",
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-    });
+    await message.confirm(`删除后该映射的配置会随之移除，确定删除「${row.name || row.id}」？`, "删除映射", "删除");
   } catch {
     return;
   }
@@ -873,6 +1106,24 @@ const tailscaleCaps = computed(() => {
 function openCreate() {
   editing.value = null;
   form.value = emptyForm();
+  visible.value = true;
+}
+
+/**
+ * 从某个提供方分组里直接新增：预选该提供方与其默认模式。
+ *
+ * @param provider 提供方标识
+ */
+function openCreateFor(provider: string) {
+  editing.value = null;
+  form.value = emptyForm();
+  form.value.provider = provider;
+  const info = providers.value.find((item) => item.name === provider);
+  if (info) {
+    // 默认模式优先取后端给的 defaultMode；没有就给该提供方的第一个模式，
+    // 免得弹窗开出来「模式」是空的，用户还得自己翻下拉
+    form.value.mode = info.defaultMode || info.modes[0] || "";
+  }
   visible.value = true;
 }
 
@@ -1025,6 +1276,10 @@ async function save() {
         </div>
 
         <div class="nav__list">
+          <p v-if="loadError" class="nav__note nav__note--warn">
+            隧道列表加载失败：{{ loadError }}<template v-if="rows.length">（下面保留的是上一次结果，可能已过期）</template>
+            <button type="button" class="nav__retry" @click="reload">重试</button>
+          </p>
           <p v-if="providersState === 'failed'" class="nav__note nav__note--warn">
             提供方信息加载失败，组头可用性暂以「未知」显示。
             <button type="button" class="nav__retry" @click="reloadProviders">重试</button>
@@ -1035,7 +1290,7 @@ async function save() {
             <button type="button" class="nav__retry" @click="reloadProviders">重新检测</button>
           </p>
           <p v-else-if="loading && !rows.length" class="nav__note">正在加载隧道…</p>
-          <p v-else-if="!groups.length" class="nav__note">
+          <p v-else-if="!groups.length && !loadError" class="nav__note">
             {{ rows.length ? "当前筛选或搜索下没有链路" : "还没有映射：点右上角「新增映射」" }}
           </p>
 
@@ -1050,6 +1305,12 @@ async function save() {
             </div>
 
             <div class="grp__body">
+              <div v-if="!group.rows.length" class="grp__empty">
+                <span class="grp__empty-text">该提供方还没有映射</span>
+                <button type="button" class="grp__add" @click="openCreateFor(group.provider)">
+                  <ReIcon name="Plus" :size="10" />新增
+                </button>
+              </div>
               <button
                 v-for="row in group.rows"
                 :key="row.id"
@@ -1156,18 +1417,28 @@ async function save() {
                     title="编辑映射"
                     @click.stop="openEdit(row)"
                   />
-                  <ReButton
+                  <span
                     v-else
-                    layout="square"
-                    icon="VideoPlay"
-                    :loading="pendingId === row.id"
-                    title="启动"
-                    @click.stop="onToggle(row)"
-                  />
+                    class="nbox__act"
+                    :title="providerBlocked(row) ? startBlockedTitle(row) : '启动'"
+                  >
+                    <ReButton
+                      layout="square"
+                      icon="VideoPlay"
+                      aria-label="启动"
+                      :loading="pendingId === row.id"
+                      :disabled="Boolean(providerBlocked(row))"
+                      @click.stop="onToggle(row)"
+                    />
+                  </span>
                 </div>
               </div>
             </div>
-            <p v-if="!loading && !visibleRows.length" class="lanes__empty">
+            <p v-if="loadError && !visibleRows.length" class="lanes__empty">
+              隧道列表加载失败：{{ loadError }}
+              <button type="button" class="nav__retry" @click="reload">重试</button>
+            </p>
+            <p v-else-if="!loading && !visibleRows.length" class="lanes__empty">
               {{ rows.length ? "当前筛选或搜索下没有链路，换一个条件看看" : "还没有映射：点顶部「新增映射」开始" }}
             </p>
           </div>
@@ -1247,13 +1518,20 @@ async function save() {
               <div class="det__foot">
                 <span class="dim">记录 {{ shortId(selected.id) }} · 更新 {{ updatedText(selected) }}</span>
                 <span class="det__grow"></span>
+                <span
+                  v-if="!selected.running && startBlockedTitle(selected)"
+                  class="det__block"
+                  :title="startBlockedTitle(selected)"
+                >
+                  {{ startBlockedTitle(selected) }}
+                </span>
                 <ReButton
                   v-if="!selected.running"
                   size="small"
                   plain
                   type="success"
                   icon="VideoPlay"
-                  :disabled="selected.enabled === false"
+                  :disabled="cannotStart(selected)"
                   :loading="pendingId === selected.id"
                   @click="onToggle(selected)"
                 >
@@ -1286,7 +1564,22 @@ async function save() {
           </section>
           <section class="pane ev" aria-label="本实例最近事件">
             <div class="ev__head">
-              <ReIcon name="Clock" :size="12" />最近事件<span class="dim">本实例</span>
+              <ReIcon name="Clock" :size="12" />最近事件
+              <span
+                class="ev__live"
+                :class="`is-${streamState}`"
+                :title="
+                  streamState === 'live'
+                    ? '已连上 /ms/tunnel/stream：链路状态实时同步'
+                    : streamState === 'retrying'
+                      ? '实时流连接中；断开后按 3s 间隔重试'
+                      : '实时流未连接，列表由 30s 轮询兜底'
+                "
+              >
+                <i class="ev__live-dot" aria-hidden="true"></i>
+                {{ streamState === "live" ? "实时" : streamState === "retrying" ? "重连中" : "离线" }}
+              </span>
+              <span class="dim">本实例</span>
             </div>
             <div class="ev__body">
               <div
@@ -1818,6 +2111,49 @@ async function save() {
   background: var(--border-subtle);
 }
 
+/* 注册了提供方但还没有映射：虚线占位挂在导轨上，右侧直接给「新增」，
+   用户不必先回顶部按钮再在弹窗里挑提供方 */
+.grp__empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0;
+  padding: 5px 8px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.grp__empty-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.grp__add {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-container);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 10.5px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.grp__add:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 .nr {
   position: relative;
   display: flex;
@@ -2148,6 +2484,14 @@ async function save() {
   color: var(--text-tertiary);
 }
 
+/* 画布上的启动按钮：禁用时按钮本体收不到鼠标事件（pointer-events: none），
+   提示语挂在这层包裹上，悬停仍有原生 tooltip 讲清「为什么不能启动」 */
+.nbox__act {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+}
+
 .nbox__err {
   overflow: hidden;
   color: var(--status-error-text);
@@ -2433,6 +2777,17 @@ async function save() {
   text-overflow: ellipsis;
 }
 
+/* 启动被挡住时把原因摆在按钮左边：禁用按钮本身给不出 tooltip，
+   单靠 hover 说明会让「为什么点不动」变成猜谜 */
+.det__block {
+  max-width: 240px;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--pulse-unknown) 68%, var(--text-primary));
+  font-size: 10.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .dim {
   color: var(--text-tertiary);
 }
@@ -2469,6 +2824,61 @@ async function save() {
   margin-left: auto;
   font-size: 10px;
   font-weight: 400;
+}
+
+/* 实时流角标：绿色=已连上、琥珀=重连中、灰=离线靠轮询兜底。
+   颜色只是第二层信息，文字本身已把状态说清楚。 */
+.ev__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--bg-fill);
+  color: var(--text-tertiary);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.ev__live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pulse-offline);
+}
+
+.ev__live.is-live {
+  color: color-mix(in srgb, var(--pulse-online) 72%, var(--text-primary));
+}
+
+.ev__live.is-live .ev__live-dot {
+  background: var(--pulse-online);
+}
+
+.ev__live.is-retrying {
+  color: color-mix(in srgb, var(--pulse-unknown) 68%, var(--text-primary));
+}
+
+.ev__live.is-retrying .ev__live-dot {
+  background: var(--pulse-unknown);
+  animation: ev-live-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ev-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ev__live.is-retrying .ev__live-dot {
+    animation: none;
+  }
 }
 
 .ev__body {

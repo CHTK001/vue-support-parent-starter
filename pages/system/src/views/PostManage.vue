@@ -7,7 +7,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import { pageForPost, savePost, updatePost, deletePost, updatePostSortBatch } from "../api/systemApi";
 import type { SysPost } from "../api/types";
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
@@ -135,10 +134,7 @@ async function handleDelete(row: Record<string, unknown>) {
   const post = row as unknown as SysPost;
   if (deleteLoading.value) return;
   try {
-    await ElMessageBox.confirm(`确认删除岗位「${post.sysPostName}」？`, "提示", {
-      type: "warning",
-      confirmButtonText: "确定删除",
-    });
+    await message.confirm(`确认删除岗位「${post.sysPostName}」？`, "提示", "确定删除");
   } catch {
     return;
   }

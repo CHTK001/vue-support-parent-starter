@@ -12,7 +12,7 @@
  *   <li>{@code PUT  /ms/tunnel/{id}} —— 更新（运行中会按新配置重启）；</li>
  *   <li>{@code DELETE /ms/tunnel/{id}} —— 删除；</li>
  *   <li>{@code POST /ms/tunnel/{id}/start} / {@code /stop} —— 启停；</li>
- *   <li>{@code GET  /ms/tunnel/stream} —— SSE 实时状态（本页面不订阅，留给需要推送的宿主）。</li>
+ *   <li>{@code GET  /ms/tunnel/stream} —— SSE 实时状态快照（事件名 {@code tunnels}）。</li>
  * </ul>
  *
  * <p>除 {@code providers} 与列表筛选外，所有接口只按映射 {@code id} 操作 ——
@@ -49,13 +49,50 @@ export type { TunnelProviderInfo };
 /**
  * SSE 实时状态流地址。
  *
- * <p>页面当前用「操作后重新拉列表」的朴素方式，不订阅这条流；保留导出是因为
- * 宿主若需要多页签联动（一个标签页启停，其它标签页跟着变），接上即可。</p>
+ * <p>服务端只在 {@code tunnels} 事件上推送完整快照，页面通过
+ * {@link subscribeTunnelStream} 订阅；需要自建客户端（例如小程序）时才直接用本地址。</p>
  *
  * @returns SSE 地址
  */
 export function tunnelStreamUrl(): string {
   return `${B}/stream`;
+}
+
+/**
+ * 订阅隧道实时状态。
+ *
+ * <p>后端 {@code TunnelStatusStream} 每 1.5s 推一帧：事件名 {@code tunnels}，
+ * data 是**完整快照**（{@code TunnelView[]} 直接 send，不带 {@code {code, data}}
+ * 信封），所以收到即整体替换本地列表，不做增量合并。订阅瞬间服务端先推一帧，
+ * 首屏不必等下一轮。</p>
+ *
+ * <p>走共享 {@code http().sse()}：自动注入 {@code Authorization} 与
+ * {@code x-oauth-token}（裸 {@code EventSource} 带不了鉴权头，会 401），
+ * 断线按 3s 间隔重连、最多 10 次；调用返回值的 {@code close()} 主动终止。</p>
+ *
+ * @param handlers 快照回调与连接状态回调
+ * @returns SSE 客户端，页面卸载时调用 {@code close()}
+ */
+export function subscribeTunnelStream(handlers: {
+  onSnapshot: (rows: TunnelView[]) => void;
+  onOpen?: () => void;
+  onError?: (e: unknown) => void;
+  onClose?: () => void;
+}) {
+  return http()
+    .get(tunnelStreamUrl())
+    .sse<TunnelView[]>({
+      maxReconnectAttempts: 10,
+      reconnectInterval: 3000,
+      onOpen: () => handlers.onOpen?.(),
+      onError: (e) => handlers.onError?.(e),
+      onClose: () => handlers.onClose?.(),
+      onMessage: (event) => {
+        if (event.event === "tunnels" && Array.isArray(event.data)) {
+          handlers.onSnapshot(event.data);
+        }
+      },
+    });
 }
 
 /* ==================== 提供方 ==================== */

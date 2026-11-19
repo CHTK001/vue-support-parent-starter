@@ -15,6 +15,7 @@
         </div>
         <ReButton size="small" icon="Connection" tip="测试连接" show-text data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection">测试连接</ReButton>
         <ReButton size="small" icon="Refresh" tip="刷新" show-text data-testid="dsm-btn-refresh" :loading="loading" @click="refresh">刷新</ReButton>
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
       </template>
     </ReSectionHead>
 
@@ -107,7 +108,12 @@
               查询结果
               <span v-if="queryResult.rowCount > 0" class="dsm-query-meta">
                 {{ queryResult.rowCount }} 行 · {{ queryResult.executionTimeMs }} ms
-                <span v-if="queryResult.truncated" class="dsm-query-warn">已截断，服务端共 {{ queryResult.totalRows }} 行，请加 .limit(n) 收窄结果</span>
+                <DsQueryTruncatedHint
+                  :truncated="queryResult.truncated"
+                  :shown="queryResult.rows.length"
+                  :total="queryResult.totalRows"
+                  dialect="mongo"
+                />
               </span>
             </div>
             <!-- 高度交给 ReTable 的 fill 模式（缺省开启）：本面板是 flex 列，表头在上、
@@ -159,6 +165,9 @@ import ReSelect from "@repo/ui/re-select";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import DsQueryTruncatedHint from "../../components/console/DsQueryTruncatedHint.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
@@ -487,6 +496,20 @@ onMounted(() => {
   void refresh();
 });
 
+/**
+ * 自动刷新：按档位重读逻辑库与集合。
+ *
+ * <p>默认关闭。Mongo 页的刷新是「重新绑定 + 全量读库」，对目标实例是一次
+ * {@code listDatabases} 级别的调用，用户没主动开就不该按节奏打。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: refresh,
+  storageKey: "datasource.mongo",
+});
+
 onBeforeUnmount(() => {
   // 拖拽中的 window 监听挂在组件外，中途卸载（路由切换）必须摘掉，防止泄漏到下一个页面
   if (dragHandlers) {
@@ -566,7 +589,6 @@ onBeforeUnmount(() => {
 .dsm-query-result :deep(.el-empty) { flex: 1 1 0; min-height: 0; overflow: auto; padding: 12px 0; }
 .dsm-query-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-secondary, var(--apm-fg-regular)); background: var(--bg-fill, var(--apm-neutral-bg)); border-bottom: 1px solid var(--border-subtle, var(--apm-border-soft)); flex-shrink: 0; }
 .dsm-query-meta { font-size: 12px; font-weight: 400; color: var(--text-tertiary, var(--apm-muted)); }
-.dsm-query-warn { margin-left: 8px; color: var(--status-warning, var(--apm-warning)); }
 /* 文档查看：美化 JSON */
 .dsm-doc-json { margin: 0; padding: 12px; background: var(--bg-fill, var(--apm-neutral-bg)); border-radius: var(--radius-sm, var(--apm-radius-sm)); font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12px; line-height: 1.6; color: var(--text-primary, var(--apm-fg)); white-space: pre-wrap; word-break: break-all; overflow: auto; max-height: 60vh; }
 .dsm-empty-inline { padding: 16px; color: var(--text-tertiary, var(--apm-muted)); font-size: 13px; }

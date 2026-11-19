@@ -714,6 +714,8 @@ export function pageForUserLog(params: {
   pageSize?: number;
   sysLogUsername?: string;
   sysLogStatus?: number;
+  startDate?: string;
+  endDate?: string;
 }) {
   return http()
     .get("/v2/user/log/page")

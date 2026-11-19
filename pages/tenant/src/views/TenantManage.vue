@@ -13,7 +13,7 @@ import type { SysTenant, SysTenantStats, TenantDatasourceOption, TenantDatasourc
 import type { ReTableColumn, ReTableLoadParams, RePageResult } from "@repo/ui/re-table";
 import ReProgressDialog, { type ProgressSnapshot, type ProgressStep } from "@repo/ui/re-progress-dialog";
 import ReStatCard from "@repo/ui/re-stat-card";
-import { OfficeBuilding, Coin, CircleCheck, CircleClose, Timer, Promotion, Refresh, Tools } from "@element-plus/icons-vue";
+import { OfficeBuilding, Coin, CircleCheck, CircleClose, Promotion, Refresh, Tools } from "@element-plus/icons-vue";
 import TenantServiceBindDialog from "@pages/system/views/components/TenantServiceBindDialog.vue";
 
 const tenantStatusOptions: Array<{ label: string; value: number }> = [
@@ -128,10 +128,7 @@ function handleOperationCommand(cmd: string, row: Record<string, unknown> | null
       : cmd === "syncAdmin"
         ? `将重新同步租户库管理员账号（幂等，可修复建库建表失败或人工改坏的管理员）。确认继续？`
         : `将按租户当前订阅重新计算并推送菜单给租户端。确认继续？`;
-  void ElMessageBox.confirm(confirmText, labelOf(cmd), {
-    type: "warning",
-    confirmButtonText: "执行",
-  })
+  void message.confirm(confirmText, labelOf(cmd), "执行")
     .then(() => runTenantOperation(cmd, id))
     .catch(() => undefined);
 }
@@ -279,10 +276,10 @@ async function handleBackfillAccounts() {
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `将为 ${planned.length} 个租户创建专用数据库账号，只授权到各自的库（账号名形如 t_<租户编码>）。是否继续？`,
       "补专用账号",
-      { type: "warning", confirmButtonText: "开始执行" },
+      "开始执行",
     );
   } catch {
     return;
@@ -807,10 +804,7 @@ async function handleStatusChange(row: Record<string, unknown>) {
   const status = tenant.sysTenantStatus === 0 ? 1 : 0;
   const action = status === 1 ? "禁用" : "启用";
   try {
-    await ElMessageBox.confirm(`确认${action}租户「${tenant.sysTenantName}」？`, "提示", {
-      type: "warning",
-      confirmButtonText: `确认${action}`,
-    });
+    await message.confirm(`确认${action}租户「${tenant.sysTenantName}」？`, "提示", `确认${action}`);
   } catch {
     return;
   }
@@ -860,10 +854,10 @@ async function handleDelete(row: Record<string, unknown>) {
   const tenant = row as unknown as SysTenant;
   if (deleteLoading.value) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除租户「${tenant.sysTenantName}」？仅逻辑删除，独立数据库与库账号会保留。`,
       "提示",
-      { type: "warning", confirmButtonText: "确定删除" },
+      "确定删除",
     );
   } catch {
     return;
@@ -896,15 +890,15 @@ async function handleDropDatabase(row: Record<string, unknown>) {
   if (dropDbLoading.value) return;
   let confirmCode = "";
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `即将删除租户「${tenant.sysTenantName}」的独立数据库「${tenant.sysTenantDbname}」。此操作不可撤销，是否继续？`,
       "删除数据库（1/3）",
-      { type: "warning", confirmButtonText: "继续" },
+      "继续",
     );
-    await ElMessageBox.confirm(
+    await message.confirm(
       "第二步确认：库内所有表与数据都会永久丢失，且无法从平台恢复。",
       "删除数据库（2/3）",
-      { type: "warning", confirmButtonText: "继续" },
+      "继续",
     );
     const result = await ElMessageBox.prompt(
       `最后一步：请输入租户编码「${tenant.sysTenantCode}」以确认删除。`,
@@ -1063,13 +1057,13 @@ onUnmounted(() => {
         <ReButton layout="square" type="success" icon="Connection" tip="分配服务" v-admin @click="handleBindService(row)" />
         <ReButton v-if="row.sysTenantDbname" layout="square" type="danger" icon="DeleteFilled" tip="删除数据库" v-admin :loading="dropDbLoading === row.sysTenantId" @click="handleDropDatabase(row)" />
         <ReButton layout="square" type="danger" icon="Delete" tip="删除" v-admin :loading="deleteLoading === row.sysTenantId" @click="handleDelete(row)" />
-        <el-dropdown trigger="click" @command="(cmd: string) => handleOperationCommand(cmd, currentActionRow.value)">
+        <el-dropdown trigger="click" @command="(cmd: string) => handleOperationCommand(cmd, currentActionRow)">
           <ReButton layout="square" type="info" icon="More" tip="更多" :loading="operationLoading === row.sysTenantId" @click="onMoreTrigger" />
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="initDb" icon="Tools" v-admin>初始化业务表</el-dropdown-item>
-              <el-dropdown-item command="syncAdmin" icon="Refresh" v-admin>同步管理员</el-dropdown-item>
-              <el-dropdown-item command="resetMenu" icon="Promotion" v-admin>重置菜单</el-dropdown-item>
+              <el-dropdown-item command="initDb" :icon="Tools" v-admin>初始化业务表</el-dropdown-item>
+              <el-dropdown-item command="syncAdmin" :icon="Refresh" v-admin>同步管理员</el-dropdown-item>
+              <el-dropdown-item command="resetMenu" :icon="Promotion" v-admin>重置菜单</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>

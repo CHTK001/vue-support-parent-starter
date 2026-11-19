@@ -15,7 +15,6 @@
 import { computed, nextTick, onMounted, onBeforeUnmount, ref, reactive, watch, defineAsyncComponent } from "vue";
 import type { Component } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
 import { queryHosts, saveHost, delHost, switchHost, getGroups, getIdentities, listBoundIdentities, bindIdentity, unbindIdentity, scanPorts } from "../api";/**
  * 以下几屏只在「工作区页签」里按需出现，经 defineAsyncComponent 懒加载：
  *
@@ -459,10 +458,10 @@ async function batchDelete(): Promise<void> {
   const list = checkedHosts.value;
   if (!list.length) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `删除选中的 ${list.length} 台主机？此操作不可撤销。`,
       "批量删除确认",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+      "删除", "取消", "warning",
     );
   } catch { return; }
   const results = await Promise.allSettled(list.map(h => delHost(h.id)));
@@ -1780,9 +1779,9 @@ async function openDeploy(
   }
   if (act === 'uninstall') {
     try {
-      await ElMessageBox.confirm(
+      await message.confirm(
         `卸载主机「${hostName}」上的 Agent？卸载后主机画像、实时指标与远程控制将全部停用，需要重新安装才能恢复。`,
-        "卸载确认", { type: "warning", confirmButtonText: "卸载", cancelButtonText: "取消" },
+        "卸载确认", "卸载", "取消", "warning",
       );
     } catch { return; }
   }
@@ -1815,7 +1814,7 @@ async function openDeploy(
 }
 
 async function removeHost(h: Host): Promise<void> {
-  await ElMessageBox.confirm(`删除主机「${h.serverHostName}」？`, "删除确认", { type: "warning" });
+  await message.confirm(`删除主机「${h.serverHostName}」？`, "删除确认");
   try {
     const ok = await delHost(h.id);
     if (ok === false) { message.warning("删除未生效（可能仍有绑定）"); return; }

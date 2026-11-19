@@ -7,7 +7,7 @@
  */
 import { message } from "@repo/core";
 import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from "vue";
-import { ElMessageBox, ElTree } from "element-plus";
+import { ElTree } from "element-plus";
 import {
   UserFilled,
   Plus,
@@ -177,7 +177,7 @@ async function handleSubmit() {
 
 async function handleDelete(row: SysRole | Record<string, unknown>) {
   const role = row as unknown as SysRole;
-  await ElMessageBox.confirm(`确认删除角色「${role.sysRoleName}」？`, "提示", { type: "warning" });
+  await message.confirm(`确认删除角色「${role.sysRoleName}」？`, "提示");
   await deleteRole(role.sysRoleId!);
   message.success("删除成功");
   refreshAll();
@@ -211,7 +211,7 @@ function onMenuCheck() {
 /** 清空已选菜单（二次确认） */
 async function handleClearMenu() {
   try {
-    await ElMessageBox.confirm("确认清空已选的菜单与按钮？", "提示", { type: "warning" });
+    await message.confirm("确认清空已选的菜单与按钮？", "提示");
   } catch {
     return;
   }

@@ -1,7 +1,7 @@
 <template>
   <div class="flex items-center px-2 h-10 select-none drag-region shrink-0">
     <div class="flex items-center h-full no-drag">
-      <img :src="logoPath" class="h-6 ml-2 mr-2" />
+      <img :src="logoPath" class="h-6 ml-2 mr-2" alt="" />
       <span class="text-xs font-normal text-(--titlebar-text-color) opacity-80 mr-3">{{ brandTitle }}</span>
 
       <!-- 搜索按钮 -->

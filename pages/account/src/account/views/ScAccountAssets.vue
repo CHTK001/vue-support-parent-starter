@@ -217,7 +217,13 @@
               <span class="idx-skel-line is-sub"></span>
             </div>
           </div>
-          <p v-else class="idx-empty">暂无资产，点下方新建</p>
+          <div v-else class="idx-empty">
+            <template v-if="hasAnyIndexFilter">
+              <p>没有匹配的资产</p>
+              <button type="button" class="idx-empty-clear" @click="clearAllIndexFilters">清空筛选条件</button>
+            </template>
+            <p v-else>暂无资产，点下方新建</p>
+          </div>
           </div>
         </RailScrollList>
       </aside>
@@ -395,9 +401,11 @@
                 </div>
                 <p v-else class="pane-tip">
                   {{
-                    referencedSecretId
-                      ? `引用的密钥不在可见列表里（${referencedSecretId}），可能已被删除或不属于当前账号。`
-                      : '凭据直接填在本账号里；要在多处复用同一把钥匙，去「密钥管理」新建后在编辑弹窗里选择。'
+                    secretError && referencedSecretId
+                      ? `密钥列表暂时加载失败（${secretError}），无法核对引用的密钥。`
+                      : referencedSecretId
+                        ? `引用的密钥不在可见列表里（${referencedSecretId}），可能已被删除或不属于当前账号。`
+                        : '凭据直接填在本账号里；要在多处复用同一把钥匙，去「密钥管理」新建后在编辑弹窗里选择。'
                   }}
                 </p>
               </div>
@@ -761,9 +769,7 @@
               <b :title="activeCookie.name">{{ activeCookie.name || '未命名 Cookie' }}</b>
               <span>Cookie · {{ activeCookie.domain || '—' }}{{ activeCookie.path || '/' }}</span>
             </div>
-            <ReTag :type="activeCookie.status === 0 ? 'info' : 'success'" effect="plain" size="small">
-              {{ activeCookie.status === 0 ? '停用' : '启用' }}
-            </ReTag>
+            <ReTag v-if="cookieLife" :type="cookieLifeTagType" effect="plain" size="small">{{ cookieLife.tag }}</ReTag>
           </header>
 
           <nav class="main-tabs" role="tablist" aria-label="Cookie 信息">
@@ -1004,6 +1010,7 @@ import { confirmThen } from '../../shared/confirmThen';
 import { copyText } from '../../shared/clipboard';
 import { errorText } from '../../shared/errorText';
 import { useAccountEvents } from '../composables/useAccountEvents';
+import { usePersistentFilters } from '@repo/utils';
 
 /**
  * 账号资产 —— monitor 的统一账号工作台（设计方向 B）。
@@ -1049,6 +1056,8 @@ const loadError = ref('');
 /** AppKey / Cookie 接口错误（分段内联提示） */
 const appKeyError = ref('');
 const cookieError = ref('');
+/** 密钥列表加载失败原因（不影响账号主列表，只在「引用的密钥」处提示） */
+const secretError = ref('');
 
 /** 当前分段 */
 const segment = ref<Segment>('ALL');
@@ -1074,6 +1083,39 @@ const usageFilter = ref<string>('all');
 const ownerFilter = ref<string>('all');
 /** 排序：最近更新（默认）/ 名称 / 启用优先 */
 const sortKey = ref<'updated' | 'name' | 'status'>('updated');
+
+/* ---------- 筛选持久化：刷新 / 切走再回来，筛选条件不丢 ---------- */
+
+/** 筛选条件本地记忆（localStorage；URL query 同步仍走下方原有逻辑，优先级更高） */
+const { filters: savedFilters } = usePersistentFilters({
+  key: 'account.assets',
+  defaults: { keyword: '', status: 'all', kind: 'all', usage: 'all', owner: 'all', sort: 'updated' },
+});
+// 本地记忆先回填；随后 restoreFiltersFromQuery 再用 URL query 覆盖（分享链接 > 本地记忆 > 默认值）。
+// 旧数据可能存了已下线的枚举值，回填前按白名单校验，非法值不覆盖默认值。
+keyword.value = savedFilters.keyword;
+if (['all', 'on', 'pending', 'invalid'].includes(savedFilters.status)) {
+  statusFilter.value = savedFilters.status as StatusFilter;
+}
+if (savedFilters.kind === 'all' || ['API_KEY', 'EMAIL', 'SMS', 'PHONE', 'TEMP_MAIL', 'TEMP_PHONE'].includes(savedFilters.kind)) {
+  kindFilter.value = savedFilters.kind as typeof kindFilter.value;
+}
+if (savedFilters.usage === 'all' || ACCOUNT_CAPABILITY_TAGS.some(tag => tag.key === savedFilters.usage)) {
+  usageFilter.value = savedFilters.usage;
+}
+ownerFilter.value = savedFilters.owner;
+if (['updated', 'name', 'status'].includes(savedFilters.sort)) {
+  sortKey.value = savedFilters.sort as typeof sortKey.value;
+}
+// 任一筛选变化都写回持久化对象（内部自动落 localStorage）
+watch([keyword, statusFilter, kindFilter, usageFilter, ownerFilter, sortKey], () => {
+  savedFilters.keyword = keyword.value;
+  savedFilters.status = statusFilter.value;
+  savedFilters.kind = kindFilter.value;
+  savedFilters.usage = usageFilter.value;
+  savedFilters.owner = ownerFilter.value;
+  savedFilters.sort = sortKey.value;
+});
 
 /* ---------- 筛选状态同步 URL query：刷新 / 分享链接后分段与筛选不丢 ---------- */
 
@@ -1185,6 +1227,18 @@ function clearIndexFilters(): void {
   kindFilter.value = 'all';
   usageFilter.value = 'all';
   ownerFilter.value = 'all';
+}
+
+/** 是否有任何索引筛先生效（含关键词与状态；驱动「无匹配结果」空态的文案与清空按钮） */
+const hasAnyIndexFilter = computed(
+  () => hasIndexFilter.value || statusFilter.value !== 'all' || keyword.value.trim() !== '',
+);
+
+/** 清空全部索引筛选（含关键词与状态），「没有匹配的资产」空态的快捷出口 */
+function clearAllIndexFilters(): void {
+  keyword.value = '';
+  statusFilter.value = 'all';
+  clearIndexFilters();
 }
 
 /* ---------- 关键词命中高亮：索引行内把命中词标出来 ---------- */
@@ -1366,13 +1420,14 @@ function notifyNewSms(name: string, count: number, from: string): void {
 }
 
 /**
- * 账号变更推送：任何客户端增删改账号后全量刷新一次。
+ * 账号变更推送：任何客户端增删改账号后后台静默刷新一次。
  *
  * <p>列表数据量小，全量拉取最稳；自己的操作保存后本来就会刷新，
- * 随后再收到自己触发的广播只是多一次幂等刷新（loadAll 会保留选中项）。</p>
+ * 随后再收到自己触发的广播只是多一次幂等刷新（fetchAll(silent) 会修剪失效勾选）。
+ * 静默刷新不置 loading，右栏骨架屏不会闪，正在看的详情也不被打断。</p>
  */
 function onAccountChanged(): void {
-  void loadAll();
+  void fetchAll(true);
 }
 
 /**
@@ -1784,6 +1839,35 @@ function appKeyLifecycle(row: SysAccountAppKey): { tag: string; tone: IndexRow['
   return { tag: '启用', tone: 'ok', hint: '使用中' };
 }
 
+/**
+ * Cookie 生命周期徽标（与 AppKey 同一套优先级，字段口径按 Cookie 调整）。
+ *
+ * <p>Cookie 没有「最近使用时间」，以 updatedAt 近似活跃度：
+ * 停用 → 已过期 → 即将到期（≤7 天）→ 久未更新（≥90 天）→ 启用。
+ * 索引行与详情页头共用同一套判定。</p>
+ *
+ * @param row Cookie
+ * @returns 徽标文案、语义色与悬停说明
+ */
+function cookieLifecycle(row: SysAccountCookie): { tag: string; tone: IndexRow['tagTone']; hint: string } {
+  if (row.status === 0) return { tag: '停用', tone: 'idle', hint: 'Cookie 已停用' };
+  const now = Date.now();
+  if (row.expireAt && row.expireAt <= now) {
+    return { tag: '已过期', tone: 'bad', hint: `已于 ${formatShort(row.expireAt)} 过期，需要重新登录获取` };
+  }
+  if (row.expireAt) {
+    const days = Math.ceil((row.expireAt - now) / 86_400_000);
+    if (days <= 7) {
+      return { tag: days <= 1 ? '即将过期' : `${days}天后到期`, tone: 'warn', hint: `${formatShort(row.expireAt)} 过期，记得重新登录续期` };
+    }
+  }
+  const idleDays = Math.floor((now - (row.updatedAt || 0)) / 86_400_000);
+  if (row.updatedAt && idleDays >= 90) {
+    return { tag: '久未更新', tone: 'warn', hint: `最近更新在 ${formatShort(row.updatedAt)}，确认会话是否仍有效` };
+  }
+  return { tag: '启用', tone: 'ok', hint: '使用中' };
+}
+
 /** 左侧分组索引 */
 const indexGroups = computed<IndexGroup[]>(() => {
   const groups: IndexGroup[] = [];
@@ -1889,18 +1973,22 @@ const indexGroups = computed<IndexGroup[]>(() => {
       key: 'COOKIE',
       label: 'Cookie',
       icon: 'Postcard',
-      rows: filteredCookies.value.map<IndexRow>(row => ({
-        id: row.cookieId,
-        name: row.name || row.domain || '未命名 Cookie',
-        sub: `${row.domain || '—'}${row.path || '/'}`,
-        meta: formatShort(row.updatedAt),
-        tag: row.status === 0 ? '停用' : expired(row.expireAt) ? '过期' : '启用',
-        tagTone: row.status === 0 ? 'idle' : expired(row.expireAt) ? 'bad' : 'ok',
-        status: row.status,
-        selected: selectedCookieId.value === row.cookieId,
-        checked: false,
-        checkable: false,
-      })),
+      rows: filteredCookies.value.map<IndexRow>(row => {
+        const life = cookieLifecycle(row);
+        return {
+          id: row.cookieId,
+          name: row.name || row.domain || '未命名 Cookie',
+          sub: `${row.domain || '—'}${row.path || '/'}`,
+          meta: formatShort(row.updatedAt),
+          tag: life.tag,
+          tagTone: life.tone,
+          tagHint: life.hint,
+          status: row.status,
+          selected: selectedCookieId.value === row.cookieId,
+          checked: false,
+          checkable: false,
+        };
+      }),
     });
   }
   return groups;
@@ -1998,8 +2086,8 @@ const activeCookie = computed(
 const keyLife = computed(() => (activeAppKey.value ? appKeyLifecycle(activeAppKey.value) : null));
 
 /** 生命周期徽标的 ReTag 类型（语义色 → 组件类型） */
-const keyLifeTagType = computed(() => {
-  switch (keyLife.value?.tone) {
+function lifeTagType(tone?: IndexRow['tagTone']): 'warning' | 'danger' | 'info' | 'success' {
+  switch (tone) {
     case 'warn':
       return 'warning';
     case 'bad':
@@ -2009,7 +2097,13 @@ const keyLifeTagType = computed(() => {
     default:
       return 'success';
   }
-});
+}
+
+const keyLifeTagType = computed(() => lifeTagType(keyLife.value?.tone));
+
+/** 选中 Cookie 的生命周期徽标（索引行与详情页头共用同一套判定） */
+const cookieLife = computed(() => (activeCookie.value ? cookieLifecycle(activeCookie.value) : null));
+const cookieLifeTagType = computed(() => lifeTagType(cookieLife.value?.tone));
 
 /** 选中账号的临时邮箱租期档位（详情页租期字段按档位着色） */
 const activeTempMailTone = computed<'ok' | 'warn' | 'bad'>(() => {
@@ -2224,8 +2318,14 @@ async function saveAdvanced(): Promise<void> {
  * 不该因此把账号列表一起打成空白页。密钥只用来回填「凭据」页签里被引用的那一条，
  * 取不到就退化成只显示 {@code secretId}，不影响账号本体。</p>
  */
-async function loadAll(): Promise<void> {
-  loading.value = true;
+/**
+ * 全量拉取四类资产。
+ *
+ * @param silent 静默刷新（SSE 推送触发）：不置 loading、不清勾选、不弹全局提示，
+ *   失败只落在各分段内联错误里；列表数据原位更新，当前详情不被打断
+ */
+async function fetchAll(silent: boolean): Promise<void> {
+  if (!silent) loading.value = true;
   loadError.value = '';
   const [accounts, keys, cookies, secrets] = await Promise.allSettled([
     listAccounts(),
@@ -2237,7 +2337,7 @@ async function loadAll(): Promise<void> {
     accountList.value = accounts.value ?? [];
   } else {
     loadError.value = errText(accounts.reason);
-    message.error('账号加载失败：' + loadError.value);
+    if (!silent) message.error('账号加载失败：' + loadError.value);
   }
   if (keys.status === 'fulfilled') {
     appKeyList.value = keys.value ?? [];
@@ -2251,11 +2351,29 @@ async function loadAll(): Promise<void> {
   } else {
     cookieError.value = 'Cookie 加载失败：' + errText(cookies.reason);
   }
-  secretList.value = secrets.status === 'fulfilled' ? (secrets.value ?? []) : [];
-  loading.value = false;
-  // 数据整体替换后旧勾选已经没有对应行，继续保留只会让「已选 N 项」与实际不符
-  clearAccountSelection();
-  syncSelection();
+  if (secrets.status === 'fulfilled') {
+    secretList.value = secrets.value ?? [];
+    secretError.value = '';
+  } else {
+    secretList.value = [];
+    secretError.value = errText(secrets.reason);
+    if (!silent) message.warning('密钥列表加载失败：' + secretError.value);
+  }
+  if (!silent) {
+    loading.value = false;
+    // 数据整体替换后旧勾选已经没有对应行，继续保留只会让「已选 N 项」与实际不符
+    clearAccountSelection();
+    syncSelection();
+  } else {
+    // 静默刷新只修剪已消失行的勾选，尽量不打断用户正在进行的批量操作
+    const alive = new Set(accountList.value.map(row => row.accountId));
+    selectedAccountIds.value = selectedAccountIds.value.filter(id => alive.has(id));
+  }
+}
+
+/** 全量刷新（首屏 / 手动刷新 / 增删改后）：转圈、清勾选、失败弹提示 */
+async function loadAll(): Promise<void> {
+  await fetchAll(false);
 }
 
 /**
@@ -4004,6 +4122,20 @@ onBeforeUnmount(() => {
   padding: 4px 8px 8px;
   font-size: 11px;
   color: var(--text-tertiary);
+}
+.idx-empty-clear {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--el-color-primary);
+  background: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+}
+.idx-empty-clear:hover {
+  border-color: var(--el-color-primary);
 }
 /* 行到引导线的那一小段横线，读起来是「挂在分组下面」而不是另起一块 */
 /* ---------- 右侧详情工作区 ---------- */

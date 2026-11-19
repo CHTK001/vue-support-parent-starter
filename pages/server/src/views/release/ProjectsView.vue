@@ -2642,7 +2642,7 @@ async function autoGenerateScripts() {
     .some((s) => (s || '').trim());
   if (hasAny) {
     try {
-      await ElMessageBox.confirm('将用内置模板覆盖当前四个脚本，是否继续？', '一键生成脚本', { type: 'warning' });
+      await message.confirm('将用内置模板覆盖当前四个脚本，是否继续？', '一键生成脚本');
     } catch {
       return;
     }
@@ -3411,7 +3411,7 @@ function handleStart(row: Project) {
 }
 async function handleStop(row: Project) {
   try {
-    await ElMessageBox.confirm(`确定停止项目「${row.projectName}」吗？停止后该项目将不可访问。`, '停止确认', { type: 'warning' });
+    await message.confirm(`确定停止项目「${row.projectName}」吗？停止后该项目将不可访问。`, '停止确认');
   } catch {
     return;
   }
@@ -3419,7 +3419,7 @@ async function handleStop(row: Project) {
 }
 async function handleRestart(row: Project) {
   try {
-    await ElMessageBox.confirm(`确定重启项目「${row.projectName}」吗？重启期间服务会短暂中断。`, '重启确认', { type: 'warning' });
+    await message.confirm(`确定重启项目「${row.projectName}」吗？重启期间服务会短暂中断。`, '重启确认');
   } catch {
     return;
   }
@@ -3433,7 +3433,7 @@ function handleBackup(row: Project) {
 }
 async function handleRollback(row: Project) {
   try {
-    await ElMessageBox.confirm(`确定回滚项目「${row.projectName}」到上一个版本吗？`, '回滚确认', { type: 'warning' });
+    await message.confirm(`确定回滚项目「${row.projectName}」到上一个版本吗？`, '回滚确认');
   } catch {
     return;
   }
@@ -5847,7 +5847,7 @@ async function handleBackupNow() {
 async function handleRollbackTo(b: BackupRow) {
   if (editingId.value == null) return;
   try {
-    await ElMessageBox.confirm(`确定用备份「${b.name}」回滚项目吗？当前未保存的状态将被覆盖。`, '回滚确认', { type: 'warning' });
+    await message.confirm(`确定用备份「${b.name}」回滚项目吗？当前未保存的状态将被覆盖。`, '回滚确认');
   } catch { return; }
   try {
     const res = await http().post(`${BASE}/project/${editingId.value}/rollback?backup=${encodeURIComponent(b.name)}`);

@@ -1,0 +1,83 @@
+{
+  "summary": {
+    "total": 12,
+    "ok": 9,
+    "bad": 3,
+    "pageErrors": [
+      "[console] WebSocket connection to 'ws://localhost:17521/socket.io/?EIO=4&transport=websocket' failed: ",
+      "[console] WebSocket connection to 'ws://localhost:17521/socket.io/?EIO=4&transport=websocket' failed: ",
+      "[console] WebSocket connection to 'ws://localhost:17521/socket.io/?EIO=4&transport=websocket' failed: ",
+      "[console] WebSocket connection to 'ws://localhost:17521/socket.io/?EIO=4&transport=websocket' failed: ",
+      "[console] WebSocket connection to 'ws://localhost:17521/socket.io/?EIO=4&transport=websocket' failed: ",
+      "[console] WebSocket connection to 'ws://localhost:17521/socket.io/?EIO=4&transport=websocket' failed: ",
+      "[console] Failed to load resource: net::ERR_CONNECTION_TIMED_OUT",
+      "[console] Failed to load resource: net::ERR_CONNECTION_TIMED_OUT",
+      "[console] Failed to load resource: net::ERR_CONNECTION_TIMED_OUT",
+      "[console] Failed to load resource: net::ERR_CONNECTION_TIMED_OUT",
+      "[console] Failed to load resource: net::ERR_CONNECTION_TIMED_OUT"
+    ],
+    "at": "2026-11-19T13:42:46.311Z"
+  },
+  "results": [
+    {
+      "name": "真实登录 POST /user/login 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "登录后进入 hash 路由",
+      "ok": true,
+      "detail": "hash=#/home"
+    },
+    {
+      "name": "前置：登录成功",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "前置：采样用 Node 登录拿到 token",
+      "ok": true,
+      "detail": "status=200 token=yes"
+    },
+    {
+      "name": "前置：后端主机/策略/规则采样非空",
+      "ok": true,
+      "detail": "host=true policy=true rule=true"
+    },
+    {
+      "name": "Ctrl+K/触发器唤起命令面板",
+      "ok": true,
+      "detail": "Ctrl+K"
+    },
+    {
+      "name": "主机关键字 → 出现「主机资产」分组",
+      "ok": true,
+      "detail": "groups=主机资产"
+    },
+    {
+      "name": "主机命中跳 /assets?hostId=",
+      "ok": true,
+      "detail": "hash=#/assets?hostId=enc1~342908f9662e586bd06ed223e7db8cc2"
+    },
+    {
+      "name": "资产页主机详情可见",
+      "ok": false,
+      "detail": "hash=#/assets?hostId=enc1~342908f9662e586bd06ed223e7db8cc2"
+    },
+    {
+      "name": "资产页 Ctrl+K 唤起主机命令面板(设计)",
+      "ok": true,
+      "detail": "hp-input visible"
+    },
+    {
+      "name": "Ctrl+K/触发器唤起命令面板",
+      "ok": false,
+      "detail": "input hidden; dialog=0 overlay=1"
+    },
+    {
+      "name": "脚本无异常",
+      "ok": false,
+      "detail": "TimeoutError: locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.search-menu__search input').first()\u001b[22m\n"
+    }
+  ]
+}

@@ -1026,9 +1026,7 @@ async function confirmMkdir() {
 /* ---------- 删除 / 重命名 ---------- */
 async function confirmDelete(file: HostFileItem) {
   try {
-    await ElMessageBox.confirm(`确定删除 “${file.name}” ？`, "删除确认", {
-      type: "warning", confirmButtonText: "删除", cancelButtonText: "取消",
-    });
+    await message.confirm(`确定删除 “${file.name}” ？`, "删除确认", "删除", "取消", "warning");
   } catch { return; }
   try {
     await deleteHostFile(props.hostId, join(currentPath.value, file.name));

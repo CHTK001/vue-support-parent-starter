@@ -216,6 +216,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
+import { formatDateTime as formatDateTimeBase } from '@repo/utils'
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Folder, View, RefreshRight, Delete, Loading, Edit, Position } from '@element-plus/icons-vue'
@@ -1108,14 +1109,18 @@ function getStatusText(status: string): string {
  * 格式化日期。
  */
 function formatDate(dateString: string | null): string {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+  return formatDateTimeBase(dateString, {
+    emptyText: '-',
+    intl: {
+      locale: 'zh-CN',
+      options: {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }
+    }
   })
 }
 

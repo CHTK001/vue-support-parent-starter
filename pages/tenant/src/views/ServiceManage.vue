@@ -10,7 +10,6 @@
  */
 import { message } from "@repo/core";
 import { computed, nextTick, onMounted, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import {
   deleteService,
   deleteServicePlan,
@@ -302,10 +301,7 @@ async function handleStatusChange(row: Record<string, unknown>) {
   const next = service.sysServiceStatus === 0 ? 1 : 0;
   const action = next === 1 ? "禁用" : "启用";
   try {
-    await ElMessageBox.confirm(`确认${action}服务「${service.sysServiceName}」？`, "提示", {
-      type: "warning",
-      confirmButtonText: `确认${action}`,
-    });
+    await message.confirm(`确认${action}服务「${service.sysServiceName}」？`, "提示", `确认${action}`);
   } catch {
     return;
   }
@@ -326,10 +322,10 @@ async function handleDelete(row: Record<string, unknown>) {
   const service = row as unknown as SysService;
   if (!service.sysServiceId) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除服务「${service.sysServiceName}」？已分配给租户的服务会同时失效。`,
       "提示",
-      { type: "warning", confirmButtonText: "确定删除" },
+      "确定删除",
     );
   } catch {
     return;

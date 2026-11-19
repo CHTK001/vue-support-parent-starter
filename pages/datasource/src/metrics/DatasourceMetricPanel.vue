@@ -71,6 +71,7 @@ import { computed, onMounted, ref, toRef, watch } from "vue";
 import ReEmpty from "@repo/ui/re-empty";
 import DatasourceMetricChart from "./DatasourceMetricChart.vue";
 import { useDatasourceMetricStream, type MetricStreamState } from "./useDatasourceMetricStream";
+import { formatBytes } from "@repo/utils";
 import {
   fetchDatasourceMetricTrend,
   type DatasourceMetricPoint,
@@ -230,21 +231,8 @@ const memoryText = computed(() => {
     const tail = points.value.length ? points.value[points.value.length - 1]?.serverStats : null;
     v = tail?.memoryBytes ?? null;
   }
-  return formatBytes(v);
+  return formatBytes(v, { maxUnit: "TB", grouping: true });
 });
-
-function formatBytes(v: number | null | undefined): string {
-  if (v === null || v === undefined || v < 0) return "—";
-  if (v < 1024) return `${v} B`;
-  const units = ["KB", "MB", "GB", "TB"];
-  let n = v;
-  let i = -1;
-  do {
-    n /= 1024;
-    i += 1;
-  } while (n >= 1024 && i < units.length - 1);
-  return `${Number(n.toFixed(1)).toLocaleString("zh-CN")} ${units[i]}`;
-}
 
 /** 采样时刻格式化；解析不了就原样返回，不吞成「—」（原样更利于排查） */
 function formatTime(time: string): string {

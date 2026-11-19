@@ -110,7 +110,7 @@
                 layout="square"
                 icon="ArrowRight"
                 tip="下一页"
-                :disabled="(tableData.rows?.length ?? 0) < tableData.pageSize"
+                :disabled="!tableHasNext"
                 @click="onPageChange(tableData.page + 1)"
               />
             </span>
@@ -167,6 +167,17 @@
         <!-- 数据源选择已删除：独立路由 /db-manager 由外层数据源中心带 datasourceId 进入，
              页内再放一个下拉会和外层左栏的选择打架（两个可改同一个值）。
              这里只读展示当前浏览的数据源，切换请回到外层列表。 -->
+        <!-- 未提交事务的常驻收尾入口。
+             事务不挂在页签上（它绑数据源 + 库），但提交/回滚原来只长在查询视图的工具条里：
+             用户切到表页签、或把查询页签关掉，那个事务就变成「后端还开着、界面上点不到」。
+             这里把状态与两个收尾动作提到顶栏，任何页签下都能看到并处理。
+             查询视图里那套按钮保留 —— 那里的上下文最直接，不该为了统一把它拆掉。 -->
+        <span v-if="txId" class="dbm-tx-chip" data-testid="dbm-tx-chip">
+          <ReIcon name="WarningFilled" :size="13" class="dbm-tx-chip__icon" />
+          <span class="dbm-tx-chip__text">未提交事务 · {{ txDatabase || "默认库" }}</span>
+          <ReButton layout="square" type="success" icon="Select" tip="提交事务" :disabled="txBusy" @click="commitTx" />
+          <ReButton layout="square" type="danger" plain icon="CloseBold" tip="回滚事务" :disabled="txBusy" @click="rollbackTx" />
+        </span>
         <span class="dbm-ds-chip" data-testid="dbm-ds-chip">
           <ReIcon name="Coin" :size="13" />
           {{ currentDatasourceName }}
@@ -884,7 +895,16 @@
             </div>
             <div class="dbm-result-header">
               <span v-if="queryResult.message" class="dbm-result-message">{{ queryResult.message }}</span>
-              <span v-else-if="queryResult.rowCount !== undefined" class="dbm-result-message">查询完成，共 {{ queryResult.rowCount }} 行{{ queryResult.truncated ? '（已截断）' : '' }}</span>
+              <span v-else-if="queryResult.rowCount !== undefined" class="dbm-result-message">
+                查询完成，共 {{ queryResult.rowCount }} 行
+                <DsQueryTruncatedHint
+                  v-if="queryResult.truncated"
+                  :truncated="true"
+                  :shown="queryResult.rows?.length ?? 0"
+                  :total="queryResult.rowCount"
+                  dialect="sql"
+                />
+              </span>
               <span v-else-if="queryResult.affectedRows !== undefined" class="dbm-result-message">执行完成，影响 {{ queryResult.affectedRows }} 行</span>
               <span class="dbm-spacer" />
               <ReSelect
@@ -2314,7 +2334,7 @@
  * @since 4.0.0
  */
 import { message } from "@repo/core";
-import { http } from "@repo/utils";
+import { http, formatBytes as formatBytesBase } from "@repo/utils";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，--dense 为 12px/10px 内距档）
 import "@repo/ui/surface";
 import { ref, computed, onMounted, onBeforeUnmount, reactive, watch, nextTick } from "vue";
@@ -2355,10 +2375,11 @@ import DbUserManagePanel from "../../components/console/DbUserManagePanel.vue";
 import DbImportWizard from "../../components/console/DbImportWizard.vue";
 import DbExportWizard from "../../components/console/DbExportWizard.vue";
 import DbSchemaVersionPanel from "../../components/console/DbSchemaVersionPanel.vue";
+import DsQueryTruncatedHint from "../../components/console/DsQueryTruncatedHint.vue";
 // 数据源下拉走共享件：中文口径与停用项剔除规则全站一份
 import { DatasourceSelect } from "@pages/datasource";
 import type { CollectOption } from "@pages/datasource";
-import { useRoute } from "vue-router";
+import { useRoute, onBeforeRouteLeave } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import {
   fetchDbDatabases,
@@ -2748,9 +2769,7 @@ async function deleteCurrentObject(): Promise<void> {
   const tab = activeTabObj.value;
   if (!tab || tab.type !== "object" || !tab.objectCategory || !tab.objectName) return;
   try {
-    await ElMessageBox.confirm(`确定删除 ${categoryLabel(tab.objectCategory)}「${tab.objectName}」？`, "确认删除", {
-      type: "warning",
-    });
+    await message.confirm(`确定删除 ${categoryLabel(tab.objectCategory)}「${tab.objectName}」？`, "确认删除");
   } catch {
     return;
   }
@@ -2994,6 +3013,16 @@ const activeSqlModel = computed<string>({
 const viewPref = loadViewPref();
 
 const tableData = reactive<DbTableDataResult>({ columns: [], rows: [], total: 0, page: 1, pageSize: viewPref.pageSize });
+
+/**
+ * 逐页翻模式（不统计总数）下「是否还有下一页」。
+ *
+ * <p>不能只看「本页是否装满」：装满也可能是最后一页，按 {@code rows.length < pageSize}
+ * 判末页会把下一页按钮留成可点，点过去得到一张空表，用户以为数据被删了。
+ * 这里把判定收成一处，并在真翻到空页时自动退回上一页（见 {@code loadTableData}），
+ * 让「不统计总数」与「统计总数」两种模式的翻页手感一致。</p>
+ */
+const tableHasNext = ref(true);
 
 /**
  * 最近一次表数据加载耗时（毫秒）。
@@ -3463,7 +3492,7 @@ async function deleteSelectedRows(): Promise<void> {
   const rows = selection.value;
   if (!tab?.tableName || rows.length === 0) return;
   try {
-    await ElMessageBox.confirm(`确定删除选中的 ${rows.length} 行吗？`, "批量删除确认", { type: "warning" });
+    await message.confirm(`确定删除选中的 ${rows.length} 行吗？`, "批量删除确认");
   } catch {
     return;
   }
@@ -4096,7 +4125,7 @@ const saveRow = async () => {
 const deleteRow = async (row: Record<string, any>) => {
   if (!activeTabObj.value) return;
   try {
-    await ElMessageBox.confirm('确定删除这一行吗？', '删除确认', { type: 'warning' });
+    await message.confirm('确定删除这一行吗？', '删除确认');
   } catch {
     return;
   }
@@ -4866,7 +4895,7 @@ async function removeForeignKey(row: DbForeignKeyInfo): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(`确定删除外键「${row.fkName}」？`, "确认删除", { type: "warning" });
+    await message.confirm(`确定删除外键「${row.fkName}」？`, "确认删除");
   } catch {
     return;
   }
@@ -5513,9 +5542,7 @@ const blobMeta = computed(() => {
 
 /** 人类可读的字节数 */
 function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+  return formatBytesBase(n, { digits: { KB: 1, MB: 2 } });
 }
 
 /** 格子里的摘要：一行就能看出「多大、什么类型」 */
@@ -6065,10 +6092,13 @@ async function confirmTruncate(tableName?: string, database?: string) {
   }
   const db = database || activeDatabase.value;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确定清空表 ${tableName} 吗？将删除全部数据且不可恢复！`,
       "清空表",
-      { type: "warning", confirmButtonText: "清空", cancelButtonText: "取消", confirmButtonClass: "el-button--danger" }
+      "清空",
+      "取消",
+      "warning",
+      { confirmButtonClass: "el-button--danger" }
     );
   } catch {
     return;
@@ -6358,11 +6388,7 @@ async function savePrimaryKey() {
   const clearing = pkDialogColumns.value.length === 0;
   if (clearing) {
     try {
-      await ElMessageBox.confirm(
-        "清除主键后，该表将不再有唯一性约束与自增基准，确定吗？",
-        "清除主键",
-        { type: "warning" }
-      );
+      await message.confirm("清除主键后，该表将不再有唯一性约束与自增基准，确定吗？", "清除主键");
     } catch {
       return;
     }
@@ -6393,7 +6419,7 @@ async function removeIndex(row: DbIndexInfo) {
   const tab = activeTabObj.value;
   if (!tab?.tableName) return;
   try {
-    await ElMessageBox.confirm(`确定删除索引 ${row.indexName} 吗？`, "删除索引", { type: "warning" });
+    await message.confirm(`确定删除索引 ${row.indexName} 吗？`, "删除索引");
   } catch {
     return;
   }
@@ -6544,7 +6570,7 @@ async function removeColumn(row: DbColumnInfo) {
   const tab = activeTabObj.value;
   if (!tab?.tableName) return;
   try {
-    await ElMessageBox.confirm(`确定删除列 ${row.name} 吗？该列数据将一并删除！`, "删除列", { type: "warning" });
+    await message.confirm(`确定删除列 ${row.name} 吗？该列数据将一并删除！`, "删除列");
   } catch {
     return;
   }
@@ -7152,8 +7178,26 @@ watch(
     tabs.value = [];
     activeTab.value = "";
     await loadDatasources();
+    // 宿主的切换已经落地，这时才拿得到新的 currentDatasourceId 去做比对
+    notifyTxForeignDatasource();
   },
 );
+
+/**
+ * 切数据源时，若手上还挂着**另一个数据源**的未提交事务，明确说一句。
+ *
+ * <p>不拦：事务本身不因切数据源而失效（它绑的是旧连接），顶栏那颗 chip 仍然能提交 / 回滚。
+ * 但用户切过来之后看到的是新数据源的树，很容易以为「事务已经跟着切了」，
+ * 于是继续在新数据源上写，最后提交时才发现改的是旧库。说一句比拦一句更合适。</p>
+ */
+function notifyTxForeignDatasource(): void {
+  if (!txId.value) return;
+  const owner = txDatasource.value;
+  if (owner === null || owner === currentDatasourceId.value) return;
+  message.warning(
+    `未提交事务仍在数据源 #${owner}（${txDatabase.value || "默认库"}）上，顶栏可提交或回滚`,
+  );
+}
 
 async function onDatasourceChange() {
   Object.keys(tablesByDb).forEach(k => delete tablesByDb[k]);
@@ -7161,6 +7205,7 @@ async function onDatasourceChange() {
   activeDatabase.value = "";
   tabs.value = [];
   activeTab.value = "";
+  notifyTxForeignDatasource();
   await loadTree();
 }
 
@@ -8485,17 +8530,16 @@ function openUsersTab() {
  */
 function closeTab(id: string) {
   const idx = tabs.value.findIndex(t => t.id === id);
-  if (idx >= 0) {
-    tabs.value.splice(idx, 1);
-    // 页签没了，快照也没有再用的机会，顺手放掉（否则关一堆表后内存一直涨）
-    tabDataCache.delete(id);
-    if (activeTab.value === id) {
-      const next = tabs.value[Math.min(idx, tabs.value.length - 1)];
-      if (next) {
-        selectTab(next.id);
-      } else {
-        activeTab.value = "";
-      }
+  if (idx < 0) return;
+  tabs.value.splice(idx, 1);
+  // 页签没了，快照也没有再用的机会，顺手放掉（否则关一堆表后内存一直涨）
+  tabDataCache.delete(id);
+  if (activeTab.value === id) {
+    const next = tabs.value[Math.min(idx, tabs.value.length - 1)];
+    if (next) {
+      selectTab(next.id);
+    } else {
+      activeTab.value = "";
     }
   }
 }
@@ -8593,6 +8637,18 @@ async function loadTableData(tab: Tab | undefined, page?: number) {
       // 后端已经按 count 参数跳过 COUNT(*)（count=false 时 total 回 -1）：
       // COUNT 是全表扫描，大表关掉后翻页请求只剩 SELECT+LIMIT/OFFSET。
       tableData.total = -1;
+      // 本页装满 = 很可能还有下一页；没装满 = 到头了。这只决定「下一页」按不按得动，
+      // 真正的边界由下面的空页回退兜住（装满的最后一页再点会拿到 0 行并自动退回）。
+      tableHasNext.value = (result.rows?.length ?? 0) >= tableData.pageSize;
+      // 已经翻到空页：说明上一页就是最后一页。退回上一页并把按钮关掉，
+      // 而不是把用户留在「第 N 页 · 0 行」的空网格上。
+      if ((result.rows?.length ?? 0) === 0 && (result.page ?? 1) > 1) {
+        tableHasNext.value = false;
+        void loadTableData(tab, (result.page ?? 1) - 1);
+        return;
+      }
+    } else {
+      tableHasNext.value = true;
     }
     rememberTabData(tab, result);
     // 列元数据与数据分开取：同一张表已经应用过就直接返回，翻页 / 排序不再重取列清单。
@@ -8731,6 +8787,11 @@ function restoreTabDataSnapshot(tab: Tab): boolean {
     ...snap.data,
     rows: snap.data.rows.map(r => ({ ...r })),
   });
+  // 快照恢复也要带上「下一页」判定：否则在末页（未统计总数）切走再切回，
+  // 按钮会按上一个页签的遗留状态显示，点过去就是一张空表。
+  if (!showTotal.value) {
+    tableHasNext.value = (snap.data.rows?.length ?? 0) >= tableData.pageSize;
+  }
   return true;
 }
 
@@ -8815,6 +8876,8 @@ async function silentRefreshTableData(tab: Tab | undefined) {
     writeBackSilently(tableData, result);
     if (!showTotal.value) {
       tableData.total = -1;
+      // 静默刷新同样要跟上「下一页」判定：删掉本页最后一行后，按钮该灭就灭
+      tableHasNext.value = (result.rows?.length ?? 0) >= tableData.pageSize;
     }
     // 快照跟着对齐：格内编辑保存后立刻切走再切回，看到的不该还是改之前的值
     syncSnapshotSilently(tab, result);
@@ -8953,6 +9016,14 @@ const txWanted = ref(false);
 const txId = ref("");
 /** 事务绑定的库；改目标库后旧的 txId 就不再适用 */
 const txDatabase = ref("");
+/**
+ * 事务绑定的数据源。
+ *
+ * <p>只比库名不够：两个数据源上都有 {@code test} 库是常态，切了数据源之后
+ * 「库名没变」会被判成同一条事务，于是新数据源上的 SQL 被塞进**旧数据源的那条连接**里
+ * 执行 —— 改动的落点与用户以为的完全不是一回事。数据源 + 库一起比才算同一个目标。</p>
+ */
+const txDatasource = ref<number | null>(null);
 /** 正在开启 / 提交 / 回滚 */
 const txBusy = ref(false);
 /** 正在接管孤儿事务（防止并发重复接管） */
@@ -8970,23 +9041,26 @@ let adoptingTx = false;
 async function ensureTx(): Promise<string> {
   if (!txWanted.value) return "";
   const db = queryTargetDatabase();
-  if (txId.value && txDatabase.value === db) return txId.value;
+  const ds = currentDatasourceId.value;
+  if (txId.value && txDatabase.value === db && txDatasource.value === ds) return txId.value;
   if (txId.value) {
-    // 目标库变了：旧事务的改动在另一个库里，硬接下去会让提交与改动对不上。
+    // 目标（数据源或库）变了：旧事务的改动落在另一个目标上，硬接下去会让提交与改动对不上。
     // 先回滚并如实告知，不静默丢弃用户的改动。
+    const where = `${txDatabase.value || "默认库"}${txDatasource.value !== null && txDatasource.value !== ds ? `（数据源 #${txDatasource.value}）` : ""}`;
     try {
       await rollbackDbTx(txId.value);
-      message.warning(`目标库已切换，原事务已回滚（改动在 ${txDatabase.value || "默认库"}）`);
+      message.warning(`目标已切换，原事务已回滚（改动在 ${where}）`);
     } catch {
-      message.warning("目标库已切换，但原事务回滚失败，请刷新页面确认");
+      message.warning("目标已切换，但原事务回滚失败，请刷新页面确认");
     }
     txId.value = "";
   }
   txBusy.value = true;
   try {
-    const started = await beginDbTx(currentDatasourceId.value, db);
+    const started = await beginDbTx(ds, db);
     txId.value = started.txId;
     txDatabase.value = started.database || db || "";
+    txDatasource.value = ds;
     message.success(`已开启事务（库：${txDatabase.value || "默认"}），执行后请提交或回滚`);
   } catch (e) {
     message.error(`开启事务失败: ${String((e as Error)?.message ?? e)}`);
@@ -8996,6 +9070,18 @@ async function ensureTx(): Promise<string> {
   return txId.value;
 }
 
+/**
+ * 清掉本地事务状态（后端已收尾之后调用）。
+ *
+ * <p>三处状态必须一起清：只清 txId 而留着 txDatasource，下一次 {@link ensureTx}
+ * 会把「上一个数据源」当成当前目标比对，判定错乱。</p>
+ */
+function clearTxState(): void {
+  txId.value = "";
+  txDatabase.value = "";
+  txDatasource.value = null;
+}
+
 /** 提交当前事务 */
 async function commitTx(): Promise<void> {
   if (!txId.value) return;
@@ -9003,8 +9089,7 @@ async function commitTx(): Promise<void> {
   try {
     await commitDbTx(txId.value);
     message.success("事务已提交");
-    txId.value = "";
-    txDatabase.value = "";
+    clearTxState();
   } catch (e) {
     message.error(`提交失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -9021,10 +9106,12 @@ async function commitTx(): Promise<void> {
 async function rollbackTx(): Promise<void> {
   if (!txId.value) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       "回滚会撤销本事务里的全部未提交改动，且不可恢复。确定回滚？",
       "回滚事务",
-      { type: "warning", confirmButtonText: "回滚", cancelButtonText: "取消" },
+      "回滚",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -9033,8 +9120,7 @@ async function rollbackTx(): Promise<void> {
   try {
     await rollbackDbTx(txId.value);
     message.success("事务已回滚");
-    txId.value = "";
-    txDatabase.value = "";
+    clearTxState();
   } catch (e) {
     message.error(`回滚失败: ${String((e as Error)?.message ?? e)}`);
   } finally {
@@ -9043,17 +9129,73 @@ async function rollbackTx(): Promise<void> {
 }
 
 /**
+ * 有未提交事务时，任何「会让事务失去收尾入口」的动作都要先过这道闸。
+ *
+ * <p>事务不挂在页签上（它绑的是数据源 + 库），而它的提交 / 回滚入口有两处：
+ * 查询视图的工具条，以及顶栏那颗常驻的「未提交事务」chip。所以关页签、切页签
+ * 都不会丢入口，真正会丢的是**离开页面**——路由一走，chip 和工具条一起消失，
+ * 后端那条连接却还开着，直到空闲超时才被回收。</p>
+ *
+ * <p>三个出口用两颗按钮 + 关闭表达：提交后继续 / 回滚后继续 / 关掉弹窗 = 取消本次动作。
+ * 不用「确定 / 取消」两选一，是因为「有未提交改动」的默认答案不该由我们替用户挑：
+ * 提交和回滚都可能是他要的，而误判任何一边都是数据事故。</p>
+ *
+ * @param action 即将执行的动作，用来把话说明白（「离开页面前」）
+ * @returns true 可以继续；false 用户取消，或收尾失败（此时事务仍在，不能继续）
+ */
+async function guardPendingTx(action: string): Promise<boolean> {
+  const tx = txId.value;
+  if (!tx) return true;
+  const dbText = txDatabase.value || "默认库";
+  let choice: "commit" | "rollback";
+  try {
+    await ElMessageBox.confirm(
+      `「${dbText}」上还有一个未提交的事务。${action}请先收尾，否则这些改动会丢失。`,
+      "未提交的事务",
+      {
+        confirmButtonText: "提交后继续",
+        cancelButtonText: "回滚后继续",
+        distinguishCancelAndClose: true,
+        closeOnClickModal: false,
+        type: "warning",
+      },
+    );
+    choice = "commit";
+  } catch (e) {
+    // distinguishCancelAndClose：取消按钮 reject 'cancel'，右上角 X reject 'close'
+    if (e !== "cancel") return false;
+    choice = "rollback";
+  }
+  txBusy.value = true;
+  try {
+    if (choice === "commit") await commitDbTx(tx);
+    else await rollbackDbTx(tx);
+  } catch (e) {
+    // 收尾失败就**不能放行**：放行等于把用户丢进「事务还开着但已经看不到」的处境
+    message.error(`${choice === "commit" ? "提交" : "回滚"}失败: ${String((e as Error)?.message ?? e)}`);
+    return false;
+  } finally {
+    txBusy.value = false;
+  }
+  clearTxState();
+  message.success(choice === "commit" ? "事务已提交" : "事务已回滚");
+  return true;
+}
+
+/**
  * 关闭页签 / 离开页面时兜底回滚。
  *
  * <p>没有这一步的话，用户开着事务直接关标签页，
  * 后端那条连接会一直挂着直到空闲超时（10 分钟）才被回收 ——
  * 而他根本不知道自己留了东西。</p>
+ *
+ * <p>这是**最后一道兜底**：正常路径已由 {@link guardPendingTx} 问过用户，
+ * 走到这里说明是刷新 / 关浏览器这类拦不住的动作，静默回滚好过留一条孤儿连接。</p>
  */
 async function releaseTxOnUnmount(): Promise<void> {
   const tx = txId.value;
   if (!tx) return;
-  txId.value = "";
-  txDatabase.value = "";
+  clearTxState();
   try {
     await rollbackDbTx(tx);
   } catch {
@@ -9086,6 +9228,7 @@ async function adoptOrphanTx(): Promise<void> {
     if (!mine) return;
     txId.value = mine.txId;
     txDatabase.value = mine.database || "";
+    txDatasource.value = mine.datasourceId;
     txWanted.value = true;
     const rest = list.filter(s => s.datasourceId === dsId).length - 1;
     message.warning(rest > 0
@@ -10160,7 +10303,7 @@ function openCreateTable(database?: string) {
 async function deleteView(viewName: string, database?: string) {
   const db = database || contextMenu.database || activeDatabase.value;
   try {
-    await ElMessageBox.confirm(`确定要删除视图 ${db ? db + "." : ""}${viewName} 吗？此操作不可恢复！`, "删除确认", { type: "warning" });
+    await message.confirm(`确定要删除视图 ${db ? db + "." : ""}${viewName} 吗？此操作不可恢复！`, "删除确认");
   } catch {
     return;
   }
@@ -10186,7 +10329,7 @@ async function deleteView(viewName: string, database?: string) {
 async function deleteTable(tableName: string, database?: string) {
   const db = database || contextMenu.database || activeDatabase.value;
   try {
-    await ElMessageBox.confirm(`确定要删除表 ${db ? db + "." : ""}${tableName} 吗？此操作不可恢复！`, "删除确认", { type: "warning" });
+    await message.confirm(`确定要删除表 ${db ? db + "." : ""}${tableName} 吗？此操作不可恢复！`, "删除确认");
   } catch {
     return;
   }
@@ -10215,7 +10358,7 @@ async function deleteTable(tableName: string, database?: string) {
  */
 async function deleteDatabase(database: string) {
   try {
-    await ElMessageBox.confirm(`确定要删除数据库 ${database} 吗？该库下的所有表都会被删除，此操作不可恢复！`, "删除确认", { type: "warning" });
+    await message.confirm(`确定要删除数据库 ${database} 吗？该库下的所有表都会被删除，此操作不可恢复！`, "删除确认");
   } catch {
     return;
   }
@@ -10329,10 +10472,12 @@ watch(
  */
 async function resetViewSettings(): Promise<void> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       "将清空本机保存的视图偏好（表头/行模式、左侧树、每页行数、ER 图设置）与所有表的筛选条件。列显示偏好也会一并恢复默认。继续？",
       "恢复默认设置",
-      { type: "warning", confirmButtonText: "恢复默认", cancelButtonText: "取消" },
+      "恢复默认",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -10835,10 +10980,12 @@ async function locateCopyTarget(): Promise<void> {
  */
 async function confirmOverwrite(database: string, targetTable: string): Promise<boolean> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `${database}.${targetTable} 已存在。继续会用新表替换它（复制失败时原表保持不动）。`,
       "目标表已存在",
-      { type: "warning", confirmButtonText: "覆盖", cancelButtonText: "取消" },
+      "覆盖",
+      "取消",
+      "warning",
     );
     return true;
   } catch {
@@ -11271,6 +11418,8 @@ onMounted(() => {
   document.addEventListener("keydown", onCopyPasteShortcut);
   // 备注 popover 是 manual 触发，点别处得自己收
   document.addEventListener("click", onDocumentClickCloseRemark);
+  // 关浏览器 / F5：路由守卫拦不住，只能靠原生 beforeunload
+  window.addEventListener("beforeunload", onBeforeUnloadGuard);
 });
 
 // 切数据源时也要查：孤儿事务是「用户忘了提交」留下的，
@@ -11284,9 +11433,38 @@ watch(currentDatasourceId, () => {
   }
 });
 
+/**
+ * 路由离开前拦一次未提交事务。
+ *
+ * <p>{@code onBeforeUnmount} 里的兜底回滚是**静默**的：用户点菜单切走，改动就这么没了，
+ * 连一句「刚才那些 UPDATE 没生效」都没有。路由离开是唯一能拦下来问一句的时机 ——
+ * 在这里把选择权交回用户，只有刷新 / 关浏览器这类拦不住的动作才走静默回滚。</p>
+ *
+ * <p>内嵌在数据源中心时本组件不是路由组件，这个守卫不会触发，
+ * 由宿主的页签切换 + 卸载兜底覆盖。</p>
+ */
+onBeforeRouteLeave(async () => await guardPendingTx("离开页面前，"));
+
+/**
+ * 关浏览器 / 刷新页面时的最后一层拦截。
+ *
+ * <p>{@code beforeunload} 只允许「要不要留下」这一种表达（浏览器不给自定义文案），
+ * 所以这里只负责把动作拦下来，让用户回去用顶栏那颗 chip 收尾 ——
+ * 直接放行的话，改动会随着连接一起被空闲回收，用户永远不知道自己丢了什么。</p>
+ *
+ * @param e 浏览器事件；设置 {@code returnValue} 才会真的弹原生确认框
+ */
+function onBeforeUnloadGuard(e: BeforeUnloadEvent): void {
+  if (!txId.value) return;
+  e.preventDefault();
+  // 部分浏览器（Chrome < 119）仍读 returnValue 才认为是「要拦」
+  e.returnValue = "";
+}
+
 onBeforeUnmount(() => {
   document.removeEventListener("keydown", onCopyPasteShortcut);
   document.removeEventListener("click", onDocumentClickCloseRemark);
+  window.removeEventListener("beforeunload", onBeforeUnloadGuard);
   // 复制任务进度流只活在本页：离开时断开，重连由下次进页面时重建
   stopCopyStream();
   clearCopyAutoClose();
@@ -11360,6 +11538,31 @@ onBeforeUnmount(() => {
   color: var(--el-color-primary);
   background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+}
+
+/* 未提交事务的常驻 chip：顶栏可见、任何页签下都能提交/回滚。
+   与 .dbm-tx-switch 同一个告警口径（warning 描边 + 浅底），
+   让「有未提交改动」这件事在页面上只有一种视觉语言。 */
+.dbm-tx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 9px;
+  border-radius: 9999px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--el-color-warning-dark-2, var(--el-color-warning));
+  background: var(--el-color-warning-light-9, var(--el-fill-color-light));
+  border: 1px solid var(--el-color-warning);
+}
+
+.dbm-tx-chip__icon {
+  flex-shrink: 0;
+}
+
+.dbm-tx-chip__text {
+  font-variant-numeric: tabular-nums;
 }
 
 /* 工具条：页面级动作只留数据源切换 + 刷新 + 表页签激活时的一簇视图设置，

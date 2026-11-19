@@ -1101,24 +1101,6 @@ const doPrint = () => {
   window.print();
 };
 
-/**
- * 归一化时间字符串为「YYYY-MM-DD HH:mm」。
- *
- * @param value 后端返回的时间，可能是 ISO 串或已是「YYYY-MM-DD HH:mm:ss」
- * @returns 便于排版的本地时间串；无法解析时原样返回
- */
-function formatDateTime(value?: string | null): string {
-  if (!value) return '—';
-  const raw = String(value);
-  const ts = Date.parse(raw.replace(' ', 'T'));
-  if (Number.isNaN(ts)) {
-    return raw.slice(0, 16);
-  }
-  const d = new Date(ts);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
 onBeforeUnmount(stopPrintMode);
 
 

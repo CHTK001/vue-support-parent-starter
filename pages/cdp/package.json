@@ -17,7 +17,8 @@
     "@element-plus/icons-vue": "catalog:",
     "@vicons/material": "^0.13.0",
     "@repo/ui": "workspace:*",
-    "@repo/utils": "workspace:*"
+    "@repo/utils": "workspace:*",
+    "@repo/core": "workspace:*"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "catalog:",

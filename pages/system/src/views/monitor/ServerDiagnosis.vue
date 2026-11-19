@@ -12,6 +12,7 @@
  *       一键手动刷新，关闭自动轮询。
  */
 import { message } from "@repo/core";
+import { formatBytes as formatBytesBase } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Refresh, Timer } from "@element-plus/icons-vue";
 import ReEChart from "../components/ReEChart.vue";
@@ -117,10 +118,7 @@ watch(activeTab, () => { void loadApiStats(); });
 
 /* ================= 工具 ================= */
 function formatBytes(b?: number): string {
-  if (b === undefined || b === null || b <= 0) return "—";
-  const u = ["B", "KB", "MB", "GB", "TB"]; let v = b; let i = 0;
-  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
-  return `${v.toFixed(2)} ${u[i]}`;
+  return formatBytesBase(b, { zeroText: "—", bDigits: 2, digits: 2, maxUnit: "TB" });
 }
 function fmtUptime(s?: number): string {
   if (!s) return "—";

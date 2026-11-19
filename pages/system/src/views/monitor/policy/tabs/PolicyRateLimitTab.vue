@@ -12,7 +12,6 @@
 import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessageBox } from "element-plus";
 import { Setting, WarningFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -254,10 +253,12 @@ async function handleDelete(row: RateLimitRule): Promise<void> {
   const id = row.sysRateLimitRuleId;
   if (id == null || deleteLoadingId.value != null) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       t("policy.rate.deleteBody", { target: row.target ?? "-" }),
       t("policy.rate.deleteTitle"),
-      { type: "warning", confirmButtonText: t("policy.common.remove"), cancelButtonText: t("policy.common.cancel") },
+      t("policy.common.remove"),
+      t("policy.common.cancel"),
+      "warning",
     );
   } catch {
     return;

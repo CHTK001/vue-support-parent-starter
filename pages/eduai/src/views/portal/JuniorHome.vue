@@ -52,6 +52,7 @@
           type="button"
           class="jp-card"
           :class="{ 'is-wip': !isReady(m) }"
+          :title="isReady(m) ? undefined : '建设中，敬请期待'"
           @click="onOpen(m)"
         >
           <span v-if="!isReady(m)" class="jp-wip">建设中</span>

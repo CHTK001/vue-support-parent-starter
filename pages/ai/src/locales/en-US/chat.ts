@@ -9,6 +9,7 @@ export default {
     stopGenerating: 'Stop Generating',
     enqueue: 'Enqueue',
     send: 'Send',
+    sendFailedRestored: 'Send failed — your text has been restored to the input box',
     selectModel: 'Please select a model',
     plusTooltip: 'Commands, attachments & MCP',
     plusAria: 'Input menu: commands, attachments and MCP',

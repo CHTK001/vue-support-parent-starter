@@ -21,8 +21,8 @@
  * @since 2026/09/29
  */
 import { message } from "@repo/core";
+import { formatBytes as formatBytesBase } from "@repo/utils";
 import { computed, onBeforeUnmount, onMounted, nextTick, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import { authHeaders, existObject, putObject, resolveObjectUrl } from "../api/filestorageApi";
 import { extensionOf } from "../utils/officeRenderer";
 import { displayToImage } from "../utils/imageCoords";
@@ -268,13 +268,7 @@ const progressPercent = computed(() => {
  * @returns 形如 {@code 12 KB} / {@code 2.0 MB}
  */
 function formatBytes(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(0)} KB`;
-  }
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return formatBytesBase(bytes, { digits: { KB: 0, MB: 1 } });
 }
 
 /** 缓存击穿序号：保存后自增，强制重新拉图 */
@@ -1292,10 +1286,12 @@ async function confirmSave(): Promise<void> {
     targetKey = siblingKey(saveNewName.value.trim());
     if (await existObject(props.bucket, targetKey).catch(() => false)) {
       try {
-        await ElMessageBox.confirm(
+        await message.confirm(
           `「${saveNewName.value.trim()}」已存在，确认覆盖它？`,
           "确认覆盖",
-          { confirmButtonText: "覆盖", cancelButtonText: "取消", type: "warning" },
+          "覆盖",
+          "取消",
+          "warning",
         );
       } catch {
         return;

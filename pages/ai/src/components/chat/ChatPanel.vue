@@ -154,6 +154,7 @@
             <ChatInput ref="chatInputRef" v-model:value="inputMessage.content" v-model:files="inputMessage.files"
               :session-id="effectiveSessionId" :editing="!!editMode" :character-id="props.session?.characterId != null ? String(props.session.characterId) : ''"
               :config="chatInputConfig" :streaming="isStreaming" :readonly="readonly" mode="chat"
+              :send-failure-signal="inputRestoreSignal"
               :backdrop="hasWallpaper" :history="promptHistory" :history-has-more="hasMoreMessages && !!currentSessionId"
               :history-loading-more="isLoadingMore"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse"
@@ -324,6 +325,15 @@ const currentSession = computed({
 
 const userAvater = computed(() => authStore.user?.avatarUrl);
 const currentSessionId = ref<string | null>(null);
+
+/**
+ * 发送失败信号：handleSendMessage 捕获到「消息未落库」的发送异常时 +1。
+ *
+ * <p>单向信号 prop 传给 ChatInput（与其 suggestionDismissSignal 同一套口径，
+ * 避免模板 ref 直调子组件方法——那在本组件树上实测会触发递归更新）。
+ * ChatInput 收到信号后把最近一次发送的内容放回输入框，用户不必重新打字。</p>
+ */
+const inputRestoreSignal = ref(0);
 
 // 共享的 Token 统计（useSessionTokenStats 自动监听流状态刷新）
 const currentSessionIdRef = computed(() => currentSessionId.value);
@@ -1874,7 +1884,10 @@ async function handleSendMessage(payload?: InputMessageState) {
     }
   } catch (error: any) {
     notify.error(t('chat.panel.sendMessageFailed'), error.message);
-    // 发送失败时由 SSE 事件驱动恢复检测
+    // 通知输入框把刚才清掉的内容放回去（发送失败草稿保护）：覆盖文件上传失败、
+    // 流式启动失败这类「消息还没落库」的同步异常。流中途的失败由 SSE 事件驱动恢复检测，
+    // 那时用户消息已创建，不能回填（否则会重复）。
+    inputRestoreSignal.value += 1;
   }
 }
 

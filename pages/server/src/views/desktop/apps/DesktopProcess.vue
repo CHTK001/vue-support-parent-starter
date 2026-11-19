@@ -75,7 +75,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
+import { message } from "@repo/core";
 import { runCommand } from "../../../api";
 
 const props = defineProps<{
@@ -226,11 +227,9 @@ async function load(): Promise<void> {
  */
 async function kill(row: ProcessRow): Promise<void> {
   if (row.pid <= 0 || busyPid.value) return;
-  const ok = await ElMessageBox.confirm(
-    `结束进程「${row.name}」（PID ${row.pid}）？未保存的数据会直接丢失。`,
-    "结束进程",
-    { type: "warning", confirmButtonText: "结束进程", cancelButtonText: "取消" },
-  ).catch(() => false);
+  const ok = await message
+    .confirm(`结束进程「${row.name}」（PID ${row.pid}）？未保存的数据会直接丢失。`, "结束进程", "结束进程", "取消", "warning")
+    .catch(() => false);
   if (!ok) return;
   busyPid.value = row.pid;
   try {

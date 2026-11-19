@@ -8,7 +8,8 @@
  * @pages/task 只保留任务派发。
  */
 import { onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
+import { message } from "@repo/core";
 import {
   Delete,
   Plus,
@@ -237,7 +238,7 @@ async function handleOp(row: Record<string, unknown>, action: "start" | "stop" |
   if (opId.value) return;
   if (action === "delete") {
     try {
-      await ElMessageBox.confirm(`确认删除任务「${job.sysJobName}」？`, "提示", { type: "warning", confirmButtonText: "确认删除" });
+      await message.confirm(`确认删除任务「${job.sysJobName}」？`, "提示", "确认删除", "取消", "warning");
     } catch {
       return;
     }

@@ -1096,7 +1096,6 @@
  */
 import { message } from "@repo/core";
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import { Document as DocumentIcon, Upload as UploadIcon } from "@element-plus/icons-vue";
 import { fetchDataSources, fetchDatasourceTables, type DataSourceInfo } from "@pages/datasource";
 import { fetchTableColumns, fetchMonitorTablesQualified, getDatasourceDatabase } from "../../api/manageConsoles";
@@ -3473,7 +3472,7 @@ const toggle = async (row: SyncTask, enabled: boolean) => {
  */
 const remove = async (row: SyncTask) => {
   try {
-    await ElMessageBox.confirm(`确认删除同步任务「${row.syncTaskName}」？`, "删除确认", { type: "warning" });
+    await message.confirm(`确认删除同步任务「${row.syncTaskName}」？`, "删除确认");
   } catch {
     return;
   }

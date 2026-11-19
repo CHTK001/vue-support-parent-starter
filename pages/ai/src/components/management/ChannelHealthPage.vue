@@ -18,7 +18,8 @@
  */
 import { Refresh as RefreshIcon } from '@element-plus/icons-vue';
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
+import { message } from '@repo/core';
 
 import RePageHead from '@/components/ui/RePageHead.vue';
 import ReTable from '@repo/ui/re-table';
@@ -151,9 +152,7 @@ async function probeAll() {
 // ---------- 重置/间隔 ----------
 async function resetState(row: ChannelHealthSummary) {
   try {
-    await ElMessageBox.confirm(`重置「${row.label ?? row.providerId ?? row.channel ?? row.connectionId}」的健康状态？`, '确认', {
-      type: 'warning',
-    });
+    await message.confirm(`重置「${row.label ?? row.providerId ?? row.channel ?? row.connectionId}」的健康状态？`, '确认');
   } catch {
     return;
   }

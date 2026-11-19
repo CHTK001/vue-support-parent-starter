@@ -276,7 +276,6 @@ import { downloadCsv, fileTimestamp, formatPercent } from "@repo/utils";
 import { useRouter } from "vue-router";
 import { Aim, Collection, FolderOpened, Picture, Search, Setting, User, Warning } from "@element-plus/icons-vue";
 import ReLoader from "@repo/ui/re-loader";
-import { ElMessageBox } from "element-plus";
 import { apiService } from "@/services/ApiService";
 import { DEFAULT_GROUP, useLibraryGroups } from "@/composables/useLibraryGroups";
 import type { ReidFaceBox, ReidFaceResult, ReidHit, ReidLibraryItem, ReidObserveResult } from "@/services/modules/reid.api";
@@ -834,11 +833,7 @@ async function clearObservations() {
     : `选定分组的 ${selected.length} 个记录库`
   // 二次确认单独 try：用户取消是正常路径，网络失败不能被当成「取消」静默吞掉
   try {
-    await ElMessageBox.confirm(`确认要清空${label}吗？此动作不可恢复。`, '清空操作', {
-      confirmButtonText: '清空',
-      cancelButtonText: '取消',
-      type: 'warning',
-    })
+    await message.confirm(`确认要清空${label}吗？此动作不可恢复。`, '清空操作', '清空', '取消', 'warning')
   } catch {
     // 用户取消，不做任何事
     return

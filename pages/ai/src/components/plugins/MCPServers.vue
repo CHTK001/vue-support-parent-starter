@@ -240,7 +240,6 @@
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {isAdmin, message} from '@repo/core'
-import { ElMessageBox } from 'element-plus';
 import {
   PlusOutlined, SettingsOutlined, LockOutlined, DeleteOutlined,
   EditOutlined, ArrowBackOutlined, WifiTetheringOutlined,
@@ -489,9 +488,7 @@ async function handleTest(s: any) {
 }
 async function handleDelete(s: any) {
   try {
-    await ElMessageBox.confirm(t('plugins.mcp.removeConfirm', { name: s.name }), t('plugins.mcp.removeConfirmTitle'), {
-      type: 'warning', confirmButtonText: t('plugins.mcp.delete'), cancelButtonText: t('plugins.mcp.cancel'),
-    })
+    await message.confirm(t('plugins.mcp.removeConfirm', { name: s.name }), t('plugins.mcp.removeConfirmTitle'), t('plugins.mcp.delete'), t('plugins.mcp.cancel'), 'warning')
   } catch {
     return
   }

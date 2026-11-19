@@ -8,7 +8,6 @@
  */
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import { Monitor, Bell, Lock, Setting, Upload } from "@element-plus/icons-vue";
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReForm, { type ReFormField } from "@repo/ui/re-form";
@@ -270,9 +269,7 @@ async function onTotpSwitchChange(val: boolean): Promise<void> {
     // 关闭：解绑
     if (!totpEnabled.value) return;
     try {
-      await ElMessageBox.confirm("确认关闭二次验证（2FA）？关闭后登录将不再需要动态验证码。", "关闭确认", {
-        type: "warning",
-      });
+      await message.confirm("确认关闭二次验证（2FA）？关闭后登录将不再需要动态验证码。", "关闭确认", "确定", "取消", "warning");
     } catch {
       securityForm.value.twoFactor = true;
       return;

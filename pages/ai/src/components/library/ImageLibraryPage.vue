@@ -742,7 +742,7 @@ import type { ImageItem, ImageSearchStatus } from '@/services/modules/image-sear
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader, downloadAuthenticatedFile } from '@/utils/authImage'
 import { toErrorMessage } from '@/utils/errors'
-import { downloadCsv, fileTimestamp } from '@repo/utils'
+import { downloadCsv, fileTimestamp, formatDateTime as formatDateTimeBase } from '@repo/utils'
 import { IMAGE_UPLOAD_ACCEPT } from '@/utils/imageAccept'
 import { usePopup } from '@/composables/usePopup'
 import { useLibraryGroups } from '@/composables/useLibraryGroups'
@@ -1224,15 +1224,7 @@ function formatSize(bytes: number): string {
  * @returns `YYYY-MM-DD HH:mm`；缺失或非法时返回「—」
  */
 function formatDateTime(v?: string | null): string {
-  if (!v) {
-    return '—'
-  }
-  const d = new Date(v)
-  if (Number.isNaN(d.getTime())) {
-    return String(v)
-  }
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+  return formatDateTimeBase(v, { fallback: 'raw' })
 }
 
 /**

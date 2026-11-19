@@ -214,7 +214,8 @@
  * 分钟级长任务（下载 Bun + npm 安装）。误点一次代价很高，所以统一走确认框。</p>
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { message } from '@repo/core'
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
 import {
@@ -411,10 +412,10 @@ async function install(spec: string): Promise<void> {
     return
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `安装插件「${value}」？首次安装会先下载 Bun，可能需要几分钟；装好后被接管的 provider 改走插件登录与签到。`,
       '确认安装',
-      { type: 'warning', confirmButtonText: '开始安装', cancelButtonText: '取消' },
+      '开始安装',
     )
   } catch {
     return
@@ -454,10 +455,9 @@ async function toggle(plugin: MagpiePlugin): Promise<void> {
   const off = !plugin.off
   if (off) {
     try {
-      await ElMessageBox.confirm(
+      await message.confirm(
         `停用插件「${plugin.name || spec}」？停用后它接管的 provider 会回落到内置实现。`,
         '确认停用',
-        { type: 'warning' },
       )
     } catch {
       return
@@ -475,10 +475,9 @@ async function upgrade(plugin: MagpiePlugin): Promise<void> {
   const spec = String(plugin.spec ?? '')
   if (!spec) return
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `把「${plugin.name || spec}」升级到 ${plugin.latest || '最新版'}？升级期间该插件负责的登录与签到会短暂不可用。`,
       '确认升级',
-      { type: 'warning' },
     )
   } catch {
     return
@@ -506,10 +505,10 @@ async function remove(plugin: MagpiePlugin): Promise<void> {
   const spec = String(plugin.spec ?? '')
   if (!spec) return
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `卸载插件「${plugin.name || spec}」？被它接管的 provider 会回落到内置实现，插件带来的签到与登录方式也会失效。`,
       '确认卸载',
-      { type: 'warning', confirmButtonText: '卸载' },
+      '卸载',
     )
   } catch {
     return

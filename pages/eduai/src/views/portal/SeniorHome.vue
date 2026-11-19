@@ -39,6 +39,7 @@
           type="button"
           class="sp-card"
           :class="{ 'is-wip': !isReady(m) }"
+          :title="isReady(m) ? undefined : '建设中，敬请期待'"
           @click="onOpen(m)"
         >
           <span v-if="!isReady(m)" class="sp-wip">建设中</span>

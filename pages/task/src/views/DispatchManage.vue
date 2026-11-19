@@ -6,7 +6,6 @@
  */
 import { message } from "@repo/core";
 import { onMounted, ref } from "vue";
-import { ElMessageBox } from "element-plus";
 import { CircleClose, Delete, Monitor, VideoPause, VideoPlay } from "@element-plus/icons-vue";
 import {
   cancelDispatchTask,
@@ -74,7 +73,7 @@ async function handleTaskAction(action: "cancel" | "pause" | "resume" | "delete"
   const name = task.taskId ?? task.taskType ?? "任务";
   if (action === "delete") {
     try {
-      await ElMessageBox.confirm(`确认删除任务「${name}」？`, "提示", { type: "warning", confirmButtonText: "确认删除" });
+      await message.confirm(`确认删除任务「${name}」？`, "提示", "确认删除");
     } catch {
       return;
     }
@@ -100,7 +99,7 @@ async function handleTaskAction(action: "cancel" | "pause" | "resume" | "delete"
 async function handleRemoveNode(node: DispatchNode) {
   if (opNodeId.value) return;
   try {
-    await ElMessageBox.confirm(`确认移除节点「${node.nodeId}」？`, "提示", { type: "warning", confirmButtonText: "确认移除" });
+    await message.confirm(`确认移除节点「${node.nodeId}」？`, "提示", "确认移除");
   } catch {
     return;
   }

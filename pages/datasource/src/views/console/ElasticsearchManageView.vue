@@ -40,6 +40,7 @@
           :loading="loading"
           @click="refresh"
         />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
         <ReButton
           layout="square"
           type="primary"
@@ -620,9 +621,12 @@
                   检索结果
                   <span v-if="queryResult" class="dsm-query-meta">
                     {{ queryResult.rowCount }} 行 · {{ queryResult.executionTimeMs }} ms
-                    <span v-if="queryResult.truncated" class="dsm-query-warn">
-                      已截断，服务端共 {{ queryResult.totalRows }} 行，请收窄条件
-                    </span>
+                    <DsQueryTruncatedHint
+                      :truncated="queryResult.truncated"
+                      :shown="queryResult.rows.length"
+                      :total="queryResult.totalRows"
+                      dialect="es"
+                    />
                   </span>
                 </div>
                 <ReTable
@@ -1276,6 +1280,9 @@ import { ReAlert } from "@repo/ui/re-kit";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import DsQueryTruncatedHint from "../../components/console/DsQueryTruncatedHint.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import AliasFormDialog from "../../components/console/AliasFormDialog.vue";
 import EsQueryEditor from "../../components/console/EsQueryEditor.vue";
 import EsClusterChart from "../../components/console/charts/EsClusterChart.vue";
@@ -1444,10 +1451,12 @@ async function batchDeleteIndices() {
   const names = Array.from(indexSelection.value);
   if (names.length === 0) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认批量删除 ${names.length} 个索引？\n${names.join("\n")}\n\n该操作不可恢复！`,
       "批量删除索引",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+      "删除",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -2373,11 +2382,7 @@ async function loadIndices() {
 
 async function removeIndex(row: EsIndexRow) {
   try {
-    await ElMessageBox.confirm(`确认删除索引「${row.name}」？该操作不可恢复`, "删除索引", {
-      type: "warning",
-      confirmButtonText: "删除",
-      cancelButtonText: "取消",
-    });
+    await message.confirm(`确认删除索引「${row.name}」？该操作不可恢复`, "删除索引", "删除", "取消", "warning");
   } catch {
     return;
   }
@@ -2527,13 +2532,15 @@ async function saveIndex() {
     if (removed.length > 0 || modified.length > 0) {
       target = "rebuild";
       try {
-        await ElMessageBox.confirm(
+        await message.confirm(
           `索引「${name}」：将删除 ${removed.length} 个字段、改动 ${modified.length} 个字段。` +
             `ES 无法原地删除字段或修改已存在字段的类型，底层执行三步：` +
             `(1) 建临时索引 → (2) 复制数据到临时索引 → (3) 删除原索引并重建同名。` +
             `操作耗时与数据量成正比，过程中原索引短暂不可用。确定继续？`,
           "需要重建索引",
-          { type: "warning", confirmButtonText: "重建并生效（约数秒~数分钟）", cancelButtonText: "再想想" },
+          "重建并生效（约数秒~数分钟）",
+          "再想想",
+          "warning",
         );
       } catch {
         return; // 用户放弃重建
@@ -2703,10 +2710,12 @@ async function onAliasDialogSubmit(alias: string, index: string) {
 
 async function removeAlias(row: EsAliasRow) {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确定删除别名「${row.alias}」指向「${row.index}」吗？删除别名不影响索引本身。`,
       "删除别名",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+      "删除",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -2850,6 +2859,20 @@ watch(
     indexPage.value = 1;
   },
 );
+
+/**
+ * 自动刷新：能力声明 + 当前页签的数据。
+ *
+ * <p>默认关闭。ES 的 refresh 只重取「当前页签」，不会一次性拉全部视图，
+ * 但索引列表按页取，用户按实例规模自行决定档位。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: refresh,
+  storageKey: "datasource.elasticsearch",
+});
 
 watch(activeTab, async tab => {
   if (!datasourceId.value) return;
@@ -3670,11 +3693,6 @@ onMounted(async () => {
   color: var(--text-tertiary);
 }
 
-.dsm-query-warn {
-  color: var(--status-warning);
-}
-
-/* ---- Dev Tools ---- */
 .dsm-devtools {
   display: flex;
   gap: 12px;

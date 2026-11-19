@@ -1,6 +1,16 @@
 <template>
   <RePage data-page="connectors" title="连接器" subtitle="绑定第三方平台，让 AI 机器人接入你的常用工具">
 
+    <!-- 加载失败：显式错误态 + 重试，不与「暂无绑定」空态混淆 -->
+    <div v-if="loadError" class="px-6 py-4">
+      <div
+        class="flex items-center justify-between gap-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-600 dark:text-red-300"
+      >
+        <span>连接器列表加载失败，可能是网络或服务暂时不可用。</span>
+        <el-button link type="primary" @click="fetchConnectors">重试</el-button>
+      </div>
+    </div>
+    <template v-else>
     <!-- 已绑定连接器区域 -->
     <section class="px-6 py-4">
       <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 tracking-wide">已绑定</h2>
@@ -96,6 +106,7 @@
         </article>
       </div>
     </section>
+    </template>
 
     <!-- 绑定对话框 -->
     <ReDialog
@@ -260,13 +271,18 @@ const isOnline = (status?: string) => status === 'online'
 const normType = (type?: string) => (type === 'wechat' ? 'ilink' : type || '')
 
 // 获取连接器数据
+// 列表加载失败标记：失败时给出错误态与重试入口，不与「暂无绑定」空态混淆
+const loadError = ref(false)
+
 const fetchConnectors = async () => {
   try {
     availableConnectors.value = (await api.get('/connectors/types')) || []
     boundConnectors.value = (await api.get('/connectors/bound')) || []
     models.value = (await api.get('/ai/bot-binding/models')) || []
+    loadError.value = false
   } catch (error) {
     console.error('获取连接器列表失败:', error)
+    loadError.value = true
   }
 }
 

@@ -23,7 +23,6 @@
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { message } from "@repo/core";
-import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReIcon from "@repo/ui/re-icon";
 import ReDialog from "@repo/ui/re-dialog";
@@ -448,7 +447,7 @@ async function removeItems(targets: ReleaseHostFileItem[]): Promise<void> {
     ? `确定删除「${targets[0]!.name}」${targets[0]!.directory ? "及其全部内容" : ""}吗？`
     : `确定删除所选 ${targets.length} 项${dirs ? `（其中 ${dirs} 个目录会连同内容一起删除）` : ""}吗？`;
   try {
-    await ElMessageBox.confirm(tip, "删除确认", { type: "warning", confirmButtonText: "删除" });
+    await message.confirm(tip, "删除确认", "删除");
   } catch {
     return;
   }

@@ -11,7 +11,6 @@
 import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -107,10 +106,12 @@ async function handleDelete(row: HotReloadConfig): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       t("policy.hotreload.deleteBody", { name: row.sysSettingName ?? row.sysSettingCode ?? "-" }),
       t("policy.hotreload.deleteTitle"),
-      { type: "warning", confirmButtonText: t("policy.common.remove"), cancelButtonText: t("policy.common.cancel") },
+      t("policy.common.remove"),
+      t("policy.common.cancel"),
+      "warning",
     );
   } catch {
     return;

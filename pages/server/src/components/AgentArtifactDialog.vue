@@ -61,7 +61,7 @@
         <div v-if="result" class="aad-result">
           <div class="aad-result-head">
             <el-tag size="small" type="success" effect="dark">已投放</el-tag>
-            <span class="aad-result-files">{{ result.files }} 个文件 · {{ formatBytes(result.bytes) }}</span>
+            <span class="aad-result-files">{{ result.files }} 个文件 · {{ formatBytes(result.bytes, { emptyText: "0 B", digits: { KB: 1, MB: 2 } }) }}</span>
           </div>
           <div class="aad-result-path">{{ result.remotePath }}</div>
           <div class="aad-result-meta">
@@ -91,7 +91,7 @@
  */
 import { computed, ref, watch } from 'vue';
 import { message } from '@repo/core';
-import { http, unwrapResult } from '@repo/utils';
+import { formatBytes, http, unwrapResult } from '@repo/utils';
 import ReMaskDialog from './ReMaskDialog.vue';
 import { ReRadioGroup, ReRadioButton } from '@repo/ui/re-kit';
 
@@ -185,13 +185,6 @@ function rememberChoice() {
   } catch {
     // 存储不可用时忽略
   }
-}
-
-function formatBytes(bytes: number): string {
-  if (!bytes) return '0 B';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
 async function submit() {

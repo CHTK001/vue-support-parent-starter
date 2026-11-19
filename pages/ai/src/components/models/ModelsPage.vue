@@ -62,7 +62,10 @@
               :key="p.id"
               class="mw-item"
               :class="{ active: p.id === currentProviderId, selected: isSelected(p) }"
+              tabindex="0"
+              role="button"
               @click="selectProvider(p)"
+              @keydown.enter.prevent="selectProvider(p)"
             >
               <div class="mw-item-row">
                 <!-- 供应商勾选框：平时隐形（保留占位，避免悬停时整行左右跳），
@@ -1055,6 +1058,9 @@ onMounted(async () => {
 }
 .mw-item:hover .mw-item-status { opacity: 0; }
 .mw-item:hover .mw-item-del { opacity: 1; }
+/* 键盘焦点同样切换显隐（此前仅 hover 显形，键盘用户看不到删除入口） */
+.mw-item:focus-visible .mw-item-status { opacity: 0; }
+.mw-item:focus-visible .mw-item-del { opacity: 1; }
 .mw-item-del:hover {
   color: var(--el-color-danger);
   background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
@@ -1139,9 +1145,8 @@ onMounted(async () => {
 /* 键盘焦点可见性：模型导航项是带 @click 的 div（不是可聚焦控件），浏览器不给默认焦点环。
    指针样式原有 cursor: pointer 已在上面声明，不重复写。
    环用主色 12% —— 侧栏底色是令牌化的表面色，一档主色描边足够可见。
-   注意 .mw-item-del 平时 opacity: 0、只在 .mw-item:hover 时显形，
-   键盘用户看不到删除入口；补 tabindex 时需一并处理显隐，
-   本次授权仅限 style 块、不改模板，故此处只报告不改。 */
+   .mw-item-del 平时 opacity: 0、在 .mw-item:hover / :focus-visible 时显形，
+   键盘用户 Tab 聚焦导航项后同样能看到删除入口。 */
 .mw-item {
   outline: none;
 }

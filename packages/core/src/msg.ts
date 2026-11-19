@@ -80,13 +80,19 @@ export function msgInfo(message: any, plain = true, duration = 2000) {
   msg(message, plain, duration, "info");
 }
 
-/** 确认框，默认 warning */
+/**
+ * 确认框，默认 warning。
+ * 文案默认按纯文本渲染（与 ElMessageBox 原生一致），需要 HTML 时经 options 显式开启，
+ * 避免把插值了用户数据（文件名、账号名等）的确认文案变成注入面。
+ * 第 6 参 options 透传 ElMessageBox 配置（confirmButtonClass、closeOnClickModal、customClass 等）。
+ */
 export function msgBox(
   message: any = "您确定进行关闭么？",
   title: string = "温馨提示：",
   confirmButtonText: string = "确定",
   cancelButtonText: string = "取消",
-  type: string = "warning"
+  type: string = "warning",
+  options?: Record<string, unknown>
 ): Promise<boolean> {
   return new Promise((resolve, reject) => {
     ElMessageBox.confirm(message as any, title as any, {
@@ -94,7 +100,8 @@ export function msgBox(
       cancelButtonText,
       type,
       draggable: true,
-      dangerouslyUseHTMLString: true,
+      dangerouslyUseHTMLString: false,
+      ...(options ?? {}),
     } as any)
       .then(() => resolve(true))
       .catch(() => reject(false));

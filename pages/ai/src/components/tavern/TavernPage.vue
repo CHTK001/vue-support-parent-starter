@@ -743,7 +743,7 @@ async function onGroupCmd(cmd: string, g: TaverGroup) {
     } catch { /* cancel */ }
   } else if (cmd === 'delete') {
     try {
-      await ElMessageBox.confirm(`删除群「${g.name}」？消息会一并删除`, '删除群', { type: 'warning' })
+      await message.confirm(`删除群「${g.name}」？消息会一并删除`, '删除群')
       await apiService.deleteTavernGroup(g.id)
       if (currentGroupId.value === g.id) {
         currentGroupId.value = null
@@ -979,7 +979,7 @@ async function onMemberCmd(cmd: string, mb: TaverMember) {
     await openModelPicker(mb)
   } else if (cmd === 'remove') {
     try {
-      await ElMessageBox.confirm(`将「${mb.roleName}」移出群？`, '移出', { type: 'warning' })
+      await message.confirm(`将「${mb.roleName}」移出群？`, '移出')
       await apiService.removeTavernMember(mb.id)
       await loadMembers()
     } catch { /* cancel */ }

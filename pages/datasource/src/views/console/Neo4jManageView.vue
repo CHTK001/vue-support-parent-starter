@@ -8,6 +8,7 @@
       <div class="dsm-toolbar-right">
         <ReButton layout="square" tip="测试连接" icon="Connection" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
         <ReButton layout="square" tip="刷新" icon="Refresh" data-testid="dsm-btn-refresh" :loading="loading" @click="refresh" />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
         <ReButton layout="square" tip="新建节点" icon="Plus" data-testid="dsm-btn-create" :disabled="!source" @click="openCreateNode" />
         <ReButton layout="square" type="primary" tip="Cypher 查询" icon="Search" data-testid="dsm-btn-query" :disabled="!source" @click="openCypher" />
       </div>
@@ -228,7 +229,12 @@
             查询结果
             <span v-if="queryResult.rows.length > 0" class="dsm-query-meta">
               {{ queryResult.rows.length }} 行 · {{ cypherElapsed }} ms
-              <span v-if="queryResult.truncated" class="dsm-query-warn">已截断，服务端共 {{ queryResult.totalRows }} 行，请加 LIMIT 收窄结果</span>
+              <DsQueryTruncatedHint
+                :truncated="queryResult.truncated"
+                :shown="queryResult.rows.length"
+                :total="queryResult.totalRows"
+                dialect="cypher"
+              />
             </span>
           </div>
           <ReTable v-if="queryResult.columns.length > 0" :data="queryResult.rows" :columns="queryResult.columns" stripe border height="200px" :config="{ pagination: { enable: false } }"/>
@@ -326,6 +332,9 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import { ReFormItem } from "@repo/ui/re-kit";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import DsQueryTruncatedHint from "../../components/console/DsQueryTruncatedHint.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import { copyToClipboard } from "../../utils/clipboard";
 import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import DbSqlEditor from "../../components/console/DbSqlEditor.vue";
@@ -551,6 +560,20 @@ async function refresh() {
   if (activeLabel.value) await loadNodes();
   if (neo4jView.value === "graph") await loadGraph();
 }
+
+/**
+ * 自动刷新：标签/关系类型 + 当前标签节点 +（图谱视图下）图谱数据。
+ *
+ * <p>默认关闭。图谱视图一次取 40 个节点，档位给到 5s 没有意义（用户还没看完就换了），
+ * 但保留它以便观察节点写入后的变化。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: refresh,
+  storageKey: "datasource.neo4j",
+});
 
 /**
  * 探测当前数据源的 Neo4j 连通性，回填服务端版本与版本类型
@@ -1087,5 +1110,4 @@ onMounted(async () => {
 .dsm-query-result { border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden; }
 .dsm-query-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: var(--bg-fill); border-bottom: 1px solid var(--border-subtle); }
 .dsm-query-meta { font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
-.dsm-query-warn { margin-left: 8px; color: var(--status-warning, var(--apm-status-warning)); }
 </style>

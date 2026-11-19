@@ -12,7 +12,6 @@
 import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessageBox } from "element-plus";
 import { InfoFilled } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
@@ -585,7 +584,7 @@ async function deleteRule(policyId: number | null, path: string): Promise<boolea
     return false;
   }
   try {
-    await ElMessageBox.confirm(t("policy.route.deleteBody", { path }), t("policy.common.deleteConfirm"), { type: "warning" });
+    await message.confirm(t("policy.route.deleteBody", { path }), t("policy.common.deleteConfirm"));
   } catch {
     return false;
   }

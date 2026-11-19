@@ -1035,7 +1035,6 @@
  */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
 import { message } from '@repo/core'
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
@@ -2330,10 +2329,12 @@ async function testAllCredentials() {
 async function removeCredential(row: ProviderCredential) {
   if (!row.deviceCredentialId) return
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除凭据「${row.deviceCredentialName}」？已绑定该凭据的设备需要重新选择。`,
       '删除凭据',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+      '删除',
+      '取消',
+      'warning'
     )
   } catch {
     return
@@ -2552,10 +2553,12 @@ async function copySecret(): Promise<void> {
 /** 停用 appKey（可恢复，但当前后端未提供启用接口，提示要谨慎） */
 async function disableAppKey(item: WebhookAppKey): Promise<void> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `停用后「${item.name}」将无法再推送数据。确认停用？`,
       '停用 appKey',
-      { type: 'warning', confirmButtonText: '停用', cancelButtonText: '取消' }
+      '停用',
+      '取消',
+      'warning'
     )
   } catch {
     return
@@ -2572,10 +2575,12 @@ async function disableAppKey(item: WebhookAppKey): Promise<void> {
 /** 删除 appKey（不可恢复，第三方推送会被直接拒绝） */
 async function removeAppKey(item: WebhookAppKey): Promise<void> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `删除后「${item.name}」的推送将被直接拒绝，且不可恢复。确认删除？`,
       '删除 appKey',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+      '删除',
+      '取消',
+      'warning'
     )
   } catch {
     return

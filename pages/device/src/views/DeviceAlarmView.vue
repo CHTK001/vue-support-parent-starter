@@ -275,7 +275,8 @@
  * @since 4.0.0.51
  */
 import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
+import { ElMessage } from 'element-plus'
 import { Bell, CircleCheck, Tickets, Warning } from '@element-plus/icons-vue'
 
 import ReButton from '@repo/ui/re-button'
@@ -381,10 +382,12 @@ async function batchHandle(status: string): Promise<void> {
   }
   if (status === 'ignored') {
     try {
-      await ElMessageBox.confirm(
+      await message.confirm(
         `忽略后这 ${targets.length} 条告警会进入「已忽略」，不再提醒。确认忽略？`,
         '批量忽略',
-        { type: 'warning', confirmButtonText: '忽略', cancelButtonText: '取消' },
+        '忽略',
+        '取消',
+        'warning',
       )
     } catch {
       return
@@ -564,11 +567,7 @@ function asAlarm(row: Record<string, unknown>): DeviceAlarm {
 async function handle(row: DeviceAlarm, status: string): Promise<void> {
   if (status === 'ignored') {
     try {
-      await ElMessageBox.confirm('忽略后这条告警会进入「已忽略」，不再提醒。确认忽略？', '忽略告警', {
-        type: 'warning',
-        confirmButtonText: '忽略',
-        cancelButtonText: '取消',
-      })
+      await message.confirm('忽略后这条告警会进入「已忽略」，不再提醒。确认忽略？', '忽略告警', '忽略', '取消', 'warning')
     } catch {
       return
     }

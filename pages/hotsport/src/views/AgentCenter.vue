@@ -431,6 +431,7 @@ import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import type { ReOption } from "@repo/ui/re-select";
 import { message } from "@repo/core";
+import { formatBytes } from "@repo/utils";
 import { useRouter } from "vue-router";
 import { ROUTE_PREFIX } from "../config";
 import { useApmStore } from "../stores/apmStore";
@@ -675,12 +676,6 @@ async function loadTraceAnalysis() {
 }
 
 /* ---- 工具 ---- */
-function formatBytes(n: number | undefined | null): string {
-  if (n === undefined || n === null || Number.isNaN(n)) return "—";
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
-}
 function formatTime(ts: number): string {
   if (!ts) return "—";
   const d = new Date(ts);

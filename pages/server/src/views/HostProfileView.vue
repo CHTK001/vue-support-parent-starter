@@ -19,7 +19,6 @@
  */
 import { message } from "@repo/core";
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElMessageBox } from "element-plus";
 import {
   applySystemConfig,
   closeNetProcess,
@@ -601,14 +600,12 @@ async function runAction(key: string, task: Promise<string>): Promise<boolean> {
 /**
  * 破坏性动作前的确认。用户取消返回 false。
  *
- * @param message 确认文案
+ * @param msg 确认文案
  * @returns 是否继续
  */
-async function confirmAction(message: string): Promise<boolean> {
+async function confirmAction(msg: string): Promise<boolean> {
   try {
-    await ElMessageBox.confirm(message, "操作确认", {
-      type: "warning", confirmButtonText: "确定", cancelButtonText: "取消",
-    });
+    await message.confirm(msg, "操作确认");
     return true;
   } catch {
     return false;

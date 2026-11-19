@@ -208,8 +208,19 @@
         <span class="fl-search-hint">登记前先查重，避免同一人重复入库</span>
       </div>
       <template v-if="dupResult">
-        <el-alert v-if="!dupHits.length" class="fl-search-empty" type="success" :closable="false" show-icon
-          title="未发现疑似重复" description="比对范围内没有相似度达到阈值的人脸，可以登记。" />
+        <template v-if="!dupHits.length">
+          <el-alert class="fl-search-empty" type="success" :closable="false" show-icon
+            title="未发现疑似重复" description="比对范围内没有相似度达到阈值的人脸，可以直接登记。" />
+          <!-- 查重 → 登记闭环：照片已在手，填个姓名即一键入库，不必再开登记弹窗重选图 -->
+          <div class="fl-dup-quick">
+            <el-input v-model="dupEnrollName" class="fl-dup-quick-name" maxlength="40"
+              placeholder="登记姓名（必填）" :disabled="dupEnrolling" @keyup.enter="quickEnrollFromDup" />
+            <el-button type="primary" :loading="dupEnrolling" :disabled="dupEnrolling || !dupEnrollName.trim()"
+              @click="quickEnrollFromDup">
+              <el-icon><Plus /></el-icon>直接登记该照片
+            </el-button>
+          </div>
+        </template>
         <template v-else>
           <el-alert class="fl-search-empty" type="warning" :closable="false" show-icon
             :title="`发现 ${dupHits.length} 条疑似重复（相似度 ≥ ${dupThresholdPct}%）`"
@@ -285,6 +296,9 @@
         <li v-for="(f, i) in batchFiles" :key="f.key" class="fl-batch-item">
           <span class="fl-batch-name" :title="f.file.name">{{ f.name }}</span>
           <span class="fl-batch-size">{{ formatBytes(f.file.size) }}</span>
+          <span v-if="f.pre && f.pre !== 'ok'" class="fl-batch-pre" :class="`is-${f.pre}`" :title="f.preMsg">
+            {{ f.pre === 'checking' ? '预检中' : f.pre === 'pending' ? '待预检' : f.pre === 'warn' ? '活体存疑' : (f.preMsg || '预检未通过') }}
+          </span>
           <span class="fl-batch-state" :class="`is-${f.status}`">
             {{ f.status === 'ok' ? '成功' : f.status === 'fail' ? '失败' : f.status === 'running' ? '登记中' : '待处理' }}
           </span>
@@ -298,12 +312,13 @@
       <el-progress v-if="batchRunning || batchDoneCount > 0" class="fl-batch-progress" :percentage="batchPercent"
         :stroke-width="8" />
       <div class="fl-batch-bar">
-        <el-button type="primary" :loading="batchRunning" :disabled="!batchFiles.length || batchRunning"
-          @click="runBatchImport">
+        <el-button type="primary" :loading="batchRunning"
+          :disabled="!batchFiles.length || batchRunning || batchPrechecking" @click="runBatchImport">
           开始导入（{{ batchFiles.length }} 张）
         </el-button>
         <el-button v-if="!batchRunning" :disabled="!batchFiles.length" @click="batchFiles = []">清空列表</el-button>
-        <span class="fl-search-hint">逐张走「检测 → 特征 → 入库」管线，量大时请耐心等待；单张失败不影响其余</span>
+        <span v-if="batchBadCount" class="fl-search-hint">{{ batchBadCount }} 张预检未通过，导入时将自动跳过</span>
+        <span v-else class="fl-search-hint">入库前逐张预检人脸（无脸 / 多脸自动跳过，活体存疑仅提示）；单张失败不影响其余</span>
       </div>
     </ReDialog>
 
@@ -327,6 +342,18 @@
         </el-button>
       </template>
     </ReDialog>
+
+    <!-- ── 批量修复实时进度：复用 @repo/ui 过程任务浮层（右下角、可最小化、终端流水），口径同 DBM ── -->
+    <Teleport to="body">
+      <ReProcessTask v-if="repairTask" :tasks="[repairTask]" @close="dismissRepairTask">
+        <template #actions>
+          <button v-if="!repairTask.finished" type="button" class="fl-repair-act" :disabled="repairCancelling"
+            @click="repairCancelling = true">
+            {{ repairCancelling ? '正在取消…' : '取消修复' }}
+          </button>
+        </template>
+      </ReProcessTask>
+    </Teleport>
 
     <!-- ── 分组页签（07 方向：分组 = 顶部横向 Tabs，带人数角标）── -->
     <div class="fl07-tabs" role="tablist" aria-label="人脸底库分组">
@@ -805,8 +832,8 @@
  * `FaceClientManager.isModelConfigured("landmark_model")`）—— 没配置就不给入口。</p>
  */
 import { message } from "@repo/core";
+import { formatBytes as formatBytesBase } from "@repo/utils";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ElMessageBox } from 'element-plus';
 import {
   Aim, Close, Delete, Download, EditPen, Files, Grid, Hide, Location, MagicStick, Menu, Plus,
   Position, Refresh, Search, Select, Switch, Tickets, Upload, UserFilled, View, Warning, ZoomIn,
@@ -826,6 +853,7 @@ import { toErrorMessage } from '@/utils/errors'
 import { useModelConfigStore } from '@/stores/modelConfig'
 import FaceEnrollDialog from '../management/FaceEnrollDialog.vue'
 import FaceLandmarkDialog from '../management/FaceLandmarkDialog.vue'
+import ReProcessTask from '@repo/ui/re-process-task'
 
 /** 合并后的展示行 */
 interface Row {
@@ -1798,10 +1826,12 @@ function preview(item: Row) {
 async function removeOne(item: Row) {
   const label = item.name || item.id
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确定把「${label}」从人脸底库删除？删除后不再参与 1:N 识别，且无法恢复。`,
       '删除人脸',
-      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+      '删除',
+      '取消',
+      'warning',
     )
   } catch { return }
   busy.value = true
@@ -1841,9 +1871,7 @@ async function removeSelected() {
   const ids = [...selected.value]
   if (!ids.length) return
   try {
-    await ElMessageBox.confirm(`确定删除选中的 ${ids.length} 条人脸？删除后无法恢复。`, '批量删除', {
-      type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消',
-    })
+    await message.confirm(`确定删除选中的 ${ids.length} 条人脸？删除后无法恢复。`, '批量删除', '删除', '取消', 'warning')
   } catch { return }
   busy.value = true
   let okCount = 0
@@ -1916,9 +1944,34 @@ async function repairOne(item: Row) {
 /** 批量修复进行中（条上的 loading 态；busy 同时置真，复用既有按钮禁用口径） */
 const repairingBatch = ref(false)
 
+/** 喂给 {@link ReProcessTask} 的任务数据（形状与全局 ProcessTask 对齐；同时只跑一个） */
+interface RepairTaskData {
+  taskId: string
+  title: string
+  operation: string
+  phase: string
+  currentStep: string
+  progress: number
+  logs: string[]
+  finished: boolean
+  success: boolean
+  message: string
+}
+
+const repairTask = ref<RepairTaskData | null>(null)
+/** 用户点了「取消修复」：当前条跑完后停止后续条目 */
+const repairCancelling = ref(false)
+
+/** 关闭修复浮层（进行中不允许关，避免误关丢进度） */
+function dismissRepairTask() {
+  if (repairingBatch.value) return
+  repairTask.value = null
+}
+
 /**
  * 批量修复勾选条目：逐张走单条修复核心，单条失败不影响其余；
- * 结束后回第一页刷新（修复会改写登记图与向量）。
+ * 进度走 ReProcessTask 浮层（进度条 + 逐条流水 + 可取消），不再连环弹 message；
+ * 结束后刷新当前页（修复会改写登记图与向量）。
  */
 async function repairSelected() {
   const ids = [...selected.value]
@@ -1933,23 +1986,61 @@ async function repairSelected() {
   }
   repairingBatch.value = true
   busy.value = true
+  repairCancelling.value = false
+  const task: RepairTaskData = {
+    taskId: `face-repair-${Date.now()}`,
+    title: `批量修复 ${rows.length} 条档案`,
+    operation: '修复',
+    phase: '执行中',
+    currentStep: '准备开始…',
+    progress: 0,
+    logs: [],
+    finished: false,
+    success: false,
+    message: '',
+  }
+  repairTask.value = task
   let ok = 0
+  let done = 0
+  let cancelled = false
   const failed: string[] = []
   try {
     for (const r of rows) {
+      if (repairCancelling.value) {
+        cancelled = true
+        break
+      }
+      const label = r.name || r.id
+      task.currentStep = `正在修复：${label}（${done + 1}/${rows.length}）`
       try {
         await repairCore(r)
         ok++
+        task.logs.push(`✓ ${label}`)
       } catch (e: any) {
-        failed.push(`${r.name || r.id}：${e?.message ?? e}`)
+        const reason = String(e?.message ?? e)
+        failed.push(`${label}：${reason}`)
+        task.logs.push(`✗ ${label}：${reason}`)
       }
+      done++
+      task.progress = Math.round((done / rows.length) * 100)
     }
-    if (ok && failed.length) {
-      message.success(`批量修复完成：成功 ${ok} 条，失败 ${failed.length} 条`)
-      message.warning(failed.slice(0, 3).join('；'))
+    task.finished = true
+    if (cancelled) {
+      task.success = false
+      task.message = `已取消：完成 ${ok}/${rows.length} 条`
+      task.logs.push('■ 已取消，剩余条目未处理')
+      message.info(`批量修复已取消：完成 ${ok} 条`)
+    } else if (ok && failed.length) {
+      task.success = false
+      task.message = `完成：成功 ${ok} 条，失败 ${failed.length} 条`
+      message.warning(`批量修复完成：成功 ${ok} 条，失败 ${failed.length} 条，失败明细见浮层日志`)
     } else if (ok) {
+      task.success = true
+      task.message = `全部完成：成功 ${ok} 条`
       message.success(`批量修复完成：成功 ${ok} 条`)
     } else {
+      task.success = false
+      task.message = `全部失败：${failed[0] ?? '未知原因'}`
       message.error(`批量修复全部失败：${failed[0] ?? '未知原因'}`)
     }
     await load(page.value)
@@ -2278,9 +2369,77 @@ async function runDupCheck() {
   }
 }
 
-// 关弹窗即清照片与结果（临时 blob 地址一并释放）
+/** 查重通过后的快速登记：姓名必填，其余档案字段沿用批量导入口径（留空事后补录） */
+const dupEnrollName = ref('')
+const dupEnrolling = ref(false)
+
+/**
+ * 查重通过 → 直接登记该照片。
+ *
+ * <p>先做单脸预检（口径同登记弹窗：无脸 / 多脸拦下，避免「以为都登了、其实只登一张」）；
+ * 预检接口异常不拦截，交给后端 enroll 兜底。登记走与批量导入相同的
+ * {@code enrollFace} 管线，档案只填姓名，其余字段事后用「编辑」补录。</p>
+ */
+async function quickEnrollFromDup() {
+  const f = dupFile.value
+  if (!f || dupEnrolling.value) return
+  const name = dupEnrollName.value.trim()
+  if (!name) {
+    message.warning('请先填写登记姓名')
+    return
+  }
+  dupEnrolling.value = true
+  try {
+    // 单脸预检：查重只证明「特征库里没有高相似项」，不保证照片只有一张脸
+    try {
+      const det = await apiService.detectFace(f, f.name || 'dup-enroll.png')
+      const n = Number(det?.count ?? 0)
+      if (n === 0) {
+        message.warning('未在这张照片中检测到人脸，换一张正脸清晰、无遮挡的照片再试')
+        return
+      }
+      if (n > 1) {
+        message.error(
+          `检测到 ${n} 张人脸，人脸底库只支持单人脸登记` +
+          '（一张照片只会入库其中一张，容易录错人）。请裁剪到只含目标人脸后重试',
+        )
+        return
+      }
+    } catch {
+      // 预检失败不拦截：交给后端 enroll 判定
+    }
+    const id = `face-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const metadata = {
+      label: name,
+      name,
+      age: null,
+      gender: '未知',
+      hair: '',
+      idCard: '',
+      photogenic: 3,
+      note: '查重后登记',
+      residence: null,
+      phone: null,
+      lat: null,
+      lng: null,
+    }
+    await apiService.enrollFace(id, f, metadata, f.name || 'dup-enroll.png', group.value)
+    message.success(`已登记：${name}`)
+    dupVisible.value = false
+    await load(page.value)
+  } catch (e: any) {
+    message.error('登记失败：' + (e?.message ?? e))
+  } finally {
+    dupEnrolling.value = false
+  }
+}
+
+// 关弹窗即清照片与结果（临时 blob 地址一并释放），快速登记的姓名一并清掉
 watch(dupVisible, (v) => {
-  if (!v) clearDupFile()
+  if (!v) {
+    clearDupFile()
+    dupEnrollName.value = ''
+  }
 })
 
 /* ── 1:1 比对：两张照片各检一张脸，走后端 compare 出相似度与结论 ── */
@@ -2440,6 +2599,13 @@ interface BatchItem {
   name: string
   status: 'pending' | 'running' | 'ok' | 'fail'
   error?: string
+  /**
+   * 登记前预检结果：pending 待检 / checking 检测中 / ok 通过 /
+   * warn 通过但活体存疑（仅提示）/ bad 无脸或多脸（不予入库）
+   */
+  pre?: 'pending' | 'checking' | 'ok' | 'warn' | 'bad'
+  /** 预检结论说明（bad / warn 时的短句） */
+  preMsg?: string
 }
 
 const batchVisible = ref(false)
@@ -2454,6 +2620,10 @@ const batchDoneCount = computed(() =>
 const batchPercent = computed(() =>
   batchFiles.value.length ? Math.round((batchDoneCount.value / batchFiles.value.length) * 100) : 0,
 )
+/** 预检进行中：还有待检 / 检测中的条目（此时禁用「开始导入」） */
+const batchPrechecking = computed(() => batchFiles.value.some((f) => f.pre === 'pending' || f.pre === 'checking'))
+/** 预检不通过（无脸 / 多脸）条数：导入时自动跳过 */
+const batchBadCount = computed(() => batchFiles.value.filter((f) => f.pre === 'bad').length)
 
 function openBatchImport() {
   if (!modelConfig.faceReady) {
@@ -2495,7 +2665,45 @@ function addBatchFiles(list: FileList | File[]) {
       file: f,
       name: f.name.replace(/\.[^.]+$/, '').trim() || '未命名',
       status: 'pending',
+      pre: 'pending',
     })
+  }
+  // 入库前统一预检：坏图提前标出，导入时自动跳过
+  void precheckBatchItems()
+}
+
+/**
+ * 批量导入预检：逐张 detect，提前拦下「无脸 / 多脸」坏图（口径同登记弹窗），
+ * 活体存疑只警示不拦截；预检接口异常时不拦截，交给 enroll 兜底。
+ */
+async function precheckBatchItems() {
+  for (const item of batchFiles.value) {
+    if (item.pre !== 'pending') continue
+    item.pre = 'checking'
+    try {
+      const res = await apiService.detectFace(item.file, item.file.name || 'batch.png')
+      const n = Number(res?.count ?? 0)
+      if (n === 0) {
+        item.pre = 'bad'
+        item.preMsg = '未检测到人脸'
+      } else if (n > 1) {
+        item.pre = 'bad'
+        item.preMsg = `检出 ${n} 张脸`
+      } else {
+        const face = res.faces?.[0]
+        if (face && face.live === false) {
+          item.pre = 'warn'
+          item.preMsg = '活体存疑'
+        } else {
+          item.pre = 'ok'
+          item.preMsg = ''
+        }
+      }
+    } catch {
+      // 预检失败不拦截：按可入库处理，交给 enroll 判定
+      item.pre = 'ok'
+      item.preMsg = ''
+    }
   }
 }
 
@@ -2515,6 +2723,12 @@ async function runBatchImport() {
   try {
     for (const item of batchFiles.value) {
       if (item.status === 'ok') { ok++; continue }
+      if (item.pre === 'bad') {
+        item.status = 'fail'
+        item.error = `预检未通过：${item.preMsg || '人脸检测未通过'}`
+        fail++
+        continue
+      }
       item.status = 'running'
       try {
         const id = `face-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
@@ -2552,10 +2766,7 @@ async function runBatchImport() {
 
 /** 字节数展示（批量导入清单用） */
 function formatBytes(n: number): string {
-  if (!Number.isFinite(n) || n < 0) return '—'
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-  return `${(n / 1024 / 1024).toFixed(2)} MB`
+  return formatBytesBase(n, { digits: { KB: 1, MB: 2 } })
 }
 
 /* ── 批量移动分组（同 id 在目标组重新入库，成功后才删本组） ───── */
@@ -3787,5 +3998,67 @@ span.fl-hit-thumb {
 
 .fl-geo-link .el-icon {
   margin-right: 2px;
+}
+
+/* 查重通过后的快速登记行：姓名输入 + 直接入库 */
+.fl-dup-quick {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.fl-dup-quick-name {
+  flex: 1;
+}
+
+/* 批量导入预检徽标：随条目展示检测结论 */
+.fl-batch-pre {
+  flex: none;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  background: var(--rm-bg-subtle, var(--el-fill-color-light));
+  color: var(--rm-text-tertiary, var(--el-text-color-placeholder));
+}
+
+.fl-batch-pre.is-checking,
+.fl-batch-pre.is-pending {
+  color: var(--rm-primary, var(--el-color-primary));
+}
+
+.fl-batch-pre.is-warn {
+  background: color-mix(in srgb, var(--rm-warning, var(--el-color-warning)) 14%, transparent);
+  color: var(--rm-warning, var(--el-color-warning));
+}
+
+.fl-batch-pre.is-bad {
+  background: color-mix(in srgb, var(--rm-danger, var(--el-color-danger)) 12%, transparent);
+  color: var(--rm-danger, var(--el-color-danger));
+}
+
+/* 批量修复浮层动作槽按钮（口径同 DBM 的 dbm-copy-act） */
+.fl-repair-act {
+  padding: 3px 10px;
+  border: 1px solid var(--rm-border, var(--el-border-color));
+  border-radius: var(--rm-radius-sm, var(--el-radius-sm, 6px));
+  background: transparent;
+  color: var(--rm-text-secondary, var(--el-text-color-secondary));
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fl-repair-act:hover:not(:disabled) {
+  color: var(--rm-danger, var(--el-color-danger));
+  border-color: var(--rm-danger, var(--el-color-danger));
+}
+
+.fl-repair-act:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 </style>

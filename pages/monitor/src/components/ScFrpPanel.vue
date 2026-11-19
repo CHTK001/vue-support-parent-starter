@@ -62,6 +62,40 @@ const clientOptions = computed(() =>
   manage.value.clients.map(c => ({ label: c, value: c })),
 );
 
+/* ==================== 规则检索 / 客户端联动过滤（纯前端体验层） ==================== */
+
+/** 规则关键字（匹配 clientId / targetHost / 端口 / ruleId） */
+const ruleKeyword = ref('');
+/** 联动过滤：当前选中的在线客户端（空 = 全部） */
+const clientFilter = ref('');
+
+function keywordHit(r: FrpRuleItem, kw: string): boolean {
+  if (!kw) return true;
+  const hay = `${r.clientId} ${r.targetHost} ${r.targetPort} ${r.localPort} ${r.ruleId}`.toLowerCase();
+  return hay.includes(kw);
+}
+
+/** 暴露表过滤结果（关键字 + 客户端联动） */
+const filteredExposes = computed(() => {
+  const kw = ruleKeyword.value.trim().toLowerCase();
+  return manage.value.exposes.filter(r =>
+    (!clientFilter.value || r.clientId === clientFilter.value) && keywordHit(r, kw),
+  );
+});
+
+/** 映射表过滤结果（关键字 + 客户端联动） */
+const filteredMaps = computed(() => {
+  const kw = ruleKeyword.value.trim().toLowerCase();
+  return manage.value.maps.filter(r =>
+    (!clientFilter.value || r.clientId === clientFilter.value) && keywordHit(r, kw),
+  );
+});
+
+/** 切换客户端 chip：再点一次取消过滤 */
+function toggleClientFilter(id: string): void {
+  clientFilter.value = clientFilter.value === id ? '' : id;
+}
+
 /* ==================== 信令流 ==================== */
 
 type SignalKind =
@@ -78,8 +112,10 @@ interface SignalLine {
   kind: SignalKind;
   /** 主文本（左侧标签 / monospace 内容） */
   text: string;
-  /** 副文本（右侧时间 / 状态） */
+  /** 副文本（事件标签：AUTH / EXPOSE / MAP · clientId …） */
   meta: string;
+  /** 事件发生时刻（本地时间 HH:mm:ss） */
+  time: string;
   /** 是否最新一条（高亮） */
   fresh?: boolean;
 }
@@ -90,19 +126,81 @@ const signalSeq = ref(0);
 const signalBoxEl = ref<HTMLElement | null>(null);
 const signalPaused = ref(false);
 
+/** 信令类型筛选（ALL=全部） */
+const signalFilter = ref<'ALL' | SignalKind>('ALL');
+const signalFilters: Array<{ label: string; value: 'ALL' | SignalKind }> = [
+  { label: '全部', value: 'ALL' },
+  { label: 'AUTH', value: 'auth' },
+  { label: 'EXPOSE', value: 'expose' },
+  { label: 'MAP', value: 'map' },
+  { label: 'REVOKE', value: 'revoke' },
+  { label: '配置/重启', value: 'apply' },
+  { label: '系统', value: 'system' },
+];
+
+/** 按类型筛选后的信令（模板渲染用） */
+const filteredSignals = computed(() =>
+  signalFilter.value === 'ALL' ? signals.value : signals.value.filter(s => s.kind === signalFilter.value),
+);
+
+/** 恢复滚动时清零未读计数 */
+watch(signalPaused, paused => {
+  if (!paused) pausedNewCount.value = 0;
+});
+
+/** 清空信令流（仅清面板缓冲，不影响节点） */
+function clearSignals(): void {
+  signals.value = [];
+  pausedNewCount.value = 0;
+  signalFilter.value = 'ALL';
+}
+
+/** 复制当前信令流为纯文本（按时间正序，便于贴到工单排查） */
+async function copySignals(): Promise<void> {
+  if (!signals.value.length) {
+    message.warning('信令流为空，无需复制');
+    return;
+  }
+  const text = signals.value
+    .slice()
+    .reverse()
+    .map(s => `[${s.time}] ${s.meta ? s.meta + ' ' : ''}${s.text}`)
+    .join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    message.success(`已复制 ${signals.value.length} 条信令`);
+  } catch {
+    message.error('复制失败，请手动选择复制');
+  }
+}
+
 /** 之前一次轮询的客户端/规则快照，用于差异推导事件 */
 let lastClients = new Set<string>();
 let lastExposeKeys = new Set<string>();
 let lastMapKeys = new Set<string>();
 
+/** 暂停期间累计的未读新事件数（恢复时清零） */
+const pausedNewCount = ref(0);
+
+/** 本地时间 HH:mm:ss（信令流时间戳，面板内展示用本地时区即可） */
+function nowLabel(): string {
+  const d = new Date();
+  const p = (n: number): string => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
 function pushSignal(kind: SignalKind, text: string, meta = ''): void {
   signalSeq.value += 1;
   signals.value = [
-    { seq: signalSeq.value, kind, text, meta, fresh: true },
+    { seq: signalSeq.value, kind, text, meta, time: nowLabel(), fresh: true },
     ...signals.value.map(s => ({ ...s, fresh: false })),
   ].slice(0, MAX_SIGNALS);
-  // 暂停 = 冻结视口：新事件仍入列，但不自动滚顶，方便比对历史
-  if (!signalPaused.value) void scrollSignalTop();
+  // 暂停 = 冻结视口：新事件仍入列，但不自动滚顶，方便比对历史；未读计数 +1
+  if (signalPaused.value) {
+    pausedNewCount.value += 1;
+  } else {
+    void scrollSignalTop();
+  }
 }
 
 function scrollSignalTop(): void {
@@ -234,6 +332,28 @@ const cfgForm = ref({
 const savingCfg = ref(false);
 const restarting = ref(false);
 
+/** 随机生成 32 位十六进制令牌（体验层辅助；真实校验以后端为准） */
+function genToken(): void {
+  const buf = new Uint8Array(16);
+  crypto.getRandomValues(buf);
+  cfgForm.value.token = Array.from(buf, b => b.toString(16).padStart(2, '0')).join('');
+  message.success('已生成随机令牌，记得保存');
+}
+
+/** 复制令牌到剪贴板 */
+async function copyToken(): Promise<void> {
+  if (!cfgForm.value.token) {
+    message.warning('令牌为空，无法复制');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(cfgForm.value.token);
+    message.success('令牌已复制到剪贴板');
+  } catch {
+    message.error('复制失败，请手动选择复制');
+  }
+}
+
 function fillCfg(n: ServerNodeView | null): void {
   if (!n) return;
   cfgForm.value = {
@@ -262,6 +382,15 @@ async function saveCfg(): Promise<void> {
     message.warning('监听端口需为 1-65535');
     return;
   }
+  const ok = await confirmThen(
+    message.confirm,
+    '保存将重启节点使配置生效，期间所有客户端会短暂断开并自动重连。确认保存？',
+    '保存配置',
+    '保存',
+    '取消',
+    'warning',
+  );
+  if (!ok) return;
   savingCfg.value = true;
   try {
     // 保存即重启：客户端会全体断开重连。必须在动作前重建基线——stop→start 的空窗期里
@@ -327,6 +456,54 @@ async function restartNode(): Promise<void> {
   }
 }
 
+const starting = ref(false);
+const stopping = ref(false);
+
+/** 启动节点（已停止/异常 → RUNNING）。启动不改动任何配置。 */
+async function startNode(): Promise<void> {
+  if (!props.nodeId || node.value?.status === 'RUNNING') return;
+  starting.value = true;
+  try {
+    resetBaseline();
+    await startServerNode(props.nodeId);
+    signalForAction('apply', '节点已启动，客户端重新接入', 'START');
+    message.success('节点已启动');
+    await loadNode();
+    await reload();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : String(e));
+  } finally {
+    starting.value = false;
+  }
+}
+
+/** 停止节点（RUNNING → 停止）。会断开所有客户端，需确认。 */
+async function stopNode(): Promise<void> {
+  if (!props.nodeId || node.value?.status !== 'RUNNING') return;
+  const ok = await confirmThen(
+    message.confirm,
+    '确认停止该 FRP 节点？所有客户端将断开连接。',
+    '停止节点',
+    '停止',
+    '取消',
+    'warning',
+  );
+  if (!ok) return;
+  stopping.value = true;
+  try {
+    resetBaseline();
+    await stopServerNode(props.nodeId);
+    signalForAction('apply', '节点已停止', 'STOP');
+    message.success('节点已停止');
+    await loadNode();
+    await reload();
+  } catch (e) {
+    message.error(e instanceof Error ? e.message : String(e));
+  } finally {
+    stopping.value = false;
+  }
+}
+
 /* ==================== 新建规则 ==================== */
 
 const createVisible = ref(false);
@@ -367,6 +544,20 @@ async function submitCreate(): Promise<void> {
   if (!Number.isInteger(f.localPort) || f.localPort < 1 || f.localPort > 65535) {
     message.warning('本地端口需为 1-65535');
     return;
+  }
+  // 体验层预检：同一客户端 + 同一类型下 localPort 重复大概率冲突。
+  // 仅作交互提示，最终判重与冲突拒绝仍以后端为准（前端不实现业务规则）。
+  const samePool = createType.value === 'expose' ? manage.value.exposes : manage.value.maps;
+  if (samePool.some(r => r.clientId === f.clientId && r.localPort === f.localPort)) {
+    const go = await confirmThen(
+      message.confirm,
+      `客户端 ${f.clientId} 已有使用本地端口 ${f.localPort} 的同类规则，继续下推可能冲突。仍要下推？`,
+      '端口重复提醒',
+      '仍要下推',
+      '取消',
+      'warning',
+    );
+    if (!go) return;
   }
   saving.value = true;
   try {
@@ -415,22 +606,35 @@ async function revoke(type: 'expose' | 'map', rule: FrpRuleItem): Promise<void> 
   }
 }
 
+/** 复制规则到新建弹窗（仅预填参数，不改动原规则） */
+function copyRule(type: 'expose' | 'map', rule: FrpRuleItem): void {
+  createType.value = type;
+  createForm.value = {
+    clientId: rule.clientId,
+    targetHost: rule.targetHost,
+    targetPort: rule.targetPort,
+    localPort: rule.localPort,
+  };
+  createVisible.value = true;
+  message.info('已带入原规则参数，确认后下推为新规则');
+}
+
 /* ==================== 展示口径 ==================== */
 
 const exposeColumns: ReTableColumn[] = [
-  { prop: 'targetHost', label: '目标地址', minWidth: 120, showOverflowTooltip: true },
-  { prop: 'targetPort', label: '目标端口', width: 88, align: 'right' },
-  { prop: 'localPort', label: '本地端口', width: 88, align: 'right' },
-  { prop: 'clientId', label: '提供方客户端', minWidth: 140, showOverflowTooltip: true },
-  { prop: 'ruleId', label: '操作', slot: 'ruleId', width: 52, align: 'center' },
+  { prop: 'targetHost', label: '目标地址', minWidth: 120, showOverflowTooltip: true, sortable: true },
+  { prop: 'targetPort', label: '目标端口', width: 96, align: 'right', sortable: true },
+  { prop: 'localPort', label: '本地端口', width: 96, align: 'right', sortable: true },
+  { prop: 'clientId', label: '提供方客户端', minWidth: 140, showOverflowTooltip: true, sortable: true },
+  { prop: 'ruleId', label: '操作', slot: 'ruleId', width: 84, align: 'center' },
 ];
 
 const mapColumns: ReTableColumn[] = [
-  { prop: 'targetHost', label: '目标地址', minWidth: 120, showOverflowTooltip: true },
-  { prop: 'targetPort', label: '目标端口', width: 88, align: 'right' },
-  { prop: 'localPort', label: '本地端口', width: 88, align: 'right' },
-  { prop: 'clientId', label: '访问方客户端', minWidth: 140, showOverflowTooltip: true },
-  { prop: 'ruleId', label: '操作', slot: 'ruleId', width: 52, align: 'center' },
+  { prop: 'targetHost', label: '目标地址', minWidth: 120, showOverflowTooltip: true, sortable: true },
+  { prop: 'targetPort', label: '目标端口', width: 96, align: 'right', sortable: true },
+  { prop: 'localPort', label: '本地端口', width: 96, align: 'right', sortable: true },
+  { prop: 'clientId', label: '访问方客户端', minWidth: 140, showOverflowTooltip: true, sortable: true },
+  { prop: 'ruleId', label: '操作', slot: 'ruleId', width: 84, align: 'center' },
 ];
 </script>
 
@@ -450,6 +654,32 @@ const mapColumns: ReTableColumn[] = [
       <div class="sc-frp__bar-right">
         <ReButton layout="square" icon="Refresh" :loading="loading" tip="刷新" @click="reload" />
       </div>
+    </div>
+
+    <!-- 在线客户端 chips + 规则检索（联动过滤双表，纯前端） -->
+    <div class="sc-frp__clients">
+      <div class="sc-frp__chips">
+        <span class="sc-frp__chips-label">在线客户端</span>
+        <template v-if="manage.clients.length">
+          <button
+            v-for="c in manage.clients"
+            :key="c"
+            type="button"
+            class="sc-frp__chip"
+            :class="{ on: clientFilter === c }"
+            :title="clientFilter === c ? '取消按该客户端过滤' : '只看该客户端的规则'"
+            @click="toggleClientFilter(c)"
+          >{{ c }}</button>
+        </template>
+        <span v-else class="sc-frp__chips-empty">暂无在线客户端</span>
+        <span v-if="clientFilter" class="sc-frp__chips-clear" role="button" @click="clientFilter = ''">清除过滤</span>
+      </div>
+      <ReInput
+        v-model="ruleKeyword"
+        class="sc-frp__search"
+        placeholder="搜索规则：客户端 / 地址 / 端口"
+        clearable
+      />
     </div>
 
     <p v-if="error" class="sc-frp__error">{{ error }}</p>
@@ -478,12 +708,18 @@ const mapColumns: ReTableColumn[] = [
             </div>
             <div class="sc-frp__frow">
               <label>认证令牌</label>
-              <ReInput v-model="cfgForm.token" placeholder="chua-frp-default-token" class="sc-frp__fval" />
+              <div class="sc-frp__fval sc-frp__token">
+                <ReInput v-model="cfgForm.token" type="password" show-password placeholder="chua-frp-default-token" class="sc-frp__token-input" />
+                <ReButton layout="square" icon="Key" tip="随机生成令牌" @click="genToken" />
+                <ReButton layout="square" icon="CopyDocument" tip="复制令牌" @click="copyToken" />
+              </div>
             </div>
             <p class="sc-frp__note">节点级参数（端口 / 令牌）在 FrpServer 构造时定死，保存后<b>需重启节点</b>才生效；规则下推不在此列。</p>
             <div class="sc-frp__cfg-actions">
               <ReButton :loading="savingCfg" icon="Check" :show-text="true" :disabled="!hasCfgChange || !node" @click="saveCfg">保存配置</ReButton>
               <ReButton :loading="restarting" icon="RefreshRight" :show-text="true" :disabled="node?.status !== 'RUNNING'" @click="restartNode">重启节点</ReButton>
+              <ReButton v-if="node?.status === 'RUNNING'" :loading="stopping" icon="SwitchButton" :show-text="true" @click="stopNode">停止节点</ReButton>
+              <ReButton v-else :loading="starting" icon="CaretRight" :show-text="true" :disabled="!node" @click="startNode">启动节点</ReButton>
             </div>
           </div>
         </section>
@@ -495,23 +731,30 @@ const mapColumns: ReTableColumn[] = [
               <b>暴露规则</b>
               <span class="sc-frp__hint">提供方 · localPort 上的服务以 target 对外提供</span>
             </div>
-            <ReButton layout="square" type="primary" icon="Plus" tip="新建暴露规则"
+            <ReButton layout="square" type="primary" icon="Plus"
+              :tip="manage.clients.length ? '新建暴露规则' : '暂无在线客户端，无法下推规则'"
               :disabled="!manage.clients.length" @click="openCreate('expose')" />
           </header>
           <div class="sc-frp__table">
             <ReTable
               v-loading="loading"
-              :data="manage.exposes"
+              :data="filteredExposes"
               :columns="exposeColumns"
               :pagination="false"
               :border="false"
               stripe
               height="100%"
-              empty-text="还没有暴露规则"
+              :empty-text="manage.exposes.length ? '没有匹配的规则' : '还没有暴露规则'"
               table-id="frp-exposes"
             >
+              <!-- 空态：面板自带纯文本空态。ReTable 默认空态走 ReEmpty plot 布局，
+                   描述文字由 hairline 图绘制、不进 DOM，关键字筛选结果不可见，故这里接管 #empty。 -->
+              <template #empty="{ description }">
+                <div class="sc-frp__empty">{{ description }}</div>
+              </template>
               <template #col-ruleId="{ row }">
                 <ReButton link icon="Delete" tip="撤销这条规则" @click="revoke('expose', row as FrpRuleItem)" />
+                <ReButton link icon="CopyDocument" tip="复制参数到新建" @click="copyRule('expose', row as FrpRuleItem)" />
               </template>
             </ReTable>
           </div>
@@ -524,23 +767,29 @@ const mapColumns: ReTableColumn[] = [
               <b>映射规则</b>
               <span class="sc-frp__hint">访问方 · 本机监听 localPort 即达远端 target</span>
             </div>
-            <ReButton layout="square" type="primary" icon="Plus" tip="新建映射规则"
+            <ReButton layout="square" type="primary" icon="Plus"
+              :tip="manage.clients.length ? '新建映射规则' : '暂无在线客户端，无法下推规则'"
               :disabled="!manage.clients.length" @click="openCreate('map')" />
           </header>
           <div class="sc-frp__table">
             <ReTable
               v-loading="loading"
-              :data="manage.maps"
+              :data="filteredMaps"
               :columns="mapColumns"
               :pagination="false"
               :border="false"
               stripe
               height="100%"
-              empty-text="还没有映射规则"
+              :empty-text="manage.maps.length ? '没有匹配的规则' : '还没有映射规则'"
               table-id="frp-maps"
             >
+              <!-- 空态：同暴露规则表，接管 #empty 保证筛选空态文案真实可见 -->
+              <template #empty="{ description }">
+                <div class="sc-frp__empty">{{ description }}</div>
+              </template>
               <template #col-ruleId="{ row }">
                 <ReButton link icon="Delete" tip="撤销这条规则" @click="revoke('map', row as FrpRuleItem)" />
+                <ReButton link icon="CopyDocument" tip="复制参数到新建" @click="copyRule('map', row as FrpRuleItem)" />
               </template>
             </ReTable>
           </div>
@@ -554,22 +803,40 @@ const mapColumns: ReTableColumn[] = [
             <b>实时信令流</b>
             <span class="sc-frp__hint">AUTH 接入 / EXPOSE / MAP / REVOKE · 每 8s 静默对齐一次，无事件不打扰</span>
           </div>
-          <ReButton
-            layout="square"
-            :icon="signalPaused ? 'VideoPlay' : 'VideoPause'"
-            :tip="signalPaused ? '恢复滚动' : '暂停滚动'"
-            @click="signalPaused = !signalPaused"
-          />
+          <div class="sc-frp__stream-tools">
+            <div class="sc-frp__sig-filters">
+              <button
+                v-for="f in signalFilters"
+                :key="f.value"
+                type="button"
+                class="sc-frp__sig-filter"
+                :class="{ on: signalFilter === f.value }"
+                @click="signalFilter = f.value"
+              >{{ f.label }}</button>
+            </div>
+            <ReButton layout="square" icon="CopyDocument" tip="复制信令文本" @click="copySignals" />
+            <ReButton layout="square" icon="Delete" tip="清空信令流" @click="clearSignals" />
+            <ReButton
+              layout="square"
+              :icon="signalPaused ? 'VideoPlay' : 'VideoPause'"
+              :tip="signalPaused ? '恢复滚动' : '暂停滚动'"
+              @click="signalPaused = !signalPaused"
+            />
+          </div>
         </header>
         <div class="sc-frp__stream-body">
           <div class="sc-frp__stream-pad" />
           <ul ref="signalBoxEl" class="sc-frp__lines">
-            <li v-for="s in signals" :key="s.seq" class="sc-frp__line" :class="[`is-${s.kind}`, { fresh: s.fresh }]">
-              <span class="sc-frp__line-time mono">{{ s.meta }}</span>
+            <li v-for="s in filteredSignals" :key="s.seq" class="sc-frp__line" :class="[`is-${s.kind}`, { fresh: s.fresh }]">
+              <span class="sc-frp__line-time mono">{{ s.time }}</span>
+              <span class="sc-frp__line-kind">{{ s.meta }}</span>
               <span class="sc-frp__line-text">{{ s.text }}</span>
             </li>
           </ul>
-          <p v-if="!signals.length" class="sc-frp__stream-empty">还没有信令 —— 客户端接入、规则下推/撤销时会出现在这里</p>
+          <p v-if="!filteredSignals.length" class="sc-frp__stream-empty">
+            {{ signals.length ? '当前筛选条件下暂无信令' : '还没有信令 —— 客户端接入、规则下推/撤销时会出现在这里' }}
+          </p>
+          <div v-if="signalPaused && pausedNewCount > 0" class="sc-frp__stream-unread">暂停中 · 新信令 +{{ pausedNewCount }}</div>
         </div>
       </section>
     </div>
@@ -601,6 +868,15 @@ const mapColumns: ReTableColumn[] = [
         </ReFormItem>
         <ReFormItem label="本地端口">
           <ReInputNumber v-model="createForm.localPort" :min="1" :max="65535" style="width: 100%" />
+          <div class="sc-frp__quick-ports">
+            <button
+              v-for="p in [80, 443, 3306, 6379, 8080]"
+              :key="p"
+              type="button"
+              class="sc-frp__quick-port"
+              @click="createForm.localPort = p"
+            >{{ p }}</button>
+          </div>
         </ReFormItem>
         <p class="sc-frp__tip">
           {{ createType === 'expose'
@@ -820,7 +1096,7 @@ const mapColumns: ReTableColumn[] = [
   line-height: 1.6;
   color: var(--text-secondary, #646a73);
   border-left: 2px solid transparent;
-  &.fresh { background: color-mix(in srgb, var(--el-color-primary, #3370ff) 6%, #fff); }
+  &.fresh { background: color-mix(in srgb, var(--el-color-primary, #3370ff) 10%, var(--bg-container, #fff)); }
 
   &.is-auth { border-left-color: var(--success-500, #00b42a); }
   &.is-expose, &.is-map { border-left-color: var(--el-color-primary, #3370ff); }
@@ -879,5 +1155,173 @@ const mapColumns: ReTableColumn[] = [
   font-size: 12px;
   color: var(--text-tertiary, #8a9099);
   line-height: 1.6;
+}
+
+/* ============ 在线客户端 chips / 规则检索 ============ */
+.sc-frp__clients {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sc-frp__chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.sc-frp__chips-label {
+  font-size: 12px;
+  color: var(--text-tertiary, #8a9099);
+}
+
+.sc-frp__chip {
+  max-width: 220px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-family: var(--el-font-family-mono, ui-monospace, Consolas, 'Courier New', monospace);
+  color: var(--text-secondary, #646a73);
+  background: var(--bg-page, #f7f8fa);
+  border: 1px solid var(--border-subtle, #e8eaec);
+  border-radius: 999px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all 0.15s;
+
+  &:hover { border-color: var(--brand-300, #9db9ff); }
+
+  &.on {
+    color: var(--brand-600, #3370ff);
+    background: var(--brand-50, #eaf1ff);
+    border-color: var(--brand-300, #9db9ff);
+  }
+}
+
+.sc-frp__chips-empty {
+  font-size: 12px;
+  color: var(--text-tertiary, #8a9099);
+}
+
+/* 规则表空态（#empty 插槽接管）：在 vxe 空块内居中显示一行说明文字 */
+.sc-frp__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 96px;
+  padding: 18px 12px;
+  box-sizing: border-box;
+  font-size: 13px;
+  color: var(--text-tertiary, #8a9099);
+  user-select: none;
+}
+
+.sc-frp__chips-clear {
+  font-size: 12px;
+  color: var(--brand-600, #3370ff);
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+}
+
+.sc-frp__search {
+  flex: none;
+  width: 220px;
+  margin-left: auto;
+}
+
+/* ============ 令牌行（脱敏 / 生成 / 复制） ============ */
+.sc-frp__token {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sc-frp__token-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============ 信令流工具 ============ */
+.sc-frp__stream-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sc-frp__sig-filters {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sc-frp__sig-filter {
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-secondary, #646a73);
+  background: transparent;
+  border: 1px solid var(--border-subtle, #e8eaec);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover { border-color: var(--brand-300, #9db9ff); }
+
+  &.on {
+    color: var(--brand-600, #3370ff);
+    background: var(--brand-50, #eaf1ff);
+    border-color: var(--brand-300, #9db9ff);
+  }
+}
+
+.sc-frp__line-kind {
+  flex: none;
+  min-width: 56px;
+  font-size: 11px;
+  color: var(--text-tertiary, #8a9099);
+}
+
+.sc-frp__stream-unread {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 2px 10px;
+  font-size: 12px;
+  color: var(--warning-600, #ff7d00);
+  background: var(--bg-container, #fff);
+  border: 1px solid var(--warning-600, #ff7d00);
+  border-radius: 999px;
+  opacity: 0.92;
+}
+
+/* ============ 快捷端口 ============ */
+.sc-frp__quick-ports {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sc-frp__quick-port {
+  padding: 1px 8px;
+  font-size: 11px;
+  color: var(--text-secondary, #646a73);
+  background: var(--bg-page, #f7f8fa);
+  border: 1px solid var(--border-subtle, #e8eaec);
+  border-radius: var(--radius, 6px);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--brand-600, #3370ff);
+    border-color: var(--brand-300, #9db9ff);
+  }
 }
 </style>

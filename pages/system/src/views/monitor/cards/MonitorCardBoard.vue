@@ -92,7 +92,6 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Grid } from "@element-plus/icons-vue";
 import { message } from "@repo/core";
-import { ElMessageBox } from "element-plus";
 // 内置卡片 / 页面区块自注册（副作用导入）：放在「挂载看板」而不是应用入口，
 // 这样任何地方 import 本组件即拥有全部内置卡片；其他模块贡献的卡片仍走
 // main.ts 里的 registerMonitorCards()。
@@ -182,10 +181,12 @@ async function restorePreEdit(): Promise<boolean> {
   const snap = beforeEdit.value;
   if (!snap) return false;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       "确定恢复到进入编辑前的布局吗？本次的拖动、缩放与增删都会被撤销。",
       "恢复默认布局",
-      { type: "warning", confirmButtonText: "恢复", cancelButtonText: "取消" },
+      "恢复",
+      "取消",
+      "warning",
     );
   } catch {
     return false; // 用户取消
@@ -236,11 +237,7 @@ async function onRemove(id: string): Promise<void> {
   const card = cards.value.find((c) => c.id === id);
   if (!card) return;
   try {
-    await ElMessageBox.confirm(`确定移除「${card.title}」吗？可从「自定义 → 组件目录」加回来。`, "移除区块", {
-      type: "warning",
-      confirmButtonText: "移除",
-      cancelButtonText: "取消",
-    });
+    await message.confirm(`确定移除「${card.title}」吗？可从「自定义 → 组件目录」加回来。`, "移除区块", "移除", "取消", "warning");
   } catch {
     return; // 用户取消
   }

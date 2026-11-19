@@ -6,7 +6,6 @@
  */
 import { message } from "@repo/core";
 import { onMounted, ref, computed } from "vue";
-import { ElMessageBox } from "element-plus";
 import {
   Refresh, Delete, Edit, FolderOpened, Document,
   Coin, User, Files, TrendCharts, ArrowRight, CircleCheck,
@@ -65,9 +64,7 @@ function selectModule(mod: CacheModuleInfo) {
 
 async function handleDeleteModule(mod: CacheModuleInfo) {
   try {
-    await ElMessageBox.confirm(`确认清空缓存模块「${mod.name}」下的所有键？`, "提示", {
-      type: "warning", confirmButtonText: "确定清空",
-    });
+    await message.confirm(`确认清空缓存模块「${mod.name}」下的所有键？`, "提示", "确定清空");
   } catch { return; }
   try {
     await clearCacheMonitorModule(mod.module ?? "");
@@ -111,9 +108,7 @@ function selectKey(key: string) {
 
 async function handleDeleteKey(key: string) {
   try {
-    await ElMessageBox.confirm(`确认删除缓存键「${key}」？`, "提示", {
-      type: "warning", confirmButtonText: "确定删除",
-    });
+    await message.confirm(`确认删除缓存键「${key}」？`, "提示", "确定删除");
   } catch { return; }
   try {
     await deleteCacheMonitorKey(key);

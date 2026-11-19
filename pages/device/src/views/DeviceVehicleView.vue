@@ -154,7 +154,8 @@
  * @since 4.0.0.52
  */
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { message } from '@repo/core'
 import { deviceApi } from '../api/deviceApi'
 
 const loading = ref(false)
@@ -249,7 +250,7 @@ async function saveVehicle() {
 }
 
 async function removeVehicle(row: Record<string, any>) {
-  await ElMessageBox.confirm(`删除车辆「${row.deviceVehiclePlateNo}」？`, '确认', { type: 'warning' })
+  await message.confirm(`删除车辆「${row.deviceVehiclePlateNo}」？`, '确认')
   await deviceApi.deleteVehicle(row.deviceVehicleId)
   ElMessage.success('已删除')
   await loadVehicles()

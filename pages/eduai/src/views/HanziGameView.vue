@@ -10,12 +10,50 @@
         <p class="hg-sub">看<b>字画</b>、读<b>读音</b>、数<b>笔画</b> —— 每题答完都会展示<b>笔顺</b>与释义。</p>
       </header>
 
+      <!-- 练习偏好：学段 + 题量（出题仍由服务端按参数生成，这里只选择参数） -->
+      <div class="hg-prefs">
+        <div class="hg-prefs__group">
+          <span class="hg-prefs__label">学段</span>
+          <div class="hg-seg" role="group" aria-label="选择学段">
+            <button type="button" class="hg-seg__item" :class="{ 'is-on': activeLevel === '' }" @click="setLevel('')">全部</button>
+            <button
+              v-for="g in gradeOptions"
+              :key="g.value"
+              type="button"
+              class="hg-seg__item"
+              :class="{ 'is-on': activeLevel === g.value }"
+              @click="setLevel(g.value)"
+            >
+              {{ g.label }}
+            </button>
+          </div>
+        </div>
+        <div class="hg-prefs__group">
+          <span class="hg-prefs__label">题量</span>
+          <div class="hg-seg" role="group" aria-label="选择每批题量">
+            <button
+              v-for="n in BATCH_SIZES"
+              :key="n"
+              type="button"
+              class="hg-seg__item"
+              :class="{ 'is-on': batchSize === n }"
+              @click="setBatchSize(n)"
+            >
+              {{ n }} 题
+            </button>
+          </div>
+        </div>
+      </div>
+
       <template v-if="!finished">
         <div class="hg-bar">
           <span class="hg-bar__step">第 <b>{{ questions.length ? index + 1 : 0 }}</b> / {{ questions.length }} 题</span>
           <span class="hg-bar__score">答对 <b>{{ score }}</b></span>
           <el-button size="small" @click="load">换一批</el-button>
           <el-button size="small" @click="openWrongBook">错题本{{ wrongCount ? `（${wrongCount}）` : "" }}</el-button>
+          <el-button size="small" :title="soundOff ? '开启答题音效' : '关闭答题音效'" @click="toggleSound">
+            {{ soundOff ? "🔇 静音" : "🔊 音效" }}
+          </el-button>
         </div>
 
         <!-- 每题对错进度点条：一眼看到这一批的走势 -->
@@ -125,7 +163,11 @@
         </template>
       </template>
 
-      <div v-else class="hg-done">
+      <div v-else class="hg-done" :class="{ 'is-celebrate': celebrate }">
+        <!-- 全对庆祝：彩纸从卡顶洒落（reduced-motion 下整体隐藏） -->
+        <div v-if="celebrate" class="hg-confetti" aria-hidden="true">
+          <span v-for="(p, i) in confetti" :key="i" class="hg-confetti__piece" :style="p" />
+        </div>
         <div class="hg-done__stars" aria-hidden="true">
           <span v-for="s in 3" :key="s" class="hg-done__star" :class="{ 'is-on': s <= stars }">★</span>
         </div>
@@ -162,7 +204,7 @@
           <button
             type="button"
             class="hg-wrong__toggle"
-            :aria-label="`${wrongKey(w) === wrongExpandedKey ? "收起" : "展开"} ${w.char} 的笔顺演示`"
+            :aria-label="`${wrongKey(w) === wrongExpandedKey ? '收起' : '展开'} ${w.char} 的笔顺演示`"
             @click="toggleWrong(w)"
           >
             {{ wrongKey(w) === wrongExpandedKey ? "▾" : "▸" }}
@@ -211,14 +253,15 @@
  * 逻辑 / 接口 / 题型（识读 / 笔画数 / 笔顺排序）全部保持。</p>
  */
 import { message } from "@repo/core";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
 
 import { eduaiApi } from "../api/eduaiApi";
-import type { HanziQuestion } from "../api/types";
+import type { GradeLevelOption, HanziQuestion } from "../api/types";
 import { errText } from "../api/errorText";
 import { STUDY_PROGRESS_PER_ROUND, useStudyReport } from "../composables/useStudyReport";
 import { addHanziWrong, clearHanziWrong, listHanziWrong, removeHanziWrong, type HanziWrongEntry } from "../data/hanziWrongBook";
 import { HANZI_STROKE_BUILTIN } from "../data/hanziStrokes";
+import { playCorrect, playFinish, playWrong, readSoundOff, writeSoundOff } from "../utils/quizSounds";
 import HanziHoverWrite from "../components/HanziHoverWrite.vue";
 import ReConfirmDialog from "../components/shared/ReConfirmDialog.vue";
 
@@ -248,6 +291,19 @@ const streak = ref(0);
 const results = ref<boolean[]>([]);
 /** 错题本中当前展开笔顺演示的条目键 */
 const wrongExpandedKey = ref("");
+/** 每批题量候选（默认 8，与既有出题口径一致） */
+const BATCH_SIZES = [5, 8, 12] as const;
+const batchSize = ref<number>(8);
+/** 当前学段（空串 = 全部）；初始取父组件传入的 level */
+const activeLevel = ref(props.level ?? "");
+/** 学段下拉（服务端维度接口，只读） */
+const gradeOptions = ref<GradeLevelOption[]>([]);
+/** 答题音效静音偏好（本地留存） */
+const soundOff = ref(readSoundOff());
+/** 全对庆祝彩纸（内联样式数组） */
+const confetti = ref<CSSProperties[]>([]);
+/** 全对才撒花 */
+const celebrate = computed(() => finished.value && questions.value.length > 0 && score.value === questions.value.length);
 
 // ==================== 错题本（本地暂存） ====================
 const wrongOpen = ref(false);
@@ -301,10 +357,12 @@ function optionClass(opt: string): string {
 const isCorrect = computed(() => answered.value && !!current.value && picked.value === current.value.answer);
 /** 笔顺题总笔画数（答案为笔画名连串，长度即笔画数） */
 const orderTotal = computed(() => current.value?.answer?.length ?? 0);
-/** 听一听：读音题未答前不朗读（避免直接剧透答案），其余随时可听 */
+/** 浏览器是否支持 TTS（老浏览器/非 DOM 环境安全降级） */
+const ttsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
+/** 听一听：不支持 TTS 或读音题未答前不显示（避免直接剧透答案） */
 const canSpeak = computed(() => {
   const q = current.value;
-  if (!q) {
+  if (!q || !ttsSupported) {
     return false;
   }
   return q.type !== "pinyin" || answered.value;
@@ -346,6 +404,14 @@ function judge(value: string) {
   }
   const ok = value === q.answer;
   results.value[index.value] = ok;
+  // 答题音效：静音偏好关闭时不响（合成失败在工具内静默忽略）
+  if (!soundOff.value) {
+    if (ok) {
+      playCorrect();
+    } else {
+      playWrong();
+    }
+  }
   if (ok) {
     score.value += 1;
     streak.value += 1;
@@ -442,6 +508,9 @@ function dotClass(i: number): string {
 function next() {
   if (isLast.value) {
     finished.value = true;
+    if (!soundOff.value) {
+      playFinish();
+    }
     // 一批答完即上报：每题 1 分，正确数即 score
     reportStudyRound({
       moduleCode: "hanzi-learn",
@@ -527,6 +596,59 @@ function shortTime(iso: string): string {
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// ==================== 音效 / 偏好 / 庆祝 ====================
+/** 切换静音（偏好本地留存；重新开启时给一声轻响作反馈） */
+function toggleSound(): void {
+  soundOff.value = !soundOff.value;
+  writeSoundOff(soundOff.value);
+  if (!soundOff.value) {
+    playCorrect();
+  }
+}
+
+/** 切换学段：重新出题 */
+function setLevel(v: string): void {
+  if (activeLevel.value === v) {
+    return;
+  }
+  activeLevel.value = v;
+  void load();
+}
+
+/** 切换每批题量：重新出题 */
+function setBatchSize(n: number): void {
+  if (batchSize.value === n) {
+    return;
+  }
+  batchSize.value = n;
+  void load();
+}
+
+/** 生成全对彩纸：位置/延迟/时长/颜色随机，末态旋转用 --rot 交给 keyframes 消费 */
+function makeConfetti(): void {
+  const colors = ["#f7ba2a", "#67c23a", "#409eff", "#f56c6c", "#e6a23c", "#9a66d0"];
+  const pieces: CSSProperties[] = [];
+  for (let i = 0; i < 32; i += 1) {
+    pieces.push({
+      left: `${4 + Math.random() * 92}%`,
+      width: `${6 + Math.random() * 5}px`,
+      height: `${10 + Math.random() * 8}px`,
+      background: colors[i % colors.length] ?? "#f7ba2a",
+      animationDelay: `${Math.random() * 0.9}s`,
+      animationDuration: `${1.5 + Math.random() * 1.2}s`,
+      "--rot": `${Math.floor(Math.random() * 360)}deg`,
+    });
+  }
+  confetti.value = pieces;
+}
+watch(celebrate, (on) => {
+  if (on) {
+    makeConfetti();
+  } else {
+    confetti.value = [];
+  }
+});
+
 /** 拉一批题（服务端自动出题） */
 async function load() {
   index.value = 0;
@@ -538,7 +660,7 @@ async function load() {
   streak.value = 0;
   results.value = [];
   try {
-    questions.value = (await eduaiApi.hanziPractice({ count: 8, gradeLevel: props.level })) ?? [];
+    questions.value = (await eduaiApi.hanziPractice({ count: batchSize.value, gradeLevel: activeLevel.value || undefined })) ?? [];
     if (!questions.value.length) {
       message.warning("汉字库暂时没有可出的题");
     }
@@ -551,7 +673,28 @@ async function load() {
 onMounted(() => {
   wrongCount.value = listHanziWrong().length;
   void load();
+  // 学段下拉走服务端维度接口；拉取失败不阻塞出题，仅退化为「全部」单选项
+  eduaiApi
+    .dimensionDropdown()
+    .then((d) => {
+      gradeOptions.value = d?.gradeLevels ?? [];
+    })
+    .catch(() => {
+      gradeOptions.value = [];
+    });
 });
+
+// 父组件动态调整学段时跟随重出题（当前宿主不传 level，留作内嵌扩展口径）
+watch(
+  () => props.level,
+  (lv) => {
+    const target = lv ?? "";
+    if (target !== activeLevel.value) {
+      activeLevel.value = target;
+      void load();
+    }
+  },
+);
 </script>
 
 <style scoped>
@@ -608,6 +751,56 @@ onMounted(() => {
 }
 .hg-sub b {
   opacity: 1;
+}
+
+/* 练习偏好行：学段 + 题量分段选择（压在主色带上，白字白胶囊） */
+.hg-prefs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+  margin: 0 2px 12px;
+}
+.hg-prefs__group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.hg-prefs__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-color-white);
+  opacity: 0.85;
+}
+.hg-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: color-mix(in srgb, var(--el-color-black) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-white) 30%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+}
+.hg-seg__item {
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-color-white);
+  background: transparent;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.hg-seg__item:hover {
+  background: color-mix(in srgb, var(--el-color-white) 18%, transparent);
+}
+.hg-seg__item.is-on {
+  color: var(--el-color-primary);
+  background: var(--el-color-white);
+  font-weight: 700;
 }
 
 /* 进度行：白卡 + 细边 */
@@ -764,6 +957,7 @@ onMounted(() => {
   border-radius: var(--el-radius-md, 8px);
   transform: translate(-50%, -50%) rotate(-8deg);
   animation: hg-stamp-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--el-color-black) 20%, transparent);
   pointer-events: none;
 }
 .hg-stamp.is-ok {
@@ -983,14 +1177,48 @@ onMounted(() => {
   font-weight: 600;
 }
 
-/* 成绩页：白卡托分 */
+/* 成绩页：白卡托分（全对庆祝时作为彩纸画布） */
 .hg-done {
+  position: relative;
   text-align: center;
   margin-top: 14px;
   padding: 40px 24px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-radius-xl, 16px);
+}
+.hg-done.is-celebrate {
+  overflow: hidden;
+}
+/* 全对庆祝彩纸：随机位置/延迟洒落，不响应点击 */
+.hg-confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hg-confetti__piece {
+  position: absolute;
+  top: -14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: hg-confetti-fall linear both;
+}
+@keyframes hg-confetti-fall {
+  0% {
+    transform: translateY(-14px) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.95;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(400px) rotate(var(--rot, 320deg));
+    opacity: 0;
+  }
 }
 .hg-done__score {
   font-size: 52px;
@@ -1002,6 +1230,76 @@ onMounted(() => {
   margin: 10px 0 22px;
   font-size: 15px;
   color: var(--el-text-color-regular);
+}
+
+/* 成绩星级：按正确率摘星，逐颗弹入 */
+.hg-done__stars {
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: 6px;
+  margin-bottom: 12px;
+}
+.hg-done__star {
+  display: inline-block;
+  color: var(--el-border-color);
+  animation: hg-star-in 0.4s ease both;
+}
+.hg-done__star:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.hg-done__star:nth-child(3) {
+  animation-delay: 0.24s;
+}
+.hg-done__star.is-on {
+  color: var(--el-color-warning, #f7ba2a);
+  text-shadow: 0 2px 0 color-mix(in srgb, var(--el-color-warning, #f7ba2a) 35%, transparent);
+}
+@keyframes hg-star-in {
+  0% {
+    transform: scale(0.3) rotate(-20deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.15) rotate(4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* 本批错字回顾：答错的字在成绩页再认一遍 */
+.hg-done__wrong {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 460px;
+  margin: 0 auto 20px;
+}
+.hg-done__wrong-label {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+.hg-done__wrong-char {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, var(--el-bg-color));
+  border: 1px dashed color-mix(in srgb, var(--el-color-danger) 45%, transparent);
+  border-radius: var(--el-radius-md, 8px);
+}
+.hg-done__perfect {
+  margin: 0 0 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-color-success);
 }
 
 /* 错题本 */
@@ -1077,11 +1375,58 @@ onMounted(() => {
   color: var(--el-color-danger);
   border-color: var(--el-color-danger);
 }
+/* 展开笔顺演示：圆形小按钮，展开后条目换底色并换行放下演示面板 */
+.hg-wrong__toggle {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--el-text-color-secondary);
+  background: transparent;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-circle, 50%);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.hg-wrong__toggle:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.hg-wrong__item.is-open {
+  flex-wrap: wrap;
+  padding: 10px 8px;
+  background: var(--el-fill-color-lighter);
+  border-radius: var(--el-radius-md, 8px);
+}
+.hg-wrong__panel {
+  width: 100%;
+  padding: 10px 4px 2px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+}
+.hg-wrong__strokes {
+  margin: 0;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+}
 .hg-wrong__empty {
   padding: 24px 0;
   text-align: center;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+}
+
+/* 深色模式细查：暗色卡上卷杆改用亮主色渐变保持可辨；分段控件底色略加深以显层次 */
+html.dark .hg-card::before {
+  background: linear-gradient(90deg, var(--el-color-primary-light-3) 0%, var(--el-color-primary) 45%, var(--el-color-primary-dark-2) 100%);
+}
+html.dark .hg-seg {
+  background: color-mix(in srgb, var(--el-color-black) 35%, transparent);
+}
+html.dark .hg-stamp {
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--el-color-black) 45%, transparent);
 }
 
 /* 窄屏 */
@@ -1128,15 +1473,31 @@ onMounted(() => {
   .hg-done :deep(.el-button) {
     min-height: 44px;
   }
-  .hg-wrong__del {
+  .hg-wrong__del,
+  .hg-wrong__toggle {
     width: 34px;
     height: 34px;
+  }
+  .hg-card__speak {
+    padding: 9px 16px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hg-opt {
     transition: none;
+  }
+  .hg-stamp,
+  .hg-streak,
+  .hg-done__star {
+    animation: none;
+  }
+  .hg-dots__dot {
+    transition: none;
+  }
+  /* 彩纸动画对前庭敏感用户不友好，reduced-motion 下直接不展示 */
+  .hg-confetti {
+    display: none;
   }
 }
 </style>

@@ -30,7 +30,7 @@
         <el-select v-model="formData.defaultCharacterId" :placeholder="t('bot.modal.characterPlaceholder')" style="width: 100%" filterable>
           <el-option v-for="character in characters" :key="character.id" :label="character.title" :value="character.id">
             <div class="flex items-center gap-2">
-              <img v-if="character.avatarUrl" :src="character.avatarUrl" class="w-6 h-6 rounded object-cover" />
+              <img v-if="character.avatarUrl" :src="character.avatarUrl" class="w-6 h-6 rounded object-cover" :alt="character.title" />
               <span>{{ character.title }}</span>
             </div>
           </el-option>

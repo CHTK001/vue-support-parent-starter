@@ -824,7 +824,6 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
-import { ElMessageBox } from 'element-plus'
 import { MoreFilled, Plus, VideoPlay, Loading, Fold, Expand } from '@element-plus/icons-vue'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
@@ -1584,9 +1583,9 @@ async function onWorldCmd(cmd: string, w: WorldItem) {
     openWorldEdit()
   } else if (cmd === 'delete') {
     try {
-      await ElMessageBox.confirm(
+      await message.confirm(
         `删除世界「${w.name}」？场景、NPC、关系与全部事件都会一并删除。`,
-        '删除世界', { type: 'warning' })
+        '删除世界')
       await apiService.deleteWorld(w.id)
       if (currentWorldId.value === w.id) {
         stopAutoWatch()
@@ -1670,7 +1669,7 @@ async function confirmCreateScene() {
 
 async function deleteScene(s: WorldScene) {
   try {
-    await ElMessageBox.confirm(`删除场景「${s.name}」？其中的角色会回到"未布置"状态。`, '删除场景', { type: 'warning' })
+    await message.confirm(`删除场景「${s.name}」？其中的角色会回到"未布置"状态。`, '删除场景')
     await apiService.deleteWorldScene(s.id)
     const view = await apiService.fetchWorldView(currentWorldId.value!)
     scenes.value = view.scenes || []
@@ -1756,7 +1755,7 @@ async function toggleNpcActive(n: WorldNpc, active: boolean) {
 /** 移出世界：连带清除它的关系 */
 async function removeNpc(n: WorldNpc) {
   try {
-    await ElMessageBox.confirm(`把「${n.displayName}」移出这个世界？它的关系也会清除。`, '移出角色', { type: 'warning' })
+    await message.confirm(`把「${n.displayName}」移出这个世界？它的关系也会清除。`, '移出角色')
     await apiService.deleteWorldNpc(n.id)
     await refreshPeople()
     message.success('已移除')

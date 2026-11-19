@@ -19,7 +19,6 @@
 import { message } from "@repo/core";
 import { computed, onMounted, ref } from "vue";
 import type { Component } from "vue";
-import { ElMessageBox } from "element-plus";
 import { CircleCheck, Collection, Connection, Key, Lock, Monitor, Postcard, Unlock, User } from "@element-plus/icons-vue";
 import { ReFormItem } from "@repo/ui/re-kit";
 import ReStatCard from "@repo/ui/re-stat-card";
@@ -266,7 +265,7 @@ async function submitKey(): Promise<void> {
 }
 
 async function removeKey(row: KeyRow): Promise<void> {
-  await ElMessageBox.confirm(`删除密钥「${row.serverKeyName}」？被引用的身份将受影响`, "删除确认", { type: "warning" });
+  await message.confirm(`删除密钥「${row.serverKeyName}」？被引用的身份将受影响`, "删除确认");
   try {
     await delKey(row.id);
     message.success("已删除");
@@ -299,7 +298,7 @@ async function generateKey(): Promise<void> {
 }
 
 async function remove(i: Identity): Promise<void> {
-  await ElMessageBox.confirm(`删除身份「${i.serverIdentityName}」？`, "删除确认", { type: "warning" });
+  await message.confirm(`删除身份「${i.serverIdentityName}」？`, "删除确认");
   try {
     await delIdentity(i.id);
     message.success("已删除");

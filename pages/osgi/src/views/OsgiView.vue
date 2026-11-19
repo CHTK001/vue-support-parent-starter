@@ -25,9 +25,9 @@
 -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElInput, ElMessageBox, ElSwitch, ElTooltip } from "element-plus";
+import { ElInput, ElSwitch, ElTooltip } from "element-plus";
 import { Search } from "@element-plus/icons-vue";
-import { msgError, msgSuccess, useSocketService } from "@repo/core";
+import { message, msgError, msgSuccess, useSocketService } from "@repo/core";
 import { downloadCsv, downloadTextFile, fileTimestamp, usePersistentFilters } from "@repo/utils";
 import ReButton from "@repo/ui/re-button";
 import ReTag from "@repo/ui/re-tag";
@@ -788,10 +788,12 @@ async function removeJar(jar: OsgiJar): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认从部署目录删除 ${jar.fileName}？该文件不可恢复，下次启动不会再加载它。`,
       "删除 jar 文件",
-      { type: "warning", confirmButtonText: "删除", cancelButtonText: "取消" },
+      "删除",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -1061,10 +1063,12 @@ async function onUpgradeFile(event: Event): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `用 ${file.name} 原地升级 ${target}？升级期间该插件会短暂停止。`,
       "升级插件",
-      { type: "warning", confirmButtonText: "升级", cancelButtonText: "取消" },
+      "升级",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -1108,10 +1112,12 @@ async function remove(row: OsgiBundle): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认卸载 ${row.symbolicName}？该插件提供的扩展会立即失效，jar 文件仍保留在部署目录。`,
       "卸载插件",
-      { type: "warning", confirmButtonText: "卸载", cancelButtonText: "取消" },
+      "卸载",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -1190,12 +1196,14 @@ async function runBatch(kind: "start" | "stop" | "uninstall"): Promise<void> {
   }
   const label = kind === "start" ? "启动" : kind === "stop" ? "停止" : "卸载";
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认对 ${names.length} 个插件执行批量${label}？${
         kind === "uninstall" ? "卸载后这些插件提供的扩展会立即失效（jar 文件保留在部署目录）。" : ""
       }`,
       `批量${label}`,
-      { type: kind === "uninstall" ? "warning" : "info", confirmButtonText: label, cancelButtonText: "取消" },
+      label,
+      "取消",
+      kind === "uninstall" ? "warning" : "info",
     );
   } catch {
     return;

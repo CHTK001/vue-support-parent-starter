@@ -1343,10 +1343,12 @@ async function promptCreateDir(parent: string): Promise<void> {
  */
 async function removeDir(path: string): Promise<void> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除目录「${path}」？目录内还有文档时无法删除。`,
       "删除目录",
-      { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
+      "删除",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -1530,11 +1532,13 @@ async function batchDelete(): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除选中的 ${list.length} 个协同文档？它们会移入回收桶，可随时恢复。`
         + (denied > 0 ? `（另有 ${denied} 个非本人创建，已跳过）` : ""),
       "批量删除",
-      { confirmButtonText: "移入回收桶", cancelButtonText: "取消", type: "warning" },
+      "移入回收桶",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -1581,12 +1585,11 @@ async function batchSetVisibility(visibility: CollabVisibility): Promise<void> {
   }
   const label = visibility === "PUBLIC" ? "公开" : "私有";
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `把选中的 ${list.length} 个协同文档设为「${label}」？`
         + (visibility === "PRIVATE" ? "原有授权用户保留不变。" : "")
         + (denied > 0 ? `（另有 ${denied} 个非本人创建，已跳过）` : ""),
       `批量设为${label}`,
-      { confirmButtonText: "确定", cancelButtonText: "取消" },
     );
   } catch {
     return;
@@ -1683,10 +1686,12 @@ async function onPurge(c: FileCollabInfo): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `「${c.fileName}」将被彻底删除，内容与历史版本都无法恢复。确认继续？`,
       "彻底删除",
-      { confirmButtonText: "彻底删除", cancelButtonText: "取消", type: "warning" },
+      "彻底删除",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -1791,11 +1796,13 @@ async function batchPurge(): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `选中的 ${list.length} 个协同文档将被彻底删除，内容与历史都无法恢复。`
         + (denied > 0 ? `（另有 ${denied} 个非本人创建，已跳过）` : ""),
       "批量彻底删除",
-      { confirmButtonText: "彻底删除", cancelButtonText: "取消", type: "warning" },
+      "彻底删除",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -2068,11 +2075,13 @@ async function onWriteBackToSource(c: FileCollabInfo): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `将用「${c.fileName}」当前的协同内容覆盖存储桶 ${c.bucket} 中的 `
         + `${c.objectKey}，原文件内容会被替换且不可恢复。确认继续？`,
       "写回源文件",
-      { type: "warning", confirmButtonText: "覆盖源文件", cancelButtonText: "取消" },
+      "覆盖源文件",
+      "取消",
+      "warning",
     );
   } catch {
     return;
@@ -2179,11 +2188,7 @@ async function onDelete(c: FileCollabInfo): Promise<void> {
     return;
   }
   try {
-    await ElMessageBox.confirm(`确认删除协同文档「${c.fileName}」？文档会移入回收桶，可随时恢复。`, "删除协同", {
-      confirmButtonText: "移入回收桶",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await message.confirm(`确认删除协同文档「${c.fileName}」？文档会移入回收桶，可随时恢复。`, "删除协同", "移入回收桶", "取消", "warning");
   } catch {
     return;
   }

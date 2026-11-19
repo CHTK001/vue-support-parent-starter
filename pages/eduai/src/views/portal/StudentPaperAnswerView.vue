@@ -19,11 +19,24 @@
           </p>
           <ul v-if="result.finished && result.results.length" class="pa-done__list">
             <li v-for="r in result.results" :key="r.resultId" class="pa-done__row">
-              <span class="pa-done__q">第 {{ r.questionId }} 题</span>
+              <span class="pa-done__q">第 {{ questionNoOf(r.questionId) }} 题</span>
               <span class="pa-done__s">{{ r.teacherScore ?? r.score }} 分</span>
               <span class="pa-done__c">{{ r.teacherComment || r.comment || "—" }}</span>
             </li>
           </ul>
+          <button
+            v-if="result.finished && result.results.length && hasReviewData"
+            type="button"
+            class="pa-btn pa-btn--ghost"
+            @click="showReview = !showReview"
+          >{{ showReview ? "收起答案与解析" : "查看标准答案与解析" }}</button>
+          <div v-if="showReview && result.finished" class="pa-review">
+            <div v-for="r in result.results" :key="'rv-' + r.resultId" class="pa-review__row">
+              <p class="pa-review__head">第 {{ questionNoOf(r.questionId) }} 题 · 得 {{ r.teacherScore ?? r.score }} 分</p>
+              <p v-if="answerOf(r.questionId)" class="pa-review__line">正确答案：{{ answerOf(r.questionId) }}</p>
+              <p v-if="analysisOf(r.questionId)" class="pa-review__line">解析：{{ analysisOf(r.questionId) }}</p>
+            </div>
+          </div>
         </template>
         <template v-else-if="pollError">
           <p class="pa-done__stage is-error">阅卷结果查询失败：{{ pollError }}</p>
@@ -48,7 +61,10 @@
             <span class="pa-chip">总分 {{ paper?.paperTotalScore ?? 0 }}</span>
             <span
               class="pa-chip pa-chip--time"
-              :class="{ 'is-danger': !!paperDuration && remainingSec <= 60 }"
+              :class="{
+                'is-warn': !!paperDuration && remainingSec <= 300 && remainingSec > 60,
+                'is-danger': !!paperDuration && remainingSec <= 60,
+              }"
             >
               {{ paperDuration ? `剩余 ${countdownText}` : "不限时" }}
             </span>
@@ -58,8 +74,22 @@
       </header>
 
       <div v-loading="loading" class="pa-body">
+        <nav class="pa-nav" aria-label="答题卡">
+          <span class="pa-nav__label">答题卡</span>
+          <div class="pa-nav__dots">
+            <button
+              v-for="(q, i) in questions"
+              :key="'nav-' + q.id"
+              type="button"
+              class="pa-nav__dot"
+              :class="{ 'is-done': !!(answers[q.id] ?? '').trim() }"
+              :title="`第 ${q.order ?? i + 1} 题${(answers[q.id] ?? '').trim() ? '（已作答）' : '（未作答）'}`"
+              @click="scrollToQuestion(q)"
+            >{{ q.order ?? i + 1 }}</button>
+          </div>
+        </nav>
         <ol class="pa-qs">
-          <li v-for="(q, i) in questions" :key="q.id" class="pa-q">
+          <li v-for="(q, i) in questions" :id="'pa-q-' + q.id" :key="q.id" class="pa-q">
             <div class="pa-q__stem">
               <span class="pa-q__no">{{ q.order ?? i + 1 }}.</span>
               <span class="pa-q__text">{{ q.stem }}</span>
@@ -74,9 +104,10 @@
                 type="button"
                 class="pa-opt"
                 :class="{ 'is-active': hasChoice(q, oi) }"
+                :aria-pressed="hasChoice(q, oi)"
                 @click="toggleChoice(q, oi)"
               >
-                <span class="pa-opt__letter">{{ letter(oi) }}</span>
+                <span class="pa-opt__letter">{{ optionLetter(oi) }}</span>
                 <span class="pa-opt__text">{{ opt }}</span>
               </button>
             </div>
@@ -89,6 +120,7 @@
                 type="button"
                 class="pa-opt pa-opt--judge"
                 :class="{ 'is-active': answers[q.id] === v }"
+                :aria-pressed="answers[q.id] === v"
                 @click="setAnswer(q.id, v)"
               >{{ v }}</button>
             </div>
@@ -102,13 +134,14 @@
               :value="answers[q.id] ?? ''"
               @input="setAnswer(q.id, ($event.target as HTMLTextAreaElement).value)"
             ></textarea>
+            <span class="pa-q__count">{{ (answers[q.id] ?? "").length }} 字</span>
           </li>
         </ol>
         <div v-if="!loading && !questions.length" class="pa-empty">这份试卷还没有题目。</div>
       </div>
 
       <footer class="pa-foot">
-        <span class="pa-foot__hint">作答会自动暂存，退出页面不会丢失。</span>
+        <span class="pa-foot__hint">已答 {{ answeredCount }}/{{ questions.length }} 题 · 作答会自动暂存，退出页面不会丢失</span>
         <button type="button" class="pa-btn" :disabled="submitting" @click="onSubmitClick">
           {{ submitting ? "交卷中…" : "交卷" }}
         </button>
@@ -142,6 +175,7 @@ import { eduaiApi } from "../../api/eduaiApi";
 import { errText } from "../../api/errorText";
 import type { Paper, PaperQuestionItem } from "../../api/types";
 import ReConfirmDialog from "../../components/shared/ReConfirmDialog.vue";
+import { optionLetter, parseOptions } from "./paperOption";
 
 const props = defineProps<{ paperId: number }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -158,6 +192,7 @@ const confirmDialog = ref<InstanceType<typeof ReConfirmDialog> | null>(null);
 const phase = ref<"answering" | "submitted">("answering");
 const result = ref<Awaited<ReturnType<typeof eduaiApi.studentMarkingResult>> | null>(null);
 const pollError = ref("");
+const showReview = ref(false);
 let pollTimer = 0;
 
 /** 草稿 localStorage 键：按试卷隔离，避免多卷串味 */
@@ -184,32 +219,41 @@ function isChoice(type?: string): boolean {
   return type === "SINGLE_CHOICE" || type === "MULTIPLE_CHOICE";
 }
 
-/** 选项字符串解析：优先 JSON 数组，退化为按换行/分号切分（与题库端同一口径） */
-function parseOptions(raw?: string): string[] {
-  if (!raw) return [];
-  try {
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr.map((x) => String(x)) : [];
-  } catch {
-    return String(raw)
-      .split(/\r?\n|;/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
+/** 阅卷结果的 questionId 换算成卷面题号（与答题卡同口径）；映射不到退回原始 id */
+function questionNoOf(questionId: number): number {
+  const idx = questions.value.findIndex((x) => x.id === questionId);
+  return idx < 0 ? questionId : questions.value[idx].order ?? idx + 1;
 }
 
-/** 选项字母：A、B、C…（答案与老师端阅卷口径一致，都是字母） */
-function letter(index: number): string {
-  return String.fromCharCode(65 + index);
+/** 复盘用的标准答案 / 解析（拉到完整详情后才有值，脱敏详情里是空的） */
+function answerOf(questionId: number): string {
+  return questions.value.find((x) => x.id === questionId)?.answer ?? "";
 }
+
+function analysisOf(questionId: number): string {
+  return questions.value.find((x) => x.id === questionId)?.analysis ?? "";
+}
+
+/** 标准答案/解析至少有一份可看才出复盘入口（老试卷可能都没录） */
+const hasReviewData = computed(() => questions.value.some((q) => q.answer || q.analysis));
+
+/** 答题卡跳题：滚到对应题目卡片 */
+function scrollToQuestion(q: PaperQuestionItem): void {
+  document.getElementById(`pa-q-${q.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** 已作答题数（底部进度提示用） */
+const answeredCount = computed(
+  () => questions.value.filter((q) => (answers[q.id] ?? "").trim()).length,
+);
 
 function hasChoice(q: PaperQuestionItem, optionIndex: number): boolean {
-  return (answers[q.id] ?? "").split(",").includes(letter(optionIndex));
+  return (answers[q.id] ?? "").split(",").includes(optionLetter(optionIndex));
 }
 
 /** 选择题点选：单选直接覆盖；多选切换选中态后按字母序拼接 */
 function toggleChoice(q: PaperQuestionItem, optionIndex: number): void {
-  const L = letter(optionIndex);
+  const L = optionLetter(optionIndex);
   if (q.type === "SINGLE_CHOICE") {
     answers[q.id] = L;
     return;
@@ -267,9 +311,13 @@ function unansweredCount(): number {
 async function onSubmitClick(): Promise<void> {
   if (submitting.value) return;
   const left = unansweredCount();
+  const leftNos = questions.value
+    .map((q, i) => ({ no: q.order ?? i + 1, text: (answers[q.id] ?? "").trim() }))
+    .filter((x) => !x.text)
+    .map((x) => x.no);
   const tip =
     left > 0
-      ? `还有 ${left} 题未作答，确认交卷吗？未作答的题目按 0 分计。`
+      ? `还有 ${left} 题未作答（第 ${leftNos.slice(0, 8).join("、")}${leftNos.length > 8 ? " 等" : ""} 题），未作答按 0 分计。确认交卷吗？`
       : "确认交卷吗？交卷后将进入 AI 阅卷，不能再修改答案。";
   const ok = await confirmDialog.value?.open(tip, { title: "交卷确认" });
   if (!ok) return;
@@ -334,7 +382,11 @@ function startPolling(taskId?: string): void {
       result.value = await eduaiApi.studentMarkingResult(id);
       pollError.value = "";
       // finished = 判分结束（含失败）；失败在结果卡里单独展示，轮询到此为止
-      if (result.value.finished) stopPolling();
+      if (result.value.finished) {
+        stopPolling();
+        // 阅卷成功结束后补拉完整详情（含答案解析）供复盘；作答中那份是脱敏的
+        if (result.value.taskStatus !== 3) void load(true);
+      }
     } catch (e) {
       // 查询失败即停并给出重试入口，避免对故障接口无限轮询
       pollError.value = errText(e) || "查询失败";
@@ -352,10 +404,18 @@ function stopPolling(): void {
   }
 }
 
-async function load(): Promise<void> {
+/** 完整详情只需拉一次（复盘用）；作答中始终用脱敏详情 */
+let fullPaperLoaded = false;
+
+async function load(full = false): Promise<void> {
+  if (full && fullPaperLoaded) return;
   loading.value = true;
   try {
-    paper.value = await eduaiApi.studentAnswerPaper(props.paperId);
+    // 已交卷的看完整详情（复盘要标准答案/解析）；作答中只给脱敏详情防抄答案
+    paper.value = full
+      ? await eduaiApi.myClassPaperDetail(props.paperId)
+      : await eduaiApi.studentAnswerPaper(props.paperId);
+    if (full) fullPaperLoaded = true;
   } catch (e) {
     message.error("试卷加载失败：" + (errText(e) || "未知错误"));
     emit("close");
@@ -365,16 +425,20 @@ async function load(): Promise<void> {
 }
 
 onMounted(async () => {
-  // 已提交过的卷子直接看结果，不再重考
-  if (await locateExistingTask()) {
+  // 已提交过的卷子直接看结果，不再重考；结果态也拉详情（题号映射 + 复盘）
+  const submitted = await locateExistingTask();
+  await load(submitted);
+  if (submitted) {
     return;
   }
-  await load();
-  loadDraft();
+  if (loadDraft()) {
+    message.info("已恢复上次未提交的作答，交卷前可继续修改");
+  }
   // 计时：到点自动交卷（免确认 —— 超时本就是系统行为，再弹确认会卡死交卷）
   tickTimer = window.setInterval(() => {
     nowTs.value = Date.now();
     if (paperDuration.value && remainingSec.value <= 0 && phase.value === "answering" && !submitting.value) {
+      message.info("考试时间已到，系统已自动交卷");
       void doSubmit();
     }
   }, 1000);
@@ -587,6 +651,94 @@ watch(answers, persistDraft, { deep: true });
   margin-top: 16px;
 }
 
+/* 答题卡：sticky 吸顶，随作答实时点亮，可横向滚动 */
+.pa-nav {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 860px;
+  margin: 0 auto 12px;
+  padding: 8px 0;
+  background: var(--el-bg-color);
+}
+.pa-nav__label {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.pa-nav__dots {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pa-nav__dot {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 50%;
+}
+.pa-nav__dot.is-done {
+  color: var(--el-color-white);
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+/* 文本题字数 */
+.pa-q__count {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+  text-align: right;
+}
+/* 倒计时预警两档：5 分钟内黄色，1 分钟内红色脉动 */
+.pa-chip--time.is-warn {
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning-dark-2, var(--el-color-warning));
+}
+.pa-chip--time.is-danger {
+  animation: pa-pulse 1s ease-in-out infinite;
+}
+@keyframes pa-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+/* 复盘：标准答案与解析 */
+.pa-review {
+  margin-top: 14px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pa-review__row {
+  padding: 10px 12px;
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-md, 8px);
+}
+.pa-review__head {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+}
+.pa-review__line {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+}
+
 /* 结果态 */
 .pa-done {
   flex: 1;
@@ -699,7 +851,8 @@ watch(answers, persistDraft, { deep: true });
 }
 /* 系统减少动态效果：关掉转圈动画的旋转 */
 @media (prefers-reduced-motion: reduce) {
-  .pa-done__spin {
+  .pa-done__spin,
+  .pa-chip--time.is-danger {
     animation: none;
   }
 }

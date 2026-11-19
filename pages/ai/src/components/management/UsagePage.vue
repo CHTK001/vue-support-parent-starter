@@ -276,7 +276,7 @@
       <header class="usage-speed__head">
         <div class="usage-panel__title-wrap">
           <h2 class="usage-panel__title">TopK 速度榜</h2>
-          <span class="usage-panel__meta">平均解码速度 · 按请求数加权 · 前 {{ board.topkRows.length || 0 }} 名</span>
+          <span class="usage-panel__meta">平均解码速度 · 按请求数加权 · 前 {{ board.topkRows.length || 0 }} 名 · 命中率 / 失败暂无分模型统计</span>
         </div>
         <div class="usage-seg usage-seg--sm" role="tablist" aria-label="速度榜维度" @keydown="onTabKeydown">
           <button
@@ -313,8 +313,8 @@
               {{ board.formatNumber(r.calls) }} 个请求 · {{ board.fmtToken(r.tokens) }} token ·
               {{ board.currencySymbol }}{{ board.money(r.cost) }} · 首字
               {{ r.firstMs == null ? '—' : board.formatLatency(r.firstMs) }} ·
-              <span title="后端暂未提供分模型缓存读取统计" class="usage-speed__na">命中率 —</span> ·
-              <span title="后端暂未提供失败次数字段" class="usage-speed__na">失败 —</span>
+              <span class="usage-speed__na">命中率 —</span> ·
+              <span class="usage-speed__na">失败 —</span>
             </div>
           </div>
           <span class="usage-speed__rank">{{ i + 1 }}</span>

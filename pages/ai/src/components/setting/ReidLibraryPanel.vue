@@ -261,7 +261,6 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from '@repo/core'
 import ReDialog from '@repo/ui/re-dialog'
-import { ElMessageBox } from 'element-plus'
 import {
   CircleCheck, Delete, Files, Grid, Menu, Postcard, Refresh, Search, Select, Setting, Plus,
   Upload, UploadFilled, UserFilled, Warning, ZoomIn,
@@ -421,10 +420,12 @@ function preview(item: ReidLibraryRow) {
 async function removeOne(item: ReidLibraryRow) {
   const label = labelOf(item)
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除「${label}」吗？人脸与 ReID 两套特征会一起删除，此动作不可恢复。`,
       '删除记录',
-      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+      '删除',
+      '取消',
+      'warning',
     )
   } catch {
     return
@@ -446,10 +447,12 @@ async function removeSelected() {
   const ids = [...selected.value]
   if (!ids.length) return
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认删除选中的 ${ids.length} 条记录吗？每条的两个人脸 / ReID 特征会一起删除。`,
       '批量删除',
-      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
+      '删除',
+      '取消',
+      'warning',
     )
   } catch {
     return

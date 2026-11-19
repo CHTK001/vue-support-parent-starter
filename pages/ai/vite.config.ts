@@ -23,9 +23,25 @@
 import { createVite, WORKSPACE_ROOT } from "../../turbo/vite/createVite";
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
+import type { ProxyOptions } from "vite";
 
 /** 开发包入口：base 走同源，@/ 指向 pages/ai/src 业务层（createVite 共享 @repo/* 别名录不包含此层）。 */
 const apiTarget = process.env.AI_API_TARGET ?? "http://127.0.0.1:8787";
+
+/**
+ * dev 代理公共处理：转发前剥掉浏览器的 Origin 头。
+ *
+ * <p>changeOrigin 只改写 Host、不改 Origin；后端 ApiCorsFilter 是白名单制，
+ * 见到陌生源（如 127.0.0.1:15689）一律 403「Invalid CORS request」。GET 请求
+ * 不带 Origin 侥幸能用，而 POST（登录 /v2/user/login、生成任务提交等全部写接口）
+ * 必挂——2026-11-19 实测登录 403。剥掉 Origin 后请求与 curl 同态（非 CORS 请求），
+ * 后端按同源放行，无需为每个 vite 端口维护后端白名单再重启服务。</p>
+ */
+const withoutBrowserOrigin: Pick<ProxyOptions, "configure"> = {
+  configure: (proxy) => {
+    proxy.on("proxyReq", (proxyReq) => proxyReq.removeHeader("origin"));
+  },
+};
 
 export default createVite({
   appName: "vue-support-ai-starter",
@@ -50,25 +66,43 @@ export default createVite({
       "/v2": {
         target: apiTarget,
         changeOrigin: true,
+        ...withoutBrowserOrigin,
       },
       // 管理接口（rootHttp）
       "/api": {
         target: apiTarget,
         changeOrigin: true,
+        ...withoutBrowserOrigin,
       },
       // 登录鉴权：未代理时 403，且本应用本地跑时与后端同源（Origin 被接受）。
       // 注意只代理 **POST**：/login 同时是 SPA 的登录页路由（守卫 next({path:'/login'})），
       // GET 也转给后端的话，dev 下登录页会直接渲染出后端那句「不支持GET请求」的 JSON，
-      // 登录页永远打不开（2026-11-10 实测）。GET 回落 index.html 交给前端路由。
+      // 登录页永远打不开（2026-11-10 实测）。GET 回落交给前端路由。
+      //
+      // vite 8 实测：bypass 返回字符串路径只是改写 req.url 继续 next()，而 pages/ai
+      // 没有物理 index.html（build 时才落盘），链上无人接手 → GET /login 直接 404。
+      // 因此 GET 在这里直接 302 到 /：SPA 壳照常返回，路由守卫把未登录用户送回
+      // /login（客户端跳转，不再打服务器）。res 已结束后再返回字符串，vite 检测到
+      // writableEnded 会停止后续处理，不会重复走代理。
       "/login": {
         target: apiTarget,
         changeOrigin: true,
-        bypass: (req) => (req.method === "GET" ? "/index.html" : undefined),
+        ...withoutBrowserOrigin,
+        bypass: (req, res) => {
+          if (req.method === "GET") {
+            res.statusCode = 302;
+            res.setHeader("Location", "/");
+            res.end();
+            return "/";
+          }
+          return undefined;
+        },
       },
       // 登录态续期与登出
       "/logout": {
         target: apiTarget,
         changeOrigin: true,
+        ...withoutBrowserOrigin,
       },
     },
   },

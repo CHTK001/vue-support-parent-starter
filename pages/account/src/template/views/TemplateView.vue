@@ -417,7 +417,8 @@
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { message } from '@repo/core'
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
 import ReIcon from '@repo/ui/re-icon'
@@ -832,11 +833,7 @@ async function removeSelected(): Promise<void> {
     return
   }
   try {
-    await ElMessageBox.confirm(`删除模板「${item.name}」？`, '删除模板', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消'
-    })
+    await message.confirm(`删除模板「${item.name}」？`, '删除模板', '删除', '取消', 'warning')
   } catch {
     return
   }

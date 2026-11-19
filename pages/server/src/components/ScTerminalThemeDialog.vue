@@ -22,6 +22,7 @@
  */
 import { computed, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { message } from "@repo/core";
 import {
   ANSI_BRIGHT_KEYS,
   ANSI_KEYS,
@@ -289,10 +290,10 @@ async function onUpdatePreset(preset: TerminalThemePreset): Promise<void> {
  */
 async function onDeletePreset(preset: TerminalThemePreset): Promise<void> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `删除预设「${preset.name}」？当前保存的配色不受影响。`,
       "删除预设",
-      { confirmButtonText: "删除", cancelButtonText: "取消", type: "warning" },
+      "删除", "取消", "warning",
     );
   } catch {
     return;

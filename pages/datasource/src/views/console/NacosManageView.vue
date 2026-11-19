@@ -8,6 +8,7 @@
       <div class="dsm-toolbar-right">
         <ReButton layout="square" icon="Connection" tip="测试连接" data-testid="dsm-btn-test" :disabled="!source" :loading="testing" @click="testConnection" />
         <ReButton layout="square" icon="Refresh" tip="刷新" data-testid="dsm-btn-refresh" :loading="loading" @click="reloadAll" />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
         <ReButton layout="square" type="primary" icon="Plus" tip="新建配置" data-testid="dsm-btn-create" :disabled="!source" @click="openCreate" />
       </div>
     </div>
@@ -268,6 +269,8 @@ import { ReOption } from "@repo/ui/re-kit";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import { copyToClipboard } from "../../utils/clipboard";
 import DsmContextMenu from "../../components/console/DsmContextMenu.vue";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
@@ -559,6 +562,20 @@ async function reloadAll() {
 }
 
 /**
+ * 自动刷新：与「刷新」按钮同一条链路（命名空间 / 配置 / 服务 / 集群）。
+ *
+ * <p>默认关闭：Nacos 这四个接口各自是独立分页查询，开档位后一秒内会并发四次，
+ * 由用户按实例负载自行决定。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: reloadAll,
+  storageKey: "datasource.nacos",
+});
+
+/**
  * 探测当前数据源的 Nacos 连通性并显示版本
  */
 async function testConnection() {
@@ -687,7 +704,7 @@ async function saveConfig() {
  */
 async function deleteConfig(row: NacosConfig) {
   try {
-    await ElMessageBox.confirm(`确定删除配置 ${row.dataId}（${row.group}）吗？`, "删除确认", { type: "warning" });
+    await message.confirm(`确定删除配置 ${row.dataId}（${row.group}）吗？`, "删除确认");
   } catch {
     return;
   }
@@ -760,7 +777,7 @@ async function removeNamespace() {
   const id = activeNs.value;
   if (!id || id === "public") return;
   try {
-    await ElMessageBox.confirm(`确定删除命名空间 ${id} 吗？其下配置将一并删除，不可恢复！`, "删除命名空间", { type: "warning" });
+    await message.confirm(`确定删除命名空间 ${id} 吗？其下配置将一并删除，不可恢复！`, "删除命名空间");
   } catch {
     return;
   }

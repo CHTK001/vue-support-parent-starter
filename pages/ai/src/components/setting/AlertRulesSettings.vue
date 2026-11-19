@@ -12,21 +12,30 @@
       <!-- 筛选行：名称关键字 / 作用范围 / 启用状态 -->
       <div class="alert-filter">
         <el-input
-          v-model="filterKeyword"
+          v-model="alertFilter.keyword"
           class="alert-filter__keyword"
           placeholder="按规则名称搜索"
           clearable
           :prefix-icon="Search"
         />
-        <el-select v-model="filterScope" class="alert-filter__scope" placeholder="作用范围" clearable>
+        <el-select v-model="alertFilter.scope" class="alert-filter__scope" placeholder="作用范围" clearable>
           <el-option label="全局" :value="0" />
           <el-option v-for="k in appKeys" :key="k.id" :label="appKeyLabel(k)" :value="k.id" />
         </el-select>
-        <el-select v-model="filterEnabled" class="alert-filter__state" placeholder="状态" clearable>
+        <el-select v-model="alertFilter.enabled" class="alert-filter__state" placeholder="状态" clearable>
           <el-option label="启用" :value="true" />
           <el-option label="停用" :value="false" />
         </el-select>
         <span class="alert-filter__count">{{ filteredRules.length }} / {{ rules.length }} 条</span>
+      </div>
+
+      <!-- 加载失败：错误态 + 重试（区别于「暂无规则」空态） -->
+      <div
+        v-if="loadError"
+        class="flex items-center justify-between gap-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-2.5 mb-3 text-sm text-red-600 dark:text-red-300"
+      >
+        <span>告警规则加载失败，可能是网络或服务暂时不可用。</span>
+        <el-button link type="primary" :loading="loading" @click="load">重试</el-button>
       </div>
 
       <el-table
@@ -164,10 +173,10 @@
  */
 import { ref, reactive, computed, onMounted } from 'vue'
 import { message } from '@repo/core'
-import { ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { appKeyApi } from '@/services/javaApi'
+import { usePersistentFilters } from '@repo/utils'
 import SettingsCard from './SettingsCard.vue'
 
 defineOptions({ name: 'AlertRulesSettings' })
@@ -193,31 +202,31 @@ const rules = ref<any[]>([])
 const appKeys = ref<any[]>([])
 
 // ==================== 筛选 ====================
-const filterKeyword = ref('')
-const filterScope = ref<number | ''>('')
-const filterEnabled = ref<boolean | ''>('')
+// 筛选条件持久化：切走再切回不丢（localStorage 记忆），有路由上下文时同步 URL query
+const { filters: alertFilter, reset: resetAlertFilter } = usePersistentFilters({
+  key: 'ai.alertRules',
+  defaults: { keyword: '', scope: '' as number | '', enabled: '' as boolean | '' },
+})
 
 /** clearable 清空后是 ''；null/undefined/'' 都视为未选 */
 const isSet = (v: any) => v !== null && v !== undefined && v !== ''
 
 const hasFilter = computed(
-  () => filterKeyword.value.trim() !== '' || isSet(filterScope.value) || isSet(filterEnabled.value)
+  () => alertFilter.keyword.trim() !== '' || isSet(alertFilter.scope) || isSet(alertFilter.enabled)
 )
 
 const filteredRules = computed(() => {
-  const kw = filterKeyword.value.trim().toLowerCase()
+  const kw = alertFilter.keyword.trim().toLowerCase()
   return rules.value.filter((r) => {
     if (kw && !String(r?.name ?? '').toLowerCase().includes(kw)) return false
-    if (isSet(filterScope.value) && Number(r?.appKeyId ?? 0) !== Number(filterScope.value)) return false
-    if (isSet(filterEnabled.value) && Boolean(r?.enabled) !== Boolean(filterEnabled.value)) return false
+    if (isSet(alertFilter.scope) && Number(r?.appKeyId ?? 0) !== Number(alertFilter.scope)) return false
+    if (isSet(alertFilter.enabled) && Boolean(r?.enabled) !== Boolean(alertFilter.enabled)) return false
     return true
   })
 })
 
 const clearFilters = () => {
-  filterKeyword.value = ''
-  filterScope.value = ''
-  filterEnabled.value = ''
+  resetAlertFilter()
 }
 
 // ==================== 展示辅助 ====================
@@ -283,12 +292,16 @@ const activeUnit = computed(() => conditionMeta(form.condition)?.unit ?? '')
 /** channels 序列化结果（对话框内实时展示长度，对齐后端 VARCHAR(512)） */
 const channelsJson = computed(() => JSON.stringify(form.channelList.filter((c) => String(c).trim())))
 
+const loadError = ref(false)
+
 const load = async () => {
   loading.value = true
   try {
     const res: any = await apiService.fetchAlertRules()
     rules.value = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : []
+    loadError.value = false
   } catch (e: any) {
+    loadError.value = true
     message.error(e?.message || '加载告警规则失败')
   } finally {
     loading.value = false
@@ -404,11 +417,7 @@ const onToggle = async (row: any) => {
 
 const remove = async (row: any) => {
   try {
-    await ElMessageBox.confirm(`确定删除告警规则「${row.name}」？删除后不可恢复。`, '删除告警规则', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-    })
+    await message.confirm(`确定删除告警规则「${row.name}」？删除后不可恢复。`, '删除告警规则', '删除', '取消', 'warning')
   } catch {
     return // 用户取消
   }

@@ -118,7 +118,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
+import { message } from "@repo/core";
 import { closeSession, getSessions, getSnippets, runCommand } from "../../../api";
 
 const props = withDefaults(
@@ -291,11 +292,7 @@ async function loadSessions(): Promise<void> {
  */
 async function close(s: SessionRow): Promise<void> {
   try {
-    await ElMessageBox.confirm(`断开 ${s.user || "该用户"} 在 ${s.connectTime || "当前"} 建立的会话？`, "断开会话", {
-      confirmButtonText: "断开",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await message.confirm(`断开 ${s.user || "该用户"} 在 ${s.connectTime || "当前"} 建立的会话？`, "断开会话", "断开", "取消", "warning");
   } catch {
     return;
   }

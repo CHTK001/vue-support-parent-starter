@@ -476,7 +476,8 @@
  * <p>凭据口径：列表只回脱敏 key；编辑留空表示保留原值（magpie 的 save 语义）。</p>
  */
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { message } from '@repo/core'
+import { ElMessage } from 'element-plus'
 import ReButton from '@repo/ui/re-button'
 import ReDialog from '@repo/ui/re-dialog'
 import { MAGPIE_PRESETS, magpiePresetOf, type MagpiePreset } from '../magpiePresets'
@@ -922,9 +923,7 @@ async function removeCredit(): Promise<void> {
   const providerId = form.id.trim()
   if (!providerId || !creditSaved.value) return
   try {
-    await ElMessageBox.confirm(`删除「${providerId}」的余额查询配置？之后额度卡只读网关。`, '确认删除', {
-      type: 'warning',
-    })
+    await message.confirm(`删除「${providerId}」的余额查询配置？之后额度卡只读网关。`, '确认删除')
   } catch {
     return
   }
@@ -1064,9 +1063,7 @@ async function remove(provider: MagpieProvider): Promise<void> {
   const id = String(provider.id ?? '')
   if (!id) return
   try {
-    await ElMessageBox.confirm(`删除上游 provider「${provider.name || id}」？网关内该上游的模型会立即不可用。`, '确认删除', {
-      type: 'warning',
-    })
+    await message.confirm(`删除上游 provider「${provider.name || id}」？网关内该上游的模型会立即不可用。`, '确认删除')
   } catch {
     return
   }

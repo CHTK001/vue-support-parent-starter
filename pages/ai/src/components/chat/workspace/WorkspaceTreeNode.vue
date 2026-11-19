@@ -25,7 +25,7 @@
                 </svg>
             </span>
             <span v-else class="node-icon file-icon">
-                <img :src="fileIcon" width="16" height="16" />
+                <img :src="fileIcon" width="16" height="16" alt="" />
             </span>
 
             <!-- 节点名称 -->

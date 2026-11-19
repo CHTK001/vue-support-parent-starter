@@ -6,6 +6,7 @@
         <ReButton size="small" icon="Setting" tip="能力声明" show-text data-testid="kafka-btn-capability" :loading="capabilityLoading" @click="loadCapability">能力声明</ReButton>
         <ReButton size="small" icon="Connection" tip="测试连接" show-text data-testid="kafka-btn-test" :disabled="!source" :loading="testing" @click="testConnection">测试连接</ReButton>
         <ReButton size="small" icon="Refresh" tip="刷新" show-text data-testid="kafka-btn-refresh" :loading="loading" @click="refresh">刷新</ReButton>
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
         <ReButton size="small" type="primary" icon="Search" tip="只读查询" show-text data-testid="kafka-btn-query" :disabled="!source" @click="activeTab = 'query'">只读查询</ReButton>
       </template>
     </ReSectionHead>
@@ -137,9 +138,12 @@
               查询结果
               <span v-if="queryResult" class="dsm-query-meta">
                 {{ queryResult.rowCount }} 行 · {{ queryResult.executionTimeMs }} ms
-                <span v-if="queryResult.truncated" class="dsm-query-warn">
-                  已截断，服务端共 {{ queryResult.totalRows }} 行，请加 limit 或收窄条件
-                </span>
+                <DsQueryTruncatedHint
+                  :truncated="queryResult.truncated"
+                  :shown="queryResult.rows.length"
+                  :total="queryResult.totalRows"
+                  dialect="kafka"
+                />
               </span>
             </div>
             <ReTable
@@ -181,6 +185,9 @@ import ReTable from "@repo/ui/re-table";
 // 卡片视觉统一底座（16px 圆角/透明边框/双层投影，见 packages/ui shared/re-surface.css）
 import "@repo/ui/surface";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import DsQueryTruncatedHint from "../../components/console/DsQueryTruncatedHint.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   fetchKafkaCapability,
@@ -348,6 +355,21 @@ async function refresh() {
   await loadTopics();
   if (activeTopic.value) await loadChildren(activeTopic.value);
 }
+
+/**
+ * 自动刷新：复用 useAutoRefresh 的档位与在途保护。
+ *
+ * <p>直接复用页面已有的 {@link refresh}，所以轮询一次 = 能力声明 + 主题列表 +
+ * 当前选中分区，与用户点「刷新」的效果完全一致，不会出现「自动刷新只更新一半」。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: refresh,
+  storageKey: "datasource.kafka",
+  defaultInterval: 0,
+});
 
 onMounted(async () => {
   await bind("kafka");
@@ -594,10 +616,6 @@ onMounted(async () => {
 .dsm-query-meta {
   font-weight: 400;
   color: var(--text-tertiary, var(--apm-muted));
-}
-
-.dsm-query-warn {
-  color: var(--status-warning, var(--apm-warning));
 }
 
 /* 响应式：≤768px 2 列统计 */

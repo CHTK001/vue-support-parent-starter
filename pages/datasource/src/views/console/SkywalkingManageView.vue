@@ -32,6 +32,7 @@
           :loading="overviewLoading"
           @click="reloadOverview"
         />
+        <DsAutoRefreshSwitch v-model="autoRefreshInterval" :countdown="autoRefreshCountdown" />
       </div>
     </div>
 
@@ -424,6 +425,8 @@ import ReTable from "@repo/ui/re-table";
 import ReTabs from "@repo/ui/re-tabs";
 import ReTab from "@repo/ui/re-tab";
 import MiddlewareGap from "../../components/console/MiddlewareGap.vue";
+import DsAutoRefreshSwitch from "../../components/console/DsAutoRefreshSwitch.vue";
+import { useAutoRefresh } from "../../composables/useAutoRefresh";
 import { useMiddlewareSource } from "../../utils/middlewareSource";
 import {
   fetchSkywalkingOverview,
@@ -568,6 +571,19 @@ async function onSwitchSource(id: number): Promise<void> {
     await reloadOverview();
   }
 }
+
+/**
+ * 自动刷新：总览 + 运行状态。
+ *
+ * <p>默认关闭。SkyWalking 的总览是两个接口并发，档位由用户按实例规模选择。</p>
+ */
+const {
+  interval: autoRefreshInterval,
+  countdown: autoRefreshCountdown,
+} = useAutoRefresh({
+  onRefresh: reloadOverview,
+  storageKey: "datasource.skywalking",
+});
 
 // ==================== 服务 ====================
 

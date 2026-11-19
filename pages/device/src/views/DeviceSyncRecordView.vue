@@ -226,8 +226,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { CircleCheck, Clock, Refresh, Warning } from '@element-plus/icons-vue'
+import { message } from '@repo/core'
 
 import ReButton from '@repo/ui/re-button'
 import ReErrorBar from '@repo/ui/re-error-bar'
@@ -594,10 +595,12 @@ async function onRetryFailedBatch(): Promise<void> {
       return
     }
     try {
-      await ElMessageBox.confirm(
+      await message.confirm(
         `确认重试 ${candidates.length} 条写回失败记录？将逐台推送厂商${candidates.length >= RETRY_BATCH_LIMIT ? '（已达单次上限，可先缩小筛选再试）' : ''}。`,
         '批量重试',
-        { type: 'warning', confirmButtonText: '重试', cancelButtonText: '取消' },
+        '重试',
+        '取消',
+        'warning',
       )
     } catch {
       return
@@ -628,10 +631,12 @@ async function onRetryFailedBatch(): Promise<void> {
 /** 重试一条队列记录：确认后走后端写回，成功失败都回读队列 */
 async function onRetry(row: DeviceSyncOutbox): Promise<void> {
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `确认重试这台设备的写回吗？成功置「已推送」，失败按退避推迟下次重试。`,
       '重试写回',
-      { type: 'warning', confirmButtonText: '重试', cancelButtonText: '取消' },
+      '重试',
+      '取消',
+      'warning',
     )
   } catch {
     return

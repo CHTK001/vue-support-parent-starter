@@ -100,7 +100,7 @@
               class="st-full"
               @change="onOutputTargetChange(out)"
             >
-              <el-option v-for="ds in jdbcSources" :key="ds.id" :label="ds.name" :value="ds.id" />
+              <el-option v-for="ds in jdbcSources" :key="ds.id" :label="ds.name" :value="ds.id" :disabled="!ds.fastLoadEnabled" />
             </el-select>
           </div>
           <div
@@ -366,14 +366,15 @@ const dsLabel = (id?: number | null): string => {
 
 /**
  * 目标数据源快速导入能力提示：按后端回传的 fastLoadEnabled（MySQL/PG 方言自动计算）展示。
- * 支持 → 绿色提示（本目标走 LOAD/COPY 直灌）；不支持/未知 → 红色提示（本目标将失败或跳过）。
+ * 支持 → 绿色提示（本目标走 LOAD/COPY 直灌）；不支持/未知 → 红色提示，且下拉项直接禁用，
+ * 引导用户改选支持快速导入的数据源。
  */
 const fastLoadHint = (out: BulkTarget): string => {
   if (out.targetDatasourceId == null) return "";
   const hit = datasources.value.find(ds => ds.id === out.targetDatasourceId);
   if (!hit) return "";
   if (hit.fastLoadEnabled) return "该数据源支持快速导入（LOAD / COPY 直灌）";
-  return "该数据源暂不支持快速导入，导入将失败（当前仅 MySQL / PostgreSQL）";
+  return "该数据源不支持快速导入（当前仅 MySQL / PostgreSQL），请改选其他数据源";
 };
 
 const fastLoadEnabledOf = (out: BulkTarget): boolean => {

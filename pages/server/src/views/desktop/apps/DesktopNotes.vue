@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import { ElMessageBox } from "element-plus";
+import { message } from "@repo/core";
 
 defineProps<{
   /** 主机标识（便签不按主机隔离，这里只为与其它应用保持同一套参数） */
@@ -176,11 +176,9 @@ function create(): void {
 async function remove(id: string): Promise<void> {
   const item = notes.value.find((n) => n.id === id);
   if (!item) return;
-  const ok = await ElMessageBox.confirm(`删除便签「${titleOf(item)}」？删除后不可恢复。`, "删除便签", {
-    type: "warning",
-    confirmButtonText: "删除",
-    cancelButtonText: "取消",
-  }).catch(() => false);
+  const ok = await message
+    .confirm(`删除便签「${titleOf(item)}」？删除后不可恢复。`, "删除便签", "删除", "取消", "warning")
+    .catch(() => false);
   if (!ok) return;
   notes.value = notes.value.filter((n) => n.id !== id);
   activeId.value = notes.value[0]?.id ?? "";

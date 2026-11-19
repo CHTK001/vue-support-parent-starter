@@ -11,6 +11,8 @@
  * @since 4.0.0
  */
 
+import { formatDateTime as formatDateTimeBase } from '@repo/utils'
+
 /** 一天的毫秒数 */
 export const DAY_MS = 86_400_000
 
@@ -69,8 +71,7 @@ export function parseDateTime(value?: string | null): Date | null {
  * @returns 文本；null 给破折号（表格里留空会被读成「这一格坏了」）
  */
 export function formatDate(d: Date | null): string {
-  if (!d) return '—'
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+  return formatDateTimeBase(d, { style: 'date' })
 }
 
 /**
@@ -79,8 +80,7 @@ export function formatDate(d: Date | null): string {
  * @param d 时刻
  */
 export function formatDateTime(d: Date | null): string {
-  if (!d) return '—'
-  return `${formatDate(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+  return formatDateTimeBase(d)
 }
 
 /**

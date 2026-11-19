@@ -11,7 +11,6 @@
 import { message } from "@repo/core";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReInput from "@repo/ui/re-input";
 import ReDialog from "@repo/ui/re-dialog";
@@ -315,10 +314,12 @@ async function handleIpDelete(row: Record<string, unknown>): Promise<void> {
   const ip = row as SysIpBlackwhite;
   if (ip.sysIpId == null || ipDeleteLoadingId.value != null) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       t("policy.bw.deleteIpBody", { ip: ip.sysIpIp ?? "-" }),
       t("policy.bw.deleteIpTitle"),
-      { type: "warning", confirmButtonText: t("policy.common.remove"), cancelButtonText: t("policy.common.cancel") },
+      t("policy.common.remove"),
+      t("policy.common.cancel"),
+      "warning",
     );
   } catch {
     return;
@@ -390,10 +391,12 @@ async function handleAccDelete(row: Record<string, unknown>): Promise<void> {
   const account = row as AccountBlackwhite;
   if (account.sysAccountBwId == null || accDeleteLoadingId.value != null) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       t("policy.bw.deleteAccBody", { account: account.account ?? "-" }),
       t("policy.bw.deleteAccTitle"),
-      { type: "warning", confirmButtonText: t("policy.common.remove"), cancelButtonText: t("policy.common.cancel") },
+      t("policy.common.remove"),
+      t("policy.common.cancel"),
+      "warning",
     );
   } catch {
     return;

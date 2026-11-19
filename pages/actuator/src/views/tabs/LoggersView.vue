@@ -95,7 +95,8 @@
  * 是「用户以为改成了」的旧值，比报错更误导。</p>
  */
 import { computed, ref, watch } from "vue";
-import { ElButton, ElDrawer, ElMessage, ElMessageBox, ElOption, ElSelect, ElSwitch } from "element-plus";
+import { ElButton, ElDrawer, ElMessage, ElOption, ElSelect, ElSwitch } from "element-plus";
+import { message } from "@repo/core";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import TabShell from "../TabShell.vue";
@@ -192,11 +193,13 @@ async function revertLevels(): Promise<void> {
   const entries = [...changedLevels.value.entries()];
   if (!entries.length || reverting.value) return;
   try {
-    await ElMessageBox.confirm(`将把 ${entries.length} 个 logger 恢复为本次修改前的级别，确认执行？`, "一键还原", {
-      confirmButtonText: "还原",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await message.confirm(
+      `将把 ${entries.length} 个 logger 恢复为本次修改前的级别，确认执行？`,
+      "一键还原",
+      "还原",
+      "取消",
+      "warning",
+    );
   } catch {
     return; // 用户取消
   }
@@ -240,10 +243,12 @@ function levelText(level: string): string {
 async function changeLoggerLevel(name: string, level: string, previous: string): Promise<void> {
   if (!name || level === previous) return;
   try {
-    await ElMessageBox.confirm(
+    await message.confirm(
       `将把 logger「${name}」的日志级别从「${levelText(previous)}」改为「${levelText(level)}」。`,
       "修改日志级别",
-      { confirmButtonText: "确认修改", cancelButtonText: "取消", type: "warning" },
+      "确认修改",
+      "取消",
+      "warning",
     );
   } catch {
     void reload(true); // 用户取消：回填当前配置值
@@ -323,11 +328,13 @@ function appendChangeLog(entry: LoggerChangeEntry): void {
 async function clearChangeLog(): Promise<void> {
   if (!changeLog.value.length) return;
   try {
-    await ElMessageBox.confirm("清空后无法恢复，确认清空全部变更记录？", "清空变更记录", {
-      confirmButtonText: "清空",
-      cancelButtonText: "取消",
-      type: "warning",
-    });
+    await message.confirm(
+      "清空后无法恢复，确认清空全部变更记录？",
+      "清空变更记录",
+      "清空",
+      "取消",
+      "warning",
+    );
   } catch {
     return; // 用户取消
   }

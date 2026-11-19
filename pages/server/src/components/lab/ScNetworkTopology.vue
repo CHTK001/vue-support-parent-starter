@@ -128,7 +128,7 @@ async function addSoftware(): Promise<void> {
 
 async function removeSoftware(name: string): Promise<void> {
   try {
-    await ElMessageBox.confirm(`移除「${name}」？`, "确认", { type: "warning" });
+    await message.confirm(`移除「${name}」？`, "确认");
     internalSoftware.value = internalSoftware.value.filter(s => s !== name);
     saveInternalSoftware();
   } catch { /* cancel */ }

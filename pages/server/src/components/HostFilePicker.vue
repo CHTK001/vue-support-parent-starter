@@ -77,7 +77,8 @@
  * @since 4.0.0.52
  */
 import { onBeforeUnmount, reactive, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
+import { message } from '@repo/core';
 import { toastError } from '../utils/errors';
 import {
   completeUploadTask,
@@ -219,7 +220,7 @@ async function remove(item: ReleaseHostFileItem) {
     return;
   }
   try {
-    await ElMessageBox.confirm(`确定删除「${item.name}」吗？`, '删除文件', { type: 'warning' });
+    await message.confirm(`确定删除「${item.name}」吗？`, '删除文件');
   } catch {
     return;
   }
