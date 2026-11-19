@@ -608,6 +608,65 @@
           </div>
         </div>
 
+        <!--
+          多图对比：同一次生成的多张结果并排同屏（区别于舞台的「参考图 vs 结果」对照）。
+          顶部勾选片控制亮哪几列，至少保留 2 张；Esc 或右上角关闭。
+        -->
+        <div
+          v-if="compareTask"
+          class="wg-compare"
+          role="dialog"
+          aria-label="多图对比"
+          tabindex="-1"
+          @keydown.esc="closeCompare()"
+        >
+          <header class="wg-compare-head">
+            <p class="wg-compare-title">
+              同一次生成的结果对比
+              <span class="wg-compare-count">{{ compareOnIndexes.length }} / {{ compareTask.urls.length }} 张</span>
+              <span v-if="compareTask.seed !== null && compareTask.seed !== undefined" class="wg-compare-count">
+                种子 {{ compareTask.seed }}
+              </span>
+            </p>
+            <div class="wg-compare-tools">
+              <button
+                v-for="n in compareTask.urls.length"
+                :key="'cmp-t-' + n"
+                type="button"
+                class="wg-compare-toggle"
+                :class="{ 'is-on': !compareOff.has(n - 1) }"
+                :aria-pressed="!compareOff.has(n - 1)"
+                @click="toggleCompareColumn(n - 1)"
+              >
+                第 {{ n }} 张
+              </button>
+              <button
+                type="button"
+                class="wg-compare-close"
+                aria-label="关闭对比"
+                title="关闭（Esc）"
+                @click="closeCompare()"
+              >
+                <WgIcon :d="ICONS.close" />
+              </button>
+            </div>
+          </header>
+          <div class="wg-compare-row">
+            <figure v-for="i in compareOnIndexes" :key="'cmp-' + i" class="wg-compare-col">
+              <img
+                v-if="!mediaFailed(compareTask.urls[i])"
+                :src="mediaSrc(compareTask.urls[i])"
+                :alt="'第 ' + (i + 1) + ' 张结果'"
+                decoding="async"
+              />
+              <span v-else class="wg-compare-lost">已丢失</span>
+              <figcaption class="wg-compare-cap">
+                <span>第 {{ i + 1 }} 张</span>
+                <span>{{ compareTask.urls.length }} 张同任务</span>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
         <!-- 骨架屏：首次加载历史期间，避免「一片空白」 -->
         <div v-if="viewMode === 'gallery' && loading && !rows.length" class="wg-list">
           <article v-for="n in 3" :key="'sk-' + n" class="wg-card is-skeleton" aria-hidden="true">
@@ -685,6 +744,27 @@
                   >
                     <WgIcon :d="ICONS.refresh" />
                     <span>再次生成</span>
+                  </button>
+                  <!-- 按这套参数再来一张：只回填模型/风格/尺寸/张数，提示词留给自己写 -->
+                  <button
+                    type="button"
+                    class="wg-act is-ghost"
+                    title="按这套参数再来一张：回填模型/风格/尺寸/张数，提示词重新写"
+                    aria-label="按这套参数再来一张"
+                    @click="reuseParams(row.task)"
+                  >
+                    <WgIcon :d="ICONS.tune" />
+                  </button>
+                  <!-- 多图对比：同一次生成的多张结果并排同屏，勾着看差异 -->
+                  <button
+                    v-if="row.task.urls.length > 1"
+                    type="button"
+                    class="wg-act is-ghost"
+                    title="多图并排对比"
+                    aria-label="多图并排对比"
+                    @click="openCompare(row.task)"
+                  >
+                    <WgIcon :d="ICONS.compare" />
                   </button>
                 </template>
                 <button
@@ -1100,6 +1180,8 @@
 
       <!-- 输入条：外观沿用会话输入库（GenerateComposer.vue） -->
       <footer ref="composerRef" class="wg-composer">
+        <!-- 快捷键提示：Enter 语义沿用会话输入库（Enter 发送 / Shift+Enter 换行），这里只把规则亮出来 -->
+        <p class="wg-kbd-hint" aria-hidden="true">Ctrl + Enter 发送 · Shift + Enter 换行</p>
         <GenerateComposer
           v-model:value="prompt"
           v-model:style-panel-open="stylePanelOpen"
@@ -1254,6 +1336,59 @@
                   <span>↑↓ 导航</span>
                   <span>Enter 选择</span>
                   <span>Esc 关闭</span>
+                </div>
+              </div>
+            </PickerPopover>
+            <!--
+              常用提示词夹：把好用的提示词存进本地常用夹，点按直接回填输入区。
+              与「作品收藏」（收藏生成的结果）和自动「历史」（最近发过的）都不同：
+              这里存的是提示词文本本身，跨任务复用。
+            -->
+            <PickerPopover v-model:show="promptFavsOpen" :width="330" :max-height="400">
+              <template #trigger="{ toggle }">
+                <button
+                  type="button"
+                  class="wg-chip is-toolbar wg-favchip"
+                  :title="promptFavs.length ? `常用提示词 ${promptFavs.length} 条` : '常用提示词'"
+                  aria-label="常用提示词"
+                  @click="toggle"
+                >
+                  <WgIcon :d="ICONS.star" />
+                  <span>常用</span>
+                  <span v-if="promptFavs.length" class="wg-chip-badge">{{ promptFavs.length }}</span>
+                  <WgIcon :d="ICONS.chevron" />
+                </button>
+              </template>
+              <div class="wg-menu wg-fav-menu">
+                <p class="wg-menu-title">常用提示词<span class="wg-menu-count">{{ promptFavs.length }}</span></p>
+                <p v-if="!promptFavs.length" class="wg-fav-empty">
+                  还没有常用提示词；把当前提示词存进来，下次一键回填。
+                </p>
+                <div v-else class="wg-fav-list">
+                  <div v-for="(fp, fpi) in promptFavs" :key="'pf-' + fpi" class="wg-fav-item">
+                    <button type="button" class="wg-fav-text" :title="fp" @click="applyPromptFav(fp)">
+                      {{ fp }}
+                    </button>
+                    <button
+                      type="button"
+                      class="wg-fav-del"
+                      :aria-label="`删除第 ${fpi + 1} 条常用提示词`"
+                      title="删除"
+                      @click="removePromptFav(fp)"
+                    >
+                      <WgIcon :d="ICONS.close" />
+                    </button>
+                  </div>
+                </div>
+                <div class="wg-fav-foot">
+                  <button
+                    type="button"
+                    class="wg-fav-save"
+                    :disabled="!prompt.trim() || isPromptFav"
+                    @click="addPromptFav()"
+                  >
+                    {{ isPromptFav ? '当前提示词已在常用里' : '把当前提示词存入常用' }}
+                  </button>
                 </div>
               </div>
             </PickerPopover>
@@ -1530,6 +1665,10 @@ const ICONS: Record<string, string> = {
   stack:
     'M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3',
   dots: 'M12 6h.01M12 12h.01M12 18h.01', // 「更多」菜单：三点竖排（round 线帽下 h.01 渲染成圆点）
+  // 按这套参数再来一张：调节滑杆（heroicons adjustments-horizontal）
+  tune: 'M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75',
+  // 多图对比：并排的两块画框
+  compare: 'M4.5 5.25h5.25v13.5H4.5zM14.25 5.25h5.25v13.5h-5.25z',
   image:
     'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Z',
   video:
@@ -3811,6 +3950,135 @@ const regenerate = async (task: GenerateTask) => {
     : null
   await nextTick()
   await onComposerSubmit(task.prompt)
+/* ---------- 第三轮：整套参数复用 / 常用提示词夹 / 多图对比 ---------- */
+
+/** 把提示词输入区拉回视野并聚焦（Tiptap 的 ProseMirror 挂在输入条里） */
+const focusComposerInput = () => {
+  composerRef.value?.querySelector<HTMLElement>('.ProseMirror')?.focus()
+}
+
+/**
+ * 按这套参数再来一张：只回填 模型/风格/尺寸/张数，不动当前提示词、不自动提交。
+ * 与「再次生成」的差别：不重放旧提示词——参数定好后聚焦输入区，
+ * 用户写完自己的提示词再发。切模型会触发清空联动，先等一拍再聚焦。
+ */
+const reuseParams = async (task: GenerateTask) => {
+  if (submitting.value) {
+    return
+  }
+  model.value = task.model
+  size.value = task.size ?? ''
+  style.value = task.style ?? ''
+  count.value = task.count ?? 1
+  await nextTick()
+  focusComposerInput()
+  message.success('已按这条的参数回填，写好提示词后发送', { duration: 2200 })
+}
+
+/* ---------- 常用提示词夹：本地保存好用的提示词，点按回填 ---------- */
+
+const PROMPT_FAV_KEY = 'ai-guada:generate-prompt-favs'
+const PROMPT_FAV_MAX = 50
+
+const loadPromptFavs = (): string[] => {
+  try {
+    const raw = localStorage.getItem(PROMPT_FAV_KEY)
+    const list = raw ? (JSON.parse(raw) as unknown) : []
+    if (!Array.isArray(list)) {
+      return []
+    }
+    return list.filter((s): s is string => typeof s === 'string' && s.trim() !== '').slice(0, PROMPT_FAV_MAX)
+  } catch {
+    return []
+  }
+}
+
+const promptFavs = ref<string[]>(loadPromptFavs())
+const promptFavsOpen = ref(false)
+
+const persistPromptFavs = () => {
+  try {
+    localStorage.setItem(PROMPT_FAV_KEY, JSON.stringify(promptFavs.value))
+  } catch {
+    /* 存储满/被禁用时静默降级：本次会话内仍可用 */
+  }
+}
+
+const isPromptFav = computed(() => {
+  const p = prompt.value.trim()
+  return p !== '' && promptFavs.value.includes(p)
+})
+
+const addPromptFav = () => {
+  const p = prompt.value.trim()
+  if (!p) {
+    return
+  }
+  if (promptFavs.value.includes(p)) {
+    message.info('这条提示词已在常用里')
+    return
+  }
+  promptFavs.value = [p, ...promptFavs.value].slice(0, PROMPT_FAV_MAX)
+  persistPromptFavs()
+  message.success('已存入常用提示词')
+}
+
+const removePromptFav = (p: string) => {
+  promptFavs.value = promptFavs.value.filter((s) => s !== p)
+  persistPromptFavs()
+}
+
+const applyPromptFav = (p: string) => {
+  prompt.value = p
+  promptFavsOpen.value = false
+  focusComposerInput()
+}
+
+/* ---------- 多图对比：同一次生成的多张结果并排同屏 ---------- */
+
+const compareTask = ref<GenerateTask | null>(null)
+/** 被点灭的列（结果下标）；对比至少保留 2 张才有意义 */
+const compareOff = ref<Set<number>>(new Set())
+
+const compareOnIndexes = computed(() => {
+  const t = compareTask.value
+  if (!t) {
+    return [] as number[]
+  }
+  return t.urls.map((_, i) => i).filter((i) => !compareOff.value.has(i))
+})
+
+const openCompare = (task: GenerateTask) => {
+  if (!task.urls || task.urls.length < 2) {
+    return
+  }
+  compareTask.value = task
+  compareOff.value = new Set()
+  nextTick(() => {
+    document.querySelector<HTMLElement>('.wg-compare')?.focus()
+  })
+}
+
+const toggleCompareColumn = (i: number) => {
+  if (!compareTask.value) {
+    return
+  }
+  const next = new Set(compareOff.value)
+  if (next.has(i)) {
+    next.delete(i)
+  } else {
+    if (compareOnIndexes.value.length <= 2) {
+      message.warning('对比至少保留 2 张')
+      return
+    }
+    next.add(i)
+  }
+  compareOff.value = next
+}
+
+const closeCompare = () => {
+  compareTask.value = null
+  compareOff.value = new Set()
 }
 
 const loadModels = async () => {
@@ -6213,6 +6481,19 @@ onUnmounted(() => {
   padding: 12px 24px 20px;
 }
 
+/* 快捷键提示：贴在输入条右下（落在底部 padding 区），安静但找得到；不参与交互 */
+.wg-kbd-hint {
+  position: absolute;
+  right: 28px;
+  bottom: 5px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--el-text-color-secondary, #909399);
+  opacity: 0.72;
+  pointer-events: none;
+  user-select: none;
+}
 /* 参考图缩略图：挂在输入框内顶部（GenerateComposer 的 reference 插槽）。
    宽度固定 64px，高度由内联的 aspect-ratio（原始尺寸比例）决定，
    所以竖构图会显示成窄高条、横构图是宽扁条 —— 与用户原图一致，不会被压成方块。 */
@@ -6379,6 +6660,138 @@ onUnmounted(() => {
   }
 }
 
+/* ---------- 多图对比：同任务多张结果并排同屏 ---------- */
+
+.wg-compare {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+  background: rgba(10, 12, 18, 0.92);
+  color: #eef1f8;
+  outline: none;
+}
+
+.wg-compare-head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wg-compare-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wg-compare-count {
+  margin-left: 10px;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(238, 241, 248, 0.62);
+}
+
+.wg-compare-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wg-compare-toggle {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(238, 241, 248, 0.62);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.18s, background 0.18s, border-color 0.18s;
+}
+
+.wg-compare-toggle.is-on {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.12);
+  color: #eef1f8;
+}
+
+.wg-compare-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(238, 241, 248, 0.72);
+  cursor: pointer;
+}
+
+.wg-compare-close:hover {
+  color: #eef1f8;
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.wg-compare-row {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  gap: 14px;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+.wg-compare-col {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  min-width: 200px;
+  max-width: 46vw;
+}
+
+.wg-compare-col img {
+  display: block;
+  flex: 1;
+  width: auto;
+  max-width: 100%;
+  min-height: 0;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #171b26;
+}
+
+.wg-compare-lost {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: rgba(238, 241, 248, 0.5);
+  font-size: 12px;
+}
+
+.wg-compare-cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(238, 241, 248, 0.62);
+  font-size: 12px;
+}
 /* ---------- 05 沉浸舞台 ---------- */
 
 /*
