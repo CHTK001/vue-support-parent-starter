@@ -157,6 +157,23 @@ const isSystemSource = (item: DataSourceInfo | null | undefined): boolean => ite
 const isCalciteSource = (item: DataSourceInfo | null | undefined): boolean =>
   item?.type === "calcite";
 
+/** 该数据源是否存在可打开的管理页：类型未映射进 MANAGER_ROUTE_MAP = 管理页尚未开发 */
+const hasManagerPage = (item: DataSourceInfo | null | undefined): boolean =>
+  !!item && (isSystemSource(item) || managerRouteCandidatesFor(item.type).length > 0);
+
+/**
+ * 「打开管理」菜单项组：类型没有对应管理页时整组隐藏，
+ * 避免用户点了才看到「开发中」的死胡同提示（openManager 里同名警告仅作兜底）。
+ */
+const manageMenuItems = (item: DataSourceInfo | null | undefined):
+  { key: string; label: string; icon: string; divided?: boolean }[] =>
+  hasManagerPage(item)
+    ? [
+        { key: "manage", label: "打开管理", icon: "View", divided: true },
+        { key: "manage-full", label: "打开管理（新标签）", icon: "View" },
+      ]
+    : [];
+
 /** 合并记录 database 字段保存的成员 id 列表（后端写入格式：{"members":[...]}） */
 const calciteMemberIds = (item: DataSourceInfo | null | undefined): number[] => {
   if (item?.type !== "calcite" || typeof item.database !== "string") {
@@ -1298,16 +1315,14 @@ const ctxMenuItems = computed(() => {
   if (item && isCalciteSource(item)) {
     return [
       ...pageActions,
-      { key: "manage", label: "打开管理", icon: "View", divided: true },
-      { key: "manage-full", label: "打开管理（新标签）", icon: "View" },
+      ...manageMenuItems(item),
       { key: "test", label: "检测连接", icon: "Connection" },
       { key: "delete", label: "删除数据源", icon: "Delete", danger: true, divided: true },
     ];
   }
   const base: { key: string; label: string; icon: string; danger?: boolean; warning?: boolean; divided?: boolean }[] = [
     ...pageActions,
-    { key: "manage", label: "打开管理", icon: "View", divided: true },
-    { key: "manage-full", label: "打开管理（新标签）", icon: "View" },
+    ...manageMenuItems(item),
     { key: "test", label: "检测连接", icon: "Connection" },
     {
       key: "top",
@@ -3016,7 +3031,7 @@ onMounted(load);
                 <template v-if="current && !isSystemSource(current)">
                   <ReButton icon="Lightning" :show-text="false" layout="square" :loading="testing === current.id" @click="test(current)">测试连接</ReButton>
                 </template>
-                <template v-if="current">
+                <template v-if="current && hasManagerPage(current)">
                   <ReButton icon="View" :show-text="false" type="primary" layout="square" @click="openManager(current)">打开管理</ReButton>
                 </template>
                 <ElDropdown trigger="click" placement="bottom-end" @command="(cmd: string | number | object) => runHeadCommand(cmd as string)">
