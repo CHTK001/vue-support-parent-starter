@@ -12,7 +12,7 @@ import zhCn from "element-plus/es/locale/lang/zh-cn";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
-import "leaflet/dist/leaflet.css";
+// leaflet 样式随 GeoMap 组件加载（GeoMap.vue 内引入），入口不再重复引入
 import { setupCommonDirectives } from "@repo/core";
 import { setupSvgSprite } from "@repo/assets";
 import App from "./App.vue";

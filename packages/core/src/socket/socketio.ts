@@ -7,7 +7,7 @@
  *   io.on("message", (data) => ...);
  */
 import { ref } from "vue";
-import { io, type Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import { log } from "@repo/utils";
 import {
   getSocketToken,
@@ -60,6 +60,29 @@ function clearSocketSessionCookie(): void {
 }
 
 /**
+ * socket.io-client 按需动态加载。
+ *
+ * 该包体积大，而并非每个宿主都启用 socket（socket.enable=false 或协议配成
+ * sse / websocket 的应用完全用不到）。静态 import 会把它无条件打进每个宿主入口；
+ * 改为首次真正建连时才 import()，未启用 socket 的宿主首包不再携带该包。
+ * 加载失败时清空缓存 promise，由看门狗下一轮 connect() 重新拉取。
+ */
+type IoFactory = typeof import("socket.io-client").io;
+let ioFactoryPromise: Promise<IoFactory> | null = null;
+
+function loadSocketIOClient(): Promise<IoFactory> {
+  if (!ioFactoryPromise) {
+    ioFactoryPromise = import("socket.io-client")
+      .then((mod) => mod.io)
+      .catch((error: unknown) => {
+        ioFactoryPromise = null;
+        throw error;
+      });
+  }
+  return ioFactoryPromise;
+}
+
+/**
  * 创建 Socket.IO 服务
  *
  * @param config 配置
@@ -69,6 +92,12 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
   const isConnected = ref(false);
   let socketInstance: Socket | null = null;
   const eventListeners = new Map<string, Set<(data: unknown) => void>>();
+  /** socket 实例就绪前 on() 登记的监听：openConnection 建好实例后统一补挂 */
+  const pendingListeners = new Map<string, Set<(data: unknown) => void>>();
+  /** socket.io-client 动态加载 / 建连在途标记：看门狗与多个订阅方同时触发时只走一次 */
+  let connecting = false;
+  /** 主动断开后置位：阻止在途的异步加载回调复活连接 */
+  let closed = false;
   const autoConnect = config.autoConnect ?? true;
   /** 多地址负载均衡 / 失败降级选择器 */
   const selector = createUrlSelector({
@@ -88,12 +117,18 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
   let downSince = 0;
 
   const connect = () => {
+    closed = false;
     if (socketInstance?.connected) {
       return;
     }
 
     if (socketInstance) {
       socketInstance.connect();
+      return;
+    }
+
+    // 动态加载 / 建连已在途中：不重复触发（加载完成后由 openConnection 接手）
+    if (connecting) {
       return;
     }
 
@@ -118,8 +153,36 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     // disconnect 的僵尸会话，导致新实例永远收不到 CONNECT_ACK（详见
     // clearSocketSessionCookie 注释）
     clearSocketSessionCookie();
+    connecting = true;
 
-    socketInstance = io(url, {
+    // socket.io-client 动态加载：首次真正建连时才拉取（见 loadSocketIOClient 注释）。
+    // 加载窗口内 on() 新登记的监听先进 pendingListeners，实例就绪后统一补挂。
+    void loadSocketIOClient()
+      .then((io) => {
+        connecting = false;
+        // 加载期间可能已被 disconnect / forceRebuild 处理：不要用旧地址复活连接
+        if (closed || socketInstance) {
+          return;
+        }
+        openConnection(io, url, token);
+      })
+      .catch((error: unknown) => {
+        connecting = false;
+        // 加载失败：降级该地址，交给看门狗下一轮重试（loadSocketIOClient 已清缓存）
+        selector.markFailure(url);
+        log.error(`[Socket.IO] 客户端加载失败 ${url}:`, error);
+      });
+  };
+
+  /**
+   * 用已加载的 io 工厂在指定地址上建连并挂接内部事件。
+   *
+   * @param io socket.io-client 的 io 工厂（动态加载产物）
+   * @param url 本次连接的目标地址
+   * @param token 握手鉴权令牌（走 x-oauth-token 消息头）
+   */
+  function openConnection(io: IoFactory, url: string, token: string): void {
+    const socket = io(url, {
       path: config.context || "/socket.io",
       transports,
       autoConnect,
@@ -144,25 +207,26 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
         ...config.query,
       },
     });
+    socketInstance = socket;
 
-    socketInstance.on("connect", () => {
+    socket.on("connect", () => {
       isConnected.value = true;
       downSince = 0;
       // 连接成功：恢复该地址健康状态
       selector.markSuccess(url);
     });
 
-    socketInstance.on("disconnect", () => {
+    socket.on("disconnect", () => {
       isConnected.value = false;
       if (!downSince) downSince = Date.now();
     });
 
     // 重连次数耗尽（理论上 Infinity 不触发，兜底）：强制整体重建
-    socketInstance.io.on("reconnect_failed", () => {
+    socket.io.on("reconnect_failed", () => {
       forceRebuild("reconnect_failed");
     });
 
-    socketInstance.on("connect_error", (error) => {
+    socket.on("connect_error", (error) => {
       log.error(`[Socket.IO] 连接错误 ${url}:`, error);
       // 连接失败：降级该地址（进入黑名单）
       selector.markFailure(url);
@@ -181,7 +245,7 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
     });
 
     // message 事件分发（必须在 socketInstance 创建后注册）
-    socketInstance.on("message", (raw: unknown) => {
+    socket.on("message", (raw: unknown) => {
       try {
         const parsed = parseSocketMessage(raw);
         const msg = (
@@ -201,11 +265,19 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       }
     });
 
+    // 补挂实例就绪前 on() 登记的监听（动态加载窗口内的订阅不丢）
+    for (const [event, callbacks] of pendingListeners) {
+      for (const callback of callbacks) {
+        socket.on(event, callback);
+      }
+    }
+    pendingListeners.clear();
+
     if (!autoConnect) {
-      socketInstance.connect();
+      socket.connect();
     }
     startWatchdog();
-  };
+  }
 
   /**
    * 彻底拆除当前连接并整体重建（看门狗 / 重连失败兜底）。
@@ -258,6 +330,8 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
   }
 
   const disconnect = () => {
+    closed = true;
+    connecting = false;
     stopWatchdog();
     if (socketInstance) {
       socketInstance.disconnect();
@@ -265,6 +339,8 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       isConnected.value = false;
       downSince = 0;
     }
+    // 加载窗口内登记、尚未挂上实例的监听随连接一并作废（监听随 socket 销毁的既有口径）
+    pendingListeners.clear();
     // 主动拆除时同步清掉会话 cookie，避免后续新建连接复用僵尸会话
     clearSocketSessionCookie();
   };
@@ -278,8 +354,6 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       connect();
     }
 
-    if (!socketInstance) return;
-
     const wrappedCallback = (rawData: unknown) => {
       const data = parseSocketMessage(rawData);
       if (!matchesSocketListenOptions(data, options, rawData)) {
@@ -288,12 +362,21 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       callback(data);
     };
 
-    socketInstance.on(event, wrappedCallback);
-
     if (!eventListeners.has(event)) {
       eventListeners.set(event, new Set());
     }
     eventListeners.get(event)!.add(wrappedCallback);
+
+    if (socketInstance) {
+      socketInstance.on(event, wrappedCallback);
+    } else {
+      // socket.io-client 尚在动态加载（或暂无 token 未能建连）：
+      // 先登记到 pendingListeners，实例在 openConnection 里就绪后统一补挂。
+      if (!pendingListeners.has(event)) {
+        pendingListeners.set(event, new Set());
+      }
+      pendingListeners.get(event)!.add(wrappedCallback);
+    }
   };
 
   const off = (event: string) => {
@@ -301,6 +384,7 @@ export function createSocketIOService(config: SocketIOConfig): SocketTemplate {
       socketInstance.off(event);
     }
     eventListeners.delete(event);
+    pendingListeners.delete(event);
   };
 
   const emit = (event: string, data?: unknown) => {

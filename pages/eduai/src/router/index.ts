@@ -15,7 +15,6 @@
  * 在路由树未含 homePath 时自动补到最前面，无需在此声明。
  */
 import type { RouteConfigsTable } from "@repo/core";
-import { loginView } from "@repo/theme/koi/framework";
 // 本路由树直接引 @pages/collect 的 view 文件（如 CollectorView.vue），
 // 走的是「别名 → 具体文件」，不会经过 @pages/collect 包的 index.ts，
 // 那里的副作用 import "./styles/collect.css" 因此从不执行，
@@ -341,9 +340,11 @@ export const eduaiRoutes: RouteConfigsTable[] = [
     // 但本路由树原先没有这条路由，于是未登录访问任何页面都会落到一个
     // 没有组件匹配的地址 —— Vue Router 渲染出空白页，而不是登录表单。
     // 组件复用框架主题包自带的 loginView，与其它应用同一份实现与同一套登录样式。
+    // 动态 import 懒加载：eduai 对框架主题包仅此一处引用，改后框架包不再进路由 chunk。
     path: "/login",
     name: "EduLogin",
-    component: loginView,
+    component: () =>
+      import("@repo/theme/koi/framework").then((m) => m.loginView),
     meta: { title: "登录", showLink: false, isVisible: "0", keepAlive: false },
   },
 ];

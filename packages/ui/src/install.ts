@@ -129,8 +129,14 @@ export async function installUi(
   const { components = [], plugins = [], preset } = options;
   // preset 先展开（组件库维护的成组清单），components 后追加（宿主临时补单个组件）。
   const presetComponents = preset ? [...resolveUiPreset(preset)] : [];
+  // 先收集本轮真正要装的组件：已注册 / 宿主 app 上已存在 / 清单内重复出现的跳过。
+  const pending: Array<{
+    name: string;
+    loader: () => Promise<{ install: unknown }>;
+  }> = [];
+  const seen = new Set<string>();
   for (const name of [...presetComponents, ...components]) {
-    if (registered.has(name)) continue;
+    if (registered.has(name) || seen.has(name)) continue;
     const loader = componentLoaders[name];
     if (!loader) {
       log.warn(`[ui] 未找到组件 ${name}`);
@@ -144,20 +150,37 @@ export async function installUi(
       registered.add(name);
       continue;
     }
-    try {
-      const mod = await loader();
-      const plugin = mod.install;
-      // 主题化组件 install 为 { install(app) => Promise }，await 其完成以保证组件已注册；
-      // 普通组件 install 为 Plugin 对象，走 app.use 注册。
-      if (plugin && typeof (plugin as ThemedComponent).install === "function") {
-        await (plugin as ThemedComponent).install(app);
-      } else {
-        app.use(plugin as Plugin);
+    seen.add(name);
+    pending.push({ name, loader });
+  }
+  // 并行预载全部组件 chunk：首屏挂载前的等待从「逐个串行之和」降为「最慢一个」。
+  // 单个组件加载失败只跳过该组件（与原串行行为一致），不中断其余组件注册。
+  const loaded = await Promise.all(
+    pending.map(async ({ name, loader }) => {
+      try {
+        return { name, mod: await loader() };
+      } catch (e) {
+        log.warn(`[ui] 组件 ${name} 加载失败`, e);
+        return null;
       }
-      registered.add(name);
-    } catch (e) {
-      log.warn(`[ui] 组件 ${name} 加载失败`, e);
+    }),
+  );
+  // 按 preset -> components 的原始顺序注册，保持与原串行版本一致的覆盖关系。
+  for (const item of loaded) {
+    if (!item) continue;
+    if (registered.has(item.name) || app.component(item.name)) {
+      registered.add(item.name);
+      continue;
     }
+    const plugin = item.mod.install;
+    // 主题化组件 install 为 { install(app) => Promise }，await 其完成以保证组件已注册；
+    // 普通组件 install 为 Plugin 对象，走 app.use 注册。
+    if (plugin && typeof (plugin as ThemedComponent).install === "function") {
+      await (plugin as ThemedComponent).install(app);
+    } else {
+      app.use(plugin as Plugin);
+    }
+    registered.add(item.name);
   }
   for (const plugin of plugins) {
     app.use(plugin);
