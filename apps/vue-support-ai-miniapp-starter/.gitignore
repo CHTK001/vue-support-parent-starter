@@ -1,0 +1,7 @@
+# 依赖与构建产物
+node_modules/
+dist/
+
+# 微信开发者工具：个人配置与构建期 npm 产物不入库
+miniprogram_npm/
+project.private.config.json

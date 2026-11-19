@@ -1,0 +1,19 @@
+{
+  "description": "微信开发者工具项目配置：miniprogramRoot 指向 uni-app 构建产物，导入本工程根目录即可运行",
+  "miniprogramRoot": "dist/dev/mp-weixin/",
+  "compileType": "miniprogram",
+  "appid": "wx0eccb54367ca6165",
+  "projectname": "vue-support-ai-miniapp-starter",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "newFeature": true,
+    "bigPackageSizeSupport": true
+  },
+  "libVersion": "",
+  "packOptions": {
+    "ignore": []
+  }
+}
