@@ -17,8 +17,31 @@
     :loading="loading"
     :error="error"
     density
+    auto-refresh
+    :updated-at="updatedAt"
     @refresh="refresh"
   >
+    <template #tools>
+      <label class="act__tool">
+        方法
+        <ElSelect
+          :model-value="methodFilter"
+          size="small"
+          clearable
+          placeholder="全部"
+          style="width: 100px"
+          @change="(v: unknown) => setMethodFilter(String(v ?? ''))"
+          @clear="setMethodFilter('')"
+        >
+          <ElOption v-for="method in HTTP_METHODS" :key="method" :label="method" :value="method" />
+        </ElSelect>
+      </label>
+      <label class="act__tool">
+        <ElSwitch v-model="onlyTraffic" size="small" />
+        仅看有流量
+      </label>
+      <ElButton size="small" @click="exportCsv">导出 CSV</ElButton>
+    </template>
     <div class="act-table-wrap">
       <ReTable
         :data="tableRows"
@@ -32,6 +55,12 @@
         class="act-table"
         @sort-change="onSortChange"
       >
+        <template #col-predicate="{ row }">
+          <span class="act-mapping">
+            <span v-if="row.method" class="act-method" :class="`is-${String(row.method).toLowerCase()}`">{{ row.method }}</span>
+            <span class="act-mapping__path">{{ row.predicate }}</span>
+          </span>
+        </template>
         <template #col-count="{ row }">
           <span :class="{ 'act-muted': !row.count }">{{ row.count }}</span>
         </template>
@@ -58,12 +87,14 @@
  * {@code updatedAt}，这里监听这个时间戳再取统计，保证两侧永远同一轮。</p>
  */
 import { computed, ref, watch } from "vue";
+import { ElButton, ElMessage, ElOption, ElSelect, ElSwitch } from "element-plus";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import TabShell from "../TabShell.vue";
 import ActTablePager from "../ActTablePager.vue";
+import { csvStamp, exportRowsToCsv } from "../csvExport";
 import { useActuatorPanel } from "../useActuatorPanel";
 import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 import { getRestfulApiStats, matchRestfulStat, type RestfulApiStats } from "../../api/actuatorCardApi";
@@ -82,9 +113,9 @@ async function loadStats(): Promise<void> {
   }
 }
 
-/** 手动刷新 = 映射 + 统计一起重取 */
-async function refresh(): Promise<void> {
-  await Promise.all([reload(), loadStats()]);
+/** 手动刷新 = 映射 + 统计一起重取；自动刷新（silent）走静默路径，失败不清空已渲染的映射 */
+async function refresh(silent = false): Promise<void> {
+  await Promise.all([reload(silent), loadStats()]);
 }
 
 // 映射数据每成功拉一次（首次加载 / 手动刷新 / 切回页签）就同步一次统计
@@ -96,9 +127,27 @@ interface MappingRow {
   ctx: string;
   handler: string;
   predicate: string;
+  /** 从 predicate 解析出的 HTTP 方法（解析不出为空串，不显示徽章） */
+  method: string;
   count: number;
   avgMs: number;
   ips: string;
+}
+
+/** 仅看有流量：两千多条映射里没被调用过的长尾会淹没真正在跑的接口 */
+const onlyTraffic = ref(false);
+
+/** predicate 里的 HTTP 方法，如 `{GET [/api/x]}` → GET */
+const HTTP_METHOD_RE = /\b(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE)\b/;
+
+/** 方法筛选的候选（predicate 里能解析出的动词集合） */
+const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"];
+
+/** 按方法筛选（空串 = 全部） */
+const methodFilter = ref("");
+
+function setMethodFilter(method: string): void {
+  methodFilter.value = method ?? "";
 }
 
 const rows = computed<MappingRow[]>(() => {
@@ -117,6 +166,7 @@ const rows = computed<MappingRow[]>(() => {
           ctx,
           handler: String(mapping?.handler ?? "-"),
           predicate,
+          method: (predicate.match(HTTP_METHOD_RE)?.[1] ?? "").toUpperCase(),
           count: stat?.count ?? 0,
           avgMs: stat?.avgMs ?? 0,
           ips: stat?.ips?.map((entry) => entry.ip).filter(Boolean).join("、") ?? "",
@@ -124,7 +174,10 @@ const rows = computed<MappingRow[]>(() => {
       });
     });
   });
-  return out.filter((row) => hit(row.handler, row.predicate));
+  return out
+    .filter((row) => hit(row.handler, row.predicate))
+    .filter((row) => !methodFilter.value || row.method === methodFilter.value)
+    .filter((row) => !onlyTraffic.value || row.count > 0);
 });
 
 /* ---------- 整表排序 → 分页 ---------- */
@@ -151,6 +204,18 @@ const sortedRows = computed<MappingRow[]>(() => {
 
 const { page, pageSize, total, pagedRows, resetPage } = useActuatorPager(sortedRows);
 watch(keyword, resetPage);
+watch(methodFilter, resetPage);
+watch(onlyTraffic, resetPage);
+
+/** 导出当前过滤 + 排序结果（全量，非当前页） */
+function exportCsv(): void {
+  exportRowsToCsv(
+    `actuator-mappings-${csvStamp()}.csv`,
+    ["方法", "映射条件", "处理器", "请求次数", "平均延迟(ms)", "访问 IP", "上下文"],
+    sortedRows.value.map((row) => [row.method || "-", row.predicate, row.handler, row.count, row.avgMs, row.ips || "-", row.ctx]),
+  );
+  ElMessage.success(`已导出 ${sortedRows.value.length} 行`);
+}
 
 function onSortChange(payload: SortState): void {
   sort.value = payload;
@@ -161,7 +226,7 @@ function onSortChange(payload: SortState): void {
 const tableRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);
 
 const columns: ReTableColumn[] = [
-  { prop: "predicate", label: "映射条件", minWidth: 320, fixed: "left", showOverflowTooltip: true },
+  { prop: "predicate", label: "映射条件", minWidth: 320, fixed: "left", showOverflowTooltip: true, slot: "predicate" },
   { prop: "handler", label: "处理器", minWidth: 220, showOverflowTooltip: true },
   { prop: "count", label: "请求次数", width: 110, align: "right", sortable: "custom", slot: "count" },
   { prop: "avgMs", label: "平均延迟", width: 110, align: "right", sortable: "custom", slot: "avgMs" },

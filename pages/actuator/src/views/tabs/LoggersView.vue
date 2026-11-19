@@ -17,6 +17,16 @@
     density
     @refresh="reload"
   >
+    <template #tools>
+      <label class="act__tool">
+        <ElSwitch v-model="onlyConfigured" size="small" />
+        只看已配置
+      </label>
+      <ElButton size="small" :disabled="!changedLevels.size" :loading="reverting" @click="revertLevels">
+        一键还原{{ changedLevels.size ? `（${changedLevels.size}）` : "" }}
+      </ElButton>
+      <ElButton size="small" @click="exportCsv">导出 CSV</ElButton>
+    </template>
     <div class="act-table-wrap">
       <ReTable
         :data="tableRows"
@@ -29,6 +39,12 @@
         :layout-table="{ fill: true }"
         class="act-table"
       >
+        <template #col-effective="{ row }">
+          <span class="act-lvl">
+            <i class="act-lvl__dot" :class="`is-${levelClassOf(row)}`" />
+            {{ row.effective }}
+          </span>
+        </template>
         <template #col-configured="{ row }">
           <ElSelect
             :model-value="levelOf(row)"
@@ -58,11 +74,12 @@
  * 是「用户以为改成了」的旧值，比报错更误导。</p>
  */
 import { computed, ref, watch } from "vue";
-import { ElMessage, ElOption, ElSelect } from "element-plus";
+import { ElButton, ElMessage, ElMessageBox, ElOption, ElSelect, ElSwitch } from "element-plus";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import TabShell from "../TabShell.vue";
 import ActTablePager from "../ActTablePager.vue";
+import { csvStamp, exportRowsToCsv } from "../csvExport";
 import { useActuatorPanel } from "../useActuatorPanel";
 import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 import { setActuatorLogger } from "../../api/actuatorCardApi";
@@ -78,6 +95,9 @@ interface LoggerRow {
   effective: string;
 }
 
+/** 只看显式配置过的 logger：全量近 3000 条里绝大多数是继承，排障时只想看改过的那几十个 */
+const onlyConfigured = ref(false);
+
 const rows = computed<LoggerRow[]>(() => {
   const loggers = (data.value?.loggers as Record<string, { configuredLevel?: string; effectiveLevel?: string }> | undefined) ?? {};
   return Object.entries(loggers)
@@ -87,19 +107,21 @@ const rows = computed<LoggerRow[]>(() => {
       effective: String(value?.effectiveLevel ?? "-"),
     }))
     .filter((row) => hit(row.name, row.effective))
+    .filter((row) => !onlyConfigured.value || row.configured !== "")
     .sort((a, b) => a.name.localeCompare(b.name));
 });
 
 /* 前端分页（过滤条件变化时回到第 1 页，翻页范围仍是全量） */
 const { page, pageSize, total, pagedRows, resetPage } = useActuatorPager(rows);
 watch(keyword, resetPage);
+watch(onlyConfigured, resetPage);
 
 /** ReTable 的行类型是宽类型；一次性转换，避免模板里到处 as any */
 const tableRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);
 
 const columns: ReTableColumn[] = [
   { prop: "name", label: "Logger", minWidth: 320, fixed: "left", showOverflowTooltip: true },
-  { prop: "effective", label: "生效级别", width: 120, align: "center" },
+  { prop: "effective", label: "生效级别", width: 120, align: "center", slot: "effective" },
   { prop: "configured", label: "配置级别（可修改）", width: 200, align: "center", slot: "configured" },
 ];
 
@@ -108,19 +130,86 @@ function levelOf(row: Record<string, unknown>): string {
   return String(row.configured || "INHERITED");
 }
 
-/** 下拉框提交：先收窄行类型，再按名字提交 */
+/** 生效级别 → 色点修饰符（ERROR 红 / WARN 黄 / DEBUG·TRACE 灰 / INFO 绿） */
+function levelClassOf(row: Record<string, unknown>): string {
+  const level = String(row.effective ?? "").toUpperCase();
+  if (level === "ERROR") return "error";
+  if (level === "WARN") return "warning";
+  if (level === "DEBUG" || level === "TRACE") return "debug";
+  if (level === "INFO") return "info";
+  return "other";
+}
+
+/** 下拉框提交：先收窄行类型，再按名字提交（带上改动前的级别，供还原台账记账） */
 function changeLoggerLevelOfRow(row: Record<string, unknown>, level: string): void {
-  void changeLoggerLevel(String(row.name ?? ""), level);
+  void changeLoggerLevel(String(row.name ?? ""), level, String(row.configured || "INHERITED"));
 }
 
 /** 正在提交的 logger 名（提交期间禁用该行下拉框，避免连点发出冲突写入） */
 const saving = ref("");
 
-async function changeLoggerLevel(name: string, level: string): Promise<void> {
+/* ---------- 会话级改动台账与一键还原 ---------- */
+
+/** 本次会话改过的日志级别：logger → 改动前的级别（INHERITED = 原本继承默认） */
+const changedLevels = ref(new Map<string, string>());
+
+/** 正在批量还原 */
+const reverting = ref(false);
+
+/** 导出当前过滤结果（全量，非当前页） */
+function exportCsv(): void {
+  exportRowsToCsv(
+    `actuator-loggers-${csvStamp()}.csv`,
+    ["Logger", "配置级别", "生效级别"],
+    rows.value.map((row) => [row.name, row.configured || "INHERITED", row.effective]),
+  );
+  ElMessage.success(`已导出 ${rows.value.length} 行`);
+}
+
+/** 把本次会话改过的 logger 批量恢复为改动前的级别（写操作，需确认） */
+async function revertLevels(): Promise<void> {
+  const entries = [...changedLevels.value.entries()];
+  if (!entries.length || reverting.value) return;
+  try {
+    await ElMessageBox.confirm(`将把 ${entries.length} 个 logger 恢复为本次修改前的级别，确认执行？`, "一键还原", {
+      confirmButtonText: "还原",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch {
+    return; // 用户取消
+  }
+  reverting.value = true;
+  const failed: string[] = [];
+  for (const [name, level] of entries) {
+    try {
+      await setActuatorLogger(name, level);
+      changedLevels.value.delete(name);
+    } catch {
+      failed.push(name);
+    }
+  }
+  reverting.value = false;
+  await reload(true);
+  if (failed.length) {
+    ElMessage.error(`${failed.length} 个 logger 还原失败，已保留在还原列表`);
+  } else {
+    ElMessage.success(`已还原 ${entries.length} 个 logger 的级别`);
+  }
+}
+
+async function changeLoggerLevel(name: string, level: string, previous: string): Promise<void> {
   if (!name) return;
   saving.value = name;
   try {
     await setActuatorLogger(name, level);
+    // 台账只记第一次改动前的值；改回台账里的原值则出账
+    const original = changedLevels.value.get(name);
+    if (original !== undefined) {
+      if (level === original) changedLevels.value.delete(name);
+    } else if (level !== previous) {
+      changedLevels.value.set(name, previous);
+    }
     ElMessage.success(`已将「${name}」级别设为 ${level === "INHERITED" ? "继承" : level}`);
     await reload(true);
   } catch (err) {

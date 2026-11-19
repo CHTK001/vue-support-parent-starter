@@ -13,6 +13,8 @@
     :count-text="`共 ${names.length} 项`"
     :loading="loading"
     :error="error"
+    auto-refresh
+    :updated-at="updatedAt"
     @refresh="reload"
   >
     <div class="act-metrics">
@@ -84,13 +86,23 @@
             </div>
           </template>
 
-          <div v-if="detail.availableTags?.length" class="act-metrics__tags">
-            <div class="act-group__title">可用标签</div>
-            <div class="act-kv">
-              <div v-for="tag in detail.availableTags" :key="tag.tag" class="act-kv__row">
-                <span class="act-kv__k">{{ tag.tag }}</span>
-                <span class="act-kv__v">{{ (tag.values ?? []).join("、") || "—" }}</span>
-              </div>
+          <div v-if="tagOptions.length" class="act-metrics__tags">
+            <div class="act-group__title">按标签细分</div>
+            <div class="act-metrics__tag-row">
+              <label v-for="tag in tagOptions" :key="tag.tag" class="act-metrics__tag" :title="(tag.values ?? []).join('、')">
+                <span class="act-metrics__tag-key">{{ tag.tag }}</span>
+                <ElSelect
+                  :model-value="tagSelection[tag.tag] ?? ''"
+                  size="small"
+                  clearable
+                  placeholder="全部"
+                  class="act-metrics__tag-select"
+                  @change="(v: unknown) => setTagValue(tag.tag, String(v ?? ''))"
+                  @clear="setTagValue(tag.tag, '')"
+                >
+                  <ElOption v-for="v in tag.values ?? []" :key="v" :label="v" :value="v" />
+                </ElSelect>
+              </label>
             </div>
           </div>
         </template>
@@ -109,7 +121,7 @@
  * 手动刷新、切回页签的静默刷新）自动重取当前指标的明细，避免右栏停留在旧数值。</p>
  */
 import { computed, ref, watch } from "vue";
-import { ElEmpty, ElMessage } from "element-plus";
+import { ElEmpty, ElMessage, ElOption, ElSelect } from "element-plus";
 import ReInput from "@repo/ui/re-input";
 import TabShell from "../TabShell.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
@@ -134,7 +146,7 @@ interface MetricDetail {
   availableTags?: MetricTag[];
 }
 
-const { data, loading, error, reload } = useActuatorPanel("metrics");
+const { data, loading, error, updatedAt, reload } = useActuatorPanel("metrics");
 
 /** 指标名清单（来自 /actuator/metrics 的 names） */
 const names = computed<string[]>(() => {
@@ -156,31 +168,72 @@ const detailLoading = ref(false);
 /** 请求序号：连点指标名时只认最后一次响应 */
 let ticker = 0;
 
+/* ---------- 标签维度细分（?tag=key:value） ---------- */
+
+/** 标签选择器选项：取自本指标未过滤时的 availableTags（不随过滤结果收缩） */
+const tagOptions = ref<MetricTag[]>([]);
+
+/** 已选标签值：tag → value；空串 = 不限（全部） */
+const tagSelection = ref<Record<string, string>>({});
+
+/** 已选标签拼成查询串：`?tag=area:heap&tag=…`；全不选时为空串 */
+function tagQuery(): string {
+  const parts: string[] = [];
+  Object.entries(tagSelection.value).forEach(([key, value]) => {
+    if (value) parts.push(`tag=${encodeURIComponent(key)}:${encodeURIComponent(value)}`);
+  });
+  return parts.length ? `?${parts.join("&")}` : "";
+}
+
 /**
- * 取单个指标的明细。
+ * 取指标明细（自动带上当前已选标签）。
  *
  * @param name   指标名
- * @param silent 静默刷新：保留当前明细，不显示加载态（清单刷新时用）
+ * @param silent 静默刷新：保留当前明细，不显示加载态（清单刷新 / 选标签时用）
  */
-async function selectMetric(name: string, silent = false): Promise<void> {
+async function fetchDetail(name: string, silent: boolean): Promise<void> {
   const tag = ++ticker;
-  metricName.value = name;
-  if (silent) {
-    detailLoading.value = true;
-  } else {
-    detailLoading.value = true;
+  if (!silent) {
     detail.value = null;
   }
+  detailLoading.value = true;
   try {
-    const res = await getActuatorEndpoint(`metrics/${name}`);
+    const query = tagQuery();
+    const res = await getActuatorEndpoint(`metrics/${name}${query}`);
     if (tag !== ticker) return;
     detail.value = (res as MetricDetail) ?? null;
+    // 只有未过滤的响应才携带完整 availableTags：选择器选项不随过滤收缩
+    if (!query) {
+      tagOptions.value = detail.value?.availableTags ?? [];
+    }
   } catch (err) {
     if (tag !== ticker) return;
     ElMessage.error((err as Error)?.message ?? "加载指标明细失败");
   } finally {
     if (tag === ticker) detailLoading.value = false;
   }
+}
+
+/**
+ * 选中指标：换指标时清空已选标签，再取明细。
+ *
+ * @param name   指标名
+ * @param silent 静默刷新：保留当前明细与已选标签（清单刷新时用）
+ */
+function selectMetric(name: string, silent = false): void {
+  if (name !== metricName.value) {
+    metricName.value = name;
+    tagSelection.value = {};
+  }
+  void fetchDetail(name, silent);
+}
+
+/** 选定一个标签值（value 为空串 = 不限），明细按 `?tag=key:value` 重取 */
+function setTagValue(key: string, value: string): void {
+  const next = value ?? "";
+  if ((tagSelection.value[key] ?? "") === next) return;
+  tagSelection.value = { ...tagSelection.value, [key]: next };
+  if (metricName.value) void fetchDetail(metricName.value, true);
 }
 
 /**

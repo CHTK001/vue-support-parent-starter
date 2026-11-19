@@ -13,7 +13,7 @@
  *
  * @since 4.0.0.51
  */
-import { onBeforeUnmount, onMounted, ref, type Ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue";
 import { getActuatorEndpoint } from "../api/actuatorApi";
 import { isUnavailableError, unavailableHint } from "../cards/useCardResource";
 import { ACTUATOR_ENDPOINTS, type ActuatorTab } from "../endpoints";
@@ -112,8 +112,49 @@ export function useActuatorPanel(tab: ActuatorTab): ActuatorPanel {
     }
   }
 
+  /* ---------- 过滤词深链（?tab=xxx&q=...） ---------- */
+
+  /** 本页签是否处于前台：只有前台页签有资格读写地址里的 q（面板按需挂载，挂载即在前台） */
+  let active = true;
+
+  /** 从地址 hash 的 query 里读深链过滤词 */
+  function readKeywordFromUrl(): string {
+    const mark = location.hash.indexOf("?");
+    if (mark < 0) return "";
+    return new URLSearchParams(location.hash.slice(mark + 1)).get("q") ?? "";
+  }
+
   /**
-   * 切回本页签时静默刷新一次。
+   * 把本页签的过滤词写回地址（{@code replaceState}：不触发宿主路由重建、不进历史栈）。
+   *
+   * <p>hash 的路径段直接取当前地址（{@code location.hash.split("?")[0]}），
+   * 不引用路由前缀常量，避免 views → routes → views 的模块循环。</p>
+   */
+  function writeKeywordToUrl(): void {
+    const mark = location.hash.indexOf("?");
+    const search = new URLSearchParams(mark >= 0 ? location.hash.slice(mark + 1) : "");
+    const kw = keyword.value.trim();
+    if (kw) {
+      search.set("q", kw);
+    } else {
+      search.delete("q");
+    }
+    const hash = `${location.hash.split("?")[0]}?${search.toString()}`;
+    if (location.hash === hash) return;
+    try {
+      window.history.replaceState(window.history.state, "", `${location.pathname}${location.search}${hash}`);
+    } catch {
+      // 地址栏被宿主限制改写（极少数嵌入式环境）：记不住过滤词不影响使用
+    }
+  }
+
+  // 过滤词变化 → 同步地址；深链初始化原样写回时 hash 不变，自动跳过
+  watch(keyword, () => {
+    if (active) writeKeywordToUrl();
+  });
+
+  /**
+   * 切回本页签时静默刷新一次，并把本页签的过滤词写回地址。
    *
    * <p>端点数据会变（例如别处刚调过日志级别），而页签面板是常驻的 v-show，
    * 不会重新挂载。静默刷新失败不打断视图：用户看到的是旧数据 + 一行错误提示，
@@ -121,11 +162,21 @@ export function useActuatorPanel(tab: ActuatorTab): ActuatorPanel {
    */
   function onActivated(event: Event): void {
     const name = (event as CustomEvent<{ tab?: string }>).detail?.tab;
-    if (name !== tab || !loaded || loading.value) return;
+    active = name === tab;
+    if (!active) return;
+    writeKeywordToUrl();
+    if (!loaded || loading.value) return;
     void reload(true);
   }
 
   onMounted(() => {
+    // 深链恢复：地址里带 q（如 #/actuator?tab=mappings&q=/api）且属于本页签时，挂载即还原过滤词
+    const mark = location.hash.indexOf("?");
+    const urlTab = mark >= 0 ? new URLSearchParams(location.hash.slice(mark + 1)).get("tab") : null;
+    if (!urlTab || urlTab === tab) {
+      const deep = readKeywordFromUrl();
+      if (deep) keyword.value = deep;
+    }
     void reload();
     window.addEventListener(ACTUATOR_TAB_ACTIVATED_EVENT, onActivated);
   });

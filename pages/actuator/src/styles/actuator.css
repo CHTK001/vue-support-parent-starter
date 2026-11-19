@@ -132,6 +132,18 @@
   margin-left: auto;
 }
 
+/** 工具条上的页签自定义开关（只看已配置 / 仅看有流量 / 只看未命中） */
+.act__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-regular, #5c6270));
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 .act__body {
   flex: 1 1 auto;
   min-height: 0;
@@ -984,4 +996,258 @@
 .act-sched-empty.is-error {
   border-color: var(--status-error-border, var(--el-color-danger-light-5, #fab6b6));
   color: var(--status-error-text, var(--el-color-danger, #f56c6c));
+}
+
+/* ==========================================================================
+   14. P0 增强：级别色点 / HTTP 方法徽章 / 线程栈抽屉
+   ========================================================================== */
+
+/* loggers：生效级别色点（INFO 绿 / WARN 黄 / ERROR 红 / DEBUG·TRACE 灰） */
+.act-lvl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.act-lvl__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+.act-lvl__dot.is-info {
+  background: var(--status-success, var(--el-color-success, #67c23a));
+}
+
+.act-lvl__dot.is-warning {
+  background: var(--status-warning, var(--el-color-warning, #e6a23c));
+}
+
+.act-lvl__dot.is-error {
+  background: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+.act-lvl__dot.is-debug {
+  background: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+/* mappings：HTTP 方法徽章（颜色跟动词走，与状态令牌同一套） */
+.act-mapping {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.act-mapping__path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.act-method {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  letter-spacing: 0.4px;
+}
+
+.act-method.is-get {
+  color: var(--brand-500, #6d5dfc);
+  border-color: color-mix(in srgb, var(--brand-500, #6d5dfc) 32%, transparent);
+  background: color-mix(in srgb, var(--brand-500, #6d5dfc) 12%, transparent);
+}
+
+.act-method.is-post {
+  color: var(--status-success, var(--el-color-success, #67c23a));
+  border-color: color-mix(in srgb, var(--status-success, #67c23a) 32%, transparent);
+  background: color-mix(in srgb, var(--status-success, #67c23a) 12%, transparent);
+}
+
+.act-method.is-put,
+.act-method.is-patch {
+  color: var(--status-warning, var(--el-color-warning, #e6a23c));
+  border-color: color-mix(in srgb, var(--status-warning, #e6a23c) 32%, transparent);
+  background: color-mix(in srgb, var(--status-warning, #e6a23c) 12%, transparent);
+}
+
+.act-method.is-delete {
+  color: var(--status-error, var(--el-color-danger, #f56c6c));
+  border-color: color-mix(in srgb, var(--status-error, #f56c6c) 32%, transparent);
+  background: color-mix(in srgb, var(--status-error, #f56c6c) 12%, transparent);
+}
+
+.act-method.is-head,
+.act-method.is-options,
+.act-method.is-trace {
+  color: var(--text-secondary, var(--el-text-color-regular, #5c6270));
+  border-color: var(--border-subtle, var(--el-border-color-lighter, #eef0f6));
+  background: var(--bg-fill, var(--el-fill-color, #f0f2f5));
+}
+
+/* threaddump：完整栈抽屉 */
+.act-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.act-stack__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-regular, #5c6270));
+}
+
+.act-stack__ops {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.act-stack__frames {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #eef0f6));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-elevated, var(--el-fill-color-lighter, #f5f7fa));
+  list-style: none;
+  overflow: auto;
+}
+
+.act-stack__frame {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-stack__idx {
+  flex: none;
+  min-width: 30px;
+  text-align: right;
+  color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+  user-select: none;
+}
+
+.act-stack__cls {
+  min-width: 0;
+  word-break: break-all;
+}
+
+.act-stack__empty {
+  padding: 12px;
+  border: 1px dashed var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  font-size: 12px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+/* 抽屉体自身滚动，栈帧列表不再单独限高 */
+.act-stack-drawer .el-drawer__body {
+  padding-top: 10px;
+}
+
+/* ==========================================================================
+   15. 第二轮增强：自动刷新 / 状态 chips / 标签细分选择器
+
+   自动刷新分段直接复用 .act-seg（与密度切换同款），不另造轮子；
+   chips 只给 threaddump 用（点一下即筛，比输关键字直达）；
+   标签细分选择器替换原来的「可用标签」键值行，选完即按 tag 重取明细。
+   ========================================================================== */
+
+/** 「x 秒前更新」：跟在自动刷新分段后面的相对时间 */
+.act__ago {
+  font-size: 12px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/** 状态 chips（threaddump）：横向一组，状态多时内部滚动不撑破工具条 */
+.act-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px;
+  overflow-x: auto;
+}
+
+.act-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: 999px;
+  background: var(--bg-container, var(--el-bg-color, #fff));
+  color: var(--text-secondary, var(--el-text-color-regular, #606266));
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.act-chip:hover {
+  border-color: var(--brand-500, #6d5dfc);
+  color: var(--brand-500, #6d5dfc);
+}
+
+.act-chip.is-active {
+  border-color: var(--brand-500, #6d5dfc);
+  background: var(--brand-500, #6d5dfc);
+  color: #fff;
+  font-weight: 600;
+}
+
+.act-chip__count {
+  font-size: 11px;
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
+/** 指标标签细分：每个标签一个独立小选择器，超宽换行不挤压 */
+.act-metrics__tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.act-metrics__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.act-metrics__tag-key {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-regular, #606266));
+}
+
+.act-metrics__tag-select {
+  width: 150px;
 }

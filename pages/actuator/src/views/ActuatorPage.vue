@@ -100,6 +100,8 @@ function syncUrl(name: string): void {
   const mark = location.hash.indexOf("?");
   const search = new URLSearchParams(mark >= 0 ? location.hash.slice(mark + 1) : "");
   search.set("tab", name);
+  // q（过滤词）是页签私有状态，归各面板管：切页签时先摘掉，由新前台面板把自己的词写回
+  search.delete("q");
   const hash = `#${ROUTE_PREFIX}?${search.toString()}`;
   if (location.hash === hash) {
     return;

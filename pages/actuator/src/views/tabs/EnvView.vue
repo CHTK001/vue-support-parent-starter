@@ -14,6 +14,8 @@
     :count-text="`共 ${total} 项`"
     :loading="loading"
     :error="error"
+    auto-refresh
+    :updated-at="updatedAt"
     @refresh="reload"
   >
     <div v-for="source in sources" :key="source.name" class="act-sec">
@@ -59,7 +61,7 @@ import { ElEmpty } from "element-plus";
 import TabShell from "../TabShell.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
 
-const { data, loading, error, keyword, reload, hit } = useActuatorPanel("env");
+const { data, loading, error, keyword, updatedAt, reload, hit } = useActuatorPanel("env");
 
 interface PropertySource {
   name: string;

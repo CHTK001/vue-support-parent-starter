@@ -10,12 +10,20 @@
   <TabShell
     v-model="keyword"
     placeholder="过滤自动配置 / 条件说明…"
-    :count-text="`共 ${rows.length} 项`"
+    :count-text="`共 ${matched.length} 项 · 命中 ${positiveCount} / 未命中 ${negativeCount}`"
     :loading="loading"
     :error="error"
     density
+    auto-refresh
+    :updated-at="updatedAt"
     @refresh="reload"
   >
+    <template #tools>
+      <label class="act__tool">
+        <ElSwitch v-model="onlyNegative" size="small" />
+        只看未命中
+      </label>
+    </template>
     <div class="act-table-wrap">
       <ReTable
         :data="tableRows"
@@ -46,7 +54,8 @@
  * <p>条件说明字段在不同 Spring Boot 版本里可能叫 {@code message} 或 {@code condition}，
  * 两个都取，取不到就留空，不因结构差异丢掉整行。</p>
  */
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { ElSwitch } from "element-plus";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
@@ -55,7 +64,7 @@ import ActTablePager from "../ActTablePager.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
 import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 
-const { data, loading, error, keyword, reload, hit } = useActuatorPanel("conditions");
+const { data, loading, error, keyword, updatedAt, reload, hit } = useActuatorPanel("conditions");
 
 interface ConditionRow {
   ctx: string;
@@ -64,7 +73,10 @@ interface ConditionRow {
   message: string;
 }
 
-const rows = computed<ConditionRow[]>(() => {
+/** 只看未命中：「我配的东西为什么没生效」是这一页的第一问句 */
+const onlyNegative = ref(false);
+
+const matched = computed<ConditionRow[]>(() => {
   const contexts = (data.value?.contexts as Record<string, unknown> | undefined) ?? {};
   const out: ConditionRow[] = [];
   const push = (ctx: string, list: unknown, result: string) => {
@@ -87,8 +99,16 @@ const rows = computed<ConditionRow[]>(() => {
   return out.filter((row) => hit(row.name, row.message));
 });
 
+const positiveCount = computed(() => matched.value.filter((row) => row.result === "positive").length);
+const negativeCount = computed(() => matched.value.filter((row) => row.result === "negative").length);
+
+const rows = computed<ConditionRow[]>(() =>
+  onlyNegative.value ? matched.value.filter((row) => row.result === "negative") : matched.value,
+);
+
 const { page, pageSize, total, pagedRows, resetPage } = useActuatorPager(rows);
 watch(keyword, resetPage);
+watch(onlyNegative, resetPage);
 
 /** ReTable 的行类型是宽类型；一次性转换，避免模板里到处 as any */
 const tableRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);

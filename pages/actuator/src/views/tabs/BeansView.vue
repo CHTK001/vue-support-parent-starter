@@ -14,6 +14,8 @@
     :loading="loading"
     :error="error"
     density
+    auto-refresh
+    :updated-at="updatedAt"
     @refresh="reload"
   >
     <div class="act-table-wrap">
@@ -48,7 +50,7 @@ import ActTablePager from "../ActTablePager.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
 import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 
-const { data, loading, error, keyword, reload, hit } = useActuatorPanel("beans");
+const { data, loading, error, keyword, updatedAt, reload, hit } = useActuatorPanel("beans");
 
 interface BeanRow {
   ctx: string;
