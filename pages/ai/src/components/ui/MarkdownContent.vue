@@ -84,7 +84,7 @@ function previewLangOf(codeEl: Element): string {
 function ensurePreviewButtons(root: HTMLElement): void {
     const blocks = root.querySelectorAll('.custom-code-block');
     blocks.forEach((block) => {
-        if (block.querySelector('.md-preview-button')) {
+        if (block.querySelector('.md-preview-button, .md-preview-open')) {
             return;
         }
         const codeEl = block.querySelector('pre code');
@@ -102,6 +102,13 @@ function ensurePreviewButtons(root: HTMLElement): void {
         btn.setAttribute('aria-label', t('chat.workspace.codePreview'));
         btn.textContent = '▣';
         header.appendChild(btn);
+        const openBtn = document.createElement('button');
+        openBtn.type = 'button';
+        openBtn.className = 'md-preview-open';
+        openBtn.title = t('chat.workspace.openInNewTab');
+        openBtn.setAttribute('aria-label', t('chat.workspace.openInNewTab'));
+        openBtn.textContent = '↗';
+        header.appendChild(openBtn);
     });
 }
 
@@ -115,21 +122,61 @@ function buildPreviewDocument(source: string, lang: string): string {
     return `<!doctype html><html><head><meta charset="utf-8"></head><body>${source}</body></html>`;
 }
 
-/** 文档级委托点击：点中预览按钮时，把对应代码块内容推入内建预览窗口 */
+/** 文档级委托点击：代码块复制 + HTML/SVG 预览（渲染器只产出 DOM，交互统一在这里挂） */
 function onDelegatedClick(event: MouseEvent): void {
     const target = event.target as HTMLElement | null;
-    if (!target || !target.classList?.contains('md-preview-button')) {
+    if (!target) {
+        return;
+    }
+    const isPreviewButton = target.classList?.contains('md-preview-button') ?? false;
+    const isOpenButton = target.classList?.contains('md-preview-open') ?? false;
+    if (!isPreviewButton && !isOpenButton) {
         return;
     }
     const block = target.closest('.custom-code-block');
     const codeEl = block?.querySelector('pre code');
     const source = codeEl?.textContent ?? '';
-    if (!source.trim() || source.length > MAX_PREVIEW_CHARS) {
+    // 不可预览时明确告知，不再静默失败
+    if (!source.trim()) {
+        pushPreviewHint(t('chat.workspace.previewEmpty'));
+        return;
+    }
+    if (source.length > MAX_PREVIEW_CHARS) {
+        pushPreviewHint(t('chat.workspace.previewTooLarge'));
         return;
     }
     const html = buildPreviewDocument(source, previewLangOf(codeEl as Element));
+    if (isOpenButton) {
+        openPreviewInNewTab(html);
+        return;
+    }
     const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
     void previewUrl(url);
+}
+
+/** 预览不可用时的轻提示（动态引入 element-plus，避免新增顶部静态依赖） */
+function pushPreviewHint(message: string): void {
+    import('element-plus').then(({ ElMessage }) => {
+        ElMessage.warning(message);
+    });
+}
+
+/** 在新标签页打开预览：data: URL 会被浏览器拦截顶层导航，改用同源 Blob URL */
+function openPreviewInNewTab(html: string): void {
+    let blobUrl = '';
+    try {
+        blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    } catch {
+        return;
+    }
+    const win = window.open(blobUrl, '_blank');
+    if (win) {
+        // 切断 opener，避免模型生成的页面反向操纵本页
+        win.opener = null;
+    } else {
+        // 弹窗被拦截时退回内建预览
+        void previewUrl(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+    }
 }
 
 onMounted(() => {
@@ -151,7 +198,8 @@ onBeforeUnmount(() => {
 <style>
 /* 预览按钮是运行时动态创建的，scoped 样式不生效，这里用全局样式；
    只挂在 .code-header 下，不影响其它区域。 */
-.md-preview-button {
+.md-preview-button,
+.md-preview-open {
     appearance: none;
     border: 1px solid var(--el-border-color-lighter);
     background: transparent;
@@ -164,7 +212,8 @@ onBeforeUnmount(() => {
     transition: color 0.15s ease, border-color 0.15s ease;
 }
 
-.md-preview-button:hover {
+.md-preview-button:hover,
+.md-preview-open:hover {
     color: var(--el-color-primary);
     border-color: var(--el-color-primary-light-5);
 }
