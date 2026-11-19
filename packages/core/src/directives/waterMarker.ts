@@ -91,16 +91,19 @@ const generateWatermarkCanvas = (
   return can.toDataURL("image/png");
 };
 
-/** 防删除监听：检测水印容器被移除后自动重建（只观察 childList，不影响业务渲染） */
+/** 防删除监听：检测水印容器被移除/样式被篡改后自动恢复（不影响业务渲染） */
 let restoreObserver: MutationObserver | null = null;
+
+/** 容器创建时的样式快照，被篡改后按此还原 */
+let protectedStyleCssText = "";
 
 /** 当前水印是否启用（用于恢复时二次判断） */
 function isWatermarkEnabled(): boolean {
   return readGlobalWatermarkConfig().enable !== false;
 }
 
-/** 挂接防删除监听：水印节点被移除/替换时自动重建 */
-function watchGlobalWatermark(): void {
+/** 挂接防删除监听：水印节点被移除/替换时自动重建；样式被篡改时立即还原 */
+function watchGlobalWatermark(container?: HTMLElement): void {
   if (typeof document === "undefined" || !document.body) {
     return;
   }
@@ -111,6 +114,19 @@ function watchGlobalWatermark(): void {
   }
   restoreObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
+      // 样式篡改防御：display:none / opacity:0 / 清空背景等改动立即按快照还原
+      if (mutation.type === "attributes") {
+        const el = mutation.target as HTMLElement;
+        if (
+          el.id === GLOBAL_WATERMARK_ID &&
+          isWatermarkEnabled() &&
+          protectedStyleCssText &&
+          el.style.cssText !== protectedStyleCssText
+        ) {
+          el.style.cssText = protectedStyleCssText;
+        }
+        continue;
+      }
       const removed = Array.from(mutation.removedNodes).some(
         (node) => (node as HTMLElement).id === GLOBAL_WATERMARK_ID
       );
@@ -122,6 +138,11 @@ function watchGlobalWatermark(): void {
     }
   });
   restoreObserver.observe(document.body, { childList: true, subtree: true });
+  // 观察容器自身 style 属性（容器每次重建后重新挂接）
+  if (container) {
+    protectedStyleCssText = container.style.cssText;
+    restoreObserver.observe(container, { attributes: true, attributeFilter: ["style"] });
+  }
 }
 
 /** 断开防删除监听（水印关闭 / 应用销毁时调用） */
@@ -130,6 +151,7 @@ function unwatchGlobalWatermark(): void {
     restoreObserver.disconnect();
     restoreObserver = null;
   }
+  protectedStyleCssText = "";
 }
 
 /**
@@ -161,28 +183,32 @@ const createGlobalWatermark = (config: any) => {
   const container = document.createElement("div");
   container.id = GLOBAL_WATERMARK_ID;
   
-  // 设置全局水印样式
-  Object.assign(container.style, {
+  // 设置全局水印样式：关键属性带 !important，防止页面注入样式表压过内联样式
+  const styles: Record<string, string> = {
     position: "fixed",
     top: "0",
     left: "0",
     width: "100%",
     height: "100%",
-    pointerEvents: "none",
-    zIndex: config.zIndex,
-    backgroundImage: `url(${generateWatermarkCanvas(
+    "pointer-events": "none",
+    "z-index": String(config.zIndex),
+    "background-image": `url(${generateWatermarkCanvas(
       config.text,
       config.font,
       config.textColor,
       config.rotate
     )})`,
-    backgroundRepeat: "repeat",
+    "background-repeat": "repeat",
+    display: "block",
     opacity: "1"
-  });
-  
+  };
+  for (const [key, value] of Object.entries(styles)) {
+    container.style.setProperty(key, value, "important");
+  }
+
   document.body.appendChild(container);
-  // 挂接防删除监听（重建后重新观察）
-  watchGlobalWatermark();
+  // 挂接防删除监听（重建后重新观察，并快照受保护样式）
+  watchGlobalWatermark(container);
 };
 
 // 创建局部水印
