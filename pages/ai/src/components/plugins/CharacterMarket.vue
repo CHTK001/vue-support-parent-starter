@@ -42,6 +42,7 @@
         @keydown.enter.self.prevent="item.custom ? formRef?.openEdit(item) : openDetail(item)"
         @keydown.space.self.prevent="item.custom ? formRef?.openEdit(item) : openDetail(item)"
       >
+        <MarketFavButton market="characters" :id="item.id" />
         <!-- 内置角色：渐变封面带（与自建卡形成瀑布高低差）；自建卡无封面 -->
         <div v-if="!item.custom" class="market-card-cover">
           <CardAvatar
@@ -115,7 +116,8 @@ import MarketToolbar from './MarketToolbar.vue'
 import { apiService } from '@/services/ApiService'
 import { useSelectedCharacter } from '@/composables/useSelectedCharacter'
 import { usePrefillInput } from '@/composables/usePrefillInput'
-import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
+import { pluginsMarket, syncMarketSlice, splitHighlight, sortMarketList } from './plugins-market'
+import MarketFavButton from './MarketFavButton.vue'
 import type {
   CharacterCatalogItem,
   CharacterCatalogDetail,
@@ -188,11 +190,8 @@ const filteredItems = computed(() => {
       || (st === 'available' ? !item.custom && !item.added : !!(item.custom || item.added))
     return matchCat && matchKw && matchStatus
   })
-  // 排序：name = 按名称字典序；default = 目录原序
-  if (pluginsMarket.characters.sort === 'name') {
-    return [...list].sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN'))
-  }
-  return list
+  // 排序：default = 目录原序；name = 名称字典序；pinned = 收藏优先（四市场共享实现）
+  return sortMarketList('characters', list, pluginsMarket.characters.sort, (i) => i.id, (i) => i.title)
 })
 
 async function load() {
@@ -394,6 +393,7 @@ onMounted(() => {
 }
 /* 卡片：div + @click，补键盘焦点环 */
 .market-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;

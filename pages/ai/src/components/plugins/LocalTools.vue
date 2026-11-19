@@ -61,6 +61,7 @@
           @keydown.enter.self.prevent="showDetail(tool)"
           @keydown.space.self.prevent="showDetail(tool)"
         >
+          <MarketFavButton market="local-tools" :id="tool.pluginId" />
           <!-- 顶部：图标 + 来源标签 -->
           <div class="lt-card__top">
             <PluginIcon
@@ -158,7 +159,8 @@ import CardAvatar from '@/components/ui/CardAvatar.vue'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import CustomToolDialog from './CustomToolDialog.vue'
-import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
+import { pluginsMarket, syncMarketSlice, splitHighlight, sortMarketList } from './plugins-market'
+import MarketFavButton from './MarketFavButton.vue'
 import MarketEmpty from './MarketEmpty.vue'
 import MarketToolbar from './MarketToolbar.vue'
 
@@ -318,11 +320,8 @@ const filteredTools = computed(() => {
       || (slice.status === 'enabled' ? tool.enabled : !tool.enabled)
     return matchCat && matchKw && matchStatus
   })
-  // 排序：name = 按显示名字典序；default = 后端返回原序
-  if (slice.sort === 'name') {
-    return [...list].sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-Hans-CN'))
-  }
-  return list
+  // 排序：default = 后端返回原序；name = 显示名字典序；pinned = 收藏优先（四市场共享实现）
+  return sortMarketList('local-tools', list, slice.sort, (t) => t.pluginId, (t) => t.displayName)
 })
 
 // 回填市场壳：类目 / 状态分桶 / 总数（真实计数，Bento 卡与左栏索引展示用）
@@ -376,6 +375,7 @@ onMounted(() => {
   }
 }
 .lt-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;

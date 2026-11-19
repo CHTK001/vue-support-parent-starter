@@ -10,8 +10,69 @@ export type MarketKey = 'characters' | 'skills' | 'mcp' | 'local-tools'
 
 export type MarketStatusTone = 'success' | 'warning' | 'info' | 'neutral'
 
-/** 市场排序方式：default = 目录原序；name = 按名称字典序 */
-export type MarketSort = 'default' | 'name'
+/** 市场排序方式：default = 目录原序；name = 按名称字典序；pinned = 收藏优先（组内保持原序） */
+export type MarketSort = 'default' | 'name' | 'pinned'
+
+const MARKET_STORE_PREFIX = 'plugins-market:'
+
+/** 从 localStorage 恢复字符串集合（折叠分组等本地交互态） */
+export function loadStoredSet(market: MarketKey, kind: 'collapsed' | 'favorites'): Set<string> {
+  try {
+    const raw = localStorage.getItem(`${MARKET_STORE_PREFIX}${kind}:${market}`)
+    const arr = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(arr) ? arr.filter((v: unknown) => typeof v === 'string') : [])
+  } catch {
+    return new Set()
+  }
+}
+
+export function saveStoredSet(market: MarketKey, kind: 'collapsed' | 'favorites', set: Set<string>) {
+  try {
+    localStorage.setItem(`${MARKET_STORE_PREFIX}${kind}:${market}`, JSON.stringify([...set]))
+  } catch { /* 存储不可用（隐私模式等）时静默降级为会话内状态 */ }
+}
+
+/** 各市场收藏集合（本地偏好，仅影响展示排序，不实现任何后端业务）。
+ *  用 reactive 包装 Set：组件 computed 读取 has() 建立依赖，切换后列表/星标同步刷新。 */
+const favoriteSets: Record<MarketKey, Set<string>> = {
+  characters: reactive(loadStoredSet('characters', 'favorites')),
+  skills: reactive(loadStoredSet('skills', 'favorites')),
+  mcp: reactive(loadStoredSet('mcp', 'favorites')),
+  'local-tools': reactive(loadStoredSet('local-tools', 'favorites')),
+}
+
+export function isFavorite(market: MarketKey, id: string): boolean {
+  return favoriteSets[market].has(id)
+}
+
+/** 切换收藏态，返回切换后是否收藏 */
+export function toggleFavorite(market: MarketKey, id: string): boolean {
+  const set = favoriteSets[market]
+  if (set.has(id)) set.delete(id)
+  else set.add(id)
+  saveStoredSet(market, 'favorites', set)
+  return set.has(id)
+}
+
+/**
+ * 市场列表统一排序：name = 名称字典序；pinned = 收藏优先（稳定分区，组内保持目录原序）。
+ * 四个市场共用，避免各写一份比较逻辑。
+ */
+export function sortMarketList<T>(
+  market: MarketKey,
+  list: T[],
+  mode: MarketSort,
+  idOf: (item: T) => string,
+  nameOf: (item: T) => string,
+): T[] {
+  if (mode === 'name') {
+    return [...list].sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'zh-Hans-CN'))
+  }
+  if (mode === 'pinned') {
+    return [...list].sort((a, b) => Number(isFavorite(market, idOf(b))) - Number(isFavorite(market, idOf(a))))
+  }
+  return list
+}
 
 export interface MarketStatusBucket {
   /** 状态键（选中后写入 slice.status） */

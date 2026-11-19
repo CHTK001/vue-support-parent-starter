@@ -72,6 +72,7 @@
                     <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(card.name, keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                     <div class="market-cell-desc"><template v-for="(seg, i) in splitHighlight(card.description || '', keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                   </div>
+                  <MarketFavButton market="mcp" :id="String(card.id)" />
                   <el-button class="market-cell-btn" plain
                     :type="isInstalled(card) ? 'success' : ''"
                     :disabled="isInstalled(card)" :loading="installingId === card.id"
@@ -144,7 +145,8 @@
               </div>
 
               <MarketEmpty v-if="!searchBuiltin.length && !onlineResults.length" market="mcp"
-                :title="t('plugins.mcp.noMatchTitle')" :hint="t('plugins.mcp.noMatchHint', { keyword })" clearable />
+                :title="t(searchFailed ? 'plugins.mcp.searchFailed' : 'plugins.mcp.noMatchTitle')"
+                :hint="searchFailed ? '' : t('plugins.mcp.noMatchHint', { keyword })" clearable />
             </template>
           </template>
         </template>
@@ -235,7 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {isAdmin, message} from '@repo/core'
 import { ElMessageBox } from 'element-plus';
@@ -249,9 +251,10 @@ import LTooltip from '@/components/ui/LTooltip.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import McpDetailDialog from './McpDetailDialog.vue'
 import McpServerFormDialog from './McpServerFormDialog.vue'
-import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
+import { pluginsMarket, syncMarketSlice, splitHighlight, loadStoredSet, saveStoredSet, sortMarketList } from './plugins-market'
 import MarketEmpty from './MarketEmpty.vue'
 import MarketToolbar from './MarketToolbar.vue'
+import MarketFavButton from './MarketFavButton.vue'
 
 const { t } = useI18n()
 const admin = ref(isAdmin())
@@ -269,7 +272,9 @@ const activeTab = computed({
   get: () => pluginsMarket.mcp.category || FEATURED,
   set: (v: string) => { pluginsMarket.mcp.category = v === FEATURED ? '' : v },
 })
-const collapsed = ref<Set<string>>(new Set())
+/** 分组折叠态：localStorage 持久化，刷新 / 重开页面后保留 */
+const collapsed = ref<Set<string>>(loadStoredSet('mcp', 'collapsed'))
+watch(collapsed, (set) => saveStoredSet('mcp', 'collapsed', set), { deep: true })
 
 const labels = computed<string[]>(() => {
   const order: string[] = []
@@ -288,10 +293,9 @@ function statusMatch(c: any): boolean {
   if (!st) return true
   return (st === 'installed') === isInstalled(c)
 }
-/** 排序：name = 按名称字典序；default = 目录原序 */
+/** 排序：default = 目录原序；name = 名称字典序；pinned = 收藏优先（四市场共享实现） */
 function sortCards(list: any[]): any[] {
-  if (pluginsMarket.mcp.sort !== 'name') return list
-  return [...list].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+  return sortMarketList('mcp', list, pluginsMarket.mcp.sort, (c) => String(c.id), (c) => String(c.name))
 }
 const groups = computed(() => {
   if (activeTab.value === FEATURED) {
@@ -334,26 +338,52 @@ const searchBuiltin = computed(() => {
     (c) => c.name.toLowerCase().includes(k) || c.description.toLowerCase().includes(k))
 })
 
+/** 在线检索失败标志：空态提示「服务暂不可用」而非「无结果」 */
+const searchFailed = ref(false)
+/** 竞态守卫：只采纳最后一次检索的响应 */
+let searchSeq = 0
+/** 输入防抖：停止输入 600ms 后自动在线检索（回车仍立即检索） */
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+
 function handleClear() {
+  cancelSearchDebounce()
+  searchSeq++
   keyword.value = ''
   onlineResults.value = []
+  searchFailed.value = false
   searching.value = false
 }
+
+function cancelSearchDebounce() {
+  if (searchTimer) { clearTimeout(searchTimer); searchTimer = null }
+}
+
 async function runSearch() {
   const k = keyword.value.trim()
   if (!k) { handleClear(); return }
+  const seq = ++searchSeq
   searching.value = true
   try {
     const res = await mcpApi.online(k)
+    if (seq !== searchSeq) return
     onlineResults.value = Array.isArray(res?.data) ? res.data : []
+    searchFailed.value = false
   } catch (e) {
     console.error('MCP 在线检索失败:', e)
+    if (seq !== searchSeq) return
     onlineResults.value = []
+    searchFailed.value = true
   } finally {
-    searching.value = false
+    if (seq === searchSeq) searching.value = false
   }
 }
+
+// 关键词变化 → 防抖自动在线检索（immediate：带 ?q= 直达时自动出在线结果）；内置目录过滤是 computed，实时生效
+watch(keyword, () => {
+  cancelSearchDebounce()
+  if (!keyword.value.trim()) { handleClear(); return }
+  searchTimer = setTimeout(() => { searchTimer = null; runSearch() }, 600)
+}, { immediate: true })
 
 // 安装
 const installingId = ref('')
@@ -539,8 +569,8 @@ defineExpose({
   /** 市场壳页头「添加」入口：打开新增表单 */
   openAdd: () => { openAddForm() },
   /** 市场壳页头搜索：回车触发内置过滤 + 在线检索 */
-  runSearch: () => { runSearch() },
-  clearSearch: () => { handleClear() },
+  runSearch: () => { cancelSearchDebounce(); runSearch() },
+  clearSearch: () => { cancelSearchDebounce(); handleClear() },
 })
 
 // 初始加载
@@ -621,6 +651,7 @@ onMounted(async () => {
   }
 }
 .market-cell {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;

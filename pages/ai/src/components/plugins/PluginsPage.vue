@@ -204,6 +204,7 @@ function buildMarketQuery(tabKey: string): Record<string, string> {
     if (slice.category) query.cat = slice.category
     if (slice.status) query.status = slice.status
     if (slice.keyword) query.q = slice.keyword
+    if (slice.sort !== 'default') query.sort = slice.sort
     return query
 }
 
@@ -229,9 +230,11 @@ watch(() => route.query, (query) => {
     const cat = typeof query.cat === 'string' ? query.cat : ''
     const status = typeof query.status === 'string' ? query.status : ''
     const kw = typeof query.q === 'string' ? query.q : ''
+    const sort = query.sort === 'name' || query.sort === 'pinned' ? query.sort : 'default'
     if (slice.category !== cat) slice.category = cat
     if (slice.status !== status) slice.status = status
     if (slice.keyword !== kw) slice.keyword = kw
+    if (slice.sort !== sort) slice.sort = sort
 }, { immediate: true })
 
 onMounted(() => {
@@ -256,9 +259,9 @@ const localToolsRef = ref<InstanceType<typeof LocalTools> | null>(null)
 /** 当前市场的共享切片（keyword / category / status / counts） */
 const activeSlice = computed(() => pluginsMarket[currentTabValue.value as MarketKey])
 
-// 筛选状态 → URL 写回（P0 #13；replace 不产生历史记录，空值省略）
+// 筛选状态 → URL 写回（P0 #13 + sort；replace 不产生历史记录，空值/默认值省略）
 watch(
-    () => [currentTabValue.value, activeSlice.value.category, activeSlice.value.status, activeSlice.value.keyword] as const,
+    () => [currentTabValue.value, activeSlice.value.category, activeSlice.value.status, activeSlice.value.keyword, activeSlice.value.sort] as const,
     () => {
         router.replace({
             name: 'Plugins',

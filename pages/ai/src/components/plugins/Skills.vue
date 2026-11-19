@@ -101,6 +101,7 @@
                                     <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(skill.name, marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                                     <div class="market-cell-desc"><template v-for="(seg, i) in splitHighlight(skill.description || '', marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                                 </div>
+                                <MarketFavButton market="skills" :id="skill.id" />
                                 <el-button class="market-cell-btn" plain
                                     :type="skill.localStatus === 'installed' ? 'success'
                                         : skill.localStatus === 'updatable' ? 'warning' : ''"
@@ -165,7 +166,8 @@
                             </div>
                         </div>
                         <MarketEmpty v-else market="skills"
-                            :title="t('plugins.skills.searchNoResult')" :hint="marketKeyword" clearable />
+                            :title="t(searchFailed ? 'plugins.skills.searchFailed' : 'plugins.skills.searchNoResult')"
+                            :hint="searchFailed ? '' : marketKeyword" clearable />
                     </template>
                  </template>
                 </template>
@@ -392,7 +394,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, onMounted, computed, watchEffect } from 'vue'
+import { ref, onMounted, computed, watchEffect, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElButton, ElTag, ElIcon, ElUpload, ElMessageBox } from 'element-plus';
@@ -408,7 +410,8 @@ import SkillDetailDialog from './SkillDetailDialog.vue'
 import MarketEmpty from './MarketEmpty.vue'
 import MarketToolbar from './MarketToolbar.vue'
 import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
-import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
+import { pluginsMarket, syncMarketSlice, splitHighlight, loadStoredSet, saveStoredSet, sortMarketList } from './plugins-market'
+import MarketFavButton from './MarketFavButton.vue'
 
 interface SkillManifest {
     name: string
@@ -503,7 +506,9 @@ const marketKeyword = computed({
     get: () => pluginsMarket.skills.keyword,
     set: (v: string) => { pluginsMarket.skills.keyword = v },
 })
-const collapsedGroups = ref<Set<string>>(new Set())
+/** 分组折叠态：localStorage 持久化，刷新 / 重开页面后保留 */
+const collapsedGroups = ref<Set<string>>(loadStoredSet('skills', 'collapsed'))
+watch(collapsedGroups, (set) => saveStoredSet('skills', 'collapsed', set), { deep: true })
 
 const marketLabels = computed<string[]>(() => {
     const order: string[] = []
@@ -534,10 +539,9 @@ function marketStatusMatch(s: MarketSkillWithStatus): boolean {
     return s.localStatus === st
 }
 
-/** 排序：name = 按名称字典序；default = 目录原序 */
+/** 排序：default = 目录原序；name = 名称字典序；pinned = 收藏优先（四市场共享实现） */
 function sortMarketSkills(list: MarketSkillWithStatus[]): MarketSkillWithStatus[] {
-    if (pluginsMarket.skills.sort !== 'name') return list
-    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN'))
+    return sortMarketList('skills', list, pluginsMarket.skills.sort, s => s.id, s => s.name)
 }
 
 const marketGroups = computed<{ cat: string; items: MarketSkillWithStatus[] }[]>(() => {
@@ -582,17 +586,27 @@ function mapLocalCatalogSearchEntry(it: any): MarketSkillWithStatus {
     }
 }
 
+/** 搜索失败标志：本地与在线检索都失败时，空态提示「服务暂不可用」而非「无结果」 */
+const searchFailed = ref(false)
+/** 竞态守卫：只采纳最后一次搜索的响应 */
+let searchSeq = 0
+/** 输入防抖：停止输入 600ms 后自动检索（回车仍立即检索） */
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
 async function handleMarketSearch() {
     const kw = marketKeyword.value.trim()
     if (!kw) { handleMarketClear(); return }
+    const seq = ++searchSeq
     marketSearching.value = true
+    let failed = 0
     const localTask = apiService.fetchLocalCatalog(kw)
         .then((items: any) => (Array.isArray(items) ? items : []))
-        .catch((e: any) => { console.error('市场本地搜索失败:', e); return [] as any[] })
+        .catch((e: any) => { console.error('市场本地搜索失败:', e); failed++; return [] as any[] })
     const onlineTask = apiService.fetchMarketCatalog(kw)
         .then((items: any) => (Array.isArray(items) ? items : []))
-        .catch((e: any) => { console.error('市场在线搜索失败:', e); return [] as any[] })
+        .catch((e: any) => { console.error('市场在线搜索失败:', e); failed++; return [] as any[] })
     const res = await Promise.all([localTask, onlineTask])
+    if (seq !== searchSeq) return
     const localItems = res[0] as any[]
     const onlineItems = res[1] as any[]
     const localMap: Record<string, LocalCatalogItem> = {}
@@ -612,13 +626,26 @@ async function handleMarketSearch() {
         .filter(s => !localIds.has(s.id.toLowerCase()))
     marketSearchLocalMap.value = localMap
     marketSearchResults.value = [...localMapped, ...onlineMapped]
+    searchFailed.value = failed >= 2
     marketSearching.value = false
+}
+
+// 关键词变化 → 防抖自动检索；immediate 使带 ?q= 的直达链接自动出结果
+watch(marketKeyword, () => {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+    if (!marketKeyword.value.trim()) { handleMarketClear(); return }
+    searchDebounceTimer = setTimeout(() => { searchDebounceTimer = null; handleMarketSearch() }, 600)
+}, { immediate: true })
+
+function cancelSearchDebounce() {
+    if (searchDebounceTimer) { clearTimeout(searchDebounceTimer); searchDebounceTimer = null }
 }
 
 function handleMarketClear() {
     marketKeyword.value = ''
     marketSearchResults.value = []
     marketSearchLocalMap.value = {}
+    searchFailed.value = false
     marketSearching.value = false
 }
 
@@ -1165,8 +1192,8 @@ defineExpose({
     /** 市场壳页头「添加」入口：打开添加浮层（上传 / 检索安装） */
     openAdd: () => { addPopoverVisible.value = true },
     /** 市场壳页头搜索：回车触发本地 + 在线 SPI 检索 */
-    runSearch: () => { handleMarketSearch() },
-    clearSearch: () => { handleMarketClear() },
+    runSearch: () => { cancelSearchDebounce(); handleMarketSearch() },
+    clearSearch: () => { cancelSearchDebounce(); handleMarketClear() },
 })
 
 onMounted(async () => {
@@ -1479,6 +1506,7 @@ onMounted(async () => {
     }
 }
 .market-cell {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: stretch;

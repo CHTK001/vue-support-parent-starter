@@ -11,6 +11,10 @@
         :aria-pressed="slice.sort === 'default'" @click="slice.sort = 'default'">
         {{ t('plugins.market.sortDefault') }}
       </button>
+      <button type="button" :class="{ active: slice.sort === 'pinned' }"
+        :aria-pressed="slice.sort === 'pinned'" @click="slice.sort = 'pinned'">
+        {{ t('plugins.market.sortPinned') }}
+      </button>
       <button type="button" :class="{ active: slice.sort === 'name' }"
         :aria-pressed="slice.sort === 'name'" @click="slice.sort = 'name'">
         {{ t('plugins.market.sortName') }}
