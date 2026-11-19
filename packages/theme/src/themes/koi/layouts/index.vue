@@ -19,7 +19,13 @@ import { computed, onMounted, type Component } from "vue";
 // 全局主题配置
 import useGlobalStore from "@repo/pinia/modules/global";
 import { useUserStore } from "@repo/pinia";
-import { applyGlobalWatermark, registerWatermarkTraceProvider } from "@repo/core";
+import {
+  getWatermarkTamperCount,
+  message,
+  registerWatermarkTraceProvider,
+  setupWatermark,
+  WATERMARK_TAMPER_EVENT
+} from "@repo/core";
 import { getConfig } from "@repo/config";
 import { useUnreadFlash } from "./useUnreadFlash";
 
@@ -36,9 +42,23 @@ registerWatermarkTraceProvider(() => {
   return { user, uid };
 });
 
-// 应用全局水印（依据 security.watermark 配置；配置变更由热重载联动刷新）
+// 水印篡改告警消费方：控制台留痕 + 低频用户提示（自愈逻辑在 core 防篡改层）。
+// 审计上报待后端安全事件接口就绪后在此补充，前端不虚构契约。
+let lastTamperToastAt = 0;
+window.addEventListener(WATERMARK_TAMPER_EVENT, () => {
+  const count = getWatermarkTamperCount();
+  console.warn(`[watermark] 检测到水印被篡改，已自动恢复（累计 ${count} 次）`);
+  const now = Date.now();
+  if (now - lastTamperToastAt > 60_000) {
+    lastTamperToastAt = now;
+    message.warning("检测到水印被篡改，已自动恢复");
+  }
+});
+
+// 应用全局水印：幂等装配（立即渲染 + web 字体就绪重绘）。
+// 配置热重载后的自动重绘由 createApp 的 onConfigHotReload 通道负责，此处不重复订阅。
 onMounted(() => {
-  applyGlobalWatermark();
+  setupWatermark();
 });
 import ThemeConfig from "@repo/theme/koi/layouts/components/ThemeConfig/index.vue";
 import ReStationMessage from "@repo/ui/re-station-message";
