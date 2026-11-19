@@ -62,11 +62,11 @@
             <span
               class="pa-chip pa-chip--time"
               :class="{
-                'is-warn': !!paperDuration && remainingSec <= 300 && remainingSec > 60,
-                'is-danger': !!paperDuration && remainingSec <= 60,
+                'is-warn': timed && remainingSec <= 300 && remainingSec > 60,
+                'is-danger': timed && remainingSec <= 60,
               }"
             >
-              {{ paperDuration ? `剩余 ${countdownText}` : "不限时" }}
+              {{ timed ? `剩余 ${countdownText}` : "不限时" }}
             </span>
           </p>
         </div>
@@ -197,15 +197,14 @@ let pollTimer = 0;
 
 /** 草稿 localStorage 键：按试卷隔离，避免多卷串味 */
 const draftKey = computed(() => `eduai:answer-draft:${props.paperId}`);
-/** 计时起点（进入作答的时间戳）；到点自动交卷 */
-const startTs = ref(Date.now());
+/** 服务端校准的交卷截止时间戳（毫秒）；0 = 未校准/不限时 */
+const deadlineTs = ref(0);
+const timed = computed(() => deadlineTs.value > 0);
 
-const paperDuration = computed(() => paper.value?.paperDuration ?? 0);
 const nowTs = ref(Date.now());
 const remainingSec = computed(() => {
-  if (!paperDuration.value) return Number.MAX_SAFE_INTEGER;
-  const deadline = startTs.value + paperDuration.value * 60_000;
-  return Math.max(0, Math.ceil((deadline - nowTs.value) / 1000));
+  if (!timed.value) return Number.MAX_SAFE_INTEGER;
+  return Math.max(0, Math.ceil((deadlineTs.value - nowTs.value) / 1000));
 });
 const countdownText = computed(() => {
   const s = remainingSec.value === Number.MAX_SAFE_INTEGER ? 0 : remainingSec.value;
@@ -214,6 +213,18 @@ const countdownText = computed(() => {
   return `${mm}:${ss}`;
 });
 let tickTimer = 0;
+
+/** 以服务端为准校准倒计时：取本人草稿卷的剩余秒数，换算成本地截止时间戳（吸收时钟偏差） */
+async function syncTimer(): Promise<void> {
+  try {
+    const t = await eduaiApi.studentPaperTimer(props.paperId);
+    if (t && t.timed && t.remainingSeconds >= 0) {
+      deadlineTs.value = Date.now() + t.remainingSeconds * 1000;
+    }
+  } catch {
+    // 校准失败不阻断作答：交卷时服务端仍会做权威校验
+  }
+}
 
 function isChoice(type?: string): boolean {
   return type === "SINGLE_CHOICE" || type === "MULTIPLE_CHOICE";
@@ -272,7 +283,7 @@ function persistDraft(): void {
   try {
     localStorage.setItem(
       draftKey.value,
-      JSON.stringify({ start: startTs.value, answers: { ...answers } }),
+      JSON.stringify({ answers: { ...answers } }),
     );
   } catch {
     // 隐私模式/配额满时静默跳过：草稿是锦上添花，不能因为它中断作答
@@ -283,12 +294,9 @@ function loadDraft(): boolean {
   try {
     const raw = localStorage.getItem(draftKey.value);
     if (!raw) return false;
-    const draft = JSON.parse(raw) as { start?: number; answers?: Record<number, string> };
+    const draft = JSON.parse(raw) as { answers?: Record<number, string> };
     if (!draft || typeof draft !== "object") return false;
     Object.assign(answers, draft.answers ?? {});
-    if (typeof draft.start === "number" && draft.start > 0) {
-      startTs.value = draft.start;
-    }
     return Object.keys(answers).length > 0;
   } catch {
     return false;
@@ -434,10 +442,12 @@ onMounted(async () => {
   if (loadDraft()) {
     message.info("已恢复上次未提交的作答，交卷前可继续修改");
   }
-  // 计时：到点自动交卷（免确认 —— 超时本就是系统行为，再弹确认会卡死交卷）
+  // 计时：以服务端（本人草稿卷创建时间）为锚校准倒计时；
+  // 到点自动交卷（免确认 —— 超时本就是系统行为，再弹确认会卡死交卷）
+  await syncTimer();
   tickTimer = window.setInterval(() => {
     nowTs.value = Date.now();
-    if (paperDuration.value && remainingSec.value <= 0 && phase.value === "answering" && !submitting.value) {
+    if (timed.value && remainingSec.value <= 0 && phase.value === "answering" && !submitting.value) {
       message.info("考试时间已到，系统已自动交卷");
       void doSubmit();
     }

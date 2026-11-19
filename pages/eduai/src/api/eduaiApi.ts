@@ -1187,6 +1187,16 @@ export const eduaiApi = {
       .post(`/v2/edu/student/papers/${paperId}/submit`)
       .data(payload as unknown as Record<string, unknown>)
       .then<string>(unwrap),
+  /**
+   * 学生：查询我在某张试卷下的剩余作答时间（服务端计时）。
+   *
+   * <p>计时锚点是服务端为本人建的草稿答题卡时间（首次拉卷即建）；前端只做展示，
+   * 交卷时服务端会再做权威校验。timed=false / remainingSeconds&lt;0 表示不限时。</p>
+   */
+  studentPaperTimer: (paperId: number) =>
+    http()
+      .get(`/v2/edu/student/papers/${paperId}/timer`)
+      .then<{ timed: boolean; durationMinutes: number; remainingSeconds: number }>(unwrap),
 
   /**
    * 指定学段的模块清单（学生端首页用）。
