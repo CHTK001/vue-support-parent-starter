@@ -9,16 +9,17 @@
  * <p>两类接口：</p>
  * <ul>
  *   <li><b>Actuator 原生端点</b>（{@link getActuatorEndpoint} / {@link setActuatorLogger}）
- *       读 {@code /actuator/**}，Actuator 本身不走 {@code ApiResult} 包装，直接透传 body；</li>
+ *       读 {@code /actuator/**}。Actuator 本身是裸 JSON，但宿主的统一响应 advice 会再包一层
+ *       {@code ApiResult} 信封，出口处由 {@link unwrapEnvelope} 统一解掉（见 actuatorApi）；</li>
  *   <li><b>调度与统计接口</b>（schedule tasks 三件套、RESTful 统计）—— 这些属于后端
- *       {@code /v2/**} 的公开契约，URL 与系统大屏一致，直接直读（auth 由 {@code http}
- *       的统一拦截器处理，与系统包同口径）。</li>
+ *       {@code /v2/**} 的公开契约，响应固定是 {@code ApiResult<T>} 信封，同样在出口处
+ *       解包取内层 {@code data}（auth 由 {@code http} 的统一拦截器处理，与系统包同口径）。</li>
  * </ul>
  *
  * @since 4.0.0.51
  */
 import { http, costMs } from "@repo/utils";
-import { getActuatorEndpoint } from "./actuatorApi";
+import { getActuatorEndpoint, unwrapEnvelope } from "./actuatorApi";
 
 /** RESTful Top URL 统计（从 /v2/server/api/stats 取到的最小字段集） */
 export interface RestfulUrlStat {
@@ -69,13 +70,13 @@ export async function setActuatorLogger(name: string, level: string): Promise<un
     .then((r) => r.data as unknown);
 }
 
-/** 获取可编辑定时任务列表（动态调度注册中心） */
+/** 获取可编辑定时任务列表（动态调度注册中心；/v2 契约返回 ApiResult 信封，取内层 data） */
 export async function getScheduleTasks(): Promise<ManagedScheduleTask[]> {
   const res = await http()
     .get("/v2/schedule/tasks")
     .loading(false)
     .noToast(true);
-  return (res.data as ManagedScheduleTask[]) ?? [];
+  return (unwrapEnvelope(res.data) as ManagedScheduleTask[]) ?? [];
 }
 
 /** 更新定时任务 cron / 启停 */
@@ -88,7 +89,7 @@ export async function updateScheduleTask(
     .data(data)
     .loading(false)
     .noToast(true);
-  return res.data as boolean;
+  return unwrapEnvelope(res.data) as boolean;
 }
 
 /** 立即执行一次定时任务 */
@@ -97,21 +98,22 @@ export async function runScheduleTask(key: string): Promise<boolean> {
     .post(`/v2/schedule/tasks/${encodeURIComponent(key)}/run`)
     .loading(false)
     .noToast(true);
-  return res.data as boolean;
+  return unwrapEnvelope(res.data) as boolean;
 }
 
 /**
  * 拉取 RESTful 请求统计（请求映射页签关联次数 / 耗时 / 访问 IP 用）。
  *
  * <p>URL 与系统大屏一致（{@code /v2/server/api/stats}），但此包不依赖系统包的函数，
- * 自己直读 —— 独立页面不应因「复用一个函数」而依赖系统域的 API 层。</p>
+ * 自己直读 —— 独立页面不应因「复用一个函数」而依赖系统域的 API 层。
+ * /v2 契约返回 ApiResult 信封，这里解包取内层 data。</p>
  */
 export async function getRestfulApiStats(): Promise<RestfulApiStats> {
   const res = await http()
     .get("/v2/server/api/stats")
     .loading(false)
     .noToast(true);
-  return res.data as RestfulApiStats;
+  return unwrapEnvelope(res.data) as RestfulApiStats;
 }
 
 /**
