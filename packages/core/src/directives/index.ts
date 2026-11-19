@@ -55,5 +55,8 @@ export {
   applyGlobalWatermark,
   registerWatermarkTraceProvider,
   WATERMARK_TAMPER_EVENT,
-  buildWatermarkLines
+  buildWatermarkLines,
+  buildWatermarkTile,
+  getWatermarkTamperCount,
+  setupWatermark
 } from "./waterMarker";

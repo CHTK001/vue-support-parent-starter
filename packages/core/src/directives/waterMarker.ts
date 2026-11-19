@@ -29,10 +29,16 @@
   registerWatermarkTraceProvider）与生成时间，便于截图溯源。
   篡改检测：防删除/防样式篡改触发时派发 window 事件 WATERMARK_TAMPER_EVENT
   （detail: { type: 'remove'|'style'|'integrity', time }），宿主可上报审计。
+  装配入口：宿主 onMounted 调用 setupWatermark()（幂等：立即应用 + web 字体就绪
+  重绘）；配置热重载重绘由 createApp 的 onConfigHotReload 通道统一负责
+  （setting.ts → applyGlobalWatermark），此处不重复订阅。篡改告警累计次数经
+  getWatermarkTamperCount() 读取，并镜像到 window.__watermarkTamperCount 供验收断言。
+  预览：buildWatermarkTile(配置片) 按同一套瓦片算法生成 data URL（不拼溯源行），
+  供设置页实时预览复用，避免两处绘制实现漂移。
 */
 
 import type { Directive, DirectiveBinding } from "vue";
-import { getConfig } from "@repo/config";
+import { getConfig, type WatermarkConfig } from "@repo/config";
 
 // 全局水印容器ID
 const GLOBAL_WATERMARK_ID = "global-watermark-container";
@@ -256,11 +262,25 @@ let printAdjustActive = false;
 /** 篡改告警去重：同一攻击风暴 1s 内只派发一次事件 */
 let lastTamperAt = 0;
 
+/** 篡改告警累计次数（含被 1s 去重合并的风暴），window.__watermarkTamperCount 与之同步 */
+let tamperCount = 0;
+
+/** 读取篡改告警累计次数（供宿主上报与验收脚本断言） */
+export function getWatermarkTamperCount(): number {
+  return tamperCount;
+}
+
 /** 派发篡改事件（宿主可监听 WATERMARK_TAMPER_EVENT 上报审计） */
 function notifyTamper(type: "remove" | "style" | "integrity"): void {
   const now = Date.now();
   if (now - lastTamperAt < 1000) return;
   lastTamperAt = now;
+  tamperCount++;
+  try {
+    (window as unknown as Record<string, unknown>).__watermarkTamperCount = tamperCount;
+  } catch {
+    // 镜像失败不影响防护
+  }
   try {
     window.dispatchEvent(new CustomEvent(WATERMARK_TAMPER_EVENT, { detail: { type, time: now } }));
   } catch {
@@ -361,9 +381,10 @@ function watchGlobalWatermark(container?: HTMLElement): void {
     for (const mutation of mutations) {
       if (mutation.type === "attributes") {
         const el = mutation.target as HTMLElement;
-        // 主题切换（html class 增删，如 dark）→ 重绘水印以适配暗色配色
+        // 主题切换（html class 增删，如 dark）→ 重绘全局/局部水印以适配暗色配色
         if (el === document.documentElement) {
           if (isWatermarkEnabled()) applyGlobalWatermark();
+          redrawLocalWatermarks();
           continue;
         }
         if (printAdjustActive) continue;
@@ -401,7 +422,11 @@ function watchGlobalWatermark(container?: HTMLElement): void {
   // 打印覆盖 + 低频完整性巡检（兜底 CSSOM 注入等观察器盲区）
   bindPrintHandlers();
   if (integrityTimer === null && typeof setInterval !== "undefined") {
-    integrityTimer = setInterval(() => verifyWatermarkIntegrity(), INTEGRITY_CHECK_INTERVAL);
+    integrityTimer = setInterval(() => {
+      // 后台标签页跳过巡检：避免无意义的强制布局，回前台后下一轮即恢复检查
+      if (typeof document !== "undefined" && document.hidden) return;
+      verifyWatermarkIntegrity();
+    }, INTEGRITY_CHECK_INTERVAL);
   }
 }
 
@@ -437,6 +462,65 @@ export function applyGlobalWatermark(): void {
   createGlobalWatermark(config);
 }
 
+/**
+ * 装配全局水印（宿主 onMounted 调用一次；重复调用无副作用）：
+ * 1. 立即按当前 security.watermark 应用；
+ * 2. web 字体异步就绪后重绘一次，避免首绘按回退字体测量导致字宽偏差。
+ * 配置变更后的自动重绘走 createApp 的 onConfigHotReload 通道（setting.ts），
+ * 本函数不重复订阅配置变更。
+ */
+let watermarkSetupDone = false;
+export function setupWatermark(): void {
+  if (watermarkSetupDone || typeof window === "undefined") return;
+  watermarkSetupDone = true;
+  applyGlobalWatermark();
+  const fonts = (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts;
+  if (fonts?.ready) {
+    fonts.ready
+      .then(() => {
+        applyGlobalWatermark();
+      })
+      .catch(() => {
+        // 字体就绪信号不可用时保持首绘结果
+      });
+  }
+}
+
+/**
+ * 按配置片生成水印瓦片（设置页实时预览等场景复用同一套绘制算法）。
+ * 与全局水印同规则：颜色统一套 alpha、暗色优先 darkColor、多行文案、
+ * 旋转外接矩形铺排；预览固定不拼溯源行。
+ */
+export function buildWatermarkTile(
+  config: Partial<WatermarkConfig> & { dark?: boolean }
+): { data: string; w: number; h: number; lines: string[] } {
+  const alpha = typeof config.alpha === "number" ? config.alpha : undefined;
+  const runtime: Partial<WatermarkRuntimeConfig> = {};
+  const color = withAlpha(config.color, alpha);
+  if (color) runtime.textColor = color;
+  else if (typeof alpha === "number") runtime.textColor = rgbaFromHex("#409EFF", alpha);
+  const darkColor = withAlpha(config.darkColor, alpha);
+  if (darkColor) runtime.darkColor = darkColor;
+  if (typeof config.rotate === "number") runtime.rotate = config.rotate;
+  if (typeof config.fontSize === "number" && config.fontSize > 0) runtime.fontSize = config.fontSize;
+  if (typeof config.fontFamily === "string" && config.fontFamily) runtime.fontFamily = config.fontFamily;
+  if (typeof config.gapX === "number" && config.gapX >= 0) runtime.gapX = config.gapX;
+  if (typeof config.gapY === "number" && config.gapY >= 0) runtime.gapY = config.gapY;
+  runtime.text = config.text;
+  const merged = { ...defaultConfig, ...runtime } as WatermarkRuntimeConfig;
+  const lines = buildWatermarkLines({ ...merged, trace: false });
+  const textColor = config.dark === true && merged.darkColor ? merged.darkColor : merged.textColor;
+  const { data, w, h } = generateWatermarkCanvas(
+    lines,
+    resolveFont(merged),
+    textColor,
+    merged.rotate,
+    merged.gapX,
+    merged.gapY
+  );
+  return { data, w, h, lines };
+}
+
 // 创建全局水印
 const createGlobalWatermark = (config: WatermarkRuntimeConfig) => {
   // 移除旧水印（可能被攻击者移到任意父级，remove() 从当前位置安全摘除）
@@ -445,6 +529,9 @@ const createGlobalWatermark = (config: WatermarkRuntimeConfig) => {
   // 创建新水印容器
   const container = document.createElement("div");
   container.id = GLOBAL_WATERMARK_ID;
+  // 纯装饰层：对辅助技术隐藏（背景图读屏本不读取，此处显式声明语义）
+  container.setAttribute("role", "presentation");
+  container.setAttribute("aria-hidden", "true");
 
   // 文案：配置文案 + 溯源信息；颜色：暗色主题优先用 darkColor
   const lines = buildWatermarkLines(config);
@@ -502,6 +589,20 @@ const createGlobalWatermark = (config: WatermarkRuntimeConfig) => {
 };
 
 // 创建局部水印
+/** 局部水印登记表：主题切换时按 darkColor 重绘（已断开连接的元素顺手清理） */
+const localWatermarks = new Map<HTMLElement, WatermarkRuntimeConfig>();
+
+/** 主题切换后重绘全部仍挂在文档里的局部水印 */
+function redrawLocalWatermarks(): void {
+  localWatermarks.forEach((config, el) => {
+    if (!el.isConnected) {
+      localWatermarks.delete(el);
+      return;
+    }
+    createLocalWatermark(el, config);
+  });
+}
+
 const createLocalWatermark = (el: HTMLElement, config: WatermarkRuntimeConfig) => {
   // 清理旧水印样式
   el.style.backgroundImage = "";
@@ -511,10 +612,13 @@ const createLocalWatermark = (el: HTMLElement, config: WatermarkRuntimeConfig) =
   const lines: string[] = Array.isArray(config.text)
     ? config.text.filter((s): s is string => Boolean(s))
     : [config.text].filter((s): s is string => Boolean(s));
+  // 暗色主题优先用 darkColor（与全局水印同规则）
+  const dark = document.documentElement.classList.contains("dark");
+  const textColor = dark && config.darkColor ? config.darkColor : config.textColor;
   const { data, w, h } = generateWatermarkCanvas(
     lines.length ? lines : [defaultConfig.text],
     resolveFont(config),
-    config.textColor,
+    textColor,
     config.rotate,
     config.gapX,
     config.gapY
@@ -523,6 +627,8 @@ const createLocalWatermark = (el: HTMLElement, config: WatermarkRuntimeConfig) =
   el.style.backgroundRepeat = "repeat";
   el.style.backgroundSize = `${w}px ${h}px`;
   el.style.zIndex = String(config.zIndex);
+  // 登记供主题切换重绘（Map 去重：同一元素 mounted/updated 只保留最新配置）
+  localWatermarks.set(el, config);
 };
 
 // 水印指令
@@ -565,7 +671,8 @@ const waterMarker: Directive = {
     }
   },
   unmounted(el: HTMLElement) {
-    // 仅清理局部水印样式
+    // 仅清理局部水印样式与登记表
+    localWatermarks.delete(el);
     el.style.backgroundImage = "";
     el.style.backgroundRepeat = "";
     el.style.backgroundSize = "";
