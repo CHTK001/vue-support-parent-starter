@@ -173,6 +173,9 @@ export default {
     cloneFailed: '克隆失败',
     cloneUrlRequired: '请填写 GitHub 仓库地址',
     cloneUrlInvalid: '地址应形如 https://github.com/owner/repo',
+    cloneContinues: '克隆已在服务端进行，关闭窗口不会中断；完成后项目会出现在列表里',
+    cloneFinishedInBackground: '克隆完成：{name}（已加入项目列表）',
+    cloneFailedInBackground: '后台克隆失败：{reason}',
   },
 
   // ── 工具栏 ──

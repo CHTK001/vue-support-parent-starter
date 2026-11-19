@@ -260,7 +260,7 @@ async function submitCreate() {
   createLoading.value = true
   createError.value = ''
   try {
-    // 后端只允许在 <基路径>/<账号>/agent 下建单级目录，越界名称直接 4xx
+    // 后端只允许在 <基路径>/<账号> 下建单级目录，越界名称直接 4xx
     const result = await apiService.createWorkspaceDirectory(name)
     // 弹层在请求途中被关掉（或被新一次提交顶掉）：目录已建成，但不再改当前选择
     if (requestId !== createRequestId) return
@@ -292,6 +292,15 @@ const cloneName = ref('')
 const cloneError = ref('')
 const cloneUrlInputRef = ref<any>(null)
 let cloneRequestId = 0
+/**
+ * 本轮克隆已被用户「放弃等待」。
+ *
+ * <p>关闭弹层**不会**中断已经发出的 HTTP 请求（后端照常克隆落盘），旧实现只是把
+ * `cloneRequestId` 加一后丢弃结果，于是用户看到「已取消」，磁盘却多出一个项目目录
+ * （2026-11-19 实测 G4）。现在关闭时明确告知「克隆仍在服务端继续」，并且仍然处理
+ * 结果：成功只提示并加入项目列表（不擅自切换当前工作目录），失败也如实提示。</p>
+ */
+let cloneAbandoned = false
 
 function startClone() {
   cancelCreate()
@@ -300,13 +309,31 @@ function startClone() {
   nextTick(() => cloneUrlInputRef.value?.focus?.())
 }
 
-function cancelClone() {
-  cloneRequestId += 1
+function resetCloneForm() {
   cloneMode.value = false
   cloneLoading.value = false
   cloneError.value = ''
   cloneUrl.value = ''
   cloneName.value = ''
+}
+
+/**
+ * 用户主动取消 / 关闭弹层。
+ *
+ * <p>克隆进行中时**不**假装取消：请求已经发出，后端会继续克隆落盘，
+ * 这里如实提示「仍在服务端继续」，并保留结果处理（成功后只提示 + 加入项目列表）。
+ * 只有不在克隆时才是真正的重置，顺带作废可能存在的上一次结果。</p>
+ */
+function cancelClone() {
+  if (cloneLoading.value) {
+    cloneAbandoned = true
+    message.info(t('chat.input.cloneContinues'))
+    resetCloneForm()
+    return
+  }
+  cloneRequestId += 1
+  cloneAbandoned = false
+  resetCloneForm()
 }
 
 async function submitClone() {
@@ -321,17 +348,32 @@ async function submitClone() {
     return
   }
   const requestId = ++cloneRequestId
+  cloneAbandoned = false
   cloneLoading.value = true
   cloneError.value = ''
   try {
     const result = await apiService.cloneWorkspaceFromGit(url, cloneName.value.trim() || undefined)
     if (requestId !== cloneRequestId) return
+    if (cloneAbandoned) {
+      // 用户已关闭弹层：不擅自切换当前工作目录，只如实告知结果并加入项目列表
+      message.success(t('chat.input.cloneFinishedInBackground', { name: result.name }))
+      workspaceStore.addRecent(result.path)
+      cloneAbandoned = false
+      return
+    }
     message.success(t('chat.input.cloneSuccess', { name: result.name }))
-    cancelClone()
+    resetCloneForm()
     // 选中新目录：会话执行目录落到仓库根，Git 面板立刻可用
     handleSelect(result.path)
   } catch (error: any) {
     if (requestId !== cloneRequestId) return
+    if (cloneAbandoned) {
+      message.error(t('chat.input.cloneFailedInBackground', {
+        reason: error?.message || t('chat.input.cloneFailed'),
+      }))
+      cloneAbandoned = false
+      return
+    }
     cloneError.value = error?.message || t('chat.input.cloneFailed')
   } finally {
     if (requestId === cloneRequestId) cloneLoading.value = false

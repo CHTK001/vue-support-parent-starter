@@ -173,6 +173,9 @@ export default {
     cloneFailed: 'Clone failed',
     cloneUrlRequired: 'Please enter a GitHub repository URL',
     cloneUrlInvalid: 'URL should look like https://github.com/owner/repo',
+    cloneContinues: 'The clone keeps running on the server; closing this window does not cancel it. The project will appear in the list when done',
+    cloneFinishedInBackground: 'Clone finished: {name} (added to the project list)',
+    cloneFailedInBackground: 'Background clone failed: {reason}',
   },
 
   // ── 工具栏 ──
