@@ -136,6 +136,21 @@
                             </el-icon>
                         </el-button>
                     </LTooltip>
+                    <!-- 新建文件 / 新建目录（原先只能在系统文件管理器或 API 里建，树里没有入口） -->
+                    <LTooltip :content="t('chat.workspace.newFile')" placement="bottom">
+                        <el-button class="workspace-tool-btn" text :disabled="!sessionId" @click="handleCreateEntry(false)">
+                            <el-icon size="15">
+                                <DocumentAdd />
+                            </el-icon>
+                        </el-button>
+                    </LTooltip>
+                    <LTooltip :content="t('chat.workspace.newFolder')" placement="bottom">
+                        <el-button class="workspace-tool-btn" text :disabled="!sessionId" @click="handleCreateEntry(true)">
+                            <el-icon size="15">
+                                <FolderAdd />
+                            </el-icon>
+                        </el-button>
+                    </LTooltip>
                     <!-- 刷新按钮 -->
                     <LTooltip :content="t('chat.workspace.refresh')" placement="bottom">
                         <el-button class="workspace-tool-btn" text @click="refreshTree" :loading="isLoading">
@@ -227,7 +242,7 @@ import { ref, computed, watch, onUnmounted, nextTick } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { apiService, type FileChangeEvent } from '@/services/ApiService';
-import { Refresh, CopyDocument, Edit, Delete, Plus, Close, Share, Monitor } from '@element-plus/icons-vue';
+import { Refresh, CopyDocument, Edit, Delete, Plus, Close, Share, Monitor, DocumentAdd, FolderAdd } from '@element-plus/icons-vue';
 import { Folder16Regular, Window16Regular, ArrowMinimize16Regular, FullScreenMaximize16Regular } from '@vicons/fluent';
 import { VsCode, WindowsExplorer } from '@/components/icons';
 import { getFileIcon } from '@/composables/useFileIcon';
@@ -317,6 +332,19 @@ const contextMenuItems = computed<ContextMenuItem[]>(() => {
             label: t('chat.workspace.openInVSCodeShort'),
             icon: VsCode,
             onClick: handleOpenInVSCode,
+        });
+    }
+    // 目录节点额外提供「新建文件 / 新建目录」（落到该目录内）
+    if (contextMenu.value.node?.isDirectory) {
+        items.push({
+            label: t('chat.workspace.newFile'),
+            icon: DocumentAdd,
+            onClick: () => handleCreateFromMenu(false),
+        });
+        items.push({
+            label: t('chat.workspace.newFolder'),
+            icon: FolderAdd,
+            onClick: () => handleCreateFromMenu(true),
         });
     }
     items.push({
@@ -1236,6 +1264,139 @@ async function handleDelete() {
         message.error(error?.response?.data?.message || error.message || t('chat.workspace.deleteFailed'));
     }
     closeContextMenu();
+}
+
+/**
+ * 新建时的落点目录：右键目录 → 该目录；否则 → 当前打开文件所在目录；再否则 → 工作区根
+ * （树为空时返回空串，交给后端按工作区根解析）。
+ *
+ * @param preferred 右键菜单指定的目录（可选）
+ */
+function resolveCreateBaseDir(preferred?: string | null): string {
+    if (preferred) {
+        return preferred;
+    }
+    const opened = selectedNodePath.value;
+    if (opened) {
+        const idx = Math.max(opened.lastIndexOf('/'), opened.lastIndexOf('\\'));
+        return idx > 0 ? opened.slice(0, idx) : '';
+    }
+    const first = treeData.value[0];
+    if (first?.path) {
+        const idx = Math.max(first.path.lastIndexOf('/'), first.path.lastIndexOf('\\'));
+        return idx > 0 ? first.path.slice(0, idx) : '';
+    }
+    return '';
+}
+
+/**
+ * 拼接路径：沿用父目录的分隔符（Windows 树节点给的是反斜杠）。
+ *
+ * @param dir  父目录；空串表示工作区根
+ * @param name 单级名称
+ */
+function joinEntryPath(dir: string, name: string): string {
+    if (!dir) {
+        return name;
+    }
+    if (dir.endsWith('/') || dir.endsWith('\\')) {
+        return dir + name;
+    }
+    const sep = dir.includes('\\') && !dir.includes('/') ? '\\' : '/';
+    return dir + sep + name;
+}
+
+/**
+ * 新建完成后只刷新受影响的目录，保留其它已展开节点（整树刷新会把展开状态全丢掉）。
+ *
+ * @param dir 新建落点目录
+ */
+async function reloadCreatedDirectory(dir: string): Promise<void> {
+    const node = dir ? findNodeByPath(treeData.value, dir) : null;
+    if (node && node.isDirectory) {
+        await handleTreeNodeToggle(node, true);
+        return;
+    }
+    refreshTree();
+}
+
+/**
+ * 新建文件/目录（侧栏头部按钮与右键菜单共用）。
+ *
+ * <p>可写范围由后端钉死在工作区内，前端只负责取名称并发起请求；同名已存在时后端 409，
+ * 这里把原因原样提示出来，不静默覆盖。</p>
+ *
+ * @param directory true 建目录，false 建空文件
+ * @param baseDir   指定落点目录（右键目录时传入）；省略则按当前上下文推导
+ */
+async function handleCreateEntry(directory: boolean, baseDir?: string | null) {
+    closeContextMenu();
+    if (!props.sessionId) {
+        return;
+    }
+    const parent = resolveCreateBaseDir(baseDir);
+    try {
+        const { value: name } = await ElMessageBox.prompt(
+            directory ? t('chat.workspace.newFolderTitle') : t('chat.workspace.newFileTitle'),
+            directory ? t('chat.workspace.newFolder') : t('chat.workspace.newFile'),
+            {
+                inputPlaceholder: directory
+                    ? t('chat.workspace.newFolderPlaceholder')
+                    : t('chat.workspace.newFilePlaceholder'),
+                confirmButtonText: t('common.ok'),
+                cancelButtonText: t('common.cancel'),
+                inputValidator: (val: string) => {
+                    const trimmed = (val || '').trim();
+                    if (!trimmed) return t('chat.workspace.nameRequired');
+                    if (trimmed === '.' || trimmed === '..') return t('chat.workspace.nameNoSeparator');
+                    if (trimmed.includes('/') || trimmed.includes('\\')) return t('chat.workspace.nameNoSeparator');
+                    return true;
+                },
+            },
+        );
+        const trimmed = (name || '').trim();
+        if (!trimmed) {
+            return;
+        }
+        const result = await apiService.createWorkspaceEntry(
+            props.sessionId,
+            joinEntryPath(parent, trimmed),
+            directory,
+        );
+        if (result?.success) {
+            message.success(directory
+                ? t('chat.workspace.createFolderSuccess', { name: result.name || trimmed })
+                : t('chat.workspace.createFileSuccess', { name: result.name || trimmed }));
+            await reloadCreatedDirectory(parent);
+            if (!directory) {
+                // 新建的空文件直接打开，省得用户再回树里找
+                await handleFileSelect({
+                    name: result.name || trimmed,
+                    path: result.path,
+                    isDirectory: false,
+                    size: 0,
+                } as WorkspaceNode);
+            }
+        }
+    } catch (error: any) {
+        // ElMessageBox.prompt 取消会抛异常，忽略
+        if (error === 'cancel' || error === 'close') {
+            return;
+        }
+        console.error('[WorkspaceSidebar] Create failed:', error);
+        message.error(error?.response?.data?.message || error.message || t('chat.workspace.createFailed'));
+    }
+}
+
+/**
+ * 右键菜单里的新建：按被右键的节点决定落点。
+ *
+ * @param directory true 建目录，false 建文件
+ */
+async function handleCreateFromMenu(directory: boolean) {
+    const node = contextMenu.value.node;
+    const base = node && node.isDirectory ? node.path : null;
+    await handleCreateEntry(directory, base);
 }
 
 /**

@@ -14,6 +14,12 @@ export interface WorkspaceApi {
   getWorkspaceRawFileUrl(sessionId: string, filePath: string): string;
   getWorkspaceHtmlPreviewBaseUrl(sessionId: string, dirPath?: string): string;
   deleteWorkspaceFile(sessionId: string, filePath: string): Promise<{ success: boolean; isDirectory?: boolean }>;
+  createWorkspaceEntry(sessionId: string, entryPath: string, directory: boolean): Promise<{
+    success: boolean;
+    path: string;
+    name: string;
+    isDirectory: boolean;
+  }>;
   renameWorkspaceFile(sessionId: string, filePath: string, newName: string): Promise<{ success: boolean; isDirectory?: boolean; newPath?: string }>;
   createWorkspaceDirectory(name: string): Promise<{ name: string; path: string }>;
   cloneWorkspaceFromGit(url: string, name?: string): Promise<{ name: string; path: string; gitUrl?: string }>;
@@ -79,6 +85,23 @@ export const workspaceApi: WorkspaceApi = {
     );
   },
 
+  /**
+   * 在工作区内新建文件或目录。
+   *
+   * <p>可写范围由后端钉死在工作区根内：父目录不存在返回 400，同名已存在返回 409，
+   * 越界返回 403，前端拿到 4xx 就是「这次没建成」，不需要回滚。</p>
+   *
+   * @param sessionId 会话 id
+   * @param entryPath 目标路径（工作区内相对路径或绝对路径）
+   * @param directory true 建目录，false 建空文件
+   */
+  async createWorkspaceEntry(this: ApiContext, sessionId: string, entryPath: string, directory: boolean) {
+    return await this._request(`/sessions/${sessionId}/workspace/file`, {
+      method: "POST",
+      data: { path: entryPath, directory },
+    });
+  },
+
   async renameWorkspaceFile(this: ApiContext, sessionId: string, filePath: string, newName: string) {
     return await this._request(`/sessions/${sessionId}/workspace/rename`, {
       method: "POST",
@@ -87,7 +110,7 @@ export const workspaceApi: WorkspaceApi = {
   },
 
   /**
-   * 在账号工作目录（{@code <基路径>/<账号>/agent}）下新建一个项目目录。
+   * 在账号工作目录（{@code <基路径>/<账号>}）下新建一个项目目录。
    *
    * <p>可写范围由后端钉死在账号工作目录内：名称只接受单级目录名，
    * 解析后仍须落在该目录下。这里不传绝对路径，避免前端拿到主机级写权限。</p>
