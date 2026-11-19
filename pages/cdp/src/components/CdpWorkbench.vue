@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * 调试中心（DevTools 工作台）
+ * CDP 工作台（DevTools 面板 + 实时画面舞台）
  *
- * <p>页面级路线 {@code /debug}，采用「工作台」布局：</p>
+ * <p>{@code @pages/cdp} 的核心 UI 组件，采用「工作台」布局：</p>
  * <ul>
- *   <li>顶部状态带：浏览器状态 / WS 状态 / 调试端口，以及刷新、新建页面、启动、停止；</li>
+ *   <li>浏览器生命周期控件（启停 / 新建页面 / sw8 / 地址栏）由宿主壳层
+ *       （{@code @pages/debug} 的浏览器式工作台）持有，经 {@code defineExpose} 驱动；</li>
  *   <li>左侧目标轨道（可折叠）：搜索 / 类型筛选 + 目标列表，底部常驻引擎信息；</li>
  *   <li>右侧 DevTools 工作区：元素 / 控制台 / 网络 / 应用 / 截屏 五个页签；
  *       元素页签内为「画面舞台 | DOM 树 + 样式/计算/布局/SVG 详情 | Console 抽屉」三栏。</li>
@@ -12,20 +13,22 @@
  *
  * <p>跟后端的通道有两路：REST {@code /ms/cdp/**}（一次性操作：状态、启动、停止、截屏…）
  * 与 WebSocket {@code /ws/cdp}（实时事件 + JSON-RPC 调用）。实时通道由
- * {@code @pages/debug/api/cdpApi} 的 {@code CdpClient} 持有。</p>
+ * {@code @pages/cdp/client} 的 {@code CdpClient} 持有。</p>
  *
  * @author CH
  * @since 4.0.0.51
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
+  cdpCloseProxySession,
   cdpCloseTarget,
   cdpContent,
   cdpCookies,
   cdpCreateTarget,
   cdpEvaluate,
   cdpNavigate,
+  cdpOpenProxySession,
   cdpScreenshot,
   cdpStart,
   cdpStatus,
@@ -33,11 +36,11 @@ import {
   cdpTargets,
   CDP_WS_PATH,
   createCdpClient,
-} from "../api/cdpApi";
-import type { CdpStatus, CdpTarget } from "../api/cdpApi";
+} from "../client";
+import type { CdpStatus, CdpTarget } from "../client";
 import { createSseClient } from "@repo/utils";
 import type { SseClient } from "@repo/utils";
-import "../styles/debug.css";
+import "../styles/cdp.css";
 
 /* ==================== 视图偏好（localStorage） ==================== */
 
@@ -77,13 +80,13 @@ function writePref(key: string, value: unknown): void {
 /**
  * 当前选中的页签
  *
- * <p>按 F12 的功能分区组织：元素（含样式 / 计算）、控制台、网络、
+ * <p>按 F12 的功能分区组织：元素（含样式 / 计算）、控制台、断点（Debugger）、网络、
  * 存储（Cookie / localStorage / sessionStorage）、截屏。SVG 抽取收进元素页签的
  * 侧栏，求值收进元素页签底部的 Console 抽屉。</p>
  */
-type PageTab = "elements" | "console" | "network" | "performance" | "svg" | "app" | "screenshot";
+type PageTab = "elements" | "console" | "debugger" | "network" | "performance" | "svg" | "app" | "screenshot";
 
-const PAGE_TABS: readonly PageTab[] = ["elements", "console", "network", "performance", "svg", "app", "screenshot"];
+const PAGE_TABS: readonly PageTab[] = ["elements", "console", "debugger", "network", "performance", "svg", "app", "screenshot"];
 
 /** 页签默认落在「网络」；上次停留的页签会记住，下次进来直接续上 */
 function readPageTab(): PageTab {
@@ -117,10 +120,40 @@ interface ConsoleEntry {
   targetId: string;
   /** 事件时间 */
   timestamp: number;
+  /** 分组缩进层级（console.group 嵌套深度，0 = 顶层） */
+  depth: number;
+  /** 异常堆栈（Runtime.exceptionThrown 的 exceptionDetails.stackTrace，可展开查看） */
+  stack?: ConsoleStackFrame[];
+}
+
+/** 异常堆栈的一帧 */
+interface ConsoleStackFrame {
+  /** 脚本地址（优先取帧自带 url，缺省时用 scriptId 反查 scriptSources） */
+  url: string;
+  /** 行号（0 基 + 1 转成 1 基展示） */
+  line: number;
+  /** 函数名（匿名时显示 (anonymous)） */
+  fn: string;
 }
 
 /** 控制台日志 */
 const consoleMessages = ref<ConsoleEntry[]>([]);
+
+/** 一条 WebSocket 帧（Network.webSocketFrame* 事件） */
+interface WsFrame {
+  /** 方向：send = 页面发出，recv = 页面收到，error = 帧错误 */
+  dir: "send" | "recv" | "error";
+  /** 帧类型码（0 continuation / 1 文本 / 2 二进制 / 8 关闭 / 9 ping / 10 pong；错误帧 -1） */
+  opcode: number;
+  /** 是否带掩码（客户端 → 服务端一般为 true） */
+  mask: boolean;
+  /** 文本帧内容（二进制帧不落地，只记大小） */
+  payload: string;
+  /** 事件时间（单调时钟 × 1000，与 NetEntry.timestamp 同基准，用于算相对偏移） */
+  time: number;
+  /** 内容字节数 */
+  size: number;
+}
 
 /** 一条 F12 风格的网络请求（列表 + 详情，按 requestId 归并） */
 interface NetEntry {
@@ -148,8 +181,10 @@ interface NetEntry {
   received: number;
   /** 耗时（ms，loadingFinished - requestWillBeSent） */
   duration: number;
-  /** 发起时间 */
+  /** 发起时间（CDP 单调时钟 × 1000，仅用于相对排序 / 瀑布图） */
   timestamp: number;
+  /** 墙钟时间（HAR 的 startedDateTime 用；单调时钟不能当日期展示） */
+  wallTime: number;
   /** 请求头 */
   requestHeaders: Record<string, string>;
   /** 请求体（POST / PUT 时 CDP 回传的 postData，用于重发） */
@@ -170,6 +205,8 @@ interface NetEntry {
   spanId: string;
   /** 链路追踪：来源协议（sw8 / traceparent） */
   traceSource: string;
+  /** WebSocket 帧（仅 websocket 类型请求有；Network.webSocketFrame* 按 requestId 归并到这里） */
+  wsFrames?: WsFrame[];
 }
 
 /** 抽取出来的一个 SVG */
@@ -211,9 +248,8 @@ const netPreserveLog = ref<boolean>(readPref<boolean>("net.preserveLog", false))
 /** 网络：当前展开详情的请求 */
 const netDetailId = ref("");
 /** 网络详情当前页签 */
-const netDetailTab = ref<"headers" | "response" | "initiator" | "trace">(
-  readPref<"headers" | "response" | "initiator" | "trace">("net.detailTab", "headers"),
-);
+type NetDetailTab = "headers" | "response" | "initiator" | "trace" | "ws";
+const netDetailTab = ref<NetDetailTab>(readPref<NetDetailTab>("net.detailTab", "headers"));
 /** 详情区固定高度（px，可拖拽调整，避免高度随内容跳变；高度也会记住） */
 const netDetailHeight = ref<number>(readPref<number>("net.detailHeight", 260));
 /** 详情区是否正在拖拽分隔条 */
@@ -454,10 +490,11 @@ const uptime = computed(() => {
   return `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor((seconds % 3600) / 60))}:${pad(seconds % 60)}`;
 });
 
-/** 七个页签（带计数）；整页源码与求值入口收在「元素」页签里，SVG 也单开一页做全量抽取 */
+/** 八个页签（带计数）；整页源码与求值入口收在「元素」页签里，SVG 也单开一页做全量抽取 */
 const tabs = computed<{ name: PageTab; label: string; count?: number }[]>(() => [
   { name: "elements", label: "元素" },
   { name: "console", label: "控制台", count: consoleMessages.value.length },
+  { name: "debugger", label: "断点", count: breakpoints.value.length || undefined },
   { name: "network", label: "网络", count: networkRequests.value.length },
   {
     name: "performance",
@@ -527,6 +564,101 @@ const netSummary = computed(() => {
   const failed = rows.filter((n) => n.errorText || /^[45]/.test(n.status)).length;
   return { count: rows.length, bytes, failed };
 });
+
+/** 瀑布图时间轴：以最早发起的请求为原点，总跨度作为 100% 宽度的基准 */
+const netWaterfall = computed(() => {
+  let origin = Infinity;
+  let end = 0;
+  for (const n of networkRows.value) {
+    const start = n.timestamp || 0;
+    const finish = start + (n.duration || 0);
+    if (start && start < origin) {
+      origin = start;
+    }
+    if (finish > end) {
+      end = finish;
+    }
+  }
+  return { origin: origin === Infinity ? 0 : origin, span: Math.max(end - origin, 1) };
+});
+
+/** 单条请求的瀑布条位置（left / width 百分比，贴在瀑布列的格子里） */
+function waterfallStyle(n: NetEntry): Record<string, string> {
+  const { origin, span } = netWaterfall.value;
+  const start = Math.max(0, (n.timestamp || 0) - origin);
+  const dur = Math.max(n.duration || 0, 0);
+  const left = Math.min(99, (start / span) * 100);
+  const width = Math.max(0.8, Math.min(100 - left, (dur / span) * 100));
+  return { left: `${left}%`, width: `${width}%` };
+}
+
+/**
+ * 导出 HAR 1.2（用当前过滤后的网络日志拼装，纯内存数据、不发请求）
+ *
+ * <p>响应体不落进 HAR（body 要按需经 {@code loadNetBody} 拉，导出只带元数据），
+ * 请求 POST 体如果 CDP 已经回传过就原样带上。</p>
+ */
+function exportHar(): void {
+  const rows = [...networkRows.value].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  if (!rows.length) {
+    ElMessage.warning("还没有可导出的网络请求");
+    return;
+  }
+  const toHeaderList = (h: Record<string, string>) => Object.entries(h).map(([name, value]) => ({ name, value }));
+  const entries = rows.map((n) => {
+    const time = Math.max(0, Math.round(n.duration || 0));
+    return {
+      startedDateTime: new Date(n.wallTime || Date.now()).toISOString(),
+      time,
+      request: {
+        method: n.method || "GET",
+        url: n.url,
+        httpVersion: "HTTP/1.1",
+        headers: toHeaderList(n.requestHeaders),
+        queryString: [] as unknown[],
+        cookies: [] as unknown[],
+        headersSize: -1,
+        bodySize: n.postData ? n.postData.length : -1,
+        ...(n.postData ? { postData: { mimeType: "", text: n.postData } } : {}),
+      },
+      response: {
+        status: Number(n.status) || 0,
+        statusText: n.statusText || "",
+        httpVersion: "HTTP/1.1",
+        headers: toHeaderList(n.responseHeaders),
+        cookies: [] as unknown[],
+        content: { size: n.size || n.received || 0, mimeType: n.mimeType || "" },
+        redirectURL: "",
+        headersSize: -1,
+        bodySize: n.size || n.received || 0,
+      },
+      cache: {},
+      timings: { send: 0, wait: time, receive: 0 },
+      _resourceType: n.type || "other",
+      _error: n.errorText || undefined,
+    };
+  });
+  const har = {
+    log: {
+      version: "1.2",
+      creator: { name: "monitor-debug-center", version: "1.0" },
+      pages: [] as unknown[],
+      entries,
+    },
+  };
+  try {
+    const blob = new Blob([JSON.stringify(har)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `debug-network-${new Date().toISOString().replace(/[:.]/g, "-")}.har`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    ElMessage.success(`已导出 ${rows.length} 条请求（HAR 1.2）`);
+  } catch (error) {
+    ElMessage.error("导出失败: " + (error as Error).message);
+  }
+}
 
 /** 按 traceId 聚合的请求（链路视角） */
 const traceGroups = computed(() => {
@@ -675,13 +807,19 @@ const changeTagCount = computed(() => consoleMessages.value.filter((m) => m.type
 
 /**
  * 刷新浏览器状态
+ *
+ * @param quiet 静默模式：轮询对账（如停止浏览器时的 20 次轮询）传 true，
+ *              避免连续失败时 toast 刷屏；常规一次性调用保持默认报错提示
  */
-async function reloadStatus() {
+async function reloadStatus(quiet = false) {
   try {
     statusLoading.value = true;
     status.value = await cdpStatus();
   } catch (error) {
     status.value = null;
+    if (!quiet) {
+      ElMessage.error("浏览器状态拉取失败: " + ((error as Error)?.message ?? String(error)));
+    }
     console.warn("[cdp] 状态拉取失败", error);
   } finally {
     statusLoading.value = false;
@@ -712,6 +850,7 @@ async function reloadTargets() {
     // 目标校正后，若停在「元素」页签就自动补一次 DOM / 画面，避免刷新后左侧空着
     void ensureElementReady();
   } catch (error) {
+    ElMessage.error("目标列表拉取失败: " + ((error as Error)?.message ?? String(error)));
     console.warn("[cdp] 目标列表拉取失败", error);
     targets.value = [];
   }
@@ -770,7 +909,7 @@ async function stopBrowser() {
     }
     let settled = false;
     for (let i = 0; i < 20; i++) {
-      await reloadStatus();
+      await reloadStatus(true);
       if (!running.value) {
         settled = true;
         break;
@@ -897,8 +1036,20 @@ async function submitCreatePage() {
 
 /**
  * 关闭页面
+ *
+ * <p>关闭是不可逆操作（页面现场、未导出的日志一起丢），先弹确认框；
+ * 用户取消时静默返回，不打扰。</p>
  */
 async function closePage(targetId: string) {
+  try {
+    await ElMessageBox.confirm("确认关闭该页面？未保存的调试现场（日志 / 截屏 / 录制）将一并丢失", "关闭页面", {
+      type: "warning",
+      confirmButtonText: "关闭",
+      cancelButtonText: "取消",
+    });
+  } catch {
+    return; // 用户取消
+  }
   try {
     const closingSelected = selectedTarget.value === targetId;
     await cdpCloseTarget(targetId);
@@ -929,6 +1080,8 @@ function selectTarget(targetId: string) {
   }
   selectedTarget.value = targetId;
   consoleMessages.value = [];
+  consoleGroupDepth = 0;
+  expandedStacks.value = {};
   if (!netPreserveLog.value) {
     networkRequests.value = [];
     netDetailId.value = "";
@@ -938,6 +1091,27 @@ function selectTarget(targetId: string) {
   screenshotUrl.value = "";
   svgItems.value = [];
   svgError.value = "";
+  // 断点是目标级的：换目标后旧断点 / 暂停态全部作废；原本开着就到新目标上重开一次
+  breakpoints.value = [];
+  pausedState.value = null;
+  xhrBreakpoints.value = [];
+  eventBreakpoints.value = [];
+  // CPU / 堆采样同为目标级会话：换目标后旧采样作废
+  cpuProfiling.value = false;
+  heapProfiling.value = false;
+  cpuProfile.value = null;
+  cpuProfileRaw.value = null;
+  heapProfile.value = null;
+  heapProfileRaw.value = null;
+  if (debuggerOn.value && wsReady() && targetId) {
+    void client.call("Debugger.enable", {}, targetId).catch(() => {});
+  }
+  // 节流 / 请求拦截 / 设备仿真都是目标级会话状态：换目标后旧会话作废，能重挂就立刻重挂
+  if (netThrottle.value !== "none") {
+    void applyThrottle();
+  }
+  void applyInterceptRules();
+  void applyDeviceEmulation(true);
 }
 
 /* ==================== 实时通道 ==================== */
@@ -964,6 +1138,12 @@ function connectWs() {
     });
     // 页面脚本（变化监视 / sw8）依赖 WS 指令通道，连上后补挂一次
     injectPageScripts();
+    // 重连意味着旧 CDP 会话已销毁：节流 / 拦截 / 设备仿真若开着，到新会话上补挂一次
+    void applyInterceptRules();
+    if (netThrottle.value !== "none") {
+      void applyThrottle();
+    }
+    void applyDeviceEmulation(true);
   }).catch(() => {
     // 握手失败（后端重启 / 鉴权过期 / 页面卸载）由 onclose 的指数退避重连兜底，
     // 这里必须吞掉 rejection，否则会变成未处理的 Promise 拒绝（控制台 PAGEERROR）。
@@ -1049,7 +1229,15 @@ function dispatchCdpEvent(m: Record<string, unknown>) {
     case "Network.loadingFinished":
     case "Network.loadingFailed":
     case "Network.requestServedFromCache":
+    case "Network.webSocketCreated":
+    case "Network.webSocketFrameSent":
+    case "Network.webSocketFrameReceived":
+    case "Network.webSocketFrameError":
       appendNetwork(m);
+      break;
+    // Fetch 拦截：命中规则后按动作放行 / 屏蔽 / Mock / 改头（纯前端决策，后端只透传）
+    case "Fetch.requestPaused":
+      handleInterceptPaused((m.params ?? {}) as Record<string, unknown>, String(m.targetId ?? ""));
       break;
     // 性能追踪：Tracing.dataCollected 分批回推，累积到暂存区；tracingComplete 收尾
     case "Tracing.dataCollected":
@@ -1075,13 +1263,29 @@ function dispatchCdpEvent(m: Record<string, unknown>) {
       break;
     }
     // 导航 / 加载完成：变化 tag + DOM 快照标脏 + 事件驱动的截屏刷新 + 重挂页面脚本
-    case "Page.frameNavigated":
+    case "Page.frameNavigated": {
+      // 主框架提交导航：地址栏进度条走起，并同步导航历史（后退 / 前进的可用性）
+      const navParams = (m.params ?? {}) as Record<string, unknown>;
+      const navFrame = (navParams.frame ?? {}) as Record<string, unknown>;
+      if (navFrame.parentId == null) {
+        if (String(m.targetId ?? "") === selectedTarget.value) {
+          pageLoading.value = true;
+          armLoadingWatchdog();
+        }
+        void refreshNavHistory();
+      }
       onPageChanged("导航", m);
       reinjectPageScripts(String(m.targetId ?? "") || selectedTarget.value);
       autoRefreshSvg();
       break;
+    }
     case "Page.loadEventFired":
       onPageChanged("加载完成", m);
+      if (String(m.targetId ?? "") === selectedTarget.value) {
+        pageLoading.value = false;
+        clearTimeout(loadingWatchdog);
+      }
+      void refreshNavHistory();
       // 页面加载完成后脚本上下文已重建，重挂变化监视 / sw8
       reinjectPageScripts(String(m.targetId ?? "") || selectedTarget.value);
       autoRefreshSvg();
@@ -1094,6 +1298,24 @@ function dispatchCdpEvent(m: Record<string, unknown>) {
     case "Target.targetChanged":
       onTargetChanged(m);
       break;
+    // Debugger 域：断点命中 / 恢复 / 位置解析 / 脚本登记（断点页签 + 透传链路）
+    case "Debugger.paused":
+      onDebuggerPaused((m.params ?? {}) as Record<string, unknown>);
+      break;
+    case "Debugger.resumed":
+      pausedState.value = null;
+      break;
+    case "Debugger.breakpointResolved":
+      onBreakpointResolved((m.params ?? {}) as Record<string, unknown>);
+      break;
+    case "Debugger.scriptParsed": {
+      const sp = (m.params ?? {}) as Record<string, unknown>;
+      const sid = String(sp.scriptId ?? "");
+      if (sid) {
+        scriptSources.value = { ...scriptSources.value, [sid]: String(sp.url ?? "") };
+      }
+      break;
+    }
     default:
       break;
   }
@@ -1202,6 +1424,10 @@ function normalizeLevel(type: string): string {
   return "log";
 }
 
+/** console.group 嵌套深度（模块级计数：startGroup +1，endGroup -1） */
+let consoleGroupDepth = 0;
+
+/** 记一条控制台消息（三条来源统一入口），返回 null 表示没有可入列的内容 */
 function appendConsole(m: Record<string, unknown> = {}) {
   const params = (m.params ?? {}) as Record<string, unknown>;
   const method = String(m.method ?? "");
@@ -1218,9 +1444,21 @@ function appendConsole(m: Record<string, unknown> = {}) {
   let text = args.length
     ? args.map(argText).join(" ")
     : String(params.text ?? inner.text ?? "");
+  let stack: ConsoleStackFrame[] | undefined;
   if (method === "Runtime.exceptionThrown" || exception.description) {
     type = "error";
     text = String(exception.description ?? details.text ?? text ?? "未捕获异常");
+    stack = extractStackTrace(details.stackTrace);
+  }
+  // console.group / groupCollapsed / endGroup：维护嵌套深度，消息按深度缩进。
+  // startGroup 自身也入列（渲染成 ▾ 分组头），endGroup 渲染成 ▴ 收尾行。
+  let depth = consoleGroupDepth;
+  if (type === "startGroup" || type === "startGroupCollapsed") {
+    depth = consoleGroupDepth;
+    consoleGroupDepth += 1;
+  } else if (type === "endGroup") {
+    consoleGroupDepth = Math.max(0, consoleGroupDepth - 1);
+    depth = consoleGroupDepth;
   }
   const record: ConsoleEntry = {
     key: ++consoleSeq,
@@ -1229,11 +1467,41 @@ function appendConsole(m: Record<string, unknown> = {}) {
     text: text || "(空消息)",
     targetId: String(m.targetId ?? selectedTarget.value ?? ""),
     timestamp: Number(m.timestamp || 0) || Date.now(),
+    depth,
+    stack,
   };
   consoleMessages.value.push(record);
   if (consoleMessages.value.length > maxConsole) {
     consoleMessages.value = consoleMessages.value.slice(-maxConsole);
   }
+}
+
+/**
+ * 把 CDP 的 {@code StackTrace.callFrames} 压成可展示的帧列表
+ *
+ * <p>帧自带 {@code url} 时直接用；内联脚本 / eval 出来的帧可能只有 {@code scriptId}，
+ * 用 {@link scriptSources}（Debugger.scriptParsed 登记的 scriptId → url）反查补全。
+ * 最多保留 20 帧，避免深栈刷屏。</p>
+ */
+function extractStackTrace(raw: unknown): ConsoleStackFrame[] | undefined {
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  const frames = Array.isArray((raw as Record<string, unknown>).callFrames)
+    ? ((raw as Record<string, unknown>).callFrames as Record<string, unknown>[])
+    : [];
+  if (!frames.length) {
+    return undefined;
+  }
+  return frames.slice(0, 20).map((f) => {
+    const scriptId = String(f.scriptId ?? "");
+    const url = String(f.url ?? "") || (scriptId ? scriptSources.value[scriptId] ?? "" : "");
+    return {
+      url,
+      line: f.lineNumber != null ? Number(f.lineNumber) + 1 : 0,
+      fn: String(f.functionName ?? "") || "(anonymous)",
+    };
+  });
 }
 
 /** 写一条「变化」tag（DOM / 导航 / 网络等页面状态变化都走这里） */
@@ -1485,6 +1753,7 @@ function blankNet(): NetEntry {
     received: 0,
     duration: 0,
     timestamp: Date.now(),
+    wallTime: Date.now(),
     postData: "",
     requestHeaders: {},
     responseHeaders: {},
@@ -1496,6 +1765,35 @@ function blankNet(): NetEntry {
     spanId: "",
     traceSource: "",
   };
+}
+
+/** WebSocket 帧事件 → 帧方向（Network.webSocketFrame*） */
+const WS_FRAME_METHODS = new Map<string, "sent" | "received" | "error">(
+  Object.entries({
+    "Network.webSocketFrameSent": "sent",
+    "Network.webSocketFrameReceived": "received",
+    "Network.webSocketFrameError": "error",
+  }) as [string, "sent" | "received" | "error"][],
+);
+
+/** WebSocket 帧类型码的可读名 */
+function wsOpcodeName(op: number): string {
+  switch (op) {
+    case 0:
+      return "continuation";
+    case 1:
+      return "text";
+    case 2:
+      return "binary";
+    case 8:
+      return "close";
+    case 9:
+      return "ping";
+    case 10:
+      return "pong";
+    default:
+      return `op:${op}`;
+  }
 }
 
 /** 按 requestId 找条目（不存在则建一条；重定向复用 id 时补信息） */
@@ -1610,6 +1908,48 @@ function appendNetwork(m: Record<string, unknown> = {}) {
   }
   if (method === "Network.requestServedFromCache") {
     hit.fromCache = true;
+    return;
+  }
+
+  // WebSocket：建连事件补一行（type=websocket），帧事件按方向挂到该行
+  if (method === "Network.webSocketCreated") {
+    const ws = findNet(requestId, true);
+    if (ws) {
+      ws.type = "websocket";
+      if (params.url) ws.url = String(params.url);
+      ws.targetId = targetId;
+      if (!ws.wsFrames) ws.wsFrames = [];
+    }
+    return;
+  }
+  const wsKind = WS_FRAME_METHODS.get(method);
+  if (wsKind) {
+    const ws = findNet(requestId);
+    if (!ws) return;
+    if (!ws.wsFrames) ws.wsFrames = [];
+    if (wsKind === "error") {
+      ws.wsFrames.push({
+        dir: "error",
+        opcode: -1,
+        mask: false,
+        payload: String(params.errorMessage ?? "frame error"),
+        time: Number(params.timestamp ?? 0) * 1000,
+        size: 0,
+      });
+    } else {
+      const f = (params.response ?? {}) as Record<string, unknown>;
+      const opcode = Number(f.opcode ?? -1);
+      const raw = String(f.payload ?? "");
+      // 二进制帧 CDP 给 base64：不落地内容，按 base64 长度近似还原字节数
+      ws.wsFrames.push({
+        dir: wsKind === "sent" ? "send" : "recv",
+        opcode,
+        mask: f.mask === true,
+        payload: opcode === 2 ? "" : raw,
+        time: Number(params.timestamp ?? 0) * 1000,
+        size: opcode === 2 ? Math.floor((raw.length * 3) / 4) : raw.length,
+      });
+    }
   }
 }
 
@@ -1623,6 +1963,8 @@ function clearNetwork() {
 /** 清空控制台 */
 function clearConsole() {
   consoleMessages.value = [];
+  consoleGroupDepth = 0;
+  expandedStacks.value = {};
 }
 
 /** 展开 / 收起一条请求的详情 */
@@ -1633,7 +1975,7 @@ function toggleNetDetail(id: string) {
 }
 
 /** 切换详情子页签（响应按需拉取） */
-function showNetTab(tab: "headers" | "response" | "initiator" | "trace") {
+function showNetTab(tab: NetDetailTab) {
   netDetailTab.value = tab;
   netBodyRaw.value = "";
   if (tab === "response") {
@@ -1756,6 +2098,572 @@ async function copyText(text: string, ok = "已复制到剪贴板") {
   } catch {
     ElMessage.warning("当前浏览器不允许写剪贴板，请手动选中复制");
   }
+}
+
+/* ==================== 网络增强：右键菜单 / 节流 / 请求拦截 ==================== */
+
+/* ---------- 网络行右键菜单（复制 cURL / fetch、重放、屏蔽入口） ---------- */
+
+/** 网络行右键菜单状态（与元素树 contextMenu 同款：视口内定位 + 当前条目） */
+const netMenu = ref<{ open: boolean; x: number; y: number; entry: NetEntry | null }>({
+  open: false,
+  x: 0,
+  y: 0,
+  entry: null,
+});
+
+/** 打开网络行右键菜单（先记住条目，再在鼠标处弹菜单，边界不出视口） */
+function openNetMenu(event: MouseEvent, entry: NetEntry) {
+  const menuW = 230;
+  const menuH = 170;
+  netMenu.value = {
+    open: true,
+    x: Math.min(event.clientX, window.innerWidth - menuW - 8),
+    y: Math.min(event.clientY, window.innerHeight - menuH - 8),
+    entry,
+  };
+}
+
+function closeNetMenu() {
+  netMenu.value.open = false;
+}
+
+/** 重放 / 复制时不该原样带走的头（长度、主机、连接由浏览器自己算） */
+const REPLAY_SKIP_HEADERS = new Set(["content-length", "host", "connection", "origin", "referer"]);
+
+/** shell 单引号转义（'xxx'\''yyy' 写法） */
+function shQuote(v: string): string {
+  return `'${String(v).replace(/'/g, `'\\''`)}'`;
+}
+
+/** 生成可重发的 cURL 命令（F12「Copy as cURL」风格） */
+function buildCurl(n: NetEntry): string {
+  const lines: string[] = [`curl ${shQuote(n.url)}`];
+  if (n.method && n.method.toUpperCase() !== "GET") {
+    lines.push(`  -X ${n.method.toUpperCase()}`);
+  }
+  for (const [k, v] of Object.entries(n.requestHeaders ?? {})) {
+    if (!k || REPLAY_SKIP_HEADERS.has(k.toLowerCase())) {
+      continue;
+    }
+    lines.push(`  -H ${shQuote(`${k}: ${v}`)}`);
+  }
+  if (n.postData) {
+    lines.push(`  --data-raw ${shQuote(n.postData)}`);
+  }
+  lines.push("  --compressed");
+  return lines.join(" \\\n");
+}
+
+/** 生成可重发的 fetch 代码（F12「Copy as fetch」风格） */
+function buildFetchCode(n: NetEntry): string {
+  const headers: Record<string, string> = {};
+  for (const [k, v] of Object.entries(n.requestHeaders ?? {})) {
+    if (!k || REPLAY_SKIP_HEADERS.has(k.toLowerCase())) {
+      continue;
+    }
+    headers[k] = v;
+  }
+  const parts = [`fetch(${JSON.stringify(n.url)}, {`, `  method: ${JSON.stringify((n.method || "GET").toUpperCase())},`, `  headers: ${JSON.stringify(headers)},`];
+  if (n.postData) {
+    parts.push(`  body: ${JSON.stringify(n.postData)},`);
+  }
+  parts.push("});");
+  return parts.join("\n");
+}
+
+/**
+ * 重放一条请求：在页面上下文里用 fetch 重发
+ *
+ * <p>走 {@code Runtime.evaluate} + {@code awaitPromise}，不依赖 Fetch 域，重放
+ * 用的就是页面自己的 Cookie / 会话。结果同时以一条 change tag 落到控制台，方便对照原请求。</p>
+ */
+async function replayRequest(n: NetEntry) {
+  if (!wsReady()) {
+    ElMessage.warning("实时通道未连接，无法重放");
+    return;
+  }
+  const targetId = n.targetId || selectedTarget.value;
+  if (!targetId) {
+    ElMessage.warning("该请求没有归属目标，无法重放");
+    return;
+  }
+  const payload = {
+    url: n.url,
+    method: (n.method || "GET").toUpperCase(),
+    headers: Object.fromEntries(
+      Object.entries(n.requestHeaders ?? {}).filter(([k]) => k && !REPLAY_SKIP_HEADERS.has(k.toLowerCase())),
+    ),
+    body: n.postData || "",
+  };
+  const script = `(async () => {
+    const p = ${JSON.stringify(payload)};
+    const init = { method: p.method, headers: p.headers, credentials: 'include' };
+    if (p.body && p.method !== 'GET' && p.method !== 'HEAD') { init.body = p.body; }
+    const t0 = performance.now();
+    try {
+      const res = await fetch(p.url, init);
+      const text = await res.text();
+      return JSON.stringify({ ok: true, status: res.status, ms: Math.round(performance.now() - t0), bytes: text.length });
+    } catch (e) {
+      return JSON.stringify({ ok: false, error: String((e && e.message) || e) });
+    }
+  })()`;
+  try {
+    const result = (await client.call(
+      "Runtime.evaluate",
+      { expression: script, returnByValue: true, awaitPromise: true },
+      targetId,
+    )) as { result?: { value?: string } } | null;
+    let info: { ok?: boolean; status?: number; ms?: number; bytes?: number; error?: string } = {};
+    try {
+      info = JSON.parse(String(result?.result?.value ?? "{}"));
+    } catch {
+      // 返回帧解析失败按未知错误处理
+    }
+    if (info.ok) {
+      appendChange(`重放 ${payload.method} ${urlName(n.url)} → ${info.status}（${info.ms} ms · ${info.bytes} B）`, targetId);
+      ElMessage.success(`重放完成：${info.status}（${info.ms} ms）`);
+    } else {
+      appendChange(`重放 ${payload.method} ${urlName(n.url)} 失败：${info.error || "未知错误"}`, targetId);
+      ElMessage.error("重放失败: " + (info.error || "未知错误"));
+    }
+  } catch (error) {
+    ElMessage.error("重放失败: " + (error as Error).message);
+  }
+}
+
+/** 网络右键菜单动作统一收口（点击后菜单关闭） */
+async function runNetAction(action: string) {
+  const entry = netMenu.value.entry;
+  closeNetMenu();
+  if (!entry) {
+    return;
+  }
+  switch (action) {
+    case "curl":
+      void copyText(buildCurl(entry), "已复制 cURL 命令");
+      break;
+    case "fetch":
+      void copyText(buildFetchCode(entry), "已复制 fetch 代码");
+      break;
+    case "replay":
+      await replayRequest(entry);
+      break;
+    case "block":
+      addInterceptRule({ pattern: entry.url, action: "block" });
+      ElMessage.success("已加入屏蔽规则并开启拦截");
+      break;
+    default:
+      break;
+  }
+}
+
+/* ---------- 网络节流（Network.emulateNetworkConditions） ---------- */
+
+/** 节流预设（CDP 口径：字节 / 秒；Chrome DevTools 同款数值） */
+interface ThrottlePreset {
+  label: string;
+  download: number;
+  upload: number;
+  latency: number;
+}
+
+const THROTTLE_PRESETS: Record<string, ThrottlePreset> = {
+  fast3g: { label: "Fast 3G", download: 200_000, upload: 93_750, latency: 150 },
+  slow3g: { label: "Slow 3G", download: 50_000, upload: 50_000, latency: 400 },
+};
+
+/** 当前节流档位（none = 不限速） */
+const netThrottle = ref<string>(readPref<string>("net.throttle", "none"));
+/** 自定义档参数（界面按 KB/s 填，下发时换算成 B/s） */
+const netThrottleCustom = ref<{ download: number; upload: number; latency: number }>(
+  readPref("net.throttleCustom", { download: 1024, upload: 512, latency: 100 }),
+);
+
+/**
+ * 应用 / 清除网络节流
+ *
+ * <p>目标级会话命令：切目标、重启浏览器后由 {@link selectTarget} / {@code watch(running)} 重挂。</p>
+ */
+async function applyThrottle() {
+  writePref("net.throttle", netThrottle.value);
+  writePref("net.throttleCustom", netThrottleCustom.value);
+  const targetId = selectedTarget.value;
+  if (!wsReady() || !targetId) {
+    if (netThrottle.value !== "none") {
+      ElMessage.warning("实时通道未连接，节流暂未生效");
+    }
+    return;
+  }
+  if (netThrottle.value === "none") {
+    // 清除：offline=false 且吞吐 -1（CDP 约定 -1 = 不限速）
+    await client
+      .call("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }, targetId)
+      .then(() => ElMessage.success("已清除网络节流"))
+      .catch((e: Error) => ElMessage.error("清除节流失败: " + e.message));
+    return;
+  }
+  let params: { offline: boolean; latency: number; downloadThroughput: number; uploadThroughput: number };
+  if (netThrottle.value === "offline") {
+    params = { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 };
+  } else if (netThrottle.value === "custom") {
+    const c = netThrottleCustom.value;
+    params = {
+      offline: false,
+      latency: Math.max(0, Number(c.latency) || 0),
+      downloadThroughput: Math.max(0, Number(c.download) || 0) * 1024,
+      uploadThroughput: Math.max(0, Number(c.upload) || 0) * 1024,
+    };
+  } else {
+    const preset = THROTTLE_PRESETS[netThrottle.value] ?? THROTTLE_PRESETS.fast3g;
+    params = { offline: false, latency: preset.latency, downloadThroughput: preset.download, uploadThroughput: preset.upload };
+  }
+  const label = netThrottle.value === "custom" ? "自定义" : THROTTLE_PRESETS[netThrottle.value]?.label ?? netThrottle.value;
+  await client
+    .call("Network.emulateNetworkConditions", params, targetId)
+    .then(() => ElMessage.success(`节流已应用：${label}`))
+    .catch((e: Error) => ElMessage.error("应用节流失败: " + e.message));
+}
+
+/* ---------- 设备仿真 / UA 覆盖 / CPU 节流（Emulation 域） ---------- */
+
+/** 常用设备预设（DevTools Device Mode 同款视口 / DPR / UA 口径） */
+interface DevicePreset {
+  label: string;
+  width: number;
+  height: number;
+  scale: number;
+  mobile: boolean;
+  ua: string;
+}
+
+const DEVICE_PRESETS: Record<string, DevicePreset> = {
+  iphone: {
+    label: "iPhone 13/14",
+    width: 390,
+    height: 844,
+    scale: 3,
+    mobile: true,
+    ua: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+  },
+  iphoneSe: {
+    label: "iPhone SE",
+    width: 375,
+    height: 667,
+    scale: 2,
+    mobile: true,
+    ua: "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1",
+  },
+  ipad: {
+    label: "iPad mini",
+    width: 768,
+    height: 1024,
+    scale: 2,
+    mobile: true,
+    ua: "Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+  },
+  pixel: {
+    label: "Pixel 7",
+    width: 412,
+    height: 915,
+    scale: 2.625,
+    mobile: true,
+    ua: "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+  },
+  galaxy: {
+    label: "Galaxy S20",
+    width: 360,
+    height: 800,
+    scale: 3,
+    mobile: true,
+    ua: "Mozilla/5.0 (Linux; Android 12; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+  },
+};
+
+/** 当前设备档位：none = 桌面默认；DEVICE_PRESETS 的 key；custom = 自定义参数 */
+const deviceEmul = ref<string>(readPref<string>("emu.device", "none"));
+/** 自定义设备参数（custom 档生效；ua 留空 = 不覆盖 UA） */
+const deviceCustom = ref<{ width: number; height: number; scale: number; mobile: boolean; ua: string }>(
+  readPref("emu.deviceCustom", { width: 390, height: 844, scale: 2, mobile: true, ua: "" }),
+);
+/** CPU 节流倍率（1 = 不节流；4 = 四倍慢） */
+const cpuRate = ref<number>(readPref<number>("emu.cpu", 1));
+/** 仿真面板开关 */
+const emuPanelOpen = ref(false);
+
+/**
+ * 应用 / 清除设备仿真、UA 覆盖与 CPU 节流
+ *
+ * <p>目标级会话命令：切目标、WS 重连、浏览器重启后由 {@link selectTarget} / {@code connectWs} /
+ * {@code watch(running)} 重挂（silent 传 true，避免重连时消息轰炸）。</p>
+ */
+async function applyDeviceEmulation(silent = false) {
+  writePref("emu.device", deviceEmul.value);
+  writePref("emu.deviceCustom", deviceCustom.value);
+  writePref("emu.cpu", cpuRate.value);
+  const targetId = selectedTarget.value;
+  const needDevice = deviceEmul.value !== "none";
+  const rate = Math.min(50, Math.max(1, Number(cpuRate.value) || 1));
+  const needCpu = rate > 1;
+  if (!wsReady() || !targetId) {
+    if ((needDevice || needCpu) && !silent) {
+      ElMessage.warning("实时通道未连接，设备仿真暂未生效");
+    }
+    return;
+  }
+  try {
+    if (needDevice) {
+      const p = deviceEmul.value === "custom" ? null : DEVICE_PRESETS[deviceEmul.value];
+      const w = Math.max(1, Number(p ? p.width : deviceCustom.value.width) || 390);
+      const h = Math.max(1, Number(p ? p.height : deviceCustom.value.height) || 844);
+      const s = Math.max(1, Number(p ? p.scale : deviceCustom.value.scale) || 2);
+      const mob = p ? p.mobile : deviceCustom.value.mobile !== false;
+      await client.call("Emulation.setDeviceMetricsOverride", { width: w, height: h, deviceScaleFactor: s, mobile: mob }, targetId);
+      const ua = p ? p.ua : String(deviceCustom.value.ua || "").trim();
+      if (ua) {
+        await client.call("Emulation.setUserAgentOverride", { userAgent: ua }, targetId);
+      }
+    } else {
+      // 清除：恢复桌面视口；UA 传空串 = 撤销覆盖（Chrome 约定）
+      await client.call("Emulation.clearDeviceMetricsOverride", {}, targetId);
+      await client.call("Emulation.setUserAgentOverride", { userAgent: "" }, targetId);
+    }
+    await client.call("Emulation.setCPUThrottlingRate", { rate }, targetId);
+    if (!silent) {
+      const parts: string[] = [];
+      if (needDevice) {
+        parts.push(deviceEmul.value === "custom" ? "自定义设备" : DEVICE_PRESETS[deviceEmul.value]?.label ?? deviceEmul.value);
+      }
+      if (needCpu) {
+        parts.push(`CPU ×${rate}`);
+      }
+      ElMessage.success(parts.length ? `仿真已应用：${parts.join(" · ")}` : "已清除设备仿真与 CPU 节流");
+    }
+  } catch (e) {
+    if (!silent) {
+      ElMessage.error("设备仿真失败: " + (e as Error).message);
+    }
+  }
+}
+
+/* ---------- 请求拦截（Fetch.enable + requestPaused） ---------- */
+
+/** 一条拦截规则 */
+interface InterceptRule {
+  /** 稳定 id（列表 key） */
+  id: string;
+  /** URL 匹配串（支持 * 通配；按列表顺序匹配，命中即停） */
+  pattern: string;
+  /** 动作：block=屏蔽，mock=本地应答，header=改写请求头后放行 */
+  action: "block" | "mock" | "header";
+  /** mock：响应码 */
+  status: number;
+  /** mock：响应体 */
+  body: string;
+  /** mock：Content-Type */
+  mime: string;
+  /** header：要改写的请求头（原名 -> 新值，大小写不敏感合并） */
+  headers: Record<string, string>;
+}
+
+let interceptSeq = 0;
+
+/** 拦截规则列表（持久化，刷新后仍在） */
+const interceptRules = ref<InterceptRule[]>(readPref<InterceptRule[]>("net.interceptRules", []));
+/** 拦截总开关（有规则也不会自动开启，避免悄悄改页面行为） */
+const interceptOn = ref<boolean>(readPref<boolean>("net.interceptOn", false));
+/** 拦截面板展开态 */
+const interceptPanelOpen = ref(false);
+/** Fetch 域是否已挂上（避免重复 enable） */
+let fetchInterceptActive = false;
+
+// 开关 / 规则变化即重挂 Fetch 域并记住偏好
+watch(
+  [interceptOn, interceptRules],
+  () => {
+    writePref("net.interceptOn", interceptOn.value);
+    writePref("net.interceptRules", interceptRules.value);
+    void applyInterceptRules();
+  },
+  { deep: true },
+);
+
+/** 通配匹配：只有 * 是通配符，其余按字面量；空串不匹配任何 URL */
+function matchInterceptPattern(pattern: string, url: string): boolean {
+  const p = pattern.trim();
+  if (!p) {
+    return false;
+  }
+  if (p === "*") {
+    return true;
+  }
+  try {
+    const re = new RegExp("^" + p.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[\\s\\S]*") + "$");
+    return re.test(url);
+  } catch {
+    return false;
+  }
+}
+
+/** 新增一条规则（右键菜单「屏蔽该 URL」也走这里，顺带把总开关打开） */
+function addInterceptRule(partial: Partial<InterceptRule> = {}) {
+  interceptSeq += 1;
+  interceptRules.value = [
+    ...interceptRules.value,
+    {
+      id: `ir_${Date.now().toString(36)}_${interceptSeq}`,
+      pattern: partial.pattern ?? "",
+      action: partial.action ?? "block",
+      status: partial.status ?? 200,
+      body: partial.body ?? "",
+      mime: partial.mime ?? "text/plain; charset=utf-8",
+      headers: partial.headers ?? {},
+    },
+  ];
+  if (!interceptOn.value) {
+    interceptOn.value = true;
+  }
+  interceptPanelOpen.value = true;
+}
+
+function removeInterceptRule(id: string) {
+  interceptRules.value = interceptRules.value.filter((r) => r.id !== id);
+}
+
+/** 把「头名: 头值; 头名2: 头值2」文本解析进规则的 headers（清空文本 = 清掉全部改写） */
+function setRuleHeaders(rule: InterceptRule, text: string) {
+  const headers: Record<string, string> = {};
+  for (const part of text.split(";")) {
+    const idx = part.indexOf(":");
+    if (idx <= 0) {
+      continue;
+    }
+    const k = part.slice(0, idx).trim();
+    const v = part.slice(idx + 1).trim();
+    if (k) {
+      headers[k] = v;
+    }
+  }
+  rule.headers = headers;
+}
+
+/**
+ * 按当前开关 / 规则重挂 Fetch 域（enable / disable 幂等）
+ *
+ * <p>patterns 只在 Request 阶段拦全量 URL，命中后的分流决策都在前端
+ * {@link handleInterceptPaused} 里做，后端零改动。</p>
+ */
+async function applyInterceptRules() {
+  const targetId = selectedTarget.value;
+  if (!wsReady() || !targetId) {
+    return;
+  }
+  if (!interceptOn.value || !interceptRules.value.length) {
+    if (fetchInterceptActive) {
+      fetchInterceptActive = false;
+      await client.call("Fetch.disable", {}, targetId).catch(() => {});
+    }
+    return;
+  }
+  await client
+    .call("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] }, targetId)
+    .then(() => {
+      fetchInterceptActive = true;
+    })
+    .catch(() => {});
+}
+
+/**
+ * 处理一条被拦下的请求：按序匹配规则，命中即执行；都不中就原样放行
+ *
+ * <p>动作语义：</p>
+ * <ul>
+ *   <li>block —— {@code Fetch.failRequest}（BlockedByClient，网络面板里表现为 failed）</li>
+ *   <li>mock —— {@code Fetch.fulfillRequest}，本地造响应（状态码 / 响应体 / Content-Type 可配）</li>
+ *   <li>header —— 合并改写请求头后 {@code Fetch.continueRequest} 放行</li>
+ * </ul>
+ * <p>任何一步失败都兜底放行，绝不能让页面请求悬挂在拦截态。</p>
+ */
+async function handleInterceptPaused(params: Record<string, unknown>, targetId: string) {
+  const requestId = String(params.requestId ?? "");
+  if (!requestId || !wsReady()) {
+    return;
+  }
+  const request = (params.request ?? {}) as Record<string, unknown>;
+  const url = String(request.url ?? "");
+  const rule = interceptRules.value.find((r) => matchInterceptPattern(r.pattern, url));
+  if (!rule) {
+    await client.call("Fetch.continueRequest", { requestId }, targetId).catch(() => {});
+    return;
+  }
+  try {
+    if (rule.action === "block") {
+      await client.call("Fetch.failRequest", { requestId, errorReason: "BlockedByClient" }, targetId);
+      appendChange(`拦截·屏蔽 ${request.method || "GET"} ${urlName(url)}`, targetId);
+      return;
+    }
+    if (rule.action === "mock") {
+      const status = Number(rule.status) || 200;
+      const bodyText = String(rule.body ?? "");
+      // UTF-8 → base64（fulfillRequest 的 body 只认 base64），分块转避免大响应体爆栈
+      const bytes = new TextEncoder().encode(bodyText);
+      let bin = "";
+      for (let i = 0; i < bytes.length; i += 0x8000) {
+        bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      }
+      await client.call(
+        "Fetch.fulfillRequest",
+        {
+          requestId,
+          responseCode: status,
+          body: btoa(bin),
+          responseHeaders: [{ name: "Content-Type", value: rule.mime || "text/plain; charset=utf-8" }],
+        },
+        targetId,
+      );
+      appendChange(`拦截·Mock ${status} ${request.method || "GET"} ${urlName(url)}（${bodyText.length} B）`, targetId);
+      return;
+    }
+    // header：Fetch 的 Headers 是 {name,value}[] 且会整体替换，所以要带全原头再合并改写
+    const overrides = Object.entries(rule.headers ?? {})
+      .filter(([k]) => k.trim())
+      .map(([k, v]) => ({ name: k.trim(), value: String(v) }));
+    const merged: { name: string; value: string }[] = [];
+    const used = new Set<number>();
+    const rawHeaders = Array.isArray(request.headers) ? (request.headers as Record<string, unknown>[]) : [];
+    for (const h of rawHeaders) {
+      const name = String(h?.name ?? "");
+      if (!name) {
+        continue;
+      }
+      const hit = overrides.findIndex((o) => o.name.toLowerCase() === name.toLowerCase());
+      if (hit >= 0) {
+        merged.push({ name, value: overrides[hit].value });
+        used.add(hit);
+      } else {
+        merged.push({ name, value: String(h?.value ?? "") });
+      }
+    }
+    overrides.forEach((o, i) => {
+      if (!used.has(i)) {
+        merged.push(o);
+      }
+    });
+    await client.call("Fetch.continueRequest", { requestId, headers: merged }, targetId);
+    appendChange(`拦截·改头 ${request.method || "GET"} ${urlName(url)} · ${overrides.map((o) => o.name).join(", ")}`, targetId);
+  } catch {
+    await client.call("Fetch.continueRequest", { requestId }, targetId).catch(() => {});
+  }
+}
+
+/* ---------- 控制台异常堆栈展开 ---------- */
+
+/** 哪些异常消息的堆栈被展开（key -> 是否展开） */
+const expandedStacks = ref<Record<number, boolean>>({});
+
+function toggleStack(key: number) {
+  expandedStacks.value = { ...expandedStacks.value, [key]: !expandedStacks.value[key] };
 }
 
 /* ==================== SkyWalking sw8 自动注入 ==================== */
@@ -2322,6 +3230,284 @@ function exportPerf() {
     ElMessage.success(`已导出 ${perfSink.length} 条 trace 事件`);
   } catch (error) {
     ElMessage.error("导出失败: " + (error as Error).message);
+  }
+}
+
+/* ==================== CPU / 堆分配采样（Profiler / HeapProfiler 域） ==================== */
+
+/**
+ * CDP CPU 采样的调用帧节点
+ *
+ * <p>Profiler.stop 返回整棵调用树：nodes 是扁平数组（id + children 引用），
+ * hitCount 是该帧「自身」被采样命中的次数——即自耗时的采样口径。</p>
+ */
+interface CpuProfileNode {
+  id: number;
+  callFrame: { functionName?: string; url?: string; lineNumber?: number };
+  hitCount?: number;
+  children?: number[];
+}
+
+/** Profiler.stop 的 profile 原始结构（只声明展示与导出用到的字段） */
+interface CpuProfileRaw {
+  nodes?: CpuProfileNode[];
+  startTime?: number;
+  endTime?: number;
+}
+
+/** CPU 采样汇总：top 函数按自采样命中数排序 */
+interface CpuProfileSummary {
+  durationUs: number;
+  hits: number;
+  nodes: number;
+  top: { name: string; url: string; line: number; hits: number; pct: number }[];
+}
+
+/** HeapProfiler 采样的调用帧节点（head 是一棵嵌套树） */
+interface HeapSamplingNode {
+  callFrame: { functionName?: string; url?: string; lineNumber?: number };
+  selfSize?: number;
+  children?: HeapSamplingNode[];
+}
+
+/** HeapProfiler.stopSampling 的 profile 原始结构 */
+interface HeapProfileRaw {
+  head?: HeapSamplingNode;
+  samples?: { size: number; count: number; stackId?: number }[];
+}
+
+/** 堆采样汇总：top 分配点按自分配字节数排序 */
+interface HeapProfileSummary {
+  totalBytes: number;
+  samples: number;
+  nodes: number;
+  top: { name: string; url: string; line: number; bytes: number; pct: number }[];
+}
+
+const cpuProfiling = ref(false);
+const cpuProfile = ref<CpuProfileSummary | null>(null);
+const cpuProfileRaw = ref<CpuProfileRaw | null>(null);
+const heapProfiling = ref(false);
+const heapProfile = ref<HeapProfileSummary | null>(null);
+const heapProfileRaw = ref<HeapProfileRaw | null>(null);
+
+/** 调用帧 → 展示字段（函数名兜底、行号从 0 基转 1 基） */
+function frameLabel(frame: { functionName?: string; url?: string; lineNumber?: number } | undefined): {
+  name: string;
+  url: string;
+  line: number;
+} {
+  return {
+    name: frame?.functionName || "(匿名函数)",
+    url: frame?.url || "",
+    line: typeof frame?.lineNumber === "number" ? frame.lineNumber + 1 : 0,
+  };
+}
+
+/** 开始 CPU 采样（Profiler.start，目标级会话） */
+async function startCpuProfile() {
+  const targetId = selectedTarget.value;
+  if (cpuProfiling.value) return;
+  if (!targetId) {
+    ElMessage.warning("先在左侧选择一个页面目标");
+    return;
+  }
+  if (!wsReady()) {
+    ElMessage.warning("指令通道还没连上，稍后再试");
+    return;
+  }
+  try {
+    await client.call("Profiler.start", {}, targetId);
+    cpuProfiling.value = true;
+    cpuProfile.value = null;
+    cpuProfileRaw.value = null;
+    ElMessage.success("CPU 采样已开始，操作页面后点「停止」");
+  } catch (error) {
+    ElMessage.error("CPU 采样启动失败: " + (error as Error).message);
+  }
+}
+
+/** 停止 CPU 采样并汇总（按自采样命中数排 top，保留原始 profile 供导出） */
+async function stopCpuProfile() {
+  const targetId = selectedTarget.value;
+  if (!cpuProfiling.value) return;
+  try {
+    const res = (await client.call("Profiler.stop", {}, targetId)) as { profile?: CpuProfileRaw } | null;
+    const profile = res?.profile;
+    if (!profile?.nodes?.length) {
+      ElMessage.warning("没有采到样，换一个更忙的页面再试");
+      return;
+    }
+    let hits = 0;
+    for (const n of profile.nodes) hits += Math.max(0, n.hitCount || 0);
+    const top = profile.nodes
+      .filter((n) => (n.hitCount || 0) > 0)
+      .map((n) => {
+        const h = Math.max(0, n.hitCount || 0);
+        return { ...frameLabel(n.callFrame), hits: h, pct: hits ? (h / hits) * 100 : 0 };
+      })
+      .sort((a, b) => b.hits - a.hits)
+      .slice(0, 20);
+    cpuProfile.value = {
+      durationUs: Math.max(0, (profile.endTime || 0) - (profile.startTime || 0)),
+      hits,
+      nodes: profile.nodes.length,
+      top,
+    };
+    cpuProfileRaw.value = profile;
+  } catch (error) {
+    ElMessage.error("停止 CPU 采样失败: " + (error as Error).message);
+  } finally {
+    cpuProfiling.value = false;
+    // stop 之后把域收掉，避免留在目标上空转
+    if (targetId) void client.call("Profiler.disable", {}, targetId).catch(() => {});
+  }
+}
+
+/** 深度优先收集堆采样树的所有节点 */
+function collectHeapNodes(node: HeapSamplingNode, out: HeapSamplingNode[]): void {
+  out.push(node);
+  for (const child of node.children ?? []) collectHeapNodes(child, out);
+}
+
+/** 开始堆分配采样（HeapProfiler.startSampling，16KB 采样粒度，目标级会话） */
+async function startHeapProfile() {
+  const targetId = selectedTarget.value;
+  if (heapProfiling.value) return;
+  if (!targetId) {
+    ElMessage.warning("先在左侧选择一个页面目标");
+    return;
+  }
+  if (!wsReady()) {
+    ElMessage.warning("指令通道还没连上，稍后再试");
+    return;
+  }
+  try {
+    await client.call("HeapProfiler.startSampling", { samplingInterval: 16384 }, targetId);
+    heapProfiling.value = true;
+    heapProfile.value = null;
+    heapProfileRaw.value = null;
+    ElMessage.success("堆分配采样已开始，操作页面后点「停止」");
+  } catch (error) {
+    ElMessage.error("堆采样启动失败: " + (error as Error).message);
+  }
+}
+
+/** 停止堆采样并汇总（按节点自分配字节数排 top，总量优先取样本求和） */
+async function stopHeapProfile() {
+  const targetId = selectedTarget.value;
+  if (!heapProfiling.value) return;
+  try {
+    const res = (await client.call("HeapProfiler.stopSampling", {}, targetId)) as { profile?: HeapProfileRaw } | null;
+    const profile = res?.profile;
+    const nodes: HeapSamplingNode[] = [];
+    if (profile?.head) collectHeapNodes(profile.head, nodes);
+    if (!nodes.length) {
+      ElMessage.warning("没有采到分配数据，换一个更忙的页面再试");
+      return;
+    }
+    let totalBytes = 0;
+    let samples = 0;
+    for (const s of profile?.samples ?? []) {
+      totalBytes += Math.max(0, s.size || 0) * Math.max(0, s.count || 0);
+      samples += Math.max(0, s.count || 0);
+    }
+    if (!totalBytes) {
+      for (const n of nodes) totalBytes += Math.max(0, n.selfSize || 0);
+    }
+    const top = nodes
+      .filter((n) => (n.selfSize || 0) > 0)
+      .map((n) => {
+        const bytes = Math.max(0, n.selfSize || 0);
+        return { ...frameLabel(n.callFrame), bytes, pct: totalBytes ? (bytes / totalBytes) * 100 : 0 };
+      })
+      .sort((a, b) => b.bytes - a.bytes)
+      .slice(0, 20);
+    heapProfile.value = { totalBytes, samples, nodes: nodes.length, top };
+    heapProfileRaw.value = profile ?? null;
+  } catch (error) {
+    ElMessage.error("停止堆采样失败: " + (error as Error).message);
+  } finally {
+    heapProfiling.value = false;
+    if (targetId) void client.call("HeapProfiler.disable", {}, targetId).catch(() => {});
+  }
+}
+
+/** 通用下载：文本内容落成文件（Blob + a[download]） */
+function downloadTextFile(text: string, filename: string, mime: string): void {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** 通用下载：base64 内容落成二进制文件（PDF 等矢量产物） */
+function downloadBase64File(base64: string, filename: string, mime: string): void {
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) {
+    bytes[i] = bin.charCodeAt(i);
+  }
+  const blob = new Blob([bytes], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** 下载原始 CPU profile（Chrome DevTools 可直接打开的 .cpuprofile） */
+function exportCpuProfile() {
+  if (!cpuProfileRaw.value) {
+    ElMessage.warning("还没有 CPU 采样数据");
+    return;
+  }
+  downloadTextFile(
+    JSON.stringify(cpuProfileRaw.value),
+    `debug-cpu-${new Date().toISOString().replace(/[:.]/g, "-")}.cpuprofile`,
+    "application/json",
+  );
+  ElMessage.success("已导出 .cpuprofile");
+}
+
+/** 下载原始堆采样 profile（.heapprofile） */
+function exportHeapProfile() {
+  if (!heapProfileRaw.value) {
+    ElMessage.warning("还没有堆采样数据");
+    return;
+  }
+  downloadTextFile(
+    JSON.stringify(heapProfileRaw.value),
+    `debug-heap-${new Date().toISOString().replace(/[:.]/g, "-")}.heapprofile`,
+    "application/json",
+  );
+  ElMessage.success("已导出 .heapprofile");
+}
+
+/** 触发一次完整 GC（HeapProfiler.collectGarbage），配合堆采样看回落 */
+async function triggerGc() {
+  const targetId = selectedTarget.value;
+  if (!targetId) {
+    ElMessage.warning("先在左侧选择一个页面目标");
+    return;
+  }
+  if (!wsReady()) {
+    ElMessage.warning("指令通道还没连上，稍后再试");
+    return;
+  }
+  try {
+    await client.call("HeapProfiler.collectGarbage", {}, targetId);
+    ElMessage.success("已触发一次垃圾回收");
+  } catch (error) {
+    ElMessage.error("触发 GC 失败: " + (error as Error).message);
   }
 }
 
@@ -2975,6 +4161,61 @@ function liveCompositionEnd(event: CompositionEvent) {
   if (!text) return;
   void sendInput("Input.insertText", { text });
 }
+
+/* ==================== 实时页面（服务端反向代理 iframe） ==================== */
+
+/** 是否处于实时页面模式（true 时舞台显示 iframe，而非截屏） */
+const livePageOn = ref(false);
+
+/** 实时页面 iframe 地址（{proxyBase}/{sessionId}/） */
+const livePageSrc = ref("");
+
+/** 当前代理会话标识（关闭时调用 DELETE） */
+const livePageSession = ref("");
+
+/** 实时页面模式下的舞台提示 */
+const livePageHint = ref("真实页面经服务端代理注入，可直接点击 / 输入，与无头浏览器共享登录态");
+
+/** 打开 / 关闭实时页面模式 */
+async function toggleLivePage() {
+  if (livePageOn.value) {
+    await closeLivePage();
+    return;
+  }
+  const url = activeUrl.value;
+  if (!url || !/^https?:\/\//i.test(url)) {
+    stageHint.value = "当前目标不是 http(s) 页面，无法打开实时页面";
+    return;
+  }
+  try {
+    const session = await cdpOpenProxySession(url);
+    livePageSession.value = session.sessionId;
+    livePageSrc.value = `${(session.proxyBase ?? "").replace(/\/+$/, "")}/${session.sessionId}/`;
+    livePageOn.value = true;
+    livePageHint.value = `实时页面已打开：${url}`;
+  } catch (error) {
+    stageHint.value = "实时页面打开失败: " + (error as Error).message;
+  }
+}
+
+/** 关闭实时页面模式并释放代理会话 */
+async function closeLivePage() {
+  livePageOn.value = false;
+  const sessionId = livePageSession.value;
+  livePageSession.value = "";
+  livePageSrc.value = "";
+  if (sessionId) {
+    try {
+      await cdpCloseProxySession(sessionId);
+    } catch {
+      // 会话可能已超时被清扫，忽略
+    }
+  }
+}
+
+onBeforeUnmount(() => {
+  if (livePageOn.value) void closeLivePage();
+});
 
 /* ==================== 原始网站舞台（与元素页签联动） ==================== */
 
@@ -4261,6 +5502,10 @@ watch(selectedTarget, (id) => {
   sw8Injected.clear();
   injectPageScripts();
   void ensureElementReady();
+  // 导航历史与加载态跟随目标重置
+  navHistory.value = null;
+  pageLoading.value = false;
+  void refreshNavHistory();
 });
 
 // 切到「元素」页签时读一次 DOM / 补一张截屏，省掉手动点击
@@ -4364,16 +5609,23 @@ async function toggleSourcePanel() {
 
 /**
  * 页面导航（ES 变更标题）
+ *
+ * @returns 是否真正发起了导航（目标不存在 / 失败返回 false，供壳层记录地址历史时判断）
  */
-async function doNavigate(url: string) {
+async function doNavigate(url: string): Promise<boolean> {
   if (!selectedTarget.value) {
     ElMessage.warning("请先在左侧选择一个目标");
-    return;
+    return false;
   }
   try {
     await cdpNavigate(selectedTarget.value, url);
+    // REST 导航成功后立即进入加载态；loadEventFired / frameNavigated 负责收尾
+    pageLoading.value = true;
+    armLoadingWatchdog();
+    return true;
   } catch (error) {
     ElMessage.error("导航失败: " + (error as Error).message);
+    return false;
   }
 }
 
@@ -4396,6 +5648,62 @@ async function doScreenshot(fullPage = false) {
     screenshotUrl.value = `data:image/png;base64,${base64}`;
   } catch (error) {
     ElMessage.error("截屏失败: " + (error as Error).message);
+  } finally {
+    screenshotLoading.value = false;
+  }
+}
+
+/** 导出 PDF（Page.printToPDF，仅 page 型目标可用；base64 → 二进制下载） */
+async function exportPdf() {
+  const targetId = selectedTarget.value;
+  if (!targetId) {
+    ElMessage.warning("先在左侧选择一个页面目标");
+    return;
+  }
+  if (!wsReady()) {
+    ElMessage.warning("指令通道还没连上，稍后再试");
+    return;
+  }
+  screenshotLoading.value = true;
+  try {
+    const res = (await client.call(
+      "Page.printToPDF",
+      { printBackground: true, preferCSSPageSize: true },
+      targetId,
+    )) as { data?: string } | null;
+    if (!res?.data) {
+      throw new Error("没有返回 PDF 数据");
+    }
+    downloadBase64File(res.data, `debug-page-${new Date().toISOString().replace(/[:.]/g, "-")}.pdf`, "application/pdf");
+    ElMessage.success("已导出 PDF");
+  } catch (error) {
+    ElMessage.error("导出 PDF 失败: " + (error as Error).message);
+  } finally {
+    screenshotLoading.value = false;
+  }
+}
+
+/** 导出 MHTML 单文件存档（Page.captureSnapshot，整页内联资源） */
+async function exportMhtml() {
+  const targetId = selectedTarget.value;
+  if (!targetId) {
+    ElMessage.warning("先在左侧选择一个页面目标");
+    return;
+  }
+  if (!wsReady()) {
+    ElMessage.warning("指令通道还没连上，稍后再试");
+    return;
+  }
+  screenshotLoading.value = true;
+  try {
+    const res = (await client.call("Page.captureSnapshot", { format: "mhtml" }, targetId)) as { data?: string } | null;
+    if (!res?.data) {
+      throw new Error("没有返回 MHTML 数据");
+    }
+    downloadBase64File(res.data, `debug-page-${new Date().toISOString().replace(/[:.]/g, "-")}.mhtml`, "multipart/related");
+    ElMessage.success("已导出 MHTML");
+  } catch (error) {
+    ElMessage.error("导出 MHTML 失败: " + (error as Error).message);
   } finally {
     screenshotLoading.value = false;
   }
@@ -4667,6 +5975,482 @@ watch(svgAuto, (on) => {
 });
 watch(evaluateOpen, (on) => writePref("console.drawerOpen", on));
 
+/* ==================== 全局底栏（Console / Network 抽屉） ==================== */
+
+/**
+ * 全页签共用的底部面板
+ *
+ * <p>元素页签的求值抽屉只服务元素工作流；这个底栏把「看日志 / 看请求」
+ * 推广到任意页签：在元素、性能、截屏等页面里也能同屏盯控制台和网络。
+ * 面板内容与对应页签同源同过滤（复用 visibleConsole / networkRows），
+ * 高度可拖拽并记忆，主区正在看同一块时自动让位给另一块。</p>
+ */
+type DockPanel = "console" | "network";
+
+/** 底栏面板顺序（入口按钮与内部页签共用） */
+const DOCK_PANELS: readonly DockPanel[] = ["console", "network"];
+
+/** 底栏是否展开（记忆上次状态） */
+const dockOpen = ref<boolean>(readPref<boolean>("dock.open", false));
+/** 底栏当前面板 */
+const dockPanel = ref<DockPanel>(readPref<DockPanel>("dock.panel", "console"));
+/** 底栏高度（拖拽可调，记忆上次值） */
+const dockHeight = ref<number>(readPref<number>("dock.height", 240));
+
+/** 点底栏入口：同面板再点一次 = 收起；换面板 = 展开并切换 */
+function toggleDock(panel: DockPanel): void {
+  if (dockOpen.value && dockPanel.value === panel) {
+    dockOpen.value = false;
+    return;
+  }
+  dockPanel.value = panel;
+  dockOpen.value = true;
+}
+
+/** 底栏里点了一条请求：跳到网络页签并展开同一条的详情（详情交互仍归网络页签） */
+function openNetFromDock(requestId: string): void {
+  netDetailId.value = requestId;
+  pageTab.value = "network";
+}
+
+/** 拖拽底栏高度（同网络详情拖拽的手感），松手记忆 */
+let dockResizing = false;
+function startDockResize(event: PointerEvent): void {
+  dockResizing = true;
+  const startY = event.clientY;
+  const startHeight = dockHeight.value;
+  const onMove = (e: PointerEvent) => {
+    if (!dockResizing) return;
+    // 往上拖 = 变高，限制在 120 ~ 视口六成之间
+    const next = startHeight + (startY - e.clientY);
+    dockHeight.value = Math.max(120, Math.min(Math.round(window.innerHeight * 0.6), next));
+  };
+  const onUp = () => {
+    dockResizing = false;
+    writePref("dock.height", dockHeight.value);
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    document.body.style.userSelect = "";
+  };
+  document.body.style.userSelect = "none";
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+}
+
+// 主区正在看 console / network 时，底栏不再重复同一块：自动换成另一块
+watch([pageTab, dockOpen], () => {
+  if (dockOpen.value && dockPanel.value === pageTab.value) {
+    dockPanel.value = pageTab.value === "console" ? "network" : "console";
+  }
+});
+watch(dockOpen, (on) => writePref("dock.open", on));
+watch(dockPanel, (p) => writePref("dock.panel", p));
+
+/* ==================== Debugger 断点（WS 透传 Debugger.* 域） ==================== */
+
+/**
+ * 按脚本地址 + 行号下断点
+ *
+ * <p>全部指令走 WS 透传（Debugger.enable / setBreakpointByUrl / removeBreakpoint /
+ * resume / step*），后端零改动。断点是目标级会话状态：换目标、停浏览器都会失效，
+ * 对应的清理点在 {@code selectTarget} 与 {@code watch(running)}。</p>
+ */
+
+/** 一个断点的展示态（setBreakpointByUrl 回执 + 录入参数） */
+interface BreakpointEntry {
+  /** CDP 断点标识（removeBreakpoint 用） */
+  breakpointId: string;
+  /** URL 匹配串（按正则匹配脚本地址） */
+  url: string;
+  /** 行号（1 基，展示用） */
+  lineNumber: number;
+  /** 条件表达式（空串 = 无条件） */
+  condition: string;
+  /** 已解析到的位置（脚本可能在断点下发后才加载，靠 breakpointResolved 补） */
+  locations: { scriptId: string; lineNumber: number; columnNumber?: number }[];
+}
+
+/** Debugger 域开关（enable / disable 是目标级会话状态） */
+const debuggerOn = ref(false);
+/** 断点列表 */
+const breakpoints = ref<BreakpointEntry[]>([]);
+/** 录入：脚本地址匹配串 */
+const bpUrl = ref("");
+/** 录入：行号（1 基） */
+const bpLine = ref(1);
+/** 录入：条件表达式 */
+const bpCondition = ref("");
+/** 命中暂停态（Debugger.paused 原始参数；null = 未暂停） */
+const pausedState = ref<Record<string, unknown> | null>(null);
+/** scriptId -> url（scriptParsed 登记，用于断点 / 栈帧位置展示） */
+const scriptSources = ref<Record<string, string>>({});
+
+/** 暂停态的栈帧列表（模板里不做类型体操） */
+const pausedFrames = computed<Record<string, unknown>[]>(() => {
+  const frames = pausedState.value?.callFrames;
+  return Array.isArray(frames) ? (frames as Record<string, unknown>[]) : [];
+});
+
+/** 暂停命中的断点数 */
+const pausedHitCount = computed(() => {
+  const hits = pausedState.value?.hitBreakpoints;
+  return Array.isArray(hits) ? hits.length : 0;
+});
+
+/** 暂停原因 -> 中文 */
+function pauseReason(reason: string): string {
+  switch (reason) {
+    case "breakpoint":
+      return "断点命中";
+    case "exception":
+      return "异常暂停";
+    case "assert":
+      return "断言失败";
+    case "debugCommand":
+      return "debugger 语句";
+    case "promiseRejection":
+      return "Promise 拒绝";
+    case "OOM":
+      return "内存溢出";
+    case "XHR":
+      return "XHR/fetch 断点";
+    case "EventListener":
+      return "事件监听器暂停";
+    case "DOM":
+      return "DOM 变更暂停";
+    default:
+      return reason || "暂停";
+  }
+}
+
+/** 栈帧的脚本地址（优先 scriptParsed 登记，回退帧自带的 url） */
+function frameUrl(frame: Record<string, unknown>): string {
+  const loc = (frame.location ?? {}) as Record<string, unknown>;
+  const scriptId = String(loc.scriptId ?? "");
+  return String(frame.url ?? scriptSources.value[scriptId] ?? "");
+}
+
+/** 栈帧展示名（顶层脚本 / 匿名函数没有函数名） */
+function frameName(frame: Record<string, unknown>): string {
+  return String(frame.functionName ?? "") || "(anonymous)";
+}
+
+/** 栈帧行号（CDP 0 基，展示 1 基） */
+function frameLine(frame: Record<string, unknown>): number {
+  const loc = (frame.location ?? {}) as Record<string, unknown>;
+  return Number(loc.lineNumber ?? 0) + 1;
+}
+
+/** 确保 Debugger 域已启用（未启用就先 enable 一次） */
+async function ensureDebuggerOn(): Promise<boolean> {
+  const targetId = selectedTarget.value;
+  if (!wsReady() || !targetId) {
+    ElMessage.warning("WS 通道未就绪或未选择目标");
+    return false;
+  }
+  if (debuggerOn.value) {
+    return true;
+  }
+  try {
+    await client.call("Debugger.enable", {}, targetId);
+    debuggerOn.value = true;
+    return true;
+  } catch (error) {
+    ElMessage.error("启用 Debugger 失败: " + (error as Error).message);
+    return false;
+  }
+}
+
+/** 启用 / 关闭 Debugger 域 */
+async function toggleDebugger(): Promise<void> {
+  const targetId = selectedTarget.value;
+  if (!wsReady() || !targetId) {
+    ElMessage.warning("WS 通道未就绪或未选择目标");
+    return;
+  }
+  try {
+    if (debuggerOn.value) {
+      await client.call("Debugger.disable", {}, targetId);
+      resetDebugger();
+      ElMessage.info("Debugger 已关闭");
+    } else {
+      await client.call("Debugger.enable", {}, targetId);
+      debuggerOn.value = true;
+      ElMessage.success("Debugger 已启用");
+    }
+  } catch (error) {
+    ElMessage.error("Debugger 操作失败: " + (error as Error).message);
+  }
+}
+
+/** 按录入的 URL + 行号下一个断点（Debugger.setBreakpointByUrl） */
+async function addBreakpoint(): Promise<void> {
+  const targetId = selectedTarget.value;
+  const url = bpUrl.value.trim();
+  if (!url) {
+    ElMessage.warning("请填写脚本地址匹配串（按正则匹配，如 app\\.js）");
+    return;
+  }
+  if (!(await ensureDebuggerOn())) {
+    return;
+  }
+  const params: Record<string, unknown> = {
+    urlRegex: url,
+    lineNumber: Math.max(0, Math.floor(bpLine.value || 1) - 1),
+  };
+  const condition = bpCondition.value.trim();
+  if (condition) {
+    params.condition = condition;
+  }
+  try {
+    const res = (await client.call("Debugger.setBreakpointByUrl", params, targetId)) as {
+      breakpointId?: string;
+      locations?: Record<string, unknown>[];
+    } | null;
+    const breakpointId = String(res?.breakpointId ?? "");
+    if (!breakpointId) {
+      ElMessage.error("断点下发失败：没有返回断点标识");
+      return;
+    }
+    breakpoints.value.push({
+      breakpointId,
+      url,
+      lineNumber: Math.max(1, Math.floor(bpLine.value || 1)),
+      condition,
+      locations: (res?.locations ?? []).map((l) => ({
+        scriptId: String(l.scriptId ?? ""),
+        lineNumber: Number(l.lineNumber ?? 0),
+        columnNumber: l.columnNumber === undefined ? undefined : Number(l.columnNumber),
+      })),
+    });
+    ElMessage.success(res?.locations?.length ? "断点已下发并解析到位置" : "断点已下发（脚本加载后自动解析位置）");
+    bpCondition.value = "";
+  } catch (error) {
+    ElMessage.error("断点下发失败: " + (error as Error).message);
+  }
+}
+
+/** 移除一个断点（Debugger.removeBreakpoint） */
+async function removeBreakpoint(bp: BreakpointEntry): Promise<void> {
+  breakpoints.value = breakpoints.value.filter((b) => b.breakpointId !== bp.breakpointId);
+  const targetId = selectedTarget.value;
+  if (!wsReady() || !targetId) {
+    return;
+  }
+  try {
+    await client.call("Debugger.removeBreakpoint", { breakpointId: bp.breakpointId }, targetId);
+  } catch {
+    // 列表里已经摘掉了；指令失败（如目标刚关闭）不阻塞界面
+  }
+}
+
+/** 移除全部断点 */
+async function clearBreakpoints(): Promise<void> {
+  const list = [...breakpoints.value];
+  breakpoints.value = [];
+  const targetId = selectedTarget.value;
+  if (!wsReady() || !targetId) {
+    return;
+  }
+  for (const bp of list) {
+    try {
+      await client.call("Debugger.removeBreakpoint", { breakpointId: bp.breakpointId }, targetId);
+    } catch {
+      // 尽力而为：单个移除失败不影响其余
+    }
+  }
+}
+
+/** 恢复执行（Debugger.resume） */
+async function resumeExecution(): Promise<void> {
+  const targetId = selectedTarget.value;
+  pausedState.value = null;
+  if (!wsReady() || !targetId) {
+    return;
+  }
+  try {
+    await client.call("Debugger.resume", {}, targetId);
+  } catch (error) {
+    ElMessage.error("恢复执行失败: " + (error as Error).message);
+  }
+}
+
+/** 单步（over / into / out）：步进后的新暂停由 paused 事件驱动 */
+async function debuggerStep(kind: "stepOver" | "stepInto" | "stepOut"): Promise<void> {
+  const targetId = selectedTarget.value;
+  if (!wsReady() || !targetId) {
+    return;
+  }
+  try {
+    await client.call(`Debugger.${kind}`, {}, targetId);
+  } catch (error) {
+    ElMessage.error("步进失败: " + (error as Error).message);
+  }
+}
+
+/** Debugger.paused：记下暂停态并落一条变化 tag */
+function onDebuggerPaused(params: Record<string, unknown>): void {
+  pausedState.value = params;
+  appendChange(`断点命中：${pauseReason(String(params.reason ?? ""))}，${pausedFrames.value.length} 层栈帧`);
+}
+
+/** Debugger.breakpointResolved：把解析到的位置回填到对应断点 */
+function onBreakpointResolved(params: Record<string, unknown>): void {
+  const breakpointId = String(params.breakpointId ?? "");
+  const loc = (params.location ?? {}) as Record<string, unknown>;
+  const hit = breakpoints.value.find((b) => b.breakpointId === breakpointId);
+  if (!hit) {
+    return;
+  }
+  const entry = {
+    scriptId: String(loc.scriptId ?? ""),
+    lineNumber: Number(loc.lineNumber ?? 0),
+    columnNumber: loc.columnNumber === undefined ? undefined : Number(loc.columnNumber),
+  };
+  if (!hit.locations.some((l) => l.scriptId === entry.scriptId && l.lineNumber === entry.lineNumber)) {
+    hit.locations.push(entry);
+  }
+}
+
+/** 浏览器停止 / 目标关闭后清掉 Debugger 态（断点随会话消失） */
+function resetDebugger(): void {
+  debuggerOn.value = false;
+  breakpoints.value = [];
+  pausedState.value = null;
+  xhrBreakpoints.value = [];
+  eventBreakpoints.value = [];
+}
+
+/* ---------- 黑盒脚本（Debugger.setBlackboxPatterns：单步 / 解析时跳过第三方脚本） ---------- */
+
+/** 黑盒匹配串（逗号 / 空格分隔的正则；空 = 不黑盒） */
+const blackboxInput = ref<string>(readPref<string>("dbg.blackbox", ""));
+
+/**
+ * 应用 / 清除黑盒脚本列表
+ *
+ * <p>黑盒的脚本不参与单步与断点解析，用于排除 node_modules / 第三方 CDN。
+ * 传空列表 = 清除。Debugger 域未启用时该命令会报错，按失败提示处理。</p>
+ */
+async function applyBlackbox() {
+  writePref("dbg.blackbox", blackboxInput.value);
+  const targetId = selectedTarget.value;
+  if (!wsReady() || !targetId) {
+    ElMessage.warning("实时通道未连接，黑盒暂未生效");
+    return;
+  }
+  const patterns = blackboxInput.value
+    .split(/[\s,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  try {
+    await client.call("Debugger.setBlackboxPatterns", { patterns }, targetId);
+    ElMessage.success(patterns.length ? `黑盒已应用：${patterns.length} 条` : "已清除黑盒");
+  } catch (e) {
+    ElMessage.error("设置黑盒失败: " + (e as Error).message);
+  }
+}
+
+/* ---------- DOMDebugger：XHR/fetch 断点 + 事件监听器断点 ---------- */
+
+/**
+ * XHR / fetch 断点列表（URL 包含匹配，命中即暂停）
+ *
+ * <p>会话内有效：切目标 / 重启浏览器后随 Debugger 会话一起消失（与脚本断点同口径）。</p>
+ */
+const xhrBreakpoints = ref<string[]>([]);
+/** 录入：XHR 断点 URL 串 */
+const xhrBpInput = ref("");
+
+/** 常用 DOM 事件（事件监听器断点候选项） */
+const EVENT_BP_OPTIONS = ["click", "dblclick", "mousedown", "mouseup", "keydown", "keyup", "input", "change", "submit", "focus", "blur", "touchstart", "load", "error", "message"];
+
+/** 事件监听器断点列表（任一目标事件触发时暂停；会话内有效） */
+const eventBreakpoints = ref<string[]>([]);
+/** 录入：事件名 */
+const eventBpInput = ref("click");
+
+/** 加 XHR / fetch 断点（DOMDebugger.setXHRBreakpoint，URL 包含匹配） */
+async function addXhrBreakpoint() {
+  const url = xhrBpInput.value.trim();
+  const targetId = selectedTarget.value;
+  if (!url || !targetId) {
+    return;
+  }
+  if (xhrBreakpoints.value.includes(url)) {
+    ElMessage.warning("该 URL 断点已存在");
+    return;
+  }
+  if (!wsReady()) {
+    ElMessage.warning("实时通道未连接，无法添加断点");
+    return;
+  }
+  try {
+    await client.call("DOMDebugger.setXHRBreakpoint", { url }, targetId);
+    xhrBreakpoints.value.push(url);
+    xhrBpInput.value = "";
+    appendChange(`XHR 断点：${url}`, targetId);
+  } catch (e) {
+    ElMessage.error("添加 XHR 断点失败: " + (e as Error).message);
+  }
+}
+
+/** 移除一条 XHR 断点（远端尽力移除，本地必删） */
+async function removeXhrBreakpoint(url: string) {
+  const targetId = selectedTarget.value;
+  if (wsReady() && targetId) {
+    await client.call("DOMDebugger.removeXHRBreakpoint", { url }, targetId).catch(() => {});
+  }
+  xhrBreakpoints.value = xhrBreakpoints.value.filter((u) => u !== url);
+}
+
+/** 清空全部 XHR 断点 */
+function clearXhrBreakpoints() {
+  for (const url of [...xhrBreakpoints.value]) {
+    void removeXhrBreakpoint(url);
+  }
+}
+
+/** 加事件监听器断点（DOMDebugger.setEventListenerBreakpoint） */
+async function addEventBreakpoint() {
+  const eventName = eventBpInput.value.trim();
+  const targetId = selectedTarget.value;
+  if (!eventName || !targetId) {
+    return;
+  }
+  if (eventBreakpoints.value.includes(eventName)) {
+    ElMessage.warning("该事件断点已存在");
+    return;
+  }
+  if (!wsReady()) {
+    ElMessage.warning("实时通道未连接，无法添加断点");
+    return;
+  }
+  try {
+    await client.call("DOMDebugger.setEventListenerBreakpoint", { eventName }, targetId);
+    eventBreakpoints.value.push(eventName);
+    appendChange(`事件断点：${eventName}`, targetId);
+  } catch (e) {
+    ElMessage.error("添加事件断点失败: " + (e as Error).message);
+  }
+}
+
+/** 移除一条事件监听器断点 */
+async function removeEventBreakpoint(eventName: string) {
+  const targetId = selectedTarget.value;
+  if (wsReady() && targetId) {
+    await client.call("DOMDebugger.removeEventListenerBreakpoint", { eventName }, targetId).catch(() => {});
+  }
+  eventBreakpoints.value = eventBreakpoints.value.filter((e) => e !== eventName);
+}
+
+/** 清空全部事件监听器断点 */
+function clearEventBreakpoints() {
+  for (const eventName of [...eventBreakpoints.value]) {
+    void removeEventBreakpoint(eventName);
+  }
+}
+
 /* ==================== 生命周期 ==================== */
 
 onMounted(async () => {
@@ -4680,15 +6464,26 @@ onMounted(async () => {
   uptimeTimer = setInterval(() => {
     now.value = Date.now();
   }, 1000);
-  // 右键菜单：点别处 / Esc / 缩放都要收起
+  // 右键菜单：点别处 / Esc / 缩放都要收起（元素树菜单 + 网络菜单一起管）
   window.addEventListener("click", closeContextMenu);
+  window.addEventListener("click", closeNetMenu);
   window.addEventListener("resize", closeContextMenu);
+  window.addEventListener("resize", closeNetMenu);
   window.addEventListener("keydown", onGlobalKeydown);
 });
 
 function onGlobalKeydown(e: KeyboardEvent) {
+  // Ctrl+K / Cmd+K：命令面板（全局可达，输入框里也能呼出）
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && (e.key === "k" || e.key === "K")) {
+    e.preventDefault();
+    if (cmdOpen.value) closeCmdPalette();
+    else openCmdPalette();
+    return;
+  }
   if (e.key === "Escape") {
     closeContextMenu();
+    closeNetMenu();
+    if (cmdOpen.value) closeCmdPalette();
   }
 }
 
@@ -4696,11 +6491,14 @@ onBeforeUnmount(() => {
   disconnectWs();
   disconnectSse();
   window.removeEventListener("click", closeContextMenu);
+  window.removeEventListener("click", closeNetMenu);
   window.removeEventListener("resize", closeContextMenu);
+  window.removeEventListener("resize", closeNetMenu);
   window.removeEventListener("keydown", onGlobalKeydown);
   stageObserver?.disconnect();
   clearInterval(uptimeTimer);
   clearTimeout(perfFallbackTimer);
+  clearTimeout(loadingWatchdog);
   clearTimeout(svgAutoTimer);
   void stopLive();
   if (pickTimer) {
@@ -4708,48 +6506,320 @@ onBeforeUnmount(() => {
     pickTimer = undefined;
   }
 });
+
+/* ==================== 浏览器导航历史 / 加载进度 ==================== */
+
+/**
+ * 后退 / 前进与地址栏进度条的状态源。
+ *
+ * <p>导航历史走 CDP 的 {@code Page.getNavigationHistory}，在主框架提交导航、
+ * 加载完成、切换目标三个时机刷新；加载进度由同一批事件驱动（零轮询），
+ * 另设 20s 看门狗兜底「只发导航、不见 load 事件」的异常页面。</p>
+ */
+const navHistory = ref<{ index: number; size: number } | null>(null);
+
+/** 能否后退 / 前进（无历史数据时按钮置灰） */
+const canGoBack = computed(() => (navHistory.value?.index ?? 0) > 0);
+const canGoForward = computed(() => {
+  const h = navHistory.value;
+  return !!h && h.index < h.size - 1;
+});
+
+/** 当前选中目标是否正在加载（壳层地址栏进度条） */
+const pageLoading = ref(false);
+
+let loadingWatchdog: ReturnType<typeof setTimeout> | undefined;
+
+/** 进度条看门狗：超过 20s 没等到加载完成事件就强制收起，避免永远转圈 */
+function armLoadingWatchdog(): void {
+  clearTimeout(loadingWatchdog);
+  loadingWatchdog = setTimeout(() => {
+    pageLoading.value = false;
+  }, 20000);
+}
+
+/** 拉一次当前目标的导航历史；浏览器未启动 / 目标刚关闭时静默置空 */
+async function refreshNavHistory(): Promise<void> {
+  const targetId = selectedTarget.value;
+  if (!targetId || !running.value) {
+    navHistory.value = null;
+    return;
+  }
+  try {
+    const res = (await client.call("Page.getNavigationHistory", {}, targetId)) as {
+      currentIndex?: number;
+      entries?: unknown[];
+    } | null;
+    navHistory.value = { index: Number(res?.currentIndex ?? 0), size: Number(res?.entries?.length ?? 0) };
+  } catch {
+    navHistory.value = null;
+  }
+}
+
+/** 沿历史移动：delta = -1 后退 / +1 前进（Page.navigateToHistoryEntry） */
+async function goHistory(delta: -1 | 1): Promise<void> {
+  const targetId = selectedTarget.value;
+  if (!targetId) {
+    return;
+  }
+  try {
+    const res = (await client.call("Page.getNavigationHistory", {}, targetId)) as {
+      currentIndex?: number;
+      entries?: Array<{ id?: string | number }>;
+    } | null;
+    const index = Number(res?.currentIndex ?? 0) + delta;
+    const entryId = res?.entries?.[index]?.id;
+    if (entryId === undefined || entryId === null) {
+      return;
+    }
+    pageLoading.value = true;
+    armLoadingWatchdog();
+    await client.call("Page.navigateToHistoryEntry", { entryId }, targetId);
+  } catch (error) {
+    pageLoading.value = false;
+    ElMessage.error((delta < 0 ? "后退" : "前进") + "失败: " + (error as Error).message);
+  }
+}
+
+const goBack = (): Promise<void> => goHistory(-1);
+const goForward = (): Promise<void> => goHistory(1);
+
+/** 真正的页面重载（Page.reload），区别于「↻ 画面」的截屏刷新 */
+async function reloadPage(): Promise<void> {
+  const targetId = selectedTarget.value;
+  if (!targetId) {
+    return;
+  }
+  pageLoading.value = true;
+  armLoadingWatchdog();
+  try {
+    await client.call("Page.reload", { ignoreCache: false }, targetId);
+  } catch (error) {
+    pageLoading.value = false;
+    ElMessage.error("重载失败: " + (error as Error).message);
+  }
+}
+
+/** 供壳层快捷键（1–7）切换页签 */
+function setPageTab(name: string): void {
+  if (tabs.value.some((t) => t.name === name)) {
+    pageTab.value = name as PageTab;
+  }
+}
+
+/** 供壳层快捷键（Ctrl+`）开 / 关求值抽屉 */
+function toggleEvaluate(): void {
+  evaluateOpen.value = !evaluateOpen.value;
+}
+
+/** 页签顺序（壳层快捷键 1–8 的映射表） */
+const tabNames = computed<string[]>(() => tabs.value.map((t) => t.name));
+
+/* ==================== 命令面板（Ctrl+K） ==================== */
+
+/** 一条可执行命令：label 展示，group 分组角标，keywords 参与搜索 */
+interface CmdItem {
+  id: string;
+  label: string;
+  group: string;
+  keywords?: string;
+  run: () => void | Promise<void>;
+}
+
+const cmdOpen = ref(false);
+const cmdQuery = ref("");
+const cmdIndex = ref(0);
+const cmdInputRef = ref<HTMLInputElement | null>(null);
+
+/** 节流预设的命令入口（复用工具行的 applyThrottle） */
+function setThrottlePreset(value: "none" | "fast3g" | "slow3g" | "offline") {
+  netThrottle.value = value;
+  void applyThrottle();
+}
+
+/** 全部命令（顺序即展示顺序） */
+const CMD_ITEMS: CmdItem[] = [
+  { id: "tab-elements", label: "切换到「元素」页签", group: "页签", run: () => (pageTab.value = "elements") },
+  { id: "tab-console", label: "切换到「控制台」页签", group: "页签", run: () => (pageTab.value = "console") },
+  { id: "tab-debugger", label: "切换到「断点」页签", group: "页签", run: () => (pageTab.value = "debugger") },
+  { id: "tab-network", label: "切换到「网络」页签", group: "页签", run: () => (pageTab.value = "network") },
+  { id: "tab-performance", label: "切换到「性能」页签", group: "页签", run: () => (pageTab.value = "performance") },
+  { id: "tab-svg", label: "切换到「SVG」页签", group: "页签", run: () => (pageTab.value = "svg") },
+  { id: "tab-app", label: "切换到「应用」页签", group: "页签", run: () => (pageTab.value = "app") },
+  { id: "tab-screenshot", label: "切换到「截屏」页签", group: "页签", run: () => (pageTab.value = "screenshot") },
+  { id: "browser-start", label: "启动调试浏览器", group: "浏览器", run: () => startBrowser() },
+  { id: "browser-stop", label: "停止调试浏览器", group: "浏览器", run: () => stopBrowser() },
+  { id: "page-new", label: "新建页面…", group: "浏览器", keywords: "open create", run: () => openCreatePage() },
+  { id: "page-reload", label: "刷新当前页面", group: "浏览器", keywords: "reload", run: () => reloadPage() },
+  { id: "page-back", label: "后退", group: "浏览器", keywords: "back history", run: () => goBack() },
+  { id: "page-forward", label: "前进", group: "浏览器", keywords: "forward history", run: () => goForward() },
+  { id: "shot", label: "截屏（当前视口）", group: "截屏", run: () => doScreenshot() },
+  { id: "shot-full", label: "全长截屏", group: "截屏", keywords: "fullpage", run: () => doScreenshot(true) },
+  { id: "export-pdf", label: "导出 PDF（printToPDF）", group: "截屏", keywords: "print", run: () => exportPdf() },
+  { id: "export-mhtml", label: "导出 MHTML 存档", group: "截屏", keywords: "capture snapshot", run: () => exportMhtml() },
+  { id: "export-har", label: "导出网络 HAR", group: "网络", run: () => exportHar() },
+  { id: "net-clear", label: "清空网络日志", group: "网络", run: () => clearNetwork() },
+  { id: "throttle-off", label: "节流：不限速", group: "网络", run: () => setThrottlePreset("none") },
+  { id: "throttle-fast3g", label: "节流：Fast 3G", group: "网络", run: () => setThrottlePreset("fast3g") },
+  { id: "throttle-slow3g", label: "节流：Slow 3G", group: "网络", run: () => setThrottlePreset("slow3g") },
+  { id: "throttle-offline", label: "节流：离线", group: "网络", run: () => setThrottlePreset("offline") },
+  {
+    id: "emu-panel",
+    label: "开 / 关设备仿真面板",
+    group: "网络",
+    keywords: "emulation device ua cpu",
+    run: () => {
+      pageTab.value = "network";
+      emuPanelOpen.value = !emuPanelOpen.value;
+    },
+  },
+  {
+    id: "intercept-panel",
+    label: "开 / 关请求拦截面板",
+    group: "网络",
+    keywords: "fetch mock block",
+    run: () => {
+      pageTab.value = "network";
+      interceptPanelOpen.value = !interceptPanelOpen.value;
+    },
+  },
+  { id: "perf-start", label: "开始性能录制（Tracing）", group: "性能", run: () => startPerf() },
+  { id: "perf-stop", label: "停止性能录制", group: "性能", run: () => stopPerf() },
+  { id: "perf-export", label: "导出 trace JSON", group: "性能", run: () => exportPerf() },
+  { id: "cpu-start", label: "开始 CPU 采样（Profiler）", group: "性能", keywords: "profile", run: () => startCpuProfile() },
+  { id: "cpu-stop", label: "停止 CPU 采样", group: "性能", keywords: "profile", run: () => stopCpuProfile() },
+  { id: "heap-start", label: "开始堆分配采样（HeapProfiler）", group: "性能", keywords: "memory allocation", run: () => startHeapProfile() },
+  { id: "heap-stop", label: "停止堆分配采样", group: "性能", keywords: "memory allocation", run: () => stopHeapProfile() },
+  { id: "heap-gc", label: "触发一次垃圾回收（GC）", group: "性能", keywords: "memory", run: () => triggerGc() },
+  { id: "console-clear", label: "清空控制台", group: "控制台", run: () => clearConsole() },
+  { id: "dom-refresh", label: "刷新 DOM 树", group: "元素", run: () => loadElementTree() },
+  { id: "storage-load", label: "读取存储（Cookie / Web Storage）", group: "应用", run: () => loadStorage() },
+  { id: "dock-console", label: "底栏：开 / 关 Console 抽屉", group: "视图", run: () => toggleDock("console") },
+  { id: "dock-network", label: "底栏：开 / 关 Network 抽屉", group: "视图", run: () => toggleDock("network") },
+];
+
+/** 按关键字过滤（空串返回全部） */
+const cmdResults = computed(() => {
+  const q = cmdQuery.value.trim().toLowerCase();
+  if (!q) return CMD_ITEMS;
+  return CMD_ITEMS.filter((c) => `${c.label} ${c.group} ${c.keywords ?? ""}`.toLowerCase().includes(q));
+});
+
+watch(cmdQuery, () => {
+  cmdIndex.value = 0;
+});
+
+function openCmdPalette() {
+  cmdOpen.value = true;
+  cmdQuery.value = "";
+  cmdIndex.value = 0;
+  void nextTick(() => cmdInputRef.value?.focus());
+}
+
+function closeCmdPalette() {
+  cmdOpen.value = false;
+}
+
+/** 面板内键盘导航：↑↓ 换选中项，回车执行，Esc 关闭 */
+function cmdKeydown(e: KeyboardEvent) {
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    const n = cmdResults.value.length;
+    if (n) cmdIndex.value = (cmdIndex.value + 1) % n;
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    const n = cmdResults.value.length;
+    if (n) cmdIndex.value = (cmdIndex.value - 1 + n) % n;
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    const item = cmdResults.value[cmdIndex.value];
+    if (item) void runCmd(item);
+  } else if (e.key === "Escape") {
+    e.preventDefault();
+    closeCmdPalette();
+  }
+}
+
+/** 执行一条命令：先关面板再跑，命令自己负责提示 */
+async function runCmd(item: CmdItem) {
+  closeCmdPalette();
+  await item.run();
+}
+
+// 浏览器启停联动：启动后补拉一次历史；停止时历史 / 加载态全部复位
+watch(running, (on) => {
+  if (on) {
+    void refreshNavHistory();
+    // 浏览器重启后旧会话全没了，拦截 / 节流 / 设备仿真若开着就到新会话上重挂一次
+    void applyInterceptRules();
+    if (netThrottle.value !== "none") {
+      void applyThrottle();
+    }
+    void applyDeviceEmulation(true);
+  } else {
+    navHistory.value = null;
+    pageLoading.value = false;
+    clearTimeout(loadingWatchdog);
+    // 浏览器停了：断点随调试会话一起消失
+    resetDebugger();
+    consoleGroupDepth = 0;
+    expandedStacks.value = {};
+    // CPU / 堆采样会话随浏览器销毁
+    cpuProfiling.value = false;
+    heapProfiling.value = false;
+    cpuProfile.value = null;
+    cpuProfileRaw.value = null;
+    heapProfile.value = null;
+    heapProfileRaw.value = null;
+  }
+});
+
+/* ==================== 宿主壳层能力面 ==================== */
+
+/**
+ * 浏览器式壳层（{@code @pages/debug} 的 BrowserWorkbench）通过模板 ref 驱动本工作台。
+ *
+ * <p>顶部地址栏、浏览器启停、sw8 开关等「浏览器级」控件由壳层持有并渲染；
+ * 目标选择、面板内容、实时事件等页面内部逻辑仍归本组件。这里只暴露
+ * 状态与方法，不做二次封装，壳层读到的就是工作台本身的响应式状态
+ * （模板 ref 经 proxyRefs 解包，{@code wb.status} 直接是 {@code CdpStatus | null}）。</p>
+ */
+defineExpose({
+  status,
+  statusLoading,
+  running,
+  stateLabel,
+  stateTone,
+  wsConnected,
+  sseConnected,
+  sw8Enabled,
+  toggleSw8,
+  changeTagCount,
+  reloadStatus,
+  reloadTargets,
+  openCreatePage,
+  startBrowser,
+  stopBrowser,
+  activeTarget,
+  doNavigate,
+  refreshStage,
+  selectTarget,
+  // 浏览器导航（后退 / 前进 / 重载）与加载进度
+  canGoBack,
+  canGoForward,
+  goBack,
+  goForward,
+  reloadPage,
+  pageLoading,
+  // 快捷键支撑：页签顺序表、切页签、求值抽屉开关
+  tabNames,
+  setPageTab,
+  toggleEvaluate,
+});
 </script>
 
 <template>
   <div class="debug-page">
-    <!-- 顶部状态带 -->
-    <header class="debug-hdr">
-      <h2 class="debug-hdr__title">调试中心</h2>
-      <span :class="['debug-pill', `debug-pill--${stateTone}`]">
-        <i class="debug-dot" />{{ stateLabel }}
-      </span>
-      <span :class="['debug-pill', wsConnected && sseConnected ? 'debug-pill--info' : 'debug-pill--muted']" title="WS 指令通道 / SSE 事件流">
-        <i class="debug-dot" />通道 {{ wsConnected ? "WS" : "WS×" }} / {{ sseConnected ? "SSE" : "SSE×" }}
-      </span>
-      <span v-if="status?.port" class="debug-hdr__port">:{{ status.port }}</span>
-      <button
-        :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': sw8Enabled }]"
-        title="自动为页面 XHR / fetch 注入 SkyWalking sw8 追踪头"
-        @click="toggleSw8"
-      >
-        sw8 {{ sw8Enabled ? "开" : "关" }}
-      </button>
-      <span v-if="changeTagCount" class="debug-pill debug-pill--warn" title="页面变化已输出到控制台">
-        <i class="debug-dot" />变化 {{ changeTagCount }}
-      </span>
-      <span class="debug-hdr__spacer" />
-      <button class="debug-btn" :disabled="statusLoading" @click="reloadStatus">刷新</button>
-      <button class="debug-btn" :disabled="!running" :title="running ? '' : '浏览器未启动'" @click="openCreatePage">
-        + 新建页面
-      </button>
-      <button
-        class="debug-btn debug-btn--primary"
-        :disabled="statusLoading"
-        :title="running ? '浏览器状态异常时，点这里做一次自愈重启' : '启动调试浏览器'"
-        @click="startBrowser"
-      >
-        {{ running ? "重启" : "启动" }}
-      </button>
-      <button class="debug-btn debug-btn--danger" :disabled="!running || statusLoading" @click="stopBrowser">
-        {{ statusLoading ? "处理中…" : "停止" }}
-      </button>
-    </header>
-
     <div class="debug-body">
       <!-- ==================== 左侧：调试目标栏（可折叠） ==================== -->
       <aside :class="['debug-rail', { 'is-collapsed': railCollapsed }]">
@@ -4875,6 +6945,18 @@ onBeforeUnmount(() => {
             <span class="debug-tabs__url">{{ activeUrl || "未选择目标" }}</span>
           </span>
           <span v-if="stageLive" class="debug-tabs__live"><i class="debug-dot" />实时</span>
+          <!-- 全局底栏入口：任意页签都能把 Console / Network 拉到屏幕底部同屏看 -->
+          <span class="debug-dock__switch" title="在底部打开面板，与当前页签同屏（再点一次收起）">
+            <button
+              v-for="p in DOCK_PANELS"
+              :key="p"
+              :class="['debug-dock__switchb', { 'is-active': dockOpen && dockPanel === p }]"
+              @click="toggleDock(p)"
+            >
+              {{ p === "console" ? "Console" : "Network" }}
+            </button>
+          </span>
+          <button class="debug-tabs__cmdk" title="命令面板（Ctrl+K）" @click="openCmdPalette">⌘ 命令</button>
         </div>
 
         <!-- ---------- 元素工具行 ---------- -->
@@ -4895,6 +6977,14 @@ onBeforeUnmount(() => {
             {{ stageOpen ? "收起画面" : "显示画面" }}
           </button>
           <button class="debug-btn debug-btn--sm" :disabled="!selectedTarget" @click="refreshStage">截屏</button>
+          <button
+            :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': livePageOn }]"
+            :disabled="!selectedTarget"
+            title="经服务端反向代理打开真实页面：可点击、可输入，与无头浏览器共享登录态"
+            @click="toggleLivePage"
+          >
+            {{ livePageOn ? "关闭实时页面" : "实时页面" }}
+          </button>
           <span class="debug-sitebar__seg">
             <button :class="['debug-sitebar__segb', { 'is-active': stageLayout === 'left' }]" title="画面在左，DOM 与样式在右" @click="stageLayout = 'left'">左右</button>
             <button :class="['debug-sitebar__segb', { 'is-active': stageLayout === 'top' }]" title="画面在上方" @click="stageLayout = 'top'">上下</button>
@@ -4955,6 +7045,38 @@ onBeforeUnmount(() => {
           <span class="debug-tool__hint">
             {{ netSummary.count }} 条 · {{ fmtSize(netSummary.bytes) }}<template v-if="netSummary.failed"> · {{ netSummary.failed }} 失败</template>
           </span>
+          <button class="debug-btn debug-btn--sm" :disabled="!networkRows.length" title="把当前过滤后的请求导出为 HAR 1.2 文件" @click="exportHar">
+            导出 HAR
+          </button>
+          <label class="debug-tool__switch" title="模拟弱网（Network.emulateNetworkConditions，目标级会话）">
+            节流
+            <select v-model="netThrottle" class="debug-input debug-input--throttle" @change="applyThrottle">
+              <option value="none">不限速</option>
+              <option value="fast3g">Fast 3G</option>
+              <option value="slow3g">Slow 3G</option>
+              <option value="offline">离线</option>
+              <option value="custom">自定义…</option>
+            </select>
+          </label>
+          <template v-if="netThrottle === 'custom'">
+            <input v-model.number="netThrottleCustom.download" class="debug-input debug-input--num" type="number" min="0" title="下行速度（KB/s）" @change="applyThrottle" />
+            <input v-model.number="netThrottleCustom.upload" class="debug-input debug-input--num" type="number" min="0" title="上行速度（KB/s）" @change="applyThrottle" />
+            <input v-model.number="netThrottleCustom.latency" class="debug-input debug-input--num" type="number" min="0" title="附加延迟（ms）" @change="applyThrottle" />
+          </template>
+          <button
+            :class="['debug-chip', { 'is-active': deviceEmul !== 'none' || cpuRate > 1 }]"
+            title="设备仿真 / UA 覆盖 / CPU 节流（Emulation 域，目标级会话）"
+            @click="emuPanelOpen = !emuPanelOpen"
+          >
+            仿真<span v-if="deviceEmul !== 'none'" class="debug-chip__n">机</span>
+          </button>
+          <button
+            :class="['debug-chip', { 'is-active': interceptOn || interceptPanelOpen }]"
+            title="请求拦截：屏蔽 / Mock 应答 / 改写请求头（Fetch 域，纯前端分流）"
+            @click="interceptPanelOpen = !interceptPanelOpen"
+          >
+            拦截<span class="debug-chip__n">{{ interceptRules.length }}</span>
+          </button>
           <button class="debug-btn debug-btn--sm" @click="clearNetwork">清空</button>
         </div>
 
@@ -5011,6 +7133,23 @@ onBeforeUnmount(() => {
           <span v-if="perfBufferUsage" class="debug-tool__hint">缓冲 {{ perfBufferUsage }}%</span>
           <button class="debug-btn debug-btn--sm" :disabled="!perfSummary" @click="exportPerf">导出 trace</button>
           <button class="debug-btn debug-btn--sm" :disabled="perfRecording || !perfEventCount" @click="clearPerf">清空</button>
+          <span class="debug-tool__divider" />
+          <button
+            :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--danger': cpuProfiling }]"
+            :disabled="heapProfiling || !selectedTarget"
+            title="Profiler.start/stop：按调用栈采样 CPU，停止后看自耗时 Top 函数"
+            @click="cpuProfiling ? stopCpuProfile() : startCpuProfile()"
+          >
+            {{ cpuProfiling ? "停止 CPU 采样" : "CPU 采样" }}
+          </button>
+          <button
+            :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--danger': heapProfiling }]"
+            :disabled="cpuProfiling || !selectedTarget"
+            title="HeapProfiler.startSampling/stopSampling：采样堆分配，停止后看分配 Top 函数"
+            @click="heapProfiling ? stopHeapProfile() : startHeapProfile()"
+          >
+            {{ heapProfiling ? "停止堆采样" : "堆分配采样" }}
+          </button>
         </div>
 
         <!-- ---------- 应用（存储）工具行 ---------- -->
@@ -5055,22 +7194,55 @@ onBeforeUnmount(() => {
           <button class="debug-btn debug-btn--sm debug-btn--primary" :disabled="screenshotLoading" @click="doScreenshot(true)">
             全长截屏
           </button>
+          <span class="debug-tool__divider" />
+          <button
+            class="debug-btn debug-btn--sm"
+            :disabled="screenshotLoading"
+            title="Page.printToPDF：整页打印成 PDF（仅页面型目标）"
+            @click="exportPdf"
+          >
+            导出 PDF
+          </button>
+          <button
+            class="debug-btn debug-btn--sm"
+            :disabled="screenshotLoading"
+            title="Page.captureSnapshot：整页内联成 MHTML 单文件存档"
+            @click="exportMhtml"
+          >
+            导出 MHTML
+          </button>
         </div>
 
         <!-- ==================== 元素（F12 Elements） ==================== -->
         <div v-if="pageTab === 'elements'" class="debug-elements">
           <div v-if="!elementTree && !elementLoading && !sourceOpen" class="debug-empty">
-            <b>还没有读取 DOM</b>
-            <span>点上方「刷新 DOM」把当前页面的节点树拉下来</span>
+            <template v-if="!running">
+              <b>调试浏览器未启动</b>
+              <span>启动后可实时查看页面画面，并抓取 DOM / 网络 / 控制台 / 性能</span>
+              <button class="debug-btn debug-btn--primary" :disabled="statusLoading" @click="startBrowser">
+                {{ statusLoading ? "处理中…" : "▶ 启动浏览器" }}
+              </button>
+            </template>
+            <template v-else>
+              <b>还没有读取 DOM</b>
+              <span>点上方「刷新 DOM」把当前页面的节点树拉下来</span>
+            </template>
           </div>
           <div
             v-else
             :class="['debug-elwrap', `debug-elwrap--${stageLayout}`, { 'debug-elwrap--src': sourceOpen }]"
           >
             <div :class="['debug-el', `debug-el--${stageLayout}`]">
-              <!-- 画面舞台：默认在左，点画面反查节点 -->
+              <!-- 画面舞台：默认在左，点画面反查节点；实时页面模式下显示代理 iframe -->
               <div v-if="stageOpen" class="debug-el__stage">
-                <div ref="stageViewRef" class="debug-stage__view" @click="pickFromStage">
+                <iframe
+                  v-if="livePageOn && livePageSrc"
+                  :src="livePageSrc"
+                  class="debug-stage__frame"
+                  title="实时页面"
+                  referrerpolicy="no-referrer"
+                />
+                <div v-else ref="stageViewRef" class="debug-stage__view" @click="pickFromStage">
                   <img
                     v-if="stageShot"
                     ref="stageImgRef"
@@ -5089,9 +7261,9 @@ onBeforeUnmount(() => {
                   <span v-if="stageLoading && stageShot" class="debug-stage__loading">刷新中…</span>
                 </div>
                 <div class="debug-stage__bar">
-                  <span class="debug-stage__hint">{{ stageHint }}</span>
+                  <span class="debug-stage__hint">{{ livePageOn ? livePageHint : stageHint }}</span>
                   <span class="debug-tool__spacer" />
-                  <label class="debug-stage__switch">
+                  <label v-if="!livePageOn" class="debug-stage__switch">
                     <input v-model="stageLive" type="checkbox" /> 实时刷新
                   </label>
                 </div>
@@ -5422,14 +7594,29 @@ onBeforeUnmount(() => {
           <div
             v-for="m in visibleConsole"
             :key="m.key"
-            :class="['debug-log', { 'debug-log--change': m.type === 'change' }]"
+            :class="['debug-log', { 'debug-log--change': m.type === 'change', 'debug-log--expanded': !!(m.stack && m.stack.length && expandedStacks[m.key]) }]"
+            :style="{ paddingLeft: 6 + (m.depth || 0) * 16 + 'px' }"
           >
             <span class="debug-log__time">{{ fmtTime(m.timestamp) }}</span>
             <span :class="['debug-log__lvl', `debug-log__lvl--${m.level}`]">
-              {{ m.type === "change" ? "变化" : m.level }}
+              {{ m.type === "change" ? "变化" : m.type === "startGroup" || m.type === "startGroupCollapsed" ? "▾" : m.type === "endGroup" ? "▴" : m.level }}
             </span>
             <span class="debug-log__text">{{ m.text }}</span>
+            <button
+              v-if="m.stack && m.stack.length"
+              class="debug-log__stackbtn"
+              :title="expandedStacks[m.key] ? '收起调用栈' : '展开调用栈'"
+              @click.stop="toggleStack(m.key)"
+            >
+              {{ expandedStacks[m.key] ? "收起堆栈" : `堆栈 ${m.stack.length}` }}
+            </button>
             <span v-if="targetType(m.targetId)" class="debug-log__src">{{ targetType(m.targetId) }}</span>
+            <div v-if="m.stack && m.stack.length && expandedStacks[m.key]" class="debug-log__stack">
+              <div v-for="(f, i) in m.stack" :key="i" class="debug-log__frame">
+                <span class="debug-log__framefn">{{ f.fn }}</span>
+                <span class="debug-log__frameurl" :title="f.url">{{ f.url ? `${f.url}:${f.line}` : "(匿名 / 内联脚本)" }}</span>
+              </div>
+            </div>
           </div>
           <div v-if="!visibleConsole.length" class="debug-empty">
             <b>{{ consoleMessages.length ? "没有符合条件的消息" : "控制台还没有消息" }}</b>
@@ -5440,6 +7627,87 @@ onBeforeUnmount(() => {
 
         <!-- ==================== 网络 ==================== -->
         <div v-else-if="pageTab === 'network'" class="debug-netwrap">
+          <!-- 请求拦截面板：屏蔽 / Mock / 改写请求头（Fetch.enable + requestPaused，命中分流都在前端） -->
+          <div v-if="interceptPanelOpen" class="debug-intercept">
+            <div class="debug-intercept__hd">
+              <label class="debug-tool__switch" title="开启后按规则拦截匹配的请求（目标级会话，切目标 / 重启浏览器会自动重挂）">
+                <input v-model="interceptOn" type="checkbox" /> 启用拦截
+              </label>
+              <span class="debug-tool__hint">按顺序匹配，命中即停；匹配串支持 * 通配</span>
+              <span class="debug-tool__spacer" />
+              <button class="debug-btn debug-btn--sm debug-btn--primary" @click="addInterceptRule()">新增规则</button>
+              <button class="debug-btn debug-btn--sm" @click="interceptPanelOpen = false">收起</button>
+            </div>
+            <div v-for="(r, i) in interceptRules" :key="r.id" class="debug-intercept__row">
+              <span class="debug-intercept__idx">{{ i + 1 }}</span>
+              <input v-model="r.pattern" class="debug-input debug-intercept__pattern" placeholder="URL 匹配串，如 https://api.example.com/*" spellcheck="false" />
+              <select v-model="r.action" class="debug-input debug-intercept__action" title="拦截动作">
+                <option value="block">屏蔽</option>
+                <option value="mock">Mock 应答</option>
+                <option value="header">改请求头</option>
+              </select>
+              <template v-if="r.action === 'mock'">
+                <input v-model.number="r.status" class="debug-input debug-intercept__status" type="number" min="100" max="599" title="响应码" />
+                <input v-model="r.mime" class="debug-input debug-intercept__mime" title="Content-Type" placeholder="Content-Type" spellcheck="false" />
+                <input v-model="r.body" class="debug-input debug-intercept__body" placeholder="响应体" spellcheck="false" />
+              </template>
+              <input
+                v-else-if="r.action === 'header'"
+                class="debug-input debug-intercept__body"
+                :value="Object.entries(r.headers).map(([k, v]) => `${k}: ${v}`).join('; ')"
+                placeholder="头名: 头值（多个用 ; 分隔）"
+                spellcheck="false"
+                @change="setRuleHeaders(r, ($event.target as HTMLInputElement).value)"
+              />
+              <span v-else class="debug-intercept__desc">命中即中断请求（BlockedByClient）</span>
+              <button class="debug-btn debug-btn--sm" title="删除该规则" @click="removeInterceptRule(r.id)">删除</button>
+            </div>
+            <div v-if="!interceptRules.length" class="debug-intercept__empty">
+              还没有规则 —— 右键网络行可快速屏蔽某个 URL，或点「新增规则」
+            </div>
+          </div>
+
+          <!-- 设备仿真 / UA 覆盖 / CPU 节流面板（Emulation 域，目标级会话） -->
+          <div v-if="emuPanelOpen" class="debug-intercept">
+            <div class="debug-intercept__hd">
+              <span class="debug-tool__hint">设备仿真 · UA 覆盖 · CPU 节流（Emulation 域，切目标 / 重启浏览器自动重挂）</span>
+              <span class="debug-tool__spacer" />
+              <button class="debug-btn debug-btn--sm debug-btn--primary" @click="applyDeviceEmulation()">应用</button>
+              <button class="debug-btn debug-btn--sm" @click="emuPanelOpen = false">收起</button>
+            </div>
+            <div class="debug-intercept__row">
+              <span class="debug-intercept__idx">设备</span>
+              <select v-model="deviceEmul" class="debug-input debug-input--throttle" @change="applyDeviceEmulation()">
+                <option value="none">无（桌面默认）</option>
+                <option v-for="(p, k) in DEVICE_PRESETS" :key="k" :value="k">{{ p.label }}（{{ p.width }}×{{ p.height }}）</option>
+                <option value="custom">自定义…</option>
+              </select>
+              <template v-if="deviceEmul === 'custom'">
+                <input v-model.number="deviceCustom.width" class="debug-input debug-input--num" type="number" min="1" title="视口宽（px）" @change="applyDeviceEmulation()" />
+                <input v-model.number="deviceCustom.height" class="debug-input debug-input--num" type="number" min="1" title="视口高（px）" @change="applyDeviceEmulation()" />
+                <input v-model.number="deviceCustom.scale" class="debug-input debug-input--num" type="number" min="1" step="0.5" title="deviceScaleFactor" @change="applyDeviceEmulation()" />
+                <label class="debug-tool__switch" title="移动端标记（影响布局视口与触屏判定）">
+                  <input v-model="deviceCustom.mobile" type="checkbox" @change="applyDeviceEmulation()" /> mobile
+                </label>
+              </template>
+            </div>
+            <div class="debug-intercept__row">
+              <span class="debug-intercept__idx">UA</span>
+              <input
+                v-model="deviceCustom.ua"
+                class="debug-input debug-intercept__pattern"
+                placeholder="User-Agent 覆盖（预设档自动带 UA；自定义档留空 = 不覆盖）"
+                spellcheck="false"
+                :disabled="deviceEmul !== 'custom'"
+                @change="applyDeviceEmulation()"
+              />
+            </div>
+            <div class="debug-intercept__row">
+              <span class="debug-intercept__idx">CPU</span>
+              <input v-model.number="cpuRate" class="debug-input debug-input--num" type="number" min="1" max="50" title="节流倍率：1 = 不节流，4 = 四倍慢" @change="applyDeviceEmulation()" />
+              <span class="debug-intercept__desc">×N 减速（1 = 不节流；Emulation.setCPUThrottlingRate）</span>
+            </div>
+          </div>
           <div class="debug-scroll debug-scroll--net">
             <table v-if="networkRows.length" class="debug-net">
               <thead>
@@ -5452,6 +7720,7 @@ onBeforeUnmount(() => {
                   <th>大小</th>
                   <th>时间</th>
                   <th>耗时</th>
+                  <th class="debug-net__wfh">瀑布</th>
                 </tr>
               </thead>
               <tbody>
@@ -5460,6 +7729,7 @@ onBeforeUnmount(() => {
                     :class="['debug-net__tr', { 'is-active': netDetailId === n.requestId, 'is-failed': !!n.errorText || /^[45]/.test(n.status) }]"
                     :title="n.url"
                     @click="toggleNetDetail(n.requestId)"
+                    @contextmenu.prevent="openNetMenu($event, n)"
                   >
                     <td class="debug-net__name">
                       <span class="debug-net__caret">{{ netDetailId === n.requestId ? "▾" : "▸" }}</span>
@@ -5479,6 +7749,13 @@ onBeforeUnmount(() => {
                     <td class="debug-net__size">{{ n.fromCache ? "缓存" : fmtSize(n.size || n.received) }}</td>
                     <td class="debug-net__time">{{ fmtTime(n.timestamp) }}</td>
                     <td class="debug-net__dur">{{ fmtDuration(n.duration) }}</td>
+                    <td class="debug-net__wf">
+                      <span
+                        :class="['debug-net__wfbar', `is-${statusTone(n.status)}`, { 'is-failed': !!n.errorText }]"
+                        :style="waterfallStyle(n)"
+                        :title="`${fmtDuration(n.duration)}（自首个请求起 ${Math.max(0, Math.round((n.timestamp || 0) - netWaterfall.origin))} ms）`"
+                      />
+                    </td>
                   </tr>
                 </template>
               </tbody>
@@ -5505,6 +7782,13 @@ onBeforeUnmount(() => {
               <button :class="['debug-el__dtab', { 'is-active': netDetailTab === 'headers' }]" @click="showNetTab('headers')">标头</button>
               <button :class="['debug-el__dtab', { 'is-active': netDetailTab === 'response' }]" @click="showNetTab('response')">响应</button>
               <button :class="['debug-el__dtab', { 'is-active': netDetailTab === 'initiator' }]" @click="showNetTab('initiator')">发起者</button>
+              <button
+                v-if="netDetail.wsFrames?.length"
+                :class="['debug-el__dtab', { 'is-active': netDetailTab === 'ws' }]"
+                @click="showNetTab('ws')"
+              >
+                WS 帧（{{ netDetail.wsFrames.length }}）
+              </button>
               <button :class="['debug-el__dtab', { 'is-active': netDetailTab === 'trace' }]" @click="showNetTab('trace')">
                 链路<span v-if="currentTraceGroup" class="debug-el__dtabn">{{ currentTraceGroup.count }}</span>
               </button>
@@ -5585,13 +7869,25 @@ onBeforeUnmount(() => {
                   <span v-if="traceGroups.length">当前会话已聚合 {{ traceGroups.length }} 条链路。</span>
                 </div>
               </template>
-              <template v-else>
+              <template v-else-if="netDetailTab === 'initiator'">
                 <div class="debug-netdetail__sec">发起者</div>
                 <div class="debug-netdetail__pre">{{ netDetail.initiator || "（页面脚本）" }}</div>
                 <div class="debug-netdetail__sec">时间线</div>
                 <div class="debug-netdetail__kv"><span class="debug-netdetail__k">发起</span><span class="debug-netdetail__v">{{ fmtTime(netDetail.timestamp) }}</span></div>
                 <div class="debug-netdetail__kv"><span class="debug-netdetail__k">耗时</span><span class="debug-netdetail__v">{{ fmtDuration(netDetail.duration) }}</span></div>
                 <div v-if="netDetail.errorText" class="debug-netdetail__kv"><span class="debug-netdetail__k">错误</span><span class="debug-netdetail__v">{{ netDetail.errorText }}</span></div>
+              </template>
+              <template v-else-if="netDetailTab === 'ws' && netDetail.wsFrames">
+                <div class="debug-ws">
+                  <div v-for="(f, i) in netDetail.wsFrames" :key="i" class="debug-ws__row" :class="'debug-ws__row--' + f.dir">
+                    <span class="debug-ws__dir">{{ f.dir === "send" ? "↑" : f.dir === "recv" ? "↓" : "⚠" }}</span>
+                    <span class="debug-ws__t">+{{ fmtDuration(Math.max(0, f.time - (netDetail.timestamp || f.time))) }}</span>
+                    <span class="debug-ws__op">{{ f.dir === "error" ? "error" : wsOpcodeName(f.opcode) }}</span>
+                    <span class="debug-ws__size">{{ fmtSize(f.size) }}</span>
+                    <span class="debug-ws__payload" :title="f.payload">{{ f.payload || (f.opcode === 2 ? "（二进制帧）" : "") }}</span>
+                  </div>
+                  <div v-if="!netDetail.wsFrames.length" class="debug-intercept__empty">（无帧）</div>
+                </div>
               </template>
             </div>
           </div>
@@ -5841,6 +8137,71 @@ onBeforeUnmount(() => {
               </tbody>
             </table>
           </template>
+
+          <!-- CPU 采样结果（Profiler 域，与 Tracing 录制相互独立） -->
+          <div v-if="cpuProfiling" class="debug-prof__live">
+            <i class="debug-dot" />CPU 采样进行中，操作页面后点「停止 CPU 采样」
+          </div>
+          <template v-else-if="cpuProfile">
+            <div class="debug-perf__sec">
+              CPU 采样
+              <span class="debug-perf__secn">
+                {{ (cpuProfile.durationUs / 1000000).toFixed(2) }}s · {{ cpuProfile.hits }} 采样点 ·
+                {{ cpuProfile.nodes }} 节点 · 按自采样占比排序
+              </span>
+              <span class="debug-tool__spacer" />
+              <button class="debug-btn debug-btn--sm" @click="exportCpuProfile">下载 .cpuprofile</button>
+            </div>
+            <table class="debug-perf__table">
+              <thead>
+                <tr><th>函数</th><th>位置</th><th>自采样</th><th>占比</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="(t, i) in cpuProfile.top" :key="i">
+                  <td class="debug-perf__tname" :title="t.name">{{ t.name }}</td>
+                  <td class="debug-perf__tcat" :title="t.url">{{ t.url ? `${t.url.split("/").pop()}:${t.line}` : "—" }}</td>
+                  <td class="debug-perf__tdur">{{ t.hits }}</td>
+                  <td class="debug-prof__pct">
+                    <span class="debug-prof__bar" :style="{ width: Math.min(100, t.pct) + '%' }" />
+                    <b>{{ t.pct.toFixed(1) }}%</b>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
+
+          <!-- 堆分配采样结果（HeapProfiler 域） -->
+          <div v-if="heapProfiling" class="debug-prof__live">
+            <i class="debug-dot" />堆分配采样进行中，操作页面后点「停止堆采样」
+          </div>
+          <template v-else-if="heapProfile">
+            <div class="debug-perf__sec">
+              堆分配采样
+              <span class="debug-perf__secn">
+                总分配 {{ fmtSize(heapProfile.totalBytes) }} · {{ heapProfile.samples }} 个样本 ·
+                {{ heapProfile.nodes }} 个分配点 · 按自分配排序
+              </span>
+              <span class="debug-tool__spacer" />
+              <button class="debug-btn debug-btn--sm" title="HeapProfiler.collectGarbage" @click="triggerGc">触发 GC</button>
+              <button class="debug-btn debug-btn--sm" @click="exportHeapProfile">下载 .heapprofile</button>
+            </div>
+            <table class="debug-perf__table">
+              <thead>
+                <tr><th>函数</th><th>位置</th><th>自分配</th><th>占比</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="(t, i) in heapProfile.top" :key="i">
+                  <td class="debug-perf__tname" :title="t.name">{{ t.name }}</td>
+                  <td class="debug-perf__tcat" :title="t.url">{{ t.url ? `${t.url.split("/").pop()}:${t.line}` : "—" }}</td>
+                  <td class="debug-perf__tdur">{{ fmtSize(t.bytes) }}</td>
+                  <td class="debug-prof__pct">
+                    <span class="debug-prof__bar" :style="{ width: Math.min(100, t.pct) + '%' }" />
+                    <b>{{ t.pct.toFixed(1) }}%</b>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </template>
         </div>
 
         <!-- ==================== 应用（Cookie / Web Storage） ==================== -->
@@ -5895,12 +8256,248 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
+        <!-- ==================== Debugger 断点 ==================== -->
+        <div v-else-if="pageTab === 'debugger'" class="debug-bpwrap">
+          <div class="debug-tool">
+            <button
+              :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': debuggerOn }]"
+              :disabled="!selectedTarget"
+              :title="debuggerOn ? '关闭 Debugger 域（断点全部失效）' : '启用 Debugger 域（WS 透传，后端零改动）'"
+              @click="toggleDebugger"
+            >
+              {{ debuggerOn ? "关闭 Debugger" : "启用 Debugger" }}
+            </button>
+            <span class="debug-tool__divider" />
+            <input
+              v-model="bpUrl"
+              class="debug-input debug-input--search debug-bp__url"
+              placeholder="脚本地址匹配串（正则，如 app\.js 或 /assets/.*\.ts）"
+              spellcheck="false"
+              @keyup.enter="addBreakpoint"
+            />
+            <input v-model.number="bpLine" class="debug-input debug-bp__line" type="number" min="1" title="行号（1 基）" />
+            <input
+              v-model="bpCondition"
+              class="debug-input debug-input--search debug-bp__cond"
+              placeholder="条件表达式（可选，如 i > 10）"
+              spellcheck="false"
+              @keyup.enter="addBreakpoint"
+            />
+            <button class="debug-btn debug-btn--sm" :disabled="!selectedTarget" @click="addBreakpoint">加断点</button>
+            <button class="debug-btn debug-btn--sm" :disabled="!breakpoints.length" @click="clearBreakpoints">移除全部</button>
+            <span class="debug-tool__divider" />
+            <input
+              v-model="blackboxInput"
+              class="debug-input debug-input--search debug-bp__cond"
+              placeholder="黑盒脚本（正则，逗号/空格分隔，如 node_modules/.*, /cdn/.*）"
+              spellcheck="false"
+              @keyup.enter="applyBlackbox"
+            />
+            <button
+              class="debug-btn debug-btn--sm"
+              :disabled="!selectedTarget"
+              title="命中黑盒的脚本在单步 / 断点解析时被跳过（Debugger.setBlackboxPatterns）"
+              @click="applyBlackbox"
+            >
+              应用黑盒
+            </button>
+            <span class="debug-tool__spacer" />
+            <span class="debug-tool__hint">{{ breakpoints.length }} 个断点 · {{ debuggerOn ? "Debugger 已启用" : "Debugger 未启用（加断点会自动启用）" }}</span>
+          </div>
+
+          <!-- DOMDebugger：XHR/fetch 断点 + 事件监听器断点（会话内有效，切目标 / 重启浏览器即失） -->
+          <div class="debug-bpextra">
+            <div class="debug-bpextra__row">
+              <span class="debug-bpextra__label">XHR 断点</span>
+              <input
+                v-model="xhrBpInput"
+                class="debug-input debug-input--search"
+                placeholder="URL 包含串，如 /api/order（命中即暂停）"
+                spellcheck="false"
+                @keyup.enter="addXhrBreakpoint"
+              />
+              <button class="debug-btn debug-btn--sm" :disabled="!selectedTarget || !wsReady()" @click="addXhrBreakpoint">添加</button>
+              <button v-if="xhrBreakpoints.length" class="debug-btn debug-btn--sm" @click="clearXhrBreakpoints">清空</button>
+            </div>
+            <div v-for="u in xhrBreakpoints" :key="'x:' + u" class="debug-bpextra__item">
+              <span class="debug-bpextra__tag">XHR</span>
+              <span class="debug-bpextra__val" :title="u">{{ u }}</span>
+              <button class="debug-btn debug-btn--sm" title="移除该断点" @click="removeXhrBreakpoint(u)">删除</button>
+            </div>
+            <div class="debug-bpextra__row">
+              <span class="debug-bpextra__label">事件断点</span>
+              <select v-model="eventBpInput" class="debug-input debug-input--throttle" title="页面任一元素触发该事件时暂停">
+                <option v-for="e in EVENT_BP_OPTIONS" :key="e" :value="e">{{ e }}</option>
+              </select>
+              <button class="debug-btn debug-btn--sm" :disabled="!selectedTarget || !wsReady()" @click="addEventBreakpoint">添加</button>
+              <button v-if="eventBreakpoints.length" class="debug-btn debug-btn--sm" @click="clearEventBreakpoints">清空</button>
+            </div>
+            <div v-for="e in eventBreakpoints" :key="'e:' + e" class="debug-bpextra__item">
+              <span class="debug-bpextra__tag">EV</span>
+              <span class="debug-bpextra__val">{{ e }}</span>
+              <button class="debug-btn debug-btn--sm" title="移除该断点" @click="removeEventBreakpoint(e)">删除</button>
+            </div>
+          </div>
+
+          <!-- 命中暂停：原因 + 栈帧 + 恢复 / 步进 -->
+          <div v-if="pausedState" class="debug-paused">
+            <div class="debug-paused__hd">
+              <span class="debug-pill debug-pill--warn"><i class="debug-dot" />{{ pauseReason(String(pausedState.reason ?? "")) }}</span>
+              <span v-if="pausedHitCount" class="debug-tool__hint">命中 {{ pausedHitCount }} 个断点</span>
+              <span class="debug-tool__spacer" />
+              <button class="debug-btn debug-btn--sm" @click="debuggerStep('stepOver')">步过</button>
+              <button class="debug-btn debug-btn--sm" @click="debuggerStep('stepInto')">步入</button>
+              <button class="debug-btn debug-btn--sm" @click="debuggerStep('stepOut')">步出</button>
+              <button class="debug-btn debug-btn--sm debug-btn--primary" @click="resumeExecution">恢复执行</button>
+            </div>
+            <div class="debug-paused__frames">
+              <div v-for="(f, i) in pausedFrames" :key="i" class="debug-paused__frame">
+                <span class="debug-paused__idx">{{ i }}</span>
+                <span class="debug-paused__fn">{{ frameName(f) }}</span>
+                <span class="debug-paused__loc" :title="frameUrl(f)">{{ frameUrl(f) || "（脚本未登记）" }}:{{ frameLine(f) }}</span>
+              </div>
+              <div v-if="!pausedFrames.length" class="debug-paused__frame">
+                <span class="debug-tool__hint">没有栈帧信息</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="debug-scroll">
+            <table v-if="breakpoints.length" class="debug-bp">
+              <thead>
+                <tr>
+                  <th>脚本地址（正则）</th>
+                  <th>行号</th>
+                  <th>条件</th>
+                  <th>解析位置</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="bp in breakpoints" :key="bp.breakpointId" class="debug-bp__tr">
+                  <td class="debug-bp__u" :title="bp.url">{{ bp.url }}</td>
+                  <td class="debug-bp__l">{{ bp.lineNumber }}</td>
+                  <td class="debug-bp__c" :title="bp.condition">{{ bp.condition || "—" }}</td>
+                  <td class="debug-bp__locs">
+                    <span v-if="!bp.locations.length" class="debug-bp__none">待解析（脚本加载后自动回填）</span>
+                    <span
+                      v-for="(l, i) in bp.locations"
+                      :key="i"
+                      class="debug-bp__loc"
+                      :title="scriptSources[l.scriptId] || l.scriptId"
+                    >
+                      {{ scriptSources[l.scriptId] || l.scriptId || l.scriptId }}:{{ l.lineNumber + 1 }}
+                    </span>
+                  </td>
+                  <td class="debug-bp__act">
+                    <button class="debug-btn debug-btn--sm" @click="removeBreakpoint(bp)">移除</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-else class="debug-empty">
+              <b>{{ debuggerOn ? "还没有断点" : "Debugger 未启用" }}</b>
+              <span>{{
+                debuggerOn
+                  ? "填脚本地址与行号后点「加断点」；页面执行到断点会暂停并在上方显示栈帧"
+                  : "先启用 Debugger，或直接加断点（会自动启用）；断点按脚本地址正则 + 行号下发"
+              }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- ==================== 截屏 ==================== -->
         <div v-else class="debug-shot">
           <img v-if="screenshotUrl" :src="screenshotUrl" alt="页面截图" />
           <div v-else class="debug-empty">
             <b>暂无截屏</b>
             <span>选中目标后点「截屏」或「全长截屏」</span>
+          </div>
+        </div>
+
+        <!-- ==================== 全局底栏：Console / Network 抽屉 ==================== -->
+        <div v-if="dockOpen" class="debug-dock" :style="{ height: dockHeight + 'px' }">
+          <div class="debug-dock__resizer" title="拖拽调整底栏高度" @pointerdown.prevent="startDockResize">
+            <span />
+          </div>
+          <div class="debug-dock__hd">
+            <button
+              v-for="p in DOCK_PANELS"
+              :key="p"
+              :class="['debug-dock__tab', { 'is-active': dockPanel === p }]"
+              @click="dockPanel = p"
+            >
+              {{ p === "console" ? "控制台" : "网络" }}
+              <span class="debug-chip__n">{{ p === "console" ? consoleMessages.length : networkRequests.length }}</span>
+            </button>
+            <span class="debug-tool__spacer" />
+            <span class="debug-tool__hint">底栏与当前页签同屏；与主区重复时自动让位，点行可跳转详情</span>
+            <button class="debug-btn debug-btn--sm" @click="dockOpen = false">收起底栏</button>
+          </div>
+          <div class="debug-dock__body">
+            <!-- 底栏·控制台：与控制台页签同源同过滤 -->
+            <div v-if="dockPanel === 'console'" class="debug-scroll debug-dock__scroll">
+              <div
+                v-for="m in visibleConsole"
+                :key="m.key"
+                :class="['debug-log', { 'debug-log--change': m.type === 'change' }]"
+              >
+                <span class="debug-log__time">{{ fmtTime(m.timestamp) }}</span>
+                <span :class="['debug-log__lvl', `debug-log__lvl--${m.level}`]">
+                  {{ m.type === "change" ? "变化" : m.level }}
+                </span>
+                <span class="debug-log__text">{{ m.text }}</span>
+                <span v-if="targetType(m.targetId)" class="debug-log__src">{{ targetType(m.targetId) }}</span>
+              </div>
+              <div v-if="!visibleConsole.length" class="debug-empty">
+                <b>{{ consoleMessages.length ? "没有符合条件的消息" : "控制台还没有消息" }}</b>
+                <span v-if="consoleMessages.length">级别 / 过滤词与控制台页签共用，去那边改</span>
+              </div>
+            </div>
+            <!-- 底栏·网络：精简列 + 瀑布图；点行跳到网络页签看详情 -->
+            <div v-else class="debug-scroll debug-scroll--net debug-dock__scroll">
+              <table v-if="networkRows.length" class="debug-net">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>方法</th>
+                    <th>状态</th>
+                    <th>类型</th>
+                    <th>大小</th>
+                    <th>耗时</th>
+                    <th class="debug-net__wfh">瀑布</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="n in networkRows"
+                    :key="n.seq"
+                    :class="['debug-net__tr', { 'is-failed': !!n.errorText || /^[45]/.test(n.status) }]"
+                    :title="n.url"
+                    @click="openNetFromDock(n.requestId)"
+                    @contextmenu.prevent="openNetMenu($event, n)"
+                  >
+                    <td class="debug-net__name">{{ urlName(n.url) }}</td>
+                    <td class="debug-net__method">{{ n.method || "—" }}</td>
+                    <td :class="['debug-net__status', `debug-net__status--${statusTone(n.status)}`]">
+                      {{ n.errorText ? "ERR" : n.status || "pending" }}
+                    </td>
+                    <td class="debug-net__type">{{ n.type || "other" }}</td>
+                    <td class="debug-net__size">{{ n.fromCache ? "缓存" : fmtSize(n.size || n.received) }}</td>
+                    <td class="debug-net__dur">{{ fmtDuration(n.duration) }}</td>
+                    <td class="debug-net__wf">
+                      <span
+                        :class="['debug-net__wfbar', `is-${statusTone(n.status)}`, { 'is-failed': !!n.errorText }]"
+                        :style="waterfallStyle(n)"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div v-else class="debug-empty">
+                <b>{{ networkRequests.length ? "没有符合条件的请求" : "暂无网络日志" }}</b>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -5954,6 +8551,56 @@ onBeforeUnmount(() => {
       <button class="debug-ctxmenu__item debug-ctxmenu__item--danger" @click="runContextAction('delete')">删除节点</button>
       <div class="debug-ctxmenu__sep" />
       <button class="debug-ctxmenu__item" @click="runContextAction('refresh')">刷新 DOM 树</button>
+    </div>
+
+    <!-- 网络行右键菜单（复制 cURL / fetch、重放、屏蔽入口） -->
+    <div
+      v-if="netMenu.open"
+      class="debug-ctxmenu"
+      :style="{ left: netMenu.x + 'px', top: netMenu.y + 'px' }"
+      @click.stop
+    >
+      <div class="debug-ctxmenu__hd" :title="netMenu.entry?.url">
+        {{ netMenu.entry ? `${netMenu.entry.method || "GET"} ${urlName(netMenu.entry.url)}` : "" }}
+      </div>
+      <button class="debug-ctxmenu__item" @click="runNetAction('curl')">复制为 cURL</button>
+      <button class="debug-ctxmenu__item" @click="runNetAction('fetch')">复制为 fetch</button>
+      <div class="debug-ctxmenu__sep" />
+      <button class="debug-ctxmenu__item" title="在页面上下文里用 fetch 重发（带页面 Cookie / 会话）" @click="runNetAction('replay')">重放请求</button>
+      <button class="debug-ctxmenu__item debug-ctxmenu__item--danger" title="加入屏蔽规则并开启拦截" @click="runNetAction('block')">屏蔽该 URL</button>
+    </div>
+
+    <!-- 命令面板（Ctrl+K）：页签 / 截屏 / 导出 / 采样 / 节流等一键直达 -->
+    <div v-if="cmdOpen" class="debug-cmdk" @click.self="closeCmdPalette">
+      <div class="debug-cmdk__box">
+        <input
+          ref="cmdInputRef"
+          v-model="cmdQuery"
+          class="debug-cmdk__input"
+          placeholder="搜索命令：页签 / 截屏 / 导出 / 采样 / 节流…"
+          spellcheck="false"
+          autocomplete="off"
+          @keydown="cmdKeydown"
+        />
+        <div class="debug-cmdk__list">
+          <div
+            v-for="(item, i) in cmdResults"
+            :key="item.id"
+            :class="['debug-cmdk__item', { 'is-active': i === cmdIndex }]"
+            @mouseenter="cmdIndex = i"
+            @click="runCmd(item)"
+          >
+            <span class="debug-cmdk__group">{{ item.group }}</span>
+            <span class="debug-cmdk__label">{{ item.label }}</span>
+          </div>
+          <div v-if="!cmdResults.length" class="debug-cmdk__empty">没有匹配的命令</div>
+        </div>
+        <div class="debug-cmdk__foot">
+          <span>{{ cmdResults.length }} 条命令</span>
+          <span class="debug-tool__spacer" />
+          <span>↑↓ 选择 · 回车执行 · Esc 关闭</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>

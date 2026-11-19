@@ -37,7 +37,7 @@ export function createCdpRoutes(options: CdpRoutesOptions = {}): RouteConfigsTab
     {
       path: "/debug",
       name: "Debug",
-      component: () => import("../views/DebugCenter.vue"),
+      component: () => import("../views/BrowserWorkbench.vue"),
       meta: {
         title: "调试中心",
         icon: "Tools",

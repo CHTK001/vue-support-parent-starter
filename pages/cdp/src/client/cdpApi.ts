@@ -1,5 +1,5 @@
 /**
- * 调试中心 API（@pages/debug）
+ * CDP 客户端 API（@pages/cdp）
  *
  * <p>对接 {@code spring-support-cdp-starter} 的两个通道：</p>
  * <ul>
@@ -172,6 +172,67 @@ export const cdpStart = () => http().post(`${CDP_PREFIX}/start`).then((r) => unw
 /** 停止浏览器 */
 export const cdpStop = () => http().post(`${CDP_PREFIX}/stop`).then((r) => unwrapResult<CdpStatus>(r));
 
+/**
+ * 控制台日志（一次性拉取，环形缓冲，按发生顺序旧 → 新；实时增量走 SSE /ms/cdp/events）
+ */
+export const cdpConsoleLogs = (targetId?: string, limit = 200) =>
+  http()
+    .get(`${CDP_PREFIX}/console`)
+    .query({ ...(targetId ? { targetId } : {}), limit })
+    .then((r) => unwrapResult<CdpConsoleMessage[]>(r));
+
+/**
+ * 网络日志（一次性拉取，环形缓冲，按发生顺序旧 → 新；实时增量走 SSE /ms/cdp/events）
+ */
+export const cdpNetworkLogs = (targetId?: string, limit = 200) =>
+  http()
+    .get(`${CDP_PREFIX}/network`)
+    .query({ ...(targetId ? { targetId } : {}), limit })
+    .then((r) => unwrapResult<CdpNetworkRequest[]>(r));
+
+/* ==================== 实时页面代理会话 ==================== */
+
+/** 实时页面代理会话（REST /ms/cdp/proxy-session 返回） */
+export interface CdpProxySession {
+  /** 会话标识（代理路径第一段） */
+  sessionId: string;
+  /** 当前上游地址 */
+  url: string;
+  /** 关联的无头浏览器页面目标（浏览器不可用时为空） */
+  targetId?: string | null;
+  /** 对外代理基地址，iframe 地址 = {proxyBase}/{sessionId}/ */
+  proxyBase?: string;
+  createdAt?: number;
+  lastAccess?: number;
+}
+
+/**
+ * 打开实时页面代理会话
+ *
+ * <p>后端在独立端口起反向代理，无头浏览器与 iframe 都经由它访问目标站点，
+ * 共享服务端 Cookie 罐；返回的 {@code proxyBase}/{sessionId}/ 即 iframe 地址。</p>
+ */
+export const cdpOpenProxySession = (url: string) =>
+  http()
+    .post(`${CDP_PREFIX}/proxy-session`)
+    .data({ url })
+    .then((r) => unwrapResult<CdpProxySession>(r));
+
+/** 实时页面代理会话列表 */
+export const cdpProxySessions = () =>
+  http().get(`${CDP_PREFIX}/proxy-session`).then((r) => unwrapResult<CdpProxySession[]>(r));
+
+/** 实时页面代理会话内导航 */
+export const cdpNavigateProxySession = (sessionId: string, url: string) =>
+  http()
+    .post(`${CDP_PREFIX}/proxy-session/${encodeURIComponent(sessionId)}/navigate`)
+    .data({ url })
+    .then((r) => unwrapResult<CdpProxySession>(r));
+
+/** 关闭实时页面代理会话（含无头浏览器页面） */
+export const cdpCloseProxySession = (sessionId: string) =>
+  http().delete(`${CDP_PREFIX}/proxy-session/${encodeURIComponent(sessionId)}`).then((r) => unwrapResult<boolean>(r));
+
 /* ==================== WebSocket（CDP JSON-RPC） ==================== */
 
 /** WS 事件回调 */
@@ -215,6 +276,10 @@ export class CdpClient {
   private pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: unknown) => void }>();
   private sequence = 0;
   private reconnectTimer?: ReturnType<typeof setTimeout>;
+  /** 重连退避计数：指数退避 1s → 30s，握手成功后归零 */
+  private reconnectAttempt = 0;
+  /** 主动断开标记：disconnect() 不应触发自动重连 */
+  private manualClose = false;
   private url: string;
 
   constructor(url?: string) {
@@ -225,8 +290,9 @@ export class CdpClient {
    * 连接
    */
   async connect(): Promise<void> {
-    if (this.ws) return;
+    if (this.ws) return Promise.resolve();
     return new Promise((resolve, reject) => {
+      this.manualClose = false;
       try {
         this.ws = new WebSocket(this.url);
       } catch (error) {
@@ -235,16 +301,24 @@ export class CdpClient {
       }
       this.ws.onopen = () => {
         this.opened = true;
+        this.reconnectAttempt = 0;
         this.handlers.onOpened?.();
         resolve();
       };
       this.ws.onmessage = (e: MessageEvent) => this.dispatch(e.data);
       this.ws.onclose = (e) => {
         this.opened = false;
+        // 旧 socket 必须清掉：connect() 开头的「已在连」守卫靠它放行重连
+        this.ws = undefined;
         this.handlers.onClosed?.(e.code, e.reason);
         this.rejectPending(e.reason);
-        // 断线重连（指数退避，1s → 30s）
-        this.reconnectTimer = setTimeout(() => this.connect().catch(() => {}), 1000);
+        // 主动断开不重连；被动断线按指数退避重连（1s 起步，封顶 30s）
+        if (this.manualClose) {
+          return;
+        }
+        const delay = Math.min(30000, 1000 * 2 ** this.reconnectAttempt);
+        this.reconnectAttempt += 1;
+        this.reconnectTimer = setTimeout(() => this.connect().catch(() => {}), delay);
       };
       this.ws.onerror = (e) => {
         this.handlers.onError?.(e);
@@ -255,6 +329,8 @@ export class CdpClient {
 
   /** 断开 */
   disconnect(): void {
+    // 先立标记再 close：onclose 是异步回调，事后 clearTimeout 拦不住它排的重连
+    this.manualClose = true;
     if (this.ws) {
       this.ws.close();
       this.ws = undefined;
