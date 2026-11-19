@@ -52,7 +52,6 @@ const hostQuery = ref("");
 const onlyAbnormal = ref(false);
 /** 维护窗口（后端为唯一判定方，这里只做提示） */
 const alarmWindows = ref<AlarmMaintenanceWindow[]>([]);
-const windowsError = ref("");
 /** 首屏静默探测得到的远控/文件能力（不进诊断抽屉，避免污染诊断摘要口径） */
 const probedCaps = ref<Record<string, { ok: boolean; detail: string }>>({});
 
@@ -198,7 +197,11 @@ const recentAlarms = computed(() =>
 function isHostAbnormal(h: any): boolean {
   return !isHostOnline(h) || Boolean(hostStaleText(h));
 }
-const abnormalHostCount = computed(() => hosts.value.filter(isHostAbnormal).length);
+const abnormalHostCount = computed(() => {
+  // 与 hostRows 同源读秒级时钟：数据陈旧满 5 分钟时，徽标计数要和列表同步变化
+  void nowTick.value;
+  return hosts.value.filter(isHostAbnormal).length;
+});
 const hostRows = computed(() => {
   // 读一次秒级时钟，让「数据 N 分钟未更新」的异常判定随轮询一起刷新
   void nowTick.value;
@@ -545,9 +548,7 @@ async function loadAlarms(): Promise<void> {
 async function loadAlarmWindows(): Promise<void> {
   try {
     alarmWindows.value = (await fetchAlarmWindows()) ?? [];
-    windowsError.value = "";
   } catch {
-    windowsError.value = "维护窗口加载失败";
     alarmWindows.value = [];
   }
 }
@@ -724,7 +725,7 @@ async function fetchAll(silent = false): Promise<void> {
   alarmsError.value = "";
   statsError.value = "";
   nodesLoadError.value = "";
-  await Promise.all([loadHosts(), loadAlarms(), loadAlarmStats(), loadServerNodes()]);
+  await Promise.all([loadHosts(), loadAlarms(), loadAlarmStats(), loadServerNodes(), loadAlarmWindows()]);
   lastAlarmPollAt = Date.now();
   hasFetched = true;
   if (hostsError.value && alarmsError.value) {
@@ -948,7 +949,10 @@ async function copyDiagnostics(): Promise<void> {
 
 /** 回到前台补一次数据，避免看到切走前的旧值 */
 function onVisibility(): void {
-  if (!document.hidden) void fetchAll(true);
+  pageHidden.value = document.hidden;
+  nowTick.value = Date.now();
+  // 暂停自动刷新时，回到前台也不自动补拉，交由用户手动刷新
+  if (!document.hidden && autoRefresh.value) void fetchAll(true);
 }
 
 onMounted(() => {
@@ -968,7 +972,8 @@ watch(realtimeConnected, connected => {
     // 断线期间漏掉的推送靠一次全量补齐；首次连接不重复拉（挂载时已拉过）。
     if (hasFetched) void fetchAll(true);
   } else {
-    startPolling();
+    // 用户已暂停自动刷新时，断线不要偷偷恢复轮询
+    if (autoRefresh.value) startPolling();
   }
 });
 onBeforeUnmount(() => {
@@ -993,7 +998,6 @@ onBeforeUnmount(() => {
           show-text
           icon="RefreshRight"
           size="small"
-          :loading="!autoRefresh"
           @click="toggleAutoRefresh"
         >
           {{ autoRefresh ? "暂停刷新" : "恢复刷新" }}
@@ -1089,7 +1093,6 @@ onBeforeUnmount(() => {
         <span class="maintenance-banner-name">维护窗口生效中</span>
         <span class="maintenance-banner-text">{{ activeWindowText }}</span>
       </span>
-      <span v-if="windowsError" class="maintenance-banner-error">{{ windowsError }}</span>
     </div>
 
     <div class="dash-grid">
@@ -1643,7 +1646,6 @@ onBeforeUnmount(() => {
 .maintenance-banner-body { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; min-width: 0; flex: 1; }
 .maintenance-banner-name { font-weight: 600; color: var(--status-warning); }
 .maintenance-banner-text { color: var(--text-secondary); }
-.maintenance-banner-error { color: var(--status-error); font-size: 11px; }
 .host-row {
   display: grid;
   grid-template-columns: 8px 28px minmax(120px, 1.4fr) 58px 62px minmax(180px, 0.9fr);
