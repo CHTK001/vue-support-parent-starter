@@ -17,9 +17,8 @@ export function createApp() {
     appName: "ai-miniapp",
     baseUrl: BASE_URL,
     uni,
+    // 令牌过期由后端 401 触发：清令牌 + reLaunch 到这里
     loginPath: "/pages/login/index",
-    // 小程序内不做续期：token 过期直接回登录页
-    token: { refresh: false },
     app: App,
     createSSRApp,
   }).mountApp();

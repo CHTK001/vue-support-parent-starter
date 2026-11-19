@@ -15,12 +15,14 @@
  *   import { createReactApp } from "@repo/app/react";
  */
 import { createVueApp, VueAppBuilder, type VueAppInstance } from "./createVueApp";
-import type { AppInstance, CreateAppOptions, AppFramework } from "./types";
+import type { AppInstance, CreateAppOptions } from "./types";
+import type { MpAppBuilder } from "./wechat-miniapp/createMpApp";
+import { createByPlatform } from "./platform/registry";
 
 export { default as AppWithRouter } from "./AppWithRouter.vue";
 export { default as SingleApp } from "./SingleApp.vue";
 export { createVueApp, VueAppBuilder } from "./createVueApp";
-export type { CreateAppOptions, AppInstance, AppFramework, AppMode } from "./types";
+export type { CreateAppOptions, AppInstance, AppFramework, AppMode, AppPlatform } from "./types";
 export type { AppInstaller, CreateVueAppOptions, VueAppInstance } from "./createVueApp";
 export type { AppContribution } from "./contributions";
 
@@ -29,19 +31,20 @@ export const ContextAppBuilder = VueAppBuilder;
 export type ContextAppBuilder = VueAppBuilder;
 
 /**
- * 入口：返回 Vue 链式构建器。
+ * 入口：小程序平台（{@code platform: "wechat-miniapp"}）。
  *
- * <p>{@code framework: "react"} 不再在本入口分发（会把 react 静态拉进 Vue 应用），
- * 请改用 {@code import { createReactApp } from "@repo/app/react"}。</p>
+ * <p>返回 {@link MpAppBuilder}：装配 uni storage / uni.request / token / SSE，
+ * 不触碰 vue-router、axios、localStorage。传 {@code uni} 即完成运行时注入。</p>
  */
-export function createContextApp(options: CreateAppOptions = {}): VueAppBuilder {
-  const framework: AppFramework = options.framework ?? "vue";
-  if (framework === "react") {
-    throw new Error(
-      '[createContextApp] React 入口已独立：请改用 `import { createReactApp } from "@repo/app/react"`',
-    );
-  }
-  return createVueApp(options);
+export function createContextApp(options: CreateAppOptions & { platform: "wechat-miniapp" }): MpAppBuilder;
+/** 入口：Web 平台（缺省）—— 返回 Vue 链式构建器。 */
+export function createContextApp(options?: CreateAppOptions & { platform?: "web" }): VueAppBuilder;
+/** 入口：platform 运行时决定（动态取值时使用）。 */
+export function createContextApp(options?: CreateAppOptions): VueAppBuilder | MpAppBuilder;
+export function createContextApp(options: CreateAppOptions = {}): VueAppBuilder | MpAppBuilder {
+  // 平台差异由各自实现承担（./platform/web.adapter、./platform/wechat-miniapp.adapter），
+  // 这里只查表分发，不做 if/else 平台判断。
+  return createByPlatform(options);
 }
 
 export default createContextApp;

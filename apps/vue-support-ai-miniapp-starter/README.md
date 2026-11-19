@@ -16,10 +16,10 @@ import { createContextApp } from "@repo/app";
 |---|---|---|
 | import 行 | `@repo/app` | `@repo/app`（**同一行**，本工程 alias 到小程序实现） |
 | 实现 | `createVueApp` | `createMpApp`（`turbo/app/src/wechat-miniapp`） |
-| 存储 | `localStorage` + AES 加密 | uni storage（小程序沙箱，按小程序隔离，不加前缀） |
-| 传输 | axios（含拦截器 / SSE） | `uni.request`（含 `enableChunked` 流式） |
+| 存储 | `localStorage` + AES 加密 | uni storage（小程序沙箱，按小程序隔离，不加前缀、不加密） |
+| 传输 | axios（含拦截器 / SSE） | `uni.request`（普通请求）+ `ctx.sse`（`enableChunked` 流式） |
 | 路由 | vue-router | `pages.json`（uni 原生页面栈） |
-| 令牌 | `@repo/core` TokenManager | 同签名 TokenManager（可定时刷新，本工程关闭） |
+| 令牌 | `@repo/core` TokenManager | 同签名非续期子集：只读写、不 refresh、不常驻定时器 |
 | 解包 | `code === "00000"` → data | 同口径（兼容 `"0"` / `"200"`） |
 | UI | `@repo/ui`（element-plus 系） | `wot-design-uni`（uni 原生标签，easycom 通配符） |
 
@@ -49,9 +49,9 @@ src/
 ├── App.vue               # 应用壳
 ├── pages.json            # 页面路由（login / chat）+ easycom 通配符注册全部 wd-*
 ├── manifest.json         # 小程序 manifest（mp-weixin.appid = wx0eccb54367ca6165）
-├── config.ts             # BASE_URL 等全局配置
+├── config.ts             # BASE_URL / 超时 / clientId 存储 key
 ├── api/
-│   ├── http.ts           # 薄封装：拼 /v2 前缀 + 错误翻译；传输/令牌/401/解包全在框架上下文
+│   ├── http.ts           # 业务唯一出口：拼 /v2 前缀 + 统一超时；传输/令牌/401/解包全在框架上下文
 │   ├── auth.ts           # POST /v2/auth/login
 │   ├── character.ts      # GET /v2/roles（挑选默认角色）
 │   ├── session.ts        # 会话 / 历史消息 / 停止生成
@@ -62,6 +62,8 @@ src/
 ```
 
 > 非组件代码取上下文用 `getMpAppContext()`（由 `@repo/app` 导出），组件内仍用 `inject("mpContext")`，两者是同一个对象。
+>
+> **单一出入口**：页面不直接调 `ctx.http` / `ctx.sse`，普通请求统一走 `src/api/http.ts`（拼 `/v2` + 统一超时 + `unwrap`），流式统一走 `src/api/chat.ts`（`ctx.sse` 的事件语义封装）；令牌读写也只经 `http.ts` 的 `getToken/setToken/clearToken`。
 
 `@repo/app` 通过 `vite.config.ts` 的 alias + `tsconfig.json` 的 `paths` 指向仓库内源码
 （`turbo/app/src/wechat-miniapp`），**不改 import 行、只换实现**：
@@ -103,7 +105,7 @@ pnpm --filter vue-support-ai-miniapp-starter build:mp-weixin
 ## 对话与流式
 
 - 发消息走 `POST /v2/chat/stream`（SSE），请求体与 PC 端 `ChatStreamService` 同构：`{ sessionId, userMessage: { content }, stream: true, chatRequestId, regenerationMode: null, ... }`。
-- 小程序无 `EventSource`/`fetch`，用 `uni.request` 的 `enableChunked` + `onChunkReceived` 接收分块，内置增量 UTF-8 解码（处理中文被切块的边界）与 SSE 帧解析；`data: [DONE]` 为结束标记。
+- 小程序无 `EventSource`/`fetch`，流式能力由框架的 `ctx.sse` 提供（`uni.request` 的 `enableChunked` + `onChunkReceived`），内置增量 UTF-8 解码（处理中文被切块的边界）、SSE 分帧、心跳忽略与 `data: [DONE]` 收尾；应用层只处理 `onMessage` / `onDone` / `onError` 语义，不再自己解析字节流。
 - 事件类型对齐 PC 端：`think`（思考）、`text`（正文增量）、`tool_call`、`finish`、`turn_end` 等。
 - 新建会话需先 `GET /v2/roles` 挑默认角色（优先 `general-assistant`/名称含「通用」，否则取第一个），再 `POST /v2/sessions`。
 - 环境不支持分块响应时自动降级：`POST /v2/chat/send`（fire-and-forget）+ 轮询历史消息渲染结果。
@@ -126,5 +128,6 @@ pnpm --filter vue-support-ai-miniapp-starter build:mp-weixin
 | 通配符验证 | 模板加未 import 的 `<wd-divider>` 后构建 | `usingComponents` 自动多出 `wd-divider`；删掉后产物里消失 |
 | glob 方案验证 | `import.meta.glob(...eager)` + `components: WdComponents` | `usingComponents: {}`，**不可用**（小程序编译器要求静态可解析） |
 | 产物依赖检查 | 扫 `dist/build/mp-weixin/**/*.js` | 无 element-plus / vue-router / axios / createVueApp |
-| 适配层单测 | Node 模拟 uni 运行时 | 22/22 PASS（含缺省 401、无参 mountApp、上下文单例） |
+| 适配层单测 | Node 模拟 uni 运行时（storage TTL / token / http 401 / SSE 跨块中文 / unwrap / mountApp） | 48/48 PASS |
+| 清理后校验 | 令牌无 refresh、存储无加密、`MpHttp` 只有 `request`、SSE 只在 `ctx.sse` | 单测断言通过（`token` 无 refresh 键、`Object.keys(http)===["request"]`） |
 | 真实链路 | 经 `createMpApp` 直连 `127.0.0.1:8787` | 登录 / roles(113) / sessions / 错误密码 全通过 |

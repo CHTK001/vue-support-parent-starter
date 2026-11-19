@@ -19,6 +19,10 @@
       "types": "./src/react.ts",
       "default": "./src/react.ts"
     },
+    "./wechat-miniapp": {
+      "types": "./src/wechat-miniapp/index.ts",
+      "default": "./src/wechat-miniapp/index.ts"
+    },
     "./*": "./src/*"
   },
   "scripts": {

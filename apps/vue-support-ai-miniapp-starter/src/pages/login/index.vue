@@ -43,8 +43,7 @@
 
 <script lang="ts">
 import { login } from "../../api/auth";
-import { clearToken, getToken, setToken } from "../../api/http";
-import { STORAGE_KEY_USER } from "../../config";
+import { clearToken, getToken, setToken, setUserInfo } from "../../api/http";
 
 /**
  * 登录页（wot-design-uni 组件：wd-input / wd-button）。
@@ -53,8 +52,8 @@ import { STORAGE_KEY_USER } from "../../config";
  * 即可，全部 wd-* 都可直接用，无需 import、无需 components 注册；
  * 构建时只把模板里真正出现的组件打进产物。</p>
  *
- * 业务逻辑与之前一致：POST /v2/auth/login → 写 token 与用户信息 → reLaunch 会话页；
- * 失败清 token 并展示后端 msg（如「账号或密码错误」）。
+ * <p>业务：POST /v2/auth/login → token 与用户信息都交给框架的 token 管理器
+ * （页面不直接碰存储 key）→ reLaunch 会话页；失败清 token 并展示后端 msg。</p>
  */
 export default {
   data() {
@@ -93,11 +92,7 @@ export default {
           throw new Error("登录响应缺少 accessToken");
         }
         setToken(data.accessToken);
-        try {
-          uni.setStorageSync(STORAGE_KEY_USER, JSON.stringify(data.user || {}));
-        } catch {
-          // 存储失败不阻塞登录
-        }
+        setUserInfo({ ...(data.user || {}) });
         uni.reLaunch({ url: "/pages/chat/index" });
       } catch (error: any) {
         clearToken();

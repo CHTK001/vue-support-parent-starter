@@ -116,7 +116,6 @@ import {
   type StreamEvent,
 } from "../../api/chat";
 import { clearToken, getToken } from "../../api/http";
-import { STORAGE_KEY_USER } from "../../config";
 import { useMessage } from "wot-design-uni/components/wd-message-box";
 import { useToast } from "wot-design-uni/components/wd-toast";
 
@@ -127,6 +126,17 @@ interface ViewMessage {
   thinking: string;
   status: "done" | "streaming" | "error";
   statusText?: string;
+}
+
+/** 服务端消息 → 视图消息（历史加载与轮询回填共用一处映射） */
+function toViewMessage(item: MessageItem): ViewMessage {
+  return {
+    id: item.id,
+    role: item.role,
+    text: messageText(item),
+    thinking: messageReasoning(item),
+    status: item.state?.isStreaming ? "streaming" : "done",
+  };
 }
 
 /** 当前流式请求句柄（模块级，避免被响应式代理） */
@@ -170,24 +180,26 @@ export default {
       }
     },
 
+    /** 切会话 / 新建前统一收尾：中断流、复位发送态、收起面板 */
+    resetStreamState() {
+      this.abortStream();
+      this.sending = false;
+      this.sessionPanelVisible = false;
+    },
+
     switchSession(sessionId: string) {
       if (sessionId === this.currentSessionId) {
         this.sessionPanelVisible = false;
         return;
       }
-      this.abortStream();
-      this.sending = false;
-      this.sessionPanelVisible = false;
+      this.resetStreamState();
       this.currentSessionId = sessionId;
-      const found = this.sessions.find((s) => s.id === sessionId);
-      this.currentTitle = found?.title || "对话";
+      this.currentTitle = this.sessions.find((s) => s.id === sessionId)?.title || "对话";
       this.loadMessages();
     },
 
     startNewSession() {
-      this.abortStream();
-      this.sending = false;
-      this.sessionPanelVisible = false;
+      this.resetStreamState();
       this.currentSessionId = "";
       this.currentTitle = "";
       this.messages = [];
@@ -218,11 +230,6 @@ export default {
       }
       this.abortStream();
       clearToken();
-      try {
-        uni.removeStorageSync(STORAGE_KEY_USER);
-      } catch {
-        // ignore
-      }
       uni.reLaunch({ url: "/pages/login/index" });
     },
 
@@ -234,14 +241,8 @@ export default {
       }
       if (!silent) this.loadingHistory = true;
       try {
-        const items: MessageItem[] = await fetchSessionMessages(this.currentSessionId, 50);
-        this.messages = items.map((m) => ({
-          id: m.id,
-          role: m.role,
-          text: messageText(m),
-          thinking: messageReasoning(m),
-          status: m.state?.isStreaming ? "streaming" : "done",
-        }));
+        const items = await fetchSessionMessages(this.currentSessionId, 50);
+        this.messages = items.map(toViewMessage);
         this.scrollToBottom();
       } catch (error: any) {
         if (!silent) {
@@ -293,7 +294,6 @@ export default {
         return;
       }
 
-      this.abortStream();
       try {
         const stream = streamChat(
           { sessionId: this.currentSessionId, content },
@@ -360,7 +360,6 @@ export default {
 
     // ---------- 降级：fire-and-forget + 轮询历史 ----------
     async fallbackSend(placeholder: ViewMessage, content: string) {
-      this.abortStream();
       try {
         await sendFireAndForget({ sessionId: this.currentSessionId, content });
         placeholder.statusText = "（非流式模式）";
@@ -382,20 +381,17 @@ export default {
           const streaming = items.some(
             (m) => m.role === "assistant" && m.state?.isStreaming,
           );
-          if (last && last.role === "assistant" && !streaming) {
-            const text = messageText(last);
-            if (text) placeholder.text = text;
-            const reasoning = messageReasoning(last);
-            if (reasoning) placeholder.thinking = reasoning;
-            placeholder.status = "done";
-            placeholder.statusText = "";
-            this.sending = false;
-            this.loadSessions();
-            return;
-          }
           if (last && last.role === "assistant") {
-            const text = messageText(last);
-            if (text) placeholder.text = text; // 展示中间产出
+            const view = toViewMessage(last);
+            if (view.text) placeholder.text = view.text;
+            if (view.thinking) placeholder.thinking = view.thinking;
+            if (!streaming) {
+              placeholder.status = "done";
+              placeholder.statusText = "";
+              this.sending = false;
+              this.loadSessions();
+              return;
+            }
           }
         } catch {
           // 单次轮询失败忽略，继续重试

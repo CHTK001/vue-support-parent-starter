@@ -1,4 +1,4 @@
-import { http } from "./http";
+import { http, unwrapList } from "./http";
 
 export interface SessionItem {
   id: string;
@@ -24,9 +24,7 @@ export interface MessageItem {
 
 /** 会话列表（GET /v2/sessions），与 PC 端同一数据源 */
 export async function fetchSessions(limit = 20): Promise<SessionItem[]> {
-  const data = await http.get<{ items?: SessionItem[] } | SessionItem[]>("/sessions", { limit });
-  if (Array.isArray(data)) return data;
-  return data?.items || [];
+  return unwrapList<SessionItem>(await http.get("/sessions", { limit }));
 }
 
 /** 新建会话（POST /v2/sessions），characterId 必填（与 PC 端 CreateSessionRequest 一致） */
@@ -40,12 +38,7 @@ export function createSession(payload: {
 
 /** 历史消息（GET /v2/sessions/:id/messages），返回 { items, total, hasMore? } */
 export async function fetchSessionMessages(sessionId: string, limit = 50): Promise<MessageItem[]> {
-  const data = await http.get<{ items?: MessageItem[] } | MessageItem[]>(
-    `/sessions/${sessionId}/messages`,
-    { limit },
-  );
-  if (Array.isArray(data)) return data;
-  return data?.items || [];
+  return unwrapList<MessageItem>(await http.get(`/sessions/${sessionId}/messages`, { limit }));
 }
 
 /** 停止当前会话的流式生成（POST /v2/chat/stream/:sessionId/stop） */

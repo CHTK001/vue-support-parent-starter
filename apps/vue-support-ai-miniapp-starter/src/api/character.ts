@@ -1,4 +1,4 @@
-import { http } from "./http";
+import { http, unwrapList } from "./http";
 
 /** 角色（assistant）精简信息（后端为 SysAiRole 实体，字段与 PC 端 mapRoleItem 入参一致） */
 export interface CharacterItem {
@@ -12,9 +12,7 @@ export interface CharacterItem {
 
 /** 角色列表（GET /v2/roles，与 PC 端 characterApi.fetchCharacters 同一接口），用于挑选新建会话的默认角色 */
 export async function fetchCharacters(): Promise<CharacterItem[]> {
-  const data = await http.get<{ items?: CharacterItem[] } | CharacterItem[]>("/roles");
-  if (Array.isArray(data)) return data;
-  return data?.items || [];
+  return unwrapList<CharacterItem>(await http.get("/roles"));
 }
 
 /**
