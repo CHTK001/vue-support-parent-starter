@@ -18,6 +18,26 @@
       />
       <span class="act__count">{{ countText }}</span>
       <div class="act__bar-right">
+        <div v-if="density" class="act-seg" role="group" aria-label="表格密度">
+          <button
+            type="button"
+            class="act-seg__btn"
+            :class="{ 'is-active': actuatorDensity === 'compact' }"
+            :aria-pressed="actuatorDensity === 'compact'"
+            @click="setDensity('compact')"
+          >
+            紧凑
+          </button>
+          <button
+            type="button"
+            class="act-seg__btn"
+            :class="{ 'is-active': actuatorDensity === 'comfortable' }"
+            :aria-pressed="actuatorDensity === 'comfortable'"
+            @click="setDensity('comfortable')"
+          >
+            舒适
+          </button>
+        </div>
         <ReButton layout="modern" icon="Refresh" :loading="loading" @click="emit('refresh')">刷新</ReButton>
       </div>
     </div>
@@ -41,6 +61,7 @@
 import ReInput from "@repo/ui/re-input";
 import ReButton from "@repo/ui/re-button";
 import { ACTUATOR_ENDPOINTS } from "../endpoints";
+import { actuatorDensity, setActuatorDensity, type ActuatorDensity } from "./useActuatorTable";
 
 withDefaults(
   defineProps<{
@@ -54,6 +75,12 @@ withDefaults(
     loading?: boolean;
     /** 错误文案；非空时内容区换成提示 */
     error?: string;
+    /**
+     * 是否显示「紧凑 / 舒适」密度切换。
+     *
+     * <p>只有表格页需要：卡片页与主从页没有行高可切，摆上去只会让人点了没反应。</p>
+     */
+    density?: boolean;
   }>(),
   {
     searchable: true,
@@ -61,11 +88,17 @@ withDefaults(
     countText: "",
     loading: false,
     error: "",
+    density: false,
   },
 );
 
 /** 过滤词（页签自己的 ref） */
 const keyword = defineModel<string>({ default: "" });
+
+/** 密度切换：写模块级单例，6 个表格页共用同一档 */
+function setDensity(value: ActuatorDensity): void {
+  setActuatorDensity(value);
+}
 
 const emit = defineEmits<{
   /** 点击刷新（页签自己决定刷新哪些数据源） */

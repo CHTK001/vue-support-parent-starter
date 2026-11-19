@@ -1,8 +1,11 @@
 <!--
   应用信息（`/actuator/info`）
 
-  Actuator 的 info 结构是「顶层若干键，值可能是对象」，因此不做分组：直接按顶层键
-  铺成键值行，值是对象就压成 JSON —— 与弹窗时的展示口径完全一致。
+  Actuator 的 info 结构是「顶层若干键，值可能是对象」，因此不做真分组：直接按顶层键
+  铺成键值行，值是对象就压成 JSON。
+
+  外壳与环境属性页保持一致（同一张 `.act-sec` 卡 + 两列 grid）：两页都是「信息的来源
+  → 一堆键值」，只是 info 只有一个来源，所以卡头不可折叠。
 -->
 <template>
   <TabShell
@@ -12,10 +15,16 @@
     :error="error"
     @refresh="reload"
   >
-    <div v-if="rows.length" class="act-kv">
-      <div v-for="row in rows" :key="row.k" class="act-kv__row">
-        <span class="act-kv__k">{{ row.k }}</span>
-        <span class="act-kv__v">{{ row.v }}</span>
+    <div v-if="rows.length" class="act-sec">
+      <div class="act-sec__head is-static">
+        <span class="act-sec__name">应用信息</span>
+        <span class="act-sec__count">{{ rows.length }}</span>
+      </div>
+      <div class="act-kv act-kv--grid">
+        <div v-for="row in rows" :key="row.k" class="act-kv__row">
+          <span class="act-kv__k">{{ row.k }}</span>
+          <span class="act-kv__v">{{ row.v }}</span>
+        </div>
       </div>
     </div>
     <ElEmpty v-else description="应用未暴露 info 信息" :image-size="48" />

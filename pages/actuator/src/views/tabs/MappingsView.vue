@@ -4,6 +4,10 @@
   Actuator 只给「这条路由挂在哪个处理器上」，请求次数 / 耗时 / 访问 IP 来自
   `/v2/server/api/stats`。两个数据源按「方法 + 路径」对齐，对不上的路由保留在表里、
   统计列显示为弱化横线 —— 从没被调用过的接口同样是有价值的信息。
+
+  表格走 2A 底盘：映射条件钉在左边，行高跟全页密度档走，分页贴底。
+  排序改成「整表排序再分页」：Actuator 端点不分页，前端切片后如果还让表格本地排序，
+  点表头只会把当前 50 行重排，看着像排序失效。
 -->
 <template>
   <TabShell
@@ -12,31 +16,37 @@
     :count-text="`共 ${rows.length} 项`"
     :loading="loading"
     :error="error"
+    density
     @refresh="refresh"
   >
-    <ReTable
-      :data="tableRows"
-      :columns="columns"
-      engine="element"
-      :pagination="false"
-      :toolbar="false"
-      :settings="{ border: false }"
-      :layout-table="{ height: 440 }"
-      class="act-table"
-    >
-      <template #col-count="{ row }">
-        <span :class="{ 'act-muted': !row.count }">{{ row.count }}</span>
-      </template>
-      <template #col-avgMs="{ row }">
-        <span :class="{ 'act-muted': !row.count }">
-          <ReTime v-if="row.count" :value="costMs(row.avgMs)" format="duration" placeholder="-" />
-          <template v-else>-</template>
-        </span>
-      </template>
-      <template #col-ips="{ row }">
-        <span :class="{ 'act-muted': !row.ips }">{{ row.ips || "-" }}</span>
-      </template>
-    </ReTable>
+    <div class="act-table-wrap">
+      <ReTable
+        :data="tableRows"
+        :columns="columns"
+        engine="element"
+        :size="actuatorTableSize"
+        :pagination="false"
+        :toolbar="false"
+        :settings="{ border: false }"
+        :layout-table="{ fill: true }"
+        class="act-table"
+        @sort-change="onSortChange"
+      >
+        <template #col-count="{ row }">
+          <span :class="{ 'act-muted': !row.count }">{{ row.count }}</span>
+        </template>
+        <template #col-avgMs="{ row }">
+          <span :class="{ 'act-muted': !row.count }">
+            <ReTime v-if="row.count" :value="costMs(row.avgMs)" format="duration" placeholder="-" />
+            <template v-else>-</template>
+          </span>
+        </template>
+        <template #col-ips="{ row }">
+          <span :class="{ 'act-muted': !row.ips }">{{ row.ips || "-" }}</span>
+        </template>
+      </ReTable>
+      <ActTablePager v-model:page="page" v-model:page-size="pageSize" :total="total" />
+    </div>
   </TabShell>
 </template>
 
@@ -53,7 +63,9 @@ import type { ReTableColumn } from "@repo/ui/re-table";
 import ReTime from "@repo/ui/re-time";
 import { costMs } from "@repo/utils";
 import TabShell from "../TabShell.vue";
+import ActTablePager from "../ActTablePager.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
+import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 import { getRestfulApiStats, matchRestfulStat, type RestfulApiStats } from "../../api/actuatorCardApi";
 
 const { data, loading, error, keyword, updatedAt, reload, hit } = useActuatorPanel("mappings");
@@ -115,15 +127,45 @@ const rows = computed<MappingRow[]>(() => {
   return out.filter((row) => hit(row.handler, row.predicate));
 });
 
+/* ---------- 整表排序 → 分页 ---------- */
+
+interface SortState {
+  prop: string;
+  order: "ascending" | "descending" | null;
+}
+
+const sort = ref<SortState>({ prop: "", order: null });
+
+/** 排序作用在「过滤后的全量行」上，再交给分页切片 */
+const sortedRows = computed<MappingRow[]>(() => {
+  const { prop, order } = sort.value;
+  if (!prop || !order) return rows.value;
+  const direction = order === "ascending" ? 1 : -1;
+  return [...rows.value].sort((a, b) => {
+    const left = (a as unknown as Record<string, unknown>)[prop];
+    const right = (b as unknown as Record<string, unknown>)[prop];
+    if (typeof left === "number" && typeof right === "number") return (left - right) * direction;
+    return String(left ?? "").localeCompare(String(right ?? "")) * direction;
+  });
+});
+
+const { page, pageSize, total, pagedRows, resetPage } = useActuatorPager(sortedRows);
+watch(keyword, resetPage);
+
+function onSortChange(payload: SortState): void {
+  sort.value = payload;
+  resetPage();
+}
+
 /** ReTable 的行类型是宽类型；一次性转换，避免模板里到处 as any */
-const tableRows = computed(() => rows.value as unknown as Record<string, unknown>[]);
+const tableRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);
 
 const columns: ReTableColumn[] = [
-  { prop: "predicate", label: "映射条件", minWidth: 320, showOverflowTooltip: true },
+  { prop: "predicate", label: "映射条件", minWidth: 320, fixed: "left", showOverflowTooltip: true },
   { prop: "handler", label: "处理器", minWidth: 220, showOverflowTooltip: true },
-  { prop: "count", label: "请求次数", width: 110, align: "right", sortable: true, slot: "count" },
-  { prop: "avgMs", label: "平均延迟", width: 110, align: "right", sortable: true, slot: "avgMs" },
-  { prop: "ips", label: "访问 IP", minWidth: 150, showOverflowTooltip: true, sortable: true, slot: "ips" },
-  { prop: "ctx", label: "上下文", width: 110, align: "center", sortable: true },
+  { prop: "count", label: "请求次数", width: 110, align: "right", sortable: "custom", slot: "count" },
+  { prop: "avgMs", label: "平均延迟", width: 110, align: "right", sortable: "custom", slot: "avgMs" },
+  { prop: "ips", label: "访问 IP", minWidth: 150, showOverflowTooltip: true, sortable: "custom", slot: "ips" },
+  { prop: "ctx", label: "上下文", width: 110, align: "center", sortable: "custom" },
 ];
 </script>

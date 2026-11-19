@@ -1,9 +1,9 @@
 <!--
   健康状态（`/actuator/health`）
 
-  把嵌套的 components 树压成「名字 / 状态 / 详情」三列卡片：Actuator 原始 JSON 的
-  层级（db → dataSource → …）在排障时没有意义，真正要回答的只有「哪个组件 DOWN 了，
-  它的 details 说了什么」。
+  仪表盘形态：先给结论（整体状态 + 4 格计数），再按「DOWN 优先」分区。
+  Actuator 原始 JSON 的层级（db → dataSource → …）在排障时没有意义，真正要回答的
+  只有两件事 ——「整体有没有事」「哪个组件 DOWN 了，它的 details 说了什么」。
 -->
 <template>
   <TabShell
@@ -19,27 +19,78 @@
       <b>{{ status }}</b>
     </div>
 
-    <div class="act-health__grid">
-      <div
-        v-for="node in nodes"
-        :key="node.name"
-        class="act-health__card"
-        :class="node.status === 'UP' ? 'is-up' : 'is-down'"
-      >
-        <div class="act-health__card-head">
-          <span class="act-health__card-dot" />
-          <span class="act-health__card-name">{{ node.name }}</span>
-          <ReTag :type="node.status === 'UP' ? 'success' : 'danger'" effect="light" round>{{ node.status }}</ReTag>
-        </div>
-        <div v-if="node.details" class="act-health__card-detail">{{ node.details }}</div>
+    <div class="act-health__stats">
+      <div class="act-health__stat">
+        <span class="act-health__stat-label">组件总数</span>
+        <span class="act-health__stat-value">{{ nodes.length }}</span>
       </div>
-      <ElEmpty
-        v-if="!nodes.length"
-        description="无健康组件"
-        :image-size="48"
-        style="grid-column: 1 / -1"
-      />
+      <div class="act-health__stat is-up">
+        <span class="act-health__stat-label">UP</span>
+        <span class="act-health__stat-value">{{ upNodes.length }}</span>
+      </div>
+      <div class="act-health__stat is-down">
+        <span class="act-health__stat-label">DOWN</span>
+        <span class="act-health__stat-value">{{ downNodes.length }}</span>
+      </div>
+      <div class="act-health__stat">
+        <span class="act-health__stat-label">其它状态</span>
+        <span class="act-health__stat-value">{{ otherNodes.length }}</span>
+      </div>
     </div>
+
+    <!-- DOWN 优先：故障在上，正常收成 chip，健康时一屏看完 -->
+    <section v-if="downNodes.length" class="act-health__section">
+      <div class="act-health__section-head is-down">
+        DOWN 组件（优先处理）
+        <span class="act-group__count">{{ downNodes.length }}</span>
+      </div>
+      <div class="act-health__grid">
+        <div v-for="node in downNodes" :key="node.name" class="act-health__card is-down">
+          <div class="act-health__card-head">
+            <span class="act-health__card-dot" />
+            <span class="act-health__card-name">{{ node.name }}</span>
+            <ReTag type="danger" effect="light" round>{{ node.status }}</ReTag>
+          </div>
+          <div v-if="node.details" class="act-health__card-detail">{{ node.details }}</div>
+        </div>
+      </div>
+    </section>
+
+    <section v-else-if="nodes.length" class="act-health__section">
+      <div class="act-health__ok">没有 DOWN 组件 —— 所有组件均为 UP</div>
+    </section>
+
+    <section v-if="upNodes.length" class="act-health__section">
+      <div class="act-health__section-head">
+        正常组件
+        <span class="act-group__count">{{ upNodes.length }}</span>
+      </div>
+      <div class="act-health__chips">
+        <span v-for="node in upNodes" :key="node.name" class="act-health__chip" :title="node.details || node.name">
+          <span class="act-health__chip-dot" />
+          {{ node.name }}
+        </span>
+      </div>
+    </section>
+
+    <section v-if="otherNodes.length" class="act-health__section">
+      <div class="act-health__section-head">
+        其它状态
+        <span class="act-group__count">{{ otherNodes.length }}</span>
+      </div>
+      <div class="act-health__grid">
+        <div v-for="node in otherNodes" :key="node.name" class="act-health__card">
+          <div class="act-health__card-head">
+            <span class="act-health__card-dot" />
+            <span class="act-health__card-name">{{ node.name }}</span>
+            <ReTag type="info" effect="light" round>{{ node.status }}</ReTag>
+          </div>
+          <div v-if="node.details" class="act-health__card-detail">{{ node.details }}</div>
+        </div>
+      </div>
+    </section>
+
+    <ElEmpty v-if="!nodes.length" description="无健康组件" :image-size="48" />
   </TabShell>
 </template>
 
@@ -110,4 +161,11 @@ const nodes = computed<HealthNode[]>(() => {
   if (components) walk(components, "");
   return out.filter((node) => hit(node.name, node.status, node.details));
 });
+
+/** 分区：DOWN 永远在最上面，其余状态单独一栏，别混进「正常组件」里假装没事 */
+const downNodes = computed(() => nodes.value.filter((node) => node.status === "DOWN"));
+const upNodes = computed(() => nodes.value.filter((node) => node.status === "UP"));
+const otherNodes = computed(
+  () => nodes.value.filter((node) => node.status !== "UP" && node.status !== "DOWN"),
+);
 </script>

@@ -4,6 +4,8 @@
   这是 11 个页签里唯一有写操作的一页：每行的「配置级别」是一个下拉框，选中即提交
   （{@code POST /actuator/loggers/{name}}），成功后重取清单。因此分页放在前端：
   Actuator 一次返回全部 logger，后端不提供分页参数。
+
+  表格走 2A 底盘：首列（Logger 名）钉在左边，行高跟全页密度档走，分页贴底。
 -->
 <template>
   <TabShell
@@ -12,43 +14,38 @@
     :count-text="`共 ${rows.length} 项`"
     :loading="loading"
     :error="error"
+    density
     @refresh="reload"
   >
-    <ReTable
-      :data="tableRows"
-      :columns="columns"
-      engine="element"
-      :pagination="false"
-      :toolbar="false"
-      :settings="{ border: false }"
-      :layout-table="{ height: 400 }"
-      class="act-table"
-    >
-      <template #col-configured="{ row }">
-        <ElSelect
-          :model-value="levelOf(row)"
-          :disabled="saving === String(row.name ?? '')"
-          style="width: 160px"
-          @change="(v: unknown) => changeLoggerLevelOfRow(row, String(v))"
-        >
-          <ElOption
-            v-for="level in levels"
-            :key="level"
-            :label="level === 'INHERITED' ? '继承(INHERITED)' : level"
-            :value="level"
-          />
-        </ElSelect>
-      </template>
-    </ReTable>
-    <div class="act__pager">
-      <ElPagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :page-sizes="[20, 50, 100, 200]"
-        :total="rows.length"
-        layout="total, sizes, prev, pager, next, jumper"
-        background
-      />
+    <div class="act-table-wrap">
+      <ReTable
+        :data="tableRows"
+        :columns="columns"
+        engine="element"
+        :size="actuatorTableSize"
+        :pagination="false"
+        :toolbar="false"
+        :settings="{ border: false }"
+        :layout-table="{ fill: true }"
+        class="act-table"
+      >
+        <template #col-configured="{ row }">
+          <ElSelect
+            :model-value="levelOf(row)"
+            :disabled="saving === String(row.name ?? '')"
+            style="width: 160px"
+            @change="(v: unknown) => changeLoggerLevelOfRow(row, String(v))"
+          >
+            <ElOption
+              v-for="level in levels"
+              :key="level"
+              :label="level === 'INHERITED' ? '继承(INHERITED)' : level"
+              :value="level"
+            />
+          </ElSelect>
+        </template>
+      </ReTable>
+      <ActTablePager v-model:page="page" v-model:page-size="pageSize" :total="total" />
     </div>
   </TabShell>
 </template>
@@ -61,11 +58,13 @@
  * 是「用户以为改成了」的旧值，比报错更误导。</p>
  */
 import { computed, ref, watch } from "vue";
-import { ElMessage, ElOption, ElPagination, ElSelect } from "element-plus";
+import { ElMessage, ElOption, ElSelect } from "element-plus";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import TabShell from "../TabShell.vue";
+import ActTablePager from "../ActTablePager.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
+import { actuatorTableSize, useActuatorPager } from "../useActuatorTable";
 import { setActuatorLogger } from "../../api/actuatorCardApi";
 
 const { data, loading, error, keyword, reload, hit } = useActuatorPanel("loggers");
@@ -91,22 +90,15 @@ const rows = computed<LoggerRow[]>(() => {
     .sort((a, b) => a.name.localeCompare(b.name));
 });
 
-/* 前端分页：过滤条件 / 条目数变化时回到第 1 页 */
-const page = ref(1);
-const pageSize = ref(20);
-const pagedRows = computed(() => {
-  const start = (page.value - 1) * pageSize.value;
-  return rows.value.slice(start, start + pageSize.value);
-});
-watch([keyword, () => rows.value.length], () => {
-  page.value = 1;
-});
+/* 前端分页（过滤条件变化时回到第 1 页，翻页范围仍是全量） */
+const { page, pageSize, total, pagedRows, resetPage } = useActuatorPager(rows);
+watch(keyword, resetPage);
 
 /** ReTable 的行类型是宽类型；一次性转换，避免模板里到处 as any */
 const tableRows = computed(() => pagedRows.value as unknown as Record<string, unknown>[]);
 
 const columns: ReTableColumn[] = [
-  { prop: "name", label: "Logger", minWidth: 320, showOverflowTooltip: true },
+  { prop: "name", label: "Logger", minWidth: 320, fixed: "left", showOverflowTooltip: true },
   { prop: "effective", label: "生效级别", width: 120, align: "center" },
   { prop: "configured", label: "配置级别（可修改）", width: 200, align: "center", slot: "configured" },
 ];

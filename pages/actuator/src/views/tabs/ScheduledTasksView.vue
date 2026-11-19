@@ -3,12 +3,15 @@
 
   两段式：上半是「可编辑任务」（动态调度注册中心，能改 cron / 启停 / 立即执行），
   下半是「只读任务」（Spring 自己托管的 @Scheduled，Actuator 只读）。
-  两段的数据来源不同，混成一张表会让「这行能不能改」变得不可预测。
+  两段数据来源不同，混成一张表会让「这行能不能改」变得不可预测。
+
+  只读任务改成时间轴：按「下次执行时间」升序，时间点放在最左边 —— 这一页真正要回答的
+  是「接下来会发生什么、什么时候」，而不是「有几个任务」。
 -->
 <template>
   <TabShell
     :searchable="false"
-    :count-text="`Actuator 只读任务 ${scheduledRows.length} 个`"
+    :count-text="`共 ${scheduledRows.length} 个只读任务`"
     :loading="loading || managedLoading"
     :error="error"
     @refresh="refresh"
@@ -21,6 +24,7 @@
         <small v-else>共 {{ managed.length }} 个</small>
       </div>
       <ReTable
+        v-if="managed.length"
         :data="managedRows"
         :columns="managedColumns"
         engine="element"
@@ -46,19 +50,7 @@
           />
         </template>
         <template #col-lastStatus="{ row }">
-          <ReTag
-            :type="
-              String(row.lastStatus || '').startsWith('FAILED')
-                ? 'danger'
-                : row.lastStatus === 'SUCCESS'
-                  ? 'success'
-                  : 'info'
-            "
-            effect="light"
-            round
-          >
-            {{ row.lastStatus || "-" }}
-          </ReTag>
+          <ReTag :type="statusType(row.lastStatus)" effect="light" round>{{ row.lastStatus || "-" }}</ReTag>
         </template>
         <template #col-action="{ row }">
           <ElButton link type="primary" :disabled="managedSaving === row.key" @click="saveManagedCron(managedTaskOf(row))">
@@ -69,28 +61,42 @@
           </ElButton>
         </template>
       </ReTable>
+      <!-- 0 个可编辑任务时给明确结论：一块空白会被读成「还没加载完」 -->
+      <div v-else-if="!managedLoading" class="act-sched-empty" :class="{ 'is-error': !!managedError }">
+        <template v-if="managedError">注册中心读取失败：{{ managedError }}</template>
+        <template v-else>
+          没有可编辑任务：动态调度注册中心为空。<br />
+          Spring 托管的 @Scheduled 任务只能查看，见下方时间轴。
+        </template>
+      </div>
     </div>
 
     <div class="act-sched-managed__head">
-      <span>Actuator 只读任务（Spring 托管）</span>
-      <small>共 {{ scheduledRows.length }} 个</small>
+      <span>只读任务（Spring 托管 · 按下次执行时间排序）</span>
+      <small>共 {{ sortedScheduled.length }} 个</small>
     </div>
-    <ReTable
-      :data="scheduledTableRows"
-      :columns="scheduledColumns"
-      engine="element"
-      :pagination="false"
-      :toolbar="false"
-      :settings="{ border: false }"
-      :layout-table="{ maxHeight: 260 }"
-      class="act-table"
-    >
-      <template #col-lastStatus="{ row }">
-        <ReTag :type="row.lastStatus === 'SUCCESS' ? 'success' : 'info'" effect="light" round>
-          {{ row.lastStatus }}
-        </ReTag>
-      </template>
-    </ReTable>
+    <div v-if="sortedScheduled.length" class="act-timeline">
+      <div
+        v-for="(task, index) in sortedScheduled"
+        :key="`${task.type}-${task.target}-${index}`"
+        class="act-timeline__row"
+        :class="{ 'is-pending': isPending(task.next), 'is-failed': String(task.lastStatus).startsWith('FAILED') }"
+      >
+        <div class="act-timeline__time" :title="task.next">{{ formatWhen(task.next) }}</div>
+        <div class="act-timeline__body">
+          <div class="act-timeline__head">
+            <span class="act-timeline__type">{{ typeLabel(task.type) }}</span>
+            <span class="act-timeline__target" :title="task.target">{{ task.target }}</span>
+            <ReTag :type="statusType(task.lastStatus)" effect="light" round>{{ task.lastStatus }}</ReTag>
+          </div>
+          <div class="act-timeline__meta">
+            <span>{{ task.type === "cron" ? "表达式" : "间隔" }} <code>{{ task.expr || "—" }}</code></span>
+            <span>上次 {{ formatWhen(task.last) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ElEmpty v-else description="没有 Spring 托管的定时任务" :image-size="48" />
   </TabShell>
 </template>
 
@@ -102,7 +108,7 @@
  * 只弹错误而不刷新会让界面停在一个不存在的状态上。</p>
  */
 import { computed, ref, watch } from "vue";
-import { ElButton, ElMessage, ElSwitch } from "element-plus";
+import { ElButton, ElEmpty, ElMessage, ElSwitch } from "element-plus";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import ReInput from "@repo/ui/re-input";
@@ -199,7 +205,7 @@ async function runManagedTask(row: ManagedScheduleTask): Promise<void> {
 }
 
 const managedColumns: ReTableColumn[] = [
-  { prop: "label", label: "任务", minWidth: 150, showOverflowTooltip: true },
+  { prop: "label", label: "任务", minWidth: 150, fixed: "left", showOverflowTooltip: true },
   { prop: "cron", label: "cron 表达式", minWidth: 210, slot: "cron" },
   { prop: "enabled", label: "启用", width: 80, align: "center", slot: "enabled" },
   { prop: "nextTime", label: "下次执行", minWidth: 160, showOverflowTooltip: true },
@@ -240,15 +246,46 @@ const scheduledRows = computed<ScheduledRow[]>(() => {
   return out;
 });
 
-/** ReTable 的行类型是宽类型；一次性转换，避免模板里到处 as any */
-const scheduledTableRows = computed(() => scheduledRows.value as unknown as Record<string, unknown>[]);
+/** 时间戳：解析不了的（"-" 或纯文本）排到最后，不把未知当成最早 */
+function timeKey(raw: string): number {
+  if (!raw || raw === "-") return Number.POSITIVE_INFINITY;
+  const t = new Date(raw).getTime();
+  return Number.isNaN(t) ? Number.POSITIVE_INFINITY : t;
+}
 
-const scheduledColumns: ReTableColumn[] = [
-  { prop: "type", label: "类型", width: 120, align: "center" },
-  { prop: "target", label: "任务", minWidth: 300, showOverflowTooltip: true },
-  { prop: "expr", label: "表达式 / 间隔", minWidth: 160 },
-  { prop: "next", label: "下次执行", minWidth: 220, showOverflowTooltip: true },
-  { prop: "last", label: "上次执行", minWidth: 220, showOverflowTooltip: true },
-  { prop: "lastStatus", label: "上次状态", width: 110, align: "center", slot: "lastStatus" },
-];
+/** 按下次执行时间升序；同一时刻保持原顺序（sort 稳定） */
+const sortedScheduled = computed<ScheduledRow[]>(() =>
+  [...scheduledRows.value].sort((a, b) => timeKey(a.next) - timeKey(b.next)),
+);
+
+/** 还没到下次执行时间 = 待执行节点（用品牌色点） */
+function isPending(next: string): boolean {
+  const t = timeKey(next);
+  return Number.isFinite(t) && t > Date.now();
+}
+
+/** ISO 时间 → `MM-DD HH:mm:ss`；解析不了就原样显示（不隐藏后端给的值） */
+function formatWhen(raw: string): string {
+  if (!raw || raw === "-") return "—";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return raw;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+/** 任务类型 → 中文短标签 */
+function typeLabel(type: string): string {
+  if (type === "cron") return "Cron";
+  if (type === "fixedDelay") return "固定延迟";
+  if (type === "fixedRate") return "固定频率";
+  return "自定义";
+}
+
+/** 上次执行状态 → 标签配色 */
+function statusType(status: unknown): "success" | "danger" | "info" {
+  const value = String(status ?? "");
+  if (value.startsWith("FAILED")) return "danger";
+  if (value === "SUCCESS") return "success";
+  return "info";
+}
 </script>

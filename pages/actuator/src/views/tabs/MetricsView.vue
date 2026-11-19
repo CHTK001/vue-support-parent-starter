@@ -3,6 +3,9 @@
 
   左侧指标名、右侧明细：Micrometer 的指标清单可能上千条，全部铺成表格既慢又难找；
   「先选名字、再看数值」是唯一能在长列表里保持可用的结构。
+
+  明细按「主读数 / 上限 / 使用率」分块：数值先立起来，使用率再用细条表达，
+  全部统计量仍完整保留在下方（分块是加法，不是删减）。
 -->
 <template>
   <TabShell
@@ -28,6 +31,7 @@
             type="button"
             class="act-metrics__item"
             :class="{ 'is-active': name === metricName }"
+            :title="name"
             @click="selectMetric(name)"
           >
             {{ name }}
@@ -46,12 +50,40 @@
             <span v-if="detail.baseUnit" class="act-metrics__unit">{{ detail.baseUnit }}</span>
           </div>
           <p v-if="detail.description" class="act-metrics__desc">{{ detail.description }}</p>
-          <div class="act-kv">
-            <div v-for="m in detail.measurements ?? []" :key="m.statistic" class="act-kv__row">
-              <span class="act-kv__k">{{ m.statistic }}</span>
-              <span class="act-kv__v">{{ m.value }}</span>
+
+          <div v-if="measurements.length" class="act-metrics__readings">
+            <div v-if="primary" class="act-metrics__reading">
+              <span class="act-metrics__reading-label">{{ primary.statistic }}</span>
+              <span class="act-metrics__reading-value">
+                {{ formatValue(primary.value) }}<span v-if="unitSuffix" class="act-metrics__reading-unit">{{ unitSuffix }}</span>
+              </span>
+            </div>
+            <div v-if="maxMeasurement" class="act-metrics__reading">
+              <span class="act-metrics__reading-label">{{ maxMeasurement.statistic }}</span>
+              <span class="act-metrics__reading-value">
+                {{ formatValue(maxMeasurement.value) }}<span v-if="unitSuffix" class="act-metrics__reading-unit">{{ unitSuffix }}</span>
+              </span>
+            </div>
+            <div v-if="usage !== null" class="act-metrics__reading">
+              <span class="act-metrics__reading-label">使用率（VALUE / MAX）</span>
+              <span class="act-metrics__reading-value">{{ usageText }}</span>
+              <div class="act-metrics__bar" :class="usageTone">
+                <span :style="{ width: `${usage}%` }" />
+              </div>
             </div>
           </div>
+          <div v-else class="act__empty">该指标没有返回统计量</div>
+
+          <template v-if="measurements.length">
+            <div class="act-group__title">全部统计量</div>
+            <div class="act-kv">
+              <div v-for="m in measurements" :key="m.statistic" class="act-kv__row">
+                <span class="act-kv__k">{{ m.statistic }}</span>
+                <span class="act-kv__v">{{ m.value }}</span>
+              </div>
+            </div>
+          </template>
+
           <div v-if="detail.availableTags?.length" class="act-metrics__tags">
             <div class="act-group__title">可用标签</div>
             <div class="act-kv">
@@ -81,6 +113,7 @@ import { ElEmpty, ElMessage } from "element-plus";
 import ReInput from "@repo/ui/re-input";
 import TabShell from "../TabShell.vue";
 import { useActuatorPanel } from "../useActuatorPanel";
+import { humanBytes } from "../../cards/useMetricRows";
 import { getActuatorEndpoint } from "../../api/actuatorApi";
 
 interface MetricMeasurement {
@@ -168,4 +201,62 @@ watch(
   },
   { immediate: true },
 );
+
+/* ---------- 读数分块 ---------- */
+
+const measurements = computed<MetricMeasurement[]>(() => detail.value?.measurements ?? []);
+
+/** 主读数：VALUE 优先，其次 COUNT / TOTAL_TIME，都没有就取第一条 */
+const primary = computed<MetricMeasurement | undefined>(() => {
+  const list = measurements.value;
+  if (!list.length) return undefined;
+  return (
+    list.find((m) => m.statistic.toUpperCase() === "VALUE") ??
+    list.find((m) => ["COUNT", "TOTAL_TIME"].includes(m.statistic.toUpperCase())) ??
+    list[0]
+  );
+});
+
+/** 上限：只有 MAX 统计量（gauge 类指标带容量上限）才有 */
+const maxMeasurement = computed<MetricMeasurement | undefined>(() =>
+  measurements.value.find((m) => m.statistic.toUpperCase() === "MAX"),
+);
+
+/**
+ * 使用率。
+ *
+ * <p>只在「VALUE 与 MAX 同时存在」时计算：timer 的 MAX 是单次最大耗时，
+ * 拿 COUNT / MAX 算比例没有语义，宁可不显示也不编一个数字出来。</p>
+ */
+const usage = computed<number | null>(() => {
+  const value = measurements.value.find((m) => m.statistic.toUpperCase() === "VALUE")?.value;
+  const max = maxMeasurement.value?.value;
+  if (value === undefined || max === undefined) return null;
+  if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) return null;
+  return Math.max(0, Math.min(100, (value / max) * 100));
+});
+
+const usageText = computed(() => (usage.value === null ? "" : `${usage.value.toFixed(usage.value >= 10 ? 0 : 1)}%`));
+
+/** 使用率配色：≥90% 危险、≥70% 警告，其余用品牌色 */
+const usageTone = computed(() => {
+  if (usage.value === null) return "";
+  if (usage.value >= 90) return "is-danger";
+  if (usage.value >= 70) return "is-warn";
+  return "";
+});
+
+/** 字节单位的大数按人类可读折算，其余按千分位 */
+function formatValue(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) return "—";
+  if (detail.value?.baseUnit === "bytes" && Math.abs(value) >= 1024) return humanBytes(value);
+  return value.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
+}
+
+/** 读数右上角的单位：bytes 已由 humanBytes 带出，不再重复标注 */
+const unitSuffix = computed(() => {
+  const unit = detail.value?.baseUnit ?? "";
+  if (!unit || unit === "bytes") return "";
+  return unit;
+});
 </script>

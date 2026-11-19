@@ -126,6 +126,9 @@
 }
 
 .act__bar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-left: auto;
 }
 
@@ -207,8 +210,9 @@
 }
 
 .act-metrics__item.is-active {
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  color: var(--el-color-primary, #409eff);
+  background: color-mix(in srgb, var(--brand-500, #6d5dfc) 10%, var(--bg-container, #fff));
+  color: var(--brand-500, #6d5dfc);
+  font-weight: 600;
 }
 
 .act-metrics__detail {
@@ -256,12 +260,22 @@
   color: var(--text-primary, var(--el-text-color-primary, #303133));
 }
 
+/**
+ * 横幅底色从状态色派生，不写死 element 的 `light-9` 常量。
+ *
+ * <p>深色主题下 `light-9` 是接近白的浅色，会在暗底上炸出一块亮斑；
+ * `color-mix` 跟着 `--status-success` / `--status-error` 走，两套主题都成立。</p>
+ */
 .act-health__banner.is-up {
-  background: var(--el-color-success-light-9, #f0f9eb);
+  background: color-mix(in srgb, var(--status-success, #2fbf71) 12%, transparent);
 }
 
 .act-health__banner.is-down {
-  background: var(--el-color-danger-light-9, #fef0f0);
+  background: color-mix(in srgb, var(--status-error, #ff4c4c) 12%, transparent);
+}
+
+.act-health__label {
+  font-weight: 600;
 }
 
 .act-health__banner b {
@@ -312,6 +326,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
+  /* 中性底色：非 UP / 非 DOWN 的状态（OUT_OF_SERVICE 等）也要有一个可见的点 */
+  background: var(--border-strong, var(--el-border-color, #dcdfe6));
 }
 
 .act-health__card.is-up .act-health__card-dot {
@@ -390,7 +406,7 @@
 .act-kv__k {
   flex: 0 0 42%;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: var(--el-color-primary, #409eff);
+  color: var(--brand-500, #6d5dfc);
   word-break: break-all;
 }
 
@@ -443,4 +459,504 @@
 /* 表格插槽里的弱化读数（次数为 0 / 无 IP 时不要抢眼） */
 .act-muted {
   color: var(--text-placeholder, var(--el-text-color-placeholder, #a8abb2));
+}
+
+/* ==========================================================================
+   7. 表格底盘（2A）：密度切换 + 首列固定 + 分页贴底
+
+   6 个海量行页签（loggers / beans / conditions / configprops / mappings /
+   threaddump）数据量都在千行量级，排障动线是「过滤 → 扫一遍 → 盯某一行」。
+   所以底盘只做三件事：行更薄、首列钉住、分页永远在视口底部。
+   ========================================================================== */
+
+/* 密度切换：两档分段按钮，选中态用品牌色（不新增色板） */
+.act-seg {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-elevated, var(--el-fill-color-lighter, #f5f7fa));
+}
+
+.act-seg__btn {
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--text-secondary, var(--el-text-color-regular, #606266));
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.act-seg__btn:hover {
+  color: var(--brand-500, #6d5dfc);
+}
+
+.act-seg__btn.is-active {
+  background: var(--bg-container, var(--el-bg-color, #fff));
+  color: var(--brand-500, #6d5dfc);
+  font-weight: 600;
+}
+
+/**
+ * 表格 + 分页的两行网格。
+ *
+ * <p>用 grid 而不是 flex：第一行 `minmax(0, 1fr)` 是**确定高度**，
+ * ReTable 的 `fill: true` 才能拿到百分比基准；分页占第二行 auto，
+ * 无论表格多高都贴在内容区底部。</p>
+ */
+.act-table-wrap {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 分页条：与表格之间用一条细分隔线，别让数字直接贴住最后一行 */
+.act-table-wrap .act__pager {
+  margin-top: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+}
+
+/* ==========================================================================
+   8. 健康状态仪表盘（1A）
+
+   原先是「等宽卡片墙」，12 个组件里只要有一个 DOWN，视线仍要从头扫一遍。
+   改成仪表盘：整体状态 + 4 格计数先给结论，DOWN 单独置顶分区，
+   正常组件收成一排 chip —— 健康时一屏看完，不健康时第一眼就落在故障上。
+   ========================================================================== */
+
+.act-health__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.act-health__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
+  background: var(--bg-container, var(--el-bg-color, #fff));
+}
+
+.act-health__stat-label {
+  font-size: 11.5px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-health__stat-value {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  font-variant-numeric: tabular-nums;
+}
+
+.act-health__stat.is-up .act-health__stat-value {
+  color: var(--status-success, var(--el-color-success, #67c23a));
+}
+
+.act-health__stat.is-down .act-health__stat-value {
+  color: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+.act-health__section {
+  margin-bottom: 16px;
+}
+
+.act-health__section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-health__section-head.is-down {
+  color: var(--status-error-text, var(--el-color-danger, #f56c6c));
+}
+
+/**
+ * 「没有 DOWN 组件」的显式结论：不画卡片，避免读者以为这一块没加载出来。
+ *
+ * <p>底色用 {@code color-mix} 从 `--status-success` 派生，而不是写死 element 的
+ * `light-9` 常量：深色主题下浅绿底会亮得刺眼，而 `--status-success` 在两套主题里
+ * 都有定义。</p>
+ */
+.act-health__ok {
+  padding: 12px 14px;
+  border: 1px dashed color-mix(in srgb, var(--status-success, #2fbf71) 42%, transparent);
+  border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
+  background: color-mix(in srgb, var(--status-success, #2fbf71) 10%, transparent);
+  font-size: 12.5px;
+  color: var(--status-success, #2fbf71);
+}
+
+/* 正常组件：一排 chip，名字就是全部信息，详情放进 title 悬浮 */
+.act-health__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.act-health__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-full, 9999px);
+  background: var(--bg-container, var(--el-bg-color, #fff));
+  font-size: 12px;
+  color: var(--text-secondary, var(--el-text-color-regular, #606266));
+  cursor: default;
+}
+
+.act-health__chip:hover {
+  border-color: var(--brand-500, #6d5dfc);
+  color: var(--brand-500, #6d5dfc);
+}
+
+.act-health__chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-success, var(--el-color-success, #67c23a));
+}
+
+/* ==========================================================================
+   9. 键值分区折叠（3B）
+
+   环境属性按 propertySource 分区：每个源是一张可折叠的卡，卡内两列 grid。
+   默认只展开第一个源（通常就是最该看的那个），查关键词时全部强制展开。
+   ========================================================================== */
+
+.act-sec {
+  margin-bottom: 10px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-container, var(--el-bg-color, #fff));
+  overflow: hidden;
+}
+
+.act-sec__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-sec__head:hover {
+  background: var(--bg-hover, var(--el-fill-color-light, #f5f7fa));
+}
+
+/* 单源外壳（如 info）：保留同一个卡头样式，但没有可折叠的语义 */
+.act-sec__head.is-static {
+  cursor: default;
+}
+
+.act-sec__head.is-static:hover {
+  background: transparent;
+}
+
+.act-sec__chev {
+  flex: none;
+  width: 12px;
+  font-size: 10px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+  transition: transform 0.16s ease;
+}
+
+.act-sec__chev.is-open {
+  transform: rotate(90deg);
+}
+
+.act-sec__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+}
+
+.act-sec__count {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--bg-fill, var(--el-fill-color, #f0f2f5));
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+/* 卡内两列：每一项「键在上、值在下」，长配置值不会被挤成窄条 */
+.act-kv--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: none;
+  border-top: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: 0;
+  background: transparent;
+}
+
+.act-kv--grid .act-kv__row {
+  display: block;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+}
+
+.act-kv--grid .act-kv__row:nth-child(odd) {
+  border-right: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+}
+
+.act-kv--grid .act-kv__row:last-child,
+.act-kv--grid .act-kv__row:nth-last-child(2):nth-child(odd) {
+  border-bottom: none;
+}
+
+.act-kv--grid .act-kv__k {
+  display: block;
+  font-size: 11.5px;
+}
+
+.act-kv--grid .act-kv__v {
+  display: block;
+  margin-top: 1px;
+}
+
+/* 命中词高亮：用宿主品牌色底，不引入新颜色 */
+.act-mark {
+  padding: 0 1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--brand-500, #6d5dfc) 16%, transparent);
+  color: var(--brand-600, var(--brand-500, #6d5dfc));
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .act-kv--grid {
+    grid-template-columns: 1fr;
+  }
+
+  .act-kv--grid .act-kv__row:nth-child(odd) {
+    border-right: none;
+  }
+
+  .act-kv--grid .act-kv__row:nth-last-child(2):nth-child(odd) {
+    border-bottom: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  }
+}
+
+/* ==========================================================================
+   10. 指标读数分块（4A）
+
+   明细从「统计量一行一行铺」改成「主读数 / 上限 / 使用率」三块：
+   数值先立起来，趋势语义（用了多少）用细条表达，全部统计量仍完整保留在下方。
+   ========================================================================== */
+
+.act-metrics__readings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.act-metrics__reading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-elevated, var(--el-fill-color-lighter, #f5f7fa));
+}
+
+.act-metrics__reading-label {
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-metrics__reading-value {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+
+.act-metrics__reading-unit {
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+/* 使用率细条：只是 VALUE / MAX 的直观化，刻度文字仍在上面 */
+.act-metrics__bar {
+  margin-top: 4px;
+  height: 4px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--bg-fill, var(--el-fill-color, #ebeef5));
+  overflow: hidden;
+}
+
+.act-metrics__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-500, #6d5dfc);
+  transition: width 0.24s ease;
+}
+
+.act-metrics__bar.is-warn span {
+  background: var(--status-warning, var(--el-color-warning, #e6a23c));
+}
+
+.act-metrics__bar.is-danger span {
+  background: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+/* ==========================================================================
+   11. 定时任务时间轴（5C）
+
+   只读任务按「下次执行时间」升序排成一条时间轴：左边是时间点，右边是任务。
+   时间点在前，是因为这一页真正要回答的是「接下来会发生什么、什么时候」。
+   ========================================================================== */
+
+.act-timeline {
+  padding-left: 16px;
+  border-left: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+}
+
+.act-timeline__row {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding: 8px 0 8px 2px;
+}
+
+/* 轴线上的节点 */
+.act-timeline__row::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 15px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong, var(--el-border-color, #dcdfe6));
+}
+
+.act-timeline__row.is-pending::before {
+  background: var(--brand-500, #6d5dfc);
+}
+
+.act-timeline__row.is-failed::before {
+  background: var(--status-error, var(--el-color-danger, #f56c6c));
+}
+
+.act-timeline__time {
+  flex: 0 0 132px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary, var(--el-text-color-regular, #606266));
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+
+.act-timeline__row.is-pending .act-timeline__time {
+  color: var(--brand-500, #6d5dfc);
+  font-weight: 600;
+}
+
+.act-timeline__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.act-timeline__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.act-timeline__type {
+  flex: none;
+  padding: 0 7px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-fill, var(--el-fill-color, #f0f2f5));
+  font-size: 10.5px;
+  line-height: 17px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-timeline__target {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text-primary, var(--el-text-color-primary, #303133));
+}
+
+.act-timeline__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-timeline__meta code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--code-background, var(--el-fill-color-light, #f5f7fa));
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--code-foreground, var(--el-text-color-regular, #606266));
+}
+
+/* 可编辑任务为空时的明确结论：不能只留一块空白让人以为还在加载 */
+.act-sched-empty {
+  padding: 12px 14px;
+  border: 1px dashed var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-elevated, var(--el-fill-color-lighter, #f5f7fa));
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary, var(--el-text-color-secondary, #909399));
+}
+
+.act-sched-empty.is-error {
+  border-color: var(--status-error-border, var(--el-color-danger-light-5, #fab6b6));
+  color: var(--status-error-text, var(--el-color-danger, #f56c6c));
 }
