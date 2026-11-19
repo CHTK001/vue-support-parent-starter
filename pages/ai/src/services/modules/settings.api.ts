@@ -52,6 +52,18 @@ export interface SettingsApi {
    * 手动触发一次 opencode 的下载 + 启动（管理员专属，后台执行，立即返回）。
    */
   prepareAgentEngine(): Promise<any>;
+
+  // ==================== 告警规则（/v2/alerts，管理员专属） ====================
+  /** 查询所有告警规则（针对 AppKey 用量 / 费用 / 异常的阈值告警） */
+  fetchAlertRules(): Promise<any[]>;
+  /** 新建告警规则 */
+  createAlertRule(data: any): Promise<any>;
+  /** 更新告警规则（alertId 走路径，后端按主键覆盖） */
+  updateAlertRule(alertId: number | string, data: any): Promise<any>;
+  /** 删除告警规则（后端逻辑删除） */
+  deleteAlertRule(alertId: number | string): Promise<void>;
+  /** 切换告警启用状态 */
+  toggleAlertRule(alertId: number | string, enabled: boolean): Promise<any>;
 }
 
 export const settingsApi: SettingsApi = {
@@ -148,5 +160,31 @@ export const settingsApi: SettingsApi = {
   async prepareAgentEngine(this: ApiContext) {
     const body: any = await engineHttp.post("/api/agents/engine/prepare");
     return body?.data ?? body;
+  },
+
+  // ==================== 告警规则（/v2/alerts，管理员专属） ====================
+  // 后端 AiAlertController 直接返回裸 List/DTO（无 ReturnResult 信封）；
+  // _request 的 unwrapBody 对 {code,data} 信封取 data、对裸数组原样返回，两种形态都兼容。
+  async fetchAlertRules(this: ApiContext) {
+    return await this._request<any[]>("/alerts");
+  },
+
+  async createAlertRule(this: ApiContext, data: any) {
+    return await this._request("/alerts", { method: "POST", data });
+  },
+
+  async updateAlertRule(this: ApiContext, alertId: number | string, data: any) {
+    return await this._request(`/alerts/${alertId}`, { method: "PUT", data });
+  },
+
+  async deleteAlertRule(this: ApiContext, alertId: number | string) {
+    return await this._request(`/alerts/${alertId}`, { method: "DELETE" });
+  },
+
+  async toggleAlertRule(this: ApiContext, alertId: number | string, enabled: boolean) {
+    return await this._request(`/alerts/${alertId}/toggle`, {
+      method: "PUT",
+      params: { enabled },
+    });
   },
 };

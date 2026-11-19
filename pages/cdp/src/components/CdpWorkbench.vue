@@ -1513,6 +1513,7 @@ function appendChange(text: string, targetId = "") {
     text,
     targetId: targetId || selectedTarget.value || "",
     timestamp: Date.now(),
+    depth: 0,
   };
   consoleMessages.value.push(record);
   if (consoleMessages.value.length > maxConsole) {

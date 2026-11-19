@@ -17,6 +17,9 @@ import { useGlobalStore, useUserStore } from "@repo/pinia";
 import { attachRouterLoader } from "@repo/ui/re-loader";
 // home widget 贡献器：各 pages 模块贡献的 widget 挂到 app 上
 import { defineWidgetContribution } from "@repo/theme/koi/views/home/registry";
+// 顶栏命令面板业务数据源：theme 只给契约，monitor 壳在这里注册实现
+import { definePaletteContribution } from "@repo/theme/koi/layouts/components/Header/components/paletteRegistry";
+import { monitorPaletteSources } from "./palette/monitorPaletteSources";
 // 挂载完成后预热路由 chunk（菜单 hover 时 theme 层也会预取，见 routePrefetch.ts）
 import {
   prefetchRecentlyVisited,
@@ -56,7 +59,11 @@ import monitorRoutes from "./router";
 // 大屏本体（@pages/system）不认识任何具体卡片，也不 import 这两个包。
 import { actuatorContribution } from "@pages/actuator";
 import { apmContribution } from "@pages/apm/src/monitor";
-import { serverWidgets } from "@pages/server";
+import { serverWidgets } from "@pages/server/src/widgets/serverWidgets";
+// 渠道 / 数据源概览 widget：从 widgets 深路径导入（@pages/* 在本应用 alias 指向页面根，
+// 业务一律写 "@pages/xx/src/..."），避免包根把 ChannelManagementPage 等整页拖进入口 chunk。
+import { channelWidgets } from "@pages/channel/src/widgets/channelWidgets";
+import { datasourceWidgets } from "@pages/datasource/src/widgets/datasourceWidgets";
 
 const app = await createContextApp({
   appName: "vue-support-monitor-starter",
@@ -64,7 +71,15 @@ const app = await createContextApp({
   mode: "router",
   routerMode: "hash",
 })
-  .widgets([actuatorContribution, apmContribution, defineWidgetContribution(serverWidgets)])
+  .widgets([
+    actuatorContribution,
+    apmContribution,
+    defineWidgetContribution(serverWidgets),
+    defineWidgetContribution(channelWidgets),
+    defineWidgetContribution(datasourceWidgets),
+    // 顶栏命令面板业务源：主机资产 / 告警策略 / 告警规则（theme 只认契约）
+    definePaletteContribution(monitorPaletteSources),
+  ])
   .ui({ preset: "monitor" })
   .host(ProcessHost)
   .routes(monitorRoutes)

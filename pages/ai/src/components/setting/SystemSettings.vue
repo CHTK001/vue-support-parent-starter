@@ -72,8 +72,25 @@
                       那么高、下面一大片空白，窗口拉高也不跟着长（也不随窗口自适应）。
                       所以这里直接拿整块高度，滚动交给页面自己的两栏。
                     -->
-                    <div v-else-if="currentTabValue === 'channels'" class="channels-tab-host">
-                        <ChannelManagementPage />
+                    <div v-else-if="currentTabValue === 'channels'" class="channels-tab-frame">
+                        <!--
+                          channels 在 ScrollContainer 之外（工作台式双栏布局），
+                          不能吃上面的统一守卫分支，这里单独拦一道：侧边栏只管隐藏
+                          入口，URL 直达（/setting/channels）同样要按 adminOnly 拒绝，
+                          否则普通用户会看到一个接口全部 403 的空管理面板。
+                          判据与 ScrollContainer 内守卫同一份：sidebarItems 的 adminOnly。
+                        -->
+                        <div v-if="isCurrentTabAdminOnly() && !isAdmin()" class="admin-only-denied">
+                            <el-empty description="仅管理员可访问">
+                                <template #description>
+                                    <p class="admin-only-title">仅管理员可访问</p>
+                                    <p class="admin-only-desc">当前账号无管理员权限，请用管理员账号登录后查看。</p>
+                                </template>
+                            </el-empty>
+                        </div>
+                        <div v-else class="channels-tab-host">
+                            <ChannelManagementPage />
+                        </div>
                     </div>
                     <!--
                       图像库同理：它是「左分组栏 + 中台账/画布 + 右检查器」的三栏工作台，
@@ -248,6 +265,14 @@
                         <template v-else-if="currentTabValue === 'reid-library'">
                             <ReidLibraryPanel />
                         </template>
+                        <!--
+                          告警规则：AppKey 用量 / 费用 / 异常阈值告警的规则管理（/v2/alerts）。
+                          后端全接口 @Permission("admin")，入口同标 adminOnly ——
+                          普通用户由 ScrollContainer 上方的统一守卫拦截，URL 直达也进不来。
+                        -->
+                        <template v-else-if="currentTabValue === 'alert-rules'">
+                            <AlertRulesSettings />
+                        </template>
                         </template>
                     </ScrollContainer>
                 </div>
@@ -257,7 +282,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed, watch, nextTick, defineAsyncComponent } from 'vue'
 import DefaultModelSettings from './DefaultModelSettings.vue'
 import PaperConfigPanel from './PaperConfigPanel.vue'
 import GeneralSettings from './GeneralSettings.vue'
@@ -276,7 +301,12 @@ import UsageConfigSettings from './UsageConfigSettings.vue'
 import SkillsSourceSettings from './SkillsSourceSettings.vue'
 import ServiceManagementPage from '../management/ServiceManagementPage.vue'
 import ServiceTokensPage from '../management/ServiceTokensPage.vue'
-import ChannelManagementPage from '@pages/channel/components/ChannelManagementPage.vue'
+// 渠道管理：动态加载。ChannelManagementPage 拖着 vxe-table + xlsx 等重依赖
+// （共享 chunk 实测 1.3MB+），静态 import 会把它并进设置中心入口；
+// defineAsyncComponent 让它只在切到「渠道管理」tab 时才拉取对应 chunk。
+const ChannelManagementPage = defineAsyncComponent(
+    () => import('@pages/channel/components/ChannelManagementPage.vue')
+)
 // 模型管理：直接复用主页 /models 的整页组件（双入口一份实现）
 import ModelsPage from '../models/ModelsPage.vue'
 import CommunityPanel from './CommunityPanel.vue'
@@ -288,6 +318,8 @@ import ImageLibraryPage from '../library/ImageLibraryPage.vue'
 // 人脸底库**管理**面板（识别仍在外侧「人脸识别」页，这里只管底库）
 import FaceLibraryPanel from './FaceLibraryPanel.vue'
 import ReidLibraryPanel from './ReidLibraryPanel.vue'
+// 告警规则管理面板（/v2/alerts，管理员专属）
+import AlertRulesSettings from './AlertRulesSettings.vue'
 
 import {
     Grid16Regular,
@@ -313,6 +345,7 @@ import {
     AppsListDetail20Regular,
     Fingerprint24Regular,
     BrainCircuit20Regular,
+    Alert24Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -375,6 +408,8 @@ const groupMap = computed<Record<string, string>>(() => ({
     'protocol-server': t('settings.system.groups.system'),
     'service-tokens': t('settings.system.groups.system'),
     'menu-manage': t('settings.system.groups.system'),
+    // 告警规则：写的是全局告警配置，归「系统」分组（仅管理员）
+    'alert-rules': t('settings.system.groups.system'),
     // 底库：图像底库与人脸底库归到同一个分组。
     // 原先图像底库挂在「系统」组、人脸库挂在外侧主导航，两个同类功能分处两地；
     // 收进同一个「底库」分组后，入口位置与语义一致。
@@ -638,6 +673,16 @@ const sidebarItems = computed(() => [
         adminOnly: true,
     },
     {
+        // 告警规则：AppKey 用量 / 费用 / 异常的阈值告警（/v2/alerts）。
+        // 与「服务配置」同口径：规则是全局层，后端全接口 @Permission("admin")，
+        // 入口也只给管理员。后端能力早已就绪而前端零引用，这里补上管理入口。
+        label: '告警规则',
+        path: 'alert-rules',
+        icon: Alert24Regular,
+        roles: ['primary'],
+        adminOnly: true,
+    },
+    {
         // 图像底库：以图搜图的检索底库。底库**按账号隔离**（<工作目录>/<账号>/imagesearch），
         // 每个账号只增删自己的库，因此不再需要管理员门槛 —— 原先「普通用户能改等于
         // 向量索引可被任意污染」的理由在隔离之后不成立。
@@ -672,12 +717,15 @@ const sidebarItems = computed(() => [
     {
         // 渠道管理：账号类渠道（Cline / Qoder / Trae / Gemini）的账号绑定、
         // 轮询、刷新、签到、模型拉取与单模型开关。
-        // 账号连接按 userId 隔离（sys_ai_provider_connection_user_id），
-        // 每个用户管理自己的绑定，与其它菜单口径一致；免费渠道另走管理员配置。
+        //
+        // 仅管理员：后端 /api/channels 整组是 admin-only（ApiChannelAuthController），
+        // 且这里能看到全部账号的绑定台账与签到状态。普通账号不维护渠道，
+        // 入口按角色隐藏，与「服务管理 / 路由」同一道门槛。
         label: t('settings.system.tabs.channels'),
         path: 'channels',
         icon: Cloud24Regular,
         roles: ['primary'],
+        adminOnly: true,
     },
 ])
 
@@ -754,7 +802,8 @@ const loadProviderPanel = async () => {
     if (providerLoading) return
     providerLoading = true
     try {
-        const body = await adminApi.get('/api/providers')
+        // 管理面板要看到全部模型行（含停用），与模型管理页同口径，显式取全量
+        const body = await adminApi.get('/api/providers?enabled_only=0')
         const rawList = Array.isArray(body) ? body : body?.data || []
         const list = rawList.map(mapProvider)
         providerItems.value = list
@@ -929,7 +978,18 @@ onMounted(() => {
  * 工作台（内部各自滚动，靠 height:100% 撑满）；这里必须给出确定高度，
  * 否则 height:100% 退化成内容高，页面长不到窗口底部、也不再随窗口自适应。
  * 左右留白对齐其它页签的 p-4，只把竖直方向的留白留给页面自己。
+ *
+ * 外层 frame 是 adminOnly 守卫包出来的容器（守卫分支与 channels-tab-host 是兄弟）。
+ * 它同样必须有确定高度：channels-tab-host 的 height:100% 是相对 frame 计算的，
+ * frame 若是「内容高」，100% 就塌成内容高 —— 表现为加载中两栏很矮、数据到了才
+ * 跟着内容撑开，且容器恒等于内容高、overflow-y:auto 永不触发 = 两栏没有滚动条。
+ * 实测（AI 设置页 /setting/channels）：未给高度 .chm=137px；补 height:100% 后
+ * .chm=816px、左栏出现滚动条、加载全程高度恒定，不再「先矮后满」。
  */
+.channels-tab-frame {
+    height: 100%;
+    min-height: 0;
+}
 .channels-tab-host {
     height: 100%;
     min-height: 0;
