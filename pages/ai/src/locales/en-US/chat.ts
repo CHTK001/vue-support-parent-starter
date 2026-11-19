@@ -653,6 +653,8 @@ export default {
       cwd: 'CWD',
       shell: 'Shell',
       elapsed: 'Elapsed',
+      elapsedWarn: 'Running for a while, timeout risk',
+      elapsedDanger: 'Near timeout limit, you can kill it',
     },
 
     // ── Session capability panel: server info / permission test / role sub-agents ──
@@ -687,6 +689,8 @@ export default {
       loadFailed: 'Failed to load server info',
       testFailed: 'Permission test failed',
       invokeFailed: 'Sub-agent invocation failed',
+      subAgentLoadFailed: 'Failed to load sub-agents',
+      retry: 'Retry',
       risk: {
         low: 'Low risk',
         medium: 'Medium risk',
@@ -697,6 +701,9 @@ export default {
 
     // HTML / SVG code block built-in preview button
     codePreview: 'Preview render',
+    previewEmpty: 'Code block is empty, nothing to preview',
+    previewTooLarge: 'Code block too large (>200KB), preview skipped',
+    openInNewTab: 'Open in new tab',
   },
 
   // ── 备忘录 ──

@@ -8,7 +8,7 @@
                 </el-icon>
                 <span>{{ t('chat.workspace.terminal.title') }}</span>
                 <span class="terminal-panel__status" :class="statusClass">{{ statusText }}</span>
-                <span v-if="elapsedText" class="terminal-panel__elapsed" :title="t('chat.workspace.terminal.elapsed')">{{ elapsedText }}</span>
+                <span v-if="elapsedText" class="terminal-panel__elapsed" :class="`terminal-panel__elapsed--${elapsedLevel}`" :title="elapsedTitle">{{ elapsedText }}</span>
             </div>
             <div class="flex items-center gap-0.5 shrink-0">
                 <LTooltip :content="t('chat.workspace.terminal.clear')" placement="bottom">
@@ -197,6 +197,24 @@ const elapsedText = computed(() => {
     const mm = String(m).padStart(2, '0');
     const ss = String(s).padStart(2, '0');
     return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+});
+
+/** 长命令告警阈值（秒）：5 分钟转警示，25 分钟（临近后端 1800s 超时）转危险 */
+const ELAPSED_WARN_SECONDS = 300;
+const ELAPSED_DANGER_SECONDS = 1500;
+
+/** 耗时等级：驱动徽标配色 */
+const elapsedLevel = computed<'normal' | 'warn' | 'danger'>(() => {
+    if (elapsedSeconds.value >= ELAPSED_DANGER_SECONDS) return 'danger';
+    if (elapsedSeconds.value >= ELAPSED_WARN_SECONDS) return 'warn';
+    return 'normal';
+});
+
+/** 耗时徽标提示：平常只报时长，进入阈值后给出行动建议 */
+const elapsedTitle = computed(() => {
+    if (elapsedLevel.value === 'danger') return t('chat.workspace.terminal.elapsedDanger');
+    if (elapsedLevel.value === 'warn') return t('chat.workspace.terminal.elapsedWarn');
+    return t('chat.workspace.terminal.elapsed');
 });
 
 /** 启动运行时长统计 */
@@ -591,6 +609,17 @@ onBeforeUnmount(() => {
     background: var(--el-fill-color);
     color: var(--el-text-color-secondary);
     font-variant-numeric: tabular-nums;
+}
+
+/* 耗时阈值着色：与风险徽标同一套 color-mix 语义 */
+.terminal-panel__elapsed--warn {
+    color: var(--el-color-warning);
+    background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+}
+
+.terminal-panel__elapsed--danger {
+    color: var(--el-color-danger);
+    background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
 }
 
 .terminal-panel__status--connected {

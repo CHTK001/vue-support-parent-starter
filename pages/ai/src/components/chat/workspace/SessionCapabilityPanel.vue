@@ -102,7 +102,13 @@
                     {{ t('chat.workspace.capability.subAgents') }}
                     <span class="cap-section__count">{{ subAgents.length }}</span>
                 </div>
-                <div v-if="!subAgents.length" class="cap-empty">{{ t('chat.workspace.capability.noSubAgents') }}</div>
+                <div v-if="subAgentsError" class="cap-empty cap-empty--error">
+                    <span>{{ subAgentsError }}</span>
+                    <el-button link size="small" :loading="loadingSubAgents" @click="loadSubAgents">
+                        {{ t('chat.workspace.capability.retry') }}
+                    </el-button>
+                </div>
+                <div v-else-if="!subAgents.length" class="cap-empty">{{ t('chat.workspace.capability.noSubAgents') }}</div>
                 <template v-else>
                     <div class="cap-agent-list">
                         <button v-for="agent in subAgents" :key="agent.agentId" type="button" class="cap-agent"
@@ -202,6 +208,8 @@ const selectedAgentId = ref('');
 const invokeInput = ref('');
 const invoking = ref(false);
 const invokeResult = ref<SubAgentInvokeResult | null>(null);
+const loadingSubAgents = ref(false);
+const subAgentsError = ref('');
 
 const selectedAgent = computed(() =>
     subAgents.value.find((agent) => agent.agentId === selectedAgentId.value) || null,
@@ -211,12 +219,17 @@ async function loadSubAgents(): Promise<void> {
     subAgents.value = [];
     selectedAgentId.value = '';
     invokeResult.value = null;
-    if (!props.sessionId) return;
+    if (!props.sessionId || loadingSubAgents.value) return;
+    loadingSubAgents.value = true;
+    subAgentsError.value = '';
     try {
         const res = await apiService.listSubAgents(props.sessionId);
         subAgents.value = res?.items || [];
-    } catch {
-        // 列表加载失败保持空态即可（面板里已给出空态文案）
+    } catch (error: any) {
+        // 失败不再静默：展示错误态并提供重试入口
+        subAgentsError.value = error?.message || t('chat.workspace.capability.subAgentLoadFailed');
+    } finally {
+        loadingSubAgents.value = false;
     }
 }
 
@@ -280,6 +293,7 @@ watch(
         permResources.value = '';
         permResult.value = null;
         invokeInput.value = '';
+        subAgentsError.value = '';
         loadServerInfo();
         loadSubAgents();
     },
@@ -394,6 +408,13 @@ watch(
     font-size: 12px;
     color: var(--el-text-color-placeholder);
     padding: 4px 0;
+}
+
+.cap-empty--error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--el-color-danger);
 }
 
 /* 风险徽标（与 PlanApprovalCard 同一套配色语义） */

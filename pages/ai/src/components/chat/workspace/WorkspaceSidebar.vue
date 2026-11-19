@@ -295,7 +295,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, computed, watch, onUnmounted, nextTick } from 'vue';
+import { ref, computed, watch, onUnmounted, nextTick, defineAsyncComponent } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { apiService, type FileChangeEvent } from '@/services/ApiService';
@@ -311,7 +311,8 @@ import SessionTodoList from './SessionTodoList.vue';
 import WorkspaceTree from './WorkspaceTree.vue';
 import GitPanel from './GitPanel.vue';
 import TerminalPanel from './TerminalPanel.vue';
-import SessionCapabilityPanel from './SessionCapabilityPanel.vue';
+// 能力面板按需加载：侧栏首屏不为它支付同步解析成本
+const SessionCapabilityPanel = defineAsyncComponent(() => import('./SessionCapabilityPanel.vue'));
 import BrowserPreviewPlaceholder from './BrowserPreviewPlaceholder.vue';
 import { useBrowserWebviewStore } from '@/stores/browserWebview';
 import { useLayoutStore } from '@/stores/layout';
@@ -548,9 +549,34 @@ const isPreviewMode = computed(() => tabStore.isPreviewMode);
 const tabs = computed(() => tabStore.tabs);
 const activeTabKey = computed(() => tabStore.activeTabKey);
 /**
- * 侧栏当前面板：files=目录树，git=Git 变更，terminal=工作区终端，capability=会话能力
+ * 侧栏当前面板：files=目录树，git=Git 变更，terminal=工作区终端，capability=会话能力。
+ * 选择持久化到 localStorage，重挂载（切换会话/侧栏重开）后回到上次的页签。
  */
-const sidePanel = ref<'files' | 'git' | 'terminal' | 'capability'>('files');
+type SidePanelName = 'files' | 'git' | 'terminal' | 'capability';
+const SIDE_PANEL_STORAGE_KEY = 'wsSidePanel';
+const SIDE_PANEL_VALUES: SidePanelName[] = ['files', 'git', 'terminal', 'capability'];
+
+function readStoredSidePanel(): SidePanelName {
+    try {
+        const stored = localStorage.getItem(SIDE_PANEL_STORAGE_KEY) as SidePanelName | null;
+        if (stored && SIDE_PANEL_VALUES.includes(stored)) {
+            return stored;
+        }
+    } catch {
+        // localStorage 不可用时退回默认
+    }
+    return 'files';
+}
+
+const sidePanel = ref<SidePanelName>(readStoredSidePanel());
+
+watch(sidePanel, (panel) => {
+    try {
+        localStorage.setItem(SIDE_PANEL_STORAGE_KEY, panel);
+    } catch {
+        // 忽略写入失败（隐私模式等）
+    }
+});
 const isTreePanelVisible = ref(false);
 const treeTransitionReady = ref(false);
 const workspaceBtnRef = ref<HTMLElement | null>(null);

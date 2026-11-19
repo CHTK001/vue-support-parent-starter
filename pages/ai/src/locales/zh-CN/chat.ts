@@ -661,6 +661,8 @@ export default {
       cwd: '目录',
       shell: 'Shell',
       elapsed: '运行时长',
+      elapsedWarn: '运行较久，注意超时',
+      elapsedDanger: '临近超时上限，可手动终止',
     },
 
     // ── 会话能力面板：服务器信息 / 权限自测 / 角色子代理 ──
@@ -695,6 +697,8 @@ export default {
       loadFailed: '服务器信息加载失败',
       testFailed: '权限自测失败',
       invokeFailed: '子代理调用失败',
+      subAgentLoadFailed: '子代理列表加载失败',
+      retry: '重试',
       risk: {
         low: '低风险',
         medium: '中风险',
@@ -705,6 +709,9 @@ export default {
 
     // HTML / SVG 代码块内建预览按钮
     codePreview: '预览渲染效果',
+    previewEmpty: '代码块内容为空，无法预览',
+    previewTooLarge: '代码块过大（超过 200KB），已跳过预览',
+    openInNewTab: '在新标签页打开',
   },
 
   // ── 备忘录 ──

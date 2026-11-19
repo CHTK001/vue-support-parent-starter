@@ -61,10 +61,12 @@
 
       <!-- 常规操作 -->
       <template v-else>
-        <!-- 危险操作强确认提示条：第一次点击批准按钮后出现，要求再点一次 -->
-        <div v-if="armed" class="plan-approval__arm-warning">
+        <!-- 危险操作强确认提示条：第一次点击批准按钮后出现，要求再点一次；倒计时结束自动解除 -->
+        <div v-if="armed" class="plan-approval__arm-warning" role="alert">
           <el-icon size="14"><WarningFilled /></el-icon>
-          <span>破坏性操作：请再次点击确认后才会执行。</span>
+          <span>
+            破坏性操作：请再次点击确认后才会执行<template v-if="armRemainSeconds > 0">（{{ armRemainSeconds }}s 后自动取消）</template>。
+          </span>
           <el-button link size="small" @click="disarm">取消</el-button>
         </div>
         <div class="plan-approval__actions">
@@ -103,6 +105,10 @@
             <span>需要修改</span>
           </el-button>
         </div>
+        <!-- 语义可见化：「全部同意」有持久后果，不能只藏在 title 提示里 -->
+        <div class="plan-approval__mode-hint">
+          「全部同意」会记住该工具，后续同类操作不再询问。
+        </div>
       </template>
     </div>
 
@@ -116,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, onMounted, onBeforeUnmount } from "vue";
 import { ElButton, ElIcon, ElInput } from "element-plus";
 import { Document, Check, Edit, Close, WarningFilled, InfoFilled, CircleCheckFilled, Select } from "@element-plus/icons-vue";
 
@@ -150,6 +156,48 @@ const showFeedback = ref(false);
 const feedbackText = ref("");
 /** 危险操作强确认：第一次点击只「武装」，再次点击才真正批准 */
 const armed = ref(false);
+
+// ── 强确认倒计时：武装态超时自动解除，避免搁置后被误触 ──
+/** 武装态保持时长（毫秒） */
+const ARM_TIMEOUT_MS = 30_000;
+/** 剩余秒数（展示用） */
+const armRemainSeconds = ref(0);
+let armTimer: ReturnType<typeof setInterval> | null = null;
+
+function stopArmCountdown(): void {
+    if (armTimer) {
+        clearInterval(armTimer);
+        armTimer = null;
+    }
+    armRemainSeconds.value = 0;
+}
+
+function startArmCountdown(): void {
+    stopArmCountdown();
+    armRemainSeconds.value = Math.ceil(ARM_TIMEOUT_MS / 1000);
+    armTimer = setInterval(() => {
+        armRemainSeconds.value -= 1;
+        if (armRemainSeconds.value <= 0) {
+            disarm();
+        }
+    }, 1000);
+}
+
+/** Esc 键解除武装（仅武装态生效） */
+function onArmKeydown(event: KeyboardEvent): void {
+    if (event.key === "Escape" && armed.value && !decided.value) {
+        disarm();
+    }
+}
+
+onMounted(() => {
+    document.addEventListener("keydown", onArmKeydown);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener("keydown", onArmKeydown);
+    stopArmCountdown();
+});
 
 const planItems = computed<PlanItem[]>(() => props.request.items || []);
 
@@ -239,8 +287,10 @@ function approve(mode: "once" | "always") {
   if (decided.value) return;
   if (isDangerous.value && !armed.value) {
     armed.value = true;
+    startArmCountdown();
     return;
   }
+  stopArmCountdown();
   decided.value = true;
   confirmed.value = true;
   emit("decision", {
@@ -250,14 +300,15 @@ function approve(mode: "once" | "always") {
   });
 }
 
-/** 解除强确认武装（点击「取消」或转向修改意见时） */
+/** 解除强确认武装（点击「取消」、倒计时超时、Esc 或转向修改意见时） */
 function disarm() {
   armed.value = false;
+  stopArmCountdown();
 }
 
 function startFeedback() {
   if (decided.value) return;
-  armed.value = false;
+  disarm();
   showFeedback.value = true;
 }
 
@@ -497,6 +548,13 @@ function submitFeedback() {
 
 .plan-approval__arm-warning .el-button {
   margin-left: auto;
+}
+
+/* 「全部同意」语义提示 */
+.plan-approval__mode-hint {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
 }
 
 @keyframes plan-arm-in {
