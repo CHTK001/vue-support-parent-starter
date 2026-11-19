@@ -69,6 +69,10 @@
       </div>
 
       <div class="bar-acts">
+        <!-- 页面级推送状态灯：全页实时提醒共用一条 SSE，灯色一眼看出通没通；断开时点击可手动重连 -->
+        <button type="button" class="sse-led" :class="'is-' + sseState" :title="sseHint" :aria-label="sseHint" @click="reconnectSse">
+          <span class="sse-led__dot" aria-hidden="true"></span>
+        </button>
         <button type="button" class="icon-btn" title="刷新" aria-label="刷新" @click="loadAll">
           <ReIcon name="RefreshLeft" :size="14" />
         </button>
@@ -197,7 +201,12 @@
                 <span v-else class="idx-sub">{{ item.row.sub }}</span>
               </span>
               <span v-if="item.row.tag && !item.row.caps?.length" class="idx-meta">
-                <span v-if="item.row.tag" class="idx-tag" :class="'is-' + item.row.tagTone">{{ item.row.tag }}</span>
+                <span
+                  v-if="item.row.tag"
+                  class="idx-tag"
+                  :class="'is-' + item.row.tagTone"
+                  :title="item.row.tagHint"
+                >{{ item.row.tag }}</span>
                 <span class="idx-time">{{ item.row.meta }}</span>
               </span>
             </button>
@@ -224,8 +233,21 @@
 
       <!-- ==================== 右侧：详情工作区 ==================== -->
       <section class="main" aria-label="资产详情">
+        <!-- 右栏加载骨架：整页刷新时详情区给占位，不残留上一轮数据也不空白 -->
+        <div v-if="loading" class="main-skel" aria-hidden="true">
+          <span class="main-skel-line is-head"></span>
+          <span class="main-skel-line is-line"></span>
+          <span class="main-skel-line is-line is-short"></span>
+          <span class="main-skel-line is-line"></span>
+          <span class="main-skel-line is-line is-short"></span>
+        </div>
+        <!-- 分段接口失败且没有可看的详情：右栏给出重试入口，不只靠左栏一行小字 -->
+        <div v-else-if="segmentError && !activeAppKey && !activeCookie" class="main-error">
+          <span>{{ segmentError }}</span>
+          <button type="button" @click="loadAll">重试</button>
+        </div>
         <!-- ---------- 账号 ---------- -->
-        <template v-if="isAccountSegment && activeAccount">
+        <template v-else-if="isAccountSegment && activeAccount">
           <header class="main-head">
             <span class="main-mark" :class="'is-' + kindClass(activeAccount.kind)">
               <ReIcon :name="kindIcon(activeAccount.kind)" :size="16" />
@@ -303,7 +325,9 @@
                 </div>
                 <div v-if="isTempMail(activeAccount)" class="fact">
                   <span class="k">临时邮箱租期</span>
-                  <span class="v">{{ tempRemainText(activeAccount) }}</span>
+                  <span class="v" :class="{ 'is-warn': activeTempMailTone === 'warn', 'is-bad': activeTempMailTone === 'bad' }">
+                    {{ tempRemainText(activeAccount) }}
+                  </span>
                 </div>
               </div>
               <div v-if="activeAccount.verifyMessage" class="note" :class="'is-' + verifyTone(activeAccount.verifyStatus)">
@@ -598,9 +622,7 @@
               <b :title="activeAppKey.name">{{ activeAppKey.name || '未命名密钥' }}</b>
               <span>访问密钥 · {{ activeAppKey.owner ? '仅本人' : '部署级共享' }}</span>
             </div>
-            <ReTag :type="activeAppKey.status === 0 ? 'info' : 'success'" effect="plain" size="small">
-              {{ activeAppKey.status === 0 ? '停用' : '启用' }}
-            </ReTag>
+            <ReTag v-if="keyLife" :type="keyLifeTagType" effect="plain" size="small">{{ keyLife.tag }}</ReTag>
           </header>
 
           <nav class="main-tabs" role="tablist" aria-label="访问密钥信息">
@@ -1256,6 +1278,41 @@ interface NewMailPush {
 /** 账号页统一 SSE 退订函数（组件卸载时统一释放，避免重复订阅） */
 const eventUnsubs: Array<() => void> = [];
 
+/* ---------- 页面级推送状态灯：全页实时提醒共用一条 SSE，通没通一眼可见 ---------- */
+
+/** SSE 连接状态（模块级单例共享的响应式 ref，账号页所有组件看到同一个值） */
+const sseConnected = useAccountEvents().connected;
+
+/** 是否曾经连上过：区分「还没连上」与「连上后掉线」，避免首屏连接间隙误报 */
+const sseEverConnected = ref(sseConnected.value);
+watch(sseConnected, value => {
+  if (value) sseEverConnected.value = true;
+});
+
+/** 状态灯三态：off 未连接（懒连接，灰）/ on 已连接（绿）/ lost 曾连上后断开（黄） */
+const sseState = computed<'off' | 'on' | 'lost'>(() => {
+  if (sseConnected.value) return 'on';
+  return sseEverConnected.value ? 'lost' : 'off';
+});
+
+/** 状态灯悬停说明 */
+const sseHint = computed(() => {
+  if (sseState.value === 'on') return '实时推送已连接';
+  if (sseState.value === 'lost') return '实时推送已断开，点击重连';
+  return '实时推送未连接，点击连接';
+});
+
+/** 手动重连推送：自动重连放弃后给用户一个手动口子 */
+function reconnectSse(): void {
+  if (!sseConnected.value) {
+    try {
+      useAccountEvents().connect();
+    } catch {
+      /* 连接失败由 SSE 层自行记录，不打断页面 */
+    }
+  }
+}
+
 /** 新短信推送载荷（与 NewMailPush 同构：后端目录轮询发现新短信后广播） */
 interface NewSmsPush {
   accountId?: string;
@@ -1615,6 +1672,8 @@ interface IndexRow {
   tag: string;
   /** 标签语义 */
   tagTone: 'ok' | 'warn' | 'bad' | 'idle';
+  /** 标签悬停说明（生命周期 / 租期等合成状态的判定依据） */
+  tagHint?: string;
   /** 启停状态（0 停用；无启停概念时为 undefined） */
   status?: number;
   /** 是否选中 */
@@ -1642,10 +1701,31 @@ interface IndexGroup {
 }
 
 /**
+ * 临时资源租期预警档位：已过期 → bad；不足 24 小时 → warn；其余 ok。
+ *
+ * <p>临时邮箱 / 手机号都是短租期资源，只有「过期」一个红色态时，
+ * 「还剩 3 小时」和「还剩 5 天」看起来一样安全；24 小时内升级为警告色。</p>
+ *
+ * @param expireAt 租期到期毫秒时间戳（0 表示未知）
+ * @returns 预警档位
+ */
+function tempLeaseTone(expireAt: number): 'ok' | 'warn' | 'bad' {
+  if (!expireAt) return 'ok';
+  const left = expireAt - Date.now();
+  if (left <= 0) return 'bad';
+  return left < 86_400_000 ? 'warn' : 'ok';
+}
+
+/** 不足 1 小时的剩余文案（分钟向上保底 1，避免显示「剩 0m」） */
+function remainMinutesText(left: number): string {
+  return `剩 ${Math.max(1, Math.floor(left / 60000))}m`;
+}
+
+/**
  * 临时邮箱剩余时间文案。
  *
  * @param account 账号
- * @returns 如「剩 23h」「已过期」
+ * @returns 如「剩 23h」「剩 5h32m」「已过期」
  */
 function tempRemainText(account: SysAccount): string {
   const expireAt = tempMailExpireAt(account);
@@ -1653,8 +1733,11 @@ function tempRemainText(account: SysAccount): string {
   const left = expireAt - Date.now();
   if (left <= 0) return '已过期';
   const hours = Math.floor(left / 3600000);
-  if (hours >= 1) return `剩 ${hours}h`;
-  return `剩 ${Math.max(1, Math.floor(left / 60000))}m`;
+  if (hours >= 1) {
+    const minutes = Math.floor((left % 3600000) / 60000);
+    return minutes > 0 ? `剩 ${hours}h${minutes}m` : `剩 ${hours}h`;
+  }
+  return remainMinutesText(left);
 }
 
 /** 临时手机号剩余时间文案（同临时邮箱：到期前显示剩余时分） */
@@ -1664,8 +1747,41 @@ function tempPhoneRemainText(account: SysAccount): string {
   const left = expireAt - Date.now();
   if (left <= 0) return '已过期';
   const hours = Math.floor(left / 3600000);
-  if (hours >= 1) return `剩 ${hours}h`;
-  return `剩 ${Math.max(1, Math.floor(left / 60000))}m`;
+  if (hours >= 1) {
+    const minutes = Math.floor((left % 3600000) / 60000);
+    return minutes > 0 ? `剩 ${hours}h${minutes}m` : `剩 ${hours}h`;
+  }
+  return remainMinutesText(left);
+}
+
+/**
+ * AppKey 生命周期徽标：启停 + 有效期 + 使用痕迹合成一个标签。
+ *
+ * <p>只看「启用 / 停用」会漏掉三类隐患：快过期的钥匙、从没用过的钥匙、
+ * 长期闲置的钥匙。按 停用 → 已过期 → 即将到期 → 未使用 → 久未使用 → 启用
+ * 的优先级给出行内徽标与悬停说明，索引行与详情页头共用同一套判定。</p>
+ *
+ * @param row AppKey
+ * @returns 徽标文案、语义色与悬停说明
+ */
+function appKeyLifecycle(row: SysAccountAppKey): { tag: string; tone: IndexRow['tagTone']; hint: string } {
+  if (row.status === 0) return { tag: '停用', tone: 'idle', hint: '密钥已停用，调用会被拒绝' };
+  const now = Date.now();
+  if (row.expireAt && row.expireAt <= now) {
+    return { tag: '已过期', tone: 'bad', hint: `已于 ${formatShort(row.expireAt)} 过期` };
+  }
+  if (row.expireAt) {
+    const days = Math.ceil((row.expireAt - now) / 86_400_000);
+    if (days <= 7) {
+      return { tag: days <= 1 ? '即将过期' : `${days}天后到期`, tone: 'warn', hint: `${formatShort(row.expireAt)} 过期，记得轮换` };
+    }
+  }
+  if (!row.lastUsedAt) return { tag: '未使用', tone: 'warn', hint: '创建后从未被调用过' };
+  const idleDays = Math.floor((now - row.lastUsedAt) / 86_400_000);
+  if (idleDays >= 90) {
+    return { tag: '久未使用', tone: 'warn', hint: `最近使用在 ${formatShort(row.lastUsedAt)}，确认是否还需保留` };
+  }
+  return { tag: '启用', tone: 'ok', hint: '使用中' };
 }
 
 /** 左侧分组索引 */
@@ -1704,14 +1820,15 @@ const indexGroups = computed<IndexGroup[]>(() => {
     rows: sortedIndexAccounts.value
       .filter(row => isTempMail(row))
       .map<IndexRow>(row => {
-        const expiredMail = tempMailExpireAt(row) > 0 && tempMailExpireAt(row) < Date.now();
+        const tone = tempLeaseTone(tempMailExpireAt(row));
         return {
           id: row.accountId,
           name: row.username || row.name || '临时邮箱',
           sub: `${row.vendor || 'mail.tm'} · 临时收信`,
           meta: tempRemainText(row),
-          tag: expiredMail ? '过期' : '临时',
-          tagTone: expiredMail ? 'bad' : 'ok',
+          tag: tone === 'bad' ? '已过期' : tone === 'warn' ? '即将到期' : '临时',
+          tagTone: tone,
+          tagHint: tone === 'bad' ? '租期已到，随时可能被清理' : tone === 'warn' ? '租期不足 24 小时，需要就尽快使用' : '租期内正常使用',
           caps: capabilityTagsOf(row.config, row.kind),
           status: row.status,
           selected: selectedAccountId.value === row.accountId,
@@ -1728,14 +1845,15 @@ const indexGroups = computed<IndexGroup[]>(() => {
     rows: sortedIndexAccounts.value
       .filter(row => isTempPhone(row))
       .map<IndexRow>(row => {
-        const expiredPhone = tempPhoneExpireAt(row) > 0 && tempPhoneExpireAt(row) < Date.now();
+        const tone = tempLeaseTone(tempPhoneExpireAt(row));
         return {
           id: row.accountId,
           name: row.username || row.name || '临时手机号',
           sub: `${row.vendor || '本地目录'} · 只收短信`,
           meta: tempPhoneRemainText(row),
-          tag: expiredPhone ? '过期' : '临时',
-          tagTone: expiredPhone ? 'bad' : 'ok',
+          tag: tone === 'bad' ? '已过期' : tone === 'warn' ? '即将到期' : '临时',
+          tagTone: tone,
+          tagHint: tone === 'bad' ? '租期已到，随时可能被清理' : tone === 'warn' ? '租期不足 24 小时，需要就尽快使用' : '租期内正常使用',
           caps: capabilityTagsOf(row.config, row.kind),
           status: row.status,
           selected: selectedAccountId.value === row.accountId,
@@ -1750,18 +1868,22 @@ const indexGroups = computed<IndexGroup[]>(() => {
       key: 'APPKEY',
       label: 'AppKey',
       icon: 'Key',
-      rows: filteredAppKeys.value.map<IndexRow>(row => ({
-        id: row.appKeyId,
-        name: row.name || row.appKey || '未命名密钥',
-        sub: row.appKey || '—',
-        meta: formatShort(row.lastUsedAt),
-        tag: row.status === 0 ? '停用' : expired(row.expireAt) ? '过期' : '启用',
-        tagTone: row.status === 0 ? 'idle' : expired(row.expireAt) ? 'bad' : 'ok',
-        status: row.status,
-        selected: selectedAppKeyId.value === row.appKeyId,
-        checked: false,
-        checkable: false,
-      })),
+      rows: filteredAppKeys.value.map<IndexRow>(row => {
+        const life = appKeyLifecycle(row);
+        return {
+          id: row.appKeyId,
+          name: row.name || row.appKey || '未命名密钥',
+          sub: row.appKey || '—',
+          meta: formatShort(row.lastUsedAt),
+          tag: life.tag,
+          tagTone: life.tone,
+          tagHint: life.hint,
+          status: row.status,
+          selected: selectedAppKeyId.value === row.appKeyId,
+          checked: false,
+          checkable: false,
+        };
+      }),
     });
     groups.push({
       key: 'COOKIE',
@@ -1871,6 +1993,30 @@ const activeAppKey = computed(
 const activeCookie = computed(
   () => cookieList.value.find(row => row.cookieId === selectedCookieId.value) ?? null,
 );
+
+/** 选中 AppKey 的生命周期徽标（索引行与详情页头共用同一套判定） */
+const keyLife = computed(() => (activeAppKey.value ? appKeyLifecycle(activeAppKey.value) : null));
+
+/** 生命周期徽标的 ReTag 类型（语义色 → 组件类型） */
+const keyLifeTagType = computed(() => {
+  switch (keyLife.value?.tone) {
+    case 'warn':
+      return 'warning';
+    case 'bad':
+      return 'danger';
+    case 'idle':
+      return 'info';
+    default:
+      return 'success';
+  }
+});
+
+/** 选中账号的临时邮箱租期档位（详情页租期字段按档位着色） */
+const activeTempMailTone = computed<'ok' | 'warn' | 'bad'>(() => {
+  const account = activeAccount.value;
+  if (!account || !isTempMail(account)) return 'ok';
+  return tempLeaseTone(tempMailExpireAt(account));
+});
 
 /**
  * 是否具备收发信箱（仅邮箱 / 短信账号）。
@@ -3215,7 +3361,77 @@ function onWindowKeydown(event: KeyboardEvent): void {
   if (event.key === '/' && !isTypingTarget(event.target)) {
     event.preventDefault();
     searchInputRef.value?.focus();
+    return;
   }
+  // ↑/↓/Home/End 索引导航：输入中 / 批量模式 / 焦点不在索引区时一律让路
+  if (!isTypingTarget(event.target) && !batchMode.value && keydownInNavigationScope(event.target)) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveIndexSelection(1);
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveIndexSelection(-1);
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      jumpIndexRow(0);
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      jumpIndexRow(flatRows.value.length - 1);
+      return;
+    }
+  }
+}
+
+/**
+ * 方向键是否允许接管：焦点在索引行上，或没有特定焦点（body）时接管。
+ *
+ * <p>弹窗 / 抽屉打开时焦点自然落在里面，不满足条件即让路，
+ * 不需要逐个弹层排查。</p>
+ *
+ * @param target 事件目标
+ * @returns 是否处于可导航范围
+ */
+function keydownInNavigationScope(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el || el === document.body) return true;
+  return Boolean(railRef.value?.viewport?.contains(el));
+}
+
+/**
+ * 方向键移动索引选中行（到顶 / 到底自动停住）。
+ *
+ * @param delta 前进 / 后退行数
+ */
+function moveIndexSelection(delta: number): void {
+  const rows = flatRows.value;
+  if (!rows.length) return;
+  const currentId = selectedAccountId.value || selectedAppKeyId.value || selectedCookieId.value;
+  const at = rows.findIndex(item => item.row.id === currentId);
+  // 没有选中行时：向下从第一行开始，向上从最后一行开始
+  jumpIndexRow(at < 0 ? (delta > 0 ? 0 : rows.length - 1) : at + delta);
+}
+
+/**
+ * 跳到索引第 N 行（越界收敛到首尾），滚动进可视区并把焦点落到行按钮上。
+ *
+ * @param index 目标行号
+ */
+function jumpIndexRow(index: number): void {
+  const rows = flatRows.value;
+  if (!rows.length) return;
+  const entry = rows[Math.min(rows.length - 1, Math.max(0, index))];
+  focusIndexRow(entry.group, entry.row);
+  scrollRowIntoView(entry.row.id);
+  // 目标行可能还没挂载（滚动追加），挂载后把焦点落到行按钮，Tab 顺序跟着走
+  void nextTick(() => {
+    railRef.value?.viewport?.querySelector<HTMLElement>(`[data-row-id="${entry.row.id}"]`)?.focus();
+  });
 }
 
 /** 光标是否已在输入控件里（输入框 / 文本域 / 可编辑元素） */
@@ -3459,6 +3675,45 @@ onBeforeUnmount(() => {
 /* 行内所有控件统一 26px：搜索框 / 过滤胶囊 / 图标按钮 / 新建按钮落在同一条水平线上 */
 .bar-acts :deep(.el-button) {
   height: 26px;
+}
+/* ---------- 页面级推送状态灯 ---------- */
+.sse-led {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+}
+.sse-led:hover {
+  border-color: var(--el-color-primary-light-5);
+}
+.sse-led__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+.sse-led.is-on .sse-led__dot {
+  background: var(--status-success, var(--el-color-success, #2fbf71));
+}
+/* 断线：黄色 + 呼吸闪烁，和「从未连上」的灰点区分开 */
+.sse-led.is-lost .sse-led__dot {
+  background: var(--status-warning, var(--el-color-warning, #f0a020));
+  animation: sse-led-blink 1.6s ease-in-out infinite;
+}
+@keyframes sse-led-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 
 /* ---------- 内容舞台 ---------- */
@@ -4067,6 +4322,9 @@ onBeforeUnmount(() => {
 .fact .v.is-bad {
   color: var(--status-error);
 }
+.fact .v.is-warn {
+  color: var(--status-warning, var(--el-color-warning, #f0a020));
+}
 
 .cred-card {
   display: flex;
@@ -4256,6 +4514,54 @@ onBeforeUnmount(() => {
   font-size: 11.5px;
   line-height: 1.65;
   color: var(--text-tertiary);
+}
+
+/* ---------- 右栏加载骨架 / 分段错误重试 ---------- */
+.main-skel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px;
+}
+.main-skel-line {
+  display: block;
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-fill, var(--el-fill-color-light, #f2f3f5));
+  animation: idx-skel-pulse 1.6s ease-in-out infinite;
+}
+.main-skel-line.is-head {
+  width: 38%;
+  height: 20px;
+}
+.main-skel-line.is-line {
+  width: 88%;
+}
+.main-skel-line.is-short {
+  width: 62%;
+}
+.main-error {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--sev-p0-text);
+}
+.main-error button {
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  padding: 3px 14px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 /* ---------- 右键菜单 ---------- */

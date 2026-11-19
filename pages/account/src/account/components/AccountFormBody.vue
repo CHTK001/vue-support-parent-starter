@@ -1180,14 +1180,16 @@ async function claimPhone(): Promise<void> {
 async function submit(): Promise<void> {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) {
-    // 校验失败：滚到第一个错误项并尝试聚焦，长表单不必手动翻找错在哪
+    // 校验失败：定位到第一个错误项所在的分区并高亮，长表单不必手动翻找错在哪
     await nextTick();
     const host = formRef.value?.$el as HTMLElement | undefined;
     const firstError = host?.querySelector<HTMLElement>('.el-form-item.is-error');
-    firstError?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    firstError
-      ?.querySelector<HTMLElement>('input, textarea, .el-select__wrapper, .el-input-number, .el-segmented')
-      ?.focus({ preventScroll: true });
+    if (firstError && host) {
+      locateErrorSection(host, firstError);
+      firstError
+        .querySelector<HTMLElement>('input, textarea, .el-select__wrapper, .el-input-number, .el-segmented')
+        ?.focus({ preventScroll: true });
+    }
     return;
   }
   submitting.value = true;
@@ -1204,6 +1206,40 @@ async function submit(): Promise<void> {
   } finally {
     submitting.value = false;
   }
+}
+
+/**
+ * 把第一个校验错误定位到它所在的分区：左侧导航立即高亮该分区，
+ * 分区标题滚进可视区并闪烁一次，视线直接落到出错分区。
+ *
+ * <p>分区标题与字段是兄弟节点（标题不是字段的祖先，{@code closest} 找不到），
+ * 所以按文档顺序取「最后一个在错误项之前的 data-section」；找不到时退回
+ * 按错误项本身滚动。</p>
+ *
+ * @param host 表单根元素
+ * @param firstError 第一个含错的表单项
+ */
+function locateErrorSection(host: HTMLElement, firstError: HTMLElement): void {
+  const sections = Array.from(host.querySelectorAll<HTMLElement>('[data-section]'));
+  let target: HTMLElement | null = null;
+  for (const node of sections) {
+    if (node.compareDocumentPosition(firstError) & Node.DOCUMENT_POSITION_FOLLOWING) {
+      target = node;
+    } else {
+      break;
+    }
+  }
+  if (!target) {
+    firstError.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return;
+  }
+  const key = target.dataset.section;
+  if (key) activeSection.value = key;
+  target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  // 闪烁一次：remove + reflow + add，连续提交失败也能重新触发动画
+  target.classList.remove('is-flash');
+  void target.offsetWidth;
+  target.classList.add('is-flash');
 }
 
 /**
@@ -1360,6 +1396,17 @@ watch(
   background: var(--el-color-primary-light-9, #eef5ff);
   color: var(--el-color-primary, #1877ff);
   font-weight: 600;
+}
+/* 校验失败定位：出错分区标题闪烁一次，把视线引过去（动画结束自动回落本色） */
+.form-section.is-flash {
+  animation: form-section-flash 1.4s var(--ease-out, ease);
+}
+@keyframes form-section-flash {
+  0%,
+  55% {
+    color: var(--el-color-danger, #f56c6c);
+    border-left-color: var(--el-color-danger, #f56c6c);
+  }
 }
 .account-form {
   padding: 4px 8px 0;
