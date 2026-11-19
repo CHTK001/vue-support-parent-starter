@@ -219,9 +219,12 @@ export const deleteJar = (fileName: string) =>
 /**
  * 下载 bundle 对应的本地 jar。
  *
+ * <p>文件名带版本号：同符号名插件升级前后都能下载，不带版本会互相覆盖。</p>
+ *
  * @param symbolicName bundle 符号名
+ * @param version      bundle 版本，拼进下载文件名
  */
-export async function downloadBundle(symbolicName: string): Promise<void> {
+export async function downloadBundle(symbolicName: string, version?: string): Promise<void> {
   let response: Response;
   try {
     response = await fetch(base() + `/osgi/bundles/${encodeURIComponent(symbolicName)}/download`, {
@@ -242,7 +245,7 @@ export async function downloadBundle(symbolicName: string): Promise<void> {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${symbolicName}.jar`;
+  link.download = version ? `${symbolicName}-${version}.jar` : `${symbolicName}.jar`;
   document.body.appendChild(link);
   link.click();
   link.remove();
