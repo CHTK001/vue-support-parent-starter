@@ -97,6 +97,53 @@ let restoreObserver: MutationObserver | null = null;
 /** 容器创建时的样式快照，被篡改后按此还原 */
 let protectedStyleCssText = "";
 
+/** 完整性巡检定时器：兜底 MutationObserver 盲区（CSSOM insertRule、未内联声明的隐藏属性） */
+let integrityTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 巡检周期（毫秒）：低频即可，攻击窗口有限且无可感知开销 */
+const INTEGRITY_CHECK_INTERVAL = 800;
+
+/** 校验计算样式是否被外部样式压制（样式表注入 / CSSOM insertRule 等），偏离即回写快照或重建 */
+function verifyWatermarkIntegrity(): void {
+  if (!isWatermarkEnabled()) {
+    return;
+  }
+  const el = document.getElementById(GLOBAL_WATERMARK_ID);
+  if (!el || !el.isConnected) {
+    // 节点丢失且观察器未捕获（如整棵树被替换）→ 重建
+    applyGlobalWatermark();
+    return;
+  }
+  const cs = getComputedStyle(el);
+  // 统一按字符串读，规避个别属性的类型定义差异
+  const v = (name: string): string => String((cs as unknown as Record<string, unknown>)[name] ?? "");
+  const rect = el.getBoundingClientRect();
+  const broken =
+    v("display") === "none" ||
+    v("visibility") === "hidden" ||
+    v("opacity") === "0" ||
+    (v("transform") !== "none" && v("transform") !== "") ||
+    (v("scale") !== "none" && v("scale") !== "1") ||
+    (v("rotate") !== "none" && v("rotate") !== "0deg") ||
+    (v("translate") !== "none" && v("translate") !== "0px") ||
+    (v("filter") !== "none" && v("filter") !== "") ||
+    (v("clipPath") !== "none" && v("clipPath") !== "") ||
+    (v("maskImage") !== "none" && v("maskImage") !== "") ||
+    !v("backgroundImage").includes("data:image") ||
+    v("backgroundSize") === "0px 0px" ||
+    rect.width < window.innerWidth - 4 ||
+    rect.height < window.innerHeight - 4;
+  if (!broken) {
+    return;
+  }
+  // 按快照还原内联样式；节点已被移出 body 则直接重建
+  if (el.parentElement === document.body) {
+    el.style.cssText = protectedStyleCssText;
+  } else {
+    applyGlobalWatermark();
+  }
+}
+
 /** 当前水印是否启用（用于恢复时二次判断） */
 function isWatermarkEnabled(): boolean {
   return readGlobalWatermarkConfig().enable !== false;
@@ -143,6 +190,10 @@ function watchGlobalWatermark(container?: HTMLElement): void {
     protectedStyleCssText = container.style.cssText;
     restoreObserver.observe(container, { attributes: true, attributeFilter: ["style"] });
   }
+  // 启动低频完整性巡检（兜底 CSSOM 注入等观察器盲区）
+  if (integrityTimer === null && typeof setInterval !== "undefined") {
+    integrityTimer = setInterval(() => verifyWatermarkIntegrity(), INTEGRITY_CHECK_INTERVAL);
+  }
 }
 
 /** 断开防删除监听（水印关闭 / 应用销毁时调用） */
@@ -150,6 +201,10 @@ function unwatchGlobalWatermark(): void {
   if (restoreObserver) {
     restoreObserver.disconnect();
     restoreObserver = null;
+  }
+  if (integrityTimer !== null) {
+    clearInterval(integrityTimer);
+    integrityTimer = null;
   }
   protectedStyleCssText = "";
 }
@@ -164,9 +219,8 @@ export function applyGlobalWatermark(): void {
     // 关闭时移除水印并断开防删除监听
     unwatchGlobalWatermark();
     const oldWatermark = document.getElementById(GLOBAL_WATERMARK_ID);
-    if (oldWatermark) {
-      document.body.removeChild(oldWatermark);
-    }
+    // 用 remove() 而非 body.removeChild()：容器可能已被移到任意父级
+    oldWatermark?.remove();
     return;
   }
   const config = { ...defaultConfig, ...global, isGlobal: true };
@@ -175,21 +229,36 @@ export function applyGlobalWatermark(): void {
 
 // 创建全局水印
 const createGlobalWatermark = (config: any) => {
-  // 移除旧水印
-  const oldWatermark = document.getElementById(GLOBAL_WATERMARK_ID);
-  if (oldWatermark) document.body.removeChild(oldWatermark);
+  // 移除旧水印（可能被攻击者移到任意父级，remove() 从当前位置安全摘除）
+  document.getElementById(GLOBAL_WATERMARK_ID)?.remove();
   
   // 创建新水印容器
   const container = document.createElement("div");
   container.id = GLOBAL_WATERMARK_ID;
   
-  // 设置全局水印样式：关键属性带 !important，防止页面注入样式表压过内联样式
+  // 设置全局水印样式：关键属性带 !important，防止页面注入样式表（含 CSSOM insertRule）压过内联样式
   const styles: Record<string, string> = {
     position: "fixed",
     top: "0",
+    right: "0",
+    bottom: "0",
     left: "0",
     width: "100%",
     height: "100%",
+    margin: "0",
+    padding: "0",
+    overflow: "hidden",
+    display: "block",
+    visibility: "visible",
+    opacity: "1",
+    transform: "none",
+    scale: "1",
+    rotate: "none",
+    translate: "none",
+    filter: "none",
+    "clip-path": "none",
+    mask: "none",
+    "-webkit-mask": "none",
     "pointer-events": "none",
     "z-index": String(config.zIndex),
     "background-image": `url(${generateWatermarkCanvas(
@@ -199,8 +268,8 @@ const createGlobalWatermark = (config: any) => {
       config.rotate
     )})`,
     "background-repeat": "repeat",
-    display: "block",
-    opacity: "1"
+    "background-size": "auto",
+    "background-position": "0 0"
   };
   for (const [key, value] of Object.entries(styles)) {
     container.style.setProperty(key, value, "important");
