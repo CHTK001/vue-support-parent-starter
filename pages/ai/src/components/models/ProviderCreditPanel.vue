@@ -175,7 +175,16 @@
       </span>
       <!-- 导出当前窗口余额历史（含逐 Key 读数），便于线下对账 -->
       <button class="pc-trend__export" type="button" :disabled="!history.length" @click="exportHistoryCsv">导出 CSV</button>
-      <div class="pc-trend__plot" @mousemove="onTrendMove" @mouseleave="onTrendLeave">
+      <div
+        class="pc-trend__plot"
+        tabindex="0"
+        :aria-label="`余额走势：近 ${trendDays} 天 ${trend.length} 个读数点，左右方向键逐点查看读数，Esc 退出`"
+        @mousemove="onTrendMove"
+        @mouseleave="onTrendLeave"
+        @focus="onTrendFocus"
+        @blur="onTrendBlur"
+        @keydown="onTrendKeydown"
+      >
         <svg
           class="pc-trend__line"
           :viewBox="`0 0 ${TREND_W} ${TREND_H}`"
@@ -209,8 +218,8 @@
         <span v-for="g in trendGrid" :key="`tick-${g.key}`" class="pc-trend__tick" :style="{ top: g.top }">{{ g.text }}</span>
         <span class="pc-trend__dot" :style="trendLastStyle" aria-hidden="true"></span>
         <span v-if="trendTip" class="pc-trend__tip" :style="trendTip.style">{{ trendTip.text }}</span>
-        <!-- 悬停竖线：跟随光标的细参考线，配合读数快速对位到时间点 -->
-        <span v-if="hoverX" class="pc-trend__cursor" :style="{ left: hoverX }" aria-hidden="true"></span>
+        <!-- 读数竖线：悬停 / 键盘焦点所在的采样点，配合读数快速对位 -->
+        <span v-if="cursorLeft" class="pc-trend__cursor" :style="{ left: cursorLeft }" aria-hidden="true"></span>
         <!-- 失败回源断点：窗口内回源失败的时点在底缘标红点，解释折线缺口从哪来 -->
         <span
           v-for="(f, fi) in trendFailMarks"
@@ -222,7 +231,10 @@
       </div>
       <span class="pc-trend__range">{{ trendRangeText }}</span>
     </div>
-    <p v-else-if="!loading" class="pc-trend-empty">暂无足够历史数据（余额每次刷新后开始积累走势）</p>
+    <div v-else-if="!loading" class="pc-trend-empty">
+      <span>暂无足够历史数据——余额每次刷新后开始积累走势</span>
+      <button class="pc-trend-empty__refresh" type="button" title="强制回源刷新一次余额，并追加一条走势读数" @click="refreshTrend">立即刷新</button>
+    </div>
     <!-- 加载骨架屏：历史首拉期间占位，避免走势区空白跳变 -->
     <div v-else class="pc-trend-skeleton" aria-hidden="true">
       <span class="pc-trend-skeleton__line"></span>
@@ -257,12 +269,18 @@
 
     <!-- 一行两个 Key（容器窄于 860px 时自动退回一列，和渠道管理页同口径） -->
     <div v-else class="pc-list">
-      <article
-        v-for="row in rowsView"
-        :key="row.index"
-        class="pc-card"
-        :class="{ 'is-bad': !row.ok }"
-      >
+      <!-- 只看低量：多 Key 供应商快速定位「哪个 Key 快见底」；开关只影响详情卡片，不影响吸底条 -->
+      <label class="pc-low-toggle" title="只显示低于告警档的 Key（后端给了告警阈值按阈值判，否则按剩余 ≤20% 判）">
+        <input v-model="lowOnly" type="checkbox" />
+        <span>只看低量</span>
+      </label>
+      <template v-if="rowsShown.length">
+        <article
+          v-for="row in rowsShown"
+          :key="row.index"
+          class="pc-card"
+          :class="{ 'is-bad': !row.ok }"
+        >
         <div class="pc-card__top">
           <span class="pc-card__mask" :title="row.mask">{{ row.mask }}</span>
           <span v-if="row.source" class="pc-card__src">{{ sourceLabel(row.source) }}</span>
@@ -278,6 +296,13 @@
             class="pc-card__pct"
             :class="toneClass(row.percent)"
           >剩余 {{ row.percent }}%</span>
+          <!-- 较上一采样点的余额变化：↑ 增 / ↓ 减 / — 持平（±0.005 以内按持平处理） -->
+          <span
+            v-if="row.delta !== null && row.delta !== undefined"
+            class="pc-card__delta"
+            :class="row.delta > 0.005 ? 'is-up' : row.delta < -0.005 ? 'is-down' : 'is-flat'"
+            :title="`较上一采样点${row.delta > 0.005 ? '增加' : row.delta < -0.005 ? '减少' : '持平'} ${money(Math.abs(row.delta))}`"
+          >{{ row.delta > 0.005 ? '↑' : row.delta < -0.005 ? '↓' : '—' }} {{ money(Math.abs(row.delta)) }}</span>
         </div>
 
         <template v-if="row.ok">
@@ -435,13 +460,16 @@
           type="button"
           @click="emit('edit-provider', { focusSection: 'balance' })"
         >去配置余额密钥</button>
-      </article>
+        </article>
+      </template>
+      <p v-else class="pc-low-empty">没有低于告警档的 Key</p>
     </div>
 
     <!--
-      告警设置浮层：阈值 / 接收人就地改，顺带展示当前余额与上次推送时间。
+      告警设置浮层：阈值 / 接收人 / 推送渠道就地改，顺带展示当前余额与上次推送时间。
       保存走 PUT /providers/{id} 的 extra（整列覆盖）—— 先 GET 取原 extra
-      合并再提交，只动 credit_warn_threshold / credit_warn_receivers 两个键，
+      合并再提交，只动 credit_warn_threshold / credit_warn_receivers /
+      credit_warn_channels / credit_warn_emails / credit_warn_webhook 几个键，
       credit_key 等其余配置不动。吸底条与详情卡的「低于阈值」徽标都点到这里。
     -->
     <div v-if="alertOpen" class="pc-alert-pop">
@@ -452,6 +480,24 @@
       <div class="pc-alert-facts">
         <span class="pc-alert-fact"><i>当前余额</i><b>{{ alertRemainText }}</b></span>
         <span class="pc-alert-fact"><i>上次推送</i><b>{{ alertLastPushedText }}</b></span>
+      </div>
+      <!-- 最近推送留痕：低量 / 恢复各一行，核对「推没推、推给谁、当时余额多少」 -->
+      <div v-if="alertLogs.length" class="pc-alert-logs">
+        <span class="pc-alert-logs__title">最近推送</span>
+        <ul class="pc-alert-logs__list">
+          <li
+            v-for="(log, i) in alertLogs"
+            :key="i"
+            class="pc-alert-log"
+            :class="log.type === 'RECOVERY' ? 'is-recovery' : 'is-warn'"
+          >
+            <span class="pc-alert-log__time">{{ alertLogTime(log.pushed_at) }}</span>
+            <span class="pc-alert-log__type">{{ log.type === 'RECOVERY' ? '恢复' : '低量' }}</span>
+            <span v-if="log.channels" class="pc-alert-log__chan" :title="`渠道：${log.channels}`">{{ log.channels }}</span>
+            <span class="pc-alert-log__fact">余额 {{ alertLogMoney(log.remain) }} / 阈值 {{ alertLogMoney(log.threshold) }}</span>
+            <span v-if="log.receivers" class="pc-alert-log__recv" :title="`接收人：${log.receivers}`">→ {{ log.receivers }}</span>
+          </li>
+        </ul>
       </div>
       <label class="pc-alert-field">
         <span class="pc-alert-label">告警阈值</span>
@@ -469,7 +515,34 @@
           v-model="alertReceivers"
           class="pc-alert-input"
           type="text"
-          placeholder="用户 ID，逗号分隔；留空不推送"
+          placeholder="用户 ID，逗号分隔；站内信渠道用"
+        />
+      </label>
+      <div class="pc-alert-field">
+        <span class="pc-alert-label">推送渠道</span>
+        <div class="pc-alert-channels">
+          <label v-for="ch in ALERT_CHANNEL_OPTIONS" :key="ch.value" class="pc-alert-channel">
+            <input v-model="alertChannels" type="checkbox" :value="ch.value" />
+            <span>{{ ch.label }}</span>
+          </label>
+        </div>
+      </div>
+      <label v-if="alertChannels.includes('email')" class="pc-alert-field">
+        <span class="pc-alert-label">邮箱收件人</span>
+        <input
+          v-model="alertEmails"
+          class="pc-alert-input"
+          type="text"
+          placeholder="邮箱地址，逗号分隔"
+        />
+      </label>
+      <label v-if="alertChannels.includes('webhook')" class="pc-alert-field">
+        <span class="pc-alert-label">Webhook 地址</span>
+        <input
+          v-model="alertWebhook"
+          class="pc-alert-input"
+          type="text"
+          placeholder="钉钉 / 企微 / 飞书机器人 Webhook（https://…）"
         />
       </label>
       <p v-if="alertError" class="pc-alert-err">{{ alertError }}</p>
@@ -620,8 +693,40 @@ const alertSaving = ref(false)
 const alertError = ref('')
 const alertThreshold = ref('')
 const alertReceivers = ref('')
+/** 推送渠道多选（value 与后端 creditWarnChannels 的合法值一致；空时后端默认 inbox） */
+const alertChannels = ref<string[]>(['inbox'])
+/** 邮件渠道收件人（逗号分隔文本，提交时解析成数组） */
+const alertEmails = ref('')
+/** Webhook 渠道机器人地址 */
+const alertWebhook = ref('')
+
+/** 推送渠道选项 */
+const ALERT_CHANNEL_OPTIONS = [
+  { value: 'inbox', label: '站内信' },
+  { value: 'email', label: '邮件' },
+  { value: 'webhook', label: 'Webhook' },
+]
 /** 最近一次告警 / 恢复推送时间（epoch 毫秒；null = 从未推送） */
 const lastPushedAt = ref<number | null>(null)
+
+/** 告警推送留痕行（GET /credit/alerts 的 alerts 元素，按推送时间倒序） */
+interface CreditAlertLogItem {
+  /** 推送类型：WARN=低量告警 / RECOVERY=恢复通知 */
+  type?: string | null
+  /** 推送时的剩余余额 */
+  remain?: number | null
+  /** 推送时的告警阈值 */
+  threshold?: number | null
+  /** 接收人用户 ID（逗号分隔） */
+  receivers?: string | null
+  /** 送达渠道（逗号分隔：inbox=站内信 / email=邮件 / webhook=机器人 Webhook） */
+  channels?: string | null
+  /** 推送时间（epoch 毫秒） */
+  pushed_at?: number | null
+}
+
+/** 浮层里展示的最近推送留痕（最多 10 条） */
+const alertLogs = ref<CreditAlertLogItem[]>([])
 
 /** 浮层里的「当前余额」：取面板最新汇总读数，无读数显示 — */
 const alertRemainText = computed(() => {
@@ -641,6 +746,22 @@ const alertLastPushedText = computed(() => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 })
 
+/** 留痕时间文案：毫秒 -> 「MM-DD HH:mm」；无值显示 — */
+const alertLogTime = (ms?: number | null) => {
+  if (!ms) return '—'
+  const d = new Date(ms)
+  if (Number.isNaN(d.getTime())) return '—'
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** 留痕金额文案：无值显示 — */
+const alertLogMoney = (v?: number | null) => {
+  if (v === null || v === undefined) return '—'
+  const n = Number(v)
+  return Number.isFinite(n) ? n.toFixed(2) : '—'
+}
+
 /**
  * 打开 / 收起告警设置浮层：打开时拉当前 extra（阈值 / 接收人）与上次推送时间。
  *
@@ -657,7 +778,7 @@ const openAlertSettings = async () => {
   try {
     const [providerRes, alertsRes] = await Promise.all([
       adminApi.get(`/api/providers/${encodeURIComponent(providerId)}`),
-      adminApi.get(`/api/providers/${encodeURIComponent(providerId)}/credit/alerts?limit=1`).catch(() => null),
+      adminApi.get(`/api/providers/${encodeURIComponent(providerId)}/credit/alerts?limit=10`).catch(() => null),
     ])
     const provider = providerRes?.data ?? providerRes
     const extra = provider?.extra && typeof provider.extra === 'object' ? provider.extra : {}
@@ -665,8 +786,17 @@ const openAlertSettings = async () => {
     alertThreshold.value = threshold === null || threshold === undefined ? '' : String(threshold)
     const receivers = extra.credit_warn_receivers
     alertReceivers.value = Array.isArray(receivers) ? receivers.join(', ') : receivers ? String(receivers) : ''
+    const channels = extra.credit_warn_channels
+    const channelList = (Array.isArray(channels) ? channels : channels ? String(channels).split(/[,，;；\s]+/) : ['inbox'])
+      .map((v) => String(v).trim().toLowerCase())
+      .filter((v) => ALERT_CHANNEL_OPTIONS.some((o) => o.value === v))
+    alertChannels.value = channelList.length ? channelList : ['inbox']
+    const emails = extra.credit_warn_emails
+    alertEmails.value = Array.isArray(emails) ? emails.join(', ') : emails ? String(emails) : ''
+    alertWebhook.value = extra.credit_warn_webhook ? String(extra.credit_warn_webhook) : ''
     const alerts = alertsRes ? (alertsRes.data ?? alertsRes) : null
     lastPushedAt.value = typeof alerts?.last_pushed_at === 'number' ? alerts.last_pushed_at : null
+    alertLogs.value = Array.isArray(alerts?.alerts) ? (alerts.alerts as CreditAlertLogItem[]) : []
   } catch (e: any) {
     alertError.value = e?.response?.data?.message || e?.message || '读取告警设置失败'
   } finally {
@@ -684,8 +814,8 @@ const openAlertFromBar = () => {
 
 /**
  * 保存告警设置：PUT /providers/{id} 的 extra 是整列覆盖，先 GET 现值合并、
- * 只改告警两个键再提交；阈值留空 = 删除该键（关闭告警），
- * 接收人留空 = 删除该键（不推送）。保存后强制回源重评告警。
+ * 只改告警相关键再提交；阈值留空 = 删除该键（关闭告警），接收人留空 = 删除该键；
+ * 渠道未勾选时提交 inbox（后端默认口径）。保存后强制回源重评告警。
  */
 const saveAlertSettings = async () => {
   const providerId = String(props.providerId || '').trim()
@@ -710,6 +840,30 @@ const saveAlertSettings = async () => {
     }
     if (!receivers.includes(id)) receivers.push(id)
   }
+  const channels = alertChannels.value.filter((v) => ALERT_CHANNEL_OPTIONS.some((o) => o.value === v))
+  if (!channels.length) channels.push('inbox')
+  const emails: string[] = []
+  for (const part of alertEmails.value.split(/[,，;；\s]+/)) {
+    if (!part) continue
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(part)) {
+      alertError.value = `邮箱收件人格式不对：「${part}」`
+      return
+    }
+    if (!emails.includes(part)) emails.push(part)
+  }
+  if (channels.includes('email') && !emails.length) {
+    alertError.value = '选择了邮件渠道，请填写邮箱收件人'
+    return
+  }
+  const webhook = alertWebhook.value.trim()
+  if (channels.includes('webhook') && !/^https?:\/\//i.test(webhook)) {
+    alertError.value = '选择了 Webhook 渠道，请填写 http(s) 机器人地址'
+    return
+  }
+  if (channels.includes('inbox') && !receivers.length) {
+    alertError.value = '选择了站内信渠道，请填写接收人用户 ID'
+    return
+  }
   alertSaving.value = true
   alertError.value = ''
   try {
@@ -720,6 +874,11 @@ const saveAlertSettings = async () => {
     else extra.credit_warn_threshold = threshold
     if (!receivers.length) delete extra.credit_warn_receivers
     else extra.credit_warn_receivers = receivers
+    extra.credit_warn_channels = channels
+    if (emails.length) extra.credit_warn_emails = emails
+    else delete extra.credit_warn_emails
+    if (webhook) extra.credit_warn_webhook = webhook
+    else delete extra.credit_warn_webhook
     await adminApi.put(`/api/providers/${encodeURIComponent(providerId)}`, { extra })
     alertOpen.value = false
     // 阈值变了要重评告警：强制回源走实时判定路径
@@ -747,6 +906,8 @@ const KIND_LABELS: Record<string, string> = {
   ppio: 'PPIO 派欧云官方',
   anthropic: 'Anthropic 控制台余额',
   xai: 'xAI 管理接口余额',
+  sub2api: 'sub2api 订阅',
+  'new-api': 'new-api 站点额度',
 }
 
 /** 读数来源的短标签（卡片右上角） */
@@ -758,6 +919,7 @@ const SOURCE_LABELS: Record<string, string> = {
   sensenova: 'SenseNova',
   shusheng: '书生·端砚',
   sub2api: 'sub2api 订阅',
+  'new-api': 'new-api',
   'minimax-platform': 'MiniMax',
   modelscope: 'ModelScope',
   zai: 'z.ai',
@@ -1192,11 +1354,38 @@ const extraChipsOf = (row: CreditRow): ExtraChip[] => {
   return chips
 }
 
+/**
+ * 每 Key 较上一采样点的余额变化（mask -> 差值）。
+ *
+ * <p>从逐 Key 历史里取每个掩码「最近两次成功读数」相减；不足两次或算不出
+ * 的 Key 不产出，卡片就不显示涨跌徽标。纯前端汇总，/credit/history 已带逐 Key 行。</p>
+ */
+const keyDeltas = computed(() => {
+  const seq = new Map<string, Array<{ t: number; v: number }>>()
+  for (const p of history.value) {
+    if (!p || !p.ok || !p.key_mask) continue
+    const v = Number(p.remain)
+    const t = Number(p.synced_at)
+    if (!Number.isFinite(v) || !Number.isFinite(t)) continue
+    const arr = seq.get(p.key_mask)
+    if (arr) arr.push({ t, v })
+    else seq.set(p.key_mask, [{ t, v }])
+  }
+  const deltas: Record<string, number> = {}
+  for (const [mask, arr] of seq) {
+    if (arr.length < 2) continue
+    arr.sort((a, b) => a.t - b.t)
+    const d = arr[arr.length - 1].v - arr[arr.length - 2].v
+    if (Number.isFinite(d)) deltas[mask] = d
+  }
+  return deltas
+})
+
 /** 每行的占比（渲染时算一次，模板里反复用） */
 const CJK_RE = /[\u4e00-\u9fa5]/
 
 const rowsView = computed(() => rows.value.map((row) => {
-  if (!row.ok) return { ...row, percent: null, metrics: [], usedLabel: '已用', poolsView: [] as PoolView[], subsView: [] as SubView[], planName: '', extraChips: [] as ExtraChip[], usageText: '', keyUsageText: '', expiry: tokenExpiryOf(row) }
+  if (!row.ok) return { ...row, percent: null, delta: keyDeltas.value[row.mask] ?? null, metrics: [], usedLabel: '已用', poolsView: [] as PoolView[], subsView: [] as SubView[], planName: '', extraChips: [] as ExtraChip[], usageText: '', keyUsageText: '', expiry: tokenExpiryOf(row) }
   const total = row.total ?? row.remain
   const parts = row.parts || []
   const usedLabel = parts[1]?.label && CJK_RE.test(parts[1].label) ? parts[1].label : '已用'
@@ -1204,6 +1393,8 @@ const rowsView = computed(() => rows.value.map((row) => {
     ...row,
     total,
     percent: percentOf(row.remain, total),
+    /** 较上一采样点的余额变化（无两次成功读数为 null） */
+    delta: keyDeltas.value[row.mask] ?? null,
     parts,
     /** 主余额与已用之外的一次性读数：冻结 / 本月已用 / 日均消费 / 预计可用天数等 */
     metrics: parts.slice(2),
@@ -1224,6 +1415,24 @@ const rowsView = computed(() => rows.value.map((row) => {
     expiry: tokenExpiryOf(row),
   }
 }))
+
+/* ==================== 只看低量 ==================== */
+
+/** 只看低量开关：开启后详情卡片只显示低于告警档的 Key */
+const lowOnly = ref(false)
+
+/** 单行是否低量：优先按后端告警阈值（绝对余额）判；阈值未知时退回「剩余 ≤20%」 */
+const isLowRow = (row: (typeof rowsView.value)[number]) => {
+  if (!row.ok) return false
+  const threshold = Number(meta.value.warn?.threshold)
+  if (Number.isFinite(threshold) && row.remain !== null && row.remain !== undefined) {
+    return Number(row.remain) <= threshold
+  }
+  return row.percent !== null && row.percent !== undefined && row.percent <= 20
+}
+
+/** 详情卡片实际渲染的行：只看低量时过滤；过滤后为空交给模板的空提示 */
+const rowsShown = computed(() => (lowOnly.value ? rowsView.value.filter(isLowRow) : rowsView.value))
 
 /**
  * 顶部汇总。
@@ -1288,13 +1497,31 @@ const history = ref<CreditHistoryPoint[]>([])
 /** 走势时间窗可选值（天）：后端 /credit/history 的 days 夹取 1~90 */
 const TREND_WINDOWS = [7, 30, 90] as const
 
-/** 当前走势时间窗（天）：切窗即重拉历史 */
-const trendDays = ref<number>(7)
+/** 时间窗偏好在 localStorage 里的键：同一浏览器下次打开沿用上次选择 */
+const TREND_DAYS_STORAGE_KEY = 'pc-credit-trend-days'
+
+/** 读一次时间窗偏好；值不在候选里（或读不到，如隐私模式）时回退 7 天 */
+const readStoredTrendDays = (): number => {
+  try {
+    const v = Number(window.localStorage.getItem(TREND_DAYS_STORAGE_KEY))
+    return (TREND_WINDOWS as readonly number[]).includes(v) ? v : 7
+  } catch {
+    return 7
+  }
+}
+
+/** 当前走势时间窗（天）：切窗即重拉历史；初值来自上次保存的偏好 */
+const trendDays = ref<number>(readStoredTrendDays())
 
 /** 切换时间窗并重拉历史；同窗口重复点击不重发请求 */
 const setTrendWindow = (d: number) => {
   if (trendDays.value === d) return
   trendDays.value = d
+  try {
+    window.localStorage.setItem(TREND_DAYS_STORAGE_KEY, String(d))
+  } catch {
+    /* 存不进就算了：偏好是增值信息，不影响走势本身 */
+  }
   void loadHistory()
 }
 
@@ -1589,11 +1816,23 @@ const exportHistoryCsv = () => {
   URL.revokeObjectURL(url)
 }
 
-/** 悬停聚焦的走势点下标（null = 未悬停） */
+/** 鼠标悬停的走势点下标（null = 未悬停） */
 const hoverIdx = ref<number | null>(null)
 
-/** 悬停竖线位置（光标 x 占画布宽的百分比；null = 未悬停） */
-const hoverX = ref<string | null>(null)
+/** 键盘聚焦的走势点下标（null = 未聚焦）；与悬停共用同一套读数与竖线 */
+const focusIdx = ref<number | null>(null)
+
+/** 展示用焦点下标：鼠标悬停优先，其次键盘焦点 */
+const activeIdx = computed(() => hoverIdx.value ?? focusIdx.value)
+
+/** 读数竖线位置：焦点点的横向百分比（null = 无焦点），与读数气泡同点对齐 */
+const cursorLeft = computed(() => {
+  const pts = trend.value
+  const i = activeIdx.value
+  if (i === null || pts.length < 2) return null
+  const idx = Math.min(pts.length - 1, Math.max(0, i))
+  return `${((idx / (pts.length - 1)) * 100).toFixed(2)}%`
+})
 
 /** 悬停时把鼠标位置换算成最近的数据点（x 均分，比例映射回下标） */
 const onTrendMove = (e: MouseEvent) => {
@@ -1602,20 +1841,54 @@ const onTrendMove = (e: MouseEvent) => {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   const ratio = rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0
   hoverIdx.value = Math.min(pts.length - 1, Math.max(0, Math.round(ratio * (pts.length - 1))))
-  hoverX.value = `${(ratio * 100).toFixed(2)}%`
 }
 
-/** 离开走势区：收起悬停读数与竖线 */
+/** 离开走势区：收起悬停读数与竖线（键盘焦点不受影响） */
 const onTrendLeave = () => {
   hoverIdx.value = null
-  hoverX.value = null
 }
 
-/** 悬停读数：跟随最近数据点的文字与位置（left 用百分比，配合横向拉伸坐标） */
+/** 走势区获得键盘焦点：默认停在最新读数点 */
+const onTrendFocus = () => {
+  const pts = trend.value
+  if (pts.length < 2) return
+  if (focusIdx.value === null) focusIdx.value = pts.length - 1
+}
+
+/** 走势区失焦：收起键盘读数与竖线 */
+const onTrendBlur = () => {
+  focusIdx.value = null
+}
+
+/** 键盘逐点读数：←/→ 移动、Home/End 跳首末、Esc 收起；方向键不滚动页面 */
+const onTrendKeydown = (e: KeyboardEvent) => {
+  const pts = trend.value
+  if (pts.length < 2) return
+  const lastIdx = pts.length - 1
+  const cur = Math.min(lastIdx, Math.max(0, focusIdx.value ?? lastIdx))
+  if (e.key === 'ArrowLeft') {
+    focusIdx.value = Math.max(0, cur - 1)
+    e.preventDefault()
+  } else if (e.key === 'ArrowRight') {
+    focusIdx.value = Math.min(lastIdx, cur + 1)
+    e.preventDefault()
+  } else if (e.key === 'Home') {
+    focusIdx.value = 0
+    e.preventDefault()
+  } else if (e.key === 'End') {
+    focusIdx.value = lastIdx
+    e.preventDefault()
+  } else if (e.key === 'Escape') {
+    focusIdx.value = null
+    e.preventDefault()
+  }
+}
+
+/** 悬停 / 键盘焦点的读数：跟随最近数据点的文字与位置（left 用百分比，配合横向拉伸坐标） */
 const trendTip = computed(() => {
   const pts = trend.value
-  if (hoverIdx.value === null || pts.length < 2) return null
-  const i = Math.min(pts.length - 1, Math.max(0, hoverIdx.value))
+  if (activeIdx.value === null || pts.length < 2) return null
+  const i = Math.min(pts.length - 1, Math.max(0, activeIdx.value))
   // 靠近左右边缘时翻转对齐，读数始终留在图内：默认居中于点，边域改为单侧贴齐
   const ratio = i / (pts.length - 1)
   const transform = ratio > 0.72
@@ -1721,13 +1994,18 @@ const load = async (force = false) => {
   }
 }
 
+/** 空态「立即刷新」：强制回源一次余额（顺带重拉历史）——走势读数就是这么积累出来的 */
+const refreshTrend = () => {
+  void load(true)
+}
+
 watch(() => props.providerId, () => {
   rows.value = []
   meta.value = {}
   error.value = ''
   history.value = []
   expanded.value = false
-  trendDays.value = 7
+  trendDays.value = readStoredTrendDays()
   alertOpen.value = false
   lastPushedAt.value = null
   load()
@@ -1871,6 +2149,74 @@ onMounted(load)
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
+/* 最近推送留痕：时间 + 类型 + 余额/阈值 + 接收人，低量红点恢复绿点 */
+.pc-alert-logs {
+  margin-bottom: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-subtle, var(--el-border-color-lighter));
+}
+.pc-alert-logs__title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary, var(--el-text-color-secondary));
+  margin-bottom: 6px;
+}
+.pc-alert-logs__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 168px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pc-alert-log {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  padding-left: 12px;
+  color: var(--color-text-secondary, var(--el-text-color-secondary));
+}
+.pc-alert-log::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-danger);
+}
+.pc-alert-log.is-recovery::before {
+  background: var(--el-color-success);
+}
+.pc-alert-log__time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+}
+.pc-alert-log__type {
+  font-weight: 600;
+  color: var(--el-color-danger);
+}
+.pc-alert-log.is-recovery .pc-alert-log__type {
+  color: var(--el-color-success);
+}
+.pc-alert-log__fact {
+  font-variant-numeric: tabular-nums;
+}
+.pc-alert-log__recv {
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .pc-alert-fact {
   display: inline-flex;
   flex-direction: column;
@@ -1909,6 +2255,33 @@ onMounted(load)
 }
 .pc-alert-input:focus {
   border-color: var(--el-color-primary);
+}
+.pc-alert-channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 2px 0;
+}
+.pc-alert-channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text, var(--el-text-color-primary));
+  cursor: pointer;
+}
+.pc-alert-channel input {
+  margin: 0;
+  accent-color: var(--el-color-primary);
+}
+.pc-alert-log__chan {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, var(--el-border-color));
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--color-text-secondary, var(--el-text-color-secondary));
 }
 .pc-alert-err {
   margin: 0 0 8px;
@@ -2267,6 +2640,28 @@ onMounted(load)
 .pc-card__pct.is-mid {
   color: var(--el-color-warning);
   background: color-mix(in srgb, var(--el-color-warning) 12%, transparent);
+}
+/* 较上一采样点的涨跌徽标：涨绿 / 跌红 / 平灰，紧跟剩余占比之后 */
+.pc-card__delta {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pc-card__delta.is-up {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+.pc-card__delta.is-down {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+.pc-card__delta.is-flat {
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+  background: var(--el-fill-color-light, transparent);
 }
 .pc-card__nums {
   display: flex;
@@ -2929,7 +3324,53 @@ onMounted(load)
   white-space: nowrap;
 }
 .pc-trend-empty {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
   margin: 2px 0 10px;
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+}
+/* 空态引导的「立即刷新」：就地强制回源一次，让走势开始积累 */
+.pc-trend-empty__refresh {
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-secondary, var(--el-text-color-secondary));
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.pc-trend-empty__refresh:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+/* 走势区可键盘聚焦：焦点圈只走键盘（focus-visible），鼠标点击不打圈 */
+.pc-trend__plot:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* 只看低量开关：贴详情列表顶部，弱化不抢戏 */
+.pc-low-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+  cursor: pointer;
+  user-select: none;
+  width: fit-content;
+}
+.pc-low-toggle input {
+  accent-color: var(--el-color-primary);
+}
+.pc-low-empty {
+  grid-column: 1 / -1;
+  margin: 4px 0;
   font-size: 11px;
   color: var(--text-tertiary, var(--el-text-color-placeholder));
 }

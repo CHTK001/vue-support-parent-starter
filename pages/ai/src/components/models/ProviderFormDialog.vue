@@ -42,6 +42,8 @@ const detectSeq = ref(0)
 const detectUrl = ref('')
 const detectRows = ref<{ protocol: string; label: string; icon: string; ok: boolean; message: string; url?: string }[]>([])
 const detectFoot = ref('')
+// 检测时顺带识别的中转网关（new-api / sub2api）：命中后余额会按对应口径自动查询
+const detectGateway = ref<{ name: string; label: string; detail: string } | null>(null)
 // 用户在检测结果里「点击采用」的协议：命中的行高亮，重开检测时清空
 const appliedProtocol = ref('')
 /**
@@ -122,6 +124,55 @@ const parseWarnReceivers = (text: string | Array<string | number>) => {
 const normalizeReceivers = (vals: Array<string | number> | string) => {
   const raw = Array.isArray(vals) ? vals.join(',') : String(vals || '')
   return [...new Set(raw.split(/[,，;；\s]+/).map((s) => s.trim()).filter(Boolean))]
+}
+
+/** 接收人候选行（后端从 ai 会话表按最近活跃取，/credit/receiver-candidates） */
+interface ReceiverCandidate {
+  user_id: string
+  last_active_at?: number | null
+}
+
+/** 远程搜索到的候选；搜索失败 / 未搜索时为空，下拉退化为只显示已选值 */
+const receiverCandidates = ref<ReceiverCandidate[]>([])
+const receiverLoading = ref(false)
+
+/** 候选的辅助说明：最近活跃时间（算不出就不显示） */
+const receiverHint = (c: ReceiverCandidate) => {
+  const ms = Number(c.last_active_at)
+  if (!Number.isFinite(ms) || !ms) return ''
+  const d = new Date(ms)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `最近活跃 ${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** 下拉选项 = 搜索结果 ∪ 已选值：已选值始终可见，远程结果没含它时标签也不会退化成裸 ID */
+const receiverOptionItems = computed(() => {
+  const items: Array<{ value: string; label: string; hint: string }> = []
+  const seen = new Set<string>()
+  const push = (id: string, hint: string) => {
+    const key = String(id).trim()
+    if (!key || seen.has(key)) return
+    seen.add(key)
+    items.push({ value: key, label: key, hint })
+  }
+  for (const c of receiverCandidates.value) push(c.user_id, receiverHint(c))
+  for (const v of form.creditWarnReceivers) push(String(v), '已选')
+  return items
+})
+
+/** 远程搜索接收人候选：失败静默（手输 ID 兜底仍可用，不打断表单） */
+const searchReceiverCandidates = async (keyword: string) => {
+  receiverLoading.value = true
+  try {
+    const res: any = await adminApi.get(`/api/providers/credit/receiver-candidates?keyword=${encodeURIComponent(String(keyword || '').trim())}`)
+    const data = res?.data ?? res
+    receiverCandidates.value = Array.isArray(data) ? (data as ReceiverCandidate[]) : []
+  } catch {
+    receiverCandidates.value = []
+  } finally {
+    receiverLoading.value = false
+  }
 }
 
 /**
@@ -615,6 +666,7 @@ const resetForm = () => {
   detecting.value = false
   detectRows.value = []
   detectFoot.value = ''
+  detectGateway.value = null
   detectUrl.value = ''
   // 每次打开表单都从折叠态开始：上一家的「高级」展开状态不该带到新供应商
   advancedOpen.value = false
@@ -837,10 +889,12 @@ const openDetectProtocol = async () => {
       url: x.url || '',
     }))
     detectFoot.value = data?.foot || ''
+    detectGateway.value = data?.gateway || null
   } catch (error: any) {
     if (seq !== detectSeq.value) return
     detectRows.value = []
     detectFoot.value = error?.response?.data?.message || error?.message || '检测失败'
+    detectGateway.value = null
   } finally {
     if (seq === detectSeq.value) detecting.value = false
   }
@@ -1216,6 +1270,7 @@ watch(() => form.apiUrl, (v) => {
   detecting.value = false
   detectRows.value = []
   detectFoot.value = ''
+  detectGateway.value = null
 })
 
 /**
@@ -1422,6 +1477,10 @@ const protocolOptions = [
       <span class="pf-detect-msg">{{ row.message }}</span>
       <span v-if="row.ok" class="pf-detect-apply">点击采用</span>
     </div>
+    <!-- 自动适配：识别出中转网关时告知余额会按哪套口径自动查询 -->
+    <p v-if="detectGateway" class="pf-detect-gateway">
+      已识别 {{ detectGateway.label }}：{{ detectGateway.detail }}
+    </p>
     <p v-if="detectFoot && detectRows.length" class="pf-detect-foot">{{ detectFoot }}</p>
   </div>
         </div>
@@ -1801,14 +1860,27 @@ const protocolOptions = [
                 class="pf-receivers"
                 multiple
                 filterable
+                remote
+                clearable
                 allow-create
                 default-first-option
+                :remote-method="searchReceiverCandidates"
+                :loading="receiverLoading"
                 placeholder="输入用户 ID 后回车添加，可粘贴「1,2」批量"
+                @visible-change="(v: boolean) => { if (v && !receiverCandidates.length) void searchReceiverCandidates('') }"
                 @change="form.creditWarnReceivers = normalizeReceivers($event)"
               >
-                <el-option v-for="id in form.creditWarnReceivers" :key="id" :label="id" :value="id" />
+                <el-option
+                  v-for="item in receiverOptionItems"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                >
+                  <span class="pf-receiver-id">{{ item.label }}</span>
+                  <span v-if="item.hint" class="pf-receiver-hint">{{ item.hint }}</span>
+                </el-option>
               </el-select>
-              <p class="pf-note">填消息中心可投递的用户 ID（正整数，不是登录账号）；回车逐个添加或粘贴「1,2」批量录入。留空则只在余额面板提示、不推送。</p>
+              <p class="pf-note">填消息中心可投递的用户 ID（正整数，不是登录账号）；下拉搜索最近用过 AI 的用户，也可手输 ID、回车逐个添加或粘贴「1,2」批量录入。留空则只在余额面板提示、不推送。</p>
             </div>
           </div>
           <div class="pf-line">
@@ -2067,6 +2139,14 @@ const protocolOptions = [
 .pf-line-ctrl.pf-inline { flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; }
 /* 告警接收人多选：占满控制列宽度，已选 ID 以标签呈现，可逐个移除 */
 .pf-receivers { width: 100%; }
+/* 候选项：左侧用户 ID，右侧最近活跃时间弱化展示 */
+.pf-receiver-id { font-variant-numeric: tabular-nums; }
+.pf-receiver-hint {
+  float: right;
+  margin-left: 12px;
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+}
 /* 余额 UA 输入框右侧的「随机换一个 UA」图标 */
 .pf-ua-random {
   cursor: pointer;
@@ -2405,6 +2485,8 @@ const protocolOptions = [
 .pf-detect-row.is-bad .pf-detect-state { background: var(--el-color-danger); }
 .pf-detect-msg { font-size: 12px; color: var(--el-text-color-secondary); }
 .pf-detect-foot { margin: 10px 0 0; font-size: 12px; color: var(--el-text-color-secondary); }
+/* 自动适配识别出的网关：一行说明余额会按哪套口径自动查询 */
+.pf-detect-gateway { margin: 2px 0 0; font-size: 12px; color: var(--el-color-primary); }
 </style>
 
 <style>
