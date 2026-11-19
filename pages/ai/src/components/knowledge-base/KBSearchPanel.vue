@@ -108,6 +108,14 @@
         这个卷宗还没有可检索的文档，检索一定为空。
         <ReButton type="primary" link @click="emit('goFiles')">去上传文档</ReButton>
       </p>
+      <!-- 语义引擎占位：本页按字面匹配，0 命中通常不是因为引擎；
+           但用户接下来换问句、换近义词都不会变好——这层能力限制必须提前讲明。
+           这里只说本页的限制，不复用门禁页那句「语义检索恒定 0 命中」，
+           免得读者以为本次为空是引擎造成的。 -->
+      <p v-if="semanticUnavailable" class="kb-search__warn">
+        <ReTag type="warning" size="small" class="shrink-0">{{ t('knowledge.search.semanticOff') }}</ReTag>
+        <span class="flex-1 min-w-0">{{ t('knowledge.search.semanticOffHint') }}</span>
+      </p>
       <ul class="kb-search__tips">
         <li>换个说法再试：把长句拆成<b>人名 + 关系</b>（例如「董卓 与 吕布 的关系」）。</li>
         <li>把「返回条数」调大：它决定召回上限，太小会漏掉次要切片。</li>
@@ -123,8 +131,14 @@
         这个卷宗还没有文档，检索不会有结果；先上传并等待索引完成。
         <ReButton type="primary" link @click="emit('goFiles')">去文档</ReButton>
       </p>
+      <!-- 初始态就说清楚能力边界：等搜空了再解释，用户已经白试了一轮 -->
+      <p v-if="semanticUnavailable" class="kb-search__warn">
+        <ReTag type="warning" size="small" class="shrink-0">{{ t('knowledge.search.semanticOff') }}</ReTag>
+        <span class="flex-1 min-w-0">{{ t('knowledge.search.semanticOffHint') }}</span>
+      </p>
       <ul class="kb-search__tips">
-        <li><b>语义</b>按意思找，问句也能命中；<b>关键词</b>按字面找，专有名词更准。</li>
+        <li v-if="semanticUnavailable">只有<b>字面</b>匹配：用原文里出现过的词、专有名词更容易命中。</li>
+        <li v-else><b>语义</b>按意思找，问句也能命中；<b>关键词</b>按字面找，专有名词更准。</li>
         <li>结果里的 <b>语义 / 关键词 / 综合</b> 三个分数同时列出，一眼看出它为什么被召回。</li>
         <li>点任一条结果可直接打开对应文档的原文。</li>
       </ul>
@@ -188,6 +202,14 @@ interface Props {
    * 不传（undefined）则与旧行为一致，不显示该提示。</p>
    */
   docCount?: number
+  /**
+   * 语义检索是否不可用（由宿主按后端 /v2/rag/runtime-status 传入）。
+   *
+   * <p>本面板走字面匹配，语义不可用不直接导致本次 0 命中；但「换多少种说法都搜不到」
+   * 是用户接下来必然会踩的坑，所以在 0 结果区把这条能力限制讲明。
+   * 判断语义是否可用属于后端契约，本组件只接收结论。</p>
+   */
+  semanticUnavailable?: boolean
 }
 
 const props = defineProps<Props>()

@@ -30,6 +30,9 @@ export default {
     javaVersion: '后端未以 Java 预览特性启动，请在启动参数中加入 --enable-preview 后重试',
     serverError: '服务器出错，请稍后重试或联系管理员',
     checking: '检测中…',
+    // 语义能力：与「配置齐不齐」分开。占位引擎能建库、能传文档，但检索恒定 0 命中。
+    semanticCheck: '语义能力',
+    semanticUnavailable: '当前 embedding 引擎不具备语义能力，检索结果会恒为空。',
   },
 
   // ── 共用状态文本 ──
@@ -217,6 +220,9 @@ export default {
     chunk: '分块',
     notFound: '未找到相关结果',
     notFoundHint: '尝试调整搜索关键词或选择其他知识库',
+    /** 语义引擎占位：换多少种说法都搜不到，先讲明前提 */
+    semanticOff: '语义未启用',
+    semanticOffHint: '当前未配置 Embedding 模型，只按字面匹配；换近义词或问句不会有额外命中。到「设置中心 → 默认模型 → RAG」选好 Embedding 模型后自动推导引擎。',
     initial: '输入关键词开始搜索',
     initialHint: '支持语义搜索和关键词匹配',
     selectKbWarning: '请选择知识库并输入搜索内容',

@@ -30,6 +30,10 @@ export default {
     javaVersion: 'Backend not started with Java preview features; add --enable-preview to startup args and retry',
     serverError: 'Server error, please retry later or contact administrator',
     checking: 'Checking…',
+    // Semantic capability: separate from "is it configured". A placeholder engine can create bases
+    // and accept documents, yet retrieval always returns zero hits.
+    semanticCheck: 'Semantic capability',
+    semanticUnavailable: 'The current embedding engine has no semantic capability; retrieval results will always be empty.',
   },
 
 
@@ -199,6 +203,9 @@ export default {
     chunk: 'Chunk',
     notFound: 'No relevant results found',
     notFoundHint: 'Try adjusting search keywords or selecting a different knowledge base',
+    /** Placeholder engine: no wording will help, so state the premise first */
+    semanticOff: 'Semantic off',
+    semanticOffHint: 'No embedding model is configured, so matching is literal only; rephrasing or synonyms will not add hits. Pick an embedding model in "Settings → Default Models → RAG" and the engine follows it.',
     initial: 'Enter keywords to start searching',
     initialHint: 'Supports semantic search and keyword matching',
     selectKbWarning: 'Please select a knowledge base and enter search content',

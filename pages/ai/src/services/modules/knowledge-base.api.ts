@@ -104,6 +104,18 @@ export interface KnowledgeBaseApi {
   saveGraphLayoutSettings(kbId: string, settings: string): Promise<any>;
   /** 关系抽取开关是否启用：GET /v2/rag/graph/enabled */
   fetchRelationExtractEnabled(): Promise<boolean>;
+  /**
+   * RAG 运行时诊断：GET /v2/rag/runtime-status。
+   *
+   * <p>semanticRetrievalAvailable 是三态：true 可用 / false 不可用（memory 占位引擎）/ null 未知
+   * （请求失败或后端未返回该字段）。调用方必须按「不知道」处理 null。</p>
+   */
+  fetchRagRuntimeStatus(): Promise<{
+    engine?: string;
+    semanticRetrievalAvailable: boolean | null;
+    engineWarning: string;
+    documentCount?: number;
+  }>;
   /** 列表页统计（汇总 + 每库计数） */
   fetchKBOverview(): Promise<{
     totals?: { kb_count?: number; file_count?: number; entity_count?: number; relation_count?: number };
@@ -911,5 +923,26 @@ export const knowledgeBaseApi: KnowledgeBaseApi = {
     const env = await apiHttp.get("/v2/rag/graph/enabled");
     const data = unwrapData<any>(env, route) ?? {};
     return Boolean(data.enabled);
+  },
+
+  /**
+   * RAG 运行时诊断：GET /v2/rag/runtime-status。
+   *
+   * <p>与 {@code /v2/rag/status} 分工不同：那边判「配置齐不齐」，这边报「实际生效的引擎」。
+   * memory 占位引擎的 embeddingIssue() 为 null（本地引擎不判缺陷），所以「语义检索不可用」
+   * 只有本接口能回答。字段缺失一律按「未知」返回 null，由调用方决定降级方式，
+   * 不在前端把「没问到」当成「不可用」。</p>
+   */
+  async fetchRagRuntimeStatus() {
+    const route = "GET /v2/rag/runtime-status";
+    const env = await apiHttp.get("/v2/rag/runtime-status");
+    const data = unwrapData<any>(env, route) ?? {};
+    const flag = data.semanticRetrievalAvailable;
+    return {
+      engine: typeof data.engine === "string" ? data.engine : undefined,
+      semanticRetrievalAvailable: typeof flag === "boolean" ? flag : null,
+      engineWarning: typeof data.engineWarning === "string" ? data.engineWarning : "",
+      documentCount: data.documentCount === undefined ? undefined : toNumber(data.documentCount),
+    };
   },
 };

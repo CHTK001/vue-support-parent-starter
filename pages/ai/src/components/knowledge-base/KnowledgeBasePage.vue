@@ -45,6 +45,18 @@
                   </span>
                 </ReTag>
               </div>
+
+              <!-- 语义能力单列一条：它不属于「配置齐不齐」，而是「配的东西有没有语义」。
+                   占位引擎（memory）能建库、能传文档、能返回 embeddingReady=true，
+                   但检索恒定 0 命中 —— 这种半可用状态必须在这里说清，否则用户只会看到「搜不到」。 -->
+              <div v-if="semanticUnavailable" class="flex items-start gap-2 rounded-md px-2.5 py-2 bg-[var(--el-color-warning-light-9)]">
+                <ReTag type="warning" size="small" class="text-[10px] shrink-0 mt-0.5">
+                  {{ t('knowledge.ragGate.semanticCheck') }}
+                </ReTag>
+                <p class="text-xs leading-relaxed text-[var(--rm-text-secondary)] m-0">
+                  {{ ragEngineWarning }}
+                </p>
+              </div>
             </div>
 
             <div
@@ -646,6 +658,7 @@
             <div class="kb-view">
               <KBSearchPanel :knowledge-bases="store.knowledgeBases" :default-kb-id="store.activeKnowledgeBaseId"
                 :doc-count="filesForFilter.length"
+                :semantic-unavailable="semanticUnavailable"
                 @result-click="handleSearchResultClick" @go-files="handleMenuSelect('files')" />
             </div>
           </template>
@@ -1145,6 +1158,7 @@
             :kb-name="currentKB?.name"
             :graph-nodes="graphNodes"
             :graph-edges="graphEdges"
+            :semantic-warning="ragEngineWarning"
             @view-graph="handleMenuSelect('graph')"
             @turn-done="onAskTurnDone"
             @turns-cleared="onAskTurnsCleared"
@@ -3338,6 +3352,35 @@ function graphLooksDegenerate(comp: { graph?: unknown }): boolean {
 const ragStatus = ref<any>(null)
 
 /**
+ * RAG 运行时诊断（GET /v2/rag/runtime-status）。
+ *
+ * <p>与 /rag/status 分开取，因为两者回答的不是同一个问题：
+ * /rag/status 判「配置齐不齐」，本接口报「实际生效的引擎有没有语义能力」。
+ * memory 占位引擎在 embeddingIssue() 里不算缺陷（本地引擎不判），
+ * 于是 /rag/status 会报 embeddingReady=true、门禁放行，
+ * 但语义检索实际恒定 0 命中 —— 只有本接口能如实说出来。</p>
+ *
+ * <p>取不到（接口失败 / 字段缺失）时保持 null：不知道就是不知道，
+ * 不能把「没问到」渲染成「语义不可用」。</p>
+ */
+const ragRuntime = ref<{ semanticRetrievalAvailable: boolean | null; engineWarning: string; engine?: string } | null>(null)
+
+/** 后端明确说语义检索不可用（只有 === false 才算，null 是未知） */
+const semanticUnavailable = computed(() => ragRuntime.value?.semanticRetrievalAvailable === false)
+
+/**
+ * 语义不可用时要展示的原因文案；可用或未知时为空串。
+ *
+ * <p>优先原样回显后端的 engineWarning（它带上了当前阈值等实测参数），
+ * 后端没给文案时才退回本地兜底句。</p>
+ */
+const ragEngineWarning = computed(() =>
+  semanticUnavailable.value
+    ? ragRuntime.value?.engineWarning || t('knowledge.ragGate.semanticUnavailable')
+    : '',
+)
+
+/**
  * RAG 是否可用。
  *
  * <p>知识库依赖 RAG：未在「系统配置 → 默认模型」配好 RAG 所需参数时，
@@ -3421,6 +3464,23 @@ const fetchRagStatus = async () => {
     // 成功失败都要记一次检测时间：门禁页那张清单上写的是「什么时候问过后端」
     ragChecking.value = false
     ragCheckedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+  }
+  // 运行时诊断单独取：失败不影响门禁判定，只让「语义是否可用」停在未知
+  void fetchRagRuntimeStatus()
+}
+
+/**
+ * 取 RAG 运行时诊断，判定语义检索是否真的可用。
+ *
+ * <p>失败一律吞掉并置 null（未知）：这条信息是「解释 0 命中」的辅助线索，
+ * 不能因为它挂了就把整个门禁判成故障。</p>
+ */
+const fetchRagRuntimeStatus = async () => {
+  try {
+    ragRuntime.value = await knowledgeBaseApi.fetchRagRuntimeStatus()
+  } catch (error) {
+    console.warn('[knowledge-base] 读取 RAG 运行时状态失败，语义可用性按未知处理:', error)
+    ragRuntime.value = null
   }
 }
 

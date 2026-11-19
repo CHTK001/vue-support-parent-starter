@@ -52,6 +52,13 @@ const props = defineProps<{
   graphNodes?: Array<{ id: string; text: string }>
   /** 图谱边，用于迷你子图（可选） */
   graphEdges?: Array<{ from: string; to: string; text?: string }>
+  /**
+   * 语义检索不可用时的原因（宿主按后端 /v2/rag/runtime-status 传入）。
+   *
+   * <p>问答走语义检索，占位引擎下必然 0 引用；空引用时把原因贴出来，
+   * 否则用户只会看到一句「没有检索到相关内容」。空串即不显示。</p>
+   */
+  semanticWarning?: string
 }>()
 
 const emit = defineEmits<{
@@ -527,6 +534,17 @@ watch(() => props.kbId, () => clearTurns())
                   @click="openCitation(String(c.doc_path || ''))"
                 >{{ c.file_name || c.doc_path }}</ReButton>
               </div>
+
+              <!-- 无引用的原因：语义引擎是占位实现时，问答必然召回不到任何分片。
+                   不给原因的话，用户看到的就是「答了，但一条引用都没有」，会以为是文档没传对。
+                   只在最新一轮提示：同一句原因逐轮重复会把对话区挤成告警墙。 -->
+              <p
+                v-if="ti === turns.length - 1 && !turn.error && !turn.loading && turn.citations.length === 0 && semanticWarning"
+                class="mt-3 flex items-start gap-1.5 rounded-md border border-[var(--rm-border-light)] bg-[var(--rm-bg-subtle)] px-2.5 py-2 text-xs leading-relaxed text-[var(--rm-text-secondary)]"
+              >
+                <ReTag type="warning" size="small" class="shrink-0">语义未启用</ReTag>
+                <span class="flex-1 min-w-0">{{ semanticWarning }}</span>
+              </p>
 
               <!-- 迷你关系图：只在本轮引用命中实体时出现 -->
               <div
