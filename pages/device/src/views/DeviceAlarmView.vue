@@ -207,7 +207,7 @@
           <div><dt>通道</dt><dd>{{ detail.deviceAlarmChannelNo ?? '—' }}</dd></div>
           <div><dt>来源</dt><dd>{{ detail.deviceAlarmSource || '—' }}</dd></div>
           <div><dt>发生时间</dt><dd class="dal-mono">{{ fmtTime(detail.deviceAlarmOccurredAt) }}</dd></div>
-          <div><dt>入库时间</dt><dd class="dal-mono">{{ fmtTime(detail.deviceAlarmCreatedAt) }}</dd></div>
+          <div><dt>入库时间</dt><dd class="dal-mono">{{ fmtTime(detail.createTime) }}</dd></div>
           <div><dt>处理人</dt><dd>{{ detail.deviceAlarmHandler || '—' }}</dd></div>
           <div><dt>处理时间</dt><dd class="dal-mono">{{ fmtTime(detail.deviceAlarmHandledAt) }}</dd></div>
         </dl>

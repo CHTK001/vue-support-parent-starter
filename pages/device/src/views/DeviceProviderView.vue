@@ -277,7 +277,7 @@
 
             <template #col-updated="{ row }">
               <span class="dpv-time">
-                {{ formatDateTime(row.deviceCredentialUpdatedAt as string | undefined) }}
+                {{ formatDateTime(row.updateTime as string | undefined) }}
               </span>
             </template>
 
@@ -1433,7 +1433,7 @@ const columns: ReTableColumn[] = [
   },
   { prop: 'deviceCredentialEnabled', label: '状态', slot: 'status', width: 84 },
   { prop: 'deviceCredentialHealth', label: '健康', slot: 'health', minWidth: 132 },
-  { prop: 'deviceCredentialUpdatedAt', label: '更新时间', slot: 'updated', minWidth: 140 },
+  { prop: 'updateTime', label: '更新时间', slot: 'updated', minWidth: 140 },
   { prop: 'deviceCredentialActions', label: '操作', slot: 'actions', width: 158, fixed: 'right' }
 ]
 

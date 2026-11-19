@@ -68,8 +68,8 @@ export interface DeviceInfo {
   deviceInfoStatus?: DeviceStatus
   /** 备注 */
   deviceInfoRemark?: string
-  deviceInfoCreatedAt?: string
-  deviceInfoUpdatedAt?: string
+  createTime?: string
+  updateTime?: string
   channels?: DeviceChannel[]
   doors?: DeviceDoor[]
 }
@@ -99,7 +99,7 @@ export interface DeviceIndexItem {
   deviceInfoWarrantyEnd?: string
   deviceInfoLatitude?: number
   deviceInfoLongitude?: number
-  deviceInfoUpdatedAt?: string
+  updateTime?: string
   deviceInfoInstalledAt?: string
 }
 
@@ -283,8 +283,8 @@ export interface DevicePerson {
   /** 厂商侧人员唯一标识 */
   devicePersonExternalId: string
   devicePersonDeleted?: boolean
-  devicePersonCreatedAt?: string
-  devicePersonUpdatedAt?: string
+  createTime?: string
+  updateTime?: string
 }
 
 /** 平台描述 */
@@ -439,8 +439,8 @@ export interface ProviderCredential {
   deviceCredentialLastTestAt?: string
   /** 最近一次连通性探测结果：true 成功、false 失败、null/undefined 未检测 */
   deviceCredentialLastTestOk?: boolean | null
-  deviceCredentialCreatedAt?: string
-  deviceCredentialUpdatedAt?: string
+  createTime?: string
+  updateTime?: string
 }
 
 /** 单套凭据的连通性探测结果（POST /provider-credential/test-all） */
@@ -482,7 +482,7 @@ export interface DeviceAlarm {
   /** 发生时间 */
   deviceAlarmOccurredAt: string
   /** 入库时间 */
-  deviceAlarmCreatedAt: string
+  createTime: string
 }
 
 /** 机房拓扑的节点/边（与 ReRelationGraph 的节点契约对齐：{ id, label, group, type, size }） */

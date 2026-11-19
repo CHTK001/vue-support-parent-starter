@@ -84,8 +84,8 @@
             <el-descriptions-item label="安装 / 维保">
               {{ device.deviceInfoInstallAt || '无' }} / {{ device.deviceInfoWarrantyEnd || '无' }}
             </el-descriptions-item>
-            <el-descriptions-item label="创建时间">{{ formatDateTime(device.deviceInfoCreatedAt) }}</el-descriptions-item>
-            <el-descriptions-item label="更新时间">{{ formatDateTime(device.deviceInfoUpdatedAt) }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ formatDateTime(device.createTime) }}</el-descriptions-item>
+            <el-descriptions-item label="更新时间">{{ formatDateTime(device.updateTime) }}</el-descriptions-item>
           </el-descriptions>
           <div class="mt-4">
             <ReTimeline title="设备时间线" :items="timeline" />
@@ -424,8 +424,8 @@ const timeline = computed<TimelineItem[]>(() => {
   const device = props.device
   if (!device) return []
   const items: TimelineItem[] = []
-  if (device.deviceInfoCreatedAt) {
-    items.push({ id: 'created', time: formatDateTime(device.deviceInfoCreatedAt), type: 'primary', content: '设备录入' })
+  if (device.createTime) {
+    items.push({ id: 'created', time: formatDateTime(device.createTime), type: 'primary', content: '设备录入' })
   }
   if (device.deviceInfoLastOnlineAt) {
     items.push({ id: 'online', time: formatDateTime(device.deviceInfoLastOnlineAt), type: 'success', content: '设备上线' })
