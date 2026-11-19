@@ -11,7 +11,7 @@
  *   - 每个模块有英雄区 + 紧凑实时预览；支持全局搜索、就绪度概览；
  *   - 分区内拖拽 = 交换两条配置的 sort 值并批量更新。
  */
-import { message } from "@repo/core";
+import { buildWatermarkTile, message } from "@repo/core";
 import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from "vue";
 import {
   Cellphone,
@@ -312,6 +312,46 @@ const agreementBody = computed(() => {
     .filter((r) => (r.sysSettingValue?.length ?? 0) > 30)
     .sort((a, b) => (b.sysSettingValue?.length ?? 0) - (a.sysSettingValue?.length ?? 0));
   return cand[0]?.sysSettingValue ?? "";
+});
+
+/* ================== 水印实时预览（config 分组） ================== */
+
+/**
+ * 水印配置行取值：兼容 `WatermarkOpen` 与旧式 `config:WatermarkOpen` 两种 code。
+ * 行对象与编辑器同源（allSettings），编辑未保存时预览即时跟着变。
+ */
+function wmValue(token: string): string {
+  const row = moduleRows("config").find((x) => {
+    const code = String(x.sysSettingCode || "");
+    return code === token || code.endsWith(`:${token}`) || code.endsWith(`.${token}`);
+  });
+  return row?.sysSettingValue ?? "";
+}
+const watermarkPreview = computed(() => {
+  if (activeGroup.value !== "config") return null;
+  const text = wmValue("WatermarkText").trim();
+  const alphaRaw = Number.parseFloat(wmValue("WatermarkAlpha"));
+  const alpha = Number.isFinite(alphaRaw) ? alphaRaw : 0.25;
+  const rotateRaw = Number.parseFloat(wmValue("WatermarkRotate"));
+  const fontSizeRaw = Number.parseFloat(wmValue("WatermarkFontSize"));
+  const gapXRaw = Number.parseFloat(wmValue("WatermarkGapX"));
+  const gapYRaw = Number.parseFloat(wmValue("WatermarkGapY"));
+  const tile = buildWatermarkTile({
+    text: text || "ADMIN",
+    color: wmValue("WatermarkColor") || "#409EFF",
+    darkColor: wmValue("WatermarkDarkColor") || undefined,
+    alpha,
+    rotate: Number.isFinite(rotateRaw) ? rotateRaw : -20,
+    fontSize: Number.isFinite(fontSizeRaw) ? fontSizeRaw : 20,
+    fontFamily: wmValue("WatermarkFontFamily") || "宋体",
+    gapX: Number.isFinite(gapXRaw) ? gapXRaw : 60,
+    gapY: Number.isFinite(gapYRaw) ? gapYRaw : 50,
+    dark: false
+  });
+  const hints: string[] = [];
+  if (!text) hints.push("未配置文案，按默认 ADMIN 预览");
+  if (alpha === 0) hints.push("透明度为 0：正式开启后水印不可见");
+  return { ...tile, enabled: wmValue("WatermarkOpen") === "true", hints };
 });
 
 /* ================== 全局搜索 ================== */
@@ -732,6 +772,25 @@ onBeforeUnmount(destroySortables);
                 <el-icon :size="26"><Document /></el-icon>
                 <div class="h-doc__title">用户协议</div>
                 <div class="h-doc__body">{{ agreementBody.slice(0, 120) || "暂无正文" }}…</div>
+              </div>
+
+              <!-- 水印实时预览（config 分组）：与真实渲染同一套瓦片算法，改值即变 -->
+              <div v-if="activeGroup === 'config' && watermarkPreview" class="h-wm">
+                <div
+                  class="h-wm__screen"
+                  :style="{
+                    backgroundImage: `url(${watermarkPreview.data})`,
+                    backgroundSize: `${watermarkPreview.w}px ${watermarkPreview.h}px`
+                  }"
+                >
+                  <span v-if="!watermarkPreview.enabled" class="h-wm__off">未启用</span>
+                </div>
+                <div class="h-wm__meta">
+                  <i :class="{ on: watermarkPreview.enabled }">
+                    {{ watermarkPreview.enabled ? "水印已启用" : "水印未启用" }}
+                  </i>
+                  <i v-for="hint in watermarkPreview.hints" :key="hint">{{ hint }}</i>
+                </div>
               </div>
             </div>
           </section>
@@ -1353,6 +1412,50 @@ onBeforeUnmount(destroySortables);
   font-size: 10.5px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
+}
+
+/* 水印迷你预览 */
+.h-wm {
+  margin-top: 10px;
+}
+.h-wm__screen {
+  position: relative;
+  height: 86px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  background-color: var(--el-bg-color);
+  background-repeat: repeat;
+  overflow: hidden;
+}
+.h-wm__off {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--el-text-color-placeholder);
+  background: color-mix(in srgb, var(--el-bg-color) 65%, transparent);
+}
+.h-wm__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.h-wm__meta i {
+  font-style: normal;
+  font-size: 9.5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-secondary);
+}
+.h-wm__meta i.on {
+  color: var(--el-color-success);
+  border-color: var(--el-color-success-light-7);
+  background: var(--el-color-success-light-9);
 }
 
 /* ============ 分区 Bento ============ */
