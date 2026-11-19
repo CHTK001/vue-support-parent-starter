@@ -9,6 +9,8 @@ export * from "./types";
 export * from "./modules/random";
 export * from "./modules/aes";
 export * from "./modules/messageHistory";
+export * from "./modules/exportFile";
+export * from "./modules/format";
 export * from "./modules/codec";
 export * from "./modules/themeColor";
 export * from "./modules/tree";
