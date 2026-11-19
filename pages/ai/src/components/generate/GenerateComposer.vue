@@ -102,6 +102,10 @@
             :items="commandsCache[commandTrigger]" :query="pickerQuery" :selected-index="selectedIndex"
             :trigger="commandTrigger" @select="selectCommand" @close="closeCommandPicker"
             @update:selected-index="selectedIndex = $event" />
+          <!-- 输入历史提示：↑↓ 翻历史的能力一直都在（本机 IndexedDB，按用户 + 生图分组），
+               但没有任何可见线索，用户根本不知道能按 ↑ 翻。空框聚焦时引导一句，
+               翻历史过程中显示进度（第几条 / 共几条），让「正在翻历史」看得见。 -->
+          <div v-if="historyHint" class="history-hint" aria-live="polite">{{ historyHint }}</div>
         </template>
       </div>
 
@@ -513,6 +517,22 @@ const moveHistory = (delta: number) => {
   historyIndex.value = next
   setDraftText(props.history[next])
 }
+
+/**
+ * 输入历史提示文案。
+ *
+ * <p>翻历史时报进度（第几条 / 共几条），提示 ↓ 还能回到草稿；
+ * 空框聚焦时引导「按 ↑ 翻看输入历史」——功能没有可见线索等于不存在。
+ * 斜杠命令 / @ 风格弹层打开时不显示，避免和弹层抢注意力。</p>
+ */
+const historyHint = computed(() => {
+  if (commandPickerVisible.value || (props.allowStylePanel && props.stylePanelOpen)) return ''
+  if (historyIndex.value >= 0) {
+    return `输入历史 ${historyIndex.value + 1}/${props.history.length}，↓ 回到正在写的草稿`
+  }
+  if (props.history.length && focused.value && !inputContent.value) return '按 ↑ 翻看输入历史'
+  return ''
+})
 
 // Tiptap 编辑器内容同步
 watch(editorContent, (val) => {
@@ -1845,6 +1865,26 @@ defineExpose({ insertText, insertBadge, clearDraft });
 /* 编辑器容器 */
 .editor-container {
   position: relative;
+}
+
+/* 输入历史提示：钉在编辑器右下角的小字，不占布局、不接事件、不挡输入。
+   带同色底避免和正文重叠时发虚；弹层打开 / 开始输入后随 historyHint 消失。 */
+.history-hint {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  max-width: 70%;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-placeholder);
+  background: var(--color-input-bg, transparent);
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* 参数轨（生图）：张数 / 画幅 / 尺寸（视频为时长），与工具条同排、窄窗横向滚动不换行。
