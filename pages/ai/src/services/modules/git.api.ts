@@ -117,6 +117,30 @@ export interface GitCommitResult {
 }
 
 /**
+ * 远程同步结果，字段与后端 {@code GitModels.SyncResult} 一一对应。
+ */
+export interface GitSyncResult {
+  /** 动作：fetch / pull / push */
+  action: string;
+  /** 远程名 */
+  remote: string;
+  /** 远程地址（后端已掩掉账号密码） */
+  remoteUrl: string;
+  /** 当前分支 */
+  branch: string;
+  /** 领先上游的提交数（操作完成后） */
+  ahead: number;
+  /** 落后上游的提交数（操作完成后） */
+  behind: number;
+  /** 是否无需同步 */
+  upToDate: boolean;
+  /** 可直接展示的结果说明 */
+  message: string;
+  /** 操作后的仓库状态 */
+  status: GitStatus;
+}
+
+/**
  * 会话工作区 Git 操作接口。
  *
  * <p>所有调用都以会话工作目录为作用域，文件路径一律使用「相对仓库根目录」的斜杠路径。</p>
@@ -218,6 +242,34 @@ export interface GitApi {
    * @returns 提交日志
    */
   getGitLog(sessionId: string, limit?: number): Promise<GitLogEntry[]>;
+
+  /**
+   * 获取远端更新（fetch，不合并）。
+   *
+   * @param sessionId 会话标识
+   * @returns 同步结果（含操作后的仓库状态）
+   */
+  fetchGitRemote(sessionId: string): Promise<GitSyncResult>;
+
+  /**
+   * 拉取并合并远端更新（pull）。
+   *
+   * <p>工作区有未提交改动时后端返回 409，前端应提示先提交或暂存。</p>
+   *
+   * @param sessionId 会话标识
+   * @returns 同步结果
+   */
+  pullGitRemote(sessionId: string): Promise<GitSyncResult>;
+
+  /**
+   * 推送当前分支（push）。
+   *
+   * <p>服务端不保存 Git 凭据：公开仓库可直接推，需要认证时返回明确说明。</p>
+   *
+   * @param sessionId 会话标识
+   * @returns 同步结果
+   */
+  pushGitRemote(sessionId: string): Promise<GitSyncResult>;
 }
 
 /**
@@ -297,6 +349,27 @@ export const gitApi: GitApi = {
   async getGitLog(this: ApiContext, sessionId: string, limit = 30) {
     return await this._request<GitLogEntry[]>(
       `/sessions/${encodeURIComponent(sessionId)}/git/log?limit=${limit}`,
+    );
+  },
+
+  async fetchGitRemote(this: ApiContext, sessionId: string) {
+    return await this._request<GitSyncResult>(
+      `/sessions/${encodeURIComponent(sessionId)}/git/fetch`,
+      { method: "POST" },
+    );
+  },
+
+  async pullGitRemote(this: ApiContext, sessionId: string) {
+    return await this._request<GitSyncResult>(
+      `/sessions/${encodeURIComponent(sessionId)}/git/pull`,
+      { method: "POST" },
+    );
+  },
+
+  async pushGitRemote(this: ApiContext, sessionId: string) {
+    return await this._request<GitSyncResult>(
+      `/sessions/${encodeURIComponent(sessionId)}/git/push`,
+      { method: "POST" },
     );
   },
 };

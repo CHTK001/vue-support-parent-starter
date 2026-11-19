@@ -40,6 +40,24 @@
                             <ArrowClockwise20Regular class="text-gray-500 dark:text-gray-400" />
                         </el-icon>
                     </button>
+                    <!-- 编辑/保存：只对文本文件开放；保存带 mtime 乐观锁，AI 期间改过会提示合并 -->
+                    <template v-if="canEditFile">
+                        <template v-if="!editing">
+                            <button class="preview-close-btn" :title="t('chat.workspace.editFile')" @click="startEdit">
+                                <el-icon :size="14">
+                                    <EditPen />
+                                </el-icon>
+                            </button>
+                        </template>
+                        <template v-else>
+                            <el-button size="small" type="primary" :loading="saving" :disabled="!editDirty" @click="saveEdit">
+                                {{ t('chat.workspace.saveFile') }}
+                            </el-button>
+                            <el-button size="small" text @click="cancelEdit">
+                                {{ t('common.cancel') }}
+                            </el-button>
+                        </template>
+                    </template>
                 </div>
             </div>
         </div>
@@ -89,6 +107,12 @@
                 </div>
                 <template v-else-if="previewType === 'text'">
                     <!--
+                      编辑态：直接复用 textarea（不引 Monaco）。
+                      保存走 PUT /workspace/file，带读取时的 mtime 做乐观锁。
+                    -->
+                    <textarea v-if="editing" v-model="draftContent" spellcheck="false" autocomplete="off"
+                        class="code-editor w-full h-full resize-none border-0 outline-none p-4 m-0 font-mono text-sm leading-relaxed bg-transparent text-gray-800 dark:text-gray-200" />
+                    <!--
                       HTML 预览模式。
 
                       网页（HTTP）走 srcdoc：预览正文已由 getWorkspaceFile 用鉴权请求头
@@ -135,7 +159,7 @@ import { apiService } from '@/services/ApiService'
 import { loadAuthenticatedImage } from '@/utils/authImage'
 import { LoadingOutlined } from '@vicons/antd'
 import { Eye20Filled, Eye20Regular, Code20Filled, Code20Regular, ArrowClockwise20Regular, Globe20Regular } from '@vicons/fluent'
-import { DocumentCopy, Plus } from '@element-plus/icons-vue'
+import { DocumentCopy, Plus, EditPen } from '@element-plus/icons-vue'
 import { useStorage } from '@vueuse/core'
 import { usePreviewMarkdown, buildMarkdownSrcDoc } from '@/composables/useMarkdown'
 import { buildHtmlPreviewSrcDoc, buildHtmlPreviewSrcDocWithAssets } from '@/utils/htmlPreviewSrcDoc'
@@ -151,6 +175,8 @@ interface SelectedFile {
     size: number
     content: string
     mimeType: string
+    /** 读取时的 mtime（毫秒），保存时回传给后端做乐观锁 */
+    modifiedAt?: number
 }
 
 export interface SnipData {
@@ -213,6 +239,17 @@ onBeforeUnmount(() => {
 const htmlPreviewVersion = ref(0)
 const fileContentHash = ref('')
 
+// ── 编辑 / 保存 ──
+
+/** 编辑态：只有文本文件可进入，进入时强制切到源码视图 */
+const editing = ref(false)
+/** 编辑草稿：保存成功前不回写 fileContent，取消即丢弃 */
+const draftContent = ref('')
+/** 保存中：防重复提交 */
+const saving = ref(false)
+/** 读取时的 mtime，保存时回传做乐观锁（0 表示不做校验） */
+const baseModifiedAt = ref(0)
+
 // 缓存的工作目录绝对路径（用于 Electron file:// URL 拼接）
 const cachedWorkspacePath = ref<string | null>(props.workspacePath)
 
@@ -262,6 +299,12 @@ const isMarkdownFile = computed(() => {
 })
 
 const canTogglePreview = computed(() => isMarkdownFile.value || isHtmlFile.value)
+
+/** 文本文件才可编辑；图片、不支持预览的文件都不给入口 */
+const canEditFile = computed(() => previewType.value === 'text' && !!selectedFile.value)
+
+/** 草稿与已保存内容不一致（保存按钮据此禁用，避免空写） */
+const editDirty = computed(() => editing.value && draftContent.value !== fileContent.value)
 
 /** SVG 是图片预览，但同样是「可直接看渲染效果」的文件，给一个内置浏览器入口 */
 const isSvgFile = computed(() => {
@@ -412,6 +455,9 @@ async function loadFilePreview(): Promise<void> {
     previewError.value = ''
     previewLoading.value = false
     fileContentHash.value = ''
+    editing.value = false
+    draftContent.value = ''
+    baseModifiedAt.value = 0
     releaseImagePreview()
 
     const ext = tab.extension!
@@ -485,6 +531,8 @@ async function loadFileContent(filePath: string, force = false, skipLoading = fa
         selectedFile.value!.content = response.content
         selectedFile.value!.extension = response.extension
         selectedFile.value!.mimeType = response.mimeType
+        selectedFile.value!.modifiedAt = response.modifiedAt
+        baseModifiedAt.value = response.modifiedAt || 0
         fileContent.value = response.content
 
         if (isHtmlFile.value && renderMode.value === 'rendered') {
@@ -551,6 +599,66 @@ async function loadHtmlPreviewLocal(): Promise<void> {
 function handleManualRefresh(): void {
     if (!selectedFile.value) return
     loadFileContent(selectedFile.value.path, true, false)
+}
+
+/**
+ * 进入编辑态。
+ *
+ * <p>Markdown / HTML 默认停在「渲染」视图，编辑器只认源码，这里强制切到源码，
+ * 否则用户点编辑看到的还是渲染结果。</p>
+ */
+function startEdit(): void {
+    if (!canEditFile.value) return
+    draftContent.value = fileContent.value
+    editing.value = true
+    renderMode.value = 'source'
+}
+
+/** 放弃草稿（保存中不允许取消，避免请求还在飞就把状态清掉） */
+function cancelEdit(): void {
+    if (saving.value) return
+    editing.value = false
+    draftContent.value = ''
+}
+
+/**
+ * 保存草稿。
+ *
+ * <p>带上读取时的 mtime：期间 AI 或终端改过该文件，后端返回 409，这里只提示
+ * 「刷新后合并」，绝不静默覆盖别人的写入。</p>
+ */
+async function saveEdit(): Promise<void> {
+    if (!selectedFile.value || !props.sessionId || saving.value) return
+    if (!editDirty.value) {
+        editing.value = false
+        draftContent.value = ''
+        return
+    }
+    saving.value = true
+    try {
+        const resp = await apiService.saveWorkspaceFile(
+            props.sessionId,
+            selectedFile.value.path,
+            draftContent.value,
+            baseModifiedAt.value || undefined,
+        )
+        fileContent.value = draftContent.value
+        selectedFile.value.content = draftContent.value
+        selectedFile.value.size = resp.size
+        selectedFile.value.modifiedAt = resp.modifiedAt
+        baseModifiedAt.value = resp.modifiedAt || 0
+        fileContentHash.value = hashString(draftContent.value)
+        editing.value = false
+        draftContent.value = ''
+        message.success(t('chat.workspace.saveFileSuccess'))
+    } catch (error: any) {
+        const status = error?.response?.status
+        const msg = error?.response?.data?.message || error?.message || ''
+        message.error(status === 409 ? t('chat.workspace.saveFileConflict') : (msg || t('chat.workspace.saveFileFailed')))
+        console.error('[FilePreviewPanel] Save failed:', error)
+    } finally {
+        saving.value = false
+    }
 }
 
 /**
@@ -816,12 +924,19 @@ watch(() => props.isActive, async (active) => {
         await loadFilePreview()
     } else if (isStale.value) {
         isStale.value = false
+        // 编辑中不覆盖草稿：等保存或取消后再刷新
+        if (editing.value) return
         await loadFileContent(props.tab.path!, false, true)
     }
 })
 
 watch(() => props.contentVersion, (newVer, oldVer) => {
     if (oldVer === 0 || newVer <= oldVer) return
+    // 编辑中遇到外部改动（AI/终端写盘）只标记 stale，不动用户草稿
+    if (editing.value) {
+        isStale.value = true
+        return
+    }
     if (props.isActive) {
         loadFileContent(props.tab.path!, false, true)
     } else {
@@ -831,6 +946,11 @@ watch(() => props.contentVersion, (newVer, oldVer) => {
 </script>
 
 <style>
+.code-editor {
+    tab-size: 4;
+    -moz-tab-size: 4;
+}
+
 .code-preview-container pre code.hljs {
     color: var(--color-text, #333) !important;
     background-color: transparent !important;

@@ -3,6 +3,17 @@ import type { ApiContext } from "./api-context";
 export interface WorkspaceApi {
   getWorkspaceTree(sessionId: string): Promise<{ tree: any[] }>;
   getWorkspaceChildren(sessionId: string, dirPath: string): Promise<{ children: any[] }>;
+  /**
+   * 按文件名递归搜索工作区文件。
+   *
+   * <p>树是懒加载的，前端只能过滤已展开的部分，所以搜索走后端有界递归
+   * （跳过 .git / node_modules 等目录）。</p>
+   */
+  searchWorkspaceFiles(sessionId: string, keyword: string, limit?: number): Promise<{
+    keyword: string;
+    truncated: boolean;
+    items: Array<{ name: string; path: string; relativePath: string; isDirectory: boolean; size: number }>;
+  }>;
   getWorkspaceFile(sessionId: string, filePath: string): Promise<{
     path: string;
     name: string;
@@ -10,6 +21,12 @@ export interface WorkspaceApi {
     size: number;
     content: string;
     mimeType: string;
+    modifiedAt?: number;
+  }>;
+  saveWorkspaceFile(sessionId: string, filePath: string, content: string, expectedModifiedAt?: number): Promise<{
+    success: boolean;
+    size: number;
+    modifiedAt: number;
   }>;
   getWorkspaceRawFileUrl(sessionId: string, filePath: string): string;
   getWorkspaceHtmlPreviewBaseUrl(sessionId: string, dirPath?: string): string;
@@ -36,10 +53,34 @@ export const workspaceApi: WorkspaceApi = {
     );
   },
 
+  async searchWorkspaceFiles(this: ApiContext, sessionId: string, keyword: string, limit = 50) {
+    return await this._request(
+      `/sessions/${sessionId}/workspace/search?keyword=${encodeURIComponent(keyword)}&limit=${limit}`,
+    );
+  },
+
   async getWorkspaceFile(this: ApiContext, sessionId: string, filePath: string) {
     return await this._request(
       `/sessions/${sessionId}/workspace/file?path=${encodeURIComponent(filePath)}`,
     );
+  },
+
+  /**
+   * 保存工作区内的文本文件。
+   *
+   * <p>{@code expectedModifiedAt} 是读取时拿到的 mtime：后端据此做乐观锁，
+   * 期间文件被 AI 改过就返回 409，前端提示「刷新后合并」而不是静默覆盖。</p>
+   *
+   * @param sessionId 会话 id
+   * @param filePath  文件路径（工作区内）
+   * @param content   新内容（UTF-8，上限 5MB）
+   * @param expectedModifiedAt 读取时的 mtime（可省略）
+   */
+  async saveWorkspaceFile(this: ApiContext, sessionId: string, filePath: string, content: string, expectedModifiedAt?: number) {
+    return await this._request(`/sessions/${sessionId}/workspace/file`, {
+      method: "PUT",
+      data: { path: filePath, content, expectedModifiedAt },
+    });
   },
 
   /**

@@ -10,6 +10,31 @@
                 <span v-if="status?.branch" class="git-panel__branch">{{ status.branch }}</span>
             </div>
             <div class="flex items-center gap-0.5 shrink-0">
+                <!-- 远程同步：获取 / 拉取 / 推送（服务端不保存凭据，公开仓库可直接用） -->
+                <LTooltip :content="t('chat.workspace.git.fetch')" placement="bottom">
+                    <button class="git-icon-btn" :disabled="syncing !== '' || loading || !status?.repository"
+                        @click="syncRemote('fetch')">
+                        <el-icon :size="15" :class="{ 'is-spinning': syncing === 'fetch' }">
+                            <Download />
+                        </el-icon>
+                    </button>
+                </LTooltip>
+                <LTooltip :content="t('chat.workspace.git.pull')" placement="bottom">
+                    <button class="git-icon-btn" :disabled="syncing !== '' || loading || !status?.repository"
+                        @click="syncRemote('pull')">
+                        <el-icon :size="15" :class="{ 'is-spinning': syncing === 'pull' }">
+                            <Bottom />
+                        </el-icon>
+                    </button>
+                </LTooltip>
+                <LTooltip :content="t('chat.workspace.git.push')" placement="bottom">
+                    <button class="git-icon-btn" :disabled="syncing !== '' || loading || !status?.repository"
+                        @click="syncRemote('push')">
+                        <el-icon :size="15" :class="{ 'is-spinning': syncing === 'push' }">
+                            <Top />
+                        </el-icon>
+                    </button>
+                </LTooltip>
                 <LTooltip :content="t('chat.workspace.git.refresh')" placement="bottom">
                     <button class="git-icon-btn" :disabled="loading" @click="refreshAll">
                         <el-icon :size="15" :class="{ 'is-spinning': loading }">
@@ -212,7 +237,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { message } from '@repo/core';
 import { ElMessageBox } from 'element-plus';
-import { Refresh, Plus, Minus, Delete, Select, Share } from '@element-plus/icons-vue';
+import { Refresh, Plus, Minus, Delete, Select, Share, Download, Bottom, Top } from '@element-plus/icons-vue';
 import { apiService } from '@/services/ApiService';
 import type { GitDiff, GitFileStatus, GitLogEntry, GitStatus } from '@/services/modules/git.api';
 import LTooltip from '@/components/ui/LTooltip.vue';
@@ -261,6 +286,8 @@ const currentDiff = ref<GitDiff | null>(null);
 const diffLoading = ref(false);
 /** 差异缓存（键 -> 差异） */
 const diffCache = new Map<string, GitDiff>();
+/** 远程同步进行中的动作（fetch/pull/push），非空时禁用按钮 */
+const syncing = ref<'' | 'fetch' | 'pull' | 'push'>('');
 
 /** 差异键 */
 function diffKey(staged: boolean, path: string): string {
@@ -436,6 +463,55 @@ async function refreshAll(): Promise<void> {
     await loadBranches();
     if (activeTab.value === 'history') {
         await loadLog();
+    }
+}
+
+/**
+ * 远程同步（fetch / pull / push）。
+ *
+ * <p>结果说明用后端返回的文本：认证失败、非快进、网络不可达这些原因只有后端知道，
+ * 在前端再翻译一遍容易和真实原因对不上。</p>
+ */
+async function syncRemote(action: 'fetch' | 'pull' | 'push'): Promise<void> {
+    if (!props.sessionId || syncing.value) {
+        return;
+    }
+    // 拉取会合并，未提交改动先拦住；推送没有本地提交时不必发请求
+    if (action === 'pull' && status.value && !status.value.clean) {
+        message.warning(t('chat.workspace.git.pullDirty'));
+        return;
+    }
+    if (action === 'push' && status.value && status.value.ahead === 0) {
+        message.info(t('chat.workspace.git.nothingToPush'));
+        return;
+    }
+    syncing.value = action;
+    try {
+        const result = action === 'fetch'
+            ? await apiService.fetchGitRemote(props.sessionId)
+            : action === 'pull'
+                ? await apiService.pullGitRemote(props.sessionId)
+                : await apiService.pushGitRemote(props.sessionId);
+        if (result.status) {
+            status.value = result.status;
+            branchSelection.value = result.status.branch || '';
+        }
+        if (result.upToDate) {
+            message.info(result.message);
+        } else {
+            message.success(result.message);
+        }
+        if (action !== 'fetch') {
+            await loadBranches();
+        }
+        if (activeTab.value === 'history') {
+            await loadLog();
+        }
+    } catch (error: any) {
+        console.error(`[GitPanel] ${action} 失败:`, error);
+        message.error(error?.message || t('chat.workspace.git.operateFailed'));
+    } finally {
+        syncing.value = '';
     }
 }
 

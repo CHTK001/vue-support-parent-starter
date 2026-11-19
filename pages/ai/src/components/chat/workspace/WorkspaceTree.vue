@@ -1,13 +1,14 @@
 <template>
     <div class="workspace-tree-custom">
         <WorkspaceTreeNode
-            v-for="node in nodes"
+            v-for="node in visibleNodes"
             :key="node.path"
             :node="node"
             :depth="0"
             :selected-path="selectedPath"
             :loading-paths="loadingPaths"
             :on-load="onLoad"
+            :show-hidden="showHidden"
             @select="(n, isPreview) => $emit('select', n, isPreview)"
             @toggle="(n, e) => $emit('toggle', n, e)"
             @contextmenu="(e, n) => $emit('contextmenu', e, n)"
@@ -16,7 +17,8 @@
 </template>
 
 <script setup lang="ts">
-import WorkspaceTreeNode from './WorkspaceTreeNode.vue';
+import { computed } from 'vue';
+import WorkspaceTreeNode, { isHiddenByDefault } from './WorkspaceTreeNode.vue';
 
 export interface WorkspaceNode {
     name: string;
@@ -32,7 +34,14 @@ const props = defineProps<{
     selectedPath: string;
     loadingPaths: Set<string>;
     onLoad?: (node: WorkspaceNode) => Promise<void>;
+    /** 是否显示 .git / node_modules 这类默认隐藏的节点 */
+    showHidden?: boolean;
 }>();
+
+/** 只做过滤、不复制节点：懒加载写回的是同一批响应式对象，复制会让 children 丢失 */
+const visibleNodes = computed(() =>
+    props.showHidden ? props.nodes : props.nodes.filter((node) => !isHiddenByDefault(node.name)),
+);
 
 const emit = defineEmits<{
     select: [node: WorkspaceNode, isPreview?: boolean];

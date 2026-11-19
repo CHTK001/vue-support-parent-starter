@@ -105,7 +105,7 @@
         </div>
         <!-- 目录树（预览时隐藏，v-show 保留 DOM） -->
         <div :class="treeContainerClass" :style="isPreviewMode && !treePhase1Hide ? treePanelStyle : {}"
-            v-show="isPreviewMode || sidePanel === 'files'" @mouseenter="showTreePanel" @mouseleave="hideTreePanel">
+            v-show="(isPreviewMode || sidePanel === 'files') && !searchActive" @mouseenter="showTreePanel" @mouseleave="hideTreePanel">
             <!-- 浏览器窗口列表（仅 Electron 环境，资源管理器模式下显示） -->
             <SessionBrowserWindowList v-if="isElectron && browserStore.sessionWebviews.length > 0"
                 v-show="!isPreviewMode" :session-id="props.sessionId"
@@ -136,24 +136,37 @@
                             </el-icon>
                         </el-button>
                     </LTooltip>
-                    <!-- 新建文件 / 新建目录（原先只能在系统文件管理器或 API 里建，树里没有入口） -->
-                    <LTooltip :content="t('chat.workspace.newFile')" placement="bottom">
-                        <el-button class="workspace-tool-btn" text :disabled="!sessionId" @click="handleCreateEntry(false)">
+                    <!-- 新建：文件/目录合并成一个「+」入口，头部不再一长串图标 -->
+                    <el-dropdown v-if="!isPreviewMode" trigger="click" placement="bottom-end" :disabled="!sessionId"
+                        @command="handleCreateCommand">
+                        <el-button class="workspace-tool-btn" text :disabled="!sessionId"
+                            :title="t('chat.workspace.newEntry')" :aria-label="t('chat.workspace.newEntry')">
                             <el-icon size="15">
-                                <DocumentAdd />
+                                <Plus />
                             </el-icon>
                         </el-button>
-                    </LTooltip>
-                    <LTooltip :content="t('chat.workspace.newFolder')" placement="bottom">
-                        <el-button class="workspace-tool-btn" text :disabled="!sessionId" @click="handleCreateEntry(true)">
+                        <template #dropdown>
+                            <el-dropdown-menu>
+                                <el-dropdown-item command="file">{{ t('chat.workspace.newFile') }}</el-dropdown-item>
+                                <el-dropdown-item command="folder">{{ t('chat.workspace.newFolder') }}</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+                    <!-- 显示/隐藏隐藏文件（.git、node_modules 等默认不上树） -->
+                    <LTooltip :content="showHidden ? t('chat.workspace.hideHidden') : t('chat.workspace.showHidden')" placement="bottom">
+                        <el-button class="workspace-tool-btn" text
+                            :aria-label="showHidden ? t('chat.workspace.hideHidden') : t('chat.workspace.showHidden')"
+                            :aria-pressed="showHidden" @click="showHidden = !showHidden">
                             <el-icon size="15">
-                                <FolderAdd />
+                                <Hide v-if="showHidden" />
+                                <View v-else />
                             </el-icon>
                         </el-button>
                     </LTooltip>
                     <!-- 刷新按钮 -->
                     <LTooltip :content="t('chat.workspace.refresh')" placement="bottom">
-                        <el-button class="workspace-tool-btn" text @click="refreshTree" :loading="isLoading">
+                        <el-button class="workspace-tool-btn" text :aria-label="t('chat.workspace.refresh')"
+                            @click="refreshTree" :loading="isLoading">
                             <el-icon size="15">
                                 <Refresh />
                             </el-icon>
@@ -162,16 +175,48 @@
                 </div>
             </div>
 
+            <!-- 文件名搜索：树是懒加载的，前端只能过滤已展开的部分，所以走后端有界递归 -->
+            <div v-if="!isPreviewMode" class="shrink-0 px-3 pb-2">
+                <el-input v-model="searchKeyword" size="small" clearable class="workspace-search"
+                    :placeholder="t('chat.workspace.searchPlaceholder')" @input="onSearchInput" @clear="clearSearch">
+                    <template #prefix>
+                        <el-icon :size="13">
+                            <Search />
+                        </el-icon>
+                    </template>
+                </el-input>
+            </div>
+
             <!-- 目录树内容 -->
             <div class="flex-1 overflow-auto min-w-0">
                 <div v-if="!treeData.length" class="text-center py-12 text-gray-400 dark:text-[var(--el-text-color-secondary)] text-xs p-2">
                     {{ t('chat.workspace.noFiles') }}
                 </div>
 
-                <WorkspaceTree v-else :nodes="treeData" :selected-path="selectedNodePath" :loading-paths="loadingPaths"
+                <WorkspaceTree v-else :nodes="treeData" :show-hidden="showHidden" :selected-path="selectedNodePath" :loading-paths="loadingPaths"
                     :on-load="(node) => handleTreeNodeToggle(node, true)" @select="handleTreeNodeSelect"
                     @toggle="handleTreeNodeExpandToggle" @contextmenu="handleContextMenu" />
             </div>
+        </div>
+
+        <!-- 搜索结果（按文件名递归搜索，点一条直接开预览） -->
+        <div v-if="!isPreviewMode && searchActive" class="flex-1 overflow-auto min-w-0 px-2 pb-2">
+            <div v-if="searchLoading" class="py-6 text-center text-xs text-gray-400 dark:text-[var(--el-text-color-secondary)]">
+                {{ t('chat.workspace.searching') }}
+            </div>
+            <div v-else-if="!searchResults.length"
+                class="py-6 text-center text-xs text-gray-400 dark:text-[var(--el-text-color-secondary)]">
+                {{ t('chat.workspace.searchEmpty') }}
+            </div>
+            <ul v-else class="search-result-list">
+                <li v-for="item in searchResults" :key="item.path" class="search-result" :title="item.path"
+                    role="button" tabindex="0" @click="openSearchResult(item)"
+                    @keydown.enter.prevent="openSearchResult(item)">
+                    <img :src="getFileIcon(item.name)" class="search-result__icon" alt="" />
+                    <span class="search-result__name">{{ item.name }}</span>
+                    <span class="search-result__dir">{{ item.relativePath }}</span>
+                </li>
+            </ul>
         </div>
 
         <!-- Git 变更面板（资源管理器模式下，替代目录树占位） -->
@@ -242,7 +287,7 @@ import { ref, computed, watch, onUnmounted, nextTick } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { apiService, type FileChangeEvent } from '@/services/ApiService';
-import { Refresh, CopyDocument, Edit, Delete, Plus, Close, Share, Monitor, DocumentAdd, FolderAdd } from '@element-plus/icons-vue';
+import { Refresh, CopyDocument, Edit, Delete, Plus, Close, Share, Monitor, DocumentAdd, FolderAdd, Search, View, Hide } from '@element-plus/icons-vue';
 import { Folder16Regular, Window16Regular, ArrowMinimize16Regular, FullScreenMaximize16Regular } from '@vicons/fluent';
 import { VsCode, WindowsExplorer } from '@/components/icons';
 import { getFileIcon } from '@/composables/useFileIcon';
@@ -292,6 +337,78 @@ const fileTabs = computed(() => tabStore.tabs.filter(t => t.type === 'file'));
 
 // 正在加载子节点的目录路径集合
 const loadingPaths = ref<Set<string>>(new Set());
+
+// ── 隐藏文件与搜索 ──
+
+/** 是否显示 .git / node_modules 这类默认不上树的节点 */
+const showHidden = ref(false);
+
+/** 搜索关键字 */
+const searchKeyword = ref('');
+/** 搜索中 */
+const searchLoading = ref(false);
+/** 搜索结果（后端有界递归，只返回文件名匹配的文件） */
+const searchResults = ref<Array<{ name: string; path: string; relativePath: string; size: number }>>([]);
+/** 关键字非空即进入搜索结果态，目录树暂时让位 */
+const searchActive = computed(() => searchKeyword.value.trim().length > 0);
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+/** 请求序号：先发后到的旧结果直接丢弃 */
+let searchSeq = 0;
+
+/** 输入防抖：连续敲字时只在停手 300ms 后发一次请求 */
+function onSearchInput(): void {
+    if (searchTimer) {
+        clearTimeout(searchTimer);
+    }
+    searchTimer = setTimeout(() => {
+        searchTimer = null;
+        void runSearch(searchKeyword.value);
+    }, 300);
+}
+
+/** 执行搜索（keyword 为空时清空结果） */
+async function runSearch(keyword: string): Promise<void> {
+    const needle = (keyword || '').trim();
+    if (!needle) {
+        clearSearch();
+        return;
+    }
+    if (!props.sessionId) return;
+    const seq = ++searchSeq;
+    searchLoading.value = true;
+    try {
+        const response = await apiService.searchWorkspaceFiles(props.sessionId, needle, 50);
+        if (seq !== searchSeq) return;
+        searchResults.value = response.items || [];
+    } catch (error: any) {
+        if (seq !== searchSeq) return;
+        console.error('[WorkspaceSidebar] 搜索失败:', error);
+        searchResults.value = [];
+        message.error(t('chat.workspace.searchFailed'));
+    } finally {
+        if (seq === searchSeq) {
+            searchLoading.value = false;
+        }
+    }
+}
+
+/** 清空搜索（清空按钮 / 切换会话时调用） */
+function clearSearch(): void {
+    searchSeq++;
+    searchKeyword.value = '';
+    searchResults.value = [];
+    searchLoading.value = false;
+}
+
+/** 点搜索结果：按普通文件打开预览 */
+function openSearchResult(item: { name: string; path: string; size: number }): void {
+    void handleFileSelect({ name: item.name, path: item.path, isDirectory: false, size: item.size }, false);
+}
+
+/** 头部「+」下拉的命令分发 */
+function handleCreateCommand(command: string | number | object): void {
+    void handleCreateEntry(command === 'folder');
+}
 
 // 右键菜单状态
 const contextMenu = ref({
@@ -1524,6 +1641,7 @@ watch(() => props.sessionId, async (newSessionId, oldSessionId) => {
         resetExpandedPaths();
         treeData.value = [];
         currentWorkspacePath.value = null;
+        clearSearch();
         apiService.disconnectWorkspaceWatcher();
         if (unsubscribeWatcher) {
             unsubscribeWatcher();
@@ -1673,6 +1791,60 @@ onUnmounted(() => {
 
 .drag-region {
     -webkit-app-region: drag;
+}
+
+/* ── 搜索结果 ── */
+.search-result-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.search-result {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: var(--el-radius-xs, 4px);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--color-text);
+    outline: none;
+}
+
+.search-result:hover {
+    background: var(--el-fill-color-light);
+}
+
+.search-result:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.search-result__icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.search-result__name {
+    flex-shrink: 0;
+    max-width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.search-result__dir {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    direction: rtl;
+    text-align: left;
 }
 
 .no-drag {

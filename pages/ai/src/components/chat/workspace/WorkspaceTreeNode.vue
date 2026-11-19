@@ -45,13 +45,14 @@
         <div v-if="expanded && node.isDirectory" class="tree-children">
             <!-- 有缓存数据时先显示，background 刷新 -->
             <WorkspaceTreeNode
-                v-for="child in node.children || []"
+                v-for="child in visibleChildren"
                 :key="child.path"
                 :node="child"
                 :depth="depth + 1"
                 :selected-path="selectedPath"
                 :loading-paths="loadingPaths"
                 :on-load="onLoad"
+                :show-hidden="showHidden"
                 @select="(n, isPreview) => $emit('select', n, isPreview)"
                 @toggle="(n, e) => $emit('toggle', n, e)"
                 @contextmenu="(e, n) => $emit('contextmenu', e, n)"
@@ -60,8 +61,26 @@
     </div>
 </template>
 
+<script lang="ts">
+/**
+ * 默认不上树的节点：隐藏文件（. 开头）与依赖 / 构建产物目录。
+ *
+ * <p>放在这里而不是 Sidebar，是为了让「树」和「节点」共用同一份判定——
+ * 两处各写一份，早晚会出现父级隐了、子级还在的错位。</p>
+ *
+ * @param name 节点名
+ * @returns 是否默认隐藏
+ */
+export function isHiddenByDefault(name: string): boolean {
+    return name.startsWith('.') || HIDDEN_NODE_NAMES.has(name);
+}
+
+/** 依赖 / 构建产物目录名 */
+const HIDDEN_NODE_NAMES = new Set(['node_modules', 'dist', 'target', '.venv', '__pycache__', '.idea', '.git', '.svn']);
+</script>
+
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import type { WorkspaceNode } from './WorkspaceTree.vue';
 
 // 递归组件需要显式导入自身
@@ -76,7 +95,16 @@ const props = defineProps<{
     selectedPath: string;
     loadingPaths: Set<string>;
     onLoad?: (node: WorkspaceNode) => Promise<void>;
+    /** 是否显示默认隐藏的节点 */
+    showHidden?: boolean;
 }>();
+
+/** 只做过滤、不复制节点：懒加载要把 children 写回同一个响应式对象 */
+const visibleChildren = computed(() =>
+    props.showHidden
+        ? (props.node.children || [])
+        : (props.node.children || []).filter((child) => !isHiddenByDefault(child.name)),
+);
 
 const emit = defineEmits<{
     select: [node: WorkspaceNode, isPreview?: boolean];
