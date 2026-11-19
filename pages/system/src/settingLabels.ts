@@ -90,9 +90,17 @@ export const SETTING_LABELS: Record<string, string> = {
   "@CodecRequestKey": "请求加密密钥",
   "@CodecResponseOpen": "响应体加密",
   "@WatermarkOpen": "启用水印",
+  "@WatermarkText": "水印文案",
   "@WatermarkColor": "水印颜色",
+  "@WatermarkDarkColor": "水印暗色颜色",
   "@WatermarkAlpha": "水印透明度",
   "@WatermarkRotate": "水印旋转角度",
+  "@WatermarkFontSize": "水印字号",
+  "@WatermarkFontFamily": "水印字体",
+  "@WatermarkGapX": "水印横向间距",
+  "@WatermarkGapY": "水印纵向间距",
+  "@WatermarkZIndex": "水印层级",
+  "@WatermarkTrace": "水印溯源",
   "@Version": "前端版本号",
 
   /* schedule 定时任务 */

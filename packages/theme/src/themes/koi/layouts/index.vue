@@ -18,12 +18,23 @@ import { useScreenStore } from "@repo/utils";
 import { computed, onMounted, type Component } from "vue";
 // 全局主题配置
 import useGlobalStore from "@repo/pinia/modules/global";
-import { applyGlobalWatermark } from "@repo/core";
+import { useUserStore } from "@repo/pinia";
+import { applyGlobalWatermark, registerWatermarkTraceProvider } from "@repo/core";
 import { getConfig } from "@repo/config";
 import { useUnreadFlash } from "./useUnreadFlash";
 
 // 未读消息标签页闪烁提示
 useUnreadFlash();
+
+// 水印溯源：全局水印文案拼入当前登录用户与生成时间（store 未就绪时由 core 侧降级为仅时间）
+registerWatermarkTraceProvider(() => {
+  const userStore = useUserStore();
+  const info = (userStore?.userInfo ?? {}) as Record<string, unknown>;
+  const user =
+    userStore?.nickname || userStore?.username || (info.nickname as string) || (info.username as string) || "";
+  const uid = info.userId != null ? String(info.userId) : "";
+  return { user, uid };
+});
 
 // 应用全局水印（依据 security.watermark 配置；配置变更由热重载联动刷新）
 onMounted(() => {

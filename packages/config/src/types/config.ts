@@ -119,14 +119,28 @@ export interface StorageConfig {
 export interface WatermarkConfig {
   /** 是否开启全局水印 */
   enable: boolean;
-  /** 水印文案 */
-  text?: string;
-  /** 水印颜色（hex，如 #409EFF） */
+  /** 水印文案（支持多行数组） */
+  text?: string | string[];
+  /** 水印颜色（hex，如 #409EFF；亮色主题） */
   color?: string;
+  /** 暗色主题水印颜色（缺省沿用 color） */
+  darkColor?: string;
   /** 透明度 0~1 */
   alpha?: number;
   /** 旋转角度（度） */
   rotate?: number;
+  /** 字号（px），缺省 20 */
+  fontSize?: number;
+  /** 字体族，缺省「宋体」 */
+  fontFamily?: string;
+  /** 瓦片横向间距（px），缺省 60 */
+  gapX?: number;
+  /** 瓦片纵向间距（px），缺省 50 */
+  gapY?: number;
+  /** 层级，缺省 9999 */
+  zIndex?: number;
+  /** 是否拼入溯源信息（当前用户/生成时间），缺省 true */
+  trace?: boolean;
 }
 
 /** 安全配置 */

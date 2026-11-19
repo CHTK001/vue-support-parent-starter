@@ -51,4 +51,9 @@ export default {
 };
 
 export * from "./permission";
-export { applyGlobalWatermark } from "./waterMarker";
+export {
+  applyGlobalWatermark,
+  registerWatermarkTraceProvider,
+  WATERMARK_TAMPER_EVENT,
+  buildWatermarkLines
+} from "./waterMarker";

@@ -531,9 +531,17 @@ const LEGACY_NAME_TO_PATH: Record<string, string> = {
   OpenSmsLogin: "login.smsLogin",
   // 水印旧名（不落在 login 子树，落在 security.watermark）
   WatermarkOpen: "security.watermark.enable",
+  WatermarkText: "security.watermark.text",
   WatermarkColor: "security.watermark.color",
+  WatermarkDarkColor: "security.watermark.darkColor",
   WatermarkAlpha: "security.watermark.alpha",
   WatermarkRotate: "security.watermark.rotate",
+  WatermarkFontSize: "security.watermark.fontSize",
+  WatermarkFontFamily: "security.watermark.fontFamily",
+  WatermarkGapX: "security.watermark.gapX",
+  WatermarkGapY: "security.watermark.gapY",
+  WatermarkZIndex: "security.watermark.zIndex",
+  WatermarkTrace: "security.watermark.trace",
 };
 
 /**
