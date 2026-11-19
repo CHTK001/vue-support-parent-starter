@@ -75,23 +75,25 @@
       <span>只读任务（Spring 托管 · 按下次执行时间排序）</span>
       <small>共 {{ sortedScheduled.length }} 个</small>
     </div>
-    <div v-if="sortedScheduled.length" class="act-timeline">
-      <div
-        v-for="(task, index) in sortedScheduled"
-        :key="`${task.type}-${task.target}-${index}`"
-        class="act-timeline__row"
-        :class="{ 'is-pending': isPending(task.next), 'is-failed': String(task.lastStatus).startsWith('FAILED') }"
-      >
-        <div class="act-timeline__time" :title="task.next">{{ formatWhen(task.next) }}</div>
-        <div class="act-timeline__body">
-          <div class="act-timeline__head">
-            <span class="act-timeline__type">{{ typeLabel(task.type) }}</span>
-            <span class="act-timeline__target" :title="task.target">{{ task.target }}</span>
-            <ReTag :type="statusType(task.lastStatus)" effect="light" round>{{ task.lastStatus }}</ReTag>
-          </div>
-          <div class="act-timeline__meta">
-            <span>{{ task.type === "cron" ? "表达式" : "间隔" }} <code>{{ task.expr || "—" }}</code></span>
-            <span>上次 {{ formatWhen(task.last) }}</span>
+    <div v-if="sortedScheduled.length" class="act-timeline-shell">
+      <div class="act-timeline">
+        <div
+          v-for="(task, index) in sortedScheduled"
+          :key="`${task.type}-${task.target}-${index}`"
+          class="act-timeline__row"
+          :class="{ 'is-pending': isPending(task.next), 'is-failed': String(task.lastStatus).startsWith('FAILED') }"
+        >
+          <div class="act-timeline__time" :title="task.next">{{ formatWhen(task.next) }}</div>
+          <div class="act-timeline__body">
+            <div class="act-timeline__head">
+              <span class="act-timeline__type">{{ typeLabel(task.type) }}</span>
+              <span class="act-timeline__target" :title="task.target">{{ task.target }}</span>
+              <ReTag :type="statusType(task.lastStatus)" effect="light" round>{{ task.lastStatus }}</ReTag>
+            </div>
+            <div class="act-timeline__meta">
+              <span>{{ task.type === "cron" ? "表达式" : "间隔" }} <code>{{ task.expr || "—" }}</code></span>
+              <span>上次 {{ formatWhen(task.last) }}</span>
+            </div>
           </div>
         </div>
       </div>

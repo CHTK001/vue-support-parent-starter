@@ -175,8 +175,13 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-sizing: border-box;
   min-width: 0;
   min-height: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-container, var(--el-bg-color, #fff));
 }
 
 .act-metrics__filter {
@@ -216,9 +221,14 @@
 }
 
 .act-metrics__detail {
+  box-sizing: border-box;
   min-width: 0;
   min-height: 0;
   overflow: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-container, var(--el-bg-color, #fff));
 }
 
 .act-metrics__title {
@@ -264,14 +274,17 @@
  * 横幅底色从状态色派生，不写死 element 的 `light-9` 常量。
  *
  * <p>深色主题下 `light-9` 是接近白的浅色，会在暗底上炸出一块亮斑；
- * `color-mix` 跟着 `--status-success` / `--status-error` 走，两套主题都成立。</p>
+ * `color-mix` 跟着 `--status-success` / `--status-error` 走，两套主题都成立。
+ * 混色基色用 `--bg-container` 而不是 transparent：页面灰底不再透进横幅。</p>
  */
 .act-health__banner.is-up {
-  background: color-mix(in srgb, var(--status-success, #2fbf71) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-success, #2fbf71) 32%, transparent);
+  background: color-mix(in srgb, var(--status-success, #2fbf71) 12%, var(--bg-container, var(--el-bg-color, #fff)));
 }
 
 .act-health__banner.is-down {
-  background: color-mix(in srgb, var(--status-error, #ff4c4c) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-error, #ff4c4c) 32%, transparent);
+  background: color-mix(in srgb, var(--status-error, #ff4c4c) 12%, var(--bg-container, var(--el-bg-color, #fff)));
 }
 
 .act-health__label {
@@ -432,9 +445,12 @@
 }
 
 .act-sched-managed {
+  box-sizing: border-box;
   margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-container, var(--el-bg-color, #fff));
 }
 
 .act-sched-managed__head {
@@ -601,7 +617,7 @@
   padding: 12px 14px;
   border: 1px dashed color-mix(in srgb, var(--status-success, #2fbf71) 42%, transparent);
   border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
-  background: color-mix(in srgb, var(--status-success, #2fbf71) 10%, transparent);
+  background: color-mix(in srgb, var(--status-success, #2fbf71) 10%, var(--bg-container, var(--el-bg-color, #fff)));
   font-size: 12.5px;
   color: var(--status-success, #2fbf71);
 }
@@ -847,6 +863,15 @@
    只读任务按「下次执行时间」升序排成一条时间轴：左边是时间点，右边是任务。
    时间点在前，是因为这一页真正要回答的是「接下来会发生什么、什么时候」。
    ========================================================================== */
+
+/* 时间轴卡壳：行不再直接坐在灰底上，轴线几何保持不变 */
+.act-timeline-shell {
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter, #ebeef5));
+  border-radius: var(--radius-md, var(--el-radius-md, 8px));
+  background: var(--bg-container, var(--el-bg-color, #fff));
+}
 
 .act-timeline {
   padding-left: 16px;
