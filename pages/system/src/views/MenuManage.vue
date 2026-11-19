@@ -360,7 +360,7 @@ function splitHighlight(text?: string): [string, string, string] {
 /**
  * 搜索时自动展开命中节点的祖先链，并滚动定位到首个命中：
  * 「收起全部」后再搜索时，深层命中会被折叠状态挡住、看不到高亮。
- * 用树实例直接展开（不重建整树，避免滚动位置丢失），250ms 防抖跟随输入。
+ * 250ms 防抖跟随输入；展开经 default-expanded-keys + treeKey 重建生效。
  */
 function collectHitKeys(nodes: MenuVM[], kw: string, ancestors: number[], out: Set<number>) {
   nodes.forEach((n) => {
