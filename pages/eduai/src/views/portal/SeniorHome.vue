@@ -32,6 +32,13 @@
     </header>
 
     <section class="sp-body">
+      <!-- 试卷提醒条：本班有未作答试卷（= 还没有本人的阅卷任务，口径与「我的试卷」页
+           一致）时出现，点击直达「我的试卷」；全部交卷后自动消失。接口失败时保持安静。 -->
+      <button v-if="pendingPapers > 0" type="button" class="sp-paperbar" @click="emit('open', 'my-papers')">
+        <ReIcon name="Notebook" :size="16" aria-hidden="true" />
+        <span class="sp-paperbar__text">老师布置了 <b>{{ pendingPapers }}</b> 份试卷待完成</span>
+        <span class="sp-paperbar__cta">去做试卷 ›</span>
+      </button>
       <div class="sp-grid">
         <button
           v-for="(m, i) in modules"
@@ -76,6 +83,7 @@
 import { computed } from "vue";
 import type { PortalModule } from "./modules";
 import { progressOf as readProgress, stageLabel } from "./modules";
+import { usePendingPapers } from "./usePendingPapers";
 import type { StudentOverview } from "../../api/types";
 
 const props = defineProps<{
@@ -102,6 +110,9 @@ const week = computed(() => props.overview?.week);
 const modulesMastered = computed(() => props.overview?.modulesMastered ?? 0);
 const classRank = computed(() => props.overview?.classRank ?? 0);
 const stageText = computed(() => stageLabel(props.overview?.stage));
+
+/** 本班待完成试卷数：> 0 时出现「去做试卷」提醒条（三个学段首页共用同一份逻辑） */
+const { pendingPapers } = usePendingPapers(() => props.overview);
 
 /**
  * 该卡片的模块进度
@@ -216,6 +227,44 @@ const daysToExam = computed(() => {
   font-size: clamp(11px, 1.3vw, 13px);
   font-weight: 700;
   color: color-mix(in srgb, var(--el-color-white) 78%, transparent);
+}
+
+/* ============ 试卷提醒条（本班有未作答试卷时出现；warning 橙，与小学/初中端同款） ============ */
+.sp-paperbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1.5px dashed color-mix(in srgb, var(--el-color-warning) 60%, transparent);
+  background: color-mix(in srgb, var(--el-color-warning) 10%, var(--el-bg-color));
+  color: color-mix(in srgb, var(--el-color-warning) 72%, var(--el-color-black));
+  font-family: inherit;
+  appearance: none;
+  font-size: clamp(13px, 1.5vw, 15px);
+  font-weight: 800;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+}
+.sp-paperbar:hover {
+  background: color-mix(in srgb, var(--el-color-warning) 18%, var(--el-bg-color));
+  box-shadow: 0 10px 20px -10px color-mix(in srgb, var(--el-color-warning) 40%, transparent);
+}
+.sp-paperbar:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-warning) 25%, transparent);
+}
+.sp-paperbar b {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.sp-paperbar__cta {
+  font-weight: 900;
 }
 
 .sp-body {
@@ -360,7 +409,8 @@ const daysToExam = computed(() => {
 }
 /* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
 @media (prefers-reduced-motion: reduce) {
-  .sp-card {
+  .sp-card,
+  .sp-paperbar {
     transition: none;
   }
 }

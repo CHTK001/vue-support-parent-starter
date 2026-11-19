@@ -40,11 +40,26 @@
               <div class="jp-stat__val">{{ total?.points ?? 0 }}<i>分</i></div>
             </div>
           </div>
+          <!-- 班级排名：与小学（彩旗）/ 高中（大数字）同一份 overview 数据；缺数据显示「—」 -->
+          <div class="jp-stat">
+            <span class="jp-stat__ic is-deep"><ReIcon name="Trophy" :size="15" aria-hidden="true" /></span>
+            <div>
+              <div class="jp-stat__lbl">班级排名</div>
+              <div class="jp-stat__val">{{ classRankLine }}</div>
+            </div>
+          </div>
         </div>
       </div>
     </header>
 
     <section class="jp-body">
+      <!-- 试卷提醒条：本班有未作答试卷（= 还没有本人的阅卷任务，口径与「我的试卷」页
+           一致）时出现，点击直达「我的试卷」；全部交卷后自动消失。接口失败时保持安静。 -->
+      <button v-if="pendingPapers > 0" type="button" class="jp-paperbar" @click="emit('open', 'my-papers')">
+        <ReIcon name="Notebook" :size="16" aria-hidden="true" />
+        <span class="jp-paperbar__text">老师布置了 <b>{{ pendingPapers }}</b> 份试卷待完成</span>
+        <span class="jp-paperbar__cta">去做试卷 ›</span>
+      </button>
       <div class="jp-grid">
         <button
           v-for="(m, i) in modules"
@@ -88,15 +103,17 @@
 /**
  * JuniorHome —— 初中端首页（简洁现代，深蓝渐变）
  *
- * 对应设计稿：深蓝渐变顶栏 + 四张统计卡（今日学习/完成练习/错题本/学习积分）；
- * 白底区域 8 张功能卡，每张带学习进度条；底部一行「今日推荐」。
+ * 对应设计稿：深蓝渐变顶栏 + 五张统计卡（今日学习/完成练习/错题本/学习积分/
+ * 班级排名）；白底区域 10 张功能卡，每张带学习进度条；底部一行「今日推荐」。
  *
- * 顶栏右侧的学习进度取所有模块进度的平均值 —— 设计稿写的是 68%，
- * 但没有定义这个数字从哪来，用平均进度是唯一能从真实数据算出来的口径。
+ * 顶栏右侧的学习进度取**可玩模块**进度的平均值 —— 设计稿写的是 68%，
+ * 但没有定义这个数字从哪来，用平均进度是唯一能从真实数据算出来的口径；
+ * 分母排除建设中站点（它们永远 0%），否则学生把可玩的全部学满也到不了 100%。
  */
 import { computed } from "vue";
 import type { PortalModule } from "./modules";
 import { progressOf as readProgress, stageLabel } from "./modules";
+import { usePendingPapers } from "./usePendingPapers";
 import type { StudentOverview } from "../../api/types";
 
 const props = defineProps<{
@@ -123,6 +140,19 @@ const total = computed(() => props.overview?.total);
 const wrongPending = computed(() => props.overview?.wrongPending ?? 0);
 const stageText = computed(() => stageLabel(props.overview?.stage));
 
+/** 班级排名：排名/人数缺任何一个都显示「—」，不造数（与小学/高中端同口径） */
+const classRankLine = computed(() => {
+  const rank = props.overview?.classRank;
+  const size = props.overview?.classSize;
+  if (!rank || !size) {
+    return "—";
+  }
+  return `${rank}/${size}`;
+});
+
+/** 本班待完成试卷数：> 0 时出现「去做试卷」提醒条（三个学段首页共用同一份逻辑） */
+const { pendingPapers } = usePendingPapers(() => props.overview);
+
 /**
  * 该卡片的模块进度
  *
@@ -134,11 +164,14 @@ function progressOf(m: PortalModule): number {
 }
 
 const overallProgress = computed(() => {
-  if (!props.modules.length) {
+  // 分母只算可玩站点：建设中模块永远 0%，算进平均会压低总进度，
+  // 学生把可玩的全部学满也到不了 100%（与小学端「已攻克 x/可玩数」同口径）
+  const playable = props.modules.filter((m) => isReady(m));
+  if (!playable.length) {
     return 0;
   }
-  const sum = props.modules.reduce((acc, m) => acc + progressOf(m), 0);
-  return Math.round(sum / props.modules.length);
+  const sum = playable.reduce((acc, m) => acc + progressOf(m), 0);
+  return Math.round(sum / playable.length);
 });
 
 const recommendModule = computed(() =>
@@ -244,6 +277,8 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
    色相随主题漂移。这里改用语义位 info：色相在任何主题下都稳定为中性灰，
    与蓝/绿/橙三枚仍可区分，代价是失去紫色辨识度（换取跨主题一致）。 */
 .jp-stat__ic.is-info { background: var(--el-color-info); }
+/* 班级排名：主色深一档（与小学端 --deep 旗同源），区别于第一枚的亮主色 */
+.jp-stat__ic.is-deep { background: var(--el-color-primary-dark-2); }
 .jp-stat__lbl {
   font-size: 12px;
   font-weight: 700;
@@ -262,12 +297,14 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   color: var(--el-text-color-placeholder);
   margin-left: 3px;
 }
-/* 对齐设计稿：四枚统计胶囊各有浅色底（蓝/绿/橙/紫），通过 nth-child 着色，
-   不改模板；第四枚固定紫（语义位里没有紫，用固定值保证色相稳定）。 */
+/* 对齐设计稿：统计胶囊各有浅色底（蓝/绿/橙/紫/深蓝），通过 nth-child 着色，
+   不改模板；第四枚固定紫（语义位里没有紫，用固定值保证色相稳定），
+   第五枚（班级排名）用主色深一档，与小学端「班级排名」深色旗呼应。 */
 .jp-stat:nth-child(1) { background: color-mix(in srgb, var(--el-color-primary) 8%, var(--el-bg-color)); }
 .jp-stat:nth-child(2) { background: color-mix(in srgb, var(--el-color-success) 10%, var(--el-bg-color)); }
 .jp-stat:nth-child(3) { background: color-mix(in srgb, var(--el-color-warning) 12%, var(--el-bg-color)); }
 .jp-stat:nth-child(4) { background: color-mix(in srgb, #7c3aed 10%, var(--el-bg-color)); }
+.jp-stat:nth-child(5) { background: color-mix(in srgb, var(--el-color-primary-dark-2) 10%, var(--el-bg-color)); }
 
 .jp-body {
   margin: clamp(14px, 2vw, 26px) clamp(12px, 1.8vw, 26px) 0;
@@ -401,6 +438,43 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
   background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
   transition: width var(--el-transition-duration-fast, 0.2s) ease;
 }
+/* ============ 试卷提醒条（本班有未作答试卷时出现；warning 橙，与小学端同款） ============ */
+.jp-paperbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1.5px dashed color-mix(in srgb, var(--el-color-warning) 60%, transparent);
+  background: color-mix(in srgb, var(--el-color-warning) 10%, var(--el-bg-color));
+  color: color-mix(in srgb, var(--el-color-warning) 72%, var(--el-color-black));
+  font-family: inherit;
+  appearance: none;
+  font-size: clamp(13px, 1.5vw, 15px);
+  font-weight: 800;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+}
+.jp-paperbar:hover {
+  background: color-mix(in srgb, var(--el-color-warning) 18%, var(--el-bg-color));
+  box-shadow: 0 10px 20px -10px color-mix(in srgb, var(--el-color-warning) 40%, transparent);
+}
+.jp-paperbar:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-warning) 25%, transparent);
+}
+.jp-paperbar b {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.jp-paperbar__cta {
+  font-weight: 900;
+}
 .jp-rec {
   margin: 26px 0 10px;
   text-align: center;
@@ -445,7 +519,8 @@ const recommendSub = computed(() => recommendModule.value?.subtitle ?? "");
 /* 尊重系统「减少动态效果」偏好：关掉本页全部 transition */
 @media (prefers-reduced-motion: reduce) {
   .jp-card,
-  .jp-bar__fill {
+  .jp-bar__fill,
+  .jp-paperbar {
     transition: none;
   }
 }

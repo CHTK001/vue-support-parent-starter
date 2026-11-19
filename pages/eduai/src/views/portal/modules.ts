@@ -31,7 +31,7 @@ export interface PortalModule {
   route?: string;
 }
 
-/** 小学端：活泼可爱，6 个模块 */
+/** 小学端：活泼可爱，8 个模块 */
 export const PRIMARY_MODULES: PortalModule[] = [
   { moduleCode: "idiom-game", title: "成语消消乐", subtitle: "拼成语·练思维", icon: "🀄", color: "#3b82f6", colorTo: "#60a5fa", badgeFromIncomplete: true },
   { moduleCode: "fun-math", title: "趣味数学", subtitle: "口算闯关·玩中学", icon: "🔢", color: "#f59e0b", colorTo: "#fbbf24" },
@@ -43,7 +43,7 @@ export const PRIMARY_MODULES: PortalModule[] = [
   { moduleCode: "wrongbook", title: "错题本", subtitle: "错题重练·订正", icon: "🗂️", color: "#ef4444", colorTo: "#f87171" },
 ];
 
-/** 初中端：简洁现代，8 个模块 */
+/** 初中端：简洁现代，10 个模块 */
 export const JUNIOR_MODULES: PortalModule[] = [
   { moduleCode: "idiom-game", title: "成语消消乐", subtitle: "成语连连消消乐", icon: "🀄", color: "#2563eb", colorTo: "#3b82f6" },
   { moduleCode: "fun-math", title: "趣味数学", subtitle: "数学趣味闯关", icon: "🔢", color: "#f59e0b", colorTo: "#fbbf24" },
@@ -57,7 +57,7 @@ export const JUNIOR_MODULES: PortalModule[] = [
   { moduleCode: "wrongbook", title: "错题本", subtitle: "错题重练·订正", icon: "🗂️", color: "#ef4444", colorTo: "#f87171" },
 ];
 
-/** 高中端：专业克制，8 个模块 */
+/** 高中端：专业克制，10 个模块 */
 export const SENIOR_MODULES: PortalModule[] = [
   { moduleCode: "idiom-game", title: "成语消消乐", subtitle: "成语专项", icon: "🀄", color: "#2563eb", colorTo: "#3b82f6" },
   { moduleCode: "math-special", title: "数学专项", subtitle: "函数与导数", icon: "📦", color: "#f59e0b", colorTo: "#fbbf24" },
