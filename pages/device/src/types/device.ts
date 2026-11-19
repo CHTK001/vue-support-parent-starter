@@ -200,7 +200,7 @@ export interface DevicePageQuery {
   ids?: string[]
   /** 仅看未分组设备 */
   ungrouped?: boolean
-  sortBy?: 'updatedAt' | 'createdAt' | 'lastOnlineAt' | 'name'
+  sortBy?: 'updateTime' | 'createTime' | 'lastOnlineAt' | 'name'
   sortOrder?: 'asc' | 'desc'
 }
 
