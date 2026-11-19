@@ -31,6 +31,9 @@
                 ></span>
                 <el-avatar :size="52" :src="avatar" />
                 <el-icon v-if="isLocked(frame)" class="avatar-frame-lock" :size="14"><Lock /></el-icon>
+                <span class="avatar-frame-zoom" title="大图试戴" @click.stop="openPreview(frame)">
+                  <el-icon :size="13"><ZoomIn /></el-icon>
+                </span>
               </div>
               <span class="avatar-frame-name">{{ frame.name }}</span>
               <el-icon v-if="selectedFrame === frame.id" class="avatar-frame-check"><CircleCheckFilled /></el-icon>
@@ -40,6 +43,36 @@
       </template>
       <el-empty v-else description="暂无可用头像框" :image-size="80" />
     </template>
+
+    <!-- 大图试戴：52px 卡片预览看不清动效细节，弹出 120px「头像+框」组合预览，确认后再佩戴 -->
+    <el-dialog v-model="previewVisible" width="340px" append-to-body destroy-on-close>
+      <template #header>
+        <span class="avatar-frame-preview-title">{{ previewFrame?.name || "试戴预览" }}</span>
+      </template>
+      <div class="avatar-frame-preview-stage">
+        <div class="avatar-frame-preview-box">
+          <div
+            v-if="previewFrame && hasFrameVisual(previewFrame)"
+            class="avatar-frame-img"
+            :style="frameLayerStyle(previewFrame, 120)"
+          ></div>
+          <span v-else class="koi-avatar-default-frame" :style="defaultFrameLayerStyle(120)"></span>
+          <el-avatar :size="120" :src="avatar" />
+        </div>
+        <p class="avatar-frame-preview-hint">{{ previewHint }}</p>
+      </div>
+      <template #footer>
+        <el-button size="small" @click="previewVisible = false">关闭</el-button>
+        <el-button
+          size="small"
+          type="primary"
+          :disabled="!previewFrame || selectedFrame === previewFrame.id"
+          @click="wearPreview"
+        >
+          {{ previewFrame && selectedFrame === previewFrame.id ? "已佩戴" : "佩戴该框" }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -47,14 +80,14 @@
 /**
  * 头像框设置面板（组件化）
  *
- * 供个人中心等页面复用：分组展示「不佩戴 / 生肖 / 神兽 / 限定」头像框，点选即佩戴。
+ * 供个人中心等页面复用：分组展示「不佩戴 / 常规 / 灵动 / 生肖 / 星座 / 神兽 / 限定」头像框，点选即佩戴。
  * 字典来源：GET /v2/avatar-frame/list（服务端已按生日窗口过滤生日框）；
  * 限定帧（acquire 非 default）需先 POST /v2/avatar-frame/acquire 解锁，解锁记录取
  * GET /v2/avatar-frame/user。佩戴与显隐持久化：PUT /v2/user/update，
  * 成功后刷新登录用户信息并 emit updated。
  */
 import { computed, onMounted, ref } from "vue";
-import { CircleCheckFilled, Lock } from "@element-plus/icons-vue";
+import { CircleCheckFilled, Lock, ZoomIn } from "@element-plus/icons-vue";
 import { msgError, msgSuccess } from "@repo/core";
 import { resolveUserDisplayInfo, Http } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
@@ -97,19 +130,21 @@ interface FrameGroup {
   items: AvatarFrame[];
 }
 
-/** 面板分组：不佩戴 → 常规 → 生肖 → 神兽 → 限定（生日等） */
+/** 面板分组：不佩戴 → 常规 → 灵动 → 生肖 → 星座 → 神兽 → 限定（生日等） */
 const groups = computed<FrameGroup[]>(() => {
   if (!isAvatarFrameEnabled()) return [];
   const frames = avatarFrameDict.value.filter(hasFrameVisual);
   const byType = (type: string) => frames.filter((f) => f.type === type);
-  const listed = new Set(["regular", "zodiac", "beast"]);
+  const listed = new Set(["regular", "dynamic", "zodiac", "constellation", "beast"]);
   const limited = frames.filter((f) => !listed.has(f.type ?? ""));
   // 「不佩戴」项：优先用字典里的透明占位帧（经典），没有时用虚拟的「默认光环」
   const noneItems = avatarFrameDict.value.filter((f) => !hasFrameVisual(f));
   return [
     { title: "不佩戴", items: noneItems.length ? noneItems : [DEFAULT_FRAME_OPTION] },
     { title: "常规", items: byType("regular") },
+    { title: "灵动", items: byType("dynamic") },
     { title: "生肖", items: byType("zodiac") },
+    { title: "星座", items: byType("constellation") },
     { title: "神兽", items: byType("beast") },
     { title: "限定", items: limited },
   ].filter((g) => g.items.length);
@@ -193,6 +228,30 @@ async function persistWear(
     selectedFrame.value = rollbackTo;
     return false;
   }
+}
+
+/** 大图试戴：弹出 120px「头像+框」组合预览，可在弹层内直接佩戴 */
+const previewVisible = ref(false);
+const previewFrame = ref<AvatarFrame | null>(null);
+
+const previewHint = computed<string>(() => {
+  const frame = previewFrame.value;
+  if (!frame) return "";
+  if (!hasFrameVisual(frame)) return "取下头像框后的效果（默认光环）";
+  if (isLocked(frame)) return "限定头像框 · 点「佩戴该框」自动解锁";
+  return "动态素材 · 佩戴后随头像等比缩放";
+});
+
+function openPreview(frame: AvatarFrame): void {
+  previewFrame.value = frame;
+  previewVisible.value = true;
+}
+
+async function wearPreview(): Promise<void> {
+  const frame = previewFrame.value;
+  if (!frame) return;
+  previewVisible.value = false;
+  await activateFrame(frame);
 }
 
 /** 点选头像框：限定帧先解锁，佩戴同时打开显示 */
@@ -346,5 +405,50 @@ onMounted(() => {
   top: 4px;
   right: 4px;
   color: var(--el-color-primary);
+}
+
+.avatar-frame-zoom {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  display: flex;
+  padding: 3px;
+  border-radius: 50%;
+  color: var(--el-text-color-secondary);
+  background: var(--el-bg-color);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 14%);
+  transition: color 0.2s;
+}
+
+.avatar-frame-zoom:hover {
+  color: var(--el-color-primary);
+}
+
+.avatar-frame-preview-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.avatar-frame-preview-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatar-frame-preview-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 168px;
+  height: 168px;
+}
+
+.avatar-frame-preview-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
 }
 </style>

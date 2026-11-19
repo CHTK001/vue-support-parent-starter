@@ -7,7 +7,11 @@
  *
  * 目录构成（种子 id=1 为透明占位「经典」，即不佩戴）：
  *  - 生肖 201-212、生日 100：`sys_avatar_frame_image` 指向
- *    public/assets/avatar-frames/*.apng，统一 400 画布、静态珐琅环 + 动物动画。
+ *    public/assets/avatar-frames/*.apng，400 画布、静态珐琅环 + 动物动画。
+ *  - 灵动 111-116（dyn-*）：动态特效环（极光/焰心/星环/樱雪/雷弧/星漩）。
+ *  - 星座 301-312（const-*）：十二星座元素色环 + 金色星群 + 顶部符牌。
+ *  以上均为中心镂空环（孔径 0.72），由 scripts/build-avatar-frames.mjs 生成；
+ *  灵动/星座为 256 画布、8 帧、索引色（渲染坐标仍按 400 标定后降采样）。
  */
 import { shallowRef } from "vue";
 import { getConfig } from "@repo/config";
@@ -30,7 +34,7 @@ export interface AvatarFrame {
 
 /**
  * 特效帧素材的孔径占画布比例（洞径 ÷ 画布边长）。
- * <p>素材统一 400 画布、中心孔径 0.72（环带较细、外径 1.39 倍头像），
+ * <p>素材中心孔径统一 0.72（环带较细、外径 1.39 倍头像；画布 400/256 均按此比例），
  * 叠加层放大到 1/0.72 ≈ 1.39 倍头像即可把孔对准头像。</p>
  * <p>与 generate_avatar_frames.py 的 HOLE_SIZE 保持一致；改素材需同步改这里。</p>
  */
@@ -60,6 +64,11 @@ function zodiac(file: string): string {
   return `/assets/avatar-frames/${file}.apng`;
 }
 
+/** 灵动/星座框资源路径（生成器 scripts/build-avatar-frames.mjs 的产物） */
+function frame(file: string): string {
+  return `/assets/avatar-frames/${file}.apng`;
+}
+
 
 /** 服务端不可用时的兜底字典（常规 + 十二生肖） */
 export const FALLBACK_AVATAR_FRAMES: AvatarFrame[] = [
@@ -81,6 +90,24 @@ export const FALLBACK_AVATAR_FRAMES: AvatarFrame[] = [
   { id: 210, name: "酉鸡", type: "zodiac", acquire: "default", image: zodiac("zodiac-rooster") },
   { id: 211, name: "戌狗", type: "zodiac", acquire: "default", image: zodiac("zodiac-dog") },
   { id: 212, name: "亥猪", type: "zodiac", acquire: "default", image: zodiac("zodiac-pig") },
+  { id: 111, name: "极光环", type: "dynamic", acquire: "default", image: frame("dyn-aurora") },
+  { id: 112, name: "焰心环", type: "dynamic", acquire: "default", image: frame("dyn-ember") },
+  { id: 113, name: "星环", type: "dynamic", acquire: "default", image: frame("dyn-ring") },
+  { id: 114, name: "樱雪环", type: "dynamic", acquire: "default", image: frame("dyn-sakura") },
+  { id: 115, name: "雷弧环", type: "dynamic", acquire: "default", image: frame("dyn-storm") },
+  { id: 116, name: "星漩环", type: "dynamic", acquire: "default", image: frame("dyn-nebula") },
+  { id: 301, name: "白羊座", type: "constellation", acquire: "default", image: frame("const-aries") },
+  { id: 302, name: "金牛座", type: "constellation", acquire: "default", image: frame("const-taurus") },
+  { id: 303, name: "双子座", type: "constellation", acquire: "default", image: frame("const-gemini") },
+  { id: 304, name: "巨蟹座", type: "constellation", acquire: "default", image: frame("const-cancer") },
+  { id: 305, name: "狮子座", type: "constellation", acquire: "default", image: frame("const-leo") },
+  { id: 306, name: "处女座", type: "constellation", acquire: "default", image: frame("const-virgo") },
+  { id: 307, name: "天秤座", type: "constellation", acquire: "default", image: frame("const-libra") },
+  { id: 308, name: "天蝎座", type: "constellation", acquire: "default", image: frame("const-scorpio") },
+  { id: 309, name: "射手座", type: "constellation", acquire: "default", image: frame("const-sagittarius") },
+  { id: 310, name: "摩羯座", type: "constellation", acquire: "default", image: frame("const-capricorn") },
+  { id: 311, name: "水瓶座", type: "constellation", acquire: "default", image: frame("const-aquarius") },
+  { id: 312, name: "双鱼座", type: "constellation", acquire: "default", image: frame("const-pisces") },
 ];
 
 /** 当前生效的头像框字典（响应式；初始为兜底字典） */
