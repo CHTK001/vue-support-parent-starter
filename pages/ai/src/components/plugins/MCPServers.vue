@@ -9,14 +9,18 @@
     <template v-else>
       <!-- ============ 市场视图 ============ -->
       <template v-if="view === 'market'">
-        <div class="market-topbar">
-          <el-input v-model="keyword" size="default" clearable class="market-topbar__search"
-            placeholder="搜索 MCP（内置推荐 / 第三方仓库）"
-            @keyup.enter="handleSearch" @clear="handleClear">
-            <template #prefix>
-              <el-icon><SearchOutlined /></el-icon>
-            </template>
-          </el-input>
+        <!-- 本周精选横幅：取内置推荐第一条（真实数据；pm-* 为市场壳共享样式） -->
+        <div v-if="featuredCard" class="pm-banner">
+          <div class="pm-banner-body">
+            <div class="pm-banner-kicker">{{ t('plugins.market.featuredKicker') }}</div>
+            <div class="pm-banner-title">{{ featuredCard.name }}</div>
+            <div class="pm-banner-desc">{{ featuredCard.description }}</div>
+          </div>
+          <el-button class="pm-banner-cta" type="primary" plain @click="openDetail(featuredCard)">{{ t('plugins.market.featuredCta') }}</el-button>
+        </div>
+
+        <!-- 次要操作：来源设置 / 管理 / 添加（搜索在市场壳页头；页头「添加」经 defineExpose 打开表单） -->
+        <div class="pm-toolbar">
           <el-button size="default" @click="openSourceConfig">
             <el-icon class="mr-1"><SettingsOutlined /></el-icon>来源设置
           </el-button>
@@ -47,15 +51,8 @@
         </div>
 
         <template v-else>
-          <!-- 默认浏览：分类标签 + 分组 -->
+          <!-- 默认浏览：分类由市场壳左栏索引驱动（精选 = 按首标签分组展示全部） -->
           <template v-if="!hasKeyword">
-            <div class="market-tabs" role="tablist">
-              <div v-for="tab in tabs" :key="tab" role="tab" class="market-tab"
-                :class="{ active: activeTab === tab }" @click="activeTab = tab">
-                {{ tab }}
-              </div>
-            </div>
-
             <div v-for="g in groups" :key="g.cat" class="market-group">
               <div class="market-group-head" @click="toggleGroup(g.cat)">
                 <span class="market-group-title">{{ g.cat }}</span>
@@ -239,11 +236,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watchEffect } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {isAdmin, message} from '@repo/core'
 import { ElMessageBox } from 'element-plus';
 import {
-  SearchOutlined, PlusOutlined, SettingsOutlined, LockOutlined, DeleteOutlined,
+  PlusOutlined, SettingsOutlined, LockOutlined, DeleteOutlined,
   EditOutlined, InboxOutlined, ArrowBackOutlined, WifiTetheringOutlined,
 } from '@vicons/material'
 import { mcpApi } from '@/services/javaApi'
@@ -252,7 +250,9 @@ import LTooltip from '@/components/ui/LTooltip.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import McpDetailDialog from './McpDetailDialog.vue'
 import McpServerFormDialog from './McpServerFormDialog.vue'
+import { pluginsMarket, syncMarketSlice } from './plugins-market'
 
+const { t } = useI18n()
 const admin = ref(isAdmin())
 
 const view = ref<'market' | 'manage'>('market')
@@ -262,9 +262,12 @@ const builtinList = ref<any[]>([])
 const boundList = ref<any[]>([])
 const loadingInitial = ref(false)
 
-// 市场浏览
+// 市场浏览（分类 / 关键词上提到市场壳共享状态；store 里 '' = 精选）
 const FEATURED = '精选'
-const activeTab = ref<string>(FEATURED)
+const activeTab = computed({
+  get: () => pluginsMarket.mcp.category || FEATURED,
+  set: (v: string) => { pluginsMarket.mcp.category = v === FEATURED ? '' : v },
+})
 const collapsed = ref<Set<string>>(new Set())
 
 const labels = computed<string[]>(() => {
@@ -275,19 +278,23 @@ const labels = computed<string[]>(() => {
   }))
   return order
 })
-const tabs = computed(() => [FEATURED, ...labels.value].slice(0, 7))
-
 function firstLabel(c: any) {
   return c.labels?.length ? c.labels[0] : '其它'
+}
+/** 状态筛选（市场壳左栏）：installed / not_installed，'' = 全部 */
+function statusMatch(c: any): boolean {
+  const st = pluginsMarket.mcp.status
+  if (!st) return true
+  return (st === 'installed') === isInstalled(c)
 }
 const groups = computed(() => {
   if (activeTab.value === FEATURED) {
     return labels.value
-      .map((l) => ({ cat: l, items: builtinList.value.filter((c) => firstLabel(c) === l) }))
+      .map((l) => ({ cat: l, items: builtinList.value.filter((c) => firstLabel(c) === l && statusMatch(c)) }))
       .filter((g) => g.items.length)
   }
   const l = activeTab.value
-  return [{ cat: l, items: builtinList.value.filter((c) => c.labels?.includes(l)) }]
+  return [{ cat: l, items: builtinList.value.filter((c) => c.labels?.includes(l) && statusMatch(c)) }]
 })
 function toggleGroup(cat: string) {
   if (collapsed.value.has(cat)) collapsed.value.delete(cat)
@@ -300,8 +307,11 @@ function isInstalled(card: any) {
   return installedNames.value.has(card.name)
 }
 
-// 搜索
-const keyword = ref('')
+// 搜索（关键词上提到市场壳共享状态，页头搜索框双向绑定）
+const keyword = computed({
+  get: () => pluginsMarket.mcp.keyword,
+  set: (v: string) => { pluginsMarket.mcp.keyword = v },
+})
 const searching = ref(false)
 const onlineResults = ref<any[]>([])
 const hasKeyword = computed(() => keyword.value.trim() !== '')
@@ -313,9 +323,6 @@ const searchBuiltin = computed(() => {
 })
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
-function handleSearch() {
-  runSearch()
-}
 function handleClear() {
   keyword.value = ''
   onlineResults.value = []
@@ -494,6 +501,36 @@ async function saveSourceConfig() {
   }
 }
 
+/** 本周精选位：取内置推荐第一条（真实数据） */
+const featuredCard = computed(() => builtinList.value[0] || null)
+
+// 回填市场壳：类目 / 状态分桶 / 总数（真实计数，Bento 卡与左栏索引展示用）
+watchEffect(() => {
+  const list = builtinList.value
+  const counts: Record<string, number> = {}
+  list.forEach((c) => {
+    const l = firstLabel(c)
+    counts[l] = (counts[l] || 0) + 1
+  })
+  syncMarketSlice('mcp', {
+    total: list.length,
+    categories: Object.keys(counts),
+    categoryCounts: counts,
+    statuses: [
+      { key: 'installed', label: '已安装', count: list.filter((c) => isInstalled(c)).length, tone: 'success' },
+      { key: 'not_installed', label: '未安装', count: list.filter((c) => !isInstalled(c)).length, tone: 'info' },
+    ],
+  })
+})
+
+defineExpose({
+  /** 市场壳页头「添加」入口：打开新增表单 */
+  openAdd: () => { openAddForm() },
+  /** 市场壳页头搜索：回车触发内置过滤 + 在线检索 */
+  runSearch: () => { runSearch() },
+  clearSearch: () => { handleClear() },
+})
+
 // 初始加载
 async function loadBuiltin() {
   const res = await mcpApi.builtin()
@@ -527,53 +564,17 @@ onMounted(async () => {
   padding: 80px 0;
 }
 
-/* ===== 顶栏 ===== */
+/* ===== 顶栏（管理视图返回行；市场视图搜索/按钮已上提到市场壳页头） ===== */
 .market-topbar {
   display: flex;
   align-items: center;
   gap: 10px;
   margin: 2px 0 16px;
 }
-.market-topbar__search {
-  width: 280px;
-  max-width: 42%;
-}
 .manage-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--el-text-color-primary);
-}
-
-/* ===== 分类标签 → 文摘胶囊云（方案 10，对应 mockup .tags/.chip）===== */
-.market-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 0;
-  margin-bottom: 16px;
-}
-.market-tab {
-  font-size: 12.5px;
-  line-height: 1;
-  color: var(--text-secondary, #475569);
-  cursor: pointer;
-  padding: 7px 13px;
-  border-radius: var(--radius-full, var(--el-radius-full, 9999px));
-  border: 1px solid var(--border-default, #e2e9f3);
-  background: transparent;
-  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
-  flex: none;
-}
-.market-tab:hover {
-  color: var(--brand-500, #3b82f6);
-  border-color: var(--brand-500, #3b82f6);
-}
-.market-tab.active {
-  color: var(--brand-500, #3b82f6);
-  background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
-  border-color: var(--brand-500, #3b82f6);
-  font-weight: 600;
 }
 
 /* ===== 分组 ===== */
@@ -813,26 +814,24 @@ onMounted(async () => {
 .source-item__name { font-size: 13px; font-weight: 600; }
 .source-item__desc { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px; }
 
-/* 键盘焦点可见性：分类页签 / 分组头 / 市场单元 / 已装条目主区都是带 @click 的 div
+/* 键盘焦点可见性：分组头 / 市场单元 / 已装条目主区都是带 @click 的 div
    （不是可聚焦控件），浏览器不给默认焦点环。
-   四者原有 cursor: pointer 都已在上面声明（.market-cell 走 .market-cell--clickable），
+   三者原有 cursor: pointer 都已在上面声明（.market-cell 走 .market-cell--clickable），
    不重复写。环用主色 12% —— 本文件没有任何写死的深色底，底色全走令牌，
    深浅两套主题下都只是一档主色描边，12% 足够可见。 */
-.market-tab,
 .market-group-head,
 .market-cell,
 .manage-card__main {
   outline: none;
 }
 
-.market-tab:focus-visible,
 .market-group-head:focus-visible,
 .market-cell:focus-visible,
 .manage-card__main:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
 
-/* 注意：本文件不在 A 段清单内，所以 .market-tab / .market-group-arrow（折叠箭头旋转）/
+/* 注意：本文件不在 A 段清单内，所以 .market-group-arrow（折叠箭头旋转）/
    .market-cell / .manage-card 自带的 transition 未做 reduced-motion 降级，
    按「照清单做、不自行扩范围」的约定留待下一轮。 */
 </style>

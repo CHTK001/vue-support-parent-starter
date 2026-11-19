@@ -1,14 +1,19 @@
 <template>
     <div class="flex-1 skills-page skill-market-page">
-        <!-- 顶部操作栏：搜索 + 管理 + 添加 -->
-        <div class="market-topbar">
-            <el-input v-model="marketKeyword" size="default" clearable class="market-topbar__search"
-                :placeholder="t('plugins.skills.searchPlaceholder')"
-                @keyup.enter="handleMarketSearch" @clear="handleMarketClear">
-                <template #prefix>
-                    <el-icon><SearchOutlined /></el-icon>
-                </template>
-            </el-input>
+        <!-- 本周精选横幅：取市场目录第一条（真实数据；pm-* 为市场壳共享样式） -->
+        <div v-if="featuredSkill" class="pm-banner">
+            <div class="pm-banner-body">
+                <div class="pm-banner-kicker">{{ t('plugins.market.featuredKicker') }}</div>
+                <div class="pm-banner-title">{{ featuredSkill.name }}</div>
+                <div class="pm-banner-desc">{{ featuredSkill.description || t('plugins.skills.noDescription') }}</div>
+            </div>
+            <el-button class="pm-banner-cta" type="primary" plain @click="openSkillDetail(featuredSkill)">
+                {{ t('plugins.market.featuredCta') }}
+            </el-button>
+        </div>
+
+        <!-- 次要操作：管理 + 添加（搜索在市场壳页头；页头「添加」经 defineExpose 打开浮层） -->
+        <div class="pm-toolbar">
             <el-button size="default" @click="openManage">{{ t('plugins.skills.manage') }}</el-button>
             <el-popover :width="208" placement="bottom-end" trigger="click"
                 popper-class="skill-add-popover" v-model:visible="addPopoverVisible">
@@ -145,13 +150,7 @@
                  <!-- 默认浏览：未发起顶部搜索 -->
                  <template v-if="!marketHasSearch">
                     <!-- 分类标签栏 -->
-                    <div class="market-tabs" role="tablist">
-                        <div v-for="tab in marketTabs" :key="tab" role="tab"
-                            class="market-tab" :class="{ active: marketTab === tab }"
-                            @click="marketTab = tab">
-                            {{ tab }}
-                        </div>
-                    </div>
+                    <!-- 类目筛选由市场壳左栏索引驱动 marketTab（精选 = 按首标签分组展示全部） -->
 
                     <!-- 分组列表 -->
                     <div v-for="g in marketGroups" :key="g.cat" class="market-group">
@@ -510,7 +509,7 @@
 
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElButton, ElTag, ElIcon, ElUpload, ElMessageBox } from 'element-plus';
@@ -528,6 +527,7 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import SkillDetailDialog from './SkillDetailDialog.vue'
 import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
+import { pluginsMarket, syncMarketSlice } from './plugins-market'
 
 interface SkillManifest {
     name: string
@@ -755,8 +755,16 @@ const marketError = ref<string | null>(null)
 
 // 主页面市场：搜索 / 分类标签 / 分组
 const MARKET_FEATURED = '精选'
-const marketTab = ref<string>(MARKET_FEATURED)
-const marketKeyword = ref('')
+/** 分类标签上提到市场壳左栏索引；store 里 '' = 精选（按首标签分组展示全部） */
+const marketTab = computed({
+    get: () => pluginsMarket.skills.category || MARKET_FEATURED,
+    set: (v: string) => { pluginsMarket.skills.category = v === MARKET_FEATURED ? '' : v },
+})
+/** 搜索关键词上提到市场壳共享状态（页头搜索框双向绑定） */
+const marketKeyword = computed({
+    get: () => pluginsMarket.skills.keyword,
+    set: (v: string) => { pluginsMarket.skills.keyword = v },
+})
 const collapsedGroups = ref<Set<string>>(new Set())
 
 const marketLabels = computed<string[]>(() => {
@@ -768,9 +776,8 @@ const marketLabels = computed<string[]>(() => {
     return order
 })
 
-/** 顶部快捷分类上限（含「精选」）；「精选」已按全部标签分组展示，超出的分类无需再占标签位，避免出现横向滚动条 */
-const MAX_MARKET_TABS = 7
-const marketTabs = computed<string[]>(() => [MARKET_FEATURED, ...marketLabels.value].slice(0, MAX_MARKET_TABS))
+/** 本周精选位：取市场目录第一条（真实数据） */
+const featuredSkill = computed(() => marketSkills.value[0] || null)
 
 function firstLabel(s: MarketSkillWithStatus): string {
     return (s.labels && s.labels.length > 0) ? s.labels[0] : '其它'
@@ -782,14 +789,21 @@ function marketKeywordMatch(s: MarketSkillWithStatus): boolean {
     return s.name.toLowerCase().includes(k) || (s.description || '').toLowerCase().includes(k)
 }
 
+/** 状态筛选（市场壳左栏）：not_installed / updatable / installed，'' = 全部 */
+function marketStatusMatch(s: MarketSkillWithStatus): boolean {
+    const st = pluginsMarket.skills.status
+    if (!st) return true
+    return s.localStatus === st
+}
+
 const marketGroups = computed<{ cat: string; items: MarketSkillWithStatus[] }[]>(() => {
     if (marketTab.value === MARKET_FEATURED) {
         return marketLabels.value
-            .map(l => ({ cat: l, items: marketSkills.value.filter(s => firstLabel(s) === l && marketKeywordMatch(s)) }))
+            .map(l => ({ cat: l, items: marketSkills.value.filter(s => firstLabel(s) === l && marketKeywordMatch(s) && marketStatusMatch(s)) }))
             .filter(g => g.items.length > 0)
     }
     const l = marketTab.value
-    return [{ cat: l, items: marketSkills.value.filter(s => (s.labels || []).includes(l) && marketKeywordMatch(s)) }]
+    return [{ cat: l, items: marketSkills.value.filter(s => (s.labels || []).includes(l) && marketKeywordMatch(s) && marketStatusMatch(s)) }]
 })
 
 function toggleGroup(cat: string) {
@@ -1408,6 +1422,34 @@ function handleOpenDetailUrl(marketSkill: MarketSkillWithStatus) {
     openInExternalBrowser(marketSkill.detailUrl)
 }
 
+// 回填市场壳：类目 / 状态分桶 / 总数（真实计数，Bento 卡与左栏索引展示用）
+watchEffect(() => {
+    const list = marketSkills.value
+    const counts: Record<string, number> = {}
+    list.forEach(s => {
+        const l = firstLabel(s)
+        counts[l] = (counts[l] || 0) + 1
+    })
+    syncMarketSlice('skills', {
+        total: list.length,
+        categories: Object.keys(counts),
+        categoryCounts: counts,
+        statuses: [
+            { key: 'not_installed', label: t('plugins.skills.marketInstallBtn'), count: list.filter(s => s.localStatus === 'not_installed').length, tone: 'info' },
+            { key: 'updatable', label: t('plugins.skills.marketUpgradeBtn'), count: list.filter(s => s.localStatus === 'updatable').length, tone: 'warning' },
+            { key: 'installed', label: t('plugins.skills.installedBtn'), count: list.filter(s => s.localStatus === 'installed').length, tone: 'success' },
+        ],
+    })
+})
+
+defineExpose({
+    /** 市场壳页头「添加」入口：打开添加浮层（上传 / 检索安装） */
+    openAdd: () => { addPopoverVisible.value = true },
+    /** 市场壳页头搜索：回车触发本地 + 在线 SPI 检索 */
+    runSearch: () => { handleMarketSearch() },
+    clearSearch: () => { handleMarketClear() },
+})
+
 onMounted(async () => {
     await loadSkills()
     await loadMarketSkills()
@@ -1704,75 +1746,10 @@ onMounted(async () => {
 }
 
 /* ===== 主页面技能市场（参考市场版式） ===== */
-.market-topbar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 2px 0 16px;
-}
-.market-topbar__search {
-    width: 260px;
-    max-width: 42%;
-}
-.market-topbar > .el-button--primary {
-    margin-left: auto;
-}
 .hidden-file-input {
     display: none;
 }
 
-.market-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-.market-toolbar-title {
-    font-size: var(--size-text-lg, 16px);
-    font-weight: 600;
-}
-.market-search {
-    max-width: 260px;
-    margin-left: auto;
-}
-/* 分类标签 → 文摘胶囊云（方案 10，对应 mockup .tags/.chip） */
-.market-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    padding: 0;
-    margin-bottom: 16px;
-}
-.market-tab {
-    font-size: 12.5px;
-    line-height: 1;
-    color: var(--text-secondary, #475569);
-    cursor: pointer;
-    padding: 7px 13px;
-    border-radius: var(--radius-full, var(--el-radius-full, 9999px));
-    border: 1px solid var(--border-default, #e2e9f3);
-    background: transparent;
-    transition:
-        color var(--el-transition-duration-fast, 0.2s) ease,
-        border-color var(--el-transition-duration-fast, 0.2s) ease,
-        background-color var(--el-transition-duration-fast, 0.2s) ease;
-    flex: none;
-    outline: none;
-}
-.market-tab:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-.market-tab:hover {
-    color: var(--brand-500, #3b82f6);
-    border-color: var(--brand-500, #3b82f6);
-}
-.market-tab.active {
-    color: var(--brand-500, #3b82f6);
-    background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
-    border-color: var(--brand-500, #3b82f6);
-    font-weight: 600;
-}
 .market-group {
     margin-bottom: 20px;
 }
@@ -2058,7 +2035,6 @@ onMounted(async () => {
     .upload-demo :deep(.el-upload-dragger),
     .catalog-item,
     .catalog-card,
-    .market-tab,
     .market-group-head,
     .market-group-arrow,
     .market-cell {

@@ -8,11 +8,37 @@ export default {
     tabMcp: 'MCP Servers',
   },
 
-  // ── 插件市场 · 瀑布文摘刊头 (PluginsPage.vue) ──
-  digest: {
-    kicker: 'PLUGIN DIGEST',
-    title: 'Plugin Digest',
-    subtitle: 'Assistants, Skills, MCP and local tools, curated by category',
+  // ── 插件市场 · 市场壳（PluginsPage.vue，V1+V2 融合稿） ──
+  market: {
+    kicker: 'PLUGIN MARKET',
+    title: 'Plugin Market',
+    subtitle: 'Assistants, Skills, MCP and local tools, all in one place',
+    searchLabel: 'Search current market',
+    search: {
+      characters: 'Search characters by name, description or ID',
+      skills: 'Search skills; press Enter to search local and online',
+      mcp: 'Search MCP (builtin picks / third-party repos)',
+      localTools: 'Search local tools',
+    },
+    bentoDesc: {
+      characters: 'Summon assistant characters',
+      skills: 'Install and manage skills',
+      mcp: 'Connect tool servers',
+      'local-tools': 'Toggle global tools',
+    },
+    cta: {
+      characters: 'New Character',
+      skills: 'Add',
+      mcp: 'Add',
+      'local-tools': 'Add Tool',
+    },
+    categories: 'Categories',
+    allCategories: 'All',
+    status: 'Status',
+    allStatus: 'All statuses',
+    railTip: 'Pick a category or status to filter the market instantly; counts come from live market data.',
+    featuredKicker: 'Featured this week',
+    featuredCta: 'View details',
   },
 
   // ── MCP 服务器 (MCPServers.vue) ──

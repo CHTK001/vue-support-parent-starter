@@ -1,38 +1,13 @@
 <template>
   <div class="character-market">
-    <!-- 搜索框 + 新建角色 -->
-    <div class="market-toolbar">
-      <el-input
-        v-model="keyword"
-        placeholder="搜索角色..."
-        clearable
-        class="market-search"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-button
-        v-if="admin"
-        type="primary"
-        class="market-create"
-        @click="formRef?.openAdd()"
-      >
-        <el-icon class="market-create-ico"><Plus /></el-icon>新建角色
-      </el-button>
-    </div>
-
-    <!-- 分类筛选（自动换行，不出滚动条） -->
-    <div class="market-categories">
-      <span
-        v-for="cat in categories"
-        :key="cat"
-        class="market-cat"
-        :class="activeCategory === cat ? 'is-active' : ''"
-        @click="activeCategory = cat"
-      >
-        {{ cat }}
-      </span>
+    <!-- 本周精选横幅：取内置目录第一个角色（真实数据；pm-* 为市场壳共享样式） -->
+    <div v-if="featuredItem" class="pm-banner">
+      <div class="pm-banner-body">
+        <div class="pm-banner-kicker">{{ t('plugins.market.featuredKicker') }}</div>
+        <div class="pm-banner-title">{{ featuredItem.title }}</div>
+        <div class="pm-banner-desc">{{ featuredItem.description }}</div>
+      </div>
+      <el-button class="pm-banner-cta" type="primary" plain @click="openDetail(featuredItem)">{{ t('plugins.market.featuredCta') }}</el-button>
     </div>
 
     <!-- 骨架屏 -->
@@ -119,10 +94,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus';
-import { Search, Plus, Delete } from '@element-plus/icons-vue'
+import { Delete } from '@element-plus/icons-vue'
 import {isAdmin, message} from '@repo/core'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
 import CharacterDetailDialog from './CharacterDetailDialog.vue'
@@ -130,6 +106,7 @@ import CharacterFormDialog from './CharacterFormDialog.vue'
 import { apiService } from '@/services/ApiService'
 import { useSelectedCharacter } from '@/composables/useSelectedCharacter'
 import { usePrefillInput } from '@/composables/usePrefillInput'
+import { pluginsMarket, syncMarketSlice } from './plugins-market'
 import type {
   CharacterCatalogItem,
   CharacterCatalogDetail,
@@ -148,6 +125,7 @@ type DisplayItem = CharacterCatalogItem & {
   avatarUrl?: string
 }
 
+const { t } = useI18n()
 const router = useRouter()
 const { setSelectedCharacter } = useSelectedCharacter()
 const { setPrefill } = usePrefillInput()
@@ -159,21 +137,28 @@ const formRef = ref<InstanceType<typeof CharacterFormDialog> | null>(null)
 
 const loading = ref(false)
 const items = ref<DisplayItem[]>([])
-const keyword = ref('')
-const activeCategory = ref('全部')
+/** 搜索关键词上提到市场壳共享状态（页头搜索框双向绑定） */
+const keyword = computed({
+  get: () => pluginsMarket.characters.keyword,
+  set: (v: string) => { pluginsMarket.characters.keyword = v },
+})
+/** 类目筛选上提到市场壳共享状态（左栏索引）；store 里 '' = 全部 */
+const activeCategory = computed({
+  get: () => pluginsMarket.characters.category || '全部',
+  set: (v: string) => { pluginsMarket.characters.category = v === '全部' ? '' : v },
+})
 
 const quickLoadingId = ref('')
 const addingId = ref('')
 const detailVisible = ref(false)
 const detailTarget = ref<CharacterCatalogItem | null>(null)
 
-const categories = computed(() => {
-  const set = new Set(items.value.map(i => i.category))
-  return ['全部', ...Array.from(set)]
-})
+/** 本周精选位：取内置目录第一个角色（真实数据） */
+const featuredItem = computed(() => items.value.find(i => !i.custom) || null)
 
 const filteredItems = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
+  const st = pluginsMarket.characters.status
   return items.value.filter(item => {
     // 仅管理员可见模板 / 自建审计角色：非管理员隐藏
     if (!showAdminOnlyTemplates) {
@@ -185,7 +170,10 @@ const filteredItems = computed(() => {
       || item.title.toLowerCase().includes(kw)
       || item.description.toLowerCase().includes(kw)
       || item.id.toLowerCase().includes(kw)
-    return matchCat && matchKw
+    // 状态筛选：可召唤 = 未召唤的内置角色；已召唤 = 已加入的内置 / 自建角色
+    const matchStatus = !st
+      || (st === 'available' ? !item.custom && !item.added : !!(item.custom || item.added))
+    return matchCat && matchKw && matchStatus
   })
 })
 
@@ -316,6 +304,34 @@ async function handleUsePrompt(detail: CharacterCatalogDetail, prompt: string) {
   }
 }
 
+// 回填市场壳：类目 / 状态分桶 / 总数（真实计数，Bento 卡与左栏索引展示用）
+watchEffect(() => {
+  const visible = items.value.filter(i => {
+    if (!showAdminOnlyTemplates) {
+      if ((i as any).adminOnly) return false
+      if (i.custom && (i as any).code === 'prompt-auditor') return false
+    }
+    return true
+  })
+  const counts: Record<string, number> = {}
+  visible.forEach(i => { counts[i.category] = (counts[i.category] || 0) + 1 })
+  syncMarketSlice('characters', {
+    total: visible.length,
+    categories: Object.keys(counts),
+    categoryCounts: counts,
+    statuses: [
+      { key: 'available', label: '可召唤', count: visible.filter(i => !i.custom && !i.added).length, tone: 'info' },
+      { key: 'summoned', label: '已召唤', count: visible.filter(i => i.custom || i.added).length, tone: 'success' },
+    ],
+  })
+})
+
+/** 市场壳页头「新建角色」入口（仅管理员） */
+function openAdd() {
+  if (admin) formRef.value?.openAdd()
+}
+defineExpose({ openAdd })
+
 onMounted(() => {
   load()
 })
@@ -332,23 +348,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 }
-.market-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.market-search {
-  flex: 1;
-  max-width: 360px;
-}
-.market-create {
-  margin-left: auto;
-  /* 原值 10px（距 8/12 等距，本仓统一取 lg 档） */
-  border-radius: var(--el-radius-lg, 12px);
-}
-.market-create-ico { margin-right: 2px; }
-
 /* 自建卡片操作区 */
 .market-custom-actions {
   display: flex;
@@ -369,44 +368,6 @@ onMounted(() => {
   background: var(--el-color-danger-light-9);
   border-color: var(--el-color-danger);
   color: var(--el-color-danger);
-}
-.market-categories {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-/* 分类是可点的 <span>：已有 cursor:pointer，再补键盘焦点环 */
-.market-cat {
-  font-size: 12.5px;
-  line-height: 1;
-  padding: 7px 12px;
-  /* 原值 999px（胶囊）→ full 档 */
-  border-radius: var(--el-radius-full, 9999px);
-  cursor: pointer;
-  color: var(--el-text-color-regular);
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
-  transition:
-    color var(--el-transition-duration-fast, 0.2s) ease,
-    background-color var(--el-transition-duration-fast, 0.2s) ease,
-    border-color var(--el-transition-duration-fast, 0.2s) ease;
-  outline: none;
-}
-
-.market-cat:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
-}
-
-.market-cat:hover {
-  color: var(--brand-500, #3b82f6);
-  border-color: var(--brand-500, #3b82f6);
-}
-.market-cat.is-active {
-  /* 文摘 chips 选中态：品牌色 12% 底 + 品牌描边 + 品牌字（mockup .chip.on） */
-  color: var(--brand-500, #3b82f6);
-  background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
-  border-color: var(--brand-500, #3b82f6);
 }
 /* 瀑布流（方案 10 · Masonry Digest）：双列多列布局，卡片 break-inside:avoid
    防截断；窄屏退化为单列。原 grid(auto-fill, minmax(196px,1fr)) → 多列瀑布。 */
@@ -579,10 +540,8 @@ onMounted(() => {
   padding: 48px 0;
 }
 
-/* 尊重系统「减少动态效果」偏好：分类切换与卡片浮起立即生效。
-   分类选中态靠底色 + 边框色区分，关掉过渡后仍然看得见。 */
+/* 尊重系统「减少动态效果」偏好：卡片浮起立即生效 */
 @media (prefers-reduced-motion: reduce) {
-  .market-cat,
   .market-card {
     transition: none;
   }

@@ -5,29 +5,32 @@
       <div class="text-sm" style="color: var(--el-text-color-secondary)">仅管理员可配置本地工具</div>
     </div>
     <template v-else>
-    <div class="flex items-center justify-between gap-4 mb-8 mt-2">
-      <div class="min-w-0">
-          <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('plugins.localTools.title') }}</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('plugins.localTools.subtitle') }}</p>
+    <!-- 本周精选横幅：取第一个本地工具（真实数据；pm-* 为市场壳共享样式） -->
+    <div v-if="featuredTool" class="pm-banner">
+      <div class="pm-banner-body">
+        <div class="pm-banner-kicker">{{ t('plugins.market.featuredKicker') }}</div>
+        <div class="pm-banner-title">{{ featuredTool.displayName }}</div>
+        <div class="pm-banner-desc">{{ featuredTool.description }}</div>
       </div>
-      <div class="lt-head-actions">
-        <el-button
-          v-if="loading"
-          :loading="true"
+      <el-button class="pm-banner-cta" type="primary" plain @click="showDetail(featuredTool)">{{ t('plugins.market.featuredCta') }}</el-button>
+    </div>
 
-        >
-          {{ t('common.loading') }}
-        </el-button>
-        <el-button
-          v-else
-          type="primary"
-          size="default"
-          class="lt-add-btn"
-          @click="addDialog?.open()"
-        >
-          <el-icon class="lt-add-ico"><PlusOutlined /></el-icon>{{ t('plugins.localTools.addTool') }}
-        </el-button>
-      </div>
+    <!-- 次要操作：添加工具（搜索 / 筛选在市场壳页头与左栏；页头「添加」经 defineExpose 打开弹窗） -->
+    <div class="pm-toolbar">
+      <el-button
+        v-if="loading"
+        :loading="true"
+      >
+        {{ t('common.loading') }}
+      </el-button>
+      <el-button
+        v-else
+        type="primary"
+        size="default"
+        @click="addDialog?.open()"
+      >
+        <el-icon class="lt-add-ico"><PlusOutlined /></el-icon>{{ t('plugins.localTools.addTool') }}
+      </el-button>
     </div>
 
     <div class="space-y-4">
@@ -44,7 +47,7 @@
 
       <div v-else class="lt-grid">
         <div
-          v-for="tool in globalTools"
+          v-for="tool in filteredTools"
           :key="tool.pluginId"
           class="lt-card"
           :class="{ 'lt-card--off': !tool.enabled }"
@@ -90,7 +93,7 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="!loading && globalTools.length === 0" class="lt-empty">
+      <div v-if="!loading && filteredTools.length === 0" class="lt-empty">
         <el-icon size="40" class="mb-3 opacity-40"><InboxOutlined /></el-icon>
         <div class="text-sm" style="color: var(--el-text-color-secondary)">暂无本地工具</div>
       </div>
@@ -138,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessageBox } from 'element-plus';
 import { LockOutlined, InboxOutlined, PlusOutlined } from '@vicons/material'
@@ -149,6 +152,7 @@ import CardAvatar from '@/components/ui/CardAvatar.vue'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import CustomToolDialog from './CustomToolDialog.vue'
+import { pluginsMarket, syncMarketSlice } from './plugins-market'
 
 const { t } = useI18n()
 const admin = ref(isAdmin())
@@ -280,6 +284,57 @@ async function handleUninstall(pluginId: string) {
     }
   }
 }
+
+/** 本周精选位：取第一个本地工具（真实数据） */
+const featuredTool = computed(() => globalTools.value[0] || null)
+
+/** 来源类目（左栏索引口径：内置 / 开发 / 用户，真实计数） */
+const SOURCE_CATS: { label: string; source: ToolMetadata['source'] }[] = [
+  { label: '内置', source: 'builtin' },
+  { label: '开发', source: 'dev' },
+  { label: '用户', source: 'user' },
+]
+
+/** 搜索 / 类目 / 状态过滤全部读市场壳共享状态（页头搜索框 + 左栏索引驱动） */
+const filteredTools = computed(() => {
+  const slice = pluginsMarket['local-tools']
+  const kw = slice.keyword.trim().toLowerCase()
+  const catSource = SOURCE_CATS.find(c => c.label === slice.category)?.source
+  return globalTools.value.filter(tool => {
+    const matchCat = !catSource || tool.source === catSource
+    const matchKw = !kw
+      || tool.displayName.toLowerCase().includes(kw)
+      || tool.name.toLowerCase().includes(kw)
+      || tool.description.toLowerCase().includes(kw)
+    const matchStatus = !slice.status
+      || (slice.status === 'enabled' ? tool.enabled : !tool.enabled)
+    return matchCat && matchKw && matchStatus
+  })
+})
+
+// 回填市场壳：类目 / 状态分桶 / 总数（真实计数，Bento 卡与左栏索引展示用）
+watchEffect(() => {
+  const list = globalTools.value
+  const counts: Record<string, number> = {}
+  SOURCE_CATS.forEach(({ label, source }) => {
+    const n = list.filter(t => t.source === source).length
+    if (n > 0) counts[label] = n
+  })
+  syncMarketSlice('local-tools', {
+    total: list.length,
+    categories: Object.keys(counts),
+    categoryCounts: counts,
+    statuses: [
+      { key: 'enabled', label: '启用', count: list.filter(t => t.enabled).length, tone: 'success' },
+      { key: 'disabled', label: '停用', count: list.filter(t => !t.enabled).length, tone: 'warning' },
+    ],
+  })
+})
+
+defineExpose({
+  /** 市场壳页头「添加工具」入口：打开自定义工具弹窗 */
+  openAdd: () => { addDialog.value?.open() },
+})
 
 onMounted(() => {
   if (!admin.value) return

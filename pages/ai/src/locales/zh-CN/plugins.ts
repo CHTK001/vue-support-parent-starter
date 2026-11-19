@@ -8,11 +8,37 @@ export default {
     tabMcp: 'MCP 服务器',
   },
 
-  // ── 插件市场 · 瀑布文摘刊头 (PluginsPage.vue) ──
-  digest: {
-    kicker: 'PLUGIN DIGEST',
-    title: '插件文摘',
-    subtitle: '助手、Skills、MCP 与本地工具，按类目分栏阅读',
+  // ── 插件市场 · 市场壳（PluginsPage.vue，V1+V2 融合稿） ──
+  market: {
+    kicker: 'PLUGIN MARKET',
+    title: '插件市场',
+    subtitle: '助手、Skills、MCP 与本地工具，一页选装',
+    searchLabel: '搜索当前市场',
+    search: {
+      characters: '搜索角色名称、描述或 ID',
+      skills: '搜索技能，回车检索本地与在线',
+      mcp: '搜索 MCP（内置推荐 / 第三方仓库）',
+      localTools: '搜索本地工具',
+    },
+    bentoDesc: {
+      characters: '召唤角色助手',
+      skills: '安装与管理技能',
+      mcp: '接入工具服务器',
+      'local-tools': '启停全局工具',
+    },
+    cta: {
+      characters: '新建角色',
+      skills: '添加',
+      mcp: '添加',
+      'local-tools': '添加工具',
+    },
+    categories: '市场类目',
+    allCategories: '全部',
+    status: '状态',
+    allStatus: '全部状态',
+    railTip: '点选类目或状态，右侧市场即时过滤；计数来自各市场真实数据。',
+    featuredKicker: '本周精选',
+    featuredCta: '查看详情',
   },
 
   // ── MCP 服务器 (MCPServers.vue) ──
