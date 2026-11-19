@@ -3928,4 +3928,37 @@ onMounted(load)
   font-size: 10.5px;
   color: var(--text-tertiary, var(--el-text-color-placeholder));
 }
+/* ===== 耗尽预测 =====
+   由归因窗口读数差分线性外推：汇总行用警示色轻底，Key 行按剩余天数分档标色。 */
+.pc-attr__forecast {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  color: var(--el-text-color-secondary);
+}
+.pc-attr__forecast-label {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--el-color-warning);
+}
+.pc-attr__forecast b {
+  font-weight: 600;
+  color: var(--el-color-warning);
+}
+/* Key 行预测单元格：≤3 天危急红、≤7 天预警黄 */
+.pc-attr__forecast-cell.is-urgent {
+  font-weight: 600;
+  color: var(--el-color-danger);
+}
+.pc-attr__forecast-cell.is-warn {
+  font-weight: 600;
+  color: var(--el-color-warning);
+}
 </style>
