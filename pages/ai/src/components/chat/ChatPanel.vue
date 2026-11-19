@@ -157,7 +157,8 @@
               :backdrop="hasWallpaper" :history="promptHistory" :history-has-more="hasMoreMessages && !!currentSessionId"
               :history-loading-more="isLoadingMore"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse"
-              @history-load-more="handleHistoryLoadMore" @toggle-width="handleToggleContentWidth">
+              @history-load-more="handleHistoryLoadMore" @history-remove="handleHistoryRemove"
+              @toggle-width="handleToggleContentWidth">
               <!-- 会话页的工作目录（2026-11-12 口径修正）：放进输入卡底栏那一行，
                     与 + / 检索 / 优化同排，只显示目录名与「本地 / 远端」，不显示真实路径。
                     弹层复用 WorkspaceSelectorPopover（含「添加项目」与 GitHub 克隆）。 -->
@@ -208,7 +209,7 @@ import { useLayoutStore } from "@/stores/layout"
 import { useWorkspaceStore } from "@/stores/workspace"
 import { getCurrentTurns, flattenContentsForTimeline } from "@/utils/messageUtils"
 import { getToolActionLabel, getToolIcon, getArgsText } from "@/utils/toolDisplay"
-import { hydrateInputHistory, rememberInput } from "@/utils/inputHistory"
+import { hydrateInputHistoryDetailed, rememberInput, removeInputHistoryEntry, type MessageHistoryEntry } from "@/utils/inputHistory"
 import { useStreamResponse } from "@/composables/useStreamResponse"
 import type { InputMessageState, Session, QueuedMessage } from '@/types/session';
 import type { Character } from '@/types/character';
@@ -259,9 +260,10 @@ const workspaceStore = useWorkspaceStore();
  * <p>与会话消息解耦：用户清空会话后 ↑ 仍能翻到上次发过的内容。数据存在浏览器
  * IndexedDB 且文本经 AES 加密（底层 utils/modules/messageHistory.ts），读取是异步的：
  * 先同步拿到空快照，再由 hydrate 回填。登录态也是异步恢复的，用户名可能晚于挂载
- * 才就位，所以跟着 user 变化重读一次。</p>
+ * 才就位，所以跟着 user 变化重读一次。这里存明细（带记录主键与写入时间），
+ * 供历史浮层展示时间与单条删除。</p>
  */
-const localInputHistory = ref<string[]>([])
+const localInputHistory = ref<MessageHistoryEntry[]>([])
 
 /**
  * 载入当前用户的本机历史。
@@ -269,7 +271,7 @@ const localInputHistory = ref<string[]>([])
  * @param name 用户名（未登录时为空，底层归入匿名分组）
  */
 async function syncInputHistory(name?: string | null) {
-  const list = await hydrateInputHistory(name)
+  const list = await hydrateInputHistoryDetailed(name)
   // 等待期间用户名可能又变了：只认最后一次请求
   if (String(name ?? "") === String(authStore.user?.username ?? "")) {
     localInputHistory.value = list
@@ -1153,24 +1155,25 @@ async function loadMoreMessages(sessionId: string, beforeMessageId: string) {
  *
  * <p>2026-11-18 起本机历史（IndexedDB + AES 加密，见 utils/inputHistory）排在最前：
  * 用户清空会话消息后仍能翻到上次输入。此前只读消息列表，删消息历史即空。
- * 会话消息部分随加载/删除实时变化，作为补充分列在后面；同一文本只保留一条。</p>
+ * 会话消息部分随加载/删除实时变化，作为补充分列在后面；同一文本只保留一条。
+ * 本机条目带写入时间与 local 标记（浮层据此显示时间、开放单条删除）。</p>
  */
 const promptHistory = computed(() => {
-  const items: Array<{ id: string; text: string }> = []
+  const items: Array<{ id: string; text: string; createdAt?: number; local?: boolean }> = []
   const seen = new Set<string>()
-  for (const text of localInputHistory.value) {
-    const value = text.trim()
+  for (const entry of localInputHistory.value) {
+    const value = entry.text.trim()
     if (!value || seen.has(value)) continue
     seen.add(value)
-    items.push({ id: `local-${items.length}`, text: value })
+    items.push({ id: entry.id, text: value, createdAt: entry.createdAt, local: true })
   }
-  const fromMessages: Array<{ id: string; text: string }> = []
+  const fromMessages: Array<{ id: string; text: string; createdAt?: number; local?: boolean }> = []
   for (const msg of activeMessages.value) {
     if (msg.role !== 'user') continue
     const text = String(msg.contents?.[0]?.content ?? '').trim()
     if (!text || seen.has(text)) continue
     seen.add(text)
-    fromMessages.push({ id: String(msg.id), text })
+    fromMessages.push({ id: `msg-${String(msg.id)}`, text })
   }
   // 会话消息最新在前：↑ 打开后先看到刚问过的那句
   return items.concat(fromMessages.reverse())
@@ -1189,6 +1192,17 @@ function handleHistoryLoadMore(): void {
   if (!earliestId) return
   isLoadingMore.value = true
   void loadMoreMessages(sessionId, earliestId)
+}
+
+/**
+ * 历史浮层的单条删除：只删本机历史（带 local 标记的条目；会话消息的删除
+ * 走消息列表自己的入口，不在这里处理）。删除后由底层回读最新明细刷新浮层。
+ */
+function handleHistoryRemove(id: string): void {
+  if (String(id ?? "").startsWith("msg-")) return
+  void removeInputHistoryEntry(id, authStore.user?.username).then((list) => {
+    localInputHistory.value = list
+  })
 }
 
 /**
@@ -1776,10 +1790,12 @@ async function handleSendMessage(payload?: InputMessageState) {
 
   // 本机输入历史先落一条：即使随后发送失败、或用户事后清空会话消息，
   // ↑ 历史提示也还能翻到这次输入。写库是异步的，不阻塞发送——历史只是便利功能，
-  // 不能因为 IndexedDB 慢或不可用把消息卡在输入框里。
-  void rememberInput(data.content ?? '', authStore.user?.username).then((list) => {
-    localInputHistory.value = list
-  })
+  // 不能因为 IndexedDB 慢或不可用把消息卡在输入框里。写完回读明细（带时间/主键）。
+  void rememberInput(data.content ?? '', authStore.user?.username)
+    .then(() => hydrateInputHistoryDetailed(authStore.user?.username))
+    .then((list) => {
+      localInputHistory.value = list
+    })
 
   try {
     const { content, files, knowledgeBaseIds, think, search, skillNames } = data;

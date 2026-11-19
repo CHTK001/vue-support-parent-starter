@@ -247,7 +247,8 @@
            分页由 ChatPanel 的消息列表负责，这里只负责显示与选中。 -->
       <PromptHistoryPopover v-model:visible="historyVisible" :anchor-el="inputAreaRef" :items="props.history"
         :active-index="historyIndex" :has-more="props.historyHasMore" :loading="props.historyLoadingMore"
-        @update:active-index="historyIndex = $event" @pick="pickHistory" @load-more="emit('history-load-more')" />
+        @update:active-index="historyIndex = $event" @pick="pickHistory" @load-more="emit('history-load-more')"
+        @remove="removeHistory" />
 
       <!-- 输入区统一弹层：指令 / 附件 / MCP 收进同一个面板，宽度跟随输入卡整宽。
            数据在挂载时预取，点开即见（旧实现在点击后才 await 拉列表，表现为「弹出来很慢」）。 -->
@@ -500,6 +501,11 @@ const pickHistory = (index: number) => {
   setDraftText(item.text);
 };
 
+/** 删除某条本机历史：转发给 ChatPanel 处理，浮层保持打开（列表由父级刷新） */
+const removeHistory = (id: string) => {
+  emit('history-remove', id);
+};
+
 // 命令选择弹窗 ref
 const commandPickerRef = ref<any>();
 
@@ -591,7 +597,10 @@ const props = defineProps({
    * <p>由 ChatPanel 从已加载的消息里派生：分页由消息列表自己负责，
    * 输入框只消费「当前这一页能看到的提问」。</p>
    */
-  history: { type: Array as PropType<Array<{ id: string; text: string }>>, default: () => [] },
+  history: {
+    type: Array as PropType<Array<{ id: string; text: string; createdAt?: number; local?: boolean }>>,
+    default: () => [],
+  },
   /** 还有更早的消息可加载：历史浮层据此显示「加载更多提示」 */
   historyHasMore: { type: Boolean, default: false },
   /** 正在加载更早一页消息 */
@@ -1113,6 +1122,8 @@ const emit = defineEmits([
   'update:modelId', 'config-change', 'update:knowledgeBaseIds',
   /** 历史浮层里的「加载更多提示」：由 ChatPanel 去拉更早一页消息 */
   'history-load-more',
+  /** 历史浮层里的单条删除：由 ChatPanel 删本机历史记录 */
+  'history-remove',
   /** 空输入框按 ←/→：切换内容区宽度（narrow = 输入框宽度 / full = 满屏） */
   'toggle-width',
 ]);

@@ -18,9 +18,15 @@
 import {
   DEFAULT_MESSAGE_HISTORY_SCOPE,
   clearMessageHistory,
+  deleteMessageHistoryEntry,
   loadMessageHistory,
+  loadMessageHistoryDetailed,
   rememberMessage,
+  type MessageHistoryEntry,
 } from "@repo/utils";
+
+/** 明细条目类型随门面一起转出口，调用方不必直接依赖 @repo/utils 的内部路径 */
+export type { MessageHistoryEntry } from "@repo/utils";
 
 /**
  * 同步快照：键同下面 {@link keyOf}，值为最新在前的历史文本。
@@ -29,6 +35,9 @@ import {
  * 同步取值；直接改成全异步会牵动一大片渲染逻辑，而历史本身允许「先空后补」。</p>
  */
 const snapshot = new Map<string, string[]>();
+
+/** 明细快照：与 {@link snapshot} 同键，值带记录主键与写入时间（浮层按时间展示、单条删除用） */
+const detailedSnapshot = new Map<string, MessageHistoryEntry[]>();
 
 /**
  * 快照键。
@@ -74,6 +83,38 @@ export async function hydrateInputHistory(
 }
 
 /**
+ * 读取本机输入历史明细快照（最新在前，带记录主键与写入时间）。
+ *
+ * @param user 用户名
+ * @param scope 业务分组（不传则与会话页共用一份）
+ * @return 历史明细快照
+ */
+export function loadInputHistoryDetailed(
+  user?: string | null,
+  scope?: string | null,
+): MessageHistoryEntry[] {
+  return detailedSnapshot.get(keyOf(user, scope)) ?? [];
+}
+
+/**
+ * 从 IndexedDB 载入历史明细并刷新两份快照（文本 + 明细）。
+ *
+ * @param user 用户名
+ * @param scope 业务分组（不传则与会话页共用一份）
+ * @return 最新在前、已去重的历史明细
+ */
+export async function hydrateInputHistoryDetailed(
+  user?: string | null,
+  scope?: string | null,
+): Promise<MessageHistoryEntry[]> {
+  const list = await loadMessageHistoryDetailed({ user, scope });
+  const key = keyOf(user, scope);
+  detailedSnapshot.set(key, list);
+  snapshot.set(key, list.map((entry) => entry.text));
+  return list;
+}
+
+/**
  * 记住一条已发送的文本（去重后置顶，超额自动裁剪）。
  *
  * @param text 用户发送的原始文本
@@ -88,7 +129,27 @@ export async function rememberInput(
 ): Promise<string[]> {
   const list = await rememberMessage(text, { user, scope });
   snapshot.set(keyOf(user, scope), list);
+  // 明细快照跟着刷新：多一次本机读取，换来时间/删除数据与文本列表始终一致
+  const detailed = await loadMessageHistoryDetailed({ user, scope });
+  detailedSnapshot.set(keyOf(user, scope), detailed);
   return list;
+}
+
+/**
+ * 删除单条本机历史（按记录主键精确删）。
+ *
+ * @param id 记录主键（来自 {@link loadInputHistoryDetailed} 的条目）
+ * @param user 用户名
+ * @param scope 业务分组（不传则与会话页共用一份）
+ * @return 删除后的历史明细，可直接赋给界面用的 ref
+ */
+export async function removeInputHistoryEntry(
+  id: string,
+  user?: string | null,
+  scope?: string | null,
+): Promise<MessageHistoryEntry[]> {
+  await deleteMessageHistoryEntry(id, { user, scope });
+  return hydrateInputHistoryDetailed(user, scope);
 }
 
 /**

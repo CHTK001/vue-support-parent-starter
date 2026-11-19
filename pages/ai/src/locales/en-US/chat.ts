@@ -120,6 +120,10 @@ export default {
     historyEmpty: 'No prompts yet',
     historyLoadMore: 'Load more prompts',
     historyLoading: 'Loading…',
+    historyFilter: 'Filter history…',
+    historyClearFilter: 'Clear filter',
+    historyNoMatch: 'No matching prompts',
+    historyDelete: 'Delete this entry',
 
     // WorkspaceSelectorPopover.vue
     recent: 'Recent',

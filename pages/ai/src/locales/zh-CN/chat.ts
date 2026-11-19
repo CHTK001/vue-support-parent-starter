@@ -120,6 +120,10 @@ export default {
     historyEmpty: '还没有历史提问',
     historyLoadMore: '加载更多提示',
     historyLoading: '加载中…',
+    historyFilter: '筛选历史…',
+    historyClearFilter: '清除筛选',
+    historyNoMatch: '没有匹配的提问',
+    historyDelete: '删除这条历史',
 
     // WorkspaceSelectorPopover.vue
     recent: '最近选择',
