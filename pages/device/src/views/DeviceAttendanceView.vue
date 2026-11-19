@@ -5,7 +5,10 @@
         <h2 class="dat-title">考勤记录</h2>
         <p class="dat-sub">只读：数据来自考勤 webhook 或门禁记录定时归集，不提供人工增删改。</p>
       </div>
-      <el-button :loading="loading" @click="query">刷新</el-button>
+      <div class="dat-head__ops">
+        <el-button :loading="loading" @click="query">刷新</el-button>
+        <el-button :loading="exporting" @click="exportCsv">导出 CSV</el-button>
+      </div>
     </header>
 
     <div class="dat-bar">
@@ -57,6 +60,7 @@
  * @since 4.0.0.52
  */
 import { computed, onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import ReTable from '@repo/ui/re-table'
 import type { RePageResult, ReTableColumn, ReTableLoadParams } from '@repo/ui/re-table'
 import { deviceApi } from '../api/deviceApi'
@@ -135,6 +139,56 @@ function query(): void {
   void tableRef.value?.reload()
 }
 
+/* ==================== 导出当前筛选（CSV） ==================== */
+const exporting = ref(false)
+
+/** CSV 单元格转义：双引号包裹，内部引号翻倍 */
+function csvCell(v: unknown): string {
+  return `"${String(v ?? '').replace(/"/g, '""')}"`
+}
+
+/** Date → yyyy-MM-dd HH:mm:ss（文件名用） */
+function fmtLocal(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
+/** 导出当前筛选的全部考勤记录（list 接口不分页；筛选条件与表格一致） */
+async function exportCsv(): Promise<void> {
+  exporting.value = true
+  try {
+    const list = ((await deviceApi.listAttendance(tableParams.value)) ?? []) as Array<Record<string, any>>
+    if (!list.length) {
+      ElMessage.warning('当前筛选下没有可导出的考勤记录')
+      return
+    }
+    const header = ['姓名', '工号', '卡号', '方向', '考勤时间', '设备', '来源']
+    const body = list.map((r) => [
+      r.deviceAttendanceRecordPersonName,
+      r.deviceAttendanceRecordPersonNo,
+      r.deviceAttendanceRecordCardNo,
+      directionText(r.deviceAttendanceRecordDirection),
+      r.deviceAttendanceRecordOccurredAt,
+      deviceName(r.deviceAttendanceRecordDeviceId),
+      sourceText(r.deviceAttendanceRecordSource),
+    ])
+    const csv = [header, ...body].map((cols) => cols.map(csvCell).join(',')).join('\r\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `考勤记录_${fmtLocal(new Date()).replace(/[-: ]/g, '')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success(`已导出 ${list.length} 条记录`)
+  } catch (e: unknown) {
+    const err = e as { message?: string }
+    ElMessage.error('导出失败：' + (err?.message || '未知错误'))
+  } finally {
+    exporting.value = false
+  }
+}
+
 onMounted(() => {
   void loadDevices()
 })
@@ -150,6 +204,11 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+.dat-head__ops {
+  flex: none;
+  display: flex;
+  gap: 8px;
 }
 .dat-title {
   margin: 0;

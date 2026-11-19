@@ -265,6 +265,8 @@
                       <ReButton icon="Refresh" :show-text="true" size="small" @click="batchReconnect">批量重连</ReButton>
                       <ReButton icon="Promotion" :show-text="true" size="small" @click="batchPushRemote">同步写回</ReButton>
                       <ReButton icon="FolderOpened" :show-text="true" size="small" @click="openBatchGroups">设置分组</ReButton>
+                      <ReButton icon="CircleCheck" :show-text="true" size="small" @click="batchToggleStatus('normal')">批量启用</ReButton>
+                      <ReButton icon="CircleClose" :show-text="true" size="small" @click="batchToggleStatus('disabled')">批量禁用</ReButton>
                       <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
                     </div>
                   </template>
@@ -2860,6 +2862,38 @@ async function batchPushRemote() {
     }
   } catch (err) {
     message.error('批量写回失败：' + errorText(err))
+  }
+  refreshAll()
+}
+
+/**
+ * 批量启用 / 禁用：逐台调用 toggleStatus，按回执汇总。
+ *
+ * <p>禁用口径与单台一致：断开连接、停掉后台定时采集，配置原样保留；
+ * 启用后由在线检测恢复连接。部分失败时明确报出失败台数。</p>
+ */
+async function batchToggleStatus(status: 'normal' | 'disabled') {
+  const targets = [...selection.value]
+  if (!targets.length) return
+  const disabling = status === 'disabled'
+  const verb = disabling ? '禁用' : '启用'
+  try {
+    await ElMessageBox.confirm(
+      disabling
+        ? `确认禁用选中的 ${targets.length} 台设备？禁用后会断开连接，后台定时采集（在线检测 / 事件轮询 / 门禁记录）全部停止，设备配置保持不变。`
+        : `确认启用选中的 ${targets.length} 台设备？启用后由在线检测恢复连接，后台定时采集随之恢复。`,
+      `批量${verb}`,
+      { type: disabling ? 'warning' : 'info', confirmButtonText: verb, cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  const results = await Promise.allSettled(targets.map((row) => deviceApi.toggleStatus(row.deviceInfoId, status)))
+  const ok = results.filter((item) => item.status === 'fulfilled').length
+  if (ok === targets.length) {
+    message.success(`已${verb} ${ok} 台设备`)
+  } else {
+    message.warning(`已${verb} ${ok} 台，失败 ${targets.length - ok} 台，请检查设备状态后重试`)
   }
   refreshAll()
 }

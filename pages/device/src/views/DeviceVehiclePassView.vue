@@ -41,10 +41,12 @@
         <template #search-title-prefix>
           <span class="rec-bar" />
         </template>
-        <!-- 搜索条右侧：页面标题 + 条数 -->
+        <!-- 搜索条右侧：页面标题 + 条数 + 导出 / 登记 / 拉取 -->
         <template #search-title-extra>
           <span class="rec-title">过车记录</span>
           <span class="rec-meta">{{ rows.length }} 条</span>
+          <ReButton icon="Download" size="small" :show-text="true" :disabled="!rows.length" @click="exportCsv">导出 CSV</ReButton>
+          <ReButton icon="Plus" size="small" :show-text="true" @click="openRecordDialog">登记过车</ReButton>
           <ReButton icon="Refresh" size="small" :show-text="true" @click="openPullDialog">从设备拉取</ReButton>
         </template>
         <!-- 分页左侧：范围与查询时间 -->
@@ -98,6 +100,35 @@
         <el-button type="primary" :loading="pulling" @click="confirmPull">拉取</el-button>
       </template>
     </el-dialog>
+
+    <!-- 登记过车：设备漏报时人工补录一条，走后端 /barrier/pass，与设备上报同库同口径 -->
+    <el-dialog v-model="recordVisible" title="登记过车" width="460px" append-to-body>
+      <div class="dvp-pull">
+        <span class="dvp-pull__label">车牌号 *</span>
+        <el-input v-model="recordForm.plateNo" placeholder="如 苏A12345" clearable />
+        <span class="dvp-pull__label">车闸设备 *</span>
+        <el-select v-model="recordForm.deviceId" filterable placeholder="选择车闸设备" style="width: 100%">
+          <el-option v-for="d in deviceOptions" :key="d.value" :label="d.label" :value="d.value" />
+        </el-select>
+        <span class="dvp-pull__label">方向</span>
+        <el-select v-model="recordForm.direction" style="width: 100%">
+          <el-option label="入场" value="in" />
+          <el-option label="出场" value="out" />
+        </el-select>
+        <span class="dvp-pull__label">过车时间</span>
+        <el-date-picker v-model="recordForm.time" type="datetime" style="width: 100%"
+          value-format="YYYY-MM-DD HH:mm:ss" placeholder="留空按当前时间入库" />
+        <span class="dvp-pull__label">车闸 ID</span>
+        <el-input v-model="recordForm.gateId" placeholder="厂商侧车闸标识，可留空" clearable />
+        <span class="dvp-pull__label">车辆类型</span>
+        <el-input v-model="recordForm.vehicleType" placeholder="小型车 / 大型车 / 新能源，可留空" clearable />
+        <p class="dvp-pull__hint">人工补录走后端 /barrier/pass，与设备上报落在同一时序口径；设备漏报时用于补数。</p>
+      </div>
+      <template #footer>
+        <el-button @click="recordVisible = false">取消</el-button>
+        <el-button type="primary" :loading="recordSaving" @click="confirmRecord">登记</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -112,7 +143,7 @@
  * @author CH
  * @since 4.0.0.52
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Coin, Van } from '@element-plus/icons-vue'
 
@@ -134,6 +165,7 @@ const devices = ref<DeviceIndexItem[]>([])
 /** ReSearch 的筛选值（键与 filters 一致） */
 const searchModel = ref<Record<string, unknown>>({
   deviceId: '',
+  plateNo: '',
   gateId: '',
   direction: '',
   range: null,
@@ -142,6 +174,7 @@ const searchModel = ref<Record<string, unknown>>({
 /** 归一后的筛选条件 */
 const filters = computed(() => ({
   deviceId: String(searchModel.value.deviceId ?? ''),
+  plateNo: String(searchModel.value.plateNo ?? '').trim(),
   gateId: String(searchModel.value.gateId ?? '').trim(),
   direction: String(searchModel.value.direction ?? ''),
   range: (searchModel.value.range as [string, string] | null) ?? null,
@@ -176,11 +209,12 @@ const deviceOptions = computed(() =>
   })),
 )
 
-/** 内置搜索区：设备 / 时间走时序查询，车闸 / 方向在页面侧过滤 */
+/** 内置搜索区：设备 / 时间走时序查询，车牌 / 车闸 / 方向在页面侧过滤 */
 const searchConfig = computed<ReTableSearchConfig>(() => ({
   title: '筛选',
   filters: [
     { key: 'deviceId', label: '设备', type: 'select', placeholder: '全部设备', options: deviceOptions.value },
+    { key: 'plateNo', label: '车牌', type: 'input', placeholder: '车牌关键字' },
     { key: 'gateId', label: '车闸', type: 'input', placeholder: '车闸 ID' },
     {
       key: 'direction',
@@ -292,7 +326,7 @@ async function loadPasses(): Promise<void> {
   loading.value = true
   loadError.value = ''
   try {
-    const { deviceId, gateId, direction, range } = filters.value
+    const { deviceId, plateNo, gateId, direction, range } = filters.value
     const points = await deviceApi.queryVehicleSeries({
       deviceId: deviceId || undefined,
       start: range?.[0] ? dayStart(range[0]) : undefined,
@@ -301,8 +335,9 @@ async function loadPasses(): Promise<void> {
       order: 'desc',
     })
     let list = (points || []).map(toRow)
-    // 车闸 / 方向是时序口径之外的筛选：时序引擎只按分类+设备+键+时间取，
-    // 这两个条件在页面侧过滤，避免为了一个下拉框给引擎加一堆参数。
+    // 车牌 / 车闸 / 方向是时序口径之外的筛选：时序引擎只按分类+设备+键+时间取，
+    // 这三个条件在页面侧过滤，避免为了一个下拉框给引擎加一堆参数。
+    if (plateNo) list = list.filter((row) => row.plateNo.includes(plateNo))
     if (gateId) list = list.filter((row) => row.gateId === gateId)
     if (direction) list = list.filter((row) => row.direction === direction)
     rows.value = list
@@ -317,7 +352,7 @@ async function loadPasses(): Promise<void> {
 
 /** 重置筛选：回到「全部设备 / 最近 1000 条」 */
 function onSearchReset(): void {
-  searchModel.value = { deviceId: '', gateId: '', direction: '', range: null }
+  searchModel.value = { deviceId: '', plateNo: '', gateId: '', direction: '', range: null }
   void loadPasses()
 }
 
@@ -368,6 +403,86 @@ async function confirmPull(): Promise<void> {
     ElMessage.error('拉取失败：' + errText(e))
   } finally {
     pulling.value = false
+  }
+}
+
+/* ==================== 导出当前筛选（CSV） ==================== */
+
+/** CSV 单元格转义：双引号包裹，内部引号翻倍 */
+function csvCell(v: unknown): string {
+  return `"${String(v ?? '').replace(/"/g, '""')}"`
+}
+
+/** 导出当前筛选结果（CSV 带 BOM，方便 Excel 直接打开） */
+function exportCsv(): void {
+  if (!rows.value.length) {
+    ElMessage.warning('当前没有可导出的过车记录')
+    return
+  }
+  const header = ['过车时间', '车牌号', '设备', '车闸 ID', '方向', '车辆类型', '抓拍']
+  const body = rows.value.map((r) => [
+    r.time,
+    r.plateNo,
+    deviceName(r.deviceId),
+    r.gateId,
+    directionText(r.direction),
+    r.vehicleType,
+    r.photoUrl,
+  ])
+  const csv = [header, ...body].map((cols) => cols.map(csvCell).join(',')).join('\r\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `过车记录_${fmtDateTime(new Date()).replace(/[-: ]/g, '')}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success(`已导出 ${rows.value.length} 条记录`)
+}
+
+/* ==================== 登记过车（人工补录） ==================== */
+const recordVisible = ref(false)
+const recordSaving = ref(false)
+const recordForm = reactive({ plateNo: '', deviceId: '', direction: 'in', time: '', gateId: '', vehicleType: '' })
+
+/** 打开补录弹窗：设备 / 车闸 / 时间给默认值（时间=当前） */
+function openRecordDialog(): void {
+  recordForm.plateNo = ''
+  recordForm.deviceId = String(filters.value.deviceId || '')
+  recordForm.direction = 'in'
+  recordForm.time = fmtDateTime(new Date())
+  recordForm.gateId = String(filters.value.gateId || '')
+  recordForm.vehicleType = ''
+  recordVisible.value = true
+}
+
+/** 确认补录：POST /barrier/pass，成功后回读列表 */
+async function confirmRecord(): Promise<void> {
+  if (!recordForm.plateNo.trim()) {
+    ElMessage.warning('请填写车牌号')
+    return
+  }
+  if (!recordForm.deviceId) {
+    ElMessage.warning('请选择车闸设备')
+    return
+  }
+  recordSaving.value = true
+  try {
+    await deviceApi.recordVehiclePass({
+      deviceVehiclePassPlateNo: recordForm.plateNo.trim(),
+      deviceVehiclePassDeviceId: recordForm.deviceId,
+      deviceVehiclePassDirection: recordForm.direction,
+      deviceVehiclePassTime: recordForm.time || fmtDateTime(new Date()),
+      deviceVehiclePassGateId: recordForm.gateId.trim(),
+      deviceVehiclePassVehicleType: recordForm.vehicleType.trim(),
+    })
+    ElMessage.success('过车记录已登记')
+    recordVisible.value = false
+    void loadPasses()
+  } catch (e: unknown) {
+    ElMessage.error('登记失败：' + errText(e))
+  } finally {
+    recordSaving.value = false
   }
 }
 

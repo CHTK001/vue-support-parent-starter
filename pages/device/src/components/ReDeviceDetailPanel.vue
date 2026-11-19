@@ -14,6 +14,7 @@
         <el-button size="small" @click="editDevice">编辑</el-button>
         <el-button size="small" @click="refreshStatus">刷新状态</el-button>
         <el-button size="small" type="primary" @click="reconnect">重连</el-button>
+        <el-button size="small" type="danger" plain @click="removeRemote">从厂商平台删除</el-button>
       </div>
     </header>
 
@@ -79,7 +80,10 @@
               </span>
             </el-descriptions-item>
             <el-descriptions-item label="离线阈值">
-              {{ device.deviceInfoOfflineThreshold ?? '使用默认' }} 秒
+              <span class="inline-flex items-center gap-1">
+                {{ device.deviceInfoOfflineThreshold ?? '使用默认' }} 秒
+                <el-button link size="small" @click="openThresholdDialog">修改</el-button>
+              </span>
             </el-descriptions-item>
             <el-descriptions-item label="安装 / 维保">
               {{ device.deviceInfoInstallAt || '无' }} / {{ device.deviceInfoWarrantyEnd || '无' }}
@@ -143,6 +147,38 @@
                   <el-icon class="mr-1"><Grid /></el-icon>多路
                 </el-button>
               </div>
+
+              <!-- 录像回放：按通道 + 时间窗查录像文件，取 HLS 回放地址复用上方播放器 -->
+              <el-divider content-position="left">录像回放</el-divider>
+              <div class="flex flex-wrap items-center gap-2">
+                <el-select v-model="playbackChannel" placeholder="通道" style="width: 130px">
+                  <el-option v-for="ch in channelOptions" :key="ch.no" :label="ch.name" :value="ch.no" />
+                </el-select>
+                <el-date-picker
+                  v-model="playbackRange"
+                  type="datetimerange"
+                  style="width: 340px"
+                  range-separator="至"
+                  start-placeholder="开始时间"
+                  end-placeholder="结束时间"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                />
+                <el-button type="primary" plain :loading="recordsLoading" @click="loadRecordFiles">
+                  <el-icon class="mr-1"><Search /></el-icon>查询录像
+                </el-button>
+              </div>
+              <el-table :data="recordFiles" size="small" max-height="220" class="mt-2" empty-text="没有录像文件，请先按时间窗查询">
+                <el-table-column prop="startTime" label="开始时间" min-width="160" />
+                <el-table-column prop="endTime" label="结束时间" min-width="160" />
+                <el-table-column label="大小" width="110">
+                  <template #default="{ row }">{{ formatRecordSize(row.size) }}</template>
+                </el-table-column>
+                <el-table-column label="操作" width="80" fixed="right">
+                  <template #default="{ row }">
+                    <el-button link type="primary" :disabled="!playable" @click="playRecord(row)">回放</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
             </div>
           </div>
         </el-tab-pane>
@@ -269,6 +305,19 @@
       @update:layout="(v: number) => (multiLayout = v)"
       @channel-change="onMultiChannelChange"
     />
+
+    <!-- 离线阈值编辑：0 = 跟随厂商默认（后端口径 <=0 回落厂商默认） -->
+    <el-dialog v-model="thresholdVisible" title="离线检测阈值" width="420px" append-to-body>
+      <div class="ddp-threshold">
+        <span class="ddp-threshold__label">阈值（秒）</span>
+        <el-input-number v-model="thresholdValue" :min="0" :max="86400" :step="30" step-strictly style="width: 100%" />
+        <p class="ddp-threshold__hint">设备超过该秒数无心跳即按离线处理；0 = 跟随厂商默认。后端实际生效区间为 30 ~ 3600 秒。</p>
+      </div>
+      <template #footer>
+        <el-button @click="thresholdVisible = false">取消</el-button>
+        <el-button type="primary" :loading="thresholdSaving" @click="saveThreshold">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -285,7 +334,7 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { message } from '@repo/core'
 import { ElMessageBox } from 'element-plus'
-import { Grid, Refresh } from '@element-plus/icons-vue'
+import { Grid, Refresh, Search } from '@element-plus/icons-vue'
 import ReVideo from '../components/ReVideo.vue'
 import ReMultiVideo from '../components/ReMultiVideo.vue'
 import RePtzControl from '../components/RePtzControl.vue'
@@ -332,6 +381,15 @@ const emit = defineEmits<{
   (e: 'edit', device: DeviceInfo): void
   (e: 'refreshed'): void
 }>()
+
+/** 录像文件（后端 RecordFile：fileId / channelId / startTime / endTime / size） */
+interface RecordFileItem {
+  fileId?: string
+  channelId?: number | string
+  startTime?: string
+  endTime?: string
+  size?: number
+}
 
 const activeTab = ref('overview')
 
@@ -391,6 +449,15 @@ const multiViewVisible = ref(false)
 const multiLayout = ref(4)
 const multiChannels = ref<number[]>([])
 const multiUrls = ref<string[]>([])
+/** 录像回放：通道 / 时间窗 / 录像文件列表 */
+const playbackChannel = ref(1)
+const playbackRange = ref<[string, string] | null>(null)
+const recordsLoading = ref(false)
+const recordFiles = ref<RecordFileItem[]>([])
+/** 离线阈值编辑弹窗 */
+const thresholdVisible = ref(false)
+const thresholdSaving = ref(false)
+const thresholdValue = ref(0)
 const zoom = ref(50)
 const focus = ref(50)
 const presets = ref<Preset[]>([])
@@ -473,6 +540,7 @@ async function loadChannels() {
     channels.value = []
   }
   currentChannel.value = channels.value[0]?.no || 1
+  playbackChannel.value = currentChannel.value
 }
 
 async function reloadStream() {
@@ -496,6 +564,65 @@ function onVideoError(err: unknown) {
   message.error('视频播放失败: ' + ((err as Error)?.message || '未知错误'))
 }
 
+/** 字节数 → 可读大小 */
+function formatRecordSize(size?: number): string {
+  if (!size || size <= 0) return '—'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let value = size
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit++
+  }
+  return `${value >= 100 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`
+}
+
+/** 查询录像文件列表（GET /video/records，按当前设备 + 通道 + 时间窗） */
+async function loadRecordFiles() {
+  if (!props.device) return
+  if (!playbackRange.value?.[0] || !playbackRange.value?.[1]) {
+    message.warning('请先选择录像查询时间范围')
+    return
+  }
+  recordsLoading.value = true
+  try {
+    const res = (await deviceApi.queryVideoRecords(
+      props.device.deviceInfoId,
+      playbackChannel.value,
+      playbackRange.value[0],
+      playbackRange.value[1]
+    )) as RecordFileItem[]
+    recordFiles.value = res || []
+    if (!recordFiles.value.length) message.info('该时间窗内没有录像文件')
+  } catch (err: unknown) {
+    recordFiles.value = []
+    message.error('查询录像失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
+  } finally {
+    recordsLoading.value = false
+  }
+}
+
+/** 回放一段录像：取 HLS 回放地址，复用上方播放器（切回实时点「刷新」即可） */
+async function playRecord(row: RecordFileItem) {
+  if (!props.device) return
+  if (!row.startTime || !row.endTime) {
+    message.warning('该录像缺少起止时间，无法回放')
+    return
+  }
+  try {
+    const url = await deviceApi.getPlaybackUrl(props.device.deviceInfoId, playbackChannel.value, row.startTime, row.endTime)
+    if (!url) {
+      message.warning('后端未返回回放地址，请检查平台账号配置')
+      return
+    }
+    videoProtocol.value = 'hls'
+    videoUrl.value = String(url)
+    message.success('已切换到录像回放')
+  } catch (err: unknown) {
+    message.error('获取回放地址失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
+  }
+}
+
 async function reconnect() {
   if (!props.device) return
   try {
@@ -516,6 +643,62 @@ async function refreshStatus() {
     emit('refreshed')
   } catch (err: unknown) {
     message.error('刷新状态失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
+  }
+}
+
+/** 打开离线阈值编辑：0 / 空 = 跟随厂商默认（后端口径 <=0 回落默认） */
+function openThresholdDialog() {
+  const device = props.device
+  if (!device) return
+  thresholdValue.value =
+    device.deviceInfoOfflineThreshold && device.deviceInfoOfflineThreshold > 0 ? device.deviceInfoOfflineThreshold : 0
+  thresholdVisible.value = true
+}
+
+/** 保存离线阈值（秒；0 = 恢复厂商默认），成功后刷新设备数据 */
+async function saveThreshold() {
+  const device = props.device
+  if (!device) return
+  const value = Number(thresholdValue.value)
+  if (!Number.isFinite(value) || value < 0 || value > 86400) {
+    message.warning('请输入 0 ~ 86400 之间的秒数（0 = 跟随厂商默认）')
+    return
+  }
+  thresholdSaving.value = true
+  try {
+    await deviceApi.updateOfflineThreshold(device.deviceInfoId, Math.round(value))
+    message.success(value > 0 ? `离线阈值已更新为 ${Math.round(value)} 秒` : '离线阈值已恢复厂商默认')
+    thresholdVisible.value = false
+    emit('refreshed')
+  } catch (err: unknown) {
+    message.error('更新离线阈值失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
+  } finally {
+    thresholdSaving.value = false
+  }
+}
+
+/** 删除厂商平台侧设备（DELETE /sync/{id}/remote）；厂商不支持时后端返回 false */
+async function removeRemote() {
+  const device = props.device
+  if (!device) return
+  try {
+    await ElMessageBox.confirm(
+      `确认删除厂商平台侧的设备「${device.deviceInfoName}」？将按 externalId 调用厂商删除接口，本地台账不受影响；厂商不支持删除时会返回失败。`,
+      '从厂商平台删除',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    const ok = await deviceApi.removeRemoteDevice(device.deviceInfoId)
+    if (ok === false) {
+      message.warning('厂商平台不支持删除该设备，或设备已不存在于厂商侧')
+    } else {
+      message.success('厂商侧设备已删除')
+    }
+  } catch (err: unknown) {
+    message.error('删除厂商侧设备失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
   }
 }
 
@@ -666,6 +849,11 @@ async function init() {
   multiViewVisible.value = false
   barriers.value = []
   barrierPasses.value = []
+  // 录像回放：换设备清空结果，时间窗默认最近 24 小时
+  recordFiles.value = []
+  playbackChannel.value = 1
+  const now = new Date()
+  playbackRange.value = [formatDateTimeFull(new Date(now.getTime() - 24 * 3600 * 1000)), formatDateTimeFull(now)]
   // 页签按能力位裁剪后，只有能出画面的设备才值得去拉通道 / 预置位 / 事件
   const keys = tabKeys.value
   if (keys.includes('video') || keys.includes('channel')) await loadChannels()
@@ -859,5 +1047,22 @@ async function loadBarriers() {
   min-height: 0;
   overflow: auto;
   padding-top: 8px;
+}
+
+/* 离线阈值编辑弹窗 */
+.ddp-threshold {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ddp-threshold__label {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.ddp-threshold__hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 </style>

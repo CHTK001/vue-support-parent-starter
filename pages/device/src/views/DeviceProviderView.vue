@@ -22,6 +22,9 @@
               </template>
             </span>
           </span>
+          <ReButton icon="Timer" size="small" :show-text="true" :disabled="!vendors.length" @click="openThresholdDialog">
+            离线阈值
+          </ReButton>
           <ReButton
             icon="Plus"
             size="small"
@@ -878,6 +881,32 @@
           <ReButton v-if="!createdAppKey" type="primary" :loading="appKeyCreating" @click="submitAppKeyCreate">
             创建
           </ReButton>
+        </div>
+      </template>
+    </ReDialog>
+
+    <!-- 厂商离线检测阈值：按厂商统一调整（设备级可在设备详情页单独覆盖） -->
+    <ReDialog v-model="thresholdVisible" title="离线检测阈值（按厂商）" width="480px">
+      <div class="dpv-threshold">
+        <p class="dpv-threshold__hint">设备超过该秒数无心跳即按离线处理，后端实际生效区间为 30 ~ 3600 秒；单个设备可在设备详情页另行覆盖。</p>
+        <div v-for="vendor in vendors" :key="vendor.vendor" class="dpv-threshold__row">
+          <span class="dpv-threshold__name">{{ vendor.name }}</span>
+          <el-input-number
+            v-model="thresholdDrafts[vendor.vendor]"
+            :min="30"
+            :max="3600"
+            :step="30"
+            step-strictly
+            size="small"
+          />
+          <span class="dpv-threshold__unit">秒</span>
+        </div>
+      </div>
+      <template #footer>
+        <div class="dpv-wiz-foot">
+          <span class="dpv-grow" />
+          <ReButton @click="thresholdVisible = false">取消</ReButton>
+          <ReButton type="primary" :loading="thresholdSaving" @click="saveThresholds">保存</ReButton>
         </div>
       </template>
     </ReDialog>
@@ -1759,6 +1788,47 @@ async function fetchCredentials() {
     message.error('加载接入凭据失败：' + errorText(err))
   } finally {
     loading.value = false
+  }
+}
+
+/* ==================== 厂商离线检测阈值 ==================== */
+const thresholdVisible = ref(false)
+const thresholdSaving = ref(false)
+/** 厂商 vendor → 阈值秒数（弹窗内草稿） */
+const thresholdDrafts = ref<Record<string, number>>({})
+
+/** 打开阈值弹窗：各厂商以当前生效阈值作为初始值 */
+function openThresholdDialog(): void {
+  const drafts: Record<string, number> = {}
+  for (const vendor of vendors.value) {
+    drafts[vendor.vendor] = vendor.defaultOfflineThreshold ?? 60
+  }
+  thresholdDrafts.value = drafts
+  thresholdVisible.value = true
+}
+
+/** 保存：只提交相对当前生效值有变化的厂商，成功后刷新厂商列表 */
+async function saveThresholds(): Promise<void> {
+  const changed = vendors.value.filter((vendor) => {
+    const draft = thresholdDrafts.value[vendor.vendor]
+    return Number.isFinite(draft) && draft !== vendor.defaultOfflineThreshold
+  })
+  if (!changed.length) {
+    thresholdVisible.value = false
+    return
+  }
+  thresholdSaving.value = true
+  try {
+    for (const vendor of changed) {
+      await deviceApi.updateProviderConfig(vendor.vendor, Math.round(thresholdDrafts.value[vendor.vendor]))
+    }
+    message.success(`已更新 ${changed.length} 个厂商的离线阈值`)
+    thresholdVisible.value = false
+    await fetchVendors()
+  } catch (err) {
+    message.error('保存离线阈值失败：' + errorText(err))
+  } finally {
+    thresholdSaving.value = false
   }
 }
 
@@ -3830,5 +3900,33 @@ onBeforeUnmount(() => {
 .dpv-appkey__secret-key code {
   font-family: var(--el-font-family-mono, ui-monospace, monospace);
   color: var(--el-color-primary);
+}
+
+/* 厂商离线阈值弹窗 */
+.dpv-threshold {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dpv-threshold__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.dpv-threshold__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dpv-threshold__name {
+  flex: 1 1 auto;
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+}
+.dpv-threshold__unit {
+  flex: none;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 </style>
