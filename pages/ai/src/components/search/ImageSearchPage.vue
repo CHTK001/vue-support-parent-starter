@@ -143,7 +143,7 @@
           </div>
         </div>
 
-        <input ref="fileInput" type="file" accept="image/png,image/jpeg" class="is-hidden" @change="onFilePicked" />
+        <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" class="is-hidden" @change="onFilePicked" />
 
         <!-- 右缘悬浮工具条：与人脸识别 / 图像上色同一套，贴舞台右缘竖排图标钮。
              始终渲染（上传按钮常驻可直接选图）；清空在空态置灰，不隐藏。 -->
@@ -177,11 +177,17 @@
         </div>
 
         <template v-else>
-          <div class="is-chips" v-if="searchMode !== 'keyword'">
-            <button v-for="c in scoreFilters" :key="c.value" class="is-chip"
-              :class="{ active: minScore === c.value }" @click="minScore = c.value">
-              {{ c.label }}
-            </button>
+          <!-- 相似度阈值：滑杆连续可调（替代原 3 档预设 chip）；阈值过滤仍在前端对本次结果生效 -->
+          <div v-if="searchMode !== 'keyword'" class="is-scorefilter">
+            <span class="is-scorefilter__label">相似度阈值</span>
+            <el-slider v-model="minScorePct" :min="0" :max="100" :step="1" class="is-scorefilter__slider" />
+            <span class="is-scorefilter__value">{{ minScorePct }}%</span>
+          </div>
+          <div
+            v-if="searchMode !== 'keyword' && minScore > 0 && results.length - filteredResults.length > 0"
+            class="is-scorefilter__hint"
+          >
+            已隐藏 {{ results.length - filteredResults.length }} 张低于阈值的结果
           </div>
 
           <div v-loading="searching" ref="resultGridRef" class="is-grid">
@@ -349,11 +355,18 @@ const minScore = ref(0)
  */
 const elapsedMs = ref<number | null>(null)
 
-const scoreFilters = [
-  { label: '全部', value: 0 },
-  { label: '相似度 ≥ 90%', value: 0.9 },
-  { label: '相似度 ≥ 80%', value: 0.8 },
-]
+/**
+ * 相似度阈值的百分比视图：滑杆用 0-100 整数，内部阈值保持 0-1 小数。
+ *
+ * <p>阈值过滤仍在前端对本次检索结果生效（后端 search 接口暂无阈值参数），
+ * 滑杆只是把原来「全部 / ≥90% / ≥80%」三档预设变成连续可调。</p>
+ */
+const minScorePct = computed({
+  get: () => Math.round(minScore.value * 100),
+  set: (v: number | undefined) => {
+    minScore.value = Math.min(100, Math.max(0, Math.round(Number(v) || 0))) / 100
+  },
+})
 
 const filteredResults = computed(() =>
   results.value.filter((item) => (item.score ?? 1) >= minScore.value),
@@ -1670,46 +1683,41 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-/* ---------- 筛选 chips ---------- */
-.is-chips {
+/* ---------- 相似度阈值滑杆 ---------- */
+.is-scorefilter {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 16px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 2px;
   flex-shrink: 0;
 }
 
-.is-chip {
-  padding: 6px 14px;
-  border: 1px solid var(--is-border-strong);
-  border-radius: var(--el-radius-sm, 6px);
-  background: transparent;
+.is-scorefilter__label {
+  flex: none;
+  font-size: 12px;
   color: var(--is-regular);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all var(--el-transition-duration-fast, 0.2s) ease;
 }
 
-.is-chip:hover:not(:disabled) {
-  border-color: var(--el-color-primary, #409eff);
-  color: var(--el-color-primary, #409eff);
+.is-scorefilter__slider {
+  flex: 1;
+  min-width: 0;
 }
 
-.is-chip:focus-visible {
-  outline: 2px solid var(--el-color-primary, #409eff);
-  outline-offset: 2px;
-}
-
-.is-chip.active {
-  border-color: var(--el-color-primary, #409eff);
+.is-scorefilter__value {
+  flex: none;
+  min-width: 40px;
+  text-align: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
   color: var(--el-color-primary, #409eff);
   font-weight: 600;
-  background: var(--is-primary-soft);
 }
 
-.is-chip:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+.is-scorefilter__hint {
+  padding: 2px 16px 6px;
+  font-size: 11.5px;
+  color: var(--is-muted, var(--el-text-color-secondary));
+  flex-shrink: 0;
 }
 
 /* ---------- 未启用提示 ---------- */

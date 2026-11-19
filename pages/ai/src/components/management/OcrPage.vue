@@ -154,19 +154,52 @@
 
           <div class="ocr-text-bar">
             <span class="ocr-text-hint">等宽展示 · 可选中</span>
-            <el-button
-              class="ocr-copy"
-              :class="{ 'is-copied': copied }"
-              size="small"
-              :type="copied ? 'success' : 'default'"
-              plain
-              @click="copyText"
-            >
-              <el-icon><component :is="copied ? Check : DocumentCopy" /></el-icon>{{ copied ? '已复制' : '复制' }}
-            </el-button>
+            <div class="ocr-text-actions">
+              <el-button class="ocr-export" size="small" plain :disabled="!ocrText" @click="exportTxt">
+                <el-icon><Download /></el-icon>导出 TXT
+              </el-button>
+              <el-button
+                class="ocr-copy"
+                :class="{ 'is-copied': copied }"
+                size="small"
+                :type="copied ? 'success' : 'default'"
+                plain
+                @click="copyText"
+              >
+                <el-icon><component :is="copied ? Check : DocumentCopy" /></el-icon>{{ copied ? '已复制' : '复制' }}
+              </el-button>
+            </div>
           </div>
 
           <pre class="ocr-text">{{ ocrText }}</pre>
+
+          <!-- 分块明细：后端 results 原样展示（文本/置信度/角度），默认收起 -->
+          <div v-if="ocrBlocks.length" class="ocr-blocks">
+            <button type="button" class="ocr-blocks-toggle" @click="showBlocks = !showBlocks">
+              <el-icon class="ocr-blocks-caret" :class="{ 'is-open': showBlocks }"><ArrowRight /></el-icon>
+              分块明细（{{ ocrBlocks.length }} 块）
+            </button>
+            <div v-if="showBlocks" class="ocr-blocks-scroll">
+              <table class="ocr-blocks-table">
+                <thead>
+                  <tr>
+                    <th class="ocr-blocks-idx">#</th>
+                    <th>文本</th>
+                    <th class="ocr-blocks-num">置信度</th>
+                    <th class="ocr-blocks-num">角度</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(b, i) in ocrBlocks" :key="i">
+                    <td class="ocr-blocks-idx">{{ i + 1 }}</td>
+                    <td class="ocr-blocks-text">{{ b.text || '—' }}</td>
+                    <td class="ocr-blocks-num">{{ fmtConfidence(b.confidence) }}</td>
+                    <td class="ocr-blocks-num">{{ b.angle != null ? `${b.angle}°` : '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </template>
 
         <!-- 空态：没有任何错误、也没有文本时才显示（有错误时上面那条已经说清楚了） -->
@@ -186,7 +219,7 @@
 <script setup lang="ts">
 import { message } from '@repo/core'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Check, DocumentCopy, FolderOpened, Picture, Refresh, Warning, WarningFilled } from '@element-plus/icons-vue'
+import { ArrowRight, Check, DocumentCopy, Download, FolderOpened, Picture, Refresh, Warning, WarningFilled } from '@element-plus/icons-vue'
 import { currentToken } from '@/framework/context'
 import { getClientId } from '@/utils/clientId'
 import ReLoader from '@repo/ui/re-loader'
@@ -235,6 +268,8 @@ const annotatedUrl = ref('')
 const showBox = ref(true)
 const ocrText = ref('')
 const textBlocks = ref<number | null>(null)
+/** 分块明细（文本/置信度/角度）：后端 results 原样保留，供明细表与 Markdown 导出 */
+const ocrBlocks = ref<Array<{ text?: string; confidence?: number; angle?: number }>>([])
 const elapsedMs = ref<number | null>(null)
 const recognizeBusy = ref(false)
 const annotateBusy = ref(false)
@@ -516,6 +551,7 @@ async function loadFile(file: File) {
   // 上一张图的结论全部作废：否则新图会短暂显示旧文本/旧错误
   ocrText.value = ''
   textBlocks.value = null
+  ocrBlocks.value = []
   elapsedMs.value = null
   recognizeError.value = ''
   annotateError.value = ''
@@ -533,6 +569,7 @@ async function rerun() {
   const seq = (loadSeq += 1)
   ocrText.value = ''
   textBlocks.value = null
+  ocrBlocks.value = []
   elapsedMs.value = null
   recognizeError.value = ''
   annotateError.value = ''
@@ -572,6 +609,7 @@ async function runRecognize(file: File, seq: number) {
     if (seq !== loadSeq) return
     const data = (body as { data?: OcrRecognizeData }).data ?? {}
     ocrText.value = typeof data.text === 'string' ? data.text : ''
+    ocrBlocks.value = Array.isArray(data.results) ? data.results : []
     const count = Number(data.count)
     textBlocks.value = Number.isFinite(count)
       ? count
@@ -632,6 +670,69 @@ async function copyText() {
   copyTimer = window.setTimeout(() => {
     copied.value = false
   }, 1500)
+}
+
+/** 分块明细表是否展开（默认收起，点击「分块明细」切换） */
+const showBlocks = ref(false)
+
+/**
+ * 置信度按百分比一位小数展示。
+ *
+ * <p>后端历史口径里 0-1 与 0-100 两种量纲都出现过：≤1 视为小数比例放大 100 倍，
+ * >1 视为已经是百分数原样保留。</p>
+ *
+ * @param v 原始置信度
+ * @returns 形如 {@code 98.6%}；缺失或非法时为 {@code —}
+ */
+function fmtConfidence(v?: number): string {
+  if (v == null || !Number.isFinite(v)) {
+    return '—'
+  }
+  const pct = v <= 1 ? v * 100 : v
+  return `${pct.toFixed(1)}%`
+}
+
+/**
+ * 导出识别结果为 TXT：全文 + 分块明细，纯浏览器侧生成。
+ *
+ * <p>后端没有导出接口；带 BOM 保证记事本/Excel 打开中文不乱码。</p>
+ */
+function exportTxt(): void {
+  if (!ocrText.value && !ocrBlocks.value.length) {
+    message.warning('还没有可导出的识别结果')
+    return
+  }
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+  const lines: string[] = []
+  lines.push(`OCR 识别结果 · ${now.toLocaleString('zh-CN')}`)
+  const statLine = `文本块：${textBlocks.value ?? ocrBlocks.value.length}`
+  lines.push(elapsedMs.value != null ? `${statLine} · 耗时 ${elapsedMs.value} ms` : statLine)
+  lines.push('')
+  lines.push('===== 全文 =====')
+  lines.push(ocrText.value || '（无文本）')
+  if (ocrBlocks.value.length) {
+    lines.push('')
+    lines.push('===== 分块明细 =====')
+    ocrBlocks.value.forEach((b, i) => {
+      lines.push(
+        `[${i + 1}] ${b.text || '（无文本）'}    置信度 ${fmtConfidence(b.confidence)} · 角度 ${b.angle != null ? `${b.angle}°` : '—'}`,
+      )
+    })
+  }
+  const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `ocr-result-${stamp}.txt`
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  // 延后释放：部分浏览器在 click 后仍异步读 href
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000)
+  message.success(`已导出识别结果（${ocrBlocks.value.length || textBlocks.value || 0} 块）`)
 }
 
 /**
@@ -1034,6 +1135,97 @@ html.dark .ocr-root {
 
 .ocr-copy.is-copied {
   border-color: var(--el-color-success);
+}
+
+/* 导出/复制按钮组：贴文本条右缘 */
+.ocr-text-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* 分块明细：可折叠表格，随文本流排版 */
+.ocr-blocks {
+  flex: none;
+  margin-top: 10px;
+}
+
+.ocr-blocks-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--ocr-muted, var(--el-text-color-secondary));
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.ocr-blocks-toggle:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color-light);
+}
+
+.ocr-blocks-caret {
+  transition: transform 0.2s ease;
+}
+
+.ocr-blocks-caret.is-open {
+  transform: rotate(90deg);
+}
+
+.ocr-blocks-scroll {
+  margin-top: 6px;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+}
+
+.ocr-blocks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ocr-blocks-table th,
+.ocr-blocks-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  text-align: left;
+}
+
+.ocr-blocks-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--el-fill-color-light);
+  color: var(--ocr-muted, var(--el-text-color-secondary));
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ocr-blocks-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ocr-blocks-idx {
+  width: 42px;
+  color: var(--ocr-muted, var(--el-text-color-secondary));
+  font-variant-numeric: tabular-nums;
+}
+
+.ocr-blocks-num {
+  width: 84px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ocr-blocks-text {
+  word-break: break-word;
 }
 
 /*

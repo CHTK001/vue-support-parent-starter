@@ -28,8 +28,8 @@
           <button type="button" class="il-btn" :disabled="loading" @click="refresh">
             <ArrowSync24Regular class="il-ico" /><span>刷新</span>
           </button>
-          <button type="button" class="il-btn" :disabled="!visibleItems.length" @click="exportCsv">
-            <ArrowDownload24Regular class="il-ico" /><span>导出 CSV</span>
+          <button type="button" class="il-btn" :disabled="!visibleItems.length || exporting" @click="exportCsv">
+            <ArrowDownload24Regular class="il-ico" /><span>{{ exporting ? '导出中…' : '导出 CSV' }}</span>
           </button>
           <button type="button" class="il-btn il-btn--primary" :disabled="!canUpload" @click="pickFiles">
             <ArrowUpload24Regular class="il-ico" /><span>上传图片</span>
@@ -48,8 +48,8 @@
         <button type="button" class="il-btn il-btn--sm" :disabled="loading" @click="refresh">
           <ArrowSync24Regular class="il-ico" /><span>刷新</span>
         </button>
-        <button type="button" class="il-btn il-btn--sm" :disabled="!visibleItems.length" @click="exportCsv">
-          <ArrowDownload24Regular class="il-ico" /><span>导出 CSV</span>
+        <button type="button" class="il-btn il-btn--sm" :disabled="!visibleItems.length || exporting" @click="exportCsv">
+          <ArrowDownload24Regular class="il-ico" /><span>{{ exporting ? '导出中…' : '导出 CSV' }}</span>
         </button>
         <button type="button" class="il-btn il-btn--sm il-btn--primary" :disabled="!canUpload" @click="pickFiles">
           <ArrowUpload24Regular class="il-ico" /><span>上传图片</span>
@@ -57,12 +57,19 @@
       </div>
     </div>
 
-    <input ref="fileInput" type="file" accept="image/png,image/jpeg" multiple class="il-hidden" @change="onPicked" />
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/png,image/jpeg,image/webp,image/bmp,image/gif"
+      multiple
+      class="il-hidden"
+      @change="onPicked"
+    />
 
     <div v-if="dragging" class="il-dropmask">
       <CloudArrowUp24Regular class="il-dropmask__ico" />
       <b>释放以上传到「{{ groupLabel }}」</b>
-      <span>PNG / JPG · 单张不超过 20MB · 短边不小于 128px</span>
+      <span>PNG / JPG / WebP / BMP / GIF · 单张不超过 20MB · 短边不小于 128px</span>
     </div>
 
     <!-- 没有特征模型时整页只留一条能走通的引导：此时上传必然失败、检索必然为空 -->
@@ -96,9 +103,12 @@
         </div>
       </div>
 
-      <div v-if="uploading" class="il-uploadbar">
-        <div class="il-uploadbar__track"><i :style="{ width: progress + '%' }" /></div>
-        <span class="il-mono">{{ progress }}%</span>
+      <!-- 常驻占位：上传进度条不再用 v-if 插拔 —— 插拔会改变 .il flex 列的高度，
+           把下方表格整体推挤（用户反馈「上传图片会抖动，高度会变」）。
+           非上传态用 visibility 隐藏但保留槽位，面板高度恒定。 -->
+      <div class="il-uploadbar" :class="{ 'is-on': uploading }" :aria-hidden="!uploading">
+        <div class="il-uploadbar__track"><i :style="{ width: uploading ? progress + '%' : '0%' }" /></div>
+        <span class="il-mono">{{ uploading ? progress + '%' : '' }}</span>
         <span class="il-uploadbar__text">{{ progressText }}</span>
       </div>
 
@@ -188,7 +198,19 @@
             <div class="il-viewbar__right">
               <span v-if="view === 'table'" class="il-mono">共 {{ formatNumber(total) }} 条</span>
               <span v-else class="il-mono">第 {{ activeIndex + 1 }} / {{ visibleItems.length }} 张</span>
-              <span>{{ view === 'table' ? '入库时间倒序' : '当前页内翻页' }}</span>
+              <select
+                v-if="view === 'table'"
+                v-model="sortKey"
+                class="il-sortsel"
+                title="排序在当前页内生效；跨页顺序由服务端按入库时间倒序分页决定"
+              >
+                <option value="time-desc">入库时间倒序</option>
+                <option value="time-asc">入库时间正序</option>
+                <option value="name-asc">名称 A→Z</option>
+                <option value="name-desc">名称 Z→A</option>
+                <option value="size-desc">体积从大到小</option>
+              </select>
+              <span v-else>当前页内翻页</span>
             </div>
           </div>
 
@@ -305,12 +327,12 @@
 
               <div v-if="!loading && !visibleItems.length" class="il-empty">
                 <ImageMultiple24Regular class="il-empty__ico" />
-                <b>{{ items.length ? '没有符合筛选条件的图片' : '当前分组还没有图片' }}</b>
-                <span>{{ items.length ? '换一个特征状态，或清空检索词。' : '上传后自动提取特征，随后就能以图搜同款。' }}</span>
-                <button v-if="!items.length && canUpload" type="button" class="il-btn il-btn--primary" @click="pickFiles">
+                <b>{{ items.length || hasQuery ? '没有符合筛选条件的图片' : '当前分组还没有图片' }}</b>
+                <span>{{ items.length || hasQuery ? '换一个特征状态，或清空检索词。' : '上传后自动提取特征，随后就能以图搜同款。' }}</span>
+                <button v-if="!items.length && !hasQuery && canUpload" type="button" class="il-btn il-btn--primary" @click="pickFiles">
                   <ArrowUpload24Regular class="il-ico" /><span>上传图片</span>
                 </button>
-                <button v-else-if="items.length" type="button" class="il-btn" @click="resetFilters">
+                <button v-else-if="items.length || hasQuery" type="button" class="il-btn" @click="resetFilters">
                   清空筛选
                 </button>
               </div>
@@ -483,7 +505,19 @@
               >
                 <ChevronRight24Regular class="il-ico" />
               </button>
-              <span class="il-pager__size">每页 {{ pageSize }}</span>
+              <input
+                v-model.number="jumpPage"
+                class="il-pager__jump"
+                type="number"
+                min="1"
+                :max="pageCount"
+                title="输入页码，回车跳转（越界自动夹回）"
+                @keyup.enter="goJump"
+                @change="goJump"
+              />
+              <select v-model.number="pageSize" class="il-pager__sizesel" title="每页条数" @change="load(1)">
+                <option v-for="s in pageSizes" :key="s" :value="s">每页 {{ s }}</option>
+              </select>
             </div>
           </div>
         </section>
@@ -758,9 +792,16 @@ const tab = ref<'library' | 'space'>('library')
 /** 特征状态筛选（前端按当前页过滤，后端 list 没有这个维度） */
 const statusFilter = ref<'all' | 'original' | 'thumbOnly' | 'duplicate'>('all')
 
+/** 本页排序：后端 list 固定按入库时间倒序返回且无排序参数，这里只切换当前页展示顺序 */
+const sortKey = ref<'time-desc' | 'time-asc' | 'name-asc' | 'name-desc' | 'size-desc'>('time-desc')
+/** 每页条数档位（后端 list 的 size 上限 200） */
+const pageSizes = [24, 48, 96, 200]
+
 const loading = ref(false)
 /** 删除进行中（批量 / 单张共用） */
 const busy = ref(false)
+/** CSV 导出进行中（全量导出要循环拉页，期间禁用导出按钮防重复点击） */
+const exporting = ref(false)
 const dragging = ref(false)
 const uploading = ref(false)
 const progress = ref(0)
@@ -786,6 +827,23 @@ const modelConfig = useModelConfigStore()
 const authImages = createAuthImageLoader()
 
 const pageCount = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+
+/** 页码跳转输入框的绑定值，随当前页联动 */
+const jumpPage = ref(1)
+watch(page, (p) => {
+  jumpPage.value = p
+})
+
+/**
+ * 跳转到输入的页码：收敛到 1..pageCount，越界自动夹回。
+ */
+async function goJump(): Promise<void> {
+  const target = Math.min(Math.max(1, Math.floor(Number(jumpPage.value) || 1)), pageCount.value)
+  jumpPage.value = target
+  if (target !== page.value) {
+    await load(target)
+  }
+}
 
 const groupLabel = computed(() => (group.value === 'default' ? '默认分组' : group.value))
 
@@ -888,17 +946,45 @@ function isDuplicate(item: ImageItem): boolean {
 
 /** 状态筛选在前端做：底库单页条数不大，后端 list 未提供该维度 */
 const visibleItems = computed(() => {
-  switch (statusFilter.value) {
-    case 'original':
-      return items.value.filter((x) => x.hasOriginal)
-    case 'thumbOnly':
-      return items.value.filter((x) => !x.hasOriginal)
-    case 'duplicate':
-      return items.value.filter((x) => isDuplicate(x))
-    default:
-      return items.value
-  }
+  const base =
+    statusFilter.value === 'original'
+      ? items.value.filter((x) => x.hasOriginal)
+      : statusFilter.value === 'thumbOnly'
+        ? items.value.filter((x) => !x.hasOriginal)
+        : statusFilter.value === 'duplicate'
+          ? items.value.filter((x) => isDuplicate(x))
+          : items.value
+  return sortPageItems(base)
 })
+
+/**
+ * 本页排序。
+ *
+ * <p>后端 {@code /image-search/list} 只有「入库时间倒序」一种顺序，也没有排序参数；
+ * 排序在当前页内生效（台账与画布共用同一份顺序），跨页先后仍由服务端分页决定。</p>
+ *
+ * @param list 状态筛选后的当前页记录
+ * @returns 重排后的新数组（不改动入参）
+ */
+function sortPageItems(list: ImageItem[]): ImageItem[] {
+  const ts = (item: ImageItem): number => {
+    const t = item.createdAt ? Date.parse(item.createdAt) : NaN
+    return Number.isFinite(t) ? t : 0
+  }
+  const arr = [...list]
+  switch (sortKey.value) {
+    case 'time-asc':
+      return arr.sort((a, b) => ts(a) - ts(b))
+    case 'name-asc':
+      return arr.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-Hans-CN'))
+    case 'name-desc':
+      return arr.sort((a, b) => (b.name || '').localeCompare(a.name || '', 'zh-Hans-CN'))
+    case 'size-desc':
+      return arr.sort((a, b) => (b.size || 0) - (a.size || 0))
+    default:
+      return arr.sort((a, b) => ts(b) - ts(a))
+  }
+}
 
 /** 当前查看项；选中项不在筛选结果里时回落到第一张 */
 const activeItem = computed<ImageItem | null>(() => {
@@ -908,6 +994,15 @@ const activeItem = computed<ImageItem | null>(() => {
   }
   return list.find((x) => x.id === activeId.value) || list[0]
 })
+
+/**
+ * 是否有生效的筛选。
+ *
+ * <p>关键词检索走服务端（{@code load()} 带 keyword），无命中时 {@code items} 为空，
+ * 若只看 {@code items.length} 就会把「搜不到」误报成「当前分组还没有图片」——
+ * 用户会以为自己的库被清空了。特征状态是前端筛选，命中为空时 items 仍有值。</p>
+ */
+const hasQuery = computed(() => !!kwApplied.value.trim() || statusFilter.value !== 'all')
 
 const activeIndex = computed(() => {
   const cur = activeItem.value
@@ -1260,7 +1355,9 @@ async function checkModelRegistered(): Promise<void> {
     return
   }
   try {
-    const raw = await apiService._request('/ai/models/capability/feature')
+    // 该接口是辅助校验：后端聚合云端能力清单时可能长时间不返回（实测挂死 >31s）。
+    // 不设超时会把 loadStatus() 一起拖住 -> 刷新/切组永久卡死，页面一个请求都不再发。
+    const raw = await apiService._request('/ai/models/capability/feature', { timeout: 5000 })
     // 该接口可能返回双层包装，两种形态都兼容
     const list = Array.isArray(raw) ? raw : raw?.data
     modelRegistered.value = Array.isArray(list) ? list.includes(want) : null
@@ -1271,7 +1368,9 @@ async function checkModelRegistered(): Promise<void> {
 
 /** 刷新：状态 + 分组 + 当前页 */
 async function refresh(): Promise<void> {
-  await loadStatus()
+  // 状态是辅助信息（维度/覆盖率），慢或失败都不能挡住列表刷新：
+  // 能力清单接口后端聚合云端时可能长时间不返回，await 它会把「刷新」永久卡住
+  void loadStatus()
   await loadGroups()
   await load(page.value)
 }
@@ -1285,8 +1384,8 @@ async function selectGroup(g: string): Promise<void> {
   selected.value = new Set()
   activeId.value = null
   // 状态（count / dimension）是分组属性：不重读就会把上一组的数字带到新组，
-  // 表现为「新组明明有图却显示上一组的维度」。
-  await loadStatus()
+  // 表现为「新组明明有图却显示上一组的维度」。状态是辅助信息，慢不能挡住列表
+  void loadStatus()
   await load(1)
 }
 
@@ -1724,58 +1823,114 @@ function onKeydown(e: KeyboardEvent): void {
 }
 
 /**
- * 导出当前页 CSV。
+ * 导出 CSV：按当前筛选条件（分组 + 关键词 + 特征状态）导出全部匹配记录。
  *
- * <p>没有导出接口，这里按当前可见项在浏览器侧生成；带 BOM 保证 Excel
- * 打开中文不乱码。列表为空时按钮本身是禁用的。</p>
+ * <p>没有现成导出接口，这里在浏览器侧生成：按服务端分页口径（每页 200，
+ * 上限见 {@code ImageListParams}）循环拉取直到取满 total；特征状态筛选与列表
+ * 同口径在前端应用，重复判定对全量集合重算（缩略图指纹相同才算重复）。
+ * 带 BOM 保证 Excel 打开中文不乱码。列表为空时按钮本身是禁用的。</p>
  */
-function exportCsv(): void {
-  const rows = visibleItems.value
-  if (!rows.length) {
+async function exportCsv(): Promise<void> {
+  if (exporting.value) {
     return
   }
-  const head = [
-    '记录ID',
-    '名称',
-    '分组',
-    '特征状态',
-    '是否重复',
-    '分辨率',
-    '体积(字节)',
-    '入库时间',
-    '关键词',
-  ]
-  const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
-  const lines = [head.map(esc).join(',')]
-  for (const item of rows) {
-    lines.push(
-      [
-        item.id,
-        item.name || '',
-        group.value,
-        item.hasOriginal ? '特征已入库' : '仅缩略图',
-        isDuplicate(item) ? '是' : '否',
-        resolutionOf(item),
-        typeof item.size === 'number' && item.size > 0 ? item.size : '',
-        formatDateTime(item.createdAt),
-        (item.tags || []).join(' / '),
-      ]
-        .map(esc)
-        .join(','),
-    )
+  exporting.value = true
+  try {
+    const all: ImageItem[] = []
+    const size = 200
+    for (let p = 1; p <= 500; p++) {
+      const data = await apiService.listImage({
+        page: p,
+        size,
+        keyword: kwApplied.value || undefined,
+        group: group.value,
+      })
+      const batch = data?.items ?? []
+      all.push(...batch)
+      const expected = data?.total ?? all.length
+      if (!batch.length || all.length >= expected) {
+        break
+      }
+    }
+    // 重复判定对全量集合重算，口径与当页一致：缩略图指纹相同
+    const seen = new Map<string, number[]>()
+    for (const item of all) {
+      if (!item.thumbnail) {
+        continue
+      }
+      const list = seen.get(item.thumbnail) || []
+      list.push(item.id)
+      seen.set(item.thumbnail, list)
+    }
+    const dup = new Set<number>()
+    for (const list of seen.values()) {
+      if (list.length > 1) {
+        list.forEach((id) => dup.add(id))
+      }
+    }
+    const rows = all.filter((x) => {
+      switch (statusFilter.value) {
+        case 'original':
+          return x.hasOriginal
+        case 'thumbOnly':
+          return !x.hasOriginal
+        case 'duplicate':
+          return dup.has(x.id)
+        default:
+          return true
+      }
+    })
+    if (!rows.length) {
+      toast.warning('当前筛选条件下没有可导出的记录')
+      return
+    }
+    const head = [
+      '记录ID',
+      '名称',
+      '分组',
+      '特征状态',
+      '是否重复',
+      '分辨率',
+      '体积(字节)',
+      '入库时间',
+      '关键词',
+    ]
+    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
+    const lines = [head.map(esc).join(',')]
+    for (const item of rows) {
+      lines.push(
+        [
+          item.id,
+          item.name || '',
+          group.value,
+          item.hasOriginal ? '特征已入库' : '仅缩略图',
+          dup.has(item.id) ? '是' : '否',
+          resolutionOf(item),
+          typeof item.size === 'number' && item.size > 0 ? item.size : '',
+          formatDateTime(item.createdAt),
+          (item.tags || []).join(' / '),
+        ]
+          .map(esc)
+          .join(','),
+      )
+    }
+    const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `image-library-${group.value}-${timestamp()}.csv`
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    // 延后释放：部分浏览器在 click 后仍异步读 href
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
+    toast.success(`已导出全部 ${rows.length} 条`)
+  } catch (e: unknown) {
+    toast.error(toErrorMessage(e, '导出失败'))
+  } finally {
+    exporting.value = false
   }
-  const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `image-library-${group.value}-${timestamp()}.csv`
-  a.rel = 'noopener'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  // 延后释放：部分浏览器在 click 后仍异步读 href
-  setTimeout(() => URL.revokeObjectURL(url), 2000)
-  toast.success(`已导出当前页 ${rows.length} 条`)
 }
 
 /** 筛选变化后保证「当前选中」仍落在可见列表里 */
@@ -1790,7 +1945,8 @@ watch(visibleItems, (list) => {
 
 onMounted(async () => {
   window.addEventListener('keydown', onKeydown)
-  await loadStatus()
+  // 首屏先出数据：状态（维度/覆盖率）是辅助信息，后端能力清单接口慢时不能把整页卡在空白
+  void loadStatus()
   await loadGroups()
   await load(1)
 })
@@ -2078,16 +2234,31 @@ defineExpose({ reload: refresh })
 .il-note { font-size: 10.5px; line-height: 1.6; color: var(--text-tertiary, #86909c); }
 
 /* ───────────────────────── 上传进度 ───────────────────────── */
+/* 常驻占位：非上传态只做 visibility 隐藏，槽位高度不变，
+   上传开始/结束都不会推挤下方表格（修「上传图片会抖动」）。
+   空闲态底色取容器白并把边框保持为透明 1px：高度两态恒定，
+   视觉上与下方三栏面板连成一体，不出现一条常驻的蓝色空带。 */
+/* 槽位高度必须两态恒定：空闲态文本为空会把内容行高压没（实测 17px vs
+   上传态 30px，visibility 隐藏保得住槽位、保不住内容高度），所以显式钉死
+   高度 + border-box，空闲/上传都是 30px，表格零位移。 */
 .il-uploadbar {
   flex: none;
+  box-sizing: border-box;
+  height: 30px;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 6px 18px;
-  background: var(--el-color-primary-light-9, #ecf5ff);
-  border-bottom: 1px solid var(--el-color-primary-light-8, #d9ecff);
+  background: var(--bg-container, #fff);
+  border-bottom: 1px solid transparent;
   font-size: 11.5px;
   color: var(--text-secondary, #4e5969);
+  visibility: hidden;
+}
+.il-uploadbar.is-on {
+  visibility: visible;
+  background: var(--el-color-primary-light-9, #ecf5ff);
+  border-bottom-color: var(--el-color-primary-light-8, #d9ecff);
 }
 .il-uploadbar__track {
   flex: 1;
@@ -2535,6 +2706,22 @@ defineExpose({ reload: refresh })
 .il-pager .il-iconbtn { width: 22px; height: 22px; }
 .il-pager .il-iconbtn .il-ico { width: 10px; height: 10px; }
 .il-pager__size { font-size: 10.5px; color: var(--text-tertiary, #86909c); }
+.il-pager__jump {
+  width: 52px; height: 22px; padding: 0 4px;
+  border: 1px solid var(--border-default, #e5e6eb); border-radius: 4px;
+  background: var(--bg-container, #fff); color: var(--text-primary, #1d2129);
+  font-size: 10.5px; text-align: center;
+}
+.il-pager__jump::-webkit-outer-spin-button,
+.il-pager__jump::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.il-pager__sizesel,
+.il-sortsel {
+  height: 22px; padding: 0 4px;
+  border: 1px solid var(--border-default, #e5e6eb); border-radius: 4px;
+  background: var(--bg-container, #fff); color: var(--text-secondary, #4e5969);
+  font-size: 10.5px; cursor: pointer;
+}
+.il-sortsel { max-width: 150px; }
 
 /* 批量条 */
 .il-batchbar {

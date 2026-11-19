@@ -165,6 +165,15 @@
           >
             {{ t.label }}
           </button>
+          <button
+            type="button"
+            class="reid-tab reid-tab-export"
+            :disabled="!cards.length"
+            title="导出当前列表为 CSV（命中含相似度/分流类型，记录含轨迹信息）"
+            @click="exportCsv"
+          >
+            导出 CSV
+          </button>
         </nav>
 
         <!-- 卡片列表 -->
@@ -519,6 +528,69 @@ const cards = computed<ReidCard[]>(() => {
 const blankTitle = computed(() =>
   activeTab.value === "hit" ? "还没有检索结果" : "暂无观测记录",
 );
+
+/**
+ * 导出当前右栏列表为 CSV。
+ *
+ * <p>检索命中导出逐脸命中明细（相似度/分流类型/归属脸），观测记录导出底库台账。
+ * 后端没有导出接口，纯浏览器侧生成；带 BOM 保证 Excel 打开中文不乱码。</p>
+ */
+function exportCsv(): void {
+  const rows = cards.value;
+  if (!rows.length) {
+    message.warning("当前列表没有可导出的数据");
+    return;
+  }
+  const head = [
+    "记录/轨迹ID",
+    "人脸姓名",
+    "分流类型",
+    "相似度",
+    "第几张脸",
+    "摄像头",
+    "观测次数",
+    "跨摄像头",
+    "最后出现时间",
+    "纬度",
+    "经度",
+    "分组",
+    "备注",
+  ];
+  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [head.map(esc).join(",")];
+  for (const c of rows) {
+    lines.push(
+      [
+        c.id,
+        c.faceName || c.name || "",
+        c.matchType ?? "",
+        c.similarity != null ? `${(c.similarity * 100).toFixed(1)}%` : "",
+        c.faceIndex ?? "",
+        c.cameraIds.join(" / "),
+        c.observations,
+        c.crossCamera ? "是" : "否",
+        c.lastSeen ? new Date(c.lastSeen).toLocaleString("zh-CN") : "",
+        c.lat ?? "",
+        c.lng ?? "",
+        c.group,
+        c.reason ?? "",
+      ]
+        .map(esc)
+        .join(","),
+    );
+  }
+  const blob = new Blob([`\ufeff${lines.join("\r\n")}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `reid-${activeTab.value === "hit" ? "hits" : "records"}-${Date.now()}.csv`;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+  message.success(`已导出 ${rows.length} 条`);
+}
 
 /** 空态说明。 */
 const blankDesc = computed(() =>
@@ -1304,6 +1376,20 @@ html.dark .reid-root {
   background: var(--reid-card);
   color: var(--reid-brand);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
+}
+
+/* 导出按钮：贴 tabs 凹槽右缘，不参与页签等分撑宽 */
+.reid-tab-export {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.reid-tab-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /*

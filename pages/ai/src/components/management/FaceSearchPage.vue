@@ -192,6 +192,15 @@
           >
             {{ t.label }}
           </button>
+          <button
+            type="button"
+            class="fs-tab fs-tab-export"
+            :disabled="!cards.length"
+            title="导出当前命中结果为 CSV（逐脸列出姓名/相似度/档案字段）"
+            @click="exportCsv"
+          >
+            导出 CSV
+          </button>
         </nav>
 
         <!-- 结果：逐脸分组，一张脸一段，多脸多段，不合并 -->
@@ -873,6 +882,52 @@ const faceSections = computed<FaceSection[]>(() =>
     }
   }),
 )
+
+/**
+ * 导出当前命中结果为 CSV：逐脸列出命中记录（脸序号/检测置信度/姓名/相似度/档案字段）。
+ *
+ * <p>口径与右栏分段展示一致：一张脸一行段，命中多行；后端没有导出接口，
+ * 纯浏览器侧生成，带 BOM 保证 Excel 打开中文不乱码。</p>
+ */
+function exportCsv(): void {
+  const rows = faceSections.value.flatMap((sec) =>
+    sec.cards.map((c) => ({ sec, c })),
+  )
+  if (!rows.length) {
+    message.warning('当前没有可导出的命中结果')
+    return
+  }
+  const head = ['脸序号', '检测置信度', '姓名', '记录ID', '相似度', '性别/年龄/发型', '证件号(脱敏)', '上镜感']
+  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const lines = [head.map(esc).join(',')]
+  for (const { sec, c } of rows) {
+    lines.push(
+      [
+        sec.index,
+        sec.confidence != null ? `${(sec.confidence * 100).toFixed(1)}%` : '',
+        c.name,
+        c.id,
+        `${(c.score * 100).toFixed(1)}%`,
+        c.caption,
+        c.idCardMasked,
+        c.photogenic ? '是' : '否',
+      ]
+        .map(esc)
+        .join(','),
+    )
+  }
+  const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `face-search-hits-${Date.now()}.csv`
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000)
+  message.success(`已导出 ${rows.length} 条命中`)
+}
 
 /**
  * 空态文案。
@@ -1864,6 +1919,20 @@ html.dark .fs-root {
   background: var(--fs-card);
   color: var(--fs-brand-ink);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--el-text-color-primary) 12%, transparent);
+}
+
+/* 导出按钮：贴 tabs 凹槽右缘，不参与页签等分撑宽 */
+.fs-tab-export {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.fs-tab-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* 结果分段：一张脸一段 */
