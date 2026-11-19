@@ -14,7 +14,10 @@
     </div>
 
     <div v-if="loading" class="nge-center">看板加载中…</div>
-    <div v-else-if="error" class="nge-center nge-error">{{ error }}</div>
+    <div v-else-if="error" class="nge-center nge-error nge-center-col">
+      <span>{{ error }}</span>
+      <button class="nge-retry" type="button" data-testid="nge-btn-retry" @click="load">重试</button>
+    </div>
     <div v-else-if="!widgets.length" class="nge-center">看板暂无卡片</div>
 
     <div v-else class="nge-grid">
@@ -208,5 +211,29 @@ onMounted(() => {
 
 .nge-error {
   color: var(--status-error);
+}
+
+/* 失败重试：看板加载失败（令牌失效/网络抖动）时给一个明确的恢复入口 */
+.nge-center-col {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nge-retry {
+  padding: 4px 16px;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background-color var(--el-transition-duration, 0.2s),
+    color var(--el-transition-duration, 0.2s);
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--brand-500);
+  }
 }
 </style>

@@ -69,8 +69,8 @@
               <ReButton layout="square" size="small" icon="Delete" tip="删除键" data-testid="dsm-row-delete" @click="confirmDelete(row.key)" />
             </div>
           </div>
-          <div v-if="filteredFolders.length === 0 && filteredLeaves.length === 0" class="dsm-tree-node">
-            <span class="dsm-tree-label">{{ gap ? "未读取到键" : (prefixFilter ? "无匹配目录/键" : "该前缀下暂无键") }}</span>
+          <div v-if="filteredFolders.length === 0 && filteredLeaves.length === 0" class="dsm-tree-empty" data-testid="dsm-tree-empty">
+            <ReEmpty :description="gap ? '未读取到键' : (prefixFilter ? '无匹配目录/键' : '该前缀下暂无键')" :image-size="56" />
           </div>
           </div>
         </div>
@@ -275,6 +275,7 @@ import { ElMessageBox } from "element-plus";
 import { View, EditPen, CopyDocument, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReTable from "@repo/ui/re-table";
@@ -932,6 +933,7 @@ onMounted(refresh);
 .dsm-data-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
 .dsm-data-content { margin: 0; padding: 12px; background: var(--bg-fill); border-radius: 6px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 12px; color: var(--text-primary); white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow-y: auto; }
 .dsm-empty-inline { padding: 16px; color: var(--text-tertiary); font-size: 13px; }
+.dsm-tree-empty { padding: 14px 0; }
 .dsm-member-detail { padding: 14px 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; border-top: 1px solid var(--border-subtle); }
 .mono { font-family: "JetBrains Mono", "Consolas", monospace; }
 .dsm-node-form { display: flex; flex-direction: column; gap: 14px; }

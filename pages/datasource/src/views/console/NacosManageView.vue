@@ -61,8 +61,8 @@
                 <span class="dsm-tree-label">{{ ns.name }}</span>
                 <span class="dsm-tree-count">{{ ns.configCount }}</span>
               </div>
-              <div v-if="filteredNamespaces.length === 0" class="dsm-tree-node dsm-leaf-node">
-                <span class="dsm-tree-label">{{ gap ? "未读取到命名空间" : (sidebarKeyword ? "无匹配命名空间" : "暂无命名空间") }}</span>
+              <div v-if="filteredNamespaces.length === 0" class="dsm-tree-empty" data-testid="dsm-tree-empty">
+                <ReEmpty :description="gap ? '未读取到命名空间' : (sidebarKeyword ? '无匹配命名空间' : '暂无命名空间')" :image-size="56" />
               </div>
             </div>
             <div class="dsm-tree-node" :class="{ active: activeView === 'services' }" @click="activeView = 'services'">
@@ -258,6 +258,7 @@ import { ElMessageBox } from "element-plus";
 import { View, Edit, CopyDocument, Download, Delete } from "@element-plus/icons-vue";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
@@ -1050,4 +1051,7 @@ onMounted(async () => {
 .dsm-form-item label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 .dsm-config-content { width: 100%; padding: 12px; font-family: "JetBrains Mono", "Consolas", monospace; font-size: 13px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-elevated); color: var(--text-primary); resize: vertical; outline: none; }
 .dsm-config-content:focus { border-color: var(--brand-400); box-shadow: var(--focus-ring); }
+.dsm-tree-empty {
+  padding: 14px 0;
+}
 </style>

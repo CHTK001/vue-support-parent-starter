@@ -21,7 +21,7 @@
       <div v-if="tab === 'targets'">
         <div v-if="loading" class="pms-center">加载中…</div>
         <div v-else-if="error" class="pms-error">{{ error }}</div>
-        <div v-else-if="!targetList.length" class="pms-center">暂无抓取目标</div>
+        <div v-else-if="!targetList.length" class="pms-center"><ReEmpty description="暂无抓取目标" :image-size="64" /></div>
         <table v-else class="pms-table">
           <thead>
             <tr>
@@ -52,7 +52,7 @@
       <div v-else-if="tab === 'rules'">
         <div v-if="loading" class="pms-center">加载中…</div>
         <div v-else-if="error" class="pms-error">{{ error }}</div>
-        <div v-else-if="!ruleGroups?.length" class="pms-center">暂无规则</div>
+        <div v-else-if="!ruleGroups?.length" class="pms-center"><ReEmpty description="暂无规则" :image-size="64" /></div>
         <div v-else class="pms-groups">
           <div v-for="g in ruleGroups" :key="g.file + g.name" class="pms-group">
             <div class="pms-group-head">
@@ -88,7 +88,7 @@
       <div v-else>
         <div v-if="loading" class="pms-center">加载中…</div>
         <div v-else-if="error" class="pms-error">{{ error }}</div>
-        <div v-else-if="!alerts?.length" class="pms-center">当前无活跃告警</div>
+        <div v-else-if="!alerts?.length" class="pms-center"><ReEmpty description="当前无活跃告警" :image-size="64" /></div>
         <table v-else class="pms-table">
           <thead>
             <tr>
@@ -127,6 +127,7 @@
  */
 import { onMounted, ref, watch } from "vue";
 import ReButton from "@repo/ui/re-button";
+import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
 import {
   fetchPrometheusAlerts,

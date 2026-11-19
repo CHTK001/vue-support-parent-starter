@@ -309,6 +309,105 @@ const onDriverJarVisible = (visible: boolean) => {
   void loadDriverJars();
 };
 
+/* ------------------------------ 驱动 jar 库管理 ------------------------------ */
+
+/** 驱动库管理弹窗可见性 */
+const driverLibVisible = ref(false);
+/** 驱动库列表加载中 */
+const driverLibLoading = ref(false);
+/** 驱动库全量列表（JDBC 驱动 + 中间件客户端 jar） */
+const driverLibRows = ref<JdbcDriverJar[]>([]);
+
+/** 字节数 → 可读大小；空值/非数显示 — 而不是 0 B（没采到和 0 是两回事） */
+const formatJarSize = (size: unknown): string => {
+  const n = Number(size);
+  if (size == null || !Number.isFinite(n)) return "—";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(2)} MB`;
+};
+
+/**
+ * 拉取驱动库列表。
+ *
+ * <p>与表单里的 {@link loadDriverJars} 不同：这里是用户专程来管 jar 的场景，
+ * 失败要明确提示，不能静默成一张空表。</p>
+ */
+const loadDriverLib = async () => {
+  driverLibLoading.value = true;
+  try {
+    driverLibRows.value = (await fetchJdbcDriverJars()) ?? [];
+  } catch (e) {
+    driverLibRows.value = [];
+    message.error(`驱动 jar 列表加载失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    driverLibLoading.value = false;
+  }
+};
+
+/** 打开驱动库管理弹窗并刷新列表 */
+const openDriverLib = () => {
+  driverLibVisible.value = true;
+  void loadDriverLib();
+};
+
+/**
+ * 删除驱动 jar。
+ *
+ * <p>仍被数据源引用时后端会拒绝并返回原因，这里原样转述给用户；
+ * 删除成功后同步刷新表单用的 {@link driverJars} 下拉，避免刚删掉的 jar 还能被选到。</p>
+ */
+const removeDriverJar = async (jar: JdbcDriverJar) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除驱动 jar "${jar.jarName}" 吗？仍被数据源引用时后端会拒绝删除。`,
+      "删除驱动 jar",
+      { type: "warning" },
+    );
+  } catch {
+    return; // 用户取消
+  }
+  driverLibLoading.value = true;
+  try {
+    await deleteJdbcDriverJar(jar.id);
+    message.success(`已删除 ${jar.jarName}`);
+    await loadDriverLib();
+    await loadDriverJars();
+  } catch (e) {
+    message.error(`删除驱动 jar 失败：${(e as Error)?.message ?? String(e)}`);
+  } finally {
+    driverLibLoading.value = false;
+  }
+};
+
+/** 驱动库表格列定义（sha256 只展示前 16 位，完整值点开卡片看 title） */
+const driverLibColumns: ReTableColumn[] = [
+  { prop: "jarName", label: "文件名", minWidth: 170, showOverflowTooltip: true },
+  {
+    prop: "kind",
+    label: "类别",
+    width: 130,
+    formatter: row => (row.kind === "middleware" ? `中间件 · ${row.providerName ?? ""}` : "JDBC 驱动"),
+  },
+  { prop: "driverClassName", label: "入口类", minWidth: 200, showOverflowTooltip: true },
+  { prop: "jarSize", label: "大小", width: 90, align: "right", formatter: row => formatJarSize(row.jarSize) },
+  {
+    prop: "jarSha256",
+    label: "SHA-256",
+    minWidth: 150,
+    showOverflowTooltip: true,
+    formatter: row => (row.jarSha256 ? `${String(row.jarSha256).slice(0, 16)}…` : "—"),
+  },
+  {
+    prop: "createTime",
+    label: "上传时间",
+    width: 160,
+    formatter: row => (row.createTime ? String(row.createTime).replace("T", " ") : "—"),
+  },
+  { prop: "remark", label: "备注", minWidth: 110, showOverflowTooltip: true },
+  { prop: "op", label: "操作", width: 70, align: "center" },
+];
+
 /**
  * 拉取「后端已装配的中间件类型」。
  *
@@ -666,7 +765,7 @@ const testing = ref<number | null>(null);
 const tryingTop = ref<number | null>(null);
 // 说明：这里原先有一个会话级 ref（detectedVersion）存「最近一次检测到的版本」。
 // 它不随选中数据源重置，导致切到别的源时版本行仍显示上一个源的版本；
-// 现在版本由后端回写台账 datasource_version，展示统一走 versionLabel(item)。
+// 现在版本由后端回写台账 datasource_info_version，展示统一走 versionLabel(item)。
 /** 最近一次「立即检测」识别出的服务端版本（jdbc 等；未识别为 null）。
  *  检测结果即填即显：右侧面板的「版本」行与测试提示共用它。 */
 const detectedVersion = ref<string | null>(null);
@@ -2179,7 +2278,7 @@ const openUserManager = (item: DataSourceInfo) => {
 /**
  * nginx 进程控制方式选项。
  *
- * <p>空串代表「自动探测」，与后端 {@code datasource_control_mode} 为空时的语义一致
+ * <p>空串代表「自动探测」，与后端 {@code datasource_info_control_mode} 为空时的语义一致
  * （即本字段引入前的行为）。刻意不叫「自动」两个字：它是缺省值而非一个独立能力，
  * 叫「自动」会让人以为存在一个会主动猜测的实现。</p>
  */
@@ -2524,11 +2623,16 @@ const selectSource = (item: DataSourceInfo) => {
  *
  * 头部合并了原先的「面包屑行」与「详情头卡」，两处的操作都收进这一个下拉：
  * - refresh：页面级（刷新列表），未选中数据源时也要可用
+ * - drivers：驱动库管理（全局能力），未选中数据源时也要可用
  * - schema / edit / delete：依赖选中项，交给既有的 runCardCommand 复用
  */
 const runHeadCommand = (cmd: string) => {
   if (cmd === "refresh") {
     void load();
+    return;
+  }
+  if (cmd === "drivers") {
+    openDriverLib();
     return;
   }
   if (!current.value) {
@@ -2883,7 +2987,7 @@ onMounted(load);
               <button
                 v-if="railHiddenCount > 0"
                 type="button"
-                style="width: 100%; padding: 8px; border: 0; background: transparent; color: inherit; opacity: .65; font-size: 12px; text-align: center; cursor: pointer;"
+                class="ds-side__more"
                 @click="loadMoreRail"
               >
                 还有 {{ railHiddenCount }} 条 · 点击加载更多
@@ -3045,6 +3149,7 @@ onMounted(load);
                 <template #dropdown>
                   <ElDropdownMenu>
                     <ElDropdownItem command="refresh"><ReIcon name="RefreshRight" />刷新列表</ElDropdownItem>
+                    <ElDropdownItem command="drivers"><ReIcon name="Box" />驱动库管理</ElDropdownItem>
                     <template v-if="current && !isSystemSource(current)">
                       <ElDropdownItem v-if="current.type === 'jdbc'" command="schema" divided><ReIcon name="Grid" />浏览表结构</ElDropdownItem>
                       <ElDropdownItem v-if="!isCalciteSource(current)" command="edit"><ReIcon name="EditPen" />编辑数据源</ElDropdownItem>
@@ -3161,7 +3266,7 @@ onMounted(load);
                       <ReButton class="ds-pill" icon="Connection" :show-text="true" @click="activeTab = 'tunnel'">SSH 隧道</ReButton>
                       <ReButton
                         class="ds-pill"
-                        :icon="current.topFlag === 1 ? 'Top' : 'Top'"
+                        icon="Top"
                         :show-text="true"
                         :loading="tryingTop === current.id"
                         @click="toggleTop(current)"
@@ -3720,6 +3825,51 @@ onMounted(load);
     </ReDrawer>
 
     <!-- 显示进程：进程列表 + 关闭 / 批量关闭（仅 MySQL/MariaDB/PostgreSQL 内核显示入口） -->
+    <!-- 驱动 jar 库管理：全量列表 + 删除。上传仍走新增/编辑表单——那里能当场
+         验证入口类可加载；这里的删除会被后端引用校验挡住，前端只管确认与提示。 -->
+    <ReDialog v-model="driverLibVisible" title="驱动 jar 库" width="960px">
+      <div class="ds-process">
+        <div class="ds-process__bar">
+          <ReButton
+            layout="square"
+            icon="Refresh"
+            tip="刷新"
+            data-testid="ds-driverlib-refresh"
+            :loading="driverLibLoading"
+            @click="loadDriverLib"
+          />
+          <span class="ds-process__count">共 {{ driverLibRows.length }} 个 jar</span>
+          <span class="ds-process__spacer" />
+          <span class="ds-driverlib-hint">上传入口在「新增 / 编辑数据源」表单的驱动区</span>
+        </div>
+        <ReTable
+          :data="driverLibRows"
+          :columns="driverLibColumns"
+          :loading="driverLibLoading"
+          row-key="id"
+          size="mini"
+          stripe
+          border
+          :layout-table="{ height: '380px' }"
+        >
+          <template #col-op="{ row }">
+            <ReButton
+              layout="square"
+              size="small"
+              type="danger"
+              icon="Delete"
+              tip="删除该 jar"
+              data-testid="ds-driverlib-delete"
+              @click="removeDriverJar(row)"
+            />
+          </template>
+        </ReTable>
+      </div>
+      <template #footer>
+        <ReButton @click="driverLibVisible = false">关闭</ReButton>
+      </template>
+    </ReDialog>
+
     <ReDialog v-model="processVisible" :title="`显示进程 · ${processSource?.name ?? ''}`" width="960px">
       <div class="ds-process">
         <div class="ds-process__bar">
@@ -4283,6 +4433,34 @@ onMounted(load);
   color: var(--el-color-primary);
   border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
   background: color-mix(in srgb, var(--el-color-primary) 7%, transparent);
+}
+
+/* 「还有 N 条 · 点击加载更多」：弱化的一行，不抢数据源卡片的视觉 */
+.ds-side__more {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.65;
+  font-family: inherit;
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    color var(--el-transition-duration, 0.2s),
+    opacity var(--el-transition-duration, 0.2s);
+}
+.ds-side__more:hover {
+  opacity: 1;
+  color: var(--el-color-primary);
+}
+
+/* 驱动库管理弹窗工具条右侧的说明文字 */
+.ds-driverlib-hint {
+  font-size: 12px;
+  color: var(--text-tertiary, #8a90a0);
 }
 
 /* ReInput 内部为元素透传，搜索框宽度需用 :deep 命中 el-input 根 */

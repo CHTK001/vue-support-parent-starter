@@ -21,7 +21,7 @@
             <span class="prc-filename">{{ shortName(f.path) }}</span>
             <span v-if="f.main" class="prc-main-tag">主</span>
           </div>
-          <div v-if="!files.length && !filesLoading" class="prc-empty">未发现配置文件</div>
+          <div v-if="!files.length && !filesLoading" class="prc-empty"><ReEmpty description="未发现配置文件" :image-size="56" /></div>
         </div>
 
         <div class="prc-side-head prc-side-head--backup">
@@ -41,7 +41,7 @@
             <span class="prc-filename">{{ shortName(b.path) }}</span>
             <span class="prc-size">{{ humanSize(b.size) }}</span>
           </div>
-          <div v-if="!backups.length && !backupsLoading" class="prc-empty">暂无备份</div>
+          <div v-if="!backups.length && !backupsLoading" class="prc-empty"><ReEmpty description="暂无备份" :image-size="56" /></div>
         </div>
       </aside>
 
@@ -126,6 +126,7 @@ import { message } from "@repo/core";
 import { computed, onMounted, ref, watch } from "vue";
 
 import ReButton from "@repo/ui/re-button";
+import ReEmpty from "@repo/ui/re-empty";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
 import ReSwitch from "@repo/ui/re-switch";

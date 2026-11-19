@@ -188,9 +188,9 @@
           <div class="dsm-info-row"><span class="dsm-info-label">服务端版本</span><span class="dsm-info-value mono">{{ info.redis_version || "未探测" }}</span></div>
         </div>
 
-        <!-- 未选择键：value 区空态（el-empty） -->
+        <!-- 未选择键：value 区空态（ReEmpty，与全局口径一致） -->
         <div v-if="!activeKey" class="dsm-section dsm-value-empty" data-testid="dsm-value-empty">
-          <el-empty description="暂无数据" :image-size="72" />
+          <ReEmpty description="暂无数据" :image-size="72" />
         </div>
 
         <!-- 键详情 -->
@@ -438,6 +438,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessageBox } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";

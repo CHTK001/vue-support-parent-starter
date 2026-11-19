@@ -8,6 +8,17 @@
         :options="actionOptions"
         @update:model-value="reload"
       />
+      <el-date-picker
+        v-model="timeRange"
+        type="datetimerange"
+        class="ds-oplog__range"
+        range-separator="至"
+        start-placeholder="开始时间"
+        end-placeholder="结束时间"
+        value-format="YYYY-MM-DDTHH:mm:ss"
+        data-testid="ds-oplog-range"
+        @change="onTimeRangeChange"
+      />
       <span class="ds-oplog__spacer" />
       <ReButton icon="Refresh" :loading="loading" tip="刷新" @click="reload" />
     </div>
@@ -50,16 +61,15 @@
 /**
  * 数据源操作日志面板。
  *
- * <p><strong>入口按需求先不露出</strong>（见 ScDataSourceView 的
- * {@code OPER_LOG_ENTRY_VISIBLE}），本面板先按可用状态写完并留好开关说明。
+ * <p>入口由 ScDataSourceView 的 {@code OPER_LOG_ENTRY_VISIBLE} 控制（现已放开）。
  * 数据源切换时重新拉第一页而不是保留当前页：换数据源后当前页码多半已越界，
- * 停在那一页会显示成「这个数据源没有日志」。</p>
+ * 停在那一页会显示成「这个数据源没有日志」。支持按操作码与时间窗过滤。</p>
  *
  * @author CH
  * @since 4.0.0.43
  */
 import { computed, onMounted, ref, toRef, watch } from "vue";
-import { ElPagination } from "element-plus";
+import { ElDatePicker, ElPagination } from "element-plus";
 import ReButton from "@repo/ui/re-button";
 import ReEmpty from "@repo/ui/re-empty";
 import ReSelect from "@repo/ui/re-select";
@@ -82,6 +92,8 @@ const total = ref(0);
 const page = ref(1);
 const size = ref(20);
 const actionFilter = ref<string>("");
+/** 时间窗；null 表示不限。value-format 与后端 ISO 本地时间口径一致（2026-01-01T00:00:00） */
+const timeRange = ref<[string, string] | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -171,6 +183,8 @@ async function reload(): Promise<void> {
   try {
     const query: DatasourceOperLogQuery = {
       action: actionFilter.value || null,
+      from: timeRange.value?.[0] ?? null,
+      to: timeRange.value?.[1] ?? null,
       page: page.value,
       size: size.value,
     };
@@ -193,6 +207,12 @@ async function reload(): Promise<void> {
 
 /** 改每页条数后回到第 1 页：留在第 5 页而总数只有 2 页会显示空列表 */
 function onSizeChange(): void {
+  page.value = 1;
+  void reload();
+}
+
+/** 时间窗变化后回到第 1 页：旧页码在过滤结果里多半越界 */
+function onTimeRangeChange(): void {
   page.value = 1;
   void reload();
 }
@@ -224,6 +244,10 @@ defineExpose({ reload });
 
 .ds-oplog__filter {
   width: 160px;
+}
+
+.ds-oplog__range {
+  width: 340px;
 }
 
 .ds-oplog__spacer {
