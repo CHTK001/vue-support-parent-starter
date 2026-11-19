@@ -1772,6 +1772,10 @@ const getFormData = () => {
       })(),
       // 子代理配置（固定白名单：仅存显式 true）
       'agents': (() => {
+        // 总开关关闭：不写入任何子代理偏好，避免开关切回后残留旧选择被误生效
+        if (allAgentsDisabled.value) {
+          return undefined;
+        }
         const agentsOut: Record<string, any> = {};
         for (const char of presetCharacters.value) {
           if (getAgentEffectiveEnabled(char)) {
