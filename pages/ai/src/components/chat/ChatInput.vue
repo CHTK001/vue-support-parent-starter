@@ -248,7 +248,7 @@
       <PromptHistoryPopover v-model:visible="historyVisible" :anchor-el="inputAreaRef" :items="props.history"
         :active-index="historyIndex" :has-more="props.historyHasMore" :loading="props.historyLoadingMore"
         @update:active-index="historyIndex = $event" @pick="pickHistory" @load-more="emit('history-load-more')"
-        @remove="removeHistory" />
+        @remove="removeHistory" @remove-many="removeHistoryMany" />
 
       <!-- 输入区统一弹层：指令 / 附件 / MCP 收进同一个面板，宽度跟随输入卡整宽。
            数据在挂载时预取，点开即见（旧实现在点击后才 await 拉列表，表现为「弹出来很慢」）。 -->
@@ -504,6 +504,11 @@ const pickHistory = (index: number) => {
 /** 删除某条本机历史：转发给 ChatPanel 处理，浮层保持打开（列表由父级刷新） */
 const removeHistory = (id: string) => {
   emit('history-remove', id);
+};
+
+/** 批量删除勾选的本机历史：同样转发，确认框与删除都在 ChatPanel 里做 */
+const removeHistoryMany = (ids: string[]) => {
+  emit('history-remove-many', ids);
 };
 
 // 命令选择弹窗 ref
@@ -1124,6 +1129,8 @@ const emit = defineEmits([
   'history-load-more',
   /** 历史浮层里的单条删除：由 ChatPanel 删本机历史记录 */
   'history-remove',
+  /** 历史浮层里的批量删除：由 ChatPanel 确认后删本机历史记录 */
+  'history-remove-many',
   /** 空输入框按 ←/→：切换内容区宽度（narrow = 输入框宽度 / full = 满屏） */
   'toggle-width',
 ]);

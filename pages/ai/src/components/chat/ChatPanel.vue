@@ -158,6 +158,7 @@
               :history-loading-more="isLoadingMore"
               @config-change="handleConfigChange" @send="handleSendMessage" @abort="abortResponse"
               @history-load-more="handleHistoryLoadMore" @history-remove="handleHistoryRemove"
+              @history-remove-many="handleHistoryRemoveMany"
               @toggle-width="handleToggleContentWidth">
               <!-- 会话页的工作目录（2026-11-12 口径修正）：放进输入卡底栏那一行，
                     与 + / 检索 / 优化同排，只显示目录名与「本地 / 远端」，不显示真实路径。
@@ -209,7 +210,7 @@ import { useLayoutStore } from "@/stores/layout"
 import { useWorkspaceStore } from "@/stores/workspace"
 import { getCurrentTurns, flattenContentsForTimeline } from "@/utils/messageUtils"
 import { getToolActionLabel, getToolIcon, getArgsText } from "@/utils/toolDisplay"
-import { hydrateInputHistoryDetailed, rememberInput, removeInputHistoryEntry, type MessageHistoryEntry } from "@/utils/inputHistory"
+import { hydrateInputHistoryDetailed, rememberInput, removeInputHistoryEntry, removeInputHistoryEntries, type MessageHistoryEntry } from "@/utils/inputHistory"
 import { useStreamResponse } from "@/composables/useStreamResponse"
 import type { InputMessageState, Session, QueuedMessage } from '@/types/session';
 import type { Character } from '@/types/character';
@@ -1203,6 +1204,26 @@ function handleHistoryRemove(id: string): void {
   void removeInputHistoryEntry(id, authStore.user?.username).then((list) => {
     localInputHistory.value = list
   })
+}
+
+/**
+ * 历史浮层的批量删除：先确认再删，只删本机历史记录。
+ *
+ * <p>msg- 前缀的会话消息条目即使被误勾选也会被剔除（它们没有 local 标记，
+ * 正常勾不到，这里仍是双保险）。确认通过后逐条精确删，再由底层回读刷新浮层。</p>
+ */
+async function handleHistoryRemoveMany(ids: string[]): Promise<void> {
+  const target = ids.filter((id) => !String(id ?? "").startsWith("msg-"))
+  if (!target.length) return
+  const ok = await confirm(
+    t("chat.input.historyDeleteSelected"),
+    t("chat.input.historyDeleteConfirm", { n: target.length }),
+    { type: "warning" },
+  )
+  if (!ok) return
+  const list = await removeInputHistoryEntries(target, authStore.user?.username)
+  localInputHistory.value = list
+  toast.success(t("chat.input.historyDeleteDone", { n: target.length }))
 }
 
 /**

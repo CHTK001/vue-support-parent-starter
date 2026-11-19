@@ -124,6 +124,13 @@ export default {
     historyClearFilter: 'Clear filter',
     historyNoMatch: 'No matching prompts',
     historyDelete: 'Delete this entry',
+    historySelectEnter: 'Batch delete',
+    historySelectExit: 'Exit selection',
+    historySelectAll: 'Select all',
+    historySelectedCount: '{n} selected',
+    historyDeleteSelected: 'Delete selected',
+    historyDeleteConfirm: 'Delete the {n} selected local history entries? This cannot be undone.',
+    historyDeleteDone: 'Deleted {n} entries',
 
     // WorkspaceSelectorPopover.vue
     recent: 'Recent',
@@ -541,6 +548,7 @@ export default {
     copyFailed: 'Copy failed',
     openedInVSCode: 'Opened in VSCode',
     openVSCodeFailed: 'Failed to open, please make sure VSCode is installed and the code command is available',
+    openFolderFailed: 'Failed to open the workspace folder, please make sure the desktop app is ready',
     rename: 'Rename',
     delete: 'Delete',
     renameTitle: 'Rename',

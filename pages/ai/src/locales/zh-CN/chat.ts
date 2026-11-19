@@ -124,6 +124,13 @@ export default {
     historyClearFilter: '清除筛选',
     historyNoMatch: '没有匹配的提问',
     historyDelete: '删除这条历史',
+    historySelectEnter: '批量删除',
+    historySelectExit: '退出选择',
+    historySelectAll: '全选',
+    historySelectedCount: '已选 {n} 条',
+    historyDeleteSelected: '删除所选',
+    historyDeleteConfirm: '确认删除所选 {n} 条本机历史？删除后不可恢复。',
+    historyDeleteDone: '已删除 {n} 条历史',
 
     // WorkspaceSelectorPopover.vue
     recent: '最近选择',
@@ -549,6 +556,7 @@ export default {
     copyFailed: '复制失败',
     openedInVSCode: '已通过 VSCode 打开',
     openVSCodeFailed: '打开失败，请确认已安装 VSCode 且 code 命令可用',
+    openFolderFailed: '打开工作目录失败，请确认桌面端已就绪',
     rename: '重命名',
     delete: '删除',
     renameTitle: '重命名',

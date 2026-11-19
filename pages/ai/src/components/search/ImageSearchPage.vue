@@ -137,8 +137,14 @@
             </div>
 
             <div v-if="!searching && searched" class="is-result-tip">
-              为你找到 <b>{{ results.length }}</b> 张相似图片
-              <span v-if="elapsedMs != null" class="is-result-cost">耗时 {{ elapsedMs }} ms</span>
+              <span>
+                为你找到 <b>{{ results.length }}</b> 张相似图片
+                <span v-if="elapsedMs != null" class="is-result-cost">耗时 {{ elapsedMs }} ms</span>
+              </span>
+              <button v-if="filteredResults.length" type="button" class="is-export-btn"
+                title="导出当前可见的检索结果为 CSV" @click="exportResultsCsv">
+                <el-icon :size="13"><Download /></el-icon>导出 CSV
+              </button>
             </div>
           </div>
         </div>
@@ -257,8 +263,9 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // 留着会让人以为本页还有搜索框与删除入口
 import {
   Camera, Upload, Picture, FolderOpened, Link, Search,
-  Plus, Warning, ArrowDown, CircleCheckFilled, Delete, Collection,
+  Plus, Warning, ArrowDown, CircleCheckFilled, Delete, Collection, Download,
 } from '@element-plus/icons-vue'
+import { downloadCsv, fileTimestamp, formatPercent } from '@repo/utils'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
 import { useRoute } from 'vue-router'
@@ -372,6 +379,32 @@ const minScorePct = computed({
 const filteredResults = computed(() =>
   results.value.filter((item) => (item.score ?? 1) >= minScore.value),
 )
+
+/**
+ * 导出当前可见的检索结果为 CSV（阈值过滤后的列表，与页面展示一致）。
+ *
+ * <p>后端没有导出接口，纯浏览器侧生成；带 BOM 保证 Excel 打开中文不乱码。
+ * 相似度沿用 formatPercent 的 0-1/0-100 双量纲兼容口径，与 ReID / 人脸页一致。</p>
+ */
+function exportResultsCsv(): void {
+  const rows = filteredResults.value
+  if (!rows.length) {
+    toast.warning('还没有可导出的检索结果')
+    return
+  }
+  downloadCsv(`image-search-${fileTimestamp()}.csv`, [
+    ['序号', '名称', '相似度', '分辨率', '关键词', '向量ID'],
+    ...rows.map((item, i) => [
+      i + 1,
+      item.name || '未命名',
+      item.score != null ? formatPercent(item.score) : '',
+      formatDims(item),
+      (item.tags || []).join(' '),
+      item.vectorId || '',
+    ]),
+  ])
+  toast.success(`已导出 ${rows.length} 条检索结果`)
+}
 
 function focusKeyword() {
   nextTick(() => keywordInput.value?.focus())
@@ -1571,6 +1604,28 @@ onBeforeUnmount(() => {
   color: color-mix(in srgb, var(--el-color-white, #fff) 60%, var(--el-color-primary, #409eff));
 }
 
+/* 结果条里的导出按钮：贴右缘，半透明白与胶囊底一致 */
+.is-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 14px;
+  padding: 2px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--el-radius-full, 9999px);
+  background: transparent;
+  color: var(--el-color-white, #fff);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.is-export-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
 .is-hidden {
   display: none;
 }
@@ -1762,6 +1817,10 @@ onBeforeUnmount(() => {
   background: var(--is-bg);
   overflow: hidden;
   transition: border-color var(--el-transition-duration-fast, 0.2s) ease;
+  /* 渲染级虚拟化：视口外的命中卡跳过布局与绘制（hit 量大时滚动不掉帧），
+     contain-intrinsic-size 用估算高度占位，渲染过后记录真实尺寸 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
 }
 
 .is-card:hover {

@@ -153,6 +153,29 @@ export async function removeInputHistoryEntry(
 }
 
 /**
+ * 批量删除本机历史（按记录主键逐条精确删，最后回读一次刷新快照）。
+ *
+ * <p>底层只有单条删除接口；历史容量有限（默认 100 条），逐条删足够，
+ * 不必为它扩底层批量 API。调用方已过滤掉会话消息条目（msg- 前缀），
+ * 这里不再重复判断。</p>
+ *
+ * @param ids 要删除的记录主键集合
+ * @param user 用户名
+ * @param scope 业务分组（不传则与会话页共用一份）
+ * @return 删除后的历史明细，可直接赋给界面用的 ref
+ */
+export async function removeInputHistoryEntries(
+  ids: string[],
+  user?: string | null,
+  scope?: string | null,
+): Promise<MessageHistoryEntry[]> {
+  for (const id of ids) {
+    await deleteMessageHistoryEntry(id, { user, scope });
+  }
+  return hydrateInputHistoryDetailed(user, scope);
+}
+
+/**
  * 清空某个分组的本机历史（排查问题与切换账号时用）。
  *
  * @param user 用户名

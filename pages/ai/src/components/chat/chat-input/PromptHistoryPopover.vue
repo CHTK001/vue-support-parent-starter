@@ -15,7 +15,14 @@
   <CustomPopover :show="visible" @update:show="$emit('update:visible', $event)" :anchor-el="anchorEl"
     match-anchor-width align="start" :max-height="380" popper-class="ph-popover">
     <div class="ph-panel">
-      <div class="ph-caption">{{ t('chat.input.historyTitle') }}</div>
+      <div class="ph-caption-row">
+        <div class="ph-caption">{{ t('chat.input.historyTitle') }}</div>
+        <!-- 批量删除入口：只有存在可删的本机历史时出现；进入选择模式后行点击变为勾选 -->
+        <button v-if="localCount" type="button" class="ph-select-toggle" :class="{ 'is-on': selecting }"
+          @click="toggleSelectMode">
+          {{ selecting ? t('chat.input.historySelectExit') : t('chat.input.historySelectEnter') }}
+        </button>
+      </div>
 
       <!-- 即时过滤：只筛当前已加载的条目（纯本地过滤，不发请求）；选中行高亮仍按原始序号对齐 -->
       <div class="ph-filter">
@@ -43,9 +50,13 @@
       <div v-else-if="!visibleItems.length" class="ph-empty">{{ t('chat.input.historyNoMatch') }}</div>
       <div v-else class="ph-list" role="listbox" :aria-label="t('chat.input.historyTitle')">
         <div v-for="row in visibleItems" :key="row.item.id" class="ph-item"
-          :class="{ 'is-active': row.index === activeIndex }" role="option"
-          :aria-selected="row.index === activeIndex" @click="$emit('pick', row.index)"
+          :class="{ 'is-active': row.index === activeIndex, 'is-selecting': selecting }" role="option"
+          :aria-selected="row.index === activeIndex" @click="onRowClick(row)"
           @mouseenter="$emit('update:active-index', row.index)">
+          <!-- 选择模式：本机条目给勾选框；会话消息（非 local）不可选，仍走键盘选中 -->
+          <span v-if="selecting && row.item.local" class="ph-item__ck"
+            :class="{ 'is-on': selectedIds.has(row.item.id) }" role="checkbox"
+            :aria-checked="selectedIds.has(row.item.id)" @click.stop="toggleRow(row.item.id)" />
           <span class="ph-item__text">{{ row.item.text }}</span>
           <span v-if="row.item.createdAt" class="ph-item__time">{{ fmtTime(row.item.createdAt) }}</span>
           <!-- 单条删除只对本机历史开放：会话消息的删除走消息列表自己的入口 -->
@@ -57,6 +68,17 @@
             </svg>
           </button>
         </div>
+      </div>
+
+      <!-- 批量操作条：仅选择模式出现；删除确认与实际删除由父级处理 -->
+      <div v-if="selecting" class="ph-batch">
+        <button type="button" class="ph-batch__ghost" :disabled="!localCount || selectedIds.size === localCount"
+          @click="selectAllLocal">{{ t('chat.input.historySelectAll') }}</button>
+        <span class="ph-batch__count">{{ t('chat.input.historySelectedCount', { n: selectedIds.size }) }}</span>
+        <span class="ph-batch__spacer" />
+        <button type="button" class="ph-batch__danger" :disabled="!selectedIds.size" @click="removeSelected">
+          {{ t('chat.input.historyDeleteSelected') }}
+        </button>
       </div>
 
       <div class="ph-foot">
@@ -96,21 +118,75 @@ const props = defineProps<{
   loading: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:visible': [value: boolean]
   'update:active-index': [value: number]
   pick: [index: number]
   'load-more': []
   remove: [id: string]
+  /** 批量删除本机历史：确认与实际删除由父级处理 */
+  'remove-many': [ids: string[]]
 }>()
 
 /** 过滤词：只匹配当前已加载条目的文本，纯本地过滤（不发请求） */
 const filter = ref('')
 
-/** 浮层每次打开都清掉上次的过滤词，避免「上次搜的词还在悄悄筛」 */
+/** 批量删除的选择模式：开启后行点击变为勾选（仅本机条目可选） */
+const selecting = ref(false)
+/** 已勾选的本机历史记录主键 */
+const selectedIds = ref<Set<string>>(new Set())
+
+/** 可删除的本机条目数（会话消息不带 local 标记，不参与批量删除） */
+const localCount = computed(() => props.items.filter((item) => item.local).length)
+
+/** 浮层每次打开都清掉上次的过滤词与选择状态，避免「上次的操作还悄悄生效」 */
 watch(() => props.visible, (v) => {
-  if (v) filter.value = ''
+  if (v) {
+    filter.value = ''
+    selecting.value = false
+    selectedIds.value = new Set()
+  }
 })
+
+/** 条目刷新（如批量删除完成）后，把已不存在的记录从勾选集合里剔除 */
+watch(() => props.items, () => {
+  if (!selectedIds.value.size) return
+  const alive = new Set(props.items.filter((item) => item.local).map((item) => item.id))
+  const next = new Set([...selectedIds.value].filter((id) => alive.has(id)))
+  if (next.size !== selectedIds.value.size) selectedIds.value = next
+})
+
+function toggleSelectMode(): void {
+  selecting.value = !selecting.value
+  selectedIds.value = new Set()
+}
+
+/** 行点击：选择模式下勾选本机条目，否则维持原有的「选中填回草稿」 */
+function onRowClick(row: { item: HistoryItem; index: number }): void {
+  if (selecting.value && row.item.local) {
+    toggleRow(row.item.id)
+    return
+  }
+  emit('pick', row.index)
+}
+
+function toggleRow(id: string): void {
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedIds.value = next
+}
+
+/** 全选已加载的本机条目 */
+function selectAllLocal(): void {
+  selectedIds.value = new Set(props.items.filter((item) => item.local).map((item) => item.id))
+}
+
+/** 把勾选集合交给父级删除；确认通过前条目不动，勾选保持 */
+function removeSelected(): void {
+  if (!selectedIds.value.size) return
+  emit('remove-many', [...selectedIds.value])
+}
 
 /**
  * 过滤后的可见条目。
@@ -159,6 +235,129 @@ function fmtTime(ts?: number): string {
   font-weight: 500;
   letter-spacing: 0.02em;
   user-select: none;
+}
+
+/* 标题行：标题 + 右侧「批量删除 / 退出选择」入口 */
+.ph-caption-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 6px;
+}
+
+.ph-select-toggle {
+  flex: none;
+  padding: 3px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.ph-select-toggle:hover {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 5%, transparent);
+  color: var(--text-secondary, var(--color-text));
+}
+
+.ph-select-toggle.is-on {
+  color: var(--el-color-primary);
+}
+
+/* 选择模式的勾选框：本机条目才有；勾中填充主色并画对勾 */
+.ph-item__ck {
+  flex: none;
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border-default, var(--el-border-color));
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.ph-item__ck:hover {
+  border-color: var(--el-color-primary);
+}
+
+.ph-item__ck.is-on {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+}
+
+.ph-item__ck.is-on::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 3px;
+  height: 7px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+/* 批量操作条：全选 / 已选计数 / 删除所选，贴在列表与快捷键说明之间 */
+.ph-batch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 6px 8px 2px;
+  border-top: 1px solid var(--border-default, var(--el-border-color-lighter));
+}
+
+.ph-batch__ghost {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary, var(--el-text-color-primary));
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.ph-batch__ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 5%, transparent);
+}
+
+.ph-batch__count {
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.ph-batch__spacer {
+  flex: 1 1 auto;
+}
+
+.ph-batch__danger {
+  padding: 3px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-color-danger, #f56c6c);
+  font-size: 11.5px;
+  line-height: 16px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.ph-batch__danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--el-color-danger, #f56c6c) 12%, transparent);
+}
+
+.ph-batch__danger:disabled {
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+  cursor: default;
 }
 
 /* 加载更多：整行可点，字号比条目小一号，位置在列表上方（与产品截图一致） */
@@ -349,7 +548,11 @@ function fmtTime(ts?: number): string {
 
 @media (prefers-reduced-motion: reduce) {
   .ph-item,
-  .ph-more {
+  .ph-more,
+  .ph-select-toggle,
+  .ph-item__ck,
+  .ph-batch__ghost,
+  .ph-batch__danger {
     transition: none;
   }
 }

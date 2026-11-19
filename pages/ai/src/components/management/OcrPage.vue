@@ -28,8 +28,8 @@
               <p class="ocr-drop-desc">先让模型就绪再上传：右侧状态卡里能看到当前配置的模型与失败原因</p>
             </template>
             <template v-else>
-              <p class="ocr-drop-title">上传一张图片，开始识别文字</p>
-              <p class="ocr-drop-desc">点击选择图片，或把图片拖到这里</p>
+              <p class="ocr-drop-title">上传图片，开始识别文字</p>
+              <p class="ocr-drop-desc">点击选择图片（支持多张批量），或把图片拖到这里</p>
               <el-button type="primary" class="ocr-drop-btn" @click.stop="pickImage">
                 <el-icon><FolderOpened /></el-icon>选择图片
               </el-button>
@@ -87,6 +87,40 @@
             >
               <el-icon v-if="!busy"><Refresh /></el-icon>重新识别
             </el-button>
+          </div>
+
+          <!--
+            批量识别队列：多图上传才出现（单张走原路径，不建队列）。
+            逐张串行识别（OCR 是模型推理，并发只互相抢算力），进度条 + 逐条状态；
+            失败可单独重试，整批可取消，成功后可汇总导出 Markdown。
+          -->
+          <div v-if="batchItems.length" class="ocr-batch">
+            <header class="ocr-batch-head">
+              <span class="ocr-batch-title">批量识别（{{ batchItems.length }} 张）</span>
+              <span class="ocr-batch-progress">{{ batchProgressPct }}%</span>
+              <span class="ocr-batch-spacer" />
+              <button v-if="batchRunning" type="button" class="ocr-batch-act" @click="cancelBatch">取消</button>
+              <template v-else>
+                <button v-if="batchFailedCount" type="button" class="ocr-batch-act" @click="retryBatchFailed">重试失败</button>
+                <button type="button" class="ocr-batch-act" @click="clearBatch">清空</button>
+              </template>
+            </header>
+            <div class="ocr-batch-bar" role="progressbar" :aria-valuenow="batchProgressPct" aria-valuemin="0" aria-valuemax="100">
+              <i :style="{ width: batchProgressPct + '%' }" />
+            </div>
+            <ul class="ocr-batch-list">
+              <li v-for="item in batchItems" :key="item.id" class="ocr-batch-item" :class="'is-' + item.status">
+                <span class="ocr-batch-dot" />
+                <span class="ocr-batch-name" :title="item.name">{{ item.name }}</span>
+                <span class="ocr-batch-meta">{{ batchItemMeta(item) }}</span>
+                <button v-if="item.status === 'failed' && !batchRunning" type="button" class="ocr-batch-act" @click="retryBatchItem(item)">重试</button>
+              </li>
+            </ul>
+            <div v-if="!batchRunning && batchDoneCount" class="ocr-batch-foot">
+              <button type="button" class="ocr-batch-export" @click="exportBatchMarkdown">
+                <el-icon><Download /></el-icon>导出汇总 Markdown
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -158,6 +192,9 @@
               <el-button class="ocr-export" size="small" plain :disabled="!ocrText" @click="exportTxt">
                 <el-icon><Download /></el-icon>导出 TXT
               </el-button>
+              <el-button class="ocr-export" size="small" plain :disabled="!ocrText && !ocrBlocks.length" @click="exportMarkdown">
+                <el-icon><Download /></el-icon>导出 Markdown
+              </el-button>
               <el-button
                 class="ocr-copy"
                 :class="{ 'is-copied': copied }"
@@ -212,7 +249,7 @@
     </div>
 
     <!-- 隐藏的文件选择器：必须常驻 DOM，放进 v-if 分支里上传后 ref 会变 null -->
-    <input ref="fileInput" type="file" accept="image/*" class="ocr-hidden" @change="onFilePicked" />
+    <input ref="fileInput" type="file" accept="image/*" multiple class="ocr-hidden" @change="onFilePicked" />
   </div>
 </template>
 
@@ -502,10 +539,10 @@ function pickImage() {
 
 function onFilePicked(e: Event) {
   const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  // 清空 value：否则连续选同一个文件不会再触发 change
+  const files = Array.from(input.files ?? [])
+  // 清空 value：否则连续选同一批文件不会再触发 change
   input.value = ''
-  if (file) void loadFile(file)
+  if (files.length) enqueueFiles(files)
 }
 
 function onDragOver() {
@@ -527,8 +564,8 @@ function onDragLeave(e: DragEvent) {
 
 function onDrop(e: DragEvent) {
   dragOver.value = false
-  const file = e.dataTransfer?.files?.[0]
-  if (file) void loadFile(file)
+  const files = Array.from(e.dataTransfer?.files ?? [])
+  if (files.length) enqueueFiles(files)
 }
 
 /** 上传入口：重置状态 → 并行取「文本」与「标注图」 */
@@ -579,6 +616,279 @@ async function rerun() {
   await Promise.allSettled([runRecognize(file, seq), runAnnotate(file, seq)])
   if (seq !== loadSeq) return
   notify()
+}
+
+/* ==================== 批量识别队列 ==================== */
+
+/** OCR 单块识别结果（与 runRecognize 写入 ocrBlocks 的结构一致） */
+type OcrBlock = { text?: string; confidence?: number; angle?: number }
+
+/** 队列条目状态：pending 等待 → running 识别中 → done / failed；cancelled 为取消后未跑的 */
+type OcrBatchStatus = 'pending' | 'running' | 'done' | 'failed' | 'cancelled'
+
+/** 批量队列条目：识别结果留一份底稿，供汇总导出（右侧展示区只跟随当前张） */
+interface OcrBatchItem {
+  id: number
+  name: string
+  file: File
+  status: OcrBatchStatus
+  /** 识别全文 */
+  text: string
+  /** 分块明细（文本 / 置信度 / 角度） */
+  blocks: OcrBlock[]
+  /** 文本块数 */
+  blockCount: number
+  /** 后端推理耗时（毫秒） */
+  elapsedMs: number | null
+  /** 本地端到端耗时（毫秒，含排队与标注图请求） */
+  tookMs: number | null
+  /** 失败原因（成功为空串） */
+  error: string
+}
+
+const batchItems = ref<OcrBatchItem[]>([])
+const batchRunning = ref(false)
+/** 批次号：新一轮队列 +1，旧循环发现号对不上就退出（与 loadSeq 同一思路） */
+let batchSeq = 0
+/** 取消标记：置真后队列在当前张处理完即停 */
+let batchCancelled = false
+
+const batchDoneCount = computed(() => batchItems.value.filter((i) => i.status === 'done').length)
+const batchFailedCount = computed(() => batchItems.value.filter((i) => i.status === 'failed').length)
+const batchProgressPct = computed(() => {
+  const total = batchItems.value.length
+  if (!total) return 0
+  const finished = batchItems.value.filter((i) => i.status !== 'pending' && i.status !== 'running').length
+  return Math.round((finished / total) * 100)
+})
+
+/**
+ * 多图入口：点击选择 / 拖拽进来的文件统一从这里排队。
+ *
+ * <p>非图片文件过滤并单独提示；单张仍走原 {@link loadFile} 路径（行为不变）。
+ * 队列进行中不接受新文件——中途插队会让「成功 / 失败」统计失去意义，
+ * 要加图先取消再重排。</p>
+ */
+function enqueueFiles(files: File[]): void {
+  const imgs = files.filter(isImageFile)
+  if (!imgs.length) {
+    message.warning('请选择图片文件')
+    return
+  }
+  if (imgs.length < files.length) {
+    message.warning(`${files.length - imgs.length} 个非图片文件已跳过`)
+  }
+  if (ocrUnavailable.value) {
+    message.warning('OCR 模型当前不可用，请先让模型就绪')
+    return
+  }
+  if (batchRunning.value) {
+    message.warning('批量识别进行中，请等待完成或先取消')
+    return
+  }
+  if (imgs.length === 1) {
+    void loadFile(imgs[0])
+    return
+  }
+  const seq = (batchSeq += 1)
+  batchCancelled = false
+  batchItems.value = imgs.map((file, i): OcrBatchItem => ({
+    id: seq * 10000 + i,
+    name: file.name || `图片${i + 1}`,
+    file,
+    status: 'pending',
+    text: '',
+    blocks: [],
+    blockCount: 0,
+    elapsedMs: null,
+    tookMs: null,
+    error: '',
+  }))
+  void runBatch(seq)
+}
+
+/**
+ * 队列主循环：逐张串行识别。
+ *
+ * <p>串行而不是并行：OCR 是模型推理，并发只会互相抢算力，总耗时不会变短。
+ * 任何一张失败都继续跑下一张，失败项可单独重试。</p>
+ */
+async function runBatch(seq: number): Promise<void> {
+  batchRunning.value = true
+  for (const item of batchItems.value) {
+    if (batchCancelled || seq !== batchSeq) break
+    if (item.status !== 'pending') continue
+    await processBatchItem(item, seq)
+  }
+  if (seq !== batchSeq) return
+  // 取消时把没跑到的条目标记出来，让「已取消」在队列里可见
+  batchItems.value.forEach((item) => {
+    if (item.status === 'pending') item.status = 'cancelled'
+  })
+  batchRunning.value = false
+  const done = batchDoneCount.value
+  const failed = batchFailedCount.value
+  if (batchCancelled) message.info('批量识别已取消')
+  else if (failed) message.warning(`批量识别完成：成功 ${done} 张 · 失败 ${failed} 张，可对失败项重试`)
+  else message.success(`批量识别完成：成功 ${done} 张`)
+}
+
+/**
+ * 处理队列里的一张：舞台切到这张图，识别结果同时进展示区与队列底稿。
+ *
+ * <p>展示链路与单图路径同款：并行取标注图（只服务舞台显示，失败不阻断识别），
+ * 识别走 {@link runRecognize} 写右侧文本区。displaySeq 逐张递增，
+ * 上一张的迟到响应不会写进这一张。</p>
+ */
+async function processBatchItem(item: OcrBatchItem, seq: number): Promise<void> {
+  item.status = 'running'
+  const started = performance.now()
+  const displaySeq = (loadSeq += 1)
+  sourceFile = item.file
+  revokeAnnotatedUrl()
+  revokeOriginalUrl()
+  originalUrl.value = URL.createObjectURL(item.file)
+  ocrText.value = ''
+  textBlocks.value = null
+  ocrBlocks.value = []
+  elapsedMs.value = null
+  recognizeError.value = ''
+  annotateError.value = ''
+  copied.value = false
+  showBox.value = true
+  const annotate = runAnnotate(item.file, displaySeq)
+  await runRecognize(item.file, displaySeq)
+  // runRecognize 不返回布尔：失败时会把原因写进 recognizeError（displaySeq 即当前批次，必写入）
+  const ok = !recognizeError.value
+  item.text = ocrText.value
+  item.blocks = ocrBlocks.value
+  item.blockCount = ocrBlocks.value.length || textBlocks.value || 0
+  item.elapsedMs = elapsedMs.value
+  item.tookMs = Math.round(performance.now() - started)
+  item.error = ok ? '' : (recognizeError.value || '识别失败')
+  item.status = ok ? 'done' : 'failed'
+  await annotate
+}
+
+/** 取消批量识别：当前张处理完即停，未跑的标记为已取消 */
+function cancelBatch(): void {
+  if (!batchRunning.value) return
+  batchCancelled = true
+}
+
+/** 重试单张失败项（队列空闲时才可点） */
+function retryBatchItem(item: OcrBatchItem): void {
+  if (batchRunning.value || item.status !== 'failed') return
+  item.status = 'pending'
+  item.error = ''
+  void runBatch(batchSeq)
+}
+
+/** 重试全部失败项 */
+function retryBatchFailed(): void {
+  if (batchRunning.value) return
+  let n = 0
+  batchItems.value.forEach((item) => {
+    if (item.status === 'failed') {
+      item.status = 'pending'
+      item.error = ''
+      n += 1
+    }
+  })
+  if (n) void runBatch(batchSeq)
+}
+
+/** 清空队列（仅队列不在跑时开放；清空不影响已展示的当前张） */
+function clearBatch(): void {
+  if (batchRunning.value) return
+  batchItems.value = []
+}
+
+/** 队列条目的状态行文案 */
+function batchItemMeta(item: OcrBatchItem): string {
+  switch (item.status) {
+    case 'pending':
+      return '等待'
+    case 'running':
+      return '识别中…'
+    case 'done':
+      return `${item.blockCount} 块${item.elapsedMs != null ? ` · ${item.elapsedMs} ms` : ''}`
+    case 'failed':
+      return item.error || '识别失败'
+    case 'cancelled':
+      return '已取消'
+  }
+}
+
+/** Markdown 表格单元：竖线转义、换行压平，避免把表格撑破 */
+function mdCell(text: string): string {
+  return (text || '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ')
+}
+
+/** 单张结果的分块明细表（与页面「分块明细」同口径：文本/置信度/角度） */
+function mdBlockTable(blocks: OcrBlock[]): string[] {
+  if (!blocks.length) return []
+  const lines = ['', '| # | 文本 | 置信度 | 角度 |', '| --- | --- | ---: | ---: |']
+  blocks.forEach((b, i) => {
+    lines.push(`| ${i + 1} | ${mdCell(b.text || '')} | ${fmtConfidence(b.confidence)} | ${b.angle != null ? `${b.angle}°` : '—'} |`)
+  })
+  return lines
+}
+
+/**
+ * 导出当前单张识别结果为 Markdown（全文 + 分块明细表）。
+ *
+ * <p>与导出 TXT 并列：TXT 给纯文本消费，Markdown 带结构和置信度，
+ * 适合直接贴进文档或笔记。</p>
+ */
+function exportMarkdown(): void {
+  if (!ocrText.value && !ocrBlocks.value.length) {
+    message.warning('还没有可导出的识别结果')
+    return
+  }
+  const lines = [
+    `# OCR 识别结果`,
+    '',
+    `- 文件：${sourceFile?.name || '未命名'}`,
+    `- 文本块：${textBlocks ?? '—'}${elapsedMs.value != null ? ` · 耗时：${elapsedMs.value} ms` : ''}`,
+    '',
+    '```text',
+    ocrText.value || '（无文本）',
+    '```',
+    ...mdBlockTable(ocrBlocks.value),
+  ]
+  downloadTextFile(lines.join('\n'), `ocr-result-${fileTimestamp()}.md`)
+}
+
+/**
+ * 导出批量识别汇总为 Markdown：总结表 + 每张一节（全文 + 分块明细）。
+ *
+ * <p>只收录识别成功的条目；失败/取消的在总结表里如实标注，不编造内容。</p>
+ */
+function exportBatchMarkdown(): void {
+  const items = batchItems.value
+  const done = items.filter((i) => i.status === 'done')
+  if (!done.length) {
+    message.warning('还没有识别成功的图片可导出')
+    return
+  }
+  const lines = [
+    `# OCR 批量识别结果`,
+    '',
+    `- 导出时间：${new Date().toLocaleString('zh-CN', { hour12: false })}`,
+    `- 共 ${items.length} 张 · 成功 ${done.length} · 失败 ${batchFailedCount.value}${batchRunning.value ? ' · 识别中' : ''}`,
+    '',
+    '| # | 文件 | 状态 | 文本块 | 耗时 |',
+    '| --- | --- | --- | ---: | ---: |',
+    ...items.map((item, i) =>
+      `| ${i + 1} | ${mdCell(item.name)} | ${item.status === 'done' ? '成功' : item.status === 'failed' ? '失败' : item.status === 'cancelled' ? '已取消' : '未完成'} | ${item.status === 'done' ? item.blockCount : '—'} | ${item.elapsedMs != null ? `${item.elapsedMs} ms` : '—'} |`,
+    ),
+  ]
+  done.forEach((item, i) => {
+    lines.push('', `## ${i + 1}. ${item.name}`, '', '```text', item.text || '（无文本）', '```', ...mdBlockTable(item.blocks))
+  })
+  downloadTextFile(lines.join('\n'), `ocr-batch-${fileTimestamp()}.md`)
+  message.success(`已导出 ${done.length} 张识别结果`)
 }
 
 /**
@@ -957,6 +1267,189 @@ html.dark .ocr-root {
   opacity: 0.5;
 }
 
+/* ---------------- 批量识别队列 ---------------- */
+.ocr-batch {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--ocr-border);
+  border-radius: var(--ocr-radius);
+  background: var(--ocr-card);
+}
+
+.ocr-batch-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ocr-batch-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ocr-text);
+}
+
+.ocr-batch-progress {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ocr-brand);
+  font-variant-numeric: tabular-nums;
+}
+
+.ocr-batch-spacer {
+  flex: 1 1 auto;
+}
+
+.ocr-batch-act {
+  flex: none;
+  padding: 3px 10px;
+  border: 1px solid var(--ocr-border);
+  border-radius: var(--el-radius-full, 9999px);
+  background: transparent;
+  color: var(--ocr-muted);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  transition:
+    color var(--el-transition-duration-fast, 0.2s) ease,
+    border-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.ocr-batch-act:hover {
+  color: var(--ocr-brand);
+  border-color: var(--ocr-brand);
+}
+
+.ocr-batch-bar {
+  height: 4px;
+  margin-top: 10px;
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--ocr-brand) 15%, transparent);
+  overflow: hidden;
+}
+
+.ocr-batch-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ocr-accent-2), var(--ocr-accent));
+  transition: width 0.25s ease;
+}
+
+.ocr-batch-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 216px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ocr-batch-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 18px;
+}
+
+.ocr-batch-item:hover {
+  background: var(--ocr-hover);
+}
+
+.ocr-batch-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ocr-muted);
+  opacity: 0.55;
+}
+
+.ocr-batch-item.is-running .ocr-batch-dot {
+  background: var(--ocr-brand);
+  opacity: 1;
+  animation: ocr-batch-pulse 1.1s ease-in-out infinite;
+}
+
+.ocr-batch-item.is-done .ocr-batch-dot {
+  background: var(--el-color-success, #67c23a);
+  opacity: 1;
+}
+
+.ocr-batch-item.is-failed .ocr-batch-dot {
+  background: var(--el-color-danger, #f56c6c);
+  opacity: 1;
+}
+
+.ocr-batch-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ocr-text);
+}
+
+.ocr-batch-meta {
+  flex: none;
+  max-width: 46%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ocr-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ocr-batch-item.is-failed .ocr-batch-meta {
+  color: var(--el-color-danger, #f56c6c);
+}
+
+.ocr-batch-item.is-done .ocr-batch-meta {
+  color: var(--el-color-success, #67c23a);
+}
+
+.ocr-batch-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.ocr-batch-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border: none;
+  border-radius: var(--el-radius-full, 9999px);
+  background: linear-gradient(135deg, var(--ocr-accent-2), var(--ocr-accent));
+  color: var(--el-color-white, #fff);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--el-transition-duration-fast, 0.2s) ease;
+}
+
+.ocr-batch-export:hover {
+  opacity: 0.88;
+}
+
+@keyframes ocr-batch-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.55;
+  }
+}
+
 /* ---------------- 检测框开关 ---------------- */
 /* 原生 button + aria-pressed：一个二元开关不需要引入额外组件，
    也省得 el-switch 的类名成为验证时唯一可用的选择器 */
@@ -1318,6 +1811,12 @@ html.dark .ocr-root {
 
 /* 尊重系统「减少动态效果」偏好：只停本组件自身的过渡与位移 */
 @media (prefers-reduced-motion: reduce) {
+  .ocr-batch-bar i,
+  .ocr-batch-item.is-running .ocr-batch-dot,
+  .ocr-batch-export {
+    transition: none;
+    animation: none;
+  }
   .ocr-drop,
   .ocr-box-toggle,
   .ocr-box-toggle__track,
