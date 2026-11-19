@@ -312,7 +312,7 @@ export interface TerminalThemePreset {
  * 列出自定义预设。
  *
  * <p>后端每套预设存一行配置（{@code terminal.theme.preset.<id>}），
- * 不做成一条 JSON 数组——{@code ms_server_config_value} 只有 2048 字符，
+ * 不做成一条 JSON 数组——{@code server_config_value} 只有 2048 字符，
  * 两三套就会撑爆。</p>
  */
 export const listTerminalPresets = () =>

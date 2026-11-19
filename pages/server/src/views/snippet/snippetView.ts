@@ -12,9 +12,9 @@
 /** 后端片段行 */
 export interface SnippetRow {
   id: number
-  msTerminalSnippetName?: string
-  msTerminalSnippetContent?: string
-  msTerminalSnippetRemark?: string
+  serverTerminalSnippetName?: string
+  serverTerminalSnippetContent?: string
+  serverTerminalSnippetRemark?: string
 }
 
 /** 画布消费的展示行 */
@@ -103,13 +103,13 @@ export function firstLineOf(content?: string | null): string {
  * @param row 后端行
  */
 export function toSnippetView(row: SnippetRow): SnippetView {
-  const content = String(row.msTerminalSnippetContent ?? '')
+  const content = String(row.serverTerminalSnippetContent ?? '')
   const lines = countLines(content)
   return {
     id: row.id,
-    name: row.msTerminalSnippetName?.trim() || '未命名片段',
+    name: row.serverTerminalSnippetName?.trim() || '未命名片段',
     content,
-    remark: String(row.msTerminalSnippetRemark ?? '').trim(),
+    remark: String(row.serverTerminalSnippetRemark ?? '').trim(),
     lines,
     chars: content.length,
     firstLine: firstLineOf(content),

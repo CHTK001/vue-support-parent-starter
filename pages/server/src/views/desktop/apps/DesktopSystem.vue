@@ -156,12 +156,12 @@ async function run(key: ProbeKey): Promise<void> {
   try {
     const logs = (await runCommand([props.hostId], probe.cmd, 45)) ?? [];
     const log = logs[0] ?? {};
-    const out = String(log.msExecLogOutput ?? "");
+    const out = String(log.serverExecLogOutput ?? "");
     result.value = {
       output: out.length > MAX_OUTPUT ? `${out.slice(0, MAX_OUTPUT)}\n…（输出过长，已截断）` : out,
-      error: String(log.msExecLogError ?? ""),
-      exitCode: log.msExecLogExitCode ?? null,
-      costMs: log.msExecLogCostMs ?? Date.now() - started,
+      error: String(log.serverExecLogError ?? ""),
+      exitCode: log.serverExecLogExitCode ?? null,
+      costMs: log.serverExecLogCostMs ?? Date.now() - started,
     };
   } catch (e) {
     result.value = null;

@@ -53,15 +53,15 @@ export interface SessionFilters {
 /** 后端会话行（字段为后端原样） */
 export interface SessionRow {
   id: number
-  msTerminalSessionHostId?: number
-  msTerminalSessionHostName?: string
-  msTerminalSessionProtocol: string
-  msTerminalSessionUser?: string
-  msTerminalSessionClientIp?: string
-  msTerminalSessionConnectTime?: string
-  msTerminalSessionCloseTime?: string
-  msTerminalSessionStatus: string
-  msTerminalSessionCloseReason?: string
+  serverTerminalSessionHostId?: number
+  serverTerminalSessionHostName?: string
+  serverTerminalSessionProtocol: string
+  serverTerminalSessionUser?: string
+  serverTerminalSessionClientIp?: string
+  serverTerminalSessionConnectTime?: string
+  serverTerminalSessionCloseTime?: string
+  serverTerminalSessionStatus: string
+  serverTerminalSessionCloseReason?: string
 }
 
 /** 画布消费的展示行：格式已收口，五个画布读同一份 */
@@ -219,10 +219,10 @@ export function toSessionView(
   hostMap: Record<number, string>,
   now: Date,
 ): SessionView {
-  const host = row.msTerminalSessionHostName || hostMap[row.msTerminalSessionHostId ?? 0] || '—'
-  const isOpen = row.msTerminalSessionStatus === 'OPEN'
-  const start = parseTime(row.msTerminalSessionConnectTime)
-  const end = isOpen ? now : parseTime(row.msTerminalSessionCloseTime)
+  const host = row.serverTerminalSessionHostName || hostMap[row.serverTerminalSessionHostId ?? 0] || '—'
+  const isOpen = row.serverTerminalSessionStatus === 'OPEN'
+  const start = parseTime(row.serverTerminalSessionConnectTime)
+  const end = isOpen ? now : parseTime(row.serverTerminalSessionCloseTime)
   const durationMs = start && end && end.getTime() >= start.getTime() ? end.getTime() - start.getTime() : null
 
   // 起点解析不出来时，整段区间都视为未知（两个都 null）：
@@ -234,20 +234,20 @@ export function toSessionView(
   return {
     id: row.id,
     host,
-    user: row.msTerminalSessionUser || '—',
-    ip: row.msTerminalSessionClientIp || '—',
-    protocol: String(row.msTerminalSessionProtocol ?? '').toUpperCase() || '—',
-    protocolTone: protocolTone(row.msTerminalSessionProtocol),
-    connectText: formatTime(row.msTerminalSessionConnectTime),
-    closeText: isOpen ? '—' : formatTime(row.msTerminalSessionCloseTime),
-    status: String(row.msTerminalSessionStatus ?? ''),
-    statusText: statusText(row.msTerminalSessionStatus),
+    user: row.serverTerminalSessionUser || '—',
+    ip: row.serverTerminalSessionClientIp || '—',
+    protocol: String(row.serverTerminalSessionProtocol ?? '').toUpperCase() || '—',
+    protocolTone: protocolTone(row.serverTerminalSessionProtocol),
+    connectText: formatTime(row.serverTerminalSessionConnectTime),
+    closeText: isOpen ? '—' : formatTime(row.serverTerminalSessionCloseTime),
+    status: String(row.serverTerminalSessionStatus ?? ''),
+    statusText: statusText(row.serverTerminalSessionStatus),
     isOpen,
     durationMs,
     durationText: formatDuration(durationMs),
     startHour,
     endHour,
-    closeReason: row.msTerminalSessionCloseReason || '',
+    closeReason: row.serverTerminalSessionCloseReason || '',
   }
 }
 
@@ -284,8 +284,8 @@ export function countByStatus(rows: readonly SessionRow[] | null | undefined): S
   let open = 0
   let closed = 0
   for (const r of list) {
-    if (r.msTerminalSessionStatus === 'OPEN') open++
-    else if (r.msTerminalSessionStatus === 'CLOSED') closed++
+    if (r.serverTerminalSessionStatus === 'OPEN') open++
+    else if (r.serverTerminalSessionStatus === 'CLOSED') closed++
   }
   return { total: list.length, open, closed }
 }
@@ -300,10 +300,10 @@ export function countByStatus(rows: readonly SessionRow[] | null | undefined): S
 function matchKeyword(row: SessionRow, keyword: string, hostMap: Record<number, string>): boolean {
   if (!keyword) return true
   const hay = [
-    row.msTerminalSessionHostName,
-    row.msTerminalSessionUser,
-    row.msTerminalSessionClientIp,
-    hostMap[row.msTerminalSessionHostId ?? 0],
+    row.serverTerminalSessionHostName,
+    row.serverTerminalSessionUser,
+    row.serverTerminalSessionClientIp,
+    hostMap[row.serverTerminalSessionHostId ?? 0],
   ]
     .filter(Boolean)
     .join(' ')
@@ -329,13 +329,13 @@ export function filterSessions(
   const bucket = filters.hourBucket
 
   return (rows ?? []).filter(row => {
-    if (filters.status && row.msTerminalSessionStatus !== filters.status) return false
-    if (protocol && String(row.msTerminalSessionProtocol ?? '').toUpperCase() !== protocol) return false
-    if (ip && !String(row.msTerminalSessionClientIp ?? '').toLowerCase().includes(ip)) return false
+    if (filters.status && row.serverTerminalSessionStatus !== filters.status) return false
+    if (protocol && String(row.serverTerminalSessionProtocol ?? '').toUpperCase() !== protocol) return false
+    if (ip && !String(row.serverTerminalSessionClientIp ?? '').toLowerCase().includes(ip)) return false
     if (bucket !== null && bucket !== undefined) {
       // 时段筛的是「开始时刻落在哪个桶」：与图表按开始时刻归桶的口径一致，
       // 点哪根柱就只会剩下那根柱里的会话。
-      const start = parseTime(row.msTerminalSessionConnectTime)
+      const start = parseTime(row.serverTerminalSessionConnectTime)
       const hour = hourOfDay(start)
       if (hour === null) return false
       if (hour < bucket || hour >= bucket + SESSION_BUCKET_HOURS) return false

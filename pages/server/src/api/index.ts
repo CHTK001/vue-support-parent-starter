@@ -201,9 +201,9 @@ export const closeSession = (recordId: number) =>
 // ===== 命令片段 / 路径书签 =====
 /** 命令片段载荷（字段名与后端实体 MsTerminalSnippet 对齐；须为 type 以获得隐式索引签名） */
 export type TerminalSnippetPayload = {
-  msTerminalSnippetName: string;
-  msTerminalSnippetContent: string;
-  msTerminalSnippetRemark?: string;
+  serverTerminalSnippetName: string;
+  serverTerminalSnippetContent: string;
+  serverTerminalSnippetRemark?: string;
 };
 export const getSnippets = () => http().get(`${B}/terminal/snippet`).then(r => unwrapResult<any[]>(r));
 export const saveSnippet = (d: TerminalSnippetPayload) =>
@@ -451,7 +451,7 @@ export const delMaintenancePlan = (id: number) => http().delete(`${B}/maintenanc
  * 计划任务格式（任务名 / 调度表达式 / 平台命令）
  *
  * <p>后端没有独立的 {@code /host/{id}/schedule} 存储，调度规则实际落在
- * {@code ms_exec_job}（批量计划任务）里，{@code msExecJobHostIds} 记录目标主机；
+ * {@code server_exec_job}（批量计划任务）里，{@code serverExecJobHostIds} 记录目标主机；
  * 这里在 API 层做一层映射，页面只关心「这台主机的调度规则」。</p>
  */
 export interface SchedulePayload {
@@ -516,13 +516,13 @@ function toScheduleItem(job: any, hostId: number): ScheduleItem {
   return {
     id: Number(job?.id ?? 0),
     hostId,
-    msScheduleName: String(job?.msExecJobName ?? ""),
-    expression: String(job?.msExecJobCron ?? ""),
-    command: String(job?.msExecJobCommand ?? ""),
-    remark: String(job?.msExecJobRemark ?? ""),
-    status: Number(job?.msExecJobEnabled ?? 1),
-    lastRunTime: job?.msExecJobLastRunTime ?? undefined,
-    nextRunTime: job?.msExecJobNextRunTime ?? undefined,
+    msScheduleName: String(job?.serverExecJobName ?? ""),
+    expression: String(job?.serverExecJobCron ?? ""),
+    command: String(job?.serverExecJobCommand ?? ""),
+    remark: String(job?.serverExecJobRemark ?? ""),
+    status: Number(job?.serverExecJobEnabled ?? 1),
+    lastRunTime: job?.serverExecJobLastRunTime ?? undefined,
+    nextRunTime: job?.serverExecJobNextRunTime ?? undefined,
     createdAt: job?.createTime ?? undefined,
   };
 }
@@ -536,7 +536,7 @@ function toScheduleItem(job: any, hostId: number): ScheduleItem {
 export const listSchedules = async (hostId: number): Promise<ScheduleItem[]> => {
   const jobs = await getJobs();
   return jobs
-    .filter((job: any) => parseScheduleHostIds(job?.msExecJobHostIds).includes(hostId))
+    .filter((job: any) => parseScheduleHostIds(job?.serverExecJobHostIds).includes(hostId))
     .map((job: any) => toScheduleItem(job, hostId));
 };
 
@@ -549,14 +549,14 @@ export const listSchedules = async (hostId: number): Promise<ScheduleItem[]> => 
  */
 export const saveSchedule = (hostId: number, d: SchedulePayload) =>
   saveJob(null, {
-    msExecJobName: d.msScheduleName,
-    msExecJobType: "CRON",
-    msExecJobCron: d.expression,
-    msExecJobCommand: d.command,
-    msExecJobHostIds: JSON.stringify([hostId]),
-    msExecJobTimeout: 60,
-    msExecJobEnabled: 1,
-    msExecJobRemark: d.remark ?? "",
+    serverExecJobName: d.msScheduleName,
+    serverExecJobType: "CRON",
+    serverExecJobCron: d.expression,
+    serverExecJobCommand: d.command,
+    serverExecJobHostIds: JSON.stringify([hostId]),
+    serverExecJobTimeout: 60,
+    serverExecJobEnabled: 1,
+    serverExecJobRemark: d.remark ?? "",
   }).then((job: any) => toScheduleItem(job, hostId));
 
 /**
@@ -569,11 +569,11 @@ export const saveSchedule = (hostId: number, d: SchedulePayload) =>
  */
 export const updateSchedule = (hostId: number, id: number, d: SchedulePayload) =>
   saveJob(id, {
-    msExecJobName: d.msScheduleName,
-    msExecJobType: "CRON",
-    msExecJobCron: d.expression,
-    msExecJobCommand: d.command,
-    msExecJobRemark: d.remark ?? "",
+    serverExecJobName: d.msScheduleName,
+    serverExecJobType: "CRON",
+    serverExecJobCron: d.expression,
+    serverExecJobCommand: d.command,
+    serverExecJobRemark: d.remark ?? "",
   }).then((job: any) => toScheduleItem(job, hostId));
 
 /**
@@ -585,7 +585,7 @@ export const updateSchedule = (hostId: number, id: number, d: SchedulePayload) =
  * @returns 修改后的调度行
  */
 export const toggleSchedule = (hostId: number, id: number, enabled: boolean) =>
-  saveJob(id, { msExecJobEnabled: enabled ? 1 : 0 })
+  saveJob(id, { serverExecJobEnabled: enabled ? 1 : 0 })
     .then((job: any) => toScheduleItem(job, hostId));
 
 /**
@@ -602,9 +602,9 @@ export const delSchedule = async (hostId: number, id: number): Promise<boolean> 
   const jobs = await getJobs();
   const job = jobs.find((j: any) => Number(j?.id) === id);
   if (!job) return true;
-  const remain = parseScheduleHostIds(job?.msExecJobHostIds).filter(x => x !== hostId);
+  const remain = parseScheduleHostIds(job?.serverExecJobHostIds).filter(x => x !== hostId);
   if (!remain.length) return delJob(id);
-  await saveJob(id, { msExecJobHostIds: JSON.stringify(remain) });
+  await saveJob(id, { serverExecJobHostIds: JSON.stringify(remain) });
   return true;
 };
 

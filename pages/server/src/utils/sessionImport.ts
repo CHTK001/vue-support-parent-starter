@@ -501,7 +501,7 @@ export function buildSessionHostPayload(session: Pick<ParsedSession, "name" | "a
     serverHostRemoteProtocol: "SSH",
     serverHostRemoteMode: "DIRECT",
     serverHostRemotePort: session.port,
-    msServerGroupId: null,
+    serverGroupId: null,
     serverHostTags: "",
     serverHostCode: "",
     serverHostCollectInterval: 15,

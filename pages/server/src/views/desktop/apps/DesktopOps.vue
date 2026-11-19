@@ -4,10 +4,10 @@
    *
    * <p>两页都来自平台自己的台账，不是远端 shell：</p>
    * <ul>
-   *   <li><b>片段</b>：{@code ms_terminal_snippet} 里保存的命令，选中后可以
-   *       在当前主机执行——执行走批量执行接口（单主机），会落 {@code ms_exec_log}，
+   *   <li><b>片段</b>：{@code server_terminal_snippet} 里保存的命令，选中后可以
+   *       在当前主机执行——执行走批量执行接口（单主机），会落 {@code server_exec_log}，
    *       与「批量作业」页是同一份审计；</li>
-   *   <li><b>会话</b>：{@code ms_terminal_session} 里属于这台主机的终端会话，
+   *   <li><b>会话</b>：{@code server_terminal_session} 里属于这台主机的终端会话，
    *       进行中的可以断开，断开会写关闭原因。</li>
    * </ul>
    *
@@ -208,13 +208,13 @@ async function loadSnippets(): Promise<void> {
   try {
     const rows = ((await getSnippets()) ?? []) as any[];
     snippets.value = rows.map((r) => {
-      const content = String(r.msTerminalSnippetContent ?? "");
+      const content = String(r.serverTerminalSnippetContent ?? "");
       const lines = content.split(/\r\n?|\n/).filter((l) => l.trim().length > 0);
       return {
         id: Number(r.id),
-        name: String(r.msTerminalSnippetName ?? "").trim() || "未命名片段",
+        name: String(r.serverTerminalSnippetName ?? "").trim() || "未命名片段",
         content,
-        remark: String(r.msTerminalSnippetRemark ?? "").trim(),
+        remark: String(r.serverTerminalSnippetRemark ?? "").trim(),
         lines: lines.length,
         chars: content.length,
         firstLine: (lines[0] ?? "").trim(),
@@ -239,10 +239,10 @@ async function runSnippet(): Promise<void> {
     const logs = ((await runCommand([props.hostId], s.content, 60)) ?? []) as any[];
     const log = logs[0] ?? {};
     result.value = {
-      output: clip(String(log.msExecLogOutput ?? "")),
-      error: clip(String(log.msExecLogError ?? "")),
-      exitCode: log.msExecLogExitCode ?? null,
-      costMs: log.msExecLogCostMs ?? Date.now() - started,
+      output: clip(String(log.serverExecLogOutput ?? "")),
+      error: clip(String(log.serverExecLogError ?? "")),
+      exitCode: log.serverExecLogExitCode ?? null,
+      costMs: log.serverExecLogCostMs ?? Date.now() - started,
     };
   } catch (e) {
     result.value = {
@@ -262,16 +262,16 @@ async function loadSessions(): Promise<void> {
   try {
     const rows = ((await getSessions()) ?? []) as any[];
     sessions.value = rows
-      .filter((r) => Number(r.msTerminalSessionHostId ?? 0) === props.hostId)
+      .filter((r) => Number(r.serverTerminalSessionHostId ?? 0) === props.hostId)
       .map((r) => ({
         id: Number(r.id),
-        open: String(r.msTerminalSessionStatus ?? "").toUpperCase() === "OPEN",
-        user: String(r.msTerminalSessionUser ?? "").trim(),
-        protocol: String(r.msTerminalSessionProtocol ?? "").trim(),
-        clientIp: String(r.msTerminalSessionClientIp ?? "").trim(),
-        connectTime: String(r.msTerminalSessionConnectTime ?? "").trim(),
-        closeTime: String(r.msTerminalSessionCloseTime ?? "").trim(),
-        statusText: String(r.msTerminalSessionStatus ?? "").toUpperCase() === "OPEN" ? "进行中" : "已结束",
+        open: String(r.serverTerminalSessionStatus ?? "").toUpperCase() === "OPEN",
+        user: String(r.serverTerminalSessionUser ?? "").trim(),
+        protocol: String(r.serverTerminalSessionProtocol ?? "").trim(),
+        clientIp: String(r.serverTerminalSessionClientIp ?? "").trim(),
+        connectTime: String(r.serverTerminalSessionConnectTime ?? "").trim(),
+        closeTime: String(r.serverTerminalSessionCloseTime ?? "").trim(),
+        statusText: String(r.serverTerminalSessionStatus ?? "").toUpperCase() === "OPEN" ? "进行中" : "已结束",
       }));
   } catch (e) {
     sessions.value = [];

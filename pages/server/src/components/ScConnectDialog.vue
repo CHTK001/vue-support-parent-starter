@@ -94,7 +94,7 @@ function onConnect(): void {
       </ReFormItem>
       <ReFormItem v-if="form.protocol !== 'ssh' && form.protocol !== 'telnet'" label="登录身份">
         <ReSelect v-model="form.identityId" placeholder="默认取优先级最高的绑定身份" clearable
-          :data="identities.map(i => ({ label: `${i.msServerIdentityUsername} (${i.msServerIdentityAuthType})`, value: i.id }))"
+          :data="identities.map(i => ({ label: `${i.serverIdentityUsername} (${i.serverIdentityAuthType})`, value: i.id }))"
           style="width: 100%" />
       </ReFormItem>
       <ReFormItem v-if="form.protocol !== 'ssh'" label="目标端口">

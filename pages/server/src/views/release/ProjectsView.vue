@@ -3409,11 +3409,21 @@ async function runOperation(item: Project, operation: string, path: string) {
 function handleStart(row: Project) {
   return runOperation(row, 'start', `/project/${row.id}/start`);
 }
-function handleStop(row: Project) {
-  return runOperation(row, 'stop', `/project/${row.id}/stop`);
+async function handleStop(row: Project) {
+  try {
+    await ElMessageBox.confirm(`确定停止项目「${row.projectName}」吗？停止后该项目将不可访问。`, '停止确认', { type: 'warning' });
+  } catch {
+    return;
+  }
+  await runOperation(row, 'stop', `/project/${row.id}/stop`);
 }
-function handleRestart(row: Project) {
-  return runOperation(row, 'restart', `/project/${row.id}/restart`);
+async function handleRestart(row: Project) {
+  try {
+    await ElMessageBox.confirm(`确定重启项目「${row.projectName}」吗？重启期间服务会短暂中断。`, '重启确认', { type: 'warning' });
+  } catch {
+    return;
+  }
+  await runOperation(row, 'restart', `/project/${row.id}/restart`);
 }
 function handleGitDeploy(row: Project) {
   return runOperation(row, 'deploy', `/project/${row.id}/git/deploy`);

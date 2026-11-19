@@ -1003,7 +1003,7 @@ function protocolOf(h: Host): string {
 }
 function groupName(id?: number | null): string {
   if (!id) return "—";
-  return props.groups.find(g => g.id === id)?.msServerGroupName ?? "组#" + id;
+  return props.groups.find(g => g.id === id)?.serverGroupName ?? "组#" + id;
 }
 function show(v: unknown, fallback = "—"): string {
   if (v === null || v === undefined) return fallback;
@@ -1061,7 +1061,7 @@ const overviewRows = computed<Array<{ label: string; value: string; mono?: boole
     { label: "Java 版本", value: show(p.serverHostJavaVersion ?? i.javaVersion) },
     { label: "主机编码", value: show(h?.serverHostCode ?? p.serverHostCode), mono: true },
     { label: "最后采集", value: show(p.serverHostLastCollectTime) },
-    { label: "分组", value: groupName(h?.msServerGroupId ?? p.msServerGroupId) },
+    { label: "分组", value: groupName(h?.serverGroupId ?? p.serverGroupId) },
     { label: "备注", value: show(h?.serverHostDescription ?? p.serverHostDescription) },
   ];
 });

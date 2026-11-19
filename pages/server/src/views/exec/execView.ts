@@ -17,30 +17,30 @@ import { dayKeyOf, formatDateTime, hourOfDay, hourToPercent, parseDateTime } fro
 /** 后端计划任务行 */
 export interface JobRow {
   id: number
-  msExecJobName?: string
-  msExecJobType?: string
-  msExecJobCron?: string
-  msExecJobCommand?: string
-  msExecJobHostIds?: string
-  msExecJobTimeout?: number
-  msExecJobEnabled?: number
-  msExecJobRemark?: string
-  msExecJobLastRunTime?: string
-  msExecJobNextRunTime?: string
+  serverExecJobName?: string
+  serverExecJobType?: string
+  serverExecJobCron?: string
+  serverExecJobCommand?: string
+  serverExecJobHostIds?: string
+  serverExecJobTimeout?: number
+  serverExecJobEnabled?: number
+  serverExecJobRemark?: string
+  serverExecJobLastRunTime?: string
+  serverExecJobNextRunTime?: string
 }
 
 /** 后端执行日志行 */
 export interface LogRow {
   id: number
-  msExecLogType?: string
-  msExecLogHostName?: string
-  msExecLogCommand?: string
-  msExecLogStatus?: string
-  msExecLogExitCode?: number
-  msExecLogError?: string
-  msExecLogCostMs?: number
-  msExecLogOutput?: string
-  msExecLogEndTime?: string
+  serverExecLogType?: string
+  serverExecLogHostName?: string
+  serverExecLogCommand?: string
+  serverExecLogStatus?: string
+  serverExecLogExitCode?: number
+  serverExecLogError?: string
+  serverExecLogCostMs?: number
+  serverExecLogOutput?: string
+  serverExecLogEndTime?: string
 }
 
 /** 任务类型 */
@@ -161,31 +161,31 @@ export function jobTypeCode(raw?: string | null): JobTypeCode {
  * @param hostMap 主机台账 id → 名称
  */
 export function toJobView(row: JobRow, hostMap: Record<number, string>): JobView {
-  const typeCode = jobTypeCode(row.msExecJobType)
-  const hostIds = parseHostIds(row.msExecJobHostIds)
+  const typeCode = jobTypeCode(row.serverExecJobType)
+  const hostIds = parseHostIds(row.serverExecJobHostIds)
   const hostNames = hostIds.map(id => hostMap[id] ?? `#${id}`)
-  const nextRun = parseDateTime(row.msExecJobNextRunTime)
-  const lastRun = parseDateTime(row.msExecJobLastRunTime)
+  const nextRun = parseDateTime(row.serverExecJobNextRunTime)
+  const lastRun = parseDateTime(row.serverExecJobLastRunTime)
   const nextHour = hourOfDay(nextRun)
-  const command = String(row.msExecJobCommand ?? '').trim()
+  const command = String(row.serverExecJobCommand ?? '').trim()
 
   return {
     id: row.id,
-    name: String(row.msExecJobName ?? '').trim() || '未命名任务',
+    name: String(row.serverExecJobName ?? '').trim() || '未命名任务',
     typeCode,
     typeLabel: typeCode === 'NONE' ? '脚本' : '定时',
-    cron: typeCode === 'NONE' ? '' : String(row.msExecJobCron ?? ''),
-    cronText: typeCode === 'NONE' ? '—' : String(row.msExecJobCron ?? '') || '—',
+    cron: typeCode === 'NONE' ? '' : String(row.serverExecJobCron ?? ''),
+    cronText: typeCode === 'NONE' ? '—' : String(row.serverExecJobCron ?? '') || '—',
     command,
     commandFirstLine: command.split(/\r?\n/)[0]?.trim() ?? '',
     hostIds,
     hostNames,
     hostText: hostNames.length ? hostNames.join(', ') : '未指定主机',
     hostCount: hostIds.length,
-    timeoutSec: Number(row.msExecJobTimeout ?? 0),
-    enabled: Number(row.msExecJobEnabled ?? 0) === 1,
-    enabledText: Number(row.msExecJobEnabled ?? 0) === 1 ? '启用' : '停用',
-    remark: String(row.msExecJobRemark ?? '').trim(),
+    timeoutSec: Number(row.serverExecJobTimeout ?? 0),
+    enabled: Number(row.serverExecJobEnabled ?? 0) === 1,
+    enabledText: Number(row.serverExecJobEnabled ?? 0) === 1 ? '启用' : '停用',
+    remark: String(row.serverExecJobRemark ?? '').trim(),
     lastRun,
     lastRunText: formatDateTime(lastRun),
     nextRun,
@@ -376,8 +376,8 @@ export function runStats(logs: readonly LogRow[] | null | undefined): RunStats {
   let costSum = 0
   let maxCostMs = 0
   for (const l of list) {
-    if (String(l.msExecLogStatus ?? '').toUpperCase() === 'SUCCESS') success++
-    const cost = Number(l.msExecLogCostMs ?? 0)
+    if (String(l.serverExecLogStatus ?? '').toUpperCase() === 'SUCCESS') success++
+    const cost = Number(l.serverExecLogCostMs ?? 0)
     if (Number.isFinite(cost) && cost > 0) {
       costSum += cost
       maxCostMs = Math.max(maxCostMs, cost)

@@ -54,7 +54,7 @@ const form = reactive({
   serverHostOsType: 'LINUX',
   /** 采集方式：LOCAL 表示本机采集，免密登录校验需放行 */
   serverHostCollectMode: '',
-  msServerGroupId: null as number | null,
+  serverGroupId: null as number | null,
   tags: [] as string[],
   tagsInput: '',
   serverHostDescription: '',
@@ -99,7 +99,7 @@ watch(
     form.serverHostPort = src.serverHostPort ?? 22;
     form.serverHostOsType = src.serverHostOsType ?? 'LINUX';
     form.serverHostCollectMode = src.serverHostCollectMode ?? '';
-    form.msServerGroupId = src.msServerGroupId ?? null;
+    form.serverGroupId = src.serverGroupId ?? null;
     form.tags = parseTags(src.serverHostTags);
     form.tagsInput = '';
     form.serverHostDescription = src.serverHostDescription ?? '';
@@ -251,7 +251,7 @@ function onSubmit(): void {
     serverHostAddress: form.serverHostAddress.trim(),
     serverHostPort: Number(form.serverHostPort) || 22,
     serverHostOsType: form.serverHostOsType,
-    msServerGroupId: form.msServerGroupId,
+    serverGroupId: form.serverGroupId,
     serverHostTags: JSON.stringify(form.tags),
     serverHostDescription: form.serverHostDescription.trim(),
   } as Record<string, any>;

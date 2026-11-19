@@ -43,7 +43,7 @@ interface LegacyHostForm {
   /** Agent 版本号 */
   serverHostAgentVersion?: string | null;
   serverHostRemoteEnabled?: number;
-  msServerGroupId?: number | null;
+  serverGroupId?: number | null;
   serverHostTags?: string | null;
   serverHostDescription?: string | null;
   serverHostCode?: string | null;
@@ -220,7 +220,7 @@ const groupOptionsWithAdd = computed(() => [
 /** 分组变更：选中「+ 添加分组」时重置并跳转分组管理页 */
 function onGroupChange(v: number | null): void {
   if (v === -1) {
-    form.value.msServerGroupId = null;
+    form.value.serverGroupId = null;
     router.push("/groups");
   }
 }
@@ -600,7 +600,7 @@ function resetForm(): void {
   form.value = {
     serverHostName: "", serverHostAddress: "", serverHostPort: 22,
     serverHostOsType: "LINUX",
-    msServerGroupId: null, serverHostTags: "", serverHostDescription: "",
+    serverGroupId: null, serverHostTags: "", serverHostDescription: "",
     serverHostCode: "",
     // 采集间隔与各类开关（开关用 1/0 number，与后端一致）
     serverHostCollectInterval: 15,
@@ -756,9 +756,9 @@ watch(() => props.modelValue, (v) => {
       // 口令/私钥身份保持「默认身份（绑定）」即可（登录方式下拉默认值），不强行切换。
       const firstBound = (Array.isArray(identities) ? identities : [])
         .find(i => i.id === bindList[0]);
-      if (firstBound && String(firstBound.msServerIdentityAuthType ?? "").toUpperCase() === "NONE") {
+      if (firstBound && String(firstBound.serverIdentityAuthType ?? "").toUpperCase() === "NONE") {
         formAuthMethod.value = "NONE";
-        formAccount.value = firstBound.msServerIdentityUsername ?? "";
+        formAccount.value = firstBound.serverIdentityUsername ?? "";
       }
       // 本机：详情回填后仅在地址为空时用系统识别的网卡 IP 兜底。
       // 用户显式保存过的地址必须保留——后端 applyLocalDefaults 也是「仅空值才归一」，
@@ -888,7 +888,7 @@ watch(() => props.modelValue, (v) => {
         <!-- ─── 分组与标签 ─── -->
         <div class="form-section full">分组与标签</div>
         <ReFormItem label="分组">
-          <ReSelect v-model="form.msServerGroupId" clearable placeholder="未分组" style="width:100%" :options="groupOptionsWithAdd" @change="onGroupChange" />
+          <ReSelect v-model="form.serverGroupId" clearable placeholder="未分组" style="width:100%" :options="groupOptionsWithAdd" @change="onGroupChange" />
         </ReFormItem>
         <ReFormItem label="标签">
           <ReInput v-model="tagsText" placeholder="逗号分隔，如 prod,db,linux" style="width:100%" />

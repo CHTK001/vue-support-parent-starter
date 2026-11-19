@@ -71,7 +71,7 @@ const hostLabel = computed(() => {
 
 /** 主机下拉的取值键（主机实体的主键是 id） */
 const hostKey = (h: any): number | null => {
-  const k = h?.id ?? h?.msServerHostId ?? h?.hostId;
+  const k = h?.id ?? h?.serverHostId ?? h?.hostId;
   return k == null ? null : Number(k);
 };
 

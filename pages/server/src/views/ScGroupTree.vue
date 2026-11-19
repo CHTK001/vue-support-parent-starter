@@ -23,7 +23,7 @@ const searchKeyword = ref('');
 const formVisible = ref(false);
 const currentNode = ref<GroupNode | null>(null);
 const editingId = ref<number | null>(null);
-const form = ref({ msServerGroupName: '', msServerGroupParentId: null as number | null, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' });
+const form = ref({ serverGroupName: '', serverGroupParentId: null as number | null, serverGroupSort: 0, serverGroupRemark: '', serverGroupColor: '' });
 
 /** 预设分组色板 */
 const colorPresets = ['#6d5dfc', '#4f8ff7', '#22b895', '#f7b500', '#fb6f5b', '#f74f87', '#8a6de6', '#0ea5e9'];
@@ -66,13 +66,13 @@ function isRoot(node: GroupNode): boolean {
 /** 统计分组下的主机数 */
 function hostCount(node: GroupNode): number {
   const g = flatGroups.value.find((x: any) => x.id === node.id);
-  return g?.msServerHostCount ?? 0;
+  return g?.serverHostCount ?? 0;
 }
 
 /** 统计在线主机数 */
 function onlineHostCount(node: GroupNode): number {
   const g = flatGroups.value.find((x: any) => x.id === node.id);
-  return g?.msServerHostOnlineCount ?? 0;
+  return g?.serverHostOnlineCount ?? 0;
 }
 
 /** 获取子分组数 */
@@ -104,7 +104,7 @@ function onNodeClick(node: GroupNode) {
 
 function openCreate(parentId = 0) {
   editingId.value = null;
-  form.value = { msServerGroupName: '', msServerGroupParentId: parentId || null, msServerGroupSort: 0, msServerGroupRemark: '', msServerGroupColor: '' };
+  form.value = { serverGroupName: '', serverGroupParentId: parentId || null, serverGroupSort: 0, serverGroupRemark: '', serverGroupColor: '' };
   formVisible.value = true;
 }
 
@@ -112,24 +112,24 @@ function openEdit(node: GroupNode) {
   editingId.value = node.id;
   const anyNode = node as unknown as Record<string, unknown>;
   form.value = {
-    msServerGroupName: node.name,
-    msServerGroupParentId: node.parentId || null,
-    msServerGroupSort: node.sort,
-    msServerGroupRemark: node.remark || '',
-    msServerGroupColor: String(anyNode.msServerGroupColor ?? anyNode.color ?? ''),
+    serverGroupName: node.name,
+    serverGroupParentId: node.parentId || null,
+    serverGroupSort: node.sort,
+    serverGroupRemark: node.remark || '',
+    serverGroupColor: String(anyNode.serverGroupColor ?? anyNode.color ?? ''),
   };
   formVisible.value = true;
 }
 
   async function submitForm() {
-    if (!form.value.msServerGroupName.trim()) {
+    if (!form.value.serverGroupName.trim()) {
       message.warning('分组名称不能为空');
       return;
     }
     if (saving.value) {
       return;
     }
-    const payload = { ...form.value, msServerGroupParentId: form.value.msServerGroupParentId ?? 0 };
+    const payload = { ...form.value, serverGroupParentId: form.value.serverGroupParentId ?? 0 };
     saving.value = true;
     try {
       await saveGroup(editingId.value, payload);
@@ -295,11 +295,11 @@ async function removeGroup(node: GroupNode) {
     <ReDialog v-model="formVisible" :title="editingId ? '编辑分组' : '新建分组'" width="480" :height="380" :close-on-click-modal="false">
       <ReForm label-width="80px" label-position="right">
         <ReFormItem label="名称" required>
-          <ReInput v-model="form.msServerGroupName" placeholder="分组名称" />
+          <ReInput v-model="form.serverGroupName" placeholder="分组名称" />
         </ReFormItem>
         <ReFormItem label="父分组">
           <ReTreeSelect
-            v-model="form.msServerGroupParentId"
+            v-model="form.serverGroupParentId"
             :data="treeData"
             :props="{ children: 'children', label: 'name', value: 'id' }"
             placeholder="根分组"
@@ -309,16 +309,16 @@ async function removeGroup(node: GroupNode) {
           />
         </ReFormItem>
         <ReFormItem label="排序">
-          <ReInputNumber v-model="form.msServerGroupSort" :min="0" style="width: 100%" />
+          <ReInputNumber v-model="form.serverGroupSort" :min="0" style="width: 100%" />
         </ReFormItem>
         <ReFormItem label="颜色">
           <div class="color-field">
-            <el-color-picker v-model="form.msServerGroupColor" :predefine="colorPresets" />
-            <ReInput v-model="form.msServerGroupColor" placeholder="可选，如 #6d5dfc" clearable style="flex:1" />
+            <el-color-picker v-model="form.serverGroupColor" :predefine="colorPresets" />
+            <ReInput v-model="form.serverGroupColor" placeholder="可选，如 #6d5dfc" clearable style="flex:1" />
           </div>
         </ReFormItem>
         <ReFormItem label="备注">
-          <ReInput v-model="form.msServerGroupRemark" type="textarea" :rows="2" />
+          <ReInput v-model="form.serverGroupRemark" type="textarea" :rows="2" />
         </ReFormItem>
       </ReForm>
       <template #footer>
@@ -338,7 +338,7 @@ async function removeGroup(node: GroupNode) {
    --radius-* / --shadow-* / --status-* / --ease-out）。
 
    硬规则：本页 ReTree（节点标签插槽 + node-click）、ReTreeSelect（v-model 绑
-   form.msServerGroupParentId）、ReDialog 表单与 el-color-picker 均与 script 的
+   form.serverGroupParentId）、ReDialog 表单与 el-color-picker 均与 script 的
    ref 直连，模板改动会破坏绑定，因此模板与脚本原样保留，只在本段换令牌。 */
 .group-tree {
   display: flex;

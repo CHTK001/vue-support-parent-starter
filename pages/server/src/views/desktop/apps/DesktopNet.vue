@@ -145,12 +145,12 @@ async function run(): Promise<void> {
   try {
     const logs = (await runCommand([props.hostId], cmd, 40)) ?? [];
     const log = logs[0] ?? {};
-    const out = String(log.msExecLogOutput ?? "");
-    const err = String(log.msExecLogError ?? "");
+    const out = String(log.serverExecLogOutput ?? "");
+    const err = String(log.serverExecLogError ?? "");
     output.value = out.length > MAX_OUTPUT ? `${out.slice(0, MAX_OUTPUT)}\n…（输出过长，已截断）` : out || err;
     meta.value = {
-      exitCode: log.msExecLogExitCode ?? null,
-      costMs: log.msExecLogCostMs ?? Date.now() - started,
+      exitCode: log.serverExecLogExitCode ?? null,
+      costMs: log.serverExecLogCostMs ?? Date.now() - started,
     };
     if (!output.value) output.value = "（无输出）";
   } catch (e) {

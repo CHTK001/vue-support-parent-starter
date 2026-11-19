@@ -45,7 +45,7 @@ const SoftwareTab = defineAsyncComponent(() => import("../components/lab/ScSoftw
 // （Linux：journalctl / /var/log；Windows：wevtutil），不是 @pages/system 里平台软件的
 // SysLogManage / UserLogManage。命令经主机通道下发，页签打开即带 hostId。
 const HostLogsTab = defineAsyncComponent(() => import("../components/lab/ScHostLogs.vue"));
-// 主机告警策略：从主机右键菜单打开，策略按 ms_server_host_id 归属本机
+// 主机告警策略：从主机右键菜单打开，策略按 server_host_id 归属本机
 const HostAlarmPolicyTab = defineAsyncComponent(() => import("../components/lab/ScHostAlarmPolicy.vue"));
 
 /**
@@ -136,11 +136,11 @@ export interface Host {
   serverHostAgentError?: string | null;
   serverHostRemoteEnabled: number;
   serverHostOnlineTime?: string;
-  /** 分组（后端字段 msmsServerGroupId） */
-  msServerGroupId?: number | null;
-  /** 标签（后端字段 msServerHostTags，逗号分隔） */
+  /** 分组（后端字段 msserverGroupId） */
+  serverGroupId?: number | null;
+  /** 标签（后端字段 serverHostTags，逗号分隔） */
   serverHostTags?: string | null;
-  /** 描述/备注（后端字段 msServerHostDescription） */
+  /** 描述/备注（后端字段 serverHostDescription） */
   serverHostDescription?: string | null;
   /** 登录账号（瞬态，新增表单直接提交，不落库） */
   serverHostAccount?: string | null;
@@ -160,8 +160,8 @@ export interface Host {
   serverHostVncPassword?: string | null;
 }
 
-export interface Group { id: number; msServerGroupName: string; msServerGroupColor?: string | null; }
-interface Identity { id: number; msServerIdentityName: string; msServerIdentityAuthType: string; msServerIdentityUsername: string; msServerIdentityRemark?: string; }
+export interface Group { id: number; serverGroupName: string; serverGroupColor?: string | null; }
+interface Identity { id: number; serverIdentityName: string; serverIdentityAuthType: string; serverIdentityUsername: string; serverIdentityRemark?: string; }
 
 const router = useRouter();
 const route = useRoute();
@@ -310,7 +310,7 @@ function onHostDragStart(e: DragEvent, h: Host): void {
 function onHostDragOver(e: DragEvent, h: Host, gid: number): void {
   if (dragHostId.value == null || dragHostId.value === h.id) return;
   const from = hosts.value.find(x => x.id === dragHostId.value);
-  if (!from || (from.msServerGroupId ?? 0) !== gid) return;
+  if (!from || (from.serverGroupId ?? 0) !== gid) return;
   e.preventDefault();
   if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
   dragOverHostId.value = h.id;
@@ -362,7 +362,7 @@ function onHostDragEnd(): void {
  */
 function reorderHosts(gid: number, fromId: number, toId: number): void {
   const visible = filtered.value
-    .filter(x => (x.msServerGroupId ?? 0) === gid)
+    .filter(x => (x.serverGroupId ?? 0) === gid)
     .map(x => x.id);
   const from = visible.indexOf(fromId);
   const to = visible.indexOf(toId);
@@ -496,10 +496,10 @@ function identityAuthSuffix(type: string | null | undefined): string {
 
 /** 弹窗内 ReSelect 选项（computed 缓存，避免每次渲染重算） */
 const identityOptions = computed(() => identities.value.map(i => ({
-  label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）${identityAuthSuffix(i.msServerIdentityAuthType)}`,
+  label: `${i.serverIdentityName}（${i.serverIdentityUsername}）${identityAuthSuffix(i.serverIdentityAuthType)}`,
   value: i.id,
 })));
-const groupOptions = computed(() => groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })));
+const groupOptions = computed(() => groups.value.map(g => ({ label: g.serverGroupName, value: g.id })));
 
 /**
  * 逗号分隔标签拆分为数组
@@ -547,7 +547,7 @@ async function scanHostPorts(h: Host): Promise<void> {
  */
 function groupName(id?: number | null): string {
   if (!id) return "未分组";
-  return groups.value.find(g => g.id === id)?.msServerGroupName ?? "组#" + id;
+  return groups.value.find(g => g.id === id)?.serverGroupName ?? "组#" + id;
 }
 
 // ---- 实时指标（socket 推送，不轮询；底部状态条与页签状态点共用这份数据） ----
@@ -630,7 +630,7 @@ function syncRtFromHosts(): void {
  * @param id 分组 id
  */
 function groupDotStyle(id?: number | null): Record<string, string> {
-  const c = (id ? groups.value.find(g => g.id === id)?.msServerGroupColor : "") ?? "";
+  const c = (id ? groups.value.find(g => g.id === id)?.serverGroupColor : "") ?? "";
   return /^#[0-9a-fA-F]{6}$/.test(c) ? { background: c } : {};
 }
 
@@ -750,13 +750,13 @@ interface HostGroupBucket {
 const groupedHosts = computed<HostGroupBucket[]>(() => {
   const map = new Map<number, HostGroupBucket>();
   for (const h of filtered.value) {
-    const gid = h.msServerGroupId ?? 0;
+    const gid = h.serverGroupId ?? 0;
     if (!map.has(gid)) {
       const g = groups.value.find(x => x.id === gid);
       map.set(gid, {
         id: gid,
-        name: gid === 0 ? "未分组" : (g?.msServerGroupName ?? `组#${gid}`),
-        color: g?.msServerGroupColor ?? null,
+        name: gid === 0 ? "未分组" : (g?.serverGroupName ?? `组#${gid}`),
+        color: g?.serverGroupColor ?? null,
         hosts: [],
         online: 0,
       });
@@ -2143,7 +2143,7 @@ const statusOverviewRows = computed<MetricRow[]>(() => {
     { label: "公网 IP", value: dash(h.serverHostPublicIp), mono: true },
     { label: "协议", value: protocolOf(h).toUpperCase() },
     { label: "采集方式", value: collectModeLabel(h.serverHostCollectMode) },
-    { label: "分组", value: groupName(h.msServerGroupId) },
+    { label: "分组", value: groupName(h.serverGroupId) },
     { label: "标签", value: dash(splitTags(h.serverHostTags).join(" / ")) },
     { label: "最近采集", value: dash(h.serverHostLastCollectTime) },
     { label: "已扫描端口", value: parsePorts(h.serverHostPorts).length ? `${parsePorts(h.serverHostPorts).length} 个` : "未扫描", tip: portTip(h) },
@@ -3335,13 +3335,13 @@ function onGlobalKeydown(e: KeyboardEvent): void {
         <p class="muted" style="margin-top:0">{{ connectTarget.serverHostAddress }}:{{ remotePortOf(connectTarget) }} · {{ protocolOf(connectTarget).toUpperCase() }}</p>
         <div class="muted" style="margin-bottom:8px">登录身份（账号密码 / 私钥）</div>
         <ReSelect v-model="connectIdentityId" placeholder="使用默认凭据" clearable style="width:100%" :options="[
-          ...hostBoundIdentities.map(b => ({ label: `${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}（${identities.find(i => i.id === b)?.msServerIdentityUsername ?? ''}）`, value: b, group: '已绑定' })),
-          ...identities.filter(x => !hostBoundIdentities.includes(x.id)).map(i => ({ label: `${i.msServerIdentityName}（${i.msServerIdentityUsername}）`, value: i.id, group: '全部身份' })),
+          ...hostBoundIdentities.map(b => ({ label: `${identities.find(i => i.id === b)?.serverIdentityName ?? ''}（${identities.find(i => i.id === b)?.serverIdentityUsername ?? ''}）`, value: b, group: '已绑定' })),
+          ...identities.filter(x => !hostBoundIdentities.includes(x.id)).map(i => ({ label: `${i.serverIdentityName}（${i.serverIdentityUsername}）`, value: i.id, group: '全部身份' })),
         ]" />
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
           <ReButton icon="Key" :show-text="true" plain title="统一在「主机账号」维护" @click="router.push('/host-accounts')">主机账号</ReButton>
           <template v-for="b in hostBoundIdentities" :key="b">
-            <ReButton icon="Unlink" :show-text="true" type="warning" plain :title="`解绑 ${identities.find(i => i.id === b)?.msServerIdentityName ?? ''}`" @click="toggleBind(connectTarget!.id, b, false)">解绑 {{ identities.find(i => i.id === b)?.msServerIdentityName }}</ReButton>
+            <ReButton icon="Unlink" :show-text="true" type="warning" plain :title="`解绑 ${identities.find(i => i.id === b)?.serverIdentityName ?? ''}`" @click="toggleBind(connectTarget!.id, b, false)">解绑 {{ identities.find(i => i.id === b)?.serverIdentityName }}</ReButton>
           </template>
         </div>
       </template>

@@ -31,7 +31,7 @@ interface AlarmPolicy {
   msMonitorAlarmPolicyEnabled: number;
   msMonitorAlarmPolicyRemark: string;
   /** 归属主机 id（空 = 全局策略） */
-  msServerHostId?: number | null;
+  serverHostId?: number | null;
   /** 更新时置为全局策略（后端只读入参） */
   globalScope?: boolean;
 }
@@ -112,14 +112,14 @@ async function fetchAll(): Promise<void> {
   }
 }
 
-/** 本主机专属策略（msServerHostId === 当前主机） */
+/** 本主机专属策略（serverHostId === 当前主机） */
 const hostPolicies = computed(() =>
-  policies.value.filter(p => Number(p.msServerHostId ?? 0) === Number(props.hostId)),
+  policies.value.filter(p => Number(p.serverHostId ?? 0) === Number(props.hostId)),
 );
 
-/** 全局策略（msServerHostId 为空，对所有主机生效） */
+/** 全局策略（serverHostId 为空，对所有主机生效） */
 const globalPolicies = computed(() =>
-  policies.value.filter(p => p.msServerHostId == null || Number(p.msServerHostId) === 0),
+  policies.value.filter(p => p.serverHostId == null || Number(p.serverHostId) === 0),
 );
 
 /** 当前主机匹配的监控项 */
@@ -164,7 +164,7 @@ const policyVisible = ref(false);
 const policySaving = ref(false);
 const policyForm = ref<Partial<AlarmPolicy>>({
   msMonitorAlarmPolicyName: "", msMonitorAlarmPolicyEnabled: 1, msMonitorAlarmPolicyRemark: "",
-  msServerHostId: props.hostId,
+  serverHostId: props.hostId,
 });
 /** 编辑时是否勾选「全局策略」（作用于所有主机） */
 const policyGlobal = ref(false);
@@ -174,14 +174,14 @@ function openPolicyAdd(): void {
     msMonitorAlarmPolicyName: "",
     msMonitorAlarmPolicyEnabled: 1,
     msMonitorAlarmPolicyRemark: "",
-    msServerHostId: props.hostId,
+    serverHostId: props.hostId,
   };
   policyGlobal.value = false;
   policyVisible.value = true;
 }
 function openPolicyEdit(p: AlarmPolicy): void {
   policyForm.value = { ...p };
-  policyGlobal.value = p.msServerHostId == null || Number(p.msServerHostId) === 0;
+  policyGlobal.value = p.serverHostId == null || Number(p.serverHostId) === 0;
   policyVisible.value = true;
 }
 async function submitPolicy(): Promise<void> {
@@ -194,7 +194,7 @@ async function submitPolicy(): Promise<void> {
     // 归属主机由面板决定：不勾全局就归本机，勾了就把归属清空（globalScope 是后端认可的清空开关）
     const payload: Record<string, unknown> = {
       ...policyForm.value,
-      msServerHostId: policyGlobal.value ? null : props.hostId,
+      serverHostId: policyGlobal.value ? null : props.hostId,
       globalScope: policyGlobal.value,
     };
     await http().post(`${API}/alarm/policy`).data(payload).then(r => unwrapResult(r));
@@ -406,8 +406,8 @@ onMounted(fetchAll);
                 <b>{{ p.msMonitorAlarmPolicyName }}</b>
                 <span class="lb-dim" style="font-size: 10.5px">{{ p.msMonitorAlarmPolicyRemark || "—" }}</span>
               </div>
-              <span class="lb-pill" :class="p.msServerHostId == null ? 'lb-info' : 'lb-ok'">
-                {{ p.msServerHostId == null ? "全局" : "本机" }}
+              <span class="lb-pill" :class="p.serverHostId == null ? 'lb-info' : 'lb-ok'">
+                {{ p.serverHostId == null ? "全局" : "本机" }}
               </span>
               <span class="lb-pill" :class="p.msMonitorAlarmPolicyEnabled === 1 ? 'lb-ok' : 'lb-info'">
                 {{ policyStatus(p.msMonitorAlarmPolicyEnabled) }}
@@ -539,7 +539,7 @@ onMounted(fetchAll);
           <span>所属策略</span>
           <select v-model="ruleForm.msMonitorAlarmRulePolicyId" class="sw-input">
             <option v-for="p in selectablePolicies" :key="p.id" :value="p.id">
-              {{ p.msMonitorAlarmPolicyName }}{{ p.msServerHostId == null ? "（全局）" : "" }}
+              {{ p.msMonitorAlarmPolicyName }}{{ p.serverHostId == null ? "（全局）" : "" }}
             </option>
           </select>
         </label>

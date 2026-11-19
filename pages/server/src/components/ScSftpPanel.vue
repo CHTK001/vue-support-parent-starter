@@ -50,7 +50,7 @@ const editorTruncated = ref(false);
 const editorSaving = ref(false);
 
 /** 书签列表 */
-const bookmarks = ref<Array<{ id: number; msTerminalBookmarkName: string; msTerminalBookmarkPath: string }>>([]);
+const bookmarks = ref<Array<{ id: number; serverTerminalBookmarkName: string; serverTerminalBookmarkPath: string }>>([]);
 
 // 主机切换时重新加载
 watch(
@@ -266,9 +266,9 @@ function formatSize(bytes?: number): string {
 async function addBookmark(): Promise<void> {
   if (!props.hostId) return;
   await createBookmark({
-    msTerminalBookmarkHostId: props.hostId,
-    msTerminalBookmarkName: currentPath.value,
-    msTerminalBookmarkPath: currentPath.value,
+    serverTerminalBookmarkHostId: props.hostId,
+    serverTerminalBookmarkName: currentPath.value,
+    serverTerminalBookmarkPath: currentPath.value,
   });
   loadBookmarks();
 }
@@ -313,10 +313,10 @@ async function removeBookmark(id: number): Promise<void> {
         closable
 
         class="bookmark-tag"
-        @click="go(bookmark.msTerminalBookmarkPath)"
+        @click="go(bookmark.serverTerminalBookmarkPath)"
         @close="removeBookmark(bookmark.id)"
       >
-        {{ bookmark.msTerminalBookmarkName }}
+        {{ bookmark.serverTerminalBookmarkName }}
       </ReTag>
     </div>
 

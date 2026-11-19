@@ -341,18 +341,18 @@ async function load(): Promise<void> {
     const list = await runCommand([props.hostId], command.value, 30);
     if (mine !== seq) return;
     const row = Array.isArray(list) && list.length ? list[0] : null;
-    const text = String(row?.msExecLogOutput ?? "").trim();
-    const cost = Number(row?.msExecLogCostMs ?? 0);
+    const text = String(row?.serverExecLogOutput ?? "").trim();
+    const cost = Number(row?.serverExecLogCostMs ?? 0);
     costMs.value = Number.isFinite(cost) && cost > 0 ? Math.round(cost) : null;
     if (!row) {
       output.value = "";
       error.value = "本次执行没有返回结果：请确认主机在线，且已绑定可用的登录身份。";
       return;
     }
-    const status = String(row.msExecLogStatus ?? "").toUpperCase();
+    const status = String(row.serverExecLogStatus ?? "").toUpperCase();
     if (status !== "SUCCESS") {
       output.value = text;
-      error.value = explain(String(row.msExecLogError ?? "").trim() || "读取日志失败");
+      error.value = explain(String(row.serverExecLogError ?? "").trim() || "读取日志失败");
       return;
     }
     if (!text) {

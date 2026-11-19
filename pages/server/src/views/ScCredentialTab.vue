@@ -7,22 +7,22 @@ import { hostAssetsSse } from '../services/realtime';
 /** SSH 密钥（脱敏返回：无私钥/口令字段） */
 interface KeyRow {
   id: number;
-  msServerKeyName: string;
-  msServerKeyType?: string;
-  msServerKeyPublicKey?: string;
+  serverKeyName: string;
+  serverKeyType?: string;
+  serverKeyPublicKey?: string;
 }
 
 /** 登录身份（脱敏返回） */
 interface IdentityRow {
   id: number;
-  msServerIdentityName: string;
-  msServerIdentityAuthType: string;
-  msServerIdentityUsername: string;
-  msServerIdentityKeyId?: number | null;
-  msServerIdentityEmailSource?: string | null;
-  msServerIdentityProvider?: string | null;
-  msServerIdentityImapHost?: string | null;
-  msServerIdentityImapPort?: number | null;
+  serverIdentityName: string;
+  serverIdentityAuthType: string;
+  serverIdentityUsername: string;
+  serverIdentityKeyId?: number | null;
+  serverIdentityEmailSource?: string | null;
+  serverIdentityProvider?: string | null;
+  serverIdentityImapHost?: string | null;
+  serverIdentityImapPort?: number | null;
 }
 
 /** 密钥与身份数据 */
@@ -32,21 +32,21 @@ const identities = ref<IdentityRow[]>([]);
 /** 密钥表单对话框 */
 const keyFormVisible = ref(false);
 const editingKeyId = ref<number | null>(null);
-const keyForm = ref({ msServerKeyName: '', msServerKeyType: 'RSA', msServerKeyPublicKey: '', msServerKeyPrivateKey: '', msServerKeyPassword: '' });
+const keyForm = ref({ serverKeyName: '', serverKeyType: 'RSA', serverKeyPublicKey: '', serverKeyPrivateKey: '', serverKeyPassword: '' });
 
 /** 身份表单对话框 */
 const identityFormVisible = ref(false);
 const editingIdentityId = ref<number | null>(null);
 const identityForm = ref({
-  msServerIdentityName: '',
-  msServerIdentityAuthType: 'PASSWORD',
-  msServerIdentityUsername: 'root',
-  msServerIdentityPassword: '',
-  msServerIdentityKeyId: null as number | null,
-  msServerIdentityEmailSource: 'IMAP',
-  msServerIdentityProvider: '',
-  msServerIdentityImapHost: '',
-  msServerIdentityImapPort: null as number | null,
+  serverIdentityName: '',
+  serverIdentityAuthType: 'PASSWORD',
+  serverIdentityUsername: 'root',
+  serverIdentityPassword: '',
+  serverIdentityKeyId: null as number | null,
+  serverIdentityEmailSource: 'IMAP',
+  serverIdentityProvider: '',
+  serverIdentityImapHost: '',
+  serverIdentityImapPort: null as number | null,
 });
 
 /** 生成密钥对话框 */
@@ -108,15 +108,15 @@ const tempEmailLoading = ref(false);
 
 /** 认证类型变化时重置邮箱来源 */
 function onAuthTypeChange(): void {
-  if (identityForm.value.msServerIdentityAuthType === 'MAILBOX') {
-    if (!identityForm.value.msServerIdentityEmailSource) {
-      identityForm.value.msServerIdentityEmailSource = 'IMAP';
+  if (identityForm.value.serverIdentityAuthType === 'MAILBOX') {
+    if (!identityForm.value.serverIdentityEmailSource) {
+      identityForm.value.serverIdentityEmailSource = 'IMAP';
     }
   } else {
-    identityForm.value.msServerIdentityEmailSource = 'IMAP';
-    identityForm.value.msServerIdentityProvider = '';
-    identityForm.value.msServerIdentityImapHost = '';
-    identityForm.value.msServerIdentityImapPort = null;
+    identityForm.value.serverIdentityEmailSource = 'IMAP';
+    identityForm.value.serverIdentityProvider = '';
+    identityForm.value.serverIdentityImapHost = '';
+    identityForm.value.serverIdentityImapPort = null;
   }
 }
 
@@ -124,7 +124,7 @@ function onAuthTypeChange(): void {
  * 创建临时邮箱地址(调后端 API → 服务商生成)
  */
 async function handleCreateTempEmail(): Promise<void> {
-  const provider = identityForm.value.msServerIdentityProvider;
+  const provider = identityForm.value.serverIdentityProvider;
   if (!provider) {
     message.warning('请先选择临时邮箱服务商');
     return;
@@ -132,7 +132,7 @@ async function handleCreateTempEmail(): Promise<void> {
   tempEmailLoading.value = true;
   try {
     const result = await createTempEmail(provider);
-    identityForm.value.msServerIdentityUsername = result.email || '';
+    identityForm.value.serverIdentityUsername = result.email || '';
     message.success('临时邮箱创建成功: ' + (result.email || ''));
   } catch (e) {
     message.error((e as Error).message);
@@ -204,7 +204,7 @@ async function refresh(): Promise<void> {
     const [keyList, identityList] = await Promise.all([getKeys(), getIdentities()]);
     keys.value = keyList ?? [];
     identities.value = identityList ?? [];
-    keyRefOptions.value = (keyList ?? []).map(k => ({ label: k.msServerKeyName, value: k.id }));
+    keyRefOptions.value = (keyList ?? []).map(k => ({ label: k.serverKeyName, value: k.id }));
   } catch (e) {
     message.error((e as Error).message);
   }
@@ -218,12 +218,12 @@ async function refresh(): Promise<void> {
 function openKeyForm(row?: KeyRow): void {
   editingKeyId.value = row?.id ?? null;
   keyForm.value = {
-    msServerKeyName: row?.msServerKeyName ?? '',
-    msServerKeyType: row?.msServerKeyType ?? 'RSA',
-    msServerKeyPublicKey: row?.msServerKeyPublicKey ?? '',
+    serverKeyName: row?.serverKeyName ?? '',
+    serverKeyType: row?.serverKeyType ?? 'RSA',
+    serverKeyPublicKey: row?.serverKeyPublicKey ?? '',
     // 编辑时私钥/口令留空表示"保持不变"
-    msServerKeyPrivateKey: '',
-    msServerKeyPassword: '',
+    serverKeyPrivateKey: '',
+    serverKeyPassword: '',
   };
   keyFormVisible.value = true;
 }
@@ -232,7 +232,7 @@ function openKeyForm(row?: KeyRow): void {
  * 提交密钥表单
  */
 async function submitKey(): Promise<void> {
-  if (!keyForm.value.msServerKeyName.trim()) {
+  if (!keyForm.value.serverKeyName.trim()) {
     message.warning('名称不能为空');
     return;
   }
@@ -252,7 +252,7 @@ async function submitKey(): Promise<void> {
  * @param row 密钥
  */
 async function deleteKey(row: KeyRow): Promise<void> {
-  await message.confirm(`确认删除密钥 ${row.msServerKeyName}?`, '删除');
+  await message.confirm(`确认删除密钥 ${row.serverKeyName}?`, '删除');
   await delKey(row.id);
   message.success('已删除');
   refresh();
@@ -266,15 +266,15 @@ async function deleteKey(row: KeyRow): Promise<void> {
 function openIdentityForm(row?: IdentityRow): void {
   editingIdentityId.value = row?.id ?? null;
   identityForm.value = {
-    msServerIdentityName: row?.msServerIdentityName ?? '',
-    msServerIdentityAuthType: row?.msServerIdentityAuthType ?? 'PASSWORD',
-    msServerIdentityUsername: row?.msServerIdentityUsername ?? 'root',
-    msServerIdentityPassword: '',
-    msServerIdentityKeyId: row?.msServerIdentityKeyId ?? null,
-    msServerIdentityEmailSource: row?.msServerIdentityEmailSource ?? 'IMAP',
-    msServerIdentityProvider: row?.msServerIdentityProvider ?? '',
-    msServerIdentityImapHost: row?.msServerIdentityImapHost ?? '',
-    msServerIdentityImapPort: row?.msServerIdentityImapPort ?? null,
+    serverIdentityName: row?.serverIdentityName ?? '',
+    serverIdentityAuthType: row?.serverIdentityAuthType ?? 'PASSWORD',
+    serverIdentityUsername: row?.serverIdentityUsername ?? 'root',
+    serverIdentityPassword: '',
+    serverIdentityKeyId: row?.serverIdentityKeyId ?? null,
+    serverIdentityEmailSource: row?.serverIdentityEmailSource ?? 'IMAP',
+    serverIdentityProvider: row?.serverIdentityProvider ?? '',
+    serverIdentityImapHost: row?.serverIdentityImapHost ?? '',
+    serverIdentityImapPort: row?.serverIdentityImapPort ?? null,
   };
   identityFormVisible.value = true;
 }
@@ -283,7 +283,7 @@ function openIdentityForm(row?: IdentityRow): void {
  * 提交身份表单
  */
 async function submitIdentity(): Promise<void> {
-  if (!identityForm.value.msServerIdentityName.trim()) {
+  if (!identityForm.value.serverIdentityName.trim()) {
     message.warning('名称不能为空');
     return;
   }
@@ -303,7 +303,7 @@ async function submitIdentity(): Promise<void> {
  * @param row 身份
  */
 async function deleteIdentity(row: IdentityRow): Promise<void> {
-  await message.confirm(`确认删除身份 ${row.msServerIdentityName}?`, '删除');
+  await message.confirm(`确认删除身份 ${row.serverIdentityName}?`, '删除');
   await delIdentity(row.id);
   message.success('已删除');
   refresh();
@@ -447,19 +447,19 @@ async function viewMessage(email: any): Promise<void> {
             </template>
           </ReSectionHead>
           <ReTable :data="keys" border empty-text="暂无密钥，点击右上角「新增密钥」或「生成密钥」" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
-            <ReTableColumn prop="msServerKeyName" label="名称" min-width="120" />
-            <ReTableColumn prop="msServerKeyType" label="类型" width="90">
+            <ReTableColumn prop="serverKeyName" label="名称" min-width="120" />
+            <ReTableColumn prop="serverKeyType" label="类型" width="90">
               <template #default="{ row }">
-                <ReTag type="info">{{ row.msServerKeyType || '-' }}</ReTag>
+                <ReTag type="info">{{ row.serverKeyType || '-' }}</ReTag>
               </template>
             </ReTableColumn>
             <ReTableColumn label="操作" width="190">
               <template #default="{ row }">
                 <ReButton
-                  v-if="row.msServerKeyPublicKey"
+                  v-if="row.serverKeyPublicKey"
                   link
                   icon="DocumentCopy"
-                  @click="copyToClipboard(row.msServerKeyPublicKey, '公钥')"
+                  @click="copyToClipboard(row.serverKeyPublicKey, '公钥')"
                 >复制公钥</ReButton>
                 <ReButton text @click="openKeyForm(row)">编辑</ReButton>
                 <ReButton text type="danger" @click="deleteKey(row)">删除</ReButton>
@@ -478,25 +478,25 @@ async function viewMessage(email: any): Promise<void> {
             </template>
           </ReSectionHead>
           <ReTable :data="identities" border empty-text="暂无身份，点击右上角「新增身份」创建" :config="{ pagination: { enable: false }, toolbar: { enable: false } }">
-            <ReTableColumn prop="msServerIdentityName" label="名称" min-width="110" />
-            <ReTableColumn prop="msServerIdentityUsername" label="用户名" width="100" />
-            <ReTableColumn prop="msServerIdentityAuthType" label="认证" width="120">
+            <ReTableColumn prop="serverIdentityName" label="名称" min-width="110" />
+            <ReTableColumn prop="serverIdentityUsername" label="用户名" width="100" />
+            <ReTableColumn prop="serverIdentityAuthType" label="认证" width="120">
               <template #default="{ row }">
-                <ReTag :type="authTypeTagType(row.msServerIdentityAuthType)">
-                  {{ authTypeLabel(row.msServerIdentityAuthType) }}
+                <ReTag :type="authTypeTagType(row.serverIdentityAuthType)">
+                  {{ authTypeLabel(row.serverIdentityAuthType) }}
                 </ReTag>
-                <span v-if="row.msServerIdentityAuthType && !authTypeOptions.some(o => o.value === row.msServerIdentityAuthType)" class="type-raw">{{ row.msServerIdentityAuthType }}</span>
+                <span v-if="row.serverIdentityAuthType && !authTypeOptions.some(o => o.value === row.serverIdentityAuthType)" class="type-raw">{{ row.serverIdentityAuthType }}</span>
               </template>
             </ReTableColumn>
             <ReTableColumn label="操作" width="240">
               <template #default="{ row }">
                 <ReButton
-                  v-if="row.msServerIdentityUsername"
+                  v-if="row.serverIdentityUsername"
                   link
                   icon="User"
-                  @click="copyToClipboard(row.msServerIdentityUsername, '用户名')"
+                  @click="copyToClipboard(row.serverIdentityUsername, '用户名')"
                 >复制用户</ReButton>
-                <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" text type="primary" @click="openMailbox(row)">邮件箱</ReButton>
+                <ReButton v-if="row.serverIdentityAuthType === 'MAILBOX'" text type="primary" @click="openMailbox(row)">邮件箱</ReButton>
                 <ReButton text @click="openIdentityForm(row)">编辑</ReButton>
                 <ReButton text type="danger" @click="deleteIdentity(row)">删除</ReButton>
               </template>
@@ -510,24 +510,24 @@ async function viewMessage(email: any): Promise<void> {
     <ReDialog v-model="keyFormVisible" :title="editingKeyId ? '编辑密钥' : '新增密钥'" width="560" :height="420" confirm-text="保存" cancel-text="取消" :footer-hidden="false" @confirm="submitKey" @cancel="keyFormVisible = false">
       <ReForm label-width="80px" label-position="right">
         <ReFormItem label="名称" required>
-          <ReInput v-model="keyForm.msServerKeyName" placeholder="如 ubuntu-prod-key" />
+          <ReInput v-model="keyForm.serverKeyName" placeholder="如 ubuntu-prod-key" />
         </ReFormItem>
         <ReFormItem label="类型">
-          <ReSelect v-model="keyForm.msServerKeyType" :data="keyTypeOptions" style="width: 100%" />
+          <ReSelect v-model="keyForm.serverKeyType" :data="keyTypeOptions" style="width: 100%" />
         </ReFormItem>
         <ReFormItem label="公钥">
-          <ReInput v-model="keyForm.msServerKeyPublicKey" type="textarea" :rows="3" placeholder="ssh-rsa AAAA..." />
+          <ReInput v-model="keyForm.serverKeyPublicKey" type="textarea" :rows="3" placeholder="ssh-rsa AAAA..." />
         </ReFormItem>
         <ReFormItem label="私钥">
           <ReInput
-            v-model="keyForm.msServerKeyPrivateKey"
+            v-model="keyForm.serverKeyPrivateKey"
             type="textarea"
             :rows="5"
             :placeholder="editingKeyId ? '留空保持不变；粘贴 PEM 私钥内容以更新' : '-----BEGIN OPENSSH PRIVATE KEY-----'"
           />
         </ReFormItem>
         <ReFormItem label="口令">
-          <ReInput v-model="keyForm.msServerKeyPassword" type="password" show-password placeholder="私钥口令，可空" />
+          <ReInput v-model="keyForm.serverKeyPassword" type="password" show-password placeholder="私钥口令，可空" />
         </ReFormItem>
       </ReForm>
     </ReDialog>
@@ -536,53 +536,53 @@ async function viewMessage(email: any): Promise<void> {
     <ReDialog v-model="identityFormVisible" :title="editingIdentityId ? '编辑身份' : '新增身份'" width="520" :height="380" confirm-text="保存" cancel-text="取消" :footer-hidden="false" @confirm="submitIdentity" @cancel="identityFormVisible = false">
       <ReForm label-width="80px" label-position="right">
         <ReFormItem label="名称" required>
-          <ReInput v-model="identityForm.msServerIdentityName" placeholder="如 root@prod" />
+          <ReInput v-model="identityForm.serverIdentityName" placeholder="如 root@prod" />
         </ReFormItem>
         <ReFormItem label="认证类型">
-          <ReSelect v-model="identityForm.msServerIdentityAuthType" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" @change="onAuthTypeChange()" />
+          <ReSelect v-model="identityForm.serverIdentityAuthType" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" @change="onAuthTypeChange()" />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX'" label="邮箱来源">
-          <ReRadioGroup v-model="identityForm.msServerIdentityEmailSource" button capsule>
+        <ReFormItem v-if="identityForm.serverIdentityAuthType === 'MAILBOX'" label="邮箱来源">
+          <ReRadioGroup v-model="identityForm.serverIdentityEmailSource" button capsule>
             <ReRadioButton value="IMAP">真实邮箱(IMAP)</ReRadioButton>
             <ReRadioButton value="TEMP">临时邮箱(API)</ReRadioButton>
           </ReRadioGroup>
         </ReFormItem>
         <ReFormItem label="用户名">
-          <div v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource === 'TEMP'" class="temp-email-row">
-            <ReInput v-model="identityForm.msServerIdentityUsername" placeholder="点击右侧按钮创建临时邮箱地址" />
+          <div v-if="identityForm.serverIdentityAuthType === 'MAILBOX' && identityForm.serverIdentityEmailSource === 'TEMP'" class="temp-email-row">
+            <ReInput v-model="identityForm.serverIdentityUsername" placeholder="点击右侧按钮创建临时邮箱地址" />
             <ReButton type="primary" :loading="tempEmailLoading" @click="handleCreateTempEmail()">创建临时邮箱</ReButton>
           </div>
-          <ReInput v-else v-model="identityForm.msServerIdentityUsername" />
+          <ReInput v-else v-model="identityForm.serverIdentityUsername" />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource === 'TEMP'" label="服务商">
-          <ReSelect v-model="identityForm.msServerIdentityProvider" :data="tempProviderOptions" style="width:100%" placeholder="临时邮箱服务商" />
+        <ReFormItem v-if="identityForm.serverIdentityAuthType === 'MAILBOX' && identityForm.serverIdentityEmailSource === 'TEMP'" label="服务商">
+          <ReSelect v-model="identityForm.serverIdentityProvider" :data="tempProviderOptions" style="width:100%" placeholder="临时邮箱服务商" />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'PASSWORD'" label="密码">
+        <ReFormItem v-if="identityForm.serverIdentityAuthType === 'PASSWORD'" label="密码">
           <ReInput
-            v-model="identityForm.msServerIdentityPassword"
+            v-model="identityForm.serverIdentityPassword"
             type="password"
             show-password
             :placeholder="editingIdentityId ? '留空保持不变' : '登录密码'"
           />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource !== 'TEMP'" label="授权码">
+        <ReFormItem v-if="identityForm.serverIdentityAuthType === 'MAILBOX' && identityForm.serverIdentityEmailSource !== 'TEMP'" label="授权码">
           <ReInput
-            v-model="identityForm.msServerIdentityPassword"
+            v-model="identityForm.serverIdentityPassword"
             type="password"
             show-password
             placeholder="邮箱 IMAP 授权码（非登录密码）"
           />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource !== 'TEMP'" label="IMAP 服务器">
-          <ReInput v-model="identityForm.msServerIdentityImapHost" placeholder="留空则按邮箱域名自动推断（如 imap.qq.com）" />
+        <ReFormItem v-if="identityForm.serverIdentityAuthType === 'MAILBOX' && identityForm.serverIdentityEmailSource !== 'TEMP'" label="IMAP 服务器">
+          <ReInput v-model="identityForm.serverIdentityImapHost" placeholder="留空则按邮箱域名自动推断（如 imap.qq.com）" />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'MAILBOX' && identityForm.msServerIdentityEmailSource !== 'TEMP'" label="IMAP 端口">
-          <ReInput v-model.number="identityForm.msServerIdentityImapPort" placeholder="默认 993" />
+        <ReFormItem v-if="identityForm.serverIdentityAuthType === 'MAILBOX' && identityForm.serverIdentityEmailSource !== 'TEMP'" label="IMAP 端口">
+          <ReInput v-model.number="identityForm.serverIdentityImapPort" placeholder="默认 993" />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType !== 'MAILBOX' && identityForm.msServerIdentityAuthType !== 'PASSWORD' && identityForm.msServerIdentityAuthType !== 'NONE'" label="引用密钥">
-          <ReSelect v-model="identityForm.msServerIdentityKeyId" :data="keyRefOptions" style="width: 100%" placeholder="选择密钥库条目" clearable />
+        <ReFormItem v-if="identityForm.serverIdentityAuthType !== 'MAILBOX' && identityForm.serverIdentityAuthType !== 'PASSWORD' && identityForm.serverIdentityAuthType !== 'NONE'" label="引用密钥">
+          <ReSelect v-model="identityForm.serverIdentityKeyId" :data="keyRefOptions" style="width: 100%" placeholder="选择密钥库条目" clearable />
         </ReFormItem>
-        <ReFormItem v-if="identityForm.msServerIdentityAuthType === 'NONE'" label="免密说明">
+        <ReFormItem v-if="identityForm.serverIdentityAuthType === 'NONE'" label="免密说明">
           <span class="type-hint">目标主机需已放行该账号（authorized_keys 已配置平台公钥，或 sshd 允许空口令）。平台只凭用户名连接，不保存密码 / 私钥。</span>
         </ReFormItem>
       </ReForm>

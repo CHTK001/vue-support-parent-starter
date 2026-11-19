@@ -203,10 +203,10 @@ async function load(): Promise<void> {
       : "ps -eo pid,user,pcpu,pmem,rss,comm --sort=-pcpu --no-headers | head -n 400";
     const logs = (await runCommand([props.hostId], cmd, 40)) ?? [];
     const log = logs[0] ?? {};
-    const out = String(log.msExecLogOutput ?? "");
+    const out = String(log.serverExecLogOutput ?? "");
     if (!out.trim()) {
       rows.value = [];
-      error.value = String(log.msExecLogError ?? "") || "命令没有返回内容";
+      error.value = String(log.serverExecLogError ?? "") || "命令没有返回内容";
       return;
     }
     rows.value = (isWin.value ? parseWindows(out) : parseLinux(out)).slice(0, MAX_ROWS);
@@ -237,12 +237,12 @@ async function kill(row: ProcessRow): Promise<void> {
     const cmd = isWin.value ? `taskkill /PID ${row.pid} /F` : `kill -9 ${row.pid}`;
     const logs = (await runCommand([props.hostId], cmd, 30)) ?? [];
     const log = logs[0] ?? {};
-    const code = log.msExecLogExitCode ?? null;
+    const code = log.serverExecLogExitCode ?? null;
     if (code === 0) {
       ElMessage.success(`已结束 ${row.name}`);
       await load();
     } else {
-      ElMessage.error(String(log.msExecLogError ?? log.msExecLogOutput ?? "结束失败"));
+      ElMessage.error(String(log.serverExecLogError ?? log.serverExecLogOutput ?? "结束失败"));
     }
   } catch (e) {
     ElMessage.error(`结束失败：${String((e as Error)?.message ?? e)}`);

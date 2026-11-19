@@ -268,7 +268,7 @@ async function doSessionImport(): Promise<void> {
     const identities = await getIdentities();
     const byName = new Map<string, any>();
     for (const it of identities) {
-      byName.set(String(it.msServerIdentityName ?? ""), it);
+      byName.set(String(it.serverIdentityName ?? ""), it);
     }
     const boundCache = new Map<number, Set<number>>();
     for (const r of rows) {
@@ -298,11 +298,11 @@ async function doSessionImport(): Promise<void> {
           reused++;
         } else {
           identity = await saveIdentity(null, {
-            msServerIdentityName: identityName,
-            msServerIdentityAuthType: r.password ? "PASSWORD" : "NONE",
-            msServerIdentityUsername: r.username,
-            msServerIdentityPassword: r.password || "",
-            msServerIdentityRemark: `从 ${SOURCE_LABEL[r.source]} 导入`,
+            serverIdentityName: identityName,
+            serverIdentityAuthType: r.password ? "PASSWORD" : "NONE",
+            serverIdentityUsername: r.username,
+            serverIdentityPassword: r.password || "",
+            serverIdentityRemark: `从 ${SOURCE_LABEL[r.source]} 导入`,
           });
           byName.set(identityName, identity);
           created++;

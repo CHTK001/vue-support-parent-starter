@@ -64,20 +64,20 @@ defineProps<{ hostId?: number }>();
 /** 身份接口返回的行（脱敏：不含口令 / 私钥） */
 interface IdentityRow {
   id: number;
-  msServerIdentityName: string;
-  msServerIdentityAuthType: string;
-  msServerIdentityUsername: string;
-  msServerIdentityKeyId?: number | null;
-  msServerIdentityRemark?: string;
+  serverIdentityName: string;
+  serverIdentityAuthType: string;
+  serverIdentityUsername: string;
+  serverIdentityKeyId?: number | null;
+  serverIdentityRemark?: string;
 }
 
 /** 密钥接口返回的行（脱敏：不含私钥 / 口令） */
 interface KeyRow {
   id: number;
-  msServerKeyName: string;
-  msServerKeyType?: string;
-  msServerKeyPublicKey?: string;
-  msServerKeyRemark?: string;
+  serverKeyName: string;
+  serverKeyType?: string;
+  serverKeyPublicKey?: string;
+  serverKeyRemark?: string;
 }
 
 /** 主机接口返回的行 */
@@ -235,19 +235,19 @@ const keyById = computed<Record<number, KeyRow>>(() => {
 /** 账号合并视图：身份 + 引用密钥 + 绑定主机 */
 const accounts = computed<HaAccount[]>(() =>
   identities.value.map((i) => {
-    const key = i.msServerIdentityKeyId != null ? keyById.value[i.msServerIdentityKeyId] : undefined;
-    const type = i.msServerIdentityAuthType ?? "";
+    const key = i.serverIdentityKeyId != null ? keyById.value[i.serverIdentityKeyId] : undefined;
+    const type = i.serverIdentityAuthType ?? "";
     return {
       id: i.id,
-      name: i.msServerIdentityName ?? `#${i.id}`,
+      name: i.serverIdentityName ?? `#${i.id}`,
       authType: type,
       authLabel: authLabelOf(type),
-      username: i.msServerIdentityUsername ?? "",
-      keyId: i.msServerIdentityKeyId ?? null,
-      keyName: key?.msServerKeyName ?? (i.msServerIdentityKeyId != null ? `#${i.msServerIdentityKeyId}` : ""),
-      keyType: key?.msServerKeyType ?? "",
-      keyFp: keyFingerprint(key?.msServerKeyPublicKey),
-      remark: i.msServerIdentityRemark ?? "",
+      username: i.serverIdentityUsername ?? "",
+      keyId: i.serverIdentityKeyId ?? null,
+      keyName: key?.serverKeyName ?? (i.serverIdentityKeyId != null ? `#${i.serverIdentityKeyId}` : ""),
+      keyType: key?.serverKeyType ?? "",
+      keyFp: keyFingerprint(key?.serverKeyPublicKey),
+      remark: i.serverIdentityRemark ?? "",
       hostIds: bindCache.value[i.id] ?? [],
     };
   }),
@@ -282,7 +282,7 @@ const stats = computed(() => {
 
 /** 密钥被引用的次数（按 identity 引用关系反查） */
 function keyRefCountOf(keyId: number): number {
-  return identities.value.filter((i) => i.msServerIdentityKeyId === keyId).length;
+  return identities.value.filter((i) => i.serverIdentityKeyId === keyId).length;
 }
 
 /* ==================== 筛选 ==================== */
@@ -526,36 +526,36 @@ useDialogPrerender(formVisible);
 const formSaving = ref(false);
 const editingId = ref<number | null>(null);
 const form = ref<{
-  msServerIdentityName: string;
-  msServerIdentityAuthType: string;
-  msServerIdentityUsername: string;
-  msServerIdentityPassword: string;
-  msServerIdentityKeyId: number | null;
-  msServerIdentityRemark: string;
+  serverIdentityName: string;
+  serverIdentityAuthType: string;
+  serverIdentityUsername: string;
+  serverIdentityPassword: string;
+  serverIdentityKeyId: number | null;
+  serverIdentityRemark: string;
 }>({
-  msServerIdentityName: "",
-  msServerIdentityAuthType: "PASSWORD",
-  msServerIdentityUsername: "",
-  msServerIdentityPassword: "",
-  msServerIdentityKeyId: null,
-  msServerIdentityRemark: "",
+  serverIdentityName: "",
+  serverIdentityAuthType: "PASSWORD",
+  serverIdentityUsername: "",
+  serverIdentityPassword: "",
+  serverIdentityKeyId: null,
+  serverIdentityRemark: "",
 });
 
 /** 可引用的密钥下拉项 */
 const keyOptions = computed(() =>
-  keys.value.map((k) => ({ label: `${k.msServerKeyName}（${k.msServerKeyType ?? "RSA"}）`, value: k.id })),
+  keys.value.map((k) => ({ label: `${k.serverKeyName}（${k.serverKeyType ?? "RSA"}）`, value: k.id })),
 );
 
 /** 打开新增弹窗 */
 function openAdd(): void {
   editingId.value = null;
   form.value = {
-    msServerIdentityName: "",
-    msServerIdentityAuthType: "PASSWORD",
-    msServerIdentityUsername: "",
-    msServerIdentityPassword: "",
-    msServerIdentityKeyId: null,
-    msServerIdentityRemark: "",
+    serverIdentityName: "",
+    serverIdentityAuthType: "PASSWORD",
+    serverIdentityUsername: "",
+    serverIdentityPassword: "",
+    serverIdentityKeyId: null,
+    serverIdentityRemark: "",
   };
   formVisible.value = true;
 }
@@ -568,23 +568,23 @@ function openAdd(): void {
 function openEdit(a: HaAccount): void {
   editingId.value = a.id;
   form.value = {
-    msServerIdentityName: a.name,
-    msServerIdentityAuthType: a.authType,
-    msServerIdentityUsername: a.username,
-    msServerIdentityPassword: "",
-    msServerIdentityKeyId: a.keyId,
-    msServerIdentityRemark: a.remark,
+    serverIdentityName: a.name,
+    serverIdentityAuthType: a.authType,
+    serverIdentityUsername: a.username,
+    serverIdentityPassword: "",
+    serverIdentityKeyId: a.keyId,
+    serverIdentityRemark: a.remark,
   };
   formVisible.value = true;
 }
 
 /** 保存账号 */
 async function submitForm(): Promise<void> {
-  if (!form.value.msServerIdentityName.trim()) {
+  if (!form.value.serverIdentityName.trim()) {
     message.warning("请输入账号名称");
     return;
   }
-  if (!form.value.msServerIdentityUsername.trim()) {
+  if (!form.value.serverIdentityUsername.trim()) {
     message.warning("请输入登录用户名");
     return;
   }
@@ -592,7 +592,7 @@ async function submitForm(): Promise<void> {
   try {
     await saveIdentity(editingId.value, {
       ...form.value,
-      msServerIdentityPassword: form.value.msServerIdentityPassword || undefined,
+      serverIdentityPassword: form.value.serverIdentityPassword || undefined,
     });
     message.success(editingId.value != null ? "账号已更新" : "账号已创建");
     formVisible.value = false;
@@ -723,19 +723,19 @@ const editingKeyId = ref<number | null>(null);
 /** 本次是「生成密钥对」而不是手工录入 */
 const isGenerate = ref(false);
 const keyForm = ref<{
-  msServerKeyName: string;
-  msServerKeyType: string;
-  msServerKeyPublicKey: string;
-  msServerKeyPrivateKey: string;
-  msServerKeyPassword: string;
-  msServerKeyRemark: string;
+  serverKeyName: string;
+  serverKeyType: string;
+  serverKeyPublicKey: string;
+  serverKeyPrivateKey: string;
+  serverKeyPassword: string;
+  serverKeyRemark: string;
 }>({
-  msServerKeyName: "",
-  msServerKeyType: "RSA",
-  msServerKeyPublicKey: "",
-  msServerKeyPrivateKey: "",
-  msServerKeyPassword: "",
-  msServerKeyRemark: "",
+  serverKeyName: "",
+  serverKeyType: "RSA",
+  serverKeyPublicKey: "",
+  serverKeyPrivateKey: "",
+  serverKeyPassword: "",
+  serverKeyRemark: "",
 });
 
 const KEY_TYPE_OPTIONS = [
@@ -747,12 +747,12 @@ const KEY_TYPE_OPTIONS = [
 /** 密钥空表单 */
 function emptyKeyForm(): typeof keyForm.value {
   return {
-    msServerKeyName: "",
-    msServerKeyType: "RSA",
-    msServerKeyPublicKey: "",
-    msServerKeyPrivateKey: "",
-    msServerKeyPassword: "",
-    msServerKeyRemark: "",
+    serverKeyName: "",
+    serverKeyType: "RSA",
+    serverKeyPublicKey: "",
+    serverKeyPrivateKey: "",
+    serverKeyPassword: "",
+    serverKeyRemark: "",
   };
 }
 
@@ -782,29 +782,29 @@ function openKeyEdit(k: KeyRow): void {
   isGenerate.value = false;
   keyForm.value = {
     ...emptyKeyForm(),
-    msServerKeyName: k.msServerKeyName,
-    msServerKeyType: k.msServerKeyType || "RSA",
-    msServerKeyPublicKey: k.msServerKeyPublicKey ?? "",
-    msServerKeyRemark: k.msServerKeyRemark ?? "",
+    serverKeyName: k.serverKeyName,
+    serverKeyType: k.serverKeyType || "RSA",
+    serverKeyPublicKey: k.serverKeyPublicKey ?? "",
+    serverKeyRemark: k.serverKeyRemark ?? "",
   };
   keyFormVisible.value = true;
 }
 
 /** 保存密钥 */
 async function submitKey(): Promise<void> {
-  if (!keyForm.value.msServerKeyName.trim()) {
+  if (!keyForm.value.serverKeyName.trim()) {
     message.warning("请输入密钥名称");
     return;
   }
   keySaving.value = true;
   try {
     await saveKey(editingKeyId.value, {
-      msServerKeyName: keyForm.value.msServerKeyName.trim(),
-      msServerKeyType: keyForm.value.msServerKeyType,
-      msServerKeyPublicKey: keyForm.value.msServerKeyPublicKey || undefined,
-      msServerKeyPrivateKey: keyForm.value.msServerKeyPrivateKey || undefined,
-      msServerKeyPassword: keyForm.value.msServerKeyPassword || undefined,
-      msServerKeyRemark: keyForm.value.msServerKeyRemark,
+      serverKeyName: keyForm.value.serverKeyName.trim(),
+      serverKeyType: keyForm.value.serverKeyType,
+      serverKeyPublicKey: keyForm.value.serverKeyPublicKey || undefined,
+      serverKeyPrivateKey: keyForm.value.serverKeyPrivateKey || undefined,
+      serverKeyPassword: keyForm.value.serverKeyPassword || undefined,
+      serverKeyRemark: keyForm.value.serverKeyRemark,
     });
     message.success(editingKeyId.value != null ? "密钥已更新" : "密钥已创建");
     keyFormVisible.value = false;
@@ -818,17 +818,17 @@ async function submitKey(): Promise<void> {
 
 /** 生成密钥对并入库 */
 async function generateKey(): Promise<void> {
-  if (!keyForm.value.msServerKeyName.trim()) {
+  if (!keyForm.value.serverKeyName.trim()) {
     message.warning("请输入密钥名称");
     return;
   }
   keySaving.value = true;
   try {
     await generateKeyPair(
-      keyForm.value.msServerKeyName.trim(),
-      keyForm.value.msServerKeyType,
-      keyForm.value.msServerKeyPassword || undefined,
-      keyForm.value.msServerKeyRemark,
+      keyForm.value.serverKeyName.trim(),
+      keyForm.value.serverKeyType,
+      keyForm.value.serverKeyPassword || undefined,
+      keyForm.value.serverKeyRemark,
     );
     message.success("密钥对已生成并保存");
     keyFormVisible.value = false;
@@ -849,8 +849,8 @@ async function removeKey(k: KeyRow): Promise<void> {
   const refs = keyRefCountOf(k.id);
   await ElMessageBox.confirm(
     refs
-      ? `删除密钥「${k.msServerKeyName}」？有 ${refs} 个账号引用它，删除后这些账号将无法用公钥登录`
-      : `删除密钥「${k.msServerKeyName}」？`,
+      ? `删除密钥「${k.serverKeyName}」？有 ${refs} 个账号引用它，删除后这些账号将无法用公钥登录`
+      : `删除密钥「${k.serverKeyName}」？`,
     "删除确认",
     { type: "warning" },
   );
@@ -871,7 +871,7 @@ async function removeKey(k: KeyRow): Promise<void> {
  * @param k 密钥
  */
 function downloadPublicKey(k: KeyRow): void {
-  const content = k.msServerKeyPublicKey ?? "";
+  const content = k.serverKeyPublicKey ?? "";
   if (!content) {
     message.warning("该密钥暂无公钥内容");
     return;
@@ -879,7 +879,7 @@ function downloadPublicKey(k: KeyRow): void {
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${k.msServerKeyName}.pub`;
+  a.download = `${k.serverKeyName}.pub`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -1005,11 +1005,11 @@ function isMailbox(a: HaAccount): boolean {
         <span class="ha-stat__k">密钥总数</span>
       </div>
       <div class="ha-stat a-warn">
-        <span class="ha-stat__v">{{ keys.filter((k) => (k.msServerKeyType ?? 'RSA') === 'RSA').length }}</span>
+        <span class="ha-stat__v">{{ keys.filter((k) => (k.serverKeyType ?? 'RSA') === 'RSA').length }}</span>
         <span class="ha-stat__k">RSA</span>
       </div>
       <div class="ha-stat a-info">
-        <span class="ha-stat__v">{{ keys.filter((k) => (k.msServerKeyType ?? 'RSA') !== 'RSA').length }}</span>
+        <span class="ha-stat__v">{{ keys.filter((k) => (k.serverKeyType ?? 'RSA') !== 'RSA').length }}</span>
         <span class="ha-stat__k">其他类型</span>
       </div>
       <div class="ha-stat a-ok">
@@ -1422,24 +1422,24 @@ function isMailbox(a: HaAccount): boolean {
           <span>「生成密钥对」由服务端生成 RSA / ED25519 / ECDSA 并直接入库；也可以手工粘贴已有密钥。</span>
         </div>
         <div v-else class="ha-k__grid">
-          <article v-for="k in keys" :key="k.id" class="ha-key" :class="(k.msServerKeyType ?? 'RSA') === 'RSA' ? 'a-warn' : 'a-info'">
+          <article v-for="k in keys" :key="k.id" class="ha-key" :class="(k.serverKeyType ?? 'RSA') === 'RSA' ? 'a-warn' : 'a-info'">
             <div class="ha-key__top">
               <ReIcon name="Key" :size="13" />
-              <span class="ha-key__name" :title="k.msServerKeyName">{{ k.msServerKeyName }}</span>
-              <span class="ha-pill">{{ k.msServerKeyType ?? "RSA" }}</span>
+              <span class="ha-key__name" :title="k.serverKeyName">{{ k.serverKeyName }}</span>
+              <span class="ha-pill">{{ k.serverKeyType ?? "RSA" }}</span>
             </div>
-            <div class="ha-key__fp">{{ keyFingerprint(k.msServerKeyPublicKey) || "（未录入公钥内容）" }}</div>
+            <div class="ha-key__fp">{{ keyFingerprint(k.serverKeyPublicKey) || "（未录入公钥内容）" }}</div>
             <div class="ha-key__meta">
               <ReIcon name="Connection" :size="11" />
               <span v-if="keyRefCountOf(k.id)">{{ keyRefCountOf(k.id) }} 个账号引用</span>
               <span v-else>暂无账号引用</span>
-              <span v-if="k.msServerKeyRemark" class="ha-dim">· {{ k.msServerKeyRemark }}</span>
+              <span v-if="k.serverKeyRemark" class="ha-dim">· {{ k.serverKeyRemark }}</span>
             </div>
             <div class="ha-key__foot">
               <button type="button" class="ha-btn" title="编辑" @click="openKeyEdit(k)">
                 <ReIcon name="EditPen" :size="11" />编辑
               </button>
-              <button type="button" class="ha-btn" title="下载公钥" :disabled="!k.msServerKeyPublicKey" @click="downloadPublicKey(k)">
+              <button type="button" class="ha-btn" title="下载公钥" :disabled="!k.serverKeyPublicKey" @click="downloadPublicKey(k)">
                 <ReIcon name="Download" :size="11" />公钥
               </button>
               <span class="ha-spacer" />
@@ -1456,11 +1456,11 @@ function isMailbox(a: HaAccount): boolean {
     <ReDialog v-model="formVisible" :title="editingId != null ? '编辑账号' : '新增账号'" width="520px" :close-on-click-modal="false">
       <ReForm :model="form" label-position="top">
         <ReFormItem label="账号名称">
-          <ReInput v-model="form.msServerIdentityName" placeholder="如 root-prod / 跳板机运维" style="width: 100%" />
+          <ReInput v-model="form.serverIdentityName" placeholder="如 root-prod / 跳板机运维" style="width: 100%" />
         </ReFormItem>
         <ReFormItem label="认证方式">
           <ReSelect
-            v-model="form.msServerIdentityAuthType"
+            v-model="form.serverIdentityAuthType"
             style="width: 100%"
             filterable
             allow-create
@@ -1470,31 +1470,31 @@ function isMailbox(a: HaAccount): boolean {
           />
         </ReFormItem>
         <ReFormItem label="登录用户名">
-          <ReInput v-model="form.msServerIdentityUsername" placeholder="如 root / ubuntu / Administrator" style="width: 100%" />
+          <ReInput v-model="form.serverIdentityUsername" placeholder="如 root / ubuntu / Administrator" style="width: 100%" />
         </ReFormItem>
-        <ReFormItem v-if="normAuth(form.msServerIdentityAuthType) === 'PASSWORD'" label="登录密码">
+        <ReFormItem v-if="normAuth(form.serverIdentityAuthType) === 'PASSWORD'" label="登录密码">
           <ReInput
-            v-model="form.msServerIdentityPassword"
+            v-model="form.serverIdentityPassword"
             type="password"
             show-password
             :placeholder="editingId != null ? '留空保持不变' : '登录口令'"
             style="width: 100%"
           />
         </ReFormItem>
-        <ReFormItem v-if="form.msServerIdentityAuthType === 'PUBLIC_KEY'" label="引用密钥">
+        <ReFormItem v-if="form.serverIdentityAuthType === 'PUBLIC_KEY'" label="引用密钥">
           <ReSelect
-            v-model="form.msServerIdentityKeyId"
+            v-model="form.serverIdentityKeyId"
             style="width: 100%"
             clearable
             placeholder="从密钥库选择"
             :options="keyOptions"
           />
         </ReFormItem>
-        <ReFormItem v-if="normAuth(form.msServerIdentityAuthType) === 'NONE'" label="免密说明">
+        <ReFormItem v-if="normAuth(form.serverIdentityAuthType) === 'NONE'" label="免密说明">
           <span class="ha-form-hint">目标主机需已放行该账号（authorized_keys 已配置平台公钥，或 sshd 允许空口令）。平台只凭用户名连接，不保存密码 / 私钥。</span>
         </ReFormItem>
         <ReFormItem label="备注">
-          <ReInput v-model="form.msServerIdentityRemark" placeholder="用途说明（可选）" style="width: 100%" />
+          <ReInput v-model="form.serverIdentityRemark" placeholder="用途说明（可选）" style="width: 100%" />
         </ReFormItem>
       </ReForm>
       <template #footer>
@@ -1543,11 +1543,11 @@ function isMailbox(a: HaAccount): boolean {
     >
       <ReForm :model="keyForm" label-position="top">
         <ReFormItem label="密钥名称">
-          <ReInput v-model="keyForm.msServerKeyName" placeholder="如 prod-rsa-2026" style="width: 100%" />
+          <ReInput v-model="keyForm.serverKeyName" placeholder="如 prod-rsa-2026" style="width: 100%" />
         </ReFormItem>
         <ReFormItem label="密钥类型">
           <ReSelect
-            v-model="keyForm.msServerKeyType"
+            v-model="keyForm.serverKeyType"
             style="width: 100%"
             :options="KEY_TYPE_OPTIONS"
             :disabled="editingKeyId != null"
@@ -1556,7 +1556,7 @@ function isMailbox(a: HaAccount): boolean {
         <template v-if="!isGenerate">
           <ReFormItem label="公钥">
             <ReInput
-              v-model="keyForm.msServerKeyPublicKey"
+              v-model="keyForm.serverKeyPublicKey"
               type="textarea"
               :rows="3"
               placeholder="粘贴公钥内容（可选）"
@@ -1565,7 +1565,7 @@ function isMailbox(a: HaAccount): boolean {
           </ReFormItem>
           <ReFormItem label="私钥">
             <ReInput
-              v-model="keyForm.msServerKeyPrivateKey"
+              v-model="keyForm.serverKeyPrivateKey"
               type="textarea"
               :rows="3"
               :placeholder="editingKeyId != null ? '留空保持不变' : '粘贴私钥内容（可选）'"
@@ -1575,7 +1575,7 @@ function isMailbox(a: HaAccount): boolean {
         </template>
         <ReFormItem v-if="isGenerate" label="私钥口令">
           <ReInput
-            v-model="keyForm.msServerKeyPassword"
+            v-model="keyForm.serverKeyPassword"
             type="password"
             show-password
             placeholder="私钥加密口令（可空）"
@@ -1583,7 +1583,7 @@ function isMailbox(a: HaAccount): boolean {
           />
         </ReFormItem>
         <ReFormItem label="备注">
-          <ReInput v-model="keyForm.msServerKeyRemark" placeholder="用途说明（可选）" style="width: 100%" />
+          <ReInput v-model="keyForm.serverKeyRemark" placeholder="用途说明（可选）" style="width: 100%" />
         </ReFormItem>
       </ReForm>
       <template #footer>

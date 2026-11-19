@@ -2,7 +2,7 @@
   /**
    * 虚拟桌面 · 命令窗口
    *
-   * <p>复用批量执行接口（单主机），所有命令都会落 {@code ms_exec_log}，
+   * <p>复用批量执行接口（单主机），所有命令都会落 {@code server_exec_log}，
    * 与「批量作业」页看到的是同一份审计记录。快捷命令按主机 OS 切换方言，
    * 所以同一个窗口在 Linux 与 Windows 上都能直接用。</p>
    *
@@ -134,10 +134,10 @@ async function run(raw: string): Promise<void> {
     const log = logs[0] ?? {};
     history.value.unshift({
       cmd,
-      output: clip(log.msExecLogOutput ?? ""),
-      error: clip(log.msExecLogError ?? ""),
-      exitCode: log.msExecLogExitCode ?? null,
-      costMs: log.msExecLogCostMs ?? Date.now() - started,
+      output: clip(log.serverExecLogOutput ?? ""),
+      error: clip(log.serverExecLogError ?? ""),
+      exitCode: log.serverExecLogExitCode ?? null,
+      costMs: log.serverExecLogCostMs ?? Date.now() - started,
     });
   } catch (e) {
     history.value.unshift({

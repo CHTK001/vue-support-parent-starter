@@ -31,19 +31,19 @@ import { useDialogPrerender } from "../../utils/dialogPrerender";
 
 interface Identity {
   id: number;
-  msServerIdentityName: string;
-  msServerIdentityAuthType: string;
-  msServerIdentityUsername: string;
-  msServerIdentityKeyId?: number | null;
-  msServerIdentityRemark?: string;
+  serverIdentityName: string;
+  serverIdentityAuthType: string;
+  serverIdentityUsername: string;
+  serverIdentityKeyId?: number | null;
+  serverIdentityRemark?: string;
 }
 
 interface KeyRow {
   id: number;
-  msServerKeyName: string;
-  msServerKeyType?: string;
-  msServerKeyPublicKey?: string;
-  msServerKeyRemark?: string;
+  serverKeyName: string;
+  serverKeyType?: string;
+  serverKeyPublicKey?: string;
+  serverKeyRemark?: string;
 }
 
 interface HostRow {
@@ -86,20 +86,20 @@ function keyTypeLabel(t: string | undefined): string {
 }
 
 const columns = [
-  { prop: "msServerIdentityName", label: "名称", minWidth: 140 },
+  { prop: "serverIdentityName", label: "名称", minWidth: 140 },
   { prop: "auth", label: "类型", width: 130, slot: "auth" },
-  { prop: "msServerIdentityUsername", label: "登录用户", minWidth: 140 },
+  { prop: "serverIdentityUsername", label: "登录用户", minWidth: 140 },
   { prop: "key", label: "密钥", width: 130, slot: "key" },
   { prop: "hosts", label: "绑定主机", width: 120, slot: "hosts" },
-  { prop: "msServerIdentityRemark", label: "备注", minWidth: 140 },
+  { prop: "serverIdentityRemark", label: "备注", minWidth: 140 },
   { prop: "id", label: "操作", width: 220, slot: "actions", align: "right", fixed: "right" },
 ];
 
 const keyColumns = [
-  { prop: "msServerKeyName", label: "名称", minWidth: 160 },
+  { prop: "serverKeyName", label: "名称", minWidth: 160 },
   { prop: "type", label: "类型", width: 90, slot: "type" },
   { prop: "fp", label: "公钥指纹", minWidth: 180, slot: "fp" },
-  { prop: "msServerKeyRemark", label: "备注", minWidth: 140 },
+  { prop: "serverKeyRemark", label: "备注", minWidth: 140 },
   { prop: "id", label: "操作", width: 120, slot: "actions", align: "right", fixed: "right" },
 ];
 
@@ -165,10 +165,10 @@ function boundHostCountOf(identityId: number): number {
   return (bindCache.value[identityId] ?? []).length;
 }
 
-/** 密钥名映射（PUBLIC_KEY 引用 msServerKeyId → 密钥库名称） */
+/** 密钥名映射（PUBLIC_KEY 引用 serverKeyId → 密钥库名称） */
 function keyNameOf(i: Identity): string {
-  if (i.msServerIdentityAuthType !== "PUBLIC_KEY" || i.msServerIdentityKeyId == null) return "";
-  return keys.value.find((k) => k.id === i.msServerIdentityKeyId)?.msServerKeyName ?? `#${i.msServerIdentityKeyId}`;
+  if (i.serverIdentityAuthType !== "PUBLIC_KEY" || i.serverIdentityKeyId == null) return "";
+  return keys.value.find((k) => k.id === i.serverIdentityKeyId)?.serverKeyName ?? `#${i.serverIdentityKeyId}`;
 }
 
 // ---- 密钥库管理 ----
@@ -180,15 +180,15 @@ const keySaving = ref(false);
 const editingKeyId = ref<number | null>(null);
 const isGenerateKey = ref(false);
 const keyForm = ref<{
-  msServerKeyName: string;
-  msServerKeyType: string;
-  msServerKeyPublicKey: string;
-  msServerKeyPrivateKey: string;
-  msServerKeyPassword: string;
-  msServerKeyRemark: string;
+  serverKeyName: string;
+  serverKeyType: string;
+  serverKeyPublicKey: string;
+  serverKeyPrivateKey: string;
+  serverKeyPassword: string;
+  serverKeyRemark: string;
 }>({
-  msServerKeyName: "", msServerKeyType: "RSA", msServerKeyPublicKey: "",
-  msServerKeyPrivateKey: "", msServerKeyPassword: "", msServerKeyRemark: "",
+  serverKeyName: "", serverKeyType: "RSA", serverKeyPublicKey: "",
+  serverKeyPrivateKey: "", serverKeyPassword: "", serverKeyRemark: "",
 });
 
 const KEY_TYPE_OPTIONS = [
@@ -212,8 +212,8 @@ function openKeyAdd(): void {
   editingKeyId.value = null;
   isGenerateKey.value = true;
   keyForm.value = {
-    msServerKeyName: "", msServerKeyType: "RSA", msServerKeyPublicKey: "",
-    msServerKeyPrivateKey: "", msServerKeyPassword: "", msServerKeyRemark: "",
+    serverKeyName: "", serverKeyType: "RSA", serverKeyPublicKey: "",
+    serverKeyPrivateKey: "", serverKeyPassword: "", serverKeyRemark: "",
   };
   keyFormVisible.value = true;
 }
@@ -222,8 +222,8 @@ function openKeyManual(): void {
   editingKeyId.value = null;
   isGenerateKey.value = false;
   keyForm.value = {
-    msServerKeyName: "", msServerKeyType: "RSA", msServerKeyPublicKey: "",
-    msServerKeyPrivateKey: "", msServerKeyPassword: "", msServerKeyRemark: "",
+    serverKeyName: "", serverKeyType: "RSA", serverKeyPublicKey: "",
+    serverKeyPrivateKey: "", serverKeyPassword: "", serverKeyRemark: "",
   };
   keyFormVisible.value = true;
 }
@@ -232,27 +232,27 @@ function openKeyEdit(row: KeyRow): void {
   editingKeyId.value = row.id;
   isGenerateKey.value = false;
   keyForm.value = {
-    msServerKeyName: row.msServerKeyName,
-    msServerKeyType: row.msServerKeyType || "RSA",
-    msServerKeyPublicKey: row.msServerKeyPublicKey ?? "",
-    msServerKeyPrivateKey: "", // 不回显
-    msServerKeyPassword: "", // 不回显
-    msServerKeyRemark: row.msServerKeyRemark ?? "",
+    serverKeyName: row.serverKeyName,
+    serverKeyType: row.serverKeyType || "RSA",
+    serverKeyPublicKey: row.serverKeyPublicKey ?? "",
+    serverKeyPrivateKey: "", // 不回显
+    serverKeyPassword: "", // 不回显
+    serverKeyRemark: row.serverKeyRemark ?? "",
   };
   keyFormVisible.value = true;
 }
 
 async function submitKey(): Promise<void> {
-  if (!keyForm.value.msServerKeyName?.trim()) { message.warning("请输入密钥名称"); return; }
+  if (!keyForm.value.serverKeyName?.trim()) { message.warning("请输入密钥名称"); return; }
   keySaving.value = true;
   try {
     await saveKey(editingKeyId.value, {
-      msServerKeyName: keyForm.value.msServerKeyName.trim(),
-      msServerKeyType: keyForm.value.msServerKeyType,
-      msServerKeyPublicKey: keyForm.value.msServerKeyPublicKey || undefined,
-      msServerKeyPrivateKey: keyForm.value.msServerKeyPrivateKey || undefined,
-      msServerKeyPassword: keyForm.value.msServerKeyPassword || undefined,
-      msServerKeyRemark: keyForm.value.msServerKeyRemark,
+      serverKeyName: keyForm.value.serverKeyName.trim(),
+      serverKeyType: keyForm.value.serverKeyType,
+      serverKeyPublicKey: keyForm.value.serverKeyPublicKey || undefined,
+      serverKeyPrivateKey: keyForm.value.serverKeyPrivateKey || undefined,
+      serverKeyPassword: keyForm.value.serverKeyPassword || undefined,
+      serverKeyRemark: keyForm.value.serverKeyRemark,
     });
     message.success(editingKeyId.value != null ? "密钥已更新" : "密钥已创建");
     keyFormVisible.value = false;
@@ -266,7 +266,7 @@ async function submitKey(): Promise<void> {
 }
 
 async function removeKey(row: KeyRow): Promise<void> {
-  await ElMessageBox.confirm(`删除密钥「${row.msServerKeyName}」？被引用的身份将受影响`, "删除确认", { type: "warning" });
+  await ElMessageBox.confirm(`删除密钥「${row.serverKeyName}」？被引用的身份将受影响`, "删除确认", { type: "warning" });
   try {
     await delKey(row.id);
     message.success("已删除");
@@ -279,14 +279,14 @@ async function removeKey(row: KeyRow): Promise<void> {
 
 /** 生成密钥对 */
 async function generateKey(): Promise<void> {
-  if (!keyForm.value.msServerKeyName?.trim()) { message.warning("请输入密钥名称"); return; }
+  if (!keyForm.value.serverKeyName?.trim()) { message.warning("请输入密钥名称"); return; }
   keySaving.value = true;
   try {
     const r = await generateKeyPair(
-      keyForm.value.msServerKeyName.trim(),
-      keyForm.value.msServerKeyType,
-      keyForm.value.msServerKeyPassword || undefined,
-      keyForm.value.msServerKeyRemark,
+      keyForm.value.serverKeyName.trim(),
+      keyForm.value.serverKeyType,
+      keyForm.value.serverKeyPassword || undefined,
+      keyForm.value.serverKeyRemark,
     );
     message.success("密钥对已生成并保存");
     keyFormVisible.value = false;
@@ -299,7 +299,7 @@ async function generateKey(): Promise<void> {
 }
 
 async function remove(i: Identity): Promise<void> {
-  await ElMessageBox.confirm(`删除身份「${i.msServerIdentityName}」？`, "删除确认", { type: "warning" });
+  await ElMessageBox.confirm(`删除身份「${i.serverIdentityName}」？`, "删除确认", { type: "warning" });
   try {
     await delIdentity(i.id);
     message.success("已删除");
@@ -422,7 +422,7 @@ async function selectMail(m: { id?: string; subject?: string }, idx: number): Pr
  * @param row 密钥行
  */
 function downloadPublicKey(row: KeyRow): void {
-  const content = row.msServerKeyPublicKey ?? "";
+  const content = row.serverKeyPublicKey ?? "";
   if (!content) {
     message.warning("该密钥暂无公钥内容");
     return;
@@ -430,7 +430,7 @@ function downloadPublicKey(row: KeyRow): void {
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `${row.msServerKeyName}.pub`;
+  a.download = `${row.serverKeyName}.pub`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -462,11 +462,11 @@ function exportCsv(): void {
   }
   const head = ["名称", "类型", "登录用户", "密钥", "备注"];
   const lines = rows.map((i) => [
-    i.msServerIdentityName,
-    authTypeLabel(i.msServerIdentityAuthType),
-    i.msServerIdentityUsername,
+    i.serverIdentityName,
+    authTypeLabel(i.serverIdentityAuthType),
+    i.serverIdentityUsername,
     keyNameOf(i),
-    i.msServerIdentityRemark ?? "",
+    i.serverIdentityRemark ?? "",
   ]);
   const csv = [head, ...lines]
     .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
@@ -520,17 +520,17 @@ function onFilterReset(): void {
 // ==================== KPI 统计卡（每个 tab 一组） ====================
 
 /** 主机类身份数（口令 / 公钥 / 免密三种主机登录方式） */
-const hostCount = computed(() => list.value.filter((i) => i.msServerIdentityAuthType === "PASSWORD" || i.msServerIdentityAuthType === "PUBLIC_KEY" || i.msServerIdentityAuthType === "NONE").length);
+const hostCount = computed(() => list.value.filter((i) => i.serverIdentityAuthType === "PASSWORD" || i.serverIdentityAuthType === "PUBLIC_KEY" || i.serverIdentityAuthType === "NONE").length);
 /** 非主机类身份数（邮箱 / Token 等） */
 const genericCount = computed(() => list.value.length - hostCount.value);
 /** 走公钥登录的身份数 */
-const keyCount = computed(() => list.value.filter((i) => i.msServerIdentityAuthType === "PUBLIC_KEY").length);
+const keyCount = computed(() => list.value.filter((i) => i.serverIdentityAuthType === "PUBLIC_KEY").length);
 /** 已引用密钥库中某个密钥的身份数（引用关系存在密钥主键上） */
-const keyRefCount = computed(() => list.value.filter((i) => i.msServerIdentityKeyId != null).length);
+const keyRefCount = computed(() => list.value.filter((i) => i.serverIdentityKeyId != null).length);
 /** 已绑定至少一台主机的身份数 */
 const boundIdentityCount = computed(() => Object.keys(bindCache.value).filter((id) => (bindCache.value[Number(id)]?.length ?? 0) > 0).length);
 /** RSA 密钥数（类型缺省按 RSA 计，与 keyTypeLabel 的兜底保持一致） */
-const rsaCount = computed(() => keys.value.filter((k) => keyTypeLabel(k.msServerKeyType) === "RSA").length);
+const rsaCount = computed(() => keys.value.filter((k) => keyTypeLabel(k.serverKeyType) === "RSA").length);
 
 /**
  * 统计卡定义。
@@ -635,23 +635,23 @@ const filteredList = computed(() => {
   if (kw) {
     items = items.filter(
       (i) =>
-        i.msServerIdentityName.toLowerCase().includes(kw) ||
-        (i.msServerIdentityUsername ?? "").toLowerCase().includes(kw) ||
-        (i.msServerIdentityRemark ?? "").toLowerCase().includes(kw),
+        i.serverIdentityName.toLowerCase().includes(kw) ||
+        (i.serverIdentityUsername ?? "").toLowerCase().includes(kw) ||
+        (i.serverIdentityRemark ?? "").toLowerCase().includes(kw),
     );
   }
   const type = String(filterState.value.type ?? "");
-  if (type) items = items.filter((i) => i.msServerIdentityAuthType === type);
+  if (type) items = items.filter((i) => i.serverIdentityAuthType === type);
   return items;
 });
 
 /** 复制用户名到剪贴板 */
 async function copyUsername(i: Identity): Promise<void> {
   try {
-    await navigator.clipboard.writeText(i.msServerIdentityUsername || "");
+    await navigator.clipboard.writeText(i.serverIdentityUsername || "");
     message.success("用户名已复制");
   } catch {
-    message.info(i.msServerIdentityUsername || "");
+    message.info(i.serverIdentityUsername || "");
   }
 }
 
@@ -662,15 +662,15 @@ useDialogPrerender(addVisible);
 const addSaving = ref(false);
 const editingId = ref<number | null>(null);
 const addForm = ref<{
-  msServerIdentityName: string;
-  msServerIdentityAuthType: string;
-  msServerIdentityUsername: string;
-  msServerIdentityPassword: string;
-  msServerIdentityKeyId: number | null;
-  msServerIdentityRemark: string;
+  serverIdentityName: string;
+  serverIdentityAuthType: string;
+  serverIdentityUsername: string;
+  serverIdentityPassword: string;
+  serverIdentityKeyId: number | null;
+  serverIdentityRemark: string;
 }>({
-  msServerIdentityName: "", msServerIdentityAuthType: "PASSWORD", msServerIdentityUsername: "",
-  msServerIdentityPassword: "", msServerIdentityKeyId: null, msServerIdentityRemark: "",
+  serverIdentityName: "", serverIdentityAuthType: "PASSWORD", serverIdentityUsername: "",
+  serverIdentityPassword: "", serverIdentityKeyId: null, serverIdentityRemark: "",
 });
 
 /**
@@ -679,8 +679,8 @@ const addForm = ref<{
 function openAdd(): void {
   editingId.value = null;
   addForm.value = {
-    msServerIdentityName: "", msServerIdentityAuthType: "PASSWORD", msServerIdentityUsername: "",
-    msServerIdentityPassword: "", msServerIdentityKeyId: null, msServerIdentityRemark: "",
+    serverIdentityName: "", serverIdentityAuthType: "PASSWORD", serverIdentityUsername: "",
+    serverIdentityPassword: "", serverIdentityKeyId: null, serverIdentityRemark: "",
   };
   addVisible.value = true;
 }
@@ -692,25 +692,25 @@ function openAdd(): void {
 function openEdit(row: Identity): void {
   editingId.value = row.id;
   addForm.value = {
-    msServerIdentityName: row.msServerIdentityName,
-    msServerIdentityAuthType: row.msServerIdentityAuthType,
-    msServerIdentityUsername: row.msServerIdentityUsername,
+    serverIdentityName: row.serverIdentityName,
+    serverIdentityAuthType: row.serverIdentityAuthType,
+    serverIdentityUsername: row.serverIdentityUsername,
     // 密码不回显，留空表示不修改
-    msServerIdentityPassword: "",
-    msServerIdentityKeyId: row.msServerIdentityKeyId ?? null,
-    msServerIdentityRemark: row.msServerIdentityRemark ?? "",
+    serverIdentityPassword: "",
+    serverIdentityKeyId: row.serverIdentityKeyId ?? null,
+    serverIdentityRemark: row.serverIdentityRemark ?? "",
   };
   addVisible.value = true;
 }
 
 async function submitAdd(): Promise<void> {
-  if (!addForm.value.msServerIdentityName?.trim()) { message.warning("请输入身份名称"); return; }
-  if (!addForm.value.msServerIdentityUsername?.trim()) { message.warning("请输入登录用户名"); return; }
+  if (!addForm.value.serverIdentityName?.trim()) { message.warning("请输入身份名称"); return; }
+  if (!addForm.value.serverIdentityUsername?.trim()) { message.warning("请输入登录用户名"); return; }
   addSaving.value = true;
   try {
     await saveIdentity(editingId.value, {
       ...addForm.value,
-      msServerIdentityPassword: addForm.value.msServerIdentityPassword || undefined,
+      serverIdentityPassword: addForm.value.serverIdentityPassword || undefined,
     });
     message.success(editingId.value != null ? "身份已更新" : "身份已创建");
     addVisible.value = false;
@@ -794,8 +794,8 @@ async function submitAdd(): Promise<void> {
         @selection-change="selection = $event"
       >
         <template #col-auth="{ row }">
-          <ReTag :type="authTypeTagType(row.msServerIdentityAuthType)" >
-            {{ authTypeLabel(row.msServerIdentityAuthType) }}
+          <ReTag :type="authTypeTagType(row.serverIdentityAuthType)" >
+            {{ authTypeLabel(row.serverIdentityAuthType) }}
           </ReTag>
         </template>
         <template #col-key="{ row }">
@@ -816,7 +816,7 @@ async function submitAdd(): Promise<void> {
           <div class="op-cell">
             <ReButton icon="EditPen" layout="square" title="编辑" @click="openEdit(row)" />
             <ReButton icon="Connection" layout="square" title="绑定主机" @click="openBind(row)" />
-            <ReButton v-if="row.msServerIdentityAuthType === 'MAILBOX'" icon="Message" layout="square" title="收件箱" @click="openMail(row)" />
+            <ReButton v-if="row.serverIdentityAuthType === 'MAILBOX'" icon="Message" layout="square" title="收件箱" @click="openMail(row)" />
             <ReButton icon="CopyDocument" layout="square" title="复制用户名" @click="copyUsername(row)" />
             <ReButton icon="Delete" layout="square" type="danger" title="删除" @click="remove(row)" />
           </div>
@@ -878,10 +878,10 @@ async function submitAdd(): Promise<void> {
           }"
         >
           <template #col-type="{ row }">
-            <ReTag :type="row.msServerKeyType === 'RSA' ? 'warning' : 'primary'" effect="plain">{{ keyTypeLabel(row.msServerKeyType) }}</ReTag>
+            <ReTag :type="row.serverKeyType === 'RSA' ? 'warning' : 'primary'" effect="plain">{{ keyTypeLabel(row.serverKeyType) }}</ReTag>
           </template>
           <template #col-fp="{ row }">
-            <span class="mono dim">{{ keyFingerprint(row.msServerKeyPublicKey) }}</span>
+            <span class="mono dim">{{ keyFingerprint(row.serverKeyPublicKey) }}</span>
           </template>
           <template #col-actions="{ row }">
             <div class="op-cell">
@@ -905,22 +905,22 @@ async function submitAdd(): Promise<void> {
     <ReDialog v-model="addVisible" :title="editingId != null ? '编辑身份' : '新增身份'" width="520px" :close-on-click-modal="false">
       <ReForm :model="addForm" label-position="top">
         <ReFormItem label="名称">
-          <ReInput v-model="addForm.msServerIdentityName" placeholder="如 root-prod" style="width:100%" />
+          <ReInput v-model="addForm.serverIdentityName" placeholder="如 root-prod" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="类型">
-          <ReSelect v-model="addForm.msServerIdentityAuthType" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
+          <ReSelect v-model="addForm.serverIdentityAuthType" style="width:100%" filterable allow-create default-first-option placeholder="选择或输入类型" :options="authTypeOptions" />
         </ReFormItem>
         <ReFormItem label="登录用户名">
-          <ReInput v-model="addForm.msServerIdentityUsername" placeholder="如 root / Administrator" style="width:100%" />
+          <ReInput v-model="addForm.serverIdentityUsername" placeholder="如 root / Administrator" style="width:100%" />
         </ReFormItem>
-        <ReFormItem v-if="addForm.msServerIdentityAuthType === 'PASSWORD'" label="登录密码">
-          <ReInput v-model="addForm.msServerIdentityPassword" type="password" show-password placeholder="登录口令" style="width:100%" />
+        <ReFormItem v-if="addForm.serverIdentityAuthType === 'PASSWORD'" label="登录密码">
+          <ReInput v-model="addForm.serverIdentityPassword" type="password" show-password placeholder="登录口令" style="width:100%" />
         </ReFormItem>
-        <ReFormItem v-if="addForm.msServerIdentityAuthType === 'NONE'" label="免密说明">
+        <ReFormItem v-if="addForm.serverIdentityAuthType === 'NONE'" label="免密说明">
           <span class="idm-hint">目标主机需已放行该账号（authorized_keys 已配置平台公钥，或 sshd 允许空口令）。平台只凭用户名连接，不保存密码 / 私钥。</span>
         </ReFormItem>
         <ReFormItem label="备注">
-          <ReInput v-model="addForm.msServerIdentityRemark" placeholder="用途说明（可选）" style="width:100%" />
+          <ReInput v-model="addForm.serverIdentityRemark" placeholder="用途说明（可选）" style="width:100%" />
         </ReFormItem>
       </ReForm>
       <template #footer>
@@ -933,24 +933,24 @@ async function submitAdd(): Promise<void> {
     <ReDialog v-model="keyFormVisible" :title="editingKeyId != null ? '编辑密钥' : (isGenerateKey ? '生成密钥对' : '新增密钥')" width="560px" :close-on-click-modal="false">
       <ReForm :model="keyForm" label-position="top">
         <ReFormItem label="密钥名称">
-          <ReInput v-model="keyForm.msServerKeyName" placeholder="如 prod-rsa-2026" style="width:100%" />
+          <ReInput v-model="keyForm.serverKeyName" placeholder="如 prod-rsa-2026" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="密钥类型">
-          <ReSelect v-model="keyForm.msServerKeyType" style="width:100%" :options="KEY_TYPE_OPTIONS" :disabled="editingKeyId != null" />
+          <ReSelect v-model="keyForm.serverKeyType" style="width:100%" :options="KEY_TYPE_OPTIONS" :disabled="editingKeyId != null" />
         </ReFormItem>
         <template v-if="!isGenerateKey">
           <ReFormItem label="公钥">
-            <ReInput v-model="keyForm.msServerKeyPublicKey" type="textarea" :rows="3" placeholder="粘贴公钥内容（可选）" style="width:100%" />
+            <ReInput v-model="keyForm.serverKeyPublicKey" type="textarea" :rows="3" placeholder="粘贴公钥内容（可选）" style="width:100%" />
           </ReFormItem>
           <ReFormItem label="私钥">
-            <ReInput v-model="keyForm.msServerKeyPrivateKey" type="textarea" :rows="3" :placeholder="editingKeyId != null ? '留空保持不变' : '粘贴私钥内容（可选）'" style="width:100%" />
+            <ReInput v-model="keyForm.serverKeyPrivateKey" type="textarea" :rows="3" :placeholder="editingKeyId != null ? '留空保持不变' : '粘贴私钥内容（可选）'" style="width:100%" />
           </ReFormItem>
         </template>
         <ReFormItem v-if="isGenerateKey" label="私钥口令">
-          <ReInput v-model="keyForm.msServerKeyPassword" type="password" show-password placeholder="私钥加密口令（可空）" style="width:100%" />
+          <ReInput v-model="keyForm.serverKeyPassword" type="password" show-password placeholder="私钥加密口令（可空）" style="width:100%" />
         </ReFormItem>
         <ReFormItem label="备注">
-          <ReInput v-model="keyForm.msServerKeyRemark" placeholder="用途说明（可选）" style="width:100%" />
+          <ReInput v-model="keyForm.serverKeyRemark" placeholder="用途说明（可选）" style="width:100%" />
         </ReFormItem>
       </ReForm>
       <template #footer>
@@ -961,7 +961,7 @@ async function submitAdd(): Promise<void> {
     </ReDialog>
 
     <!-- 绑定主机弹窗 -->
-    <ReDialog v-model="bindVisible" :title="`绑定主机：${bindTarget?.msServerIdentityName ?? ''}`" width="640px" :close-on-click-modal="false">
+    <ReDialog v-model="bindVisible" :title="`绑定主机：${bindTarget?.serverIdentityName ?? ''}`" width="640px" :close-on-click-modal="false">
       <div v-if="bindLoading" class="dim" style="padding:20px 0;text-align:center">加载中...</div>
       <template v-else>
         <div class="muted" style="margin-bottom:8px">已绑定主机（{{ bindHosts.length }}）</div>
@@ -988,7 +988,7 @@ async function submitAdd(): Promise<void> {
     </ReDialog>
 
     <!-- 邮箱（MAILBOX）弹窗 -->
-    <ReDialog v-model="mailVisible" :title="`收件箱：${mailTarget?.msServerIdentityName ?? ''}`" width="820px" :close-on-click-modal="false">
+    <ReDialog v-model="mailVisible" :title="`收件箱：${mailTarget?.serverIdentityName ?? ''}`" width="820px" :close-on-click-modal="false">
       <div v-if="mailLoading" class="mail-loading">
         <span class="spinner" />
         <span>正在读取邮件...</span>

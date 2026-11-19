@@ -437,19 +437,19 @@ async function reloadJobs(): Promise<void> {
 const jobFormVisible = ref(false)
 const editingJobId = ref<number | null>(null)
 const jobForm = ref<{
-  msExecJobName: string
-  msExecJobType: JobTypeCode
-  msExecJobCron: string
-  msExecJobCommand: string
+  serverExecJobName: string
+  serverExecJobType: JobTypeCode
+  serverExecJobCron: string
+  serverExecJobCommand: string
   hostIdText: string
-  msExecJobTimeout: number
+  serverExecJobTimeout: number
 }>({
-  msExecJobName: '',
-  msExecJobType: 'CRON',
-  msExecJobCron: '0 0 3 * * ?',
-  msExecJobCommand: '',
+  serverExecJobName: '',
+  serverExecJobType: 'CRON',
+  serverExecJobCron: '0 0 3 * * ?',
+  serverExecJobCommand: '',
   hostIdText: '',
-  msExecJobTimeout: 60,
+  serverExecJobTimeout: 60,
 })
 
 /**
@@ -461,12 +461,12 @@ function openJobForm(view?: JobView): void {
   const raw = view ? rawOf(view) : null
   editingJobId.value = raw?.id ?? null
   jobForm.value = {
-    msExecJobName: raw?.msExecJobName ?? '',
-    msExecJobType: view?.typeCode ?? 'CRON',
-    msExecJobCron: raw?.msExecJobCron ?? '0 0 3 * * ?',
-    msExecJobCommand: raw?.msExecJobCommand ?? '',
+    serverExecJobName: raw?.serverExecJobName ?? '',
+    serverExecJobType: view?.typeCode ?? 'CRON',
+    serverExecJobCron: raw?.serverExecJobCron ?? '0 0 3 * * ?',
+    serverExecJobCommand: raw?.serverExecJobCommand ?? '',
     hostIdText: view ? view.hostIds.join(',') : '',
-    msExecJobTimeout: raw?.msExecJobTimeout ?? 60,
+    serverExecJobTimeout: raw?.serverExecJobTimeout ?? 60,
   }
   jobFormVisible.value = true
 }
@@ -474,7 +474,7 @@ function openJobForm(view?: JobView): void {
 /** 提交任务表单（含 cron 前端预校验，复用 @repo/utils CronExpression） */
 async function submitJob(): Promise<void> {
   const form = jobForm.value
-  if (!form.msExecJobName.trim() || !form.msExecJobCommand.trim()) {
+  if (!form.serverExecJobName.trim() || !form.serverExecJobCommand.trim()) {
     message.warning('任务名称与命令均不能为空')
     return
   }
@@ -482,29 +482,29 @@ async function submitJob(): Promise<void> {
     message.warning('目标主机ID不能为空')
     return
   }
-  if (form.msExecJobType === 'CRON') {
+  if (form.serverExecJobType === 'CRON') {
     try {
-      new CronExpression(form.msExecJobCron.trim())
+      new CronExpression(form.serverExecJobCron.trim())
     } catch {
-      message.warning(`cron 表达式非法: ${form.msExecJobCron}`)
+      message.warning(`cron 表达式非法: ${form.serverExecJobCron}`)
       return
     }
   }
   try {
     await saveJob(editingJobId.value, {
       ...(editingJobId.value ? { id: editingJobId.value } : {}),
-      msExecJobName: form.msExecJobName,
-      msExecJobType: form.msExecJobType,
-      msExecJobCron: form.msExecJobType === 'CRON' ? form.msExecJobCron : '',
-      msExecJobCommand: form.msExecJobCommand,
-      msExecJobHostIds: JSON.stringify(
+      serverExecJobName: form.serverExecJobName,
+      serverExecJobType: form.serverExecJobType,
+      serverExecJobCron: form.serverExecJobType === 'CRON' ? form.serverExecJobCron : '',
+      serverExecJobCommand: form.serverExecJobCommand,
+      serverExecJobHostIds: JSON.stringify(
         form.hostIdText
           .split(',')
           .map(v => Number(v.trim()))
           .filter(v => Number.isFinite(v) && v > 0),
       ),
-      msExecJobTimeout: form.msExecJobTimeout,
-      msExecJobEnabled: 1,
+      serverExecJobTimeout: form.serverExecJobTimeout,
+      serverExecJobEnabled: 1,
     })
     message.success('已保存')
     jobFormVisible.value = false
@@ -641,14 +641,14 @@ const historyType = ref('')
 
 /** 日志表列 */
 const logCols: CanvasColumn[] = [
-  { key: 'msExecLogHostName', label: '主机', width: '130px' },
+  { key: 'serverExecLogHostName', label: '主机', width: '130px' },
   { key: 'type', label: '类型', width: '84px' },
-  { key: 'msExecLogCommand', label: '命令 / 路径', width: 'minmax(0, 1.3fr)' },
+  { key: 'serverExecLogCommand', label: '命令 / 路径', width: 'minmax(0, 1.3fr)' },
   { key: 'status', label: '状态', width: '76px' },
-  { key: 'msExecLogOutput', label: '输出', width: 'minmax(0, 1.2fr)' },
-  { key: 'msExecLogError', label: '错误', width: 'minmax(0, 1fr)' },
-  { key: 'msExecLogEndTime', label: '结束时间', width: '150px' },
-  { key: 'msExecLogCostMs', label: '耗时(ms)', width: '84px', align: 'right' },
+  { key: 'serverExecLogOutput', label: '输出', width: 'minmax(0, 1.2fr)' },
+  { key: 'serverExecLogError', label: '错误', width: 'minmax(0, 1fr)' },
+  { key: 'serverExecLogEndTime', label: '结束时间', width: '150px' },
+  { key: 'serverExecLogCostMs', label: '耗时(ms)', width: '84px', align: 'right' },
 ]
 
 /**
@@ -779,25 +779,25 @@ onMounted(refresh)
   >
     <ReForm label-width="100px" label-position="right">
       <ReFormItem label="任务名称" required>
-        <ReInput v-model="jobForm.msExecJobName" placeholder="如 每日清理临时文件" />
+        <ReInput v-model="jobForm.serverExecJobName" placeholder="如 每日清理临时文件" />
       </ReFormItem>
       <ReFormItem label="任务类型" required>
-        <ReRadioGroup v-model="jobForm.msExecJobType" button capsule>
+        <ReRadioGroup v-model="jobForm.serverExecJobType" button capsule>
           <ReRadioButton value="CRON">定时</ReRadioButton>
           <ReRadioButton value="NONE">脚本</ReRadioButton>
         </ReRadioGroup>
       </ReFormItem>
-      <ReFormItem v-if="jobForm.msExecJobType === 'CRON'" label="cron 表达式" required>
-        <ReInput v-model="jobForm.msExecJobCron" placeholder="6 域：秒 分 时 日 月 周，如 0 0 3 * * ?" />
+      <ReFormItem v-if="jobForm.serverExecJobType === 'CRON'" label="cron 表达式" required>
+        <ReInput v-model="jobForm.serverExecJobCron" placeholder="6 域：秒 分 时 日 月 周，如 0 0 3 * * ?" />
       </ReFormItem>
       <ReFormItem label="命令" required>
-        <ReInput v-model="jobForm.msExecJobCommand" type="textarea" :rows="3" />
+        <ReInput v-model="jobForm.serverExecJobCommand" type="textarea" :rows="3" />
       </ReFormItem>
       <ReFormItem label="目标主机ID" required>
         <ReInput v-model="jobForm.hostIdText" placeholder="逗号分隔，如 1,2,3" />
       </ReFormItem>
       <ReFormItem label="超时(秒)">
-        <ReInputNumber v-model="jobForm.msExecJobTimeout" :min="5" :max="3600" />
+        <ReInputNumber v-model="jobForm.serverExecJobTimeout" :min="5" :max="3600" />
       </ReFormItem>
     </ReForm>
   </ReDialog>
@@ -856,38 +856,38 @@ onMounted(refresh)
         empty-text="暂无执行日志"
         empty-hint="任务执行过之后，这里会按主机逐条列出结果。"
       >
-        <template #cell-msExecLogHostName="{ row }">
-          <span class="op-ellipsis">{{ (row as unknown as LogRow).msExecLogHostName || '—' }}</span>
+        <template #cell-serverExecLogHostName="{ row }">
+          <span class="op-ellipsis">{{ (row as unknown as LogRow).serverExecLogHostName || '—' }}</span>
         </template>
         <template #cell-type="{ row }">
-          <span class="op-mono op-dim">{{ logTypeText((row as unknown as LogRow).msExecLogType) }}</span>
+          <span class="op-mono op-dim">{{ logTypeText((row as unknown as LogRow).serverExecLogType) }}</span>
         </template>
-        <template #cell-msExecLogCommand="{ row }">
-          <span class="op-mono op-ellipsis">{{ (row as unknown as LogRow).msExecLogCommand || '—' }}</span>
+        <template #cell-serverExecLogCommand="{ row }">
+          <span class="op-mono op-ellipsis">{{ (row as unknown as LogRow).serverExecLogCommand || '—' }}</span>
         </template>
         <template #cell-status="{ row }">
           <span
             class="op-pill"
-            :class="logStatusText((row as unknown as LogRow).msExecLogStatus) === '成功' ? 't-ok' : 't-bad'"
+            :class="logStatusText((row as unknown as LogRow).serverExecLogStatus) === '成功' ? 't-ok' : 't-bad'"
           >
-            {{ logStatusText((row as unknown as LogRow).msExecLogStatus) }}
+            {{ logStatusText((row as unknown as LogRow).serverExecLogStatus) }}
           </span>
         </template>
-        <template #cell-msExecLogOutput="{ row }">
-          <span class="op-ellipsis op-dim" :title="(row as unknown as LogRow).msExecLogOutput">
-            {{ (row as unknown as LogRow).msExecLogOutput || '—' }}
+        <template #cell-serverExecLogOutput="{ row }">
+          <span class="op-ellipsis op-dim" :title="(row as unknown as LogRow).serverExecLogOutput">
+            {{ (row as unknown as LogRow).serverExecLogOutput || '—' }}
           </span>
         </template>
-        <template #cell-msExecLogError="{ row }">
-          <span class="op-ellipsis is-danger" :title="(row as unknown as LogRow).msExecLogError">
-            {{ (row as unknown as LogRow).msExecLogError || '—' }}
+        <template #cell-serverExecLogError="{ row }">
+          <span class="op-ellipsis is-danger" :title="(row as unknown as LogRow).serverExecLogError">
+            {{ (row as unknown as LogRow).serverExecLogError || '—' }}
           </span>
         </template>
-        <template #cell-msExecLogEndTime="{ row }">
-          <span class="op-num op-dim">{{ (row as unknown as LogRow).msExecLogEndTime || '—' }}</span>
+        <template #cell-serverExecLogEndTime="{ row }">
+          <span class="op-num op-dim">{{ (row as unknown as LogRow).serverExecLogEndTime || '—' }}</span>
         </template>
-        <template #cell-msExecLogCostMs="{ row }">
-          <span class="op-num">{{ (row as unknown as LogRow).msExecLogCostMs ?? '—' }}</span>
+        <template #cell-serverExecLogCostMs="{ row }">
+          <span class="op-num">{{ (row as unknown as LogRow).serverExecLogCostMs ?? '—' }}</span>
         </template>
       </ReCanvasTable>
     </template>

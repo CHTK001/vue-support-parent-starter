@@ -33,7 +33,7 @@ interface HostRow {
   serverHostAddress: string;
   serverHostPort: number;
   serverHostOsType: string;
-  msServerGroupId?: number | null;
+  serverGroupId?: number | null;
   serverHostTags?: string;
   serverHostStatus: number;
   serverHostOnline: number;
@@ -73,7 +73,7 @@ const collectModeOptions = [
 /** 分组行 */
 interface GroupRow {
   id: number;
-  msServerGroupName: string;
+  serverGroupName: string;
 }
 
 /** 主机列表 */
@@ -106,7 +106,7 @@ const filterGroupId = ref<number | null>(null);
 /** 分组筛选下拉选项：末尾固定追加「+ 添加分组」入口（value=-1 为哨兵值） */
 const ADD_GROUP_VALUE = -1;
 const groupSelectOptions = computed(() => [
-  ...groups.value.map(g => ({ label: g.msServerGroupName, value: g.id })),
+  ...groups.value.map(g => ({ label: g.serverGroupName, value: g.id })),
   { label: '+ 添加分组', value: ADD_GROUP_VALUE },
 ]);
 
@@ -442,7 +442,7 @@ function onOpenSftp(row: HostRow): void {
  * @param groupId 分组 ID
  */
 function groupName(groupId?: number | null): string {
-  return groups.value.find(g => g.id === groupId)?.msServerGroupName ?? '-';
+  return groups.value.find(g => g.id === groupId)?.serverGroupName ?? '-';
 }
 
 /**
@@ -628,7 +628,7 @@ function diskColor(v?: number): string {
       </div>
 
       <div class="host-card__footer">
-        <span class="host-group">{{ groupName(row.msServerGroupId) }}</span>
+        <span class="host-group">{{ groupName(row.serverGroupId) }}</span>
         <span class="host-delay" :class="{ 'is-down': row.serverHostDelayMs != null && row.serverHostDelayMs < 0 }">{{ delayText(row.serverHostDelayMs) }}</span>
       </div>
 

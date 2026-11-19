@@ -101,9 +101,9 @@ const shape = ref('')
 const dialogVisible = ref(false)
 const editingId = ref<number | null>(null)
 const formData = ref<TerminalSnippetPayload>({
-  msTerminalSnippetName: '',
-  msTerminalSnippetContent: '',
-  msTerminalSnippetRemark: '',
+  serverTerminalSnippetName: '',
+  serverTerminalSnippetContent: '',
+  serverTerminalSnippetRemark: '',
 })
 
 /* ==================== 派生 ==================== */
@@ -314,9 +314,9 @@ async function load(): Promise<void> {
 function openEditor(view?: SnippetView): void {
   editingId.value = view?.id ?? null
   formData.value = {
-    msTerminalSnippetName: view?.name && view.name !== '未命名片段' ? view.name : '',
-    msTerminalSnippetContent: view?.content ?? '',
-    msTerminalSnippetRemark: view?.remark ?? '',
+    serverTerminalSnippetName: view?.name && view.name !== '未命名片段' ? view.name : '',
+    serverTerminalSnippetContent: view?.content ?? '',
+    serverTerminalSnippetRemark: view?.remark ?? '',
   }
   dialogVisible.value = true
 }
@@ -333,15 +333,15 @@ function onEditItem(item: OpsItem): void {
 
 /** 保存 */
 async function save(): Promise<void> {
-  if (!formData.value.msTerminalSnippetName.trim()) {
+  if (!formData.value.serverTerminalSnippetName.trim()) {
     message.warning('片段名称不能为空')
     return
   }
   try {
     const payload: TerminalSnippetPayload = {
-      msTerminalSnippetName: formData.value.msTerminalSnippetName.trim(),
-      msTerminalSnippetContent: formData.value.msTerminalSnippetContent ?? '',
-      msTerminalSnippetRemark: formData.value.msTerminalSnippetRemark ?? '',
+      serverTerminalSnippetName: formData.value.serverTerminalSnippetName.trim(),
+      serverTerminalSnippetContent: formData.value.serverTerminalSnippetContent ?? '',
+      serverTerminalSnippetRemark: formData.value.serverTerminalSnippetRemark ?? '',
     }
     if (editingId.value) await apiUpdateSnippet(editingId.value, payload)
     else await apiSaveSnippet(payload)
@@ -440,18 +440,18 @@ onMounted(load)
   >
     <ReForm :model="formData" label-width="90px" label-position="right">
       <ReFormItem label="片段名称" required>
-        <ReInput v-model="formData.msTerminalSnippetName" placeholder="例如：重启 Nginx" />
+        <ReInput v-model="formData.serverTerminalSnippetName" placeholder="例如：重启 Nginx" />
       </ReFormItem>
       <ReFormItem label="命令内容">
         <ReInput
-          v-model="formData.msTerminalSnippetContent"
+          v-model="formData.serverTerminalSnippetContent"
           type="textarea"
           :rows="7"
           placeholder="粘贴或输入要执行的命令，支持多行"
         />
       </ReFormItem>
       <ReFormItem label="备注">
-        <ReInput v-model="formData.msTerminalSnippetRemark" placeholder="什么时候用它" />
+        <ReInput v-model="formData.serverTerminalSnippetRemark" placeholder="什么时候用它" />
       </ReFormItem>
     </ReForm>
   </ReDialog>
