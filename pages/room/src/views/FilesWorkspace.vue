@@ -52,7 +52,7 @@ async function loadFiles(): Promise<void> {
   }
 }
 
-/** 上传文件 */
+/** 上传入口暂禁用：SSE 块上传通道未接通前禁选，避免用户误以为已上传 */
 function upload(e: Event): void {
   const f = (e.target as HTMLInputElement).files?.[0];
   if (!f || !store.roomId) return;
@@ -73,9 +73,9 @@ onMounted(() => {
         <b>文件</b>
         <span class="rm-pill">{{ files.length }}</span>
         <span class="rm-spacer" />
-        <label class="rm-btn">
+        <label class="rm-btn" title="文件上传通道暂未开放" style="opacity: 0.55">
           上传
-          <input type="file" class="rm-file-input" @change="upload" />
+          <input type="file" class="rm-file-input" disabled @change="upload" />
         </label>
       </div>
 
@@ -88,7 +88,7 @@ onMounted(() => {
         </div>
         <div v-else-if="!files.length" class="rm-empty">
           <b>还没有文件</b>
-          <span>通过「上传」开始文件交换</span>
+          <span>文件上传通道暂未开放</span>
         </div>
         <ul v-else class="rm-files">
           <li v-for="f in files" :key="f.id" class="rm-file__item">

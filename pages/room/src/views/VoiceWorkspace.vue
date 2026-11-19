@@ -8,7 +8,8 @@
  * @author CH
  * @since 4.0.0.46
  */
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
+import { message } from "@repo/core";
 import { useRoomStore } from "../stores/room";
 
 const store = useRoomStore();
@@ -16,24 +17,51 @@ const micOn = ref(false);
 const noiseSuppression = ref(true);
 const echoCancellation = ref(true);
 
+/** 本端麦克风流引用：关麦/卸载时必须 stop()，否则轨道泄漏（资源+隐私） */
+let micStream: MediaStream | null = null;
+
 /** 媒体管线状态 */
 const connected = computed(() => store.connected);
 const peerReady = computed(() => store.peerReady);
 
+/** 停掉本端麦克风流 */
+function stopMic(): void {
+  micStream?.getTracks().forEach((t) => t.stop());
+  micStream = null;
+}
+
 /** 切换麦克风 */
-function toggleMic(): void {
-  micOn.value = !micOn.value;
-  if (micOn.value) {
-    void navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-      store.signal(JSON.stringify({ event: "voice", data: "join" }));
-      stream.getTracks().forEach((t) => t.onended = () => {
+async function toggleMic(): Promise<void> {
+  if (!micOn.value) {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      // 权限被拒 / 无可用设备：保持关闭态并给出可感知提示
+      micStream = null;
+      micOn.value = false;
+      message.warning("无法访问麦克风，请检查权限与设备");
+      return;
+    }
+    micOn.value = true;
+    store.signal(JSON.stringify({ event: "voice", data: "join" }));
+    micStream.getTracks().forEach((t) => {
+      t.onended = () => {
         micOn.value = false;
-      });
+      };
     });
   } else {
+    micOn.value = false;
     store.signal(JSON.stringify({ event: "voice", data: "leave" }));
+    stopMic();
   }
 }
+
+onBeforeUnmount(() => {
+  if (micOn.value) {
+    store.signal(JSON.stringify({ event: "voice", data: "leave" }));
+  }
+  stopMic();
+});
 
 /** 切换降噪 */
 function toggle(ns: boolean): void {
@@ -57,13 +85,34 @@ function toggle(ns: boolean): void {
           </div>
 
           <div class="rm-voice__bar">
-            <button type="button" class="rm-media__btn" :class="{ on: micOn }" @click="toggleMic">
+            <button
+              type="button"
+              class="rm-media__btn"
+              :class="{ on: micOn }"
+              :title="micOn ? '关闭麦克风' : '打开麦克风'"
+              aria-label="麦克风开关"
+              @click="toggleMic"
+            >
               <ReIcon :name="micOn ? 'Microphone' : 'MicrophoneOff'" :size="18" />
             </button>
-            <button type="button" class="rm-media__btn" :class="{ on: noiseSuppression }" @click="toggle(true)">
+            <button
+              type="button"
+              class="rm-media__btn"
+              :class="{ on: noiseSuppression }"
+              title="降噪"
+              aria-label="降噪开关"
+              @click="toggle(true)"
+            >
               <ReIcon name="Headphones" :size="18" />
             </button>
-            <button type="button" class="rm-media__btn" :class="{ on: echoCancellation }" @click="toggle(false)">
+            <button
+              type="button"
+              class="rm-media__btn"
+              :class="{ on: echoCancellation }"
+              title="回声消除"
+              aria-label="回声消除开关"
+              @click="toggle(false)"
+            >
               <ReIcon name="Monitor" :size="18" />
             </button>
           </div>
