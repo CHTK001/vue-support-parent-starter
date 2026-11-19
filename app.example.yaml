@@ -155,8 +155,8 @@ securityConfig:
     text: ""
     # 水印颜色（hex，如 #409EFF）
     color: ""
-    # 透明度 0~1
-    alpha: 0
+    # 透明度 0~1；开启水印时必须大于 0（0 会使水印全透明不可见）
+    alpha: 0.25
     # 旋转角度（度）
     rotate: 0
 
