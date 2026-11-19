@@ -311,6 +311,16 @@
               </ReDialog>
             </el-tab-pane>
 
+            <el-tab-pane name="animated-avatar">
+              <template #label>
+                <span class="flex items-center gap-4px">
+                  <el-icon :size="15"><Star /></el-icon>
+                  <span>动态头像</span>
+                </span>
+              </template>
+              <AnimatedAvatarPanel :avatar="mineAvatar" @updated="refreshMine" />
+            </el-tab-pane>
+
             <el-tab-pane v-if="frameEnabled" name="frame">
               <template #label>
                 <span class="flex items-center gap-4px">
@@ -497,13 +507,14 @@
 <script setup lang="ts" name="minePage">
 // @ts-nocheck
 import { nextTick, onMounted, onUnmounted, reactive, ref, computed, watch, defineAsyncComponent } from "vue";
-import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture, PictureFilled, Document, MagicStick } from "@element-plus/icons-vue";
+import { UserFilled, User, Iphone, Message, Collection, Lock, Key, Picture, PictureFilled, Document, MagicStick, Star } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgBox } from "@repo/core";
 import { getUserInfo, getAccessToken, normalizeUrl, resolveUserDisplayInfo, Http } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { defaultAvatarUrl } from "@repo/assets";
 import { useWornAvatarFrame } from "@repo/theme/koi/components/useWornAvatarFrame";
 import AvatarFramePanel from "@repo/theme/koi/components/AvatarFramePanel.vue";
+import AnimatedAvatarPanel from "@repo/theme/koi/components/AnimatedAvatarPanel.vue";
 import WallpaperPanel from "@repo/theme/koi/components/wallpaper/WallpaperPanel.vue";
 import OrnamentPanel from "@repo/theme/koi/components/ornaments/OrnamentPanel.vue";
 import OrnamentBadge from "@repo/theme/koi/components/ornaments/OrnamentBadge.vue";
