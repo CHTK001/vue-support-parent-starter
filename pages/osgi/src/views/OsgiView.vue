@@ -1,18 +1,18 @@
 <!--
-  OSGi 插件管理 —— 发射控制台版式（Launch Control Console）。
+  OSGi 插件管理 —— 轨道机架控制台（Orbital Rack Console）。
 
-  设计语言：把 OSGi 运行时当作一座整装待发的航天发射场——
-  - 每个 bundle 是一座发射工位（PAD）：左侧是工位号与状态信标，中间是任务
-    铭牌（符号名 + 版本）与相位时间轴（装填 → 加注 → 点火 → 入轨，
-    对应 INSTALLED / RESOLVED / STARTING / ACTIVE），右侧是生命周期电平塔；
-    STOPPING 显示「离轨程序执行中」，UNINSTALLED 显示「任务中止」；
-    系统工位（bundleId=0）是发射场中枢，只展示不操作；
-  - 右侧地面站（GROUND STATION）= 服务注册表，每个已注册服务点亮一部天线；
-  - 测控带上的信标与波形 = Socket 实时操作日志，后端每次写操作广播
-    开始 / 成功 / 失败三帧，波形随新帧滚动；
-  - 场区下方的总装车间 = 部署目录 jar 文件仓，三态筛选，卸载后可在此删文件。
+  版式由四套选定方案融合而成：
+  - V01 机架：整页是一台立式机柜——顶部工具带（任务铭牌 + 读数 + 搜索 + 筛选 +
+    刷新 + 上传）、中部 1U 模块墙、下部备件架（jar 仓）与测控日志带；
+  - V09 轨道：机架左侧挂一幅同心轨道总览图——运行中的 bundle 在内环，
+    启动/解析在中环，其余（已安装/停止中/已卸载）在外缘，框架是圆心；
+    点击天体即定位到对应 1U 模块并高亮；
+  - V02 线网：生命周期状态做成「线路」徽章筛选（全部/运行/解析/启动/停止），
+    服务注册表表达为服务总线上的接驳线，jar 仓表达为车辆段；
+  - V06 基板：每个 1U 模块做成一颗芯片——顶部缺口、状态 LED、引脚式
+    生命周期相位（装填→解析→点火→入轨）、底部总线金手指、右侧电平表。
 
-  本页没有传统页头：页面身份是塔架上的任务徽章铭牌，操作内嵌在 mast 上。
+  本页没有传统页头：页面身份是工具带上的任务铭牌，操作内嵌在工具带里。
 
   能力与后端 /osgi/** 完全对齐，全部真实链路：清单、统计、快照、服务登记走
   GET 端点，安装 / 升级 / 启停 / 卸载 / 删除 / 下载走变更端点，无一处 mock。
@@ -68,16 +68,16 @@ const jars = ref<OsgiJar[]>([]);
 const jarLoading = ref(false);
 /** 正在删除的文件名 */
 const jarBusy = ref("");
-/** 文件仓筛选：all / installed（在框架中）/ only（仅文件） */
+/** 车辆段筛选：all / installed（在框架中）/ only（仅文件） */
 const trayFilter = ref<"all" | "installed" | "only">("all");
-/** 文件仓抽屉是否拉出 */
+/** 车辆段抽屉是否拉出 */
 const drawerOpen = ref(false);
 
-/** 框架统计（控制面板丝印） */
+/** 框架统计（遥测读数） */
 const stats = ref<OsgiStats | null>(null);
-/** 容器侧桥接快照（控制面板丝印） */
+/** 容器侧桥接快照（遥测读数） */
 const snapshot = ref<OsgiSnapshot | null>(null);
-/** 服务注册表（PATCH 面板） */
+/** 服务注册表（服务总线面板） */
 const services = ref<OsgiService[]>([]);
 
 /** 搜索关键字（符号名 / ID / 文件名 模糊匹配，纯前端展示过滤） */
@@ -123,17 +123,17 @@ const problemCount = computed(
   () => logs.value.filter(item => item.level === "ERROR" || item.level === "WARN").length,
 );
 
-/** 磁带机上显示的最近若干条（倒序，最新在最下） */
+/** 测控带上显示的最近若干条（倒序，最新在最下） */
 const tapeTicks = computed(() => logs.value.slice(-7).reverse());
 
-/** 运行中的 bundle 数（驾驶舱口径：按 state 统计全部 bundle） */
+/** 运行中的 bundle 数（总览口径：按 state 统计全部 bundle） */
 const activeCount = computed(() => rows.value.filter(row => row.state === "ACTIVE").length);
 
 /** 框架系统 bundle（bundleId === 0）：不可停止/卸载/升级，界面上只展示 */
 const framework = computed(() => rows.value.find(row => row.bundleId === 0));
 
 /**
- * 顶部丝印：全部来自真实端点，取不到就显示 —，不用前端兜底编造。
+ * 顶部遥测读数：全部来自真实端点，取不到就显示 —，不用前端兜底编造。
  */
 const chips = computed(() => {
   const rejected = snapshot.value?.rejected;
@@ -154,7 +154,7 @@ const chips = computed(() => {
 /** 主电平表点亮数：有运行中的 bundle 即高电平，否则维持中位 */
 const masterLevel = computed(() => (activeCount.value > 0 ? 8 : 4));
 
-/** 筛选项定义 */
+/** 筛选项定义（V02 线路徽章） */
 const filters: Array<{ key: string; label: string }> = [
   { key: "all", label: "全部" },
   { key: "ACTIVE", label: "运行中" },
@@ -180,7 +180,7 @@ const filteredRows = computed(() => {
   });
 });
 
-/** 文件仓筛选结果 */
+/** 车辆段筛选结果 */
 const filteredJars = computed(() => {
   const kw = searchText.value.trim().toLowerCase();
   return jars.value.filter(jar => {
@@ -196,6 +196,61 @@ const filteredJars = computed(() => {
     return true;
   });
 });
+
+/** 轨道总览天体 */
+interface OrbitBody {
+  row: OsgiBundle;
+  ring: "inner" | "mid" | "outer";
+  x: number;
+  y: number;
+}
+
+/**
+ * 轨道总览布点：运行中在内环、启动/解析在中环、其余在外缘；
+ * 每条环上按序号均匀铺开角度，坐标为面板百分比。
+ */
+const orbitBodies = computed<OrbitBody[]>(() => {
+  const groups: Record<OrbitBody["ring"], OsgiBundle[]> = { inner: [], mid: [], outer: [] };
+  for (const row of rows.value) {
+    if (row.state === "ACTIVE") {
+      groups.inner.push(row);
+    } else if (row.state === "STARTING" || row.state === "RESOLVED") {
+      groups.mid.push(row);
+    } else {
+      groups.outer.push(row);
+    }
+  }
+  const radii: Record<OrbitBody["ring"], number> = { inner: 23, mid: 36, outer: 48 };
+  const bodies: OrbitBody[] = [];
+  (Object.keys(groups) as Array<OrbitBody["ring"]>).forEach(ring => {
+    const list = groups[ring];
+    list.forEach((row, index) => {
+      const angle = (index / list.length) * Math.PI * 2 - Math.PI / 2;
+      bodies.push({
+        row,
+        ring,
+        x: 50 + radii[ring] * Math.cos(angle),
+        y: 50 + radii[ring] * Math.sin(angle),
+      });
+    });
+  });
+  return bodies;
+});
+
+/** 轨道图例计数，与 orbitBodies 的分层口径一致 */
+const orbitLegend = computed(() => [
+  { key: "inner", label: "运行中", count: activeCount.value },
+  {
+    key: "mid",
+    label: "启动/解析",
+    count: rows.value.filter(row => row.state === "STARTING" || row.state === "RESOLVED").length,
+  },
+  {
+    key: "outer",
+    label: "待命/外缘",
+    count: rows.value.filter(row => !["ACTIVE", "STARTING", "RESOLVED"].includes(row.state)).length,
+  },
+]);
 
 /**
  * 是否为框架系统 bundle。系统 bundle 不可停止/卸载/升级，界面上只展示。
@@ -365,19 +420,19 @@ async function reloadJars(): Promise<void> {
 /**
  * 读取统计 / 快照 / 服务登记。
  *
- * <p>三块都是只读观测数据，任一失败只影响对应丝印与跳线盘，
+ * <p>三块都是只读观测数据，任一失败只影响对应遥测读数与服务总线，
  * 不牵连模块墙（bundle 清单）的展示。</p>
  */
 async function loadMetrics(): Promise<void> {
   try {
     stats.value = (await listStats()) ?? null;
   } catch {
-    // 统计取不到时丝印显示 —，模块墙不受影响
+    // 统计取不到时读数显示 —，模块墙不受影响
   }
   try {
     snapshot.value = (await getSnapshot()) ?? null;
   } catch {
-    // 快照取不到时丝印显示 —，模块墙不受影响
+    // 快照取不到时读数显示 —，模块墙不受影响
   }
   try {
     services.value = (await listServices()) ?? [];
@@ -386,7 +441,7 @@ async function loadMetrics(): Promise<void> {
   }
 }
 
-/** 刷新全部数据：变更操作后调用，避免「卸载了但文件仓还显示在框架中」 */
+/** 刷新全部数据：变更操作后调用，避免「卸载了但车辆段还显示在框架中」 */
 async function reloadAll(): Promise<void> {
   await Promise.all([reload(), reloadJars()]);
   await loadMetrics();
@@ -683,7 +738,7 @@ async function download(row: OsgiBundle): Promise<void> {
   }
 }
 
-/** 模块点击：滚动定位到对应模块并临时高亮 */
+/** 轨道天体点击：滚动定位到对应 1U 模块并临时高亮 */
 function locate(row: OsgiBundle): void {
   highlightName.value = row.symbolicName;
   window.setTimeout(() => {
@@ -696,7 +751,7 @@ function locate(row: OsgiBundle): void {
 }
 
 /**
- * 从文件仓跳到对应的运行时模块。
+ * 从车辆段跳到对应的运行时模块。
  *
  * <p>文件与 bundle 的对应关系唯一可靠的键是符号名（文件名可以随便改），
  * 因此先按符号名找 bundle，找不到就只提示，不改视图——静默无反应会让人以为是点了没生效。</p>
@@ -709,6 +764,7 @@ function locateBySymbolic(symbolicName: string): void {
     msgError(`框架中已找不到 ${symbolicName}，请刷新后再看`);
     return;
   }
+  drawerOpen.value = true;
   void nextTick(() => {
     locate(row);
   });
@@ -781,103 +837,140 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="osgi-page">
-    <!-- 发射场主体：无页头，页面身份是塔架任务徽章 -->
-    <section class="lc osg-hd" :class="{ 'lc--booting': loading && !rows.length }">
-      <!-- 塔架 mast：任务徽章 + 测控链路 + 主操作 -->
-      <div class="lc-mast">
-        <div class="lc-badge">
-          <span class="lc-badge__mark" aria-hidden="true"><i></i><i></i><i></i></span>
-          <div class="lc-badge__txt">
-            <span class="lc-badge__brand">OSGi LAUNCH CONTROL</span>
-            <span class="lc-badge__model">MISSION CONTROL · SEQUENCE GRID</span>
+    <!-- 轨道机架控制台主体：无页头，页面身份是工具带上的任务铭牌 -->
+    <section class="orc" :class="{ 'orc--booting': loading && !rows.length }">
+      <!-- 工具带：任务铭牌 + 搜索 + 线路筛选 + 主操作 -->
+      <div class="orc-top">
+        <div class="orc-brand">
+          <span class="orc-brand__mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <div class="orc-brand__txt">
+            <span class="orc-brand__name">OSGi ORBITAL RACK</span>
+            <span class="orc-brand__sub">插件机架 · {{ rows.length }} 单元 · 入轨 {{ activeCount }}</span>
           </div>
-          <span class="lc-live osg-live" :class="{ 'lc-live--off': !logChannelReady }">
-            <i class="lc-live__dot"></i>{{ logChannelReady ? "TELEMETRY · LINK OK" : "SOCKET 未接入" }}
+          <span class="orc-live" :class="{ 'orc-live--off': !logChannelReady }">
+            <i class="orc-live__dot"></i>{{ logChannelReady ? "TELEMETRY · LINK OK" : "SOCKET 未接入" }}
           </span>
         </div>
-        <div class="lc-mast__acts osg-hd__acts">
+        <div class="orc-top__ops">
+          <div class="orc-search">
+            <el-input
+              v-model="searchText"
+              placeholder="搜索符号名 / ID / 文件名…"
+              clearable
+              :prefix-icon="Search"
+            />
+          </div>
+          <div class="orc-lines">
+            <button
+              v-for="f in filters"
+              :key="f.key"
+              type="button"
+              class="orc-line"
+              :class="{ 'orc-line--on': filterState === f.key }"
+              @click="filterState = f.key"
+            >
+              <i class="orc-line__dot" aria-hidden="true"></i>{{ f.label }}
+            </button>
+          </div>
           <ReButton icon="RefreshRight" :loading="loading" @click="reloadAll">刷新</ReButton>
           <ReButton type="primary" icon="Upload" :disabled="!!busy" @click="pickInstall">上传 jar</ReButton>
         </div>
       </div>
 
-      <!-- 遥测带：9 路任务读数 -->
-      <div class="lc-telemetry osg-chips">
-        <span v-for="c in chips" :key="c.label" class="lc-tele osg-chip" :title="c.label">
-          <span class="lc-tele__label">{{ c.label }}</span>
-          <b class="lc-tele__val">{{ c.value }}</b>
+      <!-- 遥测读数带 -->
+      <div class="orc-tele">
+        <span v-for="c in chips" :key="c.label" class="orc-tele__item" :title="c.label">
+          <span class="orc-tele__label">{{ c.label }}</span>
+          <b class="orc-tele__val">{{ c.value }}</b>
         </span>
       </div>
 
-      <!-- 控制台：MASTER 电平塔 + 搜索 + 状态筛选 -->
-      <div class="lc-console">
-        <div class="lc-tower">
-          <span class="lc-tower__ttl">MASTER</span>
-          <div class="lc-tower__leds" :key="logPulse">
-            <i v-for="i in 10" :key="i" :class="{ on: i <= masterLevel }"></i>
-          </div>
-        </div>
-        <span class="lc-console__meta">
-          {{ framework ? `FW ${framework.symbolicName} · v${framework.version}` : "FW —" }} · 入轨
-          {{ activeCount }}/{{ rows.length }}
-        </span>
-        <div class="lc-console__search osg-ctrl__search">
-          <el-input
-            v-model="searchText"
-            placeholder="搜索符号名 / ID / 文件名…"
-            clearable
-            :prefix-icon="Search"
-          />
-        </div>
-        <div class="lc-seg">
-          <button
-            v-for="f in filters"
-            :key="f.key"
-            type="button"
-            class="lc-seg__btn osg-chipbtn"
-            :class="{ 'lc-seg__btn--on': filterState === f.key }"
-            @click="filterState = f.key"
-          >
-            {{ f.label }}
-          </button>
-        </div>
-      </div>
-
-      <!-- 发射场：工位阵 + 地面站 -->
-      <div class="lc-main">
-        <div class="lc-floor" :class="{ 'lc-floor--empty': !loading && !rows.length }">
-          <template v-for="row in filteredRows" :key="row.bundleId">
+      <!-- 主体：轨道总览 + 1U 模块墙 + 服务总线 -->
+      <div class="orc-main">
+        <!-- V09 轨道总览：点击天体定位到机架模块 -->
+        <aside class="orc-orbit">
+          <div class="orc-orbit__head">ORBIT MAP<span>状态总览 · 点击定位模块</span></div>
+          <div class="orc-orbit__field">
+            <i class="orc-orbit__ring orc-orbit__ring--outer" aria-hidden="true"></i>
+            <i class="orc-orbit__ring orc-orbit__ring--mid" aria-hidden="true"></i>
+            <i class="orc-orbit__ring orc-orbit__ring--inner" aria-hidden="true"></i>
             <div
-              :id="`osgi-ch-${row.bundleId}`"
-              class="pad osg-ch"
-              :class="[`pad--${row.state.toLowerCase()}`, { 'pad--hl': highlightName === row.symbolicName }]"
+              class="orc-orbit__core"
+              :title="framework ? `FW ${framework.symbolicName} v${framework.version}` : 'FW —'"
             >
-              <div class="pad__id">
-                <i class="pad__beacon"></i>
-                <span class="pad__no">PAD {{ chNo(row.bundleId) }}</span>
-                <span class="pad__bid">#{{ row.bundleId }}</span>
+              <b>FW</b>
+              <span>{{ framework ? chNo(framework.bundleId) : "—" }}</span>
+            </div>
+            <button
+              v-for="body in orbitBodies"
+              :key="body.row.bundleId"
+              type="button"
+              class="orc-sat"
+              :class="[`orc-sat--${body.ring}`, `orc-sat--${body.row.state.toLowerCase()}`]"
+              :style="{ left: `${body.x}%`, top: `${body.y}%` }"
+              :title="`${body.row.symbolicName} · ${stateText(body.row.state)}`"
+              @click="locate(body.row)"
+            >
+              <i class="orc-sat__dot" aria-hidden="true"></i>
+              <span class="orc-sat__id">{{ chNo(body.row.bundleId) }}</span>
+            </button>
+          </div>
+          <div class="orc-orbit__legend">
+            <span v-for="leg in orbitLegend" :key="leg.key" class="orc-orbit__leg">
+              <i :class="`orc-orbit__legdot orc-orbit__legdot--${leg.key}`" aria-hidden="true"></i>
+              {{ leg.label }} <b>{{ leg.count }}</b>
+            </span>
+          </div>
+        </aside>
+
+        <!-- V01 机架 + V06 芯片：1U 模块墙 -->
+        <div class="orc-rack">
+          <div class="orc-rack__slots" :class="{ 'orc-rack__slots--empty': !loading && !filteredRows.length }">
+            <article
+              v-for="row in filteredRows"
+              :key="row.bundleId"
+              :id="`osgi-ch-${row.bundleId}`"
+              class="orc-ch"
+              :class="[
+                `orc-ch--${row.state.toLowerCase()}`,
+                { 'orc-ch--hl': highlightName === row.symbolicName },
+              ]"
+            >
+              <i class="orc-ch__notch" aria-hidden="true"></i>
+              <div class="orc-ch__id">
+                <i class="orc-ch__led" aria-hidden="true"></i>
+                <span class="orc-ch__u">U{{ chNo(row.bundleId) }}</span>
+                <span class="orc-ch__bid">#{{ row.bundleId }}</span>
               </div>
 
-              <div class="pad__body">
-                <div class="pad__name">
+              <div class="orc-ch__body">
+                <div class="orc-ch__name">
                   {{ row.symbolicName }}
-                  <span class="pad__ver">v{{ row.version }}</span>
+                  <span class="orc-ch__ver">v{{ row.version }}</span>
                 </div>
 
-                <!-- 相位时间轴：装填 → 加注 → 点火 → 入轨 -->
-                <div class="pad__phase" :title="`发射相位 · ${stateText(row.state)}`">
-                  <span class="pad__step" :class="{ 'pad__step--done': stateLevel(row.state) >= 3 }"><i></i>装填</span>
-                  <span class="pad__step" :class="{ 'pad__step--done': stateLevel(row.state) >= 4 }"><i></i>加注</span>
-                  <span class="pad__step" :class="{ 'pad__step--done': stateLevel(row.state) >= 6 }"><i></i>点火</span>
-                  <span class="pad__step" :class="{ 'pad__step--done': stateLevel(row.state) >= 8 }"><i></i>入轨</span>
-                  <span v-if="row.state === 'STOPPING'" class="pad__abort">离轨程序执行中</span>
-                  <span v-else-if="row.state === 'UNINSTALLED'" class="pad__abort pad__abort--bad">任务中止</span>
+                <!-- 引脚式生命周期相位：装填 → 解析 → 点火 → 入轨 -->
+                <div class="orc-ch__pins" :title="`生命周期 · ${stateText(row.state)}`">
+                  <span class="orc-ch__pin" :class="{ 'orc-ch__pin--on': stateLevel(row.state) >= 3 }">
+                    <i aria-hidden="true"></i>装填
+                  </span>
+                  <span class="orc-ch__pin" :class="{ 'orc-ch__pin--on': stateLevel(row.state) >= 4 }">
+                    <i aria-hidden="true"></i>解析
+                  </span>
+                  <span class="orc-ch__pin" :class="{ 'orc-ch__pin--on': stateLevel(row.state) >= 6 }">
+                    <i aria-hidden="true"></i>点火
+                  </span>
+                  <span class="orc-ch__pin" :class="{ 'orc-ch__pin--on': stateLevel(row.state) >= 8 }">
+                    <i aria-hidden="true"></i>入轨
+                  </span>
+                  <span v-if="row.state === 'STOPPING'" class="orc-ch__note">停止程序执行中</span>
+                  <span v-else-if="row.state === 'UNINSTALLED'" class="orc-ch__note orc-ch__note--bad">已下架</span>
                 </div>
 
-                <div class="pad__ops">
+                <div class="orc-ch__ops">
                   <template v-if="isSystem(row)">
                     <ReTag type="info" effect="plain">系统内置</ReTag>
-                    <span class="pad__sysnote">发射场中枢，无启停 / 升级 / 卸载操作</span>
+                    <span class="orc-ch__sysnote">框架中枢，无启停 / 升级 / 卸载操作</span>
                   </template>
                   <template v-else>
                     <ReTag
@@ -902,133 +995,142 @@ onBeforeUnmount(() => {
                 </div>
               </div>
 
-              <div class="pad__meter osg-ch__lad" :title="`状态电平 · ${stateText(row.state)}`">
-                <div class="pad__ladder">
+              <div class="orc-ch__meter" :title="`状态电平 · ${stateText(row.state)}`">
+                <div class="orc-ch__ladder">
                   <i v-for="i in 10" :key="i" :class="ladderClass(row.state, i)"></i>
                 </div>
-                <span class="pad__lvl osg-fader__val">LVL <b>{{ stateLevel(row.state) }}</b>/10</span>
+                <span class="orc-ch__lvl">LVL <b>{{ stateLevel(row.state) }}</b>/10</span>
               </div>
-            </div>
-          </template>
+              <i class="orc-ch__bus" aria-hidden="true"></i>
+            </article>
 
-          <div v-if="!loading && !filteredRows.length" class="lc-empty osg-empty">
-            <p v-if="rows.length">没有符合当前搜索 / 筛选条件的 bundle</p>
-            <div v-else>
-              <p>发射场上暂无待发任务</p>
-              <p class="lc-empty__hint">
-                从总装车间上传 jar 即可进入工位；端点需开启 <code>plugin.osgi.endpoint.enabled=true</code>
-              </p>
+            <div v-if="!loading && !filteredRows.length" class="orc-empty">
+              <p v-if="rows.length">没有符合当前搜索 / 筛选条件的 bundle</p>
+              <div v-else>
+                <p>机架上暂无插件模块</p>
+                <p class="orc-empty__hint">
+                  从车辆段上传 jar 即可上机；端点需开启 <code>plugin.osgi.endpoint.enabled=true</code>
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- 地面站：服务注册表 -->
-        <aside class="lc-ground osg-panel">
-          <div class="lc-ground__h">GROUND STATION<span>服务登记 · {{ services.length }} 路</span></div>
-          <div v-if="services.length" class="lc-jacks osg-jacks">
-            <div v-for="svc in services" :key="svc.osgiServiceId" class="lc-jack osg-jack" title="已注册服务">
-              <span class="lc-jack__dish"></span>
-              <span class="lc-jack__nm">{{ svc.type }}</span>
-              <span class="lc-jack__pid">{{ svc.pid }}</span>
+        <!-- V02 线网 + V06 排针：服务总线 -->
+        <aside class="orc-svc">
+          <div class="orc-svc__head">SERVICE BUS<span>服务接驳 · {{ services.length }} 路</span></div>
+          <div v-if="services.length" class="orc-svc__jacks">
+            <div v-for="(svc, index) in services" :key="svc.osgiServiceId" class="orc-jack" title="已注册服务">
+              <span class="orc-jack__no">J{{ index + 1 }}</span>
+              <div class="orc-jack__txt">
+                <span class="orc-jack__nm">{{ svc.type }}</span>
+                <span class="orc-jack__pid">{{ svc.pid }}</span>
+              </div>
+              <i class="orc-jack__led" aria-hidden="true"></i>
             </div>
           </div>
-          <p v-else class="lc-ground__empty">当前无已注册服务，启动 bundle 后自动点亮天线</p>
+          <p v-else class="orc-svc__empty">当前无已注册服务，启动 bundle 后自动接通线路</p>
         </aside>
       </div>
 
-      <!-- 测控带：信标 + 波形 + 载荷帧 -->
-      <div class="lc-comm">
-        <div class="lc-reel osg-reel" :class="{ spinning: logPulse > 0 }" :key="`ra-${logPulse}`"></div>
-        <div class="lc-tape osg-tape" :key="`t-${logPulse}`">
-          <span v-for="(item, index) in tapeTicks" :key="`${item.startedAt}-${index}`" class="lc-tape__tick osg-tick">
+      <!-- 测控带：滚轮 + 磁带 + 载荷帧 -->
+      <div class="orc-comm">
+        <div class="orc-reel" :class="{ 'orc-reel--spin': logPulse > 0 }" :key="`ra-${logPulse}`"></div>
+        <div class="orc-tape" :key="`t-${logPulse}`">
+          <span v-for="(item, index) in tapeTicks" :key="`${item.startedAt}-${index}`" class="orc-tape__tick">
             ● {{ actionText(item.action) }} · {{ item.symbolicName || "—" }} · {{ logTime(item.startedAt) }}
           </span>
-          <span v-if="!tapeTicks.length" class="lc-tape__tick lc-tape__tick--idle">等待操作…</span>
+          <span v-if="!tapeTicks.length" class="orc-tape__tick orc-tape__tick--idle">等待操作…</span>
         </div>
-        <div class="lc-reel lc-reel--r osg-reel" :class="{ spinning: logPulse > 0 }" :key="`rb-${logPulse}`"></div>
-        <div class="lc-frame osg-frame">
-          <template v-if="lastFrame">
-            <code>{ module: "{{ lastFrame.module }}", event: "{{ lastFrame.event }}", dataId: "{{ lastFrame.dataId }}", ts: "{{ lastFrame.timestamp }}" }</code>
-          </template>
-          <code v-else class="lc-frame--idle">payload { module, event, data, dataId, timestamp } · 等待首帧…</code>
+        <div class="orc-reel orc-reel--r" :class="{ 'orc-reel--spin': logPulse > 0 }" :key="`rb-${logPulse}`"></div>
+        <div class="orc-frame">
+          <code v-if="lastFrame">
+            { module: "{{ lastFrame.module }}", event: "{{ lastFrame.event }}", dataId: "{{ lastFrame.dataId }}", ts: "{{ lastFrame.timestamp }}" }
+          </code>
+          <code v-else class="orc-frame--idle">payload { module, event, data, dataId, timestamp } · 等待首帧…</code>
         </div>
       </div>
     </section>
 
-    <!-- 总装车间：部署目录 jar 文件仓（拉出式） -->
-    <section class="hangar osg-tray" :class="{ 'hangar--open': drawerOpen }">
-      <button type="button" class="hangar__grip" @click="drawerOpen = !drawerOpen">
-        <span class="hangar__grip__lines" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="hangar__grip__ttl">总装车间 · 部署目录 <b>{{ jars.length }}</b> 个 jar</span>
-        <span class="hangar__grip__caret">{{ drawerOpen ? "▾ 收回" : "▸ 拉出" }}</span>
+    <!-- 车辆段：部署目录 jar 仓（V01 备件架 + V02 车辆段 + V06 料盘，拉出式） -->
+    <section class="depot" :class="{ 'depot--open': drawerOpen }">
+      <button type="button" class="depot__grip" @click="drawerOpen = !drawerOpen">
+        <span class="depot__grip__lines" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="depot__grip__ttl">车辆段 · 部署目录 <b>{{ jars.length }}</b> 个 jar</span>
+        <span class="depot__grip__caret">{{ drawerOpen ? "▾ 收回" : "▸ 拉出" }}</span>
       </button>
 
-      <div v-show="drawerOpen" class="hangar__body">
-        <div class="hangar__tools">
-          <div class="hangar__seg">
+      <div v-show="drawerOpen" class="depot__body">
+        <div class="depot__tools">
+          <div class="depot__seg">
             <button
               type="button"
-              class="hangar__seg__btn osg-seg__btn"
-              :class="{ 'hangar__seg__btn--on': trayFilter === 'all' }"
+              class="depot__seg__btn"
+              :class="{ 'depot__seg__btn--on': trayFilter === 'all' }"
               @click="trayFilter = 'all'"
             >
               全部
             </button>
             <button
               type="button"
-              class="hangar__seg__btn osg-seg__btn"
-              :class="{ 'hangar__seg__btn--on': trayFilter === 'installed' }"
+              class="depot__seg__btn"
+              :class="{ 'depot__seg__btn--on': trayFilter === 'installed' }"
               @click="trayFilter = 'installed'"
             >
               在框架中
             </button>
             <button
               type="button"
-              class="hangar__seg__btn osg-seg__btn"
-              :class="{ 'hangar__seg__btn--on': trayFilter === 'only' }"
+              class="depot__seg__btn"
+              :class="{ 'depot__seg__btn--on': trayFilter === 'only' }"
               @click="trayFilter = 'only'"
             >
               仅文件
             </button>
           </div>
-          <div class="hangar__auto osg-foot__auto">
+          <div class="depot__auto">
             <span>每 30s 自动巡检</span>
             <el-switch v-model="autoRefresh" size="small" />
           </div>
         </div>
 
-        <div class="hangar__list" :class="{ 'hangar__list--empty': !jarLoading && !filteredJars.length }">
-          <div v-for="jar in filteredJars" :key="jar.fileName" class="veh osg-jar" :class="jar.installed ? 'veh--on osg-jar--on' : 'veh--off osg-jar--off'">
-            <span class="veh__bar"></span>
-            <div class="veh__body">
-              <div class="veh__name">
+        <div class="depot__list" :class="{ 'depot__list--empty': !jarLoading && !filteredJars.length }">
+          <div
+            v-for="jar in filteredJars"
+            :key="jar.fileName"
+            class="depot__jar"
+            :class="jar.installed ? 'depot__jar--on' : 'depot__jar--off'"
+          >
+            <span class="depot__jar__bar" aria-hidden="true"></span>
+            <div class="depot__jar__body">
+              <div class="depot__jar__name">
                 {{ jar.fileName }}
-                <span class="veh__size">{{ formatSize(jar.size) }}</span>
+                <span class="depot__jar__size">{{ formatSize(jar.size) }}</span>
               </div>
-              <div class="veh__meta">
+              <div class="depot__jar__meta">
                 <span v-if="jar.installed">框架中 · {{ jar.symbolicName }} · {{ stateText(jar.state ?? "") }}</span>
-                <span v-else>仅文件 · 未总装</span>
-                <span class="veh__time">{{ formatTime(jar.lastModified) }}</span>
+                <span v-else>仅文件 · 未上机</span>
+                <span class="depot__jar__time">{{ formatTime(jar.lastModified) }}</span>
               </div>
             </div>
             <ReTag :type="jar.installed ? 'success' : 'info'" effect="plain">
               {{ jar.installed ? "在框架中" : "仅文件" }}
             </ReTag>
-            <div class="veh__ops">
+            <div class="depot__jar__ops">
               <ReButton
                 v-if="jar.installed"
                 size="small"
                 :disabled="!!jarBusy"
                 @click="locateBySymbolic(jar.symbolicName ?? '')"
               >
-                查看工位
+                查看模块
               </ReButton>
               <ReButton
                 size="small"
                 type="danger"
                 :disabled="jar.installed || !!jarBusy"
                 :loading="jarBusy === jar.fileName"
-                :title="jar.installed ? '仍在框架中，请先在工位上卸载' : ''"
+                :title="jar.installed ? '仍在框架中，请先在模块上卸载' : ''"
                 @click="removeJar(jar)"
               >
                 删除文件
@@ -1036,62 +1138,62 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <div v-if="!jarLoading && !filteredJars.length" class="lc-empty osg-empty">
+          <div v-if="!jarLoading && !filteredJars.length" class="orc-empty">
             <p v-if="jars.length">没有符合当前筛选条件的文件</p>
             <div v-else>
-              <p>总装车间暂无 jar 文件</p>
-              <p class="lc-empty__hint">上传安装后会在这里显示，卸载后可在此删除文件</p>
+              <p>车辆段暂无 jar 文件</p>
+              <p class="orc-empty__hint">上传安装后会在这里显示，卸载后可在此删除文件</p>
             </div>
           </div>
         </div>
 
-        <div class="hangar__dock osg-dock" @click="pickInstall" @dragover.prevent @drop.prevent="onDropInstall">
-          <span class="hangar__dock__plus">+</span>
-          <span>拖入 .jar 即刻进入发射工位 <small>· 同符号名上传 = 原地升级 · 点击选择文件</small></span>
+        <div class="depot__dock" @click="pickInstall" @dragover.prevent @drop.prevent="onDropInstall">
+          <span class="depot__dock__plus">+</span>
+          <span>拖入 .jar 即刻上机架 <small>· 同符号名上传 = 原地升级 · 点击选择文件</small></span>
         </div>
       </div>
     </section>
 
-    <!-- 测控通信日志：实时操作日志（可折叠） -->
-    <section class="commlog osg-log" :class="{ 'commlog--closed osg-log--closed': !logOpen }">
-      <header class="commlog__head osg-log__head" @click="logOpen = !logOpen">
-        <span class="commlog__caret">{{ logOpen ? "▾" : "▸" }}</span>
-        <span class="commlog__title">测控通信日志</span>
-        <span class="commlog__chan" :class="{ 'commlog__chan--off': !logChannelReady }">
+    <!-- 测控日志带：实时操作日志（可折叠） -->
+    <section class="orc-log" :class="{ 'orc-log--closed': !logOpen }">
+      <header class="orc-log__head" @click="logOpen = !logOpen">
+        <span class="orc-log__caret">{{ logOpen ? "▾" : "▸" }}</span>
+        <span class="orc-log__title">测控日志</span>
+        <span class="orc-log__chan" :class="{ 'orc-log__chan--off': !logChannelReady }">
           {{ logChannelReady ? "socket · osgi / operation-log" : "socket 未接入" }}
         </span>
-        <span v-if="problemCount" class="commlog__badge">{{ problemCount }} 异常</span>
-        <span class="commlog__count">{{ logs.length }} 条</span>
-        <div class="commlog__spacer"></div>
+        <span v-if="problemCount" class="orc-log__badge">{{ problemCount }} 异常</span>
+        <span class="orc-log__count">{{ logs.length }} 条</span>
+        <div class="orc-log__spacer"></div>
         <button
           type="button"
-          class="commlog__act osg-log__act"
-          :class="{ 'commlog__act--on osg-log__act--on': logOnlyProblem }"
+          class="orc-log__act"
+          :class="{ 'orc-log__act--on': logOnlyProblem }"
           @click.stop="logOnlyProblem = !logOnlyProblem"
         >
           仅异常
         </button>
-        <button type="button" class="commlog__act osg-log__act" @click.stop="clearLogs">清空</button>
+        <button type="button" class="orc-log__act" @click.stop="clearLogs">清空</button>
       </header>
 
-      <div v-show="logOpen" ref="logBox" class="commlog__body">
-        <p v-if="!visibleLogs.length" class="commlog__empty">
+      <div v-show="logOpen" ref="logBox" class="orc-log__body">
+        <p v-if="!visibleLogs.length" class="orc-log__empty">
           {{ logs.length ? "当前没有异常日志" : "等待操作…安装 / 卸载 / 启停 / 升级 的每一步都会实时出现在这里" }}
         </p>
         <div
           v-for="(item, index) in visibleLogs"
           :key="`${item.startedAt}-${index}`"
-          class="commlog__row osg-log__row"
-          :class="`commlog__row--${item.level.toLowerCase()}`"
+          class="orc-log__row"
+          :class="`orc-log__row--${item.level.toLowerCase()}`"
         >
-          <span class="commlog__time">{{ logTime(item.startedAt) }}</span>
-          <span class="commlog__stage" :class="`commlog__stage--${item.status}`">
+          <span class="orc-log__time">{{ logTime(item.startedAt) }}</span>
+          <span class="orc-log__stage" :class="`orc-log__stage--${item.status}`">
             {{ item.status === "start" ? "开始" : item.status === "failure" ? "失败" : "完成" }}
           </span>
-          <span class="commlog__action">{{ actionText(item.action) }}</span>
-          <span class="commlog__symbol">{{ item.symbolicName || "—" }}</span>
-          <span class="commlog__msg">{{ item.message || "—" }}</span>
-          <span v-if="item.duration > 0" class="commlog__dur">{{ item.duration }}ms</span>
+          <span class="orc-log__action">{{ actionText(item.action) }}</span>
+          <span class="orc-log__symbol">{{ item.symbolicName || "—" }}</span>
+          <span class="orc-log__msg">{{ item.message || "—" }}</span>
+          <span v-if="item.duration > 0" class="orc-log__dur">{{ item.duration }}ms</span>
         </div>
       </div>
     </section>
@@ -1105,53 +1207,58 @@ onBeforeUnmount(() => {
 .osgi-page {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
 }
 
 .osgi-page__file {
   display: none;
 }
 
-/* ============ 发射控制台主体 ============ */
-.lc {
-  --lc-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Courier New", monospace;
-  --lc-frame: var(--border-default);
-  --lc-panel: var(--bg-container);
-  --lc-well: var(--bg-fill);
-  border: 1px solid var(--lc-frame);
+/* ============ 轨道机架控制台主体 ============ */
+.orc {
+  --orc-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Courier New", monospace;
+  --orc-frame: var(--border-default);
+  --orc-panel: var(--bg-container);
+  --orc-well: var(--bg-fill);
+  border: 1px solid var(--orc-frame);
   border-radius: var(--radius-xl);
   background:
     radial-gradient(1100px 180px at 50% 0%, color-mix(in srgb, var(--brand-500) 7%, transparent), transparent 70%),
-    var(--lc-panel);
+    var(--orc-panel);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
-/* ---- 塔架 mast：任务徽章 + 主操作 ---- */
-.lc-mast {
-  display: flex;
-  align-items: stretch;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--lc-frame);
-  background: color-mix(in srgb, var(--brand-500) 5%, var(--lc-panel));
+.orc--booting .orc-rack__slots {
+  animation: orc-breathe 1.4s ease-in-out infinite;
 }
 
-.lc-badge {
-  flex: 1;
-  min-width: 0;
+@keyframes orc-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ---- 工具带：任务铭牌 + 搜索 + 线路筛选 + 主操作 ---- */
+.orc-top {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 8px 14px;
-  border: 1px solid color-mix(in srgb, var(--brand-500) 35%, var(--border-subtle));
-  border-radius: var(--radius-md);
-  background: linear-gradient(120deg, color-mix(in srgb, var(--brand-500) 10%, var(--bg-elevated)), var(--bg-elevated));
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--orc-frame);
+  background: color-mix(in srgb, var(--brand-500) 5%, var(--orc-panel));
 }
 
-.lc-badge__mark {
+.orc-brand {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.orc-brand__mark {
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1160,7 +1267,7 @@ onBeforeUnmount(() => {
   background: var(--brand-gradient);
 }
 
-.lc-badge__mark i {
+.orc-brand__mark i {
   width: 16px;
   height: 2px;
   border-radius: 2px;
@@ -1168,39 +1275,39 @@ onBeforeUnmount(() => {
   opacity: 0.9;
 }
 
-.lc-badge__mark i:nth-child(2) {
+.orc-brand__mark i:nth-child(2) {
   width: 10px;
   opacity: 0.65;
 }
 
-.lc-badge__mark i:nth-child(3) {
+.orc-brand__mark i:nth-child(3) {
   width: 13px;
   opacity: 0.4;
 }
 
-.lc-badge__txt {
+.orc-brand__txt {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.lc-badge__brand {
-  font-family: var(--lc-mono);
+.orc-brand__name {
+  font-family: var(--orc-mono);
   font-size: 15px;
   font-weight: 800;
   letter-spacing: 0.16em;
   color: var(--brand-600);
 }
 
-.lc-badge__model {
-  font-family: var(--lc-mono);
+.orc-brand__sub {
+  font-family: var(--orc-mono);
   font-size: 10px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.12em;
   color: var(--text-tertiary);
 }
 
-.lc-live {
+.orc-live {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1208,47 +1315,98 @@ onBeforeUnmount(() => {
   padding: 3px 10px;
   border: 1px solid var(--status-success);
   border-radius: 9999px;
-  font-family: var(--lc-mono);
+  font-family: var(--orc-mono);
   font-size: 10px;
   letter-spacing: 0.08em;
   color: var(--status-success);
 }
 
-.lc-live--off {
+.orc-live--off {
   border-color: var(--status-warning);
   color: var(--status-warning);
 }
 
-.lc-live__dot {
+.orc-live__dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-  animation: lc-blink 1.6s infinite;
+  animation: orc-blink 1.6s infinite;
 }
 
-@keyframes lc-blink {
+@keyframes orc-blink {
   50% {
     opacity: 0.25;
   }
 }
 
-.lc-mast__acts {
+.orc-top__ops {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-/* ---- 遥测带：9 路任务读数 ---- */
-.lc-telemetry {
+.orc-search {
+  width: 220px;
+}
+
+/* V02 线路徽章：状态筛选 */
+.orc-lines {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.orc-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 9999px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.orc-line:hover {
+  color: var(--brand-500);
+  border-color: color-mix(in srgb, var(--brand-500) 45%, var(--border-default));
+}
+
+.orc-line--on {
+  border-color: var(--brand-500);
+  background: color-mix(in srgb, var(--brand-500) 10%, var(--bg-elevated));
+  color: var(--brand-500);
+  font-weight: 600;
+}
+
+.orc-line__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-default);
+}
+
+.orc-line--on .orc-line__dot {
+  background: var(--brand-500);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--brand-500) 60%, transparent);
+}
+
+/* ---- 遥测读数带 ---- */
+.orc-tele {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: 8px;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--lc-frame);
+  border-bottom: 1px solid var(--orc-frame);
 }
 
-.lc-tele {
+.orc-tele__item {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -1256,8 +1414,8 @@ onBeforeUnmount(() => {
   padding: 6px 10px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  background: var(--lc-well);
-  font-family: var(--lc-mono);
+  background: var(--orc-well);
+  font-family: var(--orc-mono);
   font-size: 10px;
   letter-spacing: 0.04em;
   color: var(--text-secondary);
@@ -1265,85 +1423,727 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.lc-tele__label {
+.orc-tele__label {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.lc-tele__val {
+.orc-tele__val {
   color: var(--brand-500);
   font-size: 12px;
   font-weight: 700;
 }
 
-/* ---- 控制台：MASTER 电平塔 + 搜索 + 筛选 ---- */
-.lc-console {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--lc-frame);
-  background: var(--lc-panel);
+/* ---- 主体：轨道总览 + 模块墙 + 服务总线 ---- */
+.orc-main {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr) 236px;
+  align-items: stretch;
 }
 
-.lc-tower {
+/* ---- V09 轨道总览 ---- */
+.orc-orbit {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-right: 1px solid var(--orc-frame);
+  background: color-mix(in srgb, var(--brand-500) 3%, var(--orc-well));
+  min-width: 0;
 }
 
-.lc-tower__ttl {
-  font-family: var(--lc-mono);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  font-weight: 700;
+.orc-orbit__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--orc-mono);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
   color: var(--brand-500);
 }
 
-.lc-tower__leds {
+.orc-orbit__head span {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.orc-orbit__field {
+  position: relative;
+  width: 100%;
+  max-width: 212px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+}
+
+.orc-orbit__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px dashed var(--border-default);
+}
+
+.orc-orbit__ring--inner {
+  width: 46%;
+  height: 46%;
+  border-color: color-mix(in srgb, var(--status-success) 45%, var(--border-default));
+}
+
+.orc-orbit__ring--mid {
+  width: 72%;
+  height: 72%;
+  border-color: color-mix(in srgb, var(--brand-500) 40%, var(--border-default));
+}
+
+.orc-orbit__ring--outer {
+  width: 96%;
+  height: 96%;
+}
+
+.orc-orbit__core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 46px;
   display: flex;
-  flex-direction: column-reverse;
-  gap: 2px;
-  padding: 4px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--brand-500) 55%, var(--border-default));
+  background: linear-gradient(140deg, color-mix(in srgb, var(--brand-500) 18%, var(--bg-elevated)), var(--bg-elevated));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--brand-500) 30%, transparent);
+  font-family: var(--orc-mono);
+}
+
+.orc-orbit__core b {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--brand-500);
+}
+
+.orc-orbit__core span {
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+
+.orc-sat {
+  --sat: var(--pulse-offline);
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--lc-well);
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 
-.lc-tower__leds i {
-  width: 18px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--border-subtle);
+.orc-sat:hover {
+  transform: translate(-50%, -50%) scale(1.18);
+  border-color: var(--brand-500);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--brand-500) 35%, transparent);
+  z-index: 2;
 }
 
-.lc-tower__leds i.on {
-  background: var(--status-success);
-  animation: lc-pulse 1.2s var(--ease-out);
+.orc-sat--active { --sat: var(--status-success); }
+.orc-sat--starting { --sat: var(--status-warning); }
+.orc-sat--resolved { --sat: var(--brand-500); }
+.orc-sat--stopping { --sat: var(--brand-400); }
+.orc-sat--installed { --sat: var(--metric-net); }
+.orc-sat--uninstalled { --sat: var(--status-error); }
+
+.orc-sat__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sat);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--sat) 70%, transparent);
 }
 
-@keyframes lc-pulse {
-  0% {
-    box-shadow: 0 0 8px var(--status-success);
-  }
-  100% {
-    box-shadow: 0 0 0 var(--status-success);
-  }
+.orc-sat__id {
+  font-family: var(--orc-mono);
+  font-size: 8px;
+  line-height: 1;
+  color: var(--text-secondary);
 }
 
-.lc-console__meta {
-  font-family: var(--lc-mono);
+.orc-orbit__legend {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: var(--orc-mono);
   font-size: 10px;
   color: var(--text-secondary);
 }
 
-.lc-console__search {
-  margin-left: auto;
-  width: 240px;
+.orc-orbit__leg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.lc-seg {
+.orc-orbit__leg b {
+  color: var(--brand-500);
+}
+
+.orc-orbit__legdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.orc-orbit__legdot--inner {
+  background: var(--status-success);
+}
+
+.orc-orbit__legdot--mid {
+  background: var(--brand-500);
+}
+
+.orc-orbit__legdot--outer {
+  background: var(--border-default);
+}
+
+/* ---- V01 机架 + V06 芯片：1U 模块墙 ---- */
+.orc-rack {
+  min-width: 0;
+  padding: 12px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, color-mix(in srgb, var(--border-subtle) 55%, transparent) 22px 23px),
+    var(--orc-panel);
+}
+
+.orc-rack__slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 10px;
+}
+
+.orc-rack__slots--empty {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.orc-ch {
+  --ch: var(--pulse-offline);
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 12px 12px 16px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.orc-ch:hover {
+  border-color: color-mix(in srgb, var(--ch) 55%, var(--border-default));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.orc-ch--hl {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-500) 25%, transparent), var(--shadow-md);
+}
+
+.orc-ch--active { --ch: var(--status-success); }
+.orc-ch--starting { --ch: var(--status-warning); }
+.orc-ch--resolved { --ch: var(--brand-500); }
+.orc-ch--stopping { --ch: var(--brand-400); }
+.orc-ch--installed { --ch: var(--metric-net); }
+.orc-ch--uninstalled { --ch: var(--status-error); }
+
+/* V06 芯片缺口 */
+.orc-ch__notch {
+  position: absolute;
+  top: 0;
+  left: 18px;
+  width: 26px;
+  height: 5px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: color-mix(in srgb, var(--ch) 40%, var(--border-subtle));
+}
+
+/* V01 模块左侧状态灯条 */
+.orc-ch::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ch);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ch) 60%, transparent);
+}
+
+.orc-ch__id {
+  flex: none;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding-right: 10px;
+  border-right: 1px dashed var(--border-default);
+}
+
+.orc-ch__led {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ch);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ch) 70%, transparent);
+}
+
+.orc-ch__u {
+  font-family: var(--orc-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+}
+
+.orc-ch__bid {
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.orc-ch__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.orc-ch__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.orc-ch__ver {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-fill);
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* V06 引脚式生命周期相位 */
+.orc-ch__pins {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.orc-ch__pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.orc-ch__pin i {
+  width: 3px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--border-default);
+}
+
+.orc-ch__pin--on {
+  color: var(--text-primary);
+}
+
+.orc-ch__pin--on i {
+  background: var(--ch);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--ch) 55%, transparent);
+}
+
+.orc-ch__note {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--brand-400) 15%, transparent);
+  color: var(--brand-400);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.orc-ch__note--bad {
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+  color: var(--status-error);
+}
+
+.orc-ch__ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.orc-ch__sysnote {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.orc-ch__meter {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px dashed var(--border-default);
+}
+
+.orc-ch__ladder {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+}
+
+.orc-ch__ladder i {
+  width: 20px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--bg-fill);
+  transition: background 0.2s;
+}
+
+.orc-ch__ladder i.on {
+  background: var(--brand-400);
+}
+
+.orc-ch__ladder i.hot {
+  background: var(--status-warning);
+}
+
+.orc-ch__ladder i.max {
+  background: var(--status-success);
+}
+
+.orc-ch__lvl {
+  font-family: var(--orc-mono);
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+
+.orc-ch__lvl b {
+  color: var(--brand-500);
+}
+
+/* V06 底部总线金手指 */
+.orc-ch__bus {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 5px;
+  height: 5px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--brand-500) 45%, var(--border-subtle)) 0 6px,
+    transparent 6px 12px
+  );
+  opacity: 0.7;
+}
+
+/* ---- V02 线网 + V06 排针：服务总线 ---- */
+.orc-svc {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-left: 1px solid var(--orc-frame);
+  background: color-mix(in srgb, var(--brand-500) 3%, var(--orc-well));
+  min-width: 0;
+}
+
+.orc-svc__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--orc-mono);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--brand-500);
+}
+
+.orc-svc__head span {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.orc-svc__jacks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 360px;
+}
+
+.orc-jack {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-container);
+}
+
+.orc-jack__no {
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--brand-500);
+  text-align: center;
+  border-right: 1px dashed var(--border-subtle);
+  padding-right: 6px;
+}
+
+.orc-jack__txt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.orc-jack__nm {
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orc-jack__pid {
+  font-family: var(--orc-mono);
+  font-size: 9px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orc-jack__led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-success);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--status-success) 60%, transparent);
+}
+
+.orc-svc__empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* ---- 测控带：滚轮 + 磁带 + 载荷帧 ---- */
+.orc-comm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--orc-frame);
+  background: var(--orc-panel);
+}
+
+.orc-reel {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  border: 3px solid var(--border-default);
+  position: relative;
+}
+
+.orc-reel::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 2px dashed var(--text-tertiary);
+}
+
+.orc-reel--spin {
+  animation: orc-spin 3.6s linear infinite;
+}
+
+@keyframes orc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.orc-tape {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--orc-well);
+  overflow: hidden;
+}
+
+.orc-tape__tick {
+  font-family: var(--orc-mono);
+  font-size: 9px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orc-tape__tick--idle {
+  color: var(--text-tertiary);
+}
+
+.orc-frame {
+  flex: none;
+  max-width: 380px;
+  padding: 6px 8px;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--orc-well);
+  overflow: hidden;
+}
+
+.orc-frame code {
+  display: block;
+  font-family: var(--orc-mono);
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--brand-500);
+  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orc-frame code.orc-frame--idle {
+  color: var(--text-tertiary);
+}
+
+/* ---- 车辆段：部署目录 jar 仓（拉出式） ---- */
+.depot {
+  margin-top: 10px;
+  border: 1px solid var(--orc-frame);
+  border-radius: var(--radius-xl);
+  background: var(--orc-panel);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.depot__grip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 0;
+  background: color-mix(in srgb, var(--brand-500) 4%, var(--orc-panel));
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.depot__grip:hover {
+  background: color-mix(in srgb, var(--brand-500) 8%, var(--orc-panel));
+}
+
+.depot__grip__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.depot__grip__lines i {
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand-500);
+  opacity: 0.7;
+}
+
+.depot__grip__lines i:nth-child(2) {
+  width: 12px;
+}
+
+.depot__grip__ttl {
+  font-weight: 700;
+}
+
+.depot__grip__ttl b {
+  color: var(--brand-500);
+}
+
+.depot__grip__caret {
+  margin-left: auto;
+  font-family: var(--orc-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.depot__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px 16px;
+}
+
+.depot__tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.depot__seg {
   display: inline-flex;
   padding: 2px;
   border: 1px solid var(--border-default);
@@ -1351,7 +2151,7 @@ onBeforeUnmount(() => {
   background: var(--bg-fill);
 }
 
-.lc-seg__btn {
+.depot__seg__btn {
   height: 26px;
   padding: 0 11px;
   border: 0;
@@ -1363,930 +2163,374 @@ onBeforeUnmount(() => {
   transition: color 0.15s, background 0.15s;
 }
 
-.lc-seg__btn:hover {
+.depot__seg__btn:hover {
   color: var(--brand-500);
 }
 
-.lc-seg__btn--on {
+.depot__seg__btn--on {
   background: var(--bg-container);
   color: var(--brand-500);
   font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
 
-/* ---- 发射场：工位阵 + 地面站 ---- */
-.lc-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
-  align-items: stretch;
+.depot__auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-family: var(--orc-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
-.lc-floor {
+.depot__list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 10px;
-  padding: 14px;
-  min-width: 0;
 }
 
-.lc-floor--empty {
+.depot__list--empty {
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* ---- 发射工位（每个 bundle 一座） ---- */
-.pad {
-  --pad: var(--pulse-offline);
+.depot__jar {
   position: relative;
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
-.pad:hover {
-  border-color: color-mix(in srgb, var(--pad) 55%, var(--border-default));
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-
-.pad--hl {
-  border-color: var(--brand-500);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-500) 25%, transparent), var(--shadow-md);
-}
-
-.pad--active { --pad: var(--status-success); }
-.pad--starting { --pad: var(--status-warning); }
-.pad--resolved { --pad: var(--brand-500); }
-.pad--stopping { --pad: var(--brand-400); }
-.pad--installed { --pad: var(--metric-net); }
-.pad--uninstalled { --pad: var(--status-error); }
-
-.pad::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 10px;
-  bottom: 10px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--pad);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--pad) 60%, transparent);
-}
-
-.pad__id {
+.depot__jar__bar {
   flex: none;
-  width: 74px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding-right: 10px;
-  border-right: 1px dashed var(--border-default);
-}
-
-.pad__beacon {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--pad);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--pad) 70%, transparent);
-}
-
-.pad__no {
-  font-family: var(--lc-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--text-primary);
-}
-
-.pad__bid {
-  font-family: var(--lc-mono);
-  font-size: 10px;
-  color: var(--text-tertiary);
-}
-
-.pad__body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  justify-content: center;
-}
-
-.pad__name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-  overflow: hidden;
-}
-
-.pad__ver {
-  flex: none;
-  padding: 1px 6px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-fill);
-  font-family: var(--lc-mono);
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-
-.pad__phase {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.pad__step {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--lc-mono);
-  font-size: 10px;
-  color: var(--text-tertiary);
-}
-
-.pad__step i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1px solid var(--border-default);
-  background: var(--bg-container);
-}
-
-.pad__step--done {
-  color: var(--text-primary);
-}
-
-.pad__step--done i {
-  border-color: var(--pad);
-  background: var(--pad);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--pad) 55%, transparent);
-}
-
-.pad__abort {
-  margin-left: auto;
-  padding: 1px 8px;
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--brand-400) 15%, transparent);
-  color: var(--brand-400);
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.pad__abort--bad {
-  background: color-mix(in srgb, var(--status-error) 12%, transparent);
-  color: var(--status-error);
-}
-
-.pad__ops {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.pad__sysnote {
-  font-size: 11px;
-  color: var(--text-tertiary);
-}
-
-.pad__meter {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding-left: 10px;
-  border-left: 1px dashed var(--border-default);
-}
-
-.pad__ladder {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 2px;
-}
-
-.pad__ladder i {
-  width: 20px;
-  height: 5px;
+  width: 4px;
+  height: 34px;
   border-radius: 2px;
-  background: var(--bg-fill);
-  transition: background 0.2s;
+  background: var(--border-default);
 }
 
-.pad__ladder i.on {
-  background: var(--brand-400);
-}
-
-.pad__ladder i.hot {
-  background: var(--status-warning);
-}
-
-.pad__ladder i.max {
+.depot__jar--on .depot__jar__bar {
   background: var(--status-success);
-}
-
-.pad__lvl {
-  font-family: var(--lc-mono);
-  font-size: 9px;
-  color: var(--text-secondary);
-}
-
-.pad__lvl b {
-  color: var(--brand-500);
-}
-
-/* ---- 地面站：服务注册表 ---- */
-.lc-ground {
-  border-left: 1px solid var(--lc-frame);
-  background: color-mix(in srgb, var(--brand-500) 3%, var(--lc-well));
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-
-.lc-ground__h {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-family: var(--lc-mono);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  color: var(--brand-500);
-}
-
-.lc-ground__h span {
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  color: var(--text-secondary);
-}
-
-.lc-jacks {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  max-height: 340px;
-}
-
-.lc-jack {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  column-gap: 8px;
-  align-items: center;
-  padding: 6px 8px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-container);
-}
-
-.lc-jack__dish {
-  grid-row: 1 / span 2;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--status-success);
-  border-radius: 50%;
-  background: var(--bg-fill);
   box-shadow: 0 0 8px color-mix(in srgb, var(--status-success) 55%, transparent);
 }
 
-.lc-jack__nm {
-  font-family: var(--lc-mono);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.depot__jar--off .depot__jar__bar {
+  background: var(--metric-net);
 }
 
-.lc-jack__pid {
-  font-family: var(--lc-mono);
-  font-size: 9px;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lc-ground__empty {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-/* ---- 测控带：信标 + 波形 + 载荷帧 ---- */
-.lc-comm {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-top: 1px solid var(--lc-frame);
-  background: var(--lc-panel);
-}
-
-.lc-reel {
-  width: 38px;
-  height: 38px;
-  flex: none;
-  border-radius: 50%;
-  border: 3px solid var(--border-default);
-  position: relative;
-}
-
-.lc-reel::before {
-  content: "";
-  position: absolute;
-  inset: 10px;
-  border-radius: 50%;
-  border: 2px dashed var(--text-tertiary);
-}
-
-.lc-reel.spinning {
-  animation: lc-spin 3.6s linear infinite;
-}
-
-@keyframes lc-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.lc-tape {
+.depot__jar__body {
   flex: 1;
   min-width: 0;
-  height: 46px;
-  padding: 4px 6px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--lc-well);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 2px;
-}
-
-.lc-tape__tick {
-  font-family: var(--lc-mono);
-  font-size: 9px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lc-tape__tick--idle {
-  color: var(--text-tertiary);
-}
-
-.lc-frame {
-  flex: none;
-  max-width: 380px;
-  padding: 6px 8px;
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--lc-well);
-  overflow: hidden;
-}
-
-.lc-frame code {
-  display: block;
-  font-family: var(--lc-mono);
-  font-size: 9px;
-  line-height: 1.5;
-  color: var(--brand-500);
-  word-break: break-all;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lc-frame code.lc-frame--idle {
-  color: var(--text-tertiary);
-}
-
-/* ---- 空态 ---- */
-.lc-empty {
-  grid-column: 1 / -1;
-  padding: 24px 16px;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.lc-empty p {
-  margin: 4px 0;
-}
-
-.lc-empty__hint {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.lc-empty__hint code {
-  padding: 0 4px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-fill);
-}
-
-/* ============ 总装车间（jar 文件仓抽屉） ============ */
-.hangar {
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  background: var(--bg-container);
-  overflow: hidden;
-}
-
-.hangar--open {
-  border-color: color-mix(in srgb, var(--brand-500) 40%, var(--border-default));
-}
-
-.hangar__grip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 14px;
-  border: 0;
-  border-bottom: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--brand-500) 4%, var(--bg-container));
-  cursor: pointer;
-  user-select: none;
-}
-
-.hangar__grip__lines {
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
-.hangar__grip__lines i {
-  width: 26px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--border-default);
-}
-
-.hangar__grip__ttl {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.hangar__grip__ttl b {
-  color: var(--brand-500);
-}
-
-.hangar__grip__caret {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.hangar__body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
-}
-
-.hangar__tools {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.hangar__seg {
-  display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--border-default);
-  border-radius: 14px;
-  background: var(--bg-fill);
-}
-
-.hangar__seg__btn {
-  height: 24px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-}
-
-.hangar__seg__btn:hover {
-  color: var(--brand-500);
-}
-
-.hangar__seg__btn--on {
-  background: var(--bg-container);
-  color: var(--brand-500);
-  font-weight: 600;
-  box-shadow: var(--shadow-sm);
-}
-
-.hangar__auto {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.hangar__list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.hangar__list--empty {
-  min-height: 48px;
-}
-
-.veh {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.veh:hover {
-  border-color: var(--brand-300);
-  box-shadow: var(--shadow-md);
-}
-
-.veh__bar {
-  align-self: stretch;
-  width: 3px;
-  flex: none;
-  margin: 2px 0;
-  border-radius: 2px;
-  background: var(--pulse-offline);
-}
-
-.veh--on .veh__bar {
-  background: var(--status-success);
-}
-
-.veh__body {
-  min-width: 0;
-  flex: 1;
-}
-
-.veh__name {
+.depot__jar__name {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--lc-mono);
-  font-size: 13px;
+  font-family: var(--orc-mono);
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.veh__size {
+.depot__jar__size {
   flex: none;
-  padding: 1px 6px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background: var(--bg-fill);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 400;
-  color: var(--text-secondary);
-}
-
-.veh__meta {
-  display: flex;
-  gap: 10px;
-  margin-top: 2px;
-  font-size: 11px;
   color: var(--text-tertiary);
 }
 
-.veh__time {
-  font-family: var(--lc-mono);
-}
-
-.veh__ops {
-  display: flex;
-  gap: 4px;
-  flex: none;
-}
-
-.hangar__dock {
+.depot__jar__meta {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 52px;
-  border: 1.5px dashed var(--border-default);
-  border-radius: var(--radius-lg);
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-.hangar__dock:hover {
-  border-color: var(--brand-500);
-  background: color-mix(in srgb, var(--brand-500) 6%, transparent);
-  color: var(--brand-500);
-}
-
-.hangar__dock__plus {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex: none;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--brand-500) 10%, transparent);
-  color: var(--brand-500);
-  font-size: 15px;
-  line-height: 1;
-}
-
-.hangar__dock:hover .hangar__dock__plus {
-  background: var(--brand-500);
-  color: var(--text-inverse);
-}
-
-.hangar__dock small {
+  gap: 8px;
+  flex-wrap: wrap;
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
-.hangar__dock:hover small {
-  color: var(--brand-500);
-}
-
-/* ============ 测控通信日志 ============ */
-.commlog {
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  background: var(--bg-container);
-  overflow: hidden;
-}
-
-.commlog__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--border-subtle);
-  cursor: pointer;
-  user-select: none;
-}
-
-.commlog--closed .commlog__head {
-  border-bottom: 0;
-}
-
-.commlog__caret {
-  width: 10px;
+.depot__jar__time {
+  font-family: var(--orc-mono);
   font-size: 10px;
   color: var(--text-tertiary);
 }
 
-.commlog__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
+.depot__jar__ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
 }
 
-.commlog__chan {
-  font-family: var(--lc-mono);
-  font-size: 11px;
+.depot__dock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--orc-well);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.depot__dock:hover {
+  border-color: var(--brand-500);
+  color: var(--brand-500);
+  background: color-mix(in srgb, var(--brand-500) 6%, var(--orc-well));
+}
+
+.depot__dock__plus {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.depot__dock small {
+  color: var(--text-tertiary);
+}
+
+/* ---- 测控日志带 ---- */
+.orc-log {
+  margin-top: 10px;
+  border: 1px solid var(--orc-frame);
+  border-radius: var(--radius-xl);
+  background: var(--orc-panel);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.orc-log__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  user-select: none;
+  background: color-mix(in srgb, var(--brand-500) 4%, var(--orc-panel));
+}
+
+.orc-log__caret {
+  font-family: var(--orc-mono);
+  color: var(--brand-500);
+}
+
+.orc-log__title {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.orc-log__chan {
+  font-family: var(--orc-mono);
+  font-size: 10px;
   color: var(--status-success);
 }
 
-.commlog__chan--off {
+.orc-log__chan--off {
   color: var(--status-warning);
 }
 
-.commlog__badge {
-  padding: 1px 6px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--status-error) 10%, transparent);
+.orc-log__badge {
+  padding: 1px 8px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
   color: var(--status-error);
-  font-size: 11px;
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  font-weight: 700;
 }
 
-.commlog__count {
-  font-size: 11px;
+.orc-log__count {
+  font-family: var(--orc-mono);
+  font-size: 10px;
   color: var(--text-tertiary);
 }
 
-.commlog__spacer {
+.orc-log__spacer {
   flex: 1;
 }
 
-.commlog__act {
-  height: 22px;
-  padding: 0 8px;
+.orc-log__act {
+  height: 24px;
+  padding: 0 10px;
   border: 1px solid var(--border-default);
-  border-radius: 11px;
-  background: transparent;
+  border-radius: 9999px;
+  background: var(--bg-elevated);
   color: var(--text-secondary);
   font-size: 11px;
   cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
 }
 
-.commlog__act:hover,
-.commlog__act--on {
+.orc-log__act:hover {
+  color: var(--brand-500);
+  border-color: color-mix(in srgb, var(--brand-500) 45%, var(--border-default));
+}
+
+.orc-log__act--on {
   border-color: var(--brand-500);
   color: var(--brand-500);
+  font-weight: 600;
 }
 
-.commlog__body {
-  max-height: 240px;
+.orc-log__body {
+  max-height: 260px;
   overflow-y: auto;
-  padding: 6px 0;
-  font-family: var(--lc-mono);
-  font-size: 12px;
-}
-
-.commlog__empty {
-  margin: 10px 14px;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.commlog__row {
+  padding: 8px 16px 12px;
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 3px 14px;
-  line-height: 1.5;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.commlog__row:hover {
-  background: var(--bg-hover);
-}
-
-.commlog__row--error {
-  background: color-mix(in srgb, var(--status-error) 8%, transparent);
-}
-
-.commlog__row--warn {
-  background: color-mix(in srgb, var(--status-warning) 8%, transparent);
-}
-
-.commlog__time {
-  flex: none;
+.orc-log__empty {
+  margin: 6px 0;
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 
-.commlog__stage {
-  flex: none;
-  width: 30px;
+.orc-log__row {
+  display: grid;
+  grid-template-columns: 62px 46px 84px minmax(120px, 220px) minmax(0, 1fr) 64px;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 8px;
+  border-left: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--orc-mono);
   font-size: 11px;
-  color: var(--text-secondary);
 }
 
-.commlog__stage--start {
-  color: var(--metric-net);
+.orc-log__row--error {
+  border-left-color: var(--status-error);
+  background: color-mix(in srgb, var(--status-error) 6%, transparent);
 }
 
-.commlog__stage--success {
+.orc-log__row--warn {
+  border-left-color: var(--status-warning);
+  background: color-mix(in srgb, var(--status-warning) 7%, transparent);
+}
+
+.orc-log__time {
+  color: var(--text-tertiary);
+}
+
+.orc-log__stage--start {
+  color: var(--brand-400);
+}
+
+.orc-log__stage--success {
   color: var(--status-success);
 }
 
-.commlog__stage--failure {
+.orc-log__stage--failure {
   color: var(--status-error);
 }
 
-.commlog__action {
-  flex: none;
-  min-width: 48px;
+.orc-log__action {
   color: var(--text-primary);
+  font-weight: 600;
 }
 
-.commlog__symbol {
-  flex: none;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.orc-log__symbol {
   color: var(--brand-500);
-}
-
-.commlog__msg {
-  flex: 1;
-  min-width: 0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-secondary);
 }
 
-.commlog__dur {
-  flex: none;
+.orc-log__msg {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orc-log__dur {
+  text-align: right;
   color: var(--text-tertiary);
 }
 
-/* ============ 暗色微调 ============ */
-.dark .lc {
-  background:
-    radial-gradient(1100px 180px at 50% 0%, color-mix(in srgb, var(--brand-500) 12%, transparent), transparent 70%),
-    var(--lc-panel);
-  box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.7);
+/* ---- 空态 ---- */
+.orc-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-secondary);
 }
 
-.dark .lc-badge__brand {
-  color: var(--brand-300);
+.orc-empty p {
+  margin: 0;
 }
 
-.dark .pad,
-.dark .veh,
-.dark .lc-jack {
-  background: color-mix(in srgb, var(--brand-500) 4%, var(--bg-container));
+.orc-empty__hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
-/* ============ 响应式 ============ */
+.orc-empty__hint code {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--code-background, var(--orc-well));
+  color: var(--code-foreground, var(--brand-500));
+  font-family: var(--orc-mono);
+  font-size: 11px;
+}
+
+/* ---- 响应式：窄屏收拢为单列 ---- */
 @media (max-width: 1180px) {
-  .lc-main {
+  .orc-main {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .lc-ground {
-    border-left: 0;
-    border-top: 1px solid var(--lc-frame);
+  .orc-orbit {
+    border-right: 0;
+    border-bottom: 1px solid var(--orc-frame);
   }
 
-  .lc-jacks {
-    flex-direction: row;
-    flex-wrap: wrap;
+  .orc-svc {
+    border-left: 0;
+    border-top: 1px solid var(--orc-frame);
+  }
+
+  .orc-svc__jacks {
     max-height: none;
   }
+}
 
-  .lc-jack {
-    width: 200px;
+@media (max-width: 720px) {
+  .orc-search {
+    width: 100%;
   }
 
-  .lc-frame {
+  .orc-frame {
+    display: none;
+  }
+
+  .orc-log__row {
+    grid-template-columns: 62px 46px 84px minmax(0, 1fr) 64px;
+  }
+
+  .orc-log__symbol {
     display: none;
   }
 }
-
-@media (max-width: 640px) {
-  .lc-console__search {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .pad {
-    flex-wrap: wrap;
-  }
-
-  .pad__meter {
-    flex-direction: row;
-    width: 100%;
-    padding-left: 0;
-    border-left: 0;
-    border-top: 1px dashed var(--border-default);
-    padding-top: 8px;
-  }
-
-  .pad__ladder {
-    flex-direction: row;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .lc-live__dot,
-  .lc-tower__leds i.on,
-  .lc-reel.spinning {
-    animation: none !important;
-  }
-}
 </style>
+
+
