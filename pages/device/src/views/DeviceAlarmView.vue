@@ -72,7 +72,7 @@
             start-placeholder="开始时间"
             end-placeholder="结束时间"
             value-format="YYYY-MM-DD HH:mm:ss"
-            :shortcuts="RANGE_SHORTCUTS"
+            :shortcuts="TIME_SHORTCUTS"
             @change="onFilterChange"
           />
         </div>
@@ -290,6 +290,7 @@ import ReTag from '@repo/ui/re-tag'
 import { resolveUserDisplayInfo } from '@repo/utils'
 
 import deviceApi from '../api/deviceApi'
+import { TIME_SHORTCUTS } from '../constants/timeShortcuts'
 import { useDeviceRealtime } from '../composables/useDeviceRealtime'
 import type { DeviceAlarm, DeviceInfo } from '../types/device'
 
@@ -324,13 +325,6 @@ const statusSegments = [
   { value: 'handling', label: '处理中' },
   { value: 'resolved', label: '已解决' },
   { value: 'ignored', label: '已忽略' },
-]
-
-/** 时间快捷键：就近时段最常用 */
-const RANGE_SHORTCUTS = [
-  { text: '近 1 小时', value: () => [new Date(Date.now() - 3600 * 1000), new Date()] as [Date, Date] },
-  { text: '近 24 小时', value: () => [new Date(Date.now() - 24 * 3600 * 1000), new Date()] as [Date, Date] },
-  { text: '近 7 天', value: () => [new Date(Date.now() - 7 * 24 * 3600 * 1000), new Date()] as [Date, Date] },
 ]
 
 /** ReTable 暴露的方法里只用到 reload */

@@ -12,8 +12,8 @@
  * @author CH
  * @since 4.0.0.55
  */
-import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Histogram, Odometer, Timer, TrendCharts } from '@element-plus/icons-vue'
 
 import ReErrorBar from '@repo/ui/re-error-bar'
@@ -22,6 +22,7 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn, ReTableSearchConfig } from '@repo/ui/re-table'
 
 import deviceApi from '../api/deviceApi'
+import { TIME_SHORTCUTS } from '../constants/timeShortcuts'
 import type { DeviceIndexItem, DeviceSeriesEngineInfo, DeviceSeriesPoint } from '../types/device'
 
 /** 一次取多少历史点：够画近一天的分钟级曲线，又不至于把浏览器拖慢 */
@@ -84,7 +85,7 @@ const searchConfig = computed<ReTableSearchConfig>(() => ({
       label: '时间',
       type: 'daterange',
       // 日期组件默认近 350px，会溢出 220px 的网格把右侧按钮盖住，强制收进格子
-      attrs: { style: 'width: 100%' },
+      attrs: { style: 'width: 100%', shortcuts: TIME_SHORTCUTS },
     },
   ],
 }))
@@ -279,8 +280,121 @@ function errText(e: unknown): string {
   return err?.message || '未知错误'
 }
 
+/* ==================== 时序数据治理：点位计数 / 清理 / 导出 ==================== */
+/** 三类时序的点位总数（GET /series/count?category=...） */
+const seriesCounts = ref<{ metric?: number; access?: number; vehicle?: number }>({})
+
+/** 拉取三类时序的点位总量（失败不阻塞页面，显示为 —） */
+async function loadSeriesCounts(): Promise<void> {
+  try {
+    const [metric, access, vehicle] = await Promise.all([
+      deviceApi.seriesCount({ category: 'metric' }),
+      deviceApi.seriesCount({ category: 'access' }),
+      deviceApi.seriesCount({ category: 'vehicle' }),
+    ])
+    seriesCounts.value = { metric, access, vehicle }
+  } catch {
+    seriesCounts.value = {}
+  }
+}
+
+/** 计数展示：拿不到显示 — */
+function fmtCount(value?: number): string {
+  return typeof value === 'number' ? value.toLocaleString('zh-CN') : '—'
+}
+
+/* ---------- 清理 ---------- */
+const purgeVisible = ref(false)
+const purging = ref(false)
+const purgeForm = reactive({ category: '', before: '' })
+
+/** 清理类别字典（空 = 全部类别） */
+const PURGE_CATEGORIES = [
+  { value: 'metric', label: '环境指标（metric）' },
+  { value: 'access', label: '门禁记录（access）' },
+  { value: 'vehicle', label: '过车记录（vehicle）' },
+]
+
+function openPurge(): void {
+  purgeForm.category = ''
+  purgeForm.before = ''
+  purgeVisible.value = true
+}
+
+/**
+ * 提交清理：先弹强确认（error 级），成功后刷新计数与当前查询。
+ *
+ * <p>before 留空 = 按后端保留期（retention-days）清理；返回的点位数可能为
+ * null（引擎未启用清理或未返回），此时只提示已执行。</p>
+ */
+async function submitPurge(): Promise<void> {
+  const scope = PURGE_CATEGORIES.find((c) => c.value === purgeForm.category)?.label ?? '全部类别'
+  const until = purgeForm.before || '保留期之外'
+  try {
+    await ElMessageBox.confirm(`将删除 ${scope} 中 ${until} 的时序点位，删除后不可恢复。`, '清理时序数据', {
+      type: 'error',
+      confirmButtonText: '继续清理',
+      cancelButtonText: '取消',
+    })
+  } catch {
+    return
+  }
+  purging.value = true
+  try {
+    const removed = await deviceApi.purgeSeries({
+      category: purgeForm.category || undefined,
+      before: purgeForm.before || undefined,
+    })
+    purgeVisible.value = false
+    if (typeof removed === 'number') {
+      ElMessage.success(`已清理 ${removed.toLocaleString('zh-CN')} 个时序点位`)
+    } else {
+      ElMessage.success('清理任务已执行（引擎未返回点位数）')
+    }
+    await loadSeriesCounts()
+    if (filters.value.deviceId) void query()
+  } catch (e: unknown) {
+    ElMessage.error('清理失败：' + errText(e))
+  } finally {
+    purging.value = false
+  }
+}
+
+/* ---------- 导出 CSV ---------- */
+/** CSV 单元格：双引号包裹并转义内部引号 */
+function csvCell(value: unknown): string {
+  const text = value === null || value === undefined ? '' : String(value)
+  return `"${text.replace(/"/g, '""')}"`
+}
+
+/** 导出当前筛选结果（表格里的全部行，非分页当前页） */
+function exportCsv(): void {
+  const list = tableRows.value
+  if (!list.length) {
+    ElMessage.warning('当前没有可导出的读数，请先查询')
+    return
+  }
+  const head = ['时间', '节点', '节点标识', '读数', '单位', '通道']
+  const lines = [head.map(csvCell).join(',')]
+  for (const row of list) {
+    lines.push(
+      [fmtTime(row.time), row.name || row.key, row.key, row.value ?? '', row.unit || '', row.channel ?? '']
+        .map(csvCell)
+        .join(','),
+    )
+  }
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `传感器历史读数_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success(`已导出 ${list.length} 条读数`)
+}
+
 onMounted(async () => {
-  await Promise.all([loadDevices(), loadEngine()])
+  await Promise.all([loadDevices(), loadEngine(), loadSeriesCounts()])
 })
 </script>
 
@@ -295,6 +409,18 @@ onMounted(async () => {
       :title="`时序引擎不可用：${engineInfo.reason || '未配置'}`"
       description="历史读数无法查询；最新快照（设备详情 / 环境指标）不受影响。"
     />
+
+    <!-- 治理操作条：三类时序点位总量 + 导出 / 清理 -->
+    <section class="dmh-ops">
+      <span class="dmh-ops__count">
+        时序点位：环境 <b>{{ fmtCount(seriesCounts.metric) }}</b>
+        · 门禁 <b>{{ fmtCount(seriesCounts.access) }}</b>
+        · 过车 <b>{{ fmtCount(seriesCounts.vehicle) }}</b>
+      </span>
+      <span class="dmh-ops__grow" />
+      <el-button size="small" @click="exportCsv">导出 CSV</el-button>
+      <el-button size="small" type="danger" plain @click="openPurge">清理时序数据…</el-button>
+    </section>
 
     <section class="dmh-kpis">
       <ReStatCard
@@ -379,6 +505,32 @@ onMounted(async () => {
         </template>
       </ReTable>
     </section>
+
+    <!-- 清理时序数据：可选类别与截止时间；before 留空 = 按后端保留期清理 -->
+    <el-dialog v-model="purgeVisible" title="清理时序数据" width="460px" append-to-body>
+      <el-form label-width="96px">
+        <el-form-item label="数据类别">
+          <el-select v-model="purgeForm.category" placeholder="全部类别" clearable style="width: 100%">
+            <el-option v-for="c in PURGE_CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="截止时间">
+          <el-date-picker
+            v-model="purgeForm.before"
+            type="datetime"
+            placeholder="留空 = 按保留期清理"
+            format="YYYY-MM-DD HH:mm:ss"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+      <p class="dmh-purge__hint">删除该时间之前的时序点位，删除后不可恢复；提交时还会再做一次强确认。</p>
+      <template #footer>
+        <el-button @click="purgeVisible = false">取消</el-button>
+        <el-button type="danger" :loading="purging" @click="submitPurge">清理</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -395,6 +547,32 @@ onMounted(async () => {
 
 .dmh-alert {
   padding: 6px 10px;
+}
+
+/* 治理操作条 */
+.dmh-ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+.dmh-ops__count {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dmh-ops__count b {
+  font-variant-numeric: tabular-nums;
+  color: var(--el-text-color-primary);
+  font-weight: 600;
+}
+.dmh-ops__grow {
+  flex: 1 1 auto;
+}
+.dmh-purge__hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 
 .dmh-kpis {

@@ -26,6 +26,7 @@
         engine="element"
         table-id="device-vehicle-pass"
         row-key="rid"
+        expandable
         :loading="loading"
         empty-text="没有过车记录"
         :pagination="true"
@@ -79,6 +80,10 @@
             </template>
           </el-image>
           <span v-else class="dvp-none">—</span>
+        </template>
+        <!-- 行展开：按车牌关联车辆档案（车主 / 有效期，过期高亮） -->
+        <template #expand="{ row }">
+          <ReVehicleArchive :plate="row.plateNo" />
         </template>
       </ReTable>
     </section>
@@ -154,6 +159,8 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn, ReTableSearchConfig } from '@repo/ui/re-table'
 
 import { deviceApi } from '../api/deviceApi'
+import { TIME_SHORTCUTS } from '../constants/timeShortcuts'
+import ReVehicleArchive from '../components/ReVehicleArchive.vue'
 import type { DeviceIndexItem, DeviceSeriesPoint } from '../types/device'
 
 const loading = ref(false)
@@ -232,7 +239,7 @@ const searchConfig = computed<ReTableSearchConfig>(() => ({
       label: '时间',
       type: 'daterange',
       // 日期组件默认近 350px，会溢出 220px 的网格把右侧按钮盖住，强制收进格子
-      attrs: { style: 'width: 100%' },
+      attrs: { style: 'width: 100%', shortcuts: TIME_SHORTCUTS },
     },
   ],
 }))

@@ -33,7 +33,11 @@ import type {
   DeviceSyncRecord,
   DeviceSyncOutbox,
   SyncRecordsSummary,
-  SyncPushResult
+  SyncPushResult,
+  PlatformApiCatalog,
+  PlatformApiProbeResult,
+  DeviceCallbackResult,
+  DeviceLifecycleEventPayload
 } from '../types/device'
 
 /** 设备模块 Http 客户端（baseUrl 由配置 httpConfig.moduleBaseUrl.device 决定） */
@@ -463,7 +467,60 @@ export const deviceApi = {
     http.post("/barrier/pass").data(pass).then(unwrap),
   /** 从平台拉取过车记录并落库（按设备会话 + 时间窗），返回新增条数 */
   pullVehiclePasses: (deviceId: string, start: string, end: string) =>
-    http.post("/barrier/pass/pull").query({ deviceId, start, end }).then(unwrap) as Promise<number>
+    http.post("/barrier/pass/pull").query({ deviceId, start, end }).then(unwrap) as Promise<number>,
+
+  // ==================== 门禁授权下发 ====================
+  /**
+   * 给指定人员下发某扇门的授权（同步命令）。
+   *
+   * <p>personId / doorId 都是厂商侧标识；设备不在线时后端直接抛错，
+   * 调用方按失败提示「先让设备上线再下发」。</p>
+   */
+  grantAccess: (deviceId: string, personId: string, doorId: string | number) =>
+    http.post("/access/grant").query({ deviceId, personId, doorId: String(doorId) }).then(unwrap),
+
+  // ==================== 凭据启用 / 停用 ====================
+  /** 启用 / 停用一套接入凭据（停用后该凭据维度的时间轮任务与路由都不再使用它） */
+  toggleCredentialEnabled: (id: string, enabled: boolean) =>
+    http.put(`/provider-credential/${id}/enabled`).query({ enabled }).then(unwrap),
+
+  // ==================== 平台接口目录 / 探活 / 调试调用 ====================
+  /** 某套凭据对应平台的接口目录（含版本与认证方式；domain 按能力域过滤） */
+  listPlatformApis: (credentialId: string, domain?: string) =>
+    http
+      .get(`/platform/${credentialId}/apis`)
+      .query(domain ? { domain } : {})
+      .then(unwrap) as Promise<PlatformApiCatalog>,
+  /** 只读接口探活（按能力域过滤；写操作接口不探测，避免产生副作用） */
+  probePlatformApis: (credentialId: string, domain?: string) =>
+    http
+      .get(`/platform/${credentialId}/probe`)
+      .query(domain ? { domain } : {})
+      .then(unwrap) as Promise<PlatformApiProbeResult[]>,
+  /** 调试调用：按接口编码透传参数执行一次（联调用，返回原始负载） */
+  invokePlatformApi: (credentialId: string, code: string, params?: Record<string, unknown>) =>
+    http
+      .post(`/platform/${credentialId}/invoke/${encodeURIComponent(code)}`)
+      .data(params ?? {})
+      .then(unwrap),
+
+  // ==================== 生命周期回调（清单 + 手工重放） ====================
+  /** 当前容器内已注册的回调实现名称 */
+  listCallbacks: () => http.get("/callbacks").then(unwrap) as Promise<string[]>,
+  /** 手工向全部回调重放一条生命周期事件（联调 / 失败补发），返回逐回调执行结果 */
+  dispatchCallback: (event: DeviceLifecycleEventPayload & Record<string, unknown>) =>
+    http.post("/callbacks/dispatch").data(event).then(unwrap) as Promise<DeviceCallbackResult[]>,
+
+  // ==================== 时序数据治理 ====================
+  /** 时序数据量（category：metric / access / vehicle；可再按设备 / 键 / 时间窗收敛） */
+  seriesCount: (params: { category?: string; deviceId?: string; key?: string; start?: string; end?: string } = {}) =>
+    http.get("/series/count").query(params).then(unwrap) as Promise<number>,
+  /**
+   * 清理时序数据。before 为空 = 按后端保留期（retention-days）清理；
+   * 返回清理的点位数（后端 Integer，可能为 null 表示未启用清理）。
+   */
+  purgeSeries: (params: { category?: string; before?: string } = {}) =>
+    http.delete("/series").query(params).then(unwrap) as Promise<number | null>
 }
 
 export default deviceApi

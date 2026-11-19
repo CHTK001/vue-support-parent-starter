@@ -642,3 +642,109 @@ export interface SyncPushResult {
   success: number
   failed: number
 }
+
+/** 平台接口目录里的一条接口（DevicePlatformSdk#apis 的登记项） */
+export interface PlatformApiSpec {
+  /** 接口编码（稳定标识，如 device.page），invoke 调试时回传 */
+  code: string
+  /** 接口名（对齐官方文档） */
+  name: string
+  /** HTTP 方法 */
+  method: string
+  /** 接口路径（含版本前缀，对齐官方文档） */
+  path: string
+  /** 该接口的版本 */
+  version: string
+  /** 能力域：device / monitor / org / person / access / alarm / video / other */
+  domain: string
+  /** 认证方式：GLOBAL（全局 token/签名）/ USER（用户 token）/ NONE */
+  auth: 'GLOBAL' | 'USER' | 'NONE'
+}
+
+/** GET /platform/{credentialId}/apis 的返回：某套凭据对应平台的接口目录 */
+export interface PlatformApiCatalog {
+  /** 平台标识 */
+  platform: string
+  /** 官方 SDK / 文档名 */
+  officialSdk: string
+  /** 平台 API 大版本 */
+  apiVersion: string
+  /** 目录是否经过实测核验（false 表示按官方文档登记，未全量实测） */
+  verified: boolean
+  /** 官方文档地址 */
+  docUrl?: string
+  /** 接口总数 */
+  total: number
+  /** 接口清单 */
+  apis: PlatformApiSpec[]
+  /** 能力域 → 接口数（用于分组渲染） */
+  domains: Record<string, number>
+}
+
+/** GET /platform/{credentialId}/probe 的单条探测结果（只读接口探活） */
+export interface PlatformApiProbeResult {
+  /** 接口编码 */
+  code: string
+  /** 接口名 */
+  name: string
+  /** 能力域 */
+  domain: string
+  /** 接口版本 */
+  version: string
+  /** 是否探测成功（请求通且业务成功） */
+  ok: boolean
+  /** 接口通但没数据（空目录不算失败） */
+  empty: boolean
+  /** 失败原因 / 成功说明 */
+  message?: string
+  /** 耗时（毫秒） */
+  elapsedMs: number
+}
+
+/** 单个回调的执行结果（POST /callbacks/dispatch 逐回调返回） */
+export interface DeviceCallbackResult {
+  /** 回调名称 */
+  callback: string
+  /** 是否成功 */
+  ok: boolean
+  /** 失败原因 / 成功说明 */
+  message?: string
+  /** 耗时（毫秒） */
+  elapsedMs: number
+}
+
+/** 设备生命周期事件（POST /callbacks/dispatch 的负载，后端 DeviceLifecycleEvent） */
+export interface DeviceLifecycleEventPayload {
+  /** 事件类型：DEVICE_CREATED / DEVICE_UPDATED / DEVICE_DELETED / PERSON_ENROLLED / ALARM_RECEIVED 等 */
+  eventType: string
+  /** 阶段：SUCCESS / FAILED（FAILED 时下游按自身口径回滚） */
+  phase: string
+  /** 设备 ID */
+  deviceId?: string
+  /** 厂商标识 */
+  vendor?: string
+  /** 事件负载（按事件类型自定义的 JSON 对象） */
+  payload?: Record<string, unknown>
+  /** 失败原因（phase=FAILED 时给） */
+  error?: string
+  /** 发生时间（ISO；留空后端取当前） */
+  occurredAt?: string
+}
+
+/** 车辆档案（GET /vehicle/by-plate 返回的后端 VehicleInfo record） */
+export interface VehicleInfo {
+  vehicleId?: string
+  plateNo: string
+  plateColor?: string
+  vehicleType?: string
+  /** 车主姓名 */
+  ownerName?: string
+  ownerPhone?: string
+  /** 名单类型（白名单 / 黑名单等，按平台字典） */
+  listType?: string
+  /** 有效期起（ISO） */
+  validFrom?: string
+  /** 有效期止（ISO；过期车辆通行会被拒绝） */
+  validTo?: string
+  vendor?: string
+}

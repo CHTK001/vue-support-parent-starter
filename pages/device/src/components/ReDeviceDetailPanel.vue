@@ -202,6 +202,7 @@
             :doors="device.doors || []"
             :events="accessEvents"
             @unlock="remoteUnlock"
+            @grant="openGrantDialog"
             @refresh="fetchAccessEvents"
           />
         </el-tab-pane>
@@ -318,6 +319,36 @@
         <el-button type="primary" :loading="thresholdSaving" @click="saveThreshold">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 门禁授权下发：选人员 + 当前门，走 POST /access/grant（设备不在线后端会拒绝） -->
+    <el-dialog v-model="grantVisible" :title="`下发门禁授权${grantDoor ? ' · ' + grantDoor.deviceDoorName : ''}`" width="460px" append-to-body>
+      <div class="ddp-grant">
+        <span class="ddp-grant__label">授权人员</span>
+        <el-select
+          v-model="grantPersonId"
+          filterable
+          placeholder="选择要授权的人员"
+          style="width: 100%"
+          :loading="grantLoadingPersons"
+        >
+          <el-option
+            v-for="p in grantPersons"
+            :key="p.devicePersonId || p.devicePersonExternalId"
+            :label="`${p.devicePersonName}${p.devicePersonExternalId ? '（' + p.devicePersonExternalId + '）' : ''}`"
+            :value="p.devicePersonExternalId || p.devicePersonId || ''"
+          />
+        </el-select>
+        <span class="ddp-grant__label">授权门</span>
+        <el-input :model-value="grantDoor ? `${grantDoor.deviceDoorName}（门号 ${grantDoor.deviceDoorNo}）` : ''" disabled />
+        <p class="ddp-grant__hint">
+          人员取自人员台账（厂商侧 ID 下发）；设备不在线时后端会拒绝下发，请先让设备上线。
+        </p>
+      </div>
+      <template #footer>
+        <el-button @click="grantVisible = false">取消</el-button>
+        <el-button type="primary" :loading="grantSaving" @click="submitGrant">下发授权</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -363,8 +394,10 @@ import {
 } from '../utils/deviceFormat'
 import type {
   AccessEvent,
+  DeviceDoor,
   DeviceEvent,
   DeviceInfo,
+  DevicePerson,
   DeviceVendorDescriptor,
   Preset,
   TimelineItem
@@ -805,6 +838,59 @@ async function remoteUnlock(doorId: number) {
   }
 }
 
+/* ==================== 门禁授权下发 ==================== */
+const grantVisible = ref(false)
+const grantSaving = ref(false)
+const grantLoadingPersons = ref(false)
+const grantDoor = ref<DeviceDoor | null>(null)
+const grantPersonId = ref('')
+const grantPersons = ref<DevicePerson[]>([])
+
+/** 打开授权弹窗：先校验设备在线，再拉人员台账 */
+async function openGrantDialog(door: DeviceDoor) {
+  if (!props.device) return
+  if (props.device.deviceInfoOnline === false) {
+    message.warning('设备不在线，无法下发授权；请先让设备上线')
+    return
+  }
+  grantDoor.value = door
+  grantPersonId.value = ''
+  grantVisible.value = true
+  if (!grantPersons.value.length) {
+    grantLoadingPersons.value = true
+    try {
+      const res = (await deviceApi.pagePersons({ pageNo: 1, pageSize: 200 })) as {
+        records?: DevicePerson[]
+        data?: DevicePerson[]
+      }
+      grantPersons.value = (res?.records ?? res?.data ?? []) as DevicePerson[]
+    } catch (err: unknown) {
+      message.error('人员台账加载失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
+    } finally {
+      grantLoadingPersons.value = false
+    }
+  }
+}
+
+/** 下发授权：POST /access/grant（厂商侧人员 ID + 门号） */
+async function submitGrant() {
+  if (!props.device || !grantDoor.value) return
+  if (!grantPersonId.value) {
+    message.warning('请选择要授权的人员')
+    return
+  }
+  grantSaving.value = true
+  try {
+    await deviceApi.grantAccess(props.device.deviceInfoId, grantPersonId.value, grantDoor.value.deviceDoorNo)
+    message.success(`已向「${grantDoor.value.deviceDoorName}」下发授权`)
+    grantVisible.value = false
+  } catch (err: unknown) {
+    message.error('授权下发失败: ' + ((err as any)?.response?.data?.message || (err as Error)?.message || '未知错误'))
+  } finally {
+    grantSaving.value = false
+  }
+}
+
 async function loadPresets() {
   if (!props.device) return
   try {
@@ -1060,6 +1146,23 @@ async function loadBarriers() {
   color: var(--el-text-color-secondary);
 }
 .ddp-threshold__hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+/* 门禁授权下发弹窗 */
+.ddp-grant {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ddp-grant__label {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.ddp-grant__hint {
   margin: 2px 0 0;
   font-size: 12px;
   line-height: 1.6;

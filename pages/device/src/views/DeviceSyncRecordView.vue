@@ -35,6 +35,76 @@
       />
     </section>
 
+    <!-- ==================== 生命周期回调：清单 + 手工重放 ==================== -->
+    <section class="dsr-cb">
+      <header class="dsr-cb__head">
+        <span class="dsr-cb__title">生命周期回调</span>
+        <span class="dsr-cb__meta">已注册 {{ callbacks.length }} 个 · {{ cbOpen ? '点击收起' : '点击展开清单与重放' }}</span>
+        <span class="dsr-grow" />
+        <el-button link type="primary" size="small" @click="cbOpen = !cbOpen">{{ cbOpen ? '收起' : '展开' }}</el-button>
+        <ReButton icon="RefreshRight" layout="square" size="small" tip="刷新回调清单" :loading="cbLoading"
+          @click="loadCallbacks" />
+      </header>
+      <div v-if="cbOpen" class="dsr-cb__body">
+        <div class="dsr-cb__list">
+          <span class="dsr-cb__label">已注册回调</span>
+          <template v-if="callbacks.length">
+            <el-tag v-for="c in callbacks" :key="c" size="small" effect="plain">{{ c }}</el-tag>
+          </template>
+          <span v-else class="dsr-cb__muted">暂无（点右侧刷新按钮拉取）</span>
+        </div>
+        <el-form class="dsr-cb__form" label-width="84px" size="small">
+          <div class="dsr-cb__grid">
+            <el-form-item label="事件类型">
+              <el-select v-model="cbForm.eventType" filterable allow-create default-first-option
+                placeholder="如 ALARM_RECEIVED">
+                <el-option v-for="t in EVENT_TYPE_OPTIONS" :key="t" :label="t" :value="t" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="阶段">
+              <el-select v-model="cbForm.phase">
+                <el-option label="SUCCESS" value="SUCCESS" />
+                <el-option label="FAILED" value="FAILED" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="设备 ID">
+              <el-input v-model="cbForm.deviceId" placeholder="可空" clearable />
+            </el-form-item>
+            <el-form-item label="厂商">
+              <el-select v-model="cbForm.vendor" clearable filterable placeholder="可空">
+                <el-option v-for="v in vendorOptions" :key="v.value" :label="v.label" :value="v.value" />
+              </el-select>
+            </el-form-item>
+          </div>
+          <el-form-item label="负载 JSON">
+            <el-input v-model="cbForm.payload" type="textarea" :rows="3" placeholder='如 {"channelId":1}，可空' />
+          </el-form-item>
+          <el-form-item v-if="cbForm.phase === 'FAILED'" label="失败原因">
+            <el-input v-model="cbForm.error" placeholder="phase=FAILED 时下发给回调的 error，可空" clearable />
+          </el-form-item>
+        </el-form>
+        <div class="dsr-cb__ops">
+          <span class="dsr-cb__muted">向全部已注册回调重放这条事件（联调 / 失败补发），逐回调返回执行结果。</span>
+          <span class="dsr-grow" />
+          <el-button size="small" type="primary" :loading="cbDispatching" @click="dispatchCallback">重放事件</el-button>
+        </div>
+        <el-table v-if="cbResults.length" :data="cbResults" size="small" border max-height="220">
+          <el-table-column prop="callback" label="回调" min-width="200" show-overflow-tooltip />
+          <el-table-column label="结果" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.ok ? 'success' : 'danger'" size="small" effect="plain">
+                {{ row.ok ? '成功' : '失败' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="message" label="说明" min-width="180" show-overflow-tooltip />
+          <el-table-column label="耗时" width="90" align="center">
+            <template #default="{ row }">{{ row.elapsedMs }}ms</template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </section>
+
     <!-- ==================== 视图切换 + 筛选 ==================== -->
     <section class="dsr-bar">
       <div class="dsr-bar__row">
@@ -71,7 +141,7 @@
         <div v-if="mode === 'records'" class="dsr-f dsr-f--range">
           <el-date-picker v-model="filters.range" size="small" style="width: 100%" type="datetimerange"
             range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" value-format="YYYY-MM-DD HH:mm:ss"
-            :shortcuts="RANGE_SHORTCUTS" @change="onFilterChange" />
+            :shortcuts="TIME_SHORTCUTS" @change="onFilterChange" />
         </div>
         <span class="dsr-grow" />
         <span class="dsr-bar__hint">{{ total }} 条</span>
@@ -168,20 +238,14 @@ import type { RePageResult, ReTableColumn, ReTableLoadParams } from '@repo/ui/re
 import ReTag from '@repo/ui/re-tag'
 
 import deviceApi from '../api/deviceApi'
-import type { DeviceSyncOutbox, SyncRecordsSummary } from '../types/device'
+import { TIME_SHORTCUTS } from '../constants/timeShortcuts'
+import type { DeviceCallbackResult, DeviceSyncOutbox, SyncRecordsSummary } from '../types/device'
 
 /** 视图形态：执行记录 / 重试队列 */
 type ViewMode = 'records' | 'outbox'
 
 /** 行为上抛：队列里的设备 ID 点击后交给宿主打开设备详情页签 */
 const emit = defineEmits<{ (e: 'open-device', deviceId: string): void }>()
-
-/** 时间快捷项（与告警中心同口径） */
-const RANGE_SHORTCUTS = [
-  { text: '近 1 小时', value: () => [new Date(Date.now() - 3600 * 1000), new Date()] as [Date, Date] },
-  { text: '近 24 小时', value: () => [new Date(Date.now() - 24 * 3600 * 1000), new Date()] as [Date, Date] },
-  { text: '近 7 天', value: () => [new Date(Date.now() - 7 * 24 * 3600 * 1000), new Date()] as [Date, Date] },
-]
 
 /** 方向字典 */
 const MODE_OPTIONS = [
@@ -220,6 +284,68 @@ const OUTBOX_STATUS_OPTIONS = [
   { value: 'failed', label: '失败' },
   { value: 'dead', label: '不可重试' },
 ]
+
+/* ==================== 生命周期回调：清单 + 手工重放 ==================== */
+const cbOpen = ref(false)
+const cbLoading = ref(false)
+const cbDispatching = ref(false)
+const callbacks = ref<string[]>([])
+const cbResults = ref<DeviceCallbackResult[]>([])
+const cbForm = reactive({
+  eventType: 'ALARM_RECEIVED',
+  phase: 'SUCCESS',
+  deviceId: '',
+  vendor: '',
+  payload: '',
+  error: '',
+})
+
+/** 常用事件类型（后端 DeviceLifecycleEvent 的 TYPE_* 常量，可手输扩展） */
+const EVENT_TYPE_OPTIONS = ['DEVICE_CREATED', 'DEVICE_UPDATED', 'DEVICE_DELETED', 'PERSON_ENROLLED', 'ALARM_RECEIVED']
+
+/** 拉取当前容器内已注册的回调清单 */
+async function loadCallbacks(): Promise<void> {
+  cbLoading.value = true
+  try {
+    callbacks.value = (await deviceApi.listCallbacks()) ?? []
+  } catch (err) {
+    ElMessage.error('回调清单加载失败：' + errorText(err))
+  } finally {
+    cbLoading.value = false
+  }
+}
+
+/** 手工重放一条生命周期事件，展示逐回调执行结果 */
+async function dispatchCallback(): Promise<void> {
+  let payload: Record<string, unknown> = {}
+  const text = cbForm.payload.trim()
+  if (text) {
+    try {
+      payload = JSON.parse(text) as Record<string, unknown>
+    } catch {
+      ElMessage.warning('负载 JSON 不合法')
+      return
+    }
+  }
+  cbDispatching.value = true
+  try {
+    const results = await deviceApi.dispatchCallback({
+      eventType: cbForm.eventType,
+      phase: cbForm.phase,
+      deviceId: cbForm.deviceId || undefined,
+      vendor: cbForm.vendor || undefined,
+      payload,
+      error: cbForm.phase === 'FAILED' ? cbForm.error || undefined : undefined,
+    })
+    cbResults.value = results ?? []
+    const okCount = cbResults.value.filter((r) => r.ok).length
+    ElMessage.success(`重放完成：${okCount}/${cbResults.value.length} 个回调成功`)
+  } catch (err) {
+    ElMessage.error('重放失败：' + errorText(err))
+  } finally {
+    cbDispatching.value = false
+  }
+}
 
 const tableRef = ref<InstanceType<typeof ReTable> | null>(null)
 
@@ -598,6 +724,7 @@ onMounted(async () => {
     // 厂商字典失败不阻塞列表
   }
   void refreshSummary()
+  void loadCallbacks()
 })
 </script>
 
@@ -821,5 +948,58 @@ onMounted(async () => {
   .dsr-f--range {
     width: 100%;
   }
+}
+
+/* ---------- 生命周期回调 ---------- */
+.dsr-cb {
+  border: 1px solid var(--el-border-color-lighter, var(--el-border-color));
+  border-radius: 12px;
+  background: var(--el-bg-color);
+}
+.dsr-cb__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: default;
+}
+.dsr-cb__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.dsr-cb__meta {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.dsr-cb__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+.dsr-cb__list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dsr-cb__label {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dsr-cb__muted {
+  font-size: 12px;
+  color: var(--el-text-color-placeholder);
+}
+.dsr-cb__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0 12px;
+}
+.dsr-cb__ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

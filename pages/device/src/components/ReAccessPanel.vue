@@ -8,7 +8,10 @@
       >
         <div class="flex items-center justify-between">
           <span class="text-sm font-medium text-el-text">{{ door.deviceDoorName }}</span>
-          <el-button type="primary" @click="emit('unlock', door.deviceDoorNo)">开门</el-button>
+          <div class="flex items-center gap-2">
+            <el-button type="primary" @click="emit('unlock', door.deviceDoorNo)">开门</el-button>
+            <el-button @click="emit('grant', door)">授权</el-button>
+          </div>
         </div>
         <div class="text-xs text-el-text-secondary mt-1">状态: {{ door.deviceDoorStatus }}</div>
       </el-card>
@@ -67,6 +70,7 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'unlock', doorId: number): void
+  (e: 'grant', door: DeviceDoor): void
   (e: 'refresh'): void
 }>()
 </script>

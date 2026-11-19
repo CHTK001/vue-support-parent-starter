@@ -179,6 +179,7 @@ import type { ReTableColumn, ReTableSearchConfig } from '@repo/ui/re-table'
 import ReTag from '@repo/ui/re-tag'
 
 import deviceApi from '../api/deviceApi'
+import { TIME_SHORTCUTS } from '../constants/timeShortcuts'
 import type { DeviceCategory, DeviceDoor, DeviceInfo, DeviceSeriesPoint } from '../types/device'
 import type { DirectionKey } from '../utils/accessDirection'
 import { directionOf } from '../utils/accessDirection'
@@ -320,7 +321,7 @@ const searchConfig = computed<ReTableSearchConfig>(() => ({
       label: '时间',
       type: 'daterange',
       // 日期组件默认近 350px，会溢出 220px 的网格把右侧按钮盖住，强制收进格子
-      attrs: { style: 'width: 100%' },
+      attrs: { style: 'width: 100%', shortcuts: TIME_SHORTCUTS },
     },
   ],
 }))

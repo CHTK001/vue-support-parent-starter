@@ -28,6 +28,7 @@
         start-placeholder="开始时间"
         end-placeholder="结束时间"
         value-format="YYYY-MM-DD HH:mm:ss"
+        :shortcuts="TIME_SHORTCUTS"
       />
       <el-button type="primary" @click="query">查询</el-button>
     </div>
@@ -64,6 +65,7 @@ import { ElMessage } from 'element-plus'
 import ReTable from '@repo/ui/re-table'
 import type { RePageResult, ReTableColumn, ReTableLoadParams } from '@repo/ui/re-table'
 import { deviceApi } from '../api/deviceApi'
+import { TIME_SHORTCUTS } from '../constants/timeShortcuts'
 
 const loading = ref(false)
 const deviceId = ref('')

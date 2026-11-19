@@ -316,6 +316,23 @@
                   layout="square"
                   type="primary"
                   size="small"
+                  icon="Document"
+                  tip="API 目录 / 探活"
+                  @click="openCatalog(asCredential(row))"
+                />
+                <ReButton
+                  layout="square"
+                  :type="row.deviceCredentialEnabled ? 'warning' : 'primary'"
+                  size="small"
+                  :icon="row.deviceCredentialEnabled ? 'TurnOff' : 'Open'"
+                  :loading="togglingId === row.deviceCredentialId"
+                  :tip="row.deviceCredentialEnabled ? '停用该凭据' : '启用该凭据'"
+                  @click="toggleEnabled(asCredential(row))"
+                />
+                <ReButton
+                  layout="square"
+                  type="primary"
+                  size="small"
                   icon="EditPen"
                   tip="编辑"
                   @click="openEdit(asCredential(row))"
@@ -910,6 +927,90 @@
         </div>
       </template>
     </ReDialog>
+
+    <!-- 平台接口目录 / 探活：按凭据查看平台开放接口清单，做只读探活与调试调用 -->
+    <el-dialog
+      v-model="catalogVisible"
+      :title="`平台接口目录${catalogCred?.deviceCredentialName ? ' · ' + catalogCred.deviceCredentialName : ''}`"
+      width="920px"
+      top="6vh"
+      append-to-body
+    >
+      <div v-loading="catalogLoading" class="dpv-catalog">
+        <template v-if="catalog">
+          <div class="dpv-catalog__meta">
+            <el-tag size="small" effect="plain">{{ catalog.platform }}</el-tag>
+            <span class="dpv-catalog__sdk">{{ catalog.officialSdk }} · API v{{ catalog.apiVersion }}</span>
+            <el-tag size="small" :type="catalog.verified ? 'success' : 'warning'" effect="plain">
+              {{ catalog.verified ? '已实测核验' : '按官方文档登记' }}
+            </el-tag>
+            <span class="dpv-catalog__total">共 {{ catalog.total }} 个接口</span>
+            <a v-if="catalog.docUrl" class="dpv-catalog__doc" :href="catalog.docUrl" target="_blank" rel="noopener">
+              官方文档 ↗
+            </a>
+          </div>
+          <div class="dpv-catalog__ops">
+            <el-select v-model="catalogDomain" size="small" style="width: 170px" placeholder="全部能力域" clearable>
+              <el-option v-for="d in catalogDomains" :key="d" :label="`${d}（${catalog.domains[d] ?? 0}）`" :value="d" />
+            </el-select>
+            <el-input
+              v-model="invokeParamsText"
+              size="small"
+              style="width: 280px"
+              placeholder="调试参数 JSON，如 {&quot;pageNo&quot;:1}"
+              clearable
+            />
+            <el-button size="small" type="primary" :loading="probing" @click="runProbe">只读接口探活</el-button>
+          </div>
+          <el-table :data="catalogApis" size="small" max-height="430" border>
+            <el-table-column prop="code" label="接口编码" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="name" label="接口名" min-width="140" show-overflow-tooltip />
+            <el-table-column prop="method" label="方法" width="66" align="center" />
+            <el-table-column prop="path" label="路径" min-width="190" show-overflow-tooltip />
+            <el-table-column prop="version" label="版本" width="66" align="center" />
+            <el-table-column prop="auth" label="认证" width="78" align="center" />
+            <el-table-column label="探活" width="150">
+              <template #default="{ row }">
+                <span
+                  v-if="probeMap[row.code]"
+                  class="dpv-catalog__probe"
+                  :class="probeMap[row.code].ok ? 'is-ok' : 'is-bad'"
+                >
+                  {{
+                    probeMap[row.code].ok
+                      ? probeMap[row.code].empty
+                        ? '通·无数据'
+                        : '可用'
+                      : '失败'
+                  }}
+                  · {{ probeMap[row.code].elapsedMs }}ms
+                </span>
+                <span v-else class="dpv-catalog__probe is-idle">未探测</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="76" align="center">
+              <template #default="{ row }">
+                <el-button link type="primary" size="small" :loading="invokingCode === row.code" @click="invokeApi(row)">
+                  调试
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <p class="dpv-catalog__hint">探活只打只读接口（查询 / 列表类），写操作接口不探测，避免产生副作用；调试调用按填写的参数透传执行一次。</p>
+        </template>
+      </div>
+      <template #footer>
+        <el-button @click="catalogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 调试调用原始返回 -->
+    <el-dialog v-model="invokeResultVisible" title="调试调用返回" width="640px" append-to-body>
+      <pre class="dpv-catalog__raw">{{ invokeResult || '（空返回）' }}</pre>
+      <template #footer>
+        <el-button @click="invokeResultVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -953,6 +1054,9 @@ import type {
   CredentialFieldDescriptor,
   DeviceCapability,
   DeviceVendorDescriptor,
+  PlatformApiCatalog,
+  PlatformApiProbeResult,
+  PlatformApiSpec,
   PlatformCapabilityMatrix,
   ProviderCredential,
   SyncResult,
@@ -2052,6 +2156,132 @@ async function testCredential(row: ProviderCredential) {
     message.error('连接测试失败：' + errorText(err))
   } finally {
     testingId.value = ''
+  }
+}
+
+/* ==================== 凭据启用 / 停用 ==================== */
+const togglingId = ref('')
+
+/**
+ * 启用 / 停用一套凭据（PUT /provider-credential/{id}/enabled）。
+ *
+ * <p>停用后该凭据维度的时间轮任务与路由都不再使用它；本地同步行状态，省一次刷新。</p>
+ */
+async function toggleEnabled(row: ProviderCredential) {
+  if (!row.deviceCredentialId) return
+  const next = !row.deviceCredentialEnabled
+  const action = next ? '启用' : '停用'
+  try {
+    await message.confirm(
+      `确定${action}凭据「${row.deviceCredentialName}」？${next ? '' : '停用后该凭据维度的同步任务与调用路由都不再使用它。'}`,
+      `${action}凭据`,
+      action,
+      '取消',
+      'warning'
+    )
+  } catch {
+    return
+  }
+  togglingId.value = row.deviceCredentialId
+  try {
+    await deviceApi.toggleCredentialEnabled(row.deviceCredentialId, next)
+    row.deviceCredentialEnabled = next
+    message.success(`已${action}「${row.deviceCredentialName}」`)
+  } catch (err) {
+    message.error(`${action}失败：` + errorText(err))
+  } finally {
+    togglingId.value = ''
+  }
+}
+
+/* ==================== 平台接口目录 / 探活 / 调试调用 ==================== */
+const catalogVisible = ref(false)
+const catalogLoading = ref(false)
+const catalogCred = ref<ProviderCredential | null>(null)
+const catalog = ref<PlatformApiCatalog | null>(null)
+/** 能力域过滤（空 = 全部） */
+const catalogDomain = ref('')
+/** 调试参数（JSON 文本，可空） */
+const invokeParamsText = ref('')
+const probing = ref(false)
+/** 探活结果按接口编码索引 */
+const probeMap = ref<Record<string, PlatformApiProbeResult>>({})
+const invokingCode = ref('')
+const invokeResult = ref('')
+const invokeResultVisible = ref(false)
+
+/** 能力域字典（带接口数） */
+const catalogDomains = computed(() => Object.keys(catalog.value?.domains ?? {}).sort())
+
+/** 按能力域过滤后的接口清单 */
+const catalogApis = computed(() => {
+  const apis = catalog.value?.apis ?? []
+  if (!catalogDomain.value) return apis
+  return apis.filter((a) => a.domain === catalogDomain.value)
+})
+
+/** 打开目录弹窗：拉取该凭据对应平台的接口目录 */
+async function openCatalog(row: ProviderCredential) {
+  if (!row.deviceCredentialId) return
+  catalogCred.value = row
+  catalog.value = null
+  catalogDomain.value = ''
+  invokeParamsText.value = ''
+  probeMap.value = {}
+  catalogVisible.value = true
+  catalogLoading.value = true
+  try {
+    catalog.value = await deviceApi.listPlatformApis(row.deviceCredentialId)
+  } catch (err) {
+    message.error('接口目录加载失败：' + errorText(err))
+    catalogVisible.value = false
+  } finally {
+    catalogLoading.value = false
+  }
+}
+
+/** 只读接口探活：按当前能力域过滤，结果回填到表格 */
+async function runProbe() {
+  const cred = catalogCred.value
+  if (!cred?.deviceCredentialId) return
+  probing.value = true
+  try {
+    const results = (await deviceApi.probePlatformApis(cred.deviceCredentialId, catalogDomain.value || undefined)) ?? []
+    const map: Record<string, PlatformApiProbeResult> = {}
+    for (const r of results) map[r.code] = r
+    probeMap.value = map
+    const okCount = results.filter((r) => r.ok).length
+    message.success(`探活完成：${okCount}/${results.length} 个只读接口可用`)
+  } catch (err) {
+    message.error('探活失败：' + errorText(err))
+  } finally {
+    probing.value = false
+  }
+}
+
+/** 调试调用：按接口编码透传参数执行一次，弹窗展示原始返回 */
+async function invokeApi(spec: PlatformApiSpec) {
+  const cred = catalogCred.value
+  if (!cred?.deviceCredentialId) return
+  let params: Record<string, unknown> = {}
+  const text = invokeParamsText.value.trim()
+  if (text) {
+    try {
+      params = JSON.parse(text) as Record<string, unknown>
+    } catch {
+      message.warning('调试参数不是合法 JSON')
+      return
+    }
+  }
+  invokingCode.value = spec.code
+  try {
+    const data = await deviceApi.invokePlatformApi(cred.deviceCredentialId, spec.code, params)
+    invokeResult.value = JSON.stringify(data, null, 2)
+    invokeResultVisible.value = true
+  } catch (err) {
+    message.error(`调用 ${spec.code} 失败：` + errorText(err))
+  } finally {
+    invokingCode.value = ''
   }
 }
 
@@ -3928,5 +4158,73 @@ onBeforeUnmount(() => {
   flex: none;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+/* ---------- 平台接口目录 / 探活 ---------- */
+.dpv-catalog {
+  min-height: 180px;
+}
+.dpv-catalog__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.dpv-catalog__sdk {
+  font-size: 12.5px;
+  color: var(--el-text-color-regular);
+}
+.dpv-catalog__total {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dpv-catalog__doc {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--el-color-primary);
+  text-decoration: none;
+}
+.dpv-catalog__doc:hover {
+  text-decoration: underline;
+}
+.dpv-catalog__ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.dpv-catalog__probe {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.dpv-catalog__probe.is-ok {
+  color: var(--el-color-success);
+}
+.dpv-catalog__probe.is-bad {
+  color: var(--el-color-danger);
+}
+.dpv-catalog__probe.is-idle {
+  color: var(--el-text-color-placeholder);
+}
+.dpv-catalog__hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+.dpv-catalog__raw {
+  max-height: 420px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-md, 8px);
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style>
