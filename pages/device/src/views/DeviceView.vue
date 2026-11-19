@@ -587,6 +587,7 @@
               v-else-if="tabKindOf(tab.name) === 'alarms'"
               :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
               :device-id="tabOf(tab.name)?.deviceId || ''"
+              @stats="onAlarmStats"
             />
 
             <!-- ============ 通道管理 ============ -->
@@ -852,6 +853,7 @@ import DeviceEventLogView from '../views/DeviceEventLogView.vue'
 const DeviceTopoView = defineAsyncComponent(() => import('../views/DeviceTopoView.vue'))
 
 import { deviceApi } from '../api/deviceApi'
+import { useDeviceRealtime } from '../composables/useDeviceRealtime'
 import { getCategoryIcon, getCategoryLabel } from '../utils/deviceCategory'
 import { isPlayable } from '../utils/deviceCapability'
 import {
@@ -867,6 +869,7 @@ import type {
   DeviceGroupNode,
   DeviceInfo,
   DeviceIndexItem,
+  DeviceStatusEvent,
   DeviceTagOption,
   DeviceVendorDescriptor,
   DeviceImportResult,
@@ -1820,6 +1823,51 @@ async function pageLoader(params: ReTableLoadParams): Promise<RePageResult<Recor
     return { total: 0 }
   }
 }
+
+/* ==================== 实时订阅（socket 优先，轮询兜底） ==================== */
+
+/**
+ * 设备状态事件就地生效：只改命中的行，不整页重载。
+ *
+ * <p>台账当前页 rows、轻索引 allIndex、页签设备缓存 deviceCache 三处
+ * 同步打补丁，在线状态点 / 最后在线时间 / 经纬度立即更新。</p>
+ */
+function onRealtimeStatus(event: DeviceStatusEvent): void {
+  const patchFull = (row: DeviceInfo): DeviceInfo => ({
+    ...row,
+    deviceInfoOnline: event.online,
+    deviceInfoLastOnlineAt: event.lastOnlineAt ?? row.deviceInfoLastOnlineAt,
+    deviceInfoLastOfflineAt: event.lastOfflineAt ?? row.deviceInfoLastOfflineAt,
+    deviceInfoLatitude: event.latitude != null ? Number(event.latitude) : row.deviceInfoLatitude,
+    deviceInfoLongitude: event.longitude != null ? Number(event.longitude) : row.deviceInfoLongitude
+  })
+  const patchLight = (row: DeviceIndexItem): DeviceIndexItem => ({
+    ...row,
+    deviceInfoOnline: event.online,
+    deviceInfoLatitude: event.latitude != null ? Number(event.latitude) : row.deviceInfoLatitude,
+    deviceInfoLongitude: event.longitude != null ? Number(event.longitude) : row.deviceInfoLongitude
+  })
+  const idx = rows.value.findIndex((device) => device.deviceInfoId === event.deviceId)
+  if (idx >= 0) rows.value[idx] = patchFull(rows.value[idx])
+  const lightIdx = allIndex.value.findIndex((device) => device.deviceInfoId === event.deviceId)
+  if (lightIdx >= 0) allIndex.value[lightIdx] = patchLight(allIndex.value[lightIdx])
+  const cached = deviceCache.value[event.deviceId]
+  if (cached) deviceCache.value = { ...deviceCache.value, [event.deviceId]: patchFull(cached) }
+}
+
+/** 告警 KPI 上报：同步到「告警中心」工作区页签的红点（未处理数） */
+function onAlarmStats(stats: Record<string, number>): void {
+  const tab = workTabs.value.find((item) => item.kind === 'alarms')
+  if (!tab) return
+  const unhandled = Number(stats?.unhandled ?? 0)
+  tab.badge = unhandled > 0 ? unhandled : null
+}
+
+useDeviceRealtime({
+  onStatus: onRealtimeStatus,
+  onRefresh: () => loadIndex(),
+  pollInterval: 30000
+})
 
 /** 在线/离线状态筛选：与快速筛选为同一池，避免两行重复；按轻索引计数 */
 const statusFilters = computed(() => quickFilters.value.slice(0, 3))

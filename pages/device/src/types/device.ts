@@ -100,7 +100,7 @@ export interface DeviceIndexItem {
   deviceInfoLatitude?: number
   deviceInfoLongitude?: number
   updateTime?: string
-  deviceInfoInstalledAt?: string
+  deviceInfoInstallAt?: string
 }
 
 /** 设备环境指标最新快照 */
@@ -329,6 +329,17 @@ export interface DeviceStatusEvent {
   occurredAt?: string
 }
 
+/** 新告警入库事件（设备实时通道，webhook 推送与平台自检共用） */
+export interface DeviceAlarmRealtimeEvent {
+  alarmId: string
+  deviceId?: string
+  type?: string
+  level?: string
+  title?: string
+  status?: string
+  occurredAt?: string
+}
+
 export interface DeviceChannel {
   deviceChannelId: string
   deviceChannelDeviceId: string
@@ -483,6 +494,28 @@ export interface DeviceAlarm {
   deviceAlarmOccurredAt: string
   /** 入库时间 */
   createTime: string
+}
+
+/** webhook appKey 视图（明文 secret 仅创建接口返回一次，列表恒为空） */
+export interface WebhookAppKey {
+  /** 主键 */
+  id: string
+  /** 公开标识 */
+  appKey: string
+  /** 名称 */
+  name: string
+  /** 允许的主题（access / alarm / vehicle / attendance，逗号分隔） */
+  scopes?: string
+  /** 过期时间；为空表示永久有效 */
+  expiresAt?: string | null
+  /** 是否启用 */
+  enabled?: boolean
+  /** 最近使用时间 */
+  lastUsedAt?: string | null
+  /** 创建时间 */
+  createdAt?: string
+  /** 明文密钥：仅创建时返回一次 */
+  secret?: string
 }
 
 /** 机房拓扑的节点/边（与 ReRelationGraph 的节点契约对齐：{ id, label, group, type, size }） */

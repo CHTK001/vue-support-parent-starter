@@ -96,6 +96,18 @@
 
     <ReErrorBar v-if="loadError" :message="loadError" retryText="重试" @retry="query" />
 
+    <!-- ==================== 批量工具条：勾选后出现，与台账批量条同语言 ==================== -->
+    <section v-if="selection.length" class="dal-batch">
+      <span class="dal-batch__text">已选 <b>{{ selection.length }}</b> 条告警</span>
+      <span class="dal-grow" />
+      <ReButton icon="Check" size="small" type="primary" :show-text="true" @click="batchHandle('resolved')">
+        批量解决
+      </ReButton>
+      <ReButton icon="Close" size="small" :show-text="true" @click="batchHandle('ignored')">
+        批量忽略
+      </ReButton>
+    </section>
+
     <!-- ==================== 列表：ReTable 自带分页，后端 loader 供数 ==================== -->
     <ReTable
       ref="tableRef"
@@ -111,6 +123,8 @@
       :page-sizes="[10, 20, 50, 100]"
       :toolbar="false"
       :layout-table="{ fill: true }"
+      show-selection
+      @selection-change="onSelectionChange"
       @row-click="onRowClick"
     >
       <template #col-occurredAt="{ row }">
@@ -276,9 +290,13 @@ import ReTag from '@repo/ui/re-tag'
 import { resolveUserDisplayInfo } from '@repo/utils'
 
 import deviceApi from '../api/deviceApi'
+import { useDeviceRealtime } from '../composables/useDeviceRealtime'
 import type { DeviceAlarm, DeviceInfo } from '../types/device'
 
 const props = withDefaults(defineProps<{ deviceId?: string }>(), { deviceId: '' })
+
+/** 向宿主（DeviceView 工作区页签）同步 KPI，供告警页签红点 / 计数展示 */
+const emit = defineEmits<{ (e: 'stats', stats: Record<string, number>): void }>()
 
 /** 告警类型（前端展示口径） */
 const ALARM_TYPES = [
@@ -343,6 +361,55 @@ const filters = reactive<{
 /** 详情弹窗 */
 const detailVisible = ref(false)
 const detail = ref<DeviceAlarm | null>(null)
+
+/** 批量选择：ReTable 勾选列的选中行 */
+const selection = ref<DeviceAlarm[]>([])
+
+/** ReTable 勾选变化：取回强类型行 */
+function onSelectionChange(rows: Array<Record<string, unknown>>): void {
+  selection.value = rows.map(asAlarm)
+}
+
+/**
+ * 批量处理选中的告警。
+ *
+ * <p>与单条处理同一套语义：忽略先确认（不可逆），解决直接执行；
+ * 处理人取当前登录用户。只处理「未处理 / 处理中」的行，已解决 / 已忽略
+ * 的不重复处理；完成后清空勾选并刷新列表与 KPI。</p>
+ */
+async function batchHandle(status: string): Promise<void> {
+  const targets = selection.value.filter(
+    (row) => row.deviceAlarmStatus === 'unhandled' || row.deviceAlarmStatus === 'handling',
+  )
+  if (!targets.length) {
+    ElMessage.warning('选中的告警里没有待处理的（已解决 / 已忽略的不再重复处理）')
+    return
+  }
+  if (status === 'ignored') {
+    try {
+      await ElMessageBox.confirm(
+        `忽略后这 ${targets.length} 条告警会进入「已忽略」，不再提醒。确认忽略？`,
+        '批量忽略',
+        { type: 'warning', confirmButtonText: '忽略', cancelButtonText: '取消' },
+      )
+    } catch {
+      return
+    }
+  }
+  try {
+    const updated = await deviceApi.batchUpdateAlarmStatus(
+      targets.map((row) => row.deviceAlarmId),
+      status,
+      resolveUserDisplayInfo().username || undefined,
+    )
+    ElMessage.success(`已把 ${updated} 条告警标记为 ${statusMeta(status).label}`)
+    tableRef.value?.clearAllSelection()
+    selection.value = []
+    await Promise.all([tableRef.value?.reload(), refreshStats()])
+  } catch (err) {
+    ElMessage.error('批量处理失败：' + errorText(err))
+  }
+}
 
 /** 设备下拉：离线设备带标记，避免选到一台根本不发告警的设备还以为是系统坏了 */
 const deviceOptions = computed(() =>
@@ -453,10 +520,21 @@ function onFilterChange(): void {
 async function refreshStats(): Promise<void> {
   try {
     stats.value = (await deviceApi.alarmStats()) ?? {}
+    emit('stats', stats.value)
   } catch {
     // 统计失败不影响列表
   }
 }
+
+/** 实时订阅：新告警到达即刷新 KPI 并重载当前页；socket 不可用时 30s 轮询 KPI 兜底 */
+useDeviceRealtime({
+  onAlarm: () => {
+    void refreshStats()
+    void tableRef.value?.reload()
+  },
+  onRefresh: () => refreshStats(),
+  pollInterval: 30000
+})
 
 /** 清空筛选（设备由外部页签固定时保留设备） */
 function resetFilters(): void {
@@ -646,6 +724,28 @@ onMounted(async () => {
   padding: 10px 2px 0;
   box-sizing: border-box;
   color: var(--el-text-color-primary);
+}
+
+/* ---------- 批量工具条：勾选后出现 ---------- */
+.dal-batch {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+  border: 1px solid var(--el-color-primary-light-7, var(--el-border-color-lighter));
+  border-radius: var(--el-radius-lg, 12px);
+}
+
+.dal-batch__text {
+  font-size: 12.5px;
+  color: var(--el-text-color-regular);
+}
+
+.dal-batch__text b {
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  color: var(--el-color-primary);
 }
 
 /* ---------- 顶部标题条 ---------- */

@@ -150,6 +150,15 @@
           </button>
           <span class="dpv-grow" />
           <ReButton
+            icon="Key"
+            size="small"
+            :show-text="true"
+            tip="告警 / 门禁 / 过车 / 考勤 webhook 入站的 appKey 管理"
+            @click="openAppKeys"
+          >
+            Webhook 密钥
+          </ReButton>
+          <ReButton
             icon="Grid"
             size="small"
             :show-text="true"
@@ -764,6 +773,114 @@
         @create="onCapabilityCreate"
       />
     </ReDrawer>
+
+    <!-- ==================== Webhook appKey 管理抽屉 ==================== -->
+    <ReDrawer v-model="appKeyVisible" title="Webhook 密钥（appKey）" size="760px" footer-hidden>
+      <div class="dpv-appkey">
+        <p class="dpv-appkey__desc">
+          第三方系统推送门禁 / 告警 / 过车 / 考勤 webhook 时，用 appKey + secret 做入站鉴权；
+          secret 只在创建时显示一次，请妥善保存。
+        </p>
+        <div class="dpv-appkey__ops">
+          <ReButton icon="Plus" size="small" type="primary" :show-text="true" @click="openAppKeyCreate">
+            新建 appKey
+          </ReButton>
+          <span class="dpv-grow" />
+          <ReButton icon="Refresh" layout="square" size="small" tip="刷新" :loading="appKeyLoading" @click="loadAppKeys" />
+        </div>
+
+        <div v-if="appKeyLoading && !appKeys.length" class="dpv-appkey__empty">加载中…</div>
+        <div v-else-if="!appKeys.length" class="dpv-appkey__empty">还没有 appKey，点「新建 appKey」创建一个。</div>
+        <table v-else class="dpv-appkey__table">
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>appKey</th>
+              <th>允许主题</th>
+              <th>状态</th>
+              <th>过期时间</th>
+              <th>最近使用</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in appKeys" :key="item.id">
+              <td class="dpv-appkey__name">{{ item.name }}</td>
+              <td><code class="dpv-appkey__code">{{ item.appKey }}</code></td>
+              <td class="dpv-appkey__scopes">{{ scopeLabel(item.scopes) }}</td>
+              <td>
+                <span class="dpv-appkey__state" :class="item.enabled ? 'is-on' : 'is-off'">
+                  {{ item.enabled ? '启用' : '停用' }}
+                </span>
+              </td>
+              <td>{{ item.expiresAt ? formatDateTime(item.expiresAt) : '永久' }}</td>
+              <td>{{ item.lastUsedAt ? formatDateTime(item.lastUsedAt) : '—' }}</td>
+              <td>
+                <button
+                  v-if="item.enabled"
+                  type="button"
+                  class="dpv-appkey__act"
+                  @click="disableAppKey(item)"
+                >
+                  停用
+                </button>
+                <button type="button" class="dpv-appkey__act is-danger" @click="removeAppKey(item)">删除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ReDrawer>
+
+    <!-- ==================== 新建 appKey 弹窗（secret 仅此一次） ==================== -->
+    <ReDialog v-model="appKeyCreateVisible" title="新建 Webhook appKey" width="540px">
+      <el-form label-width="96px">
+        <el-form-item label="名称" required>
+          <el-input
+            v-model="appKeyForm.name"
+            maxlength="64"
+            show-word-limit
+            placeholder="例如：门禁推送-东门（同时作为推送数据来源名）"
+          />
+        </el-form-item>
+        <el-form-item label="允许主题">
+          <el-checkbox-group v-model="appKeyForm.scopeList">
+            <el-checkbox value="access">门禁</el-checkbox>
+            <el-checkbox value="alarm">告警</el-checkbox>
+            <el-checkbox value="vehicle">过车</el-checkbox>
+            <el-checkbox value="attendance">考勤</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item label="过期时间">
+          <el-date-picker
+            v-model="appKeyForm.expiresAt"
+            type="datetime"
+            placeholder="留空表示永久有效"
+            format="YYYY-MM-DD HH:mm:ss"
+            value-format="YYYY-MM-DD HH:mm:ss"
+          />
+        </el-form-item>
+      </el-form>
+
+      <div v-if="createdAppKey" class="dpv-appkey__secret">
+        <p class="dpv-appkey__secret-title">创建成功，secret 只显示这一次，请立即保存：</p>
+        <div class="dpv-appkey__secret-row">
+          <code>{{ createdAppKey.secret }}</code>
+          <ReButton icon="CopyDocument" size="small" :show-text="true" @click="copySecret">复制</ReButton>
+        </div>
+        <p class="dpv-appkey__secret-key">appKey：<code>{{ createdAppKey.appKey }}</code></p>
+      </div>
+
+      <template #footer>
+        <div class="dpv-wiz-foot">
+          <span class="dpv-grow" />
+          <ReButton @click="appKeyCreateVisible = false">关闭</ReButton>
+          <ReButton v-if="!createdAppKey" type="primary" :loading="appKeyCreating" @click="submitAppKeyCreate">
+            创建
+          </ReButton>
+        </div>
+      </template>
+    </ReDialog>
   </div>
 </template>
 
@@ -809,7 +926,8 @@ import type {
   DeviceVendorDescriptor,
   PlatformCapabilityMatrix,
   ProviderCredential,
-  SyncResult
+  SyncResult,
+  WebhookAppKey
 } from '../types/device'
 
 const router = useRouter()
@@ -2020,6 +2138,155 @@ function refreshAll() {
 
 function goLedger() {
   router.push('/device')
+}
+
+/* ==================== Webhook appKey 管理 ==================== */
+
+/** appKey 抽屉 */
+const appKeyVisible = ref(false)
+const appKeyLoading = ref(false)
+const appKeys = ref<WebhookAppKey[]>([])
+
+/** 主题字典：与后端 AppKeyCreateRequest 的 scopes 取值一致 */
+const APPKEY_SCOPES: Array<{ value: string; label: string }> = [
+  { value: 'access', label: '门禁' },
+  { value: 'alarm', label: '告警' },
+  { value: 'vehicle', label: '过车' },
+  { value: 'attendance', label: '考勤' }
+]
+
+/** scopes 逗号串 → 中文清单 */
+function scopeLabel(scopes?: string): string {
+  if (!scopes) return '—'
+  return scopes
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => APPKEY_SCOPES.find((scope) => scope.value === item)?.label ?? item)
+    .join('、')
+}
+
+/** 拉取 appKey 列表（不含 secret） */
+async function loadAppKeys(): Promise<void> {
+  appKeyLoading.value = true
+  try {
+    appKeys.value = (await deviceApi.listWebhookAppKeys()) ?? []
+  } catch (err) {
+    message.error('加载 appKey 失败：' + errorText(err))
+  } finally {
+    appKeyLoading.value = false
+  }
+}
+
+/** 打开 appKey 管理抽屉 */
+function openAppKeys(): void {
+  appKeyVisible.value = true
+  void loadAppKeys()
+}
+
+/** 新建弹窗 */
+const appKeyCreateVisible = ref(false)
+const appKeyCreating = ref(false)
+const appKeyForm = reactive({ name: '', scopeList: ['access', 'alarm'] as string[], expiresAt: '' })
+/** 创建成功的一次性回执（含明文 secret） */
+const createdAppKey = ref<WebhookAppKey | null>(null)
+
+/** 打开新建弹窗：每次都重置表单与回执 */
+function openAppKeyCreate(): void {
+  appKeyForm.name = ''
+  appKeyForm.scopeList = ['access', 'alarm']
+  appKeyForm.expiresAt = ''
+  createdAppKey.value = null
+  appKeyCreateVisible.value = true
+}
+
+/** 提交创建；成功后展示一次性 secret 并刷新列表 */
+async function submitAppKeyCreate(): Promise<void> {
+  if (!appKeyForm.name.trim()) {
+    message.warning('请填写 appKey 名称')
+    return
+  }
+  appKeyCreating.value = true
+  try {
+    createdAppKey.value = await deviceApi.createWebhookAppKey({
+      name: appKeyForm.name.trim(),
+      scopes: appKeyForm.scopeList.join(','),
+      expiresAt: appKeyForm.expiresAt || undefined
+    })
+    await loadAppKeys()
+  } catch (err) {
+    message.error('创建 appKey 失败：' + errorText(err))
+  } finally {
+    appKeyCreating.value = false
+  }
+}
+
+/** 复制明文 secret；剪贴板 API 不可用时降级为选区复制 */
+async function copySecret(): Promise<void> {
+  const secret = createdAppKey.value?.secret
+  if (!secret) return
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(secret)
+      message.success('secret 已复制到剪贴板')
+      return
+    }
+    throw new Error('clipboard unavailable')
+  } catch {
+    try {
+      const helper = document.createElement('textarea')
+      helper.value = secret
+      helper.style.position = 'fixed'
+      helper.style.opacity = '0'
+      document.body.appendChild(helper)
+      helper.select()
+      document.execCommand('copy')
+      document.body.removeChild(helper)
+      message.success('secret 已复制到剪贴板')
+    } catch {
+      message.warning('自动复制失败，请手动选择文本复制')
+    }
+  }
+}
+
+/** 停用 appKey（可恢复，但当前后端未提供启用接口，提示要谨慎） */
+async function disableAppKey(item: WebhookAppKey): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      `停用后「${item.name}」将无法再推送数据。确认停用？`,
+      '停用 appKey',
+      { type: 'warning', confirmButtonText: '停用', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    await deviceApi.disableWebhookAppKey(item.id)
+    message.success('已停用')
+    await loadAppKeys()
+  } catch (err) {
+    message.error('停用失败：' + errorText(err))
+  }
+}
+
+/** 删除 appKey（不可恢复，第三方推送会被直接拒绝） */
+async function removeAppKey(item: WebhookAppKey): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      `删除后「${item.name}」的推送将被直接拒绝，且不可恢复。确认删除？`,
+      '删除 appKey',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    await deviceApi.deleteWebhookAppKey(item.id)
+    message.success('已删除')
+    await loadAppKeys()
+  } catch (err) {
+    message.error('删除失败：' + errorText(err))
+  }
 }
 
 function errorText(err: unknown): string {
@@ -3416,5 +3683,152 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+}
+
+/* ============================================================
+   Webhook appKey 管理抽屉 + 新建弹窗
+   ============================================================ */
+.dpv-appkey {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dpv-appkey__desc {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: var(--el-radius-md, 8px);
+}
+.dpv-appkey__ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dpv-appkey__empty {
+  padding: 32px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--el-text-color-placeholder);
+}
+.dpv-appkey__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.dpv-appkey__table th,
+.dpv-appkey__table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.dpv-appkey__table th {
+  font-weight: 600;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-lighter);
+  white-space: nowrap;
+}
+.dpv-appkey__table td {
+  color: var(--el-text-color-primary);
+  vertical-align: middle;
+}
+.dpv-appkey__name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dpv-appkey__code {
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.dpv-appkey__scopes {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--el-text-color-regular);
+}
+.dpv-appkey__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.dpv-appkey__state::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.dpv-appkey__state.is-on {
+  color: var(--el-color-success);
+}
+.dpv-appkey__state.is-off {
+  color: var(--el-text-color-placeholder);
+}
+.dpv-appkey__act {
+  border: none;
+  background: none;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.dpv-appkey__act:hover {
+  background: var(--el-color-primary-light-9, var(--el-fill-color-light));
+}
+.dpv-appkey__act.is-danger {
+  color: var(--el-color-danger);
+}
+.dpv-appkey__act.is-danger:hover {
+  background: var(--el-color-danger-light-9, var(--el-fill-color-light));
+}
+.dpv-appkey__secret {
+  margin: 4px 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--el-color-warning-light-7, var(--el-border-color));
+  background: var(--el-color-warning-light-9, var(--el-fill-color-light));
+  border-radius: var(--el-radius-md, 8px);
+}
+.dpv-appkey__secret-title {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--el-color-warning-dark-2, var(--el-color-warning));
+}
+.dpv-appkey__secret-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dpv-appkey__secret-row code {
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  font-size: 13px;
+  color: var(--el-text-color-primary);
+  background: var(--el-bg-color);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+.dpv-appkey__secret-key {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.dpv-appkey__secret-key code {
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  color: var(--el-color-primary);
 }
 </style>

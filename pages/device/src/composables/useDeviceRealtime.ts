@@ -15,11 +15,13 @@
 
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useSocketService, type WsMessage } from '@repo/core'
-import type { DeviceStatusEvent } from '../types/device'
+import type { DeviceAlarmRealtimeEvent, DeviceStatusEvent } from '../types/device'
 
 export interface UseDeviceRealtimeOptions {
   /** 收到设备状态事件 */
   onStatus?: (event: DeviceStatusEvent) => void
+  /** 收到新告警事件（webhook 推送 / 平台自检入库） */
+  onAlarm?: (event: DeviceAlarmRealtimeEvent) => void
   /** 轮询/校准回调（重新拉取当前页） */
   onRefresh?: () => void
   /** 轮询间隔，默认 15 秒 */
@@ -35,7 +37,8 @@ export interface UseDeviceRealtimeOptions {
  */
 export function useDeviceRealtime(options: UseDeviceRealtimeOptions) {
   const socket = useSocketService()
-  let unsubscribe: (() => void) | null = null
+  let unsubscribeStatus: (() => void) | null = null
+  let unsubscribeAlarm: (() => void) | null = null
   let timer: ReturnType<typeof setInterval> | null = null
 
   const mode = computed<'socket' | 'polling'>(() => (socket ? 'socket' : 'polling'))
@@ -43,13 +46,24 @@ export function useDeviceRealtime(options: UseDeviceRealtimeOptions) {
   onMounted(() => {
     if (socket) {
       try {
-        unsubscribe = socket.subscribe('device', 'status', (msg: WsMessage) => {
+        unsubscribeStatus = socket.subscribe('device', 'status', (msg: WsMessage) => {
           const data = msg?.data as DeviceStatusEvent | undefined
           if (!data || !data.deviceId) return
           options.onStatus?.(data)
         })
       } catch (err) {
         console.warn('[device] 订阅实时状态失败，回退轮询', err)
+      }
+      if (options.onAlarm) {
+        try {
+          unsubscribeAlarm = socket.subscribe('device', 'alarm', (msg: WsMessage) => {
+            const data = msg?.data as DeviceAlarmRealtimeEvent | undefined
+            if (!data || !data.alarmId) return
+            options.onAlarm?.(data)
+          })
+        } catch (err) {
+          console.warn('[device] 订阅实时告警失败', err)
+        }
       }
     }
     if (options.immediate) {
@@ -59,7 +73,8 @@ export function useDeviceRealtime(options: UseDeviceRealtimeOptions) {
   })
 
   onUnmounted(() => {
-    unsubscribe?.()
+    unsubscribeStatus?.()
+    unsubscribeAlarm?.()
     if (timer) {
       clearInterval(timer)
       timer = null

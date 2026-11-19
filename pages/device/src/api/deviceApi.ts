@@ -28,7 +28,8 @@ import type {
   DeviceSeriesPoint,
   DeviceSeriesEngineInfo,
   TopologyNode,
-  TopologyEdge
+  TopologyEdge,
+  WebhookAppKey
 } from '../types/device'
 
 /** 设备模块 Http 客户端（baseUrl 由配置 httpConfig.moduleBaseUrl.device 决定） */
@@ -308,6 +309,20 @@ export const deviceApi = {
   /** 更新告警处理状态（不传 handler 时不带该字段，避免空串落库） */
   updateAlarmStatus: (id: string, status: string, handler?: string) =>
     http.put(`/alarms/${id}/status`).data({ status, ...(handler ? { handler } : {}) }).then(unwrap),
+  /** 批量更新告警处理状态（批量处理 / 批量忽略），返回实际更新条数 */
+  batchUpdateAlarmStatus: (ids: string[], status: string, handler?: string) =>
+    http.put("/alarms/batch-status").data({ ids, status, ...(handler ? { handler } : {}) }).then(unwrap) as Promise<number>,
+
+  // ==================== Webhook appKey（告警/记录入站鉴权） ====================
+  /** appKey 列表（不含 secret） */
+  listWebhookAppKeys: () => http.get("/webhook/appkeys").then(unwrap) as Promise<WebhookAppKey[]>,
+  /** 新建 appKey；明文 secret 仅创建这一次返回 */
+  createWebhookAppKey: (req: { name: string; scopes?: string; expiresAt?: string }) =>
+    http.post("/webhook/appkeys").data(req).then(unwrap) as Promise<WebhookAppKey>,
+  /** 停用 appKey */
+  disableWebhookAppKey: (id: string) => http.post(`/webhook/appkeys/${id}/disable`).then(unwrap),
+  /** 删除 appKey */
+  deleteWebhookAppKey: (id: string) => http.delete(`/webhook/appkeys/${id}`).then(unwrap),
 
   // ==================== 厂商设备目录同步（写回方向） ====================
   /** 把本地设备写回厂商侧（仅厂商实现写回 SPI 生效） */
