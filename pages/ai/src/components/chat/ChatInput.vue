@@ -234,7 +234,7 @@
             :content="streaming ? t('chat.input.enqueue') : t('chat.input.send')" placement="top">
             <button class="send-btn" :class="{ 'queue-btn': streaming }"
               :aria-label="streaming ? t('chat.input.enqueue') : t('chat.input.send')" @click="sendMessage"
-              :disabled="props.readonly || (!inputContent.trim() && uploadFiles.length === 0) || !props.config?.modelId">
+              :disabled="props.readonly || (!inputContent.trim() && uploadFiles.length === 0) || noModelAvailable">
               <svg class="send-glyph" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 4.4 19.1 12 6 19.6V4.4Z" />
               </svg>
@@ -815,6 +815,16 @@ const currentModel = computed(() => {
   }
   return null;
 });
+
+/**
+ * 是否「一个可用对话模型都没有」（列表已加载完且为空）。
+ *
+ * <p>发送按钮只在真的没有模型可用时禁用。旧条件里带有 `!props.config?.modelId`，
+ * 于是新会话 chip 明明写着「自动」（后端 {@code ChatStreamOrchestrator#prepare} 在
+ * 没有 modelId 时会走 `getDefaultModel()`），按钮却是灰的、Enter 只弹模型面板，
+ * 用户看到的是「写着自动、按了没反应」（2026-11-19 实测 G7）。</p>
+ */
+const noModelAvailable = computed(() => modelsLoaded.value && models.value.length === 0);
 
 // 根据模型特性动态控制按钮显示
 watch(() => currentModel.value?.config, (config) => {
@@ -2762,12 +2772,14 @@ onMounted(() => {
           }
           // Shift+Enter 换行，Enter 发送消息
           if (event.key === 'Enter' && !event.shiftKey) {
-            // 与发送按钮相同的禁用条件（附件也算内容：只贴图不写字时仍要能发）
-            if (props.readonly || (!inputContent.value.trim() && uploadFiles.value.length === 0) || !props.config?.modelId) {
+            // 与发送按钮相同的禁用条件（附件也算内容：只贴图不写字时仍要能发）。
+            // 没有选模型不算禁用：chip 写「自动」时后端会用默认模型，
+            // 只有「一个可用模型都没有」才需要先把模型配好。
+            if (props.readonly || (!inputContent.value.trim() && uploadFiles.value.length === 0) || noModelAvailable.value) {
               event.preventDefault();
-              // 没有模型时不要静默吞掉 Enter：那是「看起来能发、其实没反应」，
+              // 真没有可用模型时不要静默吞掉 Enter：那是「看起来能发、其实没反应」，
               // 直接把模型选择器打开，用户知道缺的是什么。
-              if (!props.config?.modelId) openModelPanel();
+              if (noModelAvailable.value) openModelPanel();
               return true;
             }
             event.preventDefault();
