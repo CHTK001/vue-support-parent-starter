@@ -10,6 +10,12 @@
       </div>
       <div class="dsr-top__ops">
         <span v-if="lastQueryAt" class="dsr-top__at">查询于 {{ lastQueryAt }}</span>
+        <el-select v-model="autoRefreshSeconds" class="dsr-auto" size="small" title="自动刷新间隔" @change="onAutoRefreshChange">
+          <el-option label="手动刷新" :value="0" />
+          <el-option label="每 10 秒" :value="10" />
+          <el-option label="每 30 秒" :value="30" />
+          <el-option label="每 60 秒" :value="60" />
+        </el-select>
         <ReButton icon="RefreshRight" layout="square" size="small" tip="重新拉取" :loading="loading" @click="query" />
       </div>
     </header>
@@ -69,6 +75,8 @@
         </div>
         <span class="dsr-grow" />
         <span class="dsr-bar__hint">{{ total }} 条</span>
+        <ReButton v-if="mode === 'outbox'" icon="Refresh" size="small" :show-text="true" :loading="batchRetrying"
+          @click="onRetryFailedBatch">批量重试失败</ReButton>
         <ReButton icon="Search" size="small" type="primary" :show-text="true" @click="query">查询</ReButton>
         <ReButton icon="RefreshLeft" layout="square" size="small" tip="清空筛选" @click="resetFilters" />
       </div>
@@ -117,7 +125,10 @@
       </template>
       <!-- 重试队列列 -->
       <template #col-device="{ row }">
-        <span class="dsr-mono">{{ row.deviceSyncOutboxDeviceId || '—' }}</span>
+        <button type="button" class="dsr-device-link" title="打开设备详情"
+          @click="emit('open-device', String(row.deviceSyncOutboxDeviceId || ''))">
+          {{ row.deviceSyncOutboxDeviceId || '—' }}
+        </button>
       </template>
       <template #col-action="{ row }">
         <ReTag :type="row.deviceSyncOutboxAction === 'delete' ? 'danger' : 'info'" size="small" effect="plain">
@@ -144,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CircleCheck, Clock, Refresh, Warning } from '@element-plus/icons-vue'
 
@@ -161,6 +172,9 @@ import type { DeviceSyncOutbox, SyncRecordsSummary } from '../types/device'
 
 /** 视图形态：执行记录 / 重试队列 */
 type ViewMode = 'records' | 'outbox'
+
+/** 行为上抛：队列里的设备 ID 点击后交给宿主打开设备详情页签 */
+const emit = defineEmits<{ (e: 'open-device', deviceId: string): void }>()
 
 /** 时间快捷项（与告警中心同口径） */
 const RANGE_SHORTCUTS = [
@@ -388,6 +402,103 @@ async function refreshSummary(): Promise<void> {
   }
 }
 
+/* ==================== 自动刷新：进行中的同步不用手动点 ==================== */
+const autoRefreshSeconds = ref(0)
+let autoTimer: ReturnType<typeof setInterval> | null = null
+
+function onAutoRefreshChange(): void {
+  if (autoTimer) {
+    clearInterval(autoTimer)
+    autoTimer = null
+  }
+  const sec = autoRefreshSeconds.value
+  if (sec > 0) {
+    autoTimer = setInterval(() => {
+      if (!loading.value) query()
+    }, sec * 1000)
+  }
+}
+
+onUnmounted(() => {
+  if (autoTimer) {
+    clearInterval(autoTimer)
+    autoTimer = null
+  }
+})
+
+/* ==================== 批量重试：当前筛选下的待重试/失败队列逐台重推 ==================== */
+const batchRetrying = ref(false)
+
+/** 单次批量重试上限：写回是逐台调厂商接口，量太大时提示分批 */
+const RETRY_BATCH_LIMIT = 50
+
+/** 翻页收集当前筛选下可重试的队列行（failed / pending；sent 与 dead 跳过） */
+async function collectRetryCandidates(): Promise<DeviceSyncOutbox[]> {
+  const candidates: DeviceSyncOutbox[] = []
+  const pageSize = 100
+  const params = { ...tableParams.value }
+  for (let pageNo = 1; pageNo <= 50; pageNo++) {
+    const res = await deviceApi.pageSyncOutbox({ ...params, pageNo, pageSize })
+    const list = res.records ?? []
+    for (const row of list) {
+      if (row.deviceSyncOutboxStatus === 'failed' || row.deviceSyncOutboxStatus === 'pending') {
+        candidates.push(row)
+      }
+    }
+    const total = res.total ?? candidates.length
+    if (list.length < pageSize || candidates.length >= RETRY_BATCH_LIMIT || pageNo * pageSize >= total) break
+  }
+  return candidates.slice(0, RETRY_BATCH_LIMIT)
+}
+
+/** 批量重试失败队列：确认后逐台重推，按回读状态汇总 */
+async function onRetryFailedBatch(): Promise<void> {
+  if (batchRetrying.value) return
+  batchRetrying.value = true
+  try {
+    let candidates: DeviceSyncOutbox[]
+    try {
+      candidates = await collectRetryCandidates()
+    } catch (err) {
+      ElMessage.error('收集待重试记录失败：' + errorText(err))
+      return
+    }
+    if (!candidates.length) {
+      ElMessage.info('当前筛选下没有可重试的记录（已推送 / 不可重试的自动跳过）')
+      return
+    }
+    try {
+      await ElMessageBox.confirm(
+        `确认重试 ${candidates.length} 条写回失败记录？将逐台推送厂商${candidates.length >= RETRY_BATCH_LIMIT ? '（已达单次上限，可先缩小筛选再试）' : ''}。`,
+        '批量重试',
+        { type: 'warning', confirmButtonText: '重试', cancelButtonText: '取消' },
+      )
+    } catch {
+      return
+    }
+    let sent = 0
+    let deferred = 0
+    let failed = 0
+    for (const row of candidates) {
+      try {
+        const updated = await deviceApi.retrySyncOutbox(row.deviceSyncOutboxId)
+        if (updated?.deviceSyncOutboxStatus === 'sent') sent += 1
+        else deferred += 1
+      } catch {
+        failed += 1
+      }
+    }
+    const parts = [`成功 ${sent} 条`]
+    if (deferred) parts.push(`按退避推迟 ${deferred} 条`)
+    if (failed) parts.push(`失败 ${failed} 条`)
+    if (!deferred && !failed) ElMessage.success(`批量重试完成：${parts.join('，')}`)
+    else ElMessage.warning(`批量重试完成：${parts.join('，')}`)
+    query()
+  } finally {
+    batchRetrying.value = false
+  }
+}
+
 /** 重试一条队列记录：确认后走后端写回，成功失败都回读队列 */
 async function onRetry(row: DeviceSyncOutbox): Promise<void> {
   try {
@@ -569,6 +680,10 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
 }
 
+.dsr-auto {
+  width: 108px;
+}
+
 /* ---------- 概览卡 ---------- */
 .dsr-kpis {
   display: grid;
@@ -636,6 +751,21 @@ onMounted(async () => {
 .dsr-mono {
   font-family: var(--el-font-family-mono, ui-monospace, monospace);
   font-size: 12px;
+}
+
+/* 队列设备 ID：可点开设备详情 */
+.dsr-device-link {
+  padding: 0;
+  font-family: var(--el-font-family-mono, ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--el-color-primary);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.dsr-device-link:hover {
+  text-decoration: underline;
 }
 
 .dsr-msg {

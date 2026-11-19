@@ -263,6 +263,7 @@
                     <div class="da-batch__ops">
                       <ReButton icon="VideoCamera" :show-text="true" size="small" type="primary" plain @click="openVideoWizard">视频预览</ReButton>
                       <ReButton icon="Refresh" :show-text="true" size="small" @click="batchReconnect">批量重连</ReButton>
+                      <ReButton icon="Promotion" :show-text="true" size="small" @click="batchPushRemote">同步写回</ReButton>
                       <ReButton icon="FolderOpened" :show-text="true" size="small" @click="openBatchGroups">设置分组</ReButton>
                       <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain @click="batchRemove">批量删除</ReButton>
                     </div>
@@ -597,6 +598,7 @@
             <DeviceSyncRecordView
               v-else-if="tabKindOf(tab.name) === 'sync-records'"
               :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+              @open-device="openDeviceDetailById"
             />
 
             <!-- ============ 通道管理 ============ -->
@@ -1279,6 +1281,13 @@ function openDetail(device: DeviceInfo): void {
   })
 }
 
+/** 按设备 ID 打开详情页签（同步记录等只有 ID 的场景，名称/在线态尽力补全） */
+function openDeviceDetailById(deviceId: string): void {
+  if (!deviceId) return
+  const known = deviceCache.value[deviceId] ?? rows.value.find((device) => device.deviceInfoId === deviceId)
+  openDetail(known ?? ({ deviceInfoId: deviceId, deviceInfoName: deviceId } as DeviceInfo))
+}
+
 /** 播放页签：纯画面，只有能出流的设备才允许打开 */
 function openPlay(device: DeviceInfo): void {
   if (!isPlayable(device, vendors.value)) {
@@ -1377,7 +1386,7 @@ function closeAllWorkTabs(): void {
 /** 本地存储 key：刷新后恢复上次打开的页签 */
 const WORK_TABS_STORAGE_KEY = 'device:workTabs'
 /** 可落盘的页签类别（「设备资产」固定重建，不存储） */
-const RESTORABLE_TAB_KINDS: WorkTabKind[] = ['detail', 'alarms', 'play', 'channels', 'events', 'topo']
+const RESTORABLE_TAB_KINDS: WorkTabKind[] = ['detail', 'alarms', 'sync-records', 'play', 'channels', 'events', 'topo']
 
 /** 校验从本地缓存读出的页签，坏数据直接丢弃 */
 function isValidWorkTab(value: unknown): value is WorkTab {
@@ -2819,6 +2828,39 @@ async function batchRemove() {
   const results = await Promise.allSettled(targets.map((row) => deviceApi.remove(row.deviceInfoId)))
   const ok = results.filter((item) => item.status === 'fulfilled').length
   message.success(`已删除 ${ok} 台设备`)
+  refreshAll()
+}
+
+/** 批量写回：把选中的设备逐台推送到厂商平台（新增/更新），失败自动进重试队列 */
+async function batchPushRemote() {
+  const targets = [...selection.value]
+  if (!targets.length) return
+  const ids = targets.map((row) => row.deviceInfoId).filter(Boolean)
+  if (!ids.length) {
+    message.warning('所选设备缺少设备 ID')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      `确认把选中的 ${ids.length} 台设备写回厂商平台？将逐台推送新增 / 更新，失败的自动进入重试队列。`,
+      '同步写回',
+      { type: 'warning', confirmButtonText: '写回', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    const result = await deviceApi.pushDevicesBatch(ids)
+    const failedItems = (result?.items ?? []).filter((item) => !item.result)
+    if (!result?.failed) {
+      message.success(`写回完成：成功 ${result?.success ?? ids.length} 台`)
+    } else {
+      const names = failedItems.map((item) => item.name || item.id).slice(0, 3).join('、')
+      message.warning(`写回完成：成功 ${result.success} 台，失败 ${result.failed} 台（${names}${failedItems.length > 3 ? '等' : ''}），失败已进入重试队列`)
+    }
+  } catch (err) {
+    message.error('批量写回失败：' + errorText(err))
+  }
   refreshAll()
 }
 

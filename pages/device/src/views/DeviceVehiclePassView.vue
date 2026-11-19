@@ -45,6 +45,7 @@
         <template #search-title-extra>
           <span class="rec-title">过车记录</span>
           <span class="rec-meta">{{ rows.length }} 条</span>
+          <ReButton icon="Refresh" size="small" :show-text="true" @click="openPullDialog">从设备拉取</ReButton>
         </template>
         <!-- 分页左侧：范围与查询时间 -->
         <template #pagination-extra>
@@ -61,11 +62,42 @@
           </el-tag>
         </template>
         <template #col-photo="{ row }">
-          <el-link v-if="row.photoUrl" :href="row.photoUrl" target="_blank" type="primary">查看</el-link>
+          <el-image
+            v-if="row.photoUrl"
+            class="dvp-photo"
+            :src="row.photoUrl"
+            :preview-src-list="[row.photoUrl]"
+            preview-teleported
+            hide-on-click-modal
+            lazy
+            fit="cover"
+          >
+            <template #error>
+              <span class="dvp-photo-fallback">加载失败</span>
+            </template>
+          </el-image>
           <span v-else class="dvp-none">—</span>
         </template>
       </ReTable>
     </section>
+
+    <!-- 从设备拉取过车记录：选车闸设备 + 时间窗，走后端 /barrier/pass/pull -->
+    <el-dialog v-model="pullVisible" title="从设备拉取过车记录" width="460px" append-to-body>
+      <div class="dvp-pull">
+        <span class="dvp-pull__label">车闸设备</span>
+        <el-select v-model="pullDeviceId" filterable placeholder="选择车闸设备" style="width: 100%">
+          <el-option v-for="d in deviceOptions" :key="d.value" :label="d.label" :value="d.value" />
+        </el-select>
+        <span class="dvp-pull__label">时间范围</span>
+        <el-date-picker v-model="pullRange" type="datetimerange" style="width: 100%" range-separator="至"
+          start-placeholder="开始时间" end-placeholder="结束时间" value-format="YYYY-MM-DD HH:mm:ss" />
+        <p class="dvp-pull__hint">按时间范围从设备侧拉取过车记录并写入时序库；设备离线或厂商接口不通时会提示失败原因。</p>
+      </div>
+      <template #footer>
+        <el-button @click="pullVisible = false">取消</el-button>
+        <el-button type="primary" :loading="pulling" @click="confirmPull">拉取</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -84,6 +116,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Coin, Van } from '@element-plus/icons-vue'
 
+import ReButton from '@repo/ui/re-button'
 import ReErrorBar from '@repo/ui/re-error-bar'
 import ReStatCard from '@repo/ui/re-stat-card'
 import ReTable from '@repo/ui/re-table'
@@ -295,6 +328,49 @@ function errText(e: unknown): string {
   return data?.msg || data?.message || (err?.response?.status ? `请求失败（HTTP ${err.response.status}）` : err?.message) || '未知错误'
 }
 
+/* ==================== 从设备拉取过车记录 ==================== */
+const pullVisible = ref(false)
+const pullDeviceId = ref('')
+const pullRange = ref<[string, string] | null>(null)
+const pulling = ref(false)
+
+/** Date → yyyy-MM-dd HH:mm:ss（与后端 parseTime 口径一致） */
+function fmtDateTime(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
+/** 打开拉取弹窗：设备默认取当前筛选，时间默认最近 24 小时 */
+function openPullDialog(): void {
+  pullDeviceId.value = String(filters.value.deviceId || '')
+  const now = new Date()
+  pullRange.value = [fmtDateTime(new Date(now.getTime() - 24 * 3600 * 1000)), fmtDateTime(now)]
+  pullVisible.value = true
+}
+
+/** 确认拉取：走 /barrier/pass/pull，成功后回读过车列表 */
+async function confirmPull(): Promise<void> {
+  if (!pullDeviceId.value) {
+    ElMessage.warning('请选择要拉取的车闸设备')
+    return
+  }
+  if (!pullRange.value?.[0] || !pullRange.value?.[1]) {
+    ElMessage.warning('请选择拉取时间范围')
+    return
+  }
+  pulling.value = true
+  try {
+    const count = await deviceApi.pullVehiclePasses(pullDeviceId.value, pullRange.value[0], pullRange.value[1])
+    ElMessage.success(`拉取完成：新增 ${Number(count ?? 0)} 条过车记录`)
+    pullVisible.value = false
+    void loadPasses()
+  } catch (e: unknown) {
+    ElMessage.error('拉取失败：' + errText(e))
+  } finally {
+    pulling.value = false
+  }
+}
+
 onMounted(() => {
   void loadDevices()
   void loadPasses()
@@ -359,5 +435,42 @@ onMounted(() => {
 }
 .dvp-none {
   color: var(--el-text-color-placeholder);
+}
+
+/* 拉取弹窗表单：两行控件 + 一句口径说明 */
+.dvp-pull {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dvp-pull__label {
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+}
+.dvp-pull__hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+/* 抓拍图缩略图：点开大图预览，加载失败给占位 */
+.dvp-photo {
+  display: block;
+  width: 44px;
+  height: 32px;
+  border-radius: 4px;
+  cursor: zoom-in;
+}
+.dvp-photo-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 32px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
 }
 </style>
