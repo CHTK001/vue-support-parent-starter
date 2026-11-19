@@ -20,6 +20,7 @@ const router = useRouter();
 
 const tasks = ref<TaskInfo[]>([]);
 const loading = ref(false);
+const loadError = ref("");
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const statusMap: Record<string, { label: string; type: string }> = {
@@ -104,8 +105,10 @@ async function refresh() {
   loading.value = true;
   try {
     tasks.value = await getActiveTasks();
+    loadError.value = "";
   } catch (e: any) {
-    /* 后端未启动时静默 */
+    // 失败不再伪装成空态：记录错误，由表格上方错误条展示（4s 轮询场景不弹 toast 防刷屏）
+    loadError.value = e?.message ?? String(e);
   } finally {
     loading.value = false;
   }
@@ -214,6 +217,17 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
+    <el-alert
+      v-if="loadError"
+      type="error"
+      :title="`任务加载失败：${loadError}`"
+      :closable="false"
+      show-icon
+      class="tasks-error"
+    >
+      <el-button size="small" type="primary" plain @click="refresh">重试</el-button>
+    </el-alert>
+
     <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
          既有 :deep(.el-table…) 样式与 e2e 选择器一概不失效；pagination=false —— 本页原本
          没有分页条，行为照旧全量展示；toolbar=false 不新增工具栏（按钮清单与改造前逐个一致）；
@@ -294,6 +308,9 @@ onBeforeUnmount(() => {
 .tasks-actions {
   display: flex;
   gap: 8px;
+}
+.tasks-error {
+  margin-bottom: 8px;
 }
 .tasks-table {
   width: 100%;

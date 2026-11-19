@@ -22,6 +22,7 @@ import type { ReTableColumn } from "@repo/ui/re-table";
 const records = ref<DownloadHistoryRecord[]>([]);
 const total = ref(0);
 const loading = ref(false);
+const loadError = ref("");
 const page = ref(1);
 const pageSize = ref(20);
 
@@ -123,8 +124,10 @@ async function refresh() {
     const res = await getDownloadHistory(page.value, pageSize.value);
     records.value = res.records ?? [];
     total.value = res.total ?? 0;
+    loadError.value = "";
   } catch (e: any) {
-    records.value = [];
+    // 失败不再清空列表伪装成空态：记录错误，由表格上方错误条展示
+    loadError.value = e?.message ?? String(e);
   } finally {
     loading.value = false;
   }
@@ -195,6 +198,17 @@ onMounted(refresh);
       </el-button>
     </div>
 
+    <el-alert
+      v-if="loadError"
+      type="error"
+      :title="`历史加载失败：${loadError}`"
+      :closable="false"
+      show-icon
+      class="history-error"
+    >
+      <el-button size="small" type="primary" plain @click="refresh">重试</el-button>
+    </el-alert>
+
     <!-- 表格统一 ReTable（替换裸 el-table）：engine="element" 沿用原 el-table 的 DOM，
          既有 :deep(.el-table…) 样式与 e2e 选择器一概不失效；pagination=false —— 分页仍由
          下方 el-pagination 自管，否则会多出一套页码控件；toolbar=false 不新增工具栏
@@ -263,6 +277,9 @@ onMounted(refresh);
   font-size: 15px;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+.history-error {
+  margin-bottom: 8px;
 }
 .history-table {
   flex: 1;

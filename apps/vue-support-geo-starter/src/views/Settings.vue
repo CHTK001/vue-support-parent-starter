@@ -47,10 +47,14 @@ watch(
 
 /** 从后端加载设置并同步到表单 */
 async function load() {
-  const s = await settingsStore.loadSettings();
-  if (s) {
-    form.value = { ...form.value, ...s };
-    loaded.value = true;
+  try {
+    const s = await settingsStore.loadSettings();
+    if (s) {
+      form.value = { ...form.value, ...s };
+      loaded.value = true;
+    }
+  } catch (e: any) {
+    message.error(`设置加载失败：${e?.message ?? e}`);
   }
 }
 
