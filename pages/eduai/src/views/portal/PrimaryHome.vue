@@ -20,14 +20,14 @@
           <div class="pp-bflag pp-bflag--info">
             <span class="pp-bflag__line">
               <span class="pp-bflag__ic"><ReIcon name="AlarmClock" :size="15" aria-hidden="true" /></span>
-              <span class="pp-bflag__val">{{ today?.studyCount ?? 0 }} 次</span>
+              <span class="pp-bflag__val">{{ todayLine }}</span>
             </span>
             <span class="pp-bflag__lbl">今日学习</span>
           </div>
           <div class="pp-bflag pp-bflag--blue">
             <span class="pp-bflag__line">
               <span class="pp-bflag__ic"><ReIcon name="Reading" :size="15" aria-hidden="true" /></span>
-              <span class="pp-bflag__val">{{ week?.studyCount ?? 0 }} 次</span>
+              <span class="pp-bflag__val">{{ weekLine }}</span>
             </span>
             <span class="pp-bflag__lbl">本周学习</span>
           </div>
@@ -55,9 +55,17 @@
           <div class="pp-bflag pp-bflag--red">
             <span class="pp-bflag__line">
               <span class="pp-bflag__ic"><ReIcon name="Flag" :size="15" aria-hidden="true" /></span>
-              <span class="pp-bflag__val">{{ masteredCount }}/{{ modules.length }}</span>
+              <span class="pp-bflag__val">{{ masteredCount }}/{{ playableCount }}</span>
             </span>
             <span class="pp-bflag__lbl">已攻克</span>
+          </div>
+          <!-- 班级排名：classRank/classSize 后端已随 overview 下发；缺数据显示「—」 -->
+          <div class="pp-bflag pp-bflag--deep">
+            <span class="pp-bflag__line">
+              <span class="pp-bflag__ic"><ReIcon name="Trophy" :size="15" aria-hidden="true" /></span>
+              <span class="pp-bflag__val">{{ classRankLine }}</span>
+            </span>
+            <span class="pp-bflag__lbl">班级排名</span>
           </div>
         </div>
       </div>
@@ -71,8 +79,17 @@
         <span class="pp-wrongbar__cta">去消灭它们 ›</span>
       </button>
 
+      <!-- 试卷提醒条：本班有未作答的试卷（= 还没有本人的阅卷任务，口径与「我的试卷」页
+           一致）时出现，点击直达「我的试卷」；全部交卷后自动消失。接口失败时保持安静
+           （不弹窗、不显示假数字），下次回到首页再试。 -->
+      <button v-if="pendingPapers > 0" type="button" class="pp-paperbar" @click="emit('open', 'my-papers')">
+        <ReIcon name="Notebook" :size="16" aria-hidden="true" />
+        <span class="pp-paperbar__text">老师布置了 <b>{{ pendingPapers }}</b> 份试卷待完成</span>
+        <span class="pp-paperbar__cta">去做试卷 ›</span>
+      </button>
+
       <!-- 跑道：蛇形虚线贯穿整行，模块卡像补给站沿道错位铺开；
-           🏃 小人按「已攻克模块数」站在跑道对应位置 -->
+           🏃 小人按「已攻克模块数占可玩站点数」站在跑道对应位置 -->
       <section class="pp-lane-zone" aria-label="功能模块">
         <svg class="pp-lane" viewBox="0 0 1200 64" preserveAspectRatio="none" aria-hidden="true">
           <path ref="lanePathEl" d="M0 32 C 100 16, 200 16, 300 32 S 500 48, 600 32 S 800 16, 900 32 S 1100 48, 1200 32" />
@@ -86,10 +103,15 @@
             class="pp-stop"
             :class="{ 'is-recommend': m.moduleCode === recommendCode, 'is-wip': !isReady(m) }"
             :style="{ '--pp-i': i }"
+            :title="isReady(m) ? undefined : '建设中，敬请期待'"
             @click="onOpen(m)"
           >
             <span v-if="!isReady(m)" class="pp-wip">建设中</span>
-            <span v-if="badgeOf(m) > 0" class="pp-badge">{{ badgeOf(m) }}</span>
+            <span
+              v-if="badgeOf(m) > 0"
+              class="pp-badge"
+              :class="{ 'is-rest': m.moduleCode !== 'wrongbook' }"
+            >{{ m.moduleCode === "wrongbook" ? badgeOf(m) : `还差 ${badgeOf(m)}%` }}</span>
             <span v-if="m.moduleCode === recommendCode" class="pp-rec">今日推荐</span>
             <span class="pp-stop__main">
               <span
@@ -138,26 +160,29 @@
  * PrimaryHome —— 小学端首页（彩虹跑道 · PC/移动双端）
  *
  * 设计语言：整页是一条横贯的跑道。标题立在起点旗上（旗杆 + 三角旗 + 轻摆），
- * 六枚统计是挂在绒线串上的小彩旗（今日学习 / 本周学习 / 本周正确率 / 星星 /
- * 打卡 / 已攻克）；模块卡是沿蛇形虚线跑道错位铺开的补给站（3n+2 下沉一格
+ * 七枚统计是挂在绒线串上的小彩旗（今日学习 / 本周学习 / 本周正确率 / 星星 /
+ * 打卡 / 已攻克 / 班级排名）；模块卡是沿蛇形虚线跑道错位铺开的补给站（3n+2 下沉一格
  * 形成蜿蜒路径），卡片底部的定位桩让它像是「插」在跑道上；一个 🏃 小人按
- * 「已攻克模块数」**沿蛇形曲线**跑到对应位置；被后端推荐（overview.recommend）
- * 的补给站插「今日推荐」旗并加描边强调；wrongPending > 0 时跑道上方出现
- * 直达错题本的引导条；终点是带方格旗的「查看更多功能」。
+ * 「已攻克模块数占可玩站点数」**沿蛇形曲线**跑到对应位置；被后端推荐
+ * （overview.recommend）的补给站插「今日推荐」旗并加描边强调；wrongPending > 0
+ * 时跑道上方出现直达错题本的引导条，本班有未作答试卷时出现直达「我的试卷」的
+ * 提醒条；终点是带方格旗的「查看更多功能」。
  *
  * 无 header：品牌 = 起点旗。颜色全部走 koi 变量（--el-* / --el-radius-* /
  * --el-transition-*），暗色模式由 html.dark 自动跟随；系统「减少动态效果」
  * 偏好下关闭全部动画（见样式底部 @media）。
  *
  * 统计口径全部来自后端真实数据（edu_student_daily / edu_student_progress /
- * overview.recommend / overview.wrongPending / overview.today / week.accuracy）：
- * 没有数据时显示 0、「—」或「未开始」，不用假数字。错题本角标直接用后端
- * wrongPending（真实待复习数），其余模块的角标仍按「剩余进度」折算；
+ * overview.recommend / overview.wrongPending / overview.today / week.accuracy /
+ * classRank / classSize / studyMinutes）：没有数据时显示 0、「—」或「未开始」，
+ * 不用假数字。错题本角标直接用后端 wrongPending（真实待复习数），其余模块的
+ * 角标按「剩余进度」折算成「还差 N%」药丸（中性主色，红色只留给错题本）；
  * 开始过的卡片副标题带「上次学习」相对时间（lastStudyTime），把学生拉回来。
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { PortalModule } from "./modules";
 import { stageLabel } from "./modules";
+import { eduaiApi } from "../../api/eduaiApi";
 import type { ModuleProgress, StudentOverview } from "../../api/types";
 
 const props = defineProps<{
@@ -201,16 +226,47 @@ const nothingStarted = computed(() => (props.overview?.modulesStarted ?? 0) === 
 /** 今日推荐模块编码：后端下发（overview.recommend），命中哪张补给站就给哪张插推荐旗 */
 const recommendCode = computed(() => props.overview?.recommend ?? "");
 
-/** 已攻克（进度 100）的模块数：跑道上的小人按它前进，彩旗串展示 x/总数 */
+/** 已攻克（进度 100）的模块数：跑道上的小人按它前进，彩旗串展示 x/可玩站点数 */
 const masteredCount = computed(() => props.overview?.modulesMastered ?? 0);
 
 /**
- * 小人目标进度：按已攻克模块数占本学段目录的比例，从起点跑到终点。
- * 用 clamp 兜住两端，避免 0% 时顶出起点、100% 时压住方格旗。
+ * 可玩站点数：目录中已内嵌（非「建设中」）的模块数。
+ *
+ * <p>「已攻克 x/y」与小人的分母都用它 —— 分母若把建设中站点也算进去，
+ * 学生把可玩的全部攻克也到不了 100%，永远冲不过终点线，激励设计就失效了。</p>
+ */
+const playableCount = computed(
+  () => props.modules.filter((m) => props.readyCodes.includes(m.moduleCode)).length
+);
+
+/** 今日学习彩旗：次数 + 时长一起给（StudyStat.studyMinutes 后端已随 overview 下发） */
+const todayLine = computed(
+  () => `${today.value?.studyCount ?? 0} 次 · ${today.value?.studyMinutes ?? 0} 分钟`
+);
+
+/** 本周学习彩旗：同今日口径 */
+const weekLine = computed(
+  () => `${week.value?.studyCount ?? 0} 次 · ${week.value?.studyMinutes ?? 0} 分钟`
+);
+
+/** 班级排名彩旗：排名/人数缺任何一个都显示「—」，不造数 */
+const classRankLine = computed(() => {
+  const rank = props.overview?.classRank;
+  const size = props.overview?.classSize;
+  if (!rank || !size) {
+    return "—";
+  }
+  return `${rank}/${size}`;
+});
+
+/**
+ * 小人目标进度：按已攻克模块数占**可玩站点数**的比例，从起点跑到终点。
+ * 分母排除建设中站点（见 playableCount）；用 clamp 兜住两端，
+ * 避免 0% 时顶出起点、100% 时压住方格旗。
  */
 const runnerPct = computed(() => {
-  const totalModules = props.modules.length || 1;
-  const pct = Math.round((masteredCount.value / totalModules) * 100);
+  const denom = playableCount.value || 1;
+  const pct = Math.round((masteredCount.value / denom) * 100);
   return Math.max(2, Math.min(96, pct));
 });
 
@@ -256,6 +312,8 @@ onMounted(() => {
     runnerResizeOb = new ResizeObserver(() => placeRunner());
     runnerResizeOb.observe(lanePathEl.value);
   }
+  // 首次进首页拉一次待完成试卷；之后由 overview 刷新（关模块回首页/回前台）联动重拉
+  void loadPendingPapers();
 });
 onBeforeUnmount(() => {
   runnerResizeOb?.disconnect();
@@ -353,8 +411,10 @@ function subOf(m: PortalModule): string {
  * 未完成角标。
  *
  * <p>错题本直接用后端的 {@link StudentOverview.wrongPending}（真实待复习错题数），
- * 不做任何折算；其余开启 badgeFromIncomplete 的模块，按该模块剩余进度折算成
- * 待完成项数量（学习数据里没有「待办条目数」，只有进度百分比；满分 100 时角标消失）。</p>
+ * 不做任何折算，红色数字角标只留给它；其余开启 badgeFromIncomplete 的模块，按该
+ * 模块剩余进度折算（学习数据里没有「待办条目数」，只有进度百分比；满分 100 时
+ * 角标消失），显示层渲染成「还差 N%」药丸 —— 与错题数在视觉上区分开，
+ * 避免「还差 60%」被学生误读成「60 道错题」。</p>
  *
  * <p>**查不到该模块的学习记录时返回 0（不显示角标）**，这是刻意改的：
  * 原实现在无记录时直接 `return 48`，等于凭空造一个数字印在卡片上 ——
@@ -379,6 +439,35 @@ function badgeOf(m: PortalModule): number {
   }
   return Math.max(0, 100 - (p.progress ?? 0));
 }
+
+/** 本班待完成试卷数：> 0 时首页出现「去做试卷」提醒条（口径与「我的试卷」页一致） */
+const pendingPapers = ref(0);
+
+/**
+ * 拉取本班试卷与本人阅卷任务，算出还没作答的卷子数。
+ *
+ * <p>「待完成」= 布置给本班的卷子中没有对应本人阅卷任务（markingTaskPaperId
+ * 对不上），与 StudentPapersView 的「开始作答/查看结果」判断同口径。
+ * 任一接口失败都保持安静：提醒条沿用上一次结果，不弹错误、不造数字。</p>
+ */
+async function loadPendingPapers(): Promise<void> {
+  try {
+    const papers = (await eduaiApi.myClassPapers()) || [];
+    const tasks = (await eduaiApi.studentMarkingTasks(50)) || [];
+    const done = new Set(tasks.map((t) => t.markingTaskPaperId));
+    pendingPapers.value = papers.filter((p) => !done.has(p.paperId)).length;
+  } catch {
+    // 静默降级：首页的提醒条不该因为一次接口抖动报错
+  }
+}
+
+// overview 每次被宿主刷新（关闭模块回首页 / 标签页回前台）时，待完成试卷数跟着重算
+watch(
+  () => props.overview,
+  () => {
+    void loadPendingPapers();
+  }
+);
 </script>
 
 <style scoped>
@@ -515,6 +604,7 @@ function badgeOf(m: PortalModule): number {
 .pp-bflag:nth-child(4) { margin-top: 9px; animation-delay: 1.05s; }
 .pp-bflag:nth-child(5) { margin-top: 12px; animation-delay: 1.4s; }
 .pp-bflag:nth-child(6) { margin-top: 15px; animation-delay: 1.75s; }
+.pp-bflag:nth-child(7) { margin-top: 18px; animation-delay: 2.1s; }
 @keyframes pp-flutter {
   0%, 100% { transform: rotate(-1deg); }
   50% { transform: rotate(1.6deg); }
@@ -536,6 +626,10 @@ function badgeOf(m: PortalModule): number {
 }
 .pp-bflag--sky {
   background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary-light-5));
+}
+/* 班级排名旗：深一档的品牌色，与 --blue（ primary→light-3）拉开层次 */
+.pp-bflag--deep {
+  background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
 }
 .pp-bflag__line {
   display: inline-flex;
@@ -588,6 +682,44 @@ function badgeOf(m: PortalModule): number {
   font-variant-numeric: tabular-nums;
 }
 .pp-wrongbar__cta {
+  font-weight: 900;
+}
+
+/* ============ 试卷提醒条（本班有未作答试卷时出现；warning 橙与错题红区分） ============ */
+.pp-paperbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 16px;
+  border-radius: var(--el-radius-lg, 12px);
+  border: 1.5px dashed color-mix(in srgb, var(--el-color-warning) 60%, transparent);
+  background: color-mix(in srgb, var(--el-color-warning) 10%, var(--el-bg-color));
+  color: color-mix(in srgb, var(--el-color-warning) 72%, var(--el-color-black));
+  font-family: inherit;
+  appearance: none;
+  font-size: clamp(13px, 1.5vw, 15px);
+  font-weight: 800;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background var(--el-transition-duration-fast, 0.2s) ease,
+    box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+}
+.pp-paperbar:hover {
+  background: color-mix(in srgb, var(--el-color-warning) 18%, var(--el-bg-color));
+  box-shadow: 0 10px 20px -10px color-mix(in srgb, var(--el-color-warning) 40%, transparent);
+}
+.pp-paperbar:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-warning) 25%, transparent);
+}
+.pp-paperbar b {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.pp-paperbar__cta {
   font-weight: 900;
 }
 
@@ -817,6 +949,17 @@ function badgeOf(m: PortalModule): number {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+/* 非错题角标：「还差 N%」剩余进度药丸 —— 中性主色，红色数字只留给错题本 */
+.pp-badge.is-rest {
+  min-width: 0;
+  height: 22px;
+  padding: 0 9px;
+  font-size: 11px;
+  background: color-mix(in srgb, var(--el-color-primary) 12%, var(--el-bg-color));
+  color: var(--el-color-primary);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 35%, transparent);
+  white-space: nowrap;
 }
 
 /* 建设中：灰态卡片 + 角标，点击被 onOpen 门禁忽略 */
