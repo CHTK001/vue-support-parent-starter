@@ -20,10 +20,13 @@ if (urlServer) {
 }
 
 // 角色种子（standalone 无登录体系）：?role=admin 写入并持久化，供 v-admin 指令判断；
-// 未携带时沿用 localStorage "user-roles"（核心权限模块默认回退读取）
-const urlRole = params.get("role");
-if (urlRole) {
-  setUserRoles(urlRole.split(",").map((r) => r.trim()).filter(Boolean));
+// 未携带时沿用 localStorage "user-roles"（核心权限模块默认回退读取）。
+// 仅开发模式生效：生产构建不响应 URL 角色参数，避免前端权限门控被 URL 直接解锁。
+if (import.meta.env.DEV) {
+  const urlRole = params.get("role");
+  if (urlRole) {
+    setUserRoles(urlRole.split(",").map((r) => r.trim()).filter(Boolean));
+  }
 }
 
 /** 最小主题安装器：文件管理页保留 ElementPlus + 权限指令，Re* 组件交给 .ui() 链 */
