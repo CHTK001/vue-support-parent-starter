@@ -18,13 +18,24 @@
         </button>
       </div>
 
+      <div class="ws-filter-row">
+        <el-select v-model="worldEraFilter" clearable placeholder="时代" class="ws-filter-select" data-role="filter-era" style="width: 100%">
+          <el-option v-for="e in eraOptions" :key="e" :label="e" :value="e" />
+        </el-select>
+        <el-select v-model="worldWeatherFilter" clearable placeholder="天气" class="ws-filter-select" data-role="filter-weather" style="width: 100%">
+          <el-option v-for="w in weatherOptions" :key="w" :label="w" :value="w" />
+        </el-select>
+      </div>
+
       <div class="ws-list-body">
         <div
           v-for="w in shownWorlds"
           :key="w.id"
           class="ws-conv"
+          data-role="world-item"
+          :data-world-id="w.id"
           :class="{ active: w.id === currentWorldId }"
-          @click="selectWorld(w)"
+          @click="selectWorld(w, { push: true })"
         >
           <CardAvatar :src="null" :name="w.name" size="lg" class="ws-conv-avatar" />
           <div class="ws-conv-main">
@@ -83,6 +94,7 @@
               <el-tag size="small" effect="plain">{{ currentWorld.era || '现代' }}</el-tag>
               <span class="ws-chat-time">{{ currentWorld.timeLabel || '第 1 天 上午' }}</span>
               <span v-if="currentWorld.weather" class="ws-chat-weather">{{ currentWorld.weather }}</span>
+              <span v-if="readingOnly" class="ws-ro-badge" data-role="readonly-badge" title="只读账号：可以观看，不能修改世界">只读访客</span>
             </div>
             <div class="ws-chat-head-actions">
               <button class="ws-auto" type="button" :class="{ on: autoWatch }" :title="autoWatch ? '停止自动观看' : '让世界自己演下去'"
@@ -97,7 +109,7 @@
                 {{ autoEvolve ? '自演化中' : '自动演化' }}
               </button>
               <button class="ws-chat-adv" type="button" :disabled="advancing" title="推进时间，生成世界动态"
-                @click="advance()">
+                @click="advance()" data-role="advance-time">
                 <el-icon v-if="!advancing"><VideoPlay /></el-icon>
                 <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
                 <span class="ws-adv-text">推进时间</span>
@@ -358,15 +370,21 @@
         <div class="ws-input" :class="{ 'is-act': !!currentAct }" data-role="cast-track">
           <div class="ws-track">
             <span class="ws-track-k">演员</span>
-            <button v-for="n in trackNpcs" :key="'tk-' + n.id" class="ws-track-chip"
-              :class="{ on: n.sceneId != null && n.sceneId === currentSceneId, off: n.isActive === false }"
-              type="button" :data-track-npc="n.id"
-              :title="(n.displayName || '角色') + ' · 微调人设与演员模型'"
-              @click="openNpcEdit(n)">
-              <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" />
-              <span class="ws-track-name">{{ n.displayName }}</span>
-              <span v-if="n.modelOverride" class="ws-track-model" :title="'演员模型：' + n.modelOverride">模型</span>
-            </button>
+            <span v-for="n in trackNpcs" :key="'tk-' + n.id" class="ws-track-item">
+              <button class="ws-track-chip"
+                :class="{ on: n.sceneId != null && n.sceneId === currentSceneId, off: n.isActive === false, selected: mentionNpc === n.id }"
+                type="button" data-role="track-npc" :data-track-npc="n.id"
+                :title="(n.displayName || '角色') + (mentionNpc === n.id ? ' · 已指定 TA 先开口，再点取消' : ' · 点选：下一轮观演由 TA 先开口')"
+                @click="toggleMention(n.id)">
+                <CardAvatar :src="n.displayAvatar" :name="n.displayName || 'AI'" size="sm" />
+                <span class="ws-track-name">{{ n.displayName }}</span>
+                <span v-if="n.modelOverride" class="ws-track-model" :title="'演员模型：' + n.modelOverride">模型</span>
+              </button>
+              <button class="ws-track-edit" type="button" :data-track-edit="n.id" title="微调人设与演员模型"
+                @click="openNpcEdit(n)">
+                <el-icon><Edit /></el-icon>
+              </button>
+            </span>
             <span v-if="!trackNpcs.length" class="ws-track-empty">还没有角色。世界设置里可以让 AI 造几个。</span>
             <span class="ws-track-grow"></span>
           </div>
@@ -824,6 +842,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { MoreFilled, Plus, VideoPlay, Loading, Fold, Expand } from '@element-plus/icons-vue'
 import MarkdownContent from '@/components/ui/MarkdownContent.vue'
 import CardAvatar from '@/components/ui/CardAvatar.vue'
@@ -913,9 +932,12 @@ interface UIMessage {
   content: string
   modelName?: string
   streaming?: boolean
+  retry?: boolean
 }
 
 /* ---------------- 状态 ---------------- */
+const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const worlds = ref<WorldItem[]>([])
 const currentWorldId = ref<number | null>(null)
@@ -940,7 +962,15 @@ const messages = ref<UIMessage[]>([])
 const advancing = ref(false)
 const spectating = ref(false)
 const autoWatch = ref(false)
+const autoWatchError = ref('')
+let lastSpectateError = ''
+const following = ref(true)
+const unseenBase = ref(0)
+/** 点选一位演员：下一轮观演由 TA 先开口 */
+const mentionNpc = ref<number | null>(null)
 const worldKw = ref('')
+const worldEraFilter = ref('')
+const worldWeatherFilter = ref('')
 const sideTab = ref<'cast' | 'relations' | 'timeline' | 'stage'>('cast')
 /** 左右两栏折叠：把整块宽度让给舞台；折叠后舞台边缘留一个展开把手 */
 const leftCollapsed = ref(false)
@@ -1035,8 +1065,38 @@ const readingOnly = computed(() => Boolean((auth.user as any)?.readonly))
 /* ---------------- 计算 ---------------- */
 const shownWorlds = computed(() => {
   const kw = worldKw.value.trim()
-  if (!kw) return worlds.value
-  return worlds.value.filter((w) => (w.name || '').includes(kw))
+  const era = worldEraFilter.value
+  const weather = worldWeatherFilter.value
+  return worlds.value.filter((w) => {
+    if (kw && !(w.name || '').includes(kw)) return false
+    if (era && w.era !== era) return false
+    if (weather && w.weather !== weather) return false
+    return true
+  })
+})
+
+/** 时代筛选选项：常量表 ∪ 现存世界的实际值，世界里有「雾/雪」就筛得到 */
+const eraOptions = computed(() => {
+  const fromData = worlds.value.map((w) => w.era).filter((v): v is string => !!v)
+  return Array.from(new Set([...ERA_OPTIONS, ...fromData]))
+})
+
+/** 天气筛选选项：常量表 ∪ 现存世界的实际值 */
+const weatherOptions = computed(() => {
+  const fromData = worlds.value.map((w) => w.weather).filter((v): v is string => !!v)
+  return Array.from(new Set([...WEATHER_OPTIONS, ...fromData]))
+})
+
+/** 被 @ 点的演员名字：脚灯条里「@ 谁 先开口」用 */
+const mentionNpcName = computed(() => {
+  if (mentionNpc.value == null) return ''
+  return npcs.value.find((n) => n.id === mentionNpc.value)?.displayName || ''
+})
+
+/** 离开底部后漏看的条数：跟随中恒为 0 */
+const unseenCount = computed(() => {
+  if (following.value) return 0
+  return Math.max(0, messages.value.length - unseenBase.value)
 })
 
 const currentScene = computed(() => scenes.value.find((s) => s.id === currentSceneId.value) || null)
@@ -1359,8 +1419,14 @@ function onStageKeydown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
-  void loadWorlds()
+onMounted(async () => {
+  await loadWorlds()
+  // A1 深链：URL 带世界 id 时直接选中；列表尚未加载完时这里兜底
+  const id = Number(route.params.worldId)
+  if (id && !currentWorldId.value) {
+    const w = worlds.value.find((x) => Number(x.id) === id)
+    if (w) await selectWorld(w)
+  }
   window.addEventListener('keydown', onStageKeydown)
 })
 
@@ -1374,7 +1440,21 @@ async function loadWorlds() {
   worlds.value = await apiService.fetchWorlds()
 }
 
-async function selectWorld(w: WorldItem) {
+/**
+ * 浏览器前进/后退换世界：同组件不重建，只有参数变化，这里承接。
+ * 与 currentWorldId 相同（例如 selectWorld 自己 replace 回来）直接返回，防自触发。
+ */
+watch(
+  () => route.params.worldId,
+  (v) => {
+    const id = Number(v)
+    if (!id || id === currentWorldId.value) return
+    const w = worlds.value.find((x) => Number(x.id) === id)
+    if (w) void selectWorld(w)
+  },
+)
+
+async function selectWorld(w: WorldItem, opts: { push?: boolean } = {}) {
   stopAutoWatch()
   currentWorldId.value = w.id
   currentWorld.value = w
@@ -1382,16 +1462,15 @@ async function selectWorld(w: WorldItem) {
   actDetail.value = null
   stories.value = []
   showScript.value = false
+  mentionNpc.value = null
   const view = await apiService.fetchWorldView(w.id)
   scenes.value = view.scenes || []
   npcs.value = view.npcs || []
   relationships.value = view.relationships || []
   events.value = view.events || []
   currentSceneId.value = scenes.value.length ? scenes.value[0].id : null
-  await loadMessages()
-  await loadActs()
-  // 演出正文单独取：只有演过的幕次才有，取不到不影响页面
-  await loadStories()
+  // A9：view 之后三路并行，首屏少 2 个 RTT
+  await Promise.all([loadMessages(), loadActs(), loadStories()])
   // 有演出记录时直接进「看戏」：默认选中最新一幕，用户一进来就在剧场里
   if (acts.value.length) {
     const done = stories.value.find((s) => s.played)
@@ -1403,6 +1482,11 @@ async function selectWorld(w: WorldItem) {
     sideTab.value = 'cast'
   }
   syncWorld(w, view.world)
+  // A1：列表点选走 push（产生历史，浏览器后退能回到上一个世界）；
+  // 创建/编辑后仍 replace（历史里不该堆中间态）
+  const target = { name: 'WorldSim', params: { worldId: w.id } }
+  if (opts.push) router.push(target as any)
+  else router.replace(target as any)
 }
 
 function syncWorld(from: WorldItem, fresh: WorldItem) {
@@ -1948,14 +2032,22 @@ function toggleAutoEvolve() {
 onUnmounted(stopAutoEvolve)
 
 /* ---------------- 观演（让 AI 自己演） ---------------- */
-async function spectate() {
-  if (!canSpectate.value || spectating.value) return
+/**
+ * 观演一轮。返回是否成功；失败原因放进 lastSpectateError，
+ * 自动观看模式不再叠 toast（原因直接写进脚灯条）。
+ */
+async function spectate(): Promise<boolean> {
+  if (!canSpectate.value || spectating.value) return false
   spectating.value = true
   try {
     await runSpectatorTurn('')
+    return true
   } catch (e: any) {
-    message.error(e?.message || '观演失败')
     spectating.value = false
+    lastSpectateError = e?.message || '网络断开或模型不可用'
+    if (!autoWatch.value) message.error(lastSpectateError)
+    autoWatchError.value = lastSpectateError
+    return false
   }
 }
 
@@ -1971,7 +2063,7 @@ function runSpectatorTurn(hint: string): Promise<boolean> {
     const aiBySpeaker = new Map<string, UIMessage>()
     try {
       streamHandle = apiService.worldChatStream(
-        { worldId: currentWorldId.value, sceneId: currentSceneId.value, content: hint, atNpcId: null },
+        { worldId: currentWorldId.value, sceneId: currentSceneId.value, content: hint, atNpcId: mentionNpc.value },
         {
           onEvent: (ev) => {
             if (ev.type === 'create') {
@@ -2059,6 +2151,7 @@ function toggleAutoWatch() {
     stopAutoEvolve()
   }
   autoWatch.value = true
+  autoWatchError.value = ''
   message.success('自动观看已开启，世界会自己演下去')
   scheduleAutoWatch(300)
 }
@@ -2071,13 +2164,16 @@ function scheduleAutoWatch(delay: number) {
 async function autoWatchStep() {
   if (!autoWatch.value) return
   if (!canSpectate.value) {
-    stopAutoWatch()
+    stopAutoWatch('自动观看已停止：先在场景页签里选一个场景')
     return
   }
-  try {
-    await spectate()
-  } catch {
-    stopAutoWatch()
+  const ok = await spectate()
+  if (!ok) {
+    // 别处已把 autoWatch 停掉（例如切世界）就不要再叠提示
+    if (!autoWatch.value) return
+    const reason = lastSpectateError || '网络断开或模型不可用'
+    autoWatchError.value = reason
+    stopAutoWatch(`自动观看已停止：${reason}`)
     return
   }
   if (autoWatch.value) scheduleAutoWatch(AUTO_WATCH_INTERVAL)
@@ -2096,6 +2192,14 @@ function stopAutoWatch(reason?: string) {
     autoWatch.value = false
     message.info(reason || '自动观看已停止')
   }
+}
+
+/** 脚灯条里的「重试」：清掉失败原因，重新开自动观看 */
+function retryAutoWatch() {
+  autoWatchError.value = ''
+  if (autoWatch.value) return
+  if (!currentWorldId.value || !canSpectate.value) return
+  toggleAutoWatch()
 }
 
 /* ---------------- 幕次 ---------------- */
@@ -2468,13 +2572,36 @@ async function loadMessages() {
       modelName: m.modelName,
       streaming: false,
     }))
+  // 切世界/切场景后回到跟随态：重新贴底，角标清零
+  following.value = true
+  unseenBase.value = messages.value.length
+  scrollBottom()
+}
+
+/** 回到底部：显式回到跟随态并贴上最新一条 */
+function scrollToBottom() {
+  following.value = true
+  unseenBase.value = messages.value.length
   scrollBottom()
 }
 
 function scrollBottom() {
   nextTick(() => {
-    if (msgBoxRef.value) msgBoxRef.value.scrollTop = msgBoxRef.value.scrollHeight
+    if (following.value && msgBoxRef.value) msgBoxRef.value.scrollTop = msgBoxRef.value.scrollHeight
   })
+}
+
+/** 舞台滚动：贴底就是跟随；第一次离开底部记下当时的条数，回到底部按钮显示漏看几条 */
+function onStageScroll() {
+  const el = msgBoxRef.value
+  if (!el) return
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 8
+  if (atBottom) {
+    following.value = true
+  } else if (following.value) {
+    following.value = false
+    unseenBase.value = messages.value.length
+  }
 }
 
 function evSpeakerFallback(map: Map<string, UIMessage>): UIMessage | null {
@@ -2494,8 +2621,17 @@ function pushStreamError(ev: { error?: string; speakerName?: string }) {
     speakerName: ev.speakerName || '系统',
     content: `[错误] ${ev.error || '生成失败'}`,
     streaming: false,
+    retry: true,
   })
   scrollBottom()
+}
+
+/** SSE 断线重试：丢掉这轮错误气泡，重新跑一次观演 */
+function retryTurn(m: UIMessage) {
+  if (spectating.value || !canSpectate.value || !currentWorldId.value) return
+  const i = messages.value.findIndex((x) => x._key === m._key)
+  if (i >= 0) messages.value.splice(i, 1)
+  void spectate()
 }
 
 </script>

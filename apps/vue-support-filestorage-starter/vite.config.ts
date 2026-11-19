@@ -13,7 +13,10 @@ import {
 } from "unocss";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { uiExplicitAliases } from "../../turbo/vite/createVite.ts";
+import {
+  uiExplicitAliases,
+  elementPlusOnDemandPlugins,
+} from "../../turbo/vite/createVite.ts";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.resolve(root, "../..");
@@ -118,6 +121,9 @@ export default defineConfig({
   plugins: [
     vue(),
     UnoCSS(unoConfig()),
+    // Element Plus 按需解析（性能清单 G1）：<el-*> 组件与样式编译期按需注入，
+    // 入口 main.ts / preview.ts 只保留命令式 API 样式基线 + v-loading + locale。
+    ...elementPlusOnDemandPlugins(),
     // 文件预览（@file-viewer）渲染器资源复制；注册由组件显式 preset 完成，见 PreviewOfficePanel。
     // 资产写入目标即 publicDir（根 public/vendor），dev/build 由 Vite 直接从源码服务，
     // 应用本身不再持有副本。

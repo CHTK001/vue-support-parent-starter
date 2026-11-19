@@ -9,7 +9,7 @@
  *   sse.on("message", (data) => ...);
  */
 import { ref } from "vue";
-import { log } from "@repo/utils";
+import { firstPartyHeaders, log } from "@repo/utils";
 import {
   fetchEventSource,
   EventStreamContentType,
@@ -132,6 +132,10 @@ export function createSseService(config: SseConfig): SocketTemplate {
     if (config.body) {
       headers["Content-Type"] = "application/json";
     }
+    // 第一方标识：SSE 走裸 fetch（fetchEventSource），不经 axios 拦截器；
+    // 缺少 X-Trace-Id / X-Requested-With 双头会被服务端「消息头拦截」
+    // 判为爬虫/自动化客户端而 403，故与 axios 请求携带同一组标识。
+    Object.assign(headers, firstPartyHeaders());
 
     fetchEventSource(url, {
       method,

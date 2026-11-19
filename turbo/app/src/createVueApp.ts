@@ -9,7 +9,7 @@ import { Icon as IconifyIcon } from "@iconify/vue";
 import { registerBuiltinIcons } from "./icons/builtinIcons";
 import type { Pinia } from "pinia";
 import type { I18n } from "vue-i18n";
-import koiI18n from "@repo/languages";
+import koiI18n, { ensureLocaleMessages } from "@repo/languages";
 import koiPinia, { getStaticMenu, registerStaticMenu, type StaticMenuItem } from "@repo/pinia";
 import {
   waitForBaseRoutes,
@@ -331,6 +331,12 @@ export class VueAppBuilder {
     const globalStore = useGlobalStore(appPinia);
     if (globalStore.language) {
       (appI18n.global.locale as any).value = globalStore.language;
+    }
+    // ③.0.1 语言包懒加载（性能清单 X2）：@repo/languages 的语言包改为按需装载后，
+    // 挂载前先装载当前 locale，避免首屏菜单 / 标题短暂显示 i18n key。
+    // 仅对默认实例生效：业务自带 i18n（如 pages/ai）自行管理语言包。
+    if (appI18n === koiI18n) {
+      await ensureLocaleMessages((appI18n.global.locale as any).value);
     }
 
     // ③.1 provide 全局 Socket 服务

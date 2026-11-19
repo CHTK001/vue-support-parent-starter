@@ -21,6 +21,8 @@ export interface HanziWrongEntry {
   pinyin?: string;
   /** 当时的笔顺快照（如「横竖撇捺」） */
   strokeOrder?: string;
+  /** 累计答错次数（≥1；旧数据无此字段按 1 算） */
+  count?: number;
 }
 
 const KEY = "eduai:hanzi-wrong-book";
@@ -57,7 +59,8 @@ function writeStore(list: HanziWrongEntry[]): void {
 }
 
 /**
- * 记一道错题：按「字 + 题型」去重（同一字同题型只留最近一次），新的排前面。
+ * 记一道错题：按「字 + 题型」去重（同一字同题型只留最近一次并累计答错次数），
+ * 新的排前面。重复答错时刷新答案快照并保留读音/笔顺快照的旧值兜底。
  *
  * @param entry 错题记录（time 缺省时取当前时间）
  */
@@ -65,9 +68,24 @@ export function addHanziWrong(entry: HanziWrongEntry): void {
   if (!entry.char) {
     return;
   }
-  const rest = readStore().filter((e) => !(e.char === entry.char && e.type === entry.type));
-  rest.unshift({ ...entry, time: entry.time || new Date().toISOString() });
-  writeStore(rest.slice(0, MAX));
+  const list = readStore();
+  const idx = list.findIndex((e) => e.char === entry.char && e.type === entry.type);
+  const time = entry.time || new Date().toISOString();
+  if (idx >= 0) {
+    const old = list[idx];
+    const merged: HanziWrongEntry = {
+      ...entry,
+      time,
+      count: (old?.count ?? 1) + 1,
+      pinyin: entry.pinyin ?? old?.pinyin,
+      strokeOrder: entry.strokeOrder ?? old?.strokeOrder,
+    };
+    list.splice(idx, 1);
+    list.unshift(merged);
+  } else {
+    list.unshift({ ...entry, time, count: 1 });
+  }
+  writeStore(list.slice(0, MAX));
 }
 
 /** 错题列表（最近的在前） */

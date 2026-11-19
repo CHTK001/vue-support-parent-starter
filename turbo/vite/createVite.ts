@@ -1118,6 +1118,25 @@ function fix304ContentType(): Plugin {
     },
   };
 }
+/**
+ * Element Plus 按需解析插件组（性能清单 X1 / G1）。
+ *
+ * 组件与样式在编译期按需注入，应用入口不再全量 app.use(ElementPlus) /
+ * import "element-plus/dist/index.css"（见 koi install.ts）。dts 关闭：本配置
+ * 被 monorepo 多应用共享，避免每个应用构建时都生成 components.d.ts /
+ * auto-imports.d.ts 的噪音与相互覆盖。
+ *
+ * 独立维护 vite.config.ts 的应用（如 filestorage）也从此处取用，保证解析口径
+ * 一致；unplugin 依赖声明在 turbo/vite/package.json，经本模块中转引用可避免
+ * 应用目录下解析不到依赖。
+ */
+export function elementPlusOnDemandPlugins(): PluginOption[] {
+  return [
+    AutoImport({ resolvers: [ElementPlusResolver()], dts: false }),
+    Components({ resolvers: [ElementPlusResolver()], dts: false }),
+  ];
+}
+
 export function createVite(options: CreateViteOptions = {}): UserConfig {
   const root = options.root ?? process.cwd();
   const alias: Record<string, string> = {
@@ -1138,12 +1157,8 @@ export function createVite(options: CreateViteOptions = {}): UserConfig {
     if (options.vueSetupExtend ?? false) {
       plugins.push(vueSetupExtend());
     }
-    // Element Plus 按需解析：组件与样式在编译期按需注入，应用入口不再全量
-    // app.use(ElementPlus) / import "element-plus/dist/index.css"（见 koi install.ts）。
-    // dts 关闭：本配置被 monorepo 多应用共享，避免每个应用构建时都生成
-    // components.d.ts / auto-imports.d.ts 的噪音与相互覆盖。
-    plugins.push(AutoImport({ resolvers: [ElementPlusResolver()], dts: false }));
-    plugins.push(Components({ resolvers: [ElementPlusResolver()], dts: false }));
+    // Element Plus 按需解析：组件与样式在编译期按需注入（见 elementPlusOnDemandPlugins）。
+    plugins.push(...elementPlusOnDemandPlugins());
   }
   if (options.appName) {
     plugins.push(serveAppConfig(options.appName, root));

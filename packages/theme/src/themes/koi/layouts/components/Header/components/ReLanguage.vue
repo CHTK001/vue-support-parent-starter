@@ -57,6 +57,7 @@ import useGlobalStore from "@repo/pinia/modules/global";
 import { LanguageType } from "@repo/pinia/interface";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
+import { ensureLocaleMessages } from "@repo/languages";
 import { setDocumentTitle } from "@repo/theme/koi/layouts/useLayoutTitle";
 
 const { t } = useI18n();
@@ -89,7 +90,9 @@ watch(
   }
 );
 
-const handleChangeLanguage = (lang: string) => {
+const handleChangeLanguage = async (lang: string) => {
+  // 语言包懒加载（性能清单 X2）：先装载目标语言包再切换，避免菜单/标题短暂显示 i18n key
+  await ensureLocaleMessages(lang);
   i18n.locale.value = lang;
   globalStore.setGlobalState("language", lang as LanguageType);
 };

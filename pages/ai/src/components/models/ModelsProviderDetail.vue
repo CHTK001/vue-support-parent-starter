@@ -1497,6 +1497,17 @@ const modelRpm = (model: any): number | null => {
 }
 
 /**
+ * 价格合计（1M 输入 + 1M 输出，USD）。「最优」判优的统一取数口径：
+ * 只采到单边价（缺输入价或输出价）的模型返回 null、不参与判优——
+ * 单边价算不出真实总费用，拿它标「最优」会误导（与估算行置 — 的口径一致）。
+ */
+const totalPriceOf = (model: any): number | null => {
+  const pIn = numOrNull(model?.metrics?.price_input_per_musd)
+  const pOut = numOrNull(model?.metrics?.price_output_per_musd)
+  return pIn != null && pOut != null ? pIn + pOut : null
+}
+
+/**
  * 速度 / RPM 微条形图的同供应商标尺：分母取当前供应商全量模型的最大值。
  * 只认有限正值；全缺省（分母 ≤ 0）时 barPct 返回 null，不画填充。
  */
@@ -1578,11 +1589,7 @@ const bestMetaMap = computed(() => {
   pickBest('rpm', (m) => modelRpm(m), (v, best) => v > best)
   pickBest(
     'price',
-    (m) => {
-      const pIn = numOrNull(m?.metrics?.price_input_per_musd)
-      const pOut = numOrNull(m?.metrics?.price_output_per_musd)
-      return pIn != null && pOut != null ? pIn + pOut : null
-    },
+    (m) => totalPriceOf(m),
     (v, best) => v < best,
   )
   return map
@@ -2449,7 +2456,7 @@ const compareRows = computed(() => {
     })
   })
   // 费用估算：按指标表单价，1M 输入 + 1M 输出一次的合计（USD）。
-  // 与「价格」行同源（sortValueOf 'price' 同为 pIn+pOut），这里不再做最优高亮——
+  // 与「价格」行同源（同为 pIn+pOut 双边合计），这里不再做最优高亮——
   // 价格行已经标了；且部分模型只采到单边价，估算置 — 时被标优反而误导。
   rows.push({
     key: 'cost-estimate',
@@ -2476,7 +2483,9 @@ const bestIds = computed(() => {
     let bestId = ''
     let bestVal: number | null = null
     for (const col of compareColumns.value) {
-      const v = sortValueOf(col.model, key)
+      // 价格判优必须双边价齐全（totalPriceOf，与卡片「优」徽标同口径）；
+      // sortValueOf 的价格排序允许单边价参与（仅排序辅助），拿单边价标「最优」会误导
+      const v = key === 'price' ? totalPriceOf(col.model) : sortValueOf(col.model, key)
       // price / speed / rpm 三键必为数值；typeof 同时排除 null（缺值不参与判定）
       if (typeof v !== 'number') continue
       if (bestVal == null || (lowerIsBetter ? v < bestVal : v > bestVal)) {

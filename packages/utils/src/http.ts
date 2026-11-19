@@ -103,9 +103,13 @@ function firstPartyTraceId(): string {
  * （Fetch 规范把它列为 forbidden header name，axios/XHR 写入会被静默丢弃），
  * 写了也发不出去。</p>
  *
+ * <p><b>凡是不走 axios 管线的出站请求（如 SSE 的 fetchEventSource、
+ * WebSocket 升级、动态 import 的 fetch）都必须手动合并本头</b>，
+ * 否则会被服务端「消息头拦截」判为爬虫/自动化客户端（403）。</p>
+ *
  * @returns 带两个标识字段的请求头
  */
-function firstPartyHeaders(): Record<string, string> {
+export function firstPartyHeaders(): Record<string, string> {
   return {
     [FIRST_PARTY_HEADER_A]: firstPartyTraceId(),
     [FIRST_PARTY_HEADER_B]: firstPartyRequestedWith(),
