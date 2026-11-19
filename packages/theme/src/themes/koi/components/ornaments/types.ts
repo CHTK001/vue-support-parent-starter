@@ -14,6 +14,9 @@ export type OrnamentAcquire = "default" | "limited";
 /** 动效：减少动态时前端自动静止 */
 export type OrnamentEffect = "none" | "pulse" | "spin" | "glow";
 
+/** 头像挂件锚点：挂在头像的哪个角（缺省右上） */
+export type OrnamentAnchor = "top-right" | "top-left" | "bottom-right" | "bottom-left";
+
 /** 全部槽位（顺序即面板分组顺序） */
 export const ORNAMENT_SLOTS: readonly OrnamentSlot[] = ["avatar", "nameplate"];
 

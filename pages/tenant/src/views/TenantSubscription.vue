@@ -152,7 +152,7 @@ const columns: ReTableColumn[] = [
   { prop: "sysTenantName", label: "租户", minWidth: 130 },
   { prop: "sysServiceName", label: "服务", minWidth: 130 },
   { prop: "sysTenantServicePlanName", label: "规格", width: 120 },
-  { prop: "sysTenantServiceValidTime", label: "到期时间", width: 120, slot: "validTime" },
+  { prop: "sysTenantServiceValidTime", label: "到期时间", width: 150, slot: "validTime" },
   { prop: "sysTenantServicePayAmount", label: "实收金额", width: 110, slot: "payAmount" },
   { prop: "sysTenantServicePayChannel", label: "收款方式", width: 110, slot: "channel" },
   { prop: "sysTenantServicePayTime", label: "收款时间", width: 160 },
@@ -160,12 +160,26 @@ const columns: ReTableColumn[] = [
   { prop: "action", label: "操作", width: 100, slot: "action", fixed: "right" },
 ];
 
+/** 服务筛选下拉：订阅页复用服务管理已存在的契约，失败不阻塞表格加载 */
+async function loadSubscriptionServiceOptions() {
+  try {
+    const res = await listForService();
+    services.value = res?.data ?? [];
+  } catch (e) {
+    console.warn("[tenant-subscription] 服务筛选加载失败", e);
+  }
+}
+
 onMounted(async () => {
   try {
-    const res = await listForTenant();
-    tenants.value = res?.data ?? [];
+    await Promise.all([
+      listForTenant().then((res) => {
+        tenants.value = res?.data ?? [];
+      }),
+      loadSubscriptionServiceOptions(),
+    ]);
   } catch (e) {
-    message.error((e as Error)?.message ?? "加载租户列表失败");
+    message.error((e as Error)?.message ?? "加载筛选条件失败");
   }
   tableRef.value?.reload();
 });
@@ -198,8 +212,20 @@ onMounted(async () => {
         <ReButton type="primary" icon="Plus" v-admin @click="openBind">录入订阅</ReButton>
         <ReButton icon="Clock" :loading="expiring" v-admin @click="handleExpire">清理到期订阅</ReButton>
       </template>
+      <template #empty>
+        <div class="page-empty">
+          <span class="page-empty__icon">
+            <ReIcon name="Tickets" size="22" />
+          </span>
+          <span class="page-empty__title">还没有订阅记录</span>
+          <span class="page-empty__desc">订阅是租户购买服务的账本：录入一条订阅并登记收款方式，即可对账。</span>
+        </div>
+      </template>
       <template #validTime="{ row }">
-        {{ row.sysTenantServiceValidTime || "长期有效" }}
+        <ReTag :type="deadlineState(row.sysTenantServiceValidTime).type" effect="plain" dot>
+          {{ deadlineState(row.sysTenantServiceValidTime).text }}
+        </ReTag>
+        <div class="valid-time-text">{{ row.sysTenantServiceValidTime || "长期有效" }}</div>
       </template>
       <template #payAmount="{ row }">
         <span v-if="row.sysTenantServicePayAmount != null">¥{{ row.sysTenantServicePayAmount }}</span>
@@ -212,6 +238,14 @@ onMounted(async () => {
       </template>
       <template #action="{ row }">
         <ReButton layout="square" type="primary" icon="Edit" tip="续费/配置" v-admin @click="openBindForRow(row)" />
+      </template>
+      <template #summary>
+        <div class="subscription-summary">
+          <span>本页共 <b>{{ pageRows.length }}</b> 条</span>
+          <span class="subscription-summary__divider"></span>
+          <span>本页实收合计 <b>¥{{ pageAmountTotal.toFixed(2) }}</b></span>
+          <span class="text-[--el-text-color-secondary]">（按当前筛选条件与分页，非全量汇总）</span>
+        </div>
       </template>
     </ReTable>
 
@@ -227,5 +261,31 @@ onMounted(async () => {
   padding: 0;
   height: 100%;
   box-sizing: border-box;
+}
+
+/* 到期时间列：标签 + 具体日期 */
+.valid-time-text {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+/* 分页统计条（ReTable #summary 插槽） */
+.subscription-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+.subscription-summary b {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.subscription-summary__divider {
+  width: 1px;
+  height: 12px;
+  background: var(--el-border-color);
 }
 </style>

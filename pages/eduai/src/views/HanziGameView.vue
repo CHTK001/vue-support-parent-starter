@@ -724,6 +724,71 @@ onMounted(() => {
   color: var(--el-text-color-regular);
 }
 
+/* 听一听：右上角轻量胶囊（浏览器 TTS 朗读，读音题答前隐藏防剧透） */
+.hg-card__speak {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color));
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 32%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.hg-card__speak:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--el-color-black) 14%, transparent);
+}
+.hg-card__speak:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* 对/错印章：判分后盖在字画中央，带落章回弹动画 */
+.hg-stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+  border: 4px solid currentColor;
+  border-radius: var(--el-radius-md, 8px);
+  transform: translate(-50%, -50%) rotate(-8deg);
+  animation: hg-stamp-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  pointer-events: none;
+}
+.hg-stamp.is-ok {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 78%, transparent);
+}
+.hg-stamp.is-no {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 78%, transparent);
+}
+@keyframes hg-stamp-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-8deg) scale(1.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-8deg) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-8deg) scale(1);
+  }
+}
+
 /* 选项：半满胶囊 */
 .hg-options {
   display: grid;
@@ -772,8 +837,12 @@ onMounted(() => {
   padding: 10px 0;
   border-radius: var(--el-radius-lg, 12px);
 }
-/* 笔顺回显：白卡 + 左侧主色条 */
+/* 笔顺回显：白卡 + 左侧主色条（flex 布局：计数与操作按钮自动靠右） */
 .hg-tapped {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
   margin-top: 12px;
   padding: 12px 16px;
   font-size: 14px;
@@ -782,6 +851,22 @@ onMounted(() => {
   border: 1px solid var(--el-border-color-lighter);
   border-left: 4px solid var(--el-color-primary);
   border-radius: var(--el-radius-lg, 12px);
+}
+/* 已点进度：x/y 笔 */
+.hg-tapped__count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--el-color-primary);
+  font-variant-numeric: tabular-nums;
+}
+.hg-tapped__acts {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.hg-tapped__acts .hg-tapped__undo {
+  margin-left: 0;
 }
 .hg-tapped b {
   font-size: 20px;
@@ -827,6 +912,25 @@ onMounted(() => {
 }
 .hg-feedback.is-ok {
   color: var(--el-color-success);
+}
+
+/* 连击鼓励徽标：答对 2 题起出现，弹跳入场 */
+.hg-streak {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--el-color-warning);
+  animation: hg-streak-pop 0.3s ease both;
+}
+@keyframes hg-streak-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* 学习卡 */

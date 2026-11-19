@@ -1641,6 +1641,7 @@ onBeforeUnmount(() => {
 }
 .maintenance-banner-body { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; min-width: 0; flex: 1; }
 .maintenance-banner-name { font-weight: 600; color: var(--status-warning); }
+.maintenance-banner-text { color: var(--text-secondary); }
 .maintenance-banner-error { color: var(--status-error); font-size: 11px; }
 .host-row {
   display: grid;
