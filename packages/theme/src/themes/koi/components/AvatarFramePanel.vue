@@ -28,6 +28,49 @@
           </button>
         </div>
       </div>
+      <!-- 生日彩蛋：按 sysUserBirthday 推荐生肖框 / 星座框 -->
+      <div v-if="birthdayPick" class="avatar-frame-birthday">
+        <span class="avatar-frame-birthday-text">
+          🎂 生日彩蛋：你是 {{ birthdayPick.label }}，有专属的生肖框和星座框
+        </span>
+        <el-button size="small" text type="primary" @click="applyBirthdayPick">一键试戴星座框</el-button>
+      </div>
+
+      <!-- 组合套装：框 + 挂件 + 昵称牌一键换装（纯前端推荐组合） -->
+      <section class="avatar-frame-group">
+        <h4 class="avatar-frame-group-title" @click="setsOpen = !setsOpen">
+          <span>组合套装</span>
+          <span class="avatar-frame-group-count">{{ AVATAR_SETS.length }}</span>
+          <el-icon class="avatar-frame-chevron" :class="{ 'is-collapsed': !setsOpen }" :size="12">
+            <ArrowDown />
+          </el-icon>
+        </h4>
+        <div v-show="setsOpen" class="avatar-frame-set-list">
+          <div v-for="set in AVATAR_SETS" :key="set.key" class="avatar-frame-set">
+            <img
+              v-if="setPoster(set)"
+              class="avatar-frame-set-img"
+              :src="setPoster(set)"
+              :alt="set.name"
+              loading="lazy"
+            />
+            <div class="avatar-frame-set-info">
+              <span class="avatar-frame-set-name">{{ set.name }}</span>
+              <span class="avatar-frame-set-desc">{{ set.desc }}</span>
+            </div>
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              :loading="applyingSet === set.key"
+              @click="applySet(set)"
+            >
+              一键佩戴
+            </el-button>
+          </div>
+        </div>
+      </section>
+
       <template v-if="visibleGroups.length">
         <section v-for="group in visibleGroups" :key="group.title" class="avatar-frame-group">
           <h4 class="avatar-frame-group-title" @click="toggleGroup(group.title)">
@@ -74,7 +117,10 @@
                   <el-icon :size="13"><ZoomIn /></el-icon>
                 </span>
               </div>
-              <span class="avatar-frame-name">{{ frame.name }}</span>
+              <span class="avatar-frame-name">
+                {{ frame.name }}
+                <span v-if="isBirthdayPick(frame)" class="avatar-frame-bday" title="生日推荐">🎂</span>
+              </span>
               <span v-if="acquireLabel(frame)" class="avatar-frame-acquire">{{ acquireLabel(frame) }}</span>
               <el-icon v-if="selectedFrame === frame.id" class="avatar-frame-check"><CircleCheckFilled /></el-icon>
             </div>
@@ -148,6 +194,15 @@ import {
   resolveAvatarFrameUrl,
   type AvatarFrame,
 } from "./avatarFrames";
+import { AVATAR_SETS, recommendByBirthday, type AvatarSet } from "./avatarSets";
+import {
+  acquireOrnament,
+  isOrnamentEnabled,
+  isOrnamentExpired,
+  isOrnamentOwned,
+  ornamentCatalog,
+  wearOrnament,
+} from "./ornaments/store";
 
 /** 兜底「默认光环」选项（id=0）：字典不含透明占位帧时，保证始终能取下头像框 */
 const DEFAULT_FRAME_OPTION: AvatarFrame = {
@@ -283,6 +338,68 @@ function onPosterError(frame: AvatarFrame): void {
   const next = new Set(posterBroken.value);
   next.add(frame.id);
   posterBroken.value = next;
+}
+
+/* ==================== 组合套装 + 生日彩蛋 ==================== */
+
+const setsOpen = ref(true);
+const applyingSet = ref("");
+
+/** 套装封面：取套装头像框的 poster（无 poster 回退 APNG） */
+function setPoster(set: AvatarSet): string | undefined {
+  const frame = avatarFrameDict.value.find((f) => f.id === set.frameId);
+  if (!frame?.image) return undefined;
+  const poster = avatarFramePosterPath(frame.image);
+  const usePoster = poster && !posterBroken.value.has(frame.id);
+  return resolveAvatarFrameUrl(usePoster ? (poster as string) : frame.image);
+}
+
+/**
+ * 一键佩戴套装：头像框走既有佩戴链路（含限定解锁），
+ * 挂件/昵称牌逐件「未领取先领取 → 佩戴」；任何一件失败不影响其余。
+ */
+async function applySet(set: AvatarSet): Promise<void> {
+  if (applyingSet.value) return;
+  applyingSet.value = set.key;
+  try {
+    const frame = avatarFrameDict.value.find((f) => f.id === set.frameId);
+    if (frame) await activateFrame(frame);
+    if (isOrnamentEnabled()) {
+      for (const code of set.ornamentCodes) {
+        const item = ornamentCatalog.value.find((o) => o.code === code);
+        if (!item || isOrnamentExpired(item)) continue;
+        if (!isOrnamentOwned(item)) {
+          const ok = await acquireOrnament(item);
+          if (!ok) continue;
+        }
+        wearOrnament(item.slot, item);
+      }
+    }
+    msgSuccess(`已换上「${set.name}」`);
+    emit("updated");
+  } finally {
+    applyingSet.value = "";
+  }
+}
+
+/** 生日彩蛋：按 sysUserBirthday 推荐生肖框 / 星座框 */
+const birthdayPick = computed(() => recommendByBirthday(display.value.birthday || ""));
+
+/** 推荐框卡片打 🎂 标 */
+function isBirthdayPick(frame: AvatarFrame): boolean {
+  const pick = birthdayPick.value;
+  if (!pick) return false;
+  return frame.id === pick.zodiacFrameId || frame.id === pick.constellationFrameId;
+}
+
+/** 一键试戴推荐星座框（星座框缺失时退生肖框） */
+async function applyBirthdayPick(): Promise<void> {
+  const pick = birthdayPick.value;
+  if (!pick) return;
+  const frame =
+    avatarFrameDict.value.find((f) => f.id === pick.constellationFrameId) ??
+    avatarFrameDict.value.find((f) => f.id === pick.zodiacFrameId);
+  if (frame) await activateFrame(frame);
 }
 
 /** 未解锁的限定帧才展示锁标记 */
@@ -491,6 +608,74 @@ onMounted(() => {
   border-color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
+}
+
+.avatar-frame-birthday {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-color-warning-light-5);
+  border-radius: 8px;
+  background: var(--el-color-warning-light-9);
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+.avatar-frame-birthday-text {
+  line-height: 18px;
+}
+
+.avatar-frame-bday {
+  margin-left: 3px;
+  font-size: 11px;
+}
+
+.avatar-frame-set-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.avatar-frame-set {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+}
+
+.avatar-frame-set-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  flex: none;
+}
+
+.avatar-frame-set-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.avatar-frame-set-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.avatar-frame-set-desc {
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .avatar-frame-group {

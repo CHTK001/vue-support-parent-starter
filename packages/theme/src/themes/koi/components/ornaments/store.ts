@@ -19,7 +19,14 @@ import { reactive, ref } from "vue";
 import { getConfig } from "@repo/config";
 import { getAccessToken } from "@repo/utils";
 import { BUILTIN_ORNAMENTS } from "./builtinOrnaments";
-import { isOrnamentSlot, ORNAMENT_SLOTS, type Ornament, type OrnamentSlot } from "./types";
+import {
+  isOrnamentAnchor,
+  isOrnamentSlot,
+  ORNAMENT_SLOTS,
+  type Ornament,
+  type OrnamentAnchor,
+  type OrnamentSlot,
+} from "./types";
 
 /** 本地佩戴快照（版本化，改结构时换 v2 自动回落默认） */
 const WEAR_KEY = "koi:ornament:wear:v1";
@@ -35,6 +42,37 @@ const API_ACQUIRE = "/v2/ornament/acquire";
 export function isOrnamentEnabled(): boolean {
   return getConfig()?.other?.ornament?.enable === true;
 }
+
+/** 取应用 base（vite BASE_URL，末位不带斜杠）；与头像框 resolveAvatarFrameUrl 同一口径 */
+function assetBase(): string {
+  // 必须是字面量 import.meta.env：vite 按该文本做常量替换，写成可选链会替换不到
+  const env = (import.meta as unknown as { env: { BASE_URL?: string } }).env;
+  return (env?.BASE_URL ?? "/").replace(/\/+$/, "");
+}
+
+/**
+ * 饰品位图地址拼上应用 base。
+ * <p>库里存的是 `/assets/...`，静态目录挂在 base 之下（system 应用 base=/system/），
+ * 直接引用会 404；绝对地址原样返回。</p>
+ */
+export function resolveOrnamentUrl(image: string): string {
+  if (/^(https?:|data:|blob:)/.test(image)) return image;
+  const base = assetBase();
+  return `${base}${image.startsWith("/") ? "" : "/"}${image}`;
+}
+
+/**
+ * 按编码补锚点：服务端目录暂无 anchor 列，先按编码查这张表；
+ * 目录加了 anchor 列后以服务端下发为准。
+ */
+const ANCHOR_BY_CODE: Record<string, OrnamentAnchor> = {
+  "avatar-butterfly": "top-right",
+  "avatar-note": "top-left",
+  "avatar-flame": "bottom-right",
+  "avatar-starburst": "top-right",
+  "avatar-clover": "bottom-left",
+  "avatar-orb": "top-left",
+};
 
 /** 目录：默认用静态兜底，拉到服务端后整体替换 */
 export const ornamentCatalog = ref<Ornament[]>([...BUILTIN_ORNAMENTS]);
@@ -95,6 +133,9 @@ function toOrnament(row: Record<string, unknown>): Ornament | null {
       effect === "pulse" || effect === "spin" || effect === "glow"
         ? effect
         : "none",
+    anchor: isOrnamentAnchor(row.sysOrnamentAnchor)
+      ? row.sysOrnamentAnchor
+      : ANCHOR_BY_CODE[typeof row.sysOrnamentCode === "string" ? row.sysOrnamentCode : ""],
     expire: typeof row.sysOrnamentExpire === "string" ? row.sysOrnamentExpire : null,
   };
 }
@@ -128,6 +169,7 @@ function readWear(): Record<OrnamentSlot, Ornament | null> {
           one.effect === "pulse" || one.effect === "spin" || one.effect === "glow"
             ? one.effect
             : "none",
+        anchor: isOrnamentAnchor(one.anchor) ? one.anchor : undefined,
         expire: typeof one.expire === "string" ? one.expire : null,
       };
     }

@@ -8,8 +8,8 @@
  * <p>限定款（{@code acquire=limited}）先领取再佩戴；目录或领取记录过期后置灰不可点。
  * 目录与佩戴关系都来自服务端，失败时用内置兜底目录与本地快照。</p>
  */
-import { computed, onMounted } from "vue";
-import { Check } from "@element-plus/icons-vue";
+import { computed, onMounted, ref } from "vue";
+import { Check, Search, ZoomIn } from "@element-plus/icons-vue";
 import { defaultAvatarUrl } from "@repo/assets";
 import { msgError, msgSuccess } from "@repo/core";
 import { resolveUserDisplayInfo } from "@repo/utils";
@@ -26,6 +26,7 @@ import {
   ornamentLoading,
   ornamentWear,
   ornamentsForSlot,
+  resolveOrnamentUrl,
   syncOrnaments,
   wearOrnament,
 } from "./store";
@@ -34,6 +35,7 @@ import {
   ORNAMENT_SLOT_HINTS,
   ORNAMENT_SLOT_LABELS,
   type Ornament,
+  type OrnamentSlot,
 } from "./types";
 
 const authStore = useAuthStore();
@@ -98,6 +100,80 @@ async function onCard(item: Ornament): Promise<void> {
   toggle(item);
 }
 
+/* ==================== 搜索 + 大图试戴（与头像框面板同款体验） ==================== */
+
+const keyword = ref("");
+
+/** 槽位内按关键字过滤后的目录 */
+function visibleForSlot(slot: OrnamentSlot): Ornament[] {
+  const kw = keyword.value.trim().toLowerCase();
+  const list = ornamentsForSlot(slot);
+  if (!kw) return list;
+  return list.filter((item) => item.name.toLowerCase().includes(kw));
+}
+
+const previewVisible = ref(false);
+const previewItem = ref<Ornament | null>(null);
+
+function openPreview(item: Ornament): void {
+  previewItem.value = item;
+  previewVisible.value = true;
+}
+
+/** 试戴弹层的按钮文案 */
+const previewAction = computed(() => {
+  const item = previewItem.value;
+  if (!item) return "佩戴";
+  if (isOrnamentExpired(item)) return "已过期";
+  if (isOrnamentWorn(item)) return "取下";
+  if (!isOrnamentOwned(item)) return "领取并佩戴";
+  return "佩戴";
+});
+
+/** 试戴弹层的说明文案 */
+const previewHint = computed(() => {
+  const item = previewItem.value;
+  if (!item) return "";
+  if (item.slot === "avatar") {
+    const at: Record<string, string> = {
+      "top-right": "右上角",
+      "top-left": "左上角",
+      "bottom-right": "右下角",
+      "bottom-left": "左下角",
+    };
+    return `APNG 动效挂件 · 佩戴后出现在头像${at[item.anchor ?? "top-right"]}`;
+  }
+  return "昵称底牌 · 顶栏与个人中心同时生效";
+});
+
+/** 弹层里昵称牌预览样式（与 nameplateStyle 同一结构，作用于任意目录项） */
+function previewPlateStyle(item: Ornament): Record<string, string> {
+  const style: Record<string, string> = {
+    display: "inline-block",
+    padding: "1px 10px",
+    borderRadius: "999px",
+  };
+  if (item.css) style.background = item.css;
+  if (item.color) style.color = item.color;
+  return style;
+}
+
+/** 弹层内直接佩戴/领取/取下 */
+async function wearFromPreview(): Promise<void> {
+  const item = previewItem.value;
+  if (!item || isOrnamentExpired(item)) return;
+  if (!isOrnamentOwned(item)) {
+    const ok = await acquireOrnament(item);
+    if (!ok) {
+      msgError("领取失败，请稍后再试");
+      return;
+    }
+    msgSuccess(`已领取「${item.name}」`);
+  }
+  wearOrnament(item.slot, isOrnamentWorn(item) ? null : item);
+  previewVisible.value = false;
+}
+
 onMounted(() => {
   void syncOrnaments(true);
 });
@@ -124,6 +200,17 @@ onMounted(() => {
         饰品是账号级设置，换设备登录同样生效；每个槽位最多一件，限定款需先领取。
       </p>
     </section>
+
+    <div class="op-toolbar">
+      <el-input
+        v-model="keyword"
+        size="small"
+        placeholder="搜索饰品"
+        clearable
+        :prefix-icon="Search"
+        class="op-search"
+      />
+    </div>
 
     <section v-for="slot in ORNAMENT_SLOTS" :key="slot" class="op-section">
       <header class="op-section__head">
@@ -153,7 +240,7 @@ onMounted(() => {
         </button>
 
         <button
-          v-for="item in ornamentsForSlot(slot)"
+          v-for="item in visibleForSlot(slot)"
           :key="item.id"
           type="button"
           class="op-card"
@@ -166,7 +253,7 @@ onMounted(() => {
           @click="onCard(item)"
         >
           <span class="op-swatch" :class="effectClass(item)">
-            <img v-if="item.image" :src="item.image" :alt="item.name" />
+            <img v-if="item.image" :src="resolveOrnamentUrl(item.image)" :alt="item.name" />
             <span
               v-else-if="slot === 'avatar'"
               class="op-glyph"
@@ -183,6 +270,9 @@ onMounted(() => {
             </span>
           </span>
           <span class="op-card__name">{{ item.name }}</span>
+          <span class="op-card__zoom" title="大图试戴" @click.stop="openPreview(item)">
+            <el-icon :size="12"><ZoomIn /></el-icon>
+          </span>
 
           <span v-if="isOrnamentExpired(item)" class="op-card__badge op-card__badge--expired">
             已过期
@@ -198,8 +288,8 @@ onMounted(() => {
       </div>
 
       <el-empty
-        v-if="!ornamentsForSlot(slot).length"
-        description="暂无可用饰品"
+        v-if="!visibleForSlot(slot).length"
+        :description="ornamentsForSlot(slot).length ? '没有匹配的饰品' : '暂无可用饰品'"
         :image-size="56"
       />
     </section>
@@ -207,6 +297,36 @@ onMounted(() => {
     <p v-if="fallbackOnly" class="op-note">
       服务端饰品目录不可用，当前展示的是内置兜底清单；佩戴与领取会先记在本机，接口恢复后自动同步。
     </p>
+
+    <!-- 大图试戴：与头像框面板同款，真实头像/昵称预览后再佩戴 -->
+    <el-dialog v-model="previewVisible" width="340px" append-to-body destroy-on-close>
+      <template #header>
+        <span class="op-preview-title">{{ previewItem?.name || "试戴预览" }}</span>
+      </template>
+      <div class="op-preview-stage">
+        <div v-if="previewItem?.slot === 'avatar'" class="op-preview-box">
+          <el-avatar :size="120" :src="avatarUrl">{{ userName.slice(0, 1) }}</el-avatar>
+          <OrnamentBadge :item="previewItem" :size="34" :offset="8" />
+        </div>
+        <div v-else class="op-preview-plate-line">
+          <span v-if="previewItem" class="op-preview-plate" :style="previewPlateStyle(previewItem)">
+            {{ userName }}
+          </span>
+        </div>
+        <p class="op-preview-hint">{{ previewHint }}</p>
+      </div>
+      <template #footer>
+        <el-button size="small" @click="previewVisible = false">关闭</el-button>
+        <el-button
+          size="small"
+          type="primary"
+          :disabled="!previewItem || isOrnamentExpired(previewItem)"
+          @click="wearFromPreview"
+        >
+          {{ previewAction }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -282,6 +402,75 @@ onMounted(() => {
   font-size: 12px;
   line-height: 18px;
   color: var(--el-text-color-placeholder);
+}
+
+.op-toolbar {
+  margin-bottom: -6px;
+}
+
+.op-search {
+  width: 100%;
+  max-width: 260px;
+}
+
+.op-card__zoom {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: flex;
+  padding: 3px;
+  border-radius: 50%;
+  color: var(--el-text-color-secondary);
+  background: var(--el-bg-color);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 14%);
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--el-color-primary);
+  }
+}
+
+.op-preview-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.op-preview-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.op-preview-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 168px;
+  height: 168px;
+  line-height: 0;
+}
+
+.op-preview-plate-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.op-preview-plate {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.op-preview-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-secondary);
+  text-align: center;
 }
 
 /* ==================== 槽位分组 ==================== */

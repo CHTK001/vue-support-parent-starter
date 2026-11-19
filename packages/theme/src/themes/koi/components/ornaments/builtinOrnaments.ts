@@ -7,7 +7,7 @@
  */
 import type { Ornament } from "./types";
 
-/** 内置饰品：4 个头像挂件 + 4 个昵称牌 */
+/** 内置饰品：4 字符挂件 + 6 APNG 动效挂件 + 5 昵称牌 */
 export const BUILTIN_ORNAMENTS: readonly Ornament[] = [
   { id: -1, code: "avatar-star", name: "星芒", slot: "avatar", kind: "glyph", glyph: "★", color: "#f59e0b" },
   { id: -2, code: "avatar-sakura", name: "樱瓣", slot: "avatar", kind: "glyph", glyph: "❀", color: "#f472b6" },
@@ -73,5 +73,66 @@ export const BUILTIN_ORNAMENTS: readonly Ornament[] = [
     slot: "nameplate",
     kind: "css",
     css: "linear-gradient(135deg, rgba(129,140,248,0.30), rgba(56,189,248,0.10))",
+  },
+  /* ---- APNG 动效挂件（scripts/build-avatar-frames.mjs 的 PENDANTS 产物）---- */
+  {
+    id: -7,
+    code: "avatar-butterfly",
+    name: "蝶影",
+    slot: "avatar",
+    kind: "glyph",
+    image: "/assets/ornaments/orn-butterfly.apng",
+    color: "#f9a8d4",
+    anchor: "top-right",
+  },
+  {
+    id: -8,
+    code: "avatar-note",
+    name: "音弦",
+    slot: "avatar",
+    kind: "glyph",
+    image: "/assets/ornaments/orn-note.apng",
+    color: "#38bdf8",
+    anchor: "top-left",
+  },
+  {
+    id: -9,
+    code: "avatar-flame",
+    name: "炽焰",
+    slot: "avatar",
+    kind: "glyph",
+    image: "/assets/ornaments/orn-flame.apng",
+    color: "#fb923c",
+    anchor: "bottom-right",
+  },
+  {
+    id: -10,
+    code: "avatar-starburst",
+    name: "星核",
+    slot: "avatar",
+    kind: "glyph",
+    image: "/assets/ornaments/orn-star.apng",
+    color: "#facc15",
+    anchor: "top-right",
+  },
+  {
+    id: -16,
+    code: "avatar-clover",
+    name: "四叶",
+    slot: "avatar",
+    kind: "glyph",
+    image: "/assets/ornaments/orn-clover.apng",
+    color: "#4ade80",
+    anchor: "bottom-left",
+  },
+  {
+    id: -17,
+    code: "avatar-orb",
+    name: "灵珠",
+    slot: "avatar",
+    kind: "glyph",
+    image: "/assets/ornaments/orn-orb.apng",
+    color: "#a78bfa",
+    anchor: "top-left",
   },
 ];

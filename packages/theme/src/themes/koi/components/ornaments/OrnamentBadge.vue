@@ -9,23 +9,29 @@
  * 下全部静止，只保留一层静态阴影。</p>
  */
 import { computed } from "vue";
-import { isOrnamentExpired, isOrnamentOwned, ornamentWear } from "./store";
+import { isOrnamentExpired, isOrnamentOwned, ornamentWear, resolveOrnamentUrl } from "./store";
+import type { Ornament } from "./types";
 
 const props = withDefaults(
   defineProps<{
     /** 字号（px），决定挂件大小 */
     size?: number;
-    /** 相对头像右上角的外扩距离（px） */
+    /** 相对头像锚点角的外扩距离（px） */
     offset?: number;
+    /** 指定预览项（试戴弹层用）；缺省渲染当前佩戴 */
+    item?: Ornament | null;
   }>(),
   { size: 14, offset: 2 },
 );
 
-const item = computed(() => ornamentWear.avatar);
+const item = computed(() => props.item ?? ornamentWear.avatar);
 
 const visible = computed(() => {
   const current = item.value;
-  return Boolean(current && isOrnamentOwned(current) && !isOrnamentExpired(current));
+  if (!current || isOrnamentExpired(current)) return false;
+  // 试戴预览（显式传入 item）不做拥有校验，未领取的也要能先看效果
+  if (props.item) return true;
+  return isOrnamentOwned(current);
 });
 
 const effectClass = computed(() => {
@@ -33,17 +39,39 @@ const effectClass = computed(() => {
   return effect && effect !== "none" ? `is-${effect}` : "";
 });
 
-const badgeStyle = computed<Record<string, string>>(() => ({
-  fontSize: `${props.size}px`,
-  color: item.value?.color || "#fff",
-  top: `${-props.offset}px`,
-  right: `${-props.offset}px`,
-}));
+/** 锚点定位：默认右上，可按目录项落到四角 */
+const badgeStyle = computed<Record<string, string>>(() => {
+  const style: Record<string, string> = {
+    fontSize: `${props.size}px`,
+    color: item.value?.color || "#fff",
+  };
+  const off = `${-props.offset}px`;
+  switch (item.value?.anchor) {
+    case "top-left":
+      style.top = off;
+      style.left = off;
+      break;
+    case "bottom-right":
+      style.bottom = off;
+      style.right = off;
+      break;
+    case "bottom-left":
+      style.bottom = off;
+      style.left = off;
+      break;
+    default:
+      style.top = off;
+      style.right = off;
+  }
+  return style;
+});
+
+const imageSrc = computed(() => (item.value?.image ? resolveOrnamentUrl(item.value.image) : undefined));
 </script>
 
 <template>
   <span v-if="visible" class="orn-badge" :class="effectClass" :style="badgeStyle" aria-hidden="true">
-    <img v-if="item?.image" :src="item.image" alt="" />
+    <img v-if="imageSrc" :src="imageSrc" alt="" />
     <template v-else>{{ item?.glyph || "★" }}</template>
   </span>
 </template>

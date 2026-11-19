@@ -54,6 +54,8 @@ export interface Ornament {
   acquire?: OrnamentAcquire;
   /** 动效；缺省视为 none */
   effect?: OrnamentEffect;
+  /** 头像挂件锚点；缺省右上角 */
+  anchor?: OrnamentAnchor;
   /** 目录级过期时间（ISO 字符串）；空表示永久 */
   expire?: string | null;
 }
@@ -61,4 +63,14 @@ export interface Ornament {
 /** 判断任意值是否是合法槽位 */
 export function isOrnamentSlot(value: unknown): value is OrnamentSlot {
   return value === "avatar" || value === "nameplate";
+}
+
+/** 判断任意值是否是合法锚点 */
+export function isOrnamentAnchor(value: unknown): value is OrnamentAnchor {
+  return (
+    value === "top-right" ||
+    value === "top-left" ||
+    value === "bottom-right" ||
+    value === "bottom-left"
+  );
 }
