@@ -43,6 +43,8 @@ interface AlarmStatsSummary {
   levelDistribution: Record<string, number>;
 }
 const alarmSummary = ref<AlarmStatsSummary | null>(null);
+/** 统计接口失败（数值会退回事件列表口径，不阻塞最近告警表） */
+const statsError = ref("");
 /** 后端告警趋势：{ time, count }[]，后端按小时正序返回 */
 const alarmTrendData = ref<{ time: string; count: number }[]>([]);
 
@@ -125,8 +127,15 @@ const levelCounts = computed(() => {
   for (const e of events.value) m[alarmLevel(e)]++;
   return m;
 });
+/**
+ * 级别分布总数。
+ *
+ * <p>后端 {@code levelDistribution} 是全表分布，而 {@code todayTotal} 只统计当日，
+ * 两者不能混用；圆环占比统一按本值计算，避免跨天时占比超过 360°。</p>
+ */
+const levelTotal = computed(() => LEVELS.reduce((sum, lv) => sum + (levelCounts.value[lv] ?? 0), 0));
 const donutStyle = computed(() => {
-  const total = totalAlarms.value;
+  const total = levelTotal.value;
   if (total === 0) return { background: "var(--border-subtle)" };
   let acc = 0;
   const stops: string[] = [];
@@ -353,8 +362,10 @@ async function loadAlarmStats(): Promise<void> {
     const [summary, trend] = await Promise.all([getAlarmSummary(), getAlarmTrend(24)]);
     alarmSummary.value = summary;
     alarmTrendData.value = trend ?? [];
+    statsError.value = "";
   } catch (e) {
-    alarmsError.value = alarmsError.value || describeError(e);
+    // 统计是增强项：失败时保留事件列表口径的兜底数字，不遮挡最近告警表
+    statsError.value = describeError(e);
   }
 }
 
@@ -490,6 +501,7 @@ async function fetchAll(silent = false): Promise<void> {
   loadError.value = "";
   hostsError.value = "";
   alarmsError.value = "";
+  statsError.value = "";
   nodesLoadError.value = "";
   await Promise.all([loadHosts(), loadAlarms(), loadAlarmStats(), loadServerNodes()]);
   lastAlarmPollAt = Date.now();
@@ -802,7 +814,7 @@ onBeforeUnmount(() => {
         >
           <div class="stat-label">未处理告警</div>
           <div class="stat-value">{{ unhandledCount }}</div>
-          <div class="stat-trend is-down">累计事件 {{ totalAlarms }}</div>
+          <div class="stat-trend is-down">今日告警 {{ totalAlarms }}</div>
         </div>
         <div
           class="stat-card is-clickable"
@@ -896,14 +908,17 @@ onBeforeUnmount(() => {
         <header class="card-head">
           <div>
             <span class="card-title">告警构成</span>
-            <span class="card-sub">未处理 {{ unhandledCount }} · 累计 {{ totalAlarms }}</span>
+            <span class="card-sub">未处理 {{ unhandledCount }} · 累计 {{ levelTotal }} · 今日 {{ totalAlarms }}</span>
           </div>
           <ReButton text size="small" icon="ArrowRight" @click="router.push('/alarms')">告警中心</ReButton>
         </header>
+        <div v-if="statsError" class="section-error">
+          <span>统计接口不可用，数字暂按事件列表口径：{{ statsError }}</span>
+        </div>
         <div class="donut-wrap">
           <div class="donut" :style="donutStyle">
             <div class="donut-center">
-              <div class="donut-value">{{ totalAlarms }}</div>
+              <div class="donut-value">{{ levelTotal }}</div>
             </div>
           </div>
           <div class="donut-legend">
@@ -1042,11 +1057,12 @@ onBeforeUnmount(() => {
           </div>
           <ReButton text size="small" icon="ArrowRight" @click="router.push('/services')">服务管理</ReButton>
         </header>
-        <div v-if="nodesLoadError" class="section-error">
+        <!-- 流错误只在没有摘要可显示时占位；已有数字时保留卡片，避免推送抖动清空数据 -->
+        <div v-if="nodesLoadError && !nodesTotal" class="section-error">
           <span>{{ nodesLoadError }}</span>
           <ReButton text size="small" type="primary" @click="fetchAll()">重试</ReButton>
         </div>
-        <div v-if="!nodesTotal" class="empty-state">
+        <div v-else-if="!nodesTotal" class="empty-state">
           <ReEmpty description="还没有协议服务节点，去服务管理页创建" />
           <ReButton type="primary" size="small" icon="Plus" @click="router.push('/services')">去创建节点</ReButton>
         </div>
