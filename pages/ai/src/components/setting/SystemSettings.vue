@@ -12,6 +12,16 @@
                         <span>{{ t('settings.system.backToApp') }}</span>
                     </div>
                 </div>
+                <!-- 设置项快速过滤：按 tab 名称 / 分组名本地过滤，只影响侧栏展示，不写 URL -->
+                <div class="px-3 pb-1">
+                    <el-input
+                        v-model="sidebarFilter"
+                        size="small"
+                        clearable
+                        placeholder="搜索设置项"
+                        :prefix-icon="Search16Regular"
+                    />
+                </div>
                 <!-- 分组列表 -->
                 <ScrollContainer class="flex-1 py-3">
                     <div v-for="group in groupedSidebarItems" :key="group.label" class="mb-2">
@@ -34,6 +44,12 @@
                                 </span>
                             </div>
                         </div>
+                    </div>
+                    <!-- 过滤无匹配：给一句明确的空态，避免侧栏整个静默变空 -->
+                    <div
+                        v-if="sidebarFilter.trim() !== '' && groupedSidebarItems.length === 0"
+                        class="px-4 py-8 text-center text-xs text-gray-400 dark:text-gray-500">
+                        没有匹配的设置项
                     </div>
                 </ScrollContainer>
             </div>
@@ -301,12 +317,18 @@ import UsageConfigSettings from './UsageConfigSettings.vue'
 import SkillsSourceSettings from './SkillsSourceSettings.vue'
 import ServiceManagementPage from '../management/ServiceManagementPage.vue'
 import ServiceTokensPage from '../management/ServiceTokensPage.vue'
+// 异步面板加载骨架：渠道管理等 defineAsyncComponent 的 loadingComponent
+import SettingsPanelSkeleton from './SettingsPanelSkeleton.vue'
 // 渠道管理：动态加载。ChannelManagementPage 拖着 vxe-table + xlsx 等重依赖
 // （共享 chunk 实测 1.3MB+），静态 import 会把它并进设置中心入口；
 // defineAsyncComponent 让它只在切到「渠道管理」tab 时才拉取对应 chunk。
-const ChannelManagementPage = defineAsyncComponent(
-    () => import('@pages/channel/components/ChannelManagementPage.vue')
-)
+// 加载期间给骨架屏（delay=200：快速加载不闪骨架，真的在等才出现）。
+const ChannelManagementPage = defineAsyncComponent({
+    loader: () => import('@pages/channel/components/ChannelManagementPage.vue'),
+    loadingComponent: SettingsPanelSkeleton,
+    delay: 200,
+    timeout: 30000,
+})
 // 模型管理：直接复用主页 /models 的整页组件（双入口一份实现）
 import ModelsPage from '../models/ModelsPage.vue'
 import CommunityPanel from './CommunityPanel.vue'
@@ -737,9 +759,23 @@ const filteredSidebarItems = computed(() => {    const userRole = authStore.user
     })
 })
 
+// 侧边栏快速过滤：按 tab 名称 / 分组名做**本地**过滤（不取数、不进 URL）。
+// 只影响侧栏展示，不动 currentTabValue —— 过滤把当前 tab 藏起来时，
+// 右侧内容保持原样，避免「搜一下把人踢到别的页」。
+const sidebarFilter = ref('')
+
+const visibleSidebarItems = computed(() => {
+    const kw = sidebarFilter.value.trim().toLowerCase()
+    if (!kw) return filteredSidebarItems.value
+    return filteredSidebarItems.value.filter((item) => {
+        const group = groupMap.value[item.path] || ''
+        return item.label.toLowerCase().includes(kw) || group.toLowerCase().includes(kw)
+    })
+})
+
 // 按分组组织侧边栏项
 const groupedSidebarItems = computed(() => {
-    const items = filteredSidebarItems.value
+    const items = visibleSidebarItems.value
     const groupOrder = [
         t('settings.system.groups.general'),
         t('settings.system.groups.modelConfig'),
