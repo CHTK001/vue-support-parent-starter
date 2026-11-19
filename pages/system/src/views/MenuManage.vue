@@ -25,8 +25,11 @@ import {
   Warning,
   Rank,
   Files,
+  CopyDocument,
+  Expand,
+  Fold,
 } from "@element-plus/icons-vue";
-import { listMenuTree, saveMenu, updateMenu, deleteMenu, batchSaveMenuButtons, batchDeleteMenuButtons } from "../api/systemApi";
+import { listMenuTree, saveMenu, updateMenu, deleteMenu, batchSaveMenuButtons, batchDeleteMenuButtons, evaluateMenuCondition } from "../api/systemApi";
 // (http 直连已迁移为 systemApi 具名函数，此处不再引入)
 import type { SysMenu } from "../api/types";
 import ReTable from "@repo/ui/re-table";
@@ -122,8 +125,6 @@ interface MenuVM {
   position?: string;      // 菜单位置: standard标准(侧边栏) top顶部(顶栏按钮, 强制脱离且不可改)
   isKeepAlive?: number;   // 1缓存 0不缓存
   isExpanded?: number;    // 单子菜单时父级显示方式: 0显示父级 1隐藏父级(子菜单直接显示)
-  isFull?: number;        // 1全屏 0不全屏
-  isNewTab?: number;      // 1新标签 0当前页
   isHideTab?: number;     // 1隐藏 0显示
   isFixed?: number;       // 1固钉 0否
   isTag?: number;         // 菜单徽标: 1开启 0关闭
@@ -133,6 +134,10 @@ interface MenuVM {
   showValue?: string;     // 条件值: 类全名 / SpEL表达式 / 配置键 / Actuator端点标识
   showSwitch?: number;    // 开关型条件放行值: 1放行 0隐藏
   showKey?: string;       // 开关型条件联动的功能键(统一策略配置 type=FEATURE 的 biz_key)
+  home?: number;          // 是否首页: 1是 0否（编辑时必须透传原值，否则会把首页标志清零）
+  engine?: number;        // 是否 engine 布局主页: 1是 0否（内部概念，不进表单，仅透传防清零）
+  redirect?: string;      // 路由重定向地址
+  role?: string;          // 所属角色编码（只读展示，授权走角色管理页的菜单分配）
   children?: MenuVM[];
 }
 
@@ -195,6 +200,10 @@ function toVM(m: SysMenu): MenuVM {
     showValue: m.sysMenuShowValue,
     showSwitch: m.sysMenuShowSwitch ?? 1,
     showKey: m.sysMenuShowKey,
+    home: m.sysMenuHome ?? 0,
+    engine: m.sysMenuEngine ?? 0,
+    redirect: m.sysMenuRedirect,
+    role: m.sysMenuRole,
     children: m.children?.map(toVM),
   };
 }
@@ -239,8 +248,12 @@ function toEntity(v: MenuVM): SysMenu {
           : v.linkMode === "link"
             ? 2
             : 0,
-    sysMenuEngine: 0,
-    sysMenuHome: 0,
+    // home/engine 必须透传原值：后端 updateById 对显式 0 会真实更新，
+    // 写死 0 会把已有首页/engine 主页标志在每次编辑时静默清零
+    sysMenuEngine: v.engine ?? 0,
+    sysMenuHome: v.home ?? 0,
+    // 路由重定向：留空不下发（非 null 更新策略下保持库中原值）
+    sysMenuRedirect: v.redirect?.trim() ? v.redirect.trim() : undefined,
   };
 }
 
@@ -318,6 +331,81 @@ function collectAllKeys(nodes: MenuVM[]): number[] {
   return keys;
 }
 
+/** 树展开状态：true 全部展开，false 全部收起 */
+const expandAll = ref(true);
+/** 树重建 key：切换展开状态后强制重渲染 el-tree */
+const treeKey = ref(0);
+function toggleExpandAll() {
+  expandAll.value = !expandAll.value;
+  treeKey.value += 1;
+}
+
+/** 搜索命中数（关键字非空时展示，帮助判断"没搜到"还是"就一条"） */
+const searchHitCount = computed<number>(() => {
+  if (!keyword.value.trim()) return 0;
+  return flattenTree(filteredTree.value).length;
+});
+
+/** 搜索高亮：把名称按关键字切为 [前, 命中, 后] 三段，中段在模板里加高亮样式 */
+function splitHighlight(text?: string): [string, string, string] {
+  const s = text ?? "";
+  const kw = keyword.value.trim();
+  if (!kw) return [s, "", ""];
+  const i = s.toLowerCase().indexOf(kw.toLowerCase());
+  if (i < 0) return [s, "", ""];
+  return [s.slice(0, i), s.slice(i, i + kw.length), s.slice(i + kw.length)];
+}
+
+/** 树上条件徽标的短文案（完整说明放 el-tag 的 title 提示里） */
+function conditionBadgeLabel(showType?: string): string {
+  const map: Record<string, string> = {
+    CLASS: "条件·类",
+    SPEL: "条件·SpEL",
+    SWITCH: "条件·开关",
+    PROPERTY: "条件·配置",
+    ENDPOINT: "条件·端点",
+  };
+  return (showType && map[showType]) || "条件";
+}
+
+/** 复制文本到剪贴板（127.0.0.1 属 secure context，clipboard API 可用） */
+async function copyText(text?: string) {
+  const v = (text ?? "").trim();
+  if (!v) return;
+  try {
+    await navigator.clipboard.writeText(v);
+    message.success(`已复制：${v}`);
+  } catch {
+    message.warning("复制失败，请手动复制");
+  }
+}
+
+/** 条件试算进行中 / 最近一次结果（表单内联展示） */
+const evaluating = ref(false);
+const evaluateResult = ref<null | { visible: boolean }>(null);
+
+/** 用后端同一个求值器即时试算：当前环境下按此条件配置的菜单是否可见 */
+async function handleEvaluateCondition() {
+  if (!form.value.showType || form.value.showType === "ALWAYS") return;
+  evaluating.value = true;
+  evaluateResult.value = null;
+  try {
+    const res = await evaluateMenuCondition({
+      showType: form.value.showType,
+      showValue: form.value.showValue,
+      showSwitch: form.value.showSwitch ?? 1,
+      showKey: form.value.showKey,
+    });
+    const visible = res?.data === true;
+    evaluateResult.value = { visible };
+    message.info(visible ? "试算结果：当前环境菜单可见" : "试算结果：当前环境菜单隐藏");
+  } catch (e) {
+    message.error((e as Error)?.message ?? "条件试算失败");
+  } finally {
+    evaluating.value = false;
+  }
+}
+
 /* ================== 加载 ================== */
 async function loadList() {
   loading.value = true;
@@ -374,10 +462,23 @@ async function handleMove(dir: "up" | "down") {
   }
   moving.value = true;
   try {
-    const mySort = current.value.sort ?? 0;
-    const targetSort = target.sort ?? 0;
-    await updateMenu({ ...toEntity(current.value), sysMenuSort: targetSort });
-    await updateMenu({ ...toEntity(target), sysMenuSort: mySort });
+    // 交换后对同级按显示顺序归一 sort（与拖拽保存同一套口径），历史数据 sort 重复时也能正确生效
+    const swapWith = dir === "up" ? idx - 1 : idx + 1;
+    const reordered = [...sorted];
+    const tmp = reordered[idx];
+    reordered[idx] = reordered[swapWith];
+    reordered[swapWith] = tmp;
+    const updates: SysMenu[] = [];
+    reordered.forEach((n, i) => {
+      const newSort = (i + 1) * 10;
+      if ((n.sort ?? 0) !== newSort) {
+        updates.push({ ...toEntity(n), sysMenuSort: newSort });
+      }
+    });
+    for (const u of updates) {
+      // eslint-disable-next-line no-await-in-loop
+      await updateMenu(u);
+    }
     message.success(dir === "up" ? "已上移" : "已下移");
     await loadList();
   } catch (e) {
@@ -499,6 +600,15 @@ const dialogVisible = ref(false);
 const dialogTitle = ref("新增菜单节点");
 const saving = ref(false);
 const form = ref<MenuVM>({});
+
+/** 条件要素变化后清掉上一次试算结果，避免展示过期结论（须在 form 声明之后注册） */
+watch(
+  () => [form.value.showType, form.value.showValue, form.value.showSwitch, form.value.showKey],
+  () => {
+    evaluateResult.value = null;
+  },
+);
+
 const formRef = ref();
 
 // 顶部 / 底部入口强制脱离菜单控制(remind=true)，且不允许修改
@@ -537,6 +647,19 @@ const formRules = {
   sort: [{ required: true, message: "请输入排序号", trigger: "blur" }],
 };
 
+/** 新增节点的默认排序号：同级最大 sort + 10（避免默认 0 与输入框 min=1 冲突、避免挤在首位） */
+function nextSiblingSort(parent?: MenuVM): number {
+  let siblings: MenuVM[] = [];
+  if (parent?.menuId != null) {
+    const full = findById(list.value, parent.menuId);
+    siblings = full?.children ?? [];
+  } else {
+    siblings = list.value;
+  }
+  const max = siblings.reduce((m, n) => Math.max(m, n.sort ?? 0), 0);
+  return max + 10;
+}
+
 /** 新增 */
 function handleAdd(parent?: MenuVM) {
   const t = parent?.menuType ?? 2;
@@ -552,11 +675,9 @@ function handleAdd(parent?: MenuVM) {
     isVisible: 1,
     isRemind: 0,
     position: "standard",
-    sort: 0,
+    sort: nextSiblingSort(parent),
     isKeepAlive: 0,
     isExpanded: 1,
-    isFull: 0,
-    isNewTab: 0,
     isHideTab: 0,
     isFixed: 0,
     isTag: 0,
@@ -566,8 +687,74 @@ function handleAdd(parent?: MenuVM) {
     showValue: undefined,
     showSwitch: 1,
     showKey: undefined,
+    home: 0,
+    engine: 0,
+    redirect: "",
   };
   dialogVisible.value = true;
+}
+
+/** 克隆进行中标记（按钮 loading） */
+const cloning = ref(false);
+
+/**
+ * 克隆菜单节点：复制基本信息为新节点（名称/路由加副本后缀，排序取同级末位），
+ * 原节点下的按钮权限一并克隆到新节点名下。
+ */
+async function handleClone(node?: MenuVM) {
+  const source = node ?? current.value;
+  if (!source?.menuId) {
+    message.warning("请先选择菜单");
+    return;
+  }
+  cloning.value = true;
+  try {
+    // 名称/路由加副本后缀；超长时截断，保证仍满足表单校验（name≤32、path 斜杠格式）
+    const suffix = "Copy";
+    const cloneName = (source.name ?? "menu").slice(0, 32 - suffix.length) + suffix;
+    const basePath = (source.path ?? "/menu").replace(/\/+$/, "");
+    const clonePath = `${basePath.slice(0, 32 - suffix.length - 1)}/${suffix.toLowerCase()}`;
+    const clone: MenuVM = {
+      ...JSON.parse(JSON.stringify(source)),
+      menuId: undefined,
+      children: [],
+      menuName: `${source.menuName ?? "菜单"}副本`,
+      name: cloneName,
+      path: clonePath,
+      // 克隆节点与源节点同级：同级集合 = 源节点的父级（根级源则取顶层列表）。
+      // 不能把 source 当 parent 传下去——那会取到 source 的 children，得到 0+10。
+      sort: nextSiblingSort((source.parentId ? findById(list.value, source.parentId) : undefined) ?? undefined),
+      home: 0,
+      engine: 0,
+    };
+    const res = await saveMenu(toEntity(clone));
+    const newId = (res?.data as SysMenu | undefined)?.sysMenuId;
+    // 按钮权限一并克隆（新节点 id 由 save 返回；拿不到时仅克隆节点本身）
+    const buttons = (source.children ?? []).filter((c) => c.menuType === 3);
+    if (newId && buttons.length) {
+      await batchSaveMenuButtons(
+        buttons.map((b) => ({
+          sysMenuPid: newId,
+          sysMenuTitle: b.menuName,
+          sysMenuName: b.menuName,
+          sysMenuPerm: b.auth,
+          sysMenuType: 3,
+          sysMenuSort: b.sort ?? 0,
+          sysMenuHidden: b.isVisible === 1 ? 0 : 1,
+        })),
+      );
+    }
+    message.success(buttons.length ? `已克隆菜单及 ${buttons.length} 个按钮权限` : "已克隆菜单");
+    await loadList();
+    if (newId) {
+      const hit = findById(list.value, newId);
+      if (hit) onNodeClick(hit);
+    }
+  } catch (e) {
+    message.error((e as Error)?.message ?? "克隆失败");
+  } finally {
+    cloning.value = false;
+  }
 }
 
 /** 编辑 */
@@ -820,6 +1007,20 @@ async function handleBatchSubmit() {
     message.warning("请至少填写一个按钮名称");
     return;
   }
+  // 权限标识查重（表单辅助校验，后端仍是判重权威）：批内互相重复，或与当前菜单已有按钮重复，提前拦截
+  const existingAuths = new Set(
+    buttonPerms.value.map((b) => (b.auth ?? "").trim()).filter(Boolean),
+  );
+  const seen = new Set<string>();
+  for (const r of valid) {
+    const auth = r.auth.trim();
+    if (!auth) continue;
+    if (seen.has(auth) || existingAuths.has(auth)) {
+      message.warning(`权限标识「${auth}」重复，请修改后重新提交`);
+      return;
+    }
+    seen.add(auth);
+  }
   batchSaving.value = true;
   try {
     const items = valid.map((r) => ({
@@ -891,6 +1092,13 @@ function onNodeContextmenu(e: Event, data: MenuVM) {
   contextMenuX.value = pt.clientX;
   contextMenuY.value = pt.clientY;
   contextMenuVisible.value = true;
+  // 节点靠树底部时，固定定位的右键菜单会溢出视口（克隆/删除点不到）；渲染后按实测尺寸收回视口内
+  void nextTick().then(() => {
+    const el = document.querySelector<HTMLElement>(".menu-context-menu");
+    if (!el) return;
+    contextMenuX.value = Math.max(4, Math.min(pt.clientX, window.innerWidth - el.offsetWidth - 4));
+    contextMenuY.value = Math.max(4, Math.min(pt.clientY, window.innerHeight - el.offsetHeight - 4));
+  });
 }
 
 function onContextMenuSelect(action: string) {
@@ -898,6 +1106,7 @@ function onContextMenuSelect(action: string) {
   if (!contextNode.value) return;
   if (action === "add") handleAdd(contextNode.value);
   else if (action === "update") handleEdit(contextNode.value);
+  else if (action === "clone") handleClone(contextNode.value);
   else if (action === "delete") handleDelete(contextNode.value);
   else if (action === "refresh") refresh();
 }
@@ -921,15 +1130,15 @@ const isIframeLinkMode = computed<boolean>(() => form.value.linkMode === "iframe
 const detailItems = computed(() => {
   const c = current.value;
   if (!c) return [];
-  const items: Array<{ label: string; value: string }> = [
+  const items: Array<{ label: string; value: string; copy?: string }> = [
     { label: "菜单名称", value: c.menuName ?? "-" },
     { label: "菜单类型", value: typeLabels[c.menuType ?? 0] ?? "-" },
     { label: "显示状态", value: c.isVisible === 1 ? "显示" : "隐藏" },
-    { label: "路由名称", value: c.name ?? "-" },
-    { label: "路由地址", value: c.path ?? "-" },
+    { label: "路由名称", value: c.name ?? "-", copy: c.name },
+    { label: "路由地址", value: c.path ?? "-", copy: c.path },
   ];
-  if (c.menuType === 2) items.push({ label: "组件路径", value: c.component ?? "-" });
-  items.push({ label: "权限字符", value: c.auth ?? "-" });
+  if (c.menuType === 2) items.push({ label: "组件路径", value: c.component ?? "-", copy: c.component });
+  items.push({ label: "权限字符", value: c.auth ?? "-", copy: c.auth });
   if (c.showType && c.showType !== "ALWAYS") {
     const label =
       showTypeOptions.find((o) => o.value === c.showType)?.label ?? c.showType;
@@ -952,13 +1161,17 @@ const detailItems = computed(() => {
   }
   items.push({ label: "外链地址", value: c.linkUrl ?? "-" });
   items.push({ label: "选中路由", value: c.activeMenu ?? "-" });
+  if (c.menuType !== 3) {
+    items.push({ label: "重定向", value: c.redirect ?? "-" });
+  }
   if (c.menuType === 2) {
-    items.push({ label: "是否全屏", value: c.isFull === 1 ? "全屏" : "不全屏" });
-    items.push({ label: "是否新标签", value: c.isNewTab === 1 ? "新标签打开" : "当前页打开" });
     items.push({ label: "标签隐藏", value: c.isHideTab === 1 ? "隐藏" : "显示" });
   }
   items.push({ label: "显示排序", value: String(c.sort ?? 0) });
   items.push({ label: "菜单徽标", value: c.isTag === 1 ? (c.tagName || (c.tagType ?? "danger")) : "无" });
+  if (c.role) {
+    items.push({ label: "可见角色", value: c.role });
+  }
   return items;
 });
 
@@ -1000,24 +1213,29 @@ onMounted(() => {
           <div class="menu-panel-title__desc menu-tree-desc">维护目录、菜单与权限入口</div>
 
           <div class="menu-tree-toolbar">
-            <el-input v-model="keyword" placeholder="搜索菜单名称" clearable :prefix-icon="Search" />
+            <el-input v-model="keyword" placeholder="搜索菜单名称/路由" clearable :prefix-icon="Search" />
             <div class="menu-tree-stats">
               <div class="menu-tree-stat"><strong>{{ stats.total }}</strong><span>节点</span></div>
               <div class="menu-tree-stat"><strong>{{ stats.directory }}</strong><span>目录</span></div>
               <div class="menu-tree-stat"><strong>{{ stats.page }}</strong><span>菜单</span></div>
+              <div v-if="keyword.trim()" class="menu-tree-stat"><strong>{{ searchHitCount }}</strong><span>命中</span></div>
             </div>
+            <el-button class="menu-expand-toggle" link type="primary" :icon="expandAll ? Fold : Expand" @click="toggleExpandAll">
+              {{ expandAll ? '收起全部' : '展开全部' }}
+            </el-button>
           </div>
         </div>
 
         <div v-loading="loading" class="menu-tree-wrap">
           <el-tree
             ref="menuTreeRef"
+            :key="treeKey"
             class="menu-tree"
             :data="filteredTree"
             node-key="menuId"
             :props="treeProps"
-            :default-expand-all="true"
-            :default-expanded-keys="expandedKeys"
+            :default-expand-all="expandAll"
+            :default-expanded-keys="expandAll ? expandedKeys : []"
             :expand-on-click-node="false"
             draggable
             :allow-drag="allowTreeDrag"
@@ -1038,10 +1256,24 @@ onMounted(() => {
                   <ReIcon :name="data.icon" :size="14" />
                 </span>
                 <div class="menu-tree-node__main">
-                  <span class="menu-tree-node__name">{{ data.menuName }}</span>
+                  <span class="menu-tree-node__name">
+                    <template v-if="splitHighlight(data.menuName)[1]">
+                      <span>{{ splitHighlight(data.menuName)[0] }}</span><mark class="menu-tree-node__hit">{{ splitHighlight(data.menuName)[1] }}</mark><span>{{ splitHighlight(data.menuName)[2] }}</span>
+                    </template>
+                    <template v-else>{{ data.menuName }}</template>
+                  </span>
                   <span class="menu-tree-node__path">{{ data.path || '未配置路由' }}</span>
                 </div>
                 <div class="menu-tree-node__badges">
+                  <el-tag
+                    v-if="data.showType && data.showType !== 'ALWAYS'"
+                    class="menu-tree-node__cond"
+                    type="info"
+                    effect="plain"
+                    :title="`动态显示条件：${showTypeOptions.find(o => o.value === data.showType)?.label ?? data.showType}${data.showValue ? '：' + data.showValue : ''}`"
+                  >
+                    {{ conditionBadgeLabel(data.showType) }}
+                  </el-tag>
                   <template v-if="data.isTag === 1">
                     <el-tag
                       v-if="data.tagName"
@@ -1127,6 +1359,16 @@ onMounted(() => {
               <el-icon><Edit /></el-icon><span>编辑</span>
             </div>
             <div
+              class="menu-context-menu__item"
+              role="menuitem"
+              tabindex="0"
+              @click="onContextMenuSelect('clone')"
+              @keydown.enter="onContextMenuSelect('clone')"
+              @keydown.space.prevent="onContextMenuSelect('clone')"
+            >
+              <el-icon><CopyDocument /></el-icon><span>克隆</span>
+            </div>
+            <div
               class="menu-context-menu__item menu-context-menu__item--danger"
               role="menuitem"
               tabindex="0"
@@ -1207,7 +1449,15 @@ onMounted(() => {
                     <span v-else class="menu-badge-dot" :style="{ background: tagTypeColor[current.tagType ?? 'danger'] ?? tagTypeColor.danger }" />
                   </template>
                   <template v-else>
-                    {{ item.value }}
+                    <span class="menu-detail__value-row">
+                      <span>{{ item.value }}</span>
+                      <el-icon
+                        v-if="item.copy"
+                        class="menu-detail__copy"
+                        title="点击复制"
+                        @click="copyText(item.copy)"
+                      ><CopyDocument /></el-icon>
+                    </span>
                   </template>
                 </el-descriptions-item>
               </el-descriptions>
@@ -1520,20 +1770,23 @@ onMounted(() => {
                   </el-radio-group>
                 </el-form-item>
               </el-col>
-              <el-col :sm="12" :xs="24">
-                <el-form-item label="是否全屏" prop="isFull">
-                  <el-radio-group v-model="form.isFull">
-                    <el-radio :value="1">全屏</el-radio>
-                    <el-radio :value="0">不全屏</el-radio>
-                  </el-radio-group>
+              <el-col v-if="form.menuType !== 3" :sm="12" :xs="24">
+                <el-form-item label="是否首页" prop="home">
+                  <ReSwitch
+                    layout="square"
+                    v-model="form.home"
+                    :active-value="1"
+                    :inactive-value="0"
+                    active-text="首页"
+                    inactive-text="普通"
+                    inline-prompt
+                  />
+                  <span class="menu-position-tip">设为首页后登录默认落在此菜单；整站只保留一个首页</span>
                 </el-form-item>
               </el-col>
-              <el-col :sm="12" :xs="24">
-                <el-form-item label="是否新标签" prop="isNewTab">
-                  <el-radio-group v-model="form.isNewTab">
-                    <el-radio :value="1">新标签打开</el-radio>
-                    <el-radio :value="0">当前页打开</el-radio>
-                  </el-radio-group>
+              <el-col v-if="form.menuType !== 3" :sm="12" :xs="24">
+                <el-form-item label="路由重定向" prop="redirect">
+                  <el-input v-model="form.redirect" placeholder="如 /system/user，留空不重定向" maxlength="128" clearable />
                 </el-form-item>
               </el-col>
               <el-col :sm="12" :xs="24">
@@ -1622,6 +1875,15 @@ onMounted(() => {
                 </el-form-item>
               </el-col>
             </el-row>
+            <div v-if="form.showType && form.showType !== 'ALWAYS'" class="menu-evaluate">
+              <el-button size="small" type="primary" plain :loading="evaluating" @click="handleEvaluateCondition">
+                测试条件
+              </el-button>
+              <span v-if="evaluateResult" class="menu-evaluate__result" :class="evaluateResult.visible ? 'is-visible' : 'is-hidden'">
+                {{ evaluateResult.visible ? '当前环境下该菜单可见' : '当前环境下该菜单隐藏' }}
+              </span>
+              <span v-else class="menu-evaluate__tip">按当前登录用户与环境，即时试算该条件是否放行</span>
+            </div>
           </section>
 
           <!-- 菜单徽标（独立区块，不与「权限与状态」混放） -->
@@ -1966,6 +2228,67 @@ export default defineComponent({
 .menu-tree-stat span {
   color: var(--el-text-color-secondary);
   font-size: 11px;
+}
+/* 展开/收起全部：右对齐的链式小按钮 */
+.menu-expand-toggle {
+  align-self: flex-end;
+  padding: 0;
+  height: auto;
+}
+/* 搜索命中高亮：mark 默认底色太重，改成主题色淡底 */
+.menu-tree-node__hit {
+  padding: 0 1px;
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+  border-radius: 2px;
+}
+/* 动态显示条件徽标：比类型徽标更弱一档，避免喧宾夺主 */
+.menu-tree-node__cond {
+  flex: none;
+  transform: scale(0.86);
+  transform-origin: right center;
+  white-space: nowrap;
+}
+/* 详情可复制字段 */
+.menu-detail__value-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.menu-detail__copy {
+  flex: none;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.menu-detail__copy:hover {
+  color: var(--el-color-primary);
+}
+/* 动态显示条件试算行 */
+.menu-evaluate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin-top: 4px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: var(--el-radius-md, 8px);
+  background: var(--el-fill-color-lighter);
+}
+.menu-evaluate__tip {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+.menu-evaluate__result {
+  font-size: 12px;
+  font-weight: 600;
+}
+.menu-evaluate__result.is-visible {
+  color: var(--el-color-success);
+}
+.menu-evaluate__result.is-hidden {
+  color: var(--el-color-warning);
 }
 .menu-tree-wrap {
   flex: 1;

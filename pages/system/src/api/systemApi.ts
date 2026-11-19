@@ -351,6 +351,19 @@ export function deleteMenu(sysMenuId: number) {
     .then<ApiResult<boolean>>((r) => r.data);
 }
 
+/** 菜单动态显示条件试算：返回当前环境下按此条件配置的菜单是否可见 */
+export function evaluateMenuCondition(params: {
+  showType: string;
+  showValue?: string;
+  showSwitch?: number;
+  showKey?: string;
+}) {
+  return http()
+    .get("/v2/menu/evaluate")
+    .query(params as Record<string, unknown>)
+    .then<ApiResult<boolean>>((r) => r.data);
+}
+
 /* ================== 部门管理 ================== */
 
 /** 部门列表（树形） */
