@@ -318,12 +318,14 @@ const agreementBody = computed(() => {
 
 /**
  * 水印配置行取值：兼容 `WatermarkOpen` 与旧式 `config:WatermarkOpen` 两种 code。
+ * 旧式行在后端只填 sysSettingName（sysSettingCode 为空，见 /v2/setting/default 实测），
+ * 与 flattenSettingToConfig 的「编码为空回退名称」同口径：code 与 name 都参与匹配。
  * 行对象与编辑器同源（allSettings），编辑未保存时预览即时跟着变。
  */
 function wmValue(token: string): string {
   const row = moduleRows("config").find((x) => {
-    const code = String(x.sysSettingCode || "");
-    return code === token || code.endsWith(`:${token}`) || code.endsWith(`.${token}`);
+    const keys = [String(x.sysSettingCode || ""), String(x.sysSettingName || "")];
+    return keys.some((s) => s === token || s.endsWith(`:${token}`) || s.endsWith(`.${token}`));
   });
   return row?.sysSettingValue ?? "";
 }
