@@ -218,6 +218,7 @@
 
 <script setup lang="ts">
 import { message } from '@repo/core'
+import { downloadTextFile, fileTimestamp, formatPercent } from '@repo/utils'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ArrowRight, Check, DocumentCopy, Download, FolderOpened, Picture, Refresh, Warning, WarningFilled } from '@element-plus/icons-vue'
 import { currentToken } from '@/framework/context'
@@ -685,11 +686,7 @@ const showBlocks = ref(false)
  * @returns 形如 {@code 98.6%}；缺失或非法时为 {@code —}
  */
 function fmtConfidence(v?: number): string {
-  if (v == null || !Number.isFinite(v)) {
-    return '—'
-  }
-  const pct = v <= 1 ? v * 100 : v
-  return `${pct.toFixed(1)}%`
+  return formatPercent(v) || '—'
 }
 
 /**
@@ -703,8 +700,6 @@ function exportTxt(): void {
     return
   }
   const now = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
   const lines: string[] = []
   lines.push(`OCR 识别结果 · ${now.toLocaleString('zh-CN')}`)
   const statLine = `文本块：${textBlocks.value ?? ocrBlocks.value.length}`
@@ -721,17 +716,7 @@ function exportTxt(): void {
       )
     })
   }
-  const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `ocr-result-${stamp}.txt`
-  a.rel = 'noopener'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  // 延后释放：部分浏览器在 click 后仍异步读 href
-  window.setTimeout(() => URL.revokeObjectURL(url), 2000)
+  downloadTextFile(lines.join('\r\n'), `ocr-result-${fileTimestamp(now)}.txt`)
   message.success(`已导出识别结果（${ocrBlocks.value.length || textBlocks.value || 0} 块）`)
 }
 

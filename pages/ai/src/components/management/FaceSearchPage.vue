@@ -353,6 +353,7 @@
 
 <script setup lang="ts">
 import { message, msgBox } from "@repo/core";
+import { downloadCsv, fileTimestamp, formatPercent } from '@repo/utils'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import {
@@ -897,35 +898,19 @@ function exportCsv(): void {
     message.warning('当前没有可导出的命中结果')
     return
   }
-  const head = ['脸序号', '检测置信度', '姓名', '记录ID', '相似度', '性别/年龄/发型', '证件号(脱敏)', '上镜感']
-  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-  const lines = [head.map(esc).join(',')]
-  for (const { sec, c } of rows) {
-    lines.push(
-      [
-        sec.index,
-        sec.confidence != null ? `${(sec.confidence * 100).toFixed(1)}%` : '',
-        c.name,
-        c.id,
-        `${(c.score * 100).toFixed(1)}%`,
-        c.caption,
-        c.idCardMasked,
-        c.photogenic ? '是' : '否',
-      ]
-        .map(esc)
-        .join(','),
-    )
-  }
-  const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `face-search-hits-${Date.now()}.csv`
-  a.rel = 'noopener'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 2000)
+  downloadCsv(`face-search-hits-${fileTimestamp()}.csv`, [
+    ['脸序号', '检测置信度', '姓名', '记录ID', '相似度', '性别/年龄/发型', '证件号(脱敏)', '上镜感'],
+    ...rows.map(({ sec, c }) => [
+      sec.index,
+      formatPercent(sec.confidence),
+      c.name,
+      c.id,
+      formatPercent(c.score),
+      c.caption,
+      c.idCardMasked,
+      c.photogenic ? '是' : '否',
+    ]),
+  ])
   message.success(`已导出 ${rows.length} 条命中`)
 }
 

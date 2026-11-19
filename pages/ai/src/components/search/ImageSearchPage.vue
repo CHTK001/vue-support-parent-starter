@@ -143,7 +143,7 @@
           </div>
         </div>
 
-        <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" class="is-hidden" @change="onFilePicked" />
+        <input ref="fileInput" type="file" :accept="IMAGE_UPLOAD_ACCEPT" class="is-hidden" @change="onFilePicked" />
 
         <!-- 右缘悬浮工具条：与人脸识别 / 图像上色同一套，贴舞台右缘竖排图标钮。
              始终渲染（上传按钮常驻可直接选图）；清空在空态置灰，不隐藏。 -->
@@ -264,6 +264,7 @@ import 'viewerjs/dist/viewer.css'
 import { useRoute } from 'vue-router'
 import { apiService } from '@/services/ApiService'
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
+import { IMAGE_UPLOAD_ACCEPT } from '@/utils/imageAccept'
 import { createAuthImageLoader } from '@/utils/authImage'
 import { usePopup } from '@/composables/usePopup'
 import { useLibraryGroups } from '@/composables/useLibraryGroups'

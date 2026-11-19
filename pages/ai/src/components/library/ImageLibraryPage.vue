@@ -60,7 +60,7 @@
     <input
       ref="fileInput"
       type="file"
-      accept="image/png,image/jpeg,image/webp,image/bmp,image/gif"
+      :accept="IMAGE_UPLOAD_ACCEPT"
       multiple
       class="il-hidden"
       @change="onPicked"
@@ -742,6 +742,8 @@ import type { ImageItem, ImageSearchStatus } from '@/services/modules/image-sear
 import { resolveImageUrl } from '@/utils/imageSearchUrl'
 import { createAuthImageLoader, downloadAuthenticatedFile } from '@/utils/authImage'
 import { toErrorMessage } from '@/utils/errors'
+import { downloadCsv, fileTimestamp } from '@repo/utils'
+import { IMAGE_UPLOAD_ACCEPT } from '@/utils/imageAccept'
 import { usePopup } from '@/composables/usePopup'
 import { useLibraryGroups } from '@/composables/useLibraryGroups'
 import { useModelConfigStore } from '@/stores/modelConfig'
@@ -1263,17 +1265,6 @@ function fileFormat(item: ImageItem): string {
 function shortName(item: ImageItem): string {
   const n = item.name || `#${item.id}`
   return n.length > 12 ? `${n.slice(0, 11)}…` : n
-}
-
-/**
- * 时间戳（导出文件名用）。
- *
- * @returns `YYYYMMDD-HHmm`
- */
-function timestamp(): string {
-  const d = new Date()
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`
 }
 
 /**
@@ -1884,47 +1875,30 @@ async function exportCsv(): Promise<void> {
       toast.warning('当前筛选条件下没有可导出的记录')
       return
     }
-    const head = [
-      '记录ID',
-      '名称',
-      '分组',
-      '特征状态',
-      '是否重复',
-      '分辨率',
-      '体积(字节)',
-      '入库时间',
-      '关键词',
-    ]
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
-    const lines = [head.map(esc).join(',')]
-    for (const item of rows) {
-      lines.push(
-        [
-          item.id,
-          item.name || '',
-          group.value,
-          item.hasOriginal ? '特征已入库' : '仅缩略图',
-          dup.has(item.id) ? '是' : '否',
-          resolutionOf(item),
-          typeof item.size === 'number' && item.size > 0 ? item.size : '',
-          formatDateTime(item.createdAt),
-          (item.tags || []).join(' / '),
-        ]
-          .map(esc)
-          .join(','),
-      )
-    }
-    const blob = new Blob([`\ufeff${lines.join('\r\n')}`], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `image-library-${group.value}-${timestamp()}.csv`
-    a.rel = 'noopener'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    // 延后释放：部分浏览器在 click 后仍异步读 href
-    setTimeout(() => URL.revokeObjectURL(url), 2000)
+    downloadCsv(`image-library-${group.value}-${fileTimestamp()}.csv`, [
+      [
+        '记录ID',
+        '名称',
+        '分组',
+        '特征状态',
+        '是否重复',
+        '分辨率',
+        '体积(字节)',
+        '入库时间',
+        '关键词',
+      ],
+      ...rows.map((item) => [
+        item.id,
+        item.name || '',
+        group.value,
+        item.hasOriginal ? '特征已入库' : '仅缩略图',
+        dup.has(item.id) ? '是' : '否',
+        resolutionOf(item),
+        typeof item.size === 'number' && item.size > 0 ? item.size : '',
+        formatDateTime(item.createdAt),
+        (item.tags || []).join(' / '),
+      ]),
+    ])
     toast.success(`已导出全部 ${rows.length} 条`)
   } catch (e: unknown) {
     toast.error(toErrorMessage(e, '导出失败'))

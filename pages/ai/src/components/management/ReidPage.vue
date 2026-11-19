@@ -272,6 +272,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { message } from "@repo/core";
+import { downloadCsv, fileTimestamp, formatPercent } from "@repo/utils";
 import { useRouter } from "vue-router";
 import { Aim, Collection, FolderOpened, Picture, Search, Setting, User, Warning } from "@element-plus/icons-vue";
 import ReLoader from "@repo/ui/re-loader";
@@ -541,54 +542,38 @@ function exportCsv(): void {
     message.warning("当前列表没有可导出的数据");
     return;
   }
-  const head = [
-    "记录/轨迹ID",
-    "人脸姓名",
-    "分流类型",
-    "相似度",
-    "第几张脸",
-    "摄像头",
-    "观测次数",
-    "跨摄像头",
-    "最后出现时间",
-    "纬度",
-    "经度",
-    "分组",
-    "备注",
-  ];
-  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const lines = [head.map(esc).join(",")];
-  for (const c of rows) {
-    lines.push(
-      [
-        c.id,
-        c.faceName || c.name || "",
-        c.matchType ?? "",
-        c.similarity != null ? `${(c.similarity * 100).toFixed(1)}%` : "",
-        c.faceIndex ?? "",
-        c.cameraIds.join(" / "),
-        c.observations,
-        c.crossCamera ? "是" : "否",
-        c.lastSeen ? new Date(c.lastSeen).toLocaleString("zh-CN") : "",
-        c.lat ?? "",
-        c.lng ?? "",
-        c.group,
-        c.reason ?? "",
-      ]
-        .map(esc)
-        .join(","),
-    );
-  }
-  const blob = new Blob([`\ufeff${lines.join("\r\n")}`], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `reid-${activeTab.value === "hit" ? "hits" : "records"}-${Date.now()}.csv`;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+  downloadCsv(`reid-${activeTab.value === "hit" ? "hits" : "records"}-${fileTimestamp()}.csv`, [
+    [
+      "记录/轨迹ID",
+      "人脸姓名",
+      "分流类型",
+      "相似度",
+      "第几张脸",
+      "摄像头",
+      "观测次数",
+      "跨摄像头",
+      "最后出现时间",
+      "纬度",
+      "经度",
+      "分组",
+      "备注",
+    ],
+    ...rows.map((c) => [
+      c.id,
+      c.faceName || c.name || "",
+      c.matchType ?? "",
+      c.similarity != null ? formatPercent(c.similarity) : "",
+      c.faceIndex ?? "",
+      c.cameraIds.join(" / "),
+      c.observations,
+      c.crossCamera ? "是" : "否",
+      c.lastSeen ? new Date(c.lastSeen).toLocaleString("zh-CN") : "",
+      c.lat ?? "",
+      c.lng ?? "",
+      c.group,
+      c.reason ?? "",
+    ]),
+  ]);
   message.success(`已导出 ${rows.length} 条`);
 }
 
