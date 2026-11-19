@@ -32,6 +32,7 @@ import {
   ArrowDown as ArrowDownIcon,
   ArrowRight as ArrowRightIcon,
   Link as LinkIcon,
+  ChatDotRound as ChatDotRoundIcon,
 } from '@element-plus/icons-vue'
 import { channelApi } from '../channelApi'
 import type {
@@ -72,6 +73,8 @@ import raccoonIcon from '../assets/channel-icons/raccoon.ico'
 import duckduckgoIcon from '../assets/channel-icons/duckduckgo.svg'
 // 图片生成渠道：Pollinations 免登录
 import pollinationsIcon from '../assets/channel-icons/pollinations.ico'
+// Qwen Code：通义千问官方图标（与 apps 供应商图库同源）
+import qwenIcon from '../assets/channel-icons/qwen.png'
 // 这三个图标来自 Magpie 自带的品牌图（/icons/…），和网关里的上游列表同源，
 // 渠道页与网关页才不会同一家出现两种标记。
 import qoderIcon from '../assets/channel-icons/qoder.svg'
@@ -89,6 +92,8 @@ interface ChannelBrand {
   glyph: string
   /** 登录方式短标签（展示用） */
   method?: string
+  /** 免费渠道（免登录 / 免费授权），页头展示「免费」徽标 */
+  free?: boolean
 }
 
 // channel id（后端 @Spi 别名，小写）→ 品牌外观
@@ -102,7 +107,7 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   zcode: { icon: zcodeIcon, color: '#0C5CFF', glyph: 'Z', method: '浏览器授权' },
   raccoon: { icon: raccoonIcon, color: '#0FA47F', glyph: 'R', method: '扫码' },
   // Kilo 免费池：登录方式由后端给（keyless），这里只补官方图标
-  kilo: { icon: kiloIcon, color: '#F97316', glyph: 'K' },
+  kilo: { icon: kiloIcon, color: '#F97316', glyph: 'K', free: true },
   loomy: { color: '#2B7DE9', glyph: 'L', method: '微信扫码' },
   lobsterai: { icon: lobsteraiIcon, color: '#F03D64', glyph: 'L', method: '浏览器授权' },
   opencode: { icon: opencodeIcon, color: '#111827', glyph: 'O', method: 'API Key' },
@@ -112,16 +117,16 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   // Magpie 统一网关：本机 / Docker 常驻，凭据是「网关地址 + 网关 key」
   magpie: { icon: magpieIcon, color: '#0EA5A4', glyph: 'M', method: 'API Key' },
   // ChatClient 免登录渠道：官方 DuckDuckGo 图标
-  'chat-duckduckgo': { icon: duckduckgoIcon, color: '#DE5833', glyph: 'D', method: '免登录' },
+  'chat-duckduckgo': { icon: duckduckgoIcon, color: '#DE5833', glyph: 'D', method: '免登录', free: true },
   // Pollinations 文本对话：与生图渠道同源官方图标（匿名层免登录）
-  'chat-pollinations': { icon: pollinationsIcon, color: '#7C3AED', glyph: 'P', method: '免登录' },
-  // Qwen Code：通义千问 CLI 设备码授权；无官方图标资源，用品牌紫徽标兜底
-  'qwen-code': { color: '#615CED', glyph: 'Q', method: '设备码' },
+  'chat-pollinations': { icon: pollinationsIcon, color: '#7C3AED', glyph: 'P', method: '免登录', free: true },
+  // Qwen Code：通义千问 CLI 设备码授权；官方图标与 apps 供应商图库同源
+  'qwen-code': { icon: qwenIcon, color: '#615CED', glyph: 'Q', method: '设备码', free: true },
   // EAC 协付渠道：GitHub OAuth + Star 验证；无官方图标资源，用品牌绿徽标兜底
-  eac: { color: '#10B981', glyph: 'E', method: '浏览器授权' },
+  eac: { color: '#10B981', glyph: 'E', method: '浏览器授权', free: true },
   // 文生图渠道：官方 Pollinations 图标；DuckDuckGo 走 SSE 免登录
-  'image-duckduckgo': { icon: duckduckgoIcon, color: '#DE5833', glyph: 'D', method: '免登录' },
-  'image-pollinations': { icon: pollinationsIcon, color: '#7C3AED', glyph: 'P', method: '免登录' },
+  'image-duckduckgo': { icon: duckduckgoIcon, color: '#DE5833', glyph: 'D', method: '免登录', free: true },
+  'image-pollinations': { icon: pollinationsIcon, color: '#7C3AED', glyph: 'P', method: '免登录', free: true },
 }
 
 /** 渠道品牌外观（未知渠道给中性灰兜底） */
@@ -509,6 +514,24 @@ const bindChannelLabel = computed(
     || bindChannel.value
     || '渠道',
 )
+
+// 设备码有效期：句柄带 expires_in（秒）与 startedAt。bindElapsed 每秒 +1，
+// 直接当「已流逝秒数」用，不再开第二个计时器；临期提示剩余时间，过期后引导重发。
+const bindExpires = computed(() => {
+  const handle = bindState[bindChannel.value]?.handle ?? {}
+  const expiresIn = Number(handle.expires_in)
+  if (!Number.isFinite(expiresIn) || expiresIn <= 0) return null
+  return { total: expiresIn, remain: Math.max(0, Math.round(expiresIn - bindElapsed.value)) }
+})
+const bindExpired = computed(() => !!bindExpires.value && bindExpires.value.remain <= 0)
+const bindExpiresLabel = computed(() => {
+  const exp = bindExpires.value
+  if (!exp) return ''
+  if (exp.remain <= 0) return '授权码已过期，请点「重新发起」'
+  const m = Math.floor(exp.remain / 60)
+  const s = exp.remain % 60
+  return m > 0 ? `有效期剩 ${m}分${String(s).padStart(2, '0')}秒` : `有效期剩 ${s}秒`
+})
 
 /**
  * 一句话状态：告诉用户「现在该做什么 / 正在等什么」。
@@ -1627,6 +1650,82 @@ async function runImageTest(): Promise<void> {
     imageError.value = e?.message ?? String(e)
   } finally {
     imageBusy.value = false
+  }
+}
+
+// ---------- 对话渠道：试对话 ----------
+// 与「试出图」对称：chat-duckduckgo / chat-pollinations 这类免登录对话渠道
+// 没有账号区可展示，模型页以前只剩模型清单；这里给一块最小可用的试对话面板：
+// 提示词 → 发送 → 回答留在页面上，渠道通不通一问便知。
+
+/** 试对话的提示词 */
+const chatProbePrompt = ref('')
+/** 需要登录态的渠道临时填的令牌，只随本次请求发送，不落任何存储 */
+const chatProbeToken = ref('')
+/** 试对话进行中 */
+const chatProbeBusy = ref(false)
+/** 最近一次试对话的回答 */
+const chatProbeAnswer = ref('')
+/** 回答耗时（秒）：优先用后端统计的 elapsedMs */
+const chatProbeElapsed = ref(0)
+/** 试对话失败原因；429 限流单独给友好提示 */
+const chatProbeError = ref('')
+/** 选中的对话模型；渠道没有模型清单时为空（走渠道默认模型） */
+const chatProbeModel = ref('')
+
+/** 当前渠道是不是免登录对话渠道（kind=CHAT，后端 ChatChannelProvider SPI） */
+const isChatChannel = computed(() => builtinKindOf(activeSummary()) === 'chat')
+
+/** 试对话可选模型：渠道摘要里的模型清单（元数据 + 实时补拉），可能为空 */
+const chatProbeModelOptions = computed(() => activeSummary()?.models ?? [])
+
+/** 换渠道时清掉上一渠道的试对话输入与回答 */
+function resetChatProbe(): void {
+  chatProbePrompt.value = ''
+  chatProbeToken.value = ''
+  chatProbeAnswer.value = ''
+  chatProbeElapsed.value = 0
+  chatProbeError.value = ''
+  chatProbeBusy.value = false
+  chatProbeModel.value = ''
+}
+
+/**
+ * 发一次试对话。
+ *
+ * <p>后端 {@code POST /api/channels/{channel}/chat} 同步返回完整回答；
+ * 429 限流给「稍后再试」的友好提示，其余错误原样展示，不做「对话成功」的假提示。</p>
+ */
+async function runChatProbe(): Promise<void> {
+  const prompt = chatProbePrompt.value.trim()
+  if (!prompt || chatProbeBusy.value) return
+  const channel = activeChannel.value
+  if (!channel) return
+  chatProbeBusy.value = true
+  chatProbeError.value = ''
+  chatProbeAnswer.value = ''
+  chatProbeElapsed.value = 0
+  const startedAt = Date.now()
+  try {
+    const res = await channelApi.chat(channel, {
+      prompt,
+      ...(chatProbeModel.value ? { model: chatProbeModel.value } : {}),
+      ...(chatProbeToken.value.trim() ? { token: chatProbeToken.value.trim() } : {}),
+    })
+    const out = (res as any)?.data ?? res
+    chatProbeAnswer.value = String(out?.answer ?? '')
+    const elapsedMs = Number(out?.elapsedMs)
+    chatProbeElapsed.value = Number.isFinite(elapsedMs) && elapsedMs > 0
+      ? Math.max(1, Math.round(elapsedMs / 1000))
+      : Math.max(1, Math.round((Date.now() - startedAt) / 1000))
+    if (!chatProbeAnswer.value) chatProbeError.value = '上游没有返回回答内容，请稍后再试'
+  } catch (e: any) {
+    const msg = e?.message ?? String(e)
+    chatProbeError.value = /429|rate.?limit|限流|too many/i.test(msg)
+      ? '触发上游限流：免费渠道有调用频率限制，请稍等片刻再试'
+      : msg
+  } finally {
+    chatProbeBusy.value = false
   }
 }
 
@@ -3780,6 +3879,8 @@ function resetDetailTabs() {
   taskState.value = {}
   // 出图结果带时效签名，跨渠道留着只会误导；换渠道即清空
   resetImageTest()
+  // 试对话的回答同样不跨渠道保留
+  resetChatProbe()
 }
 
 /** 积分 / 任务：按 connectionId 维度的加载与错误状态 */
@@ -4765,6 +4866,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 <span class="chm-panel__chip" v-if="detailSummary()!.supportsCheckin">可签到</span>
                 <span class="chm-panel__chip is-credit" v-if="creditSupported(detailSummary())">积分</span>
                 <span class="chm-panel__chip is-task" v-if="detailSummary()!.supportsTask && !hostedOnly(detailSummary())">任务</span>
+                <span class="chm-panel__chip is-free" v-if="detailBrand.free"
+                      title="免登录 / 免费授权渠道，不产生费用">免费</span>
               </template>
             </span>
           </div>
@@ -5275,6 +5378,56 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 </div>
               </div>
 
+              <div v-else-if="isChatChannel" class="chm-panel__block chm-chatprobe">
+                <!-- 对话渠道试对话面板：与「试出图」对称，渠道通不通一问便知 -->
+                <div class="chm-panel__sect-title">
+                  <el-icon aria-hidden="true"><ChatDotRoundIcon /></el-icon>
+                  试对话
+                  <span class="chm-img__tip">写一句话，点「发送」，验证渠道连通</span>
+                </div>
+                <label class="chm-img__field">
+                  <span class="chm-img__label">提示词</span>
+                  <el-input
+                    v-model="chatProbePrompt"
+                    type="textarea"
+                    :rows="2"
+                    resize="vertical"
+                    placeholder="例如：用一句话介绍你自己"
+                  />
+                </label>
+                <div class="chm-img__row">
+                  <label v-if="chatProbeModelOptions.length" class="chm-img__field is-inline">
+                    <span class="chm-img__label">模型</span>
+                    <el-select v-model="chatProbeModel" class="chm-img__select" placeholder="默认" clearable>
+                      <el-option
+                        v-for="m in chatProbeModelOptions"
+                        :key="m.model"
+                        :label="m.alias || m.model"
+                        :value="m.model"
+                      />
+                    </el-select>
+                  </label>
+                  <label class="chm-img__field is-inline is-grow">
+                    <span class="chm-img__label">登录令牌（需要登录态的渠道才填）</span>
+                    <el-input v-model="chatProbeToken" type="password" show-password placeholder="可留空" />
+                  </label>
+                  <el-button
+                    type="primary"
+                    class="chm-img__run"
+                    :loading="chatProbeBusy"
+                    :disabled="!chatProbePrompt.trim() || chatProbeBusy"
+                    @click="runChatProbe()"
+                  >
+                    {{ chatProbeBusy ? '发送中…' : '发送' }}
+                  </el-button>
+                </div>
+                <p v-if="chatProbeError" class="chm-img__error">{{ chatProbeError }}</p>
+                <div v-if="chatProbeAnswer" class="chm-chatprobe__answer">
+                  <span class="chm-chatprobe__meta">回答 · {{ chatProbeElapsed }}s</span>
+                  <p>{{ chatProbeAnswer }}</p>
+                </div>
+              </div>
+
               <div
                 v-if="!isImageChannel || (detailSummary()!.models ?? []).length || modelsPullable(detailSummary())"
                 class="chm-panel__block"
@@ -5552,6 +5705,8 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
           <span class="chm-bind__state-icon" aria-hidden="true" />
           <span class="chm-bind__state-text">{{ bindStatusText }}</span>
           <span v-if="bindPhase === 'waiting'" class="chm-bind__elapsed">已等待 {{ bindElapsed }}s</span>
+          <span v-if="bindPhase === 'waiting' && bindExpiresLabel" class="chm-bind__expires"
+                :class="{ 'is-expired': bindExpired }">{{ bindExpiresLabel }}</span>
         </div>
 
         <!-- 设备码：先给码，再给授权页入口 -->
@@ -6309,6 +6464,11 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   background: color-mix(in srgb, var(--el-color-primary, #409eff) 16%, transparent);
   color: var(--el-color-primary, #337ecc);
 }
+/* 免费渠道徽标：免登录 / 免费授权，用青绿与「可出图 / 可签到」的默认绿区分 */
+.chm-panel__chip.is-free {
+  background: color-mix(in srgb, #14b8a6 16%, transparent);
+  color: #0f9d8f;
+}
 
 /* ===== 详情页签（ReTabs 容器） ===== */
 .chm-panel__tabs {
@@ -6773,6 +6933,26 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   height: 100%;
   object-fit: cover;
   display: block;
+}
+/* 对话渠道的试对话面板：回答块与出图结果网格同层级 */
+.chm-chatprobe__answer {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle, #eef2f8);
+  border-radius: 8px;
+  background: var(--fill-quaternary, #f8fafc);
+}
+.chm-chatprobe__meta {
+  font-size: 11.5px;
+  color: var(--text-tertiary, #94a3b8);
+}
+.chm-chatprobe__answer p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-primary, #0f172a);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .chm-models {
   display: flex;
@@ -7561,6 +7741,17 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
   font-size: 11.5px;
   color: var(--text-tertiary, #94a3b8);
   font-variant-numeric: tabular-nums;
+}
+/* 设备码有效期倒计时：与「已等待」并排，过期转红引导重发 */
+.chm-bind__expires {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--text-tertiary, #94a3b8);
+  font-variant-numeric: tabular-nums;
+}
+.chm-bind__expires.is-expired {
+  color: var(--el-color-danger, #f56c6c);
+  font-weight: 600;
 }
 @keyframes chm-pulse {
   0%, 100% { opacity: 1; }
