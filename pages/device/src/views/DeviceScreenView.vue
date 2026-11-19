@@ -10,6 +10,12 @@
         <el-button size="small" @click="toolbarVisible = !toolbarVisible">
           {{ toolbarVisible ? '隐藏工具栏' : '显示工具栏' }}
         </el-button>
+        <el-select v-model="refreshInterval" size="small" class="screen-refresh" @change="applyRefreshTimer">
+          <el-option label="不自动刷新" :value="0" />
+          <el-option label="30 秒刷新" :value="30" />
+          <el-option label="1 分钟刷新" :value="60" />
+          <el-option label="5 分钟刷新" :value="300" />
+        </el-select>
         <el-button size="small" :loading="loading" @click="load">刷新</el-button>
       </div>
     </header>
@@ -100,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ReMap from '../components/ReMap.vue'
 import ReDialog from '@repo/ui/re-dialog'
@@ -118,6 +124,34 @@ const onlineOnly = ref(false)
 const locatedOnly = ref(false)
 const selected = ref<DeviceInfo | null>(null)
 const detailVisible = ref(false)
+
+/* ==================== 自动刷新间隔（可配置，记忆到 localStorage） ==================== */
+/** 可选间隔（秒）；0 = 不自动刷新 */
+const REFRESH_OPTIONS = [0, 30, 60, 300]
+/** 自动刷新间隔（秒） */
+const refreshInterval = ref(0)
+/** 自动刷新定时器句柄 */
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+/** 间隔在本地的记忆键（页面本地键，本应用内无同名键冲突） */
+const REFRESH_STORAGE_KEY = 'device-screen-refresh'
+
+/** 按当前间隔重建定时器，并把选择记到本地 */
+function applyRefreshTimer(): void {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+  if (refreshInterval.value > 0) {
+    refreshTimer = setInterval(() => {
+      void load()
+    }, refreshInterval.value * 1000)
+  }
+  try {
+    localStorage.setItem(REFRESH_STORAGE_KEY, String(refreshInterval.value))
+  } catch {
+    // 存储不可用（隐私模式等）只影响记忆，不影响刷新
+  }
+}
 
 const onlineCount = computed(() => devices.value.filter((item) => item.deviceInfoOnline).length)
 const filtered = computed(() =>
@@ -149,7 +183,17 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  void load()
+  // 恢复上次选择的刷新间隔；非法值回落为不自动刷新
+  const saved = Number(localStorage.getItem(REFRESH_STORAGE_KEY))
+  if (REFRESH_OPTIONS.includes(saved)) refreshInterval.value = saved
+  applyRefreshTimer()
+})
+
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
+})
 </script>
 
 <style scoped>
@@ -174,6 +218,9 @@ onMounted(load)
 .screen-sub {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+.screen-refresh {
+  width: 128px;
 }
 .screen-toolbar {
   display: flex;

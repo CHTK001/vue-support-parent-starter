@@ -40,6 +40,9 @@
             <button type="button" class="da-tool" title="设备告警" @click="openAlarm">
               <ReIcon name="Bell" :size="12" />
             </button>
+            <button type="button" class="da-tool" title="同步记录" @click="openSyncRecords">
+              <ReIcon name="Refresh" :size="12" />
+            </button>
             <button type="button" class="da-tool" title="导入台账" @click="openImport">
               <ReIcon name="Upload" :size="12" />
             </button>
@@ -590,6 +593,12 @@
               @stats="onAlarmStats"
             />
 
+            <!-- ============ 同步记录（拉取/写回执行记录 + 重试队列） ============ -->
+            <DeviceSyncRecordView
+              v-else-if="tabKindOf(tab.name) === 'sync-records'"
+              :key="`${tab.name}#${reloadSeqOf(tab.name)}`"
+            />
+
             <!-- ============ 通道管理 ============ -->
             <DeviceChannelView
               v-else-if="tabKindOf(tab.name) === 'channels'"
@@ -847,6 +856,7 @@ import ReDeviceDetailPanel from '../components/ReDeviceDetailPanel.vue'
 import ReDevicePlayPanel from '../components/ReDevicePlayPanel.vue'
 import DeviceChannelView from '../views/DeviceChannelView.vue'
 import DeviceAlarmView from '../views/DeviceAlarmView.vue'
+import DeviceSyncRecordView from '../views/DeviceSyncRecordView.vue'
 import DeviceEventLogView from '../views/DeviceEventLogView.vue'
 
 /** 账台账拓扑页签按需加载：首屏不背着机房拓扑的代码 */
@@ -1178,7 +1188,7 @@ function groupParentIdOf(groupId: string): string | undefined {
 const ASSETS_TAB = 'assets'
 
 /** 页签类别 */
-type WorkTabKind = 'assets' | 'detail' | 'alarms' | 'play' | 'channels' | 'events' | 'topo' | 'wall'
+type WorkTabKind = 'assets' | 'detail' | 'alarms' | 'sync-records' | 'play' | 'channels' | 'events' | 'topo' | 'wall'
 
 /**
  * 工作区页签：比 ReTabsItem 多带业务上下文。
@@ -2935,6 +2945,18 @@ function openAlarm() {
     icon: 'Bell',
   })
   activeTab.value = 'alarms'
+}
+
+/** 同步记录：拉取/写回执行记录 + 写回失败重试队列（固定一个入口，重复点只切过去） */
+function openSyncRecords() {
+  openWorkTab({
+    name: 'sync-records',
+    kind: 'sync-records',
+    label: '同步记录',
+    hint: '拉取/写回',
+    icon: 'Refresh',
+  })
+  activeTab.value = 'sync-records'
 }
 
 /** 厂商接入 = 「提供商配置」菜单页（宿主路由名 DeviceProviders，独立包为 DeviceProvider） */

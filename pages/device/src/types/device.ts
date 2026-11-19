@@ -560,3 +560,85 @@ export interface DeviceGroupRequest {
   groupOrder?: number
   groupRemark?: string
 }
+
+/** 同步执行记录：每次厂商目录拉取 / 本地写回一行（device_sync_record） */
+export interface DeviceSyncRecord {
+  /** 记录 ID */
+  deviceSyncRecordId: string
+  /** 任务维度：凭据 ID / 厂商标识 / 设备 ID */
+  deviceSyncRecordTaskId: string
+  /** 厂商标识 */
+  deviceSyncRecordVendor: string | null
+  /** 方向：pull 拉取 / push 写回 / preview 预览 */
+  deviceSyncRecordMode: string
+  /** 阶段：devices / organizations / persons / device / device-delete */
+  deviceSyncRecordPhase: string
+  /** 总数 */
+  deviceSyncRecordTotal: number | null
+  /** 新增数 */
+  deviceSyncRecordAdded: number | null
+  /** 更新数 */
+  deviceSyncRecordUpdated: number | null
+  /** 删除数 */
+  deviceSyncRecordRemoved: number | null
+  /** 失败数 */
+  deviceSyncRecordFailed: number | null
+  /** 状态：running / success / partial / failed */
+  deviceSyncRecordStatus: string
+  /** 说明（失败原因 / 结果摘要） */
+  deviceSyncRecordMessage: string | null
+  /** 开始时间 */
+  deviceSyncRecordStartedAt: string
+  /** 结束时间 */
+  deviceSyncRecordFinishedAt: string | null
+}
+
+/** 推送队列（outbox）：写回失败的设备待重试清单（device_sync_outbox） */
+export interface DeviceSyncOutbox {
+  /** 队列 ID */
+  deviceSyncOutboxId: string
+  /** 设备 ID */
+  deviceSyncOutboxDeviceId: string
+  /** 厂商标识 */
+  deviceSyncOutboxVendor: string | null
+  /** 动作：create / update / delete */
+  deviceSyncOutboxAction: string
+  /** 推送载荷快照（JSON，排障用） */
+  deviceSyncOutboxPayload: string | null
+  /** 状态：pending / sent / failed / dead */
+  deviceSyncOutboxStatus: string
+  /** 已重试次数 */
+  deviceSyncOutboxRetry: number | null
+  /** 下次重试时间 */
+  deviceSyncOutboxNextAt: string | null
+  /** 失败原因 */
+  deviceSyncOutboxMessage: string | null
+  /** 创建时间 */
+  deviceSyncOutboxCreatedAt: string | null
+}
+
+/** 同步记录概览计数（records / outbox 各按状态计数） */
+export interface SyncRecordsSummary {
+  records: { running?: number; success?: number; partial?: number; failed?: number; total?: number }
+  outbox: { pending?: number; sent?: number; failed?: number; dead?: number; total?: number }
+}
+
+/** 批量写回逐台结果 */
+export interface SyncPushItem {
+  /** 设备 ID */
+  id: string
+  /** 设备名称 */
+  name?: string
+  /** 是否写回成功 */
+  result: boolean
+  /** 结果说明 */
+  message?: string
+}
+
+/** 批量写回结果（total / success / failed 汇总 + 逐台 items） */
+export interface SyncPushResult {
+  items: SyncPushItem[]
+  total: number
+  success: number
+  failed: number
+}

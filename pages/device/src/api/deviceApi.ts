@@ -29,7 +29,11 @@ import type {
   DeviceSeriesEngineInfo,
   TopologyNode,
   TopologyEdge,
-  WebhookAppKey
+  WebhookAppKey,
+  DeviceSyncRecord,
+  DeviceSyncOutbox,
+  SyncRecordsSummary,
+  SyncPushResult
 } from '../types/device'
 
 /** 设备模块 Http 客户端（baseUrl 由配置 httpConfig.moduleBaseUrl.device 决定） */
@@ -328,9 +332,35 @@ export const deviceApi = {
   /** 把本地设备写回厂商侧（仅厂商实现写回 SPI 生效） */
   pushDevice: (deviceId: string) =>
     http.post(`/sync/${deviceId}/push`).then(unwrap) as Promise<boolean>,
+  /** 批量把本地设备写回厂商侧（失败自动入重试队列），返回逐台结果与汇总 */
+  pushDevicesBatch: (ids: string[]) =>
+    http.post("/sync/push/batch").data(ids).then(unwrap) as Promise<SyncPushResult>,
   /** 删除厂商侧设备（按 externalId） */
   removeRemoteDevice: (deviceId: string) =>
     http.delete(`/sync/${deviceId}/remote`).then(unwrap) as Promise<boolean>,
+
+  // ==================== 同步记录（执行记录 + 推送队列） ====================
+  /** 分页查询同步执行记录（后端 PageResult 用 records 承载行） */
+  pageSyncRecords: (params: Record<string, unknown>) =>
+    http.get("/sync-records/page").query(params).then(unwrap) as Promise<{
+      records?: DeviceSyncRecord[]
+      total?: number
+      pageNo?: number
+      pageSize?: number
+    }>,
+  /** 分页查询推送队列（outbox，写回失败待重试清单） */
+  pageSyncOutbox: (params: Record<string, unknown>) =>
+    http.get("/sync-records/outbox/page").query(params).then(unwrap) as Promise<{
+      records?: DeviceSyncOutbox[]
+      total?: number
+      pageNo?: number
+      pageSize?: number
+    }>,
+  /** 同步记录 / 推送队列概览计数 */
+  syncRecordsSummary: () => http.get("/sync-records/summary").then(unwrap) as Promise<SyncRecordsSummary>,
+  /** 重试一条推送队列记录（重新写回厂商） */
+  retrySyncOutbox: (id: string) =>
+    http.post(`/sync-records/outbox/${id}/retry`).then(unwrap) as Promise<DeviceSyncOutbox>,
 
   // ==================== 厂商描述符：支持的厂商/平台/能力位由后端 SPI 决定 ====================
   listVendors: () =>
@@ -430,7 +460,10 @@ export const deviceApi = {
   pageVehiclePasses: (params: Record<string, unknown>) =>
     http.get("/barrier/pass/page").query(params).then(unwrap),
   recordVehiclePass: (pass: Record<string, any>) =>
-    http.post("/barrier/pass").data(pass).then(unwrap)
+    http.post("/barrier/pass").data(pass).then(unwrap),
+  /** 从平台拉取过车记录并落库（按设备会话 + 时间窗），返回新增条数 */
+  pullVehiclePasses: (deviceId: string, start: string, end: string) =>
+    http.post("/barrier/pass/pull").query({ deviceId, start, end }).then(unwrap) as Promise<number>
 }
 
 export default deviceApi
