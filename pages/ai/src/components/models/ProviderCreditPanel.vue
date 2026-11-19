@@ -260,6 +260,98 @@
     <!-- 定时采样可观测：走势由后台时间轮定时喂，把采样任务的运行状态写在屏上 -->
     <p v-if="sampleText" class="pc-sample" title="后台余额定时刷新的运行状态">定时采样：{{ sampleText }}</p>
 
+    <!--
+      用量归因：窗口内余额消耗的两个维度——按 Key（余额读数差分，精确归因）与
+      按模型（用量日汇总，只统计本渠道模型清单内的模型）。默认收起，展开才拉数据；
+      归因是分析型信息，不与余额主链路抢加载。
+    -->
+    <div class="pc-attr">
+      <div class="pc-attr__head">
+        <span class="pc-attr__label">用量归因 · 近 {{ attributionDays }} 天</span>
+        <span class="pc-trend__seg" role="group" aria-label="归因时间窗">
+          <button
+            v-for="d in ATTRIBUTION_WINDOWS"
+            :key="d"
+            type="button"
+            class="pc-trend__seg-btn"
+            :class="{ 'is-active': attributionDays === d }"
+            :aria-pressed="attributionDays === d"
+            @click="setAttributionWindow(d)"
+          >{{ d }}天</button>
+        </span>
+        <button class="pc-trend__export" type="button" :disabled="attributionLoading" @click="loadAttribution(true)">
+          {{ attributionLoading ? '统计中…' : '刷新' }}
+        </button>
+        <button class="pc-attr__toggle" type="button" :aria-expanded="attrOpen" @click="toggleAttribution">
+          {{ attrOpen ? '收起' : '展开' }}
+        </button>
+      </div>
+      <template v-if="attrOpen">
+        <p v-if="attributionLoading && !attribution" class="pc-attr__hint">正在统计窗口内消耗…</p>
+        <p v-else-if="attributionError" class="pc-attr__hint is-err">{{ attributionError }}</p>
+        <template v-else-if="attribution">
+          <p v-if="!attribution.keys.length && !attribution.models.length" class="pc-attr__hint">
+            窗口内暂无余额读数或用量记录
+          </p>
+          <template v-else>
+            <div v-if="attribution.keys.length" class="pc-attr__sec">
+              <span class="pc-attr__sec-label" title="按窗口内逐 Key 的期初/期末成功读数差分：消耗 = 期初 − 期末，正数表示余额增加（充值）">
+                按 Key · 余额读数差分
+              </span>
+              <div class="pc-attr__table is-keys" role="table" aria-label="按 Key 的余额消耗归因">
+                <div class="pc-attr__row is-head" role="row">
+                  <span role="columnheader">Key</span>
+                  <span role="columnheader">读数</span>
+                  <span role="columnheader">期初 → 期末</span>
+                  <span role="columnheader">消耗</span>
+                  <span role="columnheader">币种</span>
+                </div>
+                <div
+                  v-for="k in attribution.keys"
+                  :key="k.key_mask"
+                  class="pc-attr__row"
+                  role="row"
+                  :title="attrKeyTitle(k)"
+                >
+                  <span role="cell" class="pc-attr__mask" :title="k.key_mask">{{ k.key_mask }}</span>
+                  <span role="cell">{{ k.samples }}</span>
+                  <span role="cell">{{ attrRangeText(k) }}</span>
+                  <span role="cell" class="pc-attr__consumed" :class="attrConsumedTone(k)">
+                    {{ attrConsumedText(k) }}<i v-if="attrIsRecharge(k)">充值</i>
+                  </span>
+                  <span role="cell">{{ k.currency || '—' }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-if="attribution.models.length" class="pc-attr__sec">
+              <span class="pc-attr__sec-label" :title="attrModelTitle">按模型 · 用量日汇总</span>
+              <div class="pc-attr__table is-models" role="table" aria-label="按模型的余额消耗归因">
+                <div class="pc-attr__row is-head" role="row">
+                  <span role="columnheader">模型</span>
+                  <span role="columnheader">调用</span>
+                  <span role="columnheader">Tokens</span>
+                  <span role="columnheader">成本(元)</span>
+                </div>
+                <div
+                  v-for="m in attribution.models"
+                  :key="m.model"
+                  class="pc-attr__row"
+                  role="row"
+                  :title="attrModelRowTitle(m)"
+                >
+                  <span role="cell" class="pc-attr__mask" :title="m.model">{{ m.model }}</span>
+                  <span role="cell">{{ m.calls }}</span>
+                  <span role="cell" :title="`输入 ${m.prompt_tokens} / 输出 ${m.completion_tokens}`">{{ m.total_tokens }}</span>
+                  <span role="cell" class="pc-attr__cost">{{ money(m.cost) }}</span>
+                </div>
+              </div>
+            </div>
+            <p v-if="attribution.model_note" class="pc-attr__note">{{ attribution.model_note }}</p>
+          </template>
+        </template>
+      </template>
+    </div>
+
     <p v-if="error" class="pc-error">{{ error }}</p>
     <p v-if="!loading && !anyOk && attempted" class="pc-chain">已尝试：{{ attempted }}</p>
 
@@ -1920,6 +2012,166 @@ const loadHistory = async () => {
   }
 }
 
+/* ==================== 用量归因 ==================== */
+
+/** 归因·密钥维度行（GET /credit/attribution 的 keys 元素；后端契约字段保持 snake_case） */
+interface CreditKeyAttribution {
+  /** 密钥掩码（后端不落明文） */
+  key_mask: string
+  /** 窗口内成功读数条数 */
+  samples: number
+  first_synced_at?: number | null
+  last_synced_at?: number | null
+  start_remain?: number | null
+  end_remain?: number | null
+  /** 余额变化（期末 − 期初；负数=消耗，正数=充值） */
+  consumed?: number | null
+  /** 上游已用变化（上游报了 used 才有） */
+  used_delta?: number | null
+  currency?: string | null
+}
+
+/** 归因·模型维度行（GET /credit/attribution 的 models 元素；cost 单位为元） */
+interface CreditModelAttribution {
+  model: string
+  calls: number
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  cost: number
+}
+
+/** 归因载荷（GET /credit/attribution 响应体） */
+interface CreditAttributionPayload {
+  provider_id: string
+  days: number
+  window_start?: number | null
+  keys: CreditKeyAttribution[]
+  models: CreditModelAttribution[]
+  /** 模型维度口径说明（渠道无模型清单时后端给出提示） */
+  model_note?: string | null
+  /** 命中的用量服务商取值（透明展示用） */
+  providers?: string[] | null
+}
+
+/** 归因时间窗可选值（天）：后端 days 夹取 1~90，这里只开常用两档 */
+const ATTRIBUTION_WINDOWS = [7, 30] as const
+
+/** 归因时间窗偏好在 localStorage 里的键 */
+const ATTR_DAYS_STORAGE_KEY = 'pc-credit-attr-days'
+
+/** 读一次归因时间窗偏好；值不在候选里（或读不到，如隐私模式）时回退 7 天 */
+const readStoredAttrDays = (): number => {
+  try {
+    const v = Number(window.localStorage.getItem(ATTR_DAYS_STORAGE_KEY))
+    return (ATTRIBUTION_WINDOWS as readonly number[]).includes(v) ? v : 7
+  } catch {
+    return 7
+  }
+}
+
+/** 归因区块展开态：默认收起，首次展开才拉数据 */
+const attrOpen = ref(false)
+/** 当前归因时间窗（天）：初值来自上次保存的偏好 */
+const attributionDays = ref<number>(readStoredAttrDays())
+const attribution = ref<CreditAttributionPayload | null>(null)
+const attributionLoading = ref(false)
+const attributionError = ref('')
+
+/**
+ * 拉一次用量归因（纯只读统计，不回源上游）。
+ *
+ * <p>失败写进 attributionError，不影响余额主链路；同窗口已有数据时不重发，
+ * 点「刷新」或切窗后 force 重拉。</p>
+ */
+const loadAttribution = async (force = false) => {
+  const providerId = String(props.providerId || '').trim()
+  if (!providerId || attributionLoading.value) return
+  if (!force && attribution.value && attribution.value.days === attributionDays.value) return
+  attributionLoading.value = true
+  attributionError.value = ''
+  const days = attributionDays.value
+  try {
+    const res: any = await adminApi.get(`/api/providers/${encodeURIComponent(providerId)}/credit/attribution?days=${days}`)
+    const data = res?.data ?? res
+    // 切窗竞态防护：响应回来时窗口已再变，丢弃旧窗口数据
+    if (attributionDays.value !== days) return
+    attribution.value = data && typeof data === 'object' ? data : null
+  } catch (e: any) {
+    if (attributionDays.value === days) {
+      attribution.value = null
+      attributionError.value = e?.response?.data?.message || e?.message || '用量归因接口不可用'
+    }
+  } finally {
+    attributionLoading.value = false
+  }
+}
+
+/** 切换归因时间窗并持久化偏好：开着的直接重拉，收起的等展开再取 */
+const setAttributionWindow = (d: number) => {
+  if (attributionDays.value === d) return
+  attributionDays.value = d
+  try {
+    window.localStorage.setItem(ATTR_DAYS_STORAGE_KEY, String(d))
+  } catch {
+    /* 存不进就算了：偏好是增值信息，不影响归因本身 */
+  }
+  if (attrOpen.value) void loadAttribution(true)
+}
+
+/** 展开 / 收起归因区块：首次展开按当前窗口拉一次 */
+const toggleAttribution = () => {
+  attrOpen.value = !attrOpen.value
+  if (attrOpen.value) void loadAttribution()
+}
+
+/** 期初 → 期末 文案：任一端读数缺失显示 — */
+const attrRangeText = (k: CreditKeyAttribution) => {
+  const s = Number(k.start_remain)
+  const e = Number(k.end_remain)
+  return `${Number.isFinite(s) ? money(s) : '—'} → ${Number.isFinite(e) ? money(e) : '—'}`
+}
+
+/** 是否充值：consumed = 期末 − 期初 > 0 视为余额增加 */
+const attrIsRecharge = (k: CreditKeyAttribution) => Number(k.consumed) > 0
+
+/** 消耗文案：消耗取绝对值正常展示，充值带 + 号 */
+const attrConsumedText = (k: CreditKeyAttribution) => {
+  const c = Number(k.consumed)
+  if (!Number.isFinite(c)) return '—'
+  return c > 0 ? `+${money(c)}` : money(Math.abs(c))
+}
+
+/** 消耗单元格分色：充值绿、正常消耗次级文本色、无读数弱化 */
+const attrConsumedTone = (k: CreditKeyAttribution) => {
+  const c = Number(k.consumed)
+  if (!Number.isFinite(c)) return 'is-muted'
+  return c > 0 ? 'is-recharge' : 'is-spend'
+}
+
+/** Key 行悬浮说明：期初/期末时间与上游已用变化一并写清 */
+const attrKeyTitle = (k: CreditKeyAttribution) => {
+  const bits = [`Key ${k.key_mask}`]
+  if (k.first_synced_at) bits.push(`期初 ${trendTimeText(k.first_synced_at)}`)
+  if (k.last_synced_at) bits.push(`期末 ${trendTimeText(k.last_synced_at)}`)
+  const used = Number(k.used_delta)
+  if (Number.isFinite(used) && used !== 0) bits.push(`上游已用变化 ${money(Math.abs(used))}`)
+  bits.push(`${k.samples} 条成功读数`)
+  return bits.join('；')
+}
+
+/** 模型区块标题悬浮说明：口径边界透明（只统计本渠道模型清单内的模型） */
+const attrModelTitle = computed(() => {
+  const prov = attribution.value?.providers?.length
+    ? `（用量来源：${attribution.value.providers.join('、')}）`
+    : ''
+  return `按用量日汇总聚合${prov}；只统计本渠道模型清单内的模型`
+})
+
+/** 模型行悬浮说明：输入/输出 token 拆分与成本 */
+const attrModelRowTitle = (m: CreditModelAttribution) =>
+  `${m.model}：调用 ${m.calls} 次，输入 ${m.prompt_tokens} / 输出 ${m.completion_tokens} token，成本 ${m.cost} 元`
+
 /** 余额定时采样运行状态（GET /credit/sample-status；失败静默，不影响面板主链路） */
 interface CreditSampleStatus {
   enabled?: boolean
@@ -2008,6 +2260,9 @@ watch(() => props.providerId, () => {
   trendDays.value = readStoredTrendDays()
   alertOpen.value = false
   lastPushedAt.value = null
+  attrOpen.value = false
+  attribution.value = null
+  attributionError.value = ''
   load()
 })
 
@@ -3439,5 +3694,148 @@ onMounted(load)
   width: 8px;
   height: 8px;
   border-radius: 2px;
+}
+
+/* ===== 用量归因 =====
+   窗口内余额消耗按 Key（读数差分）/ 按模型（用量日汇总）拆解。
+   默认收起，展开才拉数据；表格用 div 网格排，窄容器不横向溢出。 */
+.pc-attr {
+  margin: 2px 0 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle, var(--el-border-color-lighter));
+  border-radius: 8px;
+}
+.pc-attr__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pc-attr__label {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+}
+/* 展开 / 收起：与刷新按钮同档的迷你按钮，推到行尾 */
+.pc-attr__toggle {
+  flex-shrink: 0;
+  margin-left: auto;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: transparent;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.pc-attr__toggle:hover {
+  color: var(--el-color-primary);
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, var(--el-border-color-lighter));
+}
+.pc-attr__toggle:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+}
+.pc-attr__hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+}
+.pc-attr__hint.is-err {
+  color: var(--el-color-danger);
+}
+.pc-attr__sec {
+  margin-top: 8px;
+}
+/* 维度小标：悬浮说明写清统计口径 */
+.pc-attr__sec-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+  cursor: help;
+}
+.pc-attr__table {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.pc-attr__row {
+  display: grid;
+  gap: 8px;
+  align-items: baseline;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+/* 按 Key：Key 掩码 / 读数 / 期初→期末 / 消耗 / 币种 */
+.pc-attr__table.is-keys .pc-attr__row {
+  grid-template-columns: minmax(0, 1.5fr) 48px minmax(0, 1.3fr) 96px 52px;
+}
+/* 按模型：模型 / 调用 / Tokens / 成本 */
+.pc-attr__table.is-models .pc-attr__row {
+  grid-template-columns: minmax(0, 1.8fr) 56px minmax(0, 1fr) 84px;
+}
+.pc-attr__row:nth-child(even) {
+  background: var(--el-fill-color-lighter, transparent);
+}
+.pc-attr__row > span {
+  min-width: 0;
+}
+/* 数值列统一右对齐（首列文字除外），表头随之 */
+.pc-attr__row > span:not(:first-child) {
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pc-attr__row.is-head {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+}
+.pc-attr__mask {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--el-text-color-secondary);
+}
+/* 消耗列：充值绿 + 徽标，正常消耗次级文本色，无读数弱化 */
+.pc-attr__consumed {
+  font-weight: 600;
+}
+.pc-attr__consumed.is-spend {
+  color: var(--el-text-color-secondary);
+}
+.pc-attr__consumed.is-recharge {
+  color: var(--el-color-success);
+}
+.pc-attr__consumed.is-recharge i {
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-style: normal;
+  font-size: 9.5px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--el-color-success) 14%, transparent);
+  color: var(--el-color-success);
+}
+.pc-attr__consumed.is-muted {
+  font-weight: 400;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+}
+.pc-attr__cost {
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+}
+/* 口径提示：与采样状态同档弱化字号 */
+.pc-attr__note {
+  margin: 6px 0 0;
+  font-size: 10.5px;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
 }
 </style>
