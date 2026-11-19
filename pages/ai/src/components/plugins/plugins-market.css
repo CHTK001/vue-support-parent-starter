@@ -244,6 +244,165 @@
     background: var(--el-fill-color-light, #f4f6fa);
 }
 
+/* ── 索引栏收起/展开开关（P0 #1） ── */
+.pm-rail-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.pm-rail-head .pm-rail-title {
+    margin-bottom: 0;
+}
+.pm-rail-toggle,
+.pm-rail-expand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--border-subtle, #eef2f8);
+    border-radius: var(--radius-md, var(--el-radius-md, 8px));
+    background: transparent;
+    color: var(--text-tertiary, #5b6b82);
+    cursor: pointer;
+    outline: none;
+    transition:
+        color var(--el-transition-duration-fast, 0.2s) ease,
+        border-color var(--el-transition-duration-fast, 0.2s) ease,
+        background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.pm-rail-toggle:hover,
+.pm-rail-expand:hover {
+    color: var(--brand-500, #3b82f6);
+    border-color: color-mix(in srgb, var(--brand-500, #3b82f6) 45%, transparent);
+    background: color-mix(in srgb, var(--brand-500, #3b82f6) 8%, transparent);
+}
+.pm-rail-toggle:focus-visible,
+.pm-rail-expand:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500, #3b82f6) 18%, transparent);
+}
+.pm-rail-toggle svg,
+.pm-rail-expand svg {
+    width: 14px;
+    height: 14px;
+}
+/* 收起态：单列布局 + 左缘展开钮 */
+.pm-body--no-rail {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+}
+.pm-rail-expand {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    z-index: 1;
+}
+
+/* ── 已生效筛选 chips（P1 #4）：单删 + 一键清空 ── */
+.pm-chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.pm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px 4px 10px;
+    border: 1px solid color-mix(in srgb, var(--brand-500, #3b82f6) 30%, transparent);
+    border-radius: var(--el-radius-full, 9999px);
+    background: color-mix(in srgb, var(--brand-500, #3b82f6) 8%, transparent);
+    color: var(--text-secondary, #475569);
+    font-size: 12px;
+    line-height: 1.4;
+}
+.pm-chip-label {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pm-chip-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--el-radius-full, 9999px);
+    background: transparent;
+    color: var(--text-tertiary, #8a97ab);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    outline: none;
+}
+.pm-chip-x:hover {
+    color: var(--el-color-danger, #ef4444);
+    background: color-mix(in srgb, var(--el-color-danger, #ef4444) 12%, transparent);
+}
+.pm-chip-x:focus-visible,
+.pm-chips-clear:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500, #3b82f6) 18%, transparent);
+}
+.pm-chips-clear {
+    padding: 4px 10px;
+    border: 0;
+    border-radius: var(--el-radius-full, 9999px);
+    background: transparent;
+    color: var(--text-tertiary, #8a97ab);
+    font-size: 12px;
+    line-height: 1.4;
+    cursor: pointer;
+    outline: none;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.pm-chips-clear:hover {
+    color: var(--brand-500, #3b82f6);
+}
+
+/* ── 搜索命中高亮（P1 #3）：品牌色 mark，纯文本分段渲染、无 v-html ── */
+.pm-hl {
+    padding: 0 1px;
+    border-radius: 3px;
+    color: var(--brand-500, #3b82f6);
+    background: color-mix(in srgb, var(--brand-500, #3b82f6) 16%, transparent);
+    font-weight: 600;
+}
+
+/* ── Bento 卡角标（P1 #5）：Skills 可更新数 ── */
+.pm-bento-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+.pm-bento-badge {
+    flex: none;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--el-radius-full, 9999px);
+    background: var(--status-warning, #f59e0b);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+}
+
 /* ── 本周精选横幅（各市场自渲染，取真实条目） ── */
 .pm-banner {
     display: flex;
@@ -303,7 +462,7 @@
     margin-bottom: 12px;
 }
 
-/* ── 响应式：窄屏 Bento 降两列、左栏退化为普通块 ── */
+/* ── 响应式：窄屏 Bento 降两列、左栏退化为普通块并横向铺开（P1 #7） ── */
 @media (max-width: 960px) {
     .pm-bento {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -313,13 +472,41 @@
     }
     .pm-rail {
         position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .pm-rail-section {
+        flex: 1 1 220px;
+    }
+    .pm-rail-divider {
+        display: none;
+    }
+    .pm-rail-tip {
+        flex-basis: 100%;
+    }
+}
+/* 更窄屏：Bento 单列，搜索框占满一行 */
+@media (max-width: 560px) {
+    .pm-bento {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .pm-masthead-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .pm-search {
+        width: 100%;
     }
 }
 
-/* 尊重系统「减少动态效果」偏好：卡片/索引项悬停立即生效 */
+/* 尊重系统「减少动态效果」偏好：卡片/索引项/开关悬停立即生效 */
 @media (prefers-reduced-motion: reduce) {
     .pm-bento-card,
-    .pm-rail-item {
+    .pm-rail-item,
+    .pm-rail-toggle,
+    .pm-rail-expand {
         transition: none;
     }
 }

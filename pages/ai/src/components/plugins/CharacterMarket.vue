@@ -23,7 +23,7 @@
 
     <!-- 空状态 -->
     <div v-else-if="filteredItems.length === 0" class="market-empty">
-      <el-empty description="没有找到匹配的角色" />
+      <el-empty :description="t('plugins.characters.empty')" />
     </div>
 
     <!-- 卡片网格 -->
@@ -52,8 +52,8 @@
           class="market-card-avatar"
         />
         <div class="market-card-main">
-          <div class="market-card-title">{{ item.title }}</div>
-          <div class="market-card-desc">{{ item.description }}</div>
+          <div class="market-card-title"><template v-for="(seg, i) in splitHighlight(item.title, keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
+          <div class="market-card-desc"><template v-for="(seg, i) in splitHighlight(item.description || '', keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
           <div class="market-card-tags">
             <span class="market-tag">{{ item.category }}</span>
           </div>
@@ -67,7 +67,7 @@
             :loading="quickLoadingId === item.id"
             @click="quickSummon(item)"
           >
-            {{ item.added ? '已召唤' : '召唤' }}
+            {{ item.added ? t('plugins.characters.summoned') : t('plugins.characters.summon') }}
           </el-button>
           <!-- 自建角色：删除 + 去对话 -->
           <div v-else class="market-custom-actions">
@@ -106,7 +106,7 @@ import CharacterFormDialog from './CharacterFormDialog.vue'
 import { apiService } from '@/services/ApiService'
 import { useSelectedCharacter } from '@/composables/useSelectedCharacter'
 import { usePrefillInput } from '@/composables/usePrefillInput'
-import { pluginsMarket, syncMarketSlice } from './plugins-market'
+import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
 import type {
   CharacterCatalogItem,
   CharacterCatalogDetail,
@@ -198,7 +198,7 @@ async function load() {
         name: r.name,
         title: r.title || r.name,
         description: r.description || '',
-        category: '我的角色',
+        category: t('plugins.characters.myCharacters'),
         avatar: r.avatarUrl || r.avatar || '',
         added: true,
         custom: true,
@@ -211,7 +211,7 @@ async function load() {
     items.value = merged
   } catch (e) {
     console.error('加载角色市场失败:', e)
-    message.error('加载角色市场失败')
+    message.error(t('plugins.characters.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -228,17 +228,17 @@ function goCustom(item: DisplayItem) {
 async function handleDelete(item: DisplayItem) {
   if (!item.roleId) return
   try {
-    await ElMessageBox.confirm(`确定删除角色「${item.title}」吗？`, '删除角色', {
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('plugins.characters.deleteConfirm', { name: item.title }), t('plugins.characters.deleteTitle'), {
+      confirmButtonText: t('plugins.characters.deleteBtn'),
+      cancelButtonText: t('plugins.characters.cancel'),
       type: 'warning',
     })
     await apiService.deleteCharacter(item.roleId)
-    message.success('已删除')
+    message.success(t('plugins.characters.deleted'))
     await load()
   } catch (e: any) {
     if (e !== 'cancel' && e?.message !== 'cancel') {
-      message.error(e?.message || '删除失败')
+      message.error(e?.message || t('plugins.characters.deleteFailed'))
     }
   }
 }
@@ -252,7 +252,7 @@ function openDetail(item: CharacterCatalogItem) {
 async function ensureRoleId(code: string, alreadyAdded: boolean): Promise<string> {
   if (!alreadyAdded) {
     const res = await apiService.addBuiltinCharacterToRoles(code)
-    if (!res.success) throw new Error(res.message || '添加失败')
+    if (!res.success) throw new Error(res.message || t('plugins.characters.addFailed'))
     if (res.roleId) return String(res.roleId)
   }
   const data = await apiService.fetchCharacters()
@@ -274,7 +274,7 @@ async function quickSummon(item: CharacterCatalogItem) {
     item.added = true
     go(roleId)
   } catch (e: any) {
-    message.error(e?.message || '召唤失败')
+    message.error(e?.message || t('plugins.characters.summonFailed'))
   } finally {
     quickLoadingId.value = ''
   }
@@ -286,7 +286,7 @@ async function handleSummon(detail: CharacterCatalogDetail) {
     const roleId = await ensureRoleId(detail.id, detail.added)
     go(roleId)
   } catch (e: any) {
-    message.error(e?.message || '召唤失败')
+    message.error(e?.message || t('plugins.characters.summonFailed'))
   } finally {
     addingId.value = ''
   }
@@ -298,7 +298,7 @@ async function handleUsePrompt(detail: CharacterCatalogDetail, prompt: string) {
     const roleId = await ensureRoleId(detail.id, detail.added)
     go(roleId, prompt)
   } catch (e: any) {
-    message.error(e?.message || '召唤失败')
+    message.error(e?.message || t('plugins.characters.summonFailed'))
   } finally {
     addingId.value = ''
   }
@@ -320,8 +320,8 @@ watchEffect(() => {
     categories: Object.keys(counts),
     categoryCounts: counts,
     statuses: [
-      { key: 'available', label: '可召唤', count: visible.filter(i => !i.custom && !i.added).length, tone: 'info' },
-      { key: 'summoned', label: '已召唤', count: visible.filter(i => i.custom || i.added).length, tone: 'success' },
+      { key: 'available', label: t('plugins.characters.statusAvailable'), count: visible.filter(i => !i.custom && !i.added).length, tone: 'info' },
+      { key: 'summoned', label: t('plugins.characters.statusSummoned'), count: visible.filter(i => i.custom || i.added).length, tone: 'success' },
     ],
   })
 })

@@ -3,7 +3,7 @@
     <!-- 非管理员：无权限，不渲染任何内容、不发起写请求 -->
     <div v-if="!admin" class="mcp-forbidden">
       <el-icon size="40" class="mb-3 opacity-40"><LockOutlined /></el-icon>
-      <div class="text-sm" style="color: var(--el-text-color-secondary)">仅管理员可配置 MCP</div>
+      <div class="text-sm" style="color: var(--el-text-color-secondary)">{{ t('plugins.mcp.adminOnly') }}</div>
     </div>
 
     <template v-else>
@@ -22,11 +22,11 @@
         <!-- 次要操作：来源设置 / 管理 / 添加（搜索在市场壳页头；页头「添加」经 defineExpose 打开表单） -->
         <div class="pm-toolbar">
           <el-button size="default" @click="openSourceConfig">
-            <el-icon class="mr-1"><SettingsOutlined /></el-icon>来源设置
+            <el-icon class="mr-1"><SettingsOutlined /></el-icon>{{ t('plugins.mcp.sourceSettings') }}
           </el-button>
-          <el-button size="default" @click="switchManage">管理</el-button>
+          <el-button size="default" @click="switchManage">{{ t('plugins.mcp.manage') }}</el-button>
           <el-button size="default" type="primary" @click="openAddForm">
-            <el-icon class="mr-1"><PlusOutlined /></el-icon>添加
+            <el-icon class="mr-1"><PlusOutlined /></el-icon>{{ t('plugins.mcp.add') }}
           </el-button>
         </div>
 
@@ -63,14 +63,14 @@
                   @click="openDetail(card)">
                   <PluginIcon :icon="card.icon" :name="card.name" class="market-cell-icon" />
                   <div class="market-cell-body">
-                    <div class="market-cell-title">{{ card.name }}</div>
-                    <div class="market-cell-desc">{{ card.description }}</div>
+                    <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(card.name, keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
+                    <div class="market-cell-desc"><template v-for="(seg, i) in splitHighlight(card.description || '', keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                   </div>
                   <el-button class="market-cell-btn" plain
                     :type="isInstalled(card) ? 'success' : ''"
                     :disabled="isInstalled(card)" :loading="installingId === card.id"
                     @click.stop="handleInstall(card)">
-                    {{ isInstalled(card) ? '已安装' : '安装' }}
+                    {{ isInstalled(card) ? t('plugins.mcp.installed') : t('plugins.mcp.install') }}
                   </el-button>
                 </div>
               </div>
@@ -98,20 +98,20 @@
             <template v-else>
               <div v-if="searchBuiltin.length" class="market-group">
                 <div class="market-group-head market-group-head--static">
-                  <span class="market-group-title">内置推荐（{{ searchBuiltin.length }}）</span>
+                  <span class="market-group-title">{{ t('plugins.mcp.builtinPicks', { count: searchBuiltin.length }) }}</span>
                 </div>
                 <div class="market-grid">
                   <div v-for="card in searchBuiltin" :key="card.id"
                     class="market-cell market-cell--clickable" @click="openDetail(card)">
                     <PluginIcon :icon="card.icon" :name="card.name" class="market-cell-icon" />
                     <div class="market-cell-body">
-                      <div class="market-cell-title">{{ card.name }}</div>
-                      <div class="market-cell-desc">{{ card.description }}</div>
+                      <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(card.name, keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
+                      <div class="market-cell-desc"><template v-for="(seg, i) in splitHighlight(card.description || '', keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                     </div>
                     <el-button class="market-cell-btn" plain
                       :type="isInstalled(card) ? 'success' : ''" :disabled="isInstalled(card)"
                       :loading="installingId === card.id" @click.stop="handleInstall(card)">
-                      {{ isInstalled(card) ? '已安装' : '安装' }}
+                      {{ isInstalled(card) ? t('plugins.mcp.installed') : t('plugins.mcp.install') }}
                     </el-button>
                   </div>
                 </div>
@@ -119,18 +119,18 @@
 
               <div v-if="onlineResults.length" class="market-group">
                 <div class="market-group-head market-group-head--static">
-                  <span class="market-group-title">第三方仓库（{{ onlineResults.length }}）</span>
+                  <span class="market-group-title">{{ t('plugins.mcp.thirdPartyRepos', { count: onlineResults.length }) }}</span>
                 </div>
                 <div class="market-grid">
                   <div v-for="card in onlineResults" :key="card.id"
                     class="market-cell market-cell--clickable" @click="openDetail(card)">
                     <PluginIcon :icon="card.icon" :name="card.name" class="market-cell-icon" />
                     <div class="market-cell-body">
-                      <div class="market-cell-title">{{ card.name }}</div>
-                      <div class="market-cell-desc">{{ card.description }}</div>
+                      <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(card.name, keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
+                      <div class="market-cell-desc"><template v-for="(seg, i) in splitHighlight(card.description || '', keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                     </div>
                     <el-button class="market-cell-btn" plain type="primary"
-                      @click.stop="handleConfigure(card)">手动配置</el-button>
+                      @click.stop="handleConfigure(card)">{{ t('plugins.mcp.manualConfig') }}</el-button>
                   </div>
                 </div>
               </div>
@@ -141,8 +141,8 @@
                   <circle cx="11" cy="11" r="7" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
-                <div class="market-empty__title">未找到匹配的 MCP</div>
-                <div class="market-empty__hint">“{{ keyword }}”，可在「来源设置」中开启在线来源</div>
+                <div class="market-empty__title">{{ t('plugins.mcp.noMatchTitle') }}</div>
+                <div class="market-empty__hint">{{ t('plugins.mcp.noMatchHint', { keyword }) }}</div>
               </div>
             </template>
           </template>
@@ -153,9 +153,9 @@
       <template v-else>
         <div class="market-topbar">
           <el-button size="default" @click="view = 'market'">
-            <el-icon class="mr-1"><ArrowBackOutlined /></el-icon>返回市场
+            <el-icon class="mr-1"><ArrowBackOutlined /></el-icon>{{ t('plugins.mcp.backToMarket') }}
           </el-button>
-          <span class="manage-title">MCP 管理（{{ boundList.length }}）</span>
+          <span class="manage-title">{{ t('plugins.mcp.manageTitle', { count: boundList.length }) }}</span>
         </div>
 
         <div v-if="boundList.length" class="manage-grid">
@@ -169,21 +169,21 @@
                   v-if="s.last_test_status && s.last_test_status !== 'disconnected'">
                   <el-tag
                     :type="s.last_test_status === 'connected' ? 'success' : 'danger'" effect="light">
-                    {{ s.last_test_status === 'connected' ? '已连接' : '连接失败' }}
+                    {{ s.last_test_status === 'connected' ? t('plugins.mcp.connected') : t('plugins.mcp.connectFailed') }}
                   </el-tag>
                 </div>
               </div>
             </div>
             <div class="manage-card__actions">
               <el-switch :model-value="s.enabled" @update:model-value="(v) => handleToggle(s, !!v)" />
-              <LTooltip content="测试连接" placement="top">
+              <LTooltip :content="t('plugins.mcp.testConnection')" placement="top">
                 <el-button link :loading="testingId === s.mcp_server_id"
                   @click="handleTest(s)"><el-icon><WifiTetheringOutlined /></el-icon></el-button>
               </LTooltip>
-              <LTooltip content="编辑" placement="top">
+              <LTooltip :content="t('plugins.mcp.edit')" placement="top">
                 <el-button link @click="openEditForm(s)"><el-icon><EditOutlined /></el-icon></el-button>
               </LTooltip>
-              <LTooltip content="删除" placement="top">
+              <LTooltip :content="t('plugins.mcp.delete')" placement="top">
                 <el-button link type="danger" @click="handleDelete(s)">
                   <el-icon><DeleteOutlined /></el-icon>
                 </el-button>
@@ -194,7 +194,7 @@
 
         <div v-else class="market-empty">
           <el-icon size="40" class="mb-3 opacity-40"><InboxOutlined /></el-icon>
-          <div class="market-empty__title">暂无已添加的 MCP 服务器</div>
+          <div class="market-empty__title">{{ t('plugins.mcp.manageEmpty') }}</div>
         </div>
       </template>
     </template>
@@ -209,27 +209,27 @@
       @save="handleFormSave" />
 
     <!-- 来源设置 -->
-    <ReDialog :close-on-click-modal="true" v-model="sourceVisible" title="MCP 来源设置" width="520px" align-center destroy-on-close>
+    <ReDialog :close-on-click-modal="true" v-model="sourceVisible" :title="t('plugins.mcp.sourceSettingsTitle')" width="520px" align-center destroy-on-close>
       <div class="source-list" v-if="sourceConfig">
         <div class="source-item">
           <div>
-            <div class="source-item__name">内置推荐</div>
-            <div class="source-item__desc">官方策展、可一键安装，始终开启</div>
+            <div class="source-item__name">{{ t('plugins.mcp.sourceBuiltinName') }}</div>
+            <div class="source-item__desc">{{ t('plugins.mcp.sourceBuiltinDesc') }}</div>
           </div>
           <el-switch :model-value="true" disabled />
         </div>
         <div v-for="o in sourceConfig.online" :key="o.key" class="source-item">
           <div>
             <div class="source-item__name">{{ o.name }}</div>
-            <div class="source-item__desc">在线第三方仓库检索</div>
+            <div class="source-item__desc">{{ t('plugins.mcp.sourceOnlineDesc') }}</div>
           </div>
           <el-switch :model-value="sourceState[o.key]"
             @update:model-value="(v) => (sourceState[o.key] = !!v)" />
         </div>
       </div>
       <template #footer>
-        <el-button @click="sourceVisible = false">取消</el-button>
-        <el-button type="primary" :loading="sourceSaving" @click="saveSourceConfig">保存</el-button>
+        <el-button @click="sourceVisible = false">{{ t('plugins.mcp.cancel') }}</el-button>
+        <el-button type="primary" :loading="sourceSaving" @click="saveSourceConfig">{{ t('plugins.mcp.save') }}</el-button>
       </template>
     </ReDialog>
   </div>
@@ -250,7 +250,7 @@ import LTooltip from '@/components/ui/LTooltip.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import McpDetailDialog from './McpDetailDialog.vue'
 import McpServerFormDialog from './McpServerFormDialog.vue'
-import { pluginsMarket, syncMarketSlice } from './plugins-market'
+import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
 
 const { t } = useI18n()
 const admin = ref(isAdmin())
@@ -279,7 +279,7 @@ const labels = computed<string[]>(() => {
   return order
 })
 function firstLabel(c: any) {
-  return c.labels?.length ? c.labels[0] : '其它'
+  return c.labels?.length ? c.labels[0] : t('plugins.mcp.other')
 }
 /** 状态筛选（市场壳左栏）：installed / not_installed，'' = 全部 */
 function statusMatch(c: any): boolean {
@@ -355,15 +355,15 @@ async function handleInstall(card: any) {
       icon: card.icon,
       transport: card.transport,
     })
-    message.success(`已添加「${card.name}」`)
+    message.success(t('plugins.mcp.addedNamed', { name: card.name }))
     await loadBound()
     if (card.requiresKey) {
-      message.warning('该服务器需要 API Key，请在管理中编辑补充环境变量')
+      message.warning(t('plugins.mcp.requiresKeyWarning'))
     } else if (card.requiresConfig) {
-      message.warning('请在管理中编辑确认授权目录等配置')
+      message.warning(t('plugins.mcp.requiresConfigWarning'))
     }
   } catch (e: any) {
-    message.error(e?.message || '添加失败')
+    message.error(e?.message || t('plugins.mcp.addFailed'))
   } finally {
     installingId.value = ''
   }
@@ -405,15 +405,15 @@ async function handleFormSave({ id, data }: { id?: string; data: any }) {
   try {
     if (id) {
       await mcpApi.update(id, data)
-      message.success('已保存')
+      message.success(t('plugins.mcp.saved'))
     } else {
       await mcpApi.create(data)
-      message.success('已添加')
+      message.success(t('plugins.mcp.added'))
     }
     formVisible.value = false
     await loadBound()
   } catch (e: any) {
-    message.error(e?.message || '保存失败')
+    message.error(e?.message || t('plugins.mcp.saveFailed'))
   } finally {
     formSaving.value = false
   }
@@ -426,7 +426,7 @@ async function handleToggle(s: any, enabled: boolean) {
     await mcpApi.toggle(s.mcp_server_id, enabled)
     s.enabled = enabled
   } catch (e: any) {
-    message.error(e?.message || '操作失败')
+    message.error(e?.message || t('plugins.mcp.operationFailed'))
   }
 }
 async function handleTest(s: any) {
@@ -434,41 +434,41 @@ async function handleTest(s: any) {
   try {
     const res = await mcpApi.testConnection({ mcp_server_id: s.mcp_server_id, name: s.name, transport: s.transport })
     if (res?.data?.success) {
-      message.success(`连接成功，发现 ${res.data.tools?.length || 0} 个工具`)
+      message.success(t('plugins.mcp.connectSuccessTools', { count: res.data.tools?.length || 0 }))
       await loadBound()
     } else {
-      message.error(res?.data?.error || '连接失败')
+      message.error(res?.data?.error || t('plugins.mcp.connectFailed'))
     }
   } catch (e: any) {
-    message.error(e?.message || '连接失败')
+    message.error(e?.message || t('plugins.mcp.connectFailed'))
   } finally {
     testingId.value = ''
   }
 }
 async function handleDelete(s: any) {
   try {
-    await ElMessageBox.confirm(`确定删除 MCP「${s.name}」？`, '删除确认', {
-      type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('plugins.mcp.removeConfirm', { name: s.name }), t('plugins.mcp.removeConfirmTitle'), {
+      type: 'warning', confirmButtonText: t('plugins.mcp.delete'), cancelButtonText: t('plugins.mcp.cancel'),
     })
   } catch {
     return
   }
   try {
     await mcpApi.delete(s.mcp_server_id)
-    message.success('已删除')
+    message.success(t('plugins.mcp.deleted'))
     await loadBound()
   } catch (e: any) {
-    message.error(e?.message || '删除失败')
+    message.error(e?.message || t('plugins.mcp.deleteFailed'))
   }
 }
 function switchManage() {
   view.value = 'manage'
 }
 
-function transportLabel(t: any) {
-  if (!t) return '未配置'
-  if (t.type === 'stdio') return `stdio · ${t.command || ''}`
-  return `${(t.type || '').toUpperCase()} · ${t.url || ''}`
+function transportLabel(transport: any) {
+  if (!transport) return t('plugins.mcp.notConfigured')
+  if (transport.type === 'stdio') return `stdio · ${transport.command || ''}`
+  return `${(transport.type || '').toUpperCase()} · ${transport.url || ''}`
 }
 
 // 来源设置
@@ -485,17 +485,17 @@ async function openSourceConfig() {
     sourceState.value = state
     sourceVisible.value = true
   } catch (e: any) {
-    message.error(e?.message || '加载来源失败')
+    message.error(e?.message || t('plugins.mcp.loadSourcesFailed'))
   }
 }
 async function saveSourceConfig() {
   sourceSaving.value = true
   try {
     await mcpApi.updateCatalogConfig(sourceState.value)
-    message.success('来源设置已保存')
+    message.success(t('plugins.mcp.sourceSettingsSaved'))
     sourceVisible.value = false
   } catch (e: any) {
-    message.error(e?.message || '保存失败')
+    message.error(e?.message || t('plugins.mcp.saveFailed'))
   } finally {
     sourceSaving.value = false
   }
@@ -517,8 +517,8 @@ watchEffect(() => {
     categories: Object.keys(counts),
     categoryCounts: counts,
     statuses: [
-      { key: 'installed', label: '已安装', count: list.filter((c) => isInstalled(c)).length, tone: 'success' },
-      { key: 'not_installed', label: '未安装', count: list.filter((c) => !isInstalled(c)).length, tone: 'info' },
+      { key: 'installed', label: t('plugins.mcp.installed'), count: list.filter((c) => isInstalled(c)).length, tone: 'success' },
+      { key: 'not_installed', label: t('plugins.mcp.notInstalled'), count: list.filter((c) => !isInstalled(c)).length, tone: 'info' },
     ],
   })
 })

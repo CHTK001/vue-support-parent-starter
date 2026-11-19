@@ -163,10 +163,8 @@
                                 @click="openSkillDetail(skill)">
                                 <PluginIcon :icon="skill.icon" :name="skill.name" class="market-cell-icon" />
                                 <div class="market-cell-body">
-                                    <div class="market-cell-title">{{ skill.name }}</div>
-                                    <div class="market-cell-desc">
-                                        {{ skill.description || t('plugins.skills.noDescription') }}
-                                    </div>
+                                    <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(skill.name, marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
+                                    <div class="market-cell-desc"><template v-for="(seg, i) in splitHighlight(skill.description || '', marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                                 </div>
                                 <el-button class="market-cell-btn" plain
                                     :type="skill.localStatus === 'installed' ? 'success'
@@ -212,17 +210,15 @@
                     <template v-else>
                         <div v-if="marketSearchResults.length > 0" class="market-group">
                             <div class="market-group-head market-group-head--static">
-                                <span class="market-group-title">搜索结果（{{ marketSearchResults.length }}）</span>
+                                <span class="market-group-title">{{ t('plugins.skills.searchResultCount', { count: marketSearchResults.length }) }}</span>
                             </div>
                             <div class="market-grid">
                                 <div v-for="skill in marketSearchResults" :key="'msr-'+skill.id"
                                     class="market-cell market-cell--clickable" @click="openSkillDetail(skill)">
                                     <PluginIcon :icon="skill.icon" :name="skill.name" class="market-cell-icon" />
                                     <div class="market-cell-body">
-                                        <div class="market-cell-title">{{ skill.name }}</div>
-                                        <div class="market-cell-desc">
-                                            {{ skill.description || t('plugins.skills.noDescription') }}
-                                        </div>
+                                        <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(skill.name, marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
+                                        <div class="market-cell-desc"><template v-for="(seg, i) in splitHighlight(skill.description || '', marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                                     </div>
                                     <el-button class="market-cell-btn" plain
                                         :type="skill.localStatus === 'installed' ? 'success'
@@ -405,10 +401,8 @@
                                         class="market-cell market-cell--clickable" @click="openSkillDetail(skill)">
                                         <PluginIcon :icon="skill.icon" :name="skill.name" class="market-cell-icon" />
                                         <div class="market-cell-body">
-                                            <div class="market-cell-title">{{ skill.name }}</div>
-                                            <div class="market-cell-desc">
-                                                {{ skill.description || t('plugins.skills.noDescription') }}
-                                            </div>
+                                            <div class="market-cell-title"><template v-for="(seg, i) in splitHighlight(skill.name, marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
+                                            <div class="market-cell-desc"><template v-for="(seg, i) in splitHighlight(skill.description || '', marketKeyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
                                         </div>
                                         <el-button class="market-cell-btn" plain
                                             :type="skill.localStatus === 'installed' ? 'success'
@@ -527,7 +521,7 @@ import ReTable from '@repo/ui/re-table'
 import type { ReTableColumn } from '@repo/ui/re-table'
 import SkillDetailDialog from './SkillDetailDialog.vue'
 import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
-import { pluginsMarket, syncMarketSlice } from './plugins-market'
+import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
 
 interface SkillManifest {
     name: string
@@ -780,7 +774,7 @@ const marketLabels = computed<string[]>(() => {
 const featuredSkill = computed(() => marketSkills.value[0] || null)
 
 function firstLabel(s: MarketSkillWithStatus): string {
-    return (s.labels && s.labels.length > 0) ? s.labels[0] : '其它'
+    return (s.labels && s.labels.length > 0) ? s.labels[0] : t('plugins.skills.other')
 }
 
 function marketKeywordMatch(s: MarketSkillWithStatus): boolean {
@@ -826,7 +820,7 @@ function mapLocalCatalogSearchEntry(it: any): MarketSkillWithStatus {
         name: String(it.name ?? ''),
         description: String(it.description ?? ''),
         icon: it.icon ?? null,
-        labels: ['本地'],
+        labels: [t('plugins.skills.sourceLocal')],
         installUrls: [],
         localStatus: it.installed ? 'installed' as const : 'not_installed' as const,
     }
@@ -1006,7 +1000,7 @@ async function handleInstallFromMarketUrl(marketSkill: MarketSkillWithStatus): P
             await loadSkills()
             return true
         }
-        message.error(response.message || '安装失败')
+        message.error(response.message || t('plugins.skills.installFailed'))
         return false
     } catch (err: any) {
         console.error('从市场安装技能失败:', err)

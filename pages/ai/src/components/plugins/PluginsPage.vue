@@ -36,16 +36,38 @@
                                 <span class="pm-bento-ico"><component :is="card.icon" /></span>
                                 <span class="pm-bento-count">{{ card.count }}</span>
                             </span>
-                            <span class="pm-bento-name">{{ card.label }}</span>
+                            <span class="pm-bento-name-row">
+                                <span class="pm-bento-name">{{ card.label }}</span>
+                                <!-- P1 #5：Skills 可更新数角标（点击直达「可更新」状态桶） -->
+                                <span v-if="card.key === 'skills' && updatableCount > 0" class="pm-bento-badge"
+                                    :title="t('plugins.market.updatableBadge', { count: updatableCount })"
+                                    @click.stop="openUpdatableSkills">{{ updatableCount }}</span>
+                            </span>
                             <span class="pm-bento-desc">{{ card.desc }}</span>
                         </button>
                     </nav>
 
                     <!-- 主体：左栏类目/状态索引 + 右侧市场（v-show 全挂载，保证真实计数） -->
-                    <div class="pm-body">
+                    <div class="pm-body" :class="{ 'pm-body--no-rail': activeSlice.railHidden }">
+                        <!-- P0 #1：索引栏收起后的左缘展开钮 -->
+                        <button v-if="activeSlice.railHidden" type="button" class="pm-rail-expand"
+                            :title="t('plugins.market.expandRail')"
+                            :aria-label="t('plugins.market.expandRail')"
+                            @click="activeSlice.railHidden = false">
+                            <el-icon><Expand /></el-icon>
+                        </button>
                         <aside v-show="!activeSlice.railHidden" class="pm-rail">
                             <div class="pm-rail-section">
-                                <div class="pm-rail-title">{{ t('plugins.market.categories') }}</div>
+                                <div class="pm-rail-head">
+                                    <div class="pm-rail-title">{{ t('plugins.market.categories') }}</div>
+                                    <!-- P0 #1：索引栏收起开关 -->
+                                    <button type="button" class="pm-rail-toggle"
+                                        :title="t('plugins.market.collapseRail')"
+                                        :aria-label="t('plugins.market.collapseRail')"
+                                        @click="activeSlice.railHidden = true">
+                                        <el-icon><Fold /></el-icon>
+                                    </button>
+                                </div>
                                 <button type="button" class="pm-rail-item"
                                     :class="{ 'is-active': activeSlice.category === '' }"
                                     @click="activeSlice.category = ''">
@@ -79,6 +101,19 @@
                         </aside>
 
                         <section class="pm-main">
+                            <!-- P1 #4：已生效筛选 chips（单删 + 一键清空） -->
+                            <div v-if="activeFilterChips.length" class="pm-chips">
+                                <span v-for="chip in activeFilterChips" :key="chip.key" class="pm-chip">
+                                    <span class="pm-chip-label">{{ chip.label }}</span>
+                                    <button type="button" class="pm-chip-x"
+                                        :title="t('plugins.market.removeFilter')"
+                                        :aria-label="t('plugins.market.removeFilter')"
+                                        @click="chip.clear()">×</button>
+                                </span>
+                                <button type="button" class="pm-chips-clear" @click="clearAllFilters">
+                                    {{ t('plugins.market.clearAll') }}
+                                </button>
+                            </div>
                             <CharacterMarket v-show="currentTabValue === 'characters'" ref="charactersRef" />
                             <Skills v-show="currentTabValue === 'skills'" ref="skillsRef" />
                             <MCPServers v-show="currentTabValue === 'mcp'" ref="mcpRef" />
@@ -95,7 +130,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { isAdmin } from '@repo/core'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Fold, Expand } from '@element-plus/icons-vue'
 import MCPServers from './MCPServers.vue'
 import LocalTools from './LocalTools.vue'
 import Skills from './Skills.vue'
@@ -151,41 +186,64 @@ const getDefaultTabPath = () => {
     return sidebarItems.value[0]?.path || 'mcp'
 }
 
-const currentTabValue = ref(getDefaultTabPath())
+/** 由路由参数解析目标 tab（非管理员访问受限 tab 回退默认） */
+function resolveTabPath(tabParam: unknown): string {
+    const raw = Array.isArray(tabParam) ? String(tabParam[0] ?? '') : String(tabParam ?? '')
+    if (raw && ADMIN_ONLY.has(raw) && !admin.value) return getDefaultTabPath()
+    return raw || getDefaultTabPath()
+}
 
-// Tab 切换处理
+// setup 期即按路由参数初始化，保证带 query 直达非默认 tab 时，回填能落对市场切片
+const currentTabValue = ref(resolveTabPath(route.params.tab))
+
+/** 由指定市场的切片构造 URL query（P0 #13：?cat=&status=&q=，空值省略） */
+function buildMarketQuery(tabKey: string): Record<string, string> {
+    const slice = pluginsMarket[tabKey as MarketKey]
+    const query: Record<string, string> = {}
+    if (!slice) return query
+    if (slice.category) query.cat = slice.category
+    if (slice.status) query.status = slice.status
+    if (slice.keyword) query.q = slice.keyword
+    return query
+}
+
+// Tab 切换处理：切市场时用目标市场切片重建 query（各市场筛选独立，不跨市场携带）
 const handleTabChange = (tabName: string | number) => {
     const tabPath = typeof tabName === 'string' ? tabName : String(tabName)
-    router.replace({ name: 'Plugins', params: { tab: tabPath } })
+    router.replace({ name: 'Plugins', params: { tab: tabPath }, query: buildMarketQuery(tabPath) })
 }
 
 // 监听路由参数变化
 watch(() => route.params.tab, (newPath) => {
-    // 确保 newPath 是字符串类型
-    let tabPath = Array.isArray(newPath) ? newPath[0] : (newPath as string)
-    // 非管理员访问受限 tab：回退到默认
-    if (tabPath && ADMIN_ONLY.has(tabPath) && !admin.value) {
-        tabPath = getDefaultTabPath()
-    }
-    if (tabPath && tabPath !== currentTabValue.value) {
+    const tabPath = resolveTabPath(newPath)
+    if (tabPath !== currentTabValue.value) {
         currentTabValue.value = tabPath
     }
 })
 
+// URL → 筛选状态回填（刷新 / 分享链接直达；!== 守卫防循环）。
+// 声明在 params.tab watcher 之后：回填时 currentTabValue 已切到目标市场。
+watch(() => route.query, (query) => {
+    const slice = pluginsMarket[currentTabValue.value as MarketKey]
+    if (!slice) return
+    const cat = typeof query.cat === 'string' ? query.cat : ''
+    const status = typeof query.status === 'string' ? query.status : ''
+    const kw = typeof query.q === 'string' ? query.q : ''
+    if (slice.category !== cat) slice.category = cat
+    if (slice.status !== status) slice.status = status
+    if (slice.keyword !== kw) slice.keyword = kw
+}, { immediate: true })
+
 onMounted(() => {
     // 如果没有路由参数，则跳转到默认标签页
     if (!route.params.tab) {
-        const defaultTab = getDefaultTabPath()
-        router.replace({ name: 'Plugins', params: { tab: defaultTab } })
-    } else {
-        // 确保 route.params.tab 是字符串类型
-        let tabParam = Array.isArray(route.params.tab) ? route.params.tab[0] : (route.params.tab as string)
-        // 非管理员直接访问受限 tab：重定向到默认
-        if (ADMIN_ONLY.has(tabParam) && !admin.value) {
-            tabParam = getDefaultTabPath()
-            router.replace({ name: 'Plugins', params: { tab: tabParam } })
-        }
-        currentTabValue.value = tabParam
+        router.replace({ name: 'Plugins', params: { tab: getDefaultTabPath() } })
+        return
+    }
+    // 非管理员直接访问受限 tab：重定向到默认
+    const tabParam = Array.isArray(route.params.tab) ? route.params.tab[0] : (route.params.tab as string)
+    if (tabParam && ADMIN_ONLY.has(tabParam) && !admin.value) {
+        router.replace({ name: 'Plugins', params: { tab: getDefaultTabPath() } })
     }
 })
 
@@ -197,6 +255,67 @@ const localToolsRef = ref<InstanceType<typeof LocalTools> | null>(null)
 
 /** 当前市场的共享切片（keyword / category / status / counts） */
 const activeSlice = computed(() => pluginsMarket[currentTabValue.value as MarketKey])
+
+// 筛选状态 → URL 写回（P0 #13；replace 不产生历史记录，空值省略）
+watch(
+    () => [currentTabValue.value, activeSlice.value.category, activeSlice.value.status, activeSlice.value.keyword] as const,
+    () => {
+        router.replace({
+            name: 'Plugins',
+            params: { tab: currentTabValue.value },
+            query: buildMarketQuery(currentTabValue.value),
+        }).catch(() => {})
+    },
+)
+
+/** 已生效筛选 chips（P1 #4）：类目 / 状态 / 关键词，支持单删与一键清空 */
+const activeFilterChips = computed(() => {
+    const slice = activeSlice.value
+    const chips: { key: string; label: string; clear: () => void }[] = []
+    if (slice.category) {
+        chips.push({
+            key: 'cat',
+            label: t('plugins.market.chipCategory', { value: slice.category }),
+            clear: () => { slice.category = '' },
+        })
+    }
+    if (slice.status) {
+        const bucket = slice.statuses.find(s => s.key === slice.status)
+        if (bucket) {
+            chips.push({
+                key: 'status',
+                label: t('plugins.market.chipStatus', { value: bucket.label }),
+                clear: () => { slice.status = '' },
+            })
+        }
+    }
+    if (slice.keyword) {
+        chips.push({
+            key: 'kw',
+            label: t('plugins.market.chipKeyword', { value: slice.keyword }),
+            clear: () => { slice.keyword = '' },
+        })
+    }
+    return chips
+})
+
+/** 一键清空当前市场全部筛选 */
+function clearAllFilters() {
+    const slice = activeSlice.value
+    slice.category = ''
+    slice.status = ''
+    slice.keyword = ''
+}
+
+/** Skills 可更新数（Bento 角标，P1 #5；来自市场组件回填的真实分桶） */
+const updatableCount = computed(() =>
+    pluginsMarket.skills.statuses.find(s => s.key === 'updatable')?.count ?? 0)
+
+/** 点角标：切到 Skills 市场并选中「可更新」状态桶 */
+function openUpdatableSkills() {
+    pluginsMarket.skills.status = 'updatable'
+    if (currentTabValue.value !== 'skills') handleTabChange('skills')
+}
 
 const activeSearchPlaceholder = computed(() => {
     const key = currentTabValue.value

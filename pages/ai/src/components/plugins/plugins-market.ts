@@ -64,3 +64,35 @@ export const pluginsMarket = reactive<Record<MarketKey, MarketSlice>>({
 export function syncMarketSlice(key: MarketKey, patch: Partial<MarketSlice>) {
   Object.assign(pluginsMarket[key], patch)
 }
+
+export interface HighlightSegment {
+  /** 分段文本 */
+  text: string
+  /** 是否命中搜索关键词（渲染为 <mark class="pm-hl">） */
+  hit: boolean
+}
+
+/**
+ * 按关键词把文本切分成「命中 / 未命中」分段，供模板做无 v-html 的安全高亮。
+ * 关键词为空返回单段原文；大小写不敏感；全部命中位置都标出。
+ */
+export function splitHighlight(text: string, keyword: string): HighlightSegment[] {
+  const src = text ?? ''
+  const kw = (keyword ?? '').trim()
+  if (!kw) return src ? [{ text: src, hit: false }] : []
+  const lowerSrc = src.toLowerCase()
+  const lowerKw = kw.toLowerCase()
+  const segments: HighlightSegment[] = []
+  let from = 0
+  while (from <= src.length) {
+    const idx = lowerSrc.indexOf(lowerKw, from)
+    if (idx === -1) {
+      if (from < src.length) segments.push({ text: src.slice(from), hit: false })
+      break
+    }
+    if (idx > from) segments.push({ text: src.slice(from, idx), hit: false })
+    segments.push({ text: src.slice(idx, idx + kw.length), hit: true })
+    from = idx + kw.length
+  }
+  return segments
+}

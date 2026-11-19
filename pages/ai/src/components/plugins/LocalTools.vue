@@ -2,7 +2,7 @@
   <div class="flex-1 overflow-hidden">
     <div v-if="!admin" class="lt-forbidden">
       <el-icon size="40" class="mb-3 opacity-40"><LockOutlined /></el-icon>
-      <div class="text-sm" style="color: var(--el-text-color-secondary)">仅管理员可配置本地工具</div>
+      <div class="text-sm" style="color: var(--el-text-color-secondary)">{{ t('plugins.localTools.adminOnly') }}</div>
     </div>
     <template v-else>
     <!-- 本周精选横幅：取第一个本地工具（真实数据；pm-* 为市场壳共享样式） -->
@@ -66,10 +66,10 @@
           </div>
 
           <!-- 名称 -->
-          <div class="lt-card__name">{{ tool.displayName }}</div>
+          <div class="lt-card__name"><template v-for="(seg, i) in splitHighlight(tool.displayName, pluginsMarket['local-tools'].keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></div>
 
           <!-- 描述（最多两行） -->
-          <p class="lt-card__desc">{{ tool.description }}</p>
+          <p class="lt-card__desc"><template v-for="(seg, i) in splitHighlight(tool.description, pluginsMarket['local-tools'].keyword)" :key="i"><mark v-if="seg.hit" class="pm-hl">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></p>
 
           <!-- 底部：卸载 + 启用开关 -->
           <div class="lt-card__footer">
@@ -95,7 +95,7 @@
       <!-- 空状态 -->
       <div v-if="!loading && filteredTools.length === 0" class="lt-empty">
         <el-icon size="40" class="mb-3 opacity-40"><InboxOutlined /></el-icon>
-        <div class="text-sm" style="color: var(--el-text-color-secondary)">暂无本地工具</div>
+        <div class="text-sm" style="color: var(--el-text-color-secondary)">{{ t('plugins.localTools.empty') }}</div>
       </div>
     </div>
 
@@ -152,7 +152,7 @@ import CardAvatar from '@/components/ui/CardAvatar.vue'
 import PluginIcon from '@/components/ui/PluginIcon.vue'
 import ReDialog from '@repo/ui/re-dialog'
 import CustomToolDialog from './CustomToolDialog.vue'
-import { pluginsMarket, syncMarketSlice } from './plugins-market'
+import { pluginsMarket, syncMarketSlice, splitHighlight } from './plugins-market'
 
 const { t } = useI18n()
 const admin = ref(isAdmin())
@@ -196,7 +196,7 @@ function normalizePlugins(list: any[] | undefined | null): ToolMetadata[] {
       p.source === 'dev' ? 'dev' : p.source === 'user' ? 'user' : origin === 'dev' ? 'dev' : origin === 'user' ? 'user' : 'builtin'
     const description: string =
       p.description ||
-      (p.providerName ? `${p.providerName}（${p.source || origin}）` : '本地工具')
+      (p.providerName ? `${p.providerName}（${p.source || origin}）` : t('plugins.localTools.fallbackName'))
     return {
       pluginId: p.pluginId || p.id,
       name: p.name,
@@ -290,9 +290,9 @@ const featuredTool = computed(() => globalTools.value[0] || null)
 
 /** 来源类目（左栏索引口径：内置 / 开发 / 用户，真实计数） */
 const SOURCE_CATS: { label: string; source: ToolMetadata['source'] }[] = [
-  { label: '内置', source: 'builtin' },
-  { label: '开发', source: 'dev' },
-  { label: '用户', source: 'user' },
+  { label: t('plugins.localTools.sourceBuiltin'), source: 'builtin' },
+  { label: t('plugins.localTools.sourceDev'), source: 'dev' },
+  { label: t('plugins.localTools.sourceUser'), source: 'user' },
 ]
 
 /** 搜索 / 类目 / 状态过滤全部读市场壳共享状态（页头搜索框 + 左栏索引驱动） */
@@ -325,8 +325,8 @@ watchEffect(() => {
     categories: Object.keys(counts),
     categoryCounts: counts,
     statuses: [
-      { key: 'enabled', label: '启用', count: list.filter(t => t.enabled).length, tone: 'success' },
-      { key: 'disabled', label: '停用', count: list.filter(t => !t.enabled).length, tone: 'warning' },
+      { key: 'enabled', label: t('plugins.localTools.bucketEnabled'), count: list.filter(t => t.enabled).length, tone: 'success' },
+      { key: 'disabled', label: t('plugins.localTools.bucketDisabled'), count: list.filter(t => !t.enabled).length, tone: 'warning' },
     ],
   })
 })
