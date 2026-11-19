@@ -1197,7 +1197,7 @@ const remove = async (item: DataSourceInfo) => {
 
 // ------------------------------ 左栏批量操作 ------------------------------
 // 参考设备管理（DeviceView）的批量交互：勾选多条后浮出批量条，
-// 批量置顶 / 批量删除逐条调用既有单条接口（后端无批量端点），
+// 批量置顶 / 批量删除 / 批量测试逐条调用既有单条接口（后端无批量端点），
 // 全部结果用 Promise.allSettled 收敛，失败只提示条数不中断。
 
 /** 左栏勾选的数据源 ID 集合（空集合 = 未进入批量模式） */
@@ -1289,6 +1289,34 @@ const batchRemove = async () => {
   message.success(`已删除 ${ok} 个数据源`);
   clearSelection();
   await load();
+};
+
+/** 批量测试连接进行中：防止重复提交 */
+const batchTesting = ref(false);
+
+/**
+ * 批量测试连接：后端无批量端点，与批量置顶/删除同口径逐条调用单条接口，
+ * Promise.allSettled 收敛；结束后统一汇报连通/失败条数并刷新台账
+ * （连接延迟、最近测试时间由后端在测试时回写，随 load() 回填左栏徽标）。
+ */
+const batchTest = async () => {
+  const targets = [...selectionIds.value];
+  if (!targets.length || batchTesting.value) return;
+  batchTesting.value = true;
+  try {
+    const results = await Promise.allSettled(targets.map((id) => testDataSource(id)));
+    const ok = results.filter((r) => r.status === "fulfilled" && r.value?.success).length;
+    const fail = results.length - ok;
+    if (fail > 0) {
+      message.warning(`连通 ${ok} 个，失败 ${fail} 个`);
+    } else {
+      message.success(`已连通 ${ok} 个数据源`);
+    }
+    clearSelection();
+    await load();
+  } finally {
+    batchTesting.value = false;
+  }
 };
 
 /** 卡片「更多」命令分发（收敛次要操作：浏览表结构 / 编辑 / 删除） */
@@ -1938,6 +1966,23 @@ const test = async (item: DataSourceInfo) => {
   } finally {
     testing.value = null;
   }
+};
+
+/** 卡片连通性徽标：仅「测过且连通」显示延迟读数；未测试/失败不显示（失败由状态灯表达，避免把「没测过」误报成故障） */
+const latencyBadgeOf = (item: DataSourceInfo): string | null => {
+  if (item.lastTestOk !== 1 || item.connectLatencyMs == null) {
+    return null;
+  }
+  return `${item.connectLatencyMs}ms`;
+};
+
+/** 徽标悬浮提示：连接/会话延迟 + 最近测试时间（数据均由后端测试时回写） */
+const latencyTitleOf = (item: DataSourceInfo): string => {
+  const parts: string[] = [];
+  if (item.connectLatencyMs != null) parts.push(`连接 ${item.connectLatencyMs}ms`);
+  if (item.sessionLatencyMs != null) parts.push(`会话 ${item.sessionLatencyMs}ms`);
+  if (item.lastTestTime) parts.push(`测试于 ${item.lastTestTime}`);
+  return parts.join(" · ") || "已连通";
 };
 
 /**
@@ -2898,6 +2943,7 @@ onMounted(load);
             </span>
             <span class="ds-side__batch-ops">
               <ReButton icon="Top" :show-text="true" size="small" :disabled="selectionIds.size === 0" @click="batchToggleTop(true)">批量置顶</ReButton>
+              <ReButton icon="Connection" :show-text="true" size="small" :disabled="selectionIds.size === 0" :loading="batchTesting" @click="batchTest">批量测试</ReButton>
               <ReButton icon="Delete" :show-text="true" size="small" type="danger" plain :disabled="selectionIds.size === 0" @click="batchRemove">批量删除</ReButton>
               <button type="button" class="ds-side__batch-close" title="退出批量" @click="toggleBatchMode">
                 <ReIcon name="Close" :size="12" />
@@ -2976,6 +3022,11 @@ onMounted(load);
                     </span>
                     <span class="ds-item__addr mono">{{ formatAddress(item) }}</span>
                   </span>
+                  <span
+                    v-if="latencyBadgeOf(item)"
+                    class="ds-item__latency mono"
+                    :title="latencyTitleOf(item)"
+                  >{{ latencyBadgeOf(item) }}</span>
                   <i
                     class="ds-item__dot"
                     :class="`is-${datasourceStatusKeyOf(item)}`"
@@ -4405,6 +4456,17 @@ onMounted(load);
 }
 .ds-item__dot.is-offline {
   background: var(--pulse-offline, #9aa3b2);
+}
+/* 连通性徽标：最近一次测试的连接延迟（仅「测过且连通」出现），位于状态点左侧 */
+.ds-item__latency {
+  flex: none;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--pulse-online, #2fbf71);
+  background: color-mix(in srgb, var(--pulse-online, #2fbf71) 12%, transparent);
 }
 
 /* 底部新增按钮（虚线边框） */

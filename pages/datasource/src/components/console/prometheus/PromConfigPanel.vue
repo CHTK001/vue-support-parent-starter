@@ -122,6 +122,7 @@
  * Prometheus 配置面板（参考 nginx 控制台）：
  * 左侧文件 / 备份列表，右侧编辑 + 保存（临时文件 → promtool 校验 → 备份 → 覆盖 → 重载）。
  */
+import { ElMessageBox } from "element-plus";
 import { message } from "@repo/core";
 import { computed, onMounted, ref, watch } from "vue";
 
@@ -219,8 +220,17 @@ async function loadBackups(): Promise<void> {
 }
 
 async function openFile(path: string): Promise<void> {
-  if (dirty.value && !window.confirm("当前文件有未保存修改，切换将丢失，继续？")) {
-    return;
+  if (dirty.value) {
+    // 统一确认弹层（替代原生 window.confirm，与全站交互一致）：取消即不切换
+    try {
+      await ElMessageBox.confirm("当前文件有未保存修改，切换将丢失，继续？", "未保存的修改", {
+        type: "warning",
+        confirmButtonText: "丢弃并切换",
+        cancelButtonText: "取消",
+      });
+    } catch {
+      return;
+    }
   }
   loading.value = true;
   result.value = null;

@@ -90,7 +90,7 @@
                 <span class="dsm-tree-label">{{ m.name }}</span>
               </div>
               <div v-if="measurements.length === 0" class="dsm-tree-node dsm-leaf-node">
-                <span class="dsm-tree-label">暂无测量</span>
+                <ReEmpty description="暂无测量，可刷新重试" :image-size="48" />
               </div>
             </div>
           </div>

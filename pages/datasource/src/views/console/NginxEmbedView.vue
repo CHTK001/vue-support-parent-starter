@@ -18,7 +18,7 @@
       <span>{{ error }}</span>
       <button class="nge-retry" type="button" data-testid="nge-btn-retry" @click="load">重试</button>
     </div>
-    <div v-else-if="!widgets.length" class="nge-center">看板暂无卡片</div>
+    <div v-else-if="!widgets.length" class="nge-center"><ReEmpty description="看板暂无卡片，可在布局面板中添加" :image-size="64" /></div>
 
     <div v-else class="nge-grid">
       <div
@@ -49,6 +49,7 @@
  */
 import { computed, onMounted, provide, ref } from "vue";
 import { useRoute } from "vue-router";
+import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
 import NgxCardRenderer from "../../components/console/nginx/NgxCardRenderer.vue";
 import { parseNgxLayout, NGX_CTX_KEY } from "../../components/console/nginx/ngxTypes";

@@ -18,7 +18,7 @@
       <span>{{ error }}</span>
       <button class="pme-retry" type="button" data-testid="pme-btn-retry" @click="load">重试</button>
     </div>
-    <div v-else-if="!widgets.length" class="pme-center">看板暂无卡片</div>
+    <div v-else-if="!widgets.length" class="pme-center"><ReEmpty description="看板暂无卡片，可在布局面板中添加" :image-size="64" /></div>
 
     <div v-else class="pme-grid">
       <div
@@ -46,6 +46,7 @@
  */
 import { computed, onMounted, provide, ref } from "vue";
 import { useRoute } from "vue-router";
+import ReEmpty from "@repo/ui/re-empty";
 import ReIcon from "@repo/ui/re-icon";
 import PromCardRenderer from "../../components/console/prometheus/PromCardRenderer.vue";
 import { parseLayout, PROM_CTX_KEY } from "../../components/console/prometheus/promTypes";

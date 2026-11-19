@@ -113,7 +113,7 @@
                 <ReIcon name="CheckTag" size="12" />
                 {{ c }}
               </span>
-              <span v-if="!overview || !overview.capabilities.length" class="dsw-muted">暂无能力信息</span>
+              <ReEmpty v-if="!overview || !overview.capabilities.length" description="暂无能力信息，测试连接后回显" :image-size="48" />
             </div>
           </div>
         </div>

@@ -49,7 +49,7 @@
       </div>
       <p v-else-if="nginxLoading" class="ds-server-stats__empty">正在统计访问日志…</p>
       <p v-else-if="nginxError" class="ds-server-stats__empty">{{ nginxError }}</p>
-      <p v-else class="ds-server-stats__empty">暂无 URL 访问统计</p>
+      <ReEmpty v-else description="暂无 URL 访问统计，可检查 access log 采集配置" :image-size="56" />
     </template>
 
     <p v-else class="ds-server-stats__empty">{{ unsupportedText }}</p>
@@ -58,6 +58,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import ReEmpty from "@repo/ui/re-empty";
 import type { DatasourceMetricPoint } from "../api";
 import {
   fetchNginxAccessTop,
