@@ -25,9 +25,10 @@
 -->
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElInput, ElMessageBox, ElSwitch } from "element-plus";
+import { ElInput, ElMessageBox, ElSwitch, ElTooltip } from "element-plus";
 import { Search } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, useSocketService } from "@repo/core";
+import { downloadCsv, downloadTextFile, fileTimestamp, usePersistentFilters } from "@repo/utils";
 import ReButton from "@repo/ui/re-button";
 import ReTag from "@repo/ui/re-tag";
 import {
@@ -56,9 +57,34 @@ import type {
 
 defineOptions({ name: "OsgiManage" });
 
+/** 模块墙排序键：default = 后端返回序（bundleId 升序） */
+type SortKey = "default" | "name" | "id" | "version" | "state";
+
+/**
+ * 页面筛选与视图偏好的持久化状态（复用 @repo/utils 的 usePersistentFilters）。
+ *
+ * <p>刷新或切走再回来，搜索词、状态筛选、车辆段筛选、日志筛选与排序都保持
+ * 原样（localStorage 记忆）。不同步路由 query：本页嵌在宿主路由里，避免污染
+ * 宿主 URL。</p>
+ */
+const { filters } = usePersistentFilters({
+  key: "osgi.rack",
+  defaults: {
+    searchText: "",
+    filterState: "all",
+    trayFilter: "all" as "all" | "installed" | "only",
+    traySearch: "",
+    logAction: "all",
+    logOnlyProblem: false,
+    sortKey: "default" as SortKey,
+  },
+});
+
 /** 运行时插件清单 */
 const rows = ref<OsgiBundle[]>([]);
 const loading = ref(false);
+/** 清单加载失败信息：非空且清单为空时显示失败态与重试入口 */
+const loadError = ref("");
 /** 正在执行变更的符号名集合：行级忙碌，不同模块的启停 / 升级互不阻塞 */
 const busySet = ref(new Set<string>());
 /** 全局忙碌（上传安装等无归属操作），期间禁用全部行操作 */
@@ -92,7 +118,19 @@ const jarLoading = ref(false);
 /** 正在删除的文件名 */
 const jarBusy = ref("");
 /** 车辆段筛选：all / installed（在框架中）/ only（仅文件） */
-const trayFilter = ref<"all" | "installed" | "only">("all");
+const trayFilter = computed({
+  get: () => filters.trayFilter,
+  set: value => {
+    filters.trayFilter = value;
+  },
+});
+/** 车辆段专用搜索：只过滤车辆段清单，不影响模块墙 */
+const traySearch = computed({
+  get: () => filters.traySearch,
+  set: value => {
+    filters.traySearch = value;
+  },
+});
 /** 车辆段抽屉是否拉出 */
 const drawerOpen = ref(false);
 
@@ -104,12 +142,29 @@ const snapshot = ref<OsgiSnapshot | null>(null);
 const services = ref<OsgiService[]>([]);
 
 /** 搜索关键字（符号名 / ID / 文件名 模糊匹配，纯前端展示过滤） */
-const searchText = ref("");
+const searchText = computed({
+  get: () => filters.searchText,
+  set: value => {
+    filters.searchText = value;
+  },
+});
 /** 搜索输入框绑定值：经 200ms 防抖后同步到 searchText，避免逐字符触发过滤 */
-const searchInput = ref("");
+const searchInput = ref(filters.searchText);
 let searchTimer: number | undefined;
 /** 状态筛选键：all / ACTIVE / RESOLVED / transition / stopped */
-const filterState = ref("all");
+const filterState = computed({
+  get: () => filters.filterState,
+  set: value => {
+    filters.filterState = value;
+  },
+});
+/** 模块墙排序键 */
+const sortKey = computed({
+  get: () => filters.sortKey,
+  set: value => {
+    filters.sortKey = value;
+  },
+});
 /** 模块点击定位后临时高亮的行符号名 */
 const highlightName = ref("");
 /** 悬停联动的符号名：轨道天体与 1U 模块互相点亮 */
@@ -143,9 +198,19 @@ const lastFrame = ref<{ module: string; event: string; dataId: string; timestamp
 /** 日志滚动容器 */
 const logBox = ref<HTMLElement | null>(null);
 /** 只保留失败与警告 */
-const logOnlyProblem = ref(false);
+const logOnlyProblem = computed({
+  get: () => filters.logOnlyProblem,
+  set: value => {
+    filters.logOnlyProblem = value;
+  },
+});
 /** 日志操作类型筛选：all = 全部操作 */
-const logAction = ref("all");
+const logAction = computed({
+  get: () => filters.logAction,
+  set: value => {
+    filters.logAction = value;
+  },
+});
 /** 每次新日志 +1，用于重触发电平表 / 磁带机动画（新事件 = 电平跳动） */
 const logPulse = ref(0);
 
@@ -226,7 +291,7 @@ const chips = computed(() => {
 });
 
 /** 筛选项定义（V02 线路徽章） */
-const filters: Array<{ key: string; label: string }> = [
+const lineFilters: Array<{ key: string; label: string }> = [
   { key: "all", label: "全部" },
   { key: "ACTIVE", label: "运行中" },
   { key: "RESOLVED", label: "已解析" },
@@ -234,10 +299,18 @@ const filters: Array<{ key: string; label: string }> = [
   { key: "stopped", label: "已停止" },
 ];
 
-/** 搜索 + 状态筛选后的模块清单 */
+/** 排序器：default 保持后端返回序；状态按电平高 → 低（运行中在前），同电平按 ID */
+const sorters: Record<Exclude<SortKey, "default">, (a: OsgiBundle, b: OsgiBundle) => number> = {
+  name: (a, b) => a.symbolicName.localeCompare(b.symbolicName),
+  id: (a, b) => a.bundleId - b.bundleId,
+  version: (a, b) => a.version.localeCompare(b.version, undefined, { numeric: true }),
+  state: (a, b) => stateLevel(b.state) - stateLevel(a.state) || a.bundleId - b.bundleId,
+};
+
+/** 搜索 + 状态筛选 + 排序后的模块清单 */
 const filteredRows = computed(() => {
   const kw = searchText.value.trim().toLowerCase();
-  return rows.value.filter(row => {
+  const list = rows.value.filter(row => {
     if (!matchFilter(row)) {
       return false;
     }
@@ -249,11 +322,15 @@ const filteredRows = computed(() => {
     }
     return true;
   });
+  if (sortKey.value === "default") {
+    return list;
+  }
+  return [...list].sort(sorters[sortKey.value]);
 });
 
-/** 车辆段筛选结果 */
+/** 车辆段筛选结果（按车辆段专用搜索词 + 在架状态过滤） */
 const filteredJars = computed(() => {
-  const kw = searchText.value.trim().toLowerCase();
+  const kw = traySearch.value.trim().toLowerCase();
   return jars.value.filter(jar => {
     if (trayFilter.value === "installed" && !jar.installed) {
       return false;
@@ -267,6 +344,47 @@ const filteredJars = computed(() => {
     return true;
   });
 });
+
+/** 当前框架中的符号名集合：判断车辆段文件是否还有活的对应插件 */
+const liveBundleNames = computed(() => new Set(rows.value.map(row => row.symbolicName)));
+
+/**
+ * 车辆段文件的异常标记。
+ *
+ * <p>三类值得用户注意的文件：</p>
+ * <ul>
+ *   <li>清单失配：框架声称已安装，但 bundle 清单里找不到对应符号名；</li>
+ *   <li>无法识别：文件读不出符号名，永远不可能被装进框架（孤儿文件）；</li>
+ *   <li>重名副本：同符号名插件已在框架中，这是多余的旧版本文件。</li>
+ * </ul>
+ *
+ * @param jar 车辆段文件
+ * @return 标记文本与语气；正常文件返回 null
+ */
+function jarFlag(jar: OsgiJar): { text: string; tone: "warning" | "danger" | "info"; tip: string } | null {
+  if (jar.installed && (!jar.symbolicName || !liveBundleNames.value.has(jar.symbolicName))) {
+    return {
+      text: "清单失配",
+      tone: "warning",
+      tip: "框架报告该文件已安装，但 bundle 清单中找不到对应符号名，请刷新或核对框架状态",
+    };
+  }
+  if (!jar.installed && !jar.symbolicName) {
+    return {
+      text: "无法识别",
+      tone: "danger",
+      tip: "该文件读不出符号名（可能不是 OSGi bundle 或已损坏），不会被框架加载",
+    };
+  }
+  if (!jar.installed && jar.symbolicName && liveBundleNames.value.has(jar.symbolicName)) {
+    return {
+      text: "重名副本",
+      tone: "info",
+      tip: `同名插件 ${jar.symbolicName} 已在框架中，这是多余的旧版本文件，确认后可删除`,
+    };
+  }
+  return null;
+}
 
 /** 轨道总览天体 */
 interface OrbitBody {
@@ -326,6 +444,20 @@ const orbitLegend = computed(() => [
   },
 ]);
 
+/** 状态颜色图例：只展示当前出现过的状态（与轨道天体 / 状态徽章同一套配色） */
+const stateLegend = computed(() =>
+  [
+    { key: "active", label: "运行中" },
+    { key: "starting", label: "启动中" },
+    { key: "resolved", label: "已解析" },
+    { key: "stopping", label: "停止中" },
+    { key: "installed", label: "已安装" },
+    { key: "uninstalled", label: "已卸载" },
+  ]
+    .map(item => ({ ...item, count: rows.value.filter(row => row.state === item.key.toUpperCase()).length }))
+    .filter(item => item.count > 0),
+);
+
 /**
  * 服务登记视图：标注每条服务是否为「同类型中 ranking 最高」的当前生效项。
  *
@@ -349,6 +481,42 @@ const serviceRows = computed(() => {
     return { svc, effective };
   });
 });
+
+/** 当前展开详情的服务 ID（服务总线接驳线点击展开） */
+const serviceOpenId = ref<number | null>(null);
+
+/**
+ * 展开 / 收起服务登记详情（实现类、ranking、属性）。
+ *
+ * @param svc 服务登记
+ */
+function toggleService(svc: OsgiService): void {
+  serviceOpenId.value = serviceOpenId.value === svc.osgiServiceId ? null : svc.osgiServiceId;
+}
+
+/**
+ * 服务属性格式化为可读 JSON；空属性给明确提示，不显示成空白。
+ *
+ * @param props 服务属性
+ * @return 展示文本
+ */
+function formatProps(props: Record<string, unknown>): string {
+  if (!props || !Object.keys(props).length) {
+    return "（无属性）";
+  }
+  return JSON.stringify(props, null, 2);
+}
+
+/** 桥接定义明细面板是否展开 */
+const defsOpen = ref(false);
+/** 已注册服务类型明细面板是否展开 */
+const svcTypesOpen = ref(false);
+
+/** 桥接定义清单（快照 definitions，空安全） */
+const definitions = computed(() => snapshot.value?.definitions ?? []);
+
+/** 已注册服务类型清单（统计 registeredServiceTypes，空安全） */
+const registeredServiceTypes = computed(() => stats.value?.registeredServiceTypes ?? []);
 
 /**
  * 是否为框架系统 bundle。系统 bundle 不可停止/卸载/升级，界面上只展示。
@@ -547,7 +715,9 @@ async function reload(): Promise<void> {
   try {
     rows.value = (await listBundles()) ?? [];
     endpointDown.value = false;
+    loadError.value = "";
   } catch (error) {
+    loadError.value = errText(error);
     msgError(errText(error));
     if (error instanceof OsgiError && (error.status === 404 || error.status === 405)) {
       endpointDown.value = true;
@@ -726,6 +896,47 @@ function bindLogChannel(): void {
 /** 清空日志面板（只清本地展示，不影响后端） */
 function clearLogs(): void {
   logs.value = [];
+}
+
+/** 完整时间戳（日期 + 时分秒），导出文件行用 */
+function logTimeFull(ms: number): string {
+  const date = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(
+    date.getMinutes(),
+  )}:${pad(date.getSeconds())}`;
+}
+
+/**
+ * 导出当前筛选后的日志为 CSV（所见即所导，带 BOM，Excel 打开不乱码）。
+ */
+function exportLogsCsv(): void {
+  const table: Array<Array<unknown>> = [
+    ["时间", "级别", "阶段", "操作", "模块", "耗时ms", "消息"],
+    ...visibleLogs.value.map(item => [
+      logTimeFull(item.startedAt),
+      item.level,
+      item.status === "start" ? "开始" : item.status === "failure" ? "失败" : "完成",
+      actionText(item.action),
+      item.symbolicName,
+      item.duration,
+      item.message,
+    ]),
+  ];
+  downloadCsv(`osgi-log-${fileTimestamp()}.csv`, table);
+  msgSuccess(`已导出 ${visibleLogs.value.length} 条日志（CSV）`);
+}
+
+/**
+ * 导出当前筛选后的日志为 JSON（保留原始字段，便于程序化排查）。
+ */
+function exportLogsJson(): void {
+  downloadTextFile(
+    JSON.stringify(visibleLogs.value, null, 2),
+    `osgi-log-${fileTimestamp()}.json`,
+    "application/json;charset=utf-8",
+  );
+  msgSuccess(`已导出 ${visibleLogs.value.length} 条日志（JSON）`);
 }
 
 /**
@@ -925,6 +1136,102 @@ async function download(row: OsgiBundle): Promise<void> {
   }
 }
 
+/** 批量勾选的符号名集合（系统 bundle 不可选） */
+const selected = ref(new Set<string>());
+/** 批量操作执行中：期间禁用批量按钮与勾选 */
+const batchRunning = ref(false);
+
+/** 当前筛选结果里可勾选的模块（排除系统 bundle） */
+const selectableRows = computed(() => filteredRows.value.filter(row => !isSystem(row)));
+
+/** 是否全选（可选项非空且全部勾中） */
+const allPicked = computed(
+  () => selectableRows.value.length > 0 && selectableRows.value.every(row => selected.value.has(row.symbolicName)),
+);
+
+/**
+ * 勾选 / 取消勾选一个模块。
+ *
+ * @param row bundle
+ */
+function togglePick(row: OsgiBundle): void {
+  const next = new Set(selected.value);
+  if (next.has(row.symbolicName)) {
+    next.delete(row.symbolicName);
+  } else {
+    next.add(row.symbolicName);
+  }
+  selected.value = next;
+}
+
+/** 全选 / 清空当前筛选结果里的可勾选模块 */
+function togglePickAll(): void {
+  selected.value = allPicked.value ? new Set() : new Set(selectableRows.value.map(row => row.symbolicName));
+}
+
+/** 清空勾选 */
+function clearPicks(): void {
+  selected.value = new Set();
+}
+
+/**
+ * 批量执行启停 / 卸载。
+ *
+ * <p>后端只有单插件接口，这里按勾选顺序逐个调用；任一失败不中断其余，
+ * 最后汇总成功 / 失败并整体刷新一次。批量卸载不可逆，与单体卸载一样必须
+ * 二次确认；确认文案把影响范围（个数与后果）写全。</p>
+ *
+ * @param kind 操作类型
+ */
+async function runBatch(kind: "start" | "stop" | "uninstall"): Promise<void> {
+  const names = [...selected.value];
+  if (!names.length || batchRunning.value) {
+    return;
+  }
+  const label = kind === "start" ? "启动" : kind === "stop" ? "停止" : "卸载";
+  try {
+    await ElMessageBox.confirm(
+      `确认对 ${names.length} 个插件执行批量${label}？${
+        kind === "uninstall" ? "卸载后这些插件提供的扩展会立即失效（jar 文件保留在部署目录）。" : ""
+      }`,
+      `批量${label}`,
+      { type: kind === "uninstall" ? "warning" : "info", confirmButtonText: label, cancelButtonText: "取消" },
+    );
+  } catch {
+    return;
+  }
+  batchRunning.value = true;
+  names.forEach(beginBusy);
+  const failed: string[] = [];
+  let ok = 0;
+  try {
+    for (const name of names) {
+      try {
+        if (kind === "start") {
+          await startBundle(name);
+        } else if (kind === "stop") {
+          await stopBundle(name);
+        } else {
+          await uninstallBundle(name);
+        }
+        ok += 1;
+      } catch (error) {
+        failed.push(`${name}（${errText(error)}）`);
+      }
+    }
+    await reloadAll();
+  } finally {
+    names.forEach(endBusy);
+    batchRunning.value = false;
+    clearPicks();
+  }
+  if (!failed.length) {
+    msgSuccess(`批量${label}完成：${ok} 个`);
+  } else {
+    msgError(`批量${label}：成功 ${ok} 个，失败 ${failed.length} 个 —— ${failed.join("；")}`);
+  }
+}
+
 /** 轨道天体点击：滚动定位到对应 1U 模块并临时高亮 */
 function locate(row: OsgiBundle): void {
   highlightName.value = row.symbolicName;
@@ -1068,7 +1375,7 @@ onBeforeUnmount(() => {
           </div>
           <div class="orc-lines">
             <button
-              v-for="f in filters"
+              v-for="f in lineFilters"
               :key="f.key"
               type="button"
               class="orc-line"
@@ -1078,6 +1385,13 @@ onBeforeUnmount(() => {
               <i class="orc-line__dot" aria-hidden="true"></i>{{ f.label }}
             </button>
           </div>
+          <select v-model="sortKey" class="orc-sort" title="模块排序">
+            <option value="default">机架序</option>
+            <option value="name">按名称</option>
+            <option value="id">按 ID</option>
+            <option value="version">按版本</option>
+            <option value="state">按状态</option>
+          </select>
           <ReButton icon="RefreshRight" :loading="loading" @click="reloadAll">刷新</ReButton>
           <ReButton type="primary" icon="Upload" :disabled="globalBusy" @click="pickInstall">上传 jar</ReButton>
         </div>
@@ -1100,6 +1414,28 @@ onBeforeUnmount(() => {
         </span>
       </div>
 
+      <!-- 桥接定义明细：计数之外给出名字清单，排查「桥接里到底注册了什么」 -->
+      <div v-if="definitions.length" class="orc-detail">
+        <button type="button" class="orc-detail__head" @click="defsOpen = !defsOpen">
+          <span>桥接定义明细 · {{ definitions.length }} 项（点开查看）</span>
+          <span class="orc-detail__caret">{{ defsOpen ? "▾" : "▸" }}</span>
+        </button>
+        <div v-show="defsOpen" class="orc-detail__body">
+          <code v-for="def in definitions" :key="def" class="orc-detail__chip">{{ def }}</code>
+        </div>
+      </div>
+
+      <!-- 已注册服务类型明细：与服务总线对照，看哪些类型真正注册进了框架 -->
+      <div v-if="registeredServiceTypes.length" class="orc-detail">
+        <button type="button" class="orc-detail__head" @click="svcTypesOpen = !svcTypesOpen">
+          <span>已注册服务类型 · {{ registeredServiceTypes.length }} 类（点开查看）</span>
+          <span class="orc-detail__caret">{{ svcTypesOpen ? "▾" : "▸" }}</span>
+        </button>
+        <div v-show="svcTypesOpen" class="orc-detail__body">
+          <code v-for="type in registeredServiceTypes" :key="type" class="orc-detail__chip">{{ type }}</code>
+        </div>
+      </div>
+
       <!-- 验收拒绝明细：rejected 非空时展开可读全文，排查「插件为何未被接受」 -->
       <div v-if="rejectedCount" class="orc-reject">
         <button type="button" class="orc-reject__head" @click="rejectOpen = !rejectOpen">
@@ -1118,32 +1454,38 @@ onBeforeUnmount(() => {
             <i class="orc-orbit__ring orc-orbit__ring--outer" aria-hidden="true"></i>
             <i class="orc-orbit__ring orc-orbit__ring--mid" aria-hidden="true"></i>
             <i class="orc-orbit__ring orc-orbit__ring--inner" aria-hidden="true"></i>
-            <div
-              class="orc-orbit__core"
-              :title="framework ? `FW ${framework.symbolicName} v${framework.version}` : 'FW —'"
+            <el-tooltip
+              :content="framework ? `FW ${framework.symbolicName} v${framework.version}` : 'FW —'"
+              placement="top"
             >
-              <b>FW</b>
-              <span>{{ framework ? chNo(framework.bundleId) : "—" }}</span>
-            </div>
-            <button
+              <div class="orc-orbit__core">
+                <b>FW</b>
+                <span>{{ framework ? chNo(framework.bundleId) : "—" }}</span>
+              </div>
+            </el-tooltip>
+            <el-tooltip
               v-for="body in orbitBodies"
               :key="body.row.bundleId"
-              type="button"
-              class="orc-sat"
-              :class="[
-                `orc-sat--${body.ring}`,
-                `orc-sat--${body.row.state.toLowerCase()}`,
-                { 'orc-sat--hl': hoverName === body.row.symbolicName, 'orc-sat--sm': body.small },
-              ]"
-              :style="{ left: `${body.x}%`, top: `${body.y}%` }"
-              :title="`${body.row.symbolicName} · ${stateText(body.row.state)}`"
-              @click="locate(body.row)"
-              @mouseenter="hoverName = body.row.symbolicName"
-              @mouseleave="hoverName = ''"
+              :content="`${body.row.symbolicName} · v${body.row.version} · ${stateText(body.row.state)}`"
+              placement="top"
             >
-              <i class="orc-sat__dot" aria-hidden="true"></i>
-              <span class="orc-sat__id">{{ chNo(body.row.bundleId) }}</span>
-            </button>
+              <button
+                type="button"
+                class="orc-sat"
+                :class="[
+                  `orc-sat--${body.ring}`,
+                  `orc-sat--${body.row.state.toLowerCase()}`,
+                  { 'orc-sat--hl': hoverName === body.row.symbolicName, 'orc-sat--sm': body.small },
+                ]"
+                :style="{ left: `${body.x}%`, top: `${body.y}%` }"
+                @click="locate(body.row)"
+                @mouseenter="hoverName = body.row.symbolicName"
+                @mouseleave="hoverName = ''"
+              >
+                <i class="orc-sat__dot" aria-hidden="true"></i>
+                <span class="orc-sat__id">{{ chNo(body.row.bundleId) }}</span>
+              </button>
+            </el-tooltip>
           </div>
           <div class="orc-orbit__legend">
             <span v-for="leg in orbitLegend" :key="leg.key" class="orc-orbit__leg">
@@ -1151,10 +1493,34 @@ onBeforeUnmount(() => {
               {{ leg.label }} <b>{{ leg.count }}</b>
             </span>
           </div>
+          <div v-if="stateLegend.length" class="orc-orbit__states">
+            <span v-for="st in stateLegend" :key="st.key" class="orc-orbit__state">
+              <i :class="`orc-orbit__statedot orc-orbit__statedot--${st.key}`" aria-hidden="true"></i>
+              {{ st.label }} <b>{{ st.count }}</b>
+            </span>
+          </div>
         </aside>
 
         <!-- V01 机架 + V06 芯片：1U 模块墙 -->
         <div class="orc-rack">
+          <!-- 批量操作条：勾选模块后出现，随勾选数量变化 -->
+          <div v-if="selected.size" class="orc-batch">
+            <label class="orc-batch__all">
+              <input type="checkbox" :checked="allPicked" :disabled="batchRunning" @change="togglePickAll" />
+              全选本屏
+            </label>
+            <span class="orc-batch__count">已选 {{ selected.size }} 个模块</span>
+            <ReButton size="small" type="success" :disabled="batchRunning" @click="runBatch('start')">
+              批量启动
+            </ReButton>
+            <ReButton size="small" type="warning" :disabled="batchRunning" @click="runBatch('stop')">
+              批量停止
+            </ReButton>
+            <ReButton size="small" type="danger" :disabled="batchRunning" @click="runBatch('uninstall')">
+              批量卸载
+            </ReButton>
+            <ReButton size="small" :disabled="batchRunning" @click="clearPicks">取消选择</ReButton>
+          </div>
           <div class="orc-rack__slots" :class="{ 'orc-rack__slots--empty': !loading && !filteredRows.length }">
             <article
               v-for="row in filteredRows"
@@ -1172,6 +1538,15 @@ onBeforeUnmount(() => {
             >
               <i class="orc-ch__notch" aria-hidden="true"></i>
               <div class="orc-ch__id">
+                <input
+                  v-if="!isSystem(row)"
+                  type="checkbox"
+                  class="orc-ch__pick"
+                  :checked="selected.has(row.symbolicName)"
+                  :disabled="batchRunning"
+                  :aria-label="`选择 ${row.symbolicName}`"
+                  @change="togglePick(row)"
+                />
                 <i class="orc-ch__led" aria-hidden="true"></i>
                 <span class="orc-ch__u">U{{ chNo(row.bundleId) }}</span>
                 <span class="orc-ch__bid">#{{ row.bundleId }}</span>
@@ -1264,7 +1639,12 @@ onBeforeUnmount(() => {
             </article>
 
             <div v-if="!loading && !filteredRows.length" class="orc-empty">
-              <template v-if="rows.length">
+              <template v-if="loadError && !rows.length">
+                <p class="orc-empty__bad">插件清单加载失败</p>
+                <p class="orc-empty__hint">{{ loadError }}</p>
+                <button type="button" class="orc-empty__clear" @click="reloadAll">重试加载</button>
+              </template>
+              <template v-else-if="rows.length">
                 <p>没有符合当前搜索 / 筛选条件的 bundle</p>
                 <button type="button" class="orc-empty__clear" @click="clearFilters">清除搜索与筛选</button>
               </template>
@@ -1286,7 +1666,8 @@ onBeforeUnmount(() => {
               v-for="(item, index) in serviceRows"
               :key="item.svc.osgiServiceId"
               class="orc-jack"
-              :title="`已注册服务 · ranking ${item.svc.ranking}${item.effective ? ' · 当前生效' : ''}`"
+              :class="{ 'orc-jack--open': serviceOpenId === item.svc.osgiServiceId }"
+              @click="toggleService(item.svc)"
             >
               <span class="orc-jack__no">J{{ index + 1 }}</span>
               <div class="orc-jack__txt">
@@ -1295,6 +1676,20 @@ onBeforeUnmount(() => {
               </div>
               <span v-if="item.effective" class="orc-jack__eff">生效</span>
               <i class="orc-jack__led" aria-hidden="true"></i>
+              <span class="orc-jack__caret" aria-hidden="true">
+                {{ serviceOpenId === item.svc.osgiServiceId ? "▾" : "▸" }}
+              </span>
+              <div v-if="serviceOpenId === item.svc.osgiServiceId" class="orc-jack__more" @click.stop>
+                <span class="orc-jack__row">
+                  <i>实现类</i>
+                  <code :title="item.svc.implClass">{{ item.svc.implClass || "—" }}</code>
+                </span>
+                <span class="orc-jack__row">
+                  <i>ranking</i>
+                  <code>{{ item.svc.ranking }}{{ item.effective ? " · 当前生效" : "" }}</code>
+                </span>
+                <pre class="orc-jack__props">{{ formatProps(item.svc.properties) }}</pre>
+              </div>
             </div>
           </div>
           <p v-else class="orc-svc__empty">当前无已注册服务，启动 bundle 后自动接通线路</p>
@@ -1356,6 +1751,15 @@ onBeforeUnmount(() => {
               仅文件
             </button>
           </div>
+          <div class="depot__search">
+            <el-input
+              v-model="traySearch"
+              placeholder="搜索文件名 / 符号名…"
+              clearable
+              size="small"
+              :prefix-icon="Search"
+            />
+          </div>
           <div class="depot__auto">
             <span>每 30s 自动巡检</span>
             <el-switch v-model="autoRefresh" size="small" />
@@ -1374,6 +1778,11 @@ onBeforeUnmount(() => {
               <div class="depot__jar__name">
                 {{ jar.fileName }}
                 <span class="depot__jar__size">{{ formatSize(jar.size) }}</span>
+                <el-tooltip v-if="jarFlag(jar)" :content="jarFlag(jar)!.tip" placement="top">
+                  <span :class="`depot__jar__flag depot__jar__flag--${jarFlag(jar)!.tone}`">
+                    {{ jarFlag(jar)!.text }}
+                  </span>
+                </el-tooltip>
               </div>
               <div class="depot__jar__meta">
                 <span v-if="jar.installed">框架中 · {{ jar.symbolicName }} · {{ stateText(jar.state ?? "") }}</span>
@@ -1452,6 +1861,17 @@ onBeforeUnmount(() => {
           @click.stop="logOnlyProblem = !logOnlyProblem"
         >
           仅异常
+        </button>
+        <button
+          type="button"
+          class="orc-log__act"
+          title="导出当前筛选后的日志为 CSV（Excel 可直接打开）"
+          @click.stop="exportLogsCsv"
+        >
+          导出 CSV
+        </button>
+        <button type="button" class="orc-log__act" title="导出当前筛选后的日志为 JSON" @click.stop="exportLogsJson">
+          导出 JSON
         </button>
         <button type="button" class="orc-log__act" @click.stop="clearLogs">清空</button>
       </header>
@@ -2219,13 +2639,73 @@ onBeforeUnmount(() => {
 
 .orc-jack {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto auto;
+  grid-template-columns: 26px minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   background: var(--bg-container);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.orc-jack:hover,
+.orc-jack--open {
+  border-color: var(--brand-500);
+  background: color-mix(in srgb, var(--brand-500) 4%, var(--bg-container));
+}
+
+.orc-jack__caret {
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+
+.orc-jack__more {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border-top: 1px dashed var(--border-subtle);
+  cursor: default;
+}
+
+.orc-jack__row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.orc-jack__row i {
+  flex: none;
+  font-style: normal;
+  font-family: var(--orc-mono);
+  font-size: 9px;
+  color: var(--text-tertiary);
+}
+
+.orc-jack__row code {
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.orc-jack__props {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--orc-well);
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 140px;
+  overflow: auto;
 }
 
 .orc-jack__no {
@@ -3029,6 +3509,196 @@ onBeforeUnmount(() => {
   .orc-log__symbol {
     display: none;
   }
+}
+
+/* ============ 第三轮增强：排序 / 批量 / 图例 / 明细 / 车辆段标记 ============ */
+
+/* ---- 工具带排序选择 ---- */
+.orc-sort {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.orc-sort:focus {
+  outline: none;
+  border-color: var(--brand-500);
+}
+
+/* ---- 批量操作条 ---- */
+.orc-batch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--brand-500) 35%, var(--orc-frame));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--brand-500) 7%, var(--orc-panel));
+}
+
+.orc-batch__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.orc-batch__count {
+  font-family: var(--orc-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-500);
+}
+
+/* ---- 模块勾选框 ---- */
+.orc-ch__pick {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--brand-500);
+  cursor: pointer;
+}
+
+.orc-ch__pick:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ---- 清单加载失败态 ---- */
+.orc-empty__bad {
+  margin: 0;
+  font-weight: 700;
+  color: var(--status-error);
+}
+
+/* ---- 轨道状态颜色图例 ---- */
+.orc-orbit__states {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-subtle);
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.orc-orbit__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.orc-orbit__state b {
+  color: var(--brand-500);
+}
+
+.orc-orbit__statedot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.orc-orbit__statedot--active { background: var(--status-success); }
+.orc-orbit__statedot--starting { background: var(--status-warning); }
+.orc-orbit__statedot--resolved { background: var(--brand-500); }
+.orc-orbit__statedot--stopping { background: var(--brand-400); }
+.orc-orbit__statedot--installed { background: var(--metric-net); }
+.orc-orbit__statedot--uninstalled { background: var(--status-error); }
+
+/* ---- 遥测明细展开面板（桥接定义 / 已注册服务类型） ---- */
+.orc-detail {
+  margin: 0 16px 10px;
+  border: 1px solid var(--orc-frame);
+  border-radius: var(--radius-lg);
+  background: var(--orc-well);
+  overflow: hidden;
+}
+
+.orc-detail__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.orc-detail__head:hover {
+  color: var(--brand-500);
+}
+
+.orc-detail__caret {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.orc-detail__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 12px 10px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.orc-detail__chip {
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  background: var(--bg-container);
+  font-family: var(--orc-mono);
+  font-size: 10px;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* ---- 车辆段搜索与异常标记 ---- */
+.depot__search {
+  width: 220px;
+  max-width: 100%;
+}
+
+.depot__jar__flag {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+}
+
+.depot__jar__flag--warning {
+  background: color-mix(in srgb, var(--status-warning) 16%, transparent);
+  color: var(--status-warning);
+}
+
+.depot__jar__flag--danger {
+  background: color-mix(in srgb, var(--status-error) 16%, transparent);
+  color: var(--status-error);
+}
+
+.depot__jar__flag--info {
+  background: color-mix(in srgb, var(--brand-500) 14%, transparent);
+  color: var(--brand-500);
 }
 </style>
 
