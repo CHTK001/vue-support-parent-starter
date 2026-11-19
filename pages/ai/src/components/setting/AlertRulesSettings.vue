@@ -9,22 +9,40 @@
         <el-button type="primary" @click="openCreate">新建规则</el-button>
       </template>
 
+      <!-- 筛选行：名称关键字 / 作用范围 / 启用状态 -->
+      <div class="alert-filter">
+        <el-input
+          v-model="filterKeyword"
+          class="alert-filter__keyword"
+          placeholder="按规则名称搜索"
+          clearable
+          :prefix-icon="Search"
+        />
+        <el-select v-model="filterScope" class="alert-filter__scope" placeholder="作用范围" clearable>
+          <el-option label="全局" :value="0" />
+          <el-option v-for="k in appKeys" :key="k.id" :label="appKeyLabel(k)" :value="k.id" />
+        </el-select>
+        <el-select v-model="filterEnabled" class="alert-filter__state" placeholder="状态" clearable>
+          <el-option label="启用" :value="true" />
+          <el-option label="停用" :value="false" />
+        </el-select>
+        <span class="alert-filter__count">{{ filteredRules.length }} / {{ rules.length }} 条</span>
+      </div>
+
       <el-table
         v-loading="loading"
-        :data="rules"
+        :data="filteredRules"
         row-key="id"
-        empty-text="暂无告警规则，点击右上角「新建规则」创建"
         style="width: 100%"
       >
-        <el-table-column prop="name" label="规则名称" min-width="170" show-overflow-tooltip />
-        <el-table-column label="作用范围" min-width="150" show-overflow-tooltip>
+        <el-table-column prop="name" label="规则名称" min-width="160" show-overflow-tooltip />
+        <el-table-column label="作用范围" min-width="140" show-overflow-tooltip>
           <template #default="{ row }">{{ scopeLabel(row) }}</template>
         </el-table-column>
-        <el-table-column prop="condition" label="触发条件" min-width="130" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.condition || '—' }}</template>
+        <el-table-column label="触发条件" min-width="210" show-overflow-tooltip>
+          <template #default="{ row }">{{ conditionSummary(row) }}</template>
         </el-table-column>
-        <el-table-column prop="threshold" label="阈值" width="110" />
-        <el-table-column label="通知渠道" min-width="150" show-overflow-tooltip>
+        <el-table-column label="通知渠道" min-width="140" show-overflow-tooltip>
           <template #default="{ row }">{{ channelsLabel(row) }}</template>
         </el-table-column>
         <el-table-column label="启用" width="80" align="center">
@@ -39,6 +57,13 @@
             <el-button link type="danger" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
+        <template #empty>
+          <div class="alert-empty">
+            <p class="alert-empty__text">{{ hasFilter ? '没有匹配的告警规则' : '暂无告警规则' }}</p>
+            <el-button v-if="hasFilter" link type="primary" @click="clearFilters">清除筛选条件</el-button>
+            <el-button v-else type="primary" @click="openCreate">新建规则</el-button>
+          </div>
+        </template>
       </el-table>
     </SettingsCard>
 
@@ -46,10 +71,18 @@
     <el-dialog
       v-model="dialogVisible"
       :title="form.id ? '编辑告警规则' : '新建告警规则'"
-      width="540px"
+      width="560px"
       append-to-body
       :close-on-click-modal="false"
     >
+      <el-alert
+        v-if="form.appKeyId === 0"
+        class="alert-scope-tip"
+        type="warning"
+        show-icon
+        :closable="false"
+        title="全局规则对当前所有 AppKey 生效，请确认阈值口径对所有账号都合适。"
+      />
       <el-form label-width="92px" @submit.prevent>
         <el-form-item label="规则名称" required>
           <el-input v-model="form.name" maxlength="60" show-word-limit placeholder="如：OpenAI 日费用告警" />
@@ -76,9 +109,16 @@
               :value="c.value"
             />
           </el-select>
+          <div class="alert-form-hint">
+            <span>表达式长度 {{ form.condition.length }}/128（后端上限）</span>
+            <span v-if="form.condition.length > 128" class="alert-form-hint--error">超出上限，请缩短表达式</span>
+          </div>
         </el-form-item>
         <el-form-item label="阈值" required>
-          <el-input-number v-model="form.threshold" :min="0" :step="1" step-strictly style="width: 100%" />
+          <div class="alert-threshold">
+            <el-input-number v-model="form.threshold" :min="0" :step="1" step-strictly />
+            <span v-if="activeUnit" class="alert-threshold__unit">{{ activeUnit }}</span>
+          </div>
         </el-form-item>
         <el-form-item label="通知渠道">
           <el-select
@@ -92,6 +132,10 @@
           >
             <el-option v-for="c in CHANNEL_PRESETS" :key="c" :label="c" :value="c" />
           </el-select>
+          <div class="alert-form-hint">
+            <span>序列化后长度 {{ channelsJson.length }}/512（后端上限）</span>
+            <span v-if="channelsJson.length > 512" class="alert-form-hint--error">超出上限，请减少渠道</span>
+          </div>
         </el-form-item>
         <el-form-item label="启用">
           <el-switch v-model="form.enabled" />
@@ -113,42 +157,85 @@
  * 后端当前提供规则的 CRUD 与启停：condition 为触发条件表达式字符串（VARCHAR(128)），
  * channels 为通知渠道 JSON 数组字符串（VARCHAR(512)），appKeyId=0 表示全局。
  * 前端只做展示与交互、按契约序列化，不实现后端的判定规则。</p>
+ *
+ * <p>展示增强：预设条件带单位（费用 ¥ / tokens / 次 / %），表格把「条件 + 阈值」
+ * 合成一句可读语义；阈值单位随所选条件自适应。校验只对齐后端列宽（128/512），
+ * 不做业务判重（业务规则归后端）。</p>
  */
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { message } from '@repo/core'
 import { ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { apiService } from '@/services/ApiService'
 import { appKeyApi } from '@/services/javaApi'
 import SettingsCard from './SettingsCard.vue'
 
 defineOptions({ name: 'AlertRulesSettings' })
 
-/** 常用触发条件预设（allow-create：后端不校验枚举，可输入任意表达式） */
+/** 常用触发条件预设（allow-create：后端不校验枚举，可输入任意表达式；unit 仅用于展示） */
 const CONDITION_PRESETS = [
-  { label: '当日费用', value: 'daily_cost' },
-  { label: '当日 Token 用量', value: 'daily_tokens' },
-  { label: '当日请求数', value: 'daily_requests' },
-  { label: '错误率', value: 'error_rate' },
+  { label: '当日费用', value: 'daily_cost', unit: '¥' },
+  { label: '当日 Token 用量', value: 'daily_tokens', unit: 'tokens' },
+  { label: '当日请求数', value: 'daily_requests', unit: '次' },
+  { label: '错误率', value: 'error_rate', unit: '%' },
 ]
 
 /** 常用通知渠道预设（可自由输入） */
 const CHANNEL_PRESETS = ['站内消息', '邮件', 'Webhook']
+
+/** 后端列宽约束（V7.0__init_all_ai.sql：condition VARCHAR(128)、channels VARCHAR(512)） */
+const CONDITION_MAX = 128
+const CHANNELS_JSON_MAX = 512
 
 const loading = ref(false)
 const saving = ref(false)
 const rules = ref<any[]>([])
 const appKeys = ref<any[]>([])
 
-const dialogVisible = ref(false)
-const form = reactive({
-  id: null as number | null,
-  name: '',
-  appKeyId: 0,
-  condition: '',
-  threshold: 0,
-  channelList: [] as string[],
-  enabled: true,
+// ==================== 筛选 ====================
+const filterKeyword = ref('')
+const filterScope = ref<number | ''>('')
+const filterEnabled = ref<boolean | ''>('')
+
+/** clearable 清空后是 ''；null/undefined/'' 都视为未选 */
+const isSet = (v: any) => v !== null && v !== undefined && v !== ''
+
+const hasFilter = computed(
+  () => filterKeyword.value.trim() !== '' || isSet(filterScope.value) || isSet(filterEnabled.value)
+)
+
+const filteredRules = computed(() => {
+  const kw = filterKeyword.value.trim().toLowerCase()
+  return rules.value.filter((r) => {
+    if (kw && !String(r?.name ?? '').toLowerCase().includes(kw)) return false
+    if (isSet(filterScope.value) && Number(r?.appKeyId ?? 0) !== Number(filterScope.value)) return false
+    if (isSet(filterEnabled.value) && Boolean(r?.enabled) !== Boolean(filterEnabled.value)) return false
+    return true
+  })
 })
+
+const clearFilters = () => {
+  filterKeyword.value = ''
+  filterScope.value = ''
+  filterEnabled.value = ''
+}
+
+// ==================== 展示辅助 ====================
+const conditionMeta = (cond: any) =>
+  CONDITION_PRESETS.find((c) => c.value === cond)
+
+/** 阈值 + 单位（随条件自适应；无预设单位时不加后缀） */
+const thresholdText = (threshold: any, cond?: any) => {
+  const unit = conditionMeta(cond)?.unit ?? ''
+  return `${threshold ?? 0}${unit ? ` ${unit}` : ''}`
+}
+
+/** 表格「触发条件」列：预设条件合成「当日费用 > 100 ¥」；自定义表达式原文 + 阈值并列 */
+const conditionSummary = (row: any) => {
+  const meta = conditionMeta(row?.condition)
+  if (meta) return `${meta.label} > ${thresholdText(row?.threshold, row?.condition)}`
+  return `${row?.condition || '—'}（阈值 ${row?.threshold ?? 0}）`
+}
 
 /** appKeyId → 名称（下拉未加载到时退化为 #id） */
 const appKeyName = (id: any) => {
@@ -177,6 +264,24 @@ const appKeyLabel = (k: any) => {
   const name = k?.name ? String(k.name) : `#${k?.id}`
   return k?.providerName ? `${name} · ${k.providerName}` : name
 }
+
+// ==================== 表单 ====================
+const dialogVisible = ref(false)
+const form = reactive({
+  id: null as number | null,
+  name: '',
+  appKeyId: 0,
+  condition: '',
+  threshold: 0,
+  channelList: [] as string[],
+  enabled: true,
+})
+
+/** 当前所选条件的单位（阈值输入框旁展示） */
+const activeUnit = computed(() => conditionMeta(form.condition)?.unit ?? '')
+
+/** channels 序列化结果（对话框内实时展示长度，对齐后端 VARCHAR(512)） */
+const channelsJson = computed(() => JSON.stringify(form.channelList.filter((c) => String(c).trim())))
 
 const load = async () => {
   loading.value = true
@@ -242,20 +347,30 @@ const save = async () => {
     message.warning('请填写规则名称')
     return
   }
-  if (!String(form.condition).trim()) {
+  const condition = String(form.condition).trim()
+  if (!condition) {
     message.warning('请填写触发条件表达式')
+    return
+  }
+  if (condition.length > CONDITION_MAX) {
+    message.warning(`触发条件表达式不能超过 ${CONDITION_MAX} 个字符（后端列宽限制）`)
     return
   }
   if (form.threshold === null || form.threshold === undefined) {
     message.warning('请填写告警阈值')
     return
   }
+  const channels = JSON.stringify(form.channelList.filter((c) => String(c).trim()))
+  if (channels.length > CHANNELS_JSON_MAX) {
+    message.warning(`通知渠道序列化后不能超过 ${CHANNELS_JSON_MAX} 个字符（后端列宽限制）`)
+    return
+  }
   const payload = {
     name: form.name.trim(),
     appKeyId: form.appKeyId,
-    condition: String(form.condition).trim(),
+    condition,
     threshold: form.threshold,
-    channels: JSON.stringify(form.channelList.filter((c) => String(c).trim())),
+    channels,
     enabled: form.enabled,
   }
   saving.value = true
@@ -315,5 +430,69 @@ onMounted(() => {
 <style scoped>
 .alert-rules {
   width: 100%;
+}
+
+.alert-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.alert-filter__keyword {
+  width: 220px;
+}
+
+.alert-filter__scope {
+  width: 200px;
+}
+
+.alert-filter__state {
+  width: 120px;
+}
+
+.alert-filter__count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.alert-empty {
+  padding: 20px 0;
+}
+
+.alert-empty__text {
+  margin: 0 0 10px;
+  color: var(--el-text-color-secondary);
+}
+
+.alert-scope-tip {
+  margin-bottom: 12px;
+}
+
+.alert-form-hint {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+}
+
+.alert-form-hint--error {
+  color: var(--el-color-danger);
+}
+
+.alert-threshold {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.alert-threshold__unit {
+  margin-left: 8px;
+  color: var(--el-text-color-secondary);
 }
 </style>
