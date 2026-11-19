@@ -225,6 +225,38 @@ function nextId(): string {
 }
 
 /**
+ * 历史明细条目：带主键与时间，供浮层展示时间、按条删除。
+ */
+export interface MessageHistoryEntry {
+  /** 记录主键（删除时使用） */
+  id: string;
+  /** 解密后的明文文本 */
+  text: string;
+  /** 写入时间（毫秒时间戳） */
+  createdAt: number;
+}
+
+/**
+ * 解密 + 去重 + 限额，把存储记录铺成对外条目。
+ *
+ * @param records 已按时间倒序的分组记录
+ * @param limit 保留条数
+ * @returns 最新在前的明细条目
+ */
+function collectEntries(records: StoredMessage[], limit: number): MessageHistoryEntry[] {
+  const seen = new Set<string>();
+  const out: MessageHistoryEntry[] = [];
+  for (const record of records) {
+    const value = decodeText(record.text).trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    out.push({ id: record.id, text: value, createdAt: record.createdAt });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/**
  * 读取历史（最新在前，已去重）。
  *
  * @param options 分组与条数
@@ -233,16 +265,42 @@ function nextId(): string {
 export async function loadMessageHistory(options: MessageHistoryOptions = {}): Promise<string[]> {
   const limit = normalizeLimit(options.limit ?? getMessageHistoryLimit());
   const records = await readGroup(options);
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const record of records) {
-    const value = decodeText(record.text).trim();
-    if (!value || seen.has(value)) continue;
-    seen.add(value);
-    out.push(value);
-    if (out.length >= limit) break;
-  }
-  return out;
+  return collectEntries(records, limit).map((entry) => entry.text);
+}
+
+/**
+ * 读取历史明细（最新在前，已去重）：比 {@link loadMessageHistory} 多带
+ * 记录主键与写入时间，供「按时间展示 + 单条删除」的浮层使用。
+ *
+ * @param options 分组与条数
+ * @returns 明细条目；无记录、存储不可用时返回空数组
+ */
+export async function loadMessageHistoryDetailed(
+  options: MessageHistoryOptions = {},
+): Promise<MessageHistoryEntry[]> {
+  const limit = normalizeLimit(options.limit ?? getMessageHistoryLimit());
+  const records = await readGroup(options);
+  return collectEntries(records, limit);
+}
+
+/**
+ * 删除单条历史记录。
+ *
+ * <p>按主键精确删：只删属于当前分组的这条记录，不影响其它条目。</p>
+ *
+ * @param id 记录主键（来自 {@link loadMessageHistoryDetailed} 的条目）
+ * @param options 分组参数
+ */
+export async function deleteMessageHistoryEntry(
+  id: string,
+  options: MessageHistoryOptions = {},
+): Promise<void> {
+  const target = String(id ?? "").trim();
+  if (!target) return;
+  const records = await readGroup(options);
+  const hit = records.find((record) => record.id === target);
+  if (!hit) return;
+  await removeRecords([hit]);
 }
 
 /**
