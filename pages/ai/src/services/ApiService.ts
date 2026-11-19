@@ -64,6 +64,7 @@ import {
   sessionInputSuggestApi,
   type SessionInputSuggestApi,
 } from "./modules/session-input-suggest.api";
+import { sessionCapabilityApi, type SessionCapabilityApi } from "./modules/sessionCapability.api";
 
 export type { FileChangeEvent };
 export type { SessionEvent, SessionEventType };
@@ -100,7 +101,8 @@ interface ApiService
     GoalApi,
     SessionNextTaskApi,
     SessionInputSuggestApi,
-    GitApi {}
+    GitApi,
+    SessionCapabilityApi {}
 
 /**
  * 框架请求管线错误 → 本项目错误类型。
@@ -379,6 +381,7 @@ Object.assign(
   sessionNextTaskApi,
   sessionInputSuggestApi,
   gitApi,
+  sessionCapabilityApi,
 );
 
 /**

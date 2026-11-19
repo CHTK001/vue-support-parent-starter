@@ -1,5 +1,5 @@
 <template>
-  <div class="process-section thinking-section">
+  <div class="process-section thinking-section" :class="effortLevel ? `thinking-section--${effortLevel}` : ''">
     <!-- 标题行：状态词 + 思考内容首行摘要（用户需求 2026-11-07：过程行直接给出内容预览，
          与工具行的「动作名 + 命令摘要」同构，扫一眼就知道这轮思考在想什么） -->
     <div
@@ -12,6 +12,10 @@
       <span class="text-gray-600 dark:text-gray-400 shrink-0">{{ isThinking ? t('chat.turn.thinkingActive') : t('chat.turn.thinkingDone') }}</span>
       <span v-if="thinkingDuration" class="text-xs text-gray-400 ml-2 shrink-0">
         {{ formattedDuration }}
+      </span>
+      <!-- 思考强度徽标（能力 ⑧）：低/中/高三档配色，元数据优先、回退会话设置 -->
+      <span v-if="effortLevel" class="thinking-section__effort" :class="`thinking-section__effort--${effortLevel}`">
+        {{ effortLabel }}
       </span>
       <!-- 折叠态的内容摘要：取推理正文首行，截断显示（展开后隐藏，正文自见） -->
       <span v-if="!isExpanded && contentPreview" class="thinking-section__preview">{{ contentPreview }}</span>
@@ -36,8 +40,10 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import MarkdownContent from '../../ui/MarkdownContent.vue';
 import { formatDuration } from '../../../utils/messageUtils';
+import { useSessionStore } from '../../../stores/session';
 
 const { t } = useI18n();
+const sessionStore = useSessionStore();
 
 const props = defineProps<{
   reasoningContent: string;
@@ -73,6 +79,42 @@ const thinkingDuration = computed(() => {
 
 const formattedDuration = computed(() => {
   return formatDuration(thinkingDuration.value);
+});
+
+/** 思考强度原始档位：消息元数据优先，回退当前会话设置 */
+const rawEffort = computed<string>(() => {
+  const fromMeta = props.metadata?.thinkingEffort;
+  if (typeof fromMeta === 'string' && fromMeta.trim()) {
+    return fromMeta.trim().toLowerCase();
+  }
+  const setting = sessionStore.getSessionSetting(sessionStore.activeSessionId, 'thinkingEffort');
+  return typeof setting === 'string' ? setting.trim().toLowerCase() : '';
+});
+
+/** 三档视觉分级：low / medium / high（default 等不标） */
+const effortLevel = computed<'low' | 'medium' | 'high' | ''>(() => {
+  switch (rawEffort.value) {
+    case 'low':
+    case 'minimal':
+    case 'minimum':
+    case 'none':
+      return 'low';
+    case 'medium':
+      return 'medium';
+    case 'high':
+    case 'max':
+    case 'xhigh':
+      return 'high';
+    default:
+      return '';
+  }
+});
+
+/** 档位文案：复用 common.thinkingEffort 既有词条 */
+const effortLabel = computed(() => {
+  const key = `common.thinkingEffort.${rawEffort.value}`;
+  const text = t(key);
+  return text === key ? rawEffort.value : text;
 });
 
 /**
@@ -134,6 +176,45 @@ const contentPreview = computed(() => {
 .thinking-content {
   max-height: 60vh;
   overflow-y: auto;
+}
+
+/* 思考强度徽标与导轨配色：低=success、中=primary、高=warning，
+   与 PlanApprovalCard / 能力面板的风险徽标同一套配色语义。 */
+.thinking-section__effort {
+  flex-shrink: 0;
+  margin-left: 8px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.thinking-section__effort--low {
+  color: var(--el-color-success);
+  background: color-mix(in srgb, var(--el-color-success) 12%, transparent);
+}
+
+.thinking-section__effort--medium {
+  color: var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+}
+
+.thinking-section__effort--high {
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 14%, transparent);
+}
+
+.thinking-section--low .thinking-section__content-wrapper {
+  border-left-color: var(--el-color-success);
+}
+
+.thinking-section--medium .thinking-section__content-wrapper {
+  border-left-color: var(--el-color-primary);
+}
+
+.thinking-section--high .thinking-section__content-wrapper {
+  border-left-color: var(--el-color-warning);
 }
 
 @keyframes fadeIn {

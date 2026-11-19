@@ -8,6 +8,7 @@
                 </el-icon>
                 <span>{{ t('chat.workspace.terminal.title') }}</span>
                 <span class="terminal-panel__status" :class="statusClass">{{ statusText }}</span>
+                <span v-if="elapsedText" class="terminal-panel__elapsed" :title="t('chat.workspace.terminal.elapsed')">{{ elapsedText }}</span>
             </div>
             <div class="flex items-center gap-0.5 shrink-0">
                 <LTooltip :content="t('chat.workspace.terminal.clear')" placement="bottom">
@@ -176,6 +177,47 @@ const connecting = computed(() => connectionState.value === 'connecting');
 /** 是否可终止进程 */
 const canStop = computed(() => connectionState.value === 'connected');
 
+// ── 运行时长统计（长命令可观测性）：terminal.ready 起表，断开/退出/重启即停 ──
+/** 本次连接就绪的时间戳 */
+let connectedAt = 0;
+/** 已运行秒数 */
+const elapsedSeconds = ref(0);
+/** 秒级心跳句柄 */
+let elapsedTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 运行时长文案：仅在已连接态展示 */
+const elapsedText = computed(() => {
+    if (connectionState.value !== 'connected') {
+        return '';
+    }
+    const total = Math.max(0, elapsedSeconds.value);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const mm = String(m).padStart(2, '0');
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+});
+
+/** 启动运行时长统计 */
+function startElapsed(): void {
+    stopElapsed();
+    connectedAt = Date.now();
+    elapsedSeconds.value = 0;
+    elapsedTimer = setInterval(() => {
+        elapsedSeconds.value = Math.floor((Date.now() - connectedAt) / 1000);
+    }, 1000);
+}
+
+/** 停止运行时长统计（清零） */
+function stopElapsed(): void {
+    if (elapsedTimer) {
+        clearInterval(elapsedTimer);
+        elapsedTimer = null;
+    }
+    elapsedSeconds.value = 0;
+}
+
 /** 状态文案 */
 const statusText = computed(() => {
     switch (connectionState.value) {
@@ -335,6 +377,7 @@ function onReady(payload: TerminalReadyEvent): void {
     if (payload?.rows) {
         rows.value = payload.rows;
     }
+    startElapsed();
     focusTerminal();
 }
 
@@ -348,6 +391,7 @@ function onOutput(payload: TerminalOutputEvent): void {
 
 /** 处理 terminal.exit */
 function onExit(payload: TerminalExitEvent): void {
+    stopElapsed();
     connectionState.value = 'exited';
     pushNotice(t('chat.workspace.terminal.exitNotice', { code: payload?.code ?? -1 }), '33');
     pushNotice(t('chat.workspace.terminal.restartToContinue'), '90');
@@ -360,6 +404,7 @@ function onError(payload: TerminalErrorEvent): void {
 
 /** 处理 terminal.stopped（主动终止） */
 function onStopped(): void {
+    stopElapsed();
     connectionState.value = 'stopped';
     pushNotice(t('chat.workspace.terminal.stoppedNotice'), '90');
 }
@@ -379,6 +424,7 @@ function onConnectionStatus(connected: boolean): void {
     if (intentionalDisconnect) {
         return;
     }
+    stopElapsed();
     connectionState.value = 'disconnected';
     pushNotice(t('chat.workspace.terminal.connectionLost'), '90');
 }
@@ -411,6 +457,7 @@ async function connect(reset: boolean): Promise<void> {
         return;
     }
     const size = fitTerminal();
+    stopElapsed();
     connectionState.value = 'connecting';
     if (reset) {
         terminalInstance.reset();
@@ -489,6 +536,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
     disposed = true;
     intentionalDisconnect = true;
+    stopElapsed();
     if (resizeFrame) {
         cancelAnimationFrame(resizeFrame);
         resizeFrame = 0;
@@ -533,6 +581,16 @@ onBeforeUnmount(() => {
     border-radius: 999px;
     background: var(--el-fill-color);
     color: var(--el-text-color-secondary);
+}
+
+/* 运行时长徽标：与状态徽标同档，数字等宽避免跳动 */
+.terminal-panel__elapsed {
+    font-size: 10px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--el-fill-color);
+    color: var(--el-text-color-secondary);
+    font-variant-numeric: tabular-nums;
 }
 
 .terminal-panel__status--connected {

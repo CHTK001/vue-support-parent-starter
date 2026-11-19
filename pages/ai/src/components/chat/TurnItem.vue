@@ -357,7 +357,7 @@ const emit = defineEmits<{
   fork: [message: Message]
   /** 终止本轮执行：运行中工具行展开后的「停止」（需求 7/8） */
   abort: []
-  resumeConfirmation: [payload: { replyId: string; confirmed: boolean; items: any[]; feedback?: string }]
+  resumeConfirmation: [payload: { replyId: string; confirmed: boolean; items: any[]; mode?: 'once' | 'always'; feedback?: string }]
 }>();
 
 // ============================================
@@ -484,7 +484,7 @@ const confirmationRequest = computed<{ replyId: string; items: any[] } | null>((
   return null;
 });
 
-const handleConfirmationDecision = (payload: { replyId: string; confirmed: boolean; feedback?: string }) => {
+const handleConfirmationDecision = (payload: { replyId: string; confirmed: boolean; mode?: 'once' | 'always'; feedback?: string }) => {
   // 立即回填本地终态：动作条与计划卡片都据此收起，不必等下一次拉取。
   // 真实终态仍以后端持久化的 status 为准，恢复失败时下次拉取会纠正回来。
   const req: any = confirmationRequest.value;
@@ -495,6 +495,7 @@ const handleConfirmationDecision = (payload: { replyId: string; confirmed: boole
     replyId: payload.replyId,
     confirmed: payload.confirmed,
     items: confirmationRequest.value?.items || [],
+    mode: payload.mode,
     feedback: payload.feedback,
   });
 };

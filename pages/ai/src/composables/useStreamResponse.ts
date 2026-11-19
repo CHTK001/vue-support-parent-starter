@@ -1134,7 +1134,7 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
     streamingSessionId: string,
     req: {
       replyId: string;
-      decisions: Array<{ toolCallId: string; confirmed: boolean }>;
+      decisions: Array<{ toolCallId: string; confirmed: boolean; mode?: string }>;
       model?: string;
       characterId?: string | null;
       think?: boolean;

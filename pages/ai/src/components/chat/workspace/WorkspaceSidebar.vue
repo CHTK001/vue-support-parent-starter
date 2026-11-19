@@ -38,6 +38,14 @@
                       </el-icon>
                   </button>
                 </LTooltip>
+                <LTooltip :content="t('chat.workspace.capability.title')" placement="bottom">
+                  <button class="seg-btn" :class="{ active: sidePanel === 'capability' }" :disabled="!props.sessionId"
+                      @click="showCapabilityPanel">
+                      <el-icon :size="20">
+                          <Cpu />
+                      </el-icon>
+                  </button>
+                </LTooltip>
             </div>
 
             <!-- 标签 + 新建按钮容器（预览模式且有标签时显示） -->
@@ -227,6 +235,10 @@
         <TerminalPanel v-if="props.sessionId && !isPreviewMode && sidePanel === 'terminal'" class="flex-1 min-h-0"
             :session-id="props.sessionId" />
 
+        <!-- 会话能力面板：服务器信息 / 权限自测 / 角色子代理调用 -->
+        <SessionCapabilityPanel v-if="props.sessionId && !isPreviewMode && sidePanel === 'capability'"
+            class="flex-1 min-h-0" :session-id="props.sessionId" />
+
         <!-- 浏览器窗口预览占位（webview / web iframe 实际在 MainLayout 层，此处仅空壳坐标） -->
         <BrowserPreviewPlaceholder v-if="!!browserStore.activeWindowId" v-show="isPreviewMode && !!browserStore.activeWindowId" />
 
@@ -287,7 +299,7 @@ import { ref, computed, watch, onUnmounted, nextTick } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import { apiService, type FileChangeEvent } from '@/services/ApiService';
-import { Refresh, CopyDocument, Edit, Delete, Plus, Close, Share, Monitor, DocumentAdd, FolderAdd, Search, View, Hide } from '@element-plus/icons-vue';
+import { Refresh, CopyDocument, Edit, Delete, Plus, Close, Share, Monitor, DocumentAdd, FolderAdd, Search, View, Hide, Cpu } from '@element-plus/icons-vue';
 import { Folder16Regular, Window16Regular, ArrowMinimize16Regular, FullScreenMaximize16Regular } from '@vicons/fluent';
 import { VsCode, WindowsExplorer } from '@/components/icons';
 import { getFileIcon } from '@/composables/useFileIcon';
@@ -299,6 +311,7 @@ import SessionTodoList from './SessionTodoList.vue';
 import WorkspaceTree from './WorkspaceTree.vue';
 import GitPanel from './GitPanel.vue';
 import TerminalPanel from './TerminalPanel.vue';
+import SessionCapabilityPanel from './SessionCapabilityPanel.vue';
 import BrowserPreviewPlaceholder from './BrowserPreviewPlaceholder.vue';
 import { useBrowserWebviewStore } from '@/stores/browserWebview';
 import { useLayoutStore } from '@/stores/layout';
@@ -535,9 +548,9 @@ const isPreviewMode = computed(() => tabStore.isPreviewMode);
 const tabs = computed(() => tabStore.tabs);
 const activeTabKey = computed(() => tabStore.activeTabKey);
 /**
- * 侧栏当前面板：files=目录树，git=Git 变更，terminal=工作区终端
+ * 侧栏当前面板：files=目录树，git=Git 变更，terminal=工作区终端，capability=会话能力
  */
-const sidePanel = ref<'files' | 'git' | 'terminal'>('files');
+const sidePanel = ref<'files' | 'git' | 'terminal' | 'capability'>('files');
 const isTreePanelVisible = ref(false);
 const treeTransitionReady = ref(false);
 const workspaceBtnRef = ref<HTMLElement | null>(null);
@@ -686,6 +699,12 @@ function showGitPanel(): void {
 /** 点击终端按钮：退出预览模式并打开终端面板 */
 function showTerminalPanel(): void {
     sidePanel.value = 'terminal'
+    tabStore.exitPreviewMode()
+}
+
+/** 点击能力按钮：退出预览模式并打开会话能力面板（服务器信息 / 权限自测 / 子代理） */
+function showCapabilityPanel(): void {
+    sidePanel.value = 'capability'
     tabStore.exitPreviewMode()
 }
 

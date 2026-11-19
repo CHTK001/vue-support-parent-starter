@@ -57,7 +57,8 @@ export interface ResumeStreamParams {
   sessionId: string;
   replyId: string;
   // 决策列表：每项对应一个待确认工具
-  decisions: Array<{ toolCallId: string; confirmed: boolean }>;
+  // mode: once（单次放行，缺省）/ always（记住该工具，后续同类不再询问）
+  decisions: Array<{ toolCallId: string; confirmed: boolean; mode?: string }>;
   model?: string;
   characterId?: string | null;
   think?: boolean;

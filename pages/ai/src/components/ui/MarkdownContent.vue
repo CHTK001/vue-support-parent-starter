@@ -6,9 +6,12 @@
 </template>
 <script setup lang="ts">
 import { watch, ref, onMounted, onBeforeUnmount } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useMarkdown } from "../../composables/useMarkdown";
+import { previewUrl } from "../../utils/workspacePreview";
 
 const { marked } = useMarkdown()
+const { t } = useI18n();
 
 // 定义 Props - 类型化
 const props = defineProps<{
@@ -34,9 +37,11 @@ const render = () => {
         const parsed = marked.parse(raw);
         if (typeof parsed === 'string') {
             if (parsed !== el.innerHTML) el.innerHTML = parsed;
+            ensurePreviewButtons(el);
         } else if (parsed instanceof Promise) {
             parsed.then((h) => {
                 if (typeof h === 'string' && h !== el.innerHTML) el.innerHTML = h;
+                ensurePreviewButtons(el);
             }).catch(() => { el.innerText = raw; });
         }
     } catch (error) {
@@ -51,7 +56,86 @@ const scheduleRender = () => {
     rafId = requestAnimationFrame(() => { rafId = 0; render(); });
 };
 
-onMounted(render);
+// ── HTML / SVG 代码块内建预览 ──
+
+/** 可直接预览的代码语言 */
+const PREVIEWABLE_LANGS = new Set(['html', 'svg']);
+/** 超过该字符数的代码块不生成预览（data URL 过大没有意义） */
+const MAX_PREVIEW_CHARS = 200 * 1024;
+
+/** 读取代码块语言；xml 内联 svg 也按 svg 预览 */
+function previewLangOf(codeEl: Element): string {
+    const lang = Array.from(codeEl.classList)
+        .find((cls) => cls.startsWith('language-'))
+        ?.slice('language-'.length) ?? '';
+    if (PREVIEWABLE_LANGS.has(lang)) {
+        return lang;
+    }
+    if (lang === 'xml' && /<svg[\s>]/i.test(codeEl.textContent ?? '')) {
+        return 'svg';
+    }
+    return '';
+}
+
+/**
+ * 渲染后为可预览的代码块头部补充「预览」按钮。
+ * 点击用文档级委托监听（onDelegatedClick），无需逐按钮绑定。
+ */
+function ensurePreviewButtons(root: HTMLElement): void {
+    const blocks = root.querySelectorAll('.custom-code-block');
+    blocks.forEach((block) => {
+        if (block.querySelector('.md-preview-button')) {
+            return;
+        }
+        const codeEl = block.querySelector('pre code');
+        if (!codeEl || !previewLangOf(codeEl)) {
+            return;
+        }
+        const header = block.querySelector('.code-header');
+        if (!header) {
+            return;
+        }
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'md-preview-button';
+        btn.title = t('chat.workspace.codePreview');
+        btn.setAttribute('aria-label', t('chat.workspace.codePreview'));
+        btn.textContent = '▣';
+        header.appendChild(btn);
+    });
+}
+
+/** 把代码源码包成独立 HTML 文档（SVG 居中在白底上展示） */
+function buildPreviewDocument(source: string, lang: string): string {
+    if (lang === 'svg') {
+        return `<!doctype html><html><head><meta charset="utf-8"><style>`
+            + `html,body{margin:0;height:100%;display:flex;align-items:center;justify-content:center;background:#fff}`
+            + `svg{max-width:96%;max-height:96%}</style></head><body>${source}</body></html>`;
+    }
+    return `<!doctype html><html><head><meta charset="utf-8"></head><body>${source}</body></html>`;
+}
+
+/** 文档级委托点击：点中预览按钮时，把对应代码块内容推入内建预览窗口 */
+function onDelegatedClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target || !target.classList?.contains('md-preview-button')) {
+        return;
+    }
+    const block = target.closest('.custom-code-block');
+    const codeEl = block?.querySelector('pre code');
+    const source = codeEl?.textContent ?? '';
+    if (!source.trim() || source.length > MAX_PREVIEW_CHARS) {
+        return;
+    }
+    const html = buildPreviewDocument(source, previewLangOf(codeEl as Element));
+    const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    void previewUrl(url);
+}
+
+onMounted(() => {
+    render();
+    document.addEventListener('click', onDelegatedClick);
+});
 
 watch(
     () => props.content,
@@ -60,5 +144,28 @@ watch(
 
 onBeforeUnmount(() => {
     if (rafId) cancelAnimationFrame(rafId);
+    document.removeEventListener('click', onDelegatedClick);
 });
 </script>
+
+<style>
+/* 预览按钮是运行时动态创建的，scoped 样式不生效，这里用全局样式；
+   只挂在 .code-header 下，不影响其它区域。 */
+.md-preview-button {
+    appearance: none;
+    border: 1px solid var(--el-border-color-lighter);
+    background: transparent;
+    color: var(--el-text-color-secondary);
+    font-size: 11px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.md-preview-button:hover {
+    color: var(--el-color-primary);
+    border-color: var(--el-color-primary-light-5);
+}
+</style>

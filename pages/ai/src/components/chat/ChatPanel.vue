@@ -1946,12 +1946,14 @@ async function regenerateResponse(message: any) {
 /**
  * 计划批准/拒绝（plan_exit 人工确认）：决策回传恢复 Agent
  */
-async function resumeConfirmation(payload: { replyId: string; confirmed: boolean; items: any[]; feedback?: string }) {
+async function resumeConfirmation(payload: { replyId: string; confirmed: boolean; items: any[]; mode?: 'once' | 'always'; feedback?: string }) {
   const sid = currentSessionId.value;
   if (!sid) return;
   const decisions = (payload.items || []).map((it: any) => ({
     toolCallId: it.toolCallId,
     confirmed: payload.confirmed,
+    // mode 仅在批准时有意义（once=单次放行 / always=记住该工具）；拒绝时后端忽略
+    ...(payload.confirmed && payload.mode ? { mode: payload.mode } : {}),
   }));
   try {
     const handler = useStreamResponse(sessionStore, apiService);
