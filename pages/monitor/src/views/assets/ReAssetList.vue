@@ -21,6 +21,7 @@
         :settings="{ border: false }"
         style="width: 100%"
         :config="{ pagination: { enable: false }, toolbar: { enable: false } }"
+        table-id="asset-list"
       >
         <template #col-monitorEnabled="{ row }">
           <el-tag :type="assetOf(row).monitorEnabled === 1 ? 'success' : 'danger'">
@@ -89,6 +90,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { message } from '@repo/core'
 import { getMonitors, saveMonitor, delMonitor } from '../../api'
 
 
@@ -146,8 +148,8 @@ const loadAssets = async () => {
   try {
     const res = await getMonitors()
     assets.value = res.filter((a: any) => a.serviceType === 'SERVER')
-  } catch (e) {
-    console.error('加载资产失败', e)
+  } catch (e: any) {
+    message.error(e?.message || '加载资产失败')
   }
 }
 
@@ -165,10 +167,14 @@ const handleEdit = (row: Asset) => {
 
 const handleDelete = async (id: number) => {
   try {
+    await message.confirm('确认删除该资产？删除后不可恢复')
     await delMonitor(id)
+    message.success('已删除')
     await loadAssets()
-  } catch (e) {
-    console.error('删除失败', e)
+  } catch (e: any) {
+    // confirm 取消时 reject 假值，静默返回（与同域 ScAssetList 口径一致）
+    if (!e) return
+    message.error(e?.message || '删除失败')
   }
 }
 
@@ -176,9 +182,10 @@ const handleSubmit = async () => {
   try {
     await saveMonitor(editId.value || 0, form.value)
     showDialog.value = false
+    message.success(editId.value ? '资产已更新' : '资产已新增')
     await loadAssets()
-  } catch (e) {
-    console.error('保存失败', e)
+  } catch (e: any) {
+    message.error(e?.message || '保存失败')
   }
 }
 
