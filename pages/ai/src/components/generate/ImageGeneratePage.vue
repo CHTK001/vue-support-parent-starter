@@ -9,6 +9,21 @@
         </template>
         <template #actions>
             <!--
+              进行中任务徽章：生成常要几分钟，切走再回来时这里给出全局感知；
+              点击即切到「只看生成中」，不用自己去开筛选弹层。选择模式下让位给工具条。
+            -->
+            <button
+              v-if="runningCount && !selecting"
+              type="button"
+              class="wg-chip wg-chip-running"
+              title="查看生成中的任务"
+              @click="focusRunning()"
+            >
+              <span class="wg-running-dot" aria-hidden="true"></span>
+              <span>{{ runningCount }} 个生成中</span>
+            </button>
+
+            <!--
               生成类型切换。
               原来是在筛选行里放「图像 / 视频」两个行内 tab，占掉一整行左侧，
               现在收到右上角做成一个按钮 + popover：既省位置，也和「网格/列表」
@@ -148,6 +163,19 @@
                 <span class="wg-menu-text"><span class="wg-menu-name">仅收藏</span></span>
                 <WgIcon v-if="onlyFavorite" :d="ICONS.check" class="wg-menu-check" />
               </button>
+
+              <p class="wg-menu-title">时间</p>
+              <button
+                v-for="opt in TIME_RANGE_OPTIONS"
+                :key="'tr-' + (opt.key || 'all')"
+                type="button"
+                class="wg-menu-item"
+                :class="{ 'is-active': timeRange === opt.key }"
+                @click="timeRange = opt.key; filterOpen = false"
+              >
+                <span class="wg-menu-text"><span class="wg-menu-name">{{ opt.label }}</span></span>
+                <WgIcon v-if="timeRange === opt.key" :d="ICONS.check" class="wg-menu-check" />
+              </button>
             </div>
           </PickerPopover>
 
@@ -231,6 +259,16 @@
             >
               <WgIcon :d="ICONS.trash" />
               <span>删除选中{{ selectedIds.size ? ' ' + selectedIds.size : '' }}</span>
+            </button>
+            <!-- 批量下载：逐张走既有的鉴权下载通道，文件名带提示词与序号，落地即可辨认 -->
+            <button
+              type="button"
+              class="wg-chip"
+              :disabled="!selectedIds.size"
+              @click="downloadSelected()"
+            >
+              <WgIcon :d="ICONS.download" />
+              <span>下载选中{{ selectedIds.size ? ' ' + selectedIds.size : '' }}</span>
             </button>
             <button type="button" class="wg-chip" @click="exitSelectMode()">退出</button>
           </template>
@@ -338,9 +376,25 @@
                   :style="{ aspectRatio: refRatioOf(stageRow.task) }"
                 />
                 <span v-else class="wg-stage-ref-lost">参考图已丢失</span>
+                <!-- 对照开关：参考图与结果并排同屏，图生图「改了多少」一眼可读 -->
+                <button
+                  v-if="!mediaFailed(stageRow.task.referenceImage)"
+                  type="button"
+                  class="wg-stage-ref-toggle"
+                  :class="{ 'is-on': refCompareOpen }"
+                  :aria-pressed="refCompareOpen"
+                  @click="refCompareOpen = !refCompareOpen"
+                >
+                  {{ refCompareOpen ? '退出对照' : '对照' }}
+                </button>
               </div>
               <!-- 说明浮层压在画面上：题目 + 规格 + 操作，全部贴着这张图 -->
-              <figure class="wg-stage-figure" v-viewer="viewerOptions">
+              <figure class="wg-stage-figure" :class="{ 'is-compare': refCompareActive }" v-viewer="viewerOptions">
+                <!-- 对照模式：参考图占左半屏，与右侧结果同尺并排，「改了多少」一眼可读 -->
+                <div v-if="refCompareActive && stageRow.task.referenceImage" class="wg-stage-compare-cell">
+                  <span class="wg-stage-compare-tag">参考图</span>
+                  <img :src="mediaSrc(stageRow.task.referenceImage)" alt="参考图" decoding="async" />
+                </div>
                 <!--
                   画框比画面宽时，两侧会留出大片纯暗色，看起来像「图没铺满」。
                   用同一张图做一层放大虚化的底，把暗色填成画面自身的延伸；
@@ -372,9 +426,17 @@
                   @load="markLoaded(stageItem.key)"
                 />
                 <div v-else class="wg-stage-lost" role="img" aria-label="原图已丢失">原图已丢失</div>
+                <span v-if="refCompareActive" class="wg-stage-compare-tag is-result" aria-hidden="true">结果</span>
 
                 <figcaption class="wg-stage-cap">
-                  <p class="wg-stage-prompt" :title="stageRow.task.prompt">
+                  <!-- 长提示词默认两行截断：点击展开读全文，再点收起；换一条记录自动复位 -->
+                  <p
+                    class="wg-stage-prompt"
+                    :class="{ 'is-open': stagePromptOpen }"
+                    :title="stagePromptOpen ? '点击收起' : '点击展开全文'"
+                    @click="stagePromptOpen = !stagePromptOpen"
+                  >
+                    <WgIcon :d="ICONS.chevron" class="wg-stage-prompt-caret" />
                     {{ stageRow.task.prompt || '（无提示词）' }}
                   </p>
                   <div class="wg-stage-meta">
@@ -388,6 +450,17 @@
                     </span>
                     <span v-if="stageRow.task.type === 'image' && stageRow.task.style" class="wg-stage-kv">
                       <em>风格</em>{{ styleName(stageRow.task.style) }}
+                    </span>
+                    <!-- 复现参数：种子/负面提示词有值才显示；负面词全文放 title 悬停可读 -->
+                    <span v-if="stageRow.task.seed !== null && stageRow.task.seed !== undefined" class="wg-stage-kv">
+                      <em>种子</em>{{ stageRow.task.seed }}
+                    </span>
+                    <span
+                      v-if="stageRow.task.negativePrompt"
+                      class="wg-stage-kv"
+                      :title="stageRow.task.negativePrompt"
+                    >
+                      <em>负面</em>已设置
                     </span>
                     <span class="wg-stage-kv"><em>耗时</em>{{ formatElapsed(stageRow.task.elapsedMillis) }}</span>
                     <span class="wg-stage-kv"><em>时间</em>{{ formatTime(stageRow.task.createdAt) }}</span>
@@ -727,6 +800,9 @@
                           controls
                           preload="metadata"
                           @loadeddata="markLoaded(entry.key)"
+                          @mouseenter="previewVideo($event)"
+                          @mouseleave="pauseVideoPreview($event)"
+                          @click="unmuteVideoOnInteract($event)"
                         />
                         <div
                           v-else-if="row.task.type === 'video'"
@@ -837,6 +913,9 @@
                         class="wg-fan-media"
                         controls
                         preload="metadata"
+                        @mouseenter="previewVideo($event)"
+                        @mouseleave="pauseVideoPreview($event)"
+                        @click="unmuteVideoOnInteract($event)"
                       />
                       <img
                         v-else-if="!mediaFailed(item.url)"
@@ -950,6 +1029,15 @@
                     <em class="wg-pill-label">风格</em>
                     <span>{{ styleName(row.task.style) }}</span>
                   </span>
+                  <!-- 复现参数：种子有值才显示；负面词只报「已设置」，全文放 title 悬停可读 -->
+                  <span v-if="row.task.seed !== null && row.task.seed !== undefined" class="wg-pill">
+                    <em class="wg-pill-label">种子</em>
+                    <span>{{ row.task.seed }}</span>
+                  </span>
+                  <span v-if="row.task.negativePrompt" class="wg-pill" :title="row.task.negativePrompt">
+                    <em class="wg-pill-label">负面</em>
+                    <span>已设置</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -996,6 +1084,18 @@
           </button>
           <span v-else>没有更多了</span>
         </div>
+
+        <!-- 回到顶部：画廊翻过约两屏后亮出，粘在滚动区右下角 -->
+        <button
+          v-if="viewMode === 'gallery' && showBackTop"
+          type="button"
+          class="wg-back-top"
+          aria-label="回到顶部"
+          title="回到顶部"
+          @click="scrollToTop()"
+        >
+          <WgIcon :d="ICONS.chevron" />
+        </button>
       </div>
 
       <!-- 输入条：外观沿用会话输入库（GenerateComposer.vue） -->
@@ -1664,6 +1764,19 @@ const hasRunningTask = computed(() => {
   return active
 })
 
+/** 进行中（含排队）任务数：标题栏「N 个生成中」徽章用 */
+const runningCount = computed(
+  () => tasks.value.filter((t) => t.status === 'PENDING' || t.status === 'RUNNING').length,
+)
+
+/** 点「N 个生成中」徽章：回到画廊并只看进行中的任务，不必自己开筛选弹层 */
+const focusRunning = () => {
+  statusFilter.value = 'RUNNING'
+  if (viewMode.value !== 'gallery') {
+    setViewMode('gallery')
+  }
+}
+
 const tasks = ref<GenerateTask[]>([])
 /** 首次加载历史期间为 true，用于骨架屏 */
 const loading = ref(false)/**
@@ -1688,6 +1801,20 @@ const modelFilter = ref('')
 const statusFilter = ref<GenerateTaskStatus | ''>('')
 const onlyFavorite = ref(false)
 const sortOrder = ref<'newest' | 'oldest'>('newest')
+
+/** 时间范围：以当前时刻回看的滑动窗口（近 24 小时 / 7 天 / 30 天），空串=不过滤 */
+type TimeRangeKey = '' | 'day' | 'week' | 'month'
+const TIME_RANGE_OPTIONS: ReadonlyArray<{
+  key: TimeRangeKey
+  label: string
+  spanMillis: number
+}> = [
+  { key: '', label: '全部时间', spanMillis: 0 },
+  { key: 'day', label: '近 24 小时', spanMillis: 24 * 3600_000 },
+  { key: 'week', label: '近 7 天', spanMillis: 7 * 24 * 3600_000 },
+  { key: 'month', label: '近 30 天', spanMillis: 30 * 24 * 3600_000 },
+]
+const timeRange = ref<TimeRangeKey>('')
 /**
  * 作品区形态。01 画廊（多列作品墙）与 05 舞台（暗色沉浸单张）两个都要，
  * 切换入口在页面头右上角；记住上一种形态，刷新后不跳回默认。
@@ -1742,6 +1869,14 @@ watch(
 const canvasRef = ref<HTMLElement | null>(null)
 const composerRef = ref<HTMLElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+
+/** 距顶超过该值（约两屏）显示「回到顶部」 */
+const BACK_TOP_THRESHOLD = 1200
+const showBackTop = ref(false)
+
+const scrollToTop = () => {
+  canvasRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 /**
  * 每个任务一个轮询定时器。
@@ -2116,6 +2251,11 @@ const visibleTasks = computed(() => {
   if (onlyFavorite.value) {
     list = list.filter((task) => favorites.value.includes(task.taskId))
   }
+  const range = TIME_RANGE_OPTIONS.find((item) => item.key === timeRange.value)
+  if (range && range.spanMillis > 0) {
+    const earliest = Date.now() - range.spanMillis
+    list = list.filter((task) => (task.createdAt ?? 0) >= earliest)
+  }
   const kw = keyword.value.trim().toLowerCase()
   if (kw) {
     list = list.filter(
@@ -2328,6 +2468,8 @@ const setViewMode = (mode: ViewMode) => {
     stageItemIndex.value = 0
   }
   viewMode.value = mode
+  // 舞台不滚动，「回到顶部」的显示状态不跨形态保留
+  showBackTop.value = false
 }
 
 /** 从画廊点开一张：定位到那条记录的第 index 张 */
@@ -2386,6 +2528,26 @@ const stageJumpEdge = (edge: 'start' | 'end') => {
   }
   stageItemIndex.value = edge === 'start' ? 0 : items.length - 1
 }
+
+/** 舞台长提示词展开状态：换一条记录自动收起，避免上一条的展开状态串台 */
+const stagePromptOpen = ref(false)
+
+/** 图生图对照：参考图与结果并排同屏（参考图字节还在才可开） */
+const refCompareOpen = ref(false)
+const refCompareActive = computed(
+  () =>
+    refCompareOpen.value
+    && !!stageRow.value?.task.referenceImage
+    && !mediaFailed(stageRow.value.task.referenceImage),
+)
+
+watch(
+  () => stageRow.value?.id,
+  () => {
+    stagePromptOpen.value = false
+    refCompareOpen.value = false
+  },
+)
 
 /** 舞台键盘：Esc 回画廊、←/→ 换张、Home/End 跳首末。只在舞台生效，不抢画廊里方向键的滚动 */
 const onCanvasKeydown = (ev: KeyboardEvent) => {
@@ -2492,7 +2654,11 @@ const sortLabel = computed(() => SORT_OPTIONS.find((item) => item.key === sortOr
 
 /** 生效中的筛选条件数，用于「筛选」角标 */
 const activeFilterCount = computed(
-  () => (modelFilter.value ? 1 : 0) + (statusFilter.value ? 1 : 0) + (onlyFavorite.value ? 1 : 0),
+  () =>
+    (modelFilter.value ? 1 : 0)
+    + (statusFilter.value ? 1 : 0)
+    + (onlyFavorite.value ? 1 : 0)
+    + (timeRange.value ? 1 : 0),
 )
 
 /**
@@ -2512,6 +2678,7 @@ const resetQuery = () => {
   modelFilter.value = ''
   statusFilter.value = ''
   onlyFavorite.value = false
+  timeRange.value = ''
 }
 
 const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`)
@@ -2953,11 +3120,65 @@ const dataUrlToBlob = (dataUrl: string): Blob => {
  * （令牌不进 URL，浏览器下载历史里不会留下一条带 accessToken 的地址）。
  * 供应商直链不需要鉴权，走原生下载即可。
  */
-const download = (url: string, type: 'image' | 'video') => {
-  void downloadAuthenticatedFile(
-    url,
-    type === 'video' ? 'generate.mp4' : 'generate.png',
-  )
+/**
+ * 下载文件名：提示词前缀 + 时间戳 + 序号。
+ *
+ * 固定叫 generate.png 时，一次下载多张会被浏览器改名成 (1)(2)…，落地对不上哪张是哪张；
+ * 用「提示词前 16 字 - 年月日-时分秒 - 第 n 张」让文件名本身可辨认。
+ * 提示词里的空白与文件系统非法字符一并去掉；空提示词回落 generate。
+ */
+const downloadName = (task: GenerateTask | undefined, type: 'image' | 'video', index?: number): string => {
+  const ext = type === 'video' ? 'mp4' : 'png'
+  const base =
+    (task?.prompt ?? '')
+      .trim()
+      .replace(/[\\/:*?"<>|\s]+/g, '')
+      .slice(0, 16) || 'generate'
+  const d = task?.createdAt ? new Date(task.createdAt) : new Date()
+  const stamp = `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`
+  const seq = index !== undefined ? `-${index + 1}` : ''
+  return `${base}-${stamp}${seq}.${ext}`
+}
+
+const download = (url: string, type: 'image' | 'video', task?: GenerateTask, index?: number) => {
+  void downloadAuthenticatedFile(url, downloadName(task, type, index))
+}
+
+/**
+ * 视频缩略图悬停静音预览：不点开也能看到画面在动。
+ * hover 播放一律静音（声音突袭比无声更糟）；用户点击画面/控件时恢复声音——
+ * 「点」这个动作本身就代表要正式看/听了。
+ */
+const previewVideo = (ev: MouseEvent) => {
+  const video = ev.currentTarget as HTMLVideoElement | null
+  if (!video || !video.paused) {
+    return
+  }
+  video.muted = true
+  video.dataset.wgHoverPreview = '1'
+  void video.play().catch(() => {
+    // 自动播放被浏览器策略拦截时保持静默：缩略图仍有首帧，不影响点击播放
+  })
+}
+
+/** 悬停结束：只停「因悬停而播」的视频，不干扰用户手动点播的进度 */
+const pauseVideoPreview = (ev: MouseEvent) => {
+  const video = ev.currentTarget as HTMLVideoElement | null
+  if (!video || video.dataset.wgHoverPreview !== '1') {
+    return
+  }
+  delete video.dataset.wgHoverPreview
+  video.pause()
+}
+
+/** 用户点击视频（播放/进度/音量等控件）：解除悬停预览的静音 */
+const unmuteVideoOnInteract = (ev: MouseEvent) => {
+  const video = ev.currentTarget as HTMLVideoElement | null
+  if (video && video.muted) {
+    video.muted = false
+  }
+}
+
 }
 
 /* ============================================================================
@@ -3166,8 +3387,24 @@ const selecting = ref(false)
 /** 选择模式下已勾选的任务号 */
 const selectedIds = ref(new Set<string>())
 
-/** 清理/批量删除/清空共用同一个进行中标记，避免并发破坏性操作互相穿插 */
-const busyClearing = ref(false)
+/** 批量下载选中记录的全部结果：逐张走既有鉴权下载通道，序号连续编排 */
+const downloadSelected = () => {
+  const picked = rows.value.filter((row) => selectedIds.value.has(row.id))
+  let seq = 0
+  for (const row of picked) {
+    for (const item of row.items) {
+      if (mediaFailed(item.url)) {
+        continue
+      }
+      download(item.url, row.task.type, row.task, seq)
+      seq += 1
+    }
+  }
+  if (seq > 0) {
+    message.success(`已开始下载 ${seq} 个文件`)
+  }
+}
+
 
 /**
  * 每秒推进一次的时钟，只为「已用时」这类相对时间用。
@@ -3671,12 +3908,13 @@ const loadMore = async () => {
   }
 }
 
-/** 画布滚动：距底部 200px 内触发补页 */
+/** 画布滚动：距底部 200px 内触发补页；翻过约两屏后亮出「回到顶部」 */
 const onCanvasScroll = () => {
   const el = canvasRef.value
   if (!el) {
     return
   }
+  showBackTop.value = el.scrollTop > BACK_TOP_THRESHOLD
   if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200) {
     void loadMore()
   }
@@ -4141,6 +4379,45 @@ onUnmounted(() => {
 .wg-chip-danger:hover {
   background: var(--el-color-danger-light-9);
   color: var(--el-color-danger);
+}
+
+/* 「N 个生成中」徽章：全局感知进行中任务，点击直达「只看生成中」筛选 */
+.wg-chip-running {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  font-weight: 500;
+}
+
+.wg-chip-running:hover {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.wg-running-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: wg-running-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes wg-running-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.35;
+    transform: scale(0.72);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wg-running-dot {
+    animation: none;
+  }
 }
 
 .wg-chip:disabled {
@@ -5855,6 +6132,53 @@ onUnmounted(() => {
   text-align: center;
 }
 
+/* 回到顶部：粘在画布滚动区右下角；负下边距抵消自身占位，不额外增加可滚动高度 */
+.wg-back-top {
+  position: sticky;
+  bottom: 20px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 12px 24px -52px auto;
+  border: 1px solid var(--el-border-color);
+  border-radius: 50%;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-regular);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+  cursor: pointer;
+  animation: wg-back-top-in 0.22s ease-out;
+}
+
+.wg-back-top:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+}
+
+.wg-back-top:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+}
+
+.wg-back-top .wg-svg {
+  width: 18px;
+  height: 18px;
+  transform: rotate(180deg);
+}
+
+@keyframes wg-back-top-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* 「加载更早的记录」：键盘/内容不足一屏时的兜底入口，样式贴近系统次级按钮 */
 .wg-more-btn {
   padding: 6px 16px;
@@ -6259,6 +6583,86 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
+/* 对照开关：参考图条右侧；开启后舞台切成「参考图 | 结果」并排 */
+.wg-stage-ref-toggle {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 1px solid var(--stg-line);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--stg-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 0.18s,
+    color 0.18s,
+    border-color 0.18s;
+}
+
+.wg-stage-ref-toggle:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+  color: var(--stg-text);
+}
+
+.wg-stage-ref-toggle.is-on {
+  border-color: transparent;
+  background: var(--el-color-primary);
+  color: #fff;
+}
+
+/* 对照模式：左右两半等宽，参考图与结果同尺并排 */
+.wg-stage-figure.is-compare {
+  gap: 12px;
+  padding: 12px;
+  align-items: stretch;
+}
+
+.wg-stage-compare-cell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.wg-stage-compare-cell img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.wg-stage-figure.is-compare .wg-stage-media {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.wg-stage-compare-tag {
+  position: absolute;
+  top: 10px;
+  z-index: 3;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  background: rgba(6, 8, 13, 0.66);
+  color: #d6dbe4;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.wg-stage-compare-cell .wg-stage-compare-tag {
+  left: 10px;
+}
+
+.wg-stage-compare-tag.is-result {
+  right: 10px;
+}
+
 /* 虚化底：比画框大一圈，边缘被 overflow 裁掉，避免模糊后露出硬边 */
 .wg-stage-bleed {
   position: absolute;
@@ -6296,8 +6700,28 @@ onUnmounted(() => {
   color: var(--stg-text);
   font-size: 13px;
   line-height: 1.5;
+  cursor: pointer;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.wg-stage-prompt-caret {
+  width: 12px;
+  height: 12px;
+  margin-right: 5px;
+  vertical-align: -2px;
+  opacity: 0.62;
+  transition: transform 0.18s ease;
+}
+
+/* 展开：取消两行截断，读全文；箭头翻转向表示「可收起」 */
+.wg-stage-prompt.is-open {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+
+.wg-stage-prompt.is-open .wg-stage-prompt-caret {
+  transform: rotate(180deg);
 }
 
 .wg-stage-meta {
