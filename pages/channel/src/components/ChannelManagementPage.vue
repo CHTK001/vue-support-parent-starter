@@ -113,6 +113,12 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   magpie: { icon: magpieIcon, color: '#0EA5A4', glyph: 'M', method: 'API Key' },
   // ChatClient 免登录渠道：官方 DuckDuckGo 图标
   'chat-duckduckgo': { icon: duckduckgoIcon, color: '#DE5833', glyph: 'D', method: '免登录' },
+  // Pollinations 文本对话：与生图渠道同源官方图标（匿名层免登录）
+  'chat-pollinations': { icon: pollinationsIcon, color: '#7C3AED', glyph: 'P', method: '免登录' },
+  // Qwen Code：通义千问 CLI 设备码授权；无官方图标资源，用品牌紫徽标兜底
+  'qwen-code': { color: '#615CED', glyph: 'Q', method: '设备码' },
+  // EAC 协付渠道：GitHub OAuth + Star 验证；无官方图标资源，用品牌绿徽标兜底
+  eac: { color: '#10B981', glyph: 'E', method: '浏览器授权' },
   // 文生图渠道：官方 Pollinations 图标；DuckDuckGo 走 SSE 免登录
   'image-duckduckgo': { icon: duckduckgoIcon, color: '#DE5833', glyph: 'D', method: '免登录' },
   'image-pollinations': { icon: pollinationsIcon, color: '#7C3AED', glyph: 'P', method: '免登录' },
