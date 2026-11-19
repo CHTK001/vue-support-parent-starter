@@ -15,6 +15,8 @@ import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
 import ReButton from "@repo/ui/re-button";
 import ReCostText from "@repo/ui/re-cost-text";
+import ReEmpty from "@repo/ui/re-empty";
+import ReSkeleton from "@repo/ui/re-skeleton";
 import { fetchTaskQuality } from "../api/collectApi";
 import { costMs } from "../constants/taskStatus";
 import { errText } from "../composables/useCollectView";
@@ -138,14 +140,14 @@ function retry(): void {
     @update:model-value="emit('update:modelValue', $event)"
   >
     <div class="quality-body">
-      <div v-if="loading" class="quality-tip">正在聚合节点日志…</div>
+      <ReSkeleton v-if="loading" loading animated :rows="5" />
 
       <div v-else-if="failed" class="quality-tip">
         <span>质量报告加载失败</span>
         <ReButton icon="RefreshRight" @click="retry">重试</ReButton>
       </div>
 
-      <div v-else-if="!quality" class="quality-tip">暂无数据</div>
+      <ReEmpty v-else-if="!quality" description="暂无数据" />
 
       <template v-else>
         <div class="quality-head">

@@ -19,17 +19,18 @@
     >
       <span class="pc-bar__title">
         余额与用量
-        <!-- 余额低量告警徽标：后端按 extra.credit_warn_threshold 判定，触发时整条栏上可见 -->
+        <!-- 余额低量告警徽标：后端按分级阈值判定，触发时整条栏上可见；文案带命中档位 -->
         <span
           v-if="warnTriggered"
           class="pc-bar__warn"
+          :class="warnLevelClass"
           role="button"
           tabindex="0"
-          title="余额已低于告警阈值，点这里查看 / 修改告警设置"
+          :title="`余额已达到${warnLevelLabel}档告警阈值，点这里查看 / 修改告警设置`"
           @click.stop="openAlertFromBar"
           @keydown.enter.stop.prevent="openAlertFromBar"
           @keydown.space.stop.prevent="openAlertFromBar"
-        >低于阈值</span>
+        >低于阈值·{{ warnLevelLabel }}</span>
         <svg
           class="pc-bar__chev"
           :class="{ 'is-open': expanded }"
@@ -110,17 +111,18 @@
         <span v-if="levelLabel" class="pc-level" :title="levelHint">{{ levelLabel }}</span>
         <span v-if="rows.length" class="pc-scope">{{ rows.length }} 个 Key</span>
         <span v-if="cacheText" class="pc-cache" :title="cacheTitle">{{ cacheText }}</span>
-        <!-- 余额低量告警徽标：后端按 extra.credit_warn_threshold 实时判定，触发时详情卡头部可见；点开告警设置浮层 -->
+        <!-- 余额低量告警徽标：后端按分级阈值实时判定，触发时详情卡头部可见；点开告警设置浮层 -->
         <span
           v-if="warnTriggered"
           class="pc-warn-badge"
+          :class="warnLevelClass"
           role="button"
           tabindex="0"
-          title="查看 / 修改告警设置"
+          :title="`余额已达到${warnLevelLabel}档告警阈值，点这里查看 / 修改告警设置`"
           @click="openAlertSettings"
           @keydown.enter.prevent="openAlertSettings"
           @keydown.space.prevent="openAlertSettings"
-        >低于告警阈值</span>
+        >低于{{ warnLevelLabel }}阈值</span>
       </div>
       <button class="pc-reload" type="button" :disabled="loading" @click="load(true)">
         {{ loading ? '查询中…' : '刷新' }}
@@ -571,11 +573,12 @@
     </div>
 
     <!--
-      告警设置浮层：阈值 / 接收人 / 推送渠道就地改，顺带展示当前余额与上次推送时间。
-      保存走 PUT /providers/{id} 的 extra（整列覆盖）—— 先 GET 取原 extra
-      合并再提交，只动 credit_warn_threshold / credit_warn_receivers /
-      credit_warn_channels / credit_warn_emails / credit_warn_webhook 几个键，
-      credit_key 等其余配置不动。吸底条与详情卡的「低于阈值」徽标都点到这里。
+      告警设置浮层：分级阈值（警告/严重/危急）/ 单档阈值 / 接收人 / 推送渠道就地改，
+      顺带展示当前余额与上次推送时间。保存走 PUT /providers/{id} 的 extra（整列覆盖）——
+      先 GET 取原 extra 合并再提交，只动 credit_warn_levels / credit_warn_threshold /
+      credit_warn_receivers / credit_warn_channels / credit_warn_emails /
+      credit_warn_webhook 几个键，credit_key 等其余配置不动。
+      吸底条与详情卡的「低于阈值」徽标都点到这里。
     -->
     <div v-if="alertOpen" class="pc-alert-pop">
       <div class="pc-alert-head">
@@ -604,7 +607,44 @@
           </li>
         </ul>
       </div>
-      <label class="pc-alert-field">
+      <!-- 分级告警：警告/严重/危急三档，各档可设阈值、渠道组合与冷却时长 -->
+      <div class="pc-alert-field">
+        <span class="pc-alert-label">分级告警</span>
+        <label class="pc-alert-switch">
+          <input v-model="alertLevelsEnabled" type="checkbox" />
+          <span>按 警告 / 严重 / 危急 三档分别设置</span>
+        </label>
+      </div>
+      <template v-if="alertLevelsEnabled">
+        <div v-for="row in alertLevelRows" :key="row.level" class="pc-alert-level">
+          <span class="pc-alert-level__name" :class="`is-${row.level}`">{{ row.label }}</span>
+          <input
+            v-model="row.threshold"
+            class="pc-alert-input pc-alert-level__threshold"
+            type="text"
+            inputmode="decimal"
+            placeholder="阈值"
+          />
+          <div class="pc-alert-level__channels">
+            <label v-for="ch in ALERT_CHANNEL_OPTIONS" :key="ch.value" class="pc-alert-channel">
+              <input v-model="row.channels" type="checkbox" :value="ch.value" />
+              <span>{{ ch.label }}</span>
+            </label>
+          </div>
+          <input
+            v-model="row.cooldown"
+            class="pc-alert-input pc-alert-level__cooldown"
+            type="text"
+            inputmode="numeric"
+            placeholder="冷却6h"
+          />
+        </div>
+        <p class="pc-alert-hint">
+          余额 ≤ 阈值触发该档；渠道不勾选时用默认推送渠道；冷却留空按 6 小时；
+          阈值需从警告到危急依次降低；升级（命中更重档）不受冷却限制。
+        </p>
+      </template>
+      <label v-else class="pc-alert-field">
         <span class="pc-alert-label">告警阈值</span>
         <input
           v-model="alertThreshold"
@@ -624,7 +664,7 @@
         />
       </label>
       <div class="pc-alert-field">
-        <span class="pc-alert-label">推送渠道</span>
+        <span class="pc-alert-label">推送渠道{{ alertLevelsEnabled ? '（默认，档位未勾选渠道时回落用）' : '' }}</span>
         <div class="pc-alert-channels">
           <label v-for="ch in ALERT_CHANNEL_OPTIONS" :key="ch.value" class="pc-alert-channel">
             <input v-model="alertChannels" type="checkbox" :value="ch.value" />
@@ -632,7 +672,7 @@
           </label>
         </div>
       </div>
-      <label v-if="alertChannels.includes('email')" class="pc-alert-field">
+      <label v-if="alertNeedEmails" class="pc-alert-field">
         <span class="pc-alert-label">邮箱收件人</span>
         <input
           v-model="alertEmails"
@@ -641,7 +681,7 @@
           placeholder="邮箱地址，逗号分隔"
         />
       </label>
-      <label v-if="alertChannels.includes('webhook')" class="pc-alert-field">
+      <label v-if="alertNeedWebhook" class="pc-alert-field">
         <span class="pc-alert-label">Webhook 地址</span>
         <input
           v-model="alertWebhook"
@@ -783,12 +823,24 @@ const meta = ref<{
   cached_at?: number
   /** 缓存年龄（秒） */
   age_seconds?: number
-  /** 余额低量告警判定（后端按 extra.credit_warn_threshold 算，实时回源路径才有） */
-  warn?: { threshold?: number | string; remain?: number | string; triggered?: boolean }
+  /** 余额低量告警判定（后端按分级阈值算，实时回源路径才有；level=命中的最高档位） */
+  warn?: { threshold?: number | string; remain?: number | string; triggered?: boolean; level?: string | null }
 }>({})
 
 /** 余额低量告警是否触发（后端实时回源路径判定并随载荷返回） */
 const warnTriggered = computed(() => meta.value.warn?.triggered === true)
+
+/** 分级档位中文名（与后端 creditLevelLabel 同口径） */
+const WARN_LEVEL_LABELS: Record<string, string> = { warn: '警告', critical: '严重', urgent: '危急' }
+
+/** 命中档位中文名：未带 level 的旧载荷按「警告」展示 */
+const warnLevelLabel = computed(() => WARN_LEVEL_LABELS[String(meta.value.warn?.level || '')] || '警告')
+
+/** 命中档位标色：严重/危急逐级加重（警告档用默认 warning 色） */
+const warnLevelClass = computed(() => {
+  const level = String(meta.value.warn?.level || '')
+  return level === 'urgent' ? 'is-urgent' : level === 'critical' ? 'is-critical' : ''
+})
 
 /* ==================== 告警设置（内联浮层） ==================== */
 
@@ -804,6 +856,42 @@ const alertChannels = ref<string[]>(['inbox'])
 const alertEmails = ref('')
 /** Webhook 渠道机器人地址 */
 const alertWebhook = ref('')
+
+/* ==================== 分级告警（警告/严重/危急） ==================== */
+
+/** 分级档位行：threshold/cooldown 均为输入框文本，提交时再解析校验 */
+interface AlertLevelRow {
+  /** 档位代码（与后端 credit_warn_levels 的 level 一致） */
+  level: string
+  /** 档位中文名 */
+  label: string
+  /** 阈值输入（余额 ≤ 该值触发该档；留空 = 不启用该档） */
+  threshold: string
+  /** 该档推送渠道（空 = 回落默认推送渠道） */
+  channels: string[]
+  /** 冷却时长（小时）输入；留空 = 后端默认 6 小时 */
+  cooldown: string
+}
+
+/** 是否启用分级告警（extra.credit_warn_levels 非空时为真） */
+const alertLevelsEnabled = ref(false)
+
+/** 三档表单行（警告 → 严重 → 危急，与后端严重度递增顺序一致） */
+const alertLevelRows = ref<AlertLevelRow[]>([
+  { level: 'warn', label: '警告', threshold: '', channels: [], cooldown: '' },
+  { level: 'critical', label: '严重', threshold: '', channels: [], cooldown: '' },
+  { level: 'urgent', label: '危急', threshold: '', channels: [], cooldown: '' },
+])
+
+/** 是否需要「邮箱收件人」：默认渠道或任一档位勾了 email */
+const alertNeedEmails = computed(
+  () => alertChannels.value.includes('email') || alertLevelRows.value.some((r) => r.channels.includes('email')),
+)
+
+/** 是否需要「Webhook 地址」：默认渠道或任一档位勾了 webhook */
+const alertNeedWebhook = computed(
+  () => alertChannels.value.includes('webhook') || alertLevelRows.value.some((r) => r.channels.includes('webhook')),
+)
 
 /** 推送渠道选项 */
 const ALERT_CHANNEL_OPTIONS = [
@@ -899,6 +987,37 @@ const openAlertSettings = async () => {
     const emails = extra.credit_warn_emails
     alertEmails.value = Array.isArray(emails) ? emails.join(', ') : emails ? String(emails) : ''
     alertWebhook.value = extra.credit_warn_webhook ? String(extra.credit_warn_webhook) : ''
+    // 分级档位：extra.credit_warn_levels 为数组（历史字符串形态兜底 JSON.parse）
+    const levelsRaw = extra.credit_warn_levels
+    let levels: any[] = []
+    if (Array.isArray(levelsRaw)) levels = levelsRaw
+    else if (levelsRaw) {
+      try {
+        levels = JSON.parse(String(levelsRaw))
+      } catch {
+        levels = []
+      }
+    }
+    if (Array.isArray(levels) && levels.length) {
+      alertLevelsEnabled.value = true
+      for (const row of alertLevelRows.value) {
+        const found = levels.find((l: any) => l && String(l.level) === row.level)
+        row.threshold = found?.threshold === undefined || found?.threshold === null ? '' : String(found.threshold)
+        const ch = found?.channels
+        row.channels = (Array.isArray(ch) ? ch : ch ? String(ch).split(/[,，;；\s]+/) : [])
+          .map((v: any) => String(v).trim().toLowerCase())
+          .filter((v: string) => ALERT_CHANNEL_OPTIONS.some((o) => o.value === v))
+        row.cooldown =
+          found?.cooldown_hours === undefined || found?.cooldown_hours === null ? '' : String(found.cooldown_hours)
+      }
+    } else {
+      alertLevelsEnabled.value = false
+      for (const row of alertLevelRows.value) {
+        row.threshold = ''
+        row.channels = []
+        row.cooldown = ''
+      }
+    }
     const alerts = alertsRes ? (alertsRes.data ?? alertsRes) : null
     lastPushedAt.value = typeof alerts?.last_pushed_at === 'number' ? alerts.last_pushed_at : null
     alertLogs.value = Array.isArray(alerts?.alerts) ? (alerts.alerts as CreditAlertLogItem[]) : []
@@ -919,21 +1038,65 @@ const openAlertFromBar = () => {
 
 /**
  * 保存告警设置：PUT /providers/{id} 的 extra 是整列覆盖，先 GET 现值合并、
- * 只改告警相关键再提交；阈值留空 = 删除该键（关闭告警），接收人留空 = 删除该键；
+ * 只改告警相关键再提交；启用分级时提交 credit_warn_levels 并移除单档阈值，
+ * 未启用时提交 credit_warn_threshold 并移除分级（两套口径不并存）；
+ * 阈值留空 = 删除该键（关闭告警），接收人留空 = 删除该键；
  * 渠道未勾选时提交 inbox（后端默认口径）。保存后强制回源重评告警。
  */
 const saveAlertSettings = async () => {
   const providerId = String(props.providerId || '').trim()
   if (!providerId || alertSaving.value) return
-  const thresholdText = alertThreshold.value.trim()
-  let threshold: number | null = null
-  if (thresholdText) {
-    const n = Number(thresholdText)
-    if (!Number.isFinite(n) || n < 0) {
-      alertError.value = '告警阈值需为不小于 0 的数字'
+  // 分级告警：解析三档输入（阈值必填且从警告到危急依次降低；冷却可选正整数小时）
+  const levelsPayload: Array<Record<string, any>> = []
+  if (alertLevelsEnabled.value) {
+    let prev: { label: string; value: number } | null = null
+    for (const row of alertLevelRows.value) {
+      const text = row.threshold.trim()
+      if (!text) continue
+      const n = Number(text)
+      if (!Number.isFinite(n) || n < 0) {
+        alertError.value = `${row.label}档阈值需为不小于 0 的数字`
+        return
+      }
+      if (prev && n >= prev.value) {
+        alertError.value = `分级阈值需从警告到危急依次降低：${row.label}档需低于${prev.label}档`
+        return
+      }
+      const cooldownText = row.cooldown.trim()
+      let cooldownHours: number | undefined
+      if (cooldownText) {
+        const c = Number(cooldownText)
+        if (!Number.isInteger(c) || c <= 0) {
+          alertError.value = `${row.label}档冷却时长需为正整数小时`
+          return
+        }
+        cooldownHours = c
+      }
+      const item: Record<string, any> = {
+        level: row.level,
+        threshold: n,
+        channels: row.channels.filter((v) => ALERT_CHANNEL_OPTIONS.some((o) => o.value === v)),
+      }
+      if (cooldownHours) item.cooldown_hours = cooldownHours
+      levelsPayload.push(item)
+      prev = { label: row.label, value: n }
+    }
+    if (!levelsPayload.length) {
+      alertError.value = '已启用分级告警，请至少填写一档阈值'
       return
     }
-    threshold = n
+  }
+  let threshold: number | null = null
+  if (!alertLevelsEnabled.value) {
+    const thresholdText = alertThreshold.value.trim()
+    if (thresholdText) {
+      const n = Number(thresholdText)
+      if (!Number.isFinite(n) || n < 0) {
+        alertError.value = '告警阈值需为不小于 0 的数字'
+        return
+      }
+      threshold = n
+    }
   }
   const receivers: number[] = []
   for (const part of alertReceivers.value.split(/[,，;；\s]+/)) {
@@ -956,16 +1119,21 @@ const saveAlertSettings = async () => {
     }
     if (!emails.includes(part)) emails.push(part)
   }
-  if (channels.includes('email') && !emails.length) {
+  const webhook = alertWebhook.value.trim()
+  // 渠道收件配置校验：默认渠道 + 各档渠道都可能用到站内信接收人 / 邮箱 / Webhook
+  const usedChannels = new Set<string>(channels)
+  for (const item of levelsPayload) {
+    for (const c of item.channels as string[]) usedChannels.add(c)
+  }
+  if (usedChannels.has('email') && !emails.length) {
     alertError.value = '选择了邮件渠道，请填写邮箱收件人'
     return
   }
-  const webhook = alertWebhook.value.trim()
-  if (channels.includes('webhook') && !/^https?:\/\//i.test(webhook)) {
+  if (usedChannels.has('webhook') && !/^https?:\/\//i.test(webhook)) {
     alertError.value = '选择了 Webhook 渠道，请填写 http(s) 机器人地址'
     return
   }
-  if (channels.includes('inbox') && !receivers.length) {
+  if (usedChannels.has('inbox') && !receivers.length) {
     alertError.value = '选择了站内信渠道，请填写接收人用户 ID'
     return
   }
@@ -975,8 +1143,15 @@ const saveAlertSettings = async () => {
     const providerRes: any = await adminApi.get(`/api/providers/${encodeURIComponent(providerId)}`)
     const provider = providerRes?.data ?? providerRes
     const extra: Record<string, any> = provider?.extra && typeof provider.extra === 'object' ? { ...provider.extra } : {}
-    if (threshold === null) delete extra.credit_warn_threshold
-    else extra.credit_warn_threshold = threshold
+    if (alertLevelsEnabled.value) {
+      extra.credit_warn_levels = levelsPayload
+      // 分级生效时移除单档阈值，避免两套口径并存（后端以分级为准，配置上也不留歧义）
+      delete extra.credit_warn_threshold
+    } else {
+      delete extra.credit_warn_levels
+      if (threshold === null) delete extra.credit_warn_threshold
+      else extra.credit_warn_threshold = threshold
+    }
     if (!receivers.length) delete extra.credit_warn_receivers
     else extra.credit_warn_receivers = receivers
     extra.credit_warn_channels = channels
@@ -2453,6 +2628,27 @@ onMounted(load)
 .pc-warn-badge:hover {
   background: color-mix(in srgb, var(--el-color-warning) 26%, transparent);
 }
+/* 分级徽标加重：严重档橙红、危急档 danger 红（警告档保持默认 warning） */
+.pc-bar__warn.is-critical,
+.pc-warn-badge.is-critical {
+  color: color-mix(in srgb, var(--el-color-danger) 65%, var(--el-color-warning));
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-danger) 40%, transparent);
+}
+.pc-bar__warn.is-critical:hover,
+.pc-warn-badge.is-critical:hover {
+  background: color-mix(in srgb, var(--el-color-danger) 24%, transparent);
+}
+.pc-bar__warn.is-urgent,
+.pc-warn-badge.is-urgent {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 16%, transparent);
+  border-color: color-mix(in srgb, var(--el-color-danger) 50%, transparent);
+}
+.pc-bar__warn.is-urgent:hover,
+.pc-warn-badge.is-urgent:hover {
+  background: color-mix(in srgb, var(--el-color-danger) 30%, transparent);
+}
 
 /* 告警设置浮层：贴详情卡头部右下，不占布局流（.pc 有 layout containment，作定位基准） */
 .pc-alert-pop {
@@ -2616,6 +2812,60 @@ onMounted(load)
   cursor: pointer;
 }
 .pc-alert-channel input {
+  margin: 0;
+  accent-color: var(--el-color-primary);
+}
+/* 分级告警：三档一行 = 档位名 + 阈值 + 渠道组合 + 冷却；档位名按严重度标色 */
+.pc-alert-level {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 76px) minmax(0, 1fr) 66px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.pc-alert-level__name {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--el-color-warning);
+}
+.pc-alert-level__name.is-critical {
+  color: color-mix(in srgb, var(--el-color-danger) 65%, var(--el-color-warning));
+}
+.pc-alert-level__name.is-urgent {
+  color: var(--el-color-danger);
+}
+.pc-alert-level__threshold,
+.pc-alert-level__cooldown {
+  height: 26px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+.pc-alert-level__channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+.pc-alert-level__channels .pc-alert-channel {
+  font-size: 11px;
+}
+/* 分级口径说明：与浮层内提示同档弱化字号 */
+.pc-alert-hint {
+  margin: -2px 0 8px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+}
+/* 分级开关行 */
+.pc-alert-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text, var(--el-text-color-primary));
+  cursor: pointer;
+}
+.pc-alert-switch input {
   margin: 0;
   accent-color: var(--el-color-primary);
 }

@@ -55,8 +55,11 @@ function num(value: unknown): number {
  * usage 一到就切换到精确值，结束后的读数与后端完全一致。</p>
  *
  * <p>估算口径：CJK 字符按 1 token，其余按 4 字符 1 token。</p>
+ *
+ * <p>2026-11-19 起同时供输入框的「token 预估」使用（ChatInput）：
+ * 发送前让用户对这条消息的体量有个数，口径与流式速率/后端一致。</p>
  */
-function estimateTokens(text: string): number {
+export function estimateTokens(text: string): number {
   if (!text) return 0;
   let cjk = 0;
   let other = 0;

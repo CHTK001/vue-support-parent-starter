@@ -352,6 +352,8 @@
                       <span v-else class="ws-plain">{{ m.content }}</span>
                       <span v-if="m.streaming" class="typing-dots"><i></i><i></i><i></i></span>
                     </div>
+                    <button v-if="m.retry" class="ws-msg-retry" type="button" data-role="msg-retry"
+                      :disabled="spectating" @click="retryTurn(m)">重试本回合</button>
                   </div>
                   <CardAvatar v-if="m.speakerType === 'user'" name="我" size="md" class="ws-msg-avatar" />
                 </template>

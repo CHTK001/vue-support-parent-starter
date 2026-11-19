@@ -4,6 +4,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import ReDialog from "@repo/ui/re-dialog";
+import ReEmpty from "@repo/ui/re-empty";
 import { CronExpression } from "@repo/utils";
 import type { JobRuntime } from "../types/job";
 import { fmtFireTime } from "../utils/jobFormat";
@@ -64,7 +65,8 @@ defineExpose({ open });
           <span class="job-fire-times__time">{{ fmtFireTime(time) }}</span>
         </li>
       </ol>
-      <p v-else class="job-fire-times__empty">{{ errorText || "暂无数据" }}</p>
+      <ReEmpty v-else-if="!errorText" description="暂无数据" />
+      <p v-else class="job-fire-times__empty">{{ errorText }}</p>
       <p class="job-fire-times__note">
         由与服务端同一套解析引擎算出，保存后的实际触发时间与此一致；台账行的「下次触发」只显示最近一次。
       </p>
