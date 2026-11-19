@@ -771,7 +771,8 @@ function bindSocket(): void {
     }
   });
   unsubAlarm = socket.subscribe("monitor", "alarm", () => {
-    void loadAlarms();
+    // 推送载荷没有事件 id，不能本地追加；合并去抖后补拉，避免突发推送打爆接口
+    scheduleAlarmRefresh();
   });
 }
 
@@ -995,7 +996,7 @@ onBeforeUnmount(() => {
           :loading="!autoRefresh"
           @click="toggleAutoRefresh"
         >
-          {{ autoRefresh ? "自动刷新" : "暂停刷新" }}
+          {{ autoRefresh ? "暂停刷新" : "恢复刷新" }}
         </ReButton>
         <ReButton show-text icon="Setting" type="primary" size="small" @click="router.push('/assets')">管理资产</ReButton>
       </template>
