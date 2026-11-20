@@ -62,10 +62,17 @@ const runningIds = ref<Record<number, boolean>>({});
 const searchModel = ref<Record<string, unknown>>({
   keyword: "",
   collectFlowCategoryId: "",
+  collectFlowStatus: "",
+  lastRunStatus: "",
 });
 
 /** 最近一次点「查询」真正生效的条件：草稿改了没查之前不作数 */
-const applied = ref<{ keyword: string; categoryId: string }>({ keyword: "", categoryId: "" });
+const applied = ref<{ keyword: string; categoryId: string; status: string; lastRun: string }>({
+  keyword: "",
+  categoryId: "",
+  status: "",
+  lastRun: "",
+});
 
 /** 分页页码/每页条数：v-model 给 ReTable；筛选生效时回到第 1 页，避免停在越界的空页 */
 const page = ref(1);
@@ -120,6 +127,20 @@ const categoryOptions = computed<ReOption[]>(() => [
   ...categories.value.map(item => ({ label: item.label, value: String(item.value) })),
 ]);
 
+/** 启用状态筛选：与行内「状态」列同一口径 */
+const STATUS_FILTER_OPTIONS = [
+  { label: "已启用", value: "1" },
+  { label: "已停用", value: "0" },
+];
+
+/** 最近运行筛选：按最近一次运行的结果过滤；数据来自首屏一次取回的 50 条运行 */
+const LASTRUN_FILTER_OPTIONS = [
+  { label: "运行中", value: "RUNNING" },
+  { label: "成功", value: "SUCCESS" },
+  { label: "失败", value: "FAILURE" },
+  { label: "尚未运行", value: "NONE" },
+];
+
 /**
  * 内置搜索区：必须是 computed，分类下拉的选项要跟着分类列表刷新。
  *
@@ -137,6 +158,22 @@ const SEARCH = computed<ReTableSearchConfig>(() => ({
       type: "select",
       placeholder: "全部分类",
       options: categoryOptions.value,
+      attrs: { clearable: false },
+    },
+    {
+      key: "collectFlowStatus",
+      label: "启用状态",
+      type: "select",
+      placeholder: "全部状态",
+      options: STATUS_FILTER_OPTIONS,
+      attrs: { clearable: false },
+    },
+    {
+      key: "lastRunStatus",
+      label: "最近运行",
+      type: "select",
+      placeholder: "全部结果",
+      options: LASTRUN_FILTER_OPTIONS,
       attrs: { clearable: false },
     },
   ],
@@ -161,12 +198,76 @@ const latestTaskOf = computed(() => {
   return map;
 });
 
+/**
+ * flowId → 最近几次运行（最多 5 次，按开始时间倒序）。
+ * 数据来自首屏一次取回的 50 条运行，次数不足 5 不影响展示；只画趋势点，不参与过滤。
+ */
+const recentTasksOf = computed(() => {
+  const grouped = new Map<number, CollectTask[]>();
+  recentTasks.value.forEach(task => {
+    const flowId = Number(task.collectTaskFlowId ?? 0);
+    if (!flowId) {
+      return;
+    }
+    const list = grouped.get(flowId);
+    if (list) {
+      list.push(task);
+    } else {
+      grouped.set(flowId, [task]);
+    }
+  });
+  const capped = new Map<number, CollectTask[]>();
+  grouped.forEach((list, flowId) => {
+    capped.set(
+      flowId,
+      [...list]
+        .sort((a, b) => String(b.collectTaskBeginTime ?? "").localeCompare(String(a.collectTaskBeginTime ?? "")))
+        .slice(0, 5),
+    );
+  });
+  return capped;
+});
+
+/** 趋势点悬浮说明：近 N 次运行按结果计数 */
+function trendTitle(tasks: CollectTask[]): string {
+  const countOf = (status: string) => tasks.filter(task => task.collectTaskStatus === status).length;
+  const success = countOf("SUCCESS");
+  const failure = countOf("FAILURE");
+  const running = countOf("RUNNING");
+  const parts = [`成功 ${success}`, `失败 ${failure}`, `运行中 ${running}`];
+  const other = tasks.length - success - failure - running;
+  if (other > 0) {
+    parts.push(`其它 ${other}`);
+  }
+  return `近 ${tasks.length} 次运行：${parts.join(" · ")}`;
+}
+
 const filtered = computed(() => {
   const text = applied.value.keyword.trim().toLowerCase();
   const category = applied.value.categoryId;
+  const status = applied.value.status;
+  const lastRun = applied.value.lastRun;
   return flows.value.filter(flow => {
     if (category !== "" && String(flow.collectFlowCategoryId ?? 0) !== category) {
       return false;
+    }
+    if (status !== "" && String(flow.collectFlowStatus ?? 0) !== status) {
+      return false;
+    }
+    if (lastRun !== "") {
+      const latest = latestTaskOf.value.get(flow.collectFlowId);
+      /* 「运行中」同时看后端 running 标记与最近一次运行状态；「尚未运行」指一次都没跑过 */
+      if (lastRun === "RUNNING") {
+        if (!(flow.running || latest?.collectTaskStatus === "RUNNING")) {
+          return false;
+        }
+      } else if (lastRun === "NONE") {
+        if (flow.running || latest) {
+          return false;
+        }
+      } else if (latest?.collectTaskStatus !== lastRun) {
+        return false;
+      }
     }
     if (!text) {
       return true;
@@ -185,17 +286,25 @@ function applySearch(): void {
   applied.value = {
     keyword: String(searchModel.value.keyword ?? ""),
     categoryId: String(searchModel.value.collectFlowCategoryId ?? ""),
+    status: String(searchModel.value.collectFlowStatus ?? ""),
+    lastRun: String(searchModel.value.lastRunStatus ?? ""),
   };
 }
 
 /** 点「重置」：不依赖组件清空与事件的先后，把草稿与生效条件一起归零 */
 function resetSearch(): void {
-  searchModel.value = { keyword: "", collectFlowCategoryId: "" };
-  applied.value = { keyword: "", categoryId: "" };
+  searchModel.value = { keyword: "", collectFlowCategoryId: "", collectFlowStatus: "", lastRunStatus: "" };
+  applied.value = { keyword: "", categoryId: "", status: "", lastRun: "" };
 }
 
 /** 当前是否带着生效中的筛选：空态文案与「清空筛选」按钮都以此为准 */
-const filtering = computed(() => Boolean(applied.value.keyword) || applied.value.categoryId !== "");
+const filtering = computed(
+  () =>
+    Boolean(applied.value.keyword) ||
+    applied.value.categoryId !== "" ||
+    applied.value.status !== "" ||
+    applied.value.lastRun !== "",
+);
 
 /** 启用优先：后端激活的采集器排在前面，停用行靠后 */
 const sortedFlows = computed(() =>
@@ -548,6 +657,19 @@ function runMore(command: string, flow: CollectFlow): void {
               · 产出 {{ latestTaskOf.get(row.collectFlowId)!.collectTaskRecordCount ?? 0 }} 条 ·
               {{ latestTaskOf.get(row.collectFlowId)!.collectTaskBeginTime || "—" }}
             </div>
+            <div
+              v-if="(recentTasksOf.get(row.collectFlowId)?.length ?? 0) > 1"
+              class="run-trend"
+              :title="trendTitle(recentTasksOf.get(row.collectFlowId)!)"
+            >
+              <span
+                v-for="task in recentTasksOf.get(row.collectFlowId)"
+                :key="task.collectTaskId"
+                class="trend-dot"
+                :class="`is-${String(task.collectTaskStatus ?? '').toLowerCase()}`"
+              />
+              <span class="trend-label">近{{ recentTasksOf.get(row.collectFlowId)!.length }}次</span>
+            </div>
           </template>
           <span v-else class="muted">尚未运行</span>
         </template>
@@ -666,6 +788,49 @@ function runMore(command: string, flow: CollectFlow): void {
   margin-top: 2px;
   font-size: 12px;
   color: var(--text-tertiary);
+}
+
+/* ===== 最近运行趋势点：一眼看出这个采集器最近稳不稳 ===== */
+.run-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.trend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+.trend-dot.is-success {
+  background: var(--status-success);
+}
+.trend-dot.is-failure {
+  background: var(--status-error);
+}
+.trend-dot.is-running {
+  background: var(--status-warning);
+  animation: trend-pulse 1.2s ease-in-out infinite;
+}
+.trend-dot.is-stopped,
+.trend-dot.is-skipped {
+  background: var(--text-tertiary);
+  opacity: 0.7;
+}
+.trend-label {
+  margin-left: 2px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+@keyframes trend-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 .ops {
   display: flex;

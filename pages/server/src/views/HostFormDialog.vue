@@ -767,6 +767,30 @@ watch(() => props.modelValue, (v) => {
         void loadLocalAddress();
       }
     });
+  } else if (props.host) {
+    // 克隆：cloneHost 以 isEdit=false 携带模板主机打开弹窗（名称已改 -copy、地址/运行态已清空、
+    // 状态置为启用）。模板 id 是 0，走不了编辑分支的详情异步回填，这里同步预填一次即可；
+    // 若落到 resetForm() 会把模板清空，弹窗变成空白「新增主机」，克隆预填失效。
+    form.value = { ...(props.host as any) };
+    if (form.value.serverHostCollectEnabled == null) form.value.serverHostCollectEnabled = 1;
+    if (form.value.serverHostOnlineEnabled == null) form.value.serverHostOnlineEnabled = 1;
+    if (form.value.serverHostRemoteEnabled == null) form.value.serverHostRemoteEnabled = 1;
+    if (form.value.serverHostDelayEnabled == null) form.value.serverHostDelayEnabled = 1;
+    if (form.value.serverHostAgentEnabled == null) form.value.serverHostAgentEnabled = 0;
+    if (form.value.serverHostSshEnabled == null) {
+      form.value.serverHostSshEnabled = (form.value.serverHostOsType || "").toUpperCase() === "WINDOWS" ? 0 : 1;
+    }
+    if (!form.value.serverHostRemoteMode) form.value.serverHostRemoteMode = "DIRECT";
+    if (!form.value.serverHostCollectMode) form.value.serverHostCollectMode = "AGENT";
+    tagsText.value = splitTags(form.value.serverHostTags).join(", ");
+    formAuthMethod.value = "IDENTITY";
+    formAccount.value = "";
+    formPassword.value = "";
+    formPrivateKey.value = "";
+    formIdentityChanged.value = false;
+    formIdentityId.value = null;
+    hostBoundIdentities.value = [];
+    baseForm = { ...(form.value as any) };
   } else {
     resetForm();
   }

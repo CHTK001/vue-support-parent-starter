@@ -16,6 +16,8 @@ export interface HttpCodecRuntime {
   requestOpen: boolean;
   /** 响应体解密开关（后端 CodecResponseOpen） */
   responseOpen: boolean;
+  /** 分段传输开关（后端 CodecTraceOpen）：密文按 traceId 分片上传、响应分片拉取 */
+  traceOpen: boolean;
   /** 请求/响应共用的 codec 密钥（后端 CodecRequestKey） */
   key: string;
   /** codec 类型；含 aes 时走 AES-256-CBC，keylog 走一次性会话密钥帧，其余为兼容 hex */
@@ -30,6 +32,7 @@ export interface HttpCodecRuntime {
 const DEFAULT_RUNTIME: HttpCodecRuntime = {
   requestOpen: false,
   responseOpen: false,
+  traceOpen: false,
   key: "",
   type: "aes",
   serverPublicKey: "",
@@ -64,7 +67,7 @@ function asBool(value: unknown): boolean | undefined {
  * 从后端设置列表吸收 codec 开关。
  *
  * <p>兼容两种返回形态：设置名在 {@code sysSettingName}，或已被后端映射成
- * {@code sysSettingCode}。只认四个明确的名字，避免把同组其它配置误当开关。</p>
+ * {@code sysSettingCode}。只认五个明确的名字，避免把同组其它配置误当开关。</p>
  */
 export function applyHttpCodecSettings(items: readonly SettingItem[] | null | undefined): void {
   if (!Array.isArray(items)) return;
@@ -78,6 +81,9 @@ export function applyHttpCodecSettings(items: readonly SettingItem[] | null | un
     } else if (name === "CodecResponseOpen") {
       const value = asBool(item.sysSettingValue);
       if (value !== undefined) patch.responseOpen = value;
+    } else if (name === "CodecTraceOpen") {
+      const value = asBool(item.sysSettingValue);
+      if (value !== undefined) patch.traceOpen = value;
     } else if (name === "CodecRequestKey") {
       const value = String(item.sysSettingValue ?? "").trim();
       // 后端敏感字段可能返回掩码；掩码不能拿来当密钥

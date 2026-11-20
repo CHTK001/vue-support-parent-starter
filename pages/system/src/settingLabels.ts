@@ -89,6 +89,7 @@ export const SETTING_LABELS: Record<string, string> = {
   "@CodecRequestOpen": "请求体加密",
   "@CodecRequestKey": "请求加密密钥",
   "@CodecResponseOpen": "响应体加密",
+  "@CodecTraceOpen": "传输体分段（traceId 分片）",
   "@WatermarkOpen": "启用水印",
   "@WatermarkText": "水印文案",
   "@WatermarkColor": "水印颜色",

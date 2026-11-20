@@ -63,17 +63,13 @@ function detectRowState(row: { ok: boolean; message: string }): 'ok' | 'na' | 'b
 const DETECT_STATE_LABEL: Record<'ok' | 'na' | 'bad', string> = { ok: '可用', na: '不支持', bad: '连不上' }
 
 /**
- * 余额查询类型（extra.credit_kind）。
- *
- * <p>{@code auto} 不落库：后端按「厂商官方 → OpenAI 官方 → OpenAI 兼容计费 → Moss 非官方」
- * 自动回落，第一条查到数的胜出；{@code official} 落 registry（官方余额登记表）；
- * {@code custom} 落 custom（字段映射，支持 JSONPath / XPath）。
- * 实现在 datasearch-starter 的 credit SPI 里，与渠道管理页共用同一套口径。</p>
+ * 余额查询类型（extra.credit_kind）：统一只保留「账号密码登录」——点「登录」弹出
+ * 浏览器窗口登录上游门户，会话令牌自动截获回填为余额密钥。历史上的 auto / official
+ * （registry）/ custom（自定义映射）口径在保存时统一归一为 account-login；登记表没
+ * 收录的上游在 extra 里显式配 credit_login_url + 截获钩子（capture_pattern /
+ * token_path / cookie_name / storage_key），配 credit_url + 字段映射作为查询出口。
  */
 const CREDIT_TYPES = [
-  { value: 'auto', label: '自动获取（推荐）', short: '自动' },
-  { value: 'official', label: '官方 API', short: '官方' },
-  { value: 'custom', label: '自定义映射（JSONPath / XPath）', short: '自定义' },
   { value: 'account-login', label: '账号密码登录（弹出窗口登录上游门户查询）', short: '账密登录' },
 ]
 
@@ -224,18 +220,13 @@ const rowsFromLegacyExpression = (text: string): CreditMappingRow[] => {
 }
 
 /**
- * 历史 credit_kind → 表单分类。
- * registry / host / openai 算「官方 API」；custom / expression 算「自定义映射」；
- * account-login 算「账号密码登录」（弹出窗口登录上游门户截获会话令牌）；
- * billing（OpenAI 兼容计费）已被自动回落覆盖，连同其它未知值一并并回「自动获取」。
+ * 历史 credit_kind → 表单分类。余额类型已统一为「账号密码登录」：
+ * 历史上落库的 registry / host / openai / custom / expression / billing 等
+ * 一律归一为 account-login 展示与保存；真正的查询出口由后端候选链决定——
+ * 有可登录 SPI 的走 SPI 登记页，没有的按 extra 里显式配置的登录页与截获钩子
+ * 登录，再以 credit_url + 字段映射查询。
  */
-const creditTypeFromKind = (kind: unknown): 'auto' | 'official' | 'custom' | 'account-login' => {
-  const saved = String(kind || '').trim().toLowerCase()
-  if (['registry', 'host', 'openai'].includes(saved)) return 'official'
-  if (['custom', 'expression'].includes(saved)) return 'custom'
-  if (saved === 'account-login') return 'account-login'
-  return 'auto'
-}
+const creditTypeFromKind = (_kind: unknown): 'account-login' => 'account-login'
 
 /** 本地推理提供商（ONNX）：apikey 语义是本地模型路径，而非远程密钥 */
 const isLocalProvider = computed(() => (providerType.value || '').toLowerCase().includes('onnx'))
@@ -275,10 +266,10 @@ const form = reactive({
   // 用量/指标接口（extra.metrics_url）：拉价格、延迟等指标数据的端点
   metricsUrl: '',
   // 余额查询口径（extra.credit_kind / credit_url / credit_mapping
-  // / credit_ua / credit_headers）：auto 不落库，由后端按厂商与地址自动回落；
-  // official 落 registry；custom 落字段映射。
+  // / credit_ua / credit_headers）：统一「账号密码登录」——点「登录」弹窗截获
+  // 会话令牌回填为余额密钥；接口地址与字段映射在此口径下仍可配置。
   // 余额密钥不放在 form 里，独立维护 creditKeyList，保存时现算（见 creditKeysText）
-  creditType: 'auto',
+  creditType: 'account-login',
   creditUrl: '',
   // 余额查询透传：User-Agent 覆盖与额外请求头（"名称: 值" 每行一个）
   creditUa: '',
@@ -492,11 +483,11 @@ const buildExtra = () => {
   const metricsUrl = form.metricsUrl.trim()
   if (metricsUrl) extra.metrics_url = metricsUrl
   else delete extra.metrics_url
-  // 余额查询口径：auto 不落库（后端自动回落），official 落 registry、custom 落 custom
-  if (form.creditType === 'official') extra.credit_kind = 'registry'
-  else if (form.creditType === 'custom') extra.credit_kind = 'custom'
-  else if (form.creditType === 'account-login') extra.credit_kind = 'account-login'
-  else delete extra.credit_kind
+  // 余额查询口径：统一「账号密码登录」（历史 auto / official / custom 保存时归一）。
+  // 登记表没收录、没有可登录 SPI 的上游，靠 extra 的 credit_login_url + 截获钩子
+  // （capture_pattern / token_path / cookie_name / storage_key）登录，
+  // 以 credit_url + credit_mapping 作为查询出口
+  extra.credit_kind = 'account-login'
   // 余额专用密钥：Moss 这类「查询令牌 ≠ 渠道 Key」的上游用它。
   // 清空时必须落空串而不是删键：删键与「历史数据未配置」无法区分，
   // 后端会把渠道 API Key 再次回填成余额密钥，导致「删了又回来」。
@@ -541,17 +532,15 @@ const buildExtra = () => {
   } else {
     delete extra.credit_renew_interval_minutes
   }
-  // 自定义映射：仅 custom 落库，空行丢弃
-  const creditMapping = form.creditType === 'custom'
-    ? creditMappingRows.value
-        .map((r) => ({ field: r.field, expression: r.expression.trim() }))
-        .filter((r) => r.expression)
-    : []
+  // 字段映射：账密登录口径下保留配置（无 SPI 上游靠它 + credit_url 查询），空行丢弃
+  const creditMapping = creditMappingRows.value
+    .map((r) => ({ field: r.field, expression: r.expression.trim() }))
+    .filter((r) => r.expression)
   if (creditMapping.length) extra.credit_mapping = creditMapping
   else delete extra.credit_mapping
-  // 余额接口地址：仅 custom 支持覆盖（official 用登记表地址，auto 由后端回落）
+  // 余额接口地址：账密登录口径下支持覆盖（登记表没收录的上游必须显式配置）
   const creditUrl = form.creditUrl.trim()
-  if (creditUrl && form.creditType === 'custom') extra.credit_url = creditUrl
+  if (creditUrl) extra.credit_url = creditUrl
   else delete extra.credit_url
   // 余额查询 UA / 自定义请求头：透传给余额接口（空则删键，走后端默认值）
   const creditUa = form.creditUa.trim()
@@ -561,7 +550,7 @@ const buildExtra = () => {
   if (Object.keys(creditHeaders).length) extra.credit_headers = creditHeaders
   else delete extra.credit_headers
   // 字段映射已接管取数：配了映射就清掉旧版整条表达式，避免两套口径并存
-  if (form.creditType === 'custom' && creditMapping.length) delete extra.credit_expression
+  if (creditMapping.length) delete extra.credit_expression
   // 透传头：逗号/换行分隔，数组落库
   for (const [field, key] of [['passthroughReq', 'passthrough_request_headers'],
     ['passthroughResp', 'passthrough_response_headers']] as const) {
@@ -672,7 +661,7 @@ const resetForm = () => {
     extraBodyText: '', passthroughReq: '', passthroughResp: '',
     maxConcurrency: null, maxAccounts: null, rpm: null,
     metricsUrl: '',
-    creditType: 'auto', creditUrl: '',
+    creditType: 'account-login', creditUrl: '',
     creditUa: '', creditHeadersText: '',
     creditAccessKey: '', creditSecretKey: '', creditWarnThreshold: '', creditWarnReceivers: [],
     creditRenewEnabled: true, creditRenewAhead: null, creditRenewInterval: null,
@@ -1861,19 +1850,16 @@ const protocolOptions = [
           <div class="pf-line">
             <span class="pf-line-label">查询类型</span>
             <div class="pf-line-ctrl">
-              <ReSelect v-model="form.creditType" class="w-full" layout="default" placeholder="自动获取">
+              <ReSelect v-model="form.creditType" class="w-full" layout="default" placeholder="账号密码登录">
                 <el-option v-for="k in CREDIT_TYPES" :key="k.value" :label="k.label" :value="k.value" />
               </ReSelect>
               <p class="pf-note">
                 决定「提供商详情 → 余额与用量」怎么查：每个 Key 单独查一次，前一段算剩余、后一段算已用，总量是两者之和。
               </p>
-              <p v-if="form.creditType === 'auto'" class="pf-note">
-                自动获取依次尝试：厂商官方 → OpenAI 官方 → OpenAI 兼容计费 → Moss 非官方，第一条查到数的胜出；
-                都不通时到详情页「余额与用量」看已尝试链路，再改用官方 API 或自定义映射。
-              </p>
               <p v-if="form.creditType === 'account-login'" class="pf-note">
                 账密登录：点下方「登录」按钮会弹出浏览器窗口，在窗口里输入上游门户的账号密码完成登录；
-                会话令牌自动截获并回填为余额密钥，账号密码不落库。
+                会话令牌自动截获并回填为余额密钥，账号密码不落库。登记表没收录的上游可在
+                扩展配置里补登录页与令牌截获规则（credit_login_url / credit_capture_pattern 等）。
               </p>
             </div>
           </div>
@@ -2037,12 +2023,12 @@ const protocolOptions = [
               <p class="pf-note">例如余额接口要求的 Referer、X-Requested-With 等；留空不附加。</p>
             </div>
           </div>
-          <template v-if="form.creditType === 'custom'">
+          <template v-if="form.creditType === 'account-login'">
             <div class="pf-line">
               <span class="pf-line-label">接口地址</span>
               <div class="pf-line-ctrl">
                 <el-input v-model="form.creditUrl" placeholder="余额接口地址（留空用供应商上游地址）" />
-                <p class="pf-note">自定义映射的取数地址；响应是 JSON 用 JSONPath，是 XML 用 XPath。</p>
+                <p class="pf-note">余额取数地址（登记表没收录的上游必配）；响应是 JSON 用 JSONPath，是 XML 用 XPath。</p>
               </div>
             </div>
             <div class="pf-line">

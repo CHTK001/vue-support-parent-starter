@@ -34,6 +34,12 @@ const flows = ref<CollectFlow[]>([]);
 const fields = ref<CollectFieldDef[]>([]);
 const countAll = ref(0);
 
+/** 导出上限：纯前端分页拉全，超过提示改用更细筛选（更大体量应由后端流式导出） */
+const EXPORT_CAP = 5000;
+const exporting = ref(false);
+/** 最近一次取数真正用到的筛选：导出与页面展示保持同一口径（搜索框里的草稿值不算数） */
+const lastParams = ref<Record<string, unknown>>({});
+
 /** 空表时的解释文案（loadRecords 每次取数后刷新，见 explainEmpty） */
 const emptyHint = ref("暂无采集结果");
 const selected = ref<CollectRecord[]>([]);
@@ -143,7 +149,8 @@ const columns = computed<ReTableColumn[]>(() => {
     formatter: (row: Record<string, unknown>) => cellOf(row, column.name),
   }));
   return [...base, ...dynamic, { prop: "createTime", label: "采集时间", width: 176 },
-    { prop: "action", label: "操作", width: 110, slot: "action", fixed: "right" }];
+    /* 操作列 4~5 枚按钮（笔顺/详情/复制/删除）：110 放不下复制后的按钮排布 */
+    { prop: "action", label: "操作", width: 150, slot: "action", fixed: "right" }];
 });
 
 /** 字段定义驱动列：未选流程时没有稳定 schema，只展示固定列 */
@@ -160,6 +167,7 @@ const cellColumns = computed<{ name: string; label: string }[]>(() =>
 async function loadRecords({ page, pageSize, params }: ReTableLoadParams): Promise<RePageResult> {
   const flowId = params.collectRecordFlowId ? Number(params.collectRecordFlowId) : 0;
   activeFlowId.value = flowId ? String(flowId) : "";
+  lastParams.value = { ...params };
   /** 数量不再单发 /record/count：page 接口本身就带 total，重复查一次纯浪费网络 */
   const [page1, defs] = await Promise.all([
     pageRecords({
@@ -272,6 +280,125 @@ async function clearFlowRecords(): Promise<void> {
   }
 }
 
+/** 单元格取值：动态列走 cells，固定列直接读行字段 */
+function columnValueOf(row: Record<string, unknown>, prop: string): string {
+  if (prop.startsWith("cell:")) {
+    return cellOf(row, prop.slice(5));
+  }
+  const value = row[prop];
+  return value === null || value === undefined ? "" : String(value);
+}
+
+/** CSV 单元格转义：含逗号/引号/换行时加引号，引号翻倍 */
+function csvCell(value: string): string {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/**
+ * 导出当前筛选的全部结果为 CSV（带 BOM，Excel 直接打开不乱码）。
+ * 复用列表同款 pageRecords 分页拉全，不新开后端口子；列与表格展示一致（不含操作列）。
+ */
+async function exportCsv(): Promise<void> {
+  if (exporting.value) {
+    return;
+  }
+  if (!countAll.value) {
+    msgInfo("当前筛选下没有可导出的结果");
+    return;
+  }
+  if (countAll.value > EXPORT_CAP) {
+    msgWarning(`当前筛选共 ${countAll.value} 条，超过前端导出上限 ${EXPORT_CAP} 条，请用运行ID / 业务主键等缩小范围`);
+    return;
+  }
+  exporting.value = true;
+  try {
+    const exportColumns = columns.value.filter(column => column.prop !== "action");
+    const rows: Record<string, unknown>[] = [];
+    const pageSize = 200;
+    for (let pageNo = 1; rows.length < countAll.value; pageNo += 1) {
+      const page1 = await pageRecords({
+        page: pageNo,
+        pageSize,
+        collectRecordFlowId: lastParams.value.collectRecordFlowId as string | undefined,
+        collectRecordTaskId: lastParams.value.collectRecordTaskId as string | undefined,
+        collectRecordNodeId: lastParams.value.collectRecordNodeId as string | undefined,
+        collectRecordKey: lastParams.value.collectRecordKey as string | undefined,
+        collectRecordUrl: lastParams.value.collectRecordUrl as string | undefined,
+      });
+      const batch = (page1.rows ?? []) as unknown as Record<string, unknown>[];
+      rows.push(...batch);
+      if (!batch.length) {
+        break;
+      }
+    }
+    const lines = [exportColumns.map(column => csvCell(String(column.label ?? ""))).join(",")];
+    rows.forEach(row => {
+      lines.push(exportColumns.map(column => csvCell(columnValueOf(row, String(column.prop ?? "")))).join(","));
+    });
+    const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const scope = activeFlowId.value
+      ? flowOptions.value.find(item => item.value === activeFlowId.value)?.label || activeFlowId.value
+      : "全部流程";
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "");
+    anchor.href = url;
+    anchor.download = `采集结果_${scope}_${stamp}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    msgSuccess(`已导出 ${rows.length} 条结果`);
+  } catch (error) {
+    msgError(errText(error));
+  } finally {
+    exporting.value = false;
+  }
+}
+
+/** 剪贴板写入：优先 async Clipboard API，非安全上下文回退 execCommand */
+async function copyText(text: string): Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // 落到下面的 execCommand 兜底
+    }
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const ok = document.execCommand("copy");
+  textarea.remove();
+  return ok;
+}
+
+/** 复制一条结果的全部字段（固定字段 + 动态字段），排查时直接贴给同事 / 贴进工单 */
+async function copyRecord(input: Record<string, unknown>): Promise<void> {
+  const record = input as unknown as CollectRecord;
+  const lines = [
+    `ID: ${record.collectRecordId}`,
+    `流程/任务/节点: ${record.collectRecordFlowId} / ${record.collectRecordTaskId} / ${record.collectRecordNodeId || "—"}`,
+    `业务主键: ${record.collectRecordKey || "—"}`,
+    `来源地址: ${record.collectRecordUrl || "—"}`,
+    ...(record.cells ?? []).map(cell => `${cell.name}: ${cell.value ?? ""}`),
+    `采集时间: ${record.createTime || "—"}`,
+  ];
+  const ok = await copyText(lines.join("\n"));
+  if (ok) {
+    msgSuccess("已复制到剪贴板");
+  } else {
+    msgError("复制失败，请手动选择复制");
+  }
+}
+
 function hanziOf(input: Record<string, unknown>): string {
   const record = input as unknown as CollectRecord;
   const cells = record.cells ?? [];
@@ -335,6 +462,14 @@ function reloadAfterFieldSave(): void {
           <template v-else>按流程筛选后展开字段列</template>
         </span>
         <ReButton
+          icon="Download"
+          layout="square"
+          size="small"
+          :loading="exporting"
+          :disabled="!countAll"
+          tip="导出当前筛选的全部结果为 CSV（最多 5000 条）"
+          @click="exportCsv"/>
+        <ReButton
           icon="SetUp"
           layout="square"
           size="small"
@@ -360,6 +495,7 @@ function reloadAfterFieldSave(): void {
       <template #action="{ row }">
         <ReButton v-if="isHanziRecord(row)" icon="EditPen" layout="square" size="small" tip="查看汉字笔顺" @click="openStroke(row)"/>
         <ReButton v-bind="COLLECT_ACTIONS.viewResult" layout="square" size="small" @click="showDetail(row)"/>
+        <ReButton v-bind="COLLECT_ACTIONS.copyRecord" layout="square" size="small" @click="copyRecord(row)"/>
         <ReButton v-bind="COLLECT_ACTIONS.deleteRecord" layout="square" size="small" @click="removeOne(row)"/>
       </template>
 

@@ -21,7 +21,7 @@ import LogFullTextDialog from "../components/LogFullTextDialog.vue";
 import RunReplayDialog from "../components/RunReplayDialog.vue";
 import TaskQualityDialog from "../components/TaskQualityDialog.vue";
 import TaskStatsDrawer from "../components/TaskStatsDrawer.vue";
-import { cleanTasks, deleteTask, fetchTaskLogs, listFlows, pageTasks } from "../api/collectApi";
+import { cleanTasks, deleteTask, fetchTaskLogs, listFlows, pageTasks, runFlow } from "../api/collectApi";
 import { COLLECT_ACTIONS } from "../constants/actionColumns";
 import { costMs, statusTagType, statusText, triggerText } from "../constants/taskStatus";
 import { confirmAction, errText, useCollectView } from "../composables/useCollectView";
@@ -145,7 +145,7 @@ const columns = computed<ReTableColumn[]>(() => [
   { prop: "collectTaskCost", label: "耗时", width: 90, slot: "cost", align: "right" },
   { prop: "collectTaskNodeCount", label: "节点/请求/结果", width: 126, slot: "counts", align: "center" },
   { prop: "collectTaskExecutorId", label: "执行器", width: 200, showOverflowTooltip: true },
-  { prop: "collectTaskError", label: "错误", minWidth: 160, showOverflowTooltip: true },
+  { prop: "collectTaskError", label: "错误", minWidth: 160, slot: "error", showOverflowTooltip: true },
   { prop: "action", label: "操作", width: 210, slot: "action", fixed: "right" },
 ]);
 
@@ -262,6 +262,39 @@ async function removeTask(input: Record<string, unknown>): Promise<void> {
     tableRef.value?.reload();
   } catch (error) {
     msgError(errText(error));
+  }
+}
+
+/** 正在重新运行的运行ID（防重复点击） */
+const rerunningIds = ref<Record<number, boolean>>({});
+
+/**
+ * 失败重跑：按采集器当前配置发起一次新运行（生成新的运行ID）。
+ * 只对失败行开放——成功/运行中的行重跑意义不大，需要时用采集器管理页的「运行」。
+ */
+async function rerunTask(input: Record<string, unknown>): Promise<void> {
+  const task = input as unknown as CollectTask;
+  if (rerunningIds.value[task.collectTaskId]) {
+    return;
+  }
+  const flowName =
+    task.collectTaskFlowName ||
+    flowOptions.value.find(item => item.value === String(task.collectTaskFlowId))?.label ||
+    `流程 ${task.collectTaskFlowId}`;
+  if (!(await confirmAction(`按当前配置重新运行「${flowName}」？将生成新的运行ID。`, "重新运行"))) {
+    return;
+  }
+  rerunningIds.value = { ...rerunningIds.value, [task.collectTaskId]: true };
+  try {
+    const created = await runFlow({ collectFlowId: task.collectTaskFlowId });
+    msgSuccess(`已提交运行，运行ID ${created?.collectTaskNo ?? ""}`);
+    tableRef.value?.reload();
+  } catch (error) {
+    msgError(errText(error));
+  } finally {
+    const next = { ...rerunningIds.value };
+    delete next[task.collectTaskId];
+    rerunningIds.value = next;
   }
 }
 
@@ -393,6 +426,10 @@ onActivated(() => {
         {{ row.collectTaskNodeCount ?? 0 }} / {{ row.collectTaskRequestCount ?? 0 }} /
         {{ row.collectTaskRecordCount ?? 0 }}
       </template>
+      <template #error="{ row }">
+        <span v-if="row.collectTaskError" class="collect-err">{{ row.collectTaskError }}</span>
+        <span v-else class="collect-err-none">—</span>
+      </template>
       <template #action="{ row }">
         <ReButton v-bind="COLLECT_ACTIONS.replay" layout="square" @click="openReplay(row)"/>
         <ReButton
@@ -403,6 +440,13 @@ onActivated(() => {
         />
         <ReButton v-bind="COLLECT_ACTIONS.records" layout="square" @click="gotoRecords(row)"/>
         <ReButton v-bind="COLLECT_ACTIONS.logs" layout="square" @click="showLogs(row)"/>
+        <ReButton
+          v-if="row.collectTaskStatus === 'FAILURE'"
+          v-bind="COLLECT_ACTIONS.rerunTask"
+          layout="square"
+          :loading="rerunningIds[row.collectTaskId]"
+          @click="rerunTask(row)"
+        />
         <ReButton v-bind="COLLECT_ACTIONS.deleteRun" layout="square" @click="removeTask(row)"/>
       </template>
     </ReTable>
@@ -450,3 +494,13 @@ onActivated(() => {
     <TaskStatsDrawer v-model="statsVisible" :flow-id="activeFlowId ? Number(activeFlowId) : null" />
   </div>
 </template>
+
+<style scoped>
+/* 失败原因列表里直接可读：红色摘要 + 列宽截断 + tooltip 兜底，完整信息仍走「节点日志」 */
+.collect-err {
+  color: var(--status-error);
+}
+.collect-err-none {
+  color: var(--text-tertiary);
+}
+</style>

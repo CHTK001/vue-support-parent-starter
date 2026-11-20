@@ -36,8 +36,10 @@ export type CollectActionKey =
   | "records"
   | "logs"
   | "deleteRun"
+  | "rerunTask"
   | "viewResult"
   | "deleteRecord"
+  | "copyRecord"
   | "editFunction"
   | "testFunction"
   | "deleteFunction"
@@ -66,9 +68,15 @@ export const COLLECT_ACTIONS: Record<CollectActionKey, CollectActionMeta> = {
   records: { icon: "Files", tip: "看这次运行产出的采集结果" },
   logs: { icon: "Tickets", tip: "看这次运行的节点日志" },
   deleteRun: { icon: "Delete", type: "danger", tip: "删除这条运行记录及其节点日志" },
+  rerunTask: {
+    icon: "RefreshRight",
+    type: "warning",
+    tip: "按采集器当前配置重新运行一次（生成新的运行ID，不是断点续跑）",
+  },
 
   // 采集结果（RecordView）
   viewResult: { icon: "View", type: "primary", tip: "查看这条结果的字段" },
+  copyRecord: { icon: "CopyDocument", tip: "复制这条结果的全部字段（含动态字段）" },
   deleteRecord: { icon: "Delete", type: "danger", tip: "删除这条结果" },
 
   // 函数库（FunctionView）

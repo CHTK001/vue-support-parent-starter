@@ -91,6 +91,128 @@ export const CODEC_KEYLOG_PUB_HEADER = "x-codec-keylog-pub";
 /** axios config 上留存 keylog 一次性私钥的字段名（响应拦截器用它解密，不参与序列化） */
 const KEYLOG_PRIV_FIELD = "__keylogEphemeralPrivateKey";
 
+/** codec 分段传输协议头：同一逻辑请求的追踪 ID（与后端 CodecTraceChunkFilter 对齐） */
+export const TRACE_ID_HEADER = "X-Codec-Trace-Id";
+/** codec 分段传输协议头：当前分片序号（0 起始） */
+export const TRACE_INDEX_HEADER = "X-Codec-Chunk-Index";
+/** codec 分段传输协议头：总分片数 */
+export const TRACE_TOTAL_HEADER = "X-Codec-Chunk-Total";
+
+/** axios config 上留存分片 traceId / 总片数的内部字段（响应侧凭它拉取重组，不参与序列化） */
+const TRACE_ID_FIELD = "__codecTraceId";
+const TRACE_TOTAL_FIELD = "__codecTraceTotal";
+/** 每片密文字节数（hex 字符数 = 字节数 × 2） */
+const TRACE_CHUNK_HEX_SIZE = 32 * 1024;
+/** 单请求最大分片数（与后端 MAX_CHUNK_TOTAL 对齐；超出则退回整包传输） */
+const TRACE_MAX_CHUNKS = 1024;
+
+/** 携带分片信息的 axios config 形状 */
+type TraceChunkConfig = InternalAxiosRequestConfig & {
+  __codecTraceId?: string;
+  __codecTraceTotal?: number;
+};
+
+/** 生成分片追踪 ID（32 位 hex） */
+function newTraceId(): string {
+  const c = globalThis.crypto;
+  if (c?.randomUUID) return c.randomUUID().replace(/-/g, "");
+  const bytes = new Uint8Array(16);
+  if (c?.getRandomValues) {
+    c.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** 分片上传/拉取共用的直连请求头（绕过 axios 拦截器，手动带凭据与 codec 标记） */
+function traceHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { [CODEC_KEY_HEADER]: "1" };
+  const token = getAccessToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const xsrfToken = readCookie(CSRF_COOKIE_NAME);
+  if (xsrfToken) headers[CSRF_HEADER_NAME] = xsrfToken;
+  return { ...headers, ...extra };
+}
+
+/** 由 axios config 还原分片上传/拉取用的完整 URL（含查询参数） */
+function traceUrl(config: InternalAxiosRequestConfig): string {
+  const url = config.url ?? "";
+  const base = (config.baseURL ?? "").replace(/\/+$/, "");
+  const full = /^https?:\/\//i.test(url) ? url : `${base}/${url.replace(/^\/+/, "")}`;
+  const params = config.params as Record<string, unknown> | undefined;
+  if (params && typeof params === "object" && Object.keys(params).length > 0) {
+    const qs = new URLSearchParams(params as Record<string, string>).toString();
+    return `${full}${full.includes("?") ? "&" : "?"}${qs}`;
+  }
+  return full;
+}
+
+/** 上传单个请求分片（非末片：后端只确认入缓冲，不进业务管线） */
+async function uploadTraceChunk(
+  config: InternalAxiosRequestConfig,
+  traceId: string,
+  index: number,
+  total: number,
+  chunkHex: string,
+): Promise<void> {
+  const res = await fetch(traceUrl(config), {
+    method: (config.method ?? "post").toUpperCase(),
+    headers: traceHeaders({
+      [TRACE_ID_HEADER]: traceId,
+      [TRACE_INDEX_HEADER]: String(index),
+      [TRACE_TOTAL_HEADER]: String(total),
+    }),
+    body: chunkHex,
+    credentials: "same-origin",
+  });
+  if (!res.ok) {
+    throw new Error(`codec trace chunk upload failed: ${res.status}`);
+  }
+}
+
+/** 按 traceId 依序拉取响应分片并重组为完整响应体 */
+async function pullTraceChunks(
+  config: InternalAxiosRequestConfig,
+  traceId: string,
+  total: number,
+): Promise<Uint8Array> {
+  const parts: Uint8Array[] = [];
+  for (let i = 0; i < total; i++) {
+    const res = await fetch(traceUrl(config), {
+      method: "GET",
+      headers: traceHeaders({
+        [TRACE_ID_HEADER]: traceId,
+        [TRACE_INDEX_HEADER]: String(i),
+        [TRACE_TOTAL_HEADER]: String(total),
+      }),
+      credentials: "same-origin",
+    });
+    if (!res.ok) {
+      throw new Error(`codec trace chunk pull failed: ${res.status}`);
+    }
+    parts.push(new Uint8Array(await res.arrayBuffer()));
+  }
+  let size = 0;
+  for (const part of parts) size += part.length;
+  const out = new Uint8Array(size);
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
+/** 宽容 JSON 解析：失败时原样返回文本 */
+function safeJsonParse(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
 /** x-sign 相关头名（与后端 NonceUtils 保持一致） */
 export const SIGN_NONCE_HEADER = "x-nonce";
 export const SIGN_TIMESTAMP_HEADER = "x-timestamp";
@@ -549,7 +671,34 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       const codecOptions = autoCodec
         ? { type: runtimeCodec.type, key: runtimeCodec.key }
         : { type: rc!.type, key: rc!.key };
-      config.data = encodeRequestBody(bodyText, codecOptions);
+      const fullHex = encodeRequestBody(bodyText, codecOptions);
+      // 分段传输（CodecTraceOpen）：整包密文按 traceId 分片上传，末片随本请求
+      // 走正常管线（鉴权/解密/响应编码只走一次）；单片小请求保持整包路径。
+      // 超过最大分片数的大包退回整包传输，避免前后端限制不一致。
+      const chunkTotalCount =
+        autoCodec && runtimeCodec.traceOpen && !config.headers.has(TRACE_ID_HEADER)
+          ? Math.ceil(fullHex.length / TRACE_CHUNK_HEX_SIZE)
+          : 0;
+      if (chunkTotalCount > 1 && chunkTotalCount <= TRACE_MAX_CHUNKS) {
+        const traceId = newTraceId();
+        for (let i = 0; i < chunkTotalCount - 1; i++) {
+          await uploadTraceChunk(
+            config,
+            traceId,
+            i,
+            chunkTotalCount,
+            fullHex.slice(i * TRACE_CHUNK_HEX_SIZE, (i + 1) * TRACE_CHUNK_HEX_SIZE),
+          );
+        }
+        config.data = fullHex.slice((chunkTotalCount - 1) * TRACE_CHUNK_HEX_SIZE);
+        (config as TraceChunkConfig)[TRACE_ID_FIELD] = traceId;
+        (config as TraceChunkConfig)[TRACE_TOTAL_FIELD] = chunkTotalCount;
+        config.headers.set(TRACE_ID_HEADER, traceId);
+        config.headers.set(TRACE_INDEX_HEADER, String(chunkTotalCount - 1));
+        config.headers.set(TRACE_TOTAL_HEADER, String(chunkTotalCount));
+      } else {
+        config.data = fullHex;
+      }
       // hex 串已是最终请求体：axios 默认 transformRequest 见到 Content-Type 为
       // application/json 会对 string 再 JSON.stringify 套引号，后端
       // extractEncryptedPayload 拿带引号的串当 hex 解必然失败，故覆盖为直通。
@@ -609,6 +758,38 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       // 不能只在 responseOpen=true 时解码：打开开关后，紧接着用于刷新设置的
       // /v2/setting/list 响应本身就已经被后端包装，此时运行时状态还是旧值。
       // 先按包装特征识别，识别不到时返回 null/undefined，不影响普通 JSON。
+      // ── codec 分段传输：末片响应是 ack，凭 traceId 拉回全部响应分片并重组 ──
+      const traceTotal = (response.config as TraceChunkConfig)?.[TRACE_TOTAL_FIELD] ?? 0;
+      if (traceTotal > 0) {
+        const ack = typeof response.data === "string" ? safeJsonParse(response.data) : response.data;
+        const ackData = (ack as { data?: { traceId?: string; total?: number; status?: number } } | null)?.data;
+        const pullTotal = Number(ackData?.total ?? 0);
+        const traceId = String(ackData?.traceId ?? (response.config as TraceChunkConfig)?.[TRACE_ID_FIELD] ?? "");
+        if (!ack || pullTotal <= 0 || !traceId) {
+          throw new Error("codec trace ack 无效");
+        }
+        const bytes = await pullTraceChunks(response.config, traceId, pullTotal);
+        const text = new TextDecoder().decode(bytes);
+        if (runtimeCodec.responseOpen || runtimeCodec.type === "keylog") {
+          // 密文包装帧交给下方既有解码分支处理（codec 包装 / keylog k2 帧）
+          response.data = text;
+        } else {
+          response.data = safeJsonParse(text);
+        }
+        const bizStatus = Number(ackData?.status ?? response.status);
+        if (bizStatus >= 400) {
+          // 业务层 HTTP 错误（401/403 等）按 axios 错误形状抛出，走既有会话失效/提示逻辑
+          const bizError = new Error(`Request failed with status code ${bizStatus}`) as Error & {
+            response?: { status: number; data: unknown; headers: Record<string, string> };
+            config?: InternalAxiosRequestConfig;
+            isAxiosError?: boolean;
+          };
+          bizError.response = { status: bizStatus, data: response.data, headers: {} };
+          bizError.config = response.config;
+          bizError.isAxiosError = true;
+          throw bizError;
+        }
+      }
       if (response.data) {
         if (runtimeCodec.type === "keylog") {
           // keylog：用请求侧留存的一次性私钥解 k2 帧
@@ -671,6 +852,8 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
         !canceled &&
         !signed &&
         !explicitNoRetry &&
+        // 分段传输请求重试会破坏分片会话（末片之前的分片不会重发），一律不重试
+        !(retryConfig as TraceChunkConfig)?.[TRACE_TOTAL_FIELD] &&
         (idempotent || explicitRetry) &&
         retryCount > 0 &&
         attempt < retryCount &&
