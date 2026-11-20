@@ -716,11 +716,6 @@ const restoreInputDraft = async () => {
   }
 };
 
-// 进入编辑态时收起恢复角标：编辑流程有自己的提示条，别叠两层
-watch(() => props.editing, (editing) => {
-  if (editing) draftRestoredVisible.value = false;
-});
-
 // 命令选择弹窗 ref
 const commandPickerRef = ref<any>();
 
@@ -840,6 +835,13 @@ watch(() => props.sessionId, (sid, oldSid) => {
   lastDraftValue = '';
   void restoreInputDraft();
 }, { immediate: true });
+
+// 进入编辑态时收起恢复角标：编辑流程有自己的提示条，别叠两层。
+// 必须注册在 props 声明之后：watch 的 getter 注册时会立即求值做依赖收集，
+// 若早于 defineProps 求值会触发 TDZ（Cannot access 'props' before initialization）。
+watch(() => props.editing, (editing) => {
+  if (editing) draftRestoredVisible.value = false;
+});
 
 // 计算属性
 const styleClass = computed(() => {
@@ -1064,10 +1066,12 @@ const uploadFiles = computed({
 });
 
 // 附件增删同样要落草稿：只 watch 文本会漏掉「先打字、后贴附件」或「只存了附件」的场景。
-// 上传进度等原地变更不换数组引用，不会触发，正好避免无意义的重复写盘。
+// uploadFiles 的 getter 返回的是父级传入的同一个数组引用，push/splice 属于原地变更、
+// 引用不变，浅 watch 根本不触发（2026-11-20 实测：打字后贴 3MB 附件，草稿里 skipped 一直为 0），
+// 必须 deep 才能监听到增删；上传进度等字段级变更触发后，flushInputDraft 按签名去重，不会重复写盘。
 watch(uploadFiles, () => {
   scheduleInputDraftSave();
-});
+}, { deep: true });
 
 // 当前选中的模型
 const currentModel = computed(() => {
