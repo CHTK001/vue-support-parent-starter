@@ -847,8 +847,8 @@ onMounted(() => {
         >
           <template #toolbar>
             <!-- 工具栏左侧：只留图标 + tip，把横向空间让给表格内容 -->
-            <ReButton layout="square" icon="Share" tip="授权星图" @click="openAtlasDialog" />
-            <ReButton layout="square" type="primary" icon="Plus" tip="新增角色" @click="handleAdd" />
+            <ReButton v-admin layout="square" icon="Share" tip="授权星图" @click="openAtlasDialog" />
+            <ReButton v-admin layout="square" type="primary" icon="Plus" tip="新增角色" @click="handleAdd" />
           </template>
           <!-- A：可操作空态。ReTable 未提供 #empty 时会回落到原生 el-empty，这里提供时接管 -->
           <template #empty>
@@ -859,7 +859,7 @@ onMounted(() => {
               <span class="page-empty__title">还没有角色</span>
               <span class="page-empty__desc">角色把「菜单权限 + 数据范围」打包后授予用户，是权限体系的最小单元。</span>
               <span class="page-empty__actions">
-                <ReButton type="primary" icon="Plus" @click="handleAdd">新增角色</ReButton>
+                <ReButton v-admin type="primary" icon="Plus" @click="handleAdd">新增角色</ReButton>
                 <!-- 复用已有 handleReset（清空筛选 + 回到第一页重新拉取），不新增函数 -->
                 <ReButton icon="Refresh" @click="handleReset">重置筛选</ReButton>
               </span>
@@ -885,11 +885,11 @@ onMounted(() => {
           </template>
           <template #action="{ row }">
             <div class="flex items-center gap-2">
-              <ReButton layout="square" type="primary" icon="Key" tip="分配权限" @click="openPermDialog(row)" />
-              <ReButton layout="square" type="primary" icon="Edit" tip="编辑" @click="handleEdit(row)" />
-              <ReButton layout="square" type="success" icon="DocumentCopy" tip="复制" @click="handleCopy(row)" />
+              <ReButton v-admin layout="square" type="primary" icon="Key" tip="分配权限" @click="openPermDialog(row)" />
+              <ReButton v-admin layout="square" type="primary" icon="Edit" tip="编辑" @click="handleEdit(row)" />
+              <ReButton v-admin layout="square" type="success" icon="DocumentCopy" tip="复制" @click="handleCopy(row)" />
               <ReButton layout="square" type="info" icon="User" tip="用户" @click="openRoleUsers(row)" />
-              <ReButton v-if="row.sysRoleInSystem !== 1" layout="square" type="danger" icon="Delete" tip="删除" @click="handleDelete(row)" />
+              <ReButton v-if="row.sysRoleInSystem !== 1" v-admin layout="square" type="danger" icon="Delete" tip="删除" @click="handleDelete(row)" />
             </div>
           </template>
         </ReTable>
@@ -952,8 +952,8 @@ onMounted(() => {
             </div>
 
             <div class="deck-side__actions">
-              <ReButton layout="square" type="primary" icon="Key" tip="分配权限" @click="openPermDialog(selectedRole)" />
-              <ReButton layout="square" icon="Edit" tip="编辑" @click="handleEdit(selectedRole)" />
+              <ReButton v-admin layout="square" type="primary" icon="Key" tip="分配权限" @click="openPermDialog(selectedRole)" />
+              <ReButton v-admin layout="square" icon="Edit" tip="编辑" @click="handleEdit(selectedRole)" />
               <ReButton layout="square" icon="User" tip="用户" @click="openRoleUsers(selectedRole)" />
             </div>
           </template>

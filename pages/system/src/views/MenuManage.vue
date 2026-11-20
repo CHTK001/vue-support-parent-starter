@@ -1273,16 +1273,16 @@ onMounted(() => {
             </div>
             <div class="menu-action-group">
               <el-tooltip content="新增" placement="top">
-                <el-button type="primary" icon="Plus" circle plain @click="handleAdd()" />
+                <el-button v-admin type="primary" icon="Plus" circle plain @click="handleAdd()" />
               </el-tooltip>
               <el-tooltip content="删除" placement="top">
-                <el-button type="danger" icon="Delete" circle plain @click="handleDelete()" />
+                <el-button v-admin type="danger" icon="Delete" circle plain @click="handleDelete()" />
               </el-tooltip>
               <el-tooltip content="刷新" placement="top">
                 <el-button type="info" icon="Refresh" circle plain @click="refresh" />
               </el-tooltip>
               <el-tooltip content="刷新菜单缓存" placement="top">
-                <el-button class="menu-cache-refresh" type="warning" icon="RefreshRight" circle plain :loading="cacheRefreshing" @click="handleRefreshCache" />
+                <el-button v-admin class="menu-cache-refresh" type="warning" icon="RefreshRight" circle plain :loading="cacheRefreshing" @click="handleRefreshCache" />
               </el-tooltip>
             </div>
           </div>
@@ -1396,7 +1396,7 @@ onMounted(() => {
                   : '先建一个顶级目录，再用它挂载下级菜单；菜单下的按钮权限在右侧维护。' }}
               </span>
               <span class="page-empty__actions">
-                <ReButton v-if="!list.length" type="primary" icon="Plus" @click="handleAdd()">
+                <ReButton v-if="!list.length" v-admin type="primary" icon="Plus" @click="handleAdd()">
                   新增顶级菜单
                 </ReButton>
                 <ReButton icon="Refresh" @click="refresh">刷新</ReButton>
@@ -1493,16 +1493,16 @@ onMounted(() => {
                 <span><em>按钮</em><strong>{{ buttonPerms.length }} 个</strong></span>
               </div>
               <div class="menu-action-group">
-                <el-tooltip content="上移" placement="top"><el-button type="primary" icon="ArrowUp" circle plain @click="handleMove('up')" /></el-tooltip>
-                <el-tooltip content="下移" placement="top"><el-button type="primary" icon="ArrowDown" circle plain @click="handleMove('down')" /></el-tooltip>
+                <el-tooltip content="上移" placement="top"><el-button v-admin type="primary" icon="ArrowUp" circle plain @click="handleMove('up')" /></el-tooltip>
+                <el-tooltip content="下移" placement="top"><el-button v-admin type="primary" icon="ArrowDown" circle plain @click="handleMove('down')" /></el-tooltip>
                 <el-tooltip content="新增子菜单" placement="top">
-                  <el-button type="primary" icon="Plus" circle plain @click="handleAdd(current)" />
+                  <el-button v-admin type="primary" icon="Plus" circle plain @click="handleAdd(current)" />
                 </el-tooltip>
                 <el-tooltip content="编辑" placement="top">
-                  <el-button type="success" icon="Edit" circle plain @click="handleEdit()" />
+                  <el-button v-admin type="success" icon="Edit" circle plain @click="handleEdit()" />
                 </el-tooltip>
                 <el-tooltip content="删除" placement="top">
-                  <el-button type="danger" icon="Delete" circle plain @click="handleDelete()" />
+                  <el-button v-admin type="danger" icon="Delete" circle plain @click="handleDelete()" />
                 </el-tooltip>
                 <el-tooltip content="刷新" placement="top">
                   <el-button type="info" icon="Refresh" circle plain @click="refresh" />
@@ -1558,13 +1558,13 @@ onMounted(() => {
             <div class="menu-action-group menu-button-toolbar">
               <el-tag  effect="plain">{{ buttonPerms.length }} 项</el-tag>
               <el-tooltip content="新增按钮" placement="top">
-                <el-button type="primary" icon="Plus" circle plain :disabled="!isMenuTypeNode" @click="handleAddButton" />
+                <el-button v-admin type="primary" icon="Plus" circle plain :disabled="!isMenuTypeNode" @click="handleAddButton" />
               </el-tooltip>
               <el-tooltip content="批量新增" placement="top">
-                <el-button type="primary" icon="Files" circle plain :disabled="!isMenuTypeNode" @click="handleOpenBatchAdd" />
+                <el-button v-admin type="primary" icon="Files" circle plain :disabled="!isMenuTypeNode" @click="handleOpenBatchAdd" />
               </el-tooltip>
               <el-tooltip :content="selectedButtons.length ? `批量删除(${selectedButtons.length})` : '批量删除'" placement="top">
-                <el-button type="danger" icon="Delete" circle plain :disabled="!selectedButtons.length" @click="handleBatchDeleteButtons" />
+                <el-button v-admin type="danger" icon="Delete" circle plain :disabled="!selectedButtons.length" @click="handleBatchDeleteButtons" />
               </el-tooltip>
               <el-tooltip content="刷新" placement="top">
                 <el-button type="info" icon="Refresh" circle plain :disabled="!isMenuTypeNode" @click="refresh" />
@@ -1619,7 +1619,7 @@ onMounted(() => {
                   <span class="page-empty__title">该菜单还没有按钮权限</span>
                   <span class="page-empty__desc">按钮权限用于细粒度控制页面上的操作入口，如新增、编辑、删除。</span>
                   <span class="page-empty__actions">
-                    <ReButton type="primary" icon="Plus" @click="handleAddButton">新增按钮权限</ReButton>
+                    <ReButton v-admin type="primary" icon="Plus" @click="handleAddButton">新增按钮权限</ReButton>
                   </span>
                 </div>
               </template>
@@ -1640,10 +1640,10 @@ onMounted(() => {
               <template #col-action="{ row }">
                 <div class="menu-table-actions">
                   <el-tooltip content="编辑" placement="top">
-                    <el-button type="primary" icon="Edit" circle plain @click="handleEditButton(row)" />
+                    <el-button v-admin type="primary" icon="Edit" circle plain @click="handleEditButton(row)" />
                   </el-tooltip>
                   <el-tooltip content="删除" placement="top">
-                    <el-button type="danger" icon="Delete" circle plain @click="handleDelete(row)" />
+                    <el-button v-admin type="danger" icon="Delete" circle plain @click="handleDelete(row)" />
                   </el-tooltip>
                 </div>
               </template>

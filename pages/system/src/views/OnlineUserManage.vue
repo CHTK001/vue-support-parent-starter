@@ -400,7 +400,7 @@ const columns: ReTableColumn[] = [
       </template>
       <template #action="{ row }">
         <ReButton layout="square" icon="Clock" tip="登录时间轴" @click="openHistory(row as OnlineUser)" />
-        <ReButton layout="square" type="danger" icon="SwitchButton" tip="强制下线" @click="handleKick(row as OnlineUser)" />
+        <ReButton v-admin layout="square" type="danger" icon="SwitchButton" tip="强制下线" @click="handleKick(row as OnlineUser)" />
       </template>
     </ReTable>
 

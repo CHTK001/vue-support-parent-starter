@@ -440,6 +440,7 @@ onUnmounted(() => {
             @click="loadDictList"
           />
           <ReButton
+            v-admin
             layout="square"
             icon="Plus"
             type="primary"
@@ -516,7 +517,7 @@ onUnmounted(() => {
             <el-button text type="primary" icon="RefreshLeft" @click="resetFilter">清除筛选条件</el-button>
           </el-empty>
           <el-empty v-else description="暂无字典分类" :image-size="60">
-            <el-button type="primary" icon="Plus" @click="handleDictAdd">新增字典</el-button>
+            <el-button v-admin type="primary" icon="Plus" @click="handleDictAdd">新增字典</el-button>
           </el-empty>
         </div>
       </div>
@@ -551,6 +552,7 @@ onUnmounted(() => {
           </div>
           <div class="dict-detail-actions">
             <ReButton
+              v-admin
               layout="square"
               icon="Edit"
               type="primary"
@@ -558,6 +560,7 @@ onUnmounted(() => {
               @click="handleDictEdit"
             />
             <ReButton
+              v-admin
               layout="square"
               icon="Delete"
               type="danger"
@@ -607,7 +610,7 @@ onUnmounted(() => {
                   <ReIcon name="List" size="15" color="var(--el-color-primary)" />
                   <span>字典项（{{ itemCount }}）</span>
                 </span>
-                <el-button type="primary" icon="Plus" @click="handleItemAdd" text>新增子项</el-button>
+                <el-button v-admin type="primary" icon="Plus" @click="handleItemAdd" text>新增子项</el-button>
               </div>
             </template>
             <template #col-sysDictItemName="{ row }">
@@ -634,8 +637,8 @@ onUnmounted(() => {
               </ReTag>
             </template>
             <template #col-action="{ row }">
-              <ReButton layout="square" type="primary" icon="Edit" tip="编辑" @click="handleItemEdit(row)" />
-              <ReButton layout="square" type="danger" icon="Delete" tip="删除" @click="handleItemDelete(row)" />
+              <ReButton v-admin layout="square" type="primary" icon="Edit" tip="编辑" @click="handleItemEdit(row)" />
+              <ReButton v-admin layout="square" type="danger" icon="Delete" tip="删除" @click="handleItemDelete(row)" />
             </template>
           </ReTable>
         </div>

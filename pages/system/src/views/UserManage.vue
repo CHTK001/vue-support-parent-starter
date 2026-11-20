@@ -1073,7 +1073,7 @@ onUnmounted(() => {
             </button>
             <kbd class="user-spotlight__kbd">Ctrl K</kbd>
           </div>
-          <ReButton type="primary" icon="Plus" @click="handleAdd">添加用户</ReButton>
+          <ReButton v-admin type="primary" icon="Plus" @click="handleAdd">添加用户</ReButton>
         </div>
 
         <!-- 指标条：数值全部来自本次分页结果，不做跨页推断 -->
@@ -1125,7 +1125,7 @@ onUnmounted(() => {
         <!-- 工具栏：次级操作（主操作在聚光灯行） -->
         <template #toolbar>
           <ReButton type="primary" icon="Download" @click="handleDownloadTemplate" text>下载模板</ReButton>
-          <ReButton type="primary" icon="Upload" @click="showImportDialog = true" text>导入</ReButton>
+          <ReButton v-admin type="primary" icon="Upload" @click="showImportDialog = true" text>导入</ReButton>
           <ReButton type="primary" icon="Download" :loading="exporting" @click="handleExport" text>导出</ReButton>
         </template>
 
@@ -1133,8 +1133,8 @@ onUnmounted(() => {
         <template v-if="selection.length > 0" #batch-actions>
           <div class="batch-actions">
             <span>已选 {{ selection.length }} 项</span>
-            <ReButton icon="Key" @click="batchResetPassword" :loading="importLoading">批量重置密码</ReButton>
-            <ReButton icon="Delete" type="danger" @click="() => tableRef?.batchDelete()">批量删除</ReButton>
+            <ReButton v-admin icon="Key" @click="batchResetPassword" :loading="importLoading">批量重置密码</ReButton>
+            <ReButton v-admin icon="Delete" type="danger" @click="() => tableRef?.batchDelete()">批量删除</ReButton>
           </div>
         </template>
 
@@ -1146,7 +1146,7 @@ onUnmounted(() => {
             <span class="page-empty__title">还没有用户</span>
             <span class="page-empty__desc">系统账号是登录与权限的载体。可以手动添加，或下载模板批量导入。</span>
             <span class="page-empty__actions">
-              <ReButton type="primary" icon="Plus" @click="handleAdd">添加用户</ReButton>
+              <ReButton v-admin type="primary" icon="Plus" @click="handleAdd">添加用户</ReButton>
               <ReButton icon="Download" @click="handleDownloadTemplate">下载模板</ReButton>
               <ReButton icon="Refresh" @click="handleReset">刷新</ReButton>
             </span>
@@ -1229,16 +1229,16 @@ onUnmounted(() => {
         <template #action="{ row }">
           <div class="row-actions">
             <ReButton layout="square" type="primary" icon="View" tip="画像" @click="handleProfile(row)" />
-            <ReButton layout="square" type="primary" icon="Edit" tip="编辑" @click="handleEdit(row)" />
+            <ReButton layout="square" type="primary" icon="Edit" tip="编辑" v-admin @click="handleEdit(row)" />
             <el-dropdown trigger="click" @command="(cmd: string) => handleActionCommand(cmd, currentActionRow as Record<string, unknown>)">
               <ReButton layout="square" type="info" icon="More" tip="更多" @click="onMoreTrigger" />
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="detail" icon="View">详情</el-dropdown-item>
-                  <el-dropdown-item command="edit" icon="Edit">编辑</el-dropdown-item>
-                  <el-dropdown-item command="resetPwd" icon="Key">重置密码</el-dropdown-item>
-                  <el-dropdown-item v-if="hasTotp(row)" command="unbindTotp" icon="Delete">解绑2FA</el-dropdown-item>
-                  <el-dropdown-item v-if="!isInSystem(row)" command="delete" icon="Delete" :disabled="isSelf(row)">删除</el-dropdown-item>
+                  <el-dropdown-item command="edit" icon="Edit" v-admin>编辑</el-dropdown-item>
+                  <el-dropdown-item command="resetPwd" icon="Key" v-admin>重置密码</el-dropdown-item>
+                  <el-dropdown-item v-if="hasTotp(row)" command="unbindTotp" icon="Delete" v-admin>解绑2FA</el-dropdown-item>
+                  <el-dropdown-item v-if="!isInSystem(row)" command="delete" icon="Delete" :disabled="isSelf(row)" v-admin>删除</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -1490,8 +1490,8 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="profile-hero__actions">
-            <ReButton layout="square" type="primary" icon="Edit" tip="编辑资料" @click="editFromDetail" />
-            <ReButton layout="square" type="primary" icon="Key" tip="重置密码" @click="resetPwdFromDetail" />
+            <ReButton layout="square" type="primary" icon="Edit" tip="编辑资料" v-admin @click="editFromDetail" />
+            <ReButton layout="square" type="primary" icon="Key" tip="重置密码" v-admin @click="resetPwdFromDetail" />
           </div>
         </div>
 
