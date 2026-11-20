@@ -111,6 +111,7 @@ const schema = reactive<SettingSchema[]>([
   // 该字段不再出现在 UsageGlobalSettingProvider 定义里，也没有任何消费方。
   { field: 'usage_timewheel_enabled', label: '后台时间轮调度', valueType: 'BOOLEAN', type: 'switch', value: false, desc: '开启后用量同步改用时间轮调度' },
   { field: 'credit_refresh_enabled', label: '余额定时刷新', valueType: 'BOOLEAN', type: 'switch', value: true, desc: '开启后每 5 分钟自动刷新已启用供应商的余额快照；关闭后仅在打开余额面板或手动同步时查询' },
+  { field: 'credit_renew_enabled', label: '余额令牌自动续期', valueType: 'BOOLEAN', type: 'switch', value: true, desc: '开启后到期前自动用无头浏览器回访上游门户静默续期令牌（仅账密登录且平台支持的供应商生效），失败推送告警' },
   { field: 'usage_report_interval', label: '定时聚合间隔', valueType: 'NUMBER', type: 'number', value: 3600 },
   { field: 'usage_sync_providers', label: 'Provider 白名单', valueType: 'STRING', type: 'text', value: '' },
   {

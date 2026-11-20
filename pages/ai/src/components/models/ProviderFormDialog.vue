@@ -291,6 +291,13 @@ const form = reactive({
   // 实时查到余额 ≤ 阈值时给接收人（用户 ID 列表）推站内消息；都空 = 不告警
   creditWarnThreshold: '',
   creditWarnReceivers: [] as string[],
+  // 余额令牌自动续期（extra.credit_renew_enabled / credit_renew_ahead_minutes
+  // / credit_renew_interval_minutes）：账密登录且平台支持时，到期前自动回访续期。
+  // 开关缺省开——落库时「关」才写 false，「开」删键走后端默认；两个分钟数
+  // null = 未配置（走后端缺省 30 / 720 分钟）
+  creditRenewEnabled: true,
+  creditRenewAhead: null as number | null,
+  creditRenewInterval: null as number | null,
   // 供应商级限流（extra.max_concurrency / max_accounts / requests_per_minute），null = 不限制
   maxConcurrency: null as number | null,
   maxAccounts: null as number | null,
@@ -518,6 +525,22 @@ const buildExtra = () => {
   const warnReceivers = parseWarnReceivers(form.creditWarnReceivers)
   if (warnReceivers.length) extra.credit_warn_receivers = warnReceivers
   else delete extra.credit_warn_receivers
+  // 余额令牌自动续期：仅账密登录口径参与；开关「关」落 false，「开」删键走后端默认。
+  // 提前量 / 保活周期仅在填写正数时落库，否则删键走后端缺省（30 / 720 分钟）
+  if (form.creditType === 'account-login' && !form.creditRenewEnabled) extra.credit_renew_enabled = false
+  else delete extra.credit_renew_enabled
+  const renewAhead = Number(form.creditRenewAhead)
+  if (form.creditRenewAhead != null && Number.isFinite(renewAhead) && renewAhead > 0) {
+    extra.credit_renew_ahead_minutes = Math.round(renewAhead)
+  } else {
+    delete extra.credit_renew_ahead_minutes
+  }
+  const renewInterval = Number(form.creditRenewInterval)
+  if (form.creditRenewInterval != null && Number.isFinite(renewInterval) && renewInterval > 0) {
+    extra.credit_renew_interval_minutes = Math.round(renewInterval)
+  } else {
+    delete extra.credit_renew_interval_minutes
+  }
   // 自定义映射：仅 custom 落库，空行丢弃
   const creditMapping = form.creditType === 'custom'
     ? creditMappingRows.value
@@ -652,6 +675,7 @@ const resetForm = () => {
     creditType: 'auto', creditUrl: '',
     creditUa: '', creditHeadersText: '',
     creditAccessKey: '', creditSecretKey: '', creditWarnThreshold: '', creditWarnReceivers: [],
+    creditRenewEnabled: true, creditRenewAhead: null, creditRenewInterval: null,
   })
   apiKeyList.value = []
   creditKeyList.value = [''] // 余额密钥默认展示一行，贴合单账号主流程
@@ -777,6 +801,11 @@ const openEdit = (provider: any, opts?: { focusSection?: 'balance' }) => {
   const savedReceivers = Array.isArray(origExtra.value.credit_warn_receivers)
     ? origExtra.value.credit_warn_receivers.join(',') : String(origExtra.value.credit_warn_receivers || '')
   form.creditWarnReceivers = savedReceivers.split(/[,，;；\s]+/).map((s) => s.trim()).filter(Boolean)
+  // 余额令牌自动续期回显：开关按库值（缺省开）；分钟数空 = 未配置（走后端缺省）
+  form.creditRenewEnabled = origExtra.value.credit_renew_enabled == null
+    ? true : Boolean(origExtra.value.credit_renew_enabled)
+  form.creditRenewAhead = numOrNull(origExtra.value.credit_renew_ahead_minutes)
+  form.creditRenewInterval = numOrNull(origExtra.value.credit_renew_interval_minutes)
   // 映射行回填：优先 credit_mapping；历史 credit_expression 按「分号分段」拆成 remain / used
   const savedMapping = Array.isArray(origExtra.value.credit_mapping) ? origExtra.value.credit_mapping : []
   const mappingRows = savedMapping.length
@@ -1864,6 +1893,22 @@ const protocolOptions = [
               <p class="pf-note">
                 在弹出的浏览器窗口里自行输入账号密码（带验证码 / 滑块的站点也能过）；
                 令牌失效时回到这里重新登录即可。
+              </p>
+              <!-- 自动续期：到期前无头回访上游门户静默换新令牌，失败推送告警转人工 -->
+              <div class="pf-inline">
+                <el-switch v-model="form.creditRenewEnabled" size="small" />
+                <span class="pf-note" style="margin: 0;">自动续期</span>
+                <template v-if="form.creditRenewEnabled">
+                  <ReInputNumber v-model="form.creditRenewAhead" :min="5" :max="1440" :step="5"
+                    controls-position="right" placeholder="提前续期(分钟)" class="pf-num" />
+                  <ReInputNumber v-model="form.creditRenewInterval" :min="60" :max="10080" :step="60"
+                    controls-position="right" placeholder="保活周期(分钟)" class="pf-num" />
+                </template>
+              </div>
+              <p class="pf-note">
+                到期前自动用无头浏览器回访上游门户静默续期令牌（提前量默认 30 分钟）；
+                无到期时间的令牌按保活周期回访（默认 720 分钟）。续期失败会推送告警，
+                回到上方「登录」重新登录即可。
               </p>
             </div>
           </div>
