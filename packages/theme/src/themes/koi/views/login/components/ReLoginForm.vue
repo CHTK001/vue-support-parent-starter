@@ -249,6 +249,9 @@
           </div>
         </el-form-item>
 
+        <!-- 自动注册提示：短信验证通过后，未注册手机号会自动创建账号并登录 -->
+        <div class="login-sms-hint">未注册手机号验证通过后将自动注册账号</div>
+
         <el-form-item class="m-b-0">
           <el-button
             type="primary"
@@ -1023,6 +1026,14 @@ const submitLogin = async (otpCode: string) => {
   flex-shrink: 0;
   min-width: 104px;
   border-radius: 10px;
+}
+
+/* 短信登录自动注册提示：贴在验证码行下方，弱化展示 */
+.login-sms-hint {
+  margin: -10px 0 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
 }
 
 .login-mobile-brand {
