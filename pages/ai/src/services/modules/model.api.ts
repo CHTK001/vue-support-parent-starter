@@ -123,6 +123,14 @@ export interface ModelApi {
       error?: string | null;
     }>;
   }>;
+  /** 已解包：账密登录「登录」按钮——后端弹出内嵌浏览器窗口等待手动登录，截获令牌回填为余额密钥（前端长超时） */
+  loginProviderCredit(providerId: string): Promise<{
+    ok?: boolean;
+    message?: string;
+    login_url?: string | null;
+    token_mask?: string | null;
+    kind?: string | null;
+  }>;
   deleteProvider(providerId: string): Promise<boolean>;
   /** 批量删除供应商行（级联其模型与连接，Body 为 ids 数组，整批拦截） */
   batchDeleteProviders(ids: string[]): Promise<{ success: boolean; deletedCount: number }>;
@@ -410,6 +418,27 @@ export const modelApi: ModelApi = {
         currency?: string | null;
         error?: string | null;
       }>;
+    };
+  },
+
+  /**
+   * 供应商余额「账号密码登录」（编辑页 / 余额面板的「登录」按钮）：
+   * 后端弹出内嵌浏览器登录窗口，等待用户完成上游门户登录后截获会话令牌，
+   * 回填为余额密钥。请求阻塞到登录完成或超时，超时须长于后端等待上限。
+   */
+  async loginProviderCredit(this: ApiContext, providerId: string) {
+    const body: any = await rawApi.post(
+      `/api/providers/${encodeURIComponent(providerId)}/credit/login`,
+      {},
+      { timeout: 200000 },
+    );
+    const payload = body && typeof body === 'object' && 'data' in body ? body.data : body;
+    return (payload ?? { ok: false, message: '空响应' }) as {
+      ok?: boolean;
+      message?: string;
+      login_url?: string | null;
+      token_mask?: string | null;
+      kind?: string | null;
     };
   },
 

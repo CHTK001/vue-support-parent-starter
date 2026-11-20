@@ -368,6 +368,14 @@
     </div>
 
     <p v-if="error" class="pc-error">{{ error }}</p>
+    <!-- 账密登录：待登录 / 令牌失效时的「登录」入口。点击后后端弹出内嵌浏览器窗口，
+         用户在窗口里手动登录上游门户，会话令牌自动截获回填为余额密钥 -->
+    <div v-if="needLogin" class="pc-login">
+      <button class="pc-login__btn" type="button" :disabled="loginLoading" @click="handleCreditLogin">
+        {{ loginLoading ? '已弹出登录窗口，等待完成登录…' : '登录' }}
+      </button>
+      <span v-if="loginTip" class="pc-login__tip" :class="{ 'is-ok': loginOk }">{{ loginTip }}</span>
+    </div>
     <p v-if="!loading && !anyOk && attempted" class="pc-chain">已尝试：{{ attempted }}</p>
 
     <div v-if="!rows.length" class="pc-empty">
@@ -1214,6 +1222,43 @@ const SOURCE_LABELS: Record<string, string> = {
 const kindLabel = computed(() => KIND_LABELS[String(meta.value.kind || '')] || '')
 const pinned = computed(() => rows.value.length > 1)/** 全部 Key 都没查到数：此时把「已尝试链路」显示出来，方便判断该换哪条口径 */
 const anyOk = computed(() => rows.value.some((row) => row.ok))
+/** 账密登录（extra.credit_kind = account-login）：余额令牌来自「登录」按钮，不手填 */
+const accountLogin = computed(() => String(meta.value.kind || '') === 'account-login')
+/** 需要登录：账密登录且没拿到任何成功读数（还没登录被拦，或会话令牌失效全失败） */
+const needLogin = computed(() => accountLogin.value && !loading.value && !anyOk.value)
+const loginLoading = ref(false)
+const loginOk = ref(false)
+const loginTip = ref('')
+
+/**
+ * 「登录」按钮：请后端弹出内嵌浏览器登录窗口，等待用户完成上游门户登录，
+ * 截获的会话令牌由后端回填为余额密钥。请求阻塞到登录完成或超时（后端上限 3 分钟），
+ * 前端超时须长于后端；成功后重拉面板，新令牌立刻参与查询。令牌只回掩码。
+ */
+const handleCreditLogin = async () => {
+  const providerId = String(props.providerId || '').trim()
+  if (!providerId || loginLoading.value) return
+  loginLoading.value = true
+  loginTip.value = ''
+  try {
+    const res: any = await adminApi.post(
+      `/api/providers/${encodeURIComponent(providerId)}/credit/login`,
+      {},
+      { timeout: 200000 },
+    )
+    const data = res?.data ?? res
+    loginOk.value = !!data?.ok
+    loginTip.value = data?.ok
+      ? `登录成功：会话令牌已回填为余额密钥${data.token_mask ? `（${data.token_mask}）` : ''}`
+      : String(data?.message || '登录失败')
+    if (data?.ok) await load(true)
+  } catch (e: any) {
+    loginOk.value = false
+    loginTip.value = e?.response?.data?.message || e?.message || '登录失败'
+  } finally {
+    loginLoading.value = false
+  }
+}
 const attempted = computed(() => (meta.value.candidates || [])
   .map((kind) => KIND_LABELS[kind] || kind)
   .join(' → '))
@@ -3157,6 +3202,40 @@ onMounted(load)
   line-height: 1.6;
   color: var(--el-color-danger);
   word-break: break-all;
+}
+/* 账密登录：待登录 / 令牌失效时的「登录」入口行 */
+.pc-login {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pc-login__btn {
+  padding: 3px 16px;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  background: transparent;
+  border: 1px solid var(--el-color-primary);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.pc-login__btn:hover:not(:disabled) {
+  color: var(--el-color-white);
+  background: var(--el-color-primary);
+}
+.pc-login__btn:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+.pc-login__tip {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--el-color-danger);
+  word-break: break-all;
+}
+.pc-login__tip.is-ok {
+  color: var(--el-color-success);
 }
 /* 全部 Key 都没查到数时的「已尝试」链路：说明自动识别试过哪几条口径 */
 .pc-chain {
