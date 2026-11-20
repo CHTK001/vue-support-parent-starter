@@ -228,7 +228,7 @@ const apiTarget = process.env.MS_API_TARGET ?? LOCAL_BACKEND;
 // 模板接口 /api/template/**：默认跟随业务 API 同源（本机 dev → 127.0.0.1:8082，
 // 沙箱 → MS_API_TARGET 同台后端），因为 monitor 覆盖层已承载模板 controller；
 // 远程环境若确有独立模板后端（spring-support-template-starter，被 message/eduai
-// 承载，如 http://192.168.50.198:18170），用 TEMPLATE_API_TARGET 显式覆盖。
+// 承载，如 http://172.16.9.194:18170），用 TEMPLATE_API_TARGET 显式覆盖。
 const templateApiTarget = process.env.TEMPLATE_API_TARGET ?? apiTarget;
 
 /**

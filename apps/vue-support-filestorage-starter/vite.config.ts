@@ -72,9 +72,9 @@ const REPO_ALIAS_ENTRIES = [
 /**
  * 文件服务器（FileStorageServerFilter）地址。
  *
- * <p>本前端不打包、只在本地 pnpm dev 运行，而后端在远程 192.168.50.198:8787，
+ * <p>本前端不打包、只在本地 pnpm dev 运行，而后端在远程 172.16.9.194:8787，
  * 故代理目标需随部署环境变化。默认值写 127.0.0.1:18080 保持「本机后端」场景不变；
- * 联调远程时用 `FS_SERVER=http://192.168.50.198:8787 pnpm dev` 覆盖，
+ * 联调远程时用 `FS_SERVER=http://172.16.9.194:8787 pnpm dev` 覆盖，
  * 无需改代码。</p>
  */
 const FS_SERVER = process.env.FS_SERVER || "http://127.0.0.1:18080";

@@ -162,7 +162,7 @@ export function base64ToBytes(b64: string): Uint8Array {
  *
  * <p>这里刻意不直接用 {@code crypto.randomUUID()}：它只在**安全上下文**可用
  * （HTTPS，或 localhost）。用「局域网 IP + 明文 HTTP」打开应用时（例如
- * {@code http://192.168.50.101:8848}）它是 {@code undefined}，会让
+ * {@code http://172.16.9.194:8848}）它是 {@code undefined}，会让
  * {@link generateFingerprint} 抛「crypto.randomUUID is not a function」，
  * 整条请求链路（含设备指纹签名）在发出前就中断，页面表现为所有接口静默失败。</p>
  *

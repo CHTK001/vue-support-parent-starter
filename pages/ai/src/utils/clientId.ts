@@ -17,7 +17,7 @@ function generateClientId(): string {
  *
  * <p>刻意不直接裸调 `crypto.randomUUID()`：该方法**只在安全上下文可用**
  * （HTTPS，或 localhost）。用「局域网 IP + 明文 HTTP」打开应用时
- * （如 `http://192.168.50.198:19093`）它是 `undefined`，
+ * （如 `http://172.16.9.194:19093`）它是 `undefined`，
  * 会抛 `crypto.randomUUID is not a function` 直接中断调用链。
  * `crypto.getRandomValues` 挂在 `Crypto` 上、不受该限制，作为降级主路径。</p>
  *

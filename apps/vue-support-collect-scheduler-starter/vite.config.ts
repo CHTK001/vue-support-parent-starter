@@ -16,18 +16,18 @@
  */
 import { createVite } from "../../turbo/vite/createVite.ts";
 
-// 后端只跑在 Kali 上（collect-scheduler 的 18190 实例实测在远端监听），
-    // 本机不起后端进程，所以缺省指向远端而不是 127.0.0.1。
+// 后端统一跑在 194（172.16.9.194）上（collect-scheduler 的 18190 实例在远端监听），
+    // 本机不起后端进程，所以缺省指向 194 而不是 127.0.0.1。
     // 与 vue-support-ai-starter / vue-support-system-starter / monitor 同一口径。
     // 注意：缺省目标指向没人监听的本机端口时，dev 代理返回的是合法 JSON 但 data 为空，
     // 不会报连接错误，排查方向容易被带偏。
     // 需要指向其他实例时用环境变量覆盖：
     //   COLLECT_API_TARGET=http://127.0.0.1:18190 pnpm dev
-    const apiTarget = process.env.COLLECT_API_TARGET ?? "http://192.168.50.198:18190";
-// 调度节点同样跑在 Kali 上（198:18191 实测响应，缺 token 时 403）。
+    const apiTarget = process.env.COLLECT_API_TARGET ?? "http://172.16.9.194:18190";
+// 调度节点同样跑在 194 上（18191，缺 token 时 403）。
 // 缺省曾指向 127.0.0.1:18191 —— 本机没人监听，平台总览的调度摘要/节点列表
 // 恒报 ECONNREFUSED（dev 日志每分钟刷红），与 apiTarget 的口径对齐改为远端。
-const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://192.168.50.198:18191";
+const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://172.16.9.194:18191";
 
 // 数据源中心（/ms/datasource/** 与 /ms/monitor/**）由 datasource-hub 后端提供，
 // 与 monitor 应用共用同一个 hub（8081）。为什么不能打到 18190：采集后端内嵌的
@@ -47,7 +47,7 @@ const schedulerTarget = process.env.COLLECT_SCHEDULER_TARGET ?? "http://192.168.
 // 固定到 8082），端口一改就会静默走进错误的 rewrite 分支。显式用
 // COLLECT_HUB_KEEP_PREFIX=1 声明「目标自带 context-path」，端口怎么换都不受影响；
 // 仍保留 :18190 的旧判断，兼容既有启动方式。
-const hubTarget = process.env.COLLECT_HUB_TARGET ?? "http://192.168.50.198:8081";
+const hubTarget = process.env.COLLECT_HUB_TARGET ?? "http://172.16.9.194:8081";
 const hubKeepsPrefix =
   process.env.COLLECT_HUB_KEEP_PREFIX === "1" || hubTarget.includes(":18190");
 const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, "");
@@ -60,7 +60,7 @@ const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, 
 const apiStripPrefix = process.env.COLLECT_API_STRIP_PREFIX === "1";
 
 // dev 代理必须在转发前摘掉 Origin/Referer，否则后端会判成跨域并 403。
-// 为什么：changeOrigin 只改 Host，浏览器 POST 里的 Origin 会原样送到 192.168.50.198:18190；
+// 为什么：changeOrigin 只改 Host，浏览器 POST 里的 Origin 会原样送到 172.16.9.194:18190；
 // 而后端自 393306437（2026-10-02「收紧 CORS 任意 Origin 反射」）起只放行显式
 // allowed-origins，本模块配置里没有该白名单，于是登录 POST 被判「Invalid CORS request」。
 // 症状很有迷惑性：GET 不带 Origin 头，所以列表/详情都正常，只有登录进不去。

@@ -6,22 +6,22 @@ import { createVite } from "../../turbo/vite/createVite.ts";
  * 后端代理指向 spring-support-eduai-starter（默认 19095）。
  * 同机可能同时跑多套后端，验证时用 VUE_EDUAI_API_TARGET 改指向，不必改这里。
  */
-// 后端只跑在 Kali 上（eduai 的 19095 实例实测在远端监听），本机不起后端进程，
-    // 所以缺省指向远端而不是 localhost。
+// 后端统一跑在 194（172.16.9.194）上，本机不起后端进程，
+    // 所以缺省指向 194 而不是 localhost。
     // 注意：缺省目标指向没人监听的本机端口时，dev 代理返回的是合法 JSON 但 data 为空，
     // 不会报连接错误，排查方向容易被带偏。
     // 需要指向其他实例时用环境变量覆盖：
     //   VUE_EDUAI_API_TARGET=http://localhost:19095 pnpm dev
-    const apiTarget = process.env.VUE_EDUAI_API_TARGET ?? "http://192.168.50.198:19095";
+    const apiTarget = process.env.VUE_EDUAI_API_TARGET ?? "http://172.16.9.194:19095";
 
 // 「采集管理」收敛到 @pages/collect 后，本应用需要代理采集平台的多节点后端：
 //   采集业务 18190 / 调度节点 18191 / 数据源中心 hub 8081。
 // 代理前缀即后端 context-path，不做 rewrite：/collect/api/v2/collect/** -> 18190 原始路径。
-// 缺省指向 Kali 远端（本机不起这些后端进程），均可用环境变量覆盖：
+// 缺省指向 194 远端（172.16.9.194，本机不起这些后端进程），均可用环境变量覆盖：
 //   VUE_COLLECT_API_TARGET / VUE_COLLECT_SCHEDULER_TARGET / VUE_COLLECT_HUB_TARGET
-const collectApiTarget = process.env.VUE_COLLECT_API_TARGET ?? "http://192.168.50.198:18190";
-const collectSchedulerTarget = process.env.VUE_COLLECT_SCHEDULER_TARGET ?? "http://192.168.50.198:18191";
-const collectHubTarget = process.env.VUE_COLLECT_HUB_TARGET ?? "http://192.168.50.198:8081";
+const collectApiTarget = process.env.VUE_COLLECT_API_TARGET ?? "http://172.16.9.194:18190";
+const collectSchedulerTarget = process.env.VUE_COLLECT_SCHEDULER_TARGET ?? "http://172.16.9.194:18191";
+const collectHubTarget = process.env.VUE_COLLECT_HUB_TARGET ?? "http://172.16.9.194:8081";
 const stripCollectApiPrefix = (path: string) => path.replace(/^\/collect\/api/, "");
 // dev 代理必须在转发前摘掉 Origin/Referer，否则采集后端判跨域 403（changeOrigin 只改 Host，
 // 浏览器 POST 里的 Origin 会原样送到远端）。生产同源部署无此问题，故只改 dev。

@@ -10552,7 +10552,7 @@ function promptValue(res: unknown): string {
  *
  * <p><b>必须有 execCommand 兜底</b>：{@code navigator.clipboard} 只在**安全上下文**
  * （HTTPS 或 localhost）存在。本控制台在生产里是通过局域网 IP 的**明文 HTTP**
- * 访问的（如 {@code http://192.168.50.101:8848}），此时 {@code navigator.clipboard}
+ * 访问的（如 {@code http://172.16.9.194:8848}），此时 {@code navigator.clipboard}
  * 是 {@code undefined}，直接调用会抛 TypeError —— 表现为「复制表名 / 复制库名 /
  * 复制建表语句」永远提示「复制失败」，而浏览器控制台里什么异常都看不到。</p>
  *

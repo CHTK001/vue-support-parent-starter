@@ -1057,7 +1057,7 @@ function openStudent(row?: EduStudent) {
  * 复制学号。
  *
  * <p>不能只用 navigator.clipboard：它要求安全上下文，而本系统部署在
- * http://192.168.50.198 这种内网明文地址上，浏览器里 navigator.clipboard 直接是
+ * http://172.16.9.194 这种内网明文地址上，浏览器里 navigator.clipboard 直接是
  * undefined（dev 的 127.0.0.1 反而有），所以必须带 textarea + execCommand 的降级分支，
  * 否则会出现「本机好用、上线点不动」这种只在生产暴露的假绿。</p>
  *

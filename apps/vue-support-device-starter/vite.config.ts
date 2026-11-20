@@ -12,8 +12,8 @@ import path from 'node:path'
 /**
  * 后端（spring-support-device-starter）地址。
  *
- * 后端只跑在 Kali 上（18170 实例实测在远端监听），本机不起后端进程，
- * 所以缺省指向远端而不是 localhost —— 与 vue-support-ai-starter /
+ * 后端统一跑在 194（172.16.9.194）上（18170 实例在远端监听），本机不起后端进程，
+ * 所以缺省指向 194 而不是 localhost —— 与 vue-support-ai-starter /
  * vue-support-system-starter / monitor 同一口径。
  *
  * 指向没人监听的本机端口时，dev 代理返回的是**合法 JSON 但 data 为空**，
@@ -22,7 +22,7 @@ import path from 'node:path'
  * 需要指向其他实例时用环境变量覆盖：
  *   DEVICE_API_TARGET=http://localhost:18170 pnpm dev
  */
-const deviceApiTarget = process.env.DEVICE_API_TARGET ?? 'http://192.168.50.198:18170'
+const deviceApiTarget = process.env.DEVICE_API_TARGET ?? 'http://172.16.9.194:18170'
 
 /**
  * 代理转发时移除浏览器 Origin。

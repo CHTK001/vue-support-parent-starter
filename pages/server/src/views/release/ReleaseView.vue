@@ -165,7 +165,7 @@
             </ReFormItem>
             <ReFormItem label="OAP 上报地址" :required="!!form.swEnabled && !globalFallbackActive">
               <div class="apm-row">
-                <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800" style="flex:1;min-width:0" />
+                <ReInput v-model="form.swBackendService" placeholder="如 172.16.9.194:11800" style="flex:1;min-width:0" />
                 <el-tooltip
                   content="写入 agent 的 collector.backend_service（gRPC 11800）；留空取全局兜底。"
                   placement="top"

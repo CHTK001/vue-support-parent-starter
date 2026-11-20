@@ -84,9 +84,9 @@ function stripSecureCookie(proxy: ProxyOptions): ProxyOptions {
  * 后端 context-path（仅 dev 代理使用）。
  *
  * <p>本机 18170 实例的 context-path 是根：`/v2`、`/actuator`、`/api` 直接可用；
- * 部署在 192.168.50.198 的那套是 `/system/api`，端点整体后移一层。
+ * 部署在 172.16.9.194 的那套是 `/system/api`，端点整体后移一层。
  * 默认空串对齐本机口径，连远端时用
- * `SYSTEM_API_CONTEXT=/system/api SYSTEM_API_TARGET=http://192.168.50.198:18170` 启动。
+ * `SYSTEM_API_CONTEXT=/system/api SYSTEM_API_TARGET=http://172.16.9.194:18170` 启动。
  * 前端自己的统一前缀 `/system/api` 由下面 `/system/api` 的 strip 规则处理，与本项无关。</p>
  */
 const API_CONTEXT = (process.env.SYSTEM_API_CONTEXT ?? "").replace(/\/+$/, "");
@@ -152,12 +152,12 @@ export default createVite({
       ],
     },
     proxy: {
-      // 系统管理控制台后端：部署在 192.168.50.198 的 API（context-path /system/api）。
-      // 前端本地跑，后端在 198，故代理指向远端而不是 localhost。
-      // SYSTEM_API_TARGET 可覆盖：本机若有 18170 隧道/本地实例保持默认，
-      // E2E 等直连 198 场景用 SYSTEM_API_TARGET=http://192.168.50.198:18170。
+      // 系统管理控制台后端：部署在 172.16.9.194 的 API（context-path /system/api）。
+      // 前端本地跑，后端在 194，故代理指向远端而不是 localhost。
+      // SYSTEM_API_TARGET 可覆盖：需要回指本机 18170 隧道/本地实例时，
+      // 用 SYSTEM_API_TARGET=http://127.0.0.1:18170。
       "/system/api": stripSecureCookie({
-        target: process.env.SYSTEM_API_TARGET ?? "http://127.0.0.1:18170",
+        target: process.env.SYSTEM_API_TARGET ?? "http://172.16.9.194:18170",
         changeOrigin: true,
         // 当前 monitor 后端 context-path 为根，前端统一前缀需要剥掉，
         // 登录等接口才会落到 /v2/**（而不是 /system/api/v2/**）。

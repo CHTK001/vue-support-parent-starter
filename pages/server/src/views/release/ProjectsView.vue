@@ -833,7 +833,7 @@
                   <ReInput v-model="form.swServiceName" :placeholder="`默认 ${form.projectName || '项目名'}`" style="width:100%" />
                 </ReFormItem>
                 <ReFormItem label="collector.backend_service（OAP 地址，如 oap:11800）">
-                  <ReInput v-model="form.swBackendService" placeholder="如 192.168.50.198:11800" style="width:100%" />
+                  <ReInput v-model="form.swBackendService" placeholder="如 172.16.9.194:11800" style="width:100%" />
                 </ReFormItem>
                 <ReFormItem label="其它 -Dskywalking 参数（空格分隔，可选）">
                   <ReInput v-model="form.swExtraArgs" placeholder="如 -Dskywalking.logging.dir=/opt/skywalking/logs" style="width:100%" />

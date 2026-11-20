@@ -30,6 +30,7 @@
     ];
     // vite dev 对首次按需发现的依赖会二次预构建，期间在途模块请求被中止（ERR_ABORTED）。
     // 这里原地重试整条依赖链：预构建落定后，已加载模块走缓存、断点模块重新取回，最终收敛。
+    // 组件的取数走 apiService -> framework/context，必须先 bootstrapFramework()（与 main.js 同一口径）。
     let vue = null;
     let mod = null;
     for (let attempt = 1; attempt <= 40 && !mod; attempt++) {
@@ -44,6 +45,9 @@
         for (const dep of DEPS) await import(dep);
         mod = await import(compUrl);
         log('component loaded');
+        const ctxMod = await import('/src/framework/context.ts');
+        await ctxMod.bootstrapFramework();
+        log('framework ready');
       } catch (e) {
         mod = null;
         log('attempt ' + attempt + ' 失败: ' + String((e && e.message) || e).slice(0, 140) + '；3s 后重试');
@@ -51,7 +55,7 @@
       }
     }
     if (!mod) {
-      window.__harness.error = '组件依赖链加载失败（重试耗尽）';
+      window.__harness.error = '组件依赖链/框架装配失败（重试耗尽）';
       log('ERROR: ' + window.__harness.error);
     } else {
       try { await import('element-plus/dist/index.css'); } catch (e) { log('element-plus css 加载失败（不影响 DOM 断言）'); }
