@@ -54,6 +54,7 @@ export * from "./permission";
 export {
   applyGlobalWatermark,
   registerWatermarkTraceProvider,
+  registerWatermarkTamperReporter,
   WATERMARK_TAMPER_EVENT,
   WATERMARK_IMAGE_READY_EVENT,
   buildWatermarkLines,
@@ -61,3 +62,4 @@ export {
   getWatermarkTamperCount,
   setupWatermark
 } from "./waterMarker";
+export type { WatermarkTamperReport } from "./waterMarker";
