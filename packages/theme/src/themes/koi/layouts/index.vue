@@ -18,9 +18,16 @@
         <span class="wm-alert__arrow" :class="{ open: wmAlertOpen }">▾</span>
       </button>
       <div v-if="wmAlertOpen" class="wm-alert__detail">
+        <div class="wm-alert__latest">
+          最近触发 {{ wmRelativeLabel(wmTampers[wmTampers.length - 1].time) }}
+          （{{ wmTimeLabel(wmTampers[wmTampers.length - 1].time) }}）
+        </div>
         <div v-for="(ev, i) in wmTampers" :key="i" class="wm-alert__row">
-          <span>{{ wmTimeLabel(ev.time) }}</span>
-          <span>{{ wmTypeLabel(ev.type) }}</span>
+          <span class="wm-alert__when" :title="wmTimeLabel(ev.time)">{{ wmRelativeLabel(ev.time) }}</span>
+          <span class="wm-alert__type">
+            <i :class="`is-${ev.type}`" />
+            {{ wmTypeLabel(ev.type) }}
+          </span>
         </div>
         <div v-if="wmTampers.length >= 20" class="wm-alert__more">仅保留最近 20 条</div>
         <button
@@ -44,6 +51,7 @@ import { useUserStore } from "@repo/pinia";
 import {
   getWatermarkTamperCount,
   message,
+  registerWatermarkTamperReporter,
   registerWatermarkTraceProvider,
   setupWatermark,
   WATERMARK_TAMPER_EVENT
@@ -64,9 +72,23 @@ registerWatermarkTraceProvider(() => {
   return { user, uid };
 });
 
+// 水印篡改审计上报：默认把事件镜像到 window.__watermarkTamperReports（最近 50 条，含累计次数），
+// 供宿主读取与验收断言；后端安全事件接口就绪后，宿主可重新注册 reporter 覆盖为真实上报，前端不虚构契约。
+registerWatermarkTamperReporter((report) => {
+  try {
+    const host = window as unknown as Record<string, unknown>;
+    const list = Array.isArray(host.__watermarkTamperReports)
+      ? (host.__watermarkTamperReports as Record<string, unknown>[])
+      : [];
+    list.push({ type: report.type, time: report.time, count: report.count });
+    host.__watermarkTamperReports = list.slice(-50);
+  } catch {
+    // 镜像失败不影响防护
+  }
+});
+
 // 水印篡改告警消费方：控制台留痕 + 低频用户提示（自愈逻辑在 core 防篡改层）。
 // 横幅提供持续可见入口（toast 每 60s 至多一次，横幅隐藏前一直在），可展开最近事件明细。
-// 审计上报待后端安全事件接口就绪后在此补充，前端不虚构契约。
 let lastTamperToastAt = 0;
 /** 最近篡改事件（保留 20 条，供横幅展开明细） */
 const wmTampers = ref<{ type: string; time: number }[]>([]);
@@ -81,6 +103,14 @@ function wmTypeLabel(type: string): string {
 }
 function wmTimeLabel(time: number): string {
   return new Date(time).toLocaleTimeString("zh-CN", { hour12: false });
+}
+/** 相对时间：展开明细时按当时计算（无常驻定时器） */
+function wmRelativeLabel(time: number): string {
+  const diff = Math.max(0, Date.now() - time);
+  if (diff < 10_000) return "刚刚";
+  if (diff < 60_000) return `${Math.floor(diff / 1000)} 秒前`;
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
+  return wmTimeLabel(time);
 }
 window.addEventListener(WATERMARK_TAMPER_EVENT, (event) => {
   const detail = (event as CustomEvent<{ type?: string; time?: number }>).detail ?? {};
@@ -213,6 +243,37 @@ const { isMobile } = useScreenStore();
 }
 .wm-alert__row:last-of-type {
   border-bottom: none;
+}
+.wm-alert__latest {
+  padding: 3px 0 6px;
+  font-size: 10.5px;
+  color: var(--el-text-color-secondary);
+}
+.wm-alert__when {
+  flex: none;
+  color: var(--el-text-color-secondary);
+}
+.wm-alert__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.wm-alert__type i {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--el-color-info);
+}
+.wm-alert__type i.is-remove {
+  background: var(--el-color-danger);
+}
+.wm-alert__type i.is-style {
+  background: var(--el-color-warning);
+}
+.wm-alert__type i.is-integrity {
+  background: var(--el-color-info);
 }
 .wm-alert__more {
   padding: 2px 0;

@@ -369,6 +369,7 @@ const watermarkPreview = computed(() => {
   const hints: string[] = [];
   if (!text && !base.image) hints.push("未配置文案，按默认 ADMIN 预览");
   if (alpha === 0) hints.push("透明度为 0：正式开启后水印不可见");
+  if (tile.clamped || tileDark.clamped) hints.push("部分数值超出安全范围，已按边界值钳制");
   if (tile.imagePending || tileDark.imagePending) hints.push("图片水印加载中…");
   if (base.image && !base.imageDark) hints.push("暗色主题沿用亮色图片");
   if (!base.image && !base.darkColor) hints.push("未配置暗色配色，暗色沿用亮色");

@@ -29,7 +29,11 @@
   trace 为 true（默认）时，全局水印自动拼入当前登录用户（需宿主注册
   registerWatermarkTraceProvider）与生成时间，便于截图溯源。
   篡改检测：防删除/防样式篡改触发时派发 window 事件 WATERMARK_TAMPER_EVENT
-  （detail: { type: 'remove'|'style'|'integrity', time }），宿主可上报审计。
+  （detail: { type: 'remove'|'style'|'integrity', time }），并回调宿主注册的
+  registerWatermarkTamperReporter（{ type, time, count }），宿主可据此上报审计。
+  数值配置越界自动钳制（rotate/alpha/fontSize/gap/zIndex/imageWidth），防脏配置破坏绘制。
+  devicePixelRatio 变化（浏览器缩放/跨屏）自动重绘，高分屏切换不发虚。
+  图片水印跨域污染（canvas tainted）时自动回退文字瓦片，不再反复加载坏图。
   装配入口：宿主 onMounted 调用 setupWatermark()（幂等：立即应用 + web 字体就绪
   重绘）；配置热重载重绘由 createApp 的 onConfigHotReload 通道统一负责
   （setting.ts → applyGlobalWatermark），此处不重复订阅。篡改告警累计次数经
@@ -61,6 +65,22 @@ let traceProvider: WatermarkTraceProvider | null = null;
 /** 注册水印溯源信息提供者（宿主应用装配时调用一次；传 null 注销） */
 export function registerWatermarkTraceProvider(fn: WatermarkTraceProvider | null): void {
   traceProvider = fn;
+}
+
+/** 篡改审计上报数据：事件类型 + 触发时间 + 累计次数（含被 1s 去重合并的风暴） */
+export interface WatermarkTamperReport {
+  type: "remove" | "style" | "integrity";
+  time: number;
+  count: number;
+}
+
+type WatermarkTamperReporter = (report: WatermarkTamperReport) => void;
+
+let tamperReporter: WatermarkTamperReporter | null = null;
+
+/** 注册篡改审计上报器（宿主应用装配时调用；传 null 注销。上报失败不影响防护） */
+export function registerWatermarkTamperReporter(fn: WatermarkTamperReporter | null): void {
+  tamperReporter = fn;
 }
 
 /** 篡改事件名：window.dispatchEvent(CustomEvent)，detail = { type, time } */
@@ -184,6 +204,41 @@ function parseFontSize(font: string): number {
   return m ? parseFloat(m[1]) : 20;
 }
 
+/** 数值配置安全边界：超出范围的脏值钳制到边界，防绘制异常 */
+const WATERMARK_LIMITS = {
+  rotate: [-90, 90],
+  alpha: [0, 1],
+  fontSize: [4, 200],
+  gapX: [0, 500],
+  gapY: [0, 500],
+  zIndex: [0, 2147483647],
+  imageWidth: [8, 1000]
+} as const;
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+/** 数值字段越界钳制：返回钳制后的配置与是否发生了钳制（供设置页提示） */
+function sanitizeWatermarkConfig<T extends Partial<WatermarkRuntimeConfig>>(
+  config: T
+): { config: T; clamped: boolean } {
+  let clamped = false;
+  const out = { ...config } as T & Record<string, unknown>;
+  for (const key of Object.keys(WATERMARK_LIMITS) as (keyof typeof WATERMARK_LIMITS)[]) {
+    const value = out[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      const [min, max] = WATERMARK_LIMITS[key];
+      const clampedValue = clampNumber(value, min, max);
+      if (clampedValue !== value) {
+        out[key] = clampedValue;
+        clamped = true;
+      }
+    }
+  }
+  return { config: out, clamped };
+}
+
 /** 瓦片缓存：同参数（文案/字体/颜色/角度/间距/dpr）不重复绘制 canvas。
  * 主题切换、配置热重载、字体就绪、篡改重建都会触发重绘，缓存后重复路径零绘制开销；
  * 溯源时间行精确到分钟并参与缓存键，跨分钟自然产生新瓦片。 */
@@ -261,7 +316,7 @@ function generateImageWatermarkCanvas(
   rotate: number,
   gapX: number,
   gapY: number
-): { data: string; w: number; h: number } {
+): { data: string; w: number; h: number } | null {
   const naturalW = img.naturalWidth > 0 ? img.naturalWidth : 1;
   const naturalH = img.naturalHeight > 0 ? img.naturalHeight : 1;
   const scale = imageWidth > 0 ? imageWidth / naturalW : 1;
@@ -287,7 +342,17 @@ function generateImageWatermarkCanvas(
   ctx.rotate(rad);
   ctx.globalAlpha = typeof alpha === "number" ? Math.min(1, Math.max(0, alpha)) : 1;
   ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
-  const tile = { data: can.toDataURL("image/png"), w: tileW, h: tileH };
+  // 跨域图片未带 CORS 头时画布被污染，toDataURL 抛 SecurityError：
+  // 标记该图为不可用（回退文字瓦片并不再加载），避免整个水印创建失败
+  let data: string;
+  try {
+    data = can.toDataURL("image/png");
+  } catch {
+    watermarkImages.delete(img.src);
+    watermarkImagesFailed.add(img.src);
+    return null;
+  }
+  const tile = { data, w: tileW, h: tileH };
   storeTileCache(cacheKey, tile);
   return tile;
 }
@@ -306,6 +371,8 @@ function ensureImage(url: string, onReady: () => void): HTMLImageElement | null 
   if (cached) return cached.complete && cached.naturalWidth > 0 ? cached : null;
   if (watermarkImagesFailed.has(url)) return null;
   const img = new Image();
+  // 优先按 CORS 加载：服务端支持时画布才可导出（toDataURL）；不支持会触发 onerror 走文字回退
+  img.crossOrigin = "anonymous";
   img.onload = () => {
     if (img.naturalWidth > 0) {
       watermarkImages.set(url, img);
@@ -400,6 +467,14 @@ function notifyTamper(type: "remove" | "style" | "integrity"): void {
     window.dispatchEvent(new CustomEvent(WATERMARK_TAMPER_EVENT, { detail: { type, time: now } }));
   } catch {
     // 事件派发失败不影响防护
+  }
+  // 审计上报钩子：宿主注册后才回调；抛错不影响防护
+  if (tamperReporter) {
+    try {
+      tamperReporter({ type, time: now, count: tamperCount });
+    } catch {
+      // 上报失败不影响防护
+    }
   }
 }
 
@@ -543,6 +618,41 @@ function watchGlobalWatermark(container?: HTMLElement): void {
       verifyWatermarkIntegrity();
     }, INTEGRITY_CHECK_INTERVAL);
   }
+  // dpr 变化（缩放/跨屏）自动重绘
+  watchDevicePixelRatio();
+}
+
+/** dpr 变化监听：浏览器缩放 / 笔记本外接高分屏导致 devicePixelRatio 变化时整体重绘 */
+let dprQuery: MediaQueryList | null = null;
+let dprListener: (() => void) | null = null;
+
+function watchDevicePixelRatio(): void {
+  if (dprQuery || typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+  let mq: MediaQueryList;
+  try {
+    mq = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+  } catch {
+    return;
+  }
+  dprListener = () => {
+    // dpr 已变化：按新 dpr 重建监听（旧查询表达式不再命中）；瓦片缓存键含 dpr，重绘即生成新瓦片
+    unwatchDevicePixelRatio();
+    watchDevicePixelRatio();
+    if (isWatermarkEnabled()) applyGlobalWatermark();
+    redrawLocalWatermarks();
+  };
+  dprQuery = mq;
+  if (typeof mq.addEventListener === "function") {
+    mq.addEventListener("change", dprListener);
+  }
+}
+
+function unwatchDevicePixelRatio(): void {
+  if (dprQuery && dprListener && typeof dprQuery.removeEventListener === "function") {
+    dprQuery.removeEventListener("change", dprListener);
+  }
+  dprQuery = null;
+  dprListener = null;
 }
 
 /** 断开防删除监听（水印关闭 / 应用销毁时调用） */
@@ -555,6 +665,7 @@ function unwatchGlobalWatermark(): void {
     clearInterval(integrityTimer);
     integrityTimer = null;
   }
+  unwatchDevicePixelRatio();
   protectedStyleCssText = "";
   printAdjustActive = false;
 }
@@ -573,7 +684,11 @@ export function applyGlobalWatermark(): void {
     oldWatermark?.remove();
     return;
   }
-  const config = { ...defaultConfig, ...global, isGlobal: true } as WatermarkRuntimeConfig;
+  const { config } = sanitizeWatermarkConfig({
+    ...defaultConfig,
+    ...global,
+    isGlobal: true
+  } as WatermarkRuntimeConfig);
   createGlobalWatermark(config);
 }
 
@@ -608,7 +723,7 @@ export function setupWatermark(): void {
  */
 export function buildWatermarkTile(
   config: Partial<WatermarkConfig> & { dark?: boolean }
-): { data: string; w: number; h: number; lines: string[]; imagePending?: boolean } {
+): { data: string; w: number; h: number; lines: string[]; imagePending?: boolean; clamped?: boolean } {
   const alpha = typeof config.alpha === "number" ? config.alpha : undefined;
   const runtime: Partial<WatermarkRuntimeConfig> = {};
   const color = withAlpha(config.color, alpha);
@@ -627,24 +742,29 @@ export function buildWatermarkTile(
   if (typeof config.image === "string" && config.image) runtime.image = config.image;
   if (typeof config.imageDark === "string" && config.imageDark) runtime.imageDark = config.imageDark;
   if (typeof config.imageWidth === "number" && config.imageWidth > 0) runtime.imageWidth = config.imageWidth;
-  const merged = { ...defaultConfig, ...runtime } as WatermarkRuntimeConfig;
+  const { config: merged, clamped } = sanitizeWatermarkConfig({
+    ...defaultConfig,
+    ...runtime
+  } as WatermarkRuntimeConfig);
   const lines = buildWatermarkLines({ ...merged, trace: false });
   const dark = config.dark === true;
   const imageUrl = (dark && merged.imageDark ? merged.imageDark : merged.image) || "";
   if (imageUrl) {
-    // 预览用图片：就绪返回图片瓦片；未就绪先回退文字瓦片并标记 imagePending，
+    // 预览用图片：就绪返回图片瓦片；未就绪或跨域污染时回退文字瓦片并标记 imagePending，
     // ensureImage 的 onload 内已派发 WATERMARK_IMAGE_READY_EVENT，无需重复回调
     const image = ensureImage(imageUrl, () => {});
-    if (image) {
-      const tile = generateImageWatermarkCanvas(
-        image,
-        merged.imageWidth ?? 120,
-        merged.alpha,
-        merged.rotate,
-        merged.gapX,
-        merged.gapY
-      );
-      return { ...tile, lines, imagePending: false };
+    const imageTile = image
+      ? generateImageWatermarkCanvas(
+          image,
+          merged.imageWidth ?? 120,
+          merged.alpha,
+          merged.rotate,
+          merged.gapX,
+          merged.gapY
+        )
+      : null;
+    if (imageTile) {
+      return { ...imageTile, lines, clamped, imagePending: false };
     }
     const fallback = generateWatermarkCanvas(
       lines,
@@ -654,7 +774,7 @@ export function buildWatermarkTile(
       merged.gapX,
       merged.gapY
     );
-    return { ...fallback, lines, imagePending: true };
+    return { ...fallback, lines, clamped, imagePending: true };
   }
   const textColor = dark && merged.darkColor ? merged.darkColor : merged.textColor;
   const { data, w, h } = generateWatermarkCanvas(
@@ -665,7 +785,7 @@ export function buildWatermarkTile(
     merged.gapX,
     merged.gapY
   );
-  return { data, w, h, lines, imagePending: false };
+  return { data, w, h, lines, clamped, imagePending: false };
 }
 
 // 创建全局水印
@@ -683,18 +803,21 @@ const createGlobalWatermark = (config: WatermarkRuntimeConfig) => {
   // 暗色主题优先用 imageDark / darkColor
   const dark = document.documentElement.classList.contains("dark");
   const imageUrl = (dark && config.imageDark ? config.imageDark : config.image) || "";
-  // 图片水印优先：未就绪先按文字瓦片渲染，onload 回调整体重绘
+  // 图片水印优先：未就绪或跨域污染时先按文字瓦片渲染，onload 回调整体重绘
   const image = imageUrl ? ensureImage(imageUrl, () => applyGlobalWatermark()) : null;
+  const imageTile = image
+    ? generateImageWatermarkCanvas(
+        image,
+        config.imageWidth ?? 120,
+        config.alpha,
+        config.rotate,
+        config.gapX,
+        config.gapY
+      )
+    : null;
   let tile: { data: string; w: number; h: number };
-  if (image) {
-    tile = generateImageWatermarkCanvas(
-      image,
-      config.imageWidth ?? 120,
-      config.alpha,
-      config.rotate,
-      config.gapX,
-      config.gapY
-    );
+  if (imageTile) {
+    tile = imageTile;
   } else {
     // 文案：配置文案 + 溯源信息；颜色：暗色主题优先用 darkColor
     const lines = buildWatermarkLines(config);
@@ -776,16 +899,19 @@ const createLocalWatermark = (el: HTMLElement, config: WatermarkRuntimeConfig) =
   const dark = document.documentElement.classList.contains("dark");
   const imageUrl = (dark && config.imageDark ? config.imageDark : config.image) || "";
   const image = imageUrl ? ensureImage(imageUrl, () => createLocalWatermark(el, config)) : null;
+  const imageTile = image
+    ? generateImageWatermarkCanvas(
+        image,
+        config.imageWidth ?? 120,
+        config.alpha,
+        config.rotate,
+        config.gapX,
+        config.gapY
+      )
+    : null;
   let tile: { data: string; w: number; h: number };
-  if (image) {
-    tile = generateImageWatermarkCanvas(
-      image,
-      config.imageWidth ?? 120,
-      config.alpha,
-      config.rotate,
-      config.gapX,
-      config.gapY
-    );
+  if (imageTile) {
+    tile = imageTile;
   } else {
     // 应用新水印（与全局同款瓦片算法；透传旋转角度与间距）
     const lines: string[] = Array.isArray(config.text)
@@ -813,11 +939,11 @@ const createLocalWatermark = (el: HTMLElement, config: WatermarkRuntimeConfig) =
 const waterMarker: Directive = {
   mounted(el: HTMLElement, binding: DirectiveBinding) {
     const global = readGlobalWatermarkConfig();
-    const config = {
+    const { config } = sanitizeWatermarkConfig({
       ...defaultConfig,
       ...global,
       ...(binding.value || {})
-    } as WatermarkRuntimeConfig;
+    } as WatermarkRuntimeConfig);
 
     // 全局水印开关关闭时不渲染
     if (config.isGlobal && config.enable === false) {
@@ -832,11 +958,11 @@ const waterMarker: Directive = {
   },
   updated(el: HTMLElement, binding: DirectiveBinding) {
     const global = readGlobalWatermarkConfig();
-    const config = {
+    const { config } = sanitizeWatermarkConfig({
       ...defaultConfig,
       ...global,
       ...(binding.value || {})
-    } as WatermarkRuntimeConfig;
+    } as WatermarkRuntimeConfig);
 
     if (config.isGlobal && config.enable === false) {
       return;
