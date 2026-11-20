@@ -339,6 +339,18 @@ export const modelMetricsApi = {
     key: string;
     values?: Record<string, number>; locked: string[]; operator?: string;
   }) => apiHttp.put('/api/model-metrics/manual', data),
+  /** 人工单价列表（source=manual 的 sys_ai_pricing 行，价格单位：币种/千 token） */
+  listPricing: (params?: { keyword?: string }) =>
+    apiHttp.get('/api/model-metrics/pricing', { params }),
+  /** 保存人工单价（按 厂商+模型 覆盖；价格单位：币种/千 token，优先于同步价与估算价） */
+  savePricing: (data: {
+    provider: string; model: string;
+    inputPricePer1k?: number | null; outputPricePer1k?: number | null;
+    currency?: string;
+  }) => apiHttp.post('/api/model-metrics/pricing', data),
+  /** 删除人工单价（该模型恢复同步价/估算价） */
+  deletePricing: (id: number | string) =>
+    apiHttp.delete(`/api/model-metrics/pricing/${id}`),
 };
 
 // ==================== 聊天会话/上下文 ====================

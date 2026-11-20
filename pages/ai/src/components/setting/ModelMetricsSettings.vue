@@ -27,6 +27,9 @@
       </SettingsRow>
     </SettingsCard>
 
+    <!-- 人工单价覆盖 -->
+    <PricingOverrideSettings />
+
     <!-- 指标图表 -->
     <SettingsCard
       title="指标图表"
@@ -190,6 +193,7 @@ import { Search, Select, RefreshLeft } from '@element-plus/icons-vue'
 import { modelMetricsApi } from '@/services/javaApi'
 import SettingsCard from './SettingsCard.vue'
 import SettingsRow from './SettingsRow.vue'
+import PricingOverrideSettings from './PricingOverrideSettings.vue'
 import ReButton from '@repo/ui/re-button'
 
 /** tooltip 里要拼 HTML，模型名/厂商来自指标源，先转义避免破坏标签结构 */
