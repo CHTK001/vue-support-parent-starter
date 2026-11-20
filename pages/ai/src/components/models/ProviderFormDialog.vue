@@ -74,6 +74,7 @@ const CREDIT_TYPES = [
   { value: 'auto', label: '自动获取（推荐）', short: '自动' },
   { value: 'official', label: '官方 API', short: '官方' },
   { value: 'custom', label: '自定义映射（JSONPath / XPath）', short: '自定义' },
+  { value: 'account-login', label: '账号密码登录（自动登录上游门户查询）', short: '账密登录' },
 ]
 
 /**
@@ -223,14 +224,16 @@ const rowsFromLegacyExpression = (text: string): CreditMappingRow[] => {
 }
 
 /**
- * 历史 credit_kind → 新三分类。
+ * 历史 credit_kind → 表单分类。
  * registry / host / openai 算「官方 API」；custom / expression 算「自定义映射」；
+ * account-login 算「账号密码登录」（自动登录上游门户截获会话令牌）；
  * billing（OpenAI 兼容计费）已被自动回落覆盖，连同其它未知值一并并回「自动获取」。
  */
-const creditTypeFromKind = (kind: unknown): 'auto' | 'official' | 'custom' => {
+const creditTypeFromKind = (kind: unknown): 'auto' | 'official' | 'custom' | 'account-login' => {
   const saved = String(kind || '').trim().toLowerCase()
   if (['registry', 'host', 'openai'].includes(saved)) return 'official'
   if (['custom', 'expression'].includes(saved)) return 'custom'
+  if (saved === 'account-login') return 'account-login'
   return 'auto'
 }
 
@@ -282,6 +285,10 @@ const form = reactive({
   // 落 extra.credit_access_key / extra.credit_secret_key；Bearer 类余额接口不读这两个字段
   creditAccessKey: '',
   creditSecretKey: '',
+  // 账密登录（extra.credit_kind = account-login）：上游门户登录账号 / 密码，
+  // 落 extra.credit_username / credit_password；登录成功后令牌由后端回填 credit_key
+  creditUsername: '',
+  creditPassword: '',
   // 余额低量告警（extra.credit_warn_threshold / credit_warn_receivers）：
   // 实时查到余额 ≤ 阈值时给接收人（用户 ID 列表）推站内消息；都空 = 不告警
   creditWarnThreshold: '',
@@ -483,11 +490,21 @@ const buildExtra = () => {
   // 余额查询口径：auto 不落库（后端自动回落），official 落 registry、custom 落 custom
   if (form.creditType === 'official') extra.credit_kind = 'registry'
   else if (form.creditType === 'custom') extra.credit_kind = 'custom'
+  else if (form.creditType === 'account-login') extra.credit_kind = 'account-login'
   else delete extra.credit_kind
   // 余额专用密钥：Moss 这类「查询令牌 ≠ 渠道 Key」的上游用它。
   // 清空时必须落空串而不是删键：删键与「历史数据未配置」无法区分，
   // 后端会把渠道 API Key 再次回填成余额密钥，导致「删了又回来」
   extra.credit_key = creditKeysText()
+  // 账密登录：账号密码落 extra（credit_username / credit_password），
+  // 登录成功后会话令牌由后端自动回填 credit_key；非账密登录时清掉这两个键
+  if (form.creditType === 'account-login' && form.creditUsername.trim()) {
+    extra.credit_username = form.creditUsername.trim()
+    extra.credit_password = form.creditPassword
+  } else {
+    delete extra.credit_username
+    delete extra.credit_password
+  }
   // AK/SK 签名类余额接口的访问密钥（如阿里云百炼查 BSS 账户余额）；空则删键
   const creditAccessKey = form.creditAccessKey.trim()
   if (creditAccessKey) extra.credit_access_key = creditAccessKey
@@ -759,6 +776,9 @@ const openEdit = (provider: any, opts?: { focusSection?: 'balance' }) => {
   // AK/SK 签名类余额接口的访问密钥回显（阿里云百炼等走 BSS 账户余额的渠道）
   form.creditAccessKey = String(origExtra.value.credit_access_key || '')
   form.creditSecretKey = String(origExtra.value.credit_secret_key || '')
+  // 账密登录回显：上游门户登录账号 / 密码（与余额密钥同一待遇，extra 明文回传）
+  form.creditUsername = String(origExtra.value.credit_username || '')
+  form.creditPassword = String(origExtra.value.credit_password || '')
   // 余额低量告警回显：阈值原样；接收人兼容数组与逗号文本两种落库形态，拆成多选值
   form.creditWarnThreshold = origExtra.value.credit_warn_threshold ?? ''
   const savedReceivers = Array.isArray(origExtra.value.credit_warn_receivers)
@@ -1023,7 +1043,12 @@ const handleTestCreditKeys = async () => {
   const akskReady = !!creditAkSk.value
     && !!String(form.creditAccessKey || '').trim()
     && !!String(form.creditSecretKey || '').trim()
-  if (!keys.length && !akskReady) {
+  // 账密登录：不填余额密钥也可试查（后端真登录一次截获令牌），但账号密码必须配齐
+  if (form.creditType === 'account-login' && (!form.creditUsername.trim() || !form.creditPassword)) {
+    creditTestResult.value = { ok: false, lines: ['请先填写登录账号与密码再测试'] }
+    return
+  }
+  if (!keys.length && !akskReady && form.creditType !== 'account-login') {
     creditTestResult.value = { ok: false, lines: [creditAkSk.value ? '请先填写余额密钥，或配齐 AccessKey / SecretKey 再测试' : '请先填写余额密钥再测试'] }
     return
   }
@@ -1782,6 +1807,22 @@ const protocolOptions = [
                 自动获取依次尝试：厂商官方 → OpenAI 官方 → OpenAI 兼容计费 → Moss 非官方，第一条查到数的胜出；
                 都不通时到详情页「余额与用量」看已尝试链路，再改用官方 API 或自定义映射。
               </p>
+              <p v-if="form.creditType === 'account-login'" class="pf-note">
+                账密登录：查询余额时自动登录上游门户并截获会话令牌再查询；在下方填写登录账号与密码，
+                余额密钥可留空（令牌会自动回填），令牌失效会在下次查询时自动重登。
+              </p>
+            </div>
+          </div>
+          <!-- 账密登录：上游门户登录账号 / 密码；后端用内嵌浏览器自动填表登录后截获会话令牌 -->
+          <div v-if="form.creditType === 'account-login'" class="pf-line">
+            <span class="pf-line-label">登录账号 / 密码</span>
+            <div class="pf-line-ctrl">
+              <el-input v-model="form.creditUsername" placeholder="上游门户登录账号" autocomplete="off" />
+              <el-input v-model="form.creditPassword" type="password" show-password autocomplete="new-password"
+                placeholder="上游门户登录密码" />
+              <p class="pf-note">
+                保存后点「测试查询」可当场验证登录；带验证码 / 滑块的站点可能自动登录失败，届时请改用其它查询类型。
+              </p>
             </div>
           </div>
           <div class="pf-line">
@@ -1826,6 +1867,9 @@ const protocolOptions = [
               <p class="pf-note">
                 专用于查余额的令牌，支持多账号：每行一个，逐个查询、分别展示并汇总；
                 Moss 填门户 Cookie 里 moss_studio_prod_access_token 的值；留空则不查询余额（不再自动沿用 API Key）。
+              </p>
+              <p v-if="form.creditType === 'account-login'" class="pf-note">
+                账密登录模式下这里无需手填：自动登录截获的会话令牌会自动回填到上方，并用于余额查询。
               </p>
               <p v-if="creditAkSk" class="pf-note">
                 AK/SK 签名型供应商可不填余额密钥：配齐下方 AccessKey / SecretKey 即可查余额，读数以「AK/SK」标识。
