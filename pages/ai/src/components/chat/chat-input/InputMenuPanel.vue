@@ -148,7 +148,8 @@
               {{ t('chat.input.menuMcpClear') }}
             </button>
           </header>
-          <div v-if="mcpLoading && !mcpServers.length" class="im__state">{{ t('chat.input.menuLoading') }}</div>
+          <div v-if="mcpDisabled" class="im__state">{{ t('chat.input.menuMcpDisabled') }}</div>
+          <div v-else-if="mcpLoading && !mcpServers.length" class="im__state">{{ t('chat.input.menuLoading') }}</div>
           <div v-else-if="!filteredMcpServers.length" class="im__state">{{ t('chat.input.menuMcpEmpty') }}</div>
           <div v-else class="im__list">
             <div class="im__hint">{{ t('chat.input.menuMcpHint') }}</div>
@@ -225,6 +226,8 @@ const props = defineProps<{
   selectedAttachments: Record<string, string[]>;
   /** 仅管理员可见 MCP 分区 */
   showMcp?: boolean;
+  /** 当前模型为前端本地模型（web/webllm）时禁用 MCP：后端链路能力不可用 */
+  mcpDisabled?: boolean;
   mcpServers: McpServerOption[];
   mcpLoading?: boolean;
   mcpSelectedIds: string[];

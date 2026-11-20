@@ -20,6 +20,7 @@
     "@repo/theme": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
+    "@repo/web-llm": "workspace:*",
     "@tiptap/core": "^3.26.0",
     "@tiptap/extension-placeholder": "^3.26.0",
     "@tiptap/starter-kit": "^3.26.0",

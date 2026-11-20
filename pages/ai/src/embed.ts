@@ -27,6 +27,8 @@ import hostI18n from '@repo/languages'
 import zhCN from './locales/zh-CN'
 import enUS from './locales/en-US'
 import { adoptContext } from './framework/context'
+// AI 对话分区 + 悬浮球注册（@repo/theme 注册表 + @repo/web-llm 注入点；副作用模块）
+import './koi/contribution'
 
 /**
  * 把 pages/ai 的语言包合并进宿主 i18n（模块加载即刻执行）。

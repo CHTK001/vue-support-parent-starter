@@ -2,13 +2,33 @@
 // @ts-nocheck
 
 // @ts-nocheck
+/**
+ * AI 悬浮球（可拖拽小助手 + 气泡聊天），归 @repo/web-llm 提供。
+ *
+ * <p>会话分发口径（与 AI 会话页一致，只是前端实现）：</p>
+ * <ul>
+ *   <li>当前模型 platform === "webllm" → 浏览器本地推理（useWebLLM，Web Worker）；</li>
+ *   <li>其它模型 → 后端 ChatClient（默认 POST /v1/chat/completions，经
+ *       chatTransport 注入点可由业务模块覆盖）。</li>
+ * </ul>
+ *
+ * <p>「当前模型」来自 chatModelResolver 注入点（@pages/ai 从模型管理解析）；
+ * 未注入时回退默认 MLC 模型。皮肤 / 尺寸 / 显隐沿用 aiChat 配置。</p>
+ */
 import { ref, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { getConfig, getStorageKey } from "@repo/config";
-import { http } from "@repo/core";
+import {
+  useWebLLM,
+  getChatModelResolver,
+  getRemoteChatHandler,
+  defaultRemoteChat,
+  WEBLLM_DEFAULT_MODEL_ID,
+  type ChatModelTarget,
+} from "./index";
+import { loadChatContext, saveChatContext } from "@repo/utils";
 /**
  * 3D 形象按需加载：ReAvatar3D 静态 import 了 three（约 2.7MB 产物）。
- * 它是布局里常驻挂载的组件，静态引入会把 three 拖进**每个应用的首屏**
- * （生产 index.html 的 modulepreload 里能看到 lib-three 全量预载）。
+ * 它是布局里常驻挂载的组件，静态引入会把 three 拖进**每个应用的首屏**。
  * 改成异步组件后，只有真正渲染出形象（配置了 ai-character 且可见）才去取 three。
  */
 const ReAvatar3D = defineAsyncComponent(() => import("@repo/ui/ReAvatar3D"));
@@ -16,18 +36,40 @@ const ReAvatar3D = defineAsyncComponent(() => import("@repo/ui/ReAvatar3D"));
 const STORAGE_KEY = getStorageKey("ai-character-messages");
 const CONV_ID = "ai-character-default";
 const POS_KEY = getStorageKey("ai-character-pos");
+/** 加密库业务命名空间：悬浮球对话记录（AES 加密后进 IndexedDB，不再明文躺 localStorage） */
+const CONTEXT_NAMESPACE = "ai-character";
 
-function loadMessages(): { role: string; content: string }[] {
+/**
+ * 从加密 IndexedDB 读对话记录。
+ *
+ * <p>旧版把对话明文存在 localStorage（ai-character-messages-<conv>），这里做一次性
+ * 迁移：读到明文键 → 迁入加密库 → 删除明文键。悬浮球对话不按账号隔离（web-llm
+ * 不感知登录态），归入匿名分组，本机共用一份。</p>
+ */
+async function loadStoredMessages(): Promise<{ role: string; content: string }[]> {
   try {
-    const raw = localStorage.getItem(`${STORAGE_KEY}-${CONV_ID}`);
-    return raw ? JSON.parse(raw) : [];
+    const legacyRaw = localStorage.getItem(`${STORAGE_KEY}-${CONV_ID}`);
+    if (legacyRaw) {
+      localStorage.removeItem(`${STORAGE_KEY}-${CONV_ID}`);
+      const parsed = JSON.parse(legacyRaw);
+      if (Array.isArray(parsed) && parsed.length) {
+        void saveChatContext({ owner: null, namespace: CONTEXT_NAMESPACE, key: CONV_ID }, parsed)
+          .catch(() => { /* 加密库不可用：本次仅内存态 */ });
+        return parsed.filter((m: any) => m && typeof m.content === "string");
+      }
+    }
+  } catch { /* 明文键损坏：当作没有 */ }
+  try {
+    const stored = await loadChatContext<{ role: string; content: string }[]>(
+      { owner: null, namespace: CONTEXT_NAMESPACE, key: CONV_ID });
+    return Array.isArray(stored) ? stored.filter((m: any) => m && typeof m.content === "string") : [];
   } catch { return []; }
 }
 
+/** 对话记录写穿透加密库（异步不阻塞；库不可用时仅内存态，刷新即失） */
 function saveMessages(msgs: { role: string; content: string }[]) {
-  try {
-    localStorage.setItem(`${STORAGE_KEY}-${CONV_ID}`, JSON.stringify(msgs));
-  } catch { /* ignore */ }
+  void saveChatContext({ owner: null, namespace: CONTEXT_NAMESPACE, key: CONV_ID }, msgs)
+    .catch(() => { /* 隐私模式/配额满：静默降级 */ });
 }
 
 const appConfig = getConfig();
@@ -37,6 +79,27 @@ const visible = computed(() => aiChat.value.aiChatEnabled);
 const popoverVisible = ref(false);
 const charMode = computed(() => aiChat.value.aiChatCharacter || "3d");
 const modelUrl = computed(() => aiChat.value.aiChatModelUrl || "/assets/models/ai-character.glb");
+
+/* ---------------- 对话引擎：按当前模型持有，模型变化时重建 ---------------- */
+
+let engine = useWebLLM({ model: WEBLLM_DEFAULT_MODEL_ID });
+const engineModelId = ref(WEBLLM_DEFAULT_MODEL_ID);
+const engineLoading = computed(() => engine.loading.value);
+const engineError = computed(() => engine.error.value);
+
+/** 当前对话目标：注入的解析器优先，缺省回退默认 webllm 模型 */
+function currentTarget(): ChatModelTarget {
+  return getChatModelResolver()?.() ?? { platform: "webllm", modelId: WEBLLM_DEFAULT_MODEL_ID };
+}
+
+/** 确保本地引擎与目标模型一致（不一致则卸载重建） */
+function ensureEngine(target: ChatModelTarget) {
+  if (engineModelId.value !== target.modelId) {
+    engine.unloadModel();
+    engine = useWebLLM({ model: target.modelId });
+    engineModelId.value = target.modelId;
+  }
+}
 
 const charX = ref(0);
 const charY = ref(0);
@@ -86,6 +149,8 @@ const popoverStyle = computed(() => {
 const messages = ref<{ role: string; content: string }[]>([]);
 const inputText = ref("");
 const sending = ref(false);
+/** 状态提示（本地模型加载进度 / 远端生成中），空串不显示 */
+const statusText = ref("");
 
 onMounted(() => {
   const saved = localStorage.getItem(POS_KEY);
@@ -106,7 +171,7 @@ onMounted(() => {
 
 watch(popoverVisible, async (val) => {
   if (val) {
-    messages.value = loadMessages();
+    messages.value = await loadStoredMessages();
     if (messages.value.length === 0) {
       messages.value = [{ role: "assistant", content: "你好！我是 AI 助手，有什么可以帮助你的吗？" }];
     }
@@ -153,18 +218,37 @@ async function sendMessage() {
   inputText.value = "";
   messages.value.push({ role: "user", content: text });
   sending.value = true;
+  statusText.value = "";
   try {
-    const { data } = await http().post(aiChat.value.aiChatApiUrl || "/v1/chat/completions")
-      .headers(aiChat.value.aiChatApiKey ? { Authorization: `Bearer ${aiChat.value.aiChatApiKey}` } : {})
-      .data({
-        model: aiChat.value.aiChatModel,
-        messages: messages.value.map((m) => ({ role: m.role, content: m.content })),
-        max_tokens: aiChat.value.aiChatMaxTokens,
-        temperature: aiChat.value.aiChatTemperature,
-      });
-    const reply = data.choices?.[0]?.message?.content || "抱歉，我没有理解你的问题。";
+    const target = currentTarget();
+    const history = messages.value.map((m) => ({ role: m.role, content: m.content }));
+    let reply: string;
 
-    messages.value.push({ role: "assistant", content: reply });
+    if (target.platform === "webllm") {
+      // 浏览器本地推理：确保引擎对准当前模型，先加载后生成
+      ensureEngine(target);
+      const off = engine.onProgress((p) => {
+        statusText.value = p.text
+          ? `${p.text}${p.progress != null ? ` (${Math.round(p.progress * 100)}%)` : ""}`
+          : "";
+      });
+      try {
+        if (!engine.loading.value) await engine.loadModel();
+        statusText.value = "正在生成回复...";
+        reply = await engine.generate(history);
+      } finally {
+        off?.();
+        statusText.value = "";
+      }
+    } else {
+      // 远端模型：走后端 ChatClient（按 model 路由到对应渠道/凭据）
+      statusText.value = "正在生成回复...";
+      const handler = getRemoteChatHandler() ?? defaultRemoteChat;
+      reply = await handler({ modelId: target.modelId, messages: history });
+      statusText.value = "";
+    }
+
+    messages.value.push({ role: "assistant", content: reply || "抱歉，我没有理解你的问题。" });
 
     // 第 N 轮压缩：达到阈值后，历史（除最近 N 轮外）压缩为摘要，保留最近 N 轮原始对话
     if (aiChat.value.aiChatSummaryEnabled) {
@@ -191,9 +275,11 @@ async function sendMessage() {
 
     await saveMessages(messages.value);
   } catch (e) {
+    statusText.value = "";
     messages.value.push({ role: "assistant", content: `请求失败：${e instanceof Error ? e.message : String(e)}` });
   } finally {
     sending.value = false;
+    statusText.value = "";
   }
 }
 
@@ -248,6 +334,9 @@ function handleClear() {
           <el-button link @click="handleClear">清空</el-button>
           <el-button link @click="popoverVisible = false">✕</el-button>
         </div>
+      </div>
+      <div class="ai-popover__status" v-if="statusText || engineError">
+        <span :class="{ 'is-error': !!engineError }">{{ engineError || statusText }}</span>
       </div>
       <div class="ai-popover__body">
         <div v-for="(msg, i) in messages" :key="i" class="ai-popover__msg" :class="msg.role">
@@ -366,6 +455,17 @@ function handleClear() {
   &__actions {
     display: flex;
     gap: 4px;
+  }
+
+  &__status {
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    background: var(--el-fill-color-lighter);
+
+    .is-error {
+      color: var(--el-color-danger);
+    }
   }
 
   &__body {

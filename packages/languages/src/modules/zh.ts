@@ -463,6 +463,7 @@ export default {
       optimum: "混合",
       horizontal: "横向",
       group: "分组",
+      dock: "悬浮坞",
     },
     interface: {
       routeAnimation: {
@@ -521,6 +522,12 @@ export default {
         sub: "顶部导航",
         tip: "控制顶部 Header 栏显示/隐藏",
         description: "隐藏后顶部导航栏将不显示",
+      },
+      horizontalHeaderCard: {
+        title: "横向顶栏卡片",
+        sub: "横向布局",
+        tip: "横向布局顶栏形态：悬浮玻璃卡片 / 标准通栏",
+        description: "开启为悬浮玻璃卡片形态，关闭为标准通栏顶栏",
       },
       tabsShown: {
         title: "显示标签页",
@@ -757,6 +764,22 @@ export default {
       openai: "OpenAI (GPT 系列)",
       deepseek: "DeepSeek (深度求索)",
       custom: "自定义 (兼容 OpenAI 格式)",
+    },
+    model: {
+      selectTitle: "选择对话模型",
+      selectPlaceholder: "选择对话模型",
+      loadFailed: "模型列表加载失败",
+      frontendHint: "前端本地模型：浏览器内推理，MCP 等后端能力不可用",
+    },
+    skin: {
+      title: "助手皮肤",
+      placeholder: "选择助手皮肤",
+      default: "默认",
+      cat: "樱花粉",
+      ocean: "海洋蓝",
+      forest: "森林绿",
+      sunset: "落日橙",
+      night: "深邃夜",
     },
     webllmModelRecommend: "(推荐·轻量)",
     modelLight: "超轻",

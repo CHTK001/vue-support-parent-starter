@@ -25,6 +25,10 @@
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.79",
+    "@repo/config": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "@repo/utils": "workspace:*",
     "vue": "catalog:"
   },
   "devDependencies": {

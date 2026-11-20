@@ -177,6 +177,7 @@ export default {
     menuMcpClear: 'Clear',
     menuMcpEmpty: 'No MCP servers yet, add one in Settings',
     menuMcpHint: 'Selected servers can be called in this conversation',
+    menuMcpDisabled: 'The current model is a frontend local model (in-browser inference); MCP tool calls are unavailable',
     menuMcpNoTransport: 'No transport configured',
     menuMcpSelected: '{count} MCP selected',
     menuHintEnter: 'Enter runs the first command',

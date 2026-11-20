@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import { ref, computed, type Ref } from 'vue'
 import type { Session, SessionState, SessionSettings, QueuedMessage } from '@/types/session'
 import { randomUuid } from '@/utils/clientId'
+import { listChatContext, removeChatContext, saveChatContext } from '@repo/utils'
+import { useAuthStore } from './auth'
 
 /**
  * 未分组的默认分组ID（虚拟ID，不对应后端实体）
@@ -80,9 +82,6 @@ export const useSessionStore = defineStore('session', () => {
         } catch { /* 隐私模式/存储满：静默降级为仅内存态 */ }
     }
 
-    /** localStorage 键前缀：排队中的消息（按会话隔离，刷新/重启后恢复） */
-    const QUEUE_KEY_PREFIX = 'ai-session.queue.'
-
     /**
      * 排队消息的本地保留期。
      *
@@ -92,38 +91,102 @@ export const useSessionStore = defineStore('session', () => {
      */
     const QUEUE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
-    const queueStorageKey = (sessionId: string): string => `${QUEUE_KEY_PREFIX}${sessionId}`
+    /**
+     * 排队消息落盘：加密 IndexedDB（@repo/utils 的 chatContext，AES 加密后写入），
+     * 不再明文躺 localStorage。内存缓存保住「同步读」的原有语义，变更写穿透回加密库。
+     */
+    const QUEUE_NAMESPACE = 'queue'
+    /** 旧版 localStorage 明文键前缀：仅用于一次性迁移，迁完即删 */
+    const LEGACY_QUEUE_KEY_PREFIX = 'ai-session.queue.'
+
+    /** 排队消息的账号隔离主体（同一浏览器多账号互不串） */
+    const queueOwner = (): string | null => useAuthStore().user?.username ?? null
 
     /**
-     * 读取会话的排队消息。
+     * 内存缓存：sessionId -> 排队消息。
      *
-     * @param sessionId 会话 ID
-     * @returns 未过期的排队消息；没有、损坏或已过期时返回空数组
+     * <p>启动时从加密库一次性水合（hydrateQueues），之后读写都先走这块缓存；
+     * ChatPanel 的恢复判定（resumeQueuedMessagesOnLoad）是同步读队列，
+     * 不能等异步 IDB，所以这里必须常驻内存。</p>
      */
-    const loadQueue = (sessionId: string): QueuedMessage[] => {
-        try {
-            const raw = window.localStorage.getItem(queueStorageKey(sessionId))
-            if (!raw) return []
-            const parsed = JSON.parse(raw) as { savedAt?: number; items?: QueuedMessage[] }
-            if (!parsed || typeof parsed.savedAt !== 'number' || Date.now() - parsed.savedAt > QUEUE_TTL_MS) {
-                window.localStorage.removeItem(queueStorageKey(sessionId))
-                return []
-            }
-            // 落盘时可能有一条处于 sending（页面在发送途中被关掉）：重启后没有任何请求在跑，
-            // 一律归位成 queued，否则它会永远转圈且不可编辑/不可删。
-            return Array.isArray(parsed.items)
-                ? parsed.items
-                    .filter((item) => item && typeof item.content === 'string')
-                    .map((item) => ({ ...item, status: 'queued' as const }))
-                : []
-        } catch {
-            // 隐私模式 / 存储损坏：降级为仅内存态，不影响会话本身
-            return []
-        }
+    const queueCache = new Map<string, QueuedMessage[]>()
+
+    /** 一批排队消息的合法化：非字符串内容的条目丢弃，status 一律归位 queued */
+    const sanitizeQueueItems = (items: unknown): QueuedMessage[] => {
+        if (!Array.isArray(items)) return []
+        return items
+            .filter((item: any) => item && typeof item.content === 'string')
+            .map((item: any) => ({ ...item, status: 'queued' as const }))
     }
 
     /**
-     * 把会话的排队消息写回 localStorage；队列清空时删键。
+     * 启动水合：把本机加密库里该账号的全部排队消息读进内存缓存。
+     *
+     * <p>旧版把排队消息明文存在 localStorage（ai-session.queue.<id>），这里做一次性
+     * 迁移：读到明文键 → 并入缓存 → 后续由 saveQueue 写加密库 → 删除明文键。
+     * 超过 TTL 的记录直接丢弃（连同加密库里的旧记录一起清掉）。</p>
+     */
+    const hydrateQueues = async (): Promise<void> => {
+        const owner = queueOwner()
+        /** 合并结果：sessionId -> { items, savedAt }；同会话后读到的覆盖先读到的 */
+        const merged = new Map<string, { items: QueuedMessage[]; savedAt: number }>()
+        // 1) 旧版明文键迁移（登录前可能落在匿名分组，一并收进来，避免升级即丢消息）
+        try {
+            for (let i = window.localStorage.length - 1; i >= 0; i--) {
+                const storageKey = window.localStorage.key(i)
+                if (!storageKey || !storageKey.startsWith(LEGACY_QUEUE_KEY_PREFIX)) continue
+                const sessionId = storageKey.slice(LEGACY_QUEUE_KEY_PREFIX.length)
+                try {
+                    const parsed = JSON.parse(window.localStorage.getItem(storageKey) || '') as { savedAt?: number; items?: QueuedMessage[] }
+                    if (parsed && typeof parsed.savedAt === 'number') {
+                        const items = sanitizeQueueItems(parsed.items)
+                        if (items.length) merged.set(sessionId, { items, savedAt: parsed.savedAt })
+                    }
+                } catch { /* 明文键损坏：当作没有 */ }
+                window.localStorage.removeItem(storageKey)
+            }
+        } catch { /* 隐私模式等读不了 localStorage：跳过迁移 */ }
+        // 2) 加密库：当前账号 + 匿名分组（历史遗留）都收，同会话当前账号优先
+        const owners = owner ? [null, owner] : [null]
+        for (const ownerName of owners) {
+            try {
+                const stored = await listChatContext<{ savedAt?: number; items?: QueuedMessage[] }>(ownerName, QUEUE_NAMESPACE)
+                for (const entry of stored) {
+                    if (!entry.value || typeof entry.value.savedAt !== 'number') continue
+                    const items = sanitizeQueueItems(entry.value.items)
+                    if (items.length) merged.set(entry.key, { items, savedAt: entry.value.savedAt })
+                }
+            } catch { /* 加密库不可用：用明文迁移结果兜底 */ }
+        }
+        // 3) TTL 过滤 + 落缓存 + 回填已存在的会话状态 + 清理过期记录
+        const now = Date.now()
+        for (const [sessionId, entry] of merged) {
+            if (now - entry.savedAt > QUEUE_TTL_MS) {
+                void removeChatContext({ owner, namespace: QUEUE_NAMESPACE, key: sessionId }).catch(() => undefined)
+                continue
+            }
+            queueCache.set(sessionId, entry.items)
+            const state = sessions.value.get(sessionId)
+            // 仅在会话内存队列还是空的时候回填：用户先入队、水合后到时以内存为准
+            if (state && state.messageQueue.length === 0) {
+                state.messageQueue.splice(0, state.messageQueue.length, ...entry.items)
+            }
+        }
+    }
+    void hydrateQueues()
+
+    /**
+     * 读取会话的排队消息（同步：读内存缓存，数据来自启动水合 + 后续写穿透）。
+     *
+     * @param sessionId 会话 ID
+     * @returns 未过期的排队消息（TTL 在水合时已过滤）；没有时返回空数组
+     */
+    const loadQueue = (sessionId: string): QueuedMessage[] => {
+        return queueCache.get(sessionId) ?? []
+    }
+
+    /**
+     * 把会话的排队消息写回加密库（写穿透，异步不阻塞）；队列清空时删记录。
      *
      * @param sessionId 会话 ID
      */
@@ -131,11 +194,17 @@ export const useSessionStore = defineStore('session', () => {
         try {
             const items = getSessionState(sessionId).messageQueue
             if (!items.length) {
-                window.localStorage.removeItem(queueStorageKey(sessionId))
+                queueCache.delete(sessionId)
+                void removeChatContext({ owner: queueOwner(), namespace: QUEUE_NAMESPACE, key: sessionId }).catch(() => undefined)
                 return
             }
-            window.localStorage.setItem(queueStorageKey(sessionId), JSON.stringify({ savedAt: Date.now(), items }))
-        } catch { /* 隐私模式/存储满：静默降级为仅内存态 */ }
+            const snapshot = items.map((item) => ({ ...item }))
+            queueCache.set(sessionId, snapshot)
+            void saveChatContext(
+                { owner: queueOwner(), namespace: QUEUE_NAMESPACE, key: sessionId },
+                { savedAt: Date.now(), items: snapshot },
+            ).catch(() => { /* 隐私模式/存储满：仅内存态，下次写入再试 */ })
+        } catch { /* 静默降级为仅内存态 */ }
     }
 
     loadRunDurations()
@@ -159,7 +228,7 @@ export const useSessionStore = defineStore('session', () => {
                 lastUpdated: Date.now(),
                 settings: {
                 },
-                // 队列落盘在 localStorage：刷新/重启后恢复，由 ChatPanel 决定何时消费
+                // 队列落盘在加密 IndexedDB（chatContext）：刷新/重启后由启动水合恢复，由 ChatPanel 决定何时消费
                 messageQueue: loadQueue(sessionId),
             })
         }

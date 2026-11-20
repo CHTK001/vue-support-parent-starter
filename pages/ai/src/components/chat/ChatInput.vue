@@ -279,7 +279,8 @@
         :loading="commandsLoading" :knowledge-bases="knowledgeBases"
         :selected-kb-ids="props.config?.knowledgeBaseIds || []" :attachment-types="attachmentTypes"
         :selected-attachments="props.config?.attachments || {}" :show-mcp="admin" :mcp-servers="mcpServers"
-        :mcp-loading="mcpLoading" :mcp-selected-ids="mcpSelectedIds" @select-command="handleMenuCommand"
+        :mcp-loading="mcpLoading" :mcp-selected-ids="mcpSelectedIds" :mcp-disabled="currentModelIsFrontend"
+        @select-command="handleMenuCommand"
         @select-image="triggerImageInput" @select-file="triggerFileInput" @toggle-kb="toggleKnowledgeBaseSelection"
         @toggle-attachment="toggleAttachmentSelection" @toggle-mcp="toggleMcp" @clear-mcp="handleMcpChange([])" />
 
@@ -337,6 +338,7 @@ import { CommandNode } from './chat-input/commandNode';
 import CommandPicker from './chat-input/CommandPicker.vue';
 import { getModelThinkingEfforts, getThinkingEffortLabel, getModelDisplayName, getModelContextWindow } from '@/utils/modelUtils';
 import { detectModelProvider } from '@/utils/modelUtils';
+import { isFrontendModel } from '@/utils/modelPlatform';
 import ProviderLogo from '../models/ProviderLogo.vue';
 import { PROVIDER_ICONS, resolveModelChannelBrand, resolveProviderBrand } from '../models/providerIcons';
 import {
@@ -1081,6 +1083,10 @@ const currentModel = computed(() => {
   }
   return null;
 });
+
+// 前端本地模型（web / webllm，浏览器内推理）没有后端链路：MCP 工具调用不可用。
+// 入口禁用 + 切换模型时自动清空已选；发送链路由 ChatPanel / CreateSessionChatPanel 兜底剥离。
+const currentModelIsFrontend = computed(() => isFrontendModel(currentModel.value, providers.value));
 
 /**
  * 是否「一个可用对话模型都没有」（列表已加载完且为空）。
@@ -2064,6 +2070,7 @@ async function loadMcpServers() {
 
 /** 勾选 / 取消一个 MCP：勾一下即写回会话配置，与弹层旧行为一致 */
 function toggleMcp(serverId: string) {
+  if (currentModelIsFrontend.value) return;
   const next = new Set(mcpSelectedIds.value);
   if (next.has(serverId)) next.delete(serverId);
   else next.add(serverId);
@@ -2071,8 +2078,15 @@ function toggleMcp(serverId: string) {
 }
 
 function handleMcpChange(ids: string[]) {
-  emit('config-change', { mcpServerIds: ids.join(',') });
+  // 前端本地模型一律不带 MCP：入口已禁用，这里再兜底，防止其它路径写回
+  const safeIds = currentModelIsFrontend.value ? [] : ids;
+  emit('config-change', { mcpServerIds: safeIds.join(',') });
 }
+
+// 切到前端本地模型时清掉已勾选的 MCP，避免残留配置在切回后端模型后悄悄生效
+watch(currentModelIsFrontend, (isFrontend) => {
+  if (isFrontend && mcpSelectedIds.value.length) handleMcpChange([]);
+});
 
 /**
  * 打开 / 关闭输入区统一弹层（指令 / 附件 / MCP）。

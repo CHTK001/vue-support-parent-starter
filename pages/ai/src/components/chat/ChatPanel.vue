@@ -210,6 +210,7 @@ import { useAuthStore } from "../../stores/auth"
 import { useLayoutStore } from "@/stores/layout"
 import { useWorkspaceStore } from "@/stores/workspace"
 import { getCurrentTurns, flattenContentsForTimeline } from "@/utils/messageUtils"
+import { isFrontendModelId } from "@/utils/modelPlatform"
 import { getToolActionLabel, getToolIcon, getArgsText } from "@/utils/toolDisplay"
 import { hydrateInputHistoryDetailed, rememberInput, removeInputHistoryEntry, removeInputHistoryEntries, type MessageHistoryEntry } from "@/utils/inputHistory"
 import { useStreamResponse } from "@/composables/useStreamResponse"
@@ -995,10 +996,12 @@ const handleConfigChange = (config: any) => {
 
   // 处理 MCP 选择（会话级，立即持久化）
   if (typeof config.mcpServerIds !== 'undefined') {
-    currentSession.value.mcpServerIds = config.mcpServerIds;
+    // 前端本地模型（web/webllm）不走后端链路：一律落空串（ChatInput 入口已禁用，这里兜底）
+    const mcpIds = isFrontendModelId(currentModelId.value) ? '' : config.mcpServerIds;
+    currentSession.value.mcpServerIds = mcpIds;
     if (currentSession.value.id) {
       apiService.updateSession(String(currentSession.value.id), {
-        mcpServerIds: config.mcpServerIds
+        mcpServerIds: mcpIds
       }).catch(err => console.error('Failed to save mcpServerIds:', err));
     }
   }
@@ -1878,7 +1881,8 @@ async function handleSendMessage(payload?: InputMessageState) {
         currentModelId.value ?? undefined,
         skillNames,
         props.session?.characterId || null,
-        currentSession.value?.mcpServerIds || '',
+        // 前端本地模型（web/webllm）无后端 MCP 链路：发送时强制剥离
+        isFrontendModelId(currentModelId.value) ? '' : (currentSession.value?.mcpServerIds || ''),
         currentRunMode.value,
       );
     }

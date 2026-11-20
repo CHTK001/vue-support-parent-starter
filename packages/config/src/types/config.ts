@@ -1099,35 +1099,46 @@ export interface PerformanceConfig {
   performanceMonitorDirection: "auto" | "vertical" | "horizontal";
 }
 
-/** AI 对话配置 */
+/**
+ * AI 对话配置。
+ *
+ * <p>架构口径（2026-11）：主题包只提供通用分区/悬浮组件注册表；AI 分区与悬浮球由
+ * {@code @pages/ai} 经注册表注入；webllm 供应商与内置模型清单由 {@code @repo/web-llm}
+ * 前端写死导出。模型与凭据的唯一真相源是「模型管理」；当前选中的对话模型持久化在
+ * localStorage（{@code ai-chat-selected-model}），不在本配置里。</p>
+ *
+ * <p>以下字段中，仅 enable / aiChatEnabled / aiChatCharacter / aiChatModelUrl /
+ * aiChatCharacterSize / aiChatSkin 仍生效；其余已废弃（保留仅为兼容已发布的
+ * app.yaml，运行时不再读取或仅作兜底）。</p>
+ */
 export interface AiChatConfig {
   /** 是否在设置面板显示 AI 对话分区（默认 true） */
   enable: boolean;
   /** AI 助手显示开关：控制页面悬浮 AI 助手入口是否显示 */
   aiChatEnabled: boolean;
-  /** 运行模式：webllm=浏览器本地推理 / vendor=厂商 API */
+  /** @deprecated 运行模式已改按模型 platform 分发（webllm=本地，其余=后端）；字段保留兼容旧 yaml */
   aiChatMode: "webllm" | "vendor";
-  /** WebLLM 模型 ID（如 Qwen2.5-1.5B-Instruct-q4f16_1-MLC） */
+  /** @deprecated 对话模型改由模型管理选定并持久化在 localStorage；字段保留兼容旧 yaml */
   aiChatModel: string;
-  /** WebLLM 可选模型列表（yaml 可配，覆盖内置默认模型） */
+  /** @deprecated 内置模型清单改由 @repo/web-llm 的 WEBLLM_BUILTIN_MODELS 提供；字段保留兼容旧 yaml */
   webllmModels: { label: string; value: string; image?: string }[];
-  /** 厂商名称（openai / deepseek / custom 等） */
+  /** @deprecated 厂商与凭据统一由模型管理维护；字段保留兼容旧 yaml */
   aiChatVendor: string;
-  /** 厂商 API Key */
+  /** @deprecated API Key 统一由模型管理维护；字段保留兼容旧 yaml */
   aiChatApiKey: string;
-  /** 厂商 API URL */
+  /** @deprecated API URL 统一由模型管理维护；字段保留兼容旧 yaml */
   aiChatApiUrl: string;
-  /** 最大生成 token 数 */
+  /** @deprecated 推理参数改由各引擎取默认值；字段保留兼容旧 yaml */
   aiChatMaxTokens: number;
-  /** 温度参数（0~2） */
+  /** @deprecated 推理参数改由各引擎取默认值；字段保留兼容旧 yaml */
   aiChatTemperature: number;
-  /** 上下文消息条数上限（10~500） */
+  /** @deprecated 上下文压缩参数已从设置分区移除；字段保留兼容旧 yaml（悬浮球仍按其兜底） */
   aiChatContextLimit: number;
-  /** 自动总结阈值百分比（50~100） */
+  /** @deprecated 上下文压缩参数已从设置分区移除；字段保留兼容旧 yaml */
   aiChatSummaryThreshold: number;
-  /** 是否启用第 N 轮压缩：达到阈值后，将历史消息压缩为摘要，并保留最近 N 轮原始对话 */
+  /** @deprecated 上下文压缩参数已从设置分区移除；字段保留兼容旧 yaml（悬浮球仍按其兜底） */
   aiChatSummaryEnabled: boolean;
-  /** 第 N 轮压缩：保留最近 N 轮原始对话（1~50），其余压缩为摘要 */
+  /** @deprecated 上下文压缩参数已从设置分区移除；字段保留兼容旧 yaml（悬浮球仍按其兜底） */
   aiChatSummaryRetainRounds: number;
   /** AI 助手形象：2d=图标/渐变皮肤，3d=GLB 模型 */
   aiChatCharacter: "2d" | "3d";

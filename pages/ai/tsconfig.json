@@ -58,7 +58,13 @@
       "@pages/channel/*": ["../channel/src/*"],
       /* CDP 实时页面组件：已从 pages/ai 抽离出的独立包（账号登录弹窗） */
       "@pages/cdp": ["../cdp/src/index.ts"],
-      "@pages/cdp/*": ["../cdp/src/*"]
+      "@pages/cdp/*": ["../cdp/src/*"],
+      /* 浏览器本地推理包：pnpm workspace 链接未就绪时类型检查直读源码（其余 @repo/* 走 node_modules 链接）。
+         注意：只映射 web-llm 这类小包；@repo/theme、@repo/languages 的深路径若直读源码，
+         会把整棵主题/语言包拖进类型程序，内存突破看门狗 3GB 红线被击杀（BUILD-OVER-MEMORY），
+         那些深路径改用 src/types/shims-deep-imports.d.ts 的环境模块声明。 */
+      "@repo/web-llm": ["../../packages/ui/web-llm/src/index.ts"],
+      "@repo/web-llm/worker": ["../../packages/ui/web-llm/src/worker.ts"]
     },
 
     /* 类型根目录 */

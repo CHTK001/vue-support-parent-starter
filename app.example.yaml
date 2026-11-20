@@ -652,17 +652,26 @@ other:
     performanceMonitorLayout: "split"
     # 布局方向：auto=自动 / vertical=垂直 / horizontal=水平
     performanceMonitorDirection: "auto"
-  # AI 对话配置（webllm 本地推理 / vendor 厂商 API）
+  # AI 对话配置
+  #
+  # 架构口径：主题包只提供通用分区/悬浮组件注册表；AI 分区与悬浮球由 @pages/ai
+  # 经注册表注入；webllm 供应商与内置模型清单由 @repo/web-llm 前端写死导出。
+  # 模型与凭据的唯一真相源是「模型管理」；当前选中的对话模型持久化在
+  # localStorage，不在这里配置。以下 aiChatMode / aiChatModel / webllmModels /
+  # aiChatVendor / aiChatApiKey / aiChatApiUrl / aiChatMaxTokens /
+  # aiChatTemperature / aiChatContextLimit / aiChatSummaryThreshold /
+  # aiChatSummaryEnabled / aiChatSummaryRetainRounds 均为已废弃字段，
+  # 仅为兼容已发布的 app.yaml 保留，运行时不再读取（或仅作兜底）。
   aiChat:
     # 是否在设置面板显示 AI 对话分区（默认 true）
     enable: true
     # AI 助手显示开关：控制页面悬浮 AI 助手入口是否显示
     aiChatEnabled: false
-    # 运行模式：webllm=浏览器本地推理 / vendor=厂商 API
+    # 已废弃：运行模式改按模型 platform 分发
     aiChatMode: "webllm"
-    # WebLLM 模型 ID（如 Qwen2.5-1.5B-Instruct-q4f16_1-MLC）
+    # 已废弃：对话模型改由模型管理选定
     aiChatModel: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
-    # WebLLM 可选模型列表（覆盖内置默认；label 显示名 / value 模型 ID / image 模型图标）
+    # 已废弃：内置模型清单改由 @repo/web-llm 提供
     webllmModels:
       - label: "Qwen2.5-1.5B-Instruct（推荐·轻量）"
         value: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
@@ -682,23 +691,23 @@ other:
       - label: "gemma-2-2b-it（中等）"
         value: "gemma-2-2b-it-q4f16_1-MLC"
         image: "/assets/models/gemini-color.svg"
-    # 厂商名称（openai / deepseek / custom 等）
+    # 已废弃：厂商与凭据统一由模型管理维护
     aiChatVendor: "openai"
-    # 厂商 API Key
+    # 已废弃：API Key 统一由模型管理维护
     aiChatApiKey: ""
-    # 厂商 API URL
+    # 已废弃：API URL 统一由模型管理维护
     aiChatApiUrl: ""
-    # 最大生成 token 数
+    # 已废弃：推理参数改由各引擎取默认值
     aiChatMaxTokens: 4096
-    # 温度参数（0~2）
+    # 已废弃：推理参数改由各引擎取默认值
     aiChatTemperature: 0.7
-    # 上下文消息条数上限（10~500）
+    # 已废弃：上下文压缩参数已从设置分区移除（悬浮球仍按其兜底）
     aiChatContextLimit: 100
-    # 自动总结阈值百分比（50~100）
+    # 已废弃：上下文压缩参数已从设置分区移除
     aiChatSummaryThreshold: 80
-    # 是否启用第 N 轮压缩：达到阈值后，将历史消息压缩为摘要，并保留最近 N 轮原始对话
+    # 已废弃：上下文压缩参数已从设置分区移除（悬浮球仍按其兜底）
     aiChatSummaryEnabled: true
-    # 第 N 轮压缩：保留最近 N 轮原始对话（1~50），其余压缩为摘要
+    # 已废弃：上下文压缩参数已从设置分区移除（悬浮球仍按其兜底）
     aiChatSummaryRetainRounds: 6
   # 首页配置
   home:

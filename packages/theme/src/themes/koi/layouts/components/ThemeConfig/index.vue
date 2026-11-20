@@ -109,8 +109,10 @@
               </div>
             </div>
 
-            <!-- ============ AI 对话（集成 @repo/web-llm） ============ -->
-            <ReSettingAiChat />
+            <!-- ============ 模块注册的自定义分区（如 @pages/ai 的 AI 对话，经 ./registry.ts 注入） ============ -->
+            <template v-for="section in registrySections.advanced" :key="section.id">
+              <component :is="resolveSectionComponent(section)" />
+            </template>
 
             <!-- ============ 无障碍设置 ============ -->
             <ReSettingAccessibility />
@@ -310,6 +312,11 @@
                       <div class="koi-double-bar"></div>
                       <div class="koi-double-dashed"></div>
                     </template>
+                    <!-- 悬浮坞专属预览：上方一列小方块卡片 + 底部居中胶囊磁贴条 -->
+                    <template v-else-if="layoutOption.value === 'dock'">
+                      <div class="koi-dock-cards"><i></i><i></i><i></i></div>
+                      <div class="koi-dock-pill"><i class="on"></i><i></i><i></i></div>
+                    </template>
                     <template v-else>
                       <div class="koi-block-aside"></div>
                       <div class="koi-layout-inner" v-if="layoutOption.hasContainer">
@@ -377,6 +384,11 @@
                  （CheckCodeOpen / SlidingBlockOpen / CheckTotpOpen），以及 app.yaml 的
                  loginConfig 段决定，属部署侧配置。放在用户主题配置里会让用户以为
                  自己能改，实际改不动也不该由前端决定，故不在此提供开关。 -->
+
+            <!-- 模块注册的自定义分区（appearance，经 ./registry.ts 注入） -->
+            <template v-for="section in registrySections.appearance" :key="section.id">
+              <component :is="resolveSectionComponent(section)" />
+            </template>
           </template>
 
           <!-- ============ 界面：界面配置 ============ -->
@@ -461,6 +473,14 @@
                    :tip="t('themeConfig.switchBlocks.headerShown.tip')"
                    :description="t('themeConfig.switchBlocks.headerShown.description')"
                    v-model="headerShown"
+                 />
+
+                 <ReSwitch layout="card"
+                   :title="t('themeConfig.switchBlocks.horizontalHeaderCard.title')"
+                   :sub="t('themeConfig.switchBlocks.horizontalHeaderCard.sub')"
+                   :tip="t('themeConfig.switchBlocks.horizontalHeaderCard.tip')"
+                   :description="t('themeConfig.switchBlocks.horizontalHeaderCard.description')"
+                   v-model="horizontalHeaderCard"
                  />
 
                  <ReSwitch layout="card"
@@ -582,6 +602,11 @@
               </div>
             </div>
 
+            <!-- 模块注册的自定义分区（interface，经 ./registry.ts 注入） -->
+            <template v-for="section in registrySections.interface" :key="section.id">
+              <component :is="resolveSectionComponent(section)" />
+            </template>
+
           </template>
 
           <!-- ============ 扩展：工具栏开关 + 消息通知 ============ -->
@@ -667,6 +692,11 @@
               </div>
             </div>
 
+            <!-- 模块注册的自定义分区（extension，经 ./registry.ts 注入） -->
+            <template v-for="section in registrySections.extension" :key="section.id">
+              <component :is="resolveSectionComponent(section)" />
+            </template>
+
           </template>
         </ReTab>
       </div>
@@ -696,7 +726,6 @@ import ReInputNumber from "@repo/ui/re-input-number";
 
 import ReLoginStyleSelector from "@repo/theme/koi/views/login/components/ReLoginStyleSelector.vue";
 import ReLoaderStyleSelector from "./components/ReLoaderStyleSelector.vue";
-import ReSettingAiChat from "./components/ReSettingAiChat.vue";
 import ReSettingAccessibility from "./components/ReSettingAccessibility.vue";
 import ReSettingDevTools from "./components/ReSettingDevTools.vue";
 import ReSettingSystemDebug from "./components/ReSettingSystemDebug.vue";
@@ -705,9 +734,24 @@ import ReSettingHeatmap from "./components/ReSettingHeatmap.vue";
 import ReSettingPerformance from "./components/ReSettingPerformance.vue";
 import { isHeaderFlagKey } from "@repo/theme/koi/layouts/components/Header/components/headerKeys";
 import { TAB_MIN_WIDTH_RANGE, useTabsBarSettings } from "@repo/theme/koi/layouts/components/Tabs/tabsSettings";
+import { sectionsForTab, resolveSectionComponent } from "./registry";
 import { ArrowDown, Delete, Plus, Clock, Files, Download, Upload, Sunny, Bell, Operation, HomeFilled, Connection, Loading } from "@element-plus/icons-vue";
 const { t } = useI18n();
 const globalStore = useGlobalStore();
+
+/**
+ * 模块注册的自定义分区（见 ./registry.ts）。
+ *
+ * <p>主题只提供渲染位置：各业务模块（@pages/ai 等）在启动期 register 进来，
+ * 这里按 tab 过滤 + order 排序 + visible 求值后渲染。registryVersion 驱动本
+ * computed 在注册发生时重新求值。</p>
+ */
+const registrySections = computed(() => ({
+  appearance: sectionsForTab("appearance"),
+  interface: sectionsForTab("interface"),
+  extension: sectionsForTab("extension"),
+  advanced: sectionsForTab("advanced"),
+}));
 
 // 主题配置抽屉关闭是否二次确认（app.yaml other.themeConfigCloseConfirm）
 const themeConfigCloseConfirm = computed(() => getConfig().other.themeConfigCloseConfirm);
@@ -746,6 +790,12 @@ const headerShown = computed({
 const tabsShown = computed({
   get: () => isTabsShown.value,
   set: (v: boolean) => globalStore.setGlobalState("isTabsShown", v),
+});
+
+/** 横向布局顶栏形态：卡片（悬浮玻璃卡）/ 标准（通栏实底），仅横向布局消费 */
+const horizontalHeaderCard = computed({
+  get: () => globalStore.horizontalHeaderCard,
+  set: (v: boolean) => globalStore.setGlobalState("horizontalHeaderCard", v),
 });
 
 /** 页签栏行为（app.yaml other.tabsBar 默认 + 本机用户偏好） */
@@ -936,7 +986,8 @@ const layoutOptions = computed(() => [
   { value: "classic", label: t("themeConfig.layout.classic"), previewClass: "koi-layout-classic", hasContainer: true, hasLight: false },
   { value: "optimum", label: t("themeConfig.layout.optimum"), previewClass: "koi-layout-optimum", hasContainer: true, hasLight: false },
   { value: "horizontal", label: t("themeConfig.layout.horizontal"), previewClass: "koi-layout-horizontal", hasContainer: false, hasLight: false },
-  { value: "group", label: t("themeConfig.layout.group"), previewClass: "koi-layout-group", hasContainer: true, hasLight: false }
+  { value: "group", label: t("themeConfig.layout.group"), previewClass: "koi-layout-group", hasContainer: true, hasLight: false },
+  { value: "dock", label: t("themeConfig.layout.dock"), previewClass: "koi-layout-dock", hasContainer: false, hasLight: false }
 ]);
 
 const koiDrawerRef = ref();
@@ -1183,6 +1234,7 @@ const exportUserConfig = () => {
       uniqueOpened: globalStore.uniqueOpened,
       asideInverted: globalStore.asideInverted,
       headerInverted: globalStore.headerInverted,
+      horizontalHeaderCard: globalStore.horizontalHeaderCard,
       isGrey: globalStore.isGrey,
       isWeak: globalStore.isWeak,
       isSkeletonCritterShown: globalStore.isSkeletonCritterShown,
@@ -1287,6 +1339,7 @@ const applyImportedConfig = (data: {
     ["uniqueOpened", g.uniqueOpened],
     ["asideInverted", g.asideInverted],
     ["headerInverted", g.headerInverted],
+    ["horizontalHeaderCard", g.horizontalHeaderCard],
     ["isGrey", g.isGrey],
     ["isWeak", g.isWeak],
     ["isSkeletonCritterShown", g.isSkeletonCritterShown],
@@ -2355,6 +2408,61 @@ html.dark .theme-color-custom-card {
     .koi-layout-check {
       background: #2f8bf0;
       box-shadow: 0 2px 8px rgba(47, 139, 240, 0.4);
+    }
+  }
+
+  /** 悬浮坞：底部居中胶囊磁贴条 + 上方一列小方块卡片 */
+  .koi-layout-dock .koi-layout-preview {
+    position: relative;
+    display: block;
+
+    .koi-dock-cards {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transform: translateX(-50%);
+
+      i {
+        width: 7px;
+        height: 7px;
+        border-radius: 2px;
+        background: #94a3b8;
+        opacity: 0.5;
+      }
+
+      i:first-child {
+        background: #2f8bf0;
+        opacity: 1;
+      }
+    }
+
+    .koi-dock-pill {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      display: flex;
+      gap: 3px;
+      align-items: center;
+      height: 10px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: #2f8bf0;
+      box-shadow: 0 2px 6px rgb(47 139 240 / 40%);
+      transform: translateX(-50%);
+
+      i {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgb(255 255 255 / 55%);
+      }
+
+      i.on {
+        background: #fff;
+      }
     }
   }
 }

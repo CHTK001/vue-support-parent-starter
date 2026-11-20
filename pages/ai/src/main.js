@@ -21,6 +21,8 @@ import { createApp } from "vue";
 import { ElLoadingDirective } from "element-plus";
 
 import App from "./App.vue";
+// AI 对话分区 + 悬浮球注册（@repo/theme 注册表 + @repo/web-llm 注入点；副作用模块）
+import "./koi/contribution";
 // 路由与守卫统一由 vue 框架提供（@repo/core 的 createAppRouter /
 // setupRouterGuard）。本应用不再自建 createRouter + beforeEach：
 // 登录拦截、白名单、document.title、401 后的跳转都走框架同一套实现。

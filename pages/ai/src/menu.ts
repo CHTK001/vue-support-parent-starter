@@ -10,6 +10,8 @@
  * 下面的 views/ai/models/index.vue；不再用外链弹独立 ai-guada 应用。
  */
 import { registerMenuViewModules } from "@repo/core";
+// AI 对话分区 + 悬浮球注册（@repo/theme 注册表 + @repo/web-llm 注入点；副作用模块）
+import "./koi/contribution";
 
 // 后端菜单 component → 本地页面（懒加载，仅访问时 import，不预载）
 registerMenuViewModules({

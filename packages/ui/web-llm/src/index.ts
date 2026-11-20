@@ -265,3 +265,7 @@ export function useWebLLM(options: UseWebLLMOptions = {}): UseWebLLMReturn {
 }
 
 export default useWebLLM;
+
+// 悬浮球配套：对话目标解析 / 远端发送注入点 + webllm 供应商模板与内置模型清单
+export * from "./chatTransport";
+export * from "./providers";

@@ -177,6 +177,7 @@ export default {
     menuMcpClear: '清空',
     menuMcpEmpty: '暂无可用 MCP，请先在设置里添加',
     menuMcpHint: '勾选后本轮对话可调用这些 MCP 工具',
+    menuMcpDisabled: '当前模型为前端本地模型（浏览器内推理），不支持 MCP 工具调用',
     menuMcpNoTransport: '未配置传输方式',
     menuMcpSelected: '已选 {count} 个 MCP',
     menuHintEnter: 'Enter 执行首条指令',

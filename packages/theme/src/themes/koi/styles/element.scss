@@ -45,7 +45,9 @@ html.dark {
   .el-header,
   .el-footer,
   .layout-column,
-  .layout-tabs {
+  .layout-tabs,
+  .layout-dock-topbar,
+  .dock-root {
     display: none !important;
   }
 }

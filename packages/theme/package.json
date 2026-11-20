@@ -54,7 +54,6 @@
     "@repo/pinia": "workspace:*",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
-    "@repo/web-llm": "workspace:*",
     "@repo/work": "workspace:*",
     "@vueuse/core": "^14.3.0",
     "axios": "^1.19.0",

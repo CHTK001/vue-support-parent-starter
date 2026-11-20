@@ -9,7 +9,7 @@
  *   export default function createClient(modelInfo) {
  *     return {
  *       load?:    () => Promise<void>          // 可选：预热 / 加载权重
- *       chat:     (messages, { onDelta, signal }) => Promise<string>  // 返回全文
+ *       chat:     (messages, { onDelta, signal, files }) => Promise<string>  // 返回全文
  *       dispose?: () => void                   // 可选：释放资源
  *     }
  *   }
@@ -29,7 +29,12 @@ export interface WebChatClientInstance {
   load?: () => Promise<void> | void
   chat: (
     messages: Array<{ role: string; content: string }>,
-    opts?: { onDelta?: (chunk: string) => void; signal?: AbortSignal },
+    opts?: {
+      onDelta?: (chunk: string) => void
+      signal?: AbortSignal
+      /** 会话附件（后端落盘路径 / fileIds），供 OCR、人脸检测等图片输入脚本取用 */
+      files?: unknown[]
+    },
   ) => Promise<string>
   dispose?: () => void
 }
@@ -143,6 +148,9 @@ export async function* webChatEventSource(
   // 会话历史：演示链路只把本轮用户输入交给脚本（真实多轮记忆由脚本自行扩展）
   const userContent = String(params?.userMessage?.content ?? '')
   const messages = userContent ? [{ role: 'user', content: userContent }] : []
+  // 会话附件（后端落盘路径 / fileIds）：交给 OCR、人脸检测等需要图片输入的脚本，
+  // 由脚本自行经 /api/fs/image-base64 读回；纯文本脚本可忽略该参数。
+  const userFiles: unknown[] = Array.isArray(params?.userMessage?.files) ? params.userMessage.files : []
 
   // onDelta 增量 → 事件队列：脚本回调节奏与生成器消费节奏解耦
   const pending: string[] = []
@@ -172,12 +180,15 @@ export async function* webChatEventSource(
   void (async () => {
     try {
       if (typeof client.load === 'function') await client.load()
-      full = String((await client.chat(messages, { onDelta: pushDelta, signal: abort.signal })) ?? '')
+      full = String((await client.chat(messages, { onDelta: pushDelta, signal: abort.signal, files: userFiles })) ?? '')
     } catch (e) {
       failure = e
     } finally {
       done = true
-      wake?.()
+      // TS 控制流分析看不到上面闭包里的同步赋值，会把 wake 收窄成 null（TS2349）；
+      // 运行时 wake 可能是 null（没人在等）也可能是 resolve，显式宽化后再安全调用。
+      const notifyWake = wake as (() => void) | null
+      notifyWake?.()
       wake = null
     }
   })()

@@ -2,7 +2,10 @@
   <div class="main-wrapper">
     <ReMaximize />
     <RePerfMonitor />
-    <ReAiCharacter />
+    <!-- 模块注册的浮动组件（如 @pages/ai 的 AI 悬浮球，经 ../floatingWidgets.ts 注入） -->
+    <template v-for="widget in floatingWidgetList" :key="widget.id">
+      <component :is="resolveFloatingComponent(widget)" />
+    </template>
     <!-- 标签栏：开关（other 设置面板 / 持久化的 isTabsShown）与屏宽双条件 -->
     <Tabs v-if="globalStore.isTabsShown && showTabs" />
     <AnnouncementBar position="default" load-mode="single" />
@@ -73,13 +76,16 @@ import { useDebounceFn } from "@vueuse/core";
 import Tabs from "@repo/theme/koi/layouts/components/Tabs/index.vue";
 import AnnouncementBar from "@repo/theme/koi/layouts/components/AnnouncementBar/index.vue";
 import RePerfMonitor from "@repo/theme/koi/layouts/components/RePerfMonitor.vue";
-import ReAiCharacter from "@repo/theme/koi/layouts/components/ReAiCharacter.vue";
 import { storeToRefs } from "pinia";
 import useKeepAliveStore from "@repo/pinia/modules/keepAlive";
 import useGlobalStore from "@repo/pinia/modules/global";
+import { visibleFloatingWidgets, resolveFloatingComponent } from "../../floatingWidgets";
 
 const globalStore = useGlobalStore();
 const router = useRouter();
+
+/** 模块注册的浮动组件（每次渲染求值 visible；注册表版本号驱动重算） */
+const floatingWidgetList = computed(() => visibleFloatingWidgets());
 
 // 路由动画
 const { transition } = storeToRefs(globalStore);

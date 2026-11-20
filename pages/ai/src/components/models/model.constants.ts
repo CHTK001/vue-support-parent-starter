@@ -12,6 +12,8 @@ import {
   ArrowSortDown24Regular,
   Scan24Regular,
 } from '@vicons/fluent'
+// webllm：前端写死的本地推理供应商，模板与内置模型清单由 @repo/web-llm 导出
+import { WEBLLM_PROVIDER_TEMPLATE } from '@repo/web-llm'
 
 export interface KeyStrategy {
   name: string
@@ -206,7 +208,7 @@ export function deriveAuthMode(
 //   - 云 API：走供应商 base_url 的远端模型
 // 'web'（浏览器推理）也属本地范畴：模型脚本由前端动态加载、在浏览器里推理，
 // 不外发请求 —— 来源徽标按「本地」显示，且不做远端延迟测试。
-export const LOCAL_PROVIDER_IDS = new Set(['onnx', 'ollama', 'web'])
+export const LOCAL_PROVIDER_IDS = new Set(['onnx', 'ollama', 'web', 'webllm'])
 
 /** Web 浏览器推理供应商的固定标识（与后端 ApiProviderController.WEB_PROVIDER_ID 同口径） */
 export const WEB_PROVIDER_ID = 'web'
@@ -465,6 +467,12 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
 
 
   { id: 'custom', name: '自定义供应商', description: '自定义 OpenAI 兼容协议的供应商', protocol: 'openai', defaultApiUrl: '', keywords: ['custom'] },
+
+  // ===== 本地推理（前端写死） =====
+  // webllm：浏览器端本地大模型推理（WebGPU + Web Worker），无上游地址、无 API Key
+  //（auth=none），后端跳过健康外呼。模板与内置模型清单均由 @repo/web-llm 导出，
+  // 这里合并进模板库：用户像添加其它供应商一样添加 webllm，模型走本地推理。
+  { ...WEBLLM_PROVIDER_TEMPLATE, keywords: [...WEBLLM_PROVIDER_TEMPLATE.keywords] },
 ]
 
 // logo 由 ProviderLogo 组件统一处理：优先 .png，失败回退 .svg，均失败走 CardAvatar 首字母。

@@ -90,6 +90,9 @@ const REPO_ALIAS: Record<string, string> = {
   "@repo/monitor-cards": "packages/monitor-cards/src",
   "@repo/pinia": "packages/pinia/src",
   "@repo/theme": "packages/theme/src",
+  // web-llm：裸名走 node 解析也能到（junction），但 /worker 这类 exports 子路径
+  // 在 dev 下不参与解析（见 repoSubPathAliases 注释），必须显式登记。
+  "@repo/web-llm": "packages/ui/web-llm/src",
   "@repo/ui": "packages/ui/src",
     "@repo/utils": "packages/utils/src",
     "@repo/work": "packages/work/src",
@@ -109,6 +112,8 @@ function repoSubPathAliases(): Array<{ find: RegExp; replacement: string }> {
     pinia: "packages/pinia/src",
     theme: "packages/theme/src",
     utils: "packages/utils/src",
+    // web-llm：/worker（vite ?worker&url）与 /ReAiCharacter.vue 等子路径的 dev 解析
+    "web-llm": "packages/ui/web-llm/src",
   };
   return Object.entries(map).map(([pkg, dir]) => ({
     find: new RegExp(`^@repo/${pkg}/`),

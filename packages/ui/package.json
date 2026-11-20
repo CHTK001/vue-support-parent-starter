@@ -299,6 +299,10 @@
       "types": "./src/components/ReErrorBar/index.ts",
       "default": "./src/components/ReErrorBar/index.ts"
     },
+    "./re-panel-error": {
+      "types": "./src/components/RePanelError/index.ts",
+      "default": "./src/components/RePanelError/index.ts"
+    },
     "./re-skeleton": {
       "types": "./src/components/ReSkeleton/index.ts",
       "default": "./src/components/ReSkeleton/index.ts"

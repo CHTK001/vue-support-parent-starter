@@ -144,9 +144,10 @@ import LayoutClassic from "@repo/theme/koi/layouts/LayoutClassic/index.vue";
 import LayoutHorizontal from "@repo/theme/koi/layouts/LayoutHorizontal/index.vue";
 import LayoutOptimum from "@repo/theme/koi/layouts/LayoutOptimum/index.vue";
 import LayoutGroup from "@repo/theme/koi/layouts/LayoutGroup/index.vue";
+import LayoutDock from "@repo/theme/koi/layouts/LayoutDock/index.vue";
 import LayoutMobile from "@repo/theme/koi/layouts/LayoutMobile/index.vue";
 
-type LayoutType = "vertical" | "columns" | "double" | "classic" | "horizontal" | 'optimum' | "group" | string;
+type LayoutType = "vertical" | "columns" | "double" | "classic" | "horizontal" | 'optimum' | "group" | "dock" | string;
 const LayoutComponent: Record<LayoutType, Component> = {
   vertical: LayoutVertical,
   columns: LayoutColumns,
@@ -154,7 +155,8 @@ const LayoutComponent: Record<LayoutType, Component> = {
   classic: LayoutClassic,
   horizontal: LayoutHorizontal,
   optimum: LayoutOptimum,
-  group: LayoutGroup
+  group: LayoutGroup,
+  dock: LayoutDock
 };
 
 // 全局主题仓库

@@ -79,6 +79,7 @@ import { useWorkspaceStore } from '@/stores/workspace';
 import { usePrefillInput } from '@/composables/usePrefillInput';
 import { useSelectedCharacter } from '@/composables/useSelectedCharacter';
 import { useKbDisplay } from '@/composables/useKbDisplay';
+import { isFrontendModelId } from '@/utils/modelPlatform';
 // 组件导入
 import { ChatInput, Avatar } from "../ui";
 import ChatInputToolbar from "./chat-input/ChatInputToolbar.vue";
@@ -555,7 +556,8 @@ const handleConfigChange = (config: any): void => {
 
   // 处理 MCP 服务器选择（仅管理员可写）
   if (typeof config.mcpServerIds !== 'undefined') {
-    currentSession.value.mcpServerIds = config.mcpServerIds;
+    // 前端本地模型（web/webllm）不走后端链路：一律落空串（ChatInput 入口已禁用，这里兜底）
+    currentSession.value.mcpServerIds = isFrontendModelId(currentModelId.value) ? '' : config.mcpServerIds;
   }
 };
 
@@ -676,7 +678,8 @@ const sendMessage = async (payload?: any): Promise<void> => {
   emit("create-session", {
     characterId: currentSession.value.characterId,
     modelId: currentModelId.value,
-    mcpServerIds: currentSession.value.mcpServerIds || '',
+    // 前端本地模型（web/webllm）无后端 MCP 链路：创建会话时强制剥离
+    mcpServerIds: isFrontendModelId(currentModelId.value) ? '' : (currentSession.value.mcpServerIds || ''),
     title: autoTitle(cleanContent),
     settings: currentSession.value.settings,
     workspacePath: currentSession.value.workspacePath || null,

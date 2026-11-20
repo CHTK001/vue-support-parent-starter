@@ -457,6 +457,7 @@ export default {
       optimum: "Optimum",
       horizontal: "Horizontal",
       group: "Grouped",
+      dock: "Dock",
     },
     interface: {
       routeAnimation: {
@@ -515,6 +516,12 @@ export default {
         sub: "Top Nav",
         tip: "Toggle Header visibility",
         description: "Header will hide when off",
+      },
+      horizontalHeaderCard: {
+        title: "Horizontal Header Card",
+        sub: "Horizontal Layout",
+        tip: "Horizontal header style: floating glass card / standard bar",
+        description: "On = floating glass card, off = standard full-width header",
       },
       tabsShown: {
         title: "Show Tabs",
@@ -751,6 +758,22 @@ export default {
       openai: "OpenAI (GPT series)",
       deepseek: "DeepSeek",
       custom: "Custom (OpenAI-compatible)",
+    },
+    model: {
+      selectTitle: "Select Chat Model",
+      selectPlaceholder: "Select chat model",
+      loadFailed: "Failed to load models",
+      frontendHint: "Frontend local model: in-browser inference; MCP and other backend capabilities are unavailable",
+    },
+    skin: {
+      title: "Assistant Skin",
+      placeholder: "Select assistant skin",
+      default: "Default",
+      cat: "Sakura Pink",
+      ocean: "Ocean Blue",
+      forest: "Forest Green",
+      sunset: "Sunset Orange",
+      night: "Deep Night",
     },
     webllmModelRecommend: "(Recommended · Lightweight)",
     modelLight: "Ultra-light",
