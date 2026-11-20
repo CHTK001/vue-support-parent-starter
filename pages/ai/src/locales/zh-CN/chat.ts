@@ -108,6 +108,15 @@ export default {
     // 思考等级里的「关闭」项（对应不思考）
     thinkingLevelOff: '不思考',
 
+    // DecisionModelPopover.vue —— 决策模型（会话级配置，system-one/decisions 协议）
+    decisionModelTitle: '决策模型',
+    decisionModelChip: '决策模型',
+    decisionModelTooltip: '选择本会话使用的决策模型（System one / decisions），与对话模型相互独立',
+    decisionModelClear: '不使用',
+    decisionModelHint: '配置后，本会话的决策类工具将调用该模型完成有界决策',
+    decisionModelEmpty: '暂无可用决策供应商，请先在渠道管理中配置并启用',
+    decisionModelLoading: '加载中…',
+
     // ModelSelectorPanel.vue —— 模型检索框占位文案
     modelSearchPlaceholder: '搜索模型',
     // ModelSelectorPanel.vue —— 面板分区标题

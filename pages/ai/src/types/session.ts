@@ -12,6 +12,8 @@ import type { Character } from './character'
 export interface SessionSettings {
     thinkingEffort?: string // 思考强度级别：'none' | 'on' | 'low' | 'medium' | 'high' | 'max' 等
     systemPrompt?: string
+    /** 决策模型供应商标识（sys_account_channel.provider_id）；空/缺省表示未配置决策模型 */
+    decisionProviderId?: string
     [key: string]: any
 }
 

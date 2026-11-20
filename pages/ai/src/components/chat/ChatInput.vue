@@ -241,6 +241,28 @@
           <RunModePopover v-if="admin" v-model:visible="runModePopoverVisible" :anchor-el="runModeButtonRef"
             :current-value="currentRunMode" :options="runModeOptions" @select="handleRunModeChange" />
 
+          <!-- 决策模型：会话级配置（system-one / decisions 协议渠道），与对话模型分属两套接口。
+               选择结果写入会话 settings.decisionProviderId，由后端在流式准备阶段挂到 Agent。 -->
+          <template v-if="admin">
+            <LTooltip :content="t('chat.input.decisionModelTooltip')" placement="top">
+              <button ref="decisionButtonRef" class="mode-chip is-decision"
+                :class="{ 'is-on': !!currentDecisionProviderId }"
+                :aria-label="t('chat.input.decisionModelTitle')" :aria-pressed="!!currentDecisionProviderId"
+                @click.stop="toggleDecisionPopover">
+                <span class="mode-chip__badge" aria-hidden="true">
+                  <svg viewBox="0 0 16 16">
+                    <circle cx="8" cy="8" r="7" fill="currentColor" />
+                    <path d="M8 3.8 11.2 9.4H4.8Z" fill="#fff" />
+                    <rect x="4.6" y="10.4" width="6.8" height="1.2" rx="0.6" fill="#fff" />
+                  </svg>
+                </span>
+                <span class="mode-chip__text">{{ t('chat.input.decisionModelChip') }}</span>
+              </button>
+            </LTooltip>
+            <DecisionModelPopover v-model:visible="decisionPopoverVisible" :anchor-el="decisionButtonRef"
+              :current-value="currentDecisionProviderId" @select="handleDecisionModelSelect" />
+          </template>
+
           <!-- 发送 / 入队 / 停止（2026-11-12）
                流式中「停止」常驻：动作条与时间线的停止已按需求去掉，若这里只在
                输入框为空时换成停止，用户一旦往输入框里打了字就没有任何终止入口了。
@@ -320,6 +342,7 @@ import FileItem from '../ui/FileItem.vue';
 import LTooltip from '../ui/LTooltip.vue';
 import MaxTokensPopover from './chat-input/MaxTokensPopover.vue';
 import RunModePopover from './chat-input/RunModePopover.vue';
+import DecisionModelPopover from './chat-input/DecisionModelPopover.vue';
 import type { PromptForm } from '@/services/modules/character.api';
 import { resolvePromptFormIcon } from '@/utils/promptFormIcons';
 
@@ -394,6 +417,8 @@ interface ChatConfig {
   defaultSearch?: boolean
   /** 逗号分隔的 MCP Server ID 串（会话级绑定，与 types/session.ts 口径一致） */
   mcpServerIds?: string
+  /** 决策模型供应商标识（会话级 settings.decisionProviderId；空 = 未配置） */
+  decisionProviderId?: string | null
 }
 
 /** File with optional _originalContent attached by paste handler */
@@ -1179,6 +1204,18 @@ const toggleRunModePopover = () => {
 
 const handleRunModeChange = (mode: string) => {
   emit('config-change', { runMode: mode });
+};
+
+// ========== 决策模型（会话级配置） ==========
+const decisionButtonRef = ref<HTMLElement | null>(null);
+const decisionPopoverVisible = ref(false);
+/** 当前会话配置的决策模型 providerId（空 = 未配置） */
+const currentDecisionProviderId = computed(() => props.config?.decisionProviderId || '');
+const toggleDecisionPopover = () => {
+  decisionPopoverVisible.value = !decisionPopoverVisible.value;
+};
+const handleDecisionModelSelect = (providerId: string) => {
+  emit('config-change', { decisionProviderId: providerId });
 };
 
 const thinkingEffortOptions = computed(() => {
@@ -3879,6 +3916,15 @@ html.dark .input-area--continues-banner {
 
 .mode-chip.is-plan {
   --mode-color: var(--el-color-success, #3da35d);
+}
+
+/* 决策模型芯片：未配置时是灰调，选中后转主色，便于一眼看出会话是否挂了决策模型 */
+.mode-chip.is-decision {
+  --mode-color: var(--el-color-info, #909399);
+}
+
+.mode-chip.is-decision.is-on {
+  --mode-color: var(--el-color-primary);
 }
 
 .mode-chip:hover {

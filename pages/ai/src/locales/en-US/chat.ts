@@ -108,6 +108,15 @@ export default {
     // The "off" option inside the thinking level control
     thinkingLevelOff: 'Off',
 
+    // DecisionModelPopover.vue — decision model (session-scoped, system-one/decisions protocol)
+    decisionModelTitle: 'Decision Model',
+    decisionModelChip: 'Decision',
+    decisionModelTooltip: 'Choose the decision model for this session (System one / decisions); independent of the chat model',
+    decisionModelClear: 'None',
+    decisionModelHint: 'When configured, decision tools in this session will call this model for bounded decisions',
+    decisionModelEmpty: 'No decision providers available. Configure and enable one in channel management first.',
+    decisionModelLoading: 'Loading…',
+
     // ModelSelectorPanel —— model search box placeholder
     modelSearchPlaceholder: 'Search models',
     // ModelSelectorPanel —— section captions

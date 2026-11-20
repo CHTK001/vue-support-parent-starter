@@ -906,6 +906,7 @@ const chatInputConfig = computed(() => ({
   runMode: currentRunMode.value,
   attachments: currentSession.value?.settings?.attachments || {},
   mcpServerIds: currentSession.value?.mcpServerIds || '',
+  decisionProviderId: currentSession.value?.settings?.decisionProviderId || '',
 }));
 
 onMounted(() => {
@@ -987,6 +988,11 @@ const handleConfigChange = (config: any) => {
   // 处理运行模式
   if (typeof config.runMode !== 'undefined') {
     currentSession.value.settings.runMode = config.runMode;
+  }
+
+  // 处理决策模型（会话级 settings；空串 = 清除。随 debouncedSaveSession 统一保存）
+  if (typeof config.decisionProviderId !== 'undefined') {
+    currentSession.value.settings.decisionProviderId = config.decisionProviderId || undefined;
   }
 
   // 处理附加连接
