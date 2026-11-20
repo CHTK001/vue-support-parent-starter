@@ -61,6 +61,7 @@ export interface TraceEntry {
  */
 export type StreamEvent =
     | StreamCreateEvent
+    | StreamUserMessageEvent
     | StreamThinkEvent
     | StreamToolCallEvent
     | StreamToolCallsResponseEvent
@@ -102,6 +103,28 @@ export interface StreamCreateEvent {
     turnsId: string
     contentId: string
     modelName: string
+    /** 挂载的用户消息 id：前端按它把助手消息归组到对应轮次（ChatPanel turns 分组） */
+    parentId?: string
+}
+
+/**
+ * 用户消息回显事件：后端每个对话流开头必发一次，把本次落库的用户消息
+ * （真实 id）回放给前端，用于认领本地乐观插入的那条（_localPending）。
+ */
+export interface StreamUserMessageEvent {
+    type: 'user_message'
+    userMessage: {
+        id: string
+        role: 'user'
+        contents?: Array<{
+            id: string
+            content: string | null
+            state?: { isStreaming?: boolean; isThinking?: boolean }
+            [key: string]: unknown
+        }>
+        createdAt?: string
+        [key: string]: unknown
+    }
 }
 
 /**

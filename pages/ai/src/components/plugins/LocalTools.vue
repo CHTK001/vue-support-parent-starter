@@ -442,7 +442,8 @@ onMounted(() => {
 /* 骨架屏 */
 .lt-skeleton-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* 与实体 .lt-grid 同构（minmax(210px,1fr) + gap 12px），骨架→实体不回流 */
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 12px;
 }
 .lt-skeleton-card {

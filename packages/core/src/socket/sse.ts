@@ -172,6 +172,13 @@ export function createSseService(config: SseConfig): SocketTemplate {
         }
 
         triggerListeners(eventName, data);
+        // 命名帧（SSE event: xxx）也要按 module+event 分发给 subscribe 订阅者：
+        // 后端 SseEmitter 用 name(event) 发帧，module/event 同时在载荷里；
+        // 若分发器只挂在 "message" 上，命名事件永远到不了订阅者
+        // （账号页静默刷新、新邮件角标等会整体失效）。
+        if (eventName !== "message") {
+          dispatchSubscribeHandlers(data);
+        }
       },
 
       onerror(error) {
@@ -277,8 +284,15 @@ export function createSseService(config: SseConfig): SocketTemplate {
     return () => subscribeHandlers.get(key)?.delete(handler);
   };
 
-  // 监听底层 message 事件，按 module+event 分发
-  on("message", (raw: unknown) => {
+  /**
+   * 按 module+event 把载荷分发给 subscribe 订阅者。
+   *
+   * <p>命名帧（SSE {@code event: xxx}）与未命名帧（data 内含 module/event）
+   * 共用同一分发逻辑：{@link subscribe} 的订阅键就是 {@code module_event}。</p>
+   *
+   * @param raw 载荷（对象或 JSON 字符串）
+   */
+  const dispatchSubscribeHandlers = (raw: unknown): void => {
     try {
       const msg = (
         typeof raw === "string" ? JSON.parse(raw) : raw
@@ -295,7 +309,10 @@ export function createSseService(config: SseConfig): SocketTemplate {
     } catch {
       /* 忽略解析异常 */
     }
-  });
+  };
+
+  // 兼容未命名帧：event 名缺省为 message 时，按 data 内的 module/event 分发
+  on("message", dispatchSubscribeHandlers);
 
   // 自动连接：有 token 才自动建连（登录页不先打 401）；无 token 的公开 SSE
   // 会在首次 subscribe 时懒连接。

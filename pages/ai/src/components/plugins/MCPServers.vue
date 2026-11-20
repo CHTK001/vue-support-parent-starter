@@ -735,8 +735,9 @@ onMounted(async () => {
 .skel--grouphead { width: 120px; height: 13px; margin-bottom: 12px; }
 .market-skeleton__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px 12px;
+  /* 与实体 .market-grid 同构（minmax(196px,1fr) + gap 12px），骨架→实体不回流 */
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 12px;
 }
 .market-skeleton__cell {
   display: flex;
@@ -833,8 +834,8 @@ onMounted(async () => {
 /* 键盘焦点可见性：分组头 / 市场单元 / 已装条目主区都是带 @click 的 div
    （不是可聚焦控件），浏览器不给默认焦点环。
    三者原有 cursor: pointer 都已在上面声明（.market-cell 走 .market-cell--clickable），
-   不重复写。环用主色 12% —— 本文件没有任何写死的深色底，底色全走令牌，
-   深浅两套主题下都只是一档主色描边，12% 足够可见。 */
+   不重复写。环用既有 --focus-ring 令牌（themeColor.ts 随主题色动态注入），
+   明暗两套主题下都由令牌保证可见度，与角色市场卡片焦点环同源。 */
 .market-group-head,
 .market-cell,
 .manage-card__main {
@@ -844,7 +845,7 @@ onMounted(async () => {
 .market-group-head:focus-visible,
 .market-cell:focus-visible,
 .manage-card__main:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  box-shadow: var(--focus-ring);
 }
 
 /* 注意：本文件不在 A 段清单内，所以 .market-group-arrow（折叠箭头旋转）/

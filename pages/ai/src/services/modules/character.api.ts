@@ -4,6 +4,7 @@ import type {
   CharacterListResponse,
   CharacterGroup,
 } from "@/types/character";
+import { fixFrontendAssetUrl } from "@/utils/url";
 
 export interface CharacterApi {
   fetchCharacters(groupId?: string): Promise<CharacterListResponse>;
@@ -271,7 +272,10 @@ export const characterApi: CharacterApi = {
    * 不走角色头像上传链路 —— 通用助手头像由产品统一维护，不允许用户替换。
    */
   genericAssistantLogo(): string {
-    return 'images/guada_logo.png';
+    // 2026-11-20 修复 DEF-04：裸相对路径在 /chat/** 深层路由下被解析成
+    // /chat/images/**（public 资源实际在 /images/**），roles 页反复 404。
+    // 走 fixFrontendAssetUrl 拼应用 base：独立运行 '/'、内嵌宿主 '/system/' 均命中。
+    return fixFrontendAssetUrl("/images/guada_logo.png");
   },
 
   async importCharacters(this: ApiContext, files: { content: string; filename: string }[]) {

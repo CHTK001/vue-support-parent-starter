@@ -19,6 +19,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { message } from "@repo/core";
+import ReSkeleton from "@repo/ui/re-skeleton";
 // 自带样式：路由工厂可能被宿主直接深导入（不经过包根 index.ts），
 // 因此把 CSS 挂在页面组件上，保证任何挂载方式都有一份样式。
 import "../styles/docker.css";
@@ -562,7 +563,7 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="dk-pane-body dk-pane-body--flush">
-            <div v-if="containersLoading && !containers.length" v-loading="true" class="dk-loading" />
+            <ReSkeleton v-if="containersLoading && !containers.length" :rows="4" animated loading class="dk-loading"/>
             <div v-else-if="containersError" class="dk-empty">
               <ReIcon name="Warning" :size="22" />
               <b>读取失败</b>
@@ -645,7 +646,7 @@ onBeforeUnmount(() => {
         <ReButton layout="square" link icon="Refresh" tip="刷新网络列表" :loading="networksLoading" @click="loadNetworks" />
       </div>
       <div class="dk-pane-body">
-        <div v-if="networksLoading && !networks.length" v-loading="true" class="dk-loading" />
+        <ReSkeleton v-if="networksLoading && !networks.length" :rows="4" animated loading class="dk-loading"/>
         <div v-else-if="!networks.length" class="dk-empty">
           <ReIcon name="Share" :size="22" />
           <b>没有自定义网络</b>
@@ -674,7 +675,7 @@ onBeforeUnmount(() => {
         <ReButton layout="square" link icon="Refresh" tip="刷新卷列表" :loading="volumesLoading" @click="loadVolumes" />
       </div>
       <div class="dk-pane-body">
-        <div v-if="volumesLoading && !volumes.length" v-loading="true" class="dk-loading" />
+        <ReSkeleton v-if="volumesLoading && !volumes.length" :rows="4" animated loading class="dk-loading"/>
         <div v-else-if="!volumes.length" class="dk-empty">
           <ReIcon name="Folder" :size="22" />
           <b>没有数据卷</b>

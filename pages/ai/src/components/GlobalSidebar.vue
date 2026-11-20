@@ -1492,6 +1492,7 @@ const ROUTE_NAME_BY_TAB: Record<string, string> = {
   connectors: 'Connectors',
   skills: 'Skills',
   capabilities: 'Capabilities',
+  'ai-detect': 'AiDetect',
 };
 
 /** 需要后读模型配置的菜单（先跳转，门禁检查放后台跑）

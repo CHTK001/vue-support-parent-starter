@@ -276,9 +276,14 @@ const initMenu = () => {
 
   const { menuId, activeMenu } = route.meta || {};
 
-  // 情况一：没有提供 menuId 或 activeMenu，默认选第一个顶级菜单
+  // 情况一：没有提供 menuId 或 activeMenu，默认选第一个顶级菜单。
+  // 2026-11-20 修复：原实现误把整个菜单对象赋给 activeTopMenuId，而模板里的
+  // 激活比较是 activeTopMenuId == item.meta?.menuId，对象永远不相等，导致这类
+  // 路由（如直接打开首页）顶栏没有任何激活高亮；同时补上子菜单树，
+  // 与 columns/double 布局同口径。
   if (!menuId && !activeMenu) {
-    activeTopMenuId.value = topLevelMenus.value[0];
+    activeTopMenuId.value = topLevelMenus.value[0]?.meta?.menuId;
+    currentSubMenuTree.value = getSubMenuTree(activeTopMenuId.value);
     return;
   }
 

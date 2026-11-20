@@ -6,11 +6,7 @@
          给它一个折叠开关只会让人误以为功能被删（需求口径：分组菜单不支持折叠，故无折叠按钮）。 -->
     <el-menu-item-group v-if="isGroupItem(item)">
       <template #title>
-        <span class="menu-group-title">
-          <i class="menu-group-dot" aria-hidden="true"></i>
-          <span class="menu-group-text" v-text="getMenuLanguage(item.meta?.title)"></span>
-          <i class="menu-group-rule" aria-hidden="true"></i>
-        </span>
+        <span class="menu-group-title" v-text="getMenuLanguage(item.meta?.title)"></span>
       </template>
       <ReAsideSubMenu :menuList="groupChildren(item)" />
     </el-menu-item-group>
@@ -346,9 +342,13 @@ const handleMenuRouter = (value: any) => {
 :deep(.el-menu-item-group__title) {
   --el-menu-base-level-padding: 10px; // 与二级菜单图标起点对齐（EP 用该变量算 padding-left，直接写 padding-left 会被更高特异性规则覆盖）
   padding-top: 12px;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
   line-height: 1;
   text-transform: none;
+  /* 标题下的淡分隔线：把「分区标签」和组内条目明确隔开（2026-11-20 定稿：
+     3px 主色竖条 + 标题下一条更淡的整宽细线；线在标题下方，不再穿字）。
+     用 lighter 而非 extra-light：暗色模式下 extra-light 几乎不可见。 */
+  border-bottom: 1px solid var(--el-border-color-lighter);
   /* EP 默认给标题加 hover 底色，分组标签不该有 hover 反馈 */
   background: transparent;
   &:hover {
@@ -357,44 +357,38 @@ const handleMenuRouter = (value: any) => {
 }
 
 /** 分组标题行：纯分区标签（不可点、不可折叠）。
- * 2026-11-17：从「一行裸文字」改为「主色圆点 + 文字 + 淡分隔线」——
- * 分组（尤其排在侧栏顶部时）只挂一行灰字太秃，加个锚点让分区边界可扫视。
- * 圆点用主题色、分隔线用最浅边框色，深色模式下随变量自动适配；
- * 折叠成窄图标轨时标题整体被 .is-group-nav 规则隐藏，装饰不会漏出来。 */
+ * 2026-11-20：撤掉「主色圆点 + 淡分隔线」（反馈：点+线显乱、不精致），
+ * 改为「3px 主色短竖条 + 小号灰字」——竖条与激活项左侧色条同一套语言，
+ * 分区锚点保留但更利落；文字单行省略。折叠成窄图标轨时标题仍由
+ * .el-menu.is-group-nav.el-menu--collapse 规则整体隐藏，不会漏出残影。 */
 .menu-group-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
   width: 100%;
-  min-width: 0;
-  user-select: none;
-}
-
-/** 分组标题前的主题色小圆点：分区的视觉锚点 */
-.menu-group-dot {
-  flex: none;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background-color: var(--el-color-primary);
-  opacity: 0.85;
-}
-
-/** 分组标题文字：保持单行省略（省略职责从容器移到文字自身） */
-.menu-group-text {
-  flex: none;
-  max-width: 70%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.4px;
+  color: var(--el-text-color-secondary);
+  user-select: none;
 
-/** 分组标题后的淡分隔线：填满标题行剩余空间，把分区「框」出来 */
-.menu-group-rule {
-  flex: 1;
-  min-width: 12px;
-  height: 1px;
-  background-color: var(--el-border-color-lighter);
+  /* 文字前的主色短竖条：分区锚点，与激活项左侧色条同一套语言 */
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 3px;
+    height: 12px;
+    margin-right: 7px;
+    border-radius: 2px;
+    background: linear-gradient(
+      180deg,
+      var(--el-color-primary-light-3, var(--el-color-primary)) 0%,
+      var(--el-color-primary) 100%
+    );
+    vertical-align: -1.5px;
+  }
 }
 </style>
 
@@ -413,9 +407,9 @@ const handleMenuRouter = (value: any) => {
  */
 .el-menu.is-group-nav .el-menu-item-group__title {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.2;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
   color: var(--el-text-color-secondary);
 }
 
@@ -428,15 +422,11 @@ const handleMenuRouter = (value: any) => {
   margin-top: 10px;
 }
 
-/** 分组标题内的文字/箭头继承上面的灰字色；hover 时略深一点，给出可点反馈 */
-/* ⚠ color 过渡只在 hover 时启用（见下方 :hover）：若常驻，主题切换的 300ms 内
- * 14 个分组标题会一起逐帧重算文字色，是暗色切换掉帧的来源之一。 */
+/** 分组标题内的文字继承上面的灰字色。
+ * 不给标题加 hover 变色：分组标题是纯分区标签（不可点），悬停反馈会误导可点；
+ * 同时也避免主题切换时 14 个分组标题逐帧重算文字色（暗色切换掉帧来源之一）。 */
 .el-menu.is-group-nav .el-menu-item-group__title .menu-group-title {
   color: var(--el-text-color-secondary);
-}
-.el-menu.is-group-nav .el-menu-item-group__title .menu-group-title:hover {
-  color: var(--el-text-color-primary);
-  transition: color 0.2s ease;
 }
 
 /**

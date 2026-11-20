@@ -30,6 +30,7 @@ import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
 import ReInput from "@repo/ui/re-input";
 import ReSelect from "@repo/ui/re-select";
+import ReSkeleton from "@repo/ui/re-skeleton";
 import ReSwitch from "@repo/ui/re-switch";
 import {
   createTunnel,
@@ -1284,12 +1285,16 @@ async function save() {
             提供方信息加载失败，组头可用性暂以「未知」显示。
             <button type="button" class="nav__retry" @click="reloadProviders">重试</button>
           </p>
-          <p v-else-if="providersState === 'loading'" class="nav__note">正在加载提供方…</p>
+          <div v-else-if="providersState === 'loading'" class="nav__note">
+            <ReSkeleton :rows="2" animated loading/>
+          </div>
           <p v-else-if="!providers.length" class="nav__note">
             监控服务未注册内网穿透提供方。
             <button type="button" class="nav__retry" @click="reloadProviders">重新检测</button>
           </p>
-          <p v-else-if="loading && !rows.length" class="nav__note">正在加载隧道…</p>
+          <div v-else-if="loading && !rows.length" class="nav__note">
+            <ReSkeleton :rows="5" animated loading/>
+          </div>
           <p v-else-if="!groups.length && !loadError" class="nav__note">
             {{ rows.length ? "当前筛选或搜索下没有链路" : "还没有映射：点右上角「新增映射」" }}
           </p>

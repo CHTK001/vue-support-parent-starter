@@ -278,6 +278,60 @@
           </div>
         </el-col>
       </template>
+      <template v-else-if="form.kind === 'CREDIT_CARD'">
+        <el-col :span="24">
+          <el-form-item label="随机生成">
+            <ReButton type="primary" :loading="mockBusy" @click="generateMockDraft">
+              随机生成测试数据
+            </ReButton>
+            <div class="field-hint">
+              一次生成卡号（按卡组织前缀 + Luhn 校验位）、发卡组织、CVV、有效期与持卡人画像；仅测试用途，不代表真实卡片。
+            </div>
+          </el-form-item>
+        </el-col>
+        <template v-if="hasHolderProfile">
+          <el-col :span="12">
+            <el-form-item label="有效期">
+              <el-input v-model="form.cardExpire" placeholder="如 09/29" maxlength="8" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="持卡人">
+              <el-input v-model="form.holderName" maxlength="64" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="性别">
+              <el-input v-model="form.holderGender" maxlength="8" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="出生日期">
+              <el-input v-model="form.holderBirthday" maxlength="16" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="证件号">
+              <el-input v-model="form.holderIdNumber" maxlength="32" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="手机号">
+              <el-input v-model="form.holderPhone" maxlength="32" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="邮箱">
+              <el-input v-model="form.holderEmail" maxlength="128" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="账单地址">
+              <el-input v-model="form.holderAddress" maxlength="255" />
+            </el-form-item>
+          </el-col>
+        </template>
+      </template>
       <template v-else>
         <el-col :span="12">
           <el-form-item label="区域">
@@ -354,6 +408,7 @@ import {
   claimTempMailbox,
   claimTempPhone,
   createAccount,
+  getAccountMockDraft,
   isTempMail,
   listAccountSecrets,
   updateAccount,
@@ -404,6 +459,7 @@ const KIND_OPTIONS: Array<{ value: AccountKind; label: string }> = [
   { value: 'SMS', label: '短信账号' },
   { value: 'TEMP_PHONE', label: '临时手机号' },
   { value: 'PHONE', label: '手机号' },
+  { value: 'CREDIT_CARD', label: '信用卡' },
 ];
 
 /** 密钥来源分段：直接填写 / 引用密钥管理 */
@@ -431,6 +487,7 @@ const VENDOR_LABELS: Record<AccountKind, string> = {
   SMS: '短信服务商',
   TEMP_PHONE: '号码来源',
   PHONE: '运营商',
+  CREDIT_CARD: '发卡组织',
 };
 
 /** 厂商占位提示 */
@@ -440,6 +497,7 @@ const VENDOR_PLACEHOLDERS: Record<AccountKind, string> = {
   SMS: '如 aliyun / tencent / baidu（或中文厂商名）',
   TEMP_PHONE: '本地目录轮询（可留空）',
   PHONE: '如 移动 / 联通 / 电信（可留空）',
+  CREDIT_CARD: '如 Visa / Mastercard / 银联',
 };
 
 /** 登录名字段标签 */
@@ -449,6 +507,7 @@ const USERNAME_LABELS: Record<AccountKind, string> = {
   SMS: '手机号 / 账号',
   TEMP_PHONE: '手机号',
   PHONE: '手机号',
+  CREDIT_CARD: '卡号',
 };
 
 /** 登录名占位提示 */
@@ -458,6 +517,7 @@ const USERNAME_PLACEHOLDERS: Record<AccountKind, string> = {
   SMS: '如 13800000000',
   TEMP_PHONE: '领取后由服务端生成',
   PHONE: '如 13800000000',
+  CREDIT_CARD: '虚拟卡号，仅测试用途',
 };
 
 /** 服务地址字段标签 */
@@ -467,6 +527,7 @@ const ENDPOINT_LABELS: Record<AccountKind, string> = {
   SMS: '服务地址',
   TEMP_PHONE: '服务地址',
   PHONE: '服务地址',
+  CREDIT_CARD: '对账地址',
 };
 
 /** 服务地址占位提示 */
@@ -476,6 +537,7 @@ const ENDPOINT_PLACEHOLDERS: Record<AccountKind, string> = {
   SMS: '如 dysms.aliyun.com',
   TEMP_PHONE: '无需填写（本地目录轮询）',
   PHONE: '可留空（本地目录轮询）',
+  CREDIT_CARD: '可选，如 https://gateway.example.com',
 };
 
 /** 表单模型 */
@@ -517,6 +579,22 @@ interface AccountForm {
   pop3Host: string;
   /** POP3 端口（仅 inboxMode=pop3 时使用），对应 config.pop3Port */
   pop3Port: number | undefined;
+  /** 有效期 MM/yy（仅信用卡，对应 config.cardExpire） */
+  cardExpire: string;
+  /** 持卡人姓名（仅信用卡，对应 config.holderName） */
+  holderName: string;
+  /** 持卡人性别（仅信用卡，对应 config.holderGender） */
+  holderGender: string;
+  /** 持卡人出生日期（仅信用卡，对应 config.holderBirthday） */
+  holderBirthday: string;
+  /** 持卡人证件号（仅信用卡，对应 config.holderIdNumber） */
+  holderIdNumber: string;
+  /** 持卡人手机号（仅信用卡，对应 config.holderPhone） */
+  holderPhone: string;
+  /** 持卡人邮箱（仅信用卡，对应 config.holderEmail） */
+  holderEmail: string;
+  /** 账单地址（仅信用卡，对应 config.holderAddress） */
+  holderAddress: string;
 }
 
 /** 空表单 */
@@ -550,6 +628,14 @@ function emptyForm(): AccountForm {
     notifyNew: false,
     pop3Host: '',
     pop3Port: undefined,
+    cardExpire: '',
+    holderName: '',
+    holderGender: '',
+    holderBirthday: '',
+    holderIdNumber: '',
+    holderPhone: '',
+    holderEmail: '',
+    holderAddress: '',
   };
 }
 
@@ -690,6 +776,7 @@ const SECRET_TYPE_BY_KIND: Record<AccountKind, string> = {
   API_KEY: 'api',
   TEMP_PHONE: 'sms',
   PHONE: 'sms',
+  CREDIT_CARD: 'payment',
 };
 
 /** 密钥库全量（供 secretOptions 过滤） */
@@ -911,6 +998,14 @@ function fillForm(): void {
   form.pop3Host = readString(config, 'pop3Host');
   const pop3Port = Number(config.pop3Port);
   form.pop3Port = Number.isFinite(pop3Port) && pop3Port > 0 ? pop3Port : undefined;
+  form.cardExpire = readString(config, 'cardExpire');
+  form.holderName = readString(config, 'holderName');
+  form.holderGender = readString(config, 'holderGender');
+  form.holderBirthday = readString(config, 'holderBirthday');
+  form.holderIdNumber = readString(config, 'holderIdNumber');
+  form.holderPhone = readString(config, 'holderPhone');
+  form.holderEmail = readString(config, 'holderEmail');
+  form.holderAddress = readString(config, 'holderAddress');
 }
 
 /**
@@ -961,6 +1056,16 @@ function onKindChange(): void {
     form.notifyNew = false;
     form.pop3Host = '';
     form.pop3Port = undefined;
+  }
+  if (form.kind !== 'CREDIT_CARD') {
+    form.cardExpire = '';
+    form.holderName = '';
+    form.holderGender = '';
+    form.holderBirthday = '';
+    form.holderIdNumber = '';
+    form.holderPhone = '';
+    form.holderEmail = '';
+    form.holderAddress = '';
   }
 }
 
@@ -1112,6 +1217,26 @@ function buildPayload(): SysAccount {
   setOrDelete('secretId', useKeyRef.value ? form.secretId : '');
   setOrDelete('webUrl', form.webUrl.trim());
   setOrDelete('capabilities', form.capabilities.length ? [...form.capabilities] : '');
+  // 信用卡持卡人画像：随表单写入 config；其它种类清理残留，避免串类型
+  if (form.kind === 'CREDIT_CARD') {
+    setOrDelete('cardExpire', form.cardExpire.trim());
+    setOrDelete('holderName', form.holderName.trim());
+    setOrDelete('holderGender', form.holderGender.trim());
+    setOrDelete('holderBirthday', form.holderBirthday.trim());
+    setOrDelete('holderIdNumber', form.holderIdNumber.trim());
+    setOrDelete('holderPhone', form.holderPhone.trim());
+    setOrDelete('holderEmail', form.holderEmail.trim());
+    setOrDelete('holderAddress', form.holderAddress.trim());
+  } else {
+    delete config.cardExpire;
+    delete config.holderName;
+    delete config.holderGender;
+    delete config.holderBirthday;
+    delete config.holderIdNumber;
+    delete config.holderPhone;
+    delete config.holderEmail;
+    delete config.holderAddress;
+  }
 
   const payload: SysAccount = {
     accountId: account?.accountId || '',
@@ -1173,6 +1298,53 @@ async function claimPhone(): Promise<void> {
     message.error(e?.message || '领取临时手机号失败');
   } finally {
     tempBusy.value = false;
+  }
+}
+
+/** 测试数据生成中标记 */
+const mockBusy = ref(false);
+
+/** 是否已持有卡人画像（生成后或编辑回填时展示画像字段） */
+const hasHolderProfile = computed(() =>
+  Boolean(
+    form.holderName || form.holderIdNumber || form.holderPhone || form.holderEmail || form.cardExpire
+  )
+);
+
+/**
+ * 随机生成信用卡测试数据。
+ *
+ * <p>调用后端 mock 草稿接口，一次生成卡号、发卡组织、CVV、有效期与
+ * 持卡人画像并回填表单；数据仅测试用途，不代表真实卡片。</p>
+ */
+async function generateMockDraft(): Promise<void> {
+  if (mockBusy.value) return;
+  mockBusy.value = true;
+  try {
+    const draft = await getAccountMockDraft('CREDIT_CARD');
+    if (draft.username) {
+      form.username = draft.username;
+    }
+    if (draft.vendor) {
+      form.vendor = draft.vendor;
+    }
+    if (draft.secret) {
+      form.secret = draft.secret;
+    }
+    const cfg = draft.config || {};
+    form.cardExpire = readString(cfg, 'cardExpire');
+    form.holderName = readString(cfg, 'holderName');
+    form.holderGender = readString(cfg, 'holderGender');
+    form.holderBirthday = readString(cfg, 'holderBirthday');
+    form.holderIdNumber = readString(cfg, 'holderIdNumber');
+    form.holderPhone = readString(cfg, 'holderPhone');
+    form.holderEmail = readString(cfg, 'holderEmail');
+    form.holderAddress = readString(cfg, 'holderAddress');
+    message.success('已生成随机测试数据（仅测试用途，不代表真实卡片）');
+  } catch (e: any) {
+    message.error(e?.message || '生成测试数据失败');
+  } finally {
+    mockBusy.value = false;
   }
 }
 

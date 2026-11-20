@@ -2968,8 +2968,6 @@ async function startPerf() {
     ? [...perfCategories.value]
     : ["devtools.timeline"];
   try {
-    // Tracing.start 前先 enable，与停止路径的 Tracing.disable 成对
-    await client.call("Tracing.enable", {}, perfTarget.value);
     await client.call(
       "Tracing.start",
       {
@@ -2999,7 +2997,6 @@ async function stopPerf() {
   try {
     await client.call("Tracing.end", {}, stopTarget);
   } catch (error) {
-    void client.call("Tracing.disable", {}, stopTarget).catch(() => {});
     perfError.value = "停止录制失败: " + (error as Error).message;
     perfRecording.value = false;
     perfStopping.value = false;
@@ -3017,9 +3014,6 @@ async function stopPerf() {
       commitFilm();
       releaseAutoScreencast();
       analyzePerf();
-      // 兜底收尾也要把 Tracing 域收掉
-      const tid = perfTarget.value || selectedTarget.value;
-      if (tid) void client.call("Tracing.disable", {}, tid).catch(() => {});
     }
   }, 8000);
 }
@@ -3051,9 +3045,6 @@ function onTracingComplete() {
   commitFilm();
   releaseAutoScreencast();
   analyzePerf();
-  // tracingComplete 已回推，数据收完了，把 Tracing 域收掉
-  const tid = perfTarget.value || selectedTarget.value;
-  if (tid) void client.call("Tracing.disable", {}, tid).catch(() => {});
 }
 
 /** 停止录制后收回「为截图临时开启」的 screencast（用户手动开的保留） */

@@ -785,5 +785,141 @@ export const pipelineApi = {
   },
 };
 
+// ==================== AI 检测（文本 / 图片「是否 AI」） ====================
+/** 文本检测的逐句标注。 */
+export interface DetectSentence {
+  /** 句子序号（从 0 开始） */
+  index: number;
+  /** 句子原文 */
+  text: string;
+  /** 句子字符数 */
+  charCount: number;
+  /** 该句 AI 生成可能性评分（0~100） */
+  score: number;
+  /** 标注：AI生成 / 可能有AI参与 / 人工撰写 */
+  label: string;
+  /** 判断依据 */
+  reasons: string[];
+}
+
+/** 一条「证据 + 判断依据」。 */
+export interface DetectMarker {
+  /** 从原文摘录的证据 */
+  evidence: string;
+  /** 判断依据说明 */
+  reason: string;
+}
+
+/** 文本写作指纹统计。 */
+export interface DetectFingerprint {
+  sentenceCount: number;
+  totalChars: number;
+  avgSentenceLength: number;
+  lengthStdDev: number;
+  aiPhraseHits: number;
+  firstPersonHits: number;
+  contractionHits: number;
+  colloquialHits: number;
+  numberHits: number;
+  dashHits: number;
+  parallelismHits: number;
+}
+
+/** 文本检测报告（响应的 report 字段）。 */
+export interface DetectTextReport {
+  /** AI 生成可能性评分（0~100，按句子长度加权） */
+  aiProbability: number;
+  /** 判定结果（五档） */
+  verdict: string;
+  /** 判定补充说明 */
+  verdictDescription: string;
+  /** 置信度：高 / 中 / 低 */
+  confidence: string;
+  /** 置信度补充说明（如「文本过短」），无则空串 */
+  confidenceNote: string;
+  /** 逐句标注 */
+  sentences: DetectSentence[];
+  /** AI 写作迹象依据 */
+  aiMarkers: DetectMarker[];
+  /** 人工写作迹象依据 */
+  humanMarkers: DetectMarker[];
+  /** 写作指纹 */
+  fingerprint: DetectFingerprint;
+  /** 被标记为「可能有AI参与」及以上的句子总字符数 */
+  aiSentenceChars: number;
+}
+
+/** 文本检测响应。 */
+export interface DetectTextResult {
+  report: DetectTextReport;
+  /** 服务端当前判定阈值 */
+  threshold: number;
+  /** 评分是否达到阈值 */
+  likelyAi: boolean;
+}
+
+/** 图片元数据检测报告（响应的 report 字段）。 */
+export interface DetectImageReport {
+  /** 图片格式（JPEG / PNG / WEBP / UNKNOWN） */
+  format: string;
+  /** 判定：AI 生成 / AI 参与（编辑/合成） / 未发现 AI 痕迹 / 无法判断 */
+  verdict: string;
+  /** 置信度：高 / 中 / 低 */
+  confidence: string;
+  /** 是否带 C2PA 内容凭证 */
+  hasContentCredentials: boolean;
+  /** IPTC DigitalSourceType */
+  digitalSourceType: string;
+  /** 生成器名称（如模型/工具名） */
+  generator: string;
+  /** 生成器名称的来源字段 */
+  generatorSource: string;
+  /** 是否检测到生成参数块（prompt/steps/sampler/seed 等） */
+  generationParams: boolean;
+  /** 全部检测信号描述 */
+  signals: string[];
+}
+
+/** 图片检测响应。 */
+export interface DetectImageResult {
+  report: DetectImageReport;
+  fileName: string;
+  size: number;
+}
+
+/** 拆 ReturnResult 信封（{code,data,msg} → data），兼容已拆好的情况。 */
+function unwrapDetect<T>(res: any): T {
+  if (res && typeof res === 'object' && 'code' in res && 'data' in res) {
+    return res.data as T;
+  }
+  return res as T;
+}
+
+export const detectApi = {
+  /**
+   * 文本 AI 检测：返回 { report, threshold, likelyAi }。
+   * 业务失败（未启用 / 文本为空等）时后端回错误信封，这里原样抛给调用方处理。
+   */
+  detectText: async (text: string): Promise<DetectTextResult> => {
+    const res: any = await http.post('/detect/text', { text });
+    if (res && typeof res === 'object' && 'code' in res && res.code !== '0' && res.code !== 0 && !res.data) {
+      throw new Error(res.msg || '检测失败');
+    }
+    return unwrapDetect<DetectTextResult>(res);
+  },
+  /**
+   * 图片 AI 元数据检测（multipart，字段名 file）：返回 { report, fileName, size }。
+   */
+  detectImage: async (file: File): Promise<DetectImageResult> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res: any = await http.post('/detect/image', form);
+    if (res && typeof res === 'object' && 'code' in res && res.code !== '0' && res.code !== 0 && !res.data) {
+      throw new Error(res.msg || '检测失败');
+    }
+    return unwrapDetect<DetectImageResult>(res);
+  },
+};
+
 export { http };
 export default http;

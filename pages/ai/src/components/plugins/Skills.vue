@@ -1595,8 +1595,9 @@ onMounted(async () => {
 .skel--grouphead { width: 120px; height: 13px; margin-bottom: 12px; }
 .market-skeleton__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 10px 12px;
+    /* 与实体 .market-grid 同构（minmax(196px,1fr) + gap 12px），骨架→实体不回流 */
+    grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+    gap: 12px;
 }
 .market-skeleton__cell {
     display: flex;

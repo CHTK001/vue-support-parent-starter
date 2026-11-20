@@ -7,7 +7,10 @@
     }"
   >
     <div class="layout-horizontal-body">
-      <header class="layout-horizontal-topbar">
+      <header
+        class="layout-horizontal-topbar"
+        :class="{ 'is-standard': !globalStore.horizontalHeaderCard }"
+      >
         <div class="layout-horizontal-topbar-card">
           <Logo :layout="globalStore.layout" class="layout-horizontal-logo" />
           <div class="menu-container">
@@ -200,6 +203,34 @@ const activeMenu = computed(
     -webkit-backdrop-filter: blur(30px) saturate(var(--grad-glass-saturate));
     box-shadow: 0 14px 36px rgb(0 0 0 / 38%);
     border-color: var(--el-header-toolbar-border-color);
+  }
+}
+
+/* 标准模式：通栏实底顶栏（主题配置「横向顶栏卡片」关闭时） */
+.layout-horizontal-topbar.is-standard {
+  padding: 0;
+}
+
+.layout-horizontal-topbar.is-standard .layout-horizontal-topbar-card {
+  min-height: $aside-header-height;
+  padding: 0 16px;
+  border: none;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  border-radius: 0;
+  background: var(--el-bg-color);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+
+  html.dark & {
+    background: var(--el-bg-color);
+    border-bottom-color: var(--el-border-color-lighter);
+    box-shadow: none;
+  }
+
+  .layout-horizontal-host--header-inverted & {
+    background: var(--koi-surface-header);
+    border-bottom-color: var(--el-header-toolbar-border-color);
   }
 }
 

@@ -165,6 +165,11 @@
                         <template v-else-if="currentTabValue === 'ocr-config'">
                             <DefaultModelSettings :groups="['ocr']" />
                         </template>
+                        <template v-else-if="currentTabValue === 'detect-config'">
+                            <!-- AI 检测：文本/图片「是否 AI」。检测内核不依赖模型
+                                 （纯统计启发式 + 图片元数据），这里只管开关/阈值/大小上限。 -->
+                            <DetectConfigSettings />
+                        </template>
                         <template v-else-if="currentTabValue === 'paper-config'">
                             <!-- 试卷配置 = paper（识别）+ marking（阅卷设置）+ compose（AI 组卷）三组，
                                  与 eduai「AI 配置中心」共用同一个组件，避免两处各有一套表单、各自保存互相打架 -->
@@ -342,6 +347,8 @@ import FaceLibraryPanel from './FaceLibraryPanel.vue'
 import ReidLibraryPanel from './ReidLibraryPanel.vue'
 // 告警规则管理面板（/v2/alerts，管理员专属）
 import AlertRulesSettings from './AlertRulesSettings.vue'
+// AI 检测配置面板（detect 分组：开关/阈值/大小上限，不依赖模型）
+import DetectConfigSettings from './DetectConfigSettings.vue'
 
 import {
     Grid16Regular,
@@ -402,6 +409,9 @@ const groupMap = computed<Record<string, string>>(() => ({
     'layout-config': t('settings.system.groups.modelConfig'),
     'rag-config': t('settings.system.groups.modelConfig'),
     'ocr-config': t('settings.system.groups.modelConfig'),
+    // AI 检测配置：与 OCR/人脸等能力配置同归「模型配置」分组展示
+    //（虽不依赖模型，但同属能力级配置入口，摆在一起更好找）。
+    'detect-config': t('settings.system.groups.modelConfig'),
     'paper-config': t('settings.system.groups.modelConfig'),
     'bot-connector-config': t('settings.system.groups.modelConfig'),
     'audio-config': t('settings.system.groups.modelConfig'),
@@ -547,6 +557,16 @@ const sidebarItems = computed(() => [
         path: 'ocr-config',
         icon: ScanText24Regular,
         roles: ['primary'],
+    },
+    {
+        // AI 检测：文本/图片「是否 AI」的开关与判定阈值。
+        // 检测内核不依赖模型（纯启发式 + 元数据分析），配置只有全局层，
+        // 普通用户改了会影响所有人，故仅管理员可见可改。
+        label: 'AI 检测配置',
+        path: 'detect-config',
+        icon: ScanText24Regular,
+        roles: ['primary'],
+        adminOnly: true,
     },
     {
         // 试卷识别：OCR / OCR+LLM 双管线，用于试卷扫描与阅卷结构化
@@ -933,6 +953,7 @@ const TAB_ALIASES: Record<string, string> = {
     reid: 'reid-config',
     'image-search': 'image-search-config',
     ocr: 'ocr-config',
+    detect: 'detect-config',
     paper: 'paper-config',
     rag: 'rag-config',
     audio: 'audio-config',

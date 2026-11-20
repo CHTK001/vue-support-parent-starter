@@ -16,6 +16,7 @@ import { useRouter } from "vue-router";
 import ReButton from "@repo/ui/re-button";
 import ReEcharts from "@repo/ui/re-echarts";
 import ReIcon from "@repo/ui/re-icon";
+import ReSkeleton from "@repo/ui/re-skeleton";
 import ReSwitch from "@repo/ui/re-switch";
 import ReTable from "@repo/ui/re-table";
 import ReTag from "@repo/ui/re-tag";
@@ -609,7 +610,10 @@ function go(path: string): void {
 </script>
 
 <template>
-  <div v-loading="loading" class="collect-page sched-center ov-page">
+  <div v-loading="loading && !!summary" class="collect-page sched-center ov-page">
+    <!-- 首屏骨架：summary 未回时以结构化骨架替代整页转圈；刷新（已有数据）仍走 v-loading 遮罩 -->
+    <ReSkeleton v-if="loading && !summary" :rows="9" animated loading class="ov-boot"/>
+    <div v-else class="ov-body">
     <!-- KPI -->
     <div class="ov-kpis">
       <button
@@ -840,6 +844,7 @@ function go(path: string): void {
           </template>
         </ReTable>
       </section>
+    </div>
     </div>
   </div>
 </template>
@@ -1464,5 +1469,10 @@ function go(path: string): void {
   .ov-kpi:hover {
     transform: none;
   }
+}
+
+/* 首屏骨架占位：给足高度，避免数据到达时整页跳动 */
+.ov-boot {
+  min-height: 460px;
 }
 </style>

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { message } from '@repo/core';
 import { http, unwrapResult } from '@repo/utils';
+import RePanelError, { isUnavailableError, toErrorMessage } from '@repo/ui/re-panel-error';
 import {
   queryHosts,
   getGroups,
@@ -90,12 +91,18 @@ const router = useRouter();
 /** 资产统计 */
 const hostStats = ref({ total: 0, online: 0, offline: 0, unknown: 0 });
 const statsLoading = ref(false);
+/** 统计卡加载失败文案（空串 = 无错误） */
+const statsError = ref('');
 
 async function loadStats() {
   statsLoading.value = true;
   try {
     hostStats.value = await getHostStats();
-  } catch { /* ignore */ }
+    statsError.value = '';
+  } catch (e) {
+    // 统计失败不再静默：卡片归零会伪装成「没有资产」，这里挂出错误并允许重试
+    statsError.value = toErrorMessage(e);
+  }
   finally { statsLoading.value = false; }
 }
 
@@ -123,11 +130,17 @@ async function onGroupFilterChange(val: number | null): Promise<void> {
   try {
     const rows = await queryHosts({ groupId: val ?? undefined });
     hosts.value = rows ?? [];
-  } catch { /* ignore */ }
+    listError.value = '';
+  } catch (e) {
+    // 按分组过滤失败不再静默：保留上一帧数据，面板挂「加载失败 + 重试」
+    listError.value = toErrorMessage(e);
+  }
 }
 
 /** 加载态 */
 const loading = ref(false);
+/** 主机列表加载失败文案（空串 = 无错误；失败时保留上一帧数据） */
+const listError = ref('');
 
 /** 表单对话框 */
 const formVisible = ref(false);
@@ -180,7 +193,12 @@ async function loadPrometheusPkgUrl(): Promise<void> {
     const all = await http().get('/ms/monitor/config').then((r: any) => unwrapResult<Record<string, string>>(r));
     const v = all?.['monitor.prometheus.package.url'];
     promPkgUrl.value = typeof v === 'string' ? v : (v != null ? String(v) : '');
-  } catch { /* 未配置时静默 */ }
+  } catch (e) {
+    // 未配置（404 / 501 等）是正常部署形态，保持静默；网络 / 服务故障才提示，避免吞错
+    if (!isUnavailableError(e)) {
+      message.error(`读取 Prometheus 安装包地址失败：${toErrorMessage(e)}`);
+    }
+  }
 }
 
 /** Prometheus 凭据校验：测试目标 /metrics 端点连通性 */
@@ -298,11 +316,18 @@ async function refresh(): Promise<void> {
     hosts.value = hostList ?? [];
     groups.value = groupList ?? [];
   } catch (e) {
-    message.error((e as Error).message);
+    // 失败不清空列表：保留上一帧数据，面板挂「加载失败 + 重试」，不再只弹一条 toast
+    listError.value = toErrorMessage(e);
   } finally {
     loading.value = false;
   }
 }
+
+/** 统计区三态：loading / error / ready */
+const statsState = computed(() => (statsLoading.value ? 'loading' : statsError.value ? 'error' : 'ready'));
+
+/** 主机列表三态：loading / error / ready */
+const listState = computed(() => (loading.value ? 'loading' : listError.value ? 'error' : 'ready'));
 
 /**
  * 打开新增表单
@@ -546,8 +571,8 @@ function diskColor(v?: number): string {
     </template>
   </ReSectionHead>
 
-  <!-- 统计卡片：koi 令牌 + 大数字 + 微趋势 -->
-  <ReSkeleton :loading="statsLoading" :rows="2" :count="1" animated>
+  <!-- 统计卡片：koi 令牌 + 大数字 + 微趋势（三态：骨架 / 错误重试 / 正常） -->
+  <RePanelError :state="statsState" :message="statsError" :rows="2" @retry="loadStats">
     <div class="stats-grid">
       <div class="stat-card" style="--accent: var(--metric-cpu)">
         <div class="stat-label">资产总数</div>
@@ -570,7 +595,7 @@ function diskColor(v?: number): string {
         <div class="stat-trend">等待检测</div>
       </div>
     </div>
-  </ReSkeleton>
+  </RePanelError>
 
   <!-- 筛选工具条 -->
   <div class="toolbar page-toolbar">
@@ -586,68 +611,70 @@ function diskColor(v?: number): string {
     <ReButton show-text icon="Close" @click="selectedIds = []">清除选择</ReButton>
   </div>
 
-  <!-- 主机卡片网格 -->
-  <div class="host-grid">
-    <div
-      v-for="row in hosts"
-      :key="row.id"
-      class="host-card"
-      :class="{ 'is-offline': row.serverHostOnline === 0, 'is-unknown': row.serverHostOnline !== 1 && row.serverHostOnline !== 0 }"
-      style="--status-color: var(--status-success)"
-      @click="openDetail(row)"
-    >
-      <div class="host-card__head">
-        <ReStatusIndicator :type="row.serverHostOnline === 1 ? 'success' : row.serverHostOnline === 0 ? 'danger' : 'info'" :pulse="row.serverHostOnline === 1" />
-        <span class="host-name">{{ row.serverHostName }}</span>
-        <span class="host-addr">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span>
-      </div>
-
-      <div class="host-card__metrics">
-        <div class="mini-ring" :style="{ '--pct': (row.cpuUsage ?? 0) + '%', '--ring-color': cpuColor(row.cpuUsage ?? 0) }">
-          <span class="mini-ring__val">{{ row.cpuUsage ?? 0 }}%</span>
+  <!-- 主机卡片网格：列表三态（骨架 / 错误重试 / 正常） -->
+  <RePanelError :state="listState" :message="listError" :rows="6" @retry="refresh">
+    <div class="host-grid">
+      <div
+        v-for="row in hosts"
+        :key="row.id"
+        class="host-card"
+        :class="{ 'is-offline': row.serverHostOnline === 0, 'is-unknown': row.serverHostOnline !== 1 && row.serverHostOnline !== 0 }"
+        style="--status-color: var(--status-success)"
+        @click="openDetail(row)"
+      >
+        <div class="host-card__head">
+          <ReStatusIndicator :type="row.serverHostOnline === 1 ? 'success' : row.serverHostOnline === 0 ? 'danger' : 'info'" :pulse="row.serverHostOnline === 1" />
+          <span class="host-name">{{ row.serverHostName }}</span>
+          <span class="host-addr">{{ row.serverHostAddress }}:{{ row.serverHostPort }}</span>
         </div>
-        <div class="mini-ring" :style="{ '--pct': (row.memUsage ?? 0) + '%', '--ring-color': memColor(row.memUsage ?? 0) }">
-          <span class="mini-ring__val">{{ row.memUsage ?? 0 }}%</span>
+
+        <div class="host-card__metrics">
+          <div class="mini-ring" :style="{ '--pct': (row.cpuUsage ?? 0) + '%', '--ring-color': cpuColor(row.cpuUsage ?? 0) }">
+            <span class="mini-ring__val">{{ row.cpuUsage ?? 0 }}%</span>
+          </div>
+          <div class="mini-ring" :style="{ '--pct': (row.memUsage ?? 0) + '%', '--ring-color': memColor(row.memUsage ?? 0) }">
+            <span class="mini-ring__val">{{ row.memUsage ?? 0 }}%</span>
+          </div>
+          <div class="mini-ring" :style="{ '--pct': (row.diskUsage ?? 0) + '%', '--ring-color': diskColor(row.diskUsage ?? 0) }">
+            <span class="mini-ring__val">{{ row.diskUsage ?? 0 }}%</span>
+          </div>
+          <div class="metric-labels">
+            <span>CPU</span><span>内存</span><span>磁盘</span>
+          </div>
         </div>
-        <div class="mini-ring" :style="{ '--pct': (row.diskUsage ?? 0) + '%', '--ring-color': diskColor(row.diskUsage ?? 0) }">
-          <span class="mini-ring__val">{{ row.diskUsage ?? 0 }}%</span>
+
+        <div class="host-card__tags">
+          <ReTag v-for="tag in parseTags(row.serverHostTags)" :key="tag" style="margin-right: 4px; margin-bottom: 4px">{{ tag }}</ReTag>
+          <span v-if="!parseTags(row.serverHostTags).length" class="no-tags">无标签</span>
         </div>
-        <div class="metric-labels">
-          <span>CPU</span><span>内存</span><span>磁盘</span>
+
+        <div class="host-card__ports">
+          <span v-if="!parsePorts(row.serverHostPorts).length" class="ports-empty">未扫描</span>
+          <ReTag v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" class="port-chip" type="info">{{ portText(p) }}</ReTag>
         </div>
-      </div>
 
-      <div class="host-card__tags">
-        <ReTag v-for="tag in parseTags(row.serverHostTags)" :key="tag" style="margin-right: 4px; margin-bottom: 4px">{{ tag }}</ReTag>
-        <span v-if="!parseTags(row.serverHostTags).length" class="no-tags">无标签</span>
-      </div>
+        <div class="host-card__footer">
+          <span class="host-group">{{ groupName(row.serverGroupId) }}</span>
+          <span class="host-delay" :class="{ 'is-down': row.serverHostDelayMs != null && row.serverHostDelayMs < 0 }">{{ delayText(row.serverHostDelayMs) }}</span>
+        </div>
 
-      <div class="host-card__ports">
-        <span v-if="!parsePorts(row.serverHostPorts).length" class="ports-empty">未扫描</span>
-        <ReTag v-for="p in parsePorts(row.serverHostPorts)" :key="p.port" class="port-chip" type="info">{{ portText(p) }}</ReTag>
-      </div>
-
-      <div class="host-card__footer">
-        <span class="host-group">{{ groupName(row.serverGroupId) }}</span>
-        <span class="host-delay" :class="{ 'is-down': row.serverHostDelayMs != null && row.serverHostDelayMs < 0 }">{{ delayText(row.serverHostDelayMs) }}</span>
-      </div>
-
-      <div class="host-card__actions" @click.stop>
-        <ReButton show-text icon="View" type="primary" size="small" @click.stop="openDetail(row)">详情</ReButton>
-        <ReButton v-if="row.serverHostRemoteEnabled === 1" :disabled="row.serverHostStatus !== 1" :title="row.serverHostStatus !== 1 ? '主机已禁用，启用后才能远控' : '远控'" show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
-        <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
-        <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
-        <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="Search" type="warning" size="small" @click="onScanPorts(row)">扫端口</ReButton>
-        <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
-        <ReButton show-text icon="MoreFilled" size="small" @click="openConfig(row)">更多</ReButton>
-        <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
+        <div class="host-card__actions" @click.stop>
+          <ReButton show-text icon="View" type="primary" size="small" @click.stop="openDetail(row)">详情</ReButton>
+          <ReButton v-if="row.serverHostRemoteEnabled === 1" :disabled="row.serverHostStatus !== 1" :title="row.serverHostStatus !== 1 ? '主机已禁用，启用后才能远控' : '远控'" show-text icon="Connection" type="primary" size="small" @click="onOpenConnect(row)">远控</ReButton>
+          <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="FolderOpened" type="primary" size="small" @click="onOpenSftp(row)">文件</ReButton>
+          <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="Aim" size="small" @click="onTestConnect(row)">测连</ReButton>
+          <ReButton v-if="row.serverHostSshEnabled === 1" show-text icon="Search" type="warning" size="small" @click="onScanPorts(row)">扫端口</ReButton>
+          <ReButton show-text icon="Edit" size="small" @click="openEdit(row)">编辑</ReButton>
+          <ReButton show-text icon="MoreFilled" size="small" @click="openConfig(row)">更多</ReButton>
+          <ReButton show-text icon="Delete" type="danger" size="small" @click="onDelete(row)">删除</ReButton>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div v-if="!hosts.length && !loading" class="empty-state">
-    <ReEmpty description="暂无主机，点击右上角「新增主机」添加" />
-  </div>
+    <div v-if="!hosts.length" class="empty-state">
+      <ReEmpty description="暂无主机，点击右上角「新增主机」添加" />
+    </div>
+  </RePanelError>
 
   <!-- 对话框保持不变 -->
   <ScHostFormDialog v-model="formVisible" :host="editingHost" @submit="onSubmitForm" />

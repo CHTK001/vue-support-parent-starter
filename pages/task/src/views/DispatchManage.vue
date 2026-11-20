@@ -5,6 +5,7 @@
  * 派发任务列表 + 详情/取消/暂停/恢复/删除 + 节点列表/删除
  */
 import { message } from "@repo/core";
+import ReSkeleton from "@repo/ui/re-skeleton";
 import { onMounted, ref } from "vue";
 import { CircleClose, Delete, Monitor, VideoPause, VideoPlay } from "@element-plus/icons-vue";
 import {
@@ -153,7 +154,9 @@ onMounted(() => {
     </div>
 
     <el-card shadow="never" class="task-page__card">
+      <ReSkeleton v-if="loading && !tasks.length" :rows="6" animated loading/>
       <ReTable
+        v-else
         ref="taskTableRef"
         table-id="task-dispatch"
         :columns="taskColumns"
@@ -189,7 +192,9 @@ onMounted(() => {
           <span class="task-page__card-count">共 {{ nodes.length }} 个节点</span>
         </div>
       </template>
+      <ReSkeleton v-if="nodeLoading && !nodes.length" :rows="5" animated loading/>
       <ReTable
+        v-else
         ref="nodeTableRef"
         table-id="task-node"
         :columns="nodeColumns"

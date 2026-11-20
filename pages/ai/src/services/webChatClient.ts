@@ -143,10 +143,39 @@ export async function* webChatEventSource(
   const messageId = `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
   const contentId = `${messageId}-c0`
 
-  yield { type: 'create', messageId, turnsId: messageId, contentId, modelName } as StreamEvent
-
   // 会话历史：演示链路只把本轮用户输入交给脚本（真实多轮记忆由脚本自行扩展）
   const userContent = String(params?.userMessage?.content ?? '')
+
+  // 与后端 SSE 同构：流开头先回放本次用户消息（user_message 事件，携带消息 id），
+  // 供 useStreamResponse 的 user_message 分支认领本地乐观插入的那条；否则它会在
+  // 流结束的 finally 里被当作「未被后端认领」删掉，助手消息 parentId 悬空，
+  // visibleTurns 过滤后整轮消息都不渲染。
+  // 重答/订阅（regenerationMode 非空）时 userMessage.id 是既有消息 id，原样回放
+  // 即可被 id 去重命中，不会多出一行（与后端 ChatStreamOrchestrator 回放口径一致）。
+  const providedUserId = String(params?.userMessage?.id || '').trim()
+  const userMsgId = providedUserId || `web-u-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+  if (userContent || providedUserId) {
+    yield {
+      type: 'user_message',
+      userMessage: {
+        id: userMsgId,
+        role: 'user',
+        contents: userContent
+          ? [{ id: `${userMsgId}-content`, content: userContent, state: { isStreaming: false } }]
+          : undefined,
+      },
+    } as StreamEvent
+  }
+
+  yield {
+    type: 'create',
+    messageId,
+    turnsId: messageId,
+    contentId,
+    modelName,
+    // 助手消息挂到本次用户消息下：ChatPanel 按 parentId 把消息分组成轮次
+    parentId: userContent || providedUserId ? userMsgId : '',
+  } as StreamEvent
   const messages = userContent ? [{ role: 'user', content: userContent }] : []
   // 会话附件（后端落盘路径 / fileIds）：交给 OCR、人脸检测等需要图片输入的脚本，
   // 由脚本自行经 /api/fs/image-base64 读回；纯文本脚本可忽略该参数。

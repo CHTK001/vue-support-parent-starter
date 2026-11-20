@@ -30,6 +30,7 @@ import { Search } from "@element-plus/icons-vue";
 import { message, msgError, msgSuccess, useSocketService } from "@repo/core";
 import { downloadCsv, downloadTextFile, fileTimestamp, usePersistentFilters } from "@repo/utils";
 import ReButton from "@repo/ui/re-button";
+import ReSkeleton from "@repo/ui/re-skeleton";
 import ReTag from "@repo/ui/re-tag";
 import {
   OsgiError,
@@ -1359,7 +1360,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="osgi-page">
     <!-- 轨道机架控制台主体：无页头，页面身份是工具带上的任务铭牌 -->
-    <section class="orc" :class="{ 'orc--booting': loading && !rows.length }">
+    <section class="orc">
       <!-- 工具带：任务铭牌 + 搜索 + 线路筛选 + 主操作 -->
       <div class="orc-top">
         <div class="orc-brand">
@@ -1530,6 +1531,12 @@ onBeforeUnmount(() => {
             <ReButton size="small" :disabled="batchRunning" @click="clearPicks">取消选择</ReButton>
           </div>
           <div class="orc-rack__slots" :class="{ 'orc-rack__slots--empty': !loading && !filteredRows.length }">
+            <!-- 首屏骨架：与机架单元同形态的占位卡片 -->
+            <template v-if="loading && !filteredRows.length">
+              <article v-for="i in 6" :key="`sk-${i}`" class="orc-ch orc-ch--sk">
+                <ReSkeleton :rows="3" animated loading/>
+              </article>
+            </template>
             <article
               v-for="row in filteredRows"
               :key="row.bundleId"
@@ -1944,14 +1951,14 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.orc--booting .orc-rack__slots {
-  animation: orc-breathe 1.4s ease-in-out infinite;
+/* 首屏骨架卡：替代旧的整机呼吸动画，占位形态与机架单元一致 */
+.orc-ch--sk {
+  min-height: 132px;
+  padding: 14px;
 }
 
-@keyframes orc-breathe {
-  50% {
-    opacity: 0.55;
-  }
+.orc-ch--sk .el-skeleton {
+  width: 100%;
 }
 
 /* ---- 工具带：任务铭牌 + 搜索 + 线路筛选 + 主操作 ---- */

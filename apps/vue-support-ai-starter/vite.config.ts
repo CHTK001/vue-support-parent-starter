@@ -357,6 +357,41 @@ function appIndexHtml(): PluginOption {
   }
 }
 
+/**
+ * 「浏览器推理（Web）」模型脚本（pages/ai/public/web-chat/**）。
+ *
+ * 业务源码物理上归档在 pages/ai，而本应用（构建宿主）的 publicDir 是自己的
+ * public（图片/文件预览资产），不会携带 pages/ai/public —— 缺了它，模型目录里
+ * 的 js_path（/web-chat/echo-demo.js 等）在 dist 下 404。dev 由中间件按 URL
+ * 回源 pages/ai/public/web-chat；build 在 closeBundle 整体复制进 dist/web-chat。
+ */
+function webChatScripts(): PluginOption {
+  const webChatDir = path.resolve(WORKSPACE_ROOT, 'pages/ai/public/web-chat')
+  return {
+    name: 'web-chat-scripts',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const pathname = req.url?.split('?')[0] ?? ''
+        if (!pathname.startsWith('/web-chat/')) return next()
+        const target = path.resolve(webChatDir, pathname.slice('/web-chat/'.length))
+        // 防目录穿越：解析结果必须仍在 web-chat 目录内
+        if (!target.startsWith(webChatDir + path.sep)) return next()
+        if (!fs.existsSync(target) || !fs.statSync(target).isFile()) return next()
+        res.setHeader('Content-Type', 'text/javascript; charset=utf-8')
+        fs.createReadStream(target).pipe(res)
+      })
+    },
+    closeBundle() {
+      if (!fs.existsSync(webChatDir)) return
+      const destDir = path.join(__dirname, 'dist', 'web-chat')
+      fs.mkdirSync(destDir, { recursive: true })
+      for (const entry of fs.readdirSync(webChatDir)) {
+        fs.cpSync(path.join(webChatDir, entry), path.join(destDir, entry), { recursive: true })
+      }
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   // Electron 环境使用相对路径，Web 环境使用根路径
@@ -398,6 +433,8 @@ export default defineConfig({
   },
   plugins: [
     frameworkSharedAssets(),
+    // 「浏览器推理（Web）」模型脚本：dev 回源 + build 复制进 dist（见函数注释）
+    webChatScripts(),
     // dev 代理补第一方豁免头 + 剥 Origin/Referer（仅 serve 生效，见 aiProxyHeaders 注释）
     aiProxyHeaders(),
     // koi 登录页依赖 Uno 原子类；配置与 createVite 基线一致（见 unoConfig 注释）

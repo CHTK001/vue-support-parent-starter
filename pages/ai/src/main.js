@@ -328,6 +328,14 @@ const routes = [
         component: () => import("./components/management/OcrPage.vue"),
       },
       {
+        // AI 检测：文本 / 图片「是否 AI」检测。纯启发式 + 元数据分析，
+        // 不依赖模型配置，因此不设门禁、任何登录用户可用。
+        path: "ai-detect",
+        name: "AiDetect",
+        meta: { title: "AI 检测", requiresAuth: true },
+        component: () => import("./components/management/AiDetectPage.vue"),
+      },
+      {
         path: "image-colorize",
         name: "ImageColorize",
         meta: { title: "图像上色", requiresAuth: true },

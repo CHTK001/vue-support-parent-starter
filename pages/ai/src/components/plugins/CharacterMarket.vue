@@ -354,7 +354,7 @@ onMounted(() => {
       而 main.js 从未引入该文件 → 这两个 --mp-* 是取不到值的空令牌，
       实际一直靠兜底的 14px / 20px 在渲染。统一收敛到 --el-radius-* 六档。
    2. 10px 距 8/12 等距，按本仓口径统一取 lg(12px)，同行注释标出原值。
-   3. 卡片静止态零投影，只有 hover 浮起才给投影（koi 允许的第二类 box-shadow）。 */
+   3. 卡片静止态浅投影（--shadow-sm），hover 浮起升一档（--shadow-md）并转品牌描边。 */
 .character-market {
   display: flex;
   flex-direction: column;
@@ -394,8 +394,9 @@ onMounted(() => {
   align-items: stretch;
   gap: 9px;
   padding: 14px;
-  /* 原值 var(--mp-radius-lg, 14px)：--mp-radius-lg 是空令牌，实为 14px → xl 档 */
-  border-radius: var(--radius-xl, var(--el-radius-xl, 16px));
+  /* 原值 var(--mp-radius-lg, 14px)：--mp-radius-lg 是空令牌，实为 14px；
+     按 radius-vars 档位语义（lg=卡片、xl=浮层）收敛到 lg(12px) 档，与 Skills/MCP/本地工具市场卡片同档 */
+  border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
   border: 1px solid var(--border-subtle, #eef2f8);
   /* 文摘卡：容器底色 + 静止态浅投影（--bg-container 亮色未定义，落白底兜底） */
   background: var(--bg-container, #ffffff);
@@ -410,7 +411,7 @@ onMounted(() => {
 }
 
 .market-card:focus-visible {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  box-shadow: var(--focus-ring);
 }
 
 /* 悬浮浮起：投影升一档，描边转品牌色（明暗下都不会糊成黑块）。 */

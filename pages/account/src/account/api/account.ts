@@ -21,8 +21,8 @@ const B = '/api/accounts';
  */
 const body = (payload: object): Record<string, unknown> => payload as unknown as Record<string, unknown>;
 
-/** 账号种类：设备 / 第三方 API 密钥、POP/SMTP 邮箱、短信服务商、手机号（常规 / 临时） */
-export type AccountKind = 'API_KEY' | 'EMAIL' | 'SMS' | 'TEMP_PHONE' | 'PHONE';
+/** 账号种类：设备 / 第三方 API 密钥、POP/SMTP 邮箱、短信服务商、手机号（常规 / 临时）、信用卡（临时虚拟卡号） */
+export type AccountKind = 'API_KEY' | 'EMAIL' | 'SMS' | 'TEMP_PHONE' | 'PHONE' | 'CREDIT_CARD';
 
 /** 凭据校验状态 */
 export type AccountVerifyStatus = 'UNKNOWN' | 'VALID' | 'INVALID';
@@ -101,6 +101,29 @@ export interface AccountQuery {
 /** 受支持的账号种类 */
 export const getAccountKinds = () =>
   http().get(`${B}/kinds`).then(r => unwrap<AccountKindOption[]>(r));
+
+/**
+ * 账号测试数据草稿（mock 生成）。
+ *
+ * <p>后端调用画像生成器产出一组可直接回填表单的测试数据；
+ * 仅测试用途，不做任何落库。</p>
+ */
+export interface AccountMockDraft {
+  /** 账号种类 */
+  kind?: AccountKind;
+  /** 卡号（存 username） */
+  username?: string;
+  /** 发卡组织（存 vendor） */
+  vendor?: string;
+  /** CVV（存密钥 secret） */
+  secret?: string;
+  /** 有效期与持卡人画像（存 config） */
+  config?: Record<string, unknown> | null;
+}
+
+/** 生成测试数据草稿（当前仅支持 CREDIT_CARD） */
+export const getAccountMockDraft = (kind: AccountKind) =>
+  http().get(`${B}/mock-draft`).query({ kind }).then(r => unwrap<AccountMockDraft>(r));
 
 /**
  * 账号列表。

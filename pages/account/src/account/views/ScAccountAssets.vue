@@ -20,6 +20,7 @@
           <option value="EMAIL">邮箱账号</option>
           <option value="SMS">短信账号</option>
           <option value="PHONE">手机号</option>
+          <option value="CREDIT_CARD">信用卡</option>
           <option value="TEMP_MAIL">临时邮箱</option>
           <option value="TEMP_PHONE">临时手机号</option>
         </select>
@@ -1097,7 +1098,7 @@ keyword.value = savedFilters.keyword;
 if (['all', 'on', 'pending', 'invalid'].includes(savedFilters.status)) {
   statusFilter.value = savedFilters.status as StatusFilter;
 }
-if (savedFilters.kind === 'all' || ['API_KEY', 'EMAIL', 'SMS', 'PHONE', 'TEMP_MAIL', 'TEMP_PHONE'].includes(savedFilters.kind)) {
+if (savedFilters.kind === 'all' || ['API_KEY', 'EMAIL', 'SMS', 'PHONE', 'CREDIT_CARD', 'TEMP_MAIL', 'TEMP_PHONE'].includes(savedFilters.kind)) {
   kindFilter.value = savedFilters.kind as typeof kindFilter.value;
 }
 if (savedFilters.usage === 'all' || ACCOUNT_CAPABILITY_TAGS.some(tag => tag.key === savedFilters.usage)) {
@@ -1129,6 +1130,7 @@ const SEGMENT_QUERY_VALUES: Segment[] = [
   'EMAIL',
   'SMS',
   'PHONE',
+  'CREDIT_CARD',
   'TEMP_PHONE',
 ];
 
@@ -1143,7 +1145,7 @@ function restoreFiltersFromQuery(): void {
   const segmentQuery = typeof q.segment === 'string' ? q.segment : '';
   if (SEGMENT_QUERY_VALUES.includes(segmentQuery as Segment)) segment.value = segmentQuery as Segment;
   const kindQuery = typeof q.kind === 'string' ? q.kind : '';
-  if (['all', 'API_KEY', 'EMAIL', 'SMS', 'PHONE', 'TEMP_MAIL', 'TEMP_PHONE'].includes(kindQuery)) {
+  if (['all', 'API_KEY', 'EMAIL', 'SMS', 'PHONE', 'CREDIT_CARD', 'TEMP_MAIL', 'TEMP_PHONE'].includes(kindQuery)) {
     kindFilter.value = kindQuery as typeof kindFilter.value;
   }
   const usageQuery = typeof q.usage === 'string' ? q.usage : '';
@@ -1497,7 +1499,8 @@ const isAccountSegment = computed(
     segment.value === 'SMS' ||
     segment.value === 'TEMP_MAIL' ||
     segment.value === 'TEMP_PHONE' ||
-    segment.value === 'PHONE',
+    segment.value === 'PHONE' ||
+    segment.value === 'CREDIT_CARD',
 );
 
 /** 新建按钮文案 */
@@ -1888,6 +1891,7 @@ const indexGroups = computed<IndexGroup[]>(() => {
     { kind: 'EMAIL', label: '邮箱账号', icon: 'Message' },
     { kind: 'SMS', label: '短信账号', icon: 'ChatDotRound' },
     { kind: 'PHONE', label: '手机号', icon: 'Iphone' },
+    { kind: 'CREDIT_CARD', label: '信用卡', icon: 'CreditCard' },
   ];
 
   for (const def of kinds) {
@@ -3343,7 +3347,7 @@ async function copySecret(): Promise<void> {
  * @returns 中文名
  */
 function kindLabel(kind?: AccountKind): string {
-  return ({ API_KEY: 'API 密钥', EMAIL: '邮箱账号', SMS: '短信账号', TEMP_PHONE: '临时手机号', PHONE: '手机号' } as Record<string, string>)[kind || ''] || '未知';
+  return ({ API_KEY: 'API 密钥', EMAIL: '邮箱账号', SMS: '短信账号', TEMP_PHONE: '临时手机号', PHONE: '手机号', CREDIT_CARD: '信用卡' } as Record<string, string>)[kind || ''] || '未知';
 }
 
 /**
@@ -3357,6 +3361,7 @@ function kindIcon(kind?: AccountKind): string {
   if (kind === 'SMS') return 'ChatDotRound';
   if (kind === 'TEMP_PHONE') return 'Iphone';
   if (kind === 'PHONE') return 'Iphone';
+  if (kind === 'CREDIT_CARD') return 'CreditCard';
   return 'Key';
 }
 
@@ -3472,12 +3477,19 @@ function formatTime(value?: number | null): string {
 /**
  * 异常文案。
  *
+ * <p>注意 {@code error.message} 可能为空：{@code httpCrypto} 响应拦截器在统一弹出
+ * 网络错误提示后会把 {@code error.message} 置空以防止调用方重复提示
+ * （见 httpCrypto.ts 错误分支的 {@code message = undefined}）。
+ * 这里必须兜底成可读文案，否则会拼出「xxx 加载失败：undefined」，
+ * 且空文案会让依赖「错误文案非空」的降级分支判断失效。</p>
+ *
  * @param error 异常
- * @returns 可读文本
+ * @returns 可读文本（永不为空）
  */
 function errText(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error ?? '未知错误');
+  const msg = error instanceof Error ? error.message : error == null ? '' : String(error);
+  const text = (msg ?? '').trim();
+  return text || '未知错误';
 }
 
 /**

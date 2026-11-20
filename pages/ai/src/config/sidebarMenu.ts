@@ -7,6 +7,7 @@ import {
   DataBarVertical20Regular, PlugConnected20Regular, Fingerprint24Regular,
   ArrowRouting20Regular, Server24Regular,
   Earth24Regular,
+  ScanText24Regular,
 } from '@vicons/fluent'
 
 /**
@@ -153,6 +154,14 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       label: t('ui.sidebar.navPlugins'),
       icon: Apps20Regular,
       showKey: 'showPluginsMenu',
+    },
+    {
+      // AI 检测：文本 / 图片「是否 AI」检测。纯启发式 + 元数据分析，
+      // 不依赖模型配置，因此不走模型门禁（不在 GATED_TABS 里），配好菜单即可用。
+      key: 'ai-detect',
+      label: 'AI 检测',
+      icon: ScanText24Regular,
+      showKey: 'showAiDetectMenu',
     },
     // 图像类不再做成二级菜单：与「音频」同款扁平分组（section 标题 + 平级菜单项）。
     // 折叠父项多一次点击、且父项本身不可达，用户明确要求不要二级菜单。

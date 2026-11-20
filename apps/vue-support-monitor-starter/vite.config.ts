@@ -220,7 +220,10 @@ function servePreviewShellAssets(): PluginOption {
  *
  * <p>要验别的实例，照旧用 {@code MS_API_TARGET} 显式覆盖。</p>
  */
-const LOCAL_BACKEND = "http://127.0.0.1:8082";
+// 2026-11-20：后端统一迁到局域网机 172.16.9.194（MySQL monitordb + Redis 同机，
+// 计划任务 MonitorBackend 开机自启）。本机 8082 实例按需求原样保留，但不再是默认目标；
+// 要回指本机或其它实例，用 MS_API_TARGET 显式覆盖。
+const LOCAL_BACKEND = "http://172.16.9.194:8082";
 const apiTarget = process.env.MS_API_TARGET ?? LOCAL_BACKEND;
 // 模板接口 /api/template/**：默认跟随业务 API 同源（本机 dev → 127.0.0.1:8082，
 // 沙箱 → MS_API_TARGET 同台后端），因为 monitor 覆盖层已承载模板 controller；

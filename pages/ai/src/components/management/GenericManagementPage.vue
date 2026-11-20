@@ -138,6 +138,8 @@
           <el-switch
             v-else-if="field.type === 'switch'"
             v-model="formData[field.prop]"
+            :active-value="field.activeValue"
+            :inactive-value="field.inactiveValue"
           />
           <el-input
             v-else-if="field.type === 'textarea'"
@@ -187,6 +189,12 @@ interface FormField {
   step?: number;
   rows?: number;
   inputType?: string;
+  /** switch 打开时的值（如后端契约用 1/0 而非 true/false 时声明） */
+  activeValue?: any;
+  /** switch 关闭时的值 */
+  inactiveValue?: any;
+  /** 表单重置/新增时的初始值（缺省按 type 兜底：switch=false、number=min、其余=''） */
+  default?: any;
 }
 
 interface Props {
@@ -269,7 +277,10 @@ const dialogTitle = computed(() => isEdit.value ? `编辑${props.title}` : `新�
 
 function resetForm() {
   props.formFields.forEach((f) => {
-    if (f.type === 'switch') {
+    // 优先用字段声明的初始值（如角色「启用」开关默认 1），保持与后端默认一致
+    if (f.default !== undefined) {
+      formData[f.prop] = f.default;
+    } else if (f.type === 'switch') {
       formData[f.prop] = false;
     } else if (f.type === 'number') {
       formData[f.prop] = f.min ?? 0;

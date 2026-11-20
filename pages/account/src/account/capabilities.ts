@@ -54,6 +54,7 @@ const DEFAULT_KEYS_BY_KIND: Record<string, string[]> = {
   API_KEY: ['api'],
   TEMP_PHONE: ['sms'],
   PHONE: ['sms'],
+  CREDIT_CARD: ['payment'],
 };
 
 /**

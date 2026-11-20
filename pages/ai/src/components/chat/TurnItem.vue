@@ -117,6 +117,15 @@
             :messages="turn.assistants" />
 
           <!--
+            Agent 产出 HTML 设计稿就地渲染（openchamber_render 的会话内形态）：
+            正文/工具调用里提到的工作区 .html 文件，真实存在就用 srcdoc 沙箱内联
+            渲染成可交互预览卡（openchamber_design 的产出落工作区后由此展示），
+            支持刷新与放大预览；幻觉路径静默跳过。见 MessageOutputHtml.vue。
+          -->
+          <MessageOutputHtml v-if="sessionId && turn.assistants?.length" :session-id="sessionId"
+            :messages="turn.assistants" />
+
+          <!--
             执行计时徽标已并入下方「工作中」状态行的右侧（见本组件流式区块）。
             原先是内容区居中的独立徽标，与左下角的「工作中」分成两处，
             同一个数字和状态文字被拆到对角，读起来像两件事。
@@ -284,6 +293,7 @@ import MessageToolCalls from './message-item/MessageToolCalls.vue';
 import ProcessTimeline from './message-item/ProcessTimeline.vue';
 import ThinkingPlaceholder from './message-item/ThinkingPlaceholder.vue';
 import MessageOutputImages from './message-item/MessageOutputImages.vue';
+import MessageOutputHtml from './message-item/MessageOutputHtml.vue';
 import MessageActions from './message-item/MessageActions.vue';
 import FileChangesBar from './message-item/FileChangesBar.vue';
 import FileDiffDialog from './message-item/FileDiffDialog.vue';
