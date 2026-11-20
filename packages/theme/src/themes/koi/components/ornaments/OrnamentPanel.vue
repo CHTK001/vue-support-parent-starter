@@ -8,10 +8,10 @@
  * <p>限定款（{@code acquire=limited}）先领取再佩戴；目录或领取记录过期后置灰不可点。
  * 目录与佩戴关系都来自服务端，失败时用内置兜底目录与本地快照。</p>
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { Check, Search, ZoomIn } from "@element-plus/icons-vue";
 import { defaultAvatarUrl } from "@repo/assets";
-import { msgError, msgSuccess } from "@repo/core";
+import { msgError, msgSuccess, useSocketService } from "@repo/core";
 import { resolveUserDisplayInfo } from "@repo/utils";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
@@ -175,8 +175,31 @@ async function wearFromPreview(): Promise<void> {
   previewVisible.value = false;
 }
 
+/** 上架时间（卡片展示用，只取日期部分）；未知返回空串不渲染 */
+function releaseDay(item: Ornament): string {
+  return item.createTime ? item.createTime.slice(0, 10) : "";
+}
+
+/** 新饰品上架广播的解订函数 */
+let releaseUnsubscribe: (() => void) | null = null;
+
 onMounted(() => {
   void syncOrnaments(true);
+  // 管理端上架新饰品后全员广播（ornament/release）：刷新目录并提示；socket 未接入时跳过
+  const socket = useSocketService();
+  if (socket) {
+    releaseUnsubscribe = socket.subscribe("ornament", "release", (msg) => {
+      void syncOrnaments(true);
+      const data = msg?.data as { name?: unknown } | null;
+      const name = typeof data?.name === "string" ? data.name : "";
+      msgSuccess(name ? `新饰品上架：「${name}」` : "有新饰品上架，目录已更新");
+    });
+  }
+});
+
+onUnmounted(() => {
+  releaseUnsubscribe?.();
+  releaseUnsubscribe = null;
 });
 </script>
 
@@ -271,6 +294,9 @@ onMounted(() => {
             </span>
           </span>
           <span class="op-card__name">{{ item.name }}</span>
+          <span v-if="releaseDay(item)" class="op-card__release" title="上架时间">
+            上架 {{ releaseDay(item) }}
+          </span>
           <span class="op-card__zoom" title="大图试戴" @click.stop="openPreview(item)">
             <el-icon :size="12"><ZoomIn /></el-icon>
           </span>
@@ -661,6 +687,14 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.op-card__release {
+  margin-top: -2px;
+  padding: 0 2px;
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--el-text-color-placeholder);
 }
 
 .op-card__check {

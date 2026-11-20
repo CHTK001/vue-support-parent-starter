@@ -346,7 +346,7 @@
         @keyup.enter="saveCurrentOutfit"
       />
       <p class="avatar-frame-outfit-hint">
-        {{ outfitEditingId ? "只改名字，搭配内容保持不变。" : "保存当前头像框与挂件/昵称牌组合，仅存本机。" }}
+        {{ outfitEditingId ? "只改名字，搭配内容保持不变。" : "保存当前头像框与挂件/昵称牌组合，登录后云端同步、换设备可用。" }}
       </p>
       <template #footer>
         <el-button size="small" @click="outfitSaveVisible = false">取消</el-button>
@@ -430,11 +430,15 @@ import { ORNAMENT_SLOTS, ORNAMENT_SLOT_LABELS } from "./ornaments/types";
 import OrnamentBadge from "./ornaments/OrnamentBadge.vue";
 import {
   decodeOutfitToken,
+  deleteOutfit,
   encodeOutfitToken,
+  loadLocalOutfits,
   loadOutfits,
   newOutfitId,
   outfitSignature,
-  persistOutfits,
+  persistLocalOutfits,
+  saveOutfit,
+  OUTFIT_LIMIT,
   type AvatarOutfit,
 } from "./avatarOutfits";
 
@@ -749,10 +753,10 @@ async function applyDailyPick(): Promise<void> {
   }
 }
 
-/* ==================== 我的搭配（localStorage） ==================== */
+/* ==================== 我的搭配（云端保存，本机兜底） ==================== */
 
 const outfitsOpen = ref(true);
-const outfits = ref<AvatarOutfit[]>(loadOutfits());
+const outfits = ref<AvatarOutfit[]>(loadLocalOutfits());
 const applyingOutfit = ref("");
 const outfitSaveVisible = ref(false);
 const outfitSaveName = ref("");
@@ -824,13 +828,27 @@ function openRenameOutfit(outfit: AvatarOutfit): void {
   outfitSaveVisible.value = true;
 }
 
-/** 保存当前搭配（内容重复拦截）或重命名已有方案 */
-function saveCurrentOutfit(): void {
+/** 保存当前搭配（内容重复拦截）或重命名已有方案；云端优先，失败回落本机 */
+async function saveCurrentOutfit(): Promise<void> {
   const name = outfitSaveName.value.trim() || `搭配 ${outfits.value.length + 1}`;
   if (outfitEditingId.value) {
     const target = outfits.value.find((o) => o.id === outfitEditingId.value);
-    if (target) target.name = name;
-    persistOutfits(outfits.value);
+    if (!target) {
+      outfitSaveVisible.value = false;
+      return;
+    }
+    const remote = await saveOutfit({
+      id: target.id,
+      name,
+      frameId: target.frameId,
+      ornamentCodes: target.ornamentCodes,
+    });
+    if (remote) {
+      outfits.value = remote;
+    } else {
+      target.name = name;
+      persistLocalOutfits(outfits.value);
+    }
     outfitSaveVisible.value = false;
     msgSuccess(`已重命名为「${name}」`);
     return;
@@ -844,17 +862,22 @@ function saveCurrentOutfit(): void {
     msgWarning(`与已有搭配「${dup.name}」内容相同，未重复保存`);
     return;
   }
-  outfits.value = [
-    {
-      id: newOutfitId(),
-      name,
-      frameId: selectedFrame.value || 0,
-      ornamentCodes: codes,
-      createdAt: Date.now(),
-    },
-    ...outfits.value,
-  ].slice(0, 20);
-  persistOutfits(outfits.value);
+  const remote = await saveOutfit({ name, frameId: selectedFrame.value || 0, ornamentCodes: codes });
+  if (remote) {
+    outfits.value = remote;
+  } else {
+    outfits.value = [
+      {
+        id: newOutfitId(),
+        name,
+        frameId: selectedFrame.value || 0,
+        ornamentCodes: codes,
+        createdAt: Date.now(),
+      },
+      ...outfits.value,
+    ].slice(0, OUTFIT_LIMIT);
+    persistLocalOutfits(outfits.value);
+  }
   outfitSaveVisible.value = false;
   msgSuccess(`已保存「${name}」`);
 }
@@ -875,7 +898,7 @@ async function shareOutfit(outfit: AvatarOutfit): Promise<void> {
 }
 
 /** 导入口令：解码 → 去重 → 入列（不自动佩戴，由用户点「应用」） */
-function importOutfitToken(): void {
+async function importOutfitToken(): Promise<void> {
   const raw = outfitImportToken.value.trim();
   if (!raw) return;
   const decoded = decodeOutfitToken(raw.replace(/^【搭配口令】/, ""));
@@ -889,17 +912,23 @@ function importOutfitToken(): void {
     msgWarning(`与已有搭配「${dup.name}」内容相同，未重复导入`);
     return;
   }
-  outfits.value = [
-    {
-      id: newOutfitId(),
-      name: decoded.name || "导入搭配",
-      frameId: decoded.frameId,
-      ornamentCodes: decoded.ornamentCodes,
-      createdAt: Date.now(),
-    },
-    ...outfits.value,
-  ].slice(0, 20);
-  persistOutfits(outfits.value);
+  const name = decoded.name || "导入搭配";
+  const remote = await saveOutfit({ name, frameId: decoded.frameId, ornamentCodes: decoded.ornamentCodes });
+  if (remote) {
+    outfits.value = remote;
+  } else {
+    outfits.value = [
+      {
+        id: newOutfitId(),
+        name,
+        frameId: decoded.frameId,
+        ornamentCodes: decoded.ornamentCodes,
+        createdAt: Date.now(),
+      },
+      ...outfits.value,
+    ].slice(0, OUTFIT_LIMIT);
+    persistLocalOutfits(outfits.value);
+  }
   outfitImportToken.value = "";
   msgSuccess("已导入搭配，点「应用」即可换上");
 }
@@ -924,9 +953,14 @@ async function applyOutfit(outfit: AvatarOutfit): Promise<void> {
   }
 }
 
-function removeOutfit(id: string): void {
+async function removeOutfit(id: string): Promise<void> {
+  const remote = await deleteOutfit(id);
+  if (remote) {
+    outfits.value = remote;
+    return;
+  }
   outfits.value = outfits.value.filter((o) => o.id !== id);
-  persistOutfits(outfits.value);
+  persistLocalOutfits(outfits.value);
 }
 
 /* ==================== 随机换装 ==================== */
@@ -1217,8 +1251,14 @@ async function initFrames(): Promise<void> {
   frameShow.value = Number(display.value.avatarFrameShow ?? 0) === 1;
 }
 
+/** 拉取搭配方案：云端为准，失败回落本机快照 */
+async function refreshOutfits(): Promise<void> {
+  outfits.value = await loadOutfits();
+}
+
 onMounted(() => {
   void initFrames();
+  void refreshOutfits();
 });
 </script>
 

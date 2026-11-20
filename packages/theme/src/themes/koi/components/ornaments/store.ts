@@ -137,6 +137,7 @@ function toOrnament(row: Record<string, unknown>): Ornament | null {
       ? row.sysOrnamentAnchor
       : ANCHOR_BY_CODE[typeof row.sysOrnamentCode === "string" ? row.sysOrnamentCode : ""],
     expire: typeof row.sysOrnamentExpire === "string" ? row.sysOrnamentExpire : null,
+    createTime: typeof row.createTime === "string" ? row.createTime : null,
   };
 }
 

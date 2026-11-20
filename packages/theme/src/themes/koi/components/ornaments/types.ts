@@ -58,6 +58,8 @@ export interface Ornament {
   anchor?: OrnamentAnchor;
   /** 目录级过期时间（ISO 字符串）；空表示永久 */
   expire?: string | null;
+  /** 上架时间（yyyy-MM-dd HH:mm:ss 字符串）；空表示未知 */
+  createTime?: string | null;
 }
 
 /** 判断任意值是否是合法槽位 */
