@@ -213,10 +213,17 @@ if (typeof document !== "undefined") {
             <span class="rm-dialog__title">{{ title }}</span>
             <div class="rm-dialog__header-actions">
               <slot name="header-actions" />
-              <button v-if="fullscreenable" class="rm-dialog__header-btn" type="button" @click="toggleFullscreen">
+              <button
+                v-if="fullscreenable"
+                class="rm-dialog__header-btn"
+                type="button"
+                :title="isFullscreen ? '退出全屏' : '全屏'"
+                :aria-label="isFullscreen ? '退出全屏' : '全屏'"
+                @click="toggleFullscreen"
+              >
                 {{ isFullscreen ? '⤢' : '⤡' }}
               </button>
-              <button v-if="showClose" class="rm-dialog__close" type="button" @click="onCancel">
+              <button v-if="showClose" class="rm-dialog__close" type="button" title="关闭" aria-label="关闭" @click="onCancel">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>

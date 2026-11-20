@@ -24,6 +24,7 @@ import type {
   GcCollector,
   RestfulApiStats,
   RestfulTopUrl,
+  MemoryUsage,
   MemoryPoolInfo,
 } from "../../api/types";
 import { useElColors, withAlpha } from "./echarts-colors";
@@ -418,7 +419,7 @@ const topUrlList = computed<RestfulTopUrl[]>(() => {
             <div class="srv-card__body srv-mem-diag">
               <div class="srv-bar-row">
                 <label>非堆使用</label>
-                <div class="srv-bar"><i class="srv-bar__fill" :class="lvl(pct(nonHeapMem.used / Math.max(1, nonHeapMem.max)))" :style="{ width: pct(nonHeapMem.used / Math.max(1, nonHeapMem.max)) + '%' }"></i></div>
+                <div class="srv-bar"><i class="srv-bar__fill" :class="lvl(pct((nonHeapMem.used ?? 0) / Math.max(1, nonHeapMem.max ?? 0)))" :style="{ width: pct((nonHeapMem.used ?? 0) / Math.max(1, nonHeapMem.max ?? 0)) + '%' }"></i></div>
                 <b>{{ formatBytes(nonHeapMem.used) }}</b>
               </div>
               <div class="srv-bar-row">
@@ -451,7 +452,7 @@ const topUrlList = computed<RestfulTopUrl[]>(() => {
                   <td>{{ formatBytes(p.used) }}</td>
                   <td>{{ formatBytes(p.committed) }}</td>
                   <td>{{ formatBytes(p.max) }}</td>
-                  <td :style="{ color: lvlColor(lvl(pct(p.used / Math.max(1, p.max ?? 0)))) }">{{ pct(p.used / Math.max(1, p.max ?? 0)) }}%</td>
+                  <td :style="{ color: lvlColor(lvl(pct((p.used ?? 0) / Math.max(1, p.max ?? 0)))) }">{{ pct((p.used ?? 0) / Math.max(1, p.max ?? 0)) }}%</td>
                 </tr>
               </tbody>
             </table>
@@ -506,7 +507,7 @@ const topUrlList = computed<RestfulTopUrl[]>(() => {
                   <td>{{ u.method }}</td>
                   <td>{{ u.count }}</td>
                   <td :style="{ color: colors.success }">{{ u.success }}</td>
-                  <td :style="{ color: u.fail > 0 ? colors.danger : colors.textSecondary }">{{ u.fail }}</td>
+                  <td :style="{ color: (u.fail ?? 0) > 0 ? colors.danger : colors.textSecondary }">{{ u.fail }}</td>
                   <td>{{ u.avgMs }} ms</td>
                 </tr>
               </tbody>

@@ -224,6 +224,9 @@
                 </button>
 
                 <div class="session-info flex-1 min-w-0 flex items-center">
+                  <!-- 草稿圆点：这个会话的输入框里还有没发出去的内容（utils/inputDraft） -->
+                  <span v-if="draftSessionIds.has(String(session.id))" class="session-draft-dot"
+                    :title="t('chat.sidebar.hasDraft')" aria-hidden="true" />
                   <div class="session-title text-sm font-medium w-full">
                     {{ session.title }}
                   </div>
@@ -534,6 +537,7 @@ import { useSessionStore } from '../stores/session'
 import { useSessionGroupStore } from '../stores/sessionGroup'
 import { useModelConfigStore } from '../stores/modelConfig'
 import { UNGROUPED_ID } from '../stores/session'
+import { listDraftSessionIds, DRAFT_CHANGED_EVENT } from '../utils/inputDraft'
 import { useTheme, type ThemeMode } from '../composables/useTheme'
 import { usePopup } from '../composables/usePopup'
 import { createSidebarMenuItems, readMenuSettings, menuDisplayVersion } from '../config/sidebarMenu'
@@ -605,6 +609,32 @@ const route = useRoute()
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
 const sessionGroupStore = useSessionGroupStore()
+
+// 有未发送草稿的会话集合：行首画一个小圆点，提示「这里还有没发完的话」。
+// 数据来自输入草稿库（IndexedDB，见 utils/inputDraft）；草稿保存/清除/过期时
+// 通过 window 事件通知这里刷新；会话列表变化（分页加载/新建/删除）也重算，
+// 否则新加载进来的会话行不知道自己有没有草稿。
+const draftSessionIds = ref<Set<string>>(new Set())
+const refreshDraftDots = async (): Promise<void> => {
+  try {
+    draftSessionIds.value = await listDraftSessionIds(authStore.user?.username)
+  } catch {
+    /* 存储不可用（隐私模式等）时静默：圆点只是提示，不影响列表本身 */
+  }
+}
+const onDraftChanged = (): void => {
+  void refreshDraftDots()
+}
+onMounted(() => {
+  void refreshDraftDots()
+  window.addEventListener(DRAFT_CHANGED_EVENT, onDraftChanged)
+})
+onUnmounted(() => {
+  window.removeEventListener(DRAFT_CHANGED_EVENT, onDraftChanged)
+})
+watch(() => [...sessionStore.sessionsMap.keys()].map(String).join('|'), () => {
+  void refreshDraftDots()
+})
 const { themeMode, setTheme } = useTheme()
 
 const { t } = useI18n()
@@ -1916,6 +1946,17 @@ onUnmounted(() => {
    遮罩渐变里的 rgba(0,0,0,.65) 是 mask 的「不透明度阶梯」，不是颜色，必须保留。 */
 
 /* 会话项样式 */
+/* 草稿圆点：会话里还有没发送的草稿（amber 警示色，亮但不抢 active 态的高亮） */
+.session-draft-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 9999px;
+  background: var(--el-color-warning, #e6a23c);
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--el-color-warning, #e6a23c) 18%, transparent);
+}
+
 .session-title {
   overflow: hidden;
   white-space: nowrap;

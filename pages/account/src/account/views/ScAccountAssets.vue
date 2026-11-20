@@ -1176,8 +1176,20 @@ function syncFiltersToQuery(): void {
 
 restoreFiltersFromQuery();
 
-// 分段 / 筛选 / 排序 / 状态变化即写回 URL；关键词输入频繁，防抖后再写
-watch([segment, kindFilter, usageFilter, ownerFilter, sortKey, statusFilter], syncFiltersToQuery);
+// 分段 / 筛选 / 排序 / 状态变化即写回 URL；关键词输入频繁，防抖后再写。
+// 例外：点索引行定位（focusIndexRow）也会把 segment 切到该行分组，但那只是
+// 右侧详情的定位副产品，不是用户显式选分段。若照常写回 URL，route.fullPath
+// 变化会让路由视图按 :key="route.fullPath" 把整页卸载重挂，selectedAccountId
+// 被新实例的 syncSelection 重置成第一行——点「甲」行删的却是「丙」。
+// 因此定位引起的 segment 变化跳过本次写回；URL 只记录用户的显式分段/筛选操作。
+let suppressQuerySyncForFocus = false;
+watch([segment, kindFilter, usageFilter, ownerFilter, sortKey, statusFilter], () => {
+  if (suppressQuerySyncForFocus) {
+    suppressQuerySyncForFocus = false;
+    return;
+  }
+  syncFiltersToQuery();
+});
 let keywordSyncTimer: ReturnType<typeof setTimeout> | null = null;
 watch(keyword, () => {
   if (keywordSyncTimer) clearTimeout(keywordSyncTimer);
@@ -2497,6 +2509,9 @@ const ctxMenu = ref<{
  * @param row 行
  */
 function focusIndexRow(group: IndexGroup, row: IndexRow): void {
+  // segment 真变化时抑制本次 URL 写回（见 syncFiltersToQuery 上方说明）；
+  // 值相同则不设标志——watch 不会触发，残留标志会误吞下一次显式操作的写回。
+  if (segment.value !== group.key) suppressQuerySyncForFocus = true;
   segment.value = group.key;
   if (group.key === 'APPKEY') {
     selectedAppKeyId.value = row.id;

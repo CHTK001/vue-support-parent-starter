@@ -62,6 +62,26 @@
         </el-tag>
       </div>
 
+      <!-- 恢复提示角标（2026-11-20）：草稿（文本/附件）回填后告诉用户内容从哪来，
+           可手动关闭；发送后或切入编辑态时自动收起。 -->
+      <div v-if="draftRestoredVisible" class="draft-restored" role="status">
+        <svg class="draft-restored__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+          aria-hidden="true">
+          <circle cx="10" cy="10" r="7.2" />
+          <path d="M10 6v4l2.6 1.6" stroke-linecap="round" />
+        </svg>
+        <span class="draft-restored__text">
+          {{ t('chat.input.draftRestored', { time: draftRestoredAge }) }}<template
+            v-if="draftSkippedCount > 0">{{ t('chat.input.draftFilesSkipped', { n: draftSkippedCount }) }}</template>
+        </span>
+        <button type="button" class="draft-restored__close" :aria-label="t('common.close')"
+          @click="draftRestoredVisible = false">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
       <!-- Tiptap 编辑器（替换 textarea） -->
       <div class="editor-container" :class="{ 'has-prediction': showPrediction }">
         <template v-if="props.readonly">
@@ -160,6 +180,9 @@
                 <span v-if="goal" class="goal-btn__count">{{ goalCounter }}</span>
               </button>
             </LTooltip>
+
+            <!-- token 预估（2026-11-20）：发送前对这条消息的体量有个数；空输入不显示 -->
+            <span v-if="hasDraftText" class="token-estimate">{{ t('chat.input.tokenEstimate', { n: estimatedTokensLabel }) }}</span>
         </div>
 
         <!-- 右组：模型 + 思考档位合成一个控件（截图里的「✳ 模型名 / 默认」），
@@ -329,7 +352,9 @@ import { useRouter } from 'vue-router';
 import { useSessionStore } from '@/stores/session';
 import { useGoalStore, formatTokenCounter, DEFAULT_GOAL_TOKEN_BUDGET } from '@/stores/goal';
 import { useAuthStore } from '@/stores/auth';
-import { saveInputDraft, loadInputDraft, clearInputDraft } from '@/utils/inputDraft';
+import { saveInputDraft, loadInputDraftRecord, clearInputDraft,
+  DRAFT_FILE_MAX_BYTES, DRAFT_FILE_TOTAL_BYTES, type DraftFileSnapshot } from '@/utils/inputDraft';
+import { estimateTokens } from '@/composables/useTurnStats';
 import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
 import { apiService } from '@/services/ApiService';
 import { mcpApi } from '@/services/javaApi';
@@ -527,12 +552,59 @@ const removeHistoryMany = (ids: string[]) => {
    只持久化文本；附件、技能徽标等仍是会话内的临时状态。 */
 /** 草稿写入防抖定时器 */
 let draftSaveTimer: ReturnType<typeof setTimeout> | null = null;
-/** 上次落盘的草稿（会话 + 文本）：内容没变就不重复写 IndexedDB */
+/** 上次落盘的草稿（会话 + 内容签名）：内容没变就不重复写 IndexedDB */
 let lastDraftKey = '';
 let lastDraftValue = '';
 
 /**
- * 立即把当前编辑器内容写成该会话的草稿（跳过防抖）。
+ * 把当前附件列表压成草稿快照。
+ *
+ * <p>本地文件（File/Blob）直接交给 IndexedDB 结构化克隆，不转 base64；
+ * 单个超过 {@link DRAFT_FILE_MAX_BYTES} 或总量超过 {@link DRAFT_FILE_TOTAL_BYTES}
+ * 的不存，计入 skipped（恢复时提示数量）。没有 blob 但有 url 的（编辑回填等
+ * 已上传文件）只存引用，恢复后按引用发送、不重传。</p>
+ */
+const buildDraftFileSnapshots = (): { files: DraftFileSnapshot[]; skipped: number } => {
+  const files: DraftFileSnapshot[] = [];
+  let skipped = 0;
+  let total = 0;
+  for (const f of uploadFiles.value) {
+    const blob = f.file;
+    if (blob) {
+      if (blob.size > DRAFT_FILE_MAX_BYTES || total + blob.size > DRAFT_FILE_TOTAL_BYTES) {
+        skipped += 1;
+        continue;
+      }
+      total += blob.size;
+      files.push({
+        name: f.fileName,
+        displayName: f.displayName,
+        size: f.fileSize,
+        ext: f.fileExtension,
+        type: f.fileType,
+        mime: blob.type || 'application/octet-stream',
+        blob,
+      });
+    } else if (f.url) {
+      files.push({
+        name: f.fileName,
+        displayName: f.displayName,
+        size: f.fileSize,
+        ext: f.fileExtension,
+        type: f.fileType,
+        mime: '',
+        id: String(f.id),
+        url: f.url,
+      });
+    } else {
+      skipped += 1;
+    }
+  }
+  return { files, skipped };
+};
+
+/**
+ * 立即把当前编辑器内容与附件写成该会话的草稿（跳过防抖）。
  *
  * <p>切会话、组件卸载时必须立刻落盘，否则防抖窗口里最后敲的几个字会丢。
  * 只读/编辑态不写：前者不是自己的会话，后者的内容由父组件经 props.value 管理。</p>
@@ -546,12 +618,14 @@ const flushInputDraft = (sid: string) => {
   }
   if (!sid || props.readonly || props.editing) return;
   const text = editorContent.value;
-  if (lastDraftKey === sid && lastDraftValue === text) return;
+  const { files, skipped } = buildDraftFileSnapshots();
+  const signature = `${text}\u0000${files.length}\u0000${skipped}`;
+  if (lastDraftKey === sid && lastDraftValue === signature) return;
   lastDraftKey = sid;
-  lastDraftValue = text;
+  lastDraftValue = signature;
   const user = authStore.user?.username;
-  if (text.trim()) {
-    void saveInputDraft(text, user, sid);
+  if (text.trim() || files.length) {
+    void saveInputDraft(text, user, sid, files, skipped);
   } else {
     void clearInputDraft(user, sid);
   }
@@ -572,23 +646,80 @@ watch(editorContent, () => {
   scheduleInputDraftSave();
 });
 
+/** 恢复角标：草稿（文本/附件）回填后亮出「保存于多久前」，可手动关闭 */
+const draftRestoredVisible = ref(false);
+const draftRestoredTime = ref(0);
+/** 因过大/无法恢复而未随草稿回来的附件数（>0 时在角标里提示） */
+const draftSkippedCount = ref(0);
+
+/** 角标里的相对时间：刚刚 / N 分钟前 / N 小时前 / N 天前 */
+const draftRestoredAge = computed(() => {
+  const diff = Math.max(0, Date.now() - draftRestoredTime.value);
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return t('chat.input.draftSavedJustNow');
+  if (minutes < 60) return t('chat.input.draftSavedMinutes', { n: minutes });
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return t('chat.input.draftSavedHours', { n: hours });
+  return t('chat.input.draftSavedDays', { n: Math.floor(hours / 24) });
+});
+
 /**
- * 把本会话保存过的草稿填回编辑器（静默填入，不抢焦点）。
+ * 把本会话保存过的草稿（文本 + 附件）填回输入区，并亮出恢复角标。
  *
  * <p>只在编辑器为空、且父组件没有推入正式内容（props.value）时回填：
  * 前者避免覆盖正在输入的内容，后者让编辑消息等流程照常优先。</p>
  */
 const restoreInputDraft = async () => {
   const sid = props.sessionId == null ? '' : String(props.sessionId);
+  draftRestoredVisible.value = false;
+  draftSkippedCount.value = 0;
   if (!sid || props.readonly || props.editing || !editor.value) return;
   if (editor.value.getText().trim() || String(props.value ?? '').trim()) return;
-  const text = await loadInputDraft(authStore.user?.username, sid);
-  if (!text || !editor.value) return;
+  const record = await loadInputDraftRecord(authStore.user?.username, sid);
+  if (!record || !editor.value) return;
   // 等待读取期间会话可能又切走、内容可能已被填上：都不再覆盖
   if (String(props.sessionId ?? '') !== sid || props.editing) return;
   if (editor.value.getText().trim() || String(props.value ?? '').trim()) return;
-  setDraftText(text, true);
+  if (record.text) setDraftText(record.text, true);
+  draftRestoredTime.value = record.savedAt;
+  draftSkippedCount.value = record.skippedFiles;
+  if (record.files.length) {
+    const restored: ChatFile[] = [];
+    for (const snap of record.files) {
+      if (snap.blob) {
+        // 结构化克隆取回的 Blob 重新包成 File，走与手选文件完全相同的入列逻辑
+        restored.push(createFileObject(
+          new File([snap.blob], snap.name, { type: snap.mime }),
+          snap.type === 'image' ? 'IMAGE' : 'TEXT',
+        ));
+      } else if (snap.url) {
+        // 已上传文件：按引用恢复，不重新上传
+        restored.push({
+          id: fileIdCounter++,
+          fileName: snap.name,
+          fileSize: snap.size,
+          fileExtension: snap.ext,
+          fileType: snap.type,
+          displayName: snap.displayName,
+          file: undefined as unknown as File,
+          isPasted: false,
+          uploadProgress: 100,
+          uploadStatus: 'uploaded',
+          url: snap.url,
+        });
+      }
+    }
+    if (restored.length) uploadFiles.value = restored;
+  }
+  if (record.text.trim() || record.files.length) {
+    draftRestoredVisible.value = true;
+  }
 };
+
+// 进入编辑态时收起恢复角标：编辑流程有自己的提示条，别叠两层
+watch(() => props.editing, (editing) => {
+  if (editing) draftRestoredVisible.value = false;
+});
 
 // 命令选择弹窗 ref
 const commandPickerRef = ref<any>();
@@ -729,6 +860,19 @@ const styleClass = computed(() => {
 const inputContent = computed({
   get: () => props.value,
   set: (value) => emit('update:value', value)
+});
+
+// ===== token 预估（2026-11-20）=====
+/** 当前输入的 token 估算值：复用 useTurnStats 的口径（CJK 1 字 1 token，其余 4 字符 1 token），与流式用量统计一致 */
+const estimatedTokens = computed(() => estimateTokens(editorContent.value));
+/** 展示格式：千位以上缩写成 1.2k / 12k，避免一长串数字在工具条里晃眼 */
+const estimatedTokensLabel = computed(() => {
+  const n = estimatedTokens.value;
+  if (n >= 1000) {
+    const k = n / 1000;
+    return `${k >= 10 ? Math.round(k) : Math.round(k * 10) / 10}k`;
+  }
+  return String(n);
 });
 
 // ===== 会话目标（Goal）=====
@@ -917,6 +1061,12 @@ const uploadFiles = computed({
     // 直接发射更新事件，让父组件处理
     emit('update:files', newFiles);
   }
+});
+
+// 附件增删同样要落草稿：只 watch 文本会漏掉「先打字、后贴附件」或「只存了附件」的场景。
+// 上传进度等原地变更不换数组引用，不会触发，正好避免无意义的重复写盘。
+watch(uploadFiles, () => {
+  scheduleInputDraftSave();
 });
 
 // 当前选中的模型
@@ -2357,6 +2507,8 @@ const sendMessage = async () => {
   // 清空编辑器和文件列表
   editor.value?.chain().clearContent().focus().run();
   uploadFiles.value = [];
+  // 草稿已随发送消费掉（watch 会在 400ms 内清库），恢复角标一并收起
+  draftRestoredVisible.value = false;
 };
 
 /** 最近一次发送的内容（发送失败时据此恢复）；每次 sendMessage 都会覆盖 */
@@ -3178,6 +3330,75 @@ html.dark .input-area--continues-banner {
 .input-area.drag-over {
   border-color: var(--el-color-primary) !important;
   background-color: color-mix(in srgb, var(--el-color-primary) 8%, var(--color-input-bg)) !important;
+}
+
+/* 恢复提示角标：草稿回填后贴在编辑器上方，轻量说明「内容从哪来」，可关闭 */
+.draft-restored {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 2px 6px;
+  padding: 3px 6px 3px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  color: var(--text-secondary, var(--el-text-color-regular));
+  font-size: 11.5px;
+  line-height: 17px;
+}
+
+.draft-restored__icon {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  color: var(--el-color-primary);
+}
+
+.draft-restored__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draft-restored__close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.draft-restored__close svg {
+  width: 9px;
+  height: 9px;
+}
+
+.draft-restored__close:hover {
+  background: color-mix(in srgb, var(--text-primary, #0f172a) 8%, transparent);
+  color: var(--text-primary, var(--el-text-color-primary));
+}
+
+/* token 预估：等宽小字跟在工具条末尾，只报体量不做动作 */
+.token-estimate {
+  flex: none;
+  margin-left: 6px;
+  color: var(--text-tertiary, var(--el-text-color-secondary));
+  font-size: 11px;
+  line-height: 16px;
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  user-select: none;
 }
 
 /* Tiptap 编辑器样式 - 模拟 textarea */

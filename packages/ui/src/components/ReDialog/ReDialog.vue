@@ -436,6 +436,7 @@ const showCloseFab = computed(() => props.headless);
             link
 
             :title="isFullscreen ? '退出全屏' : '全屏'"
+            :aria-label="isFullscreen ? '退出全屏' : '全屏'"
             @click="toggleFullscreen"
           >
             <el-icon><Crop v-if="isFullscreen" /><FullScreen v-else /></el-icon>

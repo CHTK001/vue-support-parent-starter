@@ -57,6 +57,8 @@
           <span v-if="selecting && row.item.local" class="ph-item__ck"
             :class="{ 'is-on': selectedIds.has(row.item.id) }" role="checkbox"
             :aria-checked="selectedIds.has(row.item.id)" @click.stop="toggleRow(row.item.id)" />
+          <!-- 终端式行号：按 items 原始序号编号，过滤后也不重排（与键盘导航同口径） -->
+          <span class="ph-item__ln" aria-hidden="true">{{ String(row.index + 1).padStart(2, '0') }}</span>
           <span class="ph-item__text">{{ row.item.text }}</span>
           <span v-if="row.item.createdAt" class="ph-item__time">{{ fmtTime(row.item.createdAt) }}</span>
           <!-- 单条删除只对本机历史开放：会话消息的删除走消息列表自己的入口 -->
@@ -418,6 +420,7 @@ function fmtTime(ts?: number): string {
   color: var(--text-primary, var(--el-text-color-primary));
   font-size: 12px;
   line-height: 18px;
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
   outline: none;
 }
 
@@ -457,7 +460,8 @@ function fmtTime(ts?: number): string {
   color: var(--text-primary, var(--el-text-color-primary));
 }
 
-/* 条目不换行：历史是「找回之前问过什么」，一条一行扫起来才快 */
+/* 条目不换行：历史是「找回之前问过什么」，一条一行扫起来才快。
+   终端式口径（2026-11-20）：等宽字体 + 行号 + 时间戳，交互（过滤/选择/键盘）不变 */
 .ph-list {
   display: flex;
   flex-direction: column;
@@ -472,8 +476,9 @@ function fmtTime(ts?: number): string {
   padding: 5px 8px;
   border-radius: 6px;
   color: var(--text-primary, var(--el-text-color-primary));
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 18px;
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
   cursor: pointer;
   user-select: none;
   transition: background-color 0.12s ease;
@@ -481,6 +486,24 @@ function fmtTime(ts?: number): string {
 
 .ph-item.is-active {
   background: color-mix(in srgb, var(--text-primary, #0f172a) 6%, transparent);
+}
+
+/* 行号：弱化的两位序号；当前键盘高亮行把行号点亮成主色 */
+.ph-item__ln {
+  flex: none;
+  width: 22px;
+  margin-right: -2px;
+  text-align: right;
+  color: var(--text-tertiary, var(--el-text-color-placeholder));
+  font-size: 10.5px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  transition: color 0.12s ease;
+}
+
+.ph-item.is-active .ph-item__ln {
+  color: var(--el-color-primary);
 }
 
 .ph-item__text {
@@ -543,6 +566,7 @@ function fmtTime(ts?: number): string {
   color: var(--text-tertiary, var(--el-text-color-placeholder));
   font-size: 11px;
   line-height: 16px;
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
   user-select: none;
 }
 

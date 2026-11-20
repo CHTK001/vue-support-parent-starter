@@ -3147,15 +3147,15 @@ const listEntries = computed<ListEntry[]>(() => {
   const entries: ListEntry[] = []
   let currentKey = ''
   for (const row of rows.value) {
-    const d = new Date(row.task.createdAt)
+    const d = new Date(row.task.createdAt ?? 0)
     const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
     if (key !== currentKey) {
       currentKey = key
       const count = rows.value.filter((r) => {
-        const rd = new Date(r.task.createdAt)
+        const rd = new Date(r.task.createdAt ?? 0)
         return `${rd.getFullYear()}-${rd.getMonth() + 1}-${rd.getDate()}` === key
       }).length
-      entries.push({ kind: 'day', key: `day-${key}`, label: dayLabelOf(row.task.createdAt), count })
+      entries.push({ kind: 'day', key: `day-${key}`, label: dayLabelOf(row.task.createdAt ?? 0), count })
     }
     entries.push({ kind: 'row', key: row.id || `row-${row.task.taskId}`, row })
   }
@@ -4156,7 +4156,7 @@ const crc32Of = (bytes: Uint8Array): number => {
  * <p>图片 / 视频本身已是压缩格式，再压一遍没有收益，归档用 STORED 即可，
  * 免去引入 jszip 这类依赖。条目数 = 单次任务的张数（≤10），远在 ZIP 能力之内。</p>
  */
-function buildZipBlob(entries: Array<{ name: string; data: Uint8Array }>): Blob {
+function buildZipBlob(entries: Array<{ name: string; data: Uint8Array<ArrayBuffer> }>): Blob {
   const encoder = new TextEncoder()
   const u16 = (v: number) => new Uint8Array([v & 0xff, (v >>> 8) & 0xff])
   const u32 = (v: number) =>
@@ -4171,8 +4171,8 @@ function buildZipBlob(entries: Array<{ name: string; data: Uint8Array }>): Blob 
     return out
   }
 
-  const body: Uint8Array[] = []
-  const central: Uint8Array[] = []
+  const body: Uint8Array<ArrayBuffer>[] = []
+  const central: Uint8Array<ArrayBuffer>[] = []
   let offset = 0
   for (const entry of entries) {
     const name = encoder.encode(entry.name)

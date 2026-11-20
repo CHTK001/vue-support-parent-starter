@@ -10,6 +10,14 @@ export default {
     enqueue: 'Enqueue',
     send: 'Send',
     sendFailedRestored: 'Send failed — your text has been restored to the input box',
+    // Draft restore badge + token estimate (2026-11-20)
+    draftRestored: 'Unsent draft restored · {time}',
+    draftSavedJustNow: 'just now',
+    draftSavedMinutes: '{n} min ago',
+    draftSavedHours: '{n} h ago',
+    draftSavedDays: '{n} d ago',
+    draftFilesSkipped: ' ({n} file(s) too large to restore)',
+    tokenEstimate: '≈ {n} tokens',
     selectModel: 'Please select a model',
     plusTooltip: 'Commands, attachments & MCP',
     plusAria: 'Input menu: commands, attachments and MCP',
@@ -341,6 +349,7 @@ export default {
     noSessionDesc: 'Click the button above to create a new session',
     loadMore: 'Click to load more ({n} remaining)',
     allLoaded: 'All {n} sessions loaded',
+    hasDraft: 'This session has an unsent draft',
   },
 
   // ── 浮动面板 ──

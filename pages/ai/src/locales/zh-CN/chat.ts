@@ -10,6 +10,14 @@ export default {
     enqueue: '加入队列',
     send: '发送',
     sendFailedRestored: '发送失败，内容已放回输入框',
+    // 草稿恢复角标 + token 预估（2026-11-20）
+    draftRestored: '已恢复未发送的草稿 · {time}',
+    draftSavedJustNow: '刚刚',
+    draftSavedMinutes: '{n} 分钟前',
+    draftSavedHours: '{n} 小时前',
+    draftSavedDays: '{n} 天前',
+    draftFilesSkipped: '（{n} 个附件过大未恢复）',
+    tokenEstimate: '≈ {n} tokens',
     selectModel: '请选择模型',
     plusTooltip: '指令、附件与 MCP',
     plusAria: '输入区菜单：指令、附件与 MCP',
@@ -349,6 +357,7 @@ export default {
     noSessionDesc: '点击上方按钮创建新的会话',
     loadMore: '点击加载更多 (剩余 {n} 个)',
     allLoaded: '已加载全部 {n} 个会话',
+    hasDraft: '该会话有未发送的草稿',
   },
 
   // ── 浮动面板 ──

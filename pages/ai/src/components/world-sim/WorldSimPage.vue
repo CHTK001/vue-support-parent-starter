@@ -114,7 +114,7 @@
                 <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
                 <span class="ws-adv-text">推进时间</span>
               </button>
-              <button class="ws-chat-set" type="button" title="世界设置" aria-label="世界设置" @click="openWorldEdit">
+              <button class="ws-chat-set" type="button" title="世界设置" aria-label="世界设置" data-role="world-settings" @click="openWorldEdit">
                 <el-icon><MoreFilled /></el-icon>
               </button>
             </div>
@@ -191,7 +191,7 @@
           </div>
           <div class="ws-reel-side">
             <span class="ws-reel-count">{{ acts.length ? `共 ${acts.length} 幕` : '还没有幕次' }}</span>
-            <button v-if="acts.length" class="ws-act-create" type="button" @click="openCreateAct">
+            <button v-if="acts.length" class="ws-act-create" type="button" data-role="create-act" @click="openCreateAct">
               <el-icon><Plus /></el-icon>
               <span>新建幕次</span>
             </button>
@@ -199,7 +199,7 @@
         </div>
 
         <!-- 舞台：当前幕次的演出（正文只读）。幕次状态已上移到台头，这里只放画面 -->
-        <div ref="msgBoxRef" class="ws-stage" :class="{ 'is-act': !!currentAct }">
+        <div ref="msgBoxRef" class="ws-stage" :class="{ 'is-act': !!currentAct }" @scroll="onStageScroll">
           <template v-if="currentAct && actDetail">
             <!-- 演出正文（视频优先：分镜视频连播，没有视频才用文字演出） -->
             <div v-if="playVideos.length" class="ws-film" data-role="film">
@@ -316,7 +316,7 @@
                   :data-id="s.id"
                   @click="selectScene(s)"
                 >{{ s.name }}</button>
-                <button class="ws-scene-add" type="button" title="新建场景" @click="openCreateScene">
+                <button class="ws-scene-add" type="button" title="新建场景" data-role="create-scene" @click="openCreateScene">
                   <el-icon><Plus /></el-icon>
                 </button>
               </div>
@@ -393,14 +393,29 @@
             <span class="ws-track-grow"></span>
           </div>
           <div class="ws-watch-bar">
-            <span class="ws-watch-hint">{{ readingOnly ? '只读账号：' : '' }}你只能看。角色与关系可微调，剧情由 AI 推进。</span>
-            <button v-if="!currentAct" class="btn primary" type="button" :disabled="spectating || !canSpectate"
-              :title="canSpectate ? '让 AI 在这个场景继续演一段' : '先在场景页签里选一个场景'"
-              @click="spectate">
-              <el-icon v-if="!spectating"><VideoPlay /></el-icon>
-              <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
-              观演一次
-            </button>
+            <span class="ws-watch-hint">{{ readingOnly ? '只读账号，你只能看。点演员可指定下一轮由 TA 先开口。' : '你只能看。点演员可指定下一轮由 TA 先开口，铅笔微调人设。' }}</span>
+            <span v-if="mentionNpcName" class="ws-mention-chip" data-role="mention-chip"
+              title="点掉就交回 AI 决定谁先开口" @click="mentionNpc = null">
+              @ {{ mentionNpcName }} 先开口 ✕
+            </span>
+            <span v-if="autoWatchError && !autoWatch" class="ws-watch-err" data-role="auto-watch-error">
+              {{ autoWatchError }}
+              <button class="ws-watch-retry" type="button" @click="retryAutoWatch">重试</button>
+            </span>
+            <span class="ws-watch-actions">
+              <button v-if="!currentAct && !following && messages.length" class="ws-back-bottom" type="button"
+                data-role="back-bottom" title="回到最新一条消息" @click="scrollToBottom">
+                回到底部 ↓<span v-if="unseenCount" class="ws-unseen">{{ unseenCount > 99 ? '99+' : unseenCount }}</span>
+              </button>
+              <button v-if="!currentAct" class="btn primary" type="button" :disabled="spectating || !canSpectate"
+                data-role="spectate"
+                :title="canSpectate ? '让 AI 在这个场景继续演一段' : '先在场景页签里选一个场景'"
+                @click="spectate">
+                <el-icon v-if="!spectating"><VideoPlay /></el-icon>
+                <span v-else class="ws-spin"><el-icon><Loading /></el-icon></span>
+                观演一次
+              </button>
+            </span>
           </div>
         </div>
       </template>
@@ -1701,6 +1716,10 @@ async function selectScene(s: WorldScene) {
   currentSceneId.value = s.id
   messages.value = []
   await loadMessages()
+  // 场景一换，跟随态与漏看角标从零开始
+  following.value = true
+  unseenBase.value = messages.value.length
+  scrollBottom()
 }
 
 /**
@@ -1721,6 +1740,9 @@ async function backToConversation() {
     await selectScene(scenes.value[0])
     return
   }
+  // 回到对话视图即回到跟随态：避免沿用幕次视图里遗留的离开底部状态
+  following.value = true
+  unseenBase.value = messages.value.length
   scrollBottom()
 }
 
@@ -2718,6 +2740,10 @@ function retryTurn(m: UIMessage) {
 .ws-add:active { transform: scale(0.94); }
 .ws-list-body { flex: 1; overflow-y: auto; padding: 2px 6px 8px; }
 
+/* 列表头下方的时代/天气筛选：两个下拉各占一半，窄左栏也不换行 */
+.ws-filter-row { display: flex; align-items: center; gap: 8px; padding: 0 12px 8px; }
+.ws-filter-select { flex: 1; min-width: 0; }
+
 .ws-conv {
   position: relative;
   display: flex;
@@ -2833,6 +2859,17 @@ function retryTurn(m: UIMessage) {
   padding: 1px 7px;
   border-radius: var(--el-radius-sm, 6px);
   flex-shrink: 0;
+}
+/* 只读访客：能看不能改，用红色小胶囊提示，别让用户以为是坏了 */
+.ws-ro-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--el-color-danger) 30%, transparent);
+  white-space: nowrap;
 }
 .ws-chat-head-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .ws-auto {
@@ -3469,6 +3506,21 @@ function retryTurn(m: UIMessage) {
 .ws-msg-avatar { flex-shrink: 0; }
 .ws-msg-col { max-width: 66%; min-width: 0; margin: 0 10px; }
 .is-self .ws-msg-col { display: flex; flex-direction: column; align-items: flex-end; }
+/* SSE 断线留下的错误气泡：下面给一个「重试本回合」，不用自己再点观演 */
+.ws-msg-retry {
+  display: block;
+  margin-top: 6px;
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 10%, transparent);
+  border: 1px solid var(--el-color-danger);
+  border-radius: var(--el-radius-sm, 6px);
+  cursor: pointer;
+}
+.ws-msg-retry:hover:not(:disabled) { background: color-mix(in srgb, var(--el-color-danger) 18%, transparent); }
+.ws-msg-retry:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* 旁白：居中、无气泡，像小说里的叙述段 */
 .ws-narr {
@@ -3548,6 +3600,58 @@ function retryTurn(m: UIMessage) {
 }
 .ws-watch-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ws-watch-hint { font-size: 12px; color: var(--el-text-color-placeholder); line-height: 1.6; }
+/* 被 @ 的演员：脚灯条上常驻，点掉就交回 AI */
+.ws-mention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-radius-sm, 6px);
+  font-size: 12px;
+  color: var(--el-color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ws-mention-chip:hover { border-color: var(--el-color-primary); }
+.ws-watch-actions { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+/* 自动观看失败：原因与重试直接放在脚灯条，不弹第二次 toast */
+.ws-watch-err {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 8%, transparent);
+  padding: 4px 8px;
+  border-radius: var(--el-radius-sm, 6px);
+}
+.ws-watch-retry {
+  border: 0;
+  background: transparent;
+  color: var(--el-color-danger);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+.ws-watch-retry:hover { text-decoration: underline; }
+/* 离开底部后漏看多少条：回到底部按钮上的角标 */
+.ws-back-bottom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--el-color-warning) 45%, transparent);
+  border-radius: var(--el-radius-full, 9999px);
+  background: color-mix(in srgb, var(--el-color-warning) 10%, transparent);
+  color: var(--el-color-warning);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-back-bottom:hover { background: color-mix(in srgb, var(--el-color-warning) 20%, transparent); }
+.ws-unseen { font-size: 11px; color: var(--el-color-warning); margin-left: 2px; }
 
 .ws-chat-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; }
 .ph-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--el-text-color-placeholder); }
@@ -4106,7 +4210,36 @@ function retryTurn(m: UIMessage) {
   background: color-mix(in srgb, var(--el-color-primary) 16%, transparent);
   color: var(--el-color-white);
 }
+/* 点选中的演员：下一轮由 TA 先开口，用警示色与「在场」的蓝区分开 */
+.ws-track-chip.selected {
+  border-color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-warning) 20%, transparent);
+  color: var(--el-color-warning);
+}
 .ws-track-chip.off { opacity: 0.45; }
+/* chip + 铅笔的包裹层：按钮不能嵌按钮，编辑入口单独放在 chip 右侧 */
+.ws-track-item { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.ws-track-edit {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: color-mix(in srgb, var(--el-color-white) 40%, transparent);
+  cursor: pointer;
+  transition: color var(--el-transition-duration-fast, 0.2s) ease,
+    background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.ws-track-edit:hover {
+  color: var(--el-color-warning);
+  background: color-mix(in srgb, var(--el-color-white) 10%, transparent);
+}
+.ws-track-edit :deep(.el-icon) { font-size: 12px; }
 .ws-track-name {
   max-width: 82px;
   overflow: hidden;
