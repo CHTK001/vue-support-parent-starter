@@ -68,3 +68,48 @@ export function persistOutfits(list: AvatarOutfit[]): void {
 export function newOutfitId(): string {
   return `outfit-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
 }
+
+/** 搭配内容签名（框 + 饰品编码集合），用于保存 / 导入时去重 */
+export function outfitSignature(frameId: number, ornamentCodes: string[]): string {
+  return `${frameId}|${[...ornamentCodes].sort().join(",")}`;
+}
+
+/**
+ * 把方案编码成可分享口令：base64url(JSON)，UTF-8 安全。
+ * 编码里只有 frameId 与饰品 code（跨设备稳定），不含本机 ID 与时间戳。
+ */
+export function encodeOutfitToken(outfit: AvatarOutfit): string | null {
+  try {
+    const json = JSON.stringify({ v: 1, f: outfit.frameId, o: outfit.ornamentCodes, n: outfit.name });
+    const bytes = new TextEncoder().encode(json);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  } catch {
+    return null;
+  }
+}
+
+/** 解析分享口令；格式不合法返回 null */
+export function decodeOutfitToken(token: string): {
+  frameId: number;
+  ornamentCodes: string[];
+  name: string;
+} | null {
+  try {
+    const base64 = token.trim().replace(/-/g, "+").replace(/_/g, "/");
+    const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (!parsed || typeof parsed !== "object") return null;
+    const data = parsed as Record<string, unknown>;
+    if (data.v !== 1) return null;
+    const frameId = Number(data.f) || 0;
+    const ornamentCodes = Array.isArray(data.o)
+      ? data.o.filter((c): c is string => typeof c === "string" && Boolean(c))
+      : [];
+    if (!frameId && !ornamentCodes.length) return null;
+    return { frameId, ornamentCodes, name: typeof data.n === "string" ? data.n : "" };
+  } catch {
+    return null;
+  }
+}

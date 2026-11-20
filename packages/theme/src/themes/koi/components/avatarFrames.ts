@@ -13,7 +13,7 @@
  *  以上均为中心镂空环（孔径 0.72），由 scripts/build-avatar-frames.mjs 生成；
  *  灵动/星座为 256 画布、8 帧、索引色（渲染坐标仍按 400 标定后降采样）。
  */
-import { shallowRef } from "vue";
+import { ref, shallowRef } from "vue";
 import { getConfig } from "@repo/config";
 
 /** 生日框记录ID（数据库固定 id=100，type=birthday） */
@@ -113,6 +113,9 @@ export const FALLBACK_AVATAR_FRAMES: AvatarFrame[] = [
 /** 当前生效的头像框字典（响应式；初始为兜底字典） */
 export const avatarFrameDict = shallowRef<AvatarFrame[]>(FALLBACK_AVATAR_FRAMES);
 
+/** 字典是否仍是内置兜底（服务端目录未拉到时为 true，面板据此提示「正在展示内置款」） */
+export const avatarFrameDictFallback = ref(true);
+
 let loadPromise: Promise<void> | null = null;
 
 /** 头像框总开关：系统设置 other.avatarFrame.enable（默认开启，显式 false 才关闭） */
@@ -184,6 +187,7 @@ export function loadAvatarFrames(): Promise<void> {
       }
       merged.sort((a, b) => a.id - b.id);
       avatarFrameDict.value = merged;
+      avatarFrameDictFallback.value = false;
     } catch {
       // 服务端不可用时沿用兜底字典
     }

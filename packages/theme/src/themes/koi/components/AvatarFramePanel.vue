@@ -3,26 +3,39 @@
     <div class="avatar-frame-toolbar">
       <span class="avatar-frame-toolbar-label">显示头像框</span>
       <div class="avatar-frame-toolbar-actions">
-        <span class="avatar-frame-collect" title="头像框与饰品的收集进度">
+        <button
+          type="button"
+          class="avatar-frame-collect"
+          :class="{ 'is-high': collectPercent >= 75 }"
+          title="收集进度 · 点看还差哪些"
+          @click="collectOpen = true"
+        >
           收集
           <span class="avatar-frame-collect-bar">
             <span class="avatar-frame-collect-fill" :style="{ width: collectPercent + '%' }"></span>
           </span>
           {{ collectedCount }}/{{ collectTotal }}
-        </span>
-        <el-button
-          size="small"
-          text
-          type="primary"
-          :icon="Refresh"
-          :loading="randomDressing"
-          @click="randomDress"
-        >
-          随机换装
-        </el-button>
+        </button>
+        <el-dropdown trigger="click" @command="randomDress">
+          <el-button size="small" text type="primary" :icon="Refresh" :loading="randomDressing">
+            随机换装
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="all">随机框 + 饰品</el-dropdown-item>
+              <el-dropdown-item command="ornament">只随机饰品 · 保留当前框</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
         <el-switch v-model="frameShow" @change="persistShow" />
       </div>
     </div>
+
+    <!-- 服务端目录未拉到：明示正在展示内置款，避免误当成全部库存 -->
+    <p v-if="dictFallback" class="avatar-frame-fallback-tip">
+      服务端头像框目录暂不可用，正在展示内置款；恢复后自动换回完整目录。
+    </p>
 
     <template v-if="frameShow">
       <div class="avatar-frame-filters">
@@ -53,6 +66,21 @@
           🎂 生日彩蛋：你是 {{ birthdayPick.label }}，有专属的生肖框和星座框
         </span>
         <el-button size="small" text type="primary" @click="applyBirthdayPick">一键试戴星座框</el-button>
+      </div>
+
+      <!-- 今日搭配：按日期从可戴项里推荐一套，同一天内稳定，跨天自动换 -->
+      <div v-if="dailyPick" class="avatar-frame-daily">
+        <img
+          v-if="dailyPick.poster"
+          class="avatar-frame-daily-img"
+          :src="dailyPick.poster"
+          alt="今日搭配"
+          loading="lazy"
+        />
+        <span class="avatar-frame-daily-text" :title="dailyPick.desc">今日搭配：{{ dailyPick.desc }}</span>
+        <el-button size="small" text type="primary" :loading="applyingDaily" @click="applyDailyPick">
+          一键应用
+        </el-button>
       </div>
 
       <!-- 组合套装：框 + 挂件 + 昵称牌一键换装（纯前端推荐组合） -->
@@ -135,7 +163,16 @@
             />
             <span v-else class="avatar-frame-set-img avatar-frame-set-img--none">—</span>
             <div class="avatar-frame-set-info">
-              <span class="avatar-frame-set-name">{{ outfit.name }}</span>
+              <span class="avatar-frame-set-name">
+                {{ outfit.name }}
+                <span
+                  v-if="outfitExpireWarn(outfit)"
+                  class="avatar-frame-outfit-warn"
+                  :class="{ 'is-expired': outfitExpireWarn(outfit) === '含过期饰品' }"
+                >
+                  {{ outfitExpireWarn(outfit) }}
+                </span>
+              </span>
               <span class="avatar-frame-set-desc">{{ outfitDesc(outfit) }}</span>
             </div>
             <el-button
@@ -147,14 +184,26 @@
             >
               应用
             </el-button>
+            <el-button size="small" text type="primary" @click="openRenameOutfit(outfit)">重命名</el-button>
+            <el-button size="small" text type="primary" @click="shareOutfit(outfit)">分享</el-button>
             <el-popconfirm title="删除这套搭配？" width="150" @confirm="removeOutfit(outfit.id)">
               <template #reference>
                 <el-button size="small" text type="danger">删除</el-button>
               </template>
             </el-popconfirm>
           </div>
+          <div class="avatar-frame-outfit-import">
+            <el-input
+              v-model="outfitImportToken"
+              size="small"
+              placeholder="粘贴搭配口令导入"
+              clearable
+              @keyup.enter="importOutfitToken"
+            />
+            <el-button size="small" plain type="primary" @click="importOutfitToken">导入</el-button>
+          </div>
           <p v-if="!outfits.length" class="avatar-frame-outfit-empty">
-            还没有保存的搭配；戴好头像框和饰品后点「存当前搭配」。
+            还没有保存的搭配；戴好头像框和饰品后点「存当前搭配」，或粘贴口令导入。
           </p>
         </div>
       </section>
@@ -261,8 +310,34 @@
       </template>
     </el-dialog>
 
-    <!-- 保存当前搭配：起个名字存到本机 -->
-    <el-dialog v-model="outfitSaveVisible" width="320px" append-to-body destroy-on-close title="保存当前搭配">
+    <!-- 保存当前搭配：先看整体效果再起名；重命名复用同一弹层 -->
+    <el-dialog
+      v-model="outfitSaveVisible"
+      width="340px"
+      append-to-body
+      destroy-on-close
+      :title="outfitEditingId ? '重命名搭配' : '保存当前搭配'"
+    >
+      <div v-if="!outfitEditingId" class="avatar-frame-outfit-preview">
+        <div class="avatar-frame-preview-box">
+          <div
+            v-if="hasFrameVisual(savePreviewFrame)"
+            class="avatar-frame-img"
+            :style="savePreviewLayerStyle"
+          ></div>
+          <span v-else class="koi-avatar-default-frame" :style="defaultFrameLayerStyle(120)"></span>
+          <el-avatar :size="120" :src="avatar" />
+          <OrnamentBadge :size="20" :offset="3" />
+        </div>
+        <span
+          v-if="savePreviewNameplate"
+          class="avatar-frame-outfit-nameplate"
+          :style="savePreviewNameplate"
+        >
+          {{ displayName }}
+        </span>
+        <p class="avatar-frame-outfit-hint">当前完整效果：头像 + 头像框 + 挂件 + 昵称牌</p>
+      </div>
       <el-input
         v-model="outfitSaveName"
         maxlength="20"
@@ -270,11 +345,40 @@
         placeholder="搭配名称，如：日常 / 开会"
         @keyup.enter="saveCurrentOutfit"
       />
-      <p class="avatar-frame-outfit-hint">保存当前头像框与挂件/昵称牌组合，仅存本机。</p>
+      <p class="avatar-frame-outfit-hint">
+        {{ outfitEditingId ? "只改名字，搭配内容保持不变。" : "保存当前头像框与挂件/昵称牌组合，仅存本机。" }}
+      </p>
       <template #footer>
         <el-button size="small" @click="outfitSaveVisible = false">取消</el-button>
-        <el-button size="small" type="primary" @click="saveCurrentOutfit">保存</el-button>
+        <el-button size="small" type="primary" @click="saveCurrentOutfit">
+          {{ outfitEditingId ? "确定" : "保存" }}
+        </el-button>
       </template>
+    </el-dialog>
+
+    <!-- 收集进度明细：点工具栏进度条弹出，看还差哪些 -->
+    <el-dialog v-model="collectOpen" width="320px" append-to-body title="收集进度">
+      <p class="avatar-frame-collect-summary">
+        已收集 {{ collectedCount }}/{{ collectTotal }}（{{ collectPercent }}%）
+      </p>
+      <template v-if="missingFrames.length || missingOrnaments.length">
+        <p v-if="missingFrames.length" class="avatar-frame-collect-group">
+          未解锁头像框（{{ missingFrames.length }}）
+        </p>
+        <ul class="avatar-frame-collect-list">
+          <li v-for="frame in missingFrames" :key="frame.id">{{ frame.name }}</li>
+        </ul>
+        <p v-if="missingOrnaments.length" class="avatar-frame-collect-group">
+          未获得饰品（{{ missingOrnaments.length }}）
+        </p>
+        <ul class="avatar-frame-collect-list">
+          <li v-for="item in missingOrnaments" :key="item.id">
+            {{ item.name }}
+            <span class="avatar-frame-collect-slot">{{ ORNAMENT_SLOT_LABELS[item.slot] }}</span>
+          </li>
+        </ul>
+      </template>
+      <p v-else class="avatar-frame-outfit-empty">全部收集完成，一件不落！</p>
     </el-dialog>
   </div>
 </template>
@@ -289,7 +393,7 @@
  * GET /v2/avatar-frame/user。佩戴与显隐持久化：PUT /v2/user/update，
  * 成功后刷新登录用户信息并 emit updated。
  */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { ArrowDown, CircleCheckFilled, Lock, Refresh, Search, ZoomIn } from "@element-plus/icons-vue";
 import { msgError, msgSuccess, msgWarning } from "@repo/core";
 import { resolveUserDisplayInfo, Http } from "@repo/utils";
@@ -297,6 +401,7 @@ import useAuthStore from "@repo/pinia/modules/auth";
 import useUserStore from "@repo/pinia/modules/user";
 import {
   avatarFrameDict,
+  avatarFrameDictFallback,
   avatarFramePosterPath,
   defaultFrameLayerStyle,
   frameLayerStyle,
@@ -313,13 +418,25 @@ import {
   isOrnamentEnabled,
   isOrnamentExpired,
   isOrnamentOwned,
+  nameplateStyle,
   ornamentCatalog,
+  ornamentExpireHint,
+  ornamentLoading,
   ornamentWear,
   ornamentsForSlot,
   wearOrnament,
 } from "./ornaments/store";
-import { ORNAMENT_SLOTS } from "./ornaments/types";
-import { loadOutfits, newOutfitId, persistOutfits, type AvatarOutfit } from "./avatarOutfits";
+import { ORNAMENT_SLOTS, ORNAMENT_SLOT_LABELS } from "./ornaments/types";
+import OrnamentBadge from "./ornaments/OrnamentBadge.vue";
+import {
+  decodeOutfitToken,
+  encodeOutfitToken,
+  loadOutfits,
+  newOutfitId,
+  outfitSignature,
+  persistOutfits,
+  type AvatarOutfit,
+} from "./avatarOutfits";
 
 /** 兜底「默认光环」选项（id=0）：字典不含透明占位帧时，保证始终能取下头像框 */
 const DEFAULT_FRAME_OPTION: AvatarFrame = {
@@ -567,6 +684,71 @@ function isLocked(frame: AvatarFrame): boolean {
   return isAvatarFrameLocked(frame) && !ownedIds.value.has(frame.id);
 }
 
+/* ==================== 今日搭配（按日期 deterministic 推荐） ==================== */
+
+const applyingDaily = ref(false);
+
+/** mulberry32：小而够用的可复现随机数，同一天用同一个种子 */
+function seededRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pickSeeded<T>(list: T[], rand: () => number): T | undefined {
+  return list.length ? list[Math.floor(rand() * list.length)] : undefined;
+}
+
+/** 今天推荐哪套：同一天内稳定不变，跨天自动换；无可戴项时不出示 */
+const dailyPick = computed<{ poster?: string; desc: string; frame?: AvatarFrame; codes: string[] } | null>(
+  () => {
+    if (!frameShow.value) return null;
+    const now = new Date();
+    const rand = seededRandom(
+      now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate(),
+    );
+    const frame = pickSeeded(
+      avatarFrameDict.value.filter((f) => hasFrameVisual(f) && !isLocked(f)),
+      rand,
+    );
+    const codes: string[] = [];
+    const names: string[] = [];
+    for (const slot of ORNAMENT_SLOTS) {
+      const item = pickSeeded(
+        ornamentsForSlot(slot).filter((o) => isOrnamentOwned(o) && !isOrnamentExpired(o)),
+        rand,
+      );
+      if (item) {
+        codes.push(item.code);
+        names.push(item.name);
+      }
+    }
+    if (!frame && !codes.length) return null;
+    const desc = [frame?.name, ...names].filter(Boolean).join(" + ") || "默认光环";
+    return { poster: frame ? framePosterById(frame.id) : undefined, desc, frame, codes };
+  },
+);
+
+/** 一键应用今日搭配（与套装同一链路） */
+async function applyDailyPick(): Promise<void> {
+  const pick = dailyPick.value;
+  if (!pick || applyingDaily.value) return;
+  applyingDaily.value = true;
+  try {
+    const frameOk = pick.frame ? await activateFrame(pick.frame) : true;
+    const failed = await wearOrnamentsByCodes(pick.codes);
+    notifyDressResult("今日搭配", frameOk, failed);
+    emit("updated");
+  } finally {
+    applyingDaily.value = false;
+  }
+}
+
 /* ==================== 我的搭配（localStorage） ==================== */
 
 const outfitsOpen = ref(true);
@@ -574,6 +756,14 @@ const outfits = ref<AvatarOutfit[]>(loadOutfits());
 const applyingOutfit = ref("");
 const outfitSaveVisible = ref(false);
 const outfitSaveName = ref("");
+/** 空串 = 保存当前搭配；非空 = 重命名该方案（复用同一弹层） */
+const outfitEditingId = ref("");
+const outfitImportToken = ref("");
+
+/** 展示名（弹层昵称牌预览用），口径与饰品面板一致 */
+const displayName = computed(
+  () => display.value.username || userStore.nickname || userStore.username || "我",
+);
 
 /** 搭配描述：框名 + 饰品名（编码可能已下架，查不到就显示编码） */
 function outfitDesc(outfit: AvatarOutfit): string {
@@ -585,17 +775,75 @@ function outfitDesc(outfit: AvatarOutfit): string {
   return parts.join(" · ");
 }
 
+/** 方案内饰品的临期/过期标注（应用前心里有数）；无则返回空串 */
+function outfitExpireWarn(outfit: AvatarOutfit): string {
+  let expired = false;
+  let soon = false;
+  for (const code of outfit.ornamentCodes) {
+    const item = ornamentCatalog.value.find((o) => o.code === code);
+    if (!item) continue;
+    if (isOrnamentExpired(item)) expired = true;
+    else if (ornamentExpireHint(item)) soon = true;
+  }
+  if (expired) return "含过期饰品";
+  if (soon) return "含临期饰品";
+  return "";
+}
+
+/** 保存弹层的整体预览：当前佩戴的框（id=0 用默认光环） */
+const savePreviewFrame = computed<AvatarFrame>(
+  () => avatarFrameDict.value.find((f) => f.id === selectedFrame.value) ?? DEFAULT_FRAME_OPTION,
+);
+
+/** 预览框层样式；减少动态时换 poster 静帧 */
+const savePreviewLayerStyle = computed<Record<string, string>>(() => {
+  const frame = savePreviewFrame.value;
+  if (!hasFrameVisual(frame)) return {};
+  if (reducedMotion?.matches) {
+    const poster = avatarFramePosterPath(frame.image ?? "");
+    if (poster) return frameLayerStyle({ ...frame, image: poster }, 120);
+  }
+  return frameLayerStyle(frame, 120);
+});
+
+/** 当前佩戴的昵称牌样式；未佩戴返回 null（模板不渲染空胶囊） */
+const savePreviewNameplate = computed<Record<string, string> | null>(() => {
+  const style = nameplateStyle();
+  return Object.keys(style).length ? style : null;
+});
+
 function openSaveOutfit(): void {
+  outfitEditingId.value = "";
   outfitSaveName.value = "";
   outfitSaveVisible.value = true;
 }
 
-/** 当前佩戴（框 + 挂件/昵称牌）存成一套方案 */
+function openRenameOutfit(outfit: AvatarOutfit): void {
+  outfitEditingId.value = outfit.id;
+  outfitSaveName.value = outfit.name;
+  outfitSaveVisible.value = true;
+}
+
+/** 保存当前搭配（内容重复拦截）或重命名已有方案 */
 function saveCurrentOutfit(): void {
   const name = outfitSaveName.value.trim() || `搭配 ${outfits.value.length + 1}`;
+  if (outfitEditingId.value) {
+    const target = outfits.value.find((o) => o.id === outfitEditingId.value);
+    if (target) target.name = name;
+    persistOutfits(outfits.value);
+    outfitSaveVisible.value = false;
+    msgSuccess(`已重命名为「${name}」`);
+    return;
+  }
   const codes = ORNAMENT_SLOTS.map((slot) => ornamentWear[slot]?.code).filter(
     (c): c is string => Boolean(c),
   );
+  const signature = outfitSignature(selectedFrame.value || 0, codes);
+  const dup = outfits.value.find((o) => outfitSignature(o.frameId, o.ornamentCodes) === signature);
+  if (dup) {
+    msgWarning(`与已有搭配「${dup.name}」内容相同，未重复保存`);
+    return;
+  }
   outfits.value = [
     {
       id: newOutfitId(),
@@ -609,6 +857,51 @@ function saveCurrentOutfit(): void {
   persistOutfits(outfits.value);
   outfitSaveVisible.value = false;
   msgSuccess(`已保存「${name}」`);
+}
+
+/** 分享口令：复制到剪贴板，对方在「我的搭配」里粘贴导入 */
+async function shareOutfit(outfit: AvatarOutfit): Promise<void> {
+  const token = encodeOutfitToken(outfit);
+  if (!token) {
+    msgError("口令生成失败");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(`【搭配口令】${token}`);
+    msgSuccess("口令已复制，粘贴给对方即可导入");
+  } catch {
+    msgError("复制失败，请检查剪贴板权限");
+  }
+}
+
+/** 导入口令：解码 → 去重 → 入列（不自动佩戴，由用户点「应用」） */
+function importOutfitToken(): void {
+  const raw = outfitImportToken.value.trim();
+  if (!raw) return;
+  const decoded = decodeOutfitToken(raw.replace(/^【搭配口令】/, ""));
+  if (!decoded) {
+    msgWarning("口令无法识别，请确认复制完整");
+    return;
+  }
+  const signature = outfitSignature(decoded.frameId, decoded.ornamentCodes);
+  const dup = outfits.value.find((o) => outfitSignature(o.frameId, o.ornamentCodes) === signature);
+  if (dup) {
+    msgWarning(`与已有搭配「${dup.name}」内容相同，未重复导入`);
+    return;
+  }
+  outfits.value = [
+    {
+      id: newOutfitId(),
+      name: decoded.name || "导入搭配",
+      frameId: decoded.frameId,
+      ornamentCodes: decoded.ornamentCodes,
+      createdAt: Date.now(),
+    },
+    ...outfits.value,
+  ].slice(0, 20);
+  persistOutfits(outfits.value);
+  outfitImportToken.value = "";
+  msgSuccess("已导入搭配，点「应用」即可换上");
 }
 
 /** 一键应用方案：与套装同一链路（框 → /v2/user/update，饰品 → wearOrnament） */
@@ -644,22 +937,42 @@ function pickRandom<T>(list: T[]): T | undefined {
   return list.length ? list[Math.floor(Math.random() * list.length)] : undefined;
 }
 
-/** 从可戴项里随机搭一套：头像框 + 每个饰品槽位各一件 */
-async function randomDress(): Promise<void> {
+/**
+ * 随机搭一套：command=all 框+饰品都随机；command=ornament 保留当前框只随机饰品。
+ * 最多试 6 次，尽量避开「和当前佩戴完全一样」的组合。
+ */
+async function randomDress(command?: string | number | object): Promise<void> {
+  const scope: "all" | "ornament" = command === "ornament" ? "ornament" : "all";
   if (randomDressing.value) return;
   randomDressing.value = true;
   try {
-    const frame = pickRandom(avatarFrameDict.value.filter((f) => hasFrameVisual(f) && !isLocked(f)));
-    const frameOk = frame ? await activateFrame(frame) : true;
-    const codes: string[] = [];
-    for (const slot of ORNAMENT_SLOTS) {
-      const item = pickRandom(
-        ornamentsForSlot(slot).filter((o) => isOrnamentOwned(o) && !isOrnamentExpired(o)),
-      );
-      if (item) codes.push(item.code);
+    const currentCodes = ORNAMENT_SLOTS.map((slot) => ornamentWear[slot]?.code).filter(
+      (c): c is string => Boolean(c),
+    );
+    const current = outfitSignature(selectedFrame.value || 0, currentCodes);
+    let frame: AvatarFrame | undefined;
+    let codes: string[] = [];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      frame =
+        scope === "all"
+          ? pickRandom(avatarFrameDict.value.filter((f) => hasFrameVisual(f) && !isLocked(f)))
+          : undefined;
+      codes = [];
+      for (const slot of ORNAMENT_SLOTS) {
+        const item = pickRandom(
+          ornamentsForSlot(slot).filter((o) => isOrnamentOwned(o) && !isOrnamentExpired(o)),
+        );
+        if (item) codes.push(item.code);
+      }
+      const next = outfitSignature(scope === "all" ? (frame?.id ?? 0) : selectedFrame.value || 0, codes);
+      if (next !== current) break;
+    }
+    let frameOk = true;
+    if (scope === "all") {
+      frameOk = frame ? await activateFrame(frame) : true;
     }
     const failed = await wearOrnamentsByCodes(codes);
-    notifyDressResult("随机搭配", frameOk, failed);
+    notifyDressResult(scope === "all" ? "随机搭配" : "随机饰品", frameOk, failed);
     emit("updated");
   } finally {
     randomDressing.value = false;
@@ -686,6 +999,64 @@ const collectedCount = computed(() => {
 const collectPercent = computed(() =>
   collectTotal.value ? Math.round((collectedCount.value / collectTotal.value) * 100) : 0,
 );
+
+/** 服务端目录未拉到（正在展示内置款） */
+const dictFallback = computed(() => isAvatarFrameEnabled() && avatarFrameDictFallback.value);
+
+const collectOpen = ref(false);
+
+/** 还差哪些：未解锁的限定框 */
+const missingFrames = computed(() =>
+  avatarFrameDict.value.filter((f) => hasFrameVisual(f) && isLocked(f)),
+);
+
+/** 还差哪些：未获得且未过期的饰品 */
+const missingOrnaments = computed(() =>
+  isOrnamentEnabled()
+    ? ornamentCatalog.value.filter((o) => !isOrnamentOwned(o) && !isOrnamentExpired(o))
+    : [],
+);
+
+/* ==================== 收集里程碑 ==================== */
+
+const MILESTONES = [25, 50, 75, 100];
+const MILESTONE_KEY = "koi:avatar:collect-milestones:v1";
+
+function loadMilestones(): Set<number> {
+  if (typeof window === "undefined" || !window.localStorage) return new Set();
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(MILESTONE_KEY) ?? "[]");
+    return new Set(
+      Array.isArray(parsed) ? parsed.filter((n): n is number => typeof n === "number") : [],
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+const celebratedMilestones = ref<Set<number>>(loadMilestones());
+/** 字典与饰品目录就绪前进度数字没有意义，先只记基线不庆祝 */
+const collectSettled = ref(false);
+let lastCollectPercent = -1;
+
+watch(collectPercent, (now) => {
+  if (!collectSettled.value || ornamentLoading.value) return;
+  const previous = lastCollectPercent;
+  lastCollectPercent = now;
+  // 首次只记基线；目录扩充导致的回落与回弹也不算收集成果
+  if (previous < 0 || now <= previous) return;
+  for (const milestone of MILESTONES) {
+    if (previous < milestone && now >= milestone && !celebratedMilestones.value.has(milestone)) {
+      celebratedMilestones.value = new Set([...celebratedMilestones.value, milestone]);
+      try {
+        window.localStorage.setItem(MILESTONE_KEY, JSON.stringify([...celebratedMilestones.value]));
+      } catch {
+        /* 忽略：隐私模式 / 配额满 */
+      }
+      msgSuccess(milestone === 100 ? "收集进度 100%，全部装扮收入囊中！" : `收集进度达到 ${milestone}%！`);
+    }
+  }
+});
 
 /** 读取用户已获取的限定帧（过期记录视为未持有） */
 async function loadOwned(): Promise<void> {
@@ -839,6 +1210,8 @@ async function initFrames(): Promise<void> {
   if (!isAvatarFrameEnabled()) return;
   await loadAvatarFrames();
   await loadOwned();
+  // 字典就绪后里程碑才开始记录，避免把加载期的进度跳动当成收集成果
+  collectSettled.value = true;
   const worn = display.value.avatarFrame ?? 0;
   selectedFrame.value = avatarFrameDict.value.some((f) => f.id === worn) ? worn : 0;
   frameShow.value = Number(display.value.avatarFrameShow ?? 0) === 1;
@@ -927,6 +1300,37 @@ onMounted(() => {
 .avatar-frame-bday {
   margin-left: 3px;
   font-size: 11px;
+}
+
+/* ==================== 今日搭配 ==================== */
+
+.avatar-frame-daily {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--el-color-primary-light-7);
+  border-radius: 8px;
+  background: var(--el-color-primary-light-9);
+}
+
+.avatar-frame-daily-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatar-frame-daily-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
 }
 
 .avatar-frame-set-list {
@@ -1167,9 +1571,33 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 2px 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
   font-size: 11px;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.avatar-frame-collect:hover {
+  color: var(--el-color-primary);
+  background: var(--el-fill-color);
+}
+
+.avatar-frame-collect:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
+}
+
+.avatar-frame-collect.is-high {
+  color: var(--el-color-success);
+}
+
+.avatar-frame-collect.is-high .avatar-frame-collect-fill {
+  background: var(--el-color-success);
 }
 
 .avatar-frame-collect-bar {
@@ -1186,6 +1614,60 @@ onMounted(() => {
   border-radius: 999px;
   background: var(--el-color-primary);
   transition: width 0.3s;
+}
+
+/* 服务端目录未拉到时的提示条 */
+.avatar-frame-fallback-tip {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border: 1px dashed var(--el-color-warning-light-5);
+  border-radius: 8px;
+  background: var(--el-color-warning-light-9);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-regular);
+}
+
+/* ==================== 收集进度明细弹层 ==================== */
+
+.avatar-frame-collect-summary {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+}
+
+.avatar-frame-collect-group {
+  margin: 10px 0 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+}
+
+.avatar-frame-collect-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.avatar-frame-collect-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--el-text-color-regular);
+}
+
+.avatar-frame-collect-slot {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
 }
 
 /* ==================== 我的搭配 ==================== */
@@ -1217,6 +1699,49 @@ onMounted(() => {
   font-size: 12px;
   line-height: 18px;
   color: var(--el-text-color-secondary);
+}
+
+/* 方案内饰品的临期 / 过期角标 */
+.avatar-frame-outfit-warn {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--el-color-warning-light-8);
+  color: var(--el-color-warning);
+  font-size: 10px;
+  line-height: 16px;
+  vertical-align: 1px;
+}
+
+.avatar-frame-outfit-warn.is-expired {
+  background: var(--el-color-danger-light-8);
+  color: var(--el-color-danger);
+}
+
+/* 口令导入行 */
+.avatar-frame-outfit-import {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* 保存弹层里的整体预览 */
+.avatar-frame-outfit-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.avatar-frame-outfit-nameplate {
+  margin-top: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 20px;
 }
 
 /* 键盘可达：卡片与折叠标题的焦点环 */
