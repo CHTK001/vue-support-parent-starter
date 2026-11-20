@@ -276,11 +276,12 @@ export interface WorldSimApi {
 export const worldSimApi: WorldSimApi = {
   async fetchWorlds(this: ApiContext) {
     const raw = await this._request("/world-sim/worlds");
-    return (Array.isArray(raw) ? raw : raw?.items ?? []) as WorldItem[];
+    return (Array.isArray(raw) ? raw : raw?.data ?? []) as WorldItem[];
   },
 
   async fetchWorldView(this: ApiContext, worldId: number) {
-    return await this._request(`/world-sim/worlds/${worldId}/view`);
+    const raw = await this._request(`/world-sim/worlds/${worldId}/view`);
+    return (raw?.data ?? raw) as WorldView;
   },
 
   async createWorld(
@@ -421,7 +422,7 @@ export const worldSimApi: WorldSimApi = {
 
   async fetchWorldActs(this: ApiContext, worldId: number) {
     const raw = await this._request(`/world-sim/worlds/${worldId}/acts`);
-    return (Array.isArray(raw) ? raw : raw?.items ?? []) as WorldActListRow[];
+    return (Array.isArray(raw) ? raw : raw?.data ?? []) as WorldActListRow[];
   },
 
   async createWorldAct(this: ApiContext, worldId: number) {
