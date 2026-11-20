@@ -6,27 +6,55 @@
  *  - codecType 含 "aes" → `AesCbcCodec`：aesKey = SHA-256(key)（32 字节，AES-256），
  *    iv = SHA-256(key) 前 16 字节，AES/CBC/PKCS5Padding 解密，线上载荷为 hex 字符串；
  *  - codecType 为 "hex"（或未配置密钥）→ 仅十六进制编码，属兼容路径；
+ *  - keylog → k2 一次性会话密钥帧（"k2:" + hex），编排见 core 的 httpCrypto，
+ *    本模块只负责 aes / hex 两条路径；
  *  - sm4 / des 后端已是真实加密（SPI 实现），前端尚未实现对应算法，
  *    这里显式抛错而不是悄悄发 hex 明文。
  *
  * 载荷形态（后端 `extractEncryptedPayload`）：不以 `{` / `[` 开头的原始 body 文本
  * 即视为密文，故前端直接发送 hex 字符串即可，无需 `{"data": "..."}` 包装。
  *
- * 为何不用 wasm 的 aesEncrypt：wasm 侧 AES 仅支持 16 字节密钥（AES-128，
- * 24/32 字节密钥会 panic），与后端 AES-256 口径不符；CryptoJS 已在
- * `@repo/utils`（storage 加密同款依赖），显式 key/IV + PKCS7 输出与
- * Java AES/CBC/PKCS5Padding 逐字节一致（已用 Node 标准实现交叉验证）。
+ * 加密实现经 cryptoBridge 走 wasm（cryptoAesEncryptHex 与 Java AES/CBC/PKCS5Padding
+ * 逐字节一致，已用原生单测 + Java 交叉验证）；桥未安装时回退 CryptoJS 兼容路径。
  */
 import CryptoJS from "crypto-js";
+import { getWasmCryptoBridge, warnBridgeMissing } from "./cryptoBridge";
 
 /** SHA-256 摘要（hex，与 Java MessageDigest SHA-256 一致；不依赖 crypto.subtle，非安全上下文可用） */
 export function sha256Hex(input: string): string {
+  const bridge = getWasmCryptoBridge();
+  if (bridge) {
+    return bridge.sha256Hex(input);
+  }
+  warnBridgeMissing("sha256Hex");
   return CryptoJS.SHA256(input).toString();
+}
+
+/** UTF-8 文本 → 小写 hex（兼容路径用，纯编码无加密） */
+function utf8ToHex(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let out = "";
+  for (const b of bytes) {
+    out += b.toString(16).padStart(2, "0");
+  }
+  return out;
+}
+
+/** hex → UTF-8 文本（兼容路径用；非法 hex 抛错） */
+function hexToUtf8(hex: string): string {
+  if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length % 2 !== 0) {
+    throw new Error("非法 hex 载荷");
+  }
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return new TextDecoder().decode(bytes);
 }
 
 /** 编解码配置（与后端 plugin.api.decode.codec-type / codec-request-key 对齐） */
 export interface RequestCodecOptions {
-  /** 编解码类型：含 aes 走 AES-256-CBC；hex 为显式编码；sm4/des 前端未实现，会直接报错 */
+  /** 编解码类型：含 aes 走 AES-256-CBC；hex 为显式编码；keylog 由 core 编排；sm4/des 前端未实现，会直接报错 */
   type: string;
   /** 编解码密钥（后端 codec-request-key） */
   key: string;
@@ -43,7 +71,7 @@ export function encodeRequestBody(plaintext: string, options: RequestCodecOption
   const type = (options.type ?? "").toLowerCase();
   if (!type || type === "hex") {
     // 未配置密钥时的显式兼容路径：只编码，不号称加密
-    return CryptoJS.enc.Hex.stringify(CryptoJS.enc.Utf8.parse(plaintext));
+    return utf8ToHex(plaintext);
   }
   if (!type.includes("aes")) {
     throw new Error(`未支持的请求体加密类型: ${options.type}（后端已改为真实加密，前端需先实现对应算法）`);
@@ -51,7 +79,13 @@ export function encodeRequestBody(plaintext: string, options: RequestCodecOption
   if (!options.key) {
     throw new Error("AES codec 缺少密钥");
   }
-  // aes：与后端 AesCbcCodec 完全一致 —— key/IV 均由 SHA-256(key) 派生
+  const bridge = getWasmCryptoBridge();
+  if (bridge) {
+    // aes：与后端 AesCbcCodec 完全一致 —— key/IV 均由 SHA-256(key) 派生（wasm 实现）
+    return bridge.codecAesEncryptHex(plaintext, options.key);
+  }
+  warnBridgeMissing("encodeRequestBody");
+  // CryptoJS 兼容路径：显式 key/IV + PKCS7，输出与 Java AES/CBC/PKCS5Padding 逐字节一致
   const digest = sha256Hex(options.key);
   const encrypted = CryptoJS.AES.encrypt(CryptoJS.enc.Utf8.parse(plaintext), CryptoJS.enc.Hex.parse(digest), {
     mode: CryptoJS.mode.CBC,
@@ -75,6 +109,15 @@ export function encodeRequestBody(plaintext: string, options: RequestCodecOption
 export function decryptAesHex(cipherHex: string, key: string): string {
   const hex = String(cipherHex ?? "").trim();
   if (!hex || !key) return "";
+  const bridge = getWasmCryptoBridge();
+  if (bridge) {
+    try {
+      return bridge.codecAesDecryptHex(hex, key);
+    } catch {
+      return "";
+    }
+  }
+  warnBridgeMissing("decryptAesHex");
   try {
     const digest = sha256Hex(key);
     const cipherParams = CryptoJS.lib.CipherParams.create({
@@ -97,6 +140,9 @@ export function decryptAesHex(cipherHex: string, key: string): string {
  * <p>后端格式：{@code 02{key}200{data}ffff}。其中 AES 分支的 data 是按
  * {@link encodeRequestBody} 同一套 key/IV 派生的 hex 密文；hex 类型则是明文十六进制。
  * AES 解不开时返回 null，不再回退 hex 把密文当明文交给业务。</p>
+ *
+ * <p>keylog 类型的响应解密需要请求侧留存的一次性私钥，由 core 的 httpCrypto
+ * 编排（见 decodeKeylogResponse），本函数不处理 keylog。</p>
  *
  * @param payload 响应体（字符串 / ArrayBuffer / Uint8Array）
  * @param options codec 配置
@@ -126,26 +172,36 @@ export function decodeCodecResponse(
   const type = (options.type ?? "").toLowerCase();
   if (type.includes("aes")) {
     if (!options.key) return null;
-    try {
-      const digest = sha256Hex(options.key);
-      const cipherParams = CryptoJS.lib.CipherParams.create({
-        ciphertext: CryptoJS.enc.Hex.parse(dataHex),
-      });
-      const decrypted = CryptoJS.AES.decrypt(cipherParams, CryptoJS.enc.Hex.parse(digest), {
-        mode: CryptoJS.mode.CBC,
-        iv: CryptoJS.enc.Hex.parse(digest.slice(0, 32)),
-        padding: CryptoJS.pad.Pkcs7,
-      });
-      plain = decrypted.toString(CryptoJS.enc.Utf8);
-    } catch {
-      return null;
+    const bridge = getWasmCryptoBridge();
+    if (bridge) {
+      try {
+        plain = bridge.codecAesDecryptHex(dataHex, options.key);
+      } catch {
+        return null;
+      }
+    } else {
+      warnBridgeMissing("decodeCodecResponse");
+      try {
+        const digest = sha256Hex(options.key);
+        const cipherParams = CryptoJS.lib.CipherParams.create({
+          ciphertext: CryptoJS.enc.Hex.parse(dataHex),
+        });
+        const decrypted = CryptoJS.AES.decrypt(cipherParams, CryptoJS.enc.Hex.parse(digest), {
+          mode: CryptoJS.mode.CBC,
+          iv: CryptoJS.enc.Hex.parse(digest.slice(0, 32)),
+          padding: CryptoJS.pad.Pkcs7,
+        });
+        plain = decrypted.toString(CryptoJS.enc.Utf8);
+      } catch {
+        return null;
+      }
     }
     // AES 解不开就是密钥/数据不匹配，不再回退 hex 把密文当明文
     if (!plain) return null;
-  } else if (!type || type === "hex" || (type.includes("aes") && !options.key)) {
+  } else if (!type || type === "hex") {
     // 后端在未配置密钥时显式走 hex 兼容路径，前端保持一致
     try {
-      plain = CryptoJS.enc.Hex.parse(dataHex).toString(CryptoJS.enc.Utf8);
+      plain = hexToUtf8(dataHex);
     } catch {
       return null;
     }

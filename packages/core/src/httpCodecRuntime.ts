@@ -18,8 +18,13 @@ export interface HttpCodecRuntime {
   responseOpen: boolean;
   /** 请求/响应共用的 codec 密钥（后端 CodecRequestKey） */
   key: string;
-  /** codec 类型；含 aes 时走 AES-256-CBC，其余为兼容 hex */
+  /** codec 类型；含 aes 时走 AES-256-CBC，keylog 走一次性会话密钥帧，其余为兼容 hex */
   type: string;
+  /**
+   * keylog 服务端长期公钥（后端 CodecServerPublicKey，X.509 SPKI hex）。
+   * 仅 type=keylog 时使用：客户端每请求生成临时密钥对，用服务端公钥封装会话密钥。
+   */
+  serverPublicKey: string;
 }
 
 const DEFAULT_RUNTIME: HttpCodecRuntime = {
@@ -27,6 +32,7 @@ const DEFAULT_RUNTIME: HttpCodecRuntime = {
   responseOpen: false,
   key: "",
   type: "aes",
+  serverPublicKey: "",
 };
 
 let runtime: HttpCodecRuntime = { ...DEFAULT_RUNTIME };
@@ -58,7 +64,7 @@ function asBool(value: unknown): boolean | undefined {
  * 从后端设置列表吸收 codec 开关。
  *
  * <p>兼容两种返回形态：设置名在 {@code sysSettingName}，或已被后端映射成
- * {@code sysSettingCode}。只认三个明确的名字，避免把同组其它配置误当开关。</p>
+ * {@code sysSettingCode}。只认四个明确的名字，避免把同组其它配置误当开关。</p>
  */
 export function applyHttpCodecSettings(items: readonly SettingItem[] | null | undefined): void {
   if (!Array.isArray(items)) return;
@@ -76,6 +82,10 @@ export function applyHttpCodecSettings(items: readonly SettingItem[] | null | un
       const value = String(item.sysSettingValue ?? "").trim();
       // 后端敏感字段可能返回掩码；掩码不能拿来当密钥
       if (value && !/^\*+$/.test(value)) patch.key = value;
+    } else if (name === "CodecServerPublicKey") {
+      // keylog 服务端长期公钥（X.509 SPKI hex），公钥非敏感可明文下发
+      const value = String(item.sysSettingValue ?? "").trim();
+      if (value) patch.serverPublicKey = value;
     }
   }
   if (Object.keys(patch).length > 0) {

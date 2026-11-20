@@ -86,6 +86,60 @@ export interface CryptoModule {
     keyB64: string,
     noiseLevel: number,
   ): { plainText: string; isJson: boolean };
+
+  // ── 以下为 codec / keylog 协议下沉方法（2026-11-20，前端加解密全面 wasm 化）──
+
+  /** SHA-256 摘要（返回小写 hex 字符串，codec 密钥派生 / keylog 指纹用） */
+  sha256Hex(input: string): string;
+
+  /**
+   * codec AES-256-CBC 加密（对齐后端 AesCbcCodec）：
+   * key = SHA-256(keyStr) 32B，iv = 前 16B，PKCS7，返回 hex 密文
+   */
+  codecAesEncryptHex(plaintext: string, keyStr: string): string;
+
+  /** codec AES-256-CBC 解密（hex 密文 → UTF-8 明文；失败时返回空串） */
+  codecAesDecryptHex(cipherHex: string, keyStr: string): string;
+
+  /** AES/ECB/PKCS7 加密（storage / 登录凭据等本地脱敏用；key 16/24/32 字节） */
+  aesEcbEncrypt(data: Uint8Array, key: Uint8Array): Uint8Array;
+
+  /** AES/ECB/PKCS7 解密（失败时抛错，调用方自行兜底） */
+  aesEcbDecrypt(data: Uint8Array, key: Uint8Array): Uint8Array;
+
+  /** X25519 密钥对（publicKey=X.509 SPKI hex，privateKey=PKCS#8 hex，*Raw=32B 裸 hex） */
+  x25519KeyPair(): {
+    publicKey: string;
+    privateKey: string;
+    publicKeyRaw: string;
+    privateKeyRaw: string;
+  };
+
+  /** X25519 共享密钥：本端私钥 × 对端公钥（32 字节） */
+  x25519SharedSecret(privateKeyHex: string, peerPublicKeyHex: string): Uint8Array;
+
+  /** HKDF-SHA256 派生（RFC 5869，与后端 Hkdf 一致） */
+  hkdfSha256(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, length: number): Uint8Array;
+
+  /** AES-256-GCM 加密（输出 = 密文 + 16B 认证标签；key 32B，nonce 12B） */
+  aesGcmEncrypt(data: Uint8Array, key: Uint8Array, nonce: Uint8Array, aad: Uint8Array): Uint8Array;
+
+  /** AES-256-GCM 解密（认证失败时抛错） */
+  aesGcmDecrypt(data: Uint8Array, key: Uint8Array, nonce: Uint8Array, aad: Uint8Array): Uint8Array;
+
+  /**
+   * keylog 帧加密（每次调用使用全新临时 X25519 密钥对，与后端 KeyLogCodec 对齐）。
+   * 返回 frame（"k2:" + hex，可直接作为请求体）、本次临时公钥/私钥（hex）。
+   * ephemeralPrivateKeyHex 传入时复用该临时私钥（用于同一请求的响应解密配对）。
+   */
+  keylogEncryptFrame(
+    plaintext: Uint8Array,
+    peerPublicKeyHex: string,
+    ephemeralPrivateKeyHex?: string,
+  ): { frame: string; publicKey: string; privateKey: string };
+
+  /** keylog 帧解密（frame 带或不带 "k2:" 前缀均可；返回明文字节；认证失败抛错） */
+  keylogDecryptFrame(frame: string, privateKeyHex: string): Uint8Array;
 }
 
 /** wasm-bindgen 产物期望暴露的初始化入口 */

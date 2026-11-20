@@ -20,6 +20,7 @@
  *   app.crypto.sm3(...);  app.config.app.title;  app.storage.set(...);
  */
 import { loadCrypto, SystemException, type CryptoModule } from "./crypto";
+import { installWasmCryptoBridge } from "./crypto/bridge";
 import {
   loadConfig,
   getConfig,
@@ -137,6 +138,9 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     url: options.cryptoUrl,
     loader: options.cryptoLoader,
   });
+  // 把 wasm 加密实现注入 utils 的加密桥：此后 codec/aes/queryCrypto 等模块
+  // 的加解密全部走 wasm（必须在 buildStorage 之前，storage 首次加密就会用到）
+  installWasmCryptoBridge(crypto);
   log.info("createApp", "② loadConfig...");
   const config = await loadConfig({
     appName,

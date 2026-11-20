@@ -107,6 +107,19 @@ export async function loadCrypto(options: LoadCryptoOptions = {}): Promise<Crypt
       "signRequest",
       "encryptBody",
       "decodeBody",
+      // codec / keylog 协议下沉入口（2026-11-20 前端加解密全面 wasm 化）
+      "sha256Hex",
+      "codecAesEncryptHex",
+      "codecAesDecryptHex",
+      "aesEcbEncrypt",
+      "aesEcbDecrypt",
+      "x25519KeyPair",
+      "x25519SharedSecret",
+      "hkdfSha256",
+      "aesGcmEncrypt",
+      "aesGcmDecrypt",
+      "keylogEncryptFrame",
+      "keylogDecryptFrame",
     ] as const;
     const missing = requiredMethods.filter((m) => typeof mod[m] !== "function");
     if (missing.length > 0) {

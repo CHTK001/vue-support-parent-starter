@@ -14,6 +14,7 @@ export * from "./modules/chatContext";
 export * from "./modules/exportFile";
 export * from "./modules/format";
 export * from "./modules/codec";
+export * from "./modules/cryptoBridge";
 export * from "./modules/themeColor";
 export * from "./modules/tree";
 export * from "./modules/fingerprint";

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>MessageOutputHtml 验收挂载台</title>
+<style>
+  body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: #eef2f7; margin: 0; padding: 28px 0 60px; }
+  .h-title { width: 960px; margin: 0 auto 6px; font-size: 18px; font-weight: 600; line-height: 1.4; color: #0f172a; }
+  .h-sub { width: 960px; margin: 0 auto 14px; font-size: 12px; line-height: 1.6; color: #475569; }
+  #status { width: 960px; margin: 0 auto 14px; font-size: 13px; font-weight: 600; color: #1d4ed8; }
+  #mount { width: 960px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 2px 10px rgba(15,23,42,.06); min-height: 220px; box-sizing: border-box; }
+</style>
+</head>
+<body>
+  <div class="h-title">会话内设计稿内联渲染 · MessageOutputHtml 组件级验证</div>
+  <div class="h-sub">场景：助手消息提到工作区 design/*.html，组件按路径取回文件并用沙箱 iframe 内联渲染（workspace 文件数据源由验收脚本兜底）。</div>
+  <div id="status">初始化…</div>
+  <div id="mount"></div>
+  <script type="module">
+    const statusEl = document.getElementById('status');
+    window.__harness = { ready: false, log: [], error: '' };
+    const log = (s) => { window.__harness.log.push(String(s)); statusEl.textContent = String(s); };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const compUrl = '/src/components/chat/message-item/MessageOutputHtml.vue';
+    const DEPS = [
+      '/src/utils/htmlPreviewSrcDoc.ts',
+      '/src/services/ApiService.ts',
+      '/src/utils/authImage.ts',
+      compUrl,
+    ];
+    // vite dev 对首次按需发现的依赖会二次预构建，期间在途模块请求被中止（ERR_ABORTED）。
+    // 这里原地重试整条依赖链：预构建落定后，已加载模块走缓存、断点模块重新取回，最终收敛。
+    let vue = null;
+    let mod = null;
+    for (let attempt = 1; attempt <= 40 && !mod; attempt++) {
+      try {
+        if (!vue) {
+          const src = await (await fetch(compUrl)).text();
+          const vm = src.match(/from\s*"([^"]*deps\/vue\.js[^"]*)"/);
+          const vueUrl = vm ? vm[1] : '/node_modules/.vite/vue-support-ai-starter/deps/vue.js';
+          vue = await import(vueUrl);
+          log('vue loaded');
+        }
+        for (const dep of DEPS) await import(dep);
+        mod = await import(compUrl);
+        log('component loaded');
+      } catch (e) {
+        mod = null;
+        log('attempt ' + attempt + ' 失败: ' + String((e && e.message) || e).slice(0, 140) + '；3s 后重试');
+        await sleep(3000);
+      }
+    }
+    if (!mod) {
+      window.__harness.error = '组件依赖链加载失败（重试耗尽）';
+      log('ERROR: ' + window.__harness.error);
+    } else {
+      try { await import('element-plus/dist/index.css'); } catch (e) { log('element-plus css 加载失败（不影响 DOM 断言）'); }
+      const MESSAGES = [
+        {
+          id: 'm-accept-1',
+          role: 'assistant',
+          contents: [
+            { type: 'text', text: '已完成两份 UI 设计稿并写入工作区：design/login-page.html（登录页）与 design/dashboard.html（数据看板）。' },
+          ],
+          state: { isStreaming: false },
+        },
+      ];
+      const app = vue.createApp({ render: () => vue.h(mod.default, { sessionId: 'accept-sess', messages: MESSAGES }) });
+      app.mount('#mount');
+      window.__harness.ready = true;
+      log('MOUNTED');
+    }
+  </script>
+</body>
+</html>

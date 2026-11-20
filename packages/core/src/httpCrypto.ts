@@ -81,6 +81,16 @@ export const NOISE_LEVEL_HEADER = "x-ot";
 /** codec 协议请求体加密标记头（后端 ApiRequestDecodeBodyAdvice 只校验非空即触发解密） */
 export const CODEC_KEY_HEADER = "access-control-origin-key";
 
+/**
+ * keylog 一次性公钥头：请求侧每次生成的临时 X25519 公钥（X.509 SPKI hex）。
+ * 后端用它加密本次响应（每请求新鲜密钥）；请求体本身是 k2 帧时帧内也带该公钥，
+ * 无 body 的请求（GET 等）则仅靠该头传递。
+ */
+export const CODEC_KEYLOG_PUB_HEADER = "x-codec-keylog-pub";
+
+/** axios config 上留存 keylog 一次性私钥的字段名（响应拦截器用它解密，不参与序列化） */
+const KEYLOG_PRIV_FIELD = "__keylogEphemeralPrivateKey";
+
 /** x-sign 相关头名（与后端 NonceUtils 保持一致） */
 export const SIGN_NONCE_HEADER = "x-nonce";
 export const SIGN_TIMESTAMP_HEADER = "x-timestamp";
@@ -360,6 +370,52 @@ function sortParams(params: Record<string, string>): string {
     .join("&");
 }
 
+/** 携带 keylog 一次性私钥的 axios config 类型 */
+type KeylogConfig = InternalAxiosRequestConfig & Record<string, unknown>;
+
+/**
+ * 解 keylog 响应包装：02{echo}200{k2帧}ffff → 用请求侧留存的一次性私钥解密 → JSON。
+ *
+ * <p>keylog 响应密文用「该请求的临时公钥」封装，因此必须拿同一请求留存的一次性
+ * 私钥才能解开；解不开时返回 undefined，调用方保持响应原样交由统一校验兜底。</p>
+ *
+ * @returns 解密后的 JSON 对象或纯文本；不是 keylog 包装、缺少私钥或解密失败时返回 undefined
+ */
+function decodeKeylogResponse(response: AxiosResponse, crypto: CryptoModule): unknown | undefined {
+  const data = response.data;
+  let text = "";
+  if (typeof data === "string") {
+    text = data.trim();
+  } else if (data instanceof ArrayBuffer) {
+    text = new TextDecoder().decode(new Uint8Array(data)).trim();
+  } else if (data instanceof Uint8Array) {
+    text = new TextDecoder().decode(data).trim();
+  } else {
+    return undefined;
+  }
+  // 帧可能带 "k2:" 前缀（后端直接透传 encode 产物）或不带（仅 hex 载荷）
+  const matched = /^02(.+?)200((?:k2:)?[0-9a-fA-F]*)ffff$/.exec(text);
+  if (!matched || !matched[2]) return undefined;
+  const privateKey = (response.config as KeylogConfig | undefined)?.[KEYLOG_PRIV_FIELD];
+  if (typeof privateKey !== "string" || !privateKey) {
+    // 请求侧没有留存私钥（如开关切换窗口期的旧请求），无法解密
+    return undefined;
+  }
+  try {
+    const frame = matched[2].startsWith("k2:") ? matched[2] : `k2:${matched[2]}`;
+    const plainBytes = crypto.keylogDecryptFrame(frame, privateKey);
+    const plain = new TextDecoder().decode(plainBytes);
+    if (!plain) return undefined;
+    try {
+      return JSON.parse(plain);
+    } catch {
+      return plain;
+    }
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * 注册 HTTP 加密/签名拦截器
  * 拦截器返回标准 AxiosInstance，用户始终操作 axios 请求对象。
@@ -450,13 +506,43 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       !!runtimeCodec.key &&
       !isCodecRequestExcluded(config.url);
     const explicitCodec = rc?.enable === true && !!rc.key && hc?.codec === true;
-    const useCodec =
+    const codecCandidate =
       !isRetry &&
       (autoCodec || explicitCodec) &&
-      !isCodecRequestExcluded(config.url) &&
-      isEncryptable(config.data);
+      !isCodecRequestExcluded(config.url);
+    const codecType = (autoCodec ? runtimeCodec.type : (rc?.type ?? "")).toLowerCase();
+    // keylog：一次性会话密钥帧协议。请求体是 k2 帧（内含本次临时公钥）；无 body 的请求
+    // 也要生成临时密钥对，公钥经 x-codec-keylog-pub 头下发，后端据此加密本次响应
+    //（每请求新鲜密钥；一次性私钥留存于 config，供响应拦截器解密回包）。
+    const isKeylog = codecCandidate && codecType === "keylog";
 
-    if (useCodec) {
+    if (isKeylog) {
+      // 服务端长期公钥来自后端设置（CodecServerPublicKey）；显式 .codec(true) 的
+      // keylog 请求同样使用该公钥（同一后端、同一套设置）。
+      const serverPublicKey = runtimeCodec.serverPublicKey;
+      if (!serverPublicKey) {
+        throw new Error("keylog codec 缺少服务端公钥（CodecServerPublicKey 未下发）");
+      }
+      const hasBody = isEncryptable(config.data);
+      const bodyText = hasBody
+        ? (typeof config.data === "string" ? config.data : JSON.stringify(config.data))
+        : "";
+      const frame = crypto.keylogEncryptFrame(new TextEncoder().encode(bodyText), serverPublicKey);
+      (config as KeylogConfig)[KEYLOG_PRIV_FIELD] = frame.privateKey;
+      config.headers.set(CODEC_KEYLOG_PUB_HEADER, frame.publicKey);
+      if (hasBody) {
+        config.data = frame.frame;
+        // k2 帧已是最终请求体：axios 默认 transformRequest 见到 Content-Type 为
+        // application/json 会对 string 再 JSON.stringify 套引号，后端
+        // extractEncryptedPayload 拿带引号的串当密文解必然失败，故覆盖为直通。
+        config.transformRequest = [(data: unknown) => data];
+        config.headers.set(CODEC_KEY_HEADER, "1");
+        // 后端解密后按 JSON 反序列化 body，Content-Type 必须保持 application/json。
+        if (!config.headers.has("Content-Type")) {
+          config.headers.set("Content-Type", "application/json");
+        }
+      }
+    } else if (codecCandidate && isEncryptable(config.data)) {
       const bodyText = typeof config.data === "string"
         ? config.data
         : JSON.stringify(config.data);
@@ -522,14 +608,22 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       const runtimeCodec = getHttpCodecRuntime();
       // 不能只在 responseOpen=true 时解码：打开开关后，紧接着用于刷新设置的
       // /v2/setting/list 响应本身就已经被后端包装，此时运行时状态还是旧值。
-      // 先按包装特征识别，识别不到时 decodeCodecResponse 返回 null，不影响普通 JSON。
+      // 先按包装特征识别，识别不到时返回 null/undefined，不影响普通 JSON。
       if (response.data) {
-        const decoded = decodeCodecResponse(response.data, {
-          type: runtimeCodec.type,
-          key: runtimeCodec.key,
-        });
-        if (decoded !== null) {
-          response.data = decoded;
+        if (runtimeCodec.type === "keylog") {
+          // keylog：用请求侧留存的一次性私钥解 k2 帧
+          const decoded = decodeKeylogResponse(response, crypto);
+          if (decoded !== undefined) {
+            response.data = decoded;
+          }
+        } else {
+          const decoded = decodeCodecResponse(response.data, {
+            type: runtimeCodec.type,
+            key: runtimeCodec.key,
+          });
+          if (decoded !== null) {
+            response.data = decoded;
+          }
         }
       }
 

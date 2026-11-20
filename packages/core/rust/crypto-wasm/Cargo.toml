@@ -28,6 +28,18 @@ cipher = { version = "0.4", features = ["block-padding", "alloc"] }
 # MD5（x-sign 签名，与后端 NonceUtils 保持一致）
 md-5 = "0.10"
 
+# SHA-256（codec AES-256 密钥派生、keylog 公钥指纹）
+sha2 = "0.10"
+# HKDF-SHA256（keylog 一次性会话密钥派生，与后端 Hkdf.java 对齐）
+hkdf = "0.12"
+# X25519（keylog 临时 ECDH 密钥交换，与后端 KeyLogCodec 对齐）
+# static_secrets：StaticSecret（创建时 clamp，与 Java XDH 行为一致）
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+# AES-256-GCM（keylog AEAD，与后端 AES/GCM/NoPadding 对齐）
+# 关闭默认 features：避免引入 rand_core 0.6/getrandom 0.2（wasm32 下需额外 js feature），
+# nonce 由本模块已有的 getrandom 0.4 生成
+aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
+
 # JS 环境互操作（js_sys::Date::now 用于生成 nonce）
 js-sys = "0.3"
 
