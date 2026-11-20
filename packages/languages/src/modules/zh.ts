@@ -492,6 +492,13 @@ export default {
         label: "组件尺寸",
         placeholder: "请选择组件尺寸",
       },
+      dockPosition: {
+        label: "Dock 位置",
+        top: "顶部",
+        bottom: "底部",
+        left: "左侧",
+        right: "右侧",
+      },
       skeletonCritter: {
         label: "骨架小动物",
         bird: "小鸟（跳跃）",
@@ -528,6 +535,12 @@ export default {
         sub: "横向布局",
         tip: "横向布局顶栏形态：悬浮玻璃卡片 / 标准通栏",
         description: "开启为悬浮玻璃卡片形态，关闭为标准通栏顶栏",
+      },
+      dockCollapsed: {
+        title: "Dock 折叠收缩",
+        sub: "悬浮坞",
+        tip: "折叠后缩为所在边缘的角落小圆钮",
+        description: "开启后 Dock 折叠为边缘角落小圆钮：鼠标经过临时展开，点击恢复常驻",
       },
       tabsShown: {
         title: "显示标签页",

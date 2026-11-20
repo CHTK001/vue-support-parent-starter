@@ -17,13 +17,16 @@
     </div>
 
     <!-- 悬浮 Dock：弹层 + 磁贴条 -->
-    <div ref="dockRootRef" class="dock-root">
+    <div ref="dockRootRef" class="dock-root" :class="`is-${globalStore.dockPosition}`" @mouseenter="peek = true" @mouseleave="peek = false">
+      <!-- 折叠悬停垫：peek 时兜住整片坞区（dock-root 本体 pointer-events:none），
+           把手卸载后鼠标移向磁贴条途中命中链不断，避免「刚显出就缩回」的振荡 -->
+      <div v-if="globalStore.dockCollapsed && peek" class="dock-peek-pad" aria-hidden="true"></div>
       <transition name="dock-popup">
-        <div v-if="openMenu" class="dock-popup">
+        <div v-if="openMenu && dockVisible" class="dock-popup">
           <!-- 二级：竖列方形卡片 -->
           <div class="dock-col">
             <div v-for="item in openMenuChildren" :key="item.path" class="dock-col-cell">
-              <el-tooltip :content="titleOf(item)" placement="right" :show-after="300">
+              <el-tooltip :content="titleOf(item)" :placement="cardTooltipPlacement" :show-after="300">
                 <button type="button" class="dock-card" :class="cardClass(item)" @click="handleCardClick(item)">
                   <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="20" />
                   <i v-if="hasChildren(item)" class="dock-card-dot" />
@@ -45,19 +48,24 @@
         </div>
       </transition>
 
-      <div class="dock-bar">
+      <div v-show="dockVisible" class="dock-bar">
         <el-tooltip
           v-for="item in topLevelMenus"
           :key="item.path"
           :content="titleOf(item)"
-          placement="top"
-          :show-after="300"
+          :placement="tileTooltipPlacement" :show-after="300"
         >
           <button type="button" class="dock-tile" :class="tileClass(item)" @click="handleTileClick(item)">
             <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="20" />
           </button>
         </el-tooltip>
       </div>
+
+      <!-- 折叠把手：Dock 折叠时缩至所在边缘角落。常驻不随 peek 卸载——
+           若 mouseenter 即卸载，点击会落在空处，「点击恢复」永远点不中（实测缺陷） -->
+      <button v-if="globalStore.dockCollapsed" type="button" class="dock-handle" :class="`is-${globalStore.dockPosition}`" @click="restoreDock" @mouseenter="peek = true">
+        <el-icon :size="18"><Expand /></el-icon>
+      </button>
     </div>
   </div>
 </template>
@@ -74,6 +82,7 @@ import useGlobalStore from "@repo/pinia/modules/global";
 import { getMenuLanguage } from "@repo/languages";
 import { HOME_URL, resolveMenuDefaultIcon } from "@repo/config";
 import { msgWarning } from "@repo/core";
+import { Expand } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -96,9 +105,10 @@ const hasChildren = (item: any) =>
 
 const visibleChildren = (item: any) => (item.children || []).filter((c: any) => c.meta?.isVisible == "1");
 
-/** 当前路由是否落在该项子树内 */
+/** 当前路由是否落在该项子树内（path 优先，name 兜底动态参数路由） */
 const containsActive = (menu: any, target: string): boolean => {
   if (String(menu.path) === String(target)) return true;
+  if (menu.name && String(menu.name) === String(route.name)) return true;
   if (menu.children?.length) {
     for (const child of menu.children) {
       if (containsActive(child, target)) return true;
@@ -107,23 +117,23 @@ const containsActive = (menu: any, target: string): boolean => {
   return false;
 };
 
-/** 当前激活的顶级菜单（刷新后由路由反推，高亮不丢） */
-const activeTopMenuId = computed(() => {
+/** 当前激活的顶级菜单（按 path 标识：静态菜单没有 meta.menuId，按 menuId 比较会全量误命中） */
+const activeTopPath = computed(() => {
   for (const item of topLevelMenus.value) {
-    if (containsActive(item, activeMenu.value)) return item.meta?.menuId;
+    if (containsActive(item, activeMenu.value)) return String(item.path);
   }
   return undefined;
 });
 
 // ==================== 弹层与展开链 ====================
 
-/** 当前弹出面板的顶级菜单 menuId */
-const openMenuId = ref<any>(null);
+/** 当前弹出面板的顶级菜单 path（与激活标识同口径） */
+const openMenuPath = ref<string | null>(null);
 /** 展开链：各级已展开项的 path（单链，uniqueOpened 语义） */
 const expandedPaths = ref<string[]>([]);
 
 const openMenu = computed(() =>
-  topLevelMenus.value.find((item: any) => String(item.meta?.menuId) === String(openMenuId.value)) || null
+  topLevelMenus.value.find((item: any) => String(item.path) === openMenuPath.value) || null
 );
 
 const openMenuChildren = computed(() => (openMenu.value ? visibleChildren(openMenu.value) : []));
@@ -185,17 +195,18 @@ const handleTileClick = (item: any) => {
 
   // 叶子：直接跳转并收起弹层
   if (!hasChildren(item)) {
-    openMenuId.value = null;
+    openMenuPath.value = null;
     router.push({ path: item.path || HOME_URL });
     return;
   }
 
   // 分支：切换弹层；打开时把当前路由所在的链路预先展开
-  if (String(openMenuId.value) === String(item.meta?.menuId)) {
-    openMenuId.value = null;
+  const tilePath = String(item.path);
+  if (openMenuPath.value === tilePath) {
+    openMenuPath.value = null;
     return;
   }
-  openMenuId.value = item.meta?.menuId;
+  openMenuPath.value = tilePath;
   expandActiveChain();
 };
 
@@ -218,9 +229,9 @@ const expandActiveChain = () => {
 
 // 路由变化：弹层打开时同步展开链；切到其它顶级菜单则收起弹层
 watch(activeMenu, () => {
-  if (!openMenuId.value) return;
-  if (String(openMenuId.value) !== String(activeTopMenuId.value)) {
-    openMenuId.value = null;
+  if (!openMenuPath.value) return;
+  if (openMenuPath.value !== activeTopPath.value) {
+    openMenuPath.value = null;
     return;
   }
   expandActiveChain();
@@ -229,12 +240,14 @@ watch(activeMenu, () => {
 // ==================== 高亮类名 ====================
 
 const tileClass = (item: any) => ({
-  "is-active": String(activeTopMenuId.value) === String(item.meta?.menuId),
-  "is-open": String(openMenuId.value) === String(item.meta?.menuId)
+  "is-active": activeTopPath.value === String(item.path),
+  "is-open": openMenuPath.value === String(item.path)
 });
 
 const cardClass = (item: any) => {
-  const leafActive = String(item.path) === String(activeMenu.value);
+  const leafActive =
+    String(item.path) === String(activeMenu.value) ||
+    (item.name && String(item.name) === String(route.name));
   return {
     "is-branch": hasChildren(item),
     "is-expanded": expandedPaths.value.includes(String(item.path)),
@@ -243,19 +256,39 @@ const cardClass = (item: any) => {
   };
 };
 
+// ==================== 折叠收缩（悬停显出 / 点击恢复） ====================
+
+/** 折叠后的悬停显出态：鼠标经过把手或坞体时临时展开 */
+const peek = ref(false);
+/** 折叠时坞体是否显示（未折叠常显；折叠后仅悬停显出） */
+const dockVisible = computed(() => !globalStore.dockCollapsed || peek.value);
+
+/** 点击把手：恢复常驻 Dock */
+const restoreDock = () => {
+  globalStore.setGlobalState("dockCollapsed", false);
+  peek.value = false;
+};
+
+/** 磁贴提示气泡方向跟随 Dock 位置（左右坞时朝空白侧弹出） */
+const tileTooltipPlacement = computed(() =>
+  globalStore.dockPosition === "left" ? "right" : globalStore.dockPosition === "right" ? "left" : "top"
+);
+/** 二级卡片提示气泡方向：右侧坞朝左弹，其余朝右弹 */
+const cardTooltipPlacement = computed(() => (globalStore.dockPosition === "right" ? "left" : "right"));
+
 // ==================== 关闭交互（点空白 / Esc） ====================
 
 const dockRootRef = ref<HTMLElement | null>(null);
 
 const onDocMouseDown = (e: MouseEvent) => {
-  if (!openMenuId.value) return;
+  if (!openMenuPath.value) return;
   if (dockRootRef.value && !dockRootRef.value.contains(e.target as Node)) {
-    openMenuId.value = null;
+    openMenuPath.value = null;
   }
 };
 
 const onKeydown = (e: KeyboardEvent) => {
-  if (e.key === "Escape" && openMenuId.value) openMenuId.value = null;
+  if (e.key === "Escape" && openMenuPath.value) openMenuPath.value = null;
 };
 
 onMounted(() => {
@@ -335,13 +368,12 @@ onBeforeUnmount(() => {
   }
 }
 
-/* ===== 内容区：整页铺满，底部给 Dock 留出悬浮空间 ===== */
+/* ===== 内容区：主体吃满整页，Dock 悬浮于边缘之上不再挤压内容 ===== */
 .layout-dock-main-wrap {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  padding-bottom: 80px;
 }
 
 .layout-dock-main {
@@ -349,18 +381,49 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-/* ===== 悬浮 Dock ===== */
+/* ===== 悬浮 Dock：位置四边可选（bottom/top/left/right） ===== */
 .dock-root {
   position: fixed;
-  right: 0;
-  bottom: 14px;
-  left: 0;
   z-index: 2000;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 12px;
   pointer-events: none;
+
+  /* 底部（默认）：磁贴条在下、弹层在上 */
+  &.is-bottom {
+    right: 0;
+    bottom: 14px;
+    left: 0;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* 顶部：磁贴条在上、弹层在下 */
+  &.is-top {
+    right: 0;
+    top: 14px;
+    left: 0;
+    flex-direction: column-reverse;
+    align-items: center;
+  }
+
+  /* 左侧：磁贴条在左、弹层在右 */
+  &.is-left {
+    top: 0;
+    bottom: 0;
+    left: 14px;
+    flex-direction: row-reverse;
+    align-items: center;
+  }
+
+  /* 右侧：磁贴条在右、弹层在左 */
+  &.is-right {
+    top: 0;
+    bottom: 0;
+    right: 14px;
+    flex-direction: row;
+    align-items: center;
+  }
 }
 
 .dock-popup,
@@ -386,6 +449,43 @@ onBeforeUnmount(() => {
     border-color: color-mix(in srgb, var(--el-border-color) 60%, transparent);
     box-shadow: 0 12px 32px rgb(0 0 0 / 45%);
   }
+}
+
+/* 左右位置：磁贴条转竖排胶囊 */
+.is-left .dock-bar,
+.is-right .dock-bar {
+  flex-direction: column;
+  width: 54px;
+  height: auto;
+  max-height: calc(100vh - 120px);
+  padding: 12px 0;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background: var(--el-border-color);
+  }
+}
+
+/* 左右位置：磁贴悬停/激活位移改为横向 */
+.is-left .dock-tile:hover {
+  transform: translateX(-2px);
+}
+
+.is-right .dock-tile:hover {
+  transform: translateX(2px);
+}
+
+.is-left .dock-tile.is-active {
+  transform: translateX(-4px) scale(1.06);
+}
+
+.is-right .dock-tile.is-active {
+  transform: translateX(4px) scale(1.06);
 }
 
 .dock-tile {
@@ -423,6 +523,71 @@ onBeforeUnmount(() => {
     color: var(--el-color-primary);
     outline: 2px solid var(--el-color-primary-light-5);
     outline-offset: 2px;
+  }
+}
+
+/* ===== 折叠悬停垫：peek 期间兜住坞区，保持鼠标命中链 ===== */
+.dock-peek-pad {
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* 压在磁贴条/弹层之下，只兜命中不挡点击 */
+  pointer-events: auto;
+}
+
+/* ===== 折叠把手：Dock 折叠时缩至所在边缘角落的小圆钮 ===== */
+.dock-handle {
+  position: fixed;
+  z-index: 2001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--el-border-color) 55%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--el-bg-color) 82%, transparent);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  box-shadow: 0 10px 26px rgb(15 23 42 / 16%);
+  color: var(--el-text-color-regular);
+  cursor: pointer;
+  pointer-events: auto;
+  transition:
+    transform 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+
+  html.dark & {
+    border-color: color-mix(in srgb, var(--el-border-color) 60%, transparent);
+    box-shadow: 0 10px 26px rgb(0 0 0 / 45%);
+  }
+
+  &:hover {
+    color: var(--el-color-primary);
+    transform: scale(1.08);
+    box-shadow: 0 12px 30px rgb(var(--el-color-primary-rgb) / 25%);
+  }
+
+  /* 各位置的角落落点：底/顶贴右角，左贴左下角，右贴右下角 */
+  &.is-bottom {
+    right: 18px;
+    bottom: 18px;
+  }
+
+  &.is-top {
+    right: 18px;
+    top: 68px; /* 页头（约56px）下方，避免压住页头右侧图标 */
+  }
+
+  &.is-left {
+    left: 18px;
+    bottom: 18px;
+  }
+
+  &.is-right {
+    right: 18px;
+    bottom: 18px;
   }
 }
 
@@ -537,9 +702,26 @@ onBeforeUnmount(() => {
   transform: translateY(10px);
 }
 
+/* 弹层进出场方向跟随 Dock 位置 */
+.is-top .dock-popup-enter-from,
+.is-top .dock-popup-leave-to {
+  transform: translateY(-10px);
+}
+
+.is-left .dock-popup-enter-from,
+.is-left .dock-popup-leave-to {
+  transform: translateX(-10px);
+}
+
+.is-right .dock-popup-enter-from,
+.is-right .dock-popup-leave-to {
+  transform: translateX(10px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dock-tile,
-  .dock-col .dock-card {
+  .dock-col .dock-card,
+  .dock-handle {
     transition: none;
   }
 }

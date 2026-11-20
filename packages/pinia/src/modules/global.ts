@@ -67,6 +67,12 @@ const globalStore = defineStore("global", {
       asideInverted: false,
       headerInverted: false,
       isHeaderShown: true,
+      /** 横向布局顶栏形态：true=悬浮玻璃卡片（默认），false=标准通栏 */
+      horizontalHeaderCard: true,
+      /** Dock 布局显示位置：bottom=底部（默认）/ top=顶部 / left=左侧 / right=右侧 */
+      dockPosition: "bottom" as "bottom" | "top" | "left" | "right",
+      /** Dock 折叠收缩：true=缩为边缘角落小圆钮（鼠标经过临时展开，点击恢复常驻） */
+      dockCollapsed: false,
       isTabsShown: true,
       /** 路由骨架屏上的小动物：关闭后骨架只留静态占位 */
       isSkeletonCritterShown: true,

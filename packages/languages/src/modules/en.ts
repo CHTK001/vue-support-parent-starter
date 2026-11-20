@@ -486,6 +486,13 @@ export default {
         label: "Component Size",
         placeholder: "Select component size",
       },
+      dockPosition: {
+        label: "Dock Position",
+        top: "Top",
+        bottom: "Bottom",
+        left: "Left",
+        right: "Right",
+      },
       skeletonCritter: {
         label: "Skeleton Critter",
         bird: "Bird (hop)",
@@ -522,6 +529,12 @@ export default {
         sub: "Horizontal Layout",
         tip: "Horizontal header style: floating glass card / standard bar",
         description: "On = floating glass card, off = standard full-width header",
+      },
+      dockCollapsed: {
+        title: "Dock Collapsed",
+        sub: "Dock Layout",
+        tip: "Shrink the dock into a small corner handle on its edge",
+        description: "On = dock collapses to a corner handle: hover to expand temporarily, click to restore",
       },
       tabsShown: {
         title: "Show Tabs",

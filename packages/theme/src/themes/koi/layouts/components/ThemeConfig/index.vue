@@ -483,6 +483,25 @@
                    v-model="horizontalHeaderCard"
                  />
 
+                 <!-- Dock 布局：显示位置（上/下/左/右），仅 Dock 布局下显示 -->
+                 <div v-if="layout === 'dock'" class="config-item">
+                   <div class="config-label">{{ t("themeConfig.interface.dockPosition.label") }}</div>
+                   <ReRadioGroup v-model="dockPosition" class="config-input dock-position-group">
+                     <ReRadioButton label="top">{{ t("themeConfig.interface.dockPosition.top") }}</ReRadioButton>
+                     <ReRadioButton label="bottom">{{ t("themeConfig.interface.dockPosition.bottom") }}</ReRadioButton>
+                     <ReRadioButton label="left">{{ t("themeConfig.interface.dockPosition.left") }}</ReRadioButton>
+                     <ReRadioButton label="right">{{ t("themeConfig.interface.dockPosition.right") }}</ReRadioButton>
+                   </ReRadioGroup>
+                 </div>
+
+                 <ReSwitch v-if="layout === 'dock'" layout="card"
+                   :title="t('themeConfig.switchBlocks.dockCollapsed.title')"
+                   :sub="t('themeConfig.switchBlocks.dockCollapsed.sub')"
+                   :tip="t('themeConfig.switchBlocks.dockCollapsed.tip')"
+                   :description="t('themeConfig.switchBlocks.dockCollapsed.description')"
+                   v-model="dockCollapsed"
+                 />
+
                  <ReSwitch layout="card"
                    :title="t('themeConfig.switchBlocks.tabsShown.title')"
                    :sub="t('themeConfig.switchBlocks.tabsShown.sub')"
@@ -723,6 +742,7 @@ import type { OtherConfig, MessageConfig, TimerConfig, AppConfig, AccessibilityC
 import ReTab, { type ReTabItem } from "@repo/ui/re-tab";
 import ReSwitch from "@repo/ui/re-switch";
 import ReInputNumber from "@repo/ui/re-input-number";
+import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
 
 import ReLoginStyleSelector from "@repo/theme/koi/views/login/components/ReLoginStyleSelector.vue";
 import ReLoaderStyleSelector from "./components/ReLoaderStyleSelector.vue";
@@ -796,6 +816,18 @@ const tabsShown = computed({
 const horizontalHeaderCard = computed({
   get: () => globalStore.horizontalHeaderCard,
   set: (v: boolean) => globalStore.setGlobalState("horizontalHeaderCard", v),
+});
+
+/** Dock 布局：显示位置（上/下/左/右），仅 Dock 布局消费 */
+const dockPosition = computed({
+  get: () => globalStore.dockPosition,
+  set: (v: string) => globalStore.setGlobalState("dockPosition", v),
+});
+
+/** Dock 布局：折叠收缩（缩为边缘角落小圆钮，悬停临时展开） */
+const dockCollapsed = computed({
+  get: () => globalStore.dockCollapsed,
+  set: (v: boolean) => globalStore.setGlobalState("dockCollapsed", v),
 });
 
 /** 页签栏行为（app.yaml other.tabsBar 默认 + 本机用户偏好） */
@@ -1235,6 +1267,8 @@ const exportUserConfig = () => {
       asideInverted: globalStore.asideInverted,
       headerInverted: globalStore.headerInverted,
       horizontalHeaderCard: globalStore.horizontalHeaderCard,
+      dockPosition: globalStore.dockPosition,
+      dockCollapsed: globalStore.dockCollapsed,
       isGrey: globalStore.isGrey,
       isWeak: globalStore.isWeak,
       isSkeletonCritterShown: globalStore.isSkeletonCritterShown,
@@ -1340,6 +1374,8 @@ const applyImportedConfig = (data: {
     ["asideInverted", g.asideInverted],
     ["headerInverted", g.headerInverted],
     ["horizontalHeaderCard", g.horizontalHeaderCard],
+    ["dockPosition", g.dockPosition],
+    ["dockCollapsed", g.dockCollapsed],
     ["isGrey", g.isGrey],
     ["isWeak", g.isWeak],
     ["isSkeletonCritterShown", g.isSkeletonCritterShown],
@@ -2707,6 +2743,11 @@ html.dark .koi-layout-double.koi-layout-item {
   :deep(.re-switch--card) {
     margin-top: 10px;
   }
+}
+
+/** Dock 位置分段选择：4 个方位选项稍宽，避免文字挤压 */
+.dock-position-group {
+  width: 208px;
 }
 
 /** 扩展：工具栏开关 / 消息通知 / 首页 / 天气（ReSwitch 卡片式） */
