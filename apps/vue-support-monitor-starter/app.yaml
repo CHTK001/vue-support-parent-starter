@@ -73,10 +73,16 @@ loginConfig:
 
 # 其他配置
 otherConfig:
-  # 头像框字典/佩戴记录来自 system 服务的 /v2/avatar-frame/**，监控后端未实现，
-  # 开着只会在每次启动留一条 404（同 hotspot 应用的处理）
+  # 头像框：/v2/avatar-frame/** 与 /v2/ornament/outfit/** 已由
+  # spring-api-support-common-system-starter 实现，且该 starter 打进监控 fat jar
+  # （个人装扮 P1/P2），不再是「监控后端未实现」——开启个人中心「头像框」页签。
   avatarFrame:
-    enable: false
+    enable: true
+  # 饰品：/v2/ornament/** 同样由 system-starter 实现（P2：目录佩戴位置 anchor、
+  # 上架时间、搭配云保存、新饰品上架广播）。开启后个人中心出现「饰品」页签，
+  # 并经 socket 订阅 ornament/release 广播自动刷新目录。
+  ornament:
+    enable: true
   # 壁纸：内置渐变/图案是纯 CSS，但主题 store 挂载时仍会拉 /v2/wallpaper/list
   # 同步服务端目录；监控后端没有该接口，每次启动都会留一条 404。
   # 本部署先关闭（个人中心不出现壁纸页签）；后端补上 wallpaper 接口后再打开。
