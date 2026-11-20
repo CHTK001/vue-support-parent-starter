@@ -6,9 +6,9 @@
  * 提供模板基本字段录入与校验，保存成功后通过 save 事件通知父组件刷新列表。
  */
 import { message } from "@repo/core";
-import { reactive, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 
-import type { FormInstance, FormRules } from "element-plus";
+import type { FormInstance, FormRules, InputInstance } from "element-plus";
 import { saveTemplate, updateTemplate } from "../api/messageApi";
 import type { MessageProvider, MessageTemplate } from "../api/types";
 import ReDialog from "@repo/ui/re-dialog";
@@ -45,6 +45,42 @@ const rules = reactive<FormRules>({
 });
 
 const isEdit = ref(false);
+
+/** 常用模板变量：点击插入到内容光标处（仅快捷建议，实际可用变量以后端模板引擎为准） */
+const COMMON_VARS = ["userName", "nickname", "code", "time", "date", "link", "orderNo", "amount"] as const;
+
+const contentInputRef = ref<InputInstance>();
+
+/** 把 ${name} 插入模板内容当前光标处（取不到光标时追加到末尾） */
+function insertVariable(name: string) {
+  const token = "${" + name + "}";
+  const cur = model.value.sysMessageTemplateContent ?? "";
+  const ta = contentInputRef.value?.textarea;
+  const start = ta?.selectionStart ?? cur.length;
+  const end = ta?.selectionEnd ?? start;
+  model.value.sysMessageTemplateContent = cur.slice(0, start) + token + cur.slice(end);
+  void nextTick(() => {
+    ta?.focus();
+    ta?.setSelectionRange(start + token.length, start + token.length);
+  });
+}
+
+/** 预览分段：按 ${var} 切分模板内容，变量段高亮展示（纯文本分段渲染，不走 v-html） */
+const previewSegments = computed(() => {
+  const text = model.value.sysMessageTemplateContent ?? "";
+  if (!text) return [];
+  const segments: Array<{ text: string; isVar: boolean }> = [];
+  const re = /\$\{([^}]*)\}/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) segments.push({ text: text.slice(last, m.index), isVar: false });
+    segments.push({ text: m[0], isVar: true });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) segments.push({ text: text.slice(last), isVar: false });
+  return segments;
+});
 
 // 打开弹窗时根据 model 判断新增/编辑
 watch(
@@ -110,12 +146,37 @@ async function handleSave() {
         <el-input v-model="model.sysMessageTemplateType" placeholder="EMAIL / SMS / WECHAT 等" />
       </el-form-item>
       <el-form-item label="模板内容" prop="sysMessageTemplateContent">
-        <el-input
-          v-model="model.sysMessageTemplateContent"
-          type="textarea"
-          :rows="4"
-          placeholder="模板内容，变量用 ${var} 表示"
-        />
+        <div class="tpl-content-wrap">
+          <el-input
+            ref="contentInputRef"
+            v-model="model.sysMessageTemplateContent"
+            type="textarea"
+            :rows="4"
+            placeholder="模板内容，变量用 ${var} 表示"
+          />
+          <div class="tpl-var-bar">
+            <span class="tpl-var-bar__label">常用变量</span>
+            <el-tag
+              v-for="v in COMMON_VARS"
+              :key="v"
+              class="tpl-var-tag"
+              size="small"
+              effect="plain"
+              @click="insertVariable(v)"
+            >
+              {{ "${" + v + "}" }}
+            </el-tag>
+          </div>
+          <div v-if="previewSegments.length" class="tpl-preview">
+            <span class="tpl-preview__label">预览</span>
+            <span class="tpl-preview__body">
+              <template v-for="(seg, i) in previewSegments" :key="i">
+                <mark v-if="seg.isVar" class="tpl-preview__var">{{ seg.text }}</mark>
+                <span v-else>{{ seg.text }}</span>
+              </template>
+            </span>
+          </div>
+        </div>
       </el-form-item>
       <el-form-item label="回调地址">
         <el-input v-model="model.sysMessageTemplateCallbackUrl" placeholder="邮件状态回调 URL" />
@@ -133,3 +194,57 @@ async function handleSave() {
     </template>
   </ReDialog>
 </template>
+
+<style scoped>
+.tpl-content-wrap {
+  width: 100%;
+}
+
+.tpl-var-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tpl-var-bar__label {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.tpl-var-tag {
+  cursor: pointer;
+  user-select: none;
+}
+
+.tpl-var-tag:hover {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
+.tpl-preview {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
+  background: var(--el-fill-color-lighter);
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: break-all;
+}
+
+.tpl-preview__label {
+  margin-right: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.tpl-preview__var {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--el-color-primary-light-8);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+</style>

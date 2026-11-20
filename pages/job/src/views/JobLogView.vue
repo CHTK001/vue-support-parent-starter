@@ -30,7 +30,7 @@ import ReTime from "@repo/ui/re-time";
 import type { ReOption } from "@repo/ui/re-select";
 import { useTableExport } from "@repo/ui/re-table";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
-import { cleanupJobLogs, getSummary, pageJobLogs, pageJobs, readJobLogContent } from "../api/jobApi";
+import { cleanupJobLogs, getSummary, pageJobLogs, pageJobs, readJobLogContent, triggerJob } from "../api/jobApi";
 import { costMs, statusTagType, statusText, triggerTagType, triggerText } from "../constants/taskStatus";
 import { COLLECT_FLOW_GROUP, type JobLog, type JobLogContent, type JobSummary } from "../types/job";
 import { confirmAction, errText } from "../composables/useCollectView";
@@ -284,6 +284,31 @@ async function loadLogs({ page, pageSize, params }: ReTableLoadParams): Promise<
 
 async function reloadAll(): Promise<void> {
   await Promise.all([Promise.resolve(tableRef.value?.reload()), loadSummary(), loadLedger()]);
+}
+
+/** 失败重跑进行中的 jobKey：同一行按钮转圈，避免连点重复派发 */
+const rerunningKey = ref<string | null>(null);
+
+/**
+ * 失败重跑闭环：按日志行自带的 jobKey 立即再派发一次（trigger 不改任务启停状态），
+ * 成功后刷新台账与日志列表，让新一轮执行结果直接出现在本页。
+ */
+async function handleRerun(row: JobLog): Promise<void> {
+  if (!row.jobKey || rerunningKey.value) return;
+  rerunningKey.value = row.jobKey;
+  try {
+    const ok = await triggerJob(row.jobKey);
+    if (ok) {
+      msgSuccess(`已重新派发：${row.jobKey}，结果以新一轮日志为准`);
+      await reloadAll();
+    } else {
+      msgInfo("派发命令已受理，请稍后在本页查看新一轮执行结果");
+    }
+  } catch (error) {
+    msgError(errText(error));
+  } finally {
+    rerunningKey.value = null;
+  }
 }
 
 function showDetail(input: Record<string, unknown>): void {
@@ -579,6 +604,16 @@ onActivated(() => {
           icon="Copy"
           tip="复制这一轮执行的日志正文"
           @click="copyLogContent(row as unknown as JobLog)"
+        />
+        <!-- 失败重跑：按日志行 jobKey 立即再派发一次，形成「失败 → 重跑 → 看结果」闭环 -->
+        <ReButton
+          v-if="(row as unknown as JobLog).executeCode === 'FAILURE' && (row as unknown as JobLog).jobKey"
+          layout="square"
+          icon="RefreshRight"
+          type="warning"
+          tip="按该任务键立即重跑一次"
+          :loading="(row as unknown as JobLog).jobKey === rerunningKey"
+          @click="handleRerun(row as unknown as JobLog)"
         />
       </template>
     </ReTable>
