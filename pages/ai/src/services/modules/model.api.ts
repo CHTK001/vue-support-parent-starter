@@ -170,6 +170,11 @@ function buildProviderModelBody(data: any) {
   const subType = String(data.subType || data.modelSubType || config.subType || config.modelSubType || '').trim();
   const mainCap: Record<string, any> = { task: mainTask, traits };
   if (subType) mainCap.subtype = subType;
+  // Web 浏览器推理：模型脚本路径存 capabilities[0].js_path（复用 JSON 列，
+  // 与 generate / thinking_efforts 同一套「不新增数据库字段」的套路）。
+  // 表单经 payload.capabilities[0] 传入；顶层 js_path 一并兼容。
+  const jsPath = String(caps[0]?.js_path || data.js_path || '').trim();
+  if (jsPath) mainCap.js_path = jsPath;
   // 图片输入输出细化（张数 / 参考图）：随主能力节点落库（capabilities[0].image），
   // 后端 toCapabilityResponse / toProviderModelResponse 原样透传 —— 与 generate /
   // thinking_efforts 同一套「复用 capabilities JSON，不新增数据库字段」的套路。

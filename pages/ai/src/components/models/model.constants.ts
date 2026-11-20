@@ -204,7 +204,25 @@ export function deriveAuthMode(
 // 模型来源徽标：
 //   - 本地（ONNX / Ollama）：本地推理，无需外发请求
 //   - 云 API：走供应商 base_url 的远端模型
-export const LOCAL_PROVIDER_IDS = new Set(['onnx', 'ollama'])
+// 'web'（浏览器推理）也属本地范畴：模型脚本由前端动态加载、在浏览器里推理，
+// 不外发请求 —— 来源徽标按「本地」显示，且不做远端延迟测试。
+export const LOCAL_PROVIDER_IDS = new Set(['onnx', 'ollama', 'web'])
+
+/** Web 浏览器推理供应商的固定标识（与后端 ApiProviderController.WEB_PROVIDER_ID 同口径） */
+export const WEB_PROVIDER_ID = 'web'
+
+/**
+ * 是否为 Web 浏览器推理供应商。
+ *
+ * <p>与 ONNX 同构的虚拟本地提供商：模型是前端动态 import 的 ES Module，
+ * 在浏览器端推理；后端只维护模型目录，不参与对话路由。</p>
+ *
+ * @param id 供应商标识或平台标识
+ * @returns 是 web 供应商时为 true
+ */
+export function isWebProviderId(id: any): boolean {
+  return String(id || '').trim().toLowerCase() === WEB_PROVIDER_ID
+}
 export const PROVIDER_SOURCE_LABEL: Record<string, string> = {
   local: '本地',
   cloud: '云 API',
@@ -340,6 +358,11 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   // 选择服务器上的模型目录（POST /api/onnx/external），表单里地址与鉴权整块不适用。
   // 落库时 platform 由名称反推成 onnx，后端统一把 id 也落成 'onnx'。
   { id: 'onnx', name: 'ONNX 本地推理', description: '本地 ONNX 模型（OCR / 人脸 / 向量 / 版面分析），模型文件放在服务器上', protocol: 'openai', keywords: ['onnx', '本地推理', '离线', 'ocr', 'local'] },
+  // Web 浏览器推理：与 ONNX 同构的虚拟本地提供商（后端固定单行 provider_id='web'，
+  // 对所有用户可见）。没有上游地址与 Key；每个模型指向一个前端动态加载的
+  // ES Module 脚本（模型行 capabilities[0].js_path，如 /web-chat/echo-demo.js），
+  // 在浏览器里完成推理，后端只维护目录、不参与对话路由。
+  { id: 'web', name: '浏览器推理（Web）', description: '模型脚本在浏览器端动态加载并推理，不经服务端转发', protocol: 'openai', keywords: ['web', 'browser', '浏览器', '前端推理', 'wasm'], defaultAuthMode: 'none' },
 
   // ===== 自建网关 / 中转 =====
   // 这两类都是「自建部署」：没有统一的上游地址，地址填自己的部署域名，Key 用该实例签发的令牌。

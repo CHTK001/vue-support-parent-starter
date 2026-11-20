@@ -8,6 +8,7 @@ import { useDebounceFn } from "@vueuse/core";
 import { usePopup } from "@/composables/usePopup";
 import { t } from "@/locales";
 import { updateTokenStatsFromSSE } from "@/composables/useSessionTokenStats";
+import { isWebChatModel, webChatEventSource } from "@/services/webChatClient";
 
 // 类型定义
 interface StreamingState {
@@ -745,7 +746,13 @@ export function useStreamResponse(sessionStore: any, apiService: any) {
         chatParams.userMessage = userMessage;
       }
 
-      for await (const response of apiService.chat(chatParams)) {
+      // Web 浏览器推理：模型脚本在前端动态加载、浏览器里推理，不回源后端对话接口。
+      // 事件序列与后端 SSE 同构（create → text* → finish），复用下面同一循环。
+      const eventSource = isWebChatModel(chatParams.model)
+        ? webChatEventSource(chatParams)
+        : apiService.chat(chatParams);
+
+      for await (const response of eventSource) {
         // 修复：实时检测并保存 usage，不等待 finish 事件
         // 这样即使被取消或发生异常，已接收到的 usage 也不会丢失
         if (response.usage && message && contentIndex !== undefined) {

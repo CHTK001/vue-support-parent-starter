@@ -498,7 +498,7 @@ const currentModels = computed(() =>
 /**
  * 卡片底部汇总是否该查余额：与详情页余额条同一判定。
  *
- * <p>本地推理（ONNX / ollama）、路由组没有可查的上游余额；非管理员调
+ * <p>本地推理（ONNX / ollama / web 浏览器推理）、路由组没有可查的上游余额；非管理员调
  * /credit 会 403。其余只要配了上游地址（或显式 credit_url）才查。</p>
  *
  * @param p 供应商对象
@@ -507,7 +507,7 @@ const currentModels = computed(() =>
 const creditQueryable = (p: any): boolean => {
   if (!p || !canWrite.value) return false
   const plat = String(p.rawPlatform || '').toLowerCase()
-  if (plat === 'router-group' || plat === 'onnx' || plat === 'ollama' || plat === 'agent') return false
+  if (plat === 'router-group' || plat === 'onnx' || plat === 'ollama' || plat === 'agent' || plat === 'web') return false
   return !!(String(p.apiUrl || '').trim() || String(p.extra?.credit_url || '').trim())
 }
 

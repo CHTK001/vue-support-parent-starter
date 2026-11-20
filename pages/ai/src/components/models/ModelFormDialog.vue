@@ -75,6 +75,15 @@
             <el-form-item label="模型别名" prop="alias">
               <el-input v-model="form.alias" placeholder="可选，业务展示用名称（如：我的模型）" clearable />
             </el-form-item>
+            <!-- Web 浏览器推理专属：模型 = 前端动态加载的 ES Module 脚本。
+                 路径存进 capabilities[0].js_path（复用 JSON 列，不新增数据库字段）。 -->
+            <el-form-item v-if="isWebProvider" label="脚本路径 (js_path)" prop="jsPath">
+              <el-input v-model="form.jsPath" placeholder="/web-chat/echo-demo.js" clearable />
+              <div class="field-hint mt-1">
+                浏览器端推理脚本的加载路径（ES Module，默认导出 createClient(modelInfo)）。
+                相对路径相对应用站点根，如 /web-chat/echo-demo.js。
+              </div>
+            </el-form-item>
             <!--
               模型描述：卡片与列表里显示在模型名下方的一行说明。
               从提供商获取时会带上游 description（Google / OpenRouter / ONNX 本地行等），
@@ -489,7 +498,7 @@ import {
 } from '@vicons/fluent'
 import { apiService } from '../../services/ApiService'
 import { message } from '@repo/core'
-import { MODEL_TYPE_OPTIONS, MODEL_SUBTYPE_OPTIONS, TYPE_TO_TASK, THINKING_EFFORT_LEVELS, isChannelProvider } from './model.constants'
+import { MODEL_TYPE_OPTIONS, MODEL_SUBTYPE_OPTIONS, TYPE_TO_TASK, THINKING_EFFORT_LEVELS, isChannelProvider, isWebProviderId } from './model.constants'
 import { channelApi } from '@/services/javaApi'
 import {
   createDefaultModelConfig,
@@ -534,6 +543,18 @@ const currentTypeLabel = computed(() => currentType.value?.label || '')
 
 /** 输入能力里勾了「图片」→ 展开「支持参考图」这一项（输出侧不再有细化项） */
 const hasImageIn = computed(() => (form.value.config?.inputCapabilities || []).includes('image'))
+
+/**
+ * 是否为 Web 浏览器推理供应商。
+ *
+ * <p>与 ModelsProviderDetail.isOnnx 同一多字段口径：id / provider_id / platform
+ * 任一命中 web 即可（mapProvider 会把 platform 覆盖成品牌，不能只看一个字段）。</p>
+ */
+const isWebProvider = computed(() => {
+  const p: any = props.provider || {}
+  return isWebProviderId(p.id) || isWebProviderId(p.provider_id) || isWebProviderId(p.providerId)
+    || isWebProviderId(p.platform) || isWebProviderId(p.provider)
+})
 
 const form = ref<any>({
   modelName: '',
@@ -787,7 +808,7 @@ const selectModelType = (type: any) => {
 const openAdd = () => {
   isEditMode.value = false
   editingId.value = null
-  form.value = { modelName: '', modelType: 'text', subType: '', description: '', config: createDefaultModelConfig() }
+  form.value = { modelName: '', modelType: 'text', subType: '', description: '', jsPath: '', config: createDefaultModelConfig() }
   formRef.value?.clearValidate?.()
   visible.value = true
 }
@@ -799,6 +820,8 @@ const openEdit = (model: any) => {
   form.value = {
     modelName: model.modelName || '',
     alias: model.alias || '',
+    // Web 浏览器推理：脚本路径存 capabilities[0].js_path，编辑时回显
+    jsPath: String(model.capabilities?.[0]?.js_path || ''),
     // 描述：后端实体列 sys_ai_provider_model_description 原样回显
     description: model.description || '',
     modelType: model.modelType || 'text',
@@ -824,6 +847,8 @@ const prefillFromFetch = (model: any) => {
   form.value = {
     modelName: model.modelName || '',
     alias: model.alias || '',
+    // Web 浏览器推理：拉取目录行顶层带 js_path（fetchWebModelsCatalog），原样带入
+    jsPath: String(model.js_path || model.capabilities?.[0]?.js_path || ''),
     // 上游描述（后端 upstreamModelRow 统一读 description/summary）：带进表单，
     // 保存后就是卡片与列表里模型名下方那行说明。
     description: model.description || '',
@@ -915,7 +940,9 @@ const handleSave = async () => {
       ...form.value,
       ...merged,
       providerId: props.provider.id,
-      capabilities: [{ task, traits: [] }],
+      // Web 浏览器推理：脚本路径随主能力节点落库（capabilities[0].js_path，
+      // 复用 JSON 列；后端 batchModelInput 原样透传）
+      capabilities: [{ task, traits: [], ...(isWebProvider.value && String(form.value.jsPath || '').trim() ? { js_path: String(form.value.jsPath).trim() } : {}) }],
       // 思考强度档位：后端写进 capabilities[].thinking_efforts
       // （复用已有 JSON 列，不新增数据库字段；见 ApiProviderController.applyThinkingEfforts）
       thinking_efforts: form.value.config.thinkingEfforts,

@@ -16,7 +16,7 @@ import ProviderLogo from './ProviderLogo.vue'
 import OnnxExternalDialog from './OnnxExternalDialog.vue'
 import { apiService } from '../../services/ApiService'
 import { adminApi } from '@/framework/context'
-import { KEY_STRATEGIES, AUTH_SCHEMES, DEFAULT_AUTH_SCHEME, deriveAuthMode, isChannelProvider, isKeylessChannelProvider, CHANNEL_PROVIDER_IDS } from './model.constants'
+import { KEY_STRATEGIES, AUTH_SCHEMES, DEFAULT_AUTH_SCHEME, deriveAuthMode, isChannelProvider, isKeylessChannelProvider, isWebProviderId, CHANNEL_PROVIDER_IDS } from './model.constants'
 import { parseHeaders, validateHeadersText, resolveProviderBrand, headersToText } from './model.utils'
 import { channelApi, type ChannelSummary } from '@/services/javaApi'
 import { ReRadioGroup, ReRadioButton } from "@repo/ui/re-kit";
@@ -239,6 +239,8 @@ const creditTypeFromKind = (kind: unknown): 'auto' | 'official' | 'custom' | 'ac
 
 /** 本地推理提供商（ONNX）：apikey 语义是本地模型路径，而非远程密钥 */
 const isLocalProvider = computed(() => (providerType.value || '').toLowerCase().includes('onnx'))
+/** Web 浏览器推理提供商：没有上游地址与 Key，模型脚本由前端动态加载、浏览器里推理 */
+const isWebProvider = computed(() => isWebProviderId(providerType.value))
 /** 本地模型路径（仅本地提供商使用，最终写入 apiKey 字段） */
 const localModelPath = ref('')
 /** ONNX 真实模型根目录（后端 /providers 回传的 model_root，绝对路径；只读展示） */
@@ -1153,11 +1155,11 @@ const onExternalSaved = async () => {
 const handleSave = async () => {
   if (!form.name.trim()) { message.warning(t('settings.models.nameRequired')); return }
   // ONNX 纯本地推理没有远端地址；路由组也没有真实上游地址；免费渠道是渠道管理的统一入口，
-  // 地址由渠道管理维护；免登录渠道（DuckDuckGo 等）的模型目录由内置对话客户端提供
-  // —— 这四种都不校验 apiUrl
+  // 地址由渠道管理维护；免登录渠道（DuckDuckGo 等）的模型目录由内置对话客户端提供；
+  // Web 浏览器推理的模型脚本在前端动态加载 —— 这几种都不校验 apiUrl
   if (!isLocalProvider.value && !isChannelProviderFlag.value && !isRouterGroupProvider.value
       && !isFreeChannelProvider.value
-      && !isKeylessChannelProviderFlag.value && !form.apiUrl.trim()) {
+      && !isKeylessChannelProviderFlag.value && !isWebProvider.value && !form.apiUrl.trim()) {
     message.warning(t('settings.models.apiUrlRequired')); return
   }
   const headerErrors = validateHeadersText(form.customHeaders, t)
@@ -1228,7 +1230,8 @@ const handleSave = async () => {
     // 路由组同样不传 base_url：地址留空，成员是库里的真实上游
     // 免费渠道 / 免登录渠道也没有自己的上游地址：不传，避免把展示用的空串写回
     if (!isLocalProvider.value && !isRouterGroupProvider.value
-        && !isFreeChannelProvider.value && !isKeylessChannelProviderFlag.value) {
+        && !isFreeChannelProvider.value && !isKeylessChannelProviderFlag.value
+        && !isWebProvider.value) {
       updateData.base_url = form.apiUrl
     }
     // 凭证必须走 credentials：后端 ApiProviderController#updateProvider 只认 body.credentials，
@@ -1258,8 +1261,10 @@ const handleSave = async () => {
     const payload: any = {
       platform: platformVal, name: form.name,
       base_url: isRouterGroupProvider.value || isChannelProviderFlag.value || isKeylessChannelProviderFlag.value
+        || isWebProvider.value
         ? '' : form.apiUrl,
       auth_scheme: isRouterGroupProvider.value || isKeylessChannelProviderFlag.value || isLocalProvider.value
+        || isWebProvider.value
         ? 'none' : auth.authScheme,
       enabled: true, initial_model: null,
       extra: buildExtra(),
@@ -1267,7 +1272,8 @@ const handleSave = async () => {
     // 账号渠道 provider 凭据由渠道管理页绑定（sys_ai_provider_connection），表单不采集 api_key
     // 路由组同样不采集：成员留在模型库，成员自己的 Key 在成员行上维护
     // 免登录渠道也没有 Key：内置客户端按渠道自身登录态发请求
-    if (!isChannelProviderFlag.value && !isRouterGroupProvider.value && !isKeylessChannelProviderFlag.value) {
+    if (!isChannelProviderFlag.value && !isRouterGroupProvider.value && !isKeylessChannelProviderFlag.value
+        && !isWebProvider.value) {
       payload.credentials = { api_key: effectiveApiKey }
     }
     if (form.proxyUrl.trim()) payload.proxy = form.proxyUrl.trim()
@@ -1468,6 +1474,15 @@ const protocolOptions = [
           <p class="pf-note">
             免登录渠道没有上游地址：地址与 Key 都不用填。模型清单由内置对话客户端提供，
             「从提供商获取模型列表」里加进来的模型可以直接在会话中调用。
+          </p>
+        </div>
+      </div>
+      <div v-else-if="isWebProvider" class="pf-line">
+        <span class="pf-line-label">{{ t('settings.models.apiUrl') }}</span>
+        <div class="pf-line-ctrl">
+          <p class="pf-note">
+            浏览器推理没有上游地址：模型是前端动态加载的脚本，在浏览器里完成推理，不经服务端转发。
+            每个模型在「添加模型」时填写脚本路径（js_path），如 /web-chat/echo-demo.js。
           </p>
         </div>
       </div>

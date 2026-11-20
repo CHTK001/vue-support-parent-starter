@@ -253,7 +253,7 @@ import {
 import {
   MODEL_SUBTYPE_LABELS, MODEL_TYPE_ICON, MODEL_TYPE_KIND, TASK_TO_TYPE, TYPE_TO_TASK,
 } from './model.constants'
-import { isChannelProvider, isKeylessChannelProvider } from './model.constants'
+import { isChannelProvider, isKeylessChannelProvider, isWebProviderId } from './model.constants'
 import { channelApi } from '@/services/javaApi'
 import { SearchOutlined, ScienceOutlined } from '@vicons/material'
 import {
@@ -697,10 +697,14 @@ const open = async (provider: any, models: any[], fallbackToManual = true) => {
 
   // 本地推理（ONNX）无需 base_url 与 Key：模型目录由后端本地模型门面提供，
   // 不能沿用云端提供商的「必须配好地址和 Key 才允许拉取」的前置校验，否则加模型流程会被堵死
+  // Web 浏览器推理与 ONNX 同为本地范畴：没有上游地址与 Key，
+  // 模型目录由后端内置目录（fetchWebModelsCatalog）提供，不走 Key 前置校验
   const isLocalProvider =
     provider?.id === 'onnx' ||
     provider?.provider_id === 'onnx' ||
-    String(provider?.platform || provider?.provider || '').toLowerCase().includes('onnx')
+    String(provider?.platform || provider?.provider || '').toLowerCase().includes('onnx') ||
+    isWebProviderId(provider?.id) || isWebProviderId(provider?.provider_id) ||
+    isWebProviderId(provider?.platform) || isWebProviderId(provider?.provider)
 
   if (channelProviderFlag && !keylessProvider) {
     // 渠道 provider：从渠道管理页拉取已启用模型（渠道总开关 + 单模型开关双重过滤）
