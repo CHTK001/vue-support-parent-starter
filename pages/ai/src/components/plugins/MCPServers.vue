@@ -636,16 +636,11 @@ onMounted(async () => {
 }
 .market-group-arrow.collapsed { transform: rotate(90deg); }
 
-/* ===== 网格 → 双列瀑布流（方案 10）；单元 → 文摘卡 =====
-   本文件弹窗不使用 .market-grid，可直接整体改多列布局。 */
+/* ===== 网格：等宽等高，同行卡片拉伸对齐（旧「方案 10」双列瀑布流已撤） ===== */
 .market-grid {
-  column-count: 2;
-  column-gap: 12px;
-}
-@media (max-width: 640px) {
-  .market-grid {
-    column-count: 1;
-  }
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 12px;
 }
 .market-cell {
   position: relative;
@@ -661,8 +656,6 @@ onMounted(async () => {
   background: var(--bg-container, #ffffff);
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
   min-width: 0;
-  break-inside: avoid;
-  margin-bottom: 12px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .market-cell:hover {

@@ -1486,18 +1486,7 @@ onMounted(async () => {
     grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
     gap: 12px;
 }
-/* 瀑布流（方案 10）只作用于市场浏览区：安装弹窗里的 .market-grid
-   （dialog-market-grid）不在 .skill-market 内，仍是上面的等宽网格 */
-.skill-market .market-grid {
-    display: block;
-    column-count: 2;
-    column-gap: 12px;
-}
-@media (max-width: 640px) {
-    .skill-market .market-grid {
-        column-count: 1;
-    }
-}
+/* 市场浏览区与安装弹窗统一用上面的等宽等高网格（旧「方案 10」瀑布流已撤） */
 .market-cell {
     position: relative;
     display: flex;
@@ -1516,11 +1505,6 @@ onMounted(async () => {
     transition:
         border-color var(--el-transition-duration-fast, 0.2s) ease,
         box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-}
-/* 瀑布流项：防截断 + 卡片间距（只作用市场浏览区，弹窗内不受影响） */
-.skill-market .market-cell {
-    break-inside: avoid;
-    margin-bottom: 12px;
 }
 /* hover 浮起：投影升一档（--shadow-md），描边转品牌色 */
 .market-cell:hover {

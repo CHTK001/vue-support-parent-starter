@@ -380,16 +380,11 @@ onMounted(() => {
   border-color: var(--el-color-danger);
   color: var(--el-color-danger);
 }
-/* 瀑布流（方案 10 · Masonry Digest）：双列多列布局，卡片 break-inside:avoid
-   防截断；窄屏退化为单列。原 grid(auto-fill, minmax(196px,1fr)) → 多列瀑布。 */
+/* 等高网格：同行卡片自动拉伸对齐（旧「方案 10」双列瀑布流已撤，卡片高度参差） */
 .market-grid {
-  column-count: 2;
-  column-gap: 12px;
-}
-@media (max-width: 640px) {
-  .market-grid {
-    column-count: 1;
-  }
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 12px;
 }
 /* 卡片：div + @click，补键盘焦点环 */
 .market-card {
@@ -409,8 +404,6 @@ onMounted(() => {
   outline: none;
   /* 封面带负边距贴边，靠 overflow 裁出上圆角 */
   overflow: hidden;
-  break-inside: avoid;
-  margin-bottom: 12px;
   transition:
     box-shadow var(--el-transition-duration-fast, 0.2s) ease,
     border-color var(--el-transition-duration-fast, 0.2s) ease;
