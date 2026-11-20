@@ -2405,7 +2405,7 @@ export function useUsageBoard() {
    */
   type TrendMetric = "token" | "cost" | "calls" | "speed";
   const trendMetric = ref<TrendMetric>("token");
-  const trendChartType = ref<"line" | "bar">("line");
+  const trendChartType = ref<"line" | "bar">("bar");
 
   const trendAux = computed(() => {
     const cost = new Map<string, number>();

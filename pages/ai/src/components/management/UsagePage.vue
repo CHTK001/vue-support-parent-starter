@@ -1041,10 +1041,10 @@ const treemapOption = computed<EChartsOption>(() => {
     tooltip: {
       trigger: 'item',
       confine: true,
-      backgroundColor: 'var(--el-bg-color-overlay, #fff)',
-      borderColor: 'var(--el-border-color-lighter, #E5E6EB)',
+      backgroundColor: 'rgba(255,255,255,0.98)',
+      borderColor: '#E5E6EB',
       borderWidth: 1,
-      textStyle: { color: 'var(--el-text-color-primary, #1D2129)', fontSize: 12 },
+      textStyle: { color: '#1D2129', fontSize: 12 },
       extraCssText: 'box-shadow:0 6px 20px rgba(15,23,42,.12);border-radius:8px;padding:8px 10px;',
       formatter: (p: any) => {
         const total = blocks.reduce((s, b) => s + Number(b.value), 0)
