@@ -60,6 +60,14 @@ export function createMonitorRoutes(options: MonitorRoutesOptions = {}): RouteCo
           component: () => import("./views/ScServiceManage.vue"),
           meta: { title: "服务管理", icon: "Link", showLink: true, rank: 15 },
         },
+        {
+          // Agent 探针列表：登记了探针标识的监控目标 + 在线状态/最后心跳/采集配置。
+          // 数据面是 /ms/monitor/agent（AgentEndpointController），归监控侧，故挂本包。
+          path: "/agents",
+          name: "Agents",
+          component: () => import("./views/agents/ScAgentList.vue"),
+          meta: { title: "Agent 探针", icon: "Monitor", showLink: true, rank: 15 },
+        },
       ],
     },
 
