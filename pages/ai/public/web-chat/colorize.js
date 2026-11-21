@@ -23,7 +23,7 @@
  * model 参数换成同源 URL 即可。
  */
 
-import { importFirst, resolveInputImages, loadImage } from './_shared.js'
+import { resolveInputImages, loadImage } from './_shared.js'
 
 /** onnxruntime-web CDN（多候选依次兜底）
  *
@@ -51,6 +51,37 @@ function pathOptions() {
   } catch (e) {
     return new URLSearchParams()
   }
+}
+
+/**
+ * 以经典 <script> 标签加载 onnxruntime-web。
+ *
+ * ort.min.js 是 IIFE+CJS 构建：顶层 `var ort` 只有在非模块脚本里才会落到
+ * window；动态 import() 会得到空命名空间且不写全局（浏览器实测），因此这里
+ * 必须走 script 标签，按候选依次兜底，加载成功后从全局取 ort。
+ */
+function loadOrtScript() {
+  return new Promise((resolve, reject) => {
+    let i = 0
+    const tryNext = () => {
+      if (i >= ORT_CDN.length) {
+        reject(new Error('onnxruntime-web 加载失败（请检查浏览器网络/CDN 可达性）'))
+        return
+      }
+      const url = ORT_CDN[i++]
+      const el = document.createElement('script')
+      el.src = url
+      el.async = true
+      el.onload = () => {
+        const lib = (typeof globalThis !== 'undefined' && globalThis.ort) || (typeof window !== 'undefined' && window.ort) || null
+        if (lib && lib.InferenceSession) resolve(lib)
+        else tryNext()
+      }
+      el.onerror = () => tryNext()
+      document.head.appendChild(el)
+    }
+    tryNext()
+  })
 }
 
 /* ---------------- 颜色空间：sRGB ↔ Lab（D65，与 OpenCV 浮点口径一致） ---------------- */
@@ -153,12 +184,12 @@ function drawToImageData(img, w, h) {
   return ctx.getImageData(0, 0, w, h).data
 }
 
-/** 下载权重并回报进度（ReadableStream 分块累计；小响应直接 arrayBuffer） */
+/** 下载权重并回报进度（ReadableStream 分块累计；无 content-length 也按 MB 回报） */
 async function fetchModelBytes(url, onProgress, signal) {
   const resp = await fetch(url, { signal })
   if (!resp.ok) throw new Error('权重下载失败: HTTP ' + resp.status + '（' + url + '）')
   const total = Number(resp.headers.get('content-length') || 0)
-  if (!resp.body || !total) return new Uint8Array(await resp.arrayBuffer())
+  if (!resp.body) return new Uint8Array(await resp.arrayBuffer())
   const reader = resp.body.getReader()
   const chunks = []
   let loaded = 0
@@ -201,20 +232,16 @@ export default function createClient(modelInfo) {
   /** 懒加载：拉库 → 下载权重 → 创建推理会话（WebGPU 优先，失败回退 WASM） */
   async function ensureSession(emit, signal) {
     if (session) return
-    const mod = await importFirst(ORT_CDN)
-    const lib = mod && mod.InferenceSession ? mod : mod.default
-    if (!lib || !lib.InferenceSession) {
-      throw new Error('onnxruntime-web 加载失败：库未正确挂载（检查 CDN 可达性）')
-    }
-    ort = lib
+    ort = await loadOrtScript()
     try {
       ort.env.wasm.wasmPaths = ORT_WASM_PATHS
     } catch (e) { /* 某些构建的 env 只读，忽略 */ }
 
     emit('⏳ [' + name + '] 正在下载 DDColor fp16 权重（约 108MB，首次较慢）…\n')
     const bytes = await fetchModelBytes(modelUrl, (loaded, total) => {
-      const pct = total ? Math.floor((loaded / total) * 100) : 0
-      emit('　下载进度 ' + pct + '%（' + Math.round(loaded / 1048576) + 'MB）\n')
+      emit(total
+        ? '　下载进度 ' + Math.floor((loaded / total) * 100) + '%（' + Math.round(loaded / 1048576) + 'MB）\n'
+        : '　已下载 ' + Math.round(loaded / 1048576) + 'MB…\n')
     }, signal)
     if (signal && signal.aborted) throw new Error('aborted')
 
