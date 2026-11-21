@@ -293,14 +293,14 @@ async function loadJobs({ page, pageSize, params }: ReTableLoadParams): Promise<
   return { total: Number(result?.total ?? 0), data: rows as unknown as Record<string, unknown>[] };
 }
 
-/** 行状态类：停用行灰底；启用且最近执行失败时红底（后端暂未返回该字段时不会误标） */
+/** 行状态类：停用行灰底；启用且最近一次执行失败时红底（最近执行结果由后端 /page 批量回填） */
 function jobRowClassName(data: { row: Record<string, unknown>; rowIndex: number }): string {
   const job = data.row as unknown as JobRuntime;
   if (job.enabled !== true) {
     return "job-row job-row--disabled";
   }
-  const raw = data.row as Record<string, unknown>;
-  const status = String(raw.lastStatus ?? raw.executeCode ?? "").toUpperCase();
+  // 优先用后端回填的最近一次执行结果码；旧字段 lastStatus/executeCode 仅作兼容回退
+  const status = String(job.lastExecuteCode ?? data.row.lastStatus ?? data.row.executeCode ?? "").toUpperCase();
   if (status === "FAILED" || status === "FAILURE") {
     return "job-row job-row--failed";
   }
@@ -1202,7 +1202,7 @@ watch(formVisible, (visible) => {
         :params="query"
         :columns="columns"
         row-key="jobKey"
-        row-class-name="jobRowClassName"
+        :row-class-name="jobRowClassName"
         show-selection
         :layout-switch="false"
         @selection-change="onSelectionChange"

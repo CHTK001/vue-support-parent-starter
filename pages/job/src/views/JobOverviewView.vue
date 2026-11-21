@@ -24,9 +24,9 @@ import ReTime from "@repo/ui/re-time";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import FireCountdown from "../components/FireCountdown.vue";
 import OvSpark from "../components/OvSpark.vue";
-import { getSummary, listExecutors, listNodes, pageJobLogs, pageJobs } from "../api/jobApi";
+import { getLinkMetrics, getSummary, listExecutors, listNodes, pageJobLogs, pageJobs } from "../api/jobApi";
 import { costMs, statusTagType, statusText } from "../constants/taskStatus";
-import type { JobExecutor, JobLog, JobNode, JobRuntime, JobSummary } from "../types/job";
+import type { JobExecutor, JobLinkMetrics, JobLog, JobNode, JobRuntime, JobSummary } from "../types/job";
 import { useCollectView, errText } from "../composables/useCollectView";
 import { cronDesc, isFlowRow, scheduleText } from "../utils/jobFormat";
 import { fmtFireShort, fmtMs } from "../utils/time";
@@ -52,6 +52,8 @@ const LOG_PAGE_SIZE = 500;
 const LOG_MAX_PAGES = 4;
 
 const summary = ref<JobSummary | null>(null);
+/** 传输链路健康指标：取数失败只让对应面板显示提示，不拖垮整页 */
+const linkMetrics = ref<JobLinkMetrics | null>(null);
 const jobs = ref<JobRuntime[]>([]);
 const logs = ref<JobLog[]>([]);
 const logTruncated = ref(false);
@@ -114,8 +116,16 @@ async function loadRegistry(): Promise<void> {
 }
 
 const { loading, reload } = useCollectView(async () => {
-  const [sum] = await Promise.all([getSummary(), loadJobs(), loadLogs(), loadRegistry()]);
+  // 第 2~4 位是 loadJobs/loadLogs/loadRegistry（无返回值），用空洞跳过；链路指标取不到时置空只影响本面板
+  const [sum, , , , link] = await Promise.all([
+    getSummary(),
+    loadJobs(),
+    loadLogs(),
+    loadRegistry(),
+    getLinkMetrics().catch(() => null),
+  ]);
   summary.value = sum;
+  linkMetrics.value = link;
   updatedAt.value = new Date().toLocaleTimeString("zh-CN", { hour12: false });
 });
 
@@ -287,6 +297,7 @@ const facts = computed<{ label: string; value: string }[]>(() => {
     { label: "扫描节奏", value: `${s.scanIntervalMs}ms` },
     { label: "已注册处理器", value: `${s.registeredHandlers} 个` },
     { label: "在线执行器", value: `${s.onlineExecutors.length} 个` },
+    { label: "24h 失败 / 跳过", value: `${(s.recentFailures ?? 0).toLocaleString("zh-CN")} / ${(s.recentSkipped ?? 0).toLocaleString("zh-CN")}` },
   ];
 });
 
@@ -311,6 +322,35 @@ const stripAlert = computed<string>(() => {
     return `${s.unclaimedRemoteJobs} 个启用的远程任务本节点不领取，只由调度中心节点下发`;
   }
   return "";
+});
+
+/**
+ * 传输链路健康的展示行：把链路计数翻译成带单位与上下文的文案。
+ *
+ * <p>执行器侧三项计数只有在本进程真的装配了执行器时才有意义（纯调度中心角色下
+ * executorOnline=false），这时不展示，避免读出一排无意义的 0。</p>
+ */
+const linkRows = computed<{ label: string; value: string }[]>(() => {
+  const m = linkMetrics.value;
+  if (!m) {
+    return [];
+  }
+  const num = (v: number | undefined) => (v ?? 0).toLocaleString("zh-CN");
+  const rows = [
+    { label: "补偿重放帧数", value: num(m.replayedCommands) },
+    { label: "命令缓冲水位", value: `${num(m.commandBufferWatermark)} / ${num(m.commandBufferCapacity)} 条` },
+    { label: "丢单补记条数", value: num(m.missedDispatchRecords) },
+    { label: "执行器去重命中", value: num(m.executorDedupHits) },
+    { label: "执行器连接成功", value: num(m.executorConnects) },
+    { label: "日志队列丢弃", value: num(m.logQueueDrops) },
+  ];
+  if (m.executorOnline) {
+    rows.push(
+      { label: "已处理 / 丢弃", value: `${num(m.executorProcessed)} / ${num(m.executorDropped)}` },
+      { label: "并发跳过", value: num(m.executorConcurrentSkipped) },
+    );
+  }
+  return rows;
 });
 
 /* ============ 即将触发 ============ */
@@ -694,6 +734,23 @@ function go(path: string): void {
               </template>
             </dl>
             <p v-else class="collect-hint collect-hint--muted">未取到运行时参数，说明调度治理接口在当前后端不可用。</p>
+          </div>
+        </section>
+
+        <!-- 传输链路健康：命令从调度中心到执行器这一段的自愈与损耗计数 -->
+        <section class="ov-panel">
+          <header class="ov-panel__head">
+            <ReIcon name="Link" :size="14" class="ov-panel__icon"/>
+            <h2 class="ov-panel__title">传输链路健康</h2>
+          </header>
+          <div class="ov-panel__body">
+            <dl v-if="linkRows.length" class="ov-kv">
+              <template v-for="item in linkRows" :key="item.label">
+                <dt>{{ item.label }}</dt>
+                <dd>{{ item.value }}</dd>
+              </template>
+            </dl>
+            <p v-else class="collect-hint collect-hint--muted">未取到链路指标，说明后端尚未提供 /metrics 出口。</p>
           </div>
         </section>
 

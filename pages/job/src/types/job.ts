@@ -60,6 +60,10 @@ export interface JobRuntime {
   alarmEmail?: string | null;
   /** 失败告警类型：EMAIL / WEBHOOK，空按 EMAIL */
   alarmType?: string | null;
+  /** 最近一次执行结果码：SUCCESS / FAILURE / SKIPPED，空表示尚无执行记录 */
+  lastExecuteCode?: string | null;
+  /** 最近一次执行的触发时刻（毫秒），空表示尚无执行记录 */
+  lastExecuteTime?: number | null;
   /** 乐观锁版本：编辑保存时原样回传，后端据此判断台账是否已被他人修改 */
   version?: number | null;
 }
@@ -167,9 +171,46 @@ export interface JobSummary {
   registeredHandlers: number;
   /** 24 小时内的失败派发数 */
   recentFailures: number;
+  /** 24 小时内的跳过派发数（含处理器未注册与丢单补记） */
+  recentSkipped: number;
   /** 远程分发是否由本节点下发（单机/执行器角色为 false，远程行在本机不会跑） */
   remoteDispatchOwnedByMe: boolean;
   onlineExecutors: string[];
+}
+
+/**
+ * 传输链路健康指标（JobLinkMetricsVO）。
+ *
+ * 回答「命令从调度中心走到执行器、日志再回流」这一段发生过的自愈与损耗：
+ * 断线补偿重放了多少帧、命令缓冲积压到多深、丢单补记了多少条、执行器去重挡掉多少次
+ * 重复帧、重连成功多少次、日志队列丢了多少条，以及执行器本体的处理/丢弃/并发跳过计数。
+ * 计数只增不减、重启归零，回答的是「这一轮进程运行以来」而不是历史台账。
+ */
+export interface JobLinkMetrics {
+  /** 断线补偿重放的命令帧数（调度中心侧） */
+  replayedCommands: number;
+  /** 近期命令缓冲水位峰值（同时刻最多积压过多少条） */
+  commandBufferWatermark: number;
+  /** 近期命令缓冲容量上限（超出淘汰最旧） */
+  commandBufferCapacity: number;
+  /** 近期命令缓冲存活时长（毫秒），重放只补该窗口内的命令 */
+  commandBufferTtlMs: number;
+  /** 丢单补记的 SKIPPED 日志条数（0 在线执行器时写入） */
+  missedDispatchRecords: number;
+  /** 执行器按消息 id 幂等去重命中次数 */
+  executorDedupHits: number;
+  /** 执行器连接+注册成功次数（含首次上线与断线重连） */
+  executorConnects: number;
+  /** 日志队列已满被丢弃的日志条数 */
+  logQueueDrops: number;
+  /** 执行器计数是否可用（本进程装配了执行器才有值） */
+  executorOnline: boolean;
+  /** 执行器累计已处理任务数 */
+  executorProcessed: number;
+  /** 执行器累计因线程池满被丢弃的任务数 */
+  executorDropped: number;
+  /** 执行器累计因并发策略被跳过的任务数 */
+  executorConcurrentSkipped: number;
 }
 
 /** 已注册执行器（JobExecutorVO），来自后端处理器注册表 */

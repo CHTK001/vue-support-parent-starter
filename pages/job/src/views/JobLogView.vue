@@ -17,7 +17,7 @@
 <script setup lang="ts">
 import { computed, onActivated, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { msgError, msgInfo, msgSuccess } from "@repo/core";
+import { msgError, msgInfo, msgSuccess, msgWarning } from "@repo/core";
 import ReButton from "@repo/ui/re-button";
 import ReDialog from "@repo/ui/re-dialog";
 import ReIcon from "@repo/ui/re-icon";
@@ -77,7 +77,7 @@ const searchModel = ref<Record<string, unknown>>({
   customRange: null,
 });
 
-const tableRef = ref<{ reload: () => void; goto: (page?: number) => void } | null>(null);
+const tableRef = ref<{ reload: () => void; goto: (page?: number) => void; clearAllSelection: () => void } | null>(null);
 const summary = ref<JobSummary | null>(null);
 const retentionDays = ref(30);
 const hitTotal = ref(0);
@@ -286,11 +286,34 @@ async function reloadAll(): Promise<void> {
   await Promise.all([Promise.resolve(tableRef.value?.reload()), loadSummary(), loadLedger()]);
 }
 
-/** 失败重跑进行中的 jobKey：同一行按钮转圈，避免连点重复派发 */
+/** 补发进行中的任务键：对应行按钮转圈；批量补发时用哨兵值锁住全部入口，避免连点重复派发 */
 const rerunningKey = ref<string | null>(null);
+const BATCH_RERUN_KEY = "__batch__";
+
+/** 可补发的结果码：失败与被跳过（含处理器未注册、丢单补记）的行才需要再派发一次 */
+const RERUNNABLE_CODES = new Set(["FAILURE", "SKIPPED"]);
+
+/** 勾选的日志行（ReTable 跨页勾选回传） */
+const selectedRows = ref<JobLog[]>([]);
+
+/** ReTable 常驻勾选列回传 */
+function onSelectionChange(rows: Record<string, unknown>[]): void {
+  selectedRows.value = rows as unknown as JobLog[];
+}
+
+/** 勾选行里可补发的任务键（去重：同一任务的失败/跳过多行只补发一次） */
+const rerunnableKeys = computed<string[]>(() => {
+  const keys = new Set<string>();
+  for (const row of selectedRows.value) {
+    if (row?.jobKey && RERUNNABLE_CODES.has(String(row.executeCode ?? "").toUpperCase())) {
+      keys.add(row.jobKey);
+    }
+  }
+  return [...keys];
+});
 
 /**
- * 失败重跑闭环：按日志行自带的 jobKey 立即再派发一次（trigger 不改任务启停状态），
+ * 单行补发闭环：按日志行自带的 jobKey 立即再派发一次（trigger 不改任务启停状态），
  * 成功后刷新台账与日志列表，让新一轮执行结果直接出现在本页。
  */
 async function handleRerun(row: JobLog): Promise<void> {
@@ -306,6 +329,50 @@ async function handleRerun(row: JobLog): Promise<void> {
     }
   } catch (error) {
     msgError(errText(error));
+  } finally {
+    rerunningKey.value = null;
+  }
+}
+
+/**
+ * 批量补发：对勾选行中可补发的任务键逐一立即派发。
+ *
+ * <p>停用任务会被后端拒绝（trigger 只受理启用中的任务），逐条计入未受理并继续，
+ * 不让一个键中断整批；结果按成功/未受理分别反馈，最后统一刷新本页。</p>
+ */
+async function handleBatchRerun(): Promise<void> {
+  const keys = rerunnableKeys.value;
+  if (!keys.length || rerunningKey.value) return;
+  const skippedCount = selectedRows.value.length - keys.length;
+  const ok = await confirmAction(
+    `将对 ${keys.length} 个任务键立即补发一次（不改变任务启停状态）`
+    + (skippedCount > 0 ? `；另有 ${skippedCount} 行不可补发（成功或无任务键）` : "")
+    + "，继续吗？",
+    "批量补发",
+  );
+  if (!ok) return;
+  rerunningKey.value = BATCH_RERUN_KEY;
+  let success = 0;
+  const rejected: string[] = [];
+  try {
+    for (const key of keys) {
+      try {
+        if (await triggerJob(key)) {
+          success++;
+        } else {
+          rejected.push(key);
+        }
+      } catch {
+        rejected.push(key);
+      }
+    }
+    if (rejected.length) {
+      msgWarning(`已补发 ${success} 个，${rejected.length} 个未受理（停用任务需先启用）：${rejected.slice(0, 5).join("、")}${rejected.length > 5 ? "…" : ""}`);
+    } else {
+      msgSuccess(`已补发 ${success} 个任务，结果以新一轮日志为准`);
+    }
+    tableRef.value?.clearAllSelection();
+    await reloadAll();
   } finally {
     rerunningKey.value = null;
   }
@@ -525,6 +592,8 @@ onActivated(() => {
       :page-sizes="[20, 50, 100, 200]"
       empty-text="还没有派发记录，去「调度工作台」启用一个任务或手动触发一次"
       stripe
+      show-selection
+      @selection-change="onSelectionChange"
       @search="query.page !== 1 && tableRef?.goto(1)"
       @search-reset="tableRef?.goto(1)"
     >
@@ -546,6 +615,14 @@ onActivated(() => {
           :disabled="exporting"
           tip="把当前筛选条件下的日志导出为 CSV"
           @click="exportLogs"/>
+        <!-- 批量补发：勾选行里的失败/跳过任务按任务键去重后逐一立即派发 -->
+        <ReButton
+          icon="RefreshRight"
+          type="warning"
+          :loading="rerunningKey === BATCH_RERUN_KEY"
+          :disabled="rerunnableKeys.length === 0 || !!rerunningKey"
+          :tip="rerunnableKeys.length === 0 ? '勾选失败/跳过行后可批量补发' : `对勾选的 ${rerunnableKeys.length} 个任务键立即补发`"
+          @click="handleBatchRerun">补发({{ rerunnableKeys.length }})</ReButton>
       </template>
 
       <!--
@@ -605,13 +682,13 @@ onActivated(() => {
           tip="复制这一轮执行的日志正文"
           @click="copyLogContent(row as unknown as JobLog)"
         />
-        <!-- 失败重跑：按日志行 jobKey 立即再派发一次，形成「失败 → 重跑 → 看结果」闭环 -->
+        <!-- 失败/跳过补发：按日志行 jobKey 立即再派发一次，形成「失败/跳过 → 补发 → 看结果」闭环 -->
         <ReButton
-          v-if="(row as unknown as JobLog).executeCode === 'FAILURE' && (row as unknown as JobLog).jobKey"
+          v-if="(row as unknown as JobLog).jobKey && RERUNNABLE_CODES.has(String((row as unknown as JobLog).executeCode ?? '').toUpperCase())"
           layout="square"
           icon="RefreshRight"
           type="warning"
-          tip="按该任务键立即重跑一次"
+          :tip="(row as unknown as JobLog).executeCode === 'SKIPPED' ? '该轮被跳过，按任务键立即补发一次' : '按该任务键立即重跑一次'"
           :loading="(row as unknown as JobLog).jobKey === rerunningKey"
           @click="handleRerun(row as unknown as JobLog)"
         />

@@ -15,7 +15,7 @@
  */
 import { getConfig } from "@repo/config";
 import { get, post, put, del } from "./http";
-import type { JobExecutor, JobLog, JobLogContent, JobLogQuery, JobNode, JobPage, JobQuery, JobRuntime, JobSave, JobSummary } from "../types/job";
+import type { JobExecutor, JobLinkMetrics, JobLog, JobLogContent, JobLogQuery, JobNode, JobPage, JobQuery, JobRuntime, JobSave, JobSummary } from "../types/job";
 
 /**
  * 治理出口前缀：取宿主配置，缺省回落到采集控制台出口（与 @repo/config 的默认值一致）。
@@ -28,6 +28,9 @@ function apiPrefix(): string {
 
 /** 工作台概览：角色、选主态、任务与日志计数 */
 export const getSummary = () => get<JobSummary>(`${apiPrefix()}/summary`);
+
+/** 传输链路健康指标：命令从调度中心到执行器的自愈与损耗计数 */
+export const getLinkMetrics = () => get<JobLinkMetrics>(`${apiPrefix()}/metrics`);
 
 /** 任务运行态分页 */
 export const pageJobs = (query: JobQuery) => get<JobPage<JobRuntime>>(`${apiPrefix()}/page`, { ...query });
