@@ -6,8 +6,8 @@
       <CharacterRoster class="cwb-host__roster" :characters="characters" :groups="groups"
         :currentGroupId="currentGroupId" :loading="loading" :selectedId="selectedId" @select="selectCharacter"
         @create="createCharacter" @select-group="selectGroup" @create-group="showCreateGroupDialog"
-        @rename-group="handleRenameGroup" @delete-group="handleDeleteGroup" @open-docs="openDocs"
-        @imported="handleImported" @open-market="openMarket" />
+        @rename-group="handleRenameGroup" @delete-group="handleDeleteGroup" @docs="openDocs"
+        @imported="handleImported" @market="openMarket" />
 
       <section class="cwb-host__editor">
         <CharacterSettingPanel v-if="hasSelection" ref="settingPanelRef" :data="current" :is-new="isNew"
@@ -303,7 +303,8 @@ onMounted(async (): Promise<void> => {
   min-height: 0;
   display: grid;
   grid-template-columns: 268px minmax(0, 1fr);
-  gap: 14px;
+  /* 栏间距定版 4px（2026-11-21）：名录 / 编辑 / 能力清单三栏统一窄缝 */
+  gap: 4px;
   padding: 0 14px 14px;
 }
 

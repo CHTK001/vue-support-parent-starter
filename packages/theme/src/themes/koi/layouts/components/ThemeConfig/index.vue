@@ -494,6 +494,15 @@
                    </ReRadioGroup>
                  </div>
 
+                 <!-- Dock 布局：一级磁贴激活模式（整体菜单 / 独立卡片），仅 Dock 布局下显示 -->
+                 <div v-if="layout === 'dock'" class="config-item">
+                   <div class="config-label">{{ t("themeConfig.interface.dockActiveMode.label") }}</div>
+                   <ReRadioGroup v-model="dockActiveMode" class="config-input dock-position-group">
+                     <ReRadioButton label="whole">{{ t("themeConfig.interface.dockActiveMode.whole") }}</ReRadioButton>
+                     <ReRadioButton label="independent">{{ t("themeConfig.interface.dockActiveMode.independent") }}</ReRadioButton>
+                   </ReRadioGroup>
+                 </div>
+
                  <ReSwitch v-if="layout === 'dock'" layout="card"
                    :title="t('themeConfig.switchBlocks.dockCollapsed.title')"
                    :sub="t('themeConfig.switchBlocks.dockCollapsed.sub')"
@@ -828,6 +837,12 @@ const dockPosition = computed({
 const dockCollapsed = computed({
   get: () => globalStore.dockCollapsed,
   set: (v: boolean) => globalStore.setGlobalState("dockCollapsed", v),
+});
+
+/** Dock 布局：一级磁贴激活模式（whole=整体菜单 / independent=独立卡片） */
+const dockActiveMode = computed({
+  get: () => globalStore.dockActiveMode,
+  set: (v: string) => globalStore.setGlobalState("dockActiveMode", v),
 });
 
 /** 页签栏行为（app.yaml other.tabsBar 默认 + 本机用户偏好） */

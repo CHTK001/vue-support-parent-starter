@@ -232,6 +232,8 @@ async function loadPrinters({ page: p, pageSize: ps }: ReTableLoadParams): Promi
   loading.value = true
   try {
     const list = (await templateApi.printerList()) ?? []
+    // selector 模式的轻量列表与「共 N 台」计数都吃这份全量数据；page 模式再由 ReTable 分页展示
+    printers.value = list
     const total = list.length
     const start = (p - 1) * ps
     const data = list.slice(start, start + ps)

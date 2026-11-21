@@ -73,6 +73,8 @@ const globalStore = defineStore("global", {
       dockPosition: "bottom" as "bottom" | "top" | "left" | "right",
       /** Dock 折叠收缩：true=缩为边缘角落小圆钮（鼠标经过临时展开，点击恢复常驻） */
       dockCollapsed: false,
+      /** Dock 一级磁贴激活模式：whole=整体菜单（同一时刻仅一张，默认）/ independent=独立卡片（点击独立点亮，可多张同亮，再点熄灭） */
+      dockActiveMode: "whole" as "whole" | "independent",
       isTabsShown: true,
       /** 路由骨架屏上的小动物：关闭后骨架只留静态占位 */
       isSkeletonCritterShown: true,

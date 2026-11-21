@@ -94,6 +94,14 @@ socketConfig:
 monitorConfig:
   enable: false
 
+# 站内消息：告警规则触发后由后端写入 sys_message（消息中心），前端以
+# 右下角浮窗（MainLayout 挂 ReStationMessage mode=floating）展示与交互。
+# 8787 后端无 socket.io，实时推送关闭（socket: false），新消息靠
+# MainLayout 的 HTTP 轮询兜底拉取；HTTP 查询跟随 openAuth 自动开启。
+messageConfig:
+  position: right-bottom
+  socket: false
+
 # ===========================================
 # 业务能力与顶栏开关
 #

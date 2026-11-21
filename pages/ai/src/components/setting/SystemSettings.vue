@@ -277,14 +277,14 @@
                           两个同类功能的入口位置一致，也不会让改底库混在识别流程里。
                         -->
                         <template v-else-if="currentTabValue === 'face-library'">
-                            <FaceLibraryPanel />
+                            <FaceLibraryPage embedded />
                         </template>
                         <!--
                           重识别库：与人脸底库同构 —— 只做**库管理**（导入/删除/分组），
                           每行两套向量（人脸 + ReID）。观测在人脸重识别页，结果不写库。
                         -->
                         <template v-else-if="currentTabValue === 'reid-library'">
-                            <ReidLibraryPanel />
+                            <ReidLibraryPage embedded />
                         </template>
                         <!--
                           告警规则：AppKey 用量 / 费用 / 异常阈值告警的规则管理（/v2/alerts）。
@@ -342,9 +342,10 @@ import ScrollContainer from '../ui/ScrollContainer.vue'
 import MenuDisplaySettings from './MenuDisplaySettings.vue'
 // 图像库整页组件（与主页 /image-library 同一份实现，被「图像库」tab 复用）
 import ImageLibraryPage from '../library/ImageLibraryPage.vue'
-// 人脸底库**管理**面板（识别仍在外侧「人脸识别」页，这里只管底库）
-import FaceLibraryPanel from './FaceLibraryPanel.vue'
-import ReidLibraryPanel from './ReidLibraryPanel.vue'
+// 人脸/重识别底库**管理**面板（与独立路由 /face-library、/reid-library 同一份实现；
+// 识别仍在外侧「人脸识别」页，这里只管底库）
+import FaceLibraryPage from '../library/FaceLibraryPage.vue'
+import ReidLibraryPage from '../library/ReidLibraryPage.vue'
 // 告警规则管理面板（/v2/alerts，管理员专属）
 import AlertRulesSettings from './AlertRulesSettings.vue'
 // AI 检测配置面板（detect 分组：开关/阈值/大小上限，不依赖模型）

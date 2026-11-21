@@ -2,6 +2,9 @@
   <!-- 全屏模式下悬浮对话面板（必须在 SidebarLayout 之前确保 #floating-chat 先于 Teleport 挂载） -->
   <FloatingChatPanel />
 
+  <!-- 站内消息右下角浮窗：告警规则触发后由后端写入消息中心，这里负责展示与未读弹通知 -->
+  <ReStationMessage mode="floating" />
+
   <SidebarLayout :sidebarVisible="effectiveSidebarVisible" @update:sidebarVisible="handleSidebarUpdate"
     :sidebarWidth="285" :showToggleButton="false" sidebarPosition="left" :z-index="20" class="flex-1">
     <template #sidebar>
@@ -37,6 +40,8 @@ import GlobalSidebar from './GlobalSidebar.vue'
 import BrowserWebviewLayer from './BrowserWebviewLayer.vue'
 import BrowserStandaloneHost from './browser/BrowserStandaloneHost.vue'
 import FloatingChatPanel from './chat/FloatingChatPanel.vue'
+import ReStationMessage from '@repo/ui/re-station-message'
+import { useMessageStore } from '@repo/pinia'
 
 const layoutStore = useLayoutStore()
 const route = useRoute()
@@ -83,6 +88,25 @@ const handleGlobalShortcut = (e: KeyboardEvent) => {
   router.replace({ name: 'Chat', params: { sessionId: 'new-session' } })
 }
 
+// 站内消息轮询兜底：8787 后端无 socket.io，实时推送不可用，改为定时刷新未读数。
+// 仅在未读数增加时才拉取历史——loadHistory 会重建消息数组（latest 引用必变），
+// 无谓拉取会让 ReStationMessage 的 latest watch 误弹「新消息」通知。
+const messageStore = useMessageStore()
+let messagePollTimer: ReturnType<typeof setInterval> | undefined
+let lastKnownUnread: number | null = null
+
+const pollStationMessages = async () => {
+  try {
+    const unread = await messageStore.refreshUnread()
+    if (lastKnownUnread !== null && unread > lastKnownUnread) {
+      await messageStore.loadHistory(1, 20)
+    }
+    lastKnownUnread = unread
+  } catch {
+    // 消息接口未就绪时静默跳过，不影响主流程
+  }
+}
+
 // 启动 SSE 连接 + 全局事件监听
 onMounted(() => {
   console.log('[MainLayout] 启动 SSE 连接')
@@ -97,6 +121,12 @@ onMounted(() => {
   loadToolDisplays()
 
   window.addEventListener('keydown', handleGlobalShortcut)
+
+  // 站内消息轮询（60s）：首拍只记录未读基线，之后未读增加才拉历史并弹通知
+  void pollStationMessages()
+  messagePollTimer = setInterval(() => {
+    void pollStationMessages()
+  }, 60_000)
 })
 
 // 语言切换时重新拉取工具展示文案（后端按 lang 解析 %key% 引用）
@@ -104,12 +134,17 @@ watch(getLocale, () => {
   loadToolDisplays()
 })
 
-// 组件卸载时断开 SSE 连接，清理监听
+// 组件卸载时断开 SSE 连接，清理监听与站内消息轮询
 onUnmounted(() => {
   console.log('[MainLayout] 断开 SSE 连接')
   cleanupSessionEvents()
   apiService.disconnectSessionEvents()
   window.removeEventListener('keydown', handleGlobalShortcut)
+
+  if (messagePollTimer) {
+    clearInterval(messagePollTimer)
+    messagePollTimer = undefined
+  }
 })
 </script>
 

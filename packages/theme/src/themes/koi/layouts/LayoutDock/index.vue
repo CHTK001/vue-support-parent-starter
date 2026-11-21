@@ -22,7 +22,7 @@
            把手卸载后鼠标移向磁贴条途中命中链不断，避免「刚显出就缩回」的振荡 -->
       <div v-if="globalStore.dockCollapsed && peek" class="dock-peek-pad" aria-hidden="true"></div>
       <transition name="dock-popup">
-        <div v-if="openMenu && dockVisible" class="dock-popup">
+        <div v-if="openMenu && dockVisible" ref="popupRef" class="dock-popup" :style="popupShiftStyle">
           <!-- 二级：竖列方形卡片 -->
           <div class="dock-col">
             <div v-for="item in openMenuChildren" :key="item.path" class="dock-col-cell">
@@ -55,7 +55,7 @@
           :content="titleOf(item)"
           :placement="tileTooltipPlacement" :show-after="300"
         >
-          <button type="button" class="dock-tile" :class="tileClass(item)" @click="handleTileClick(item)">
+          <button type="button" class="dock-tile" :class="tileClass(item)" :ref="el => setTileRef(item.path, el)" @click="handleTileClick(item)">
             <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="20" />
           </button>
         </el-tooltip>
@@ -75,7 +75,7 @@ import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
 import ReToolbar from "@repo/theme/koi/layouts/components/Header/components/ReToolbar.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import DockCards from "./DockCards.vue";
-import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
+import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useGlobalStore from "@repo/pinia/modules/global";
@@ -131,6 +131,8 @@ const activeTopPath = computed(() => {
 const openMenuPath = ref<string | null>(null);
 /** 展开链：各级已展开项的 path（单链，uniqueOpened 语义） */
 const expandedPaths = ref<string[]>([]);
+/** 独立卡片模式下被点亮的一级磁贴 path 集合：点击切换、互不影响、可多张同亮 */
+const selectedTopPaths = ref<Set<string>>(new Set());
 
 const openMenu = computed(() =>
   topLevelMenus.value.find((item: any) => String(item.path) === openMenuPath.value) || null
@@ -140,6 +142,88 @@ const openMenuChildren = computed(() => (openMenu.value ? visibleChildren(openMe
 
 /** 二级里当前展开的那一项（其子级渲染为横排小卡片） */
 const expandedL2 = computed(() => openMenuChildren.value.find((item: any) => expandedPaths.value.includes(String(item.path))) || null);
+
+// ==================== 弹层锚定：跟随点击的磁贴 ====================
+
+const popupRef = ref<HTMLElement | null>(null);
+/** 各磁贴 DOM 引用：计算弹层锚点用 */
+const tileEls = new Map<string, HTMLElement>();
+const setTileRef = (path: any, el: any) => {
+  if (el) tileEls.set(String(path), el as HTMLElement);
+  else tileEls.delete(String(path));
+};
+
+const isVerticalDock = () => globalStore.dockPosition === "left" || globalStore.dockPosition === "right";
+
+/** 弹层相对居中位的偏移：底/顶坞走横向（left），左右坞走纵向（top） */
+const popupShift = ref(0);
+const popupShiftStyle = computed(() =>
+  isVerticalDock() ? { top: `${popupShift.value}px` } : { left: `${popupShift.value}px` }
+);
+
+/** 磁贴中心在锚定轴上的坐标（左右坞取纵向，底/顶坞取横向） */
+const tileCenterOnAxis = (path: string): number | null => {
+  const tile = tileEls.get(path);
+  if (!tile) return null;
+  const rect = tile.getBoundingClientRect();
+  return isVerticalDock() ? rect.top + rect.height / 2 : rect.left + rect.width / 2;
+};
+
+/** 弹层渲染前先按磁贴位置同步预算偏移，避免先闪现在居中位再跳动 */
+const presetPopupShift = () => {
+  const center = openMenuPath.value ? tileCenterOnAxis(openMenuPath.value) : null;
+  if (center == null) {
+    popupShift.value = 0;
+    return;
+  }
+  popupShift.value = center - (isVerticalDock() ? window.innerHeight : window.innerWidth) / 2;
+};
+
+/** 弹层渲染后按实际尺寸夹取偏移，保证不越出视口（弹层比视口还宽时居中） */
+const updatePopupShift = async () => {
+  if (!openMenuPath.value) return;
+  await nextTick();
+  const popup = popupRef.value;
+  const center = openMenuPath.value ? tileCenterOnAxis(openMenuPath.value) : null;
+  if (!popup || center == null) return;
+  const size = popup.getBoundingClientRect()[isVerticalDock() ? "height" : "width"];
+  const viewport = isVerticalDock() ? window.innerHeight : window.innerWidth;
+  const min = 8 + size / 2 - viewport / 2;
+  const max = viewport / 2 - 8 - size / 2;
+  const desired = center - viewport / 2;
+  popupShift.value = min > max ? 0 : Math.min(Math.max(desired, min), max);
+};
+
+watch(openMenuPath, path => {
+  if (!path) {
+    popupShift.value = 0;
+    return;
+  }
+  presetPopupShift();
+  updatePopupShift();
+});
+
+// 展开链变化（如出现第三级横排卡片）会改变弹层尺寸，需要重新夹取
+watch(expandedPaths, () => {
+  if (openMenuPath.value) updatePopupShift();
+});
+
+watch(
+  () => globalStore.dockPosition,
+  () => {
+    if (!openMenuPath.value) return;
+    presetPopupShift();
+    updatePopupShift();
+  }
+);
+
+// 切换激活模式时清空独立卡片的点亮集合，避免旧状态泄漏进另一模式
+watch(
+  () => globalStore.dockActiveMode,
+  () => {
+    selectedTopPaths.value = new Set();
+  }
+);
 
 /**
  * 切换某项的展开状态（任意层级通用）：
@@ -182,6 +266,14 @@ const handleNavigate = (item: any) => {
   router.push({ path: item.path });
 };
 
+/** 独立卡片模式：切换某张一级磁贴的点亮状态（互不影响，可多张同亮） */
+const toggleTopTile = (tilePath: string) => {
+  const next = new Set(selectedTopPaths.value);
+  if (next.has(tilePath)) next.delete(tilePath);
+  else next.add(tilePath);
+  selectedTopPaths.value = next;
+};
+
 /** 点击 Dock 磁贴 */
 const handleTileClick = (item: any) => {
   if (item.meta?.linkUrl) {
@@ -193,15 +285,31 @@ const handleTileClick = (item: any) => {
     return;
   }
 
-  // 叶子：直接跳转并收起弹层
+  const tilePath = String(item.path);
+  const independent = globalStore.dockActiveMode === "independent";
+
+  // 叶子：直接跳转；整体模式下顺带收起弹层，独立卡片模式下弹层与其它卡互不影响
   if (!hasChildren(item)) {
-    openMenuPath.value = null;
+    if (independent) toggleTopTile(tilePath);
+    else openMenuPath.value = null;
     router.push({ path: item.path || HOME_URL });
     return;
   }
 
-  // 分支：切换弹层；打开时把当前路由所在的链路预先展开
-  const tilePath = String(item.path);
+  // 独立卡片模式：点亮/熄灭自己；弹层只跟随本次点击的卡，再点已亮卡则熄灭并收起弹层
+  if (independent) {
+    const wasLit = selectedTopPaths.value.has(tilePath);
+    toggleTopTile(tilePath);
+    if (wasLit) {
+      if (openMenuPath.value === tilePath) openMenuPath.value = null;
+    } else {
+      openMenuPath.value = tilePath;
+      expandActiveChain();
+    }
+    return;
+  }
+
+  // 整体模式：切换弹层；打开时把当前路由所在的链路预先展开
   if (openMenuPath.value === tilePath) {
     openMenuPath.value = null;
     return;
@@ -227,22 +335,35 @@ const expandActiveChain = () => {
   expandedPaths.value = chain;
 };
 
-// 路由变化：弹层打开时同步展开链；切到其它顶级菜单则收起弹层
+// 路由变化：弹层打开时同步展开链；整体模式切到其它顶级菜单则收起弹层（独立卡片模式弹层不随路由收起）
 watch(activeMenu, () => {
   if (!openMenuPath.value) return;
-  if (openMenuPath.value !== activeTopPath.value) {
+  if (globalStore.dockActiveMode !== "independent" && openMenuPath.value !== activeTopPath.value) {
     openMenuPath.value = null;
     return;
   }
-  expandActiveChain();
+  if (openMenuPath.value === activeTopPath.value) expandActiveChain();
 });
 
 // ==================== 高亮类名 ====================
 
-const tileClass = (item: any) => ({
-  "is-active": activeTopPath.value === String(item.path),
-  "is-open": openMenuPath.value === String(item.path)
-});
+const tileClass = (item: any) => {
+  const path = String(item.path);
+  const isOpen = openMenuPath.value === path;
+  // 独立卡片模式：点亮的卡与路由激活的卡都高亮，互不影响、可多张同亮
+  if (globalStore.dockActiveMode === "independent") {
+    return {
+      "is-active": isOpen || selectedTopPaths.value.has(path) || activeTopPath.value === path,
+      "is-open": isOpen
+    };
+  }
+  // 整体模式（默认）：点击即激活——弹层打开期间被点磁贴保持激活态，其余磁贴（含原激活）
+  // 转为未激活；弹层收起后回到路由驱动的激活态
+  return {
+    "is-active": isOpen || (!openMenuPath.value && activeTopPath.value === path),
+    "is-open": isOpen
+  };
+};
 
 const cardClass = (item: any) => {
   const leafActive =
@@ -291,14 +412,20 @@ const onKeydown = (e: KeyboardEvent) => {
   if (e.key === "Escape" && openMenuPath.value) openMenuPath.value = null;
 };
 
+const onWindowResize = () => {
+  if (openMenuPath.value) updatePopupShift();
+};
+
 onMounted(() => {
   document.addEventListener("mousedown", onDocMouseDown);
   document.addEventListener("keydown", onKeydown);
+  window.addEventListener("resize", onWindowResize);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("mousedown", onDocMouseDown);
   document.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("resize", onWindowResize);
 });
 </script>
 
@@ -519,8 +646,8 @@ onBeforeUnmount(() => {
     transform: translateY(-4px) scale(1.06);
   }
 
-  &.is-open:not(.is-active) {
-    color: var(--el-color-primary);
+  /* 弹层锚定磁贴：激活态之外再叠一圈描边，标示弹层挂点 */
+  &.is-open {
     outline: 2px solid var(--el-color-primary-light-5);
     outline-offset: 2px;
   }
@@ -593,9 +720,13 @@ onBeforeUnmount(() => {
 
 /* ===== 二级弹层：竖列方形卡片 ===== */
 .dock-popup {
+  position: relative; /* 供 left/top 锚定偏移：弹层跟随点击的磁贴 */
   display: flex;
   align-items: center;
   gap: 14px;
+  transition:
+    left 0.18s ease,
+    top 0.18s ease;
 }
 
 .dock-col {
@@ -621,7 +752,7 @@ onBeforeUnmount(() => {
   flex: none;
 }
 
-/* 二级卡片：与 Dock 磁贴同一语言的方形卡 */
+/* 二级卡片：与 Dock 磁贴同一语言的方形卡（无底色/描边/阴影，仅图标 + 动效） */
 .dock-col .dock-card {
   position: relative;
   display: flex;
@@ -630,25 +761,16 @@ onBeforeUnmount(() => {
   width: 46px;
   height: 46px;
   padding: 0;
-  border: 1px solid var(--el-border-color-lighter);
   border-radius: 13px;
-  background: var(--el-bg-color);
+  background: transparent;
   color: var(--el-text-color-secondary);
   cursor: pointer;
-  box-shadow: 0 8px 22px rgb(15 23 42 / 12%);
   transition:
     transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.18s ease,
-    border-color 0.18s ease,
     background-color 0.18s ease,
     color 0.18s ease;
 
-  html.dark & {
-    box-shadow: 0 8px 22px rgb(0 0 0 / 45%);
-  }
-
   &:hover {
-    border-color: var(--el-color-primary-light-5);
     color: var(--el-color-primary);
     transform: translateY(-3px);
   }
@@ -666,20 +788,13 @@ onBeforeUnmount(() => {
 
   &.is-expanded,
   &.is-active-chain {
-    border-color: var(--el-color-primary-light-5);
     color: var(--el-color-primary);
   }
 
-  &.is-active-chain {
-    box-shadow: 0 10px 24px rgb(var(--el-color-primary-rgb) / 22%);
-  }
-
   &.is-active-leaf {
-    border-color: transparent;
     background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
     color: #fff;
     transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgb(var(--el-color-primary-rgb) / 40%);
 
     &:hover {
       color: #fff;
@@ -720,6 +835,7 @@ onBeforeUnmount(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .dock-tile,
+  .dock-popup,
   .dock-col .dock-card,
   .dock-handle {
     transition: none;

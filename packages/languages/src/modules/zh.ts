@@ -499,6 +499,11 @@ export default {
         left: "左侧",
         right: "右侧",
       },
+      dockActiveMode: {
+        label: "Dock 激活模式",
+        whole: "整体菜单",
+        independent: "独立卡片",
+      },
       skeletonCritter: {
         label: "骨架小动物",
         bird: "小鸟（跳跃）",

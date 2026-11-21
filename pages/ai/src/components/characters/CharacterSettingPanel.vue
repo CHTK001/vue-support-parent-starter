@@ -2088,10 +2088,11 @@ defineExpose({
 .cwb-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 14px;
+  /* 栏间距定版 4px；padding 归零：编辑区 / 能力清单与左栏名录卡片同顶同底，三栏等高 */
+  gap: 4px;
   height: 100%;
   min-height: 0;
-  padding: 14px;
+  padding: 0;
 }
 
 /* 中栏：编辑区 */
@@ -2244,11 +2245,16 @@ defineExpose({
   gap: 8px;
 }
 
-/* 右栏：能力清单 */
+/* 右栏：能力清单（与名录 / 编辑区同款卡片外壳，保证三栏等高同框） */
 .cwb-rail {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  border: 1px solid var(--ax-line);
+  border-radius: var(--ax-r-lg);
+  background: var(--ax-surface);
+  box-shadow: var(--ax-sh-sm);
+  overflow: hidden;
 }
 
 .cwb-rail__inner {
@@ -2257,7 +2263,8 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-right: 2px;
+  /* 第三栏内边距（2026-11-21）：能力面板不再顶到卡片边框，滚动条也不压住面板 */
+  padding: 12px;
 }
 
 .ax-panel__head {

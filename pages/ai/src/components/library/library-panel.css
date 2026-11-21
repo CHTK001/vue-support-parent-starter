@@ -30,34 +30,6 @@
   padding-bottom: 8px;
 }
 
-/* ── 页头 ─────────────────────────────────────────────── */
-.lib-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.lib-head-text {
-  min-width: 0;
-}
-
-.lib-head-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--lib-text);
-}
-
-.lib-head-sub {
-  margin: 4px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--lib-text-secondary);
-}
-
 /* 「已修复」标签：修复后的图与原始档案是两张不同的脸，
    需要一眼可辨，否则排查「为什么这张图的识别分这么低」时无从下手 */
 .lib-badge.is-repaired {
@@ -66,13 +38,6 @@
   gap: 3px;
   color: var(--lib-warning-fg);
   background: var(--lib-warning-bg);
-}
-
-.lib-head-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-  align-items: center;
 }
 
 /* ── 隐私显示开关（人脸底库）─────────────────────────────
@@ -726,3 +691,122 @@
     border-top: 1px solid var(--lib-border);
   }
 }
+
+/* ── 双宿主（独立路由 / 设置页签）────────────────────────
+   独立路由：补上旧页面外壳的滚动容器与 24px 内边距（原 lib-standalone）；
+   嵌入模式：外层宿主已有留白与滚动，这里不再自画底色。 */
+.lib-page--embedded {
+  padding-bottom: 8px;
+}
+
+.lib-page:not(.lib-page--embedded) {
+  height: 100%;
+  overflow: auto;
+  padding: 24px;
+  box-sizing: border-box;
+  background: var(--bg-page, var(--el-bg-color-page, #f6f7f9));
+}
+
+/* ── 操作条（PageHeader actions 与嵌入工具条共用）──────── */
+.lib-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lib-toolrow {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  padding: 0 14px;
+  background: var(--bg-container, var(--lib-surface));
+  border-bottom: 1px solid var(--border-subtle, var(--lib-border));
+}
+
+.lib-toolrow__sub {
+  font-size: 12px;
+  color: var(--lib-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lib-toolrow__sub b {
+  color: var(--lib-text);
+  font-weight: 600;
+}
+
+/* ── 自制按钮（口径同图像库 .il-btn）──────────────────────
+   不用 el-button 默认配色：文字/边框/底色全部走主题令牌，
+   亮暗主题与品牌色切换都跟手。弹窗 append-to-body 会脱离
+   .lib-page 的变量作用域，fallback 链必须落到 el/koi 全局变量。 */
+.il-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-container, var(--el-fill-color-blank, #fff));
+  color: var(--text-secondary, var(--el-text-color-regular, #4e5969));
+  font-size: 12.5px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.il-btn:hover:not(:disabled) {
+  color: var(--color-primary-ink, var(--el-color-primary, #1d4ed8));
+  border-color: var(--el-color-primary-light-5, #a0cfff);
+  background: var(--el-color-primary-light-9, #ecf5ff);
+}
+.il-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.il-btn--primary {
+  color: var(--color-primary-text, #fff);
+  border-color: var(--el-color-primary, #409eff);
+  background: var(--el-color-primary, #409eff);
+  box-shadow: var(--shadow-brand, 0 2px 8px rgba(59, 130, 246, 0.24));
+}
+.il-btn--primary:hover:not(:disabled) {
+  color: var(--color-primary-text, #fff);
+  border-color: var(--el-color-primary-dark-2, #337ecc);
+  background: var(--el-color-primary-dark-2, #337ecc);
+}
+.il-btn--sm { height: 26px; padding: 0 9px; font-size: 12px; }
+.il-btn--danger {
+  color: var(--status-error-text, var(--el-color-danger, #b91c1c));
+  border-color: var(--status-error-border, color-mix(in srgb, var(--el-color-danger, #dc2626) 35%, var(--el-border-color, #dcdfe6)));
+}
+.il-btn--danger:hover:not(:disabled) {
+  color: var(--status-error-text, var(--el-color-danger, #b91c1c));
+  border-color: var(--el-color-danger, #dc2626);
+  background: var(--status-error-bg, color-mix(in srgb, var(--el-color-danger, #dc2626) 10%, var(--el-fill-color-blank, #fff)));
+}
+.il-btn--warn {
+  color: var(--lib-warning-fg, var(--el-color-warning-dark-2, #b45309));
+  border-color: color-mix(in srgb, var(--el-color-warning, #e6a23c) 40%, var(--el-border-color, #dcdfe6));
+}
+.il-btn--warn:hover:not(:disabled) {
+  border-color: var(--el-color-warning, #e6a23c);
+  background: color-mix(in srgb, var(--el-color-warning, #e6a23c) 12%, var(--el-fill-color-blank, #fff));
+}
+.il-btn--link {
+  height: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--el-color-primary, #409eff);
+}
+.il-btn--link:hover:not(:disabled) {
+  color: var(--el-color-primary-light-3, #79bbff);
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+}
+
+.il-ico { width: 15px; height: 15px; flex: none; }

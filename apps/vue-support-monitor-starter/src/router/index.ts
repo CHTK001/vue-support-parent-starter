@@ -424,6 +424,14 @@ export const monitorRoutes: RouteConfigsTable[] = [
         component: () => import("@pages/channel/src/components/ChannelManagementPage.vue"),
         meta: { title: "渠道管理", icon: "Connection", showLink: true, rank: 4 },
       },
+      // 发送日志：邮件 / 短信通道级发送事实（成功与失败都落库），
+      // 供排查发送链路问题；页面本体在 @pages/account，与独立运行共用一份。
+      {
+        path: "/send-logs",
+        name: "SendLogs",
+        component: () => import("@pages/account/src/account/views/SendLogAssets.vue"),
+        meta: { title: "发送日志", icon: "Document", showLink: true, rank: 5 },
+      },
     ],
   },
 

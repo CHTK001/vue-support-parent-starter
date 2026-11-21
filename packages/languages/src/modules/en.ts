@@ -493,6 +493,11 @@ export default {
         left: "Left",
         right: "Right",
       },
+      dockActiveMode: {
+        label: "Dock Activation Mode",
+        whole: "Whole Menu",
+        independent: "Independent Cards",
+      },
       skeletonCritter: {
         label: "Skeleton Critter",
         bird: "Bird (hop)",

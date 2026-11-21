@@ -67,7 +67,7 @@ function asBool(value: unknown): boolean | undefined {
  * 从后端设置列表吸收 codec 开关。
  *
  * <p>兼容两种返回形态：设置名在 {@code sysSettingName}，或已被后端映射成
- * {@code sysSettingCode}。只认五个明确的名字，避免把同组其它配置误当开关。</p>
+ * {@code sysSettingCode}。只认六个明确的名字，避免把同组其它配置误当开关。</p>
  */
 export function applyHttpCodecSettings(items: readonly SettingItem[] | null | undefined): void {
   if (!Array.isArray(items)) return;
@@ -88,6 +88,10 @@ export function applyHttpCodecSettings(items: readonly SettingItem[] | null | un
       const value = String(item.sysSettingValue ?? "").trim();
       // 后端敏感字段可能返回掩码；掩码不能拿来当密钥
       if (value && !/^\*+$/.test(value)) patch.key = value;
+    } else if (name === "CodecType") {
+      // codec 算法类型：只认已知类型，未知值保持当前运行时不变
+      const value = String(item.sysSettingValue ?? "").trim().toLowerCase();
+      if (value === "aes" || value === "sm4" || value === "keylog") patch.type = value;
     } else if (name === "CodecServerPublicKey") {
       // keylog 服务端长期公钥（X.509 SPKI hex），公钥非敏感可明文下发
       const value = String(item.sysSettingValue ?? "").trim();

@@ -2005,13 +2005,13 @@ defineExpose({ reload: refresh })
 }
 .il-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .il-btn--primary {
-  color: var(--color-on-accent, #fff);
+  color: var(--color-primary-text, #fff);
   border-color: var(--el-color-primary, #409eff);
   background: var(--el-color-primary, #409eff);
   box-shadow: var(--shadow-brand, 0 2px 8px rgba(59, 130, 246, 0.24));
 }
 .il-btn--primary:hover:not(:disabled) {
-  color: var(--color-on-accent, #fff);
+  color: var(--color-primary-text, #fff);
   border-color: var(--el-color-primary-dark-2, #337ecc);
   background: var(--el-color-primary-dark-2, #337ecc);
 }

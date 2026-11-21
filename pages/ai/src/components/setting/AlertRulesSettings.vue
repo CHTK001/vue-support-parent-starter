@@ -9,71 +9,75 @@
         <el-button type="primary" @click="openCreate">新建规则</el-button>
       </template>
 
-      <!-- 筛选行：名称关键字 / 作用范围 / 启用状态 -->
-      <div class="alert-filter">
-        <el-input
-          v-model="alertFilter.keyword"
-          class="alert-filter__keyword"
-          placeholder="按规则名称搜索"
-          clearable
-          :prefix-icon="Search"
-        />
-        <el-select v-model="alertFilter.scope" class="alert-filter__scope" placeholder="作用范围" clearable>
-          <el-option label="全局" :value="0" />
-          <el-option v-for="k in appKeys" :key="k.id" :label="appKeyLabel(k)" :value="k.id" />
-        </el-select>
-        <el-select v-model="alertFilter.enabled" class="alert-filter__state" placeholder="状态" clearable>
-          <el-option label="启用" :value="true" />
-          <el-option label="停用" :value="false" />
-        </el-select>
-        <span class="alert-filter__count">{{ filteredRules.length }} / {{ rules.length }} 条</span>
-      </div>
+      <!-- 卡片内容内边距：SettingsCard 的 .set-card 不带 padding（与 UsageConfigSettings/
+           DisplaySettings 等面板同口径），不补的话筛选行与表格会贴住卡片边框。 -->
+      <div class="alert-rules__body">
+        <!-- 筛选行：名称关键字 / 作用范围 / 启用状态 -->
+        <div class="alert-filter">
+          <el-input
+            v-model="alertFilter.keyword"
+            class="alert-filter__keyword"
+            placeholder="按规则名称搜索"
+            clearable
+            :prefix-icon="Search"
+          />
+          <el-select v-model="alertFilter.scope" class="alert-filter__scope" placeholder="作用范围" clearable>
+            <el-option label="全局" :value="0" />
+            <el-option v-for="k in appKeys" :key="k.id" :label="appKeyLabel(k)" :value="k.id" />
+          </el-select>
+          <el-select v-model="alertFilter.enabled" class="alert-filter__state" placeholder="状态" clearable>
+            <el-option label="启用" :value="true" />
+            <el-option label="停用" :value="false" />
+          </el-select>
+          <span class="alert-filter__count">{{ filteredRules.length }} / {{ rules.length }} 条</span>
+        </div>
 
-      <!-- 加载失败：错误态 + 重试（区别于「暂无规则」空态） -->
-      <div
-        v-if="loadError"
-        class="flex items-center justify-between gap-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-2.5 mb-3 text-sm text-red-600 dark:text-red-300"
-      >
-        <span>告警规则加载失败，可能是网络或服务暂时不可用。</span>
-        <el-button link type="primary" :loading="loading" @click="load">重试</el-button>
-      </div>
+        <!-- 加载失败：错误态 + 重试（区别于「暂无规则」空态） -->
+        <div
+          v-if="loadError"
+          class="flex items-center justify-between gap-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-2.5 mb-3 text-sm text-red-600 dark:text-red-300"
+        >
+          <span>告警规则加载失败，可能是网络或服务暂时不可用。</span>
+          <el-button link type="primary" :loading="loading" @click="load">重试</el-button>
+        </div>
 
-      <el-table
-        v-loading="loading"
-        :data="filteredRules"
-        row-key="id"
-        style="width: 100%"
-      >
-        <el-table-column prop="name" label="规则名称" min-width="160" show-overflow-tooltip />
-        <el-table-column label="作用范围" min-width="140" show-overflow-tooltip>
-          <template #default="{ row }">{{ scopeLabel(row) }}</template>
-        </el-table-column>
-        <el-table-column label="触发条件" min-width="210" show-overflow-tooltip>
-          <template #default="{ row }">{{ conditionSummary(row) }}</template>
-        </el-table-column>
-        <el-table-column label="通知渠道" min-width="140" show-overflow-tooltip>
-          <template #default="{ row }">{{ channelsLabel(row) }}</template>
-        </el-table-column>
-        <el-table-column label="启用" width="80" align="center">
-          <template #default="{ row }">
-            <el-switch v-model="row.enabled" @change="onToggle(row)" />
+        <el-table
+          v-loading="loading"
+          :data="filteredRules"
+          row-key="id"
+          style="width: 100%"
+        >
+          <el-table-column prop="name" label="规则名称" min-width="160" show-overflow-tooltip />
+          <el-table-column label="作用范围" min-width="140" show-overflow-tooltip>
+            <template #default="{ row }">{{ scopeLabel(row) }}</template>
+          </el-table-column>
+          <el-table-column label="触发条件" min-width="210" show-overflow-tooltip>
+            <template #default="{ row }">{{ conditionSummary(row) }}</template>
+          </el-table-column>
+          <el-table-column label="通知渠道" min-width="140" show-overflow-tooltip>
+            <template #default="{ row }">{{ channelsLabel(row) }}</template>
+          </el-table-column>
+          <el-table-column label="启用" width="80" align="center">
+            <template #default="{ row }">
+              <el-switch v-model="row.enabled" @change="onToggle(row)" />
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdAt" label="创建时间" width="165" />
+          <el-table-column label="操作" width="130" align="center">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+              <el-button link type="danger" @click="remove(row)">删除</el-button>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <div class="alert-empty">
+              <p class="alert-empty__text">{{ hasFilter ? '没有匹配的告警规则' : '暂无告警规则' }}</p>
+              <el-button v-if="hasFilter" link type="primary" @click="clearFilters">清除筛选条件</el-button>
+              <el-button v-else type="primary" @click="openCreate">新建规则</el-button>
+            </div>
           </template>
-        </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="165" />
-        <el-table-column label="操作" width="130" align="center">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="remove(row)">删除</el-button>
-          </template>
-        </el-table-column>
-        <template #empty>
-          <div class="alert-empty">
-            <p class="alert-empty__text">{{ hasFilter ? '没有匹配的告警规则' : '暂无告警规则' }}</p>
-            <el-button v-if="hasFilter" link type="primary" @click="clearFilters">清除筛选条件</el-button>
-            <el-button v-else type="primary" @click="openCreate">新建规则</el-button>
-          </div>
-        </template>
-      </el-table>
+        </el-table>
+      </div>
     </SettingsCard>
 
     <!-- 新建 / 编辑对话框 -->
@@ -439,6 +443,12 @@ onMounted(() => {
 <style scoped>
 .alert-rules {
   width: 100%;
+}
+
+/* SettingsCard 的 .set-card 内容盒无内边距，这里给筛选行 + 表格补上，
+   口径对齐其它设置面板（UsageConfigSettings .sync-wrap 16px / DisplaySettings 14px 16px）。 */
+.alert-rules__body {
+  padding: 14px 16px 16px;
 }
 
 .alert-filter {
