@@ -82,7 +82,7 @@
         <el-collapse-item :name="group.group">
           <template #title>
             <div class="adv-head">
-              <span class="adv-title">高级选项</span>
+              <span class="adv-title">{{ group.group === 'timewheel' ? '时间轮配置' : '高级选项' }}</span>
               <el-icon class="adv-chevron"><ArrowDown /></el-icon>
             </div>
           </template>
@@ -253,10 +253,20 @@ const props = defineProps({
  *   <li>{@code marking} 阅卷设置 —— 「试卷配置」页已经按 paper+marking+compose 三组渲染；</li>
  *   <li>{@code global} 用量配置 —— 「用量配置」页（UsageConfigSettings，11 字段全覆盖）；</li>
  *   <li>{@code channel_probe} 渠道探针节奏 —— 按需求从配置中心下线（时间轮与按渠道间隔
- *       仍按后端默认值运行，只是不再作为可配项暴露）。</li>
+ *       仍按后端默认值运行，只是不再作为可配项暴露）；</li>
+ *   <li>{@code timewheel} 时间轮 —— AI 定时同步总开关（模型指标 + AIHOT 资讯），
+ *       独立「时间轮」页（TimeWheelSettings）渲染；</li>
  * </ul>
  */
-const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'compose', 'session', 'marking', 'global', 'channel_probe', 'protocol-server']
+const SPLIT_GROUPS = ['face', 'image_search', 'layout', 'rag', 'ocr', 'bot', 'language', 'runtime', 'asr', 'tts', 'search', 'paper', 'compose', 'session', 'marking', 'global', 'channel_probe', 'protocol-server', 'timewheel']
+
+/**
+ * 整组默认折叠的分组：常驻区不铺任何字段，全部收进折叠条（默认收起）。
+ *
+ * <p>timewheel（时间轮同步）只有 7 个调度开关 / 间隔 / 白名单，属于低频运维配置；
+ * 按定版口径「支持折叠、默认折叠」，点开折叠条才看到全部配置行。</p>
+ */
+const FOLD_WHOLE_GROUPS = ['timewheel']
 
 /**
  * 人脸分组里属于「人脸重识别」的字段。
@@ -649,6 +659,8 @@ const visibleFields = (group) => {
         return (group.items || []).filter(item =>
             notAdminOnly(item) && shouldShowField(group.group, item.field))
     }
+    // 整组折叠模式：常驻区留空，字段全部进「高级选项」折叠条（见 FOLD_WHOLE_GROUPS）
+    if (FOLD_WHOLE_GROUPS.includes(group.group)) return []
     const always = [...modelFields(group), ...plainVisibleFields(group)]
     if (always.length > 0) return always
     return (group.items || []).filter(item =>
@@ -657,6 +669,11 @@ const visibleFields = (group) => {
 
 const advancedFields = (group) => {
     if (isFieldWhitelistMode()) return []
+    // 整组折叠模式：全部可见字段进折叠区（常驻区为空，不会重复渲染）
+    if (FOLD_WHOLE_GROUPS.includes(group.group)) {
+        return (group.items || []).filter(item =>
+            notAdminOnly(item) && shouldShowField(group.group, item.field))
+    }
     // 该分组没有常驻字段时，visibleFields 已平铺全部字段，折叠区必须为空，
     // 否则同一批字段会渲染两遍
     if (!groupHasAlwaysVisibleFields(group)) return []
@@ -769,6 +786,10 @@ const isModelField = (group, field) => {
     if (group === 'protocol-server') return true
     // 用量配置分组的"用量开关"直接显示，不放在高级选项里
     if (group === 'global' && field === 'enable_usage_analysis') return true
+    // timewheel 分组全是调度开关 / 间隔 / 白名单，没有模型槽位；model_ids 白名单
+    // 字段名含 "model" 会被误判成模型选择器（渲染成「请选择模型」，其余字段全被
+    // 折进高级选项），整组排除，按普通开关 / 数字 / 文本控件渲染。
+    if (group === 'timewheel') return false
     return field.toLowerCase().includes('model')
 }
 
@@ -1144,6 +1165,8 @@ const fieldTip = (field) => {
 // 判断分组是否有高级选项
 const hasAdvancedSettings = (group) => {
     if (!group || !group.items) return false
+    // 整组折叠模式：恒有折叠条（默认收起，见 FOLD_WHOLE_GROUPS）
+    if (FOLD_WHOLE_GROUPS.includes(group.group)) return true
     // 无常驻字段的分组已经整体平铺，不再显示空的折叠条
     if (!groupHasAlwaysVisibleFields(group)) return false
     return group.items.some(item => !isModelField(group.group, item.field) && shouldShowField(group.group, item.field))

@@ -238,6 +238,11 @@
                         <template v-else-if="currentTabValue === 'model-metrics'">
                             <ModelMetricsSettings />
                         </template>
+                        <template v-else-if="currentTabValue === 'timewheel'">
+                            <!-- 时间轮：AI 定时同步总开关（模型指标 + AIHOT 资讯），
+                                 按 provider / model id 白名单关联同步范围。全局层配置，仅管理员。 -->
+                            <TimeWheelSettings />
+                        </template>
                         <template v-else-if="currentTabValue === 'skills-source'">
                             <SkillsSourceSettings />
                         </template>
@@ -318,6 +323,7 @@ import ArchivedSessions from './ArchivedSessions.vue'
 import UserSecurity from './UserSecurity.vue'
 import ConnectionSettings from './ConnectionSettings.vue'
 import ModelMetricsSettings from './ModelMetricsSettings.vue'
+import TimeWheelSettings from './TimeWheelSettings.vue'
 import UsageConfigSettings from './UsageConfigSettings.vue'
 import SkillsSourceSettings from './SkillsSourceSettings.vue'
 import ServiceManagementPage from '../management/ServiceManagementPage.vue'
@@ -376,6 +382,7 @@ import {
     Fingerprint24Regular,
     BrainCircuit20Regular,
     Alert24Regular,
+    History24Regular,
 } from '@vicons/fluent'
 
 import { ArrowBackIosNewTwotone, VerifiedUserOutlined } from '@vicons/material'
@@ -431,6 +438,8 @@ const groupMap = computed<Record<string, string>>(() => ({
     // 会话配置按用户隔离（个人行为偏好），与「默认模型」同组
     'session-config': t('settings.system.groups.general'),
     'model-metrics': t('settings.system.groups.dataManagement'),
+    // 时间轮：定时同步调度配置（指标 + 资讯），与模型指标采集同归「数据管理」
+    'timewheel': t('settings.system.groups.dataManagement'),
     'skills-source': t('settings.system.groups.dataManagement'),
     usage: t('settings.system.groups.dataManagement'),
     security: t('settings.system.groups.account'),
@@ -675,6 +684,17 @@ const sidebarItems = computed(() => [
         path: 'model-metrics',
         icon: DataHistogram24Regular,
         roles: ['primary'],
+    },
+    {
+        // 时间轮：AI 定时同步总开关（模型指标同步 + AIHOT 资讯同步），
+        // 按 provider / model id 白名单圈定同步范围。与「模型指标采集」相邻：
+        // 前者是「采不采、多久采一次」的调度配置，后者是采集结果的人工管理页。
+        // 写的是全局层（AiSyncTimeWheelTask 只读全局层驱动时间轮），故仅管理员。
+        label: '时间轮同步',
+        path: 'timewheel',
+        icon: History24Regular,
+        roles: ['primary'],
+        adminOnly: true,
     },
     {
         label: 'Skills 配置',
