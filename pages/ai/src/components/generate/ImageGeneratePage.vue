@@ -1489,13 +1489,6 @@
 
       <!-- 输入条：外观沿用会话输入库（GenerateComposer.vue） -->
       <footer ref="composerRef" class="wg-composer">
-        <!-- 快捷键提示：Enter 语义沿用会话输入库（Enter 发送 / Shift+Enter 换行），这里只把规则亮出来 -->
-        <p class="wg-kbd-hint" aria-hidden="true">Ctrl + Enter 发送 · Shift + Enter 换行</p>
-        <!-- 灵感：没思路时随机填一条示例提示词（只填入，不自动发送），与快捷键提示对称贴左下 -->
-        <button type="button" class="wg-inspire" title="随机换一条灵感提示词" @click="pickInspiration">
-          <WgIcon :d="ICONS.sparkle" class="wg-inspire-icon" />
-          <span>灵感</span>
-        </button>
         <GenerateComposer
           v-model:value="prompt"
           v-model:style-panel-open="stylePanelOpen"
@@ -1972,6 +1965,18 @@
             </template>
           </template>
         </GenerateComposer>
+
+        <!-- 输入框下方信息条：灵感按钮居左、快捷键提示居右，随文档流紧跟输入框
+             （2026-11-21 由页底绝对定位改为集成到输入框下方） -->
+        <div class="wg-composer-foot">
+          <!-- 灵感：没思路时随机填一条示例提示词（只填入，不自动发送） -->
+          <button type="button" class="wg-inspire" title="随机换一条灵感提示词" @click="pickInspiration">
+            <WgIcon :d="ICONS.sparkle" class="wg-inspire-icon" />
+            <span>灵感</span>
+          </button>
+          <!-- 快捷键提示：Enter 语义沿用会话输入库（Enter 发送 / Shift+Enter 换行），这里只把规则亮出来 -->
+          <p class="wg-kbd-hint" aria-hidden="true">Ctrl + Enter 发送 · Shift + Enter 换行</p>
+        </div>
 
         <input
           ref="fileInput"
@@ -8240,12 +8245,19 @@ onUnmounted(() => {
   padding: 12px 24px 20px;
 }
 
-/* 快捷键提示：贴在输入条右下（落在底部 padding 区），安静但找得到；不参与交互 */
+/* 输入框下方信息条：灵感按钮居左、快捷键提示居右，随文档流紧跟输入框 */
+.wg-composer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* 快捷键提示：信息条右端，安静但找得到；不参与交互 */
 .wg-kbd-hint {
-  position: absolute;
-  right: 28px;
-  bottom: 5px;
   margin: 0;
+  flex: 0 0 auto;
   font-size: 11px;
   line-height: 1;
   color: var(--el-text-color-secondary, #909399);
@@ -8254,11 +8266,8 @@ onUnmounted(() => {
   user-select: none;
 }
 
-/* 灵感按钮：与快捷键提示对称，贴在输入条左下（落在底部 padding 区） */
+/* 灵感按钮：输入框下方信息条左端（2026-11-21 由页底绝对定位改为随输入框下方） */
 .wg-inspire {
-  position: absolute;
-  left: 28px;
-  bottom: 5px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
