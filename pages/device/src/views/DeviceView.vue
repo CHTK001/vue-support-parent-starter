@@ -25,6 +25,13 @@
             <span class="da-rail__title">设备资产</span>
             <span class="da-rail__count">{{ filtered.length }}<i>/{{ indexFiltered.length }}</i></span>
             <span class="da-rail__gap" />
+            <span
+              v-if="indexDegraded"
+              class="da-tool da-tool--warn"
+              title="后台刷新失败，已退避重试；列表数据可能不是最新"
+            >
+              <ReIcon name="Warning" :size="12" />
+            </span>
             <button type="button" class="da-tool" title="刷新" :disabled="loading" @click="fetchAll">
               <ReIcon name="RefreshRight" :size="12" />
             </button>
@@ -1789,18 +1796,36 @@ function syncQuickFilter(kind: 'all' | 'online' | 'offline' | 'warranty' | 'unlo
   tagFilter.value = undefined
 }
 
-/** 轻索引：全量设备的 id/名称/组织/厂商/状态/标签（计数、树种、快速筛选/标签池的唯一来源） */
-async function loadIndex() {
+/** 后台轮询刷新失败标记：静默降级不弹 toast，只在左栏头部亮一个提示点 */
+const indexDegraded = ref(false)
+
+/**
+ * 轻索引：全量设备的 id/名称/组织/厂商/状态/标签（计数、树种、快速筛选/标签池的唯一来源）。
+ *
+ * @param options.silent 后台轮询路径传 true：失败不弹全局 toast、不清空旧索引
+ *                       （树/计数保持最近一次成功数据），只亮降级提示点。
+ * @returns 是否加载成功（false 供轮询退避判定）
+ */
+async function loadIndex(options?: { silent?: boolean }): Promise<boolean> {
+  const silent = options?.silent ?? false
   try {
     const idx = await deviceApi.listIndex()
     // 后端异常时可能返回非数组（缺 data / 对象体），这里收敛成数组，避免一次异常把整页渲染链带崩
     allIndex.value = Array.isArray(idx) ? (idx as DeviceIndexItem[]) : []
     cacheDevices(allIndex.value)
     syncPicked(allIndex.value)
+    indexDegraded.value = false
+    return true
   } catch (err) {
+    indexDegraded.value = true
+    if (silent) {
+      // 后台轮询失败：保留旧索引避免树/计数每轮塌空一次，静默降级由轮询退避兜住
+      return false
+    }
     allIndex.value = []
     syncPicked([])
     message.error('加载设备索引失败：' + errorText(err))
+    return false
   }
 }
 
@@ -1885,7 +1910,7 @@ function onAlarmStats(stats: Record<string, number>): void {
 
 useDeviceRealtime({
   onStatus: onRealtimeStatus,
-  onRefresh: () => loadIndex(),
+  onRefresh: () => loadIndex({ silent: true }),
   pollInterval: 30000
 })
 
@@ -3297,6 +3322,8 @@ onMounted(async () => {
 .da-tool.is-primary { background: var(--el-color-primary); color: var(--el-color-white); }
 .da-tool.is-primary:hover { opacity: 0.9; }
 .da-tool:disabled { opacity: 0.4; cursor: not-allowed; }
+.da-tool--warn { color: var(--el-color-warning); cursor: help; }
+.da-tool--warn:hover { background: transparent; color: var(--el-color-warning); }
 
 .da-search :deep(.re-input__inner) {
   height: 28px;
