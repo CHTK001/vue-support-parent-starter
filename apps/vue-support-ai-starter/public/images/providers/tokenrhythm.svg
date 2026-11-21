@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">tokenrhythm</title>
+  <desc id="desc">A rhythm equalizer of rounded bars topped by a token disc, on an indigo gradient tile.</desc>
+  <defs>
+    <linearGradient id="tr-bg" x1="72" y1="44" x2="442" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2B2A6B"/>
+      <stop offset=".52" stop-color="#211F56"/>
+      <stop offset="1" stop-color="#141238"/>
+    </linearGradient>
+    <linearGradient id="tr-brand" x1="130" y1="120" x2="390" y2="410" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B7A6FF"/>
+      <stop offset=".5" stop-color="#8B72F5"/>
+      <stop offset="1" stop-color="#5E43D6"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#tr-bg)"/>
+  <rect x="16.75" y="16.75" width="478.5" height="478.5" rx="119.25" fill="none" stroke="#B7A6FF" stroke-opacity=".16" stroke-width="1.5"/>
+
+  <g fill="url(#tr-brand)">
+    <rect x="136" y="236" width="40" height="140" rx="20"/>
+    <rect x="204" y="176" width="40" height="200" rx="20"/>
+    <rect x="272" y="216" width="40" height="160" rx="20"/>
+    <rect x="340" y="146" width="40" height="230" rx="20"/>
+  </g>
+  <circle cx="256" cy="96" r="34" fill="none" stroke="url(#tr-brand)" stroke-width="16"/>
+</svg>

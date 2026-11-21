@@ -450,6 +450,7 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { id: 'tencent-tokenhub', name: 'Tencent TokenHub', description: '腾讯 TokenHub 模型服务', protocol: 'openai', defaultApiUrl: 'https://tokenhub.tencentmaas.com/v1', keywords: ['tencent', 'tokenhub'] },
   { id: 'thinkingmachines', name: 'Thinking Machines', description: 'Thinking Machines 的 Tinker 推理 API', protocol: 'openai', defaultApiUrl: 'https://tinker.thinkingmachines.dev/services/tinker-prod/anthropic/api/v1', keywords: ['thinking', 'machines'] },
   { id: 'tinfoil', name: 'Tinfoil', description: '机密计算推理服务（tinfoil.sh）', protocol: 'openai', defaultApiUrl: 'https://inference.tinfoil.sh/v1', keywords: ['tinfoil'] },
+  { id: 'tokenrhythm', name: '基元律动', description: 'TokenRhythm 聚合平台，一个 Key 调全量模型，按百万 token 计价（人民币）', protocol: 'openai', defaultApiUrl: 'https://tokenrhythm.studio/v1', keywords: ['tokenrhythm', '基元律动'] },
   { id: 'upstage', name: 'Upstage', description: '韩国 Upstage Solar 模型 API', protocol: 'openai', defaultApiUrl: 'https://api.upstage.ai/v1/solar', keywords: ['upstage'] },
   { id: 'vercel', name: 'Vercel AI Gateway', description: 'Vercel AI 网关，OpenAI 兼容入口（ai-gateway.vercel.sh）', protocol: 'openai', defaultApiUrl: 'https://ai-gateway.vercel.sh/v1', keywords: ['vercel', 'gateway', 'ai'] },
   // Voyage AI 只有嵌入 / 重排接口，没有对话类模型
@@ -603,6 +604,7 @@ const PROVIDER_CATEGORY_MAP: Readonly<Record<string, ProviderCategory>> = {
   'cline-pass': 'aggregator',
   'qihang-ai': 'aggregator',
   '100milionseek': 'aggregator',
+  tokenrhythm: 'aggregator',
   // 云厂商：云平台的模型 / 推理服务
   azure: 'cloud',
   'aws-bedrock': 'cloud',
