@@ -61,6 +61,40 @@ export const DEFAULT_THINKING_PHRASES: string[] = [
 let customPhrases: string[] = [];
 
 /**
+ * 长等待安抚档（等待明显变久后启用）。
+ *
+ * <p>为什么分档：首字可能 5~50s 才回来。前 20 秒用日常嘀咕就够了；
+ * 超过 20 秒还在等，用户的耐心开始耗尽，这时最需要的不是继续抖机灵，
+ * 而是一句「没卡住、在推进」的明确安抚。语气仍保持自言自语，不变成系统播报。</p>
+ */
+export const DEFAULT_THINKING_PHRASES_PATIENT: string[] = [
+  '仍在生成，没有卡住',
+  '长回答要多想一会儿…',
+  '还在写，写完就发…',
+  '快写完了，正在检查措辞…',
+  '信息量有点大，慢慢拼…',
+  '好饭不怕晚，再等等…',
+];
+
+/**
+ * 按已等待时长选一句文案。
+ *
+ * <p>用户配过自定义列表时**不分档**：用户既然自己配了文案，就完整轮换他自己那套；
+ * 只有走内置默认时才按时间换档（前段抖机灵、后段安抚）。</p>
+ *
+ * @param elapsedSec 已等待秒数
+ * @param avoid      上一句（避免连着两次相同）
+ * @returns 选中的文案
+ */
+export function pickThinkingPhraseForElapsed(elapsedSec: number, avoid?: string): string {
+  if (customPhrases.length > 0) return pickThinkingPhrase(customPhrases, avoid);
+  const pool = elapsedSec >= 20
+    ? DEFAULT_THINKING_PHRASES_PATIENT.concat(['再等等，快了…', '正在把碎片拼成一句人话…'])
+    : DEFAULT_THINKING_PHRASES;
+  return pickThinkingPhrase(pool, avoid);
+}
+
+/**
  * 把外部输入（设置项里的字符串数组 / 多行文本 / 单个字符串）规整成可用列表。
  *
  * <p>设置项可能来自后端 JSON、用户手填的多行文本，或历史脏数据，
