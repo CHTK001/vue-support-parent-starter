@@ -75,6 +75,26 @@ export function takeThirdCallbackParams(): ThirdCallbackParams {
   return value;
 }
 
+/** 三方回跳参数在 location.search 中的键名 */
+const THIRD_CALLBACK_SEARCH_KEYS = ["redirectParam", "bindToken", "thirdMsg", "redirect"];
+
+/**
+ * 从 location.search 剥离三方回跳参数（不影响路由与历史状态）
+ *
+ * <p>hash 模式下这些参数落在 {@code location.search}（router 管不到的区域），
+ * 消费完成后由调用方调用，避免一次性凭证残留在地址栏与浏览器历史中。</p>
+ */
+export function clearThirdCallbackSearchParams(): void {
+  if (typeof window === "undefined") return;
+  const search = window.location.search;
+  if (!search || !THIRD_CALLBACK_SEARCH_KEYS.some(key => search.includes(`${key}=`))) return;
+  try {
+    window.history.replaceState(window.history.state, "", window.location.pathname + window.location.hash);
+  } catch {
+    // 剥离失败不阻断主流程
+  }
+}
+
 /**
  * 预览三方回跳参数（不消费，供测试与调试使用）
  *
