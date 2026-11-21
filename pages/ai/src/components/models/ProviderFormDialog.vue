@@ -66,8 +66,9 @@ const DETECT_STATE_LABEL: Record<'ok' | 'na' | 'bad', string> = { ok: '可用', 
  * 余额查询类型选项（extra.credit_kind）：由后端按「该供应商已实现的查询口径」
  * 动态给出（GET /api/providers/credit-kinds）——「自定义」（余额接口地址 +
  * 字段映射 + 余额密钥）恒在首位作为默认，其余类型（厂商官方 / 各厂商专属 /
- * OpenAI 兼容计费探测等）只有后端真的实现才出现；「账号密码登录」仅在候选链里
- * 存在可登录 SPI 时出现。接口不可用时回退到这份最小清单，保证表单可填。
+ * OpenAI 兼容计费探测、账号密码登录等）只有后端真的实现才出现。
+ * 接口不可用时只回退「自定义」，保证表单可填；后端未实现的类型
+ * （含「账号密码登录」）不得由前端兜底显示。
  */
 interface CreditKindOption {
   value: string
@@ -78,7 +79,6 @@ interface CreditKindOption {
 
 const FALLBACK_CREDIT_KINDS: CreditKindOption[] = [
   { value: 'custom', label: '自定义' },
-  { value: 'account-login', label: '账号密码登录', login: true },
 ]
 const creditKindOptions = ref<CreditKindOption[]>(FALLBACK_CREDIT_KINDS)
 
@@ -698,6 +698,11 @@ const loadCreditKinds = async () => {
     }
   } catch {
     creditKindOptions.value = FALLBACK_CREDIT_KINDS
+    // 回退清单里没有的残值（如后端未实现的账号密码登录）一并回落「自定义」，
+    // 与成功路径的口径一致，避免下拉出现清单外选项
+    if (!FALLBACK_CREDIT_KINDS.some((k) => k.value === form.creditType)) {
+      form.creditType = 'custom'
+    }
   }
 }
 
