@@ -384,6 +384,7 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   //      Requesty、AI/ML API、Abacus），冷门聚合（AgentRouter、Eden AI、Helicone、
   //      LLM Gateway、Opper…）走「自定义供应商」添加，不占模板库；
   //   3) 国内的中转聚合（302.AI、接口 AI、ZenMux、Agnes、b.ai、启航）保留，方便直接用。
+  { id: '100milionseek', name: '100milionseek', description: '免费 token 额度平台，每账号每日 100M tokens 配额（DeepSeek / Jev 免费模型），余额经 /v1/models 响应头读取', protocol: 'openai', defaultApiUrl: 'https://100milionseek.top/v1', keywords: ['100milionseek', 'hms', 'free', '免费'] },
   { id: '302ai', name: '302.AI', description: '按量付费 AI 聚合平台，一张 Key 调用数百个模型', protocol: 'openai', defaultApiUrl: 'https://api.302.ai/v1', keywords: ['302', 'ai'] },
   { id: 'abacus', name: 'Abacus.AI', description: 'Abacus.AI 的 RouteLLM 模型路由服务，OpenAI 兼容', protocol: 'openai', defaultApiUrl: 'https://routellm.abacus.ai/v1', keywords: ['abacus', 'routellm', 'router'] },
   { id: 'ai21', name: 'AI21 Labs', description: 'AI21 Labs Jamba 系列模型官方 API', protocol: 'openai', defaultApiUrl: 'https://api.ai21.com/studio/v1', keywords: ['ai21', 'labs'] },
@@ -601,6 +602,7 @@ const PROVIDER_CATEGORY_MAP: Readonly<Record<string, ProviderCategory>> = {
   poe: 'aggregator',
   'cline-pass': 'aggregator',
   'qihang-ai': 'aggregator',
+  '100milionseek': 'aggregator',
   // 云厂商：云平台的模型 / 推理服务
   azure: 'cloud',
   'aws-bedrock': 'cloud',

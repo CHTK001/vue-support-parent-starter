@@ -112,6 +112,8 @@ export const PROVIDER_ICONS: Record<string, string> = {
   newapi: 'newapi.png',
   sub2api: 'sub2api.svg',
   tempr: 'tempr.svg',
+  // 100milionseek：免费 token 额度平台，无公开品牌标，用「100M 每日配额币」自制标
+  '100milionseek': '100milionseek.svg',
 
   // ===== 本地 / 其他 =====
   onnx: 'onnx.svg',

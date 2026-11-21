@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">100milionseek</title>
+  <desc id="desc">A daily 100M token quota badge: a coin disc marked 100M on a teal gradient tile.</desc>
+  <defs>
+    <linearGradient id="hms-bg" x1="72" y1="44" x2="442" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0E5E4A"/>
+      <stop offset=".52" stop-color="#0A4A3C"/>
+      <stop offset="1" stop-color="#06352B"/>
+    </linearGradient>
+    <linearGradient id="hms-brand" x1="130" y1="120" x2="390" y2="410" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8CF9CC"/>
+      <stop offset=".5" stop-color="#3DE8B0"/>
+      <stop offset="1" stop-color="#17B489"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#hms-bg)"/>
+  <rect x="16.75" y="16.75" width="478.5" height="478.5" rx="119.25" fill="none" stroke="#8FF7D2" stroke-opacity=".16" stroke-width="1.5"/>
+
+  <circle cx="256" cy="256" r="150" fill="none" stroke="url(#hms-brand)" stroke-width="18"/>
+  <text x="256" y="262" text-anchor="middle" dominant-baseline="central" font-family="Arial, Helvetica, sans-serif" font-size="100" font-weight="700" fill="url(#hms-brand)" letter-spacing="2">100M</text>
+</svg>
