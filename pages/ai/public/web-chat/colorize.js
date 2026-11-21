@@ -25,12 +25,15 @@
 
 import { importFirst, resolveInputImages, loadImage } from './_shared.js'
 
-/** onnxruntime-web CDN（多候选依次兜底） */
+/** onnxruntime-web CDN（多候选依次兜底）
+ *
+ * 版本必须与 ORT_WASM_PATHS 完全一致：ort.min.js 会按自身版本号去拼
+ * ort-wasm-simd-threaded.jsep.wasm 的下载地址，JS 与 wasm 版本错配时会报
+ * 「no available backend found」或 wasm 链接失败。统一钉在 1.20.1。
+ */
 const ORT_CDN = [
-  'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.min.js',
   'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js',
   'https://unpkg.com/onnxruntime-web@1.20.1/dist/ort.min.js',
-  'https://esm.sh/onnxruntime-web@1.20.1',
 ]
 
 /** ort 的 wasm 运行时文件目录（jsdelivr，与 import 候选解耦，CORS 均放行） */
