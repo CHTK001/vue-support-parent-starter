@@ -1390,6 +1390,7 @@
                   <span class="wg-pill wg-pill-model">
                     <em class="wg-pill-label">模型</em>
                     <img v-if="modelLogo(row.task.model)" :src="modelLogo(row.task.model)!" alt="" class="wg-logo" />
+                    <span v-else-if="row.task.model" class="wg-logo wg-logo-fallback">{{ modelLabel(row.task.model).slice(0, 1) }}</span>
                     <span>{{ modelLabel(row.task.model) }}</span>
                   </span>
                   <span v-if="row.task.size" class="wg-pill">
@@ -1547,6 +1548,7 @@
               <template #trigger="{ toggle }">
                 <button type="button" class="wg-chip is-strong is-toolbar" title="创作模型" @click="toggle">
                   <img v-if="modelLogo(model)" :src="modelLogo(model)!" alt="" class="wg-logo" />
+                  <span v-else-if="model" class="wg-logo wg-logo-fallback">{{ modelLabel(model).slice(0, 1) }}</span>
                   <span>{{ modelLabel(model) }}</span>
                   <WgIcon :d="ICONS.chevron" />
                 </button>
@@ -1566,6 +1568,7 @@
                   @click="pickModel(opt.model); modelOpen = false"
                 >
                   <img v-if="modelLogo(opt.model, opt.providerName)" :src="modelLogo(opt.model, opt.providerName)!" alt="" class="wg-logo" />
+                  <span v-else class="wg-logo wg-logo-fallback">{{ modelLabel(opt.model).slice(0, 1) }}</span>
                   <span class="wg-menu-text">
                     <span class="wg-menu-name">{{ modelLabel(opt.model) }}</span>
                     <span class="wg-menu-desc">{{ opt.providerName }}</span>
@@ -1756,8 +1759,8 @@
               </template>
               <div class="wg-menu wg-fav-menu">
                 <p class="wg-menu-title">常用提示词<span class="wg-menu-count">{{ promptFavs.length }}</span></p>
-                <p v-if="!promptFavs.length" class="wg-fav-empty">
-                  还没有常用提示词；把当前提示词存进来，下次一键回填。
+                <p v-if="!promptFavs.length" class="wg-menu-empty">
+                  还没有常用提示词
                 </p>
                 <div v-else class="wg-fav-list">
                   <div v-for="(fp, fpi) in promptFavs" :key="'pf-' + fpi" class="wg-fav-item">
@@ -1771,7 +1774,7 @@
                       title="删除"
                       @click="removePromptFav(fp)"
                     >
-                      <WgIcon :d="ICONS.close" />
+                      <WgIcon :d="ICONS.close" class="wg-fav-del-icon" />
                     </button>
                   </div>
                 </div>
@@ -1795,11 +1798,24 @@
                     :disabled="!prompt.trim() || isPromptFav"
                     @click="addPromptFav()"
                   >
-                    {{ isPromptFav ? '当前提示词已在常用里' : '把当前提示词存入常用' }}
+                    {{ isPromptFav ? '已在常用里' : '存入当前提示词' }}
                   </button>
                 </div>
               </div>
             </PickerPopover>
+
+            <!-- 灵感：没思路时随机填一条示例提示词（只填入，不自动发送）。
+                 2026-11-21 从页底绝对定位集成进输入框工具条，与「常用」同排。 -->
+            <button
+              type="button"
+              class="wg-chip is-toolbar"
+              title="随机换一条灵感提示词"
+              aria-label="灵感提示词"
+              @click="pickInspiration"
+            >
+              <WgIcon :d="ICONS.sparkle" />
+              <span>灵感</span>
+            </button>
           </template>
 
           <!--
@@ -1966,17 +1982,8 @@
           </template>
         </GenerateComposer>
 
-        <!-- 输入框下方信息条：灵感按钮居左、快捷键提示居右，随文档流紧跟输入框
-             （2026-11-21 由页底绝对定位改为集成到输入框下方） -->
-        <div class="wg-composer-foot">
-          <!-- 灵感：没思路时随机填一条示例提示词（只填入，不自动发送） -->
-          <button type="button" class="wg-inspire" title="随机换一条灵感提示词" @click="pickInspiration">
-            <WgIcon :d="ICONS.sparkle" class="wg-inspire-icon" />
-            <span>灵感</span>
-          </button>
-          <!-- 快捷键提示：Enter 语义沿用会话输入库（Enter 发送 / Shift+Enter 换行），这里只把规则亮出来 -->
-          <p class="wg-kbd-hint" aria-hidden="true">Ctrl + Enter 发送 · Shift + Enter 换行</p>
-        </div>
+        <!-- 快捷键提示：Enter 语义沿用会话输入库（Enter 发送 / Shift+Enter 换行），这里只把规则亮出来 -->
+        <p class="wg-kbd-hint" aria-hidden="true">Ctrl + Enter 发送 · Shift + Enter 换行</p>
 
         <input
           ref="fileInput"
@@ -2312,8 +2319,8 @@ const STYLE_TEMPLATES: ReadonlyArray<StyleTemplate> = [
  */
 const STYLE_THUMB_VERSION = '3'
 
-const STYLE_THUMBS: Readonly<Record<string, string>> = Object.freeze(
-  Object.fromEntries(
+const STYLE_THUMBS: Readonly<Record<string, string>> = Object.freeze({
+  ...Object.fromEntries(
     [
       'photo',
       'anime',
@@ -2334,7 +2341,11 @@ const STYLE_THUMBS: Readonly<Record<string, string>> = Object.freeze(
       'isometric',
     ].map((key) => [key, `${import.meta.env.BASE_URL}gen-style/${key}.webp?v=${STYLE_THUMB_VERSION}`]),
   ),
-)
+  // 2026-11-21 新增两风格的缩略图：出图上游（Pollinations）只回 jpeg，而仓库 .gitignore
+  // 全局忽略 *.jpg，故落成 .png（PNG 不在忽略名单，能跟仓库走）。
+  comic34: `${import.meta.env.BASE_URL}gen-style/comic34.png?v=${STYLE_THUMB_VERSION}`,
+  mythposter: `${import.meta.env.BASE_URL}gen-style/mythposter.png?v=${STYLE_THUMB_VERSION}`,
+})
 
 /** 收藏持久化键：生成接口暂无收藏字段，用本地集合让「仅收藏」真正生效 */
 const FAVORITE_KEY = 'ai-guada:generate-favorites'
@@ -6471,6 +6482,105 @@ onUnmounted(() => {
   color: var(--color-primary);
 }
 
+/* ---------- 常用提示词夹的列表与页脚（外壳复用 .wg-menu 骨架） ----------
+   这组类此前只有模板引用、没有样式定义，弹层里的条目一直是浏览器裸默认样式。 */
+
+/* 条目行：与 .wg-menu-item 同一 30px 基线，hover 同底色 */
+.wg-fav-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 30px;
+  padding: 2px 4px 2px 8px;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+}
+
+.wg-fav-item:hover {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+
+/* 正文按钮：占满一行，长提示词省略号，点按回填输入区 */
+.wg-fav-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 行尾删除：安静的小图标钮，hover 才亮危险色 */
+.wg-fav-del {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-gray);
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
+}
+
+.wg-fav-del:hover {
+  color: var(--el-color-danger);
+  background: color-mix(in srgb, var(--el-color-danger) 12%, transparent);
+}
+
+.wg-fav-del-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* 页脚：与列表之间分隔线，「存入当前提示词」用安静的描边小按钮 */
+.wg-fav-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+  padding: 8px 8px 2px;
+  border-top: 1px solid var(--color-surface-border);
+}
+
+.wg-fav-save {
+  padding: 5px 12px;
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.wg-fav-save:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-50);
+}
+
+.wg-fav-save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .wg-seg {
   display: flex;
   flex-wrap: wrap;
@@ -6797,7 +6907,8 @@ onUnmounted(() => {
   justify-content: center;
   overflow: hidden;
   aspect-ratio: 1 / 1;
-  border-radius: calc(var(--r-sm) / 1.5);
+  /* 2026-11-21：圆角放大（原 calc(--r-sm/1.5) 太锐，用户反馈「参考图圆角大一点」） */
+  border-radius: var(--r);
   background: var(--color-secondary-surface);
 }
 
@@ -7271,6 +7382,20 @@ onUnmounted(() => {
   /* 从缩放令牌派生（令牌最小值 8px，对 16px logo 偏圆） */
   border-radius: calc(var(--r-sm) / 2);
   object-fit: contain;
+}
+
+/* 模型无品牌图可用时（免登录渠道的 flux / turbo 等不映射供应商图标）：首字母占位，左侧不空一块 */
+.wg-logo-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-secondary-surface);
+  color: var(--color-text);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  user-select: none;
 }
 
 /* 媒体区 */
@@ -8245,52 +8370,18 @@ onUnmounted(() => {
   padding: 12px 24px 20px;
 }
 
-/* 输入框下方信息条：灵感按钮居左、快捷键提示居右，随文档流紧跟输入框 */
-.wg-composer-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-/* 快捷键提示：信息条右端，安静但找得到；不参与交互 */
+/* 快捷键提示：贴在输入条右下（落在底部 padding 区），安静但找得到；不参与交互 */
 .wg-kbd-hint {
+  position: absolute;
+  right: 28px;
+  bottom: 5px;
   margin: 0;
-  flex: 0 0 auto;
   font-size: 11px;
   line-height: 1;
   color: var(--el-text-color-secondary, #909399);
   opacity: 0.72;
   pointer-events: none;
   user-select: none;
-}
-
-/* 灵感按钮：输入框下方信息条左端（2026-11-21 由页底绝对定位改为随输入框下方） */
-.wg-inspire {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border: 1px solid var(--color-surface-border);
-  border-radius: var(--r-pill);
-  background: var(--color-surface);
-  font-size: 11px;
-  line-height: 1;
-  color: var(--color-text-gray);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-.wg-inspire:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-50);
-  color: var(--color-primary);
-}
-
-.wg-inspire .wg-svg {
-  width: 12px;
-  height: 12px;
 }
 
 /* 参考图缩略图：挂在输入框内顶部（GenerateComposer 的 reference 插槽）。
