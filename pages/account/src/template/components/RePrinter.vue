@@ -366,6 +366,7 @@ async function onFormConfirm(): Promise<void> {
     ElMessage.success('已保存')
     formVisible.value = false
     await loadPrinters({ page: page.value, pageSize: pageSize.value, params: {} })
+    tableRef.value?.reload()
   } catch (err) {
     ElMessage.error(errorText(err))
   } finally {
