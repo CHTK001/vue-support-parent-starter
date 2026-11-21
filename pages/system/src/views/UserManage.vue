@@ -1609,6 +1609,7 @@ onUnmounted(() => {
       title="导入用户"
       width="640px"
       :close-on-click-modal="false"
+      :footer-hidden="false"
       :confirm-loading="importLoading"
       @ok="confirmImport"
     >

@@ -59,7 +59,7 @@ import {
 import { setAppStorage } from "./storage";
 import { initGlobalTimer, destroyGlobalTimer } from "@repo/work";
 import { installAntiDebug, uninstallAntiDebug, refreshAntiDebug } from "./security/antiDebug";
-import { bindConfigHotReload, onConfigHotReload, loadDefaultSetting } from "./setting";
+import { bindConfigHotReload, onConfigHotReload, loadDefaultSetting, refreshHttpCodecSetting } from "./setting";
 import { applyGlobalWatermark } from "./directives/waterMarker";
 import {
   initGlobalSocketService,
@@ -218,6 +218,10 @@ export async function createApp(options: CreateAppOptions = {}): Promise<AppCont
     log.info("createApp", "⑩ loadDefaultSetting...");
     await loadDefaultSetting();
   }
+  // ⑩.1 已登录会话的整页刷新也要恢复 codec 运行时：CodecRequestOpen/type/公钥
+  // 只在登录成功与配置版本热更新两条路径上应用，整页刷新后模块态归零，
+  // 已开启的请求加密会静默退化为明文；这里按当前登录态补拉一次（未登录时内部直接跳过）。
+  await refreshHttpCodecSetting();
   setSocketTokenProvider(() => token.getAccessToken());
   /** 当前生效的 socket 连接配置签名：仅配置真正变化时才重建连接 */
   const socketConfigSignature = (): string => {

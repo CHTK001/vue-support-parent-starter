@@ -623,16 +623,20 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
     const runtimeCodec = getHttpCodecRuntime();
     // 自动模式：系统配置页打开 CodecRequestOpen 后，业务请求不必逐条写 .codec(true)。
     // 登录/设置接口排除，避免“拿密钥前先加密”以及设置页自锁。
+    const runtimeType = (runtimeCodec.type || "").toLowerCase();
+    // keylog 不使用共享对称密钥：CodecRequestKey 在设置列表按敏感掩码下发，
+    // 前端拿不到明文，若把它当统一门槛会让 keylog 永远不生效。keylog 的门槛是
+    // 已明文下发的服务端长期公钥（CodecServerPublicKey）；aes/sm4 仍要求共享密钥。
     const autoCodec =
       runtimeCodec.requestOpen &&
-      !!runtimeCodec.key &&
-      !isCodecRequestExcluded(config.url);
+      !isCodecRequestExcluded(config.url) &&
+      (runtimeType === "keylog" ? !!runtimeCodec.serverPublicKey : !!runtimeCodec.key);
     const explicitCodec = rc?.enable === true && !!rc.key && hc?.codec === true;
     const codecCandidate =
       !isRetry &&
       (autoCodec || explicitCodec) &&
       !isCodecRequestExcluded(config.url);
-    const codecType = (autoCodec ? runtimeCodec.type : (rc?.type ?? "")).toLowerCase();
+    const codecType = (autoCodec ? runtimeType : (rc?.type ?? "")).toLowerCase();
     // keylog：一次性会话密钥帧协议。请求体是 k2 帧（内含本次临时公钥）；无 body 的请求
     // 也要生成临时密钥对，公钥经 x-codec-keylog-pub 头下发，后端据此加密本次响应
     //（每请求新鲜密钥；一次性私钥留存于 config，供响应拦截器解密回包）。
@@ -653,7 +657,34 @@ export function setupHttpCryptoInterceptor(options: HttpCryptoOptions): AxiosIns
       (config as KeylogConfig)[KEYLOG_PRIV_FIELD] = frame.privateKey;
       config.headers.set(CODEC_KEYLOG_PUB_HEADER, frame.publicKey);
       if (hasBody) {
-        config.data = frame.frame;
+        // 分段传输（CodecTraceOpen）：k2 帧与 aes/sm4 密文一样按 traceId 分片上传。
+        // 后端 CodecTraceChunkFilter 按字节重组，算法无关；非末片只入缓冲，末片随
+        // 本请求走正常管线（鉴权/k2 帧解密/响应加密只走一次）。超限退整包传输。
+        const frameText = frame.frame;
+        const chunkTotalCount =
+          autoCodec && runtimeCodec.traceOpen && !config.headers.has(TRACE_ID_HEADER)
+            ? Math.ceil(frameText.length / TRACE_CHUNK_HEX_SIZE)
+            : 0;
+        if (chunkTotalCount > 1 && chunkTotalCount <= TRACE_MAX_CHUNKS) {
+          const traceId = newTraceId();
+          for (let i = 0; i < chunkTotalCount - 1; i++) {
+            await uploadTraceChunk(
+              config,
+              traceId,
+              i,
+              chunkTotalCount,
+              frameText.slice(i * TRACE_CHUNK_HEX_SIZE, (i + 1) * TRACE_CHUNK_HEX_SIZE),
+            );
+          }
+          config.data = frameText.slice((chunkTotalCount - 1) * TRACE_CHUNK_HEX_SIZE);
+          (config as TraceChunkConfig)[TRACE_ID_FIELD] = traceId;
+          (config as TraceChunkConfig)[TRACE_TOTAL_FIELD] = chunkTotalCount;
+          config.headers.set(TRACE_ID_HEADER, traceId);
+          config.headers.set(TRACE_INDEX_HEADER, String(chunkTotalCount - 1));
+          config.headers.set(TRACE_TOTAL_HEADER, String(chunkTotalCount));
+        } else {
+          config.data = frameText;
+        }
         // k2 帧已是最终请求体：axios 默认 transformRequest 见到 Content-Type 为
         // application/json 会对 string 再 JSON.stringify 套引号，后端
         // extractEncryptedPayload 拿带引号的串当密文解必然失败，故覆盖为直通。
