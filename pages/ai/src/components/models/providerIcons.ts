@@ -444,6 +444,14 @@ const DOMAIN_BRANDS: Array<[string, string]> = [
   ['b.ai', 'bai'],
   ['ai.cn', 'dots'],
   ['discovery-api.intern-ai.org.cn', 'shusheng'],
+  // 小米 MiMo / Token Plan：api.xiaomimimo.com 与 token-plan-*.xiaomimimo.com
+  ['xiaomimimo', 'xiaomi'],
+  // STACKIT：api.openai-compat.model-serving.eu01.onstackit.cloud
+  ['onstackit.cloud', 'stackit'],
+  // Thinking Machines：tinker.thinkingmachines.dev
+  ['thinkingmachines', 'thinkingmachines'],
+  // 摩尔线程 KUAE Coding Plan：coding-plan-endpoint.kuaecloud.net
+  ['kuaecloud', 'kuae-cloud-coding-plan'],
 ]
 
 // 名称片段 -> 品牌（中文/英文名兜底）
@@ -515,6 +523,12 @@ const NAME_BRANDS: Array<[string, string]> = [
   ['shusheng', 'shusheng'],
   ['书生', 'shusheng'],
   ['书生·端砚', 'shusheng'],
+  // 小米 / STACKIT / Thinking Machines / 摩尔线程：模板建的渠道行 platform 是
+  // 协议值（openai），名称兜底必须能认出这几家，否则解析成 custom 无 logo
+  ['xiaomi', 'xiaomi'], ['小米', 'xiaomi'],
+  ['stackit', 'stackit'],
+  ['thinkingmachines', 'thinkingmachines'],
+  ['kuae', 'kuae-cloud-coding-plan'], ['mthreads', 'kuae-cloud-coding-plan'], ['摩尔线程', 'kuae-cloud-coding-plan'],
 ]
 
 /**
