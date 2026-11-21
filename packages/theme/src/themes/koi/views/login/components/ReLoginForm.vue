@@ -21,14 +21,93 @@
     </div>
 
     <!-- 标题：默认显示；页面自带标题时传 showHeader=false 避免重复 -->
-    <div v-if="!systemUnavailable && showHeader" class="form-header text-center m-b-32px">
+    <div v-if="!systemUnavailable && showHeader && !bindMode" class="form-header text-center m-b-32px">
       <h3 class="text-24px font-700 m-b-8px text-[--el-text-color-primary]">{{ $t("menu.login.account") }}</h3>
       <p class="text-14px text-[--el-text-color-regular]">
         {{ $t("menu.login.form.loginName") }} / {{ $t("menu.login.form.password") }}
       </p>
     </div>
 
-    <el-form v-if="!systemUnavailable" ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
+    <!-- 三方账号绑定视图：回调带回 bindToken（三方账号未绑定本地用户）时展示，
+         用户输入本地账密核验通过后，服务端一次性完成「落绑定 + 签发登录态」 -->
+    <el-form v-if="!systemUnavailable && bindMode" ref="bindFormRef" :model="bindForm" :rules="bindRules" class="login-form">
+      <div class="form-header text-center m-b-24px">
+        <h3 class="text-24px font-700 m-b-8px text-[--el-text-color-primary]">绑定本地账号</h3>
+        <p class="text-14px text-[--el-text-color-regular]">
+          {{ bindPlatformLabel }} 账号尚未绑定本系统，验证本地账号密码后完成绑定并登录
+        </p>
+      </div>
+
+      <!-- 三方身份回显：信息来自回调暂存的服务端凭证，仅作展示 -->
+      <div class="login-bind-identity">
+        <el-avatar :size="44" :src="bindInfo.avatar || undefined">
+          {{ (bindInfo.nickname || bindInfo.username || "?").slice(0, 1) }}
+        </el-avatar>
+        <div class="login-bind-identity__meta">
+          <div class="login-bind-identity__name">{{ bindInfo.nickname || bindInfo.username || "第三方账号" }}</div>
+          <div class="login-bind-identity__sub">
+            {{ bindPlatformLabel }}<template v-if="bindInfo.username"> · {{ bindInfo.username }}</template><template v-if="bindInfo.email"> · {{ bindInfo.email }}</template>
+          </div>
+        </div>
+      </div>
+
+      <el-form-item prop="username">
+        <el-input
+          v-model="bindForm.username"
+          type="text"
+          name="username"
+          autocomplete="username"
+          placeholder="本地账号"
+          size="large"
+          class="login-input"
+          @keydown.enter="handleBindComplete"
+        >
+          <template #prefix>
+            <el-icon :size="16"><User /></el-icon>
+          </template>
+        </el-input>
+      </el-form-item>
+
+      <el-form-item prop="password">
+        <el-input
+          v-model="bindForm.password"
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          placeholder="本地密码"
+          show-password
+          size="large"
+          class="login-input"
+          @keydown.enter="handleBindComplete"
+        >
+          <template #prefix>
+            <el-icon :size="16"><Lock /></el-icon>
+          </template>
+        </el-input>
+      </el-form-item>
+
+      <el-form-item class="m-b-0">
+        <el-button
+          type="primary"
+          class="login-btn w-100% tracking-4px"
+          size="large"
+          :loading="bindLoading"
+          @click="handleBindComplete"
+        >
+          {{ bindLoading ? "绑定中..." : "绑定并登录" }}
+        </el-button>
+      </el-form-item>
+
+      <div class="flex flex-justify-center m-t-12px">
+        <el-button text :disabled="bindLoading" @click="cancelBind">
+          <span class="text-13px text-[--el-text-color-secondary] hover:text-[--el-color-primary] select-none transition-colors">
+            返回登录
+          </span>
+        </el-button>
+      </div>
+    </el-form>
+
+    <el-form v-else-if="!systemUnavailable" ref="loginFormRef" :model="loginForm" :rules="loginRules" class="login-form">
       <!-- 登录类型选择卡片：只在 app.yaml loginConfig.types 配了多项时出现 -->
       <ReLoginTypePicker v-if="loginTypes.length > 1" v-model="activeLoginType" :disabled="loading" />
 
@@ -276,7 +355,8 @@ import { User, Lock, Postcard, WarningFilled, OfficeBuilding, Iphone, Message } 
 import { ref, reactive, toRef, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
 import type { LoginTypeConfig } from "@repo/config";
-import { msgWarning, msgError, msgSuccess, getCaptcha, thirdLoginExchange, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting, setActiveBaseUrl, applyActiveBaseUrl, resetActiveBaseUrl, sendSmsCode, smsLogin } from "@repo/core";
+import { msgWarning, msgError, msgSuccess, getCaptcha, thirdLoginExchange, thirdBindPending, thirdBindComplete, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting, setActiveBaseUrl, applyActiveBaseUrl, resetActiveBaseUrl, sendSmsCode, smsLogin } from "@repo/core";
+import type { ThirdBindPendingInfo } from "@repo/core";
 import {
   readRememberedLogin,
   saveRememberedLogin,
@@ -694,6 +774,7 @@ const stripThirdCallbackQuery = async () => {
   const current = router.currentRoute.value;
   const rest = { ...current.query };
   delete rest.redirectParam;
+  delete rest.bindToken;
   delete rest.thirdMsg;
   if (Object.keys(rest).length === Object.keys(current.query).length) return;
   await router.replace({ path: current.path, query: rest, hash: current.hash });
@@ -746,6 +827,142 @@ const consumeThirdLogin = async (redirectParam: string, redirect: string) => {
   }
 };
 
+/**
+ * 三方账号绑定视图：回调未绑定时暂存 bindToken，先回显三方身份，
+ * 用户输入本地账密核验通过后，由后端一次性完成「落绑定 + 签发登录态」。
+ */
+const bindMode = ref(false);
+const bindToken = ref("");
+/** 绑定成功后的跳转目标（回调 redirect 参数，可空） */
+const bindRedirect = ref("");
+const bindLoading = ref(false);
+const bindInfo = reactive<ThirdBindPendingInfo>({
+  thirdPartyType: "",
+  username: "",
+  nickname: "",
+  avatar: "",
+  email: "",
+});
+const bindForm = reactive({ username: "", password: "" });
+const bindFormRef = ref<FormInstance>();
+const bindRules: FormRules = {
+  username: [{ required: true, message: "请输入本地账号", trigger: "blur" }],
+  password: [{ required: true, message: "请输入本地密码", trigger: "blur" }],
+};
+
+/** 平台展示名：小写 loginType → 常见平台名，未知名原样展示 */
+const BIND_PLATFORM_LABELS: Record<string, string> = {
+  gitee: "Gitee",
+  github: "GitHub",
+  google: "Google",
+  oidc: "OIDC",
+  wechat: "微信",
+};
+const bindPlatformLabel = computed(
+  () => BIND_PLATFORM_LABELS[bindInfo.thirdPartyType?.toLowerCase()] || bindInfo.thirdPartyType || "第三方"
+);
+
+/**
+ * 进入绑定视图：回显三方身份（pending 接口只读不核销，complete 时才消费）
+ *
+ * @param token    回调带回的一次性待绑定凭证
+ * @param redirect 绑定成功后的跳转目标（可空）
+ */
+const enterBindMode = async (token: string, redirect: string) => {
+  try {
+    loading.value = true;
+    const res = await thirdBindPending({ bindToken: token });
+    const info = res?.data;
+    if (!info?.thirdPartyType) {
+      // 凭证缺失/过期：剥参留在登录页，用户需重新发起三方登录
+      msgError(res?.msg || "绑定凭证已失效，请重新发起第三方登录");
+      await stripThirdCallbackQuery();
+      return;
+    }
+    Object.assign(bindInfo, info);
+    bindToken.value = token;
+    bindRedirect.value = redirect || "";
+    bindMode.value = true;
+  } catch (error) {
+    msgError((error as Error)?.message || "绑定凭证已失效，请重新发起第三方登录");
+    await stripThirdCallbackQuery();
+  } finally {
+    loading.value = false;
+  }
+};
+
+/** 绑定并登录：表单校验通过后提交 */
+const handleBindComplete = () => {
+  if (!bindFormRef.value) return;
+  bindFormRef.value.validate(async (valid: any) => {
+    if (!valid) {
+      msgError(t("msg.validFail"));
+      return;
+    }
+    await submitBind();
+  });
+};
+
+/**
+ * 提交绑定：核验本地账密 → 落绑定 → 签发登录态。
+ *
+ * <p>登录收尾与三方换票（consumeThirdLogin）同一套语义：
+ * setToken → roles/perms → refreshDefaultSetting → initAuthRouter → 目标页。</p>
+ *
+ * <p>bindToken 是一次性凭证（服务端先核销再校验账密，防凭 token 试口令），
+ * 业务失败即失效：回登录视图让用户重新发起三方登录。</p>
+ */
+const submitBind = async () => {
+  try {
+    bindLoading.value = true;
+    const res = await thirdBindComplete({
+      bindToken: bindToken.value,
+      username: bindForm.username.trim(),
+      password: bindForm.password,
+    });
+    const result = res?.data;
+    if (!result?.accessToken) {
+      msgError(res?.msg || "绑定失败，请检查账号密码");
+      bindMode.value = false;
+      bindToken.value = "";
+      await stripThirdCallbackQuery();
+      return;
+    }
+    msgSuccess("绑定成功，正在进入系统");
+    authStore.$reset();
+    resetRouter();
+    userStore.setToken(result);
+    if (result.roles?.length) setUserRoles(result.roles);
+    if (result.perms?.length) setUserPerms(result.perms);
+    // 令牌就绪后补拉后端配置（能力开关等），失败静默降级为本地配置
+    void refreshDefaultSetting();
+    const username =
+      (typeof result.username === "string" && result.username) ||
+      ((result.userInfo as Record<string, unknown> | undefined)?.sysUserUsername as string) ||
+      bindForm.username.trim();
+    if (username) {
+      tabsStore.$reset();
+      userStore.setLoginName(username);
+    }
+    keepAliveStore.$reset();
+    await nextTick();
+    await initAuthRouter(router);
+    await router.replace(bindRedirect.value || HOME_URL);
+  } catch (error) {
+    // 网络类异常：凭证可能仍在有效期，留在绑定视图可重试
+    msgError((error as Error)?.message || "绑定失败，请重试");
+  } finally {
+    bindLoading.value = false;
+  }
+};
+
+/** 放弃绑定：回登录视图并剥掉 bindToken，防止刷新重放 */
+const cancelBind = async () => {
+  bindMode.value = false;
+  bindToken.value = "";
+  await stripThirdCallbackQuery();
+};
+
 // 进入页面加载管理员信息
 onMounted(async () => {
   await loadSettingAndInit();
@@ -758,6 +975,11 @@ onMounted(async () => {
   const third = takeThirdCallbackParams();
   if (third.redirectParam) {
     await consumeThirdLogin(third.redirectParam, third.redirect);
+    return;
+  }
+  // 三方未绑定回跳：进绑定视图完成本地账密核验，绑定成功即登录
+  if (third.bindToken) {
+    await enterBindMode(third.bindToken, third.redirect);
     return;
   }
   if (third.thirdMsg) {
@@ -1034,6 +1256,39 @@ const submitLogin = async (otpCode: string) => {
   font-size: 12px;
   line-height: 1.5;
   color: var(--el-text-color-secondary);
+}
+
+/* 三方账号绑定视图：身份回显卡片 */
+.login-bind-identity {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  background: var(--el-fill-color-light);
+  border-radius: 10px;
+}
+
+.login-bind-identity__meta {
+  min-width: 0;
+}
+
+.login-bind-identity__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.login-bind-identity__sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .login-mobile-brand {

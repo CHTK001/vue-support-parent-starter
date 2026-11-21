@@ -20,6 +20,8 @@
 export interface ThirdCallbackParams {
   /** 回调签发的一次性换票凭证（登录成功路径） */
   redirectParam: string;
+  /** 回调签发的一次性待绑定凭证（未绑定路径，凭它进绑定页完成账密核验） */
+  bindToken: string;
   /** 回调错误提示（失败路径，跨域回跳 flash 必丢，query 才活着） */
   thirdMsg: string;
   /** 登录成功后的跳转目标（可选） */
@@ -27,7 +29,7 @@ export interface ThirdCallbackParams {
 }
 
 function emptyParams(): ThirdCallbackParams {
-  return { redirectParam: "", thirdMsg: "", redirect: "" };
+  return { redirectParam: "", bindToken: "", thirdMsg: "", redirect: "" };
 }
 
 function capture(): ThirdCallbackParams {
@@ -46,6 +48,7 @@ function capture(): ThirdCallbackParams {
       });
     }
     captured.redirectParam = merged.get("redirectParam") || "";
+    captured.bindToken = merged.get("bindToken") || "";
     captured.thirdMsg = merged.get("thirdMsg") || "";
     captured.redirect = merged.get("redirect") || "";
   } catch {

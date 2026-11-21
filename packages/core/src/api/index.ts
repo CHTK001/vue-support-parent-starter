@@ -243,6 +243,36 @@ export function thirdLoginExchange(data: Record<string, unknown>) {
     .then<ApiResult<LoginResult>>((r) => r.data);
 }
 
+/** 三方待绑定身份（绑定页回显用） */
+export interface ThirdBindPendingInfo {
+  /** 第三方平台登录类型（小写平台名，如 gitee/github） */
+  thirdPartyType: string;
+  /** 三方用户名 */
+  username: string;
+  /** 三方昵称 */
+  nickname: string;
+  /** 三方头像 */
+  avatar: string;
+  /** 三方邮箱 */
+  email: string;
+}
+
+/** 三方待绑定身份查询（body: { bindToken }）：回调未绑定时回显三方身份，免 @TokenForIgnore */
+export function thirdBindPending(data: Record<string, unknown>) {
+  return getApiHttp()
+    .post("/v2/user/third/bind/pending")
+    .data(data)
+    .then<ApiResult<ThirdBindPendingInfo>>((r) => r.data);
+}
+
+/** 三方绑定完成（body: { bindToken, username, password }）：核验本地账密完成绑定并签发登录态 */
+export function thirdBindComplete(data: Record<string, unknown>) {
+  return getApiHttp()
+    .post("/v2/user/third/bind/complete")
+    .data(data)
+    .then<ApiResult<LoginResult>>((r) => r.data);
+}
+
 /** 微信小程序扫码登录码（后端直接返回 data URL，前端不再自行编码） */
 export interface WechatMiniQrCode {
   /** 本次扫码场景值：轮询与换票都用它 */
