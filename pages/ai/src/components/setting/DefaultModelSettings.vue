@@ -51,6 +51,7 @@
                 :is-prompt-field="isPromptField(item.field)"
                 :model-row="getFieldModelRow(group.group, item.field)"
                 :model-display="modelFieldDisplay(group.group, item.field)"
+                :model-missing="modelMissing(group.group, item.field)"
                 :options="optionsOf(item)"
                 :step="numberStep(group.group, item.field)"
                 :precision="numberPrecision(group.group, item.field)"
@@ -113,6 +114,7 @@
               :is-prompt-field="isPromptField(item.field)"
               :model-row="getFieldModelRow(group.group, item.field)"
               :model-display="modelFieldDisplay(group.group, item.field)"
+              :model-missing="modelMissing(group.group, item.field)"
               :options="optionsOf(item)"
               :step="numberStep(group.group, item.field)"
               :precision="numberPrecision(group.group, item.field)"
@@ -850,12 +852,17 @@ const groupRequirementTip = (group) => {
  * 「选配」只挂模型槽位，其余普通配置项不挂徽标，避免满屏都是选配。</p>
  */
 const modelFieldBadge = (group, field) => {
+    // 失效模型优先于必选/选配：值还在但模型已没了，这是当前最要紧的状态
+    if (modelMissing(group, field)) return '模型不存在'
     if (isRequiredField(group, field)) return '必选'
     return isModelValueField(field) ? '选配' : ''
 }
 
-/** 字段徽标底色：必选红、选配灰 */
-const modelFieldBadgeTone = (group, field) => (isRequiredField(group, field) ? 'danger' : 'muted')
+/** 字段徽标底色：模型不存在红、必选红、选配灰 */
+const modelFieldBadgeTone = (group, field) => {
+    if (modelMissing(group, field)) return 'danger'
+    return isRequiredField(group, field) ? 'danger' : 'muted'
+}
 
 // 获取字段中文标签
 const getFieldLabel = (item) => {
@@ -1305,6 +1312,22 @@ const modelFieldDisplay = (group, field) => {
 }
 
 /**
+ * 模型字段是否已失效（配置值指向的模型已不在目录中）。
+ *
+ * <p>后端 merged 视图对模型字段附加 {@code modelExists}：渠道模型被删除/停用/改名后，
+ * 配置值不会跟着消失。失效字段仍展示原值（加删除线），但门禁按「未配置」处理——
+ * 只有存在的模型才认为配置了。</p>
+ *
+ * @param group 分组名
+ * @param field 字段名
+ * @return true 表示该字段的模型已不存在
+ */
+const modelMissing = (group, field) => {
+    const meta = fieldMeta[group]?.[field]
+    return meta?.modelExists === false
+}
+
+/**
  * 枚举值的可读中文（与 FieldControl 同源，见 dms/enumLabels.ts）。
  * 只读行与下拉控件必须同源：控件显示英文 key、只读行却显示中文，
  * 两头对不上，用户会以为值被改过。
@@ -1360,6 +1383,10 @@ const fieldReadout = (group, item) => {
     if (isModel) {
         // 模型字段：系统内置默认的种子值不算有效配置（与 modelFieldDisplay 同口径）
         display = isEmpty || isSysDefault ? '未配置' : String(value)
+        // 指向的模型已不存在：只读行同步标注，与输入框删除线、徽标同口径
+        if (!isEmpty && !isSysDefault && modelMissing(group, field)) {
+            display += '（模型不存在）'
+        }
     } else if (item.valueType === 'BOOLEAN') {
         display = isEmpty ? '未配置' : boolReadout(value)
     } else if (isEnumField(item)) {
@@ -1740,6 +1767,9 @@ const loadGroupValues = async (group) => {
                     // 值来源：USER=我的覆盖 / GLOBAL=管理员配过的全局值 /
                     // SYSTEM_DEFAULT=系统内置默认值（从未有人配置过）。
                     origin: item.origin || (item.overridden === true ? 'USER' : 'GLOBAL'),
+                    // 模型存在性状态（后端 ModelCatalogChecker）：
+                    // false = 配置值指向的模型已不在目录（被删/停用/改名），展示加删除线、门禁按未配置
+                    modelExists: item.modelExists,
                 }
             })
         } else {
@@ -1755,6 +1785,7 @@ const loadGroupValues = async (group) => {
                     overridden: m.overridden === true,
                     defaultValue: raw[field],
                     origin: m.origin || (m.overridden === true ? 'USER' : 'GLOBAL'),
+                    modelExists: m.modelExists,
                 }
             })
         }

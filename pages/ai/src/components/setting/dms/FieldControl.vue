@@ -5,18 +5,26 @@
     :model-value="modelDisplay"
     readonly
     class="cursor-pointer"
+    :title="modelMissing ? '配置的模型已不存在（被删除或停用），请重新选择' : undefined"
+    :input-style="modelMissing ? { textDecoration: 'line-through' } : undefined"
     @click="$emit('pick-model')"
   >
     <template #prefix>
       <!-- 输入框左侧与弹框行同一套图标回退链（模型 → 上游通道 → 供应商）；
            原先只有「按模型名取到图 / 画 OpenAI」两种结果，聚合渠道里会误标。 -->
       <ModelRowLogo
-        v-if="modelRow"
+        v-if="modelRow && !modelMissing"
         :model="modelRow.model"
         :provider="modelRow.provider"
         :size="16"
         class="mr-1"
       />
+      <!-- 模型已不存在：警示图标 + 输入框文本删除线（值仍展示，方便知道原来配的是什么） -->
+      <el-icon
+        v-else-if="modelMissing"
+        class="mr-1"
+        style="color: var(--el-color-danger)"
+      ><WarningFilled /></el-icon>
       <OpenAI v-else class="w-4 h-4" />
     </template>
     <template #suffix>
@@ -64,7 +72,7 @@
  * 纯展示组件：不持有状态，全部由父级托管。是「彻底重构 + 组件化」的单元之一。
  */
 import { OpenAI } from "@/components/icons"
-import { ArrowDown } from "@element-plus/icons-vue"
+import { ArrowDown, WarningFilled } from "@element-plus/icons-vue"
 import ReNumberInput from '@/components/ui/ReNumberInput.vue'
 import ModelRowLogo from '@/components/models/ModelRowLogo.vue'
 
@@ -84,6 +92,8 @@ const props = defineProps<{
   modelRow?: { model: any; provider: any } | null
   /** 模型字段的展示文本（已配置/继承全局/请选择模型） */
   modelDisplay?: string
+  /** 模型已不存在（被删/停用/改名）：输入框加删除线 + 警示图标 */
+  modelMissing?: boolean
   /** 枚举选项 */
   options?: string[]
   /** 数值步长 */

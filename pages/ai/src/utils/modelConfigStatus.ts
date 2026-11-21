@@ -16,6 +16,11 @@ export interface MergedSettingItem {
   description: string
   sort: number
   configuredBy: string | null
+  /**
+   * 模型字段的存在性状态（后端 ModelCatalogChecker 校验）。
+   * false = 配置值指向的模型已不在目录中（被删/停用/改名），仅为展示保留。
+   */
+  modelExists?: boolean
 }
 
 /** 合并视图容器：Map 或普通对象（store 暴露的是对象，页面按字段取用） */
@@ -36,12 +41,15 @@ export function toMergedMap(items: MergedSettingItem[] | null | undefined): Map<
   return map
 }
 
-/** 该字段是否被当前用户真实配置（origin 非 SYSTEM_DEFAULT 且 value 非空） */
+/** 该字段是否被当前用户真实配置（origin 非 SYSTEM_DEFAULT 且 value 非空且模型仍存在） */
 export function isFieldConfigured(map: MergedMapLike | null | undefined, field: string): boolean {
   const it = getItem(map, field)
   if (!it) return false
   if (String(it.origin) === 'SYSTEM_DEFAULT') return false
-  return String(it.value ?? '').length > 0
+  if (String(it.value ?? '').length === 0) return false
+  // 指向的模型已不存在（被删/停用/改名）不算配置：门禁 fail-closed，页面加删除线提示
+  if (it.modelExists === false) return false
+  return true
 }
 
 /** 取已配置值；未配置返回空串（页面显示「未配置」而不是种子模型名） */
