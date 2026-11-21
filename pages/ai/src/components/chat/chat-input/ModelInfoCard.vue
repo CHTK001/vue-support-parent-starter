@@ -19,11 +19,11 @@
         </div>
       </section>
 
-      <!-- 模态：输入 / 输出 各自的种类图标 -->
+      <!-- 模态：输入 / 输出 各自的种类图标（行首标签用进/出箭头图标代替文字） -->
       <section class="mic-sec">
         <div class="mic-sec-title">模态</div>
         <div class="mic-row">
-          <span class="mic-k">输入</span>
+          <el-icon class="mic-k mic-k-ico" :size="14" title="输入"><ArrowImport24Regular /></el-icon>
           <span class="mic-v">
             <el-icon v-for="(k, i) in inputKinds" :key="'in-' + i" class="mic-kind" :class="'kind-' + k" :size="14"
               :title="kindLabel(k)">
@@ -32,7 +32,7 @@
           </span>
         </div>
         <div class="mic-row">
-          <span class="mic-k">输出</span>
+          <el-icon class="mic-k mic-k-ico" :size="14" title="输出"><ArrowExportLtr24Regular /></el-icon>
           <span class="mic-v">
             <el-icon v-for="(k, i) in outputKinds" :key="'out-' + i" class="mic-kind" :class="'kind-' + k" :size="14"
               :title="kindLabel(k)">
@@ -78,6 +78,7 @@ import { ElIcon } from 'element-plus'
 import {
   TextT24Regular, Image24Regular, Speaker224Regular, Video24Regular, Group24Regular, DocumentText24Regular,
   WrenchScrewdriver24Regular, LightbulbFilament24Regular, Globe24Regular, Sparkle24Regular,
+  ArrowImport24Regular, ArrowExportLtr24Regular,
 } from '@vicons/fluent'
 import CustomPopover from '../../ui/CustomPopover.vue'
 import { getModelDisplayName } from '@/utils/modelUtils'
@@ -339,6 +340,10 @@ function onShowChange(next: boolean) {
 .mic-k {
   flex-shrink: 0;
   font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+/* 行首进/出箭头图标（代替「输入」「输出」文字标签），颜色沿用原文字的次级色 */
+.mic-k-ico {
   color: var(--el-text-color-secondary);
 }
 .mic-v {

@@ -26,7 +26,25 @@
                     </ReTag>
                   </span>
                 </div>
-                <div v-if="rowMeta(model)" class="dms-mp-meta">{{ rowMeta(model) }}</div>
+                <!-- 副信息：输入 → 输出模态图标条（中间必须有箭头，与模型管理卡片同一口径）+ 延迟 -->
+                <div v-if="ioKindsOf(model).input.length || ioKindsOf(model).output.length || latencyTextOf(model)"
+                  class="dms-mp-meta">
+                  <span v-if="ioKindsOf(model).input.length || ioKindsOf(model).output.length" class="dms-mp-io"
+                    :title="ioTitleOf(model)">
+                    <el-icon v-for="(k, i) in ioKindsOf(model).input" :key="'mp-in-' + i" class="io-i"
+                      :class="'kind-' + k" :size="12">
+                      <component :is="MODALITY_ICON[k] || DocumentText24Regular" />
+                    </el-icon>
+                    <el-icon class="io-arrow" :size="10">
+                      <ArrowRight24Regular />
+                    </el-icon>
+                    <el-icon v-for="(k, i) in ioKindsOf(model).output" :key="'mp-out-' + i" class="io-i"
+                      :class="'kind-' + k" :size="12">
+                      <component :is="MODALITY_ICON[k] || DocumentText24Regular" />
+                    </el-icon>
+                  </span>
+                  <span v-if="latencyTextOf(model)" class="dms-mp-latency">{{ latencyTextOf(model) }}</span>
+                </div>
               </div>
             </div>
             <el-icon v-if="selectedId === model.id" class="dms-mp-check" :size="18">
@@ -55,6 +73,10 @@
 import { ref, computed, watch } from 'vue'
 import { Search } from "@element-plus/icons-vue"
 import { CheckCircleFilled } from "@vicons/material"
+import {
+  TextT24Regular, Image24Regular, Speaker224Regular, Video24Regular,
+  Folder24Regular, DocumentText24Regular, ArrowRight24Regular,
+} from "@vicons/fluent"
 import ReDialog from '@repo/ui/re-dialog'
 import ReButton from '@/components/ui/ReButton.vue'
 import ReTag from '@/components/ui/ReTag.vue'
@@ -104,7 +126,17 @@ const filteredProviders = computed(() => {
 const providerOf = (model: any) =>
   props.providers.find((p) => p.id === model?.providerId) || null
 
-// 输入 / 输出种类的中文标签（与模型管理卡片 ModelInfoCard 的 KIND_LABELS 一致）
+// 输入 / 输出模态 → 图标（与模型管理拉取弹框 ModelFetchDialog 同一映射）
+const MODALITY_ICON: Record<string, any> = {
+  text: TextT24Regular,
+  image: Image24Regular,
+  audio: Speaker224Regular,
+  video: Video24Regular,
+  file: DocumentText24Regular,
+  vector: Folder24Regular,
+}
+
+// 模态中文标签（与模型管理卡片 ModelInfoCard 的 KIND_LABELS 一致），tooltip 用
 const KIND_LABELS: Record<string, string> = {
   text: '文本',
   image: '图片',
@@ -115,27 +147,32 @@ const KIND_LABELS: Record<string, string> = {
 }
 
 /**
- * 行内副信息：输入 / 输出种类 + 延迟。
+ * 行内副信息：输入 → 输出模态图标条 + 延迟。
  *
- * <p>「入 X 出 Y」告诉用户这个模型支持什么输入、产出什么（text / image / audio /
- * video / vector / file）；延迟取最近一次实测（Host 侧 loadModels 已把
- * metrics.probe_latency_ms 等归一到 latencyMs），未采集时不显示。</p>
+ * <p>此前是「入 X · 出 Y」纯文字；现改为与模型管理卡片 / 会话页选择面板同一口径的
+ * 「输入图标 → 箭头 → 输出图标」，中文含义收进 tooltip。只画模型真实声明
+ * （inputKinds / outputKinds）的模态，没有时不渲染，不做假能力；延迟取最近一次
+ * 实测（Host 侧 loadModels 已把 metrics.probe_latency_ms 等归一到 latencyMs），
+ * 未采集时不显示。</p>
  */
-const rowMeta = (model: any): string => {
-  const parts: string[] = []
-  const ins = Array.isArray(model?.inputKinds) && model.inputKinds.length
-    ? model.inputKinds.map((k: string) => KIND_LABELS[k] || k).join('/')
-    : ''
-  const outs = Array.isArray(model?.outputKinds) && model.outputKinds.length
-    ? model.outputKinds.map((k: string) => KIND_LABELS[k] || k).join('/')
-    : ''
-  const io = [ins && `入 ${ins}`, outs && `出 ${outs}`].filter(Boolean).join(' · ')
-  if (io) parts.push(io)
+const ioKindsOf = (model: any): { input: string[]; output: string[] } => {
+  const norm = (list: any) =>
+    (Array.isArray(list) ? list : []).map((v: any) => String(v).toLowerCase()).filter(Boolean)
+  return { input: norm(model?.inputKinds), output: norm(model?.outputKinds) }
+}
+
+/** 图标条整行 tooltip：形如「输入：文本 + 图片 → 输出：文本」 */
+const ioTitleOf = (model: any): string => {
+  const io = ioKindsOf(model)
+  const label = (list: string[]) =>
+    list.length ? list.map((v) => KIND_LABELS[v] || v).join(' + ') : '—'
+  return `输入：${label(io.input)} → 输出：${label(io.output)}`
+}
+
+/** 延迟文案：取最近一次实测，未采集时不显示 */
+const latencyTextOf = (model: any): string => {
   const latency = Number(model?.latencyMs)
-  if (Number.isFinite(latency) && latency > 0) {
-    parts.push(`延迟 ${Math.round(latency)}ms`)
-  }
-  return parts.join(' · ')
+  return Number.isFinite(latency) && latency > 0 ? `延迟 ${Math.round(latency)}ms` : ''
 }
 
 function pick(id: string) {
@@ -160,7 +197,17 @@ function pick(id: string) {
 /* 副信息（输入/输出/延迟）与模型名、标签纵向排列，不挤压弹框行宽 */
 .dms-mp-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .dms-mp-line { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
-.dms-mp-meta { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dms-mp-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; overflow: hidden; }
+/* 输入 → 输出模态图标条：与模型管理拉取弹框 / 会话页选择面板同一口径（中间必须有箭头） */
+.dms-mp-io { display: inline-flex; align-items: center; gap: 3px; line-height: 18px; color: var(--el-text-color-regular); flex-shrink: 0; }
+.dms-mp-io .io-arrow { color: var(--el-text-color-placeholder); margin: 0 1px; }
+.dms-mp-io .io-i.kind-text { color: var(--el-color-primary); }
+.dms-mp-io .io-i.kind-image { color: var(--el-color-warning); }
+.dms-mp-io .io-i.kind-audio { color: var(--el-color-info); }
+.dms-mp-io .io-i.kind-video { color: var(--el-color-danger); }
+.dms-mp-io .io-i.kind-file { color: var(--el-color-info); }
+.dms-mp-io .io-i.kind-vector { color: var(--el-color-success); }
+.dms-mp-latency { overflow: hidden; text-overflow: ellipsis; }
 .dms-mp-name { font-size: 13px; color: var(--el-text-color-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dms-mp-tags { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .dms-mp-check { color: var(--el-color-primary); flex-shrink: 0; }
