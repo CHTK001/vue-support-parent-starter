@@ -3,17 +3,20 @@
  * 链路追踪（树状展示）：GET /v2/logger/traces 按 traceId 聚合摘要 + 树表逐条下钻。
  *
  * - 树表第一层 = trace 根节点（条数 / 错误数 / 起止 / 耗时 / 涉及应用实例，最近发生的排前）；
- * - 展开根节点懒加载该链路的事件（GET /events?traceId=...），父子按 traceId 关联；
- * - 事件行再点展开列查看详情：完整消息 / 堆栈 / MDC / 线程 / 实例；
+ * - 点根节点左侧箭头懒加载该链路的事件（GET /events?traceId=...），父子按 traceId 关联；
+ * - 事件行再点左侧箭头展开详情：完整消息 / 堆栈 / MDC / 线程 / 实例；
  * - 点根行仍联动下方瀑布时间轴（保留原有时间轴视图）；
  * - 支持路由查询参数 ?traceId=... 直达（检索页「查看链路」跳转入口）。
  *
- * 引擎说明：树形懒加载只有 element 引擎完整支持（el-table 原生 lazy + load，
- * 经 $attrs 透传），vxe 引擎的 tree-config 翻译层尚未带 loadMethod，故本页固定
- * engine="element"。
+ * 实现说明：element-plus 表格的「expand 展开列」与「lazy 树形」互斥——
+ * table-body 渲染器只要存在 expand 列就不再走树形分支，树形会整体退化为平铺，
+ * 且展开列图标在部分主题下几何尺寸不稳定（宽 / 高为 0，真实点击不可达）。
+ * 因此这里不依赖 el-table 的 tree/lazy 模式，改为前端手动铺平：维护展开状态，
+ * 把事件行 / 详情行插进扁平 data；详情行用 span-method 横跨全部列渲染面板。
  */
 import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
+import { ArrowRight, Loading } from "@element-plus/icons-vue";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import { fetchApps, fetchEvents, fetchTraces, normLevel, type LoggerAppInfo, type LoggerEvent, type LoggerTraceSummary } from "../api/logger";
@@ -22,10 +25,10 @@ import LevelTag from "../components/LevelTag.vue";
 
 const route = useRoute();
 
-/** 树表行：kind 区分 trace 根与事件子节点；与 Record 交叉以直接喂给 ReTable 的 data */
+/** 树表行：kind 区分 trace 根 / 事件子节点 / 事件详情行；与 Record 交叉以直接喂给 ReTable 的 data */
 type TraceTreeRow = Record<string, unknown> & {
   key: string;
-  kind: "trace" | "event";
+  kind: "trace" | "event" | "detail";
   traceId: string;
   /** trace 根字段 */
   count?: number;
@@ -43,8 +46,6 @@ type TraceTreeRow = Record<string, unknown> & {
   logger?: string;
   message?: string;
   event?: LoggerEvent;
-  /** el-table 懒加载树：根节点标记还有子节点（事件） */
-  hasChildren?: boolean;
 };
 
 const traces = ref<LoggerTraceSummary[]>([]);
@@ -57,8 +58,14 @@ const selected = ref<LoggerTraceSummary | null>(null);
 const traceEvents = ref<LoggerEvent[]>([]);
 const detailLoading = ref(false);
 
+/** 手动树形状态：展开的 trace 根、事件缓存（按 traceId 懒加载）、加载中标记、展开详情的事件行 */
+const expandedTraces = ref<Record<string, boolean>>({});
+const eventsByTrace = ref<Record<string, LoggerEvent[]>>({});
+const traceLoading = ref<Record<string, boolean>>({});
+const expandedEvents = ref<Record<string, boolean>>({});
+
 const columns: ReTableColumn[] = [
-  { prop: "name", label: "链路 / 事件", minWidth: 300, showOverflowTooltip: true },
+  { prop: "name", label: "链路 / 事件", minWidth: 300 },
   { prop: "count", label: "事件数", width: 90, align: "right" },
   { prop: "errorCount", label: "错误数", width: 90, align: "right" },
   { prop: "firstTs", label: "时间", width: 170 },
@@ -68,7 +75,7 @@ const columns: ReTableColumn[] = [
 ];
 
 /** trace 摘要 → 树根行 */
-function toTraceRow(summary: LoggerTraceSummary, index: number): TraceTreeRow {
+function toTraceRow(summary: LoggerTraceSummary, index = 0): TraceTreeRow {
   return {
     key: `t:${summary.traceId ?? index}`,
     kind: "trace",
@@ -80,7 +87,6 @@ function toTraceRow(summary: LoggerTraceSummary, index: number): TraceTreeRow {
     durationMs: summary.durationMs,
     apps: summary.apps ?? [],
     instances: summary.instances ?? [],
-    hasChildren: true,
   };
 }
 
@@ -100,36 +106,54 @@ function toEventRow(traceId: string, event: LoggerEvent, index: number): TraceTr
   };
 }
 
-/** 树数据：/traces 摘要作为根节点列表 */
-const treeRows = computed<Record<string, unknown>[]>(() => traces.value.map(toTraceRow));
-
-/**
- * el-table 懒加载：展开 trace 根节点时按 traceId 拉取事件列表。
- * lazy / load 两个 prop 不是 ReTable 的声明属性，会经 $attrs 透传到 el-table。
- */
-function loadEventChildren(
-  row: Record<string, unknown>,
-  _treeNode: unknown,
-  resolve: (data: Record<string, unknown>[]) => void,
-): void {
-  const traceRow = row as TraceTreeRow;
-  if (traceRow.kind !== "trace" || !traceRow.traceId) {
-    resolve([]);
-    return;
+/** 铺平后的表格数据：trace 根 + （已展开根的）事件子行 + （已展开详情的）事件详情行 */
+const treeRows = computed<Record<string, unknown>[]>(() => {
+  const rows: TraceTreeRow[] = [];
+  for (const summary of traces.value) {
+    const root = toTraceRow(summary);
+    rows.push(root);
+    if (!expandedTraces.value[root.key]) continue;
+    const events = eventsByTrace.value[root.traceId];
+    events?.forEach((event, index) => {
+      const eventRow = toEventRow(root.traceId, event, index);
+      rows.push(eventRow);
+      if (expandedEvents.value[eventRow.key]) {
+        rows.push({ ...eventRow, key: `${eventRow.key}:detail`, kind: "detail" });
+      }
+    });
   }
-  const traceId = traceRow.traceId;
-  fetchEvents({ traceId, limit: 500 })
-    .then((resp) => {
-      const events = sortedEvents(resp.items ?? []);
-      resolve(events.map((event, index) => toEventRow(traceId, event, index)));
-    })
-    .catch(() => resolve([]));
+  return rows;
+});
+
+/** 展开 / 收起 trace 根：首次展开懒加载该链路的事件列表 */
+async function toggleTrace(row: TraceTreeRow): Promise<void> {
+  if (row.kind !== "trace" || !row.traceId) return;
+  const key = row.key;
+  const next = !expandedTraces.value[key];
+  expandedTraces.value = { ...expandedTraces.value, [key]: next };
+  if (!next || eventsByTrace.value[row.traceId]) return;
+  traceLoading.value = { ...traceLoading.value, [key]: true };
+  try {
+    const resp = await fetchEvents({ traceId: row.traceId, limit: 500 });
+    eventsByTrace.value = { ...eventsByTrace.value, [row.traceId]: sortedEvents(resp.items ?? []) };
+  } catch {
+    eventsByTrace.value = { ...eventsByTrace.value, [row.traceId]: [] };
+  } finally {
+    traceLoading.value = { ...traceLoading.value, [key]: false };
+  }
 }
 
-const treeProps = {
-  children: "children",
-  hasChildren: "hasChildren",
-};
+/** 展开 / 收起事件详情行 */
+function toggleEventDetail(row: TraceTreeRow): void {
+  if (row.kind !== "event") return;
+  expandedEvents.value = { ...expandedEvents.value, [row.key]: !expandedEvents.value[row.key] };
+}
+
+/** 详情行横跨全部列：首列渲染详情面板，其余列占位隐藏 */
+function detailSpanMethod(params: { row: Record<string, unknown>; columnIndex: number }): { rowspan: number; colspan: number } | undefined {
+  if ((params.row as TraceTreeRow).kind !== "detail") return undefined;
+  return params.columnIndex === 0 ? { rowspan: 1, colspan: columns.length } : { rowspan: 0, colspan: 0 };
+}
 
 function formatDuration(ms?: number): string {
   const value = Number(ms ?? 0);
@@ -154,7 +178,7 @@ function sortedEvents(items: LoggerEvent[]): LoggerEvent[] {
   return [...items].sort((a, b) => Number(a.ts ?? 0) - Number(b.ts ?? 0));
 }
 
-/** 点树根行：按 traceId 拉取事件渲染时间轴（事件行点击不处理，详情走展开列） */
+/** 点树根行：按 traceId 拉取事件渲染时间轴（事件 / 详情行点击不处理，详情走箭头） */
 function onRowClick(row: Record<string, unknown>): void {
   const traceRow = row as TraceTreeRow;
   if (traceRow.kind !== "trace" || !traceRow.traceId) return;
@@ -283,31 +307,99 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- 链路树：trace 根 → 懒加载事件子节点 → 事件行展开详情 -->
+    <!-- 链路树：trace 根 → 懒加载事件子节点 → 事件行展开详情（前端手动铺平） -->
     <div class="logger-card">
-      <div class="trace-hint">最近链路（按 traceId 聚合，最近发生的排前；展开行逐条查看事件，点事件行左侧箭头看详情）</div>
+      <div class="trace-hint">最近链路（按 traceId 聚合，最近发生的排前；点根行左侧箭头展开事件，点事件行左侧箭头看详情，点根行在下方时间轴中定位）</div>
       <ReTable
         engine="element"
         row-key="key"
         :columns="columns"
         :data="treeRows"
         :loading="loading"
-        :tree-props="treeProps"
-        :lazy="true"
-        :load="loadEventChildren"
-        :expandable="true"
-        :expand-width="44"
+        :pagination="false"
+        :config="{ selection: { enable: false } }"
+        :span-method="detailSpanMethod"
         @row-click="onRowClick"
       >
         <template #col-name="{ row }">
           <template v-if="tr(row).kind === 'trace'">
-            <span class="trace-id">{{ tr(row).traceId || "-" }}</span>
+            <span class="trace-root-cell">
+              <span
+                class="tree-caret"
+                :class="{ 'is-expanded': expandedTraces[tr(row).key], 'is-loading': traceLoading[tr(row).key] }"
+                :title="expandedTraces[tr(row).key] ? '收起事件' : '展开事件'"
+                @click.stop="toggleTrace(tr(row))"
+              >
+                <el-icon v-if="!traceLoading[tr(row).key]"><ArrowRight /></el-icon>
+                <el-icon v-else class="caret-spin"><Loading /></el-icon>
+              </span>
+              <span class="trace-id">{{ tr(row).traceId || "-" }}</span>
+            </span>
           </template>
-          <template v-else>
+          <template v-else-if="tr(row).kind === 'event'">
             <span class="event-cell">
+              <span
+                class="tree-caret tree-caret--sub"
+                :class="{ 'is-expanded': expandedEvents[tr(row).key] }"
+                :title="expandedEvents[tr(row).key] ? '收起详情' : '查看详情'"
+                @click.stop="toggleEventDetail(tr(row))"
+              >
+                <el-icon><ArrowRight /></el-icon>
+              </span>
               <LevelTag :level="tr(row).level" />
               <span class="event-msg" :title="tr(row).message">{{ tr(row).logger || "-" }} · {{ tr(row).message || "-" }}</span>
             </span>
+          </template>
+          <template v-else>
+            <!-- 事件详情：完整字段 + 消息 / 堆栈 / MDC -->
+            <div class="event-detail">
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">时间</span>
+                  <span>{{ formatTs(tr(row).event?.ts, true) }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">级别</span>
+                  <LevelTag :level="tr(row).event?.level" />
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">应用</span>
+                  <span>{{ tr(row).event?.app || "-" }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">实例</span>
+                  <span>{{ tr(row).event?.instance || "-" }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">线程</span>
+                  <span>{{ tr(row).event?.thread || "-" }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Logger</span>
+                  <span class="mono">{{ tr(row).event?.logger || "-" }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">TraceId</span>
+                  <span class="mono">{{ tr(row).traceId }}</span>
+                </div>
+              </div>
+              <div class="detail-block">
+                <span class="detail-label">消息</span>
+                <pre class="detail-pre">{{ tr(row).event?.message || "-" }}</pre>
+              </div>
+              <div v-if="tr(row).event?.stacktrace" class="detail-block">
+                <span class="detail-label">堆栈</span>
+                <pre class="detail-pre detail-stack">{{ tr(row).event?.stacktrace }}</pre>
+              </div>
+              <div v-if="mdcEntries(tr(row).event).length > 0" class="detail-block">
+                <span class="detail-label">MDC</span>
+                <div class="mdc-chips">
+                  <el-tag v-for="pair in mdcEntries(tr(row).event)" :key="pair[0]" size="small" effect="plain" class="mdc-chip">
+                    {{ pair[0] }}={{ pair[1] }}
+                  </el-tag>
+                </div>
+              </div>
+            </div>
           </template>
         </template>
         <template #col-count="{ row }">
@@ -331,61 +423,6 @@ onMounted(async () => {
         </template>
         <template #col-instance="{ row }">
           <span>{{ tr(row).kind === "trace" ? (tr(row).instances ?? []).join(", ") || "-" : tr(row).instance || "-" }}</span>
-        </template>
-        <!-- 展开详情：事件行给全量字段；trace 根给导读提示 -->
-        <template #expand="{ row }">
-          <div v-if="tr(row).kind === 'event' && tr(row).event" class="event-detail">
-            <div class="detail-grid">
-              <div class="detail-item">
-                <span class="detail-label">时间</span>
-                <span>{{ formatTs(tr(row).event?.ts, true) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">级别</span>
-                <LevelTag :level="tr(row).event?.level" />
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">应用</span>
-                <span>{{ tr(row).event?.app || "-" }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">实例</span>
-                <span>{{ tr(row).event?.instance || "-" }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">线程</span>
-                <span>{{ tr(row).event?.thread || "-" }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Logger</span>
-                <span class="mono">{{ tr(row).event?.logger || "-" }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">TraceId</span>
-                <span class="mono">{{ tr(row).traceId }}</span>
-              </div>
-            </div>
-            <div class="detail-block">
-              <span class="detail-label">消息</span>
-              <pre class="detail-pre">{{ tr(row).event?.message || "-" }}</pre>
-            </div>
-            <div v-if="tr(row).event?.stacktrace" class="detail-block">
-              <span class="detail-label">堆栈</span>
-              <pre class="detail-pre detail-stack">{{ tr(row).event?.stacktrace }}</pre>
-            </div>
-            <div v-if="mdcEntries(tr(row).event).length > 0" class="detail-block">
-              <span class="detail-label">MDC</span>
-              <div class="mdc-chips">
-                <el-tag v-for="pair in mdcEntries(tr(row).event)" :key="pair[0]" size="small" effect="plain" class="mdc-chip">
-                  {{ pair[0] }}={{ pair[1] }}
-                </el-tag>
-              </div>
-            </div>
-          </div>
-          <div v-else class="trace-expand-hint">
-            该链路共 {{ tr(row).count ?? 0 }} 条事件（错误 {{ tr(row).errorCount ?? 0 }} 条）；
-            展开左侧树节点可逐条查看事件，点击根行在下方时间轴中定位。
-          </div>
         </template>
       </ReTable>
     </div>
@@ -482,12 +519,68 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+.trace-root-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 树形箭头：trace 根与事件行共用；显式固定尺寸，避免主题下几何塌缩为 0 不可点 */
+.tree-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.tree-caret .el-icon {
+  font-size: 12px;
+}
+
+.tree-caret:hover {
+  background: var(--bg-sunken, rgba(127, 127, 127, 0.15));
+  color: var(--text-primary);
+}
+
+.tree-caret.is-expanded {
+  transform: rotate(90deg);
+}
+
+.tree-caret--sub {
+  width: 16px;
+  height: 16px;
+}
+
+.caret-spin {
+  animation: caret-spin 0.8s linear infinite;
+}
+
+@keyframes caret-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .event-cell {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
   max-width: 100%;
+  /* 事件行相对 trace 根缩进，体现父子层级 */
+  padding-left: 26px;
 }
 
 .event-msg {
@@ -499,7 +592,7 @@ onMounted(async () => {
   color: var(--text-primary);
 }
 
-/* 事件详情展开区 */
+/* 事件详情展开区（详情行横跨整行，首列内渲染） */
 .event-detail {
   padding: 6px 10px 10px 46px;
 }
@@ -564,12 +657,6 @@ onMounted(async () => {
 
 .mdc-chip {
   font-family: var(--font-mono);
-}
-
-.trace-expand-hint {
-  padding: 6px 10px;
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 .trace-detail {
