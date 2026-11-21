@@ -300,7 +300,8 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 2px 0 10px;
+  /* 水平内边距（2026-11-21）：与面板头/主体同宽缩进，启用率条不再顶到面板左右边框 */
+  padding: 2px 12px 10px;
 }
 .ax-meter__head {
   display: flex;

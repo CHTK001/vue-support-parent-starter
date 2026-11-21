@@ -26,7 +26,14 @@ import "./koi/contribution";
 // 路由与守卫统一由 vue 框架提供（@repo/core 的 createAppRouter /
 // setupRouterGuard）。本应用不再自建 createRouter + beforeEach：
 // 登录拦截、白名单、document.title、401 后的跳转都走框架同一套实现。
-import { createAppRouter, isAdmin, setRouter, setupPermissionDirectives } from "@repo/core";
+import {
+  createAppRouter,
+  initStationMessageAdapter,
+  isAdmin,
+  setRouter,
+  setupPermissionDirectives,
+} from "@repo/core";
+import { getConfig } from "@repo/config";
 // 框架登录页（ReLoginForm）登录成功后会走 initAuthRouter → authStore.listRouters，
 // 其中的「菜单 → 路由」解析器由主题注册。本应用使用静态路由、不消费框架菜单，
 // 这里注册一个空解析器即可；否则会抛「菜单解析器未注册」，
@@ -521,6 +528,19 @@ let router = null;
  */
 async function bootstrapAndMount() {
   await bootstrapFramework();
+  // 站内消息 HTTP 适配器：本应用不走 @repo/app 的 assembleCore（适配器在那里
+  // 统一初始化），必须在此补齐——否则 getStationMessageAdapter() 恒为 null，
+  // refreshUnread() 永远返回 0，ReStationMessage 浮球的未读角标永远不亮。
+  // 开关口径与 assembleCore 一致：message.query 缺省回落 app.openAuth。
+  try {
+    const cfg = getConfig();
+    const queryEnabled = cfg.message?.query ?? cfg.app.openAuth;
+    if (queryEnabled) {
+      initStationMessageAdapter();
+    }
+  } catch {
+    // 配置未就绪等异常：降级为无 HTTP 适配器（浮球仅剩实时通道，轮询静默跳过）
+  }
   // 路由必须在 app.yaml 加载之后创建：白名单 / loginPath / homePath 均来自配置
   router = createAiRouter();
   // 覆盖 core 内部 createApp 创建的占位 router：http 拦截器 401/403 跳登录、
