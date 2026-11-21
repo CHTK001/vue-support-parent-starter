@@ -1082,6 +1082,7 @@ const currentActiveTab = computed(() => {
   if (routeName === 'AudioRecognition') return 'audio-recognition'
   if (routeName === 'TextToSpeech') return 'text-to-speech'
   if (routeName === 'Models') return 'models'
+  if (routeName === 'ModelPricing') return 'model-pricing'
   if (routeName === 'RouterTopology') return 'route'
   if (routeName === 'Services') return 'services'
   if (routeName === 'Usage' || routeName === 'UsageSyncLogs') return 'usage'
@@ -1481,6 +1482,7 @@ const ROUTE_NAME_BY_TAB: Record<string, string> = {
   'audio-recognition': 'AudioRecognition',
   'text-to-speech': 'TextToSpeech',
   models: 'Models',
+  'model-pricing': 'ModelPricing',
   route: 'RouterTopology',
   'app-keys': 'AppKeys',
   'manufacturer-keys': 'ManufacturerKeys',

@@ -249,6 +249,13 @@ const routes = [
         component: () => import("./components/models/ModelsPage.vue"),
       },
       {
+        // 模型价格：跨模型/跨提供商比价卡片墙，找最便宜的渠道。
+        path: "model-pricing",
+        name: "ModelPricing",
+        meta: { title: "模型价格", requiresAuth: true },
+        component: () => import("./components/pricing/ModelPricingPage.vue"),
+      },
+      {
         // 路由实时拓扑：入站 AppKey → 路由组 → 上游成员，
         // 数据来自 /api/providers/{id}/router-group/topology 单次聚合。
         path: "route",

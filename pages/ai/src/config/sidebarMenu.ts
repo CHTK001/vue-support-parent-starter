@@ -8,6 +8,7 @@ import {
   ArrowRouting20Regular, Server24Regular,
   Earth24Regular,
   ScanText24Regular,
+  Money20Regular,
 } from '@vicons/fluent'
 
 /**
@@ -323,6 +324,15 @@ export function createSidebarMenuItems(ctx: SidebarMenuContext): SidebarMenuItem
       // 看不到自己有哪些模型、也进不去「配置中心 → 模型管理」。
       // 越权由服务端 @Permission("admin") 逐条拦住（增删改供应商/模型），
       // 前端不再用「看不见」代替「没权限」。
+    },
+    {
+      // 模型价格：跨模型/跨提供商比价卡片墙（数据源：指标库 + 定价表 USD 行）。
+      // 只读页面，无需模型门禁，所有登录用户可看——选模型时比价是普遍诉求。
+      key: 'model-pricing',
+      label: '模型价格',
+      icon: Money20Regular,
+      section: 'AI 配置',
+      showKey: 'showModelPricingMenu',
     },
     {
       // 路由：入站 AppKey → 路由组 → 上游成员的实时拓扑，属于网关侧的系统配置。
