@@ -1196,6 +1196,8 @@ const KIND_LABELS: Record<string, string> = {
   xai: 'xAI 管理接口余额',
   sub2api: 'sub2api 订阅',
   'new-api': 'new-api 站点额度',
+  '100milionseek': '100milionseek 每日配额',
+  tokenrhythm: '基元律动余额',
 }
 
 /** 读数来源的短标签（卡片右上角） */
@@ -1217,6 +1219,8 @@ const SOURCE_LABELS: Record<string, string> = {
   ppio: 'PPIO',
   anthropic: 'Anthropic',
   xai: 'xAI',
+  '100milionseek': '100milionseek',
+  tokenrhythm: '基元律动',
 }
 
 const kindLabel = computed(() => KIND_LABELS[String(meta.value.kind || '')] || '')

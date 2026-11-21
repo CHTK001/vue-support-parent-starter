@@ -114,6 +114,8 @@ export const PROVIDER_ICONS: Record<string, string> = {
   tempr: 'tempr.svg',
   // 100milionseek：免费 token 额度平台，无公开品牌标，用「100M 每日配额币」自制标
   '100milionseek': '100milionseek.svg',
+  // tokenrhythm：基元律动聚合平台，无公开品牌标，用「律动节拍 + 令牌」自制标
+  tokenrhythm: 'tokenrhythm.svg',
 
   // ===== 本地 / 其他 =====
   onnx: 'onnx.svg',
