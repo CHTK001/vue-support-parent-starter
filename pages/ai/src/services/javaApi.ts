@@ -351,6 +351,14 @@ export const modelMetricsApi = {
   /** 删除人工单价（该模型恢复同步价/估算价） */
   deletePricing: (id: number | string) =>
     apiHttp.delete(`/api/model-metrics/pricing/${id}`),
+  /**
+   * 模型价格总览：按模型聚合各提供商报价（指标库 + 定价表 USD 行），
+   * 供跨模型/跨提供商比价找便宜。价格单位 USD/百万 token。
+   */
+  priceOverview: (params: {
+    page?: number; size?: number; keyword?: string;
+    provider?: string; band?: string; sort?: string; order?: string;
+  }) => apiHttp.get('/api/model-metrics/price-overview', { params }),
 };
 
 // ==================== 聊天会话/上下文 ====================
