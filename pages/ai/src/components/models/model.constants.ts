@@ -475,6 +475,169 @@ export const PROVIDER_TEMPLATES: ProviderTemplate[] = [
   { ...WEBLLM_PROVIDER_TEMPLATE, keywords: [...WEBLLM_PROVIDER_TEMPLATE.keywords] },
 ]
 
+// ===== 厂商归组（左栏「按厂商合并」） =====
+
+/**
+ * 供应商厂商归属（纯前端展示口径，不参与后端判重/路由）。
+ *
+ * <p>左栏按厂商分组：同一厂商的多个接入点/套餐（如阿里云百炼各套餐 + 通义千问、
+ * 智谱国内/国际/Coding Plan、Kimi 国内/国际/编程套餐）合并为一个厂商条目，
+ * 展开后子菜单列出各接入点。只登记「同厂商多模板」的家族；
+ * 未登记的模板/供应商以自身名称独立成组（单渠道不成组）。</p>
+ */
+export const PROVIDER_VENDOR_MAP: Readonly<Record<string, string>> = {
+  google: 'Google',
+  perplexity: 'Perplexity',
+  'perplexity-agent': 'Perplexity',
+  opencode: 'OpenCode',
+  'opencode-go': 'OpenCode',
+  scnet: 'SCNet 超算互联网',
+  'scnet-token-plan': 'SCNet 超算互联网',
+  qwen: '阿里云',
+  alibaba: '阿里云',
+  'alibaba-coding-plan-cn': '阿里云',
+  'alibaba-coding-plan': '阿里云',
+  'alibaba-token-plan-cn': '阿里云',
+  'alibaba-token-plan': '阿里云',
+  zhipu: '智谱 AI',
+  'zhipuai-coding-plan': '智谱 AI',
+  zai: '智谱 AI',
+  'zai-coding-plan': '智谱 AI',
+  moonshot: '月之暗面 Kimi',
+  moonshotai: '月之暗面 Kimi',
+  'kimi-code-plan-cn': '月之暗面 Kimi',
+  'kimi-code-plan-global': '月之暗面 Kimi',
+  baichuan: '百川智能',
+  stepfun: '阶跃星辰',
+  'stepfun-step-plan': '阶跃星辰',
+  'stepfun-ai': '阶跃星辰',
+  'stepfun-ai-step-plan': '阶跃星辰',
+  qianfan: '百度智能云',
+  baidu: '百度智能云',
+  'baidu-wenxin': '百度智能云',
+  spark: '科大讯飞',
+  flytek: '科大讯飞',
+  tencent: '腾讯云',
+  hunyuan: '腾讯云',
+  'tencent-coding-plan': '腾讯云',
+  'tencent-token-plan': '腾讯云',
+  'tencent-tokenhub': '腾讯云',
+  xiaomi: '小米',
+  'xiaomi-token-plan-ams': '小米',
+  'xiaomi-token-plan-cn': '小米',
+  'xiaomi-token-plan-sgp': '小米',
+  ollama: 'Ollama',
+  'ollama-cloud': 'Ollama',
+}
+
+/**
+ * 由后端供应商行反推厂商名。
+ *
+ * <p>依次匹配 id / provider / 前端映射平台（渠道行再去掉 {@code chat-} 前缀），
+ * 命中 {@link PROVIDER_VENDOR_MAP} 返回厂商名；未命中以供应商自身名称独立成组
+ * （自定义供应商、渠道行、Agent 等都走这条兜底，不会被误并进别家）。</p>
+ *
+ * @param provider 后端供应商行（mapProvider 之后或之前的都兼容）
+ * @returns 厂商名；取不到时返回「其它供应商」
+ */
+export function resolveVendorName(provider: any): string {
+  const candidates = [
+    provider?.id,
+    provider?.provider,
+    provider?.rawPlatform,
+    String(provider?.platform ?? '').replace(/^chat-/, ''),
+  ]
+  for (const candidate of candidates) {
+    const key = String(candidate ?? '').trim().toLowerCase()
+    if (!key) continue
+    const vendor = PROVIDER_VENDOR_MAP[key]
+    if (vendor) return vendor
+  }
+  return String(provider?.name ?? '').trim() || '其它供应商'
+}
+
+// ===== 模板库五大类筛查 =====
+// 分类只服务模板库筛选与卡片标注，是纯前端展示口径；同一厂商不同接入点可能
+// 跨类（如 Ollama 本地 / Ollama Cloud 云端托管），按模板各自用途归类。
+
+/** 模板分类：官方厂商 / 聚合中转 / 云厂商 / 本地模型 / 自建网关 */
+export type ProviderCategory = 'official' | 'aggregator' | 'cloud' | 'local' | 'gateway'
+
+/** 分类清单：顺序即模板库筛选签的展示顺序 */
+export const PROVIDER_CATEGORY_META: ReadonlyArray<{ key: ProviderCategory; label: string }> = [
+  { key: 'official', label: '官方厂商' },
+  { key: 'aggregator', label: '聚合中转' },
+  { key: 'cloud', label: '云厂商' },
+  { key: 'local', label: '本地模型' },
+  { key: 'gateway', label: '自建网关' },
+]
+
+/**
+ * 模板分类映射：只登记「非官方厂商」的模板，其余一律归官方厂商。
+ * 口径沿用模板分段注释：聚合/路由段与 Models.dev 里的中转站归聚合中转；
+ * 云厂商推理服务归云厂商；本地/浏览器推理归本地模型；自建网关段归自建网关。
+ */
+const PROVIDER_CATEGORY_MAP: Readonly<Record<string, ProviderCategory>> = {
+  // 聚合 / 路由：一个入口调多家模型，或按策略路由已有模型
+  openrouter: 'aggregator',
+  commandcode: 'aggregator',
+  agnes: 'aggregator',
+  'free-channel': 'aggregator',
+  'router-group': 'aggregator',
+  opencode: 'aggregator',
+  'opencode-go': 'aggregator',
+  siliconflow: 'aggregator',
+  bai: 'aggregator',
+  ai302: 'aggregator',
+  '302ai': 'aggregator',
+  aimlapi: 'aggregator',
+  abacus: 'aggregator',
+  'nano-gpt': 'aggregator',
+  requesty: 'aggregator',
+  vercel: 'aggregator',
+  zenmux: 'aggregator',
+  jiekou: 'aggregator',
+  kilo: 'aggregator',
+  poe: 'aggregator',
+  'cline-pass': 'aggregator',
+  'qihang-ai': 'aggregator',
+  // 云厂商：云平台的模型 / 推理服务
+  azure: 'cloud',
+  'aws-bedrock': 'cloud',
+  'huawei-maas': 'cloud',
+  oci: 'cloud',
+  'cloudflare-workers-ai': 'cloud',
+  digitalocean: 'cloud',
+  hetzner: 'cloud',
+  ovhcloud: 'cloud',
+  scaleway: 'cloud',
+  stackit: 'cloud',
+  vultr: 'cloud',
+  gmicloud: 'cloud',
+  wandb: 'cloud',
+  amd: 'cloud',
+  'ollama-cloud': 'cloud',
+  // 本地模型：不经服务端转发，本地 / 浏览器推理
+  ollama: 'local',
+  onnx: 'local',
+  web: 'local',
+  webllm: 'local',
+  // 自建网关：开源自建部署，地址填自己的实例域名
+  newapi: 'gateway',
+  sub2api: 'gateway',
+}
+
+/**
+ * 模板的五大类归属。
+ *
+ * @param tpl 供应商模板
+ * @returns 分类 key；未登记的归「官方厂商」
+ */
+export function providerCategoryOf(tpl: { id?: string } | null | undefined): ProviderCategory {
+  const key = String(tpl?.id ?? '').trim().toLowerCase()
+  return PROVIDER_CATEGORY_MAP[key] ?? 'official'
+}
+
 // logo 由 ProviderLogo 组件统一处理：优先 .png，失败回退 .svg，均失败走 CardAvatar 首字母。
 // 此处不再维护任何 logo 映射配置。
 

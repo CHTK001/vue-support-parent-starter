@@ -33,6 +33,27 @@
       </button>
     </div>
 
+    <!--
+      五类筛查签：官方厂商 / 聚合中转 / 云厂商 / 本地模型 / 自建网关。
+      与关键词搜索叠加过滤（先按类、再按词）；「全部」清掉分类条件。
+    -->
+    <div class="tc-cats">
+      <button
+        type="button"
+        class="tc-cat"
+        :class="{ on: activeCategory === '' }"
+        @click="activeCategory = ''"
+      >全部<span class="tc-cat-n">{{ templates.length }}</span></button>
+      <button
+        v-for="meta in PROVIDER_CATEGORY_META"
+        :key="meta.key"
+        type="button"
+        class="tc-cat"
+        :class="{ on: activeCategory === meta.key }"
+        @click="activeCategory = meta.key"
+      >{{ meta.label }}<span class="tc-cat-n">{{ countOfCategory(meta.key) }}</span></button>
+    </div>
+
     <div class="tc-stats">
       <span class="tc-stat-item">
         <span class="tc-stat-num">{{ templates.length }}</span>
@@ -58,6 +79,7 @@
           <div class="tc-title">
             <span class="tc-name">{{ tpl.name }}</span>
             <span v-if="isHotTemplate(tpl)" class="tc-hot">热门</span>
+            <span class="tc-kind">{{ categoryLabelOf(tpl) }}</span>
           </div>
           <span v-if="tpl.description" class="tc-desc">{{ tpl.description }}</span>
           <span v-if="tpl.keywords?.length" class="tc-tags">
@@ -71,7 +93,7 @@
       <div v-if="filtered.length === 0" class="tc-no">
         <el-icon :size="40" style="opacity: 0.4"><SearchOutlined /></el-icon>
         <p>未找到匹配的供应商</p>
-        <span>尝试其他关键词</span>
+        <span>换个分类或关键词试试</span>
       </div>
     </div>
   </ReDialog>
@@ -82,25 +104,39 @@ import { ref, computed } from 'vue'
 import { SearchOutlined, CloseOutlined, AddOutlined, StorefrontOutlined } from '@vicons/material'
 import ReDialog from '@repo/ui/re-dialog'
 import ProviderLogo from './ProviderLogo.vue'
-import { isHotTemplate } from './model.constants'
+import { isHotTemplate, PROVIDER_CATEGORY_META, providerCategoryOf, type ProviderCategory } from './model.constants'
 
 const props = defineProps<{ templates: any[] }>()
 const emit = defineEmits<{ select: [template: any] }>()
 
 const visible = ref(false)
 const keyword = ref('')
+/** 当前筛选拼音分类；空串 = 全部 */
+const activeCategory = ref<ProviderCategory | ''>('')
 
 const filtered = computed(() => {
   const k = keyword.value.trim().toLowerCase()
-  if (!k) return props.templates
-  return props.templates.filter(
-    (t) =>
+  const cat = activeCategory.value
+  return props.templates.filter((t) => {
+    // 先按类、再按词：两个条件叠加，命中任一空条件即放行
+    if (cat && providerCategoryOf(t) !== cat) return false
+    if (!k) return true
+    return (
       t.name.toLowerCase().includes(k) ||
       (t.description || '').toLowerCase().includes(k) ||
       t.id.toLowerCase().includes(k) ||
-      (t.keywords || []).some((kw: string) => kw.toLowerCase().includes(k)),
-  )
+      (t.keywords || []).some((kw: string) => kw.toLowerCase().includes(k))
+    )
+  })
 })
+
+/** 某分类下的模板数（筛选签右侧的计数） */
+const countOfCategory = (key: ProviderCategory) =>
+  props.templates.filter((t) => providerCategoryOf(t) === key).length
+
+/** 卡片上的分类小标 */
+const categoryLabelOf = (tpl: any) =>
+  PROVIDER_CATEGORY_META.find((m) => m.key === providerCategoryOf(tpl))?.label || ''
 
 const choose = (tpl: any) => {
   visible.value = false
@@ -109,6 +145,7 @@ const choose = (tpl: any) => {
 
 const open = () => {
   keyword.value = ''
+  activeCategory.value = ''
   visible.value = true
 }
 defineExpose({ open })
@@ -190,6 +227,54 @@ defineExpose({ open })
   transition: all 0.15s ease;
 }
 .tc-search-clear:hover { color: var(--el-text-color-primary); background: var(--el-fill-color-light); }
+
+/* 五类筛查签：官方厂商 / 聚合中转 / 云厂商 / 本地模型 / 自建网关。
+   胶囊签不抢搜索框的视觉重心，选中态用主色填充一眼可辨。 */
+.tc-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.tc-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--el-border-radius-round, 999px);
+  background: transparent;
+  color: var(--el-text-color-regular);
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tc-cat:hover {
+  border-color: color-mix(in srgb, var(--el-color-primary) 45%, var(--el-border-color-light));
+  color: var(--el-color-primary);
+}
+.tc-cat.on {
+  border-color: var(--el-color-primary);
+  background: var(--el-color-primary);
+  color: var(--el-color-white);
+}
+.tc-cat-n {
+  font-size: 11px;
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+/* 卡片分类小标：比热门角标更弱一档，只作归属提示 */
+.tc-kind {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--el-border-radius-round);
+  background: var(--el-fill-color);
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
 
 .tc-stats {
   display: flex;

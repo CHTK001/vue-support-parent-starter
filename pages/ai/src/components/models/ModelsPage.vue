@@ -57,11 +57,30 @@
           </div>
 
           <ul class="mw-list">
+            <template v-for="group in visibleProviderGroups" :key="group.vendor">
+            <!-- 多渠道厂商：先给一行厂商组头（可折叠），组内子菜单列各接入点；
+                 单渠道供应商不生成组头，保持原样平铺，避免列表行数凭空翻倍 -->
             <li
-              v-for="p in visibleProviders"
+              v-if="group.multi"
+              class="mw-group-head"
+              :class="{ open: isGroupOpen(group.vendor) }"
+              tabindex="0"
+              role="button"
+              :aria-expanded="isGroupOpen(group.vendor)"
+              :title="`展开/收起「${group.vendor}」的 ${group.providers.length} 个接入点`"
+              @click="toggleGroup(group.vendor)"
+              @keydown.enter.prevent="toggleGroup(group.vendor)"
+            >
+              <el-icon class="mw-group-caret" :size="14"><ExpandMoreOutlined /></el-icon>
+              <span class="mw-group-name">{{ group.vendor }}</span>
+              <span class="mw-group-count">{{ group.providers.length }}</span>
+            </li>
+            <template v-if="!group.multi || isGroupOpen(group.vendor)">
+            <li
+              v-for="p in group.providers"
               :key="p.id"
               class="mw-item"
-              :class="{ active: p.id === currentProviderId, selected: isSelected(p) }"
+              :class="{ 'is-child': group.multi, active: p.id === currentProviderId, selected: isSelected(p) }"
               tabindex="0"
               role="button"
               @click="selectProvider(p)"
@@ -149,6 +168,8 @@
                 </span>
               </div>
             </li>
+            </template>
+            </template>
             <li v-if="providers.length === 0" class="mw-list-empty">
               暂无供应商，请从模板库添加
             </li>
@@ -216,7 +237,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { AddOutlined, CloudOutlined, StorefrontOutlined, DeleteOutlined, SearchOutlined } from '@vicons/material'
+import { AddOutlined, CloudOutlined, StorefrontOutlined, DeleteOutlined, SearchOutlined, ExpandMoreOutlined } from '@vicons/material'
 import {
   TextT24Regular, Image24Regular, Video24Regular, Speaker224Regular,
 } from '@vicons/fluent'
@@ -230,7 +251,7 @@ import { apiService } from '../../services/ApiService'
 import { adminApi } from '@/framework/context'
 import { message, isAdmin } from '@repo/core'
 import { usePopup } from '../../composables/usePopup'
-import { PROVIDER_TEMPLATES, sortTemplatesByHot } from './model.constants'
+import { PROVIDER_TEMPLATES, sortTemplatesByHot, resolveVendorName } from './model.constants'
 import ProviderLogo from './ProviderLogo.vue'
 import { mapProvider, mapModel, inferModelType } from './model.utils'
 
@@ -383,6 +404,53 @@ const visibleProviders = computed(() => {
   if (!keyword) return providers.value
   return providers.value.filter((p: any) => [p.name, p.id, p.provider, p.rawPlatform]
     .some((field) => String(field ?? '').toLowerCase().includes(keyword)))
+})
+
+/**
+ * 左栏厂商分组：同一厂商的多个接入点/套餐合并为一个可折叠条目。
+ *
+ * <p>只对「多渠道」厂商生成组头（单渠道供应商保持原样平铺，避免列表凭空多一倍行数）；
+ * 分组只是展示组织 —— 勾选、删除、选中仍按供应商行逐条操作，不改任何数据口径。
+ * 组的顺序沿用供应商列表的原有顺序（后端返回序 + 热门序），不做二次重排。</p>
+ */
+interface ProviderGroup {
+  vendor: string
+  providers: any[]
+  multi: boolean
+}
+
+/** 收起的厂商组（整组折叠，只藏组内接入点，组头仍在） */
+const collapsedVendors = ref<Set<string>>(new Set())
+
+const visibleProviderGroups = computed<ProviderGroup[]>(() => {
+  const groups: ProviderGroup[] = []
+  const index = new Map<string, ProviderGroup>()
+  for (const p of visibleProviders.value) {
+    const vendor = resolveVendorName(p)
+    let group = index.get(vendor)
+    if (!group) {
+      group = { vendor, providers: [], multi: false }
+      index.set(vendor, group)
+      groups.push(group)
+    }
+    group.providers.push(p)
+  }
+  for (const group of groups) group.multi = group.providers.length > 1
+  return groups
+})
+
+const isGroupOpen = (vendor: string) => !collapsedVendors.value.has(vendor)
+
+const toggleGroup = (vendor: string) => {
+  const next = new Set(collapsedVendors.value)
+  if (next.has(vendor)) next.delete(vendor)
+  else next.add(vendor)
+  collapsedVendors.value = next
+}
+
+// 搜索时自动展开全部厂商组：过滤后的结果本来就少，再折叠会让人以为丢了内容
+watch(providerSearch, (keyword) => {
+  if (keyword.trim()) collapsedVendors.value = new Set()
 })
 
 /** 能力徽标定义：顺序即展示顺序（文本 → 图片 → 视频 → 音频） */
@@ -1154,6 +1222,59 @@ onMounted(async () => {
 .mw-item:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
 }
+
+/* 厂商分组头：同一厂商的多个接入点合并为一行，可折叠。
+   组头用小号次级文字 + 计数徽标，视觉上比供应商行低一档，
+   让「厂商 → 接入点」的层级一眼可读；折叠箭头向右=收起、向下=展开。 */
+.mw-group-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 5px 6px;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-gray);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.mw-group-head:hover {
+  color: var(--color-text);
+  background: var(--bg-hover, var(--color-surface-border));
+}
+.mw-group-head:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  outline: none;
+}
+.mw-group-caret {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+.mw-group-head.open .mw-group-caret { transform: rotate(0deg); }
+.mw-group-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.mw-group-count {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--el-border-radius-round, 999px);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+/* 组内接入点行：向右缩进，落在厂商组头下方 */
+.mw-item.is-child { padding-left: 25px; }
 
 .mw-empty-icon {
   display: flex;
