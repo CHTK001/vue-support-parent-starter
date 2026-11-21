@@ -1065,9 +1065,10 @@ async function uploadFiles(fileList: File[]) {
     transfers.value.push({ name: file.name, state: "doing" });
     const idx = transfers.value.length - 1;
     try {
-      await uploadHostFile(props.hostId, currentPath.value, file);
+      await uploadOne(file);
       transfers.value[idx].state = "done";
     } catch {
+      // 含用户在覆盖确认框点取消：一律记为未完成
       transfers.value[idx].state = "error";
     }
   }
@@ -1075,6 +1076,21 @@ async function uploadFiles(fileList: File[]) {
   setTimeout(() => {
     transfers.value = transfers.value.filter(t => t.state === "doing");
   }, 8000);
+}
+
+/**
+ * 单文件上传，带覆盖判定交互：目标内容一致提示跳过；目标较新时询问是否强制覆盖。
+ */
+async function uploadOne(file: File, force = false) {
+  const res = await uploadHostFile(props.hostId, currentPath.value, file, { force });
+  if (res.status === "SKIPPED_SAME") {
+    message.info(`${file.name}：${res.message}`);
+    return;
+  }
+  if (res.status === "TARGET_NEWER") {
+    await message.confirm(`${file.name}：${res.message}，是否强制覆盖？`, "覆盖确认", "强制覆盖", "取消", "warning");
+    await uploadOne(file, true);
+  }
 }
 function pickFiles() { fileInput.value?.click(); }
 function onFilePicked(e: Event) {

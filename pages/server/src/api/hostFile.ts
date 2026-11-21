@@ -106,16 +106,41 @@ export const renameHostFile = (hostId: number, from: string, to: string) =>
   http().put(`${hostFileBase(hostId)}/rename`).query({ from, to }).then(r => unwrap<boolean>(r));
 
 /**
+ * 上传判定结果（后端 UploadResultVO）
+ */
+export interface HostUploadResult {
+  /** UPLOADED=已上传；SKIPPED_SAME=目标内容一致跳过；TARGET_NEWER=目标较新拒绝覆盖 */
+  status: "UPLOADED" | "SKIPPED_SAME" | "TARGET_NEWER";
+  /** 远端目标路径 */
+  path: string;
+  /** 判定/结果说明 */
+  message: string;
+  /** 源文件 MD5，取不到为空 */
+  sourceMd5?: string | null;
+  /** 目标文件 MD5，取不到为空 */
+  targetMd5?: string | null;
+  /** 目标文件最后修改时间（epoch 毫秒），取不到为空 */
+  targetLastModifiedMillis?: number | null;
+}
+
+/**
  * 上传文件到主机目录
+ *
+ * <p>后端带覆盖判定：目标存在且 md5 一致 → SKIPPED_SAME 跳过；不一致且目标更新时间较新
+ * → TARGET_NEWER 拒绝覆盖，确认后以 force 重传。判定信息取不到时后端直接覆盖。</p>
+ *
  * @param hostId 主机 ID
  * @param dir 目标目录
  * @param file 文件
+ * @param options force=目标较新时强制覆盖
  */
-export const uploadHostFile = (hostId: number, dir: string, file: File) => {
+export const uploadHostFile = (hostId: number, dir: string, file: File, options?: { force?: boolean }) => {
   const form = new FormData();
   form.append("file", file);
-  return http().post(`${hostFileBase(hostId)}/upload`).query({ path: dir }).data(form)
-    .then(r => unwrap<string>(r));
+  const query: Record<string, string | number> = { path: dir, sourceLastModified: file.lastModified };
+  if (options?.force) query.force = "true";
+  return http().post(`${hostFileBase(hostId)}/upload`).query(query).data(form)
+    .then(r => unwrap<HostUploadResult>(r));
 };
 
 /**
