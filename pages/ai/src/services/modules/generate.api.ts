@@ -130,6 +130,11 @@ export interface GenerateTask {
   status: GenerateTaskStatus;
   progress: number | null;
   prompt: string;
+  /**
+   * 后端拼接后的完整提示词（风格描述 + 用户提示词），实际送模型生成用。
+   * prompt 只存用户原文；无风格时两者同值，页面不重复展示本字段。
+   */
+  finalPrompt: string | null;
   negativePrompt: string | null;
   model: string;
   size: string | null;
@@ -160,6 +165,11 @@ export interface CreateGenerateTask {
   type: "image" | "video";
   model: string;
   prompt: string;
+  /**
+   * 风格描述文本（选中风格对应的文案）。
+   * 由后端拼接到用户提示词前并单独落库（finalPrompt），prompt 只存用户原文。
+   */
+  stylePrompt?: string;
   negativePrompt?: string;
   size?: string;
   count?: number;

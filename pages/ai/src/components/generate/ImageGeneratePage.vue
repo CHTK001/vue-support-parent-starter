@@ -505,6 +505,19 @@
                     <WgIcon :d="ICONS.chevron" class="wg-stage-prompt-caret" />
                     {{ stageRow.task.prompt || '（无提示词）' }}
                   </p>
+                  <p v-if="finalPromptOf(stageRow.task)" class="wg-stage-final" :title="finalPromptOf(stageRow.task)">
+                    <span class="wg-final-tag">完整</span>
+                    <span class="wg-final-text">{{ finalPromptOf(stageRow.task) }}</span>
+                    <button
+                      type="button"
+                      class="wg-final-copy"
+                      aria-label="复制完整提示词"
+                      title="复制完整提示词"
+                      @click="copyPrompt(finalPromptOf(stageRow.task))"
+                    >
+                      <WgIcon :d="ICONS.copy" class="wg-final-copy-icon" />
+                    </button>
+                  </p>
                   <div class="wg-stage-meta">
                     <span class="wg-stage-badge" :class="badgeClass(stageRow.task)">{{ badgeText(stageRow.task) }}</span>
                     <span class="wg-stage-kv"><em>模型</em>{{ modelLabel(stageRow.task.model) }}</span>
@@ -1359,6 +1372,20 @@
               -->
               <div class="wg-card-detail">
                 <p class="wg-card-title" :title="row.task.prompt">{{ row.task.prompt || '（无提示词）' }}</p>
+                <!-- 完整提示词：后端拼接结果（风格描述 + 用户原文），与原文不同才展示 -->
+                <p v-if="finalPromptOf(row.task)" class="wg-card-final" :title="finalPromptOf(row.task)">
+                    <span class="wg-final-tag">完整</span>
+                    <span class="wg-final-text">{{ finalPromptOf(row.task) }}</span>
+                    <button
+                      type="button"
+                      class="wg-final-copy"
+                      aria-label="复制完整提示词"
+                      title="复制完整提示词"
+                      @click="copyPrompt(finalPromptOf(row.task))"
+                    >
+                      <WgIcon :d="ICONS.copy" class="wg-final-copy-icon" />
+                    </button>
+                  </p>
                 <div class="wg-card-chips">
                   <span class="wg-pill wg-pill-model">
                     <em class="wg-pill-label">模型</em>
@@ -2144,10 +2171,10 @@ interface StyleTemplate {
   key: string
   name: string
   /**
-   * 风格描述：提交时追加到用户提示词后面。
+   * 风格描述：提交时作为 stylePrompt 单独发送，由后端拼接成完整提示词
+   * （finalPrompt = 风格描述 + 用户原文）落库并送模型生成，prompt 列仍存用户原文。
    *
-   * 风格不是上游 API 参数（多数 OpenAI 兼容渠道会把 style 判为非法参数直接 400），
-   * 而是「用户输入 + 风格描述」拼成的最终提示词。
+   * 风格不是上游 API 参数（多数 OpenAI 兼容渠道会把 style 判为非法参数直接 400）。
    */
   prompt: string
 }
@@ -2173,6 +2200,14 @@ const STYLE_TEMPLATES: ReadonlyArray<StyleTemplate> = [
   { key: 'lowpoly', name: '低多边形', prompt: '低多边形三维艺术，几何切面，简洁配色，等距视角' },
   { key: 'vaporwave', name: '蒸汽波', prompt: '蒸汽波美学，粉紫渐变，网格地平线，复古故障与光泽质感' },
   { key: 'isometric', name: '等距微缩', prompt: '等距微缩场景，玩具模型质感，移轴效果，精致小世界' },
+  // 2026-11-21 新增：3/4 格漫画。英文描述由前端代拟（用户委托生成），四格分镜 +
+  // 描边 + 网点 + 对话气泡的漫画要素；未配缩略图，走「色块 + 风格名」占位兜底。
+  {
+    key: 'comic34',
+    name: '3/4格漫画',
+    prompt:
+      '3/4-panel comic strip, four sequential panels with clean white gutters, bold black ink outlines, halftone dot shading, vivid flat colors, dynamic poses and expressive faces, speech balloons, classic comic book art',
+  },
 ]
 
 /**
@@ -2821,7 +2856,7 @@ const styleMenuItems = computed(() =>
   })),
 )
 
-/** 当前风格的描述文本，提交时追加到提示词 */
+/** 当前风格的描述文本：提交时作为 stylePrompt 单独发送，由后端拼接成完整提示词 */
 const stylePrompt = computed(
   () => styleOptions.value.find((item) => item.key === style.value)?.prompt ?? '',
 )
@@ -5020,6 +5055,20 @@ const clearFailedTasks = async () => {
 }
 
 /**
+ * 展示用的「完整提示词」：后端拼接结果（风格描述 + 用户原文）。
+ *
+ * 与用户原文相同（未选风格 / 描述本就在原文里）或存量数据为空时不展示，
+ * 避免同一句话在卡片上出现两遍。
+ */
+const finalPromptOf = (
+  task: { prompt?: string | null; finalPrompt?: string | null } | null | undefined,
+): string => {
+  const full = (task?.finalPrompt || '').trim()
+  const raw = (task?.prompt || '').trim()
+  return full && full !== raw ? full : ''
+}
+
+/**
  * 复制提示词到剪贴板。
  *
  * 部署常见于 http（非安全上下文），此时 navigator.clipboard 不可用，
@@ -5722,15 +5771,12 @@ const onComposerSubmit = async (text: string, carry?: GenerateCarryParams) => {
     // 风格不是上游参数，而是拼进提示词的描述。
     // 之前把 style 当独立参数下发，被 Agnes 判 400「style is not supported」。
     //
-    // 正常路径下风格描述已经在输入框里了（芯片点击插到最前、@ 插到原位），
-    // 所以这里只在「描述不在文本里」时兜底补一次 —— 典型来源是「重试 / 再次生成」
-    // 回填了 style 字段但没带描述。用 includes 而不是 startsWith：
-    // @ 插入的风格在句子中间，startsWith 判不出来，会导致重复拼接。
-    const withStyle = text.trim()
-    const desc = stylePrompt.value
-    const hasStyleDesc = !desc || withStyle.includes(desc)
-    const finalPrompt =
-      styleSupported.value && !hasStyleDesc ? [desc, withStyle].filter(Boolean).join('，') : withStyle
+    // 拼接职责已移到后端：这里只分开发送「用户原文 prompt」与「所选风格描述
+    // stylePrompt」，后端拼成完整提示词落 finalPrompt 列并送模型生成，prompt 列
+    // 保持用户原文。正常路径下风格描述已经在输入框里了（芯片点击插到最前、
+    // @ 插到原位），后端按「用户文本是否已包含描述」判重，不会重复拼接。
+    const userText = text.trim()
+    const desc = styleSupported.value ? stylePrompt.value.trim() : ''
     // 高级参数：「再次生成」用原任务回传的 carry 直发；正常提交按面板值，
     // 只在模型声明了能力位且用户填了值时下发，空值交给上游按默认处理。
     // 种子取整并夹到 ≥0；步数按模型声明的 min/max 夹紧，防止越界被上游 400。
@@ -5762,7 +5808,8 @@ const onComposerSubmit = async (text: string, carry?: GenerateCarryParams) => {
     const task = await apiService.createGenerateTask({
       type: mediaType.value,
       model: model.value,
-      prompt: finalPrompt,
+      prompt: userText,
+      stylePrompt: desc || undefined,
       negativePrompt: negText || undefined,
       seed: seedNum ?? undefined,
       steps: stepsNum ?? undefined,
@@ -5778,7 +5825,7 @@ const onComposerSubmit = async (text: string, carry?: GenerateCarryParams) => {
     // 记进本机输入历史（↑↓ 可翻回）：只存用户手打的那段，不存拼接后的风格描述，
     // 回填时风格仍由风格选择器负责，避免描述在提示词里出现两遍。
     // 写 IndexedDB 是异步的，不阻塞提交；完成后刷新列表。
-    void rememberInput(withStyle, authStore.user?.username, 'generate').then((list) => {
+    void rememberInput(userText, authStore.user?.username, 'generate').then((list) => {
       promptHistory.value = list
     })
     // 记住本次提交：创建接口只保证「记录已入库」便返回 200，上游是否受理要到轮询才知道
@@ -6881,6 +6928,65 @@ onUnmounted(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
+}
+
+/* 完整提示词行：后端拼接结果（风格描述 + 用户原文），附一键复制；正文两行截断 */
+.wg-card-final {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 2px 0 0;
+  color: var(--color-text-gray);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.wg-final-tag {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: var(--r-pill, 999px);
+  font-size: 10px;
+  line-height: 16px;
+  opacity: 0.72;
+}
+
+.wg-final-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.wg-final-copy {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.18s, background 0.18s;
+}
+
+.wg-final-copy:hover {
+  opacity: 1;
+  background: rgba(127, 127, 127, 0.16);
+}
+
+.wg-final-copy-icon {
+  width: 13px;
+  height: 13px;
 }
 
 /* 右栏：提示词 + 规格，与左侧媒体同一行，填掉宽卡片原本的空白 */
@@ -9007,11 +9113,22 @@ onUnmounted(() => {
   transform: rotate(180deg);
 }
 
+/* 完整提示词（后端拼接结果）：跟在用户原文下面，独占左列一行 */
+.wg-stage-final {
+  display: flex;
+  grid-column: 1;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 2px 0 0;
+  color: var(--stg-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .wg-stage-meta {
   display: flex;
   flex-wrap: wrap;
   grid-column: 1;
-  grid-row: 2;
   gap: 4px 14px;
   color: var(--stg-dim);
   font-size: 11px;
