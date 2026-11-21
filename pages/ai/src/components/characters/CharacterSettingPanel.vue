@@ -602,14 +602,8 @@
             </el-form-item>
           </div>
           <el-form-item :label="t('characters.setting.formIconLabel')">
-            <el-select v-model="formDraft.formIcon" class="w-full">
-              <el-option v-for="ic in PROMPT_FORM_ICON_CHOICES" :key="ic.key" :label="ic.label" :value="ic.key">
-                <div class="flex items-center gap-2">
-                  <el-icon size="15"><component :is="resolvePromptFormIcon(ic.key)" /></el-icon>
-                  <span>{{ ic.label }}</span>
-                </div>
-              </el-option>
-            </el-select>
+            <!-- 仅注入 ep: 图标集：pages/ai 未注册 iconify 渲染器，ri:/mdi: 会退化成兜底图标 -->
+            <ReIconSelect v-model="formDraft.formIcon" class="w-full" :tabs="formIconTabs" :icons="formIconSets" />
           </el-form-item>
           <el-form-item :label="t('characters.setting.formDescLabel')">
             <el-input v-model="formDraft.formDescription" :placeholder="t('characters.setting.formDescPlaceholder')" />
@@ -632,6 +626,8 @@ import { ref, reactive, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { message } from '@repo/core'
 import ReDialog from '@repo/ui/re-dialog'
+// 形态图标选择器（default 主题即可，pages/ai 无 themeId）；epIcons 用于限定可选图标集
+import ReIconSelect, { epIcons } from '@repo/ui/re-icon-select'
 import { getLocale } from '@/locales'
 import {
   ElForm,
@@ -673,7 +669,7 @@ import SegmentedToggle from '../ui/SegmentedToggle.vue'
 import './workbench.css'
 import { DEFAULT_SUMMARY_MODE } from '@/constants'
 import type { PromptForm } from '@/services/modules/character.api'
-import { resolvePromptFormIcon, PROMPT_FORM_ICON_CHOICES } from '@/utils/promptFormIcons'
+import { resolvePromptFormIcon } from '@/utils/promptFormIcons'
 
 const { toast, notify } = usePopup()
 const { t } = useI18n()
@@ -1909,11 +1905,15 @@ const flushFormPrompt = async (roleId?: string | number): Promise<boolean> => {
 const formDialogVisible = ref(false)
 const formSaving = ref(false)
 
+/** 形态图标选择器只暴露 ep: 图标集（新值口径 `ep:<name>`，渲染见 resolvePromptFormIcon） */
+const formIconTabs = [{ label: 'Element Plus', prefix: 'ep:' }]
+const formIconSets = { 'ep:': epIcons }
+
 /** 新建/编辑表单；formKey 仅新建时可填 */
 const formDraft = reactive({
   formKey: '',
   formName: '',
-  formIcon: 'flash',
+  formIcon: 'ep:lightning',
   formDescription: '',
   editingKey: '' as string,
 })
@@ -1921,7 +1921,7 @@ const formDraft = reactive({
 const resetFormDraft = () => {
   formDraft.formKey = ''
   formDraft.formName = ''
-  formDraft.formIcon = 'flash'
+  formDraft.formIcon = 'ep:lightning'
   formDraft.formDescription = ''
   formDraft.editingKey = ''
 }
@@ -1930,7 +1930,7 @@ const resetFormDraft = () => {
 const startEditForm = (f: PromptForm) => {
   formDraft.formKey = f.formKey
   formDraft.formName = f.formName || ''
-  formDraft.formIcon = f.formIcon || 'flash'
+  formDraft.formIcon = f.formIcon || 'ep:lightning'
   formDraft.formDescription = f.formDescription || ''
   formDraft.editingKey = f.formKey
 }

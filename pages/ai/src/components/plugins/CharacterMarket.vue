@@ -321,7 +321,7 @@ async function handleUsePrompt(detail: CharacterCatalogDetail, prompt: string) {
   }
 }
 
-// 回填市场壳：类目 / 状态分桶 / 总数（真实计数，Bento 卡与左栏索引展示用）
+// 回填市场壳：类目 / 状态分桶 / 总数 / 我的托盘（真实计数，Bento 卡、左栏索引与托盘展示用）
 watchEffect(() => {
   const visible = visibleItems.value
   const counts: Record<string, number> = {}
@@ -334,6 +334,10 @@ watchEffect(() => {
       { key: 'available', label: t('plugins.characters.statusAvailable'), count: visible.filter(i => !i.custom && !i.added).length, tone: 'info' },
       { key: 'summoned', label: t('plugins.characters.statusSummoned'), count: visible.filter(i => i.custom || i.added).length, tone: 'success' },
     ],
+    // 托盘 = 已召唤（内置已加入）+ 自建角色；轻量字段供左栏「我的托盘」展示
+    tray: visible
+      .filter(i => i.custom || i.added)
+      .map(i => ({ id: i.id, title: i.title, category: i.category, avatar: i.avatar || '', roleId: i.roleId })),
   })
 })
 

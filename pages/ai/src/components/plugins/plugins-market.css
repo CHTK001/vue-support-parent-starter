@@ -1,156 +1,25 @@
 /* ============================================================================
-   插件市场 · V1+V2 融合稿共享样式（PluginsPage 壳 + 四个市场组件共用）
+   插件市场 · 方案 10「双仓工作台」共享样式（PluginsPage 壳 + 四个市场组件共用）
    令牌口径：一律 var(--体系令牌, 兜底) 写法（先例 workbench.css 的 --ax-* 模式）。
    --brand-500 / --brand-gradient 由 brandVars.ts 运行时派生；
    --radius-* 阶梯由全局主题层供给，ai 侧取不到时落 --el-radius-* / 兜底值。
    类名统一 pm- 前缀（plugins market），避免与各组件既有 scoped 样式冲突。
    ============================================================================ */
 
-/* ── 刊头：kicker + 渐变大标题 + 副标题 + 搜索 / 主操作 ── */
-.pm-masthead {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    padding-top: 10px;
-    margin-bottom: 16px;
-}
-.pm-kicker {
-    font-family: var(--font-mono, ui-monospace, 'Cascadia Mono', Consolas, monospace);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 3px;
-    color: var(--brand-500, #3b82f6);
-}
-.pm-title {
-    margin: 8px 0 6px;
-    font-size: 34px;
-    line-height: 1.15;
-    font-weight: 800;
-    letter-spacing: 1px;
-    /* 先给纯色兜底：不支持 background-clip:text 的浏览器文字仍可读 */
-    color: var(--text-primary, #0f172a);
-    /* 渐变大标题：蓝→紫品牌渐变（--brand-gradient 随明暗运行时切换） */
-    background: var(--brand-gradient, linear-gradient(120deg, #3b82f6, #6366f1));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-.pm-subtitle {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--text-tertiary, #5b6b82);
-    max-width: 430px;
-}
-.pm-masthead-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: none;
-}
-.pm-search {
-    width: 260px;
-}
-
-/* ── Bento 市场导航：四卡 = 四市场，真实计数，点选切换 ── */
-.pm-bento {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
-}
-.pm-bento-card {
+/* ── 双仓布局：左「我的托盘」+ 渐变轴 + 右「市场」 ── */
+.pm-split {
     position: relative;
     display: flex;
-    flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
-    padding: 14px 16px;
-    text-align: left;
-    border: 1px solid var(--border-default, #e2e9f3);
-    border-radius: var(--radius-xl, var(--el-radius-xl, 16px));
-    background: var(--bg-container, #ffffff);
-    box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
-    cursor: pointer;
-    outline: none;
-    overflow: hidden;
-    transition:
-        border-color var(--el-transition-duration-fast, 0.2s) ease,
-        box-shadow var(--el-transition-duration-fast, 0.2s) ease;
-}
-.pm-bento-card:hover {
-    border-color: color-mix(in srgb, var(--brand-500, #3b82f6) 45%, transparent);
-    box-shadow: var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.06));
-}
-.pm-bento-card:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500, #3b82f6) 18%, transparent);
-}
-/* 选中卡：品牌描边 + 投影升档 */
-.pm-bento-card.is-active {
-    border-color: var(--brand-500, #3b82f6);
-    box-shadow:
-        0 0 0 1px var(--brand-500, #3b82f6) inset,
-        var(--shadow-md, 0 4px 12px rgba(15, 23, 42, 0.06));
-}
-/* 助手卡品牌底 hero：品牌色 10% 渐变衬容器底色 */
-.pm-bento-card--characters {
-    background:
-        linear-gradient(135deg,
-            color-mix(in srgb, var(--brand-500, #3b82f6) 10%, transparent),
-            transparent 60%),
-        var(--bg-container, #ffffff);
-}
-.pm-bento-top {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.pm-bento-ico {
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-lg, var(--el-radius-lg, 12px));
-    background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
-    color: var(--brand-500, #3b82f6);
-    flex: none;
-}
-.pm-bento-ico svg {
-    width: 18px;
-    height: 18px;
-}
-.pm-bento-count {
-    font-size: 22px;
-    font-weight: 800;
-    line-height: 1;
-    color: var(--text-primary, #0f172a);
-    font-variant-numeric: tabular-nums;
-}
-.pm-bento-name {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--text-primary, #0f172a);
-}
-.pm-bento-desc {
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--text-tertiary, #5b6b82);
+    gap: 14px;
 }
 
-/* ── 主体：左栏类目/状态索引（232px） + 右侧市场 ── */
-.pm-body {
-    display: grid;
-    grid-template-columns: 232px minmax(0, 1fr);
-    gap: 16px;
-    align-items: start;
-}
-.pm-rail {
+/* 左仓托盘：常驻「我的助手」清单 + 类目/状态筛选索引（232px，随滚动吸附） */
+.pm-tray {
     position: sticky;
     top: 12px;
+    flex: none;
+    width: 232px;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -160,12 +29,19 @@
     background: var(--bg-container, #ffffff);
     box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
 }
-.pm-rail-section {
+.pm-tray-section {
     display: flex;
     flex-direction: column;
     gap: 2px;
 }
-.pm-rail-title {
+.pm-tray-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.pm-tray-title {
     font-family: var(--font-mono, ui-monospace, 'Cascadia Mono', Consolas, monospace);
     font-size: 11px;
     font-weight: 600;
@@ -174,6 +50,238 @@
     color: var(--text-tertiary, #5b6b82);
     margin-bottom: 8px;
 }
+.pm-tray-head .pm-tray-title {
+    margin-bottom: 0;
+}
+.pm-tray-count {
+    flex: none;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--el-radius-full, 9999px);
+    background: color-mix(in srgb, var(--brand-500, #3b82f6) 12%, transparent);
+    color: var(--brand-500, #3b82f6);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.pm-tray-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* 托盘清单超长时内部滚动，不把筛选索引顶出首屏 */
+    max-height: 264px;
+    overflow: auto;
+}
+.pm-tray-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: var(--radius-md, var(--el-radius-md, 8px));
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    outline: none;
+    transition:
+        background-color var(--el-transition-duration-fast, 0.2s) ease;
+}
+.pm-tray-item:hover {
+    background: color-mix(in srgb, var(--brand-500, #3b82f6) 8%, transparent);
+}
+.pm-tray-item:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500, #3b82f6) 18%, transparent);
+}
+.pm-tray-avatar {
+    flex: none;
+}
+.pm-tray-meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.pm-tray-name {
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text-primary, #0f172a);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pm-tray-cat {
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text-tertiary, #8a97ab);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pm-tray-empty {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    border-radius: var(--radius-md, var(--el-radius-md, 8px));
+    background: var(--el-fill-color-light, #f4f6fa);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-tertiary, #8a97ab);
+}
+.pm-tray-empty p {
+    margin: 0;
+}
+.pm-tray-divider {
+    height: 1px;
+    background: var(--border-subtle, #eef2f8);
+}
+.pm-tray-tip {
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--text-tertiary, #8a97ab);
+    padding: 10px;
+    border-radius: var(--radius-md, var(--el-radius-md, 8px));
+    background: var(--el-fill-color-light, #f4f6fa);
+}
+
+/* 渐变轴：左右仓分界（4px 品牌渐变，向下淡出） */
+.pm-axis {
+    flex: none;
+    width: 4px;
+    align-self: stretch;
+    border-radius: var(--el-radius-full, 9999px);
+    background: linear-gradient(180deg,
+        var(--brand-500, #3b82f6) 0%,
+        color-mix(in srgb, var(--brand-500, #3b82f6) 40%, transparent) 55%,
+        transparent 100%);
+}
+
+/* 右仓市场：纵向流（头部 → chips → 市场组件） */
+.pm-mkt {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.pm-mkt-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.pm-mkt-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: none;
+}
+.pm-search {
+    width: 260px;
+}
+
+/* ── 胶囊 tabs：四市场切换，图标 + 名称 + 真实计数 ── */
+.pm-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.pm-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1px solid var(--border-default, #e2e9f3);
+    border-radius: var(--el-radius-full, 9999px);
+    background: var(--bg-container, #ffffff);
+    color: var(--text-secondary, #475569);
+    font-size: 13px;
+    line-height: 1.35;
+    cursor: pointer;
+    outline: none;
+    transition:
+        color var(--el-transition-duration-fast, 0.2s) ease,
+        border-color var(--el-transition-duration-fast, 0.2s) ease,
+        background-color var(--el-transition-duration-fast, 0.2s) ease,
+        box-shadow var(--el-transition-duration-fast, 0.2s) ease;
+}
+.pm-tab:hover {
+    color: var(--brand-500, #3b82f6);
+    border-color: color-mix(in srgb, var(--brand-500, #3b82f6) 45%, transparent);
+}
+.pm-tab:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500, #3b82f6) 18%, transparent);
+}
+/* 选中胶囊：品牌渐变填充 + 白字 */
+.pm-tab.is-active {
+    border-color: transparent;
+    background: linear-gradient(120deg,
+        var(--brand-500, #3b82f6),
+        color-mix(in srgb, var(--brand-500, #3b82f6) 72%, #6366f1));
+    color: #ffffff;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--brand-500, #3b82f6) 35%, transparent);
+}
+.pm-tab-ico {
+    display: inline-flex;
+    color: inherit;
+}
+.pm-tab-ico svg {
+    width: 15px;
+    height: 15px;
+}
+.pm-tab-name {
+    font-weight: 600;
+}
+.pm-tab-count {
+    flex: none;
+    padding: 1px 7px;
+    border-radius: var(--el-radius-full, 9999px);
+    background: var(--el-fill-color-light, #f1f5fb);
+    color: var(--text-tertiary, #8a97ab);
+    font-size: 11.5px;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+}
+.pm-tab.is-active .pm-tab-count {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+}
+/* Skills 可更新数角标（P1 #5，沿用 Bento 角标视觉） */
+.pm-tab-badge {
+    flex: none;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--el-radius-full, 9999px);
+    background: var(--status-warning, #f59e0b);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+}
+
+/* ── 筛选索引项（托盘内复用） ── */
 .pm-rail-item {
     display: flex;
     align-items: center;
@@ -221,10 +329,6 @@
 .pm-rail-item.is-active .pm-rail-num {
     color: var(--brand-500, #3b82f6);
 }
-.pm-rail-divider {
-    height: 1px;
-    background: var(--border-subtle, #eef2f8);
-}
 .pm-dot {
     flex: none;
     width: 8px;
@@ -235,26 +339,8 @@
 .pm-dot--success { background: var(--el-color-success, #22c55e); }
 .pm-dot--warning { background: var(--status-warning, #f59e0b); }
 .pm-dot--info { background: var(--brand-500, #3b82f6); }
-.pm-rail-tip {
-    font-size: 11.5px;
-    line-height: 1.6;
-    color: var(--text-tertiary, #8a97ab);
-    padding: 10px;
-    border-radius: var(--radius-md, var(--el-radius-md, 8px));
-    background: var(--el-fill-color-light, #f4f6fa);
-}
 
 /* ── 索引栏收起/展开开关（P0 #1） ── */
-.pm-rail-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-.pm-rail-head .pm-rail-title {
-    margin-bottom: 0;
-}
 .pm-rail-toggle,
 .pm-rail-expand {
     display: inline-flex;
@@ -289,12 +375,8 @@
     width: 14px;
     height: 14px;
 }
-/* 收起态：单列布局 + 左缘展开钮 */
-.pm-body--no-rail {
-    position: relative;
-    grid-template-columns: minmax(0, 1fr);
-}
-.pm-rail-expand {
+/* 收起态：托盘与渐变轴一并隐藏，左缘只留展开钮 */
+.pm-split--rail-hidden .pm-rail-expand {
     position: absolute;
     top: 2px;
     left: 0;
@@ -307,7 +389,7 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
 }
 .pm-chip {
     display: inline-flex;
@@ -377,32 +459,6 @@
     font-weight: 600;
 }
 
-/* ── Bento 卡角标（P1 #5）：Skills 可更新数 ── */
-.pm-bento-name-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-}
-.pm-bento-badge {
-    flex: none;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--el-radius-full, 9999px);
-    background: var(--status-warning, #f59e0b);
-    color: #ffffff;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    cursor: pointer;
-    box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
-}
-
 /* ── 本周精选横幅（各市场自渲染，取真实条目） ── */
 .pm-banner {
     display: flex;
@@ -462,37 +518,38 @@
     margin-bottom: 12px;
 }
 
-/* ── 响应式：窄屏 Bento 降两列、左栏退化为普通块并横向铺开（P1 #7） ── */
+/* ── 响应式：窄屏退化为单列（托盘变普通块、渐变轴隐藏、搜索框占满一行）（P1 #7） ── */
 @media (max-width: 960px) {
-    .pm-bento {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .pm-split {
+        flex-direction: column;
     }
-    .pm-body {
-        grid-template-columns: 1fr;
+    .pm-axis {
+        display: none;
     }
-    .pm-rail {
+    .pm-tray {
         position: static;
+        width: 100%;
         flex-direction: row;
         flex-wrap: wrap;
         align-items: flex-start;
         gap: 10px;
     }
-    .pm-rail-section {
+    .pm-tray-section {
         flex: 1 1 220px;
     }
-    .pm-rail-divider {
+    .pm-tray-divider {
         display: none;
     }
-    .pm-rail-tip {
+    .pm-tray-tip {
         flex-basis: 100%;
     }
-}
-/* 更窄屏：Bento 单列，搜索框占满一行 */
-@media (max-width: 560px) {
-    .pm-bento {
-        grid-template-columns: minmax(0, 1fr);
+    .pm-tray-list {
+        max-height: none;
     }
-    .pm-masthead-actions {
+}
+/* 更窄屏：搜索框占满一行 */
+@media (max-width: 560px) {
+    .pm-mkt-actions {
         width: 100%;
         flex-wrap: wrap;
     }
@@ -501,9 +558,10 @@
     }
 }
 
-/* 尊重系统「减少动态效果」偏好：卡片/索引项/开关悬停立即生效 */
+/* 尊重系统「减少动态效果」偏好：胶囊 tab/托盘项/索引项/开关悬停立即生效 */
 @media (prefers-reduced-motion: reduce) {
-    .pm-bento-card,
+    .pm-tab,
+    .pm-tray-item,
     .pm-rail-item,
     .pm-rail-toggle,
     .pm-rail-expand {

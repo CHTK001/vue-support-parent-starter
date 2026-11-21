@@ -104,6 +104,22 @@ export interface MarketSlice {
   statuses: MarketStatusBucket[]
   /** 左侧索引栏是否隐藏（如 MCP 管理视图） */
   railHidden: boolean
+  /** 我的托盘（左栏常驻清单；目前仅助手市场回填「已召唤/自建」角色） */
+  tray?: MarketTrayItem[]
+}
+
+/** 托盘条目：轻量展示字段，由各市场组件从真实数据映射 */
+export interface MarketTrayItem {
+  /** 唯一键（同时作 v-for key） */
+  id: string
+  /** 展示名 */
+  title: string
+  /** 类目（小字说明） */
+  category?: string
+  /** 头像地址（空则由 CardAvatar 按名字渲染首字） */
+  avatar?: string
+  /** 关联角色记录 id（自建角色才有；有值时托盘点按直达对话） */
+  roleId?: string
 }
 
 function makeSlice(): MarketSlice {

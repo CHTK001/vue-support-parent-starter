@@ -2,65 +2,53 @@
     <div class="h-full overflow-hidden flex flex-col" data-page="plugins">
         <div class="flex-1 flex flex-col overflow-hidden">
             <div class="flex-1 overflow-auto pb-4" style="scrollbar-gutter: stable both-edges;">
-                <!-- 内容区：跟随「设置 → 显示」窄屏/满屏，满屏时 MainLayout 注入 --content-max-width: none 撑满 -->
-                <div class="py-3 px-4 w-full mx-auto" :style="{ maxWidth: 'var(--content-max-width, 65rem)' }">
-                    <!-- 刊头：kicker + 渐变大标题 + 副标题 + 搜索 / 主操作（V1+V2 融合稿） -->
-                    <header class="pm-masthead">
-                        <div>
-                            <div class="pm-kicker">{{ t('plugins.market.kicker') }}</div>
-                            <h1 class="pm-title">{{ t('plugins.market.title') }}</h1>
-                            <p class="pm-subtitle">{{ t('plugins.market.subtitle') }}</p>
-                        </div>
-                        <div class="pm-masthead-actions">
-                            <el-input v-model="activeSlice.keyword" class="pm-search" size="default" clearable
-                                :placeholder="activeSearchPlaceholder" :aria-label="t('plugins.market.searchLabel')"
-                                @keyup.enter="handleSearchEnter" @clear="handleSearchClear">
-                                <template #prefix>
-                                    <el-icon><Search /></el-icon>
-                                </template>
-                            </el-input>
-                            <el-button v-if="activeCta" type="primary" size="default" @click="handlePrimaryAction">
-                                {{ activeCta }}
-                            </el-button>
-                        </div>
-                    </header>
-
-                    <!-- Bento 市场导航：四卡 = 四市场，真实计数，点选切换（路由同步逻辑不变） -->
-                    <nav class="pm-bento" role="tablist" :aria-label="t('plugins.page.title')">
-                        <button v-for="card in bentoCards" :key="card.key" type="button" role="tab"
-                            class="pm-bento-card"
-                            :class="[`pm-bento-card--${card.key}`, { 'is-active': currentTabValue === card.key }]"
-                            :aria-selected="currentTabValue === card.key"
-                            @click="handleTabChange(card.key)">
-                            <span class="pm-bento-top">
-                                <span class="pm-bento-ico"><component :is="card.icon" /></span>
-                                <span class="pm-bento-count">{{ card.count }}</span>
-                            </span>
-                            <span class="pm-bento-name-row">
-                                <span class="pm-bento-name">{{ card.label }}</span>
-                                <!-- P1 #5：Skills 可更新数角标（点击直达「可更新」状态桶） -->
-                                <span v-if="card.key === 'skills' && updatableCount > 0" class="pm-bento-badge"
-                                    :title="t('plugins.market.updatableBadge', { count: updatableCount })"
-                                    @click.stop="openUpdatableSkills">{{ updatableCount }}</span>
-                            </span>
-                            <span class="pm-bento-desc">{{ card.desc }}</span>
-                        </button>
-                    </nav>
-
-                    <!-- 主体：左栏类目/状态索引 + 右侧市场（v-show 全挂载，保证真实计数） -->
-                    <div class="pm-body" :class="{ 'pm-body--no-rail': activeSlice.railHidden }">
-                        <!-- P0 #1：索引栏收起后的左缘展开钮 -->
+                <!-- 内容区：与助手工作台（CharactersPage）同口径，始终吃满剩余宽高（2026-11-21 定版） -->
+                <div class="py-3 px-4 w-full">
+                    <!-- 方案 10 · 双仓工作台：左「我的托盘」+ 渐变轴 + 右「市场」 -->
+                    <div class="pm-split" :class="{ 'pm-split--rail-hidden': activeSlice.railHidden }">
+                        <!-- 索引栏收起后的左缘展开钮 -->
                         <button v-if="activeSlice.railHidden" type="button" class="pm-rail-expand"
                             :title="t('plugins.market.expandRail')"
                             :aria-label="t('plugins.market.expandRail')"
                             @click="activeSlice.railHidden = false">
                             <el-icon><Expand /></el-icon>
                         </button>
-                        <aside v-show="!activeSlice.railHidden" class="pm-rail">
-                            <div class="pm-rail-section">
-                                <div class="pm-rail-head">
-                                    <div class="pm-rail-title">{{ t('plugins.market.categories') }}</div>
-                                    <!-- P0 #1：索引栏收起开关 -->
+
+                        <!-- 左仓：我的托盘（常驻）+ 类目/状态筛选索引 -->
+                        <aside v-show="!activeSlice.railHidden" class="pm-tray">
+                            <div class="pm-tray-section">
+                                <div class="pm-tray-head">
+                                    <span class="pm-tray-title">{{ t('plugins.market.trayTitle') }}</span>
+                                    <span class="pm-tray-count">{{ activeTray.length }}</span>
+                                </div>
+                                <ul v-if="activeTray.length" class="pm-tray-list">
+                                    <li v-for="member in activeTray" :key="member.id">
+                                        <button type="button" class="pm-tray-item"
+                                            :title="member.roleId ? t('plugins.market.trayChat') : t('plugins.market.trayBrowse')"
+                                            @click="openTrayItem(member)">
+                                            <CardAvatar :src="member.avatar" :name="member.title" size="sm"
+                                                class="pm-tray-avatar" />
+                                            <span class="pm-tray-meta">
+                                                <span class="pm-tray-name">{{ member.title }}</span>
+                                                <span class="pm-tray-cat">{{ member.category }}</span>
+                                            </span>
+                                        </button>
+                                    </li>
+                                </ul>
+                                <div v-else class="pm-tray-empty">
+                                    <p>{{ t('plugins.market.trayEmpty') }}</p>
+                                    <el-button link type="primary" size="small" @click="handleTabChange('characters')">
+                                        {{ t('plugins.market.trayGo') }}
+                                    </el-button>
+                                </div>
+                            </div>
+
+                            <div class="pm-tray-divider"></div>
+
+                            <!-- 筛选索引：类目（随市场切换，真实计数） -->
+                            <div class="pm-tray-section">
+                                <div class="pm-tray-head">
+                                    <span class="pm-tray-title">{{ t('plugins.market.categories') }}</span>
                                     <button type="button" class="pm-rail-toggle"
                                         :title="t('plugins.market.collapseRail')"
                                         :aria-label="t('plugins.market.collapseRail')"
@@ -81,9 +69,12 @@
                                     <span class="pm-rail-num">{{ activeSlice.categoryCounts[cat] || 0 }}</span>
                                 </button>
                             </div>
-                            <div class="pm-rail-divider"></div>
-                            <div class="pm-rail-section">
-                                <div class="pm-rail-title">{{ t('plugins.market.status') }}</div>
+
+                            <div class="pm-tray-divider"></div>
+
+                            <!-- 筛选索引：状态 -->
+                            <div class="pm-tray-section">
+                                <div class="pm-tray-title">{{ t('plugins.market.status') }}</div>
                                 <button type="button" class="pm-rail-item"
                                     :class="{ 'is-active': activeSlice.status === '' }"
                                     @click="activeSlice.status = ''">
@@ -97,11 +88,47 @@
                                     <span class="pm-rail-num">{{ st.count }}</span>
                                 </button>
                             </div>
-                            <div class="pm-rail-tip">{{ t('plugins.market.railTip') }}</div>
+
+                            <div class="pm-tray-tip">{{ t('plugins.market.railTip') }}</div>
                         </aside>
 
-                        <section class="pm-main">
-                            <!-- P1 #4：已生效筛选 chips（单删 + 一键清空） -->
+                        <!-- 渐变轴：左右仓分界（4px 品牌渐变，收起时一并隐藏） -->
+                        <div v-show="!activeSlice.railHidden" class="pm-axis" aria-hidden="true"></div>
+
+                        <!-- 右仓：市场（胶囊 tabs + 搜索 / 主操作 + 筛选 chips + 四市场） -->
+                        <section class="pm-mkt">
+                            <div class="pm-mkt-head">
+                                <nav class="pm-tabs" role="tablist" :aria-label="t('plugins.page.title')">
+                                    <button v-for="card in marketTabs" :key="card.key" type="button" role="tab"
+                                        class="pm-tab" :class="{ 'is-active': currentTabValue === card.key }"
+                                        :aria-selected="currentTabValue === card.key"
+                                        @click="handleTabChange(card.key)">
+                                        <span class="pm-tab-ico"><component :is="card.icon" /></span>
+                                        <span class="pm-tab-name">{{ card.label }}</span>
+                                        <span class="pm-tab-count">{{ card.count }}</span>
+                                        <!-- Skills 可更新数角标（点击直达「可更新」状态桶） -->
+                                        <span v-if="card.key === 'skills' && updatableCount > 0" class="pm-tab-badge"
+                                            :title="t('plugins.market.updatableBadge', { count: updatableCount })"
+                                            @click.stop="openUpdatableSkills">{{ updatableCount }}</span>
+                                    </button>
+                                </nav>
+                                <div class="pm-mkt-actions">
+                                    <el-input v-model="activeSlice.keyword" class="pm-search" size="default" clearable
+                                        :placeholder="activeSearchPlaceholder"
+                                        :aria-label="t('plugins.market.searchLabel')"
+                                        @keyup.enter="handleSearchEnter" @clear="handleSearchClear">
+                                        <template #prefix>
+                                            <el-icon><Search /></el-icon>
+                                        </template>
+                                    </el-input>
+                                    <el-button v-if="activeCta" type="primary" size="default"
+                                        @click="handlePrimaryAction">
+                                        {{ activeCta }}
+                                    </el-button>
+                                </div>
+                            </div>
+
+                            <!-- 已生效筛选 chips：单删 + 一键清空 -->
                             <div v-if="activeFilterChips.length" class="pm-chips">
                                 <span v-for="chip in activeFilterChips" :key="chip.key" class="pm-chip">
                                     <span class="pm-chip-label">{{ chip.label }}</span>
@@ -114,6 +141,8 @@
                                     {{ t('plugins.market.clearAll') }}
                                 </button>
                             </div>
+
+                            <!-- 四市场（v-show 全挂载，保证真实计数） -->
                             <CharacterMarket v-show="currentTabValue === 'characters'" ref="charactersRef" />
                             <Skills v-show="currentTabValue === 'skills'" ref="skillsRef" />
                             <MCPServers v-show="currentTabValue === 'mcp'" ref="mcpRef" />
@@ -135,7 +164,9 @@ import MCPServers from './MCPServers.vue'
 import LocalTools from './LocalTools.vue'
 import Skills from './Skills.vue'
 import CharacterMarket from './CharacterMarket.vue'
-import { pluginsMarket, type MarketKey } from './plugins-market'
+import CardAvatar from '@/components/ui/CardAvatar.vue'
+import { pluginsMarket, type MarketKey, type MarketTrayItem } from './plugins-market'
+import { useSelectedCharacter } from '@/composables/useSelectedCharacter'
 
 import {
     Dumbbell16Regular,
@@ -149,6 +180,7 @@ import { useRouter, useRoute } from 'vue-router'
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
+const { setSelectedCharacter } = useSelectedCharacter()
 
 // MCP / 本地工具仅对 v-admin 开放
 const admin = ref(isAdmin())
@@ -250,7 +282,7 @@ onMounted(() => {
     }
 })
 
-// ── 融合稿：共享市场状态（筛选与真实计数由各市场组件回填） ──
+// ── 双仓工作台：共享市场状态（筛选与真实计数由各市场组件回填） ──
 const charactersRef = ref<InstanceType<typeof CharacterMarket> | null>(null)
 const skillsRef = ref<InstanceType<typeof Skills> | null>(null)
 const mcpRef = ref<InstanceType<typeof MCPServers> | null>(null)
@@ -310,7 +342,7 @@ function clearAllFilters() {
     slice.keyword = ''
 }
 
-/** Skills 可更新数（Bento 角标，P1 #5；来自市场组件回填的真实分桶） */
+/** Skills 可更新数（胶囊 tab 角标，P1 #5；来自市场组件回填的真实分桶） */
 const updatableCount = computed(() =>
     pluginsMarket.skills.statuses.find(s => s.key === 'updatable')?.count ?? 0)
 
@@ -329,13 +361,12 @@ const activeSearchPlaceholder = computed(() => {
     return ''
 })
 
-/** Bento 四卡：市场名 + 真实计数 + 一句话说明 */
-const bentoCards = computed(() => tabItems.value.map((item) => ({
+/** 胶囊 tabs：市场名 + 真实计数（托盘之外的第二层导航） */
+const marketTabs = computed(() => tabItems.value.map((item) => ({
     key: item.path,
     label: item.label,
     icon: item.icon,
     count: pluginsMarket[item.path as MarketKey]?.total ?? 0,
-    desc: t(`plugins.market.bentoDesc.${item.path}`),
 })))
 
 /** 页头主操作文案（各市场的「添加 / 安装」入口） */
@@ -364,6 +395,19 @@ function handleSearchEnter() {
 function handleSearchClear() {
     if (currentTabValue.value === 'skills') skillsRef.value?.clearSearch()
     else if (currentTabValue.value === 'mcp') mcpRef.value?.clearSearch()
+}
+
+// ── 我的托盘：已召唤 / 自建助手常驻清单（目前仅助手市场回填真实数据） ──
+const activeTray = computed<MarketTrayItem[]>(() => pluginsMarket.characters.tray ?? [])
+
+/** 托盘点按：自建角色直达对话；其余（内置已召唤）切回助手市场查看 */
+function openTrayItem(member: MarketTrayItem) {
+    if (member.roleId) {
+        setSelectedCharacter(member.roleId)
+        router.push({ name: 'Chat', params: { sessionId: 'new-session' } })
+        return
+    }
+    handleTabChange('characters')
 }
 </script>
 
