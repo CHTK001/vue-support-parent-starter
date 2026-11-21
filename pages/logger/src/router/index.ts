@@ -1,5 +1,5 @@
 /**
- * 日志控制台路由：hash 模式（/console 实时、/search 检索、/apps 应用实例、/stats 统计）。
+ * 日志控制台路由：hash 模式（/console 实时、/search 检索、/apps 应用实例、/trace 链路、/stats 统计）。
  * 视图懒加载，首屏只带实时控制台。
  */
 import { createRouter, createWebHashHistory } from "vue-router";
@@ -25,6 +25,12 @@ export const router = createRouter({
       name: "apps",
       component: () => import("../views/AppsView.vue"),
       meta: { title: "应用实例" },
+    },
+    {
+      path: "/trace",
+      name: "trace",
+      component: () => import("../views/TraceView.vue"),
+      meta: { title: "链路追踪" },
     },
     {
       path: "/stats",

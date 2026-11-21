@@ -4,9 +4,11 @@
  * 契约（后端部署在 194 monitor 8082，本仓无后端源码）：
  *   GET    /apps     应用/实例清单（app、instance、lastSeen、eventCount、errorCount）
  *   GET    /events   cursor 分页日志查询（level 可逗号多值；返回 { items, cursor }，cursor 空 = 没有更多）
+ *   GET    /traces   链路追踪摘要（按 traceId 聚合：条数/错误数/起止/耗时/涉及应用实例）
  *   GET    /stats    统计（byLevel 级别分布、eps 吞吐趋势、topLoggers 榜单）
- *   GET    /stream   原生 EventSource 实时流（event: "log" / "heartbeat"）
+ *   GET    /stream   原生 EventSource 实时流（event: "log" / "heartbeat"，可带 app/level 等服务端过滤）
  *   DELETE /events   清除日志事件（可带 app / level 过滤）
+ *   POST   /ingest   浏览器/JS 日志推送入口（配合 GET /sdk.js 的零依赖 SDK）
  *
  * 信封 { code, message, data }，code === 0 成功（解包见 ./http.ts）。
  */
@@ -25,6 +27,8 @@ export interface LoggerEvent {
   logger?: string;
   message?: string;
   stacktrace?: string;
+  /** 链路追踪标识：后端从 MDC / 浏览器 x-trace-id 头提取 */
+  traceId?: string;
   mdc?: Record<string, unknown> | null;
 }
 
@@ -52,6 +56,25 @@ export interface LoggerStats {
   topLoggers?: Array<{ logger?: string; count: number }>;
 }
 
+/** 链路追踪摘要行（GET /traces，按 traceId 聚合） */
+export interface LoggerTraceSummary {
+  traceId?: string;
+  /** 该链路的事件条数 */
+  count?: number;
+  /** 其中 ERROR 级别条数 */
+  errorCount?: number;
+  /** 起始时间（毫秒） */
+  firstTs?: number;
+  /** 结束时间（毫秒） */
+  lastTs?: number;
+  /** 持续时长（毫秒，lastTs - firstTs） */
+  durationMs?: number;
+  /** 涉及的应用列表 */
+  apps?: string[];
+  /** 涉及的实例列表 */
+  instances?: string[];
+}
+
 /** 级别展示顺序（配色见 styles/tokens.css 的 --log-level-*） */
 export const LOG_LEVELS: string[] = ["ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
 
@@ -67,6 +90,8 @@ export interface FetchEventsParams {
   app?: string;
   level?: string[];
   keyword?: string;
+  /** 链路追踪标识过滤 */
+  traceId?: string;
   startTs?: string | number;
   endTs?: string | number;
 }
@@ -85,6 +110,16 @@ export function fetchEvents(params: FetchEventsParams): Promise<LoggerEventsPage
 
 export function fetchStats(): Promise<LoggerStats> {
   return loggerHttp.get<LoggerStats>("/stats");
+}
+
+/**
+ * 链路追踪摘要：按 traceId 聚合近期事件（最近发生的排前）。
+ *
+ * @param app   应用过滤
+ * @param limit 返回条数上限（1~200，默认 50）
+ */
+export function fetchTraces(app?: string, limit = 50): Promise<LoggerTraceSummary[]> {
+  return loggerHttp.get<LoggerTraceSummary[]>("/traces", { app: app || undefined, limit });
 }
 
 export function clearEvents(params?: { app?: string; level?: string[] }): Promise<unknown> {

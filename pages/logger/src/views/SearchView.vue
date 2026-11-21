@@ -10,6 +10,7 @@
  *   - 每次搜索/重置清空游标链并用 :key 重挂表格，从第 1 页重新拉取。
  */
 import { onMounted, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn, ReTableLoader } from "@repo/ui/re-table";
 import { LOG_LEVELS, fetchApps, fetchEvents, type LoggerAppInfo } from "../api/logger";
@@ -20,12 +21,14 @@ interface SearchQuery {
   app: string;
   levels: string[];
   keyword: string;
+  traceId: string;
   range: [number, number] | null;
 }
 
-const form = reactive<SearchQuery>({ app: "", levels: [], keyword: "", range: null });
+const router = useRouter();
+const form = reactive<SearchQuery>({ app: "", levels: [], keyword: "", traceId: "", range: null });
 /** 已提交的查询快照：点搜索/重置才更新（loader 闭包读取） */
-const submitted = ref<SearchQuery>({ app: "", levels: [], keyword: "", range: null });
+const submitted = ref<SearchQuery>({ app: "", levels: [], keyword: "", traceId: "", range: null });
 const searchSeq = ref(0);
 const apps = ref<LoggerAppInfo[]>([]);
 
@@ -48,6 +51,7 @@ const loader: ReTableLoader = async ({ page, pageSize }) => {
     app: query.app || undefined,
     level: query.levels,
     keyword: query.keyword || undefined,
+    traceId: query.traceId || undefined,
     startTs: query.range?.[0],
     endTs: query.range?.[1],
   });
@@ -64,6 +68,7 @@ function snapshot(): void {
     app: form.app,
     levels: [...form.levels],
     keyword: form.keyword,
+    traceId: form.traceId,
     range: form.range ? ([...form.range] as [number, number]) : null,
   };
   cursorByPage.clear();
@@ -78,8 +83,16 @@ function resetSearch(): void {
   form.app = "";
   form.levels = [];
   form.keyword = "";
+  form.traceId = "";
   form.range = null;
   snapshot();
+}
+
+/** 跳链路追踪页：宿主路由为 /logger/trace，独立运行为 /trace（按实际注册的路由判定） */
+function goTrace(traceId: string): void {
+  if (!traceId) return;
+  const target = router.resolve("/logger/trace").matched.length > 0 ? "/logger/trace" : "/trace";
+  router.push({ path: target, query: { traceId } });
 }
 
 onMounted(async () => {
@@ -117,6 +130,16 @@ onMounted(async () => {
         <el-form-item label="关键字">
           <el-input v-model="form.keyword" clearable placeholder="消息 / Logger" style="width: 220px" @keyup.enter="doSearch" />
         </el-form-item>
+        <el-form-item label="TraceId">
+          <el-input
+            v-model="form.traceId"
+            clearable
+            placeholder="链路追踪标识"
+            style="width: 260px"
+            class="trace-id-input"
+            @keyup.enter="doSearch"
+          />
+        </el-form-item>
         <el-form-item label="时间范围">
           <el-date-picker
             v-model="form.range"
@@ -150,6 +173,19 @@ onMounted(async () => {
               <div class="detail-cell"><label>实例</label><span>{{ row.instance || "-" }}</span></div>
               <div class="detail-cell"><label>线程</label><span>{{ row.thread || "-" }}</span></div>
               <div class="detail-cell"><label>Logger</label><span>{{ row.logger || "-" }}</span></div>
+              <div class="detail-cell detail-cell--trace">
+                <label>链路 traceId</label>
+                <span class="trace-id">{{ row.traceId || "-" }}</span>
+                <el-link
+                  v-if="row.traceId"
+                  type="primary"
+                  :underline="false"
+                  class="trace-link"
+                  @click="goTrace(String(row.traceId))"
+                >
+                  查看链路
+                </el-link>
+              </div>
             </div>
             <div class="detail-block">
               <label>消息</label>
@@ -169,3 +205,9 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.trace-id-input :deep(.el-input__inner) {
+  font-family: var(--font-mono);
+}
+</style>

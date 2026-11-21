@@ -46,13 +46,13 @@ let seq = 0;
 let stopStream: (() => void) | null = null;
 let hadError = false;
 
-/** 关键字前端过滤：匹配消息 / logger / 应用 / 线程 */
+/** 关键字前端过滤：匹配消息 / logger / 应用 / 线程 / traceId */
 const filteredItems = computed<BufferItem[]>(() => {
   const kw = keyword.value.trim().toLowerCase();
   if (!kw) return buffer.value;
   return buffer.value.filter((item) => {
-    const { message = "", logger = "", app = "", thread = "" } = item.event;
-    return `${message}\n${logger}\n${app}\n${thread}`.toLowerCase().includes(kw);
+    const { message = "", logger = "", app = "", thread = "", traceId = "" } = item.event;
+    return `${message}\n${logger}\n${app}\n${thread}\n${traceId}`.toLowerCase().includes(kw);
   });
 });
 
@@ -243,6 +243,10 @@ onBeforeUnmount(() => {
               <div class="detail-cell"><label>实例</label><span>{{ item.event.instance || "-" }}</span></div>
               <div class="detail-cell"><label>线程</label><span>{{ item.event.thread || "-" }}</span></div>
               <div class="detail-cell"><label>Logger</label><span>{{ item.event.logger || "-" }}</span></div>
+              <div class="detail-cell detail-cell--trace">
+                <label>链路 traceId</label>
+                <span class="trace-id">{{ item.event.traceId || "-" }}</span>
+              </div>
             </div>
             <div class="detail-block">
               <label>消息</label>

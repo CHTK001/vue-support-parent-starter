@@ -57,10 +57,16 @@ export function createLoggerRoutes(options: LoggerRoutesOptions = {}): RouteConf
           meta: { title: "应用实例", icon: "Grid", showLink: true, rank: 3 },
         },
         {
+          path: "/logger/trace",
+          name: "LoggerTrace",
+          component: () => import("../views/TraceView.vue"),
+          meta: { title: "链路追踪", icon: "Connection", showLink: true, rank: 4 },
+        },
+        {
           path: "/logger/stats",
           name: "LoggerStats",
           component: () => import("../views/StatsView.vue"),
-          meta: { title: "统计概览", icon: "TrendCharts", showLink: true, rank: 4 },
+          meta: { title: "统计概览", icon: "TrendCharts", showLink: true, rank: 5 },
         },
       ],
     },

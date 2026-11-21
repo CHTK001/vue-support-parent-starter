@@ -4,7 +4,7 @@
  */
 import { type Component } from "vue";
 import { RouterLink, RouterView } from "vue-router";
-import { Cpu, Monitor, Search, TrendCharts } from "@element-plus/icons-vue";
+import { Cpu, Connection, Monitor, Search, TrendCharts } from "@element-plus/icons-vue";
 
 interface MenuOption {
   path: string;
@@ -16,6 +16,7 @@ const menus: MenuOption[] = [
   { path: "/console", title: "实时控制台", icon: Monitor },
   { path: "/search", title: "日志检索", icon: Search },
   { path: "/apps", title: "应用实例", icon: Cpu },
+  { path: "/trace", title: "链路追踪", icon: Connection },
   { path: "/stats", title: "统计概览", icon: TrendCharts },
 ];
 </script>
