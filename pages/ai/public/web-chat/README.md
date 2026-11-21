@@ -35,6 +35,7 @@ export default function createClient(modelInfo) {
 | `ocr.js` | 图片文字识别 | Tesseract.js（CDN）+ 语言包 | 支持中英文，需上传图片附件 |
 | `face-detect.js` | 人脸检测 | face-api.js（CDN）+ tiny 权重（约 190KB） | 输出人脸数、置信度与位置 |
 | `image-gen.js` | 文生图 | 无（Canvas 2D） | 提示词作种子程序化渲染，输出 Markdown 图片 |
+| `colorize.js` | 图片上色 | onnxruntime-web（CDN）+ DDColor fp16 权重（约 108MB） | 黑白照片本地还原成彩色，WebGPU 优先、WASM 兜底 |
 
 公共工具在 `_shared.js`：CDN 多源加载（`importFirst`）、附件图片解析
 （`resolveInputImages`）、流式输出（`streamOut`）等。
@@ -47,11 +48,14 @@ export default function createClient(modelInfo) {
 - `/web-chat/ocr.js?langs=chi_sim+eng&lang_path=https://你的 tessdata 镜像/`
 - `/web-chat/face-detect.js?threshold=0.5&input_size=320`
 - `/web-chat/image-gen.js?w=960&h=640`
+- `/web-chat/colorize.js?model=https://你的权重镜像/ddcolor-fp16.onnx&fmt=jpeg&max=2048&ep=webgpu`
 
 ## 网络与权重源
 
 - `chat-local.js` 权重默认走 `hf-mirror.com`（HuggingFace 大陆镜像）；自托管权重用
   `endpoint` 参数覆盖。
+- `colorize.js` 权重（DDColor fp16 ONNX，Apache-2.0）默认走
+  `hf-mirror.com/wavespeed/image-colorizer`；自托管权重用 `model` 参数指向同源 URL。
 - `ocr.js` 语言包默认探测 `tessdata.projectnaptha.com`，失败换 jsdelivr 镜像；
   可用 `lang_path` 指定自托管目录。
 - `face-detect.js` 权重走 jsdelivr 的 GitHub 镜像（`justadudewhohacks/face-api.js`）。
