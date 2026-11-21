@@ -355,7 +355,7 @@ import { User, Lock, Postcard, WarningFilled, OfficeBuilding, Iphone, Message } 
 import { ref, reactive, toRef, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import type { FormInstance, FormRules } from "element-plus";
 import type { LoginTypeConfig } from "@repo/config";
-import { msgWarning, msgError, msgSuccess, getCaptcha, thirdLoginExchange, thirdBindPending, thirdBindComplete, takeThirdCallbackParams, setUserRoles, setUserPerms, refreshDefaultSetting, setActiveBaseUrl, applyActiveBaseUrl, resetActiveBaseUrl, sendSmsCode, smsLogin } from "@repo/core";
+import { msgWarning, msgError, msgSuccess, getCaptcha, thirdLoginExchange, thirdBindPending, thirdBindComplete, takeThirdCallbackParams, clearThirdCallbackSearchParams, setUserRoles, setUserPerms, refreshDefaultSetting, setActiveBaseUrl, applyActiveBaseUrl, resetActiveBaseUrl, sendSmsCode, smsLogin } from "@repo/core";
 import type { ThirdBindPendingInfo } from "@repo/core";
 import {
   readRememberedLogin,
@@ -771,6 +771,8 @@ const retryLoadSetting = async () => {
 
 /** 剥离 URL 上的三方回跳参数（停留登录页时防刷新重放凭证 / 重复错误提示） */
 const stripThirdCallbackQuery = async () => {
+  // hash 模式下参数可能落在 location.search（router 管不到），先一并剥掉
+  clearThirdCallbackSearchParams();
   const current = router.currentRoute.value;
   const rest = { ...current.query };
   delete rest.redirectParam;
@@ -819,6 +821,8 @@ const consumeThirdLogin = async (redirectParam: string, redirect: string) => {
     await nextTick();
     await initAuthRouter(router);
     await router.replace(redirect || HOME_URL);
+    // 成功登录后剥离地址栏残留的一次性凭证（hash 路由 replace 不会清 search 串）
+    clearThirdCallbackSearchParams();
   } catch (error) {
     msgError((error as Error)?.message || "三方登录失败，请重试");
     await stripThirdCallbackQuery();
@@ -948,6 +952,8 @@ const submitBind = async () => {
     await nextTick();
     await initAuthRouter(router);
     await router.replace(bindRedirect.value || HOME_URL);
+    // 绑定成功同样剥离地址栏残留凭证
+    clearThirdCallbackSearchParams();
   } catch (error) {
     // 网络类异常：凭证可能仍在有效期，留在绑定视图可重试
     msgError((error as Error)?.message || "绑定失败，请重试");
