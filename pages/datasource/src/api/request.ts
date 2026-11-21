@@ -18,6 +18,12 @@ const SUCCESS_CODES: unknown[] = ["00000", "200", 0, "0"];
 /** 请求默认超时（毫秒），元数据接口要走实时库查询，不能无限等 */
 const DEFAULT_TIMEOUT = 15000;
 
+/** 单次请求覆盖项：写入/刷新类接口会触发后端运行时重建（ShardingSphere/Calcite 首次初始化可能远超默认超时） */
+export interface RequestOptions {
+  /** 超时毫秒数；不传或 &lt;=0 用默认超时 */
+  timeoutMs?: number;
+}
+
 /** 业务错误：把后端的 code / msg 原样带出来，页面可直接展示 msg */
 export class ApiError extends Error {
   /** 业务码 */
@@ -163,7 +169,7 @@ function peel(value: unknown, depth = 0): unknown {
  * @param params 查询参数，undefined / null / 空串会被丢弃
  * @return 解包后的业务数据
  */
-async function request<T>(method: string, path: string, body?: unknown, params?: Record<string, unknown>): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, params?: Record<string, unknown>, options?: RequestOptions): Promise<T> {
   const init: RequestInit = {
     method,
     credentials: "same-origin",
@@ -186,14 +192,15 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
     }
   }
 
+  const timeout = options?.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : DEFAULT_TIMEOUT;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+  const timer = setTimeout(() => controller.abort(), timeout);
   let response: Response;
   try {
     response = await fetch(withQuery(resolve(path), params ?? {}), { ...init, signal: controller.signal });
   } catch (error) {
     const aborted = (error as Error)?.name === "AbortError";
-    throw new ApiError(aborted ? `请求超时（${DEFAULT_TIMEOUT / 1000}s）` : "无法连接采集服务，请确认后端已启动");
+    throw new ApiError(aborted ? `请求超时（${timeout / 1000}s）` : "无法连接采集服务，请确认后端已启动");
   } finally {
     clearTimeout(timer);
   }
@@ -216,21 +223,21 @@ async function request<T>(method: string, path: string, body?: unknown, params?:
 }
 
 /** GET 查询 */
-export function get<T>(url: string, params?: Record<string, unknown>): Promise<T> {
-  return request<T>("GET", url, undefined, params);
+export function get<T>(url: string, params?: Record<string, unknown>, options?: RequestOptions): Promise<T> {
+  return request<T>("GET", url, undefined, params, options);
 }
 
 /** POST 提交 */
-export function post<T>(url: string, body?: unknown, params?: Record<string, unknown>): Promise<T> {
-  return request<T>("POST", url, body, params);
+export function post<T>(url: string, body?: unknown, params?: Record<string, unknown>, options?: RequestOptions): Promise<T> {
+  return request<T>("POST", url, body, params, options);
 }
 
 /** PUT 更新 */
-export function put<T>(url: string, body?: unknown, params?: Record<string, unknown>): Promise<T> {
-  return request<T>("PUT", url, body, params);
+export function put<T>(url: string, body?: unknown, params?: Record<string, unknown>, options?: RequestOptions): Promise<T> {
+  return request<T>("PUT", url, body, params, options);
 }
 
 /** DELETE 删除 */
-export function del<T>(url: string, params?: Record<string, unknown>): Promise<T> {
-  return request<T>("DELETE", url, undefined, params);
+export function del<T>(url: string, params?: Record<string, unknown>, options?: RequestOptions): Promise<T> {
+  return request<T>("DELETE", url, undefined, params, options);
 }

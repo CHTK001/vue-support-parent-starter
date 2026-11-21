@@ -533,6 +533,9 @@ export default createVite({
     "@pages/room": "pages/room",
     "@pages/filesystem": "pages/filesystem",
     "@pages/datasource": "pages/datasource",
+    // 数据源运行时配置页（@pages/datasource-hub）：Calcite 联邦 / 分库分表运行期配置，
+    // 视图/API/路由同源，宿主只挂路由；与 collect-scheduler 同款接法。
+    "@pages/datasource-hub": "pages/datasource-hub",
     "@pages/debug": "pages/debug",
     // 日志中心（@pages/logger）：分组「日志中心」+ /logger/* 四叶，
     // 视图/API/路由同源，宿主只挂路由；/v2/logger 由现有 "/v2" 代理转发到后端。
@@ -789,6 +792,13 @@ export default createVite({
             }
           });
         },
+      },
+      // 数据源运行时（spring-support-datasource-starter 的 /ms/ds-runtime/**：
+      // Calcite 联邦 + 分库分表规则的运行期管理接口）。缺这一条时 dev 下请求
+      // 会落到 Vite 自身 → 404（与 /ms/tunnel 同款问题）。
+      "/ms/ds-runtime": {
+        target: apiTarget,
+        changeOrigin: true,
       },
       "/ms/project": {
         target: apiTarget,

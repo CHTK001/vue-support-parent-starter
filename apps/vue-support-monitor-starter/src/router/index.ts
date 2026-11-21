@@ -38,6 +38,9 @@ import type { RouteConfigsTable } from "@repo/core";
 // 深导入 src/routes 而不是从包根导入 —— 包根 index.ts 有 registerMenuViewModules
 // 顶层副作用，会把整个 api/组件桶拖进主 chunk；本文件只需要路由工厂。
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
+// 数据源运行时配置页（@pages/datasource-hub）：Calcite 联邦 / 分库分表规则的
+// 运行期页面配置（保存即重建数据源、不重启生效），与台账页互补。
+import { createDatasourceHubRoutes } from "@pages/datasource-hub/src/routes";
 import { createServerHostRoutes } from "@pages/server/src/routes";
 import { createDockerRoutes } from "@pages/docker/src/routes";
 // 内网穿透：统一隧道管理页，通过 @pages/tunnel/src/routes 的 createTunnelRoutes 展开。
@@ -556,6 +559,10 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // 数据源管理页：全部 showLink:false（不进侧边栏），由「数据中心」的「打开管理」进入，
   // 侧边栏仍停在 /datasource 上。activeMenu 指向本应用的数据源列表路径。
   ...createDatasourceManageRoutes({ activeMenu: "/datasource" }),
+
+  // 数据源运行时配置页（/datasource-hub，隐藏路由）：Calcite 联邦 / 分库分表
+  // 运行期实时配置，与数据源台账（@pages/datasource）互补；侧边栏高亮回指数据源中心。
+  ...createDatasourceHubRoutes({ activeMenu: "/datasource" }),
 
   // 功能包路由：@pages/system 已整体移除（见文件头的移除说明）——
   // monitor 后端没有任何 /manage/** 实现，16 个系统域页面只会让侧边栏多出一堆点开即 404 的条目。
