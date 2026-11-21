@@ -534,6 +534,9 @@ export default createVite({
     "@pages/filesystem": "pages/filesystem",
     "@pages/datasource": "pages/datasource",
     "@pages/debug": "pages/debug",
+    // 日志中心（@pages/logger）：分组「日志中心」+ /logger/* 四叶，
+    // 视图/API/路由同源，宿主只挂路由；/v2/logger 由现有 "/v2" 代理转发到后端。
+    "@pages/logger": "pages/logger",
     // CDP 工作台 UI（@pages/cdp）：与根 tsconfig / createVite 共享别名同口径，
     // 指向 src（业务深导入写 @pages/cdp/components/...、@pages/cdp/client）。
     "@pages/cdp": "pages/cdp/src",

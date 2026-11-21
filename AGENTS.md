@@ -24,6 +24,7 @@ Vue3 Turbo monorepo（`apps/` + `packages/`）前端工程。
 - 业务服务层复用 `@pages/ai/src/services/modules/*.api.ts`（只依赖 `this: ApiContext`），**不要**再建 `pages/wechat-miniapp-core`；平台差异只允许落在传输适配（`_request` / SSE）。
 - 小程序 UI 用 `wot-design-uni`，组件走 `pages.json` 的 easycom 通配符（`^wd-(.*)`）：模板里所有 `wd-*` 零 import 可用，按模板用量打包；**不要**用 `import.meta.glob` 收集全量组件（小程序编译器要求 `components` 静态可解析，glob 结果进不了 `usingComponents`）。需要严格校验某组件 props 时可单独局部 import，两者可共存。PC 用 `@repo/ui`；两端只共享设计令牌，**不要**把 `wd-*` 组件或 `@repo/ui` 组件互相搬。
 - 小程序自建组件放 `src/components/<name>/<name>.vue`（同样由 easycom 自动登记，模板零 import）；AI 输出的富文本走 `src/utils/markdown.ts` 的轻量子集 AST + `markdown-body`/`md-inline` 渲染，**不要**引入产出 HTML 的 Markdown 库（`mp-weixin` 无 DOM，`v-html` 不可用）。
+- **独立页面应用绕过 `@repo/app` 引导时必须自收首屏 loader**：createVite 共享模板注入的 `#app-loader`（`public/loader.js`，fixed 全屏、z-index 9999）平时由 `createVueApp` 的 `hideAppLoaderWhenReady` 收起；不走共享引导的裸 `createApp` 应用（如 `pages/logger`）若不自行「路由 ready → 双 rAF → `window.hideAppLoader()`」，遮罩会永久盖在页面上拦截一切点击（表现：应用功能全部正常，但浏览器自动化所有 click 因 "sys-loader-shell intercepts pointer events" 超时）。写法参照 `pages/ai/src/main.js`。
 
 ## 渠道管理口径（跨仓库硬约束）
 

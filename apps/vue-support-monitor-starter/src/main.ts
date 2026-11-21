@@ -9,7 +9,7 @@
  *       运维侧仍可用 app.yaml 覆盖 —— 不在本文件重复声明。</li>
  * </ul>
  *
- * <p>路由模式：hash（routerMode: "hash"）；菜单由路由树自动推导。</p>
+ * <p>路由模式：hash（框架默认，应用不再单独配置 routerMode）；菜单由路由树自动推导。</p>
  */
 import { createContextApp } from "@repo/app";
 import { useGlobalStore, useUserStore } from "@repo/pinia";
@@ -52,6 +52,14 @@ import "@pages/debug/src/styles/debug.css";
 import "@pages/room/src/styles/room.css";
 // 设备远程控制（@pages/control）页面级变量与通用样式
 import "@pages/control/src/styles/control.css";
+// 日志中心（@pages/logger）页面样式：tokens 已收进 .logger-scope / .logger-standalone
+// 作用域（见包内 styles），不会覆盖本应用的主题变量（含暗色）。
+import "@pages/logger/src/styles/tokens.css";
+import "@pages/logger/src/styles/logger.css";
+// 日志中心鉴权桥接：包内 http/SSE 自身不带登录态，由宿主注入令牌提供器 ——
+// REST 走 Authorization 头，SSE（EventSource 带不了头）走 x-oauth-token 查询参数。
+import { setLoggerTokenProvider } from "@pages/logger/src/api/http";
+import { getAccessToken } from "@repo/utils";
 import ProcessHost from "./components/ProcessHost.vue";
 import monitorRoutes from "./router";
 // 监控大屏卡片的领域贡献：卡片元数据 + 组件加载器留在各自 pages 包里，
@@ -65,11 +73,13 @@ import { serverWidgets } from "@pages/server/src/widgets/serverWidgets";
 import { channelWidgets } from "@pages/channel/src/widgets/channelWidgets";
 import { datasourceWidgets } from "@pages/datasource/src/widgets/datasourceWidgets";
 
+// 日志中心令牌桥接（见上方 import 说明）：惰性读取，登录前后调用都安全。
+setLoggerTokenProvider(() => getAccessToken() || undefined);
+
 const app = await createContextApp({
   appName: "vue-support-monitor-starter",
   title: "监控管理平台",
   mode: "router",
-  routerMode: "hash",
 })
   .widgets([
     actuatorContribution,
@@ -93,7 +103,13 @@ const app = await createContextApp({
 //   - 这里只对 monitor 这一壳设置，用户仍可在顶部「主题设置」手动切换并把选择持久化；
 //   - 设值放在 mount 之后，保证 pinia 实例已就绪，也避免 before mount 与布局组件读取
 //     同一 store 时产生时序竞争。
-useGlobalStore(app.pinia).setGlobalState("layout", "group");
+//
+// 用户在主题设置里主动选过布局（global.layoutChosen 已持久化）时以用户选择为准：
+// 此前这里无条件覆盖成 group，刷新后用户切好的布局（columns/dock 等）会丢失。
+const monitorGlobalStore = useGlobalStore(app.pinia);
+if (!monitorGlobalStore.layoutChosen) {
+  monitorGlobalStore.setGlobalState("layout", "group");
+}
 
 // 操作日志需要操作人：后端从 X-User-Name 头取（见 ProjectOpLogServiceImpl）。
 // 在挂载后统一给所有请求补上当前登录账号：登录前 username 为空则跳过，

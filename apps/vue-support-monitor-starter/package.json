@@ -31,6 +31,7 @@
     "@pages/docker": "workspace:*",
     "@pages/filesystem": "workspace:*",
     "@pages/hotsport": "workspace:*",
+    "@pages/logger": "workspace:*",
     "@pages/monitor": "workspace:*",
     "@pages/osgi": "workspace:*",
     "@pages/room": "workspace:*",

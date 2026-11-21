@@ -1,0 +1,36 @@
+{
+  "name": "@pages/logger",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "description": "日志控制台：实时流（SSE）/ 日志检索 / 应用实例 / 统计概览，对接 /v2/logger 后端契约",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "catalog:",
+    "@repo/core": "workspace:*",
+    "@repo/ui": "workspace:*",
+    "dayjs": "^1.11.13",
+    "element-plus": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@vitejs/plugin-vue": "catalog:",
+    "typescript": "catalog:",
+    "unplugin-auto-import": "^20.3.0",
+    "unplugin-vue-components": "^30.0.0",
+    "vite": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}

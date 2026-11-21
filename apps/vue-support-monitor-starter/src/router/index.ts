@@ -32,7 +32,7 @@
  * 本文件用 {@code ...createXxxRoutes()} 展开引用；本文件不再手写业务叶子，只在确实需要
  * 调整菜单排版时才保留本地分组（如监控管理 / 数据中心 / 系统管理等跨包拼装）。</p>
  *
- * 路由模式：hash（routerMode: "hash"）
+ * 路由模式：hash（框架默认，应用不再单独配置 routerMode）
  */
 import type { RouteConfigsTable } from "@repo/core";
 // 深导入 src/routes 而不是从包根导入 —— 包根 index.ts 有 registerMenuViewModules
@@ -51,6 +51,9 @@ import { createBigScreenRoutes } from "@pages/bigscreen/src/routes";
 import { osgiRoutes } from "@pages/osgi/src/routes";
 // 调试中心（CDP）：并进「分析管理」分组的叶子页（不再单开「运维管理」）。
 import { createCdpRoutes } from "@pages/debug/src/routes";
+// 日志中心（@pages/logger）：实时控制台 / 日志检索 / 应用实例 / 统计概览，
+// 分组「日志中心」+ /logger/* 四叶；后端 = monitor 进程内 logger-starter（/v2/logger）。
+import { createLoggerRoutes } from "@pages/logger/src/routes";
 import { createMonitorRoutes, createMonitorManageRoutes } from "@pages/monitor/src/routes";
 // P2P 房间（@pages/room）：不单独占菜单，也不再注册 /room 路由——
 // 房间是服务侧的一种能力，由「服务管理」页在工作区里以页签打开。
@@ -534,6 +537,12 @@ export const monitorRoutes: RouteConfigsTable[] = [
   // SysLogManage / UserLogManage，后端是 /manage/**，monitor 没有 —— 同属本次移除的
   // 系统域页面。主机侧真正的日志是「主机资产 → 某台服务器 → 日志」页签
   // （ScHostLogs，读 journalctl / wevtutil），与本分组无关。
+
+  // ==================== 日志中心 ====================
+  // @pages/logger：视图 / API / 路由同源，宿主只做一行展开（与调试中心同款接法）。
+  // 后端 = monitor 进程内 logger-starter 服务端（plugin.logger.type=both），
+  // /v2/logger/** 由现有 "/v2" 代理转发到 monitor 后端；四页均带凭据访问。
+  ...createLoggerRoutes(),
 
   // ==================== 各功能包的隐藏路由合并 ====================
   // 以下几组路由的声明在各自的功能包里（视图、API、路由同源），宿主只做合并，

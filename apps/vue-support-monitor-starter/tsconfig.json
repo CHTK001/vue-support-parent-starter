@@ -47,6 +47,10 @@
       // 调试中心（CDP）：并进「分析管理」菜单 -> /debug，视图 + API + 路由同源
       "@pages/debug/*": ["../../pages/debug/*"],
       "@pages/debug": ["../../pages/debug/src/index.ts"],
+      // 日志中心（@pages/logger）：分组「日志中心」+ /logger/* 四叶，
+      // 路由入口 = @pages/logger/src/routes（深导入口径，同 debug）。
+      "@pages/logger/*": ["../../pages/logger/*"],
+      "@pages/logger": ["../../pages/logger/src/index.ts"],
       // CDP 工作台 UI（@pages/cdp）：浏览器式壳（@pages/debug）从这里取工作台组件
       // 与客户端通道。与根 tsconfig / createVite 共享别名同口径：@pages/cdp 指
       // pages/cdp/src（不是包根），业务深导入写 @pages/cdp/components/...。

@@ -1078,6 +1078,9 @@ importers:
       '@pages/hotsport':
         specifier: workspace:*
         version: link:../../pages/hotsport
+      '@pages/logger':
+        specifier: workspace:*
+        version: link:../../pages/logger
       '@pages/monitor':
         specifier: workspace:*
         version: link:../../pages/monitor
@@ -1600,9 +1603,6 @@ importers:
       '@repo/utils':
         specifier: workspace:*
         version: link:../utils
-      '@repo/web-llm':
-        specifier: workspace:*
-        version: link:../ui/web-llm
       '@repo/work':
         specifier: workspace:*
         version: link:../work
@@ -2026,6 +2026,18 @@ importers:
       '@mlc-ai/web-llm':
         specifier: ^0.2.79
         version: 0.2.84
+      '@repo/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:..
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../../utils
       vue:
         specifier: 'catalog:'
         version: 3.5.45(typescript@5.9.3)
@@ -2244,6 +2256,9 @@ importers:
       '@repo/utils':
         specifier: workspace:*
         version: link:../../packages/utils
+      '@repo/web-llm':
+        specifier: workspace:*
+        version: link:../../packages/ui/web-llm
       '@tiptap/core':
         specifier: ^3.26.0
         version: 3.31.3(@tiptap/pm@3.31.3)
@@ -3155,6 +3170,52 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+
+  pages/logger:
+    dependencies:
+      '@element-plus/icons-vue':
+        specifier: 'catalog:'
+        version: 2.3.2(vue@3.5.45(typescript@5.9.3))
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      dayjs:
+        specifier: ^1.11.13
+        version: 1.11.21
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.14.7(vue@3.5.45(typescript@5.9.3))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.45(typescript@5.9.3)
+      vue-router:
+        specifier: ^4.6.4
+        version: 4.6.4(vue@3.5.45(typescript@5.9.3))
+    devDependencies:
+      '@types/node':
+        specifier: ^25.5.0
+        version: 25.9.6
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 6.0.11(vite@8.3.8(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1)(terser@5.51.2))(vue@3.5.45(typescript@5.9.3))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      unplugin-auto-import:
+        specifier: ^20.3.0
+        version: 20.3.0(@nuxt/kit@4.5.2(magic-string@1.4.5)(oxc-parser@0.153.0)(rolldown@1.2.19)(unplugin@3.4.0(esbuild@0.28.1)(rolldown@1.2.19)(rollup@4.62.3)(vite@8.3.8(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1)(terser@5.51.2))))(@vueuse/core@15.0.0(vue@3.5.45(typescript@5.9.3)))
+      unplugin-vue-components:
+        specifier: ^30.0.0
+        version: 30.0.0(@babel/parser@7.29.14)(@nuxt/kit@4.5.2(magic-string@1.4.5)(oxc-parser@0.153.0)(rolldown@1.2.19)(unplugin@3.4.0(esbuild@0.28.1)(rolldown@1.2.19)(rollup@4.62.3)(vite@8.3.8(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1)(terser@5.51.2))))(vue@3.5.45(typescript@5.9.3))
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.8(@types/node@25.9.6)(esbuild@0.28.1)(jiti@2.7.0)(sass@1.104.1)(terser@5.51.2)
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.12(typescript@5.9.3)
 
   pages/message:
     dependencies:

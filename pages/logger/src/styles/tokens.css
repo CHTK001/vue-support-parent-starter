@@ -1,0 +1,42 @@
+/**
+ * 日志控制台设计令牌：基础取值对齐 @repo/theme（packages/theme/src/styles/tokens.css），
+ * 另加 logger 专属的 --log-level-* 级别色与状态色（不入主题包）。
+ */
+/* 作用域：独立运行时挂在 <html class="logger-standalone">（见 ../main.ts）；
+   被宿主应用嵌挂时挂在各视图根的 .logger-scope 上（自定义属性随 DOM 继承）。
+   不用裸 :root：这里的 --bg-page / --text-primary / --brand-500 与 @repo/theme
+   同名，裸 :root 会在宿主（monitor 暗色主题）里覆盖主题变量。 */
+html.logger-standalone,
+.logger-scope {
+  /* 品牌 */
+  --brand-500: #6d5dfc;
+  --brand-50: rgba(109, 93, 252, 0.08);
+
+  /* 背景 */
+  --bg-page: #f6f7fb;
+  --bg-card: #ffffff;
+  --bg-hover: #f2f3f8;
+  --bg-sunken: #fafbfe;
+
+  /* 文本 */
+  --text-primary: #1f2430;
+  --text-secondary: #5c6470;
+  --text-muted: #8a919c;
+
+  /* 边框 */
+  --border-light: #e5e8ef;
+
+  /* 日志级别色 */
+  --log-level-error: #f56c6c;
+  --log-level-warn: #e6a23c;
+  --log-level-info: #409eff;
+  --log-level-debug: #909399;
+  --log-level-trace: #b8bec9;
+
+  /* 状态色 */
+  --status-ok: #67c23a;
+  --status-bad: #f56c6c;
+
+  /* 等宽字体（时间 / logger / 堆栈） */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
