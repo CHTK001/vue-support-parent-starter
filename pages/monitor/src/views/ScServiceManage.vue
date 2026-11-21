@@ -868,18 +868,19 @@ function tabCtx(name: string): ServiceTab | undefined {
   }
 }
 
-/* 工具条固定一行：不够先压搜索框，右侧按钮不换行 */
+/* 工具条：窄侧栏（268px）单行放不下「搜索+协议+排序」，放不下时换行，
+   搜索框独占一行保住可输入宽度（否则会被压到 0 宽不可用） */
 .svm-tools {
   flex: none;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 8px 8px 6px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .svm-search {
-  flex: 1 1 90px;
+  flex: 1 1 100%;
   min-width: 0;
 }
 
