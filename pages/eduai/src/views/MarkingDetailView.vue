@@ -157,6 +157,15 @@ const stopPolling = () => {
   pollCtrl = null;
 };
 
+/**
+ * 任务是否已到终态：2-已完成（含「有失败题待重判」的完成）、3-整体失败。
+ *
+ * <p>有 AI 判分失败题时后端 {@code finished} 为 false（不能算判完），
+ * 但任务状态已是「已完成」——轮询必须停，否则会永远空转；
+ * 老师点「重判失败题」后任务回到处理中，由 onRegraded 重新拉起轮询。</p>
+ */
+const isSettledStatus = (status: unknown) => Number(status) === 2 || Number(status) === 3;
+
 const startPolling = () => {
   stopPolling();
   const currentId = taskId.value;
@@ -174,7 +183,7 @@ const startPolling = () => {
       const data = await eduaiApi.getMarkingResult(currentId, { signal: pollCtrl.signal });
       if (taskId.value !== currentId) return;
       result.value = data;
-      if (data?.finished || Number(data?.taskStatus) === 3) {
+      if (data?.finished || isSettledStatus(data?.taskStatus)) {
         stopPolling();
         // 判分结束：结构视图里才带逐题分，重拉一次（会短暂显示「正在读取…」）
         void load();
@@ -225,8 +234,9 @@ const load = async (silent = false) => {
     result.value = await eduaiApi.getMarkingResult(currentId, { signal });
     // 期间换了任务：本次结果丢弃（汇总按当前任务为准）
     if (taskId.value !== currentId) return;
-    // 还在判分：交给轮询自动刷新，判完会自己重拉结构
-    if (!result.value?.finished && Number(result.value?.taskStatus) !== 3) {
+    // 还在判分：交给轮询自动刷新，判完会自己重拉结构。
+    // 「已完成但有失败题」（finished=false 且 status=2）不轮询：等老师重判。
+    if (!result.value?.finished && !isSettledStatus(result.value?.taskStatus)) {
       startPolling();
     }
   } catch (e) {
@@ -245,6 +255,18 @@ const load = async (silent = false) => {
  */
 const onSaved = () => {
   void load(true);
+};
+
+/**
+ * 失败题重判已发起：任务回到处理中。
+ *
+ * <p>结构视图按新 key 重挂载（structurePromise 置空让它自己拉最新结构，
+ * 带上每题的判分状态）；汇总静默刷新后恢复轮询，判完自动重拉结构。</p>
+ */
+const onRegraded = () => {
+  refreshKey.value += 1;
+  structurePromise.value = null;
+  void load(true).then(() => startPolling());
 };
 
 const back = () => {
@@ -347,6 +369,7 @@ onUnmounted(stopPolling);
       :refresh-key="refreshKey"
       @saved="onSaved"
       @finished="onSaved"
+      @regraded="onRegraded"
     />
 
     <ReDialog v-model="studentDialogVisible" title="修改学生信息" width="420px">

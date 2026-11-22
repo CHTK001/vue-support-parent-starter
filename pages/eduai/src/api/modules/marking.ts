@@ -26,6 +26,17 @@ export const markingApi = {
       .get(`/v2/edu/marking/result/${taskId}`)
       .signal(opts?.signal)
       .then<MarkingResultVO>(unwrap),
+
+  /**
+   * 重判「AI 判分失败」的题目：只重跑失败行，已批改 / 已确认的题不动。
+   *
+   * <p>失败题得分未知（不是 0 分）。重判走既有判分管线（SSE 进度照常推送），
+   * 前端继续用 {@link getMarkingResult} 轮询直到完成。</p>
+   */
+  regradeFailed: (taskId: string) =>
+    http()
+      .post(`/v2/edu/marking/${taskId}/regrade-failed`)
+      .then<boolean>(unwrap),
   confirmMarking: (data: { taskId: string; adjustments: MarkingAdjust[] }) =>
     http()
       .put("/v2/edu/marking/confirm")

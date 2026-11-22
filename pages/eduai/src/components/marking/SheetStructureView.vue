@@ -143,7 +143,12 @@
             </template>
             <template #col-score="{ row }">
               <span class="ss-ai-score">
-                {{ row.score ?? '-' }}{{ row.maxScore != null && row.maxScore !== '' ? `/${row.maxScore}` : '' }}
+                <el-tag v-if="isFailedRow(row)" size="small" type="danger" effect="plain" title="AI 判分失败：得分未知，待重判或老师手动给分">
+                  判分失败
+                </el-tag>
+                <template v-else>
+                  {{ row.score ?? '-' }}{{ row.maxScore != null && row.maxScore !== '' ? `/${row.maxScore}` : '' }}
+                </template>
               </span>
             </template>
             <template #col-editScore="{ row }">
@@ -171,7 +176,7 @@
             <template #col-editComment="{ row }">
               <div class="ss-comment-cell">
                 <span class="ss-comment-text" :title="row.editComment || ''">{{ row.editComment || '—' }}</span>
-                <el-button size="small" type="primary" link :disabled="isVirtual(row) || !row.score && !row.comment" @click.stop="applyAi(row)">采用AI</el-button>
+                <el-button size="small" type="primary" link :disabled="isVirtual(row) || isFailedRow(row) || (!row.score && !row.comment)" title="AI 判分失败的题得分未知，不能采用" @click.stop="applyAi(row)">采用AI</el-button>
                 <el-icon
                   class="ss-comment-edit"
                   :class="{ 'ss-comment-edit--filled': !!row.editComment }"
@@ -630,10 +635,17 @@ const onCommentChange = (row: any) => {
   dirty.value = questions.value.some((q) => q.dirty);
 };
 
+/** AI 判分失败行（status=3）：得分未知，不能采用 AI 分，需重判或老师手动给分 */
+const isFailedRow = (q: any) => Number(q?.status) === 3;
+
 /** 一键采用 AI 判分：把 AI 分与 AI 评语落到老师分与老师评语，待保存 */
 const applyAi = (row: any) => {
   if (isVirtual(row)) {
     message.warning('历史聚合题不能一键采用 AI 判分');
+    return;
+  }
+  if (isFailedRow(row)) {
+    message.warning('该题 AI 判分失败、得分未知，请先重判失败题或手动给分');
     return;
   }
   row.editScore = Number(row.score ?? 0);
@@ -643,15 +655,15 @@ const applyAi = (row: any) => {
   message.success(`已采用 AI 判分：第 ${row.no || '?'} 题`);
 };
 
-/** 是否有可批量采用的 AI 判分（非历史聚合、且 AI 分或评语不为空） */
+/** 是否有可批量采用的 AI 判分（非历史聚合、非判分失败、且 AI 分或评语不为空） */
 const applyAllDisabled = computed(() =>
-  !questions.value.some((q) => !isVirtual(q) && (Number(q.score ?? 0) > 0 || String(q.comment ?? '').trim() !== '')),
+  !questions.value.some((q) => !isVirtual(q) && !isFailedRow(q) && (Number(q.score ?? 0) > 0 || String(q.comment ?? '').trim() !== '')),
 );
 
 /** 全部采用 AI 判分：把当前试卷所有可用 AI 分/评语一次性落到老师分/评语 */
 const applyAllAi = () => {
   const targets = questions.value.filter(
-    (q) => !isVirtual(q) && (Number(q.score ?? 0) > 0 || String(q.comment ?? '').trim() !== ''),
+    (q) => !isVirtual(q) && !isFailedRow(q) && (Number(q.score ?? 0) > 0 || String(q.comment ?? '').trim() !== ''),
   );
   if (targets.length === 0) {
     message.info('当前没有可采用的 AI 判分');

@@ -315,10 +315,13 @@ export interface MarkingResultVO {
     resultId: number;
     questionId: number;
     maxScore?: number;
-    score: number;
+    /** AI 判分得分；null = AI 判分失败（得分未知，待重判或教师手动给分） */
+    score: number | null;
     comment?: string;
     teacherScore?: number;
     teacherComment?: string;
+    /** 单题状态：0-待批改 1-AI已批改 2-教师已确认 3-AI判分失败 */
+    status?: number;
   }>;
 }
 

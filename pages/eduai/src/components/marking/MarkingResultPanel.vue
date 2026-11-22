@@ -43,6 +43,8 @@ const emit = defineEmits<{
   (e: "saved"): void;
   /** 阅卷完成（错题已归位）：父级据此刷新 */
   (e: "finished"): void;
+  /** 失败题重判已发起：父级据此重挂结构视图并恢复进度轮询 */
+  (e: "regraded"): void;
 }>();
 
 /** AI 总分 / 老师总分：老师总分 = Σ(老师分 ?? AI 分)，老师分为最终成绩（与后端 totalScore 同口径） */
@@ -79,6 +81,12 @@ const teacherFinished = computed(() => !!props.result?.teacherFinished);
  * 所以不能只看 finished，否则失败的卷子会显示成「已判分」，老师还能点「完成」。</p>
  */
 const taskFailed = computed(() => Number(props.result?.taskStatus) === 3);
+/** AI 判分失败的题数（status=3：得分未知，待重判或老师手动给分） */
+const failedCount = computed(
+  () => (props.result?.results ?? []).filter((r) => Number(r.status) === 3).length,
+);
+/** 任务是否正在处理中（重判会再次进入判分管线，处理中不允许重复发起） */
+const taskProcessing = computed(() => Number(props.result?.taskStatus) === 1);
 /** 本卷是否有逐题结果；失败任务的结果行是空的 */
 const hasResults = computed(() => (props.result?.results?.length ?? 0) > 0);
 /** 判分未结束/失败，或没有逐题结果时不允许完成 */
@@ -86,11 +94,14 @@ const canFinish = computed(() => !!props.result?.finished && hasResults.value &&
 /** 汇总行状态文案：失败要如实说失败，不能混成「已判分」 */
 const statusText = computed(() => {
   if (taskFailed.value) return '判分失败';
-  return props.result?.finished ? '已判分' : '判分中';
+  if (props.result?.finished) return '已判分';
+  if (failedCount.value > 0 && !taskProcessing.value) return '待重判';
+  return '判分中';
 });
 /** 按钮禁用原因（悬停提示，避免老师以为界面坏了） */
 const finishHint = computed(() => {
   if (taskFailed.value) return '本卷判分失败，没有可归入错题的结果';
+  if (failedCount.value > 0) return '还有 AI 判分失败的题（得分未知），请先重判失败题或手动给分';
   if (!hasResults.value) return '本卷还没有逐题结果，无法完成';
   if (!props.result?.finished) return '判分还没结束，请稍候';
   return '把本卷判为错的题按最终成绩归入该学生的错题库';
@@ -104,6 +115,33 @@ const finishHint = computed(() => {
  * 问题，也没法据此决定重传还是找管理员。这里把原因如实摊开。</p>
  */
 const failReason = computed(() => (taskFailed.value ? String(props.result?.error ?? '').trim() : ''));
+
+/** 重判请求进行中 */
+const regrading = ref(false);
+
+/**
+ * 重判 AI 判分失败的题目：只重跑失败行，已批改 / 已确认的题不动。
+ *
+ * <p>失败题得分未知（不是 0 分）。老师可先整体重判；仍失败的再逐题手动给分
+ * （结构视图里改分保存后该题即置为教师已确认）。成功后任务回到处理中，
+ * 由父级恢复轮询并重挂结构视图。</p>
+ */
+async function regradeFailed(): Promise<void> {
+  const taskId = props.taskId;
+  if (!taskId || regrading.value) {
+    return;
+  }
+  regrading.value = true;
+  try {
+    await eduaiApi.regradeFailed(taskId);
+    message.success('已发起重判，正在重新判分失败的题目');
+    emit('regraded');
+  } catch (e) {
+    failToast('重判发起失败', e);
+  } finally {
+    regrading.value = false;
+  }
+}
 
 /**
  * 完成前先把老师改的分落库。
@@ -254,7 +292,21 @@ async function undoFinish(): Promise<void> {
         老师总分 <b>{{ totals.final }}</b>
         <ReTag size="small" type="success">老师分为最终成绩</ReTag>
         <ReTag v-if="taskFailed" size="small" type="danger">判分失败</ReTag>
+        <ReTag v-if="failedCount > 0" size="small" type="warning">
+          AI 判分失败 {{ failedCount }} 题
+        </ReTag>
         <span class="mr-spacer" />
+        <el-tooltip v-if="failedCount > 0" content="只重跑判分失败的题，已批改 / 已确认的题不动" placement="top">
+          <el-button
+            size="small"
+            type="warning"
+            :loading="regrading"
+            :disabled="taskProcessing"
+            @click="regradeFailed"
+          >
+            重判失败题
+          </el-button>
+        </el-tooltip>
         <ReTag v-if="teacherFinished" size="small" type="info">已完成</ReTag>
         <el-tooltip v-if="teacherFinished" content="撤销后错题记录将被移除" placement="top">
           <el-button size="small" type="warning" :loading="undoing" @click="undoFinish">
