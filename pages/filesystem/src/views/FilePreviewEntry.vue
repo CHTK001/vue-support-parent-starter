@@ -488,6 +488,27 @@ function reload(): void {
 }
 
 /**
+ * 下载地址摘掉 {@code preview} 参数。
+ *
+ * <p>票据签发返回的 URL 自带 {@code preview=true}（预览通道），而服务端预览
+ * 通道的优先级高于 {@code download=true}：两个参数并存时回的是内联渲染响应
+ * （Content-Disposition: inline），浏览器只会在新标签里展示、不触发下载。
+ * 下载前必须把 {@code preview} 摘掉，只留 {@code download=true}。</p>
+ *
+ * @param url 票据/直链地址
+ * @return 去掉 preview 参数后的地址
+ */
+function stripPreviewForDownload(url: string): string {
+  try {
+    const u = new URL(url, window.location.href);
+    u.searchParams.delete("preview");
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
  * 下载原文件。
  *
  * <p>能解析出桶键时与各前端直渲面板同口径：签短时票据，顶层对象带
@@ -501,14 +522,15 @@ async function downloadSource(): Promise<void> {
       : { download: "true" };
     const url = await resolveObjectUrl(dlBucketKey.value.bucket, dlBucketKey.value.objectKey, { params }).catch(() => "");
     if (url) {
-      window.open(url, "_blank", "noopener");
+      // 包内条目走内联预览通道（网关固定 inline）；普通对象走附件下载
+      window.open(dlInner.value ? url : stripPreviewForDownload(url), "_blank", "noopener");
       return;
     }
   }
   if (downloadUrl.value) {
     // 顶层下载直链本身已带 download=true，避免重复拼接
     const u = /[?&]download=true(&|$)/.test(downloadUrl.value) ? downloadUrl.value : withParam(downloadUrl.value, "download=true");
-    window.open(u, "_blank", "noopener");
+    window.open(stripPreviewForDownload(u), "_blank", "noopener");
   }
 }
 
@@ -766,9 +788,9 @@ onMounted(async (): Promise<void> => {
   const boot = window.__FILE_PREVIEW_BOOT__;
   if (boot?.bytesUrl) {
     channelLabel.value = "boot";
+    const bucketKey = boot.bucket && boot.key ? { bucket: boot.bucket, objectKey: boot.key } : null;
     try {
       const name = boot.fileName || "file";
-      const bucketKey = boot.bucket && boot.key ? { bucket: boot.bucket, objectKey: boot.key } : null;
       // 按需取字节：只有客户端渲染器需要整包字节；Office / 专用面板先分发后自行取数，
       // 首帧不再等整包下载（加载延迟优化）
       let bytes: Uint8Array | undefined;
@@ -789,6 +811,10 @@ onMounted(async (): Promise<void> => {
     } catch (e) {
       const msg = (e as Error)?.message ?? "";
       console.warn("[FilePreviewEntry] 引导字节获取失败", e);
+      // 失败态保留下载出口：桶键已知时，即使取数/渲染失败用户仍可下载原文件
+      if (bucketKey) {
+        dlBucketKey.value = bucketKey;
+      }
       // 用户主动取消：中性提示，不算错误
       if ((e as DOMException)?.name === "AbortError") {
         fail("已取消加载，可点击重试重新拉取");
