@@ -154,14 +154,29 @@
             纯文本 trace（thinking/轮次/用量）不再整块倾倒给用户。
           -->
 
-          <!-- 错误提示 -->
+          <!--
+            错误/超时提示：附「重试一次」按钮（仅最后一轮显示，与 MessageActions 的
+            重新生成同门槛）。失败/超时轮次原本只挂一块告警卡片，用户只能重新打字、
+            或去找悬停操作条里的重新生成图标；这里把重试直接递到眼前，
+            点击走既有 regenerate 链路（清掉本轮失败回答 → 重新流式）。
+          -->
           <el-alert v-if="assistantMetadata?.finishReason === 'error'" :title="t('chat.turn.apiError')" type="error" :closable="false">
-            {{ assistantMetadata.errorDetail }}
+            <div>{{ assistantMetadata.errorDetail }}</div>
+            <div v-if="isLast" class="mt-2">
+              <el-button size="small" type="primary" plain @click="emit('regenerate', activeAssistant)">
+                {{ t('chat.turn.retryReply') }}
+              </el-button>
+            </div>
           </el-alert>
 
           <!-- 超时提示 -->
           <el-alert v-if="assistantMetadata?.finishReason === 'timeout'" :title="t('chat.turn.requestTimeout')" type="warning" :closable="false">
-            {{ assistantMetadata.errorDetail || t('chat.turn.serverNoResponse') }}
+            <div>{{ assistantMetadata.errorDetail || t('chat.turn.serverNoResponse') }}</div>
+            <div v-if="isLast" class="mt-2">
+              <el-button size="small" type="primary" plain @click="emit('regenerate', activeAssistant)">
+                {{ t('chat.turn.retryReply') }}
+              </el-button>
+            </div>
           </el-alert>
 
           <!-- 用户终止提示 -->

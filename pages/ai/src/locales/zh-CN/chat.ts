@@ -397,6 +397,7 @@ export default {
     systemMessageSubAgent: '来自子代理的系统消息',
     systemMessage: '系统消息',
     apiError: 'API 请求错误',
+    retryReply: '重试一次',
     requestTimeout: '请求超时',
     routeTitle: '本轮实际应答的供应商',
     routeUnknownProvider: '未知供应商',

@@ -389,6 +389,7 @@ export default {
     systemMessageSubAgent: 'System message from sub-agent',
     systemMessage: 'System Message',
     apiError: 'API Request Error',
+    retryReply: 'Retry',
     requestTimeout: 'Request Timeout',
     routeTitle: 'Provider that actually served this reply',
     routeUnknownProvider: 'Unknown provider',
