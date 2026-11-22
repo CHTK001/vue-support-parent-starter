@@ -40,6 +40,20 @@
       <span class="thinking-ph__text" aria-hidden="true">{{ phrase }}</span>
       <!-- 已等待时长：3 秒前不显示（一闪而过的「1s」反而毛躁） -->
       <span v-if="elapsed >= 3" class="thinking-ph__clock" aria-hidden="true">{{ clockText }}</span>
+      <!--
+        长等待出口：超过 20s（安抚档门槛，见 utils/thinkingPhrases.ts）且父级
+        允许时，占位行右侧补一颗低调「停止生成」。等 20s 以上用户只有干等和
+        猜两个选项，停止入口在输入框里、视线外；这里把它递到眼前。
+        只在长等待出现，不喧宾夺主；点击后由父级调用既有 abort 链路。
+      -->
+      <button
+        v-if="showStop && elapsed >= stopAfterSec"
+        type="button"
+        class="thinking-ph__stop"
+        :title="t('chat.input.stopGenerating')"
+        @click="emit('stop')">
+        {{ t('chat.input.stopGenerating') }}
+      </button>
     </div>
     <!-- 不确定进度条：宽度永远不满，只传达「还在推进」 -->
     <span class="thinking-ph__bar" aria-hidden="true"><i class="thinking-ph__bar-fill"></i></span>
@@ -49,6 +63,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { apiService } from '@/services/ApiService'
 import {
   getThinkingPhrases,
@@ -57,11 +72,29 @@ import {
   setCustomThinkingPhrases,
 } from '@/utils/thinkingPhrases'
 
-const props = defineProps<{
+const { t } = useI18n()
+
+const props = withDefaults(defineProps<{
   /** 指定文案列表；不传则用会话管理里配置的列表（未配置时是内置默认） */
   phrases?: string[]
   /** 轮换间隔（毫秒） */
   intervalMs?: number
+  /**
+   * 是否允许显示长等待「停止生成」出口（默认关闭）。
+   * 由父级按「该轮次真的可以被中止」决定：普通轮次 true，流式发起的
+   * 子任务轮（不存在独立的 abort 语义）由父级传 false。
+   */
+  showStop?: boolean
+  /** 长等待多久（秒）后出现「停止生成」出口；默认 20s（与安抚档门槛一致） */
+  stopAfterSec?: number
+}>(), {
+  showStop: false,
+  stopAfterSec: 20,
+})
+
+/** 出口按钮是否会被点击 —— 供父级监听的 stop 事件 */
+const emit = defineEmits<{
+  stop: []
 }>()
 
 /** 当前显示的一句 */
@@ -299,6 +332,36 @@ onBeforeUnmount(() => {
   line-height: 18px;
   opacity: 0.55;
   font-variant-numeric: tabular-nums;
+}
+
+/*
+  长等待「停止生成」出口：与占位同族的小号文字按钮（12px、无边框背景）。
+  只在等 20s 以上才出现，位置在秒数右侧，视线从「等」自然过渡到「可以停」。
+*/
+.thinking-ph__stop {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  height: 20px;
+  line-height: 20px;
+  font-size: 12px;
+  color: var(--el-color-primary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+.thinking-ph__stop:hover {
+  background: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  opacity: 1;
+}
+
+.thinking-ph__stop:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 1px;
 }
 
 /*

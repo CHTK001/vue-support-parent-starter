@@ -105,7 +105,11 @@
             不让 AI 气泡在等首字时是一块空白 —— 本机实测等待 5～50s，
             空白会被读成「卡死了」。首字一到即由正文顶替（见 showThinkingPlaceholder）。
           -->
-          <ThinkingPlaceholder v-if="showThinkingPlaceholder" class="mt-3" />
+          <ThinkingPlaceholder
+            v-if="showThinkingPlaceholder"
+            class="mt-3"
+            :show-stop="isLast"
+            @stop="emit('abort')" />
 
           <!--
             Agent 产出图片就地预览：正文/工具调用里提到的工作区图片文件，
@@ -156,15 +160,24 @@
 
           <!--
             错误/超时提示：附「重试一次」按钮（仅最后一轮显示，与 MessageActions 的
-            重新生成同门槛）。失败/超时轮次原本只挂一块告警卡片，用户只能重新打字、
-            或去找悬停操作条里的重新生成图标；这里把重试直接递到眼前，
-            点击走既有 regenerate 链路（清掉本轮失败回答 → 重新流式）。
+            重新生成同门槛）+「复制错误详情」小按钮（报障/排查方便）。
+            点击重试走既有 regenerate 链路（清掉本轮失败回答 → 重新流式）；
+            按钮带防抖与加载态（retrying），避免快速双击触发两次清场/请求。
+            错误详情按内容分类：无可用 ChatClient 时提示更换模型（该场景重试大概率
+            同样失败，不鼓励盲目点重试）；纯超时/其它类只给重试入口。
           -->
           <el-alert v-if="assistantMetadata?.finishReason === 'error'" :title="t('chat.turn.apiError')" type="error" :closable="false">
             <div>{{ assistantMetadata.errorDetail }}</div>
-            <div v-if="isLast" class="mt-2">
-              <el-button size="small" type="primary" plain @click="emit('regenerate', activeAssistant)">
-                {{ t('chat.turn.retryReply') }}
+            <div v-if="errorKind === 'no-client'" class="mt-1 text-xs opacity-80">
+              {{ t('chat.turn.errorModelUnavailable') }}
+            </div>
+            <div v-if="isLast" class="mt-2 flex items-center gap-2">
+              <el-button size="small" type="primary" plain :loading="retrying"
+                :disabled="retrying || streamingState.isStreaming" @click="handleRetry">
+                {{ retrying ? t('chat.turn.retryPending') : t('chat.turn.retryReply') }}
+              </el-button>
+              <el-button size="small" text @click="copyErrorDetail">
+                {{ t('chat.turn.errorCopyDetail') }}
               </el-button>
             </div>
           </el-alert>
@@ -172,9 +185,13 @@
           <!-- 超时提示 -->
           <el-alert v-if="assistantMetadata?.finishReason === 'timeout'" :title="t('chat.turn.requestTimeout')" type="warning" :closable="false">
             <div>{{ assistantMetadata.errorDetail || t('chat.turn.serverNoResponse') }}</div>
-            <div v-if="isLast" class="mt-2">
-              <el-button size="small" type="primary" plain @click="emit('regenerate', activeAssistant)">
-                {{ t('chat.turn.retryReply') }}
+            <div v-if="isLast" class="mt-2 flex items-center gap-2">
+              <el-button size="small" type="primary" plain :loading="retrying"
+                :disabled="retrying || streamingState.isStreaming" @click="handleRetry">
+                {{ retrying ? t('chat.turn.retryPending') : t('chat.turn.retryReply') }}
+              </el-button>
+              <el-button size="small" text @click="copyErrorDetail">
+                {{ t('chat.turn.errorCopyDetail') }}
               </el-button>
             </div>
           </el-alert>
@@ -740,6 +757,65 @@ const assistantMetadata = computed<Record<string, any> | null>(() => {
     ...messageMeta,
   };
 });
+
+/**
+ * 错误详情分类：决定错误卡片给什么引导。
+ *
+ * <p>「No available ChatClient for model: ...」（渠道侧没有可用客户端）是确定性
+ * 失败——渠道/模型配置问题不因重试而改变，盲目点重试大概率再失败一次，
+ * 卡片上就多给一句「建议更换模型」的说明，而不是把重试当成唯一出口。</p>
+ */
+const errorKind = computed<'no-client' | 'other'>(() => {
+  const detail = String(assistantMetadata.value?.errorDetail || '');
+  return /no available chatclient|no chatclient|chatclient.*not available|无可用.*(chatclient|客户端)/i.test(detail)
+    ? 'no-client'
+    : 'other';
+});
+
+/**
+ * 「重试一次」按钮的防抖与加载态。
+ *
+ * <p>点击后立即置 loading + disabled，防止快速双击触发两次 regenerate
+ * （regenerate 会先清掉本轮失败回答再重新流式，双触会双重清场）。</p>
+ *
+ * <p>为什么用延时兜底复位：regenerate 成功后父级会删除旧消息、切换 activeAssistant，
+ * 错误卡片与按钮随之卸载，loading 状态无人看；只有失败/未被采纳时才需要复位。
+ * 3s 足够覆盖「清场 → 重新流式」的开窗期，且流式期间按钮本就 disabled。</p>
+ */
+const retrying = ref(false);
+function handleRetry(): void {
+  if (retrying.value || streamingState.value.isStreaming) return;
+  retrying.value = true;
+  const target = activeAssistant.value;
+  if (target) {
+    emit('regenerate', target);
+  }
+  window.setTimeout(() => {
+    retrying.value = false;
+  }, 3000);
+}
+
+/** 复制错误详情到剪贴板（报障/排查用）；http 部署降级用 execCommand。 */
+async function copyErrorDetail(): Promise<void> {
+  const detail = String(assistantMetadata.value?.errorDetail || '');
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(detail);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = detail;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    toast.success(t('common.copySuccess'));
+  } catch {
+    toast.error(t('common.copyFailed'));
+  }
+}
 
 /**
  * 「实际由哪家供应商应答」的提示文案。
