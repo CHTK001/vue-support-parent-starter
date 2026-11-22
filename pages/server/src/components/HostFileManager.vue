@@ -187,10 +187,10 @@
           <table class="we-table">
             <thead>
               <tr>
-                <th class="col-name">名称</th>
-                <th class="col-date">修改日期</th>
-                <th class="col-type">类型</th>
-                <th class="col-size">大小</th>
+                <th class="col-name" @click="setSort('name')">名称<span v-if="sortKey === 'name'" class="we-sort-arrow">{{ sortAsc ? '▲' : '▼' }}</span></th>
+                <th class="col-date" @click="setSort('modified')">修改日期<span v-if="sortKey === 'modified'" class="we-sort-arrow">{{ sortAsc ? '▲' : '▼' }}</span></th>
+                <th class="col-type" @click="setSort('type')">类型<span v-if="sortKey === 'type'" class="we-sort-arrow">{{ sortAsc ? '▲' : '▼' }}</span></th>
+                <th class="col-size" @click="setSort('size')">大小<span v-if="sortKey === 'size'" class="we-sort-arrow">{{ sortAsc ? '▲' : '▼' }}</span></th>
               </tr>
             </thead>
             <tbody>
@@ -198,9 +198,12 @@
                 v-for="file in displayFiles"
                 :key="file.name"
                 :class="{ selected: selected === file.name, 'move-over': moveOver === file.name }"
+                draggable="true"
                 @click.stop="selected = file.name"
                 @dblclick.stop="onOpen(file)"
                 @contextmenu.prevent.stop="onFileContextMenu($event, file)"
+                @dragstart="onRowDragStart($event, file)"
+                @dragend="onRowDragEnd"
                 @dragover="onFolderDragOver($event, file)"
                 @dragleave="onFolderDragLeave(file)"
                 @drop="onFolderDrop($event, file)"
@@ -213,7 +216,7 @@
                 </td>
                 <td class="col-date">{{ formatDateShort(file.modified) }}</td>
                 <td class="col-type"><span class="we-type-tag">{{ typeLabel(file) }}</span></td>
-                <td class="col-size">{{ file.isDir ? '' : formatSize(file.size) }}</td>
+                <td class="col-size">{{ file.isDir ? '—' : formatSize(file.size) }}</td>
               </tr>
             </tbody>
           </table>
@@ -506,12 +509,29 @@ async function loadColFiles(col: Col): Promise<void> {
     col.loading = false;
   }
 }
+/** 释放列持有的图片 blob URL，防止列被截断/重建后泄漏 */
+function disposeCol(col: Col): void {
+  if (col.previewUrl) { URL.revokeObjectURL(col.previewUrl); col.previewUrl = undefined; }
+}
+function disposeCols(cols: Col[]): void { cols.forEach(disposeCol); }
 /** 从指定路径开始重建列栈（单列） */
 function startColumns(path: string): void {
+  disposeCols(colStack.value);
   const col: Col = { path, files: [], loading: false, selected: "" };
   colStack.value = [col];
   // 必须取回代理对象：ref 数组会包装元素，直接改原对象不触发重绘（加载态会永远转圈）
   void loadColFiles(colStack.value[0]);
+}
+/**
+ * 列状视图下发生删除/重命名/移动/上传等改动后，按各列已有路径重新拉取，
+ * 保持已展开的层级不塌陷（navigate 重建走 startColumns，不走这里，避免双重请求）。
+ */
+async function refreshColumns(): Promise<void> {
+  if (viewMode.value !== "columns" || !colStack.value.length) return;
+  for (const col of colStack.value) {
+    if (col.file) continue; // 预览列不刷新
+    await loadColFiles(col);
+  }
 }
 /** 列内文件：文件夹优先、名称排序 */
 function colSorted(col: Col): HostFileItem[] {
@@ -521,6 +541,7 @@ function colSorted(col: Col): HostFileItem[] {
 }
 /** 在某列点选：文件夹→截断并追加下一列；文件→追加预览列 */
 async function onColPick(colIndex: number, file: HostFileItem): Promise<void> {
+  disposeCols(colStack.value.slice(colIndex + 1));
   colStack.value = colStack.value.slice(0, colIndex + 1);
   const col = colStack.value[colIndex];
   col.selected = file.name;
@@ -687,13 +708,19 @@ const currentName = computed(() => {
 /* ---------- 路径工具 ---------- */
 function join(base: string, name: string): string {
   if (!base) return name;
-  const b = base.endsWith("/") || base.endsWith("\\") ? base.slice(0, -1) : base;
-  return b + sep.value + name;
+  // 先规范化再拼接：避免 "D:/dir" + "\" 产出 D:/dir\name 这类混合分隔符路径。
+  // normalize 可能把 "/" 收敛成空串（Windows 下无盘符根），此时保留原值兜底
+  const b = normalize(base) || base;
+  return b.endsWith(sep.value) ? b + name : b + sep.value + name;
 }
 function parentOf(p: string): string {
   if (isWindows.value) {
-    const trimmed = p.endsWith("\\") ? p.slice(0, -1) : p;
+    // 统一分隔符后再取父：用户手输 "D:/a/b" 时 lastIndexOf("\\") 找不到，
+    // 旧逻辑会一路跳回盘根
+    const s = normalize(p);
+    const trimmed = /^[a-zA-Z]:\\$/.test(s) ? s : s.replace(/\\+$/, "");
     const idx = trimmed.lastIndexOf("\\");
+    if (idx < 0) return trimmed;
     if (idx <= 2) return trimmed.substring(0, 3);
     return trimmed.substring(0, idx);
   }
@@ -776,20 +803,32 @@ function pickSelectedFile() {
   emit("pick", join(currentPath.value, f.name));
 }
 
-/* ---------- 展示列表（过滤 + 文件夹优先排序） ---------- */
+/* ---------- 展示列表（过滤 + 文件夹优先排序，详情视图支持表头排序） ---------- */
 const emptyHint = computed(() => {
   if (loadError.value) return "无法打开此文件夹：" + loadError.value;
   return filterText.value ? "没有匹配的项目" : "此文件夹为空";
 });
+const sortKey = ref<"name" | "modified" | "type" | "size">("name");
+const sortAsc = ref(true);
+function setSort(k: "name" | "modified" | "type" | "size") {
+  if (sortKey.value === k) sortAsc.value = !sortAsc.value;
+  else { sortKey.value = k; sortAsc.value = true; }
+}
+function cmpFiles(a: HostFileItem, b: HostFileItem): number {
+  if (a.isDir !== b.isDir) return a.isDir ? -1 : 1; // 文件夹恒优先，不随方向翻转
+  let r = 0;
+  if (sortKey.value === "modified") r = (Date.parse(a.modified || "") || 0) - (Date.parse(b.modified || "") || 0);
+  else if (sortKey.value === "size") r = (Number(a.size) || 0) - (Number(b.size) || 0);
+  else if (sortKey.value === "type") r = typeLabel(a).localeCompare(typeLabel(b), "zh-Hans-CN");
+  if (r === 0) r = a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+  return sortAsc.value ? r : -r;
+}
 const displayFiles = computed<HostFileItem[]>(() => {
   const kw = filterText.value.trim().toLowerCase();
   // 兜底：后端异常返回 null/非数组时不要把空态当成崩溃（filter 会直接抛）
   let list = Array.isArray(files.value) ? files.value : [];
   if (kw) list = list.filter(f => f.name.toLowerCase().includes(kw));
-  return [...list].sort((a, b) => {
-    if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
-    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-  });
+  return [...list].sort(cmpFiles);
 });
 
 /* ---------- 加载 / 导航 ---------- */
@@ -841,14 +880,18 @@ async function load() {
   }
 }
 function navigate(path: string, push = true) {
-  const target = (path || "").trim();
+  // 统一规范化：地址栏/历史/当前路径始终保持平台原生分隔符
+  const target = normalize((path || "").trim());
   if (!target) return;
+  const same = isSamePath(target, currentPath.value);
   currentPath.value = target;
   pathInput.value = target;
   filterText.value = "";
-  if (push) {
+  if (push && !same) {
     hist.value = hist.value.slice(0, hIdx.value + 1);
     hist.value.push(target);
+    // 历史上限：超长会话不至于无限增长，丢最旧的一条
+    if (hist.value.length > 200) hist.value.shift();
     hIdx.value = hist.value.length - 1;
   }
   load();
@@ -967,8 +1010,16 @@ function fileSvg(px: number, name: string): string {
   <text x="24" y="39.6" font-size="${fs > 20 ? 7.5 : 6}" text-anchor="middle" fill="#ffffff" font-weight="700" font-family="Segoe UI, Arial" font-size-adjust="0.5">${esc(label)}</text>
 </svg>`;
 }
+/** SVG 字符串缓存：大目录下同一 (类型, 扩展名, 尺寸) 只构造一次 */
+const svgCache = new Map<string, string>();
 function iconSvg(file: HostFileItem, px: number): string {
-  return file.isDir ? folderSvg(px) : fileSvg(px, file.name);
+  const key = (file.isDir ? "d" : "f") + px + "|" + (file.isDir ? "" : file.name);
+  const hit = svgCache.get(key);
+  if (hit) return hit;
+  const s = file.isDir ? folderSvg(px) : fileSvg(px, file.name);
+  if (svgCache.size > 4000) svgCache.clear();
+  svgCache.set(key, s);
+  return s;
 }
 
 /* ---------- 编辑器 ---------- */
@@ -989,6 +1040,7 @@ async function saveEditor() {
     await writeHostFileContent(props.hostId, full, editorContent.value);
     message.success("已保存");
     editorVisible.value = false;
+    load(); // 刷新修改时间等元数据
   } catch (e: any) {
     message.error("保存失败: " + (e?.message || e));
   } finally {
@@ -1031,7 +1083,7 @@ async function confirmDelete(file: HostFileItem) {
   try {
     await deleteHostFile(props.hostId, join(currentPath.value, file.name));
     message.success("已删除");
-    load();
+    load(); void refreshColumns();
   } catch (e: any) {
     message.error("删除失败: " + (e?.message || e));
   }
@@ -1053,7 +1105,7 @@ async function confirmRename(file: HostFileItem) {
       join(currentPath.value, target)
     );
     message.success("已重命名");
-    load();
+    load(); void refreshColumns();
   } catch (e: any) {
     message.error("重命名失败: " + (e?.message || e));
   }
@@ -1072,7 +1124,7 @@ async function uploadFiles(fileList: File[]) {
       transfers.value[idx].state = "error";
     }
   }
-  load();
+  load(); void refreshColumns();
   setTimeout(() => {
     transfers.value = transfers.value.filter(t => t.state === "doing");
   }, 8000);
@@ -1088,6 +1140,8 @@ async function uploadOne(file: File, force = false) {
     return;
   }
   if (res.status === "TARGET_NEWER") {
+    // force 重传仍被拒（后端判定异常）时直接终止，避免无限递归弹窗
+    if (force) throw new Error(res.message || "强制覆盖被拒绝");
     await message.confirm(`${file.name}：${res.message}，是否强制覆盖？`, "覆盖确认", "强制覆盖", "取消", "warning");
     await uploadOne(file, true);
   }
@@ -1132,7 +1186,7 @@ async function onFolderDrop(e: DragEvent, folder: HostFileItem) {
   try {
     await renameHostFile(props.hostId, from, to);
     message.success(`已移动到 ${folder.name}`);
-    load();
+    load(); void refreshColumns();
   } catch (err: any) {
     message.error("移动失败: " + (err?.message || err));
   }
@@ -1386,6 +1440,9 @@ loadDrives();
   border-bottom: 1px solid var(--el-border-color-lighter);
   padding: 9px 12px;
 }
+.we-table thead th { cursor: pointer; user-select: none; }
+.we-table thead th:hover { color: var(--el-color-primary); }
+.we-sort-arrow { margin-left: 4px; font-size: 9px; opacity: .85; }
 .we-table tbody td {
   padding: 8px 12px;
   border-bottom: 1px solid var(--el-border-color-lighter);
