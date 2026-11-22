@@ -119,6 +119,8 @@ function ensurePhrasesLoaded(): Promise<void> {
 
 let timer: ReturnType<typeof setInterval> | null = null
 let clockTimer: ReturnType<typeof setInterval> | null = null
+/** 秒表起点（单调时钟）：后台标签页被节流/休眠后恢复，秒数仍对得上真实等待时长 */
+let clockStart = 0
 
 onMounted(() => {
   const gap = props.intervalMs && props.intervalMs > 0 ? props.intervalMs : 4500
@@ -126,9 +128,12 @@ onMounted(() => {
     nextPhrase()
   }, gap)
 
-  // 秒表：1s 一跳，只改数字，不触发文案重排
+  // 秒表：1s 一跳，只改数字，不触发文案重排。
+  // 用单调时钟差值而非累计 +1：浏览器会把后台标签页的 setInterval 节流到更低频
+  // （深度休眠甚至分钟级），累计计数会越走越慢、与真实等待时长脱节；差值不受节流影响。
+  clockStart = performance.now()
   clockTimer = setInterval(() => {
-    elapsed.value += 1
+    elapsed.value = Math.floor((performance.now() - clockStart) / 1000)
   }, 1000)
 
   // 配置到位后换一句（配置为空则保持内置默认，界面上不会闪）

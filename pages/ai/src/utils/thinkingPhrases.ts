@@ -77,6 +77,15 @@ export const DEFAULT_THINKING_PHRASES_PATIENT: string[] = [
 ];
 
 /**
+ * 安抚档实际轮换池：安抚档为主，掺两句普通档里的「快了」类文案，
+ * 避免长等待时语气完全切换的突兀感。模块级常量，免去每次轮换重建数组。
+ */
+const PATIENT_POOL: string[] = DEFAULT_THINKING_PHRASES_PATIENT.concat([
+  '再等等，快了…',
+  '正在把碎片拼成一句人话…',
+]);
+
+/**
  * 按已等待时长选一句文案。
  *
  * <p>用户配过自定义列表时**不分档**：用户既然自己配了文案，就完整轮换他自己那套；
@@ -88,9 +97,7 @@ export const DEFAULT_THINKING_PHRASES_PATIENT: string[] = [
  */
 export function pickThinkingPhraseForElapsed(elapsedSec: number, avoid?: string): string {
   if (customPhrases.length > 0) return pickThinkingPhrase(customPhrases, avoid);
-  const pool = elapsedSec >= 20
-    ? DEFAULT_THINKING_PHRASES_PATIENT.concat(['再等等，快了…', '正在把碎片拼成一句人话…'])
-    : DEFAULT_THINKING_PHRASES;
+  const pool = elapsedSec >= 20 ? PATIENT_POOL : DEFAULT_THINKING_PHRASES;
   return pickThinkingPhrase(pool, avoid);
 }
 
