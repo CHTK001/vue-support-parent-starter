@@ -15,7 +15,7 @@
  */
 import { getConfig } from "@repo/config";
 import { get, post, put, del } from "./http";
-import type { JobExecutor, JobLinkMetrics, JobLog, JobLogContent, JobLogQuery, JobNode, JobPage, JobQuery, JobRuntime, JobSave, JobSummary } from "../types/job";
+import type { JobDurationStats, JobExecutor, JobFailureTopItem, JobLinkMetrics, JobLog, JobLogContent, JobLogQuery, JobLogTrendPoint, JobNode, JobPage, JobQuery, JobRuntime, JobSave, JobSummary } from "../types/job";
 
 /**
  * 治理出口前缀：取宿主配置，缺省回落到采集控制台出口（与 @repo/config 的默认值一致）。
@@ -76,3 +76,26 @@ export const readJobLogContent = (filePath: string) =>
 /** 清理执行日志，retentionDays=0 表示清空全部 */
 export const cleanupJobLogs = (retentionDays: number) =>
   post<number>(`${apiPrefix()}/log/cleanup`, undefined, { retentionDays });
+
+/** 观测类聚合的时间窗入参：毫秒区间 + 可选分组 */
+export interface ObserveWindow {
+  startTime?: number;
+  endTime?: number;
+  group?: string;
+}
+
+/** 执行日志按小时聚合趋势（总数 / 成功 / 失败 / 跳过），窗口缺省最近 24 小时 */
+export const getJobLogTrend = (window: ObserveWindow = {}) =>
+  get<JobLogTrendPoint[]>(`${apiPrefix()}/log/trend`, { ...window });
+
+/** 执行失败次数 Top N（按失败次数降序），窗口缺省最近 24 小时，limit 缺省 10 上限 50 */
+export const getJobFailureTop = (window: ObserveWindow & { limit?: number } = {}) =>
+  get<JobFailureTopItem[]>(`${apiPrefix()}/log/failure-top`, { ...window });
+
+/** 执行耗时统计（总数 / 平均 / 最大 / P95），窗口缺省最近 24 小时 */
+export const getJobDurationStats = (window: ObserveWindow = {}) =>
+  get<JobDurationStats>(`${apiPrefix()}/log/duration-stats`, { ...window });
+
+/** 预览按保留天数清理将删除的日志条数（只读，不执行删除），retentionDays=0 表示清空全部 */
+export const previewCleanupJobLogs = (retentionDays: number) =>
+  get<number>(`${apiPrefix()}/log/cleanup/preview`, { retentionDays });

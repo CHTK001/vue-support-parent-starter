@@ -30,7 +30,7 @@ import ReTime from "@repo/ui/re-time";
 import type { ReOption } from "@repo/ui/re-select";
 import { useTableExport } from "@repo/ui/re-table";
 import type { RePageResult, ReTableColumn, ReTableLoadParams, ReTableSearchConfig } from "@repo/ui/re-table";
-import { cleanupJobLogs, getSummary, pageJobLogs, pageJobs, readJobLogContent, triggerJob } from "../api/jobApi";
+import { cleanupJobLogs, getSummary, pageJobLogs, pageJobs, previewCleanupJobLogs, readJobLogContent, triggerJob } from "../api/jobApi";
 import { costMs, statusTagType, statusText, triggerTagType, triggerText } from "../constants/taskStatus";
 import { COLLECT_FLOW_GROUP, type JobLog, type JobLogContent, type JobSummary } from "../types/job";
 import { confirmAction, errText } from "../composables/useCollectView";
@@ -442,9 +442,17 @@ async function showLogContent(input: Record<string, unknown>): Promise<void> {
 
 async function clean(): Promise<void> {
   const days = Number(retentionDays.value) || 0;
+  // 先只读预览将删除条数，让确认框给出真实数字；预览失败不拦清理，退回不带数字的原话术
+  let pending: number | null = null;
+  try {
+    pending = await previewCleanupJobLogs(days);
+  } catch {
+    pending = null;
+  }
+  const countText = pending == null ? "" : `，共 ${pending} 条`;
   const message = days === 0
-    ? "确认清空全部作业执行日志？该操作不可恢复。"
-    : `确认删除 ${days} 天前的作业执行日志？`;
+    ? `确认清空全部作业执行日志${countText}？该操作不可恢复。`
+    : `确认删除 ${days} 天前的作业执行日志${countText}？`;
   if (!(await confirmAction(message, "清理作业日志"))) {
     return;
   }

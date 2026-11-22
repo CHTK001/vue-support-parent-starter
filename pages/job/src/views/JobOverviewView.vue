@@ -24,12 +24,32 @@ import ReTime from "@repo/ui/re-time";
 import type { ReTableColumn } from "@repo/ui/re-table";
 import FireCountdown from "../components/FireCountdown.vue";
 import OvSpark from "../components/OvSpark.vue";
-import { getLinkMetrics, getSummary, listExecutors, listNodes, pageJobLogs, pageJobs } from "../api/jobApi";
+import {
+  getJobDurationStats,
+  getJobFailureTop,
+  getJobLogTrend,
+  getLinkMetrics,
+  getSummary,
+  listExecutors,
+  listNodes,
+  pageJobLogs,
+  pageJobs,
+} from "../api/jobApi";
 import { costMs, statusTagType, statusText } from "../constants/taskStatus";
-import type { JobExecutor, JobLinkMetrics, JobLog, JobNode, JobRuntime, JobSummary } from "../types/job";
+import type {
+  JobDurationStats,
+  JobExecutor,
+  JobFailureTopItem,
+  JobLinkMetrics,
+  JobLog,
+  JobLogTrendPoint,
+  JobNode,
+  JobRuntime,
+  JobSummary,
+} from "../types/job";
 import { useCollectView, errText } from "../composables/useCollectView";
 import { cronDesc, isFlowRow, scheduleText } from "../utils/jobFormat";
-import { fmtFireShort, fmtMs } from "../utils/time";
+import { fmtDuration, fmtFireShort, fmtMs } from "../utils/time";
 import { resolveHostPath } from "../utils/hostPath";
 
 /** ECharts 配置类型从组件实例的 props 反推：app 未直接依赖 echarts，不引它的类型入口 */
@@ -47,9 +67,8 @@ const HOUR_MS = 60 * 60 * 1000;
 const LEDGER_PAGE_SIZE = 500;
 const LEDGER_MAX_PAGES = 20;
 
-/** 日志分页拉全的页数上限：趋势图不需要把整表读回浏览器 */
+/** 最近派发样本的页大小：趋势已改走后端聚合，日志分页只喂列表与图上标注 */
 const LOG_PAGE_SIZE = 500;
-const LOG_MAX_PAGES = 4;
 
 const summary = ref<JobSummary | null>(null);
 /** 传输链路健康指标：取数失败只让对应面板显示提示，不拖垮整页 */
@@ -57,6 +76,12 @@ const linkMetrics = ref<JobLinkMetrics | null>(null);
 const jobs = ref<JobRuntime[]>([]);
 const logs = ref<JobLog[]>([]);
 const logTruncated = ref(false);
+/** 后端按小时聚合的 24 小时趋势（替代把窗口内日志全量拉回前端分桶） */
+const trend = ref<JobLogTrendPoint[]>([]);
+/** 近 24 小时失败次数 Top N */
+const failureTop = ref<JobFailureTopItem[]>([]);
+/** 近 24 小时耗时统计（平均 / 最大 / P95） */
+const durationStats = ref<JobDurationStats | null>(null);
 const nodes = ref<JobNode[]>([]);
 const executors = ref<JobExecutor[]>([]);
 const registryError = ref("");
@@ -79,25 +104,45 @@ async function loadJobs(): Promise<void> {
   jobs.value = all;
 }
 
-/** 近 24 小时日志分页拉全（不限状态码）；到上限即停并标记截断 */
+/**
+ * 最近派发样本（单页，最新在前）：喂「最近派发」列表与趋势图上的任务标注。
+ *
+ * 趋势数据改由后端按小时聚合（loadTrend），不再把窗口内日志整表拉回浏览器；
+ * 这里的样本只保证「最近派发」列表与标注有真实数据，样本外不参与统计。
+ */
 async function loadLogs(): Promise<void> {
   const startTime = Date.now() - FAILURE_WINDOW_MS;
-  const all: JobLog[] = [];
-  let truncated = false;
-  for (let pageNum = 1; pageNum <= LOG_MAX_PAGES; pageNum++) {
-    const page = await pageJobLogs({ pageNum, pageSize: LOG_PAGE_SIZE, startTime });
-    const rows = Array.isArray(page?.data) ? page.data : [];
-    all.push(...rows);
-    const total = Number(page?.total ?? 0);
-    if (rows.length < LOG_PAGE_SIZE || all.length >= total) {
-      break;
-    }
-    if (pageNum === LOG_MAX_PAGES) {
-      truncated = true;
-    }
+  const page = await pageJobLogs({ pageNum: 1, pageSize: LOG_PAGE_SIZE, startTime });
+  const rows = Array.isArray(page?.data) ? page.data : [];
+  logs.value = rows;
+  logTruncated.value = Number(page?.total ?? 0) > rows.length;
+}
+
+/** 近 24 小时按小时聚合的执行趋势（后端算好桶，前端只补零） */
+async function loadTrend(): Promise<void> {
+  try {
+    trend.value = await getJobLogTrend();
+  } catch {
+    trend.value = [];
   }
-  logs.value = all;
-  logTruncated.value = truncated;
+}
+
+/** 近 24 小时失败次数 Top N：取数失败只让对应面板显示空态，不拖垮整页 */
+async function loadFailureTop(): Promise<void> {
+  try {
+    failureTop.value = await getJobFailureTop({ limit: 8 });
+  } catch {
+    failureTop.value = [];
+  }
+}
+
+/** 近 24 小时耗时统计（平均 / 最大 / P95）：同上，失败不拖垮整页 */
+async function loadDurationStats(): Promise<void> {
+  try {
+    durationStats.value = await getJobDurationStats();
+  } catch {
+    durationStats.value = null;
+  }
 }
 
 /** 执行器与处理器清单：辅助面板，取数失败只让对应面板显示提示，不拖垮整页 */
@@ -116,12 +161,16 @@ async function loadRegistry(): Promise<void> {
 }
 
 const { loading, reload } = useCollectView(async () => {
-  // 第 2~4 位是 loadJobs/loadLogs/loadRegistry（无返回值），用空洞跳过；链路指标取不到时置空只影响本面板
-  const [sum, , , , link] = await Promise.all([
+  // 空洞位依次是 loadJobs/loadLogs/loadRegistry/loadTrend/loadFailureTop/loadDurationStats（无返回值）；
+  // 链路指标取不到时置空只影响本面板
+  const [sum, , , , , , , link] = await Promise.all([
     getSummary(),
     loadJobs(),
     loadLogs(),
     loadRegistry(),
+    loadTrend(),
+    loadFailureTop(),
+    loadDurationStats(),
     getLinkMetrics().catch(() => null),
   ]);
   summary.value = sum;
@@ -385,8 +434,10 @@ const jobNames = computed<Record<string, string>>(() => {
 /**
  * 近 24 小时按整点分桶（右端是当前整点）。
  *
- * 派发 = SUCCESS + FAILURE（真正执行过的）；SKIPPED 等其它状态不计入派发，
- * 否则「未注册处理器」的跳过行会把派发数撑大，与趋势图语义不符。
+ * 分桶数据来自后端聚合（trend，桶起点 = 整点毫秒），这里只负责：
+ * 1. 固定铺出 24 个桶并把窗口内没有日志的桶补零；
+ * 2. 保持「派发 = SUCCESS + FAILURE」的旧口径 —— SKIPPED 等其它状态不计入派发，
+ *    否则「未注册处理器」的跳过行会把派发数撑大。
  */
 const hourly = computed(() => {
   const end = new Date();
@@ -401,22 +452,13 @@ const hourly = computed(() => {
     dispatch.push(0);
     failure.push(0);
   }
-  for (const log of logs.value) {
-    const time = Number(log.triggerTime ?? 0);
-    if (!time) {
-      continue;
-    }
-    const index = Math.floor((time - base) / HOUR_MS);
+  for (const point of trend.value) {
+    const index = Math.floor((Number(point.time) - base) / HOUR_MS);
     if (index < 0 || index >= dispatch.length) {
       continue;
     }
-    const code = String(log.executeCode ?? "").toUpperCase();
-    if (code === "FAILURE") {
-      failure[index] += 1;
-      dispatch[index] += 1;
-    } else if (code === "SUCCESS") {
-      dispatch[index] += 1;
-    }
+    dispatch[index] += Number(point.success ?? 0) + Number(point.failure ?? 0);
+    failure[index] += Number(point.failure ?? 0);
   }
   let cumDispatch = 0;
   let cumFailure = 0;
@@ -441,9 +483,10 @@ function hourIndexAt(time: number): number {
 }
 
 /**
- * 图上标注：近 24 小时触发次数最多的前 2 个任务，标它们最后一次触发的时刻。
+ * 图上标注：最近派发样本里出现次数最多的前 2 个任务，标它们最后一次触发的时刻。
  *
  * 标注点全部来自真实日志（触发时刻 + jobKey），没有可标的就不画，不编造示例。
+ * 样本口径：logs 现在只拉最近一页（趋势已走后端聚合），标注反映的是这一页样本。
  */
 const notableFires = computed(() => {
   const counts = new Map<string, { count: number; last: number }>();
@@ -543,6 +586,20 @@ const trendOption = computed<ChartOption>(() => {
     ],
   };
 });
+
+/* ============ 观测增强：失败 TopN 与耗时统计 ============ */
+
+/**
+ * 耗时毫秒 → 人话文案：不足 1 秒保留毫秒精度（P95 落在亚秒级时「0秒」没有信息量），
+ * 其余复用倒计时的分档格式（小时/分钟档），与页面其它耗时展示同一套语汇。
+ */
+function fmtCost(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(Number(value))) {
+    return "—";
+  }
+  const ms = Math.round(Number(value));
+  return ms < 1000 ? `${ms} ms` : fmtDuration(ms);
+}
 
 /* ============ 运行时参数 ============ */
 
@@ -715,7 +772,7 @@ function go(path: string): void {
           <ReEcharts :option="trendOption" height="100%"/>
         </div>
         <p v-if="logTruncated" class="ov-panel__note">
-          近 24 小时日志超过 {{ LOG_MAX_PAGES * LOG_PAGE_SIZE }} 条，曲线与计数只统计已读到的这一批（下限值）。
+          近 24 小时日志超过 {{ LOG_PAGE_SIZE }} 条，「最近派发」列表只展示最新一批；趋势计数为后端全量聚合，不受影响。
         </p>
       </section>
 
@@ -804,6 +861,62 @@ function go(path: string): void {
           </div>
         </section>
       </div>
+    </div>
+
+    <!-- 观测增强：失败 TopN + 耗时统计（数据来自后端聚合端点，与趋势图同一窗口） -->
+    <div class="ov-mid">
+      <section class="ov-panel">
+        <header class="ov-panel__head">
+          <ReIcon name="WarningFilled" :size="14" class="ov-panel__icon"/>
+          <h2 class="ov-panel__title">失败任务 Top N</h2>
+          <span class="ov-panel__spacer"/>
+          <span class="collect-hint collect-hint--muted">近 24 小时 · 按失败次数排序</span>
+          <button type="button" class="ov-link" @click="go('/collect/job-log')">
+            作业日志 <ReIcon name="Right" :size="12"/>
+          </button>
+        </header>
+        <div class="ov-panel__body">
+          <ol v-if="failureTop.length" class="ov-top">
+            <li v-for="(item, index) in failureTop" :key="item.jobKey" class="ov-top__row">
+              <span class="ov-top__rank" :class="{ 'is-top': index < 3 }">{{ index + 1 }}</span>
+              <span class="ov-top__name" :title="item.jobKey">
+                {{ jobNames[item.jobKey] || item.jobKey }}
+              </span>
+              <span class="ov-top__time">{{ item.lastFailureTime ? fmtMs(item.lastFailureTime) : "—" }}</span>
+              <span class="ov-top__count">{{ item.failures }} 次</span>
+            </li>
+          </ol>
+          <p v-else class="collect-hint collect-hint--muted">近 24 小时没有失败派发。</p>
+        </div>
+      </section>
+
+      <section class="ov-panel">
+        <header class="ov-panel__head">
+          <ReIcon name="Timer" :size="14" class="ov-panel__icon"/>
+          <h2 class="ov-panel__title">执行耗时统计</h2>
+          <span class="ov-panel__spacer"/>
+          <span class="collect-hint collect-hint--muted">近 24 小时 · {{ durationStats?.total ?? 0 }} 条日志</span>
+        </header>
+        <div class="ov-panel__body">
+          <div v-if="durationStats && durationStats.avgCostMs != null" class="ov-dur">
+            <div class="ov-dur__item">
+              <span class="ov-dur__label">平均耗时</span>
+              <span class="ov-dur__value">{{ fmtCost(durationStats.avgCostMs) }}</span>
+            </div>
+            <div class="ov-dur__item">
+              <span class="ov-dur__label">P95 耗时</span>
+              <span class="ov-dur__value">{{ fmtCost(durationStats.p95CostMs) }}</span>
+            </div>
+            <div class="ov-dur__item">
+              <span class="ov-dur__label">最大耗时</span>
+              <span class="ov-dur__value" :class="{ 'is-slow': (durationStats.maxCostMs ?? 0) > 60000 }">
+                {{ fmtCost(durationStats.maxCostMs) }}
+              </span>
+            </div>
+          </div>
+          <p v-else class="collect-hint collect-hint--muted">窗口内没有记录耗时的日志。</p>
+        </div>
+      </section>
     </div>
 
     <!-- 底部：即将触发 + 最近派发 -->
@@ -1181,8 +1294,16 @@ function go(path: string): void {
   gap: var(--cc-gap, 12px);
 }
 
+/* 观测增强行：失败 TopN 与耗时统计，分栏比例与底部一致（宽列放排名列表） */
+.ov-mid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--cc-gap, 12px);
+}
+
 @media (max-width: 1280px) {
   .ov-main,
+  .ov-mid,
   .ov-bottom {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1357,6 +1478,100 @@ function go(path: string): void {
   margin: 0;
   color: var(--text-primary);
   overflow-wrap: anywhere;
+}
+
+/* ============ 失败 TopN ============ */
+.ov-top {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ov-top__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12.5px;
+}
+
+/* 名次徽标：前三名用警示色点出「最常坏的任务」 */
+.ov-top__rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  background: var(--bg-fill);
+}
+
+.ov-top__rank.is-top {
+  color: var(--status-error);
+  background: color-mix(in srgb, var(--status-error) 12%, transparent);
+}
+
+.ov-top__name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: var(--cc-font-num, ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-top__time {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ov-top__count {
+  flex: none;
+  min-width: 52px;
+  text-align: right;
+  color: var(--status-error);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============ 耗时统计 ============ */
+.ov-dur {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cc-gap-sm, 8px);
+}
+
+.ov-dur__item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 12px;
+  background: var(--bg-fill);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.ov-dur__label {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.ov-dur__value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 最大耗时超过 1 分钟用警示色点出：这一档通常意味着任务卡住或外部依赖变慢 */
+.ov-dur__value.is-slow {
+  color: var(--status-warning);
 }
 
 /* ============ 执行器 ============ */

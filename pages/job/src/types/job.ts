@@ -279,3 +279,37 @@ export interface JobLogQuery {
 
 /** 采集流程在台账里的固定分组，与后端 CollectFlowJobHandler.JOB_GROUP 一致 */
 export const COLLECT_FLOW_GROUP = "collect-flow";
+
+/**
+ * 执行日志按小时聚合的一个趋势点（JobTrendPointVO）。
+ *
+ * 后端按触发时刻分桶聚合，替代「把窗口内日志全量拉到前端再本地分桶」；
+ * 窗口内没有日志的桶不在结果里，趋势图需要自行按小时补零。
+ */
+export interface JobLogTrendPoint {
+  /** 桶起点（整点毫秒时间戳） */
+  time: number;
+  total: number;
+  success: number;
+  failure: number;
+  skipped: number;
+}
+
+/** 执行失败次数排名中的一个任务（JobFailureTopVO） */
+export interface JobFailureTopItem {
+  /** 处理器 Bean 名（任务键） */
+  jobKey: string;
+  /** 窗口内失败次数 */
+  failures: number;
+  /** 最近一次失败触发时刻（毫秒），无记录为 null */
+  lastFailureTime: number | null;
+}
+
+/** 执行耗时统计（JobDurationStatsVO）：平均 / 最大 / P95 只统计记录了耗时的日志行 */
+export interface JobDurationStats {
+  /** 窗口内日志总行数（含未记录耗时的行） */
+  total: number;
+  avgCostMs: number | null;
+  maxCostMs: number | null;
+  p95CostMs: number | null;
+}
