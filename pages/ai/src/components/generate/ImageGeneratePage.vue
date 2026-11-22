@@ -1039,6 +1039,20 @@
                   <span>重试</span>
                 </button>
 
+                <!-- 去配置密钥：失败原因是配置/密钥类问题（无可用 Key、渠道未配置、
+                     图生图能力不支持）时，重试没有意义，直接跳模型管理配好再回来 -->
+                <button
+                  v-if="row.kind === 'void' && isKeyRelatedFailure(row.task)"
+                  type="button"
+                  class="wg-act is-ghost wg-go-config"
+                  title="去模型管理配置供应商与密钥"
+                  aria-label="去模型管理配置供应商与密钥"
+                  @click="goModelConfig()"
+                >
+                  <WgIcon :d="ICONS.config" />
+                  <span>去配置</span>
+                </button>
+
                 <!-- 删除：失败/空结果记录尤其需要，否则一直占着列表 -->
                 <button
                   type="button"
@@ -2009,6 +2023,7 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
 import { computed, h, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { apiService } from '../../services/ApiService'
 import { useLibraryGroups } from '@/composables/useLibraryGroups'
 import type { GenerateModel, GenerateTask, GenerateTaskStatus } from '../../services/modules/generate.api'
@@ -2116,6 +2131,9 @@ const ICONS: Record<string, string> = {
   copy: 'M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 9.75 12.375v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.25 2.25 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z',
   trash:
     'm14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0',
+  // 去配置密钥：齿轮（heroicons cog-6-tooth），表达「进设置里把供应商 / 密钥配好」
+  config:
+    'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z',
 }
 
 /** 线性图标组件：统一尺寸与描边，颜色继承 currentColor */
@@ -2577,6 +2595,8 @@ watch(viewMode, (mode) => {
 const favorites = ref<string[]>(readFavorites())
 
 const authStore = useAuthStore()
+
+const router = useRouter()
 
 /**
  * 生图提示词历史（输入框 ↑↓ 切换）。
@@ -3716,6 +3736,36 @@ const voidReason = (task: GenerateTask) => {
     return task.errorMessage
   }
   return task.status === 'CANCELED' ? '已手动停止' : '本次没有产出任何内容'
+}
+
+/**
+ * 失败原因是否属于「配置 / 密钥」类问题。
+ *
+ * <p>这类失败重试没有意义——不是这次提交的参数不对，而是渠道没有可用密钥 / 实现，
+ * 必须先进模型管理把供应商与密钥配好。命中时失败卡与失败弹窗会多给一个
+ * 「去配置密钥」入口，直接跳设置中心默认模型管理页。</p>
+ *
+ * <p>口径按后端实际写出的中文原因归类（模型管理中检查供应商与密钥 / API Key 均已失效
+ * / 不支持参考图（图生图）/ Pollinations 图生图需要 API Key 等），而不是按状态猜；
+ * 模型目录不含凭据与密钥状态，未命中关键词时不留入口，避免误导。</p>
+ *
+ * @param task 任务行
+ * @return 是否属于配置类失败
+ */
+const isKeyRelatedFailure = (task: GenerateTask): boolean => {
+  const reason = task.errorMessage ?? ''
+  return (
+    reason.includes('密钥') ||
+    reason.includes('API Key') ||
+    reason.includes('未配置') ||
+    reason.includes('供应商') ||
+    reason.includes('不支持参考图')
+  )
+}
+
+/** 跳设置中心 → 默认模型管理页，配密钥 / 检查供应商用（与图库页 goModelConfig 同款跳转） */
+const goModelConfig = () => {
+  void router.push({ name: 'SystemSettings', params: { tab: 'default-models' } })
 }
 
 const isFavorite = (taskId: string) => favorites.value.includes(taskId)
@@ -5852,6 +5902,20 @@ const onComposerSubmit = async (text: string, carry?: GenerateCarryParams) => {
     message.warning('请先选择生成模型')
     return
   }
+  // 提交前预检（错误前置，而不是等后端拒绝后才在失败卡里看到）：
+  // ① 模型不在当前启用目录（已停用 / 目录未加载到它）→ 直接拦下，别发一个必被拒的请求；
+  // ② 挂了参考图但当前模型不支持图生图（能力位 referenceImage=false）→ 拦下并指路。
+  // 注意：模型目录只含启用模型与能力位，不含凭据/密钥状态，无 Key 类失败仍由
+  // 提交后失败卡 / 弹窗提示（模型管理里配好再「去配置」直达），预检不做它掌握不到数据的承诺。
+  const preflightModel = currentModels.value.find((item) => item.model === model.value)
+  if (!preflightModel) {
+    message.warning('该模型未启用或已停用，请先到模型管理中启用后再试')
+    return
+  }
+  if (referenceImage.value && !referenceSupported.value) {
+    message.warning('该模型不支持参考图（图生图），请去掉参考图或改选支持参考图的模型')
+    return
+  }
   submitting.value = true
   try {
     // 风格不是上游参数，而是拼进提示词的描述。
@@ -5970,7 +6034,24 @@ watch(
       return
     }
     notifiedFailure.add(task.taskId)
-    message.error(task.errorMessage || '生成失败，请查看任务记录了解详情')
+    const reason = task.errorMessage || '生成失败，请查看任务记录了解详情'
+    if (isKeyRelatedFailure(task)) {
+      // 配置/密钥类失败：重试没有意义，原因就是要先进模型管理把供应商与密钥配好。
+      // 用确认框给「去配置密钥」直达入口；一次性提示仍由 notifiedFailure 保证——
+      // 弹过了就不再弹，用户选「先看看」或点关闭都不重复打扰。
+      void ElMessageBox.confirm(reason, '生成失败', {
+        confirmButtonText: '去配置密钥',
+        cancelButtonText: '先看看',
+        type: 'error',
+        distinguishCancelAndClose: true,
+      })
+        .then(() => goModelConfig())
+        .catch(() => {
+          // 用户取消 / 关闭：留在本页，失败卡上仍保留「去配置」入口
+        })
+    } else {
+      message.error(reason)
+    }
   },
   { deep: true }
 )
