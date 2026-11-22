@@ -17,6 +17,7 @@ import type {
   OnlineUser,
   PageResult,
   RoleMenuUpdate,
+  SocketAggregateInfo,
   SysDept,
   SysDeptVO,
   SysDict,
@@ -556,6 +557,13 @@ export function listForDefaultSetting() {
   return http()
     .get("/v2/setting/default")
     .then<ApiResult<SysSettingVO[]>>((r) => r.data);
+}
+
+/** Socket 存活实例聚合信息（SocketUrl 行来源标注/多地址 chip 展示用） */
+export function socketAggregate() {
+  return http()
+    .get("/v2/setting/socket/aggregate")
+    .then<ApiResult<SocketAggregateInfo>>((r) => r.data);
 }
 
 /** 设置分页 */

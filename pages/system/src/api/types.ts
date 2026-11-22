@@ -429,6 +429,16 @@ export interface SysSettingVO extends SysSetting {
   sysSettingOptions?: string;
 }
 
+/** Socket 存活实例聚合信息（参数配置页 SocketUrl 行来源标注用） */
+export interface SocketAggregateInfo {
+  /** 存活实例对外地址列表；为空表示无存活实例（展示 DB 兜底值） */
+  aliveUrls?: string[];
+  /** 当前展示值来源：aggregate＝服务发现存活聚合 / db＝数据库兜底值 */
+  source?: "aggregate" | "db";
+  /** 最近一次注册失败原因；无失败为空 */
+  lastError?: string;
+}
+
 /** 系统设置分组（左栏中文名与自定义分组数据源） */
 export interface SysSettingGroupBrief {
   sysSettingGroupId?: number;

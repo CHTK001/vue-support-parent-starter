@@ -17,6 +17,7 @@ import {
   Hide,
   Folder,
   Document,
+  DocumentCopy,
   Connection,
   Setting,
   Tools,
@@ -50,12 +51,14 @@ import {
   checkEmailConnectivity,
   saveSettingGroup,
   listSettingGroups,
+  socketAggregate,
 } from "../api/systemApi";
 import type {
   SysSetting,
   SysSettingHistory,
   EmailConnectivity,
   SysSettingGroupBrief,
+  SocketAggregateInfo,
 } from "../api/types";
 import ReTable from "@repo/ui/re-table";
 import type { ReTableColumn, RePageResult } from "@repo/ui/re-table";
@@ -939,10 +942,105 @@ const historyColumns: ReTableColumn[] = [
   { prop: "action", label: "操作", width: 90, fixed: "right", align: "right", slot: "action" },
 ];
 
+/* ================== SocketUrl 来源标注 / 多地址 chip ================== */
+
+/** Socket 行是否是多地址展示行：name 或 code 命中后端 SocketUrl 契约 */
+function isSocketUrlRow(row?: SysSetting | null): boolean {
+  if (!row) return false;
+  return row.sysSettingName === "SocketUrl" || row.sysSettingCode === "socket.urls";
+}
+
+/** SocketUrl 行拆出的地址列表（逗号分隔，去空） */
+function socketUrlAddresses(row?: SysSetting | null): string[] {
+  if (!row) return [];
+  const text = (row.sysSettingValue ?? "").trim();
+  if (!text) return [];
+  return text.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+/** 服务发现存活聚合信息（来自 /v2/setting/socket/aggregate）；加载失败为 null */
+const socketAggregateInfo = ref<SocketAggregateInfo | null>(null);
+
+/** 多地址 chip 折叠：默认只展示前 N 个，展开时全量 */
+const socketChipExpanded = ref(false);
+const SOCKET_CHIP_COLLAPSE_AT = 3;
+
+/** 是否处于粘性快照兜底期（聚合为空但后端在窗口内回退快照——前端照常展示即可） */
+const socketAggregateLoading = ref(false);
+
+async function loadSocketAggregate() {
+  socketAggregateLoading.value = true;
+  try {
+    const res = await socketAggregate();
+    socketAggregateInfo.value = res?.data ?? null;
+  } catch {
+    // 聚合端点不可用（如未登录/后端无此端点）时不阻塞配置页，来源标注退回隐藏
+    socketAggregateInfo.value = null;
+  } finally {
+    socketAggregateLoading.value = false;
+  }
+}
+
+/** SocketUrl 行的来源徽标文本；null 表示不展示（无法判定或非 SocketUrl 行） */
+function socketSourceBadge(row?: SysSetting | null): string | null {
+  if (!isSocketUrlRow(row)) return null;
+  const info = socketAggregateInfo.value;
+  const addresses = socketUrlAddresses(row);
+  const alive = info?.aliveUrls ?? [];
+  // 地址非空且聚合非空 → 服务发现存活聚合（addresses 与 alive 可能因 DB 兜底差异，以聚合为准）
+  if (addresses.length > 0 && alive.length > 0) {
+    return `服务发现聚合 · ${alive.length} 个实例`;
+  }
+  // 地址为空：展示 DB 兜底值（或空）
+  return "DB 兜底";
+}
+
+/** chip 是否显示「展开」按钮（地址数超过折叠阈值） */
+function socketChipOverflow(row?: SysSetting | null): boolean {
+  return socketUrlAddresses(row).length > SOCKET_CHIP_COLLAPSE_AT;
+}
+
+/** 复制 socket 地址串到剪贴板 */
+async function copySocketUrls(row?: SysSetting | null) {
+  const addresses = socketUrlAddresses(row);
+  if (addresses.length === 0) return;
+  try {
+    await navigator.clipboard.writeText(addresses.join(","));
+    message.success("服务地址已复制");
+  } catch {
+    message.warning("复制失败");
+  }
+}
+
+/** 复制单个地址到剪贴板 */
+async function copySingle(url: string) {
+  if (!url) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    message.success("地址已复制");
+  } catch {
+    message.warning("复制失败");
+  }
+}
+
+/** chip 展开时展示的地址子集 */
+function visibleSocketUrls(row?: SysSetting | null): string[] {
+  const urls = socketUrlAddresses(row);
+  if (socketChipExpanded.value || urls.length <= SOCKET_CHIP_COLLAPSE_AT) return urls;
+  return urls.slice(0, SOCKET_CHIP_COLLAPSE_AT);
+}
+
+/** 检查器是否展示 SocketUrl 来源行 */
+const selectedIsSocketUrl = computed(() => isSocketUrlRow(selectedSetting.value));
+/** 检查器 SocketUrl 来源文本 */
+const selectedSocketSourceText = computed(() => socketSourceBadge(selectedSetting.value) ?? "普通配置");
+
 onMounted(() => {
   loadAll();
   // 账号清单与配置清单并行：账号行回显要用它把人名换出来
   void loadAccountBriefs();
+  // SocketUrl 行来源标注：服务发现存活聚合 vs DB 兜底（失败静默，不影响配置页）
+  void loadSocketAggregate();
 });
 </script>
 
@@ -1139,6 +1237,50 @@ onMounted(() => {
             <span class="bool-value__dot" aria-hidden="true" />
             {{ booleanText(row.sysSettingValue) }}
           </span>
+          <!-- SocketUrl 多实例行：每个地址一个 chip，可复制；来源徽标（聚合/DB 兜底） -->
+          <span v-else-if="isSocketUrlRow(row)" class="socket-url-cell">
+            <span class="socket-url-cell__badges">
+              <el-tag
+                v-if="socketSourceBadge(row)"
+                size="small"
+                :type="socketSourceBadge(row)?.startsWith('服务发现聚合') ? 'success' : 'info'"
+                effect="plain"
+                round
+                class="socket-url-cell__src"
+              >{{ socketSourceBadge(row) }}</el-tag>
+            </span>
+            <span class="socket-url-cell__chips">
+              <template v-for="(url, i) in visibleSocketUrls(row)" :key="i">
+                <el-tooltip :content="url" placement="top">
+                  <code class="socket-chip" :title="url">{{ url }}</code>
+                </el-tooltip>
+                <el-button link type="primary" size="small" class="socket-chip__copy" @click.stop="copySingle(url)">
+                  <el-icon :size="13"><DocumentCopy /></el-icon>
+                </el-button>
+              </template>
+              <el-button
+                v-if="socketChipOverflow(row)"
+                link
+                type="primary"
+                size="small"
+                class="socket-url-cell__more"
+                @click.stop="socketChipExpanded = !socketChipExpanded"
+              >
+                {{ socketChipExpanded ? "收起" : `+${socketUrlAddresses(row).length - SOCKET_CHIP_COLLAPSE_AT}` }}
+              </el-button>
+              <el-button
+                v-if="socketUrlAddresses(row).length > 0"
+                link
+                type="info"
+                size="small"
+                class="socket-url-cell__copy-all"
+                @click.stop="copySocketUrls(row)"
+              >
+                <el-icon :size="13"><DocumentCopy /></el-icon>
+                复制全部
+              </el-button>
+            </span>
+          </span>
           <span v-else class="value-readonly"><template v-for="(seg, i) in valueSegments(row.sysSettingValue)" :key="i">{{ seg }}<wbr /></template></span>
         </template>
 
@@ -1193,6 +1335,17 @@ onMounted(() => {
                 {{ selectedValueText }}
               </span>
               <code v-else class="insp-val">{{ selectedValueText }}</code>
+            </dd>
+          </div>
+          <div v-if="selectedIsSocketUrl" class="insp-row">
+            <dt>来源</dt>
+            <dd>
+              <el-tag
+                size="small"
+                :type="selectedSocketSourceText.startsWith('服务发现聚合') ? 'success' : 'info'"
+                effect="plain"
+                round
+              >{{ selectedSocketSourceText }}</el-tag>
             </dd>
           </div>
           <div class="insp-row">
@@ -2007,6 +2160,50 @@ onMounted(() => {
 }
 .bool-value.is-on .bool-value__dot {
   background: var(--el-color-success);
+}
+
+/* SocketUrl 多实例行：来源徽标 + 多地址 chip */
+.socket-url-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.socket-url-cell__badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.socket-url-cell__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+.socket-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 320px;
+  padding: 1px 8px;
+  font-size: 12px;
+  line-height: 20px;
+  border-radius: 6px;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--el-font-family-monospace, monospace);
+}
+.socket-chip__copy {
+  margin-left: -4px;
+  padding: 0 2px;
+}
+.socket-url-cell__more {
+  padding-left: 2px;
+}
+.socket-url-cell__copy-all {
+  padding-left: 2px;
 }
 
 .setting-na {
