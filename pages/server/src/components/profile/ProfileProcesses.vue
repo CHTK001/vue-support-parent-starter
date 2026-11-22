@@ -900,20 +900,20 @@ onBeforeUnmount(() => {
 }
 /* ===== 行背景着色：僵尸（黑底白字）/ 无主（粉底黑字）/ 高负载（浅红）/ 偏高（浅黄） ===== */
 .proc-row.t-bad {
-  background: var(--el-color-danger-light-9, #fdecea);
+  background: var(--el-color-danger-light-7, #f9b7b3);
 }
 .proc-row.t-warn {
-  background: var(--el-color-warning-light-9, #fdf3e3);
+  background: var(--el-color-warning-light-7, #f8d49a);
 }
 .proc-row.t-bad:hover,
 .proc-row.t-bad.open,
 .proc-row.t-bad.picked {
-  background: var(--el-color-danger-light-8, #f9b7b3);
+  background: var(--el-color-danger-light-5, #f59a92);
 }
 .proc-row.t-warn:hover,
 .proc-row.t-warn.open,
 .proc-row.t-warn.picked {
-  background: var(--el-color-warning-light-8, #f8d49a);
+  background: var(--el-color-warning-light-5, #f2c37e);
 }
 .proc-row.t-zombie {
   background: #1b1c20;
