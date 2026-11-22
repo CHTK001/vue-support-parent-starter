@@ -96,10 +96,11 @@
           <el-input v-model="editForm.model" placeholder="请输入模型名称" />
         </el-form-item>
         <el-form-item label="Agent类型">
-          <el-select v-model="editForm.type" style="width: 100%">
+          <el-select :model-value="editForm.type" disabled style="width: 100%">
             <el-option label="主Agent" value="master" />
             <el-option label="子Agent" value="sub" />
           </el-select>
+          <div class="agent-type-hint">类型由层级（parent_id）决定，新增即主Agent；子Agent 请在工作流配置的「子Agent管理」中维护</div>
         </el-form-item>
         <el-form-item label="系统提示词">
           <el-input v-model="editForm.systemPrompt" type="textarea" :rows="3" />
@@ -861,5 +862,12 @@ onMounted(() => {
   margin-top: 10px;
   font-size: 13px;
   color: var(--el-color-success);
+}
+
+.agent-type-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--el-text-color-secondary);
 }
 </style>
