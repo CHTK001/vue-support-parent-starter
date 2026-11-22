@@ -144,12 +144,17 @@ const saveStudent = async () => {
  * 这里在未判完时每 3 秒刷一次汇总，判完自动重拉结构（逐题分只在判完后才有）。</p>
  */
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+let pollCtrl: AbortController | null = null;
+/** 在途加载的取消句柄：快速切换任务时旧结果不落回页面 */
+let loadCtrl: AbortController | null = null;
 
 const stopPolling = () => {
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
   }
+  pollCtrl?.abort();
+  pollCtrl = null;
 };
 
 const startPolling = () => {
@@ -162,8 +167,11 @@ const startPolling = () => {
       stopPolling();
       return;
     }
+    // 上一轮还在途就取消：慢响应堆积时旧值回来不会覆盖新值
+    pollCtrl?.abort();
+    pollCtrl = new AbortController();
     try {
-      const data = await eduaiApi.getMarkingResult(currentId);
+      const data = await eduaiApi.getMarkingResult(currentId, { signal: pollCtrl.signal });
       if (taskId.value !== currentId) return;
       result.value = data;
       if (data?.finished || Number(data?.taskStatus) === 3) {
@@ -184,6 +192,10 @@ const load = async (silent = false) => {
   }
   // 换任务/重拉前先停掉上一轮轮询，避免两个任务的结果互相覆盖
   stopPolling();
+  // 上一轮加载还在途就取消：快速切换任务时旧结果不会落回页面
+  loadCtrl?.abort();
+  loadCtrl = new AbortController();
+  const signal = loadCtrl.signal;
   // 换任务时先清空：否则新数据回来前会短暂显示上一份卷子的分数
   if (!silent) {
     loading.value = true;
@@ -195,12 +207,12 @@ const load = async (silent = false) => {
   try {
     if (silent) {
       // 只刷汇总：结构视图保存后自己已重载，这里再拉一次会让刚改的行回滚
-      result.value = await eduaiApi.getMarkingResult(currentId);
+      result.value = await eduaiApi.getMarkingResult(currentId, { signal });
       return;
     }
     // 结构与结果同时发出，但只有结果拦首屏：结果一到就放行整页，
     // 结构（~34KB）和卷面图各自到货各自渲染，总耗时从三者之和降到最慢的那个。
-    const sp = eduaiApi.getMarkingStructure(currentId);
+    const sp = eduaiApi.getMarkingStructure(currentId, { signal });
     structurePromise.value = sp;
     void sp
       .then((data) => {
@@ -210,12 +222,15 @@ const load = async (silent = false) => {
       .catch(() => {
         // 结构失败不影响主流程：面板会退回自己拉取并在表格区提示
       });
-    result.value = await eduaiApi.getMarkingResult(currentId);
+    result.value = await eduaiApi.getMarkingResult(currentId, { signal });
+    // 期间换了任务：本次结果丢弃（汇总按当前任务为准）
+    if (taskId.value !== currentId) return;
     // 还在判分：交给轮询自动刷新，判完会自己重拉结构
     if (!result.value?.finished && Number(result.value?.taskStatus) !== 3) {
       startPolling();
     }
   } catch (e) {
+    if ((e as { code?: string })?.code === 'ERR_CANCELED') return; // 主动取消不算失败
     failToast('获取阅卷结果失败', e);
   } finally {
     loading.value = false;

@@ -194,6 +194,8 @@ const result = ref<Awaited<ReturnType<typeof eduaiApi.studentMarkingResult>> | n
 const pollError = ref("");
 const showReview = ref(false);
 let pollTimer = 0;
+/** 在途轮询查询的取消句柄：判分慢时旧结果回来不覆盖新状态 */
+let pollCtrl: AbortController | null = null;
 
 /** 草稿 localStorage 键：按试卷隔离，避免多卷串味 */
 const draftKey = computed(() => `eduai:answer-draft:${props.paperId}`);
@@ -405,8 +407,11 @@ function startPolling(taskId?: string): void {
   pollError.value = "";
   const id = taskId ?? "";
   const poll = async () => {
+    // 上一轮查询还在途就取消：判分慢时旧结果回来不会覆盖新状态
+    pollCtrl?.abort();
+    pollCtrl = new AbortController();
     try {
-      result.value = await eduaiApi.studentMarkingResult(id);
+      result.value = await eduaiApi.studentMarkingResult(id, { signal: pollCtrl.signal });
       pollError.value = "";
       // finished = 判分结束（含失败）；失败在结果卡里单独展示，轮询到此为止
       if (result.value.finished) {
@@ -415,6 +420,7 @@ function startPolling(taskId?: string): void {
         if (result.value.taskStatus !== 3) void load(true);
       }
     } catch (e) {
+      if ((e as { code?: string })?.code === "ERR_CANCELED") return; // 主动取消不算失败
       // 查询失败即停并给出重试入口，避免对故障接口无限轮询
       pollError.value = errText(e) || "查询失败";
       stopPolling();
@@ -429,6 +435,8 @@ function stopPolling(): void {
     window.clearInterval(pollTimer);
     pollTimer = 0;
   }
+  pollCtrl?.abort();
+  pollCtrl = null;
 }
 
 /** 完整详情只需拉一次（复盘用）；作答中始终用脱敏详情 */
@@ -436,19 +444,26 @@ let fullPaperLoaded = false;
 
 /** 加载序号：并发/快速重复加载时只让最新一次生效，旧响应直接丢弃 */
 let loadSeq = 0;
+/** 在途加载的取消句柄：卸载/重载时中断，已销毁组件不被旧响应改写 */
+let loadCtrl: AbortController | null = null;
 
 async function load(full = false): Promise<void> {
   if (full && fullPaperLoaded) return;
   const seq = ++loadSeq;
+  // 上一轮加载还在途就取消：快速重进/复盘切换时旧响应不落回页面
+  loadCtrl?.abort();
+  loadCtrl = new AbortController();
+  const signal = loadCtrl.signal;
   loading.value = true;
   try {
     // 已交卷的看完整详情（复盘要标准答案/解析）；作答中只给脱敏详情防抄答案
     paper.value = full
-      ? await eduaiApi.myClassPaperDetail(props.paperId)
-      : await eduaiApi.studentAnswerPaper(props.paperId);
+      ? await eduaiApi.myClassPaperDetail(props.paperId, { signal })
+      : await eduaiApi.studentAnswerPaper(props.paperId, { signal });
     if (seq !== loadSeq) return; // 期间又发起了更新的加载，本次结果丢弃
     if (full) fullPaperLoaded = true;
   } catch (e) {
+    if ((e as { code?: string })?.code === "ERR_CANCELED") return; // 主动取消不算失败
     if (seq !== loadSeq) return;
     message.error("试卷加载失败：" + (errText(e) || "未知错误"));
     emit("close");
@@ -481,6 +496,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   stopPolling();
+  loadCtrl?.abort();
   if (tickTimer) {
     window.clearInterval(tickTimer);
     tickTimer = 0;

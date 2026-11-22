@@ -433,6 +433,7 @@ const streamState = ref<'idle' | 'connecting' | 'open' | 'error'>('idle');
 let progressClient: { close: () => void } | null = null;
 let progressTaskId = '';
 let pollHandle: ReturnType<typeof setInterval> | undefined;
+let pollCtrl: AbortController | null = null;
 
 const progressTagType = computed<'primary' | 'success' | 'danger'>(() => {
   const s = progress.value?.taskStatus;
@@ -471,6 +472,8 @@ const stopPolling = () => {
     clearInterval(pollHandle);
     pollHandle = undefined;
   }
+  pollCtrl?.abort();
+  pollCtrl = null;
 };
 
 /** 任务到终态的统一收尾：刷新总分快照与记录列表 */
@@ -487,8 +490,11 @@ const startPolling = (id: string) => {
       stopPolling();
       return;
     }
+    // 上一轮还在途就取消：慢响应堆积时旧值回来不会覆盖新值
+    pollCtrl?.abort();
+    pollCtrl = new AbortController();
     try {
-      const rr = await eduaiApi.getMarkingResult(id);
+      const rr = await eduaiApi.getMarkingResult(id, { signal: pollCtrl.signal });
       if (id !== taskId.value.trim()) return;
       scores.value = { ...scores.value, [id]: scoreOfResult(rr) };
       if (rr?.finished) {

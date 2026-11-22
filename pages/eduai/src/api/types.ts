@@ -13,6 +13,12 @@ export interface PageResult<T> {
   records?: T[];
 }
 
+/** 请求级可选选项：按调用点需要透传（当前支持取消在途请求） */
+export interface EduaiRequestOptions {
+  /** 中止信号：组件卸载 / 轮询停止 / 快速切换只留最新一次时传入，取消在途请求 */
+  signal?: AbortSignal;
+}
+
 /** 题目 */
 export interface Question {
   questionId: number;

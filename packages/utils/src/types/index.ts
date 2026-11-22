@@ -45,6 +45,12 @@ export interface ChainableRequest {
   data(body: RequestBody): ChainableRequest;
   responseType(type: ResponseType): ChainableRequest;
   timeout(ms: number): ChainableRequest;
+  /**
+   * 传入中止信号，取消在途请求（axios 原生 signal 透传）。
+   * <p>典型用法：组件卸载 / 轮询停止 / 快速切换只留最新一次时 abort，
+   * 避免旧响应回来改写已销毁组件的状态。</p>
+   */
+  signal(s?: AbortSignal): ChainableRequest;
   /** 单请求 loading 开关（默认走全局 showLoading） */
   loading(show: boolean): ChainableRequest;
   /** 单请求加密开关（默认走全局 encrypt，x-ec/x-ck 协议） */
