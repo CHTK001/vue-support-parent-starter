@@ -44,6 +44,10 @@
       "@pages/filesystem": ["../../pages/filesystem/src/index.ts"],
       "@pages/datasource/*": ["../../pages/datasource/*"],
       "@pages/datasource": ["../../pages/datasource/src/index.ts"],
+      // 数据源运行时配置页（@pages/datasource-hub）：Calcite 联邦 / 分库分表运行期配置，
+      // 路由入口 = @pages/datasource-hub/src/routes（深导入口径，同 datasource）。
+      "@pages/datasource-hub/*": ["../../pages/datasource-hub/*"],
+      "@pages/datasource-hub": ["../../pages/datasource-hub/src/index.ts"],
       // 调试中心（CDP）：并进「分析管理」菜单 -> /debug，视图 + API + 路由同源
       "@pages/debug/*": ["../../pages/debug/*"],
       "@pages/debug": ["../../pages/debug/src/index.ts"],

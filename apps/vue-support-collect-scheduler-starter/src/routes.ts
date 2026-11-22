@@ -20,6 +20,9 @@ import type { RouteConfigsTable } from "@repo/core";
 // 深导入 src/routes 而不是包根：包根 index.ts 有 registerMenuViewModules 顶层副作用，
 // 会把整个 api/组件桶拖进主 chunk；本文件只需要路由工厂。
 import { createDatasourceManageRoutes } from "@pages/datasource/src/routes";
+// 数据源运行时配置页（@pages/datasource-hub）：Calcite 联邦 / 分库分表规则的
+// 运行期页面配置；与 @pages/datasource 的台账/管理页互补，宿主只做合并。
+import { createDatasourceHubRoutes } from "@pages/datasource-hub/src/routes";
 
 /** 宿主层路由树（平台总览 + 首页重定向 + 数据源管理页） */
 export const hostRoutes: RouteConfigsTable[] = [
@@ -41,6 +44,10 @@ export const hostRoutes: RouteConfigsTable[] = [
   // 以前这里自己抄一份，抄漏了 Prometheus，于是只有 Prometheus 数据源点「打开管理」
   // 会弹「当前应用未注册 /prometheus 管理页」。抄两份必然漂，改成收敛到模块一处。
   ...createDatasourceManageRoutes({ activeMenu: "/collect/datasource/list" }),
+
+  // 数据源运行时配置页（/datasource-hub，隐藏路由）：Calcite 联邦 / 分库分表
+  // 运行期实时配置；侧边栏高亮回指本应用的采集侧数据源列表。
+  ...createDatasourceHubRoutes({ activeMenu: "/collect/datasource/list" }),
 ];
 
 export default hostRoutes;

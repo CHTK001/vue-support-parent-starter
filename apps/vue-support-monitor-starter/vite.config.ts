@@ -551,12 +551,6 @@ export default createVite({
     //（目录名英文）。屏幕目录/拼装/舞台都在包内，宿主只挂路由。
     "@pages/bigscreen": "pages/screen",
     "@pages/template": "pages/template",
-    // 开发环境占位：`@lucasmarkes/hairline` 未出现在 workspace store 中
-    //（ReEmpty 的 `layout="plot"` 可选功能），alias 指向 ReEmpty 目录下的 stub module，
-    // 避免 Vite import-analysis 把整个页面图打穿。
-    "@lucasmarkes/hairline": fileURLToPath(
-      new URL("../../packages/ui/src/components/ReEmpty/hairlineStub.ts", import.meta.url),
-    ),
     // 账号管理（含模板管理 / 消息模板）前端：@pages/account（2026-11-19 自后端仓
     // spring-support-account-starter/web 迁入 pages/account）；宿主只挂路由，
     // 页面本体、API、路由声明都在该包里。

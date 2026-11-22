@@ -8,8 +8,8 @@
     >
       <el-scrollbar class="column-scrollbar">
         <el-tooltip
-          v-for="(item, index) in topLevelMenus"
-          :key="item.meta?.menuId || index"
+          v-for="item in topLevelMenus"
+          :key="item.path"
           :content="getMenuLanguage(item.meta?.title)"
           :show-after="isFirstColumnCollapse ? 0 : 1500"
           placement="right"
@@ -17,7 +17,7 @@
           <div
             class="left-column"
             :class="{
-              'is-active': activeTopMenuId == item.meta?.menuId
+              'is-active': activeTopPath === String(item.path)
             }"
             @click="handleTopMenuClick(item)"
           >
@@ -176,8 +176,8 @@ const menuDefaultIcon = resolveMenuDefaultIcon();
 
 const topLevelMenus = computed(() => authStore.showMenuList.filter((item: any) => item.meta?.isVisible == "1"));
 
-// 当前激活的顶级菜单ID
-const activeTopMenuId = ref<any>();
+// 当前激活的顶级菜单 path（按 path 标识：静态菜单没有 meta.menuId，按 menuId 比较会全量误命中）
+const activeTopPath = ref<string | undefined>();
 // 当前显示的子菜单树[包含所有层级]
 const currentSubMenuTree = ref<any[]>([]);
 // 当前激活的子菜单路径
@@ -285,12 +285,12 @@ const findTopMenuByMenuId = (routes: any[], targetMenuId: any): any => {
 };
 
 /**
- * 根据顶级菜单ID获取其完整的子菜单树
- * @param {number|string} topMenuId 顶级菜单ID
+ * 根据顶级菜单 path 获取其完整的子菜单树
+ * @param {number|string} topMenuPath 顶级菜单路径
  * @returns {Array} 完整的子菜单树
  */
-const getSubMenuTree = (topMenuId: number | string) => {
-  const topMenu = topLevelMenus.value.find((item: any) => item.meta.menuId === topMenuId);
+const getSubMenuTree = (topMenuPath: number | string) => {
+  const topMenu = topLevelMenus.value.find((item: any) => String(item.path) === String(topMenuPath));
   return topMenu?.children || [];
 };
 
@@ -310,7 +310,7 @@ const handleTopMenuClick = (route: any) => {
     
   if (!route?.children?.length) {
     // 更新当前激活的顶级菜单
-    activeTopMenuId.value = route.meta?.menuId;
+    activeTopPath.value = String(route.path);
     currentSubMenuTree.value = [];
     router.push({
       path: route.path || HOME_URL
@@ -319,10 +319,10 @@ const handleTopMenuClick = (route: any) => {
   }
 
   // 更新当前激活的顶级菜单
-  activeTopMenuId.value = route.meta?.menuId;
+  activeTopPath.value = String(route.path);
 
   // 获取该顶级菜单的子菜单树
-  currentSubMenuTree.value = getSubMenuTree(route.meta?.menuId);
+  currentSubMenuTree.value = getSubMenuTree(route.path);
 };
 
 /** 第一列收缩切换 */
@@ -422,10 +422,12 @@ const initMenu = () => {
 
   const { menuId, activeMenu } = route.meta || {};
 
-  // 情况一：没有提供 menuId 或 activeMenu，默认选第一个顶级菜单
+  // 情况一：没有提供 menuId 或 activeMenu，默认选第一个顶级菜单。
+  // 2026-11-21 修复：激活标识由 menuId 改为 path——静态菜单没有 meta.menuId，
+  // 以 menuId 比较会全部命中（undefined == undefined），第一列整列高亮。
   if (!menuId && !activeMenu) {
-    activeTopMenuId.value = topLevelMenus.value[0]?.meta?.menuId;
-    currentSubMenuTree.value = getSubMenuTree(activeTopMenuId.value);
+    activeTopPath.value = topLevelMenus.value[0]?.path != null ? String(topLevelMenus.value[0].path) : undefined;
+    currentSubMenuTree.value = activeTopPath.value ? getSubMenuTree(activeTopPath.value) : [];
     return;
   }
 
@@ -434,13 +436,14 @@ const initMenu = () => {
     const topLevelMenu: any = findTopMenuByMenuId(authStore.showMenuList, String(menuId));
 
     if (!topLevelMenu) {
-      // 未找到父级，说明是顶级菜单，直接赋值
-      activeTopMenuId.value = menuId;
+      // 未找到父级，说明是顶级菜单：按 menuId 找到自身后取其 path
+      const selfMenu: any = authStore.showMenuList.find((m: any) => String(m.meta?.menuId) === String(menuId));
+      activeTopPath.value = selfMenu ? String(selfMenu.path) : undefined;
       currentSubMenuTree.value = [];
     } else {
       // 找到父级，设置为激活项，并加载子菜单
-      activeTopMenuId.value = topLevelMenu.meta?.menuId;
-      currentSubMenuTree.value = getSubMenuTree(activeTopMenuId.value);
+      activeTopPath.value = String(topLevelMenu.path);
+      currentSubMenuTree.value = getSubMenuTree(topLevelMenu.path);
     }
 
     router.push(route.path); // 同步路径
@@ -452,8 +455,8 @@ const initMenu = () => {
     const topLevelMenu: any = findMenuByActiveMenu(authStore.showMenuList, activeMenu);
 
     if (topLevelMenu) {
-      activeTopMenuId.value = topLevelMenu.meta?.menuId;
-      currentSubMenuTree.value = getSubMenuTree(activeTopMenuId.value);
+      activeTopPath.value = String(topLevelMenu.path);
+      currentSubMenuTree.value = getSubMenuTree(topLevelMenu.path);
       router.push(route.path);
     } else {
       msgError("The menu data configuration is error");

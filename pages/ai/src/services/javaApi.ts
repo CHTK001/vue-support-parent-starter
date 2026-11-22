@@ -320,6 +320,18 @@ export const usageApi = {
   cancelSyncAll: () => http.post('/usage/aggregate-all/cancel'),
   export: (params?: any) =>
     http.get('/usage/export', { params, responseType: 'blob' }),
+  /**
+   * 导入用量统计 CSV（multipart，字段名 file）。
+   *
+   * <p>与导出同格式（statDate/group/provider/model/calls/promptTokens/
+   * completionTokens/cachedTokens/totalTokens/cost）；后端校验先行，
+   * 任一行非法整文件拒绝，全部合法按「日期+分组+服务商+模型」覆盖写入日汇总表。</p>
+   */
+  importCsv: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return http.post('/usage/import', form);
+  },
   config: () => http.get('/usage/config'),
   updateConfig: (data: any) => http.put('/usage/config', data),
 };
@@ -359,6 +371,14 @@ export const modelMetricsApi = {
     page?: number; size?: number; keyword?: string;
     provider?: string; band?: string; sort?: string; order?: string;
   }) => apiHttp.get('/api/model-metrics/price-overview', { params }),
+};
+
+// ==================== AIHOT 资讯 ====================
+export const aiNewsApi = {
+  /** 最近 AIHOT 资讯（发布时间倒序；后端无数据时 data 为空数组，前端面板整体不渲染） */
+  latest: (limit = 20) => apiHttp.get('/api/ai-news/latest', { params: { limit } }),
+  /** 手动触发 AIHOT RSS 同步（admin）：{total, inserted, updated} */
+  sync: () => apiHttp.post('/api/ai-news/sync'),
 };
 
 // ==================== 聊天会话/上下文 ====================

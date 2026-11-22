@@ -44,6 +44,7 @@ const SETTING_TO_LOGIN_MAP: Record<string, string> = {
   CheckTotpOpen: "otp",
   SlidingBlockOpen: "slider",
   OpenSmsLogin: "smsLogin",
+  SmsSliderOpen: "smsSlider",
   SystemName: "title",
   BrandName: "brandName",
   Welcome: "welcome",

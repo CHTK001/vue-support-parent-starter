@@ -26,6 +26,7 @@
     "@pages/channel": "workspace:*",
     "@pages/control": "workspace:*",
     "@pages/datasource": "workspace:*",
+    "@pages/datasource-hub": "workspace:*",
     "@pages/debug": "workspace:*",
     "@pages/device": "workspace:*",
     "@pages/docker": "workspace:*",

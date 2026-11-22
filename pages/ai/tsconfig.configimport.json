@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/components/models/configImport.ts",
+    "src/components/models/ConfigImportDialog.vue",
+    "src/types/**/*.d.ts"
+  ]
+}

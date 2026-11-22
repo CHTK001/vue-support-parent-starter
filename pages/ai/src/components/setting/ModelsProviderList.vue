@@ -69,7 +69,7 @@
       >
         <div class="pc-head">
           <div class="pc-logo muted">
-            <CardAvatar :src="getProviderIcon(template)" :name="template.name" size="lg" />
+            <ProviderLogo :pid="template.id" :name="template.name" size="lg" />
           </div>
           <div class="pc-id">
             <h3 class="pc-name" :title="template.name">{{ template.name }}</h3>
@@ -92,12 +92,11 @@
 </template>
 
 <script>
-import CardAvatar from '@/components/ui/CardAvatar.vue'
 import ProviderLogo from '@/components/models/ProviderLogo.vue'
 import { EditOutlined, DeleteOutlineOutlined, AddOutlined, ArrowForwardIosFilled } from '@vicons/material'
 
 export default {
-  components: { CardAvatar, ProviderLogo, EditOutlined, DeleteOutlineOutlined, AddOutlined, ArrowForwardIosFilled },
+  components: { ProviderLogo, EditOutlined, DeleteOutlineOutlined, AddOutlined, ArrowForwardIosFilled },
   props: {
     items: {
       type: Array,

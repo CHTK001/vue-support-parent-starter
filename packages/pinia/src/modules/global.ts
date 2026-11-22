@@ -57,6 +57,8 @@ const globalStore = defineStore("global", {
       language: "zh",
       themeColor: DEFAULT_THEME,
       layout: "vertical",
+      /** 用户是否已主动选择导航布局（ThemeConfig chooseLayout 置位并持久化）；false=跟随应用入口设置的默认布局 */
+      layoutChosen: false,
       tabsStyle: "google",
       transition: "none",
       /** 登录页样式，取值见 themes/koi/views/login/loginStyles.ts 的 loginStyleOptions */
@@ -67,14 +69,20 @@ const globalStore = defineStore("global", {
       asideInverted: false,
       headerInverted: false,
       isHeaderShown: true,
-      /** 横向布局顶栏形态：true=悬浮玻璃卡片（默认），false=标准通栏 */
-      horizontalHeaderCard: true,
+      /** 混合布局顶栏菜单形态：card=卡片（图标在上文字在下，默认）/ standard=标准（图标在左文字在右，同横向布局） */
+      optimumHeaderStyle: "card" as "card" | "standard",
+      /** 是否显示悬浮导航（Dock 布局）：false=隐藏悬浮坞及其二级弹层 */
+      dockShown: true,
       /** Dock 布局显示位置：bottom=底部（默认）/ top=顶部 / left=左侧 / right=右侧 */
       dockPosition: "bottom" as "bottom" | "top" | "left" | "right",
       /** Dock 折叠收缩：true=缩为边缘角落小圆钮（鼠标经过临时展开，点击恢复常驻） */
       dockCollapsed: false,
-      /** Dock 一级磁贴激活模式：whole=整体菜单（同一时刻仅一张，默认）/ independent=独立卡片（点击独立点亮，可多张同亮，再点熄灭） */
-      dockActiveMode: "whole" as "whole" | "independent",
+      /** Dock 一级磁贴形态：aggregate=聚合胶囊条（默认）/ scatter=散开卡片（与二级卡片同款式散开排布） */
+      dockTileStyle: "aggregate" as "aggregate" | "scatter",
+      /** Dock 鼠标经过一级磁贴时自动展开二级弹层（默认开启；关闭后仅点击展开） */
+      dockHoverOpen: true,
+      /** Dock 折叠悬停预览：折叠后鼠标经过把手临时显出导航（仅预览不可点击，点把手恢复常驻；默认开启） */
+      dockHoverPeek: true,
       isTabsShown: true,
       /** 路由骨架屏上的小动物：关闭后骨架只留静态占位 */
       isSkeletonCritterShown: true,
@@ -100,6 +108,17 @@ const globalStore = defineStore("global", {
   actions: {
     setGlobalState(...args: any) {
       this.$patch({ [args[0]]: args[1] });
+    },
+    /**
+     * 用户主动切换导航布局（主题设置面板点选 / 导入配置恢复）。
+     *
+     * <p>与 setGlobalState("layout", v) 的区别：这里同时置位 layoutChosen 并持久化，
+     * 应用入口（如 monitor main.ts）设置的默认布局只对「从未选择过」的用户生效，
+     * 刷新/重启后不会把用户已选的布局覆盖回默认值。</p>
+     */
+    chooseLayout(value: string) {
+      this.layout = value;
+      this.layoutChosen = true;
     },
     setCollapse(value: boolean) {
       this.isCollapse = value;

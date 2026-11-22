@@ -26,7 +26,7 @@
     </el-aside>
     <el-container>
       <el-header v-if="globalStore.isHeaderShown" class="layout-header">
-        <div class="koi-header">
+        <div class="koi-header" :class="{ 'is-standard-menu': globalStore.optimumHeaderStyle === 'standard' }">
           <div class="header-left" :style="{ paddingRight: toolbarWidth + 10 + 'px' }">
             <!-- 左侧菜单展开和折叠图标 -->
             <ReCollapse></ReCollapse>
@@ -42,12 +42,12 @@
               >
                 <div
                   v-for="item in topLevelMenus"
-                  :key="item.meta.menuId"
+                  :key="item.path"
                   class="left-row line-clamp-1"
                   :class="{
-                    'is-active': activeTopMenuId == item.meta?.menuId
+                    'is-active': activeTopPath === String(item.path)
                   }"
-                  :data-nav-id="item.meta?.menuId"
+                  :data-nav-id="item.path"
                   @click="handleTopMenuClick(item)"
                 >
                   <el-tooltip :content="getMenuLanguage(item.meta?.title)" :show-after="1500" placement="right">
@@ -101,8 +101,8 @@ const menuDefaultIcon = resolveMenuDefaultIcon();
 
 const topLevelMenus = computed(() => authStore.showMenuList.filter((item: any) => item.meta?.isVisible == "1"));
 
-// 当前激活的顶级菜单ID
-const activeTopMenuId = ref<any>();
+// 当前激活的顶级菜单 path（按 path 标识：静态菜单没有 meta.menuId，按 menuId 比较会全量误命中）
+const activeTopPath = ref<string | undefined>();
 // 当前显示的子菜单树[包含所有层级]
 const currentSubMenuTree = ref<any[]>([]);
 // 当前激活的子菜单路径
@@ -113,7 +113,7 @@ const toolbarWidth = ref(0);
 const scrollNavRef = ref<ReScrollNavExpose | null>(null);
 
 const activeTopMenuSelector = computed(() =>
-  activeTopMenuId.value ? `[data-nav-id="${activeTopMenuId.value}"]` : ""
+  activeTopPath.value ? `[data-nav-id="${activeTopPath.value}"]` : ""
 );
 
 const refreshScrollState = () => {
@@ -232,8 +232,8 @@ const findTopMenuByMenuId = (routes: any[], targetMenuId: any): any => {
  * @param {number|string} topMenuId 顶级菜单ID
  * @returns {Array} 完整的子菜单树
  */
-const getSubMenuTree = (topMenuId: number | string) => {
-  const topMenu = topLevelMenus.value.find((item: any) => item.meta.menuId === topMenuId);
+const getSubMenuTree = (topMenuPath: number | string) => {
+  const topMenu = topLevelMenus.value.find((item: any) => String(item.path) === String(topMenuPath));
   return topMenu?.children || [];
 };
 
@@ -253,7 +253,7 @@ const handleTopMenuClick = (route: any) => {
 
   if (!route?.children) {
     // 更新当前激活的顶级菜单
-    activeTopMenuId.value = route.meta?.menuId;
+    activeTopPath.value = String(route.path);
     currentSubMenuTree.value = [];
     router.push({
       path: route.path || HOME_URL
@@ -262,10 +262,10 @@ const handleTopMenuClick = (route: any) => {
   }
 
   // 更新当前激活的顶级菜单
-  activeTopMenuId.value = route.meta?.menuId;
+  activeTopPath.value = String(route.path);
 
   // 获取该顶级菜单的子菜单树
-  currentSubMenuTree.value = getSubMenuTree(route.meta?.menuId);
+  currentSubMenuTree.value = getSubMenuTree(route.path);
 };
 
 /**
@@ -277,13 +277,11 @@ const initMenu = () => {
   const { menuId, activeMenu } = route.meta || {};
 
   // 情况一：没有提供 menuId 或 activeMenu，默认选第一个顶级菜单。
-  // 2026-11-20 修复：原实现误把整个菜单对象赋给 activeTopMenuId，而模板里的
-  // 激活比较是 activeTopMenuId == item.meta?.menuId，对象永远不相等，导致这类
-  // 路由（如直接打开首页）顶栏没有任何激活高亮；同时补上子菜单树，
-  // 与 columns/double 布局同口径。
+  // 2026-11-21 修复：激活标识由 menuId 改为 path——静态菜单没有 meta.menuId，
+  // 以 menuId 比较会全部命中（undefined == undefined），顶栏整排高亮。
   if (!menuId && !activeMenu) {
-    activeTopMenuId.value = topLevelMenus.value[0]?.meta?.menuId;
-    currentSubMenuTree.value = getSubMenuTree(activeTopMenuId.value);
+    activeTopPath.value = topLevelMenus.value[0]?.path != null ? String(topLevelMenus.value[0].path) : undefined;
+    currentSubMenuTree.value = activeTopPath.value ? getSubMenuTree(activeTopPath.value) : [];
     return;
   }
 
@@ -292,13 +290,14 @@ const initMenu = () => {
     const topLevelMenu: any = findTopMenuByMenuId(authStore.showMenuList, String(menuId));
 
     if (!topLevelMenu) {
-      // 未找到父级，说明是顶级菜单，直接赋值
-      activeTopMenuId.value = menuId;
+      // 未找到父级，说明是顶级菜单：按 menuId 找到自身后取其 path
+      const selfMenu: any = authStore.showMenuList.find((m: any) => String(m.meta?.menuId) === String(menuId));
+      activeTopPath.value = selfMenu ? String(selfMenu.path) : undefined;
       currentSubMenuTree.value = [];
     } else {
       // 找到父级，设置为激活项，并加载子菜单
-      activeTopMenuId.value = topLevelMenu.meta?.menuId;
-      currentSubMenuTree.value = getSubMenuTree(activeTopMenuId.value);
+      activeTopPath.value = String(topLevelMenu.path);
+      currentSubMenuTree.value = getSubMenuTree(topLevelMenu.path);
     }
 
     router.push(route.path); // 同步路径
@@ -310,8 +309,8 @@ const initMenu = () => {
     const topLevelMenu: any = findMenuByActiveMenu(authStore.showMenuList, activeMenu);
 
     if (topLevelMenu) {
-      activeTopMenuId.value = topLevelMenu.meta?.menuId;
-      currentSubMenuTree.value = getSubMenuTree(activeTopMenuId.value);
+      activeTopPath.value = String(topLevelMenu.path);
+      currentSubMenuTree.value = getSubMenuTree(topLevelMenu.path);
       router.push(route.path);
     } else {
       msgError("The menu data configuration is error");
@@ -355,7 +354,7 @@ watch(topLevelMenus, () => refreshScrollState(), { deep: true });
     transition: padding-right 0.3s ease;
   }
 
-  /* 让 Toolbar 覆盖在 header-left 上方 */
+  /* 让 Toolbar 覆盖在 header-left 上方（与经典/垂直布局同口径：不加胶囊底，视觉由 Toolbar 组件自身提供） */
   :deep(.header-right) {
     position: absolute;
     top: 50%;
@@ -363,12 +362,6 @@ watch(topLevelMenus, () => refreshScrollState(), { deep: true });
     z-index: 10; /* 确保在 header-left 上方 */
     height: 40px;
     transform: translateY(-50%);
-    padding: 2px 6px;
-    background-color: var(--el-header-bg-color);
-    border: 1px solid var(--el-header-toolbar-border-color); /* 添加边框 */
-    border-radius: 20px; /* 圆角卡片效果 */
-    box-shadow: 0 4px 12px rgb(0 0 0 / 15%); /* 漂浮阴影效果 */
-    transition: all 0.3s ease;
   }
 }
 
@@ -500,6 +493,24 @@ watch(topLevelMenus, () => refreshScrollState(), { deep: true });
     color: var(--el-header-optimum-active-color);
     background: var(--el-header-optimum-active-bg-color);
     border-color: transparent;
+  }
+}
+
+/* 标准形态（optimumHeaderStyle=standard）：图标在左、文字在右，与横向布局菜单一致；
+   卡片形态（默认）保持 .left-row 的纵向排布（图标在上、文字在下） */
+.koi-header.is-standard-menu .left-row {
+  flex-direction: row;
+  min-width: 0;
+  max-width: none;
+
+  .left-row-tooltip-trigger {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .title {
+    margin-top: 0;
+    line-height: 18px;
   }
 }
 

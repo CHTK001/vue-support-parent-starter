@@ -8,7 +8,7 @@
  *
  * @since 2.0.0
  */
-import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router";
 import { hotsportRoutes } from "@pages/hotsport";
 
 /** 首页重定向：/ → 包路由的默认首页（总览看板） */
@@ -21,7 +21,10 @@ export const routes: RouteRecordRaw[] = [
 ];
 
 export const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  // 路由模式统一跟随框架默认（hash）：apps 下的应用不再各自选择 history 模式。
+  // hash 模式必须显式传 base（与 @repo/core 的 createAppRouter 同一口径）：
+  // 缺省会把打开时的 pathname 当成 hash base，后续路由变成 /login#/hotsport/... 错位地址。
+  history: createWebHashHistory(import.meta.env.BASE_URL || "/"),
   routes,
 });
 

@@ -259,6 +259,13 @@ function isZombie(row: Record<string, any> | null | undefined): boolean {
   return /^z/i.test(String(row?.state ?? "").trim());
 }
 
+/** 行背景着色：僵尸（黑底白字）优先，其次无主（粉底黑字），再按 CPU/内存负载给浅色底 */
+function rowToneClass(p: ProcView): string {
+  if (isZombie(p.raw)) return "t-zombie";
+  if (p.raw?.orphan) return "t-ownerless";
+  return p.tone ? `t-${p.tone}` : "";
+}
+
 /** 状态展示文本：空状态说明该通道没有这一列（Windows），不显示成异常 */
 function stateLabelOf(row: Record<string, any> | null | undefined): string {
   const s = String(row?.state ?? "").trim();
@@ -577,6 +584,14 @@ onBeforeUnmount(() => {
         <span class="proc-head__r proc-head__user">用户</span>
       </div>
 
+      <!-- 行色图例：与行着色口径一一对应（僵尸 / 无主 / 高负载 / 偏高） -->
+      <div class="proc-legend">
+        <span class="proc-legend__item"><i class="proc-legend__dot" style="background: #1b1c20"></i>僵尸进程</span>
+        <span class="proc-legend__item"><i class="proc-legend__dot" style="background: #ffd7e6"></i>无主进程（父进程已退出）</span>
+        <span class="proc-legend__item"><i class="proc-legend__dot" style="background: var(--el-color-danger-light-7, #f9b7b3)"></i>高负载</span>
+        <span class="proc-legend__item"><i class="proc-legend__dot" style="background: var(--el-color-warning-light-7, #f8d49a)"></i>负载偏高</span>
+      </div>
+
       <!-- 批量条：有选择时才出现，动作与右键菜单同源（都最终落到同一个 emit） -->
       <div v-if="selected.size" class="proc-batch">
         <span class="proc-batch__n">已选 <b class="pf-mono">{{ selected.size }}</b> 个</span>
@@ -599,7 +614,7 @@ onBeforeUnmount(() => {
       <div
         v-for="p in view"
         :key="p.pid"
-        :class="['proc-row', p.tone ? `t-${p.tone}` : '', { open: expandedPid === p.pid, picked: selected.has(p.pid) }]"
+        :class="['proc-row', rowToneClass(p), { open: expandedPid === p.pid, picked: selected.has(p.pid) }]"
         @contextmenu.prevent.stop="onRowContextMenu($event, p)"
       >
         <el-popover
@@ -882,6 +897,80 @@ onBeforeUnmount(() => {
 }
 .proc-row.open {
   background: var(--el-color-primary-light-9, #f6f4ff);
+}
+/* ===== 行背景着色：僵尸（黑底白字）/ 无主（粉底黑字）/ 高负载（浅红）/ 偏高（浅黄） ===== */
+.proc-row.t-bad {
+  background: var(--el-color-danger-light-9, #fdecea);
+}
+.proc-row.t-warn {
+  background: var(--el-color-warning-light-9, #fdf3e3);
+}
+.proc-row.t-bad:hover,
+.proc-row.t-bad.open,
+.proc-row.t-bad.picked {
+  background: var(--el-color-danger-light-8, #f9b7b3);
+}
+.proc-row.t-warn:hover,
+.proc-row.t-warn.open,
+.proc-row.t-warn.picked {
+  background: var(--el-color-warning-light-8, #f8d49a);
+}
+.proc-row.t-zombie {
+  background: #1b1c20;
+  color: #f4f4f5;
+}
+.proc-row.t-zombie:hover,
+.proc-row.t-zombie.open,
+.proc-row.t-zombie.picked {
+  background: #2b2c33;
+}
+.proc-row.t-zombie .proc-name,
+.proc-row.t-zombie .proc-val,
+.proc-row.t-zombie .proc-pid,
+.proc-row.t-zombie .proc-user,
+.proc-row.t-zombie .proc-caret {
+  color: inherit;
+}
+.proc-row.t-zombie .pf-bar {
+  background: rgba(255, 255, 255, 0.18);
+}
+.proc-row.t-ownerless {
+  background: #ffd7e6;
+  color: #1c1c1e;
+}
+.proc-row.t-ownerless:hover,
+.proc-row.t-ownerless.open,
+.proc-row.t-ownerless.picked {
+  background: #ffc3da;
+}
+.proc-row.t-ownerless .proc-name,
+.proc-row.t-ownerless .proc-val,
+.proc-row.t-ownerless .proc-pid,
+.proc-row.t-ownerless .proc-user,
+.proc-row.t-ownerless .proc-caret {
+  color: inherit;
+}
+
+/* ===== 行色图例 ===== */
+.proc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 0 8px 6px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary, #5c6270);
+}
+.proc-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.proc-legend__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
 }
 /* 行右键菜单（Teleport 到 body，随位置钉住） */
 .pf-ctx {

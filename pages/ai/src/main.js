@@ -131,7 +131,7 @@ import {
   backendError,
   isElectron,
 } from "@/composables/useBackendStatus";
-import { i18n } from "./locales";
+import { i18n, syncFrameworkLocale } from "./locales";
 // 路由级加载态清理：切页时收掉跨页请求遗留的遮罩（见 afterEach 注释）
 import { closeRouterScoped } from "@repo/ui/re-loader";
 
@@ -534,6 +534,11 @@ let router = null;
  * 再挂载 Vue 应用。
  */
 async function bootstrapAndMount() {
+  // 框架 i18n 实例（@repo/languages）是懒装载：monitor 等应用由 createVueApp 在
+  // 挂载前装载语言包，本应用自装配绕过了它。必须在任何请求发出前补装载，
+  // 否则 httpCrypto 的失败兜底文案 t("msg.requestFailed") 会原样吐 key
+  //（拉模型失败弹窗曾把裸 key 展示给用户）。
+  await syncFrameworkLocale();
   await bootstrapFramework();
   // 站内消息 HTTP 适配器：本应用不走 @repo/app 的 assembleCore（适配器在那里
   // 统一初始化），必须在此补齐——否则 getStationMessageAdapter() 恒为 null，

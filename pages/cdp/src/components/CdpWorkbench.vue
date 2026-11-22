@@ -4197,6 +4197,9 @@ const livePageSession = ref("");
 /** 实时页面模式下的舞台提示 */
 const livePageHint = ref("真实页面经服务端代理注入，可直接点击 / 输入，与无头浏览器共享登录态");
 
+/** 实时页面正在打开（代理会话创建期间，防重复点击并给出提示） */
+const livePageOpening = ref(false);
+
 /** 打开 / 关闭实时页面模式 */
 async function toggleLivePage() {
   if (livePageOn.value) {
@@ -4208,6 +4211,11 @@ async function toggleLivePage() {
     stageHint.value = "当前目标不是 http(s) 页面，无法打开实时页面";
     return;
   }
+  if (livePageOpening.value) {
+    return;
+  }
+  livePageOpening.value = true;
+  stageHint.value = `正在打开实时页面：${url} …`;
   try {
     const session = await cdpOpenProxySession(url);
     livePageSession.value = session.sessionId;
@@ -4216,6 +4224,8 @@ async function toggleLivePage() {
     livePageHint.value = `实时页面已打开：${url}`;
   } catch (error) {
     stageHint.value = "实时页面打开失败: " + (error as Error).message;
+  } finally {
+    livePageOpening.value = false;
   }
 }
 
@@ -7000,11 +7010,11 @@ defineExpose({
           <button class="debug-btn debug-btn--sm" :disabled="!selectedTarget" @click="refreshStage">截屏</button>
           <button
             :class="['debug-btn', 'debug-btn--sm', { 'debug-btn--primary': livePageOn }]"
-            :disabled="!selectedTarget"
+            :disabled="!selectedTarget || livePageOpening"
             title="经服务端反向代理打开真实页面：可点击、可输入，与无头浏览器共享登录态"
             @click="toggleLivePage"
           >
-            {{ livePageOn ? "关闭实时页面" : "实时页面" }}
+            {{ livePageOn ? "关闭实时页面" : livePageOpening ? "打开中…" : "实时页面" }}
           </button>
           <span class="debug-sitebar__seg">
             <button :class="['debug-sitebar__segb', { 'is-active': stageLayout === 'left' }]" title="画面在左，DOM 与样式在右" @click="stageLayout = 'left'">左右</button>

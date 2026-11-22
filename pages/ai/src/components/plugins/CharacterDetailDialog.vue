@@ -118,7 +118,25 @@ async function load() {
   error.value = ''
   detail.value = null
   try {
-    detail.value = await apiService.fetchBuiltinCharacterDetail(props.item.id)
+    // 自建角色（id 形如 custom-<roleId>）没有内置目录详情接口，直接用市场卡片数据渲染，避免 404 报错
+    if (props.item.id.startsWith('custom-')) {
+      const it = props.item as any
+      detail.value = {
+        id: it.id,
+        name: it.name || it.title || '',
+        title: it.title || '',
+        description: it.description || '',
+        category: it.category || '',
+        avatar: it.avatar || '',
+        modelType: '',
+        added: !!it.added,
+        tags: [],
+        prompts: [],
+        skills: [],
+      }
+    } else {
+      detail.value = await apiService.fetchBuiltinCharacterDetail(props.item.id)
+    }
   } catch (e: any) {
     console.error('加载角色详情失败:', e)
     error.value = e?.message || t('plugins.characters.detail.loadFailed')

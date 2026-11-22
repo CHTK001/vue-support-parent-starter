@@ -56,7 +56,6 @@ void (async () => {
     appName: APP_NAME,
     title: APP_TITLE,
     mode: "router",
-    routerMode: "hash",
     /**
      * 资源基础路径，必须显式传。
      *

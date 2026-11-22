@@ -42,6 +42,7 @@
         :close-text="t('header.noteEntry.close')"
         :restore-text="t('header.noteEntry.restore')"
         :dock-icon-only="true"
+        :edge-hover-peek="hoverPeek"
         edge-sides="all"
         @change="onNoteChange(note, $event)"
         @close="removeNote(note.id)"
@@ -146,6 +147,8 @@ const userId = computed(() => String(authStore.loginUser?.userId ?? authStore.lo
 const enabled = computed(() => isToolbarVisible("quickNote"));
 /** 关闭便条是否二次确认（默认开启；yaml master + 用户偏好） */
 const confirmClose = computed(() => isToolbarUserEnabled("quickNoteConfirm"));
+/** 鼠标经过收起的便条时是否探出预览（默认开启；yaml master + 用户偏好） */
+const hoverPeek = computed(() => isToolbarUserEnabled("quickNoteHoverPeek"));
 
 const notes = ref<Note[]>([]);
 

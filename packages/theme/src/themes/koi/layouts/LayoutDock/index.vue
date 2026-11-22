@@ -3,21 +3,17 @@
        二级为 Dock 上方竖列方形卡片，三级及以上为横排小卡片（见 DockCards.vue） -->
   <div class="layout-dock-host">
     <div class="layout-dock-body">
-      <header v-if="globalStore.isHeaderShown" class="layout-dock-topbar">
-        <div class="layout-dock-topbar-card">
-          <Logo :layout="globalStore.layout" class="layout-dock-logo" />
-          <div class="layout-dock-toolbar-wrap">
-            <ReToolbar />
-          </div>
-        </div>
-      </header>
+      <el-header v-if="globalStore.isHeaderShown" class="layout-header">
+        <Logo :layout="globalStore.layout" class="flex-shrink-0" />
+        <Header class="header m-l-8px" />
+      </el-header>
       <div class="layout-dock-main-wrap">
         <Main class="layout-dock-main" />
       </div>
     </div>
 
     <!-- 悬浮 Dock：弹层 + 磁贴条 -->
-    <div ref="dockRootRef" class="dock-root" :class="`is-${globalStore.dockPosition}`" @mouseenter="peek = true" @mouseleave="peek = false">
+    <div v-if="globalStore.dockShown" ref="dockRootRef" class="dock-root" :class="`is-${globalStore.dockPosition}`" @mouseenter="enterDock" @mouseleave="leaveDock">
       <!-- 折叠悬停垫：peek 时兜住整片坞区（dock-root 本体 pointer-events:none），
            把手卸载后鼠标移向磁贴条途中命中链不断，避免「刚显出就缩回」的振荡 -->
       <div v-if="globalStore.dockCollapsed && peek" class="dock-peek-pad" aria-hidden="true"></div>
@@ -48,46 +44,116 @@
         </div>
       </transition>
 
-      <div v-show="dockVisible" class="dock-bar">
-        <el-tooltip
-          v-for="item in topLevelMenus"
-          :key="item.path"
-          :content="titleOf(item)"
-          :placement="tileTooltipPlacement" :show-after="300"
-        >
-          <button type="button" class="dock-tile" :class="tileClass(item)" :ref="el => setTileRef(item.path, el)" @click="handleTileClick(item)">
-            <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="20" />
+      <!-- 磁贴条折叠/展开动画：收起时向所在边缘滑出消隐，恢复时滑回；把手弹出/缩回 -->
+      <transition name="dock-bar">
+        <div v-show="dockVisible" class="dock-bar" :class="{ 'is-scatter': globalStore.dockTileStyle === 'scatter', 'is-peek': isPeekPreview }">
+          <el-tooltip
+            v-for="item in topLevelMenus"
+            :key="item.path"
+            :content="titleOf(item)"
+            :placement="tileTooltipPlacement" :show-after="300"
+          >
+            <button type="button" class="dock-tile" :class="tileClass(item)" :ref="el => setTileRef(item.path, el)" @click="handleTileClick(item)" @mouseenter="handleTileHover(item)">
+              <ReIcon :name="item.meta?.icon || menuDefaultIcon" size="20" />
+            </button>
+          </el-tooltip>
+
+          <!-- 悬浮坞专属配置：条尾齿轮按钮 + popover，就地调整悬浮导航配置（无需进设置抽屉） -->
+          <el-popover :placement="configPopoverPlacement" :width="272" trigger="click" popper-class="dock-config-popover">
+            <template #reference>
+              <button type="button" class="dock-config" aria-label="dock config">
+                <el-icon :size="16"><Setting /></el-icon>
+              </button>
+            </template>
+            <div class="dock-config-panel">
+              <div class="dock-config-title">{{ t("themeConfig.interface.dockSection") }}</div>
+              <div class="dock-config-row">
+                <span class="dock-config-label">{{ t("themeConfig.interface.dockPosition.label") }}</span>
+                <el-segmented
+                  v-model="dockPositionModel"
+                  size="small"
+                  :options="[
+                    { label: t('themeConfig.interface.dockPosition.top'), value: 'top' },
+                    { label: t('themeConfig.interface.dockPosition.bottom'), value: 'bottom' },
+                    { label: t('themeConfig.interface.dockPosition.left'), value: 'left' },
+                    { label: t('themeConfig.interface.dockPosition.right'), value: 'right' }
+                  ]"
+                />
+              </div>
+              <div class="dock-config-row">
+                <span class="dock-config-label">{{ t("themeConfig.interface.dockTileStyle.label") }}</span>
+                <el-segmented
+                  v-model="dockTileStyleModel"
+                  size="small"
+                  :options="[
+                    { label: t('themeConfig.interface.dockTileStyle.aggregate'), value: 'aggregate' },
+                    { label: t('themeConfig.interface.dockTileStyle.scatter'), value: 'scatter' }
+                  ]"
+                />
+              </div>
+              <div class="dock-config-row">
+                <span class="dock-config-label">{{ t("themeConfig.switchBlocks.dockHoverOpen.title") }}</span>
+                <el-segmented
+                  v-model="dockHoverOpenModel"
+                  size="small"
+                  :options="[
+                    { label: t('themeConfig.interface.switchOn'), value: true },
+                    { label: t('themeConfig.interface.switchOff'), value: false }
+                  ]"
+                />
+              </div>
+              <div class="dock-config-row">
+                <span class="dock-config-label">{{ t("themeConfig.switchBlocks.dockHoverPeek.title") }}</span>
+                <el-segmented
+                  v-model="dockHoverPeekModel"
+                  size="small"
+                  :options="[
+                    { label: t('themeConfig.interface.switchOn'), value: true },
+                    { label: t('themeConfig.interface.switchOff'), value: false }
+                  ]"
+                />
+              </div>
+            </div>
+          </el-popover>
+
+          <!-- 折叠按钮：点击收起 Dock（缩为边缘角落把手，悬停显出、点把手恢复） -->
+          <button v-if="!globalStore.dockCollapsed" type="button" class="dock-fold" aria-label="collapse dock" @click="collapseDock">
+            <el-icon :size="16"><Fold /></el-icon>
           </button>
-        </el-tooltip>
-      </div>
+        </div>
+      </transition>
 
       <!-- 折叠把手：Dock 折叠时缩至所在边缘角落。常驻不随 peek 卸载——
            若 mouseenter 即卸载，点击会落在空处，「点击恢复」永远点不中（实测缺陷） -->
-      <button v-if="globalStore.dockCollapsed" type="button" class="dock-handle" :class="`is-${globalStore.dockPosition}`" @click="restoreDock" @mouseenter="peek = true">
-        <el-icon :size="18"><Expand /></el-icon>
-      </button>
+      <transition name="dock-handle">
+        <button v-if="globalStore.dockCollapsed" type="button" class="dock-handle" :class="`is-${globalStore.dockPosition}`" @click="restoreDock" @mouseenter="enterDock">
+          <el-icon :size="18"><Menu /></el-icon>
+        </button>
+      </transition>
     </div>
   </div>
 </template>
 
 <script setup lang="ts" name="LayoutDock">
+import Header from "@repo/theme/koi/layouts/components/Header/index.vue";
 import Logo from "@repo/theme/koi/layouts/components/Logo/index.vue";
-import ReToolbar from "@repo/theme/koi/layouts/components/Header/components/ReToolbar.vue";
 import Main from "@repo/theme/koi/layouts/components/Main/index.vue";
 import DockCards from "./DockCards.vue";
 import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import useAuthStore from "@repo/pinia/modules/auth";
 import useGlobalStore from "@repo/pinia/modules/global";
 import { getMenuLanguage } from "@repo/languages";
 import { HOME_URL, resolveMenuDefaultIcon } from "@repo/config";
 import { msgWarning } from "@repo/core";
-import { Expand } from "@element-plus/icons-vue";
+import { Menu, Fold, Setting } from "@element-plus/icons-vue";
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const globalStore = useGlobalStore();
+const { t } = useI18n();
 
 // 缺省菜单图标：菜单未配置 meta.icon 时兜底，避免图标位空白
 const menuDefaultIcon = resolveMenuDefaultIcon();
@@ -131,9 +197,6 @@ const activeTopPath = computed(() => {
 const openMenuPath = ref<string | null>(null);
 /** 展开链：各级已展开项的 path（单链，uniqueOpened 语义） */
 const expandedPaths = ref<string[]>([]);
-/** 独立卡片模式下被点亮的一级磁贴 path 集合：点击切换、互不影响、可多张同亮 */
-const selectedTopPaths = ref<Set<string>>(new Set());
-
 const openMenu = computed(() =>
   topLevelMenus.value.find((item: any) => String(item.path) === openMenuPath.value) || null
 );
@@ -217,19 +280,12 @@ watch(
   }
 );
 
-// 切换激活模式时清空独立卡片的点亮集合，避免旧状态泄漏进另一模式
-watch(
-  () => globalStore.dockActiveMode,
-  () => {
-    selectedTopPaths.value = new Set();
-  }
-);
-
 /**
  * 切换某项的展开状态（任意层级通用）：
  * 展开 → 保留其祖先链并加入自身；收起 → 截断到其父级为止。
  */
 const handleToggle = (item: any) => {
+  if (isPeekPreview.value) return; // 折叠预览态：仅展示，不可交互
   const ancestors: string[] = [];
   const walk = (items: any[], trail: string[]): boolean => {
     for (const it of items) {
@@ -255,6 +311,7 @@ const handleCardClick = (item: any) => {
 
 /** 跳转（外链校验与其它布局同口径） */
 const handleNavigate = (item: any) => {
+  if (isPeekPreview.value) return; // 折叠预览态：仅展示，不可跳转
   if (item.meta?.linkUrl) {
     if (/^https?:\/\//.test(item.meta?.linkUrl)) {
       window.open(item.meta.linkUrl, "_blank");
@@ -266,16 +323,28 @@ const handleNavigate = (item: any) => {
   router.push({ path: item.path });
 };
 
-/** 独立卡片模式：切换某张一级磁贴的点亮状态（互不影响，可多张同亮） */
-const toggleTopTile = (tilePath: string) => {
-  const next = new Set(selectedTopPaths.value);
-  if (next.has(tilePath)) next.delete(tilePath);
-  else next.add(tilePath);
-  selectedTopPaths.value = next;
+/** 当前弹层是否由鼠标悬停展开（首次点击转为常驻，不立即收起） */
+const hoverOpened = ref(false);
+
+/**
+ * 鼠标经过一级磁贴自动展开二级弹层（dockHoverOpen，默认开启）。
+ * 注意：只新增弹层、不卸载磁贴自身（dock-handle 前车之鉴——hover 目标
+ * 若在 mouseenter 里被卸载，事件链断裂，交互会失效）。
+ */
+const handleTileHover = (item: any) => {
+  if (isPeekPreview.value) return; // 折叠预览态：仅展示，不展开弹层
+  if (!globalStore.dockHoverOpen) return;
+  if (!hasChildren(item)) return;
+  const tilePath = String(item.path);
+  if (openMenuPath.value === tilePath) return;
+  openMenuPath.value = tilePath;
+  hoverOpened.value = true;
+  expandActiveChain();
 };
 
 /** 点击 Dock 磁贴 */
 const handleTileClick = (item: any) => {
+  if (isPeekPreview.value) return; // 折叠预览态：仅展示，不可点击（要用导航先点把手恢复常驻）
   if (item.meta?.linkUrl) {
     if (/^https?:\/\//.test(item.meta?.linkUrl)) {
       window.open(item.meta.linkUrl, "_blank");
@@ -286,35 +355,27 @@ const handleTileClick = (item: any) => {
   }
 
   const tilePath = String(item.path);
-  const independent = globalStore.dockActiveMode === "independent";
 
-  // 叶子：直接跳转；整体模式下顺带收起弹层，独立卡片模式下弹层与其它卡互不影响
+  // 叶子：直接跳转，顺带收起弹层
   if (!hasChildren(item)) {
-    if (independent) toggleTopTile(tilePath);
-    else openMenuPath.value = null;
+    openMenuPath.value = null;
+    hoverOpened.value = false;
     router.push({ path: item.path || HOME_URL });
     return;
   }
 
-  // 独立卡片模式：点亮/熄灭自己；弹层只跟随本次点击的卡，再点已亮卡则熄灭并收起弹层
-  if (independent) {
-    const wasLit = selectedTopPaths.value.has(tilePath);
-    toggleTopTile(tilePath);
-    if (wasLit) {
-      if (openMenuPath.value === tilePath) openMenuPath.value = null;
-    } else {
-      openMenuPath.value = tilePath;
-      expandActiveChain();
-    }
-    return;
-  }
-
-  // 整体模式：切换弹层；打开时把当前路由所在的链路预先展开
+  // 分支磁贴：切换弹层；打开时把当前路由所在的链路预先展开。
+  // 悬停展开的弹层首次点击转为常驻（不收起），再次点击才收起。
   if (openMenuPath.value === tilePath) {
+    if (hoverOpened.value) {
+      hoverOpened.value = false;
+      return;
+    }
     openMenuPath.value = null;
     return;
   }
   openMenuPath.value = tilePath;
+  hoverOpened.value = false;
   expandActiveChain();
 };
 
@@ -335,29 +396,43 @@ const expandActiveChain = () => {
   expandedPaths.value = chain;
 };
 
-// 路由变化：弹层打开时同步展开链；整体模式切到其它顶级菜单则收起弹层（独立卡片模式弹层不随路由收起）
+// 路由变化：弹层打开时同步展开链；切到其它顶级菜单则收起弹层
 watch(activeMenu, () => {
   if (!openMenuPath.value) return;
-  if (globalStore.dockActiveMode !== "independent" && openMenuPath.value !== activeTopPath.value) {
+  if (openMenuPath.value !== activeTopPath.value) {
     openMenuPath.value = null;
+    hoverOpened.value = false;
     return;
   }
   if (openMenuPath.value === activeTopPath.value) expandActiveChain();
 });
+
+// 关闭「悬停展开」时立即收起当前弹层：弹层一旦打开就会常驻（悬停/点击打开皆然），
+// 不收起的话鼠标划过仍看得到，看起来像配置没生效；重新开启不自动恢复弹层
+watch(
+  () => globalStore.dockHoverOpen,
+  v => {
+    if (!v && openMenuPath.value) {
+      openMenuPath.value = null;
+      hoverOpened.value = false;
+    }
+  }
+);
+
+// 关闭「折叠悬停预览」时立即结束当前预览态（坞体缩回角落把手）
+watch(
+  () => globalStore.dockHoverPeek,
+  v => {
+    if (!v) peek.value = false;
+  }
+);
 
 // ==================== 高亮类名 ====================
 
 const tileClass = (item: any) => {
   const path = String(item.path);
   const isOpen = openMenuPath.value === path;
-  // 独立卡片模式：点亮的卡与路由激活的卡都高亮，互不影响、可多张同亮
-  if (globalStore.dockActiveMode === "independent") {
-    return {
-      "is-active": isOpen || selectedTopPaths.value.has(path) || activeTopPath.value === path,
-      "is-open": isOpen
-    };
-  }
-  // 整体模式（默认）：点击即激活——弹层打开期间被点磁贴保持激活态，其余磁贴（含原激活）
+  // 点击即激活——弹层打开期间被点磁贴保持激活态，其余磁贴（含原激活）
   // 转为未激活；弹层收起后回到路由驱动的激活态
   return {
     "is-active": isOpen || (!openMenuPath.value && activeTopPath.value === path),
@@ -384,9 +459,28 @@ const peek = ref(false);
 /** 折叠时坞体是否显示（未折叠常显；折叠后仅悬停显出） */
 const dockVisible = computed(() => !globalStore.dockCollapsed || peek.value);
 
+/** 折叠预览态：折叠期间悬停显出的导航仅作预览，磁贴/卡片不可点击（要用导航先点把手恢复常驻） */
+const isPeekPreview = computed(() => globalStore.dockCollapsed && peek.value);
+
+/** 悬停显出（peek）：受「折叠悬停预览」配置控制，关闭后折叠态不随悬停展开，仅点击把手恢复 */
+const enterDock = () => {
+  if (globalStore.dockHoverPeek) peek.value = true;
+};
+
+/** 离开坞区：结束悬停显出态 */
+const leaveDock = () => {
+  peek.value = false;
+};
+
 /** 点击把手：恢复常驻 Dock */
 const restoreDock = () => {
   globalStore.setGlobalState("dockCollapsed", false);
+  peek.value = false;
+};
+
+/** 点击 Dock 条上的折叠按钮：收起为边缘角落把手（悬停显出，点把手恢复） */
+const collapseDock = () => {
+  globalStore.setGlobalState("dockCollapsed", true);
   peek.value = false;
 };
 
@@ -397,6 +491,34 @@ const tileTooltipPlacement = computed(() =>
 /** 二级卡片提示气泡方向：右侧坞朝左弹，其余朝右弹 */
 const cardTooltipPlacement = computed(() => (globalStore.dockPosition === "right" ? "left" : "right"));
 
+/** 配置 popover 弹出方向：朝页面空白侧（底坞向上、顶坞向下、左右坞朝页心） */
+const configPopoverPlacement = computed(() => {
+  const map: Record<string, string> = { bottom: "top", top: "bottom", left: "right", right: "left" };
+  return map[globalStore.dockPosition] || "top";
+});
+
+// ==================== 悬浮坞专属配置 popover（与设置抽屉同源读写全局配置） ====================
+
+const dockPositionModel = computed({
+  get: () => globalStore.dockPosition,
+  set: (v: string) => globalStore.setGlobalState("dockPosition", v)
+});
+
+const dockTileStyleModel = computed({
+  get: () => globalStore.dockTileStyle,
+  set: (v: string) => globalStore.setGlobalState("dockTileStyle", v)
+});
+
+const dockHoverOpenModel = computed({
+  get: () => globalStore.dockHoverOpen,
+  set: (v: boolean) => globalStore.setGlobalState("dockHoverOpen", v)
+});
+
+const dockHoverPeekModel = computed({
+  get: () => globalStore.dockHoverPeek,
+  set: (v: boolean) => globalStore.setGlobalState("dockHoverPeek", v)
+});
+
 // ==================== 关闭交互（点空白 / Esc） ====================
 
 const dockRootRef = ref<HTMLElement | null>(null);
@@ -405,11 +527,15 @@ const onDocMouseDown = (e: MouseEvent) => {
   if (!openMenuPath.value) return;
   if (dockRootRef.value && !dockRootRef.value.contains(e.target as Node)) {
     openMenuPath.value = null;
+    hoverOpened.value = false;
   }
 };
 
 const onKeydown = (e: KeyboardEvent) => {
-  if (e.key === "Escape" && openMenuPath.value) openMenuPath.value = null;
+  if (e.key === "Escape" && openMenuPath.value) {
+    openMenuPath.value = null;
+    hoverOpened.value = false;
+  }
 };
 
 const onWindowResize = () => {
@@ -446,55 +572,6 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-/* ===== 顶栏：悬浮玻璃圆角卡（与 Dock 同一材质语言） ===== */
-.layout-dock-topbar {
-  flex-shrink: 0;
-  padding: 10px 14px 0;
-}
-
-.layout-dock-topbar-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: calc(#{$aside-header-height} - 8px);
-  padding: 5px 10px 5px 12px;
-  border: 1px solid color-mix(in srgb, var(--el-border-color) 36%, transparent);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--el-bg-color) 72%, transparent);
-  backdrop-filter: blur(18px) saturate(1.1);
-  -webkit-backdrop-filter: blur(18px) saturate(1.1);
-  box-shadow: 0 8px 24px rgb(15 23 42 / 6%);
-
-  html.dark & {
-    background: color-mix(in srgb, var(--el-bg-color) 58%, transparent);
-    border-color: color-mix(in srgb, var(--el-border-color) 44%, transparent);
-    box-shadow: 0 10px 28px rgb(0 0 0 / 35%);
-  }
-}
-
-.layout-dock-logo {
-  flex-shrink: 1;
-  min-width: 0;
-}
-
-.layout-dock-toolbar-wrap {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  height: $aside-header-height;
-
-  :deep(.header-right) {
-    position: static;
-    top: auto;
-    right: auto;
-    z-index: auto;
-    height: auto;
-    transform: none;
-    flex-shrink: 0;
-  }
-}
-
 /* ===== 内容区：主体吃满整页，Dock 悬浮于边缘之上不再挤压内容 ===== */
 .layout-dock-main-wrap {
   display: flex;
@@ -506,6 +583,21 @@ onBeforeUnmount(() => {
 .layout-dock-main {
   flex: 1;
   min-height: 0;
+}
+
+/* ===== 顶栏：与经典/分组布局同构的 el-header（同高度、同底色） ===== */
+.el-header.layout-header {
+  display: flex;
+  align-items: center;
+  height: $aside-header-height;
+  overflow: hidden;
+  background-color: var(--koi-surface-header);
+
+  .header-box {
+    flex-grow: 1;
+    overflow: hidden;
+    white-space: nowrap;
+  }
 }
 
 /* ===== 悬浮 Dock：位置四边可选（bottom/top/left/right） ===== */
@@ -653,12 +745,68 @@ onBeforeUnmount(() => {
   }
 }
 
+/* ===== 散开形态（dockTileStyle=scatter）：去胶囊外壳，一级磁贴以二级卡片同款
+   方形实底卡散开排布；聚合形态（默认）保持玻璃胶囊条 ===== */
+.dock-bar.is-scatter {
+  gap: 10px;
+  height: auto;
+  padding: 2px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+
+  html.dark & {
+    border-color: transparent;
+    box-shadow: none;
+  }
+}
+
+.dock-bar.is-scatter .dock-tile {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: var(--el-bg-color);
+  color: var(--el-text-color-secondary);
+  box-shadow: 0 6px 16px rgb(15 23 42 / 10%);
+
+  html.dark & {
+    box-shadow: 0 6px 16px rgb(0 0 0 / 45%);
+  }
+
+  &:hover {
+    background: var(--el-bg-color);
+    box-shadow: 0 8px 20px rgb(15 23 42 / 14%);
+  }
+
+  &.is-active {
+    background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+    color: #fff;
+    box-shadow: 0 4px 12px rgb(var(--el-color-primary-rgb) / 40%);
+  }
+}
+
+/* 左右位置散开形态：收回竖排胶囊的定宽与内边距，让卡片自然成列 */
+.is-left .dock-bar.is-scatter,
+.is-right .dock-bar.is-scatter {
+  width: auto;
+  padding: 2px;
+}
+
 /* ===== 折叠悬停垫：peek 期间兜住坞区，保持鼠标命中链 ===== */
 .dock-peek-pad {
   position: absolute;
   inset: 0;
   z-index: -1; /* 压在磁贴条/弹层之下，只兜命中不挡点击 */
   pointer-events: auto;
+}
+
+/* ===== 折叠预览态：坞体仅作展示，不响应任何鼠标交互（磁贴/卡片/配置按钮、hover、tooltip 全静默）——
+   要使用导航先点把手恢复常驻；脚本层 handleTileClick/handleToggle/handleNavigate 拦截作双保险 ===== */
+.dock-bar.is-peek {
+  pointer-events: none;
 }
 
 /* ===== 折叠把手：Dock 折叠时缩至所在边缘角落的小圆钮 ===== */
@@ -683,6 +831,8 @@ onBeforeUnmount(() => {
   transition:
     transform 0.18s ease,
     color 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
     box-shadow 0.18s ease;
 
   html.dark & {
@@ -690,8 +840,11 @@ onBeforeUnmount(() => {
     box-shadow: 0 10px 26px rgb(0 0 0 / 45%);
   }
 
+  /* 悬停反馈：放大 + 主题色描边/底色/光晕，明确「这里可以点」 */
   &:hover {
     color: var(--el-color-primary);
+    border-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+    background: color-mix(in srgb, var(--el-color-primary) 10%, var(--el-bg-color));
     transform: scale(1.08);
     box-shadow: 0 12px 30px rgb(var(--el-color-primary-rgb) / 25%);
   }
@@ -716,6 +869,126 @@ onBeforeUnmount(() => {
     right: 18px;
     bottom: 18px;
   }
+}
+
+/* ===== 折叠/展开动画：磁贴条收起时向所在边缘滑出消隐、恢复时滑回；把手弹出/缩回 ===== */
+.dock-bar-enter-active,
+.dock-bar-leave-active {
+  transition:
+    transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.22s ease;
+}
+
+.dock-bar-enter-from,
+.dock-bar-leave-to {
+  opacity: 0;
+}
+
+.is-bottom .dock-bar-enter-from,
+.is-bottom .dock-bar-leave-to {
+  transform: translateY(32px) scale(0.92);
+}
+
+.is-top .dock-bar-enter-from,
+.is-top .dock-bar-leave-to {
+  transform: translateY(-32px) scale(0.92);
+}
+
+.is-left .dock-bar-enter-from,
+.is-left .dock-bar-leave-to {
+  transform: translateX(-32px) scale(0.92);
+}
+
+.is-right .dock-bar-enter-from,
+.is-right .dock-bar-leave-to {
+  transform: translateX(32px) scale(0.92);
+}
+
+.dock-handle-enter-active,
+.dock-handle-leave-active {
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s ease;
+}
+
+.dock-handle-enter-from,
+.dock-handle-leave-to {
+  opacity: 0;
+  transform: scale(0.3);
+}
+
+/* ===== 折叠按钮：Dock 条尾部的收起钮（点击缩为边缘把手） ===== */
+.dock-fold {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease;
+
+  &:hover {
+    color: var(--el-color-primary);
+    background: var(--el-fill-color-light);
+  }
+}
+
+/* ===== 配置按钮：Dock 条尾部的齿轮钮（点开 popover 就地调整悬浮导航配置） ===== */
+.dock-config {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease;
+
+  &:hover {
+    color: var(--el-color-primary);
+    background: var(--el-fill-color-light);
+  }
+}
+
+/* ===== 悬浮坞专属配置 popover 内部排版（紧凑单行：标签在左、控件在右） ===== */
+.dock-config-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dock-config-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.dock-config-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dock-config-label {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
 }
 
 /* ===== 二级弹层：竖列方形卡片 ===== */
@@ -752,7 +1025,8 @@ onBeforeUnmount(() => {
   flex: none;
 }
 
-/* 二级卡片：与 Dock 磁贴同一语言的方形卡（无底色/描边/阴影，仅图标 + 动效） */
+/* 二级卡片：方形实底卡。2026-11-21 修复：原 transparent 底导致卡片与弹层背景
+   混在一起（「透明度问题」）；显式 border:none 清掉 button 默认描边（「黑色描边」） */
 .dock-col .dock-card {
   position: relative;
   display: flex;
@@ -761,13 +1035,21 @@ onBeforeUnmount(() => {
   width: 46px;
   height: 46px;
   padding: 0;
+  border: none;
   border-radius: 13px;
-  background: transparent;
+  background: var(--el-bg-color);
   color: var(--el-text-color-secondary);
   cursor: pointer;
+  box-shadow: 0 6px 16px rgb(15 23 42 / 10%);
+
+  html.dark & {
+    box-shadow: 0 6px 16px rgb(0 0 0 / 45%);
+  }
+
   transition:
     transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
     background-color 0.18s ease,
+    box-shadow 0.18s ease,
     color 0.18s ease;
 
   &:hover {

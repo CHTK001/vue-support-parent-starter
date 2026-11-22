@@ -286,18 +286,20 @@ export const defaultAppConfig: AppConfig = {
         baseUrl: "",
       },
     ],
-    captcha: true,
+    // 登录验证码类开关默认全部关闭（2026-11-21 定版）：图形验证码 / OTP / 滑块 / 短信登录按需在 app.yaml 开启
+    captcha: false,
     otp: false,
     slider: false,
     // 短信验证码登录入口：后端 OpenSmsLogin 落到此处；还要配合 other.smsLogin.enable
     // （短信发信账号可用）才真正显示，见 ReLoginForm 的 smsLoginAvailable
     smsLogin: false,
-    // 滑块验证形态：simple=原有向右拖动滑块；puzzle=图片拼图滑块
-    sliderType: "simple",
-    // 拼图滑块参数（sliderType=puzzle 时生效；不配则自动生成占位图）
+    // 短信登录「获取验证码」前是否先弹图片拼图验证（拼对才发信；app.yaml loginConfig.smsSlider 可开）
+    smsSlider: false,
+    // 滑块验证形态：simple=向右拖动滑块；puzzle=图片拼图（默认形态）
+    sliderType: "puzzle",
+    // 拼图验证参数（sliderType=puzzle 时生效；不配图则用内置默认插画，插画失败回退渐变占位图）
     sliderPuzzle: {
-      slots: 4,
-      tolerance: 20,
+      tolerance: 8,
     },
     brandName: "应用",
     // 登录认证形态：redirect=401/403 直接跳登录页（默认） / dialog=不跳转，在当前应用内弹出强制登录弹窗

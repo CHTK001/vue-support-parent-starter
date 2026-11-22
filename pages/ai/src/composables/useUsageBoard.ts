@@ -494,6 +494,32 @@ export function useUsageBoard() {
     }
   }
 
+  /**
+   * <p>导入用量统计 CSV：与导出同格式（日期/分组/服务商/模型/次数/Token/费用），
+   * 后端校验先行、按「日期+分组+服务商+模型」覆盖写入日汇总表。覆盖是整维替换，
+   * 导入前的确认弹窗由页面层负责，这里只负责上传与结果提示。</p>
+   */
+  const importing = ref(false);
+  async function handleImportFile(file: File) {
+    if (importing.value) return;
+    importing.value = true;
+    try {
+      const res: any = await usageApi.importCsv(file);
+      const data = res?.data || {};
+      if (Number(data.failedRows) > 0) {
+        const first = Array.isArray(data.errors) && data.errors.length ? data.errors[0] : "存在非法行";
+        message.error(`导入被拒绝（${data.failedRows} 行非法）：${first}`);
+        return;
+      }
+      message.success(`导入成功：已写入 ${Number(data.importedRows) || 0} 行统计`);
+      refreshAll({ detail: true });
+    } catch (e: any) {
+      message.error("导入失败: " + (e?.message || e));
+    } finally {
+      importing.value = false;
+    }
+  }
+
   // ---------- 数据加载 ----------
   const summaryRows = ref<any[]>([]);
   const trendData = ref<Array<{ date: string; input: number; output: number; cached: number; total: number; calls: number; cost: number; latAvg: number }>>([]);
@@ -3072,6 +3098,7 @@ export function useUsageBoard() {
     stats, statCards, animatedTokens, animatedCalls,
     activeFilter, customRange, timeParams, quickFilters, rangeLabel,
     setQuickFilter, onCustomRange, refreshAll, refreshing, handleExport, exporting,
+    handleImportFile, importing,
     spineView, spineMax, spineTotal, drillDay, selectSpineDay, clearDrill, isSpineInRange,
     modelDist, groupDist, appDist,
     callTypeRows, callTypeTotal, callTypeToolTokens, callTypeMemoryTokens, callTypeWidth,

@@ -31,6 +31,10 @@ export interface ProcessInfo {
   memoryBytes?: number;
   command?: string;
   parentPid?: number;
+  /** 进程状态首字母（R 运行 / S 睡眠 / D 不可中断 / T 停止 / Z 僵尸），Windows 通道为空 */
+  state?: string;
+  /** 是否无主进程（父进程已退出：父 pid 不在当前进程集合中） */
+  orphan?: boolean;
   /** 线程数（后端 ProcessRowVO 字段名为 threads） */
   threads?: number;
   /** 线程数别名，部分采集通道以此命名 */

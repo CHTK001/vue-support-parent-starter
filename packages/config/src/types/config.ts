@@ -434,25 +434,20 @@ export interface LoginFeatureTag {
  * 滑块验证方式标签（登录页滑块验证的交互形态）。
  *
  * - simple：从零拖动滑块（目前 koi 登录页的「向右滑动完成验证」）
- * - puzzle：图片拼图滑块：轨道上排列 N 个 slot，其中只有一个是正确目标，
- *   用户把滑块拖到正确的 slot 即视为通过，其余 slot 为随机干扰项
+ * - puzzle：图片拼图：底图缺一块，用户把从原图抠出的拼图块拖回缺口即通过
  */
 export type SliderVerifyType = "simple" | "puzzle";
 
 /**
- * 图片拼图滑块配置（app.yaml loginConfig.sliderPuzzle）。
+ * 图片拼图验证配置（app.yaml loginConfig.sliderPuzzle）。
  *
- * <p>不需要后端提供拼图素材时，组件用 Canvas 自动生成占位图，开箱即用。</p>
+ * <p>不配图片时使用内置默认插画，插画加载失败再回退 Canvas 渐变占位图，开箱即用。</p>
  */
 export interface PuzzleVerifyConfig {
-  /** 拼图背景图（可选；为某一张 slot 提供素材图时，不配则自动生成主题占位图） */
+  /** 拼图底图（可选；不配用内置默认图，登录页同款插画） */
   image?: string;
-  /** slot 数量（总项数 = 正确项 + 干扰项，默认 4，上限 8） */
-  slots?: number;
-  /** 判定正确的容差（px，滑块松手时与正确 slot 中心的距离，默认 20） */
+  /** 判定通过的容差（px，拼图块与缺口的横向对齐误差，默认 8） */
   tolerance?: number;
-  /** 正确 slot 索引（不配时每次渲染随机选一个，避免记住位置） */
-  correctIndex?: number;
 }
 
 /**
@@ -494,7 +489,7 @@ export interface LoginConfig {
    * <p>登录页按数组顺序渲染卡片与描述；只有一个类型时不显示选择器。</p>
    */
   types: LoginTypeConfig[];
-  /** 是否启用图形验证码 */
+  /** 是否启用图形验证码（默认关闭） */
   captcha: boolean;
   /**
    * 是否显示「短信验证码登录」入口。
@@ -504,11 +499,18 @@ export interface LoginConfig {
    * 两者同时为真才显示。见 {@code ReLoginForm} 的 {@code smsLoginAvailable}。</p>
    */
   smsLogin: boolean;
+  /**
+   * 短信登录「获取验证码」前是否先弹图片拼图验证（app.yaml loginConfig.smsSlider）。
+   *
+   * <p>开启后点击发送按钮先弹拼图，拼对才开始发信；同一会话通过一次后不再重复弹出。
+   * 服务端 60s 发送间隔（SmsCodeServiceImpl 的 SEND_INTERVAL_SECONDS）始终独立生效。</p>
+   */
+  smsSlider: boolean;
   /** 是否启用 OTP 动态口令（TOTP，6 位数字） */
   otp: boolean;
   /** 是否启用滑块验证（前端滑动校验） */
   slider: boolean;
-  /** 滑块验证方式（simple=普通滑块，puzzle=图片拼图滑块） */
+  /** 滑块验证方式（simple=普通滑块，puzzle=图片拼图滑块；缺省为 puzzle） */
   sliderType: SliderVerifyType;
   /** 登录认证形态：redirect=命中 401/403 直接跳登录页（默认） / dialog=在当前应用内弹窗强制登录 */
   accessMode: "redirect" | "dialog";

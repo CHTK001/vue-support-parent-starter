@@ -217,6 +217,8 @@ type WindowRect = { x: number; y: number; width: number; height: number };
 
 const RESIZE_HANDLES: readonly ResizeHandle[] = ["n", "ne", "e", "se", "s", "sw", "w", "nw"] as const;
 const ALL_EDGES: readonly EdgeSide[] = ["left", "right", "top", "bottom"] as const;
+/** 边缘收起：探出预览时留在屏幕内的宽度（px） */
+const EDGE_TAB = 20;
 
 const props = withDefaults(
   defineProps<{
@@ -255,6 +257,8 @@ const props = withDefaults(
     edgeSides?: EdgeSide | EdgeSide[] | "all";
     /** 触发收起的边缘距离（px） */
     edgeThreshold?: number;
+    /** 鼠标经过边缘条时是否探出窗口预览（默认开启；关闭后仅点击边缘条还原） */
+    edgeHoverPeek?: boolean;
     /** 最小化浮标停靠位置 */
     dockPosition?: "bottom-right" | "bottom-left";
     /** 浮标只显示图标（不显示标题） */
@@ -315,6 +319,7 @@ const props = withDefaults(
     edgeAutoHide: true,
     edgeSides: "all",
     edgeThreshold: 16,
+    edgeHoverPeek: true,
     dockPosition: "bottom-right",
     dockIconOnly: true,
     confirmClose: true,
@@ -451,6 +456,8 @@ function bringToFront() {
 const rect = reactive<Rect>({ x: 0, y: 0, w: props.width, h: props.height });
 /** 最小化 / 边缘收起 / 最大化前的位置，用于还原 */
 const storedRect = reactive<Rect>({ x: 0, y: 0, w: props.width, h: props.height });
+/** 最近一次「拖动」的起点矩形：从边缘还原时回到拖拽起点，而不是贴边落点 */
+let dragOriginRect: Rect | null = null;
 const normalRect = reactive<Rect>({ x: 0, y: 0, w: props.width, h: props.height });
 
 const mode = ref<Mode>("normal");
@@ -623,14 +630,13 @@ const windowStyle = computed<CSSProperties>(() => {
     const w = Math.min(rect.w, viewport.w);
     const h = Math.min(rect.h, viewport.h);
     const peek = edgePeek.value;
-    const TAB = 20;
     if (edgeSide.value === "top" || edgeSide.value === "bottom") {
       const left = clamp(edgeAnchor.value, 0, Math.max(0, viewport.w - w));
       const isTop = edgeSide.value === "top";
       return {
         ...base,
         left: `${left}px`,
-        top: isTop ? (peek ? `${TAB}px` : "0px") : `${Math.max(0, viewport.h - h - (peek ? TAB : 0))}px`,
+        top: isTop ? (peek ? `${EDGE_TAB}px` : "0px") : `${Math.max(0, viewport.h - h - (peek ? EDGE_TAB : 0))}px`,
         width: `${w}px`,
         height: `${h}px`,
         transform: peek ? "translateY(0)" : `translateY(${isTop ? "-100%" : "100%"})`,
@@ -642,7 +648,7 @@ const windowStyle = computed<CSSProperties>(() => {
     const isLeft = edgeSide.value === "left";
     return {
       ...base,
-      left: isLeft ? (peek ? `${TAB}px` : "0px") : `${Math.max(0, viewport.w - w - (peek ? TAB : 0))}px`,
+      left: isLeft ? (peek ? `${EDGE_TAB}px` : "0px") : `${Math.max(0, viewport.w - w - (peek ? EDGE_TAB : 0))}px`,
       top: `${top}px`,
       width: `${w}px`,
       height: `${h}px`,
@@ -730,6 +736,8 @@ function applyRectToDom(r: Rect) {
 }
 
 function startDrag(kind: "move" | "resize", handle: ResizeHandle | "", e: PointerEvent) {
+  // 边缘预览态直接拖走：先按探出位置落回普通窗口，再进入正常拖拽（预览窗口可拖拽）
+  if (kind === "move" && mode.value === "edge") detachFromEdge();
   // 缩放与拖动共用真实指针轨迹
   resizeGripX = e.clientX;
   resizeGripY = e.clientY;
@@ -742,6 +750,8 @@ function startDrag(kind: "move" | "resize", handle: ResizeHandle | "", e: Pointe
   dragHandle = handle;
   dragKind.value = kind;
   dragActive.value = true;
+  // 记录本次拖动的起点：拖到边缘收起后，点边缘条要回到这里（而不是贴边落点）
+  if (kind === "move") dragOriginRect = { x: dragOx, y: dragOy, w: dragOw, h: dragOh };
   winRef.value?.classList.add("rfw--dragging");
 
   document.addEventListener("pointermove", onPointerMove, { passive: true });
@@ -1011,7 +1021,7 @@ function onDragCommitted(r: Rect, edge: EdgeSide | null) {
 /* ------------------------------ 拖拽入口 ------------------------------ */
 
 function onHeaderPointerDown(e: PointerEvent) {
-  if (!props.draggable || mode.value !== "normal") return;
+  if (!props.draggable || (mode.value !== "normal" && mode.value !== "edge")) return;
   if (e.button !== 0) return;
   const target = e.target as HTMLElement;
   if (target.closest("button") || target.closest("input") || target.closest("textarea")) return;
@@ -1034,7 +1044,7 @@ function onResizerPointerDown(e: PointerEvent, handle: ResizeHandle) {
  * 命中的是正文本身（空白区）时拖动，按 client 坐标算位移。</p>
  */
 function onGrabPointerDown(e: PointerEvent) {
-  if (!props.draggable || mode.value !== "normal") return;
+  if (!props.draggable || (mode.value !== "normal" && mode.value !== "edge")) return;
   if (e.button !== 0) return;
   const target = e.target as HTMLElement;
   if (
@@ -1053,8 +1063,40 @@ function onGrabPointerDown(e: PointerEvent) {
 
 const edgeLeaveTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
+/** 边缘探出态的窗口视觉位置（与 windowStyle 的 edge/peek 分支同口径，拖走时按这里落位） */
+function edgePeekRect(): Rect {
+  const w = Math.min(rect.w, viewport.w);
+  const h = Math.min(rect.h, viewport.h);
+  if (edgeSide.value === "top" || edgeSide.value === "bottom") {
+    return {
+      x: clamp(edgeAnchor.value, 0, Math.max(0, viewport.w - w)),
+      y: edgeSide.value === "top" ? EDGE_TAB : Math.max(0, viewport.h - h - EDGE_TAB),
+      w,
+      h,
+    };
+  }
+  return {
+    x: edgeSide.value === "left" ? EDGE_TAB : Math.max(0, viewport.w - w - EDGE_TAB),
+    y: clamp(edgeAnchor.value, 0, Math.max(0, viewport.h - h)),
+    w,
+    h,
+  };
+}
+
+/** 脱离边缘收起态：按当前探出位置落回普通窗口（悬停预览中直接拖走时用） */
+function detachFromEdge() {
+  if (mode.value !== "edge") return;
+  Object.assign(rect, edgePeekRect());
+  clearEdgeTimer();
+  edgeSide.value = null;
+  edgePeek.value = false;
+  mode.value = "normal";
+  emit("edge", null);
+}
+
 function enterEdge(side: EdgeSide) {
-  Object.assign(storedRect, rect);
+  // 还原基准 = 本次拖动的起点：拖到边缘收起，点边缘条应回到拖之前的位置（而非贴边落点）
+  Object.assign(storedRect, dragOriginRect ?? rect);
   edgeAnchor.value = side === "top" || side === "bottom" ? rect.x : rect.y;
   edgeSide.value = side;
   edgePeek.value = false;
@@ -1065,6 +1107,8 @@ function enterEdge(side: EdgeSide) {
 
 function onEdgeEnter() {
   clearEdgeTimer();
+  // 关闭「悬停预览」：经过边缘条不探出窗口，仅点击边缘条还原
+  if (!props.edgeHoverPeek) return;
   edgePeek.value = true;
 }
 

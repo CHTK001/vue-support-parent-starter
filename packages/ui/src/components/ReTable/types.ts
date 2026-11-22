@@ -665,4 +665,10 @@ export interface ReTableSearchGroupConfig extends ReTableSearchConfig {
 export interface ReTableSelectionGroupConfig {
   /** 是否常驻勾选列（等价于旧的 showSelection prop） */
   enable?: boolean;
+  /**
+   * 左键拖框复选（默认开启）：按住左键在复选列内拖动，框选区间内的行批量勾选 / 取消
+   * （vxe 引擎映射到原生 checkbox-config.range；element 引擎忽略）。
+   * 开启后即使未配 {@link enable} 也会自动长出 checkbox 列。
+   */
+  dragSelect?: boolean;
 }

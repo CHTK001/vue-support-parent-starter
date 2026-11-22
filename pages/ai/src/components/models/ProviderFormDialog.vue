@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { message } from "@repo/core";
-import { ref, reactive, watch, computed, nextTick } from 'vue'
+import { ref, reactive, watch, computed, nextTick, onBeforeUnmount } from 'vue'
 
 import {
   Add24Regular, Link24Regular, Eye24Regular, EyeOff24Regular, Delete24Regular,
@@ -1116,36 +1116,117 @@ const handleTestConnection = async () => {
 }
 
 /**
- * 账密登录的「登录」按钮：请后端弹出内嵌浏览器窗口，等待用户完成上游门户登录，
- * 截获的会话令牌由后端回填为余额密钥。请求阻塞到登录完成或超时（后端上限 3 分钟）。
- * 令牌只回掩码；掩码不回填密钥框——那不是可用密钥，落库会覆盖真实令牌。
+ * 账密登录的「登录」按钮（实时画面模式）：请后端起无头浏览器打开上游登录页，
+ * 画面推流到本页弹层的 iframe 里，用户直接在画面中输入账号密码（带验证码 / 滑块
+ * 的站点也能过）；后端截获的会话令牌以「追加」方式并入余额密钥（多账号），
+ * 登录窗口不再弹在服务端桌面——后端部署在远端机时也能登录。令牌只回掩码；
+ * 掩码不回填密钥框——那不是可用密钥，落库会覆盖真实令牌。
  */
 const creditLoggingIn = ref(false)
 const creditLoginResult = ref<null | { ok: boolean; lines: string[] }>(null)
+const liveLogin = reactive({
+  visible: false,
+  sessionToken: '',
+  liveUrl: '',
+  status: '' as '' | 'pending' | 'success' | 'failed' | 'unknown',
+  message: '',
+  tokenMask: '',
+})
+let livePollTimer: ReturnType<typeof setInterval> | null = null
+
+const stopLiveLoginPoll = () => {
+  if (livePollTimer) {
+    clearInterval(livePollTimer)
+    livePollTimer = null
+  }
+}
+
+/** 关闭登录画面弹层：进行中的会话通知后端释放无头浏览器（终态会话是空操作） */
+const closeLiveLogin = () => {
+  stopLiveLoginPoll()
+  if (liveLogin.sessionToken && liveLogin.status === 'pending' && providerId.value) {
+    apiService.cancelProviderCreditLiveLogin(providerId.value, liveLogin.sessionToken).catch(() => {})
+  }
+  liveLogin.visible = false
+  liveLogin.sessionToken = ''
+  liveLogin.liveUrl = ''
+  liveLogin.status = ''
+  liveLogin.message = ''
+  liveLogin.tokenMask = ''
+}
+
+/**
+ * 轮询登录会话状态：成功后回读最新供应商，把后端追加的令牌同步进表单密钥行
+ * （保存时随 extra 一起提交的就是这份列表，不同步会把新令牌覆盖丢掉）。
+ */
+const pollLiveLoginStatus = async () => {
+  if (!liveLogin.sessionToken || !providerId.value) {
+    stopLiveLoginPoll()
+    return
+  }
+  try {
+    const res = await apiService.providerCreditLiveLoginStatus(providerId.value, liveLogin.sessionToken)
+    liveLogin.status = res?.status || 'pending'
+    liveLogin.message = String(res?.message || '')
+    liveLogin.tokenMask = String(res?.token_mask || '')
+  } catch {
+    return // 单次轮询失败忽略，下一轮再试
+  }
+  if (liveLogin.status === 'success') {
+    stopLiveLoginPoll()
+    creditLoginResult.value = {
+      ok: true,
+      lines: ['登录成功：会话令牌已追加为余额密钥' + (liveLogin.tokenMask ? `（${liveLogin.tokenMask}）` : '')],
+    }
+    try {
+      const body: any = await adminApi.get(`/api/providers/${encodeURIComponent(providerId.value)}`)
+      const detail = body?.data ?? body
+      const keys = String(detail?.extra?.credit_key || '')
+        .split(/[\r\n,;，；]+/).map((s: string) => s.trim()).filter(Boolean)
+      if (keys.length) creditKeyList.value = keys
+      if (detail?.extra && typeof detail.extra === 'object') {
+        origExtra.value = { ...origExtra.value, ...detail.extra }
+      }
+    } catch { /* 回读失败不拦成功提示 */ }
+    closeLiveLogin()
+  } else if (liveLogin.status === 'failed' || liveLogin.status === 'unknown') {
+    stopLiveLoginPoll()
+    creditLoginResult.value = { ok: false, lines: [liveLogin.message || '登录失败'] }
+    liveLogin.visible = false
+    liveLogin.sessionToken = ''
+  }
+}
 
 const handleProviderCreditLogin = async () => {
   if (!providerId.value) {
     creditLoginResult.value = { ok: false, lines: ['请先保存供应商，再点击登录'] }
     return
   }
+  if (creditLoggingIn.value) return
   creditLoggingIn.value = true
   creditLoginResult.value = null
   try {
-    const res: any = await apiService.loginProviderCredit(providerId.value)
-    if (res?.ok) {
-      creditLoginResult.value = {
-        ok: true,
-        lines: ['登录成功：会话令牌已回填为余额密钥' + (res.token_mask ? `（${res.token_mask}）` : '')],
-      }
-    } else {
-      creditLoginResult.value = { ok: false, lines: [String(res?.message || '登录失败')] }
+    const res = await apiService.startProviderCreditLiveLogin(providerId.value)
+    if (!res?.ok || !res.live_url || !res.session_token) {
+      creditLoginResult.value = { ok: false, lines: [String(res?.message || '无法打开登录画面')] }
+      return
     }
+    liveLogin.sessionToken = res.session_token
+    liveLogin.liveUrl = res.live_url
+    liveLogin.status = 'pending'
+    liveLogin.message = ''
+    liveLogin.tokenMask = ''
+    liveLogin.visible = true
+    stopLiveLoginPoll()
+    livePollTimer = setInterval(pollLiveLoginStatus, 3000)
   } catch (e: any) {
-    creditLoginResult.value = { ok: false, lines: [e?.message || '登录失败'] }
+    creditLoginResult.value = { ok: false, lines: [e?.message || '无法打开登录画面'] }
   } finally {
     creditLoggingIn.value = false
   }
 }
+
+onBeforeUnmount(stopLiveLoginPoll)
 
 /**
  * 余额密钥试查（「测试查询」按钮）：把表单里即将保存的余额配置
@@ -1935,9 +2016,10 @@ const protocolOptions = [
                 只填密钥也行（后端按登记表与站点指纹自动识别口径）；什么都没填则完全走自动识别。
               </p>
               <p v-if="form.creditType === 'account-login'" class="pf-note">
-                账密登录：点下方「登录」按钮会弹出浏览器窗口，在窗口里输入上游门户的账号密码完成登录；
-                会话令牌自动截获并回填为余额密钥，账号密码不落库。登记表没收录的上游可在
-                扩展配置里补登录页与令牌截获规则（credit_login_url / credit_capture_pattern 等）。
+                账密登录：点下方「登录」按钮会在页面内打开登录画面（服务端无头浏览器推流），
+                在画面里输入上游门户的账号密码完成登录；会话令牌自动截获并追加为余额密钥
+                （多账号），账号密码不落库。登记表没收录的上游可在扩展配置里补登录页与
+                令牌截获规则（credit_login_url / credit_capture_pattern 等）。
               </p>
             </div>
           </div>
@@ -1955,8 +2037,8 @@ const protocolOptions = [
                 <p v-for="(line, i) in creditLoginResult.lines" :key="i">{{ line }}</p>
               </div>
               <p class="pf-note">
-                在弹出的浏览器窗口里自行输入账号密码（带验证码 / 滑块的站点也能过）；
-                令牌失效时回到这里重新登录即可。
+                在内嵌的登录画面里自行输入账号密码（带验证码 / 滑块的站点也能过）；
+                令牌失效时回到这里重新登录即可；已有账号可再次登录追加。
               </p>
               <!-- 自动续期：到期前无头回访上游门户静默换新令牌，失败推送告警转人工 -->
               <div class="pf-inline">
@@ -2230,6 +2312,33 @@ const protocolOptions = [
 
     <!-- ONNX 外部目录绑定：路径只能在这里经目录选择器选取，入口在模型根目录旁 -->
     <OnnxExternalDialog v-model="externalVisible" @saved="onExternalSaved" />
+
+    <!-- 账密登录实时画面：服务端无头浏览器推流到 iframe，直接在画面里完成上游登录 -->
+    <ReDialog
+      v-model="liveLogin.visible"
+      title="上游门户登录"
+      width="940px"
+      align-center
+      append-to-body
+      :close-on-click-modal="false"
+      class="pf-live-modal"
+      @close="closeLiveLogin"
+    >
+      <div class="pf-live-login">
+        <iframe
+          v-if="liveLogin.liveUrl"
+          :src="liveLogin.liveUrl"
+          class="pf-live-frame"
+          title="上游门户登录画面"
+          referrerpolicy="no-referrer"
+        />
+        <p class="pf-live-hint">
+          <template v-if="liveLogin.status === 'pending'">在上方画面里完成登录；成功后本页会自动收到结果，令牌追加为余额密钥。</template>
+          <template v-else-if="liveLogin.status === 'success'">登录成功，正在同步余额密钥…</template>
+          <template v-else-if="liveLogin.message">{{ liveLogin.message }}</template>
+        </p>
+      </div>
+    </ReDialog>
   </ReDialog>
 </template>
 
@@ -2596,6 +2705,26 @@ const protocolOptions = [
   background: var(--el-color-danger-light-9);
   color: var(--el-color-danger-dark-2);
   border-color: color-mix(in srgb, var(--el-color-danger) 30%, transparent);
+}
+
+/* 账密登录实时画面弹层：iframe 内嵌服务端推流的无头浏览器画面 */
+.pf-live-login {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pf-live-frame {
+  width: 100%;
+  height: 620px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  background: #fff;
+}
+.pf-live-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 
 @keyframes pf-fade-in {

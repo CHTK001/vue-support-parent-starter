@@ -243,9 +243,9 @@
         <el-form-item v-if="loginConfig.slider">
           <ReSliderVerify
             ref="sliderRef"
-            :slider-type="loginConfig.sliderType || 'simple'"
+            :slider-type="loginConfig.sliderType || 'puzzle'"
             :disabled="loading"
-            :tolerance="4"
+            :tolerance="8"
             :puzzle="loginConfig.sliderPuzzle"
             @success="sliderPassed = true"
           />
@@ -343,6 +343,29 @@
           </el-button>
         </el-form-item>
       </template>
+
+      <!--
+        短信发送前的图片拼图验证：loginConfig.smsSlider 开启时，点击「获取验证码」先弹拼图，
+        拼对（ReSliderVerify success）才真正调用 /v2/sms/send 发信；同一会话通过一次后不再重复弹出。
+      -->
+      <el-dialog
+        v-model="smsSliderVisible"
+        title="安全验证"
+        width="360px"
+        append-to-body
+        align-center
+        :close-on-click-modal="false"
+      >
+        <div class="m-b-12px text-13px text-[--el-text-color-secondary]">拖动拼图块补全图片，验证通过后发送短信</div>
+        <ReSliderVerify
+          ref="smsSliderRef"
+          slider-type="puzzle"
+          :disabled="sendingSmsCode"
+          :tolerance="8"
+          :puzzle="loginConfig.sliderPuzzle"
+          @success="handleSmsSliderSuccess"
+        />
+      </el-dialog>
 
       <!-- 第三方登录（与个人中心绑定面板共用 /v2/setting/sso/providers 配置源） -->
       <ReThirdLogin />
@@ -461,6 +484,15 @@ const sendingSmsCode = ref(false);
 const smsCountdown = ref(0);
 let smsCountdownTimer: ReturnType<typeof setInterval> | undefined;
 
+/** 发送前是否需要图片拼图验证（app.yaml loginConfig.smsSlider） */
+const smsSliderEnabled = computed(() => loginConfig.value.smsSlider === true);
+/** 拼图弹窗开关；本次会话拼对一次后不再重复弹出 */
+const smsSliderVisible = ref(false);
+const smsSliderPassed = ref(false);
+const smsSliderRef = ref<InstanceType<typeof ReSliderVerify>>();
+/** 弹拼图时记下待发送的手机号（弹窗为模态，期间手机号不可改） */
+const pendingSmsPhone = ref("");
+
 /** 清掉倒计时（卸载 / 切回账号密码时） */
 const stopSmsCountdown = () => {
   if (smsCountdownTimer) {
@@ -499,9 +531,37 @@ watch(smsLoginAvailable, (available) => {
 
 onBeforeUnmount(stopSmsCountdown);
 
-/** 发送短信验证码（登录场景固定 bizType=login，与 SmsCodeServiceImpl 的校验键一致） */
+/**
+ * 发送短信验证码入口（登录场景固定 bizType=login，与 SmsCodeServiceImpl 的校验键一致）。
+ *
+ * <p>loginConfig.smsSlider 开启时，点击「获取验证码」先弹图片拼图，拼对才真正发信；
+ * 未开启（或本会话已拼对过）则直接发送。</p>
+ */
 const handleSendSmsCode = async () => {
   const phone = smsForm.phone.trim();
+  if (!SMS_PHONE_PATTERN.test(phone)) {
+    msgWarning("请输入正确的手机号");
+    return;
+  }
+  if (smsCountdown.value > 0 || sendingSmsCode.value) return;
+  if (smsSliderEnabled.value && !smsSliderPassed.value) {
+    pendingSmsPhone.value = phone;
+    smsSliderRef.value?.reset();
+    smsSliderVisible.value = true;
+    return;
+  }
+  await doSendSmsCode(phone);
+};
+
+/** 拼图验证通过：关弹窗并真正发送验证码 */
+const handleSmsSliderSuccess = async () => {
+  smsSliderPassed.value = true;
+  smsSliderVisible.value = false;
+  await doSendSmsCode(pendingSmsPhone.value || smsForm.phone.trim());
+};
+
+/** 真正发送短信验证码（60s 重发倒计时由 startSmsCountdown 与服务端限流共同保证） */
+const doSendSmsCode = async (phone: string) => {
   if (!SMS_PHONE_PATTERN.test(phone)) {
     msgWarning("请输入正确的手机号");
     return;

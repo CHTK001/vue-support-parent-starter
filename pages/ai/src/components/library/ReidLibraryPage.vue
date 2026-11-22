@@ -577,6 +577,10 @@ async function submitEnroll() {
 }
 
 onMounted(async () => {
+  // 门禁与提示读 modelConfig 的 face/merged 合并视图：独立路由有侧栏预载兜底，
+  // embedded 宿主（设置中心）不保证经过侧栏 —— 与人脸库/图像库同口径，
+  // 本页挂载时自行确保拉取一次，否则「尚未就绪」永不收敛。
+  void modelConfig.load().catch(() => {})
   await loadGroups()
   void load()
 })

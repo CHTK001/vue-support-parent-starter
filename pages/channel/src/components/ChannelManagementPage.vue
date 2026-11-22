@@ -123,6 +123,8 @@ const CHANNEL_BRANDS: Record<string, ChannelBrand> = {
   'chat-duckduckgo': { icon: duckduckgoIcon, color: '#DE5833', glyph: 'D', method: '免登录', free: true },
   // Pollinations 文本对话：与生图渠道同源官方图标（匿名层免登录）
   'chat-pollinations': { icon: pollinationsIcon, color: '#7C3AED', glyph: 'P', method: '免登录', free: true },
+  // 自定义提供商：OpenAI 兼容协议，网关地址与 API Key 由使用方自备；无官方图标，琥珀徽标兜底
+  'chat-custom': { color: '#D97706', glyph: 'C', method: 'API Key' },
   // Qwen Code：通义千问 CLI 设备码授权；官方图标与 apps 供应商图库同源
   'qwen-code': { icon: qwenIcon, color: '#615CED', glyph: 'Q', method: '设备码', free: true },
   // EAC 协付渠道：GitHub OAuth + Star 验证；无官方图标资源，用品牌绿徽标兜底
@@ -1726,16 +1728,27 @@ const chatProbeBusy = ref(false)
 const chatProbeAnswer = ref('')
 /** 回答耗时（秒）：优先用后端统计的 elapsedMs */
 const chatProbeElapsed = ref(0)
-/** 试对话失败原因；429 限流单独给友好提示 */
+/** 试对话失败原因；429 限流 / 鉴权失败 / 地址错误单独给友好提示 */
 const chatProbeError = ref('')
 /** 选中的对话模型；渠道没有模型清单时为空（走渠道默认模型） */
 const chatProbeModel = ref('')
+/** 自定义提供商渠道试对话时临时指定的上游地址（OpenAI 兼容网关），只随本次请求发送 */
+const chatProbeBaseUrl = ref('')
+/** 回答已复制到剪贴板的短暂标记 */
+const chatProbeCopied = ref(false)
 
 /** 当前渠道是不是免登录对话渠道（kind=CHAT，后端 ChatChannelProvider SPI） */
 const isChatChannel = computed(() => builtinKindOf(activeSummary()) === 'chat')
 
 /** 试对话可选模型：渠道摘要里的模型清单（元数据 + 实时补拉），可能为空 */
 const chatProbeModelOptions = computed(() => activeSummary()?.models ?? [])
+
+/** 自定义提供商渠道：试对话可临时指定 OpenAI 兼容网关地址与 API Key */
+const isCustomEndpointChannel = computed(() => activeChannel.value === 'chat-custom')
+
+/** 令牌输入框标签：自定义提供商填 API Key，其余渠道填登录态令牌 */
+const chatProbeTokenLabel = computed(() =>
+  isCustomEndpointChannel.value ? 'API Key（Bearer，仅本次请求生效）' : '登录令牌（需要登录态的渠道才填）')
 
 /** 换渠道时清掉上一渠道的试对话输入与回答 */
 function resetChatProbe(): void {
@@ -1746,13 +1759,16 @@ function resetChatProbe(): void {
   chatProbeError.value = ''
   chatProbeBusy.value = false
   chatProbeModel.value = ''
+  chatProbeBaseUrl.value = ''
+  chatProbeCopied.value = false
 }
 
 /**
  * 发一次试对话。
  *
  * <p>后端 {@code POST /api/channels/{channel}/chat} 同步返回完整回答；
- * 429 限流给「稍后再试」的友好提示，其余错误原样展示，不做「对话成功」的假提示。</p>
+ * 429 限流 / 401 鉴权失败 / 404 地址或模型错误给友好提示，其余错误原样展示，
+ * 不做「对话成功」的假提示。</p>
  */
 async function runChatProbe(): Promise<void> {
   const prompt = chatProbePrompt.value.trim()
@@ -1769,6 +1785,8 @@ async function runChatProbe(): Promise<void> {
       prompt,
       ...(chatProbeModel.value ? { model: chatProbeModel.value } : {}),
       ...(chatProbeToken.value.trim() ? { token: chatProbeToken.value.trim() } : {}),
+      ...(isCustomEndpointChannel.value && chatProbeBaseUrl.value.trim()
+        ? { baseUrl: chatProbeBaseUrl.value.trim() } : {}),
     })
     const out = (res as any)?.data ?? res
     chatProbeAnswer.value = String(out?.answer ?? '')
@@ -1779,12 +1797,40 @@ async function runChatProbe(): Promise<void> {
     if (!chatProbeAnswer.value) chatProbeError.value = '上游没有返回回答内容，请稍后再试'
   } catch (e: any) {
     const msg = e?.message ?? String(e)
-    chatProbeError.value = /429|rate.?limit|限流|too many/i.test(msg)
-      ? '触发上游限流：免费渠道有调用频率限制，请稍等片刻再试'
-      : msg
+    if (/429|rate.?limit|限流|too many/i.test(msg)) {
+      chatProbeError.value = '触发上游限流：免费渠道有调用频率限制，请稍等片刻再试'
+    } else if (/401|unauthorized|invalid.{0,12}key|incorrect api key/i.test(msg)) {
+      chatProbeError.value = '鉴权失败（401）：API Key 或令牌无效，请检查后重试'
+    } else if (/403|forbidden/i.test(msg)) {
+      chatProbeError.value = '访问被拒（403）：该凭据无权访问此模型或网关'
+    } else if (/404|not found/i.test(msg)) {
+      chatProbeError.value = '上游不存在（404）：请检查接口地址与模型名'
+    } else {
+      chatProbeError.value = msg
+    }
   } finally {
     chatProbeBusy.value = false
   }
+}
+
+/** 把回答复制到剪贴板（非安全上下文等场景静默失败，不打断阅读） */
+async function copyChatProbeAnswer(): Promise<void> {
+  if (!chatProbeAnswer.value) return
+  try {
+    await navigator.clipboard.writeText(chatProbeAnswer.value)
+    chatProbeCopied.value = true
+    window.setTimeout(() => { chatProbeCopied.value = false }, 1500)
+  } catch {
+    // 剪贴板不可用时保持静默
+  }
+}
+
+/** 清掉当前回答与错误，回答区收起 */
+function clearChatProbeResult(): void {
+  chatProbeAnswer.value = ''
+  chatProbeError.value = ''
+  chatProbeElapsed.value = 0
+  chatProbeCopied.value = false
 }
 
 
@@ -6050,6 +6096,15 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                   试对话
                   <span class="chm-img__tip">写一句话，点「发送」，验证渠道连通</span>
                 </div>
+                <!-- 自定义提供商：网关地址由使用方自备，随本次请求生效、不落库 -->
+                <label v-if="isCustomEndpointChannel" class="chm-img__field">
+                  <span class="chm-img__label">接口地址（OpenAI 兼容网关）</span>
+                  <el-input
+                    v-model="chatProbeBaseUrl"
+                    clearable
+                    placeholder="留空使用 https://api.openai.com/v1"
+                  />
+                </label>
                 <label class="chm-img__field">
                   <span class="chm-img__label">提示词</span>
                   <el-input
@@ -6072,8 +6127,18 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                       />
                     </el-select>
                   </label>
+                  <!-- 渠道没有内置模型清单（如自定义提供商）：模型名由使用方填写 -->
+                  <label v-else class="chm-img__field is-inline">
+                    <span class="chm-img__label">模型</span>
+                    <el-input
+                      v-model="chatProbeModel"
+                      class="chm-img__select"
+                      clearable
+                      placeholder="如 gpt-4o-mini"
+                    />
+                  </label>
                   <label class="chm-img__field is-inline is-grow">
-                    <span class="chm-img__label">登录令牌（需要登录态的渠道才填）</span>
+                    <span class="chm-img__label">{{ chatProbeTokenLabel }}</span>
                     <el-input v-model="chatProbeToken" type="password" show-password placeholder="可留空" />
                   </label>
                   <el-button
@@ -6088,7 +6153,15 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
                 </div>
                 <p v-if="chatProbeError" class="chm-img__error">{{ chatProbeError }}</p>
                 <div v-if="chatProbeAnswer" class="chm-chatprobe__answer">
-                  <span class="chm-chatprobe__meta">回答 · {{ chatProbeElapsed }}s</span>
+                  <div class="chm-chatprobe__head">
+                    <span class="chm-chatprobe__meta">回答 · {{ chatProbeElapsed }}s</span>
+                    <span class="chm-chatprobe__ops">
+                      <button type="button" class="chm-models__op" @click="copyChatProbeAnswer()">
+                        {{ chatProbeCopied ? '已复制' : '复制' }}
+                      </button>
+                      <button type="button" class="chm-models__op" @click="clearChatProbeResult()">清空</button>
+                    </span>
+                  </div>
                   <p>{{ chatProbeAnswer }}</p>
                 </div>
               </div>
@@ -7874,6 +7947,16 @@ const busyFor = (channel: string, key: 'sign' | 'models' | 'refresh' | 'login') 
 .chm-chatprobe__meta {
   font-size: 11.5px;
   color: var(--text-tertiary, #94a3b8);
+}
+.chm-chatprobe__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.chm-chatprobe__ops {
+  display: inline-flex;
+  gap: 6px;
 }
 .chm-chatprobe__answer p {
   margin: 4px 0 0;

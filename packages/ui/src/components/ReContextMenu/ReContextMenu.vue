@@ -96,7 +96,7 @@
  * 通过 defineExpose 暴露 open(x, y) / close() 方法，
  * 父组件用 ref 调用 open 在指定坐标弹出菜单。
  */
-import { computed, nextTick, ref, reactive } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, reactive } from "vue";
 import ReIcon from "../ReIcon";
 import type { ReContextMenuItem } from "./types";
 
@@ -295,6 +295,21 @@ function handleSelect(item: ReContextMenuItem): void {
   if (item.command) emit("select", item.command);
   close();
 }
+
+/* ==================== 生命周期：ESC 关闭菜单 ==================== */
+
+/** Esc 关闭当前菜单（与 ReTabs 页签右键菜单同口径）；菜单未开时不动作、不误发 close */
+function onKeyDown(e: KeyboardEvent): void {
+  if (e.key === "Escape" && visible.value) close();
+}
+
+onMounted(() => {
+  document.addEventListener("keydown", onKeyDown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("keydown", onKeyDown);
+});
 
 defineExpose({ open, close });
 </script>

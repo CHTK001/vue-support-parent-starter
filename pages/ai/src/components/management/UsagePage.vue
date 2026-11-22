@@ -79,6 +79,29 @@
           class="usage-icon"
           text
           circle
+          :loading="board.importing"
+          title="导入用量统计 CSV"
+          aria-label="导入用量统计 CSV"
+          @click="triggerImport"
+        >
+          <el-icon v-if="!board.importing">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 15.5v-11M7.6 8.8 12 4.4l4.4 4.4M4.5 19.5h15" />
+            </svg>
+          </el-icon>
+        </el-button>
+        <input
+          ref="importInputRef"
+          type="file"
+          accept=".csv"
+          hidden
+          @change="onImportFileChange"
+        />
+
+        <el-button
+          class="usage-icon"
+          text
+          circle
           :loading="board.refreshing"
           title="刷新数据"
           aria-label="刷新数据"
@@ -866,7 +889,7 @@ import { computed, reactive, ref } from 'vue'
 import type { EChartsOption } from 'echarts'
 import ReEcharts from '@repo/ui/re-echarts'
 import ReDialog from '@repo/ui/re-dialog'
-import { isAdmin } from '@repo/core'
+import { isAdmin, message } from '@repo/core'
 import { useUsageBoard } from '@/composables/useUsageBoard'
 import UsageDetailTable from './UsageDetailTable.vue'
 
@@ -874,6 +897,27 @@ import UsageDetailTable from './UsageDetailTable.vue'
 const isAdminUser = isAdmin()
 
 const board = reactive(useUsageBoard())
+
+/** 导入用量统计：隐藏文件选择器；覆盖更新有风险，选完文件先确认再上传 */
+const importInputRef = ref<HTMLInputElement | null>(null)
+function triggerImport() {
+  importInputRef.value?.click()
+}
+async function onImportFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // 允许重复选择同一个文件
+  if (!file) return
+  try {
+    await message.confirm(
+      '导入按「日期 + 分组 + 服务商 + 模型」覆盖写入日汇总表，同维度已有统计会被替换。确定导入吗？',
+      '导入用量统计',
+    )
+  } catch {
+    return // 用户取消
+  }
+  await board.handleImportFile(file)
+}
 
 // ==================== 用量页增强：环比徽标 / 图表下钻 / Top5→明细联动 ====================
 

@@ -432,7 +432,7 @@ const progress = ref<MarkingProgressVO | null>(null);
 const streamState = ref<'idle' | 'connecting' | 'open' | 'error'>('idle');
 let progressClient: { close: () => void } | null = null;
 let progressTaskId = '';
-let pollHandle: any = null;
+let pollHandle: ReturnType<typeof setInterval> | undefined;
 
 const progressTagType = computed<'primary' | 'success' | 'danger'>(() => {
   const s = progress.value?.taskStatus;
@@ -469,7 +469,7 @@ const stopProgressStream = () => {
 const stopPolling = () => {
   if (pollHandle) {
     clearInterval(pollHandle);
-    pollHandle = null;
+    pollHandle = undefined;
   }
 };
 

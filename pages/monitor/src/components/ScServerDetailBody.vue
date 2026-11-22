@@ -139,6 +139,17 @@ const backendText = computed(() => {
   return host && port ? `${host}:${port}` : '';
 });
 
+/**
+ * 访问地址是否可直达：bind 在通配地址（0.0.0.0 / ::）上时，浏览器打开
+ * `http://0.0.0.0:port/` 只会连到访问者自己，必然失败 —— 此时只展示、可复制，
+ * 不提供「点击打开」；真实可达地址是该服务器实际 IP。
+ */
+const urlOpenable = computed(() => {
+  if (!props.node?.serverUrl) return false;
+  const host = (props.node?.host || '').trim().replace(/^\[|\]$/g, '');
+  return host !== '' && host !== '0.0.0.0' && host !== '::';
+});
+
 // ===== 插件配置页 =====
 
 /** 参数草稿（只在配置页内使用） */
@@ -354,13 +365,18 @@ function openUrl(url: string): void {
             <div class="sdb-spec-item">
               <span>访问</span>
               <b
-                v-if="node.serverUrl"
+                v-if="node.serverUrl && urlOpenable"
                 class="sdb-mono sdb-url"
                 :title="`${node.serverUrl}（点击打开）`"
                 role="link"
                 tabindex="0"
                 @click="openUrl(node.serverUrl)"
                 @keydown.enter.prevent="openUrl(node.serverUrl)"
+              >{{ node.serverUrl }}</b>
+              <b
+                v-else-if="node.serverUrl"
+                class="sdb-mono"
+                :title="`监听 ${node.host || '0.0.0.0'}，该地址不可直达；请用该服务器实际 IP 访问`"
               >{{ node.serverUrl }}</b>
               <b v-else class="sdb-dim">{{ node.status === 'ERROR' ? '启动失败，修复后可用' : '未运行' }}</b>
               <ReButton

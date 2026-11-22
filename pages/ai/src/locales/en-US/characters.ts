@@ -73,6 +73,15 @@ export default {
     logAllOff: 'Disable all',
     logUndo: 'Undo changes',
     logSave: 'Save submitted',
+    docsTitle: 'User Guide',
+    docsIntro: 'This workbench creates and maintains your AI assistants: roster on the left, editor in the middle, capability list on the right.',
+    docsStepsTitle: 'Quick Start',
+    docsStep1: 'Create: click "New Assistant" in the left column, fill in the title and description, then save.',
+    docsStep2: 'Edit: configure avatar, group, prompts (per form) and memory in the middle column, then click Save.',
+    docsStep3: 'Capabilities: toggle Local Tools, MCP Tools, Skills and Sub-agents in the right column as needed.',
+    docsStep4: 'Chat: click "Use" in the editor to start a session with this assistant, or switch anytime in the chat page.',
+    docsStep5: 'Market: click "Character Market" at the bottom of the roster to browse and import preset characters.',
+    docsTip: 'Tip: switching assistants with unsaved changes asks for confirmation; reopen this guide anytime from the roster footer.',
   },
 
   // ── Save flow (CharactersPage.vue, formerly the character modal) ──

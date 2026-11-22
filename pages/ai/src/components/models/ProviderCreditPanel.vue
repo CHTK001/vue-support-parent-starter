@@ -368,11 +368,12 @@
     </div>
 
     <p v-if="error" class="pc-error">{{ error }}</p>
-    <!-- 账密登录：待登录 / 令牌失效时的「登录」入口。点击后后端弹出内嵌浏览器窗口，
-         用户在窗口里手动登录上游门户，会话令牌自动截获回填为余额密钥 -->
-    <div v-if="needLogin" class="pc-login">
+    <!-- 账密登录：待登录 / 令牌失效时显示「登录」；已有可用账号时显示「添加账号」（多账号追加式）。
+         点击后在页面内弹层打开服务端无头浏览器画面，用户在画面里手动登录上游门户，
+         会话令牌自动截获并追加为余额密钥 -->
+    <div v-if="accountLogin && !loading" class="pc-login">
       <button class="pc-login__btn" type="button" :disabled="loginLoading" @click="handleCreditLogin">
-        {{ loginLoading ? '已弹出登录窗口，等待完成登录…' : '登录' }}
+        {{ loginLoading ? '正在打开登录画面…' : (needLogin ? '登录' : '添加账号') }}
       </button>
       <span v-if="loginTip" class="pc-login__tip" :class="{ 'is-ok': loginOk }">{{ loginTip }}</span>
     </div>
@@ -711,6 +712,33 @@
     </div>
   </section>
   </div>
+
+  <!-- 账密登录实时画面：服务端无头浏览器推流到 iframe，直接在画面里完成上游登录 -->
+  <ReDialog
+    v-model="liveLogin.visible"
+    title="上游门户登录"
+    width="940px"
+    align-center
+    append-to-body
+    :close-on-click-modal="false"
+    class="pc-live-modal"
+    @close="closeLiveLogin"
+  >
+    <div class="pc-live-login">
+      <iframe
+        v-if="liveLogin.liveUrl"
+        :src="liveLogin.liveUrl"
+        class="pc-live-frame"
+        title="上游门户登录画面"
+        referrerpolicy="no-referrer"
+      />
+      <p class="pc-live-hint">
+        <template v-if="liveLogin.status === 'pending'">在上方画面里完成登录；成功后本面板会自动收到结果，令牌追加为余额密钥。</template>
+        <template v-else-if="liveLogin.status === 'success'">登录成功，正在同步余额密钥…</template>
+        <template v-else-if="liveLogin.message">{{ liveLogin.message }}</template>
+      </p>
+    </div>
+  </ReDialog>
 </template>
 
 <script setup lang="ts">
@@ -729,7 +757,8 @@
  *
  * <p>不轮询：余额接口会逐个 Key 出网，只在打开供应商或点「刷新」时查一次。</p>
  */
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import ReDialog from '@repo/ui/re-dialog'
 import { adminApi } from '@/framework/context'
 
 const props = withDefaults(
@@ -1233,11 +1262,79 @@ const needLogin = computed(() => accountLogin.value && !loading.value && !anyOk.
 const loginLoading = ref(false)
 const loginOk = ref(false)
 const loginTip = ref('')
+/** 实时登录画面：服务端无头浏览器推流到 iframe，在本页弹层里直接操作 */
+const liveLogin = reactive({
+  visible: false,
+  sessionToken: '',
+  liveUrl: '',
+  status: '' as '' | 'pending' | 'success' | 'failed' | 'unknown',
+  message: '',
+  tokenMask: '',
+})
+let livePollTimer: ReturnType<typeof setInterval> | null = null
+
+const stopLiveLoginPoll = () => {
+  if (livePollTimer) {
+    clearInterval(livePollTimer)
+    livePollTimer = null
+  }
+}
+
+/** 关闭登录画面弹层：进行中的会话通知后端释放无头浏览器（终态会话是空操作） */
+const closeLiveLogin = () => {
+  stopLiveLoginPoll()
+  const providerId = String(props.providerId || '').trim()
+  if (liveLogin.sessionToken && liveLogin.status === 'pending' && providerId) {
+    adminApi
+      .delete(`/api/providers/${encodeURIComponent(providerId)}/credit/login/live/${encodeURIComponent(liveLogin.sessionToken)}`)
+      .catch(() => {})
+  }
+  liveLogin.visible = false
+  liveLogin.sessionToken = ''
+  liveLogin.liveUrl = ''
+  liveLogin.status = ''
+  liveLogin.message = ''
+  liveLogin.tokenMask = ''
+}
+
+/** 轮询登录会话状态；成功后重拉面板，追加的令牌立刻参与查询 */
+const pollLiveLoginStatus = async () => {
+  const providerId = String(props.providerId || '').trim()
+  if (!liveLogin.sessionToken || !providerId) {
+    stopLiveLoginPoll()
+    return
+  }
+  try {
+    const body: any = await adminApi.get(
+      `/api/providers/${encodeURIComponent(providerId)}/credit/login/live/${encodeURIComponent(liveLogin.sessionToken)}/status`,
+    )
+    const data = body?.data ?? body
+    liveLogin.status = data?.status || 'pending'
+    liveLogin.message = String(data?.message || '')
+    liveLogin.tokenMask = String(data?.token_mask || '')
+  } catch {
+    return // 单次轮询失败忽略，下一轮再试
+  }
+  if (liveLogin.status === 'success') {
+    stopLiveLoginPoll()
+    loginOk.value = true
+    loginTip.value = `登录成功：会话令牌已追加为余额密钥${liveLogin.tokenMask ? `（${liveLogin.tokenMask}）` : ''}`
+    await load(true)
+    closeLiveLogin()
+  } else if (liveLogin.status === 'failed' || liveLogin.status === 'unknown') {
+    stopLiveLoginPoll()
+    loginOk.value = false
+    loginTip.value = liveLogin.message || '登录失败'
+    liveLogin.visible = false
+    liveLogin.sessionToken = ''
+  }
+}
 
 /**
- * 「登录」按钮：请后端弹出内嵌浏览器登录窗口，等待用户完成上游门户登录，
- * 截获的会话令牌由后端回填为余额密钥。请求阻塞到登录完成或超时（后端上限 3 分钟），
- * 前端超时须长于后端；成功后重拉面板，新令牌立刻参与查询。令牌只回掩码。
+ * 「登录 / 添加账号」按钮（实时画面模式）：请后端起无头浏览器打开上游登录页，
+ * 画面推流到本页弹层的 iframe，用户直接在画面中输入账号密码（带验证码 / 滑块的
+ * 站点也能过）；截获的会话令牌由后端以「追加」方式并入余额密钥（多账号），
+ * 登录窗口不再弹在服务端桌面——后端部署在远端机时也能登录。令牌只回掩码。
  */
 const handleCreditLogin = async () => {
   const providerId = String(props.providerId || '').trim()
@@ -1245,24 +1342,34 @@ const handleCreditLogin = async () => {
   loginLoading.value = true
   loginTip.value = ''
   try {
-    const res: any = await adminApi.post(
-      `/api/providers/${encodeURIComponent(providerId)}/credit/login`,
+    const body: any = await adminApi.post(
+      `/api/providers/${encodeURIComponent(providerId)}/credit/login/live`,
       {},
-      { timeout: 200000 },
+      { timeout: 60000 },
     )
-    const data = res?.data ?? res
-    loginOk.value = !!data?.ok
-    loginTip.value = data?.ok
-      ? `登录成功：会话令牌已回填为余额密钥${data.token_mask ? `（${data.token_mask}）` : ''}`
-      : String(data?.message || '登录失败')
-    if (data?.ok) await load(true)
+    const data = body?.data ?? body
+    if (!data?.ok || !data?.live_url || !data?.session_token) {
+      loginOk.value = false
+      loginTip.value = String(data?.message || '无法打开登录画面')
+      return
+    }
+    liveLogin.sessionToken = data.session_token
+    liveLogin.liveUrl = data.live_url
+    liveLogin.status = 'pending'
+    liveLogin.message = ''
+    liveLogin.tokenMask = ''
+    liveLogin.visible = true
+    stopLiveLoginPoll()
+    livePollTimer = setInterval(pollLiveLoginStatus, 3000)
   } catch (e: any) {
     loginOk.value = false
-    loginTip.value = e?.response?.data?.message || e?.message || '登录失败'
+    loginTip.value = e?.response?.data?.message || e?.message || '无法打开登录画面'
   } finally {
     loginLoading.value = false
   }
 }
+
+onUnmounted(stopLiveLoginPoll)
 const attempted = computed(() => (meta.value.candidates || [])
   .map((kind) => KIND_LABELS[kind] || kind)
   .join(' → '))
@@ -3240,6 +3347,25 @@ onMounted(load)
 }
 .pc-login__tip.is-ok {
   color: var(--el-color-success);
+}
+/* 账密登录实时画面弹层：iframe 内嵌服务端推流的无头浏览器画面 */
+.pc-live-login {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pc-live-frame {
+  width: 100%;
+  height: 620px;
+  border: 1px solid var(--el-border-color);
+  border-radius: 6px;
+  background: #fff;
+}
+.pc-live-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
 }
 /* 全部 Key 都没查到数时的「已尝试」链路：说明自动识别试过哪几条口径 */
 .pc-chain {

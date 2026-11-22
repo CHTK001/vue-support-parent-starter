@@ -355,6 +355,108 @@
               </div>
             </div>
 
+            <!-- 顶栏菜单形态：仅混合布局显示。标准=图标在左文字在右（同横向布局），卡片=图标在上文字在下（默认） -->
+            <div class="config-section" v-if="layout === 'optimum'">
+              <div class="section-card">
+                <div class="config-item">
+                  <div class="config-label">{{ t("themeConfig.interface.optimumHeaderStyle.label") }}</div>
+                  <el-segmented
+                    v-model="optimumHeaderStyle"
+                    class="config-input"
+                    :options="[
+                      { label: t('themeConfig.interface.optimumHeaderStyle.standard'), value: 'standard' },
+                      { label: t('themeConfig.interface.optimumHeaderStyle.card'), value: 'card' }
+                    ]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- 悬浮坞专属配置：仅 Dock 布局显示，紧随布局选择器便于定位（原来在「界面」页签深处，激活 Dock 后找不到，移到布局选择器下方） -->
+            <div class="config-section" v-if="layout === 'dock'">
+              <div class="section-card">
+                <div class="dock-config-heading">
+                  {{ t("themeConfig.interface.dockSection") }}
+                </div>
+
+                <!-- 是否显示悬浮导航：关闭后隐藏悬浮坞及其二级弹层 -->
+                <div class="config-item">
+                  <div class="config-label">{{ t("themeConfig.switchBlocks.dockShown.title") }}</div>
+                  <el-segmented
+                    v-model="dockShown"
+                    class="config-input"
+                    size="small"
+                    :options="[
+                      { label: t('themeConfig.interface.switchOn'), value: true },
+                      { label: t('themeConfig.interface.switchOff'), value: false }
+                    ]"
+                  />
+                </div>
+
+                <!-- 显示位置（上/下/左/右） -->
+                <div class="config-item">
+                  <div class="config-label">{{ t("themeConfig.interface.dockPosition.label") }}</div>
+                  <ReRadioGroup v-model="dockPosition" class="config-input dock-position-group">
+                    <ReRadioButton label="top">{{ t("themeConfig.interface.dockPosition.top") }}</ReRadioButton>
+                    <ReRadioButton label="bottom">{{ t("themeConfig.interface.dockPosition.bottom") }}</ReRadioButton>
+                    <ReRadioButton label="left">{{ t("themeConfig.interface.dockPosition.left") }}</ReRadioButton>
+                    <ReRadioButton label="right">{{ t("themeConfig.interface.dockPosition.right") }}</ReRadioButton>
+                  </ReRadioGroup>
+                </div>
+
+                <!-- 一级磁贴形态（聚合胶囊条 / 散开卡片） -->
+                <div class="config-item">
+                  <div class="config-label">{{ t("themeConfig.interface.dockTileStyle.label") }}</div>
+                  <ReRadioGroup v-model="dockTileStyle" class="config-input dock-position-group">
+                    <ReRadioButton label="aggregate">{{ t("themeConfig.interface.dockTileStyle.aggregate") }}</ReRadioButton>
+                    <ReRadioButton label="scatter">{{ t("themeConfig.interface.dockTileStyle.scatter") }}</ReRadioButton>
+                  </ReRadioGroup>
+                </div>
+
+                <!-- 折叠收缩：缩为边缘角落小圆钮，悬停临时展开、点击恢复常驻 -->
+                <div class="config-item">
+                  <div class="config-label">{{ t("themeConfig.switchBlocks.dockCollapsed.title") }}</div>
+                  <el-segmented
+                    v-model="dockCollapsed"
+                    class="config-input"
+                    size="small"
+                    :options="[
+                      { label: t('themeConfig.interface.switchOn'), value: true },
+                      { label: t('themeConfig.interface.switchOff'), value: false }
+                    ]"
+                  />
+                </div>
+
+                <!-- 鼠标经过一级磁贴自动展开二级菜单（默认开启） -->
+                <div class="config-item">
+                  <div class="config-label">{{ t("themeConfig.switchBlocks.dockHoverOpen.title") }}</div>
+                  <el-segmented
+                    v-model="dockHoverOpen"
+                    class="config-input"
+                    size="small"
+                    :options="[
+                      { label: t('themeConfig.interface.switchOn'), value: true },
+                      { label: t('themeConfig.interface.switchOff'), value: false }
+                    ]"
+                  />
+                </div>
+
+                <!-- 折叠悬停预览：折叠后鼠标经过把手临时显出导航预览（仅预览不可点击，点把手恢复） -->
+                <div class="config-item">
+                  <div class="config-label">{{ t("themeConfig.switchBlocks.dockHoverPeek.title") }}</div>
+                  <el-segmented
+                    v-model="dockHoverPeek"
+                    class="config-input"
+                    size="small"
+                    :options="[
+                      { label: t('themeConfig.interface.switchOn'), value: true },
+                      { label: t('themeConfig.interface.switchOff'), value: false }
+                    ]"
+                  />
+                </div>
+              </div>
+            </div>
+
             <!-- 加载动画选择器：首屏 loader 与应用内 ReLoader 共用同一款动画 -->
             <div class="config-section">
               <div class="section-header">
@@ -473,42 +575,6 @@
                    :tip="t('themeConfig.switchBlocks.headerShown.tip')"
                    :description="t('themeConfig.switchBlocks.headerShown.description')"
                    v-model="headerShown"
-                 />
-
-                 <ReSwitch layout="card"
-                   :title="t('themeConfig.switchBlocks.horizontalHeaderCard.title')"
-                   :sub="t('themeConfig.switchBlocks.horizontalHeaderCard.sub')"
-                   :tip="t('themeConfig.switchBlocks.horizontalHeaderCard.tip')"
-                   :description="t('themeConfig.switchBlocks.horizontalHeaderCard.description')"
-                   v-model="horizontalHeaderCard"
-                 />
-
-                 <!-- Dock 布局：显示位置（上/下/左/右），仅 Dock 布局下显示 -->
-                 <div v-if="layout === 'dock'" class="config-item">
-                   <div class="config-label">{{ t("themeConfig.interface.dockPosition.label") }}</div>
-                   <ReRadioGroup v-model="dockPosition" class="config-input dock-position-group">
-                     <ReRadioButton label="top">{{ t("themeConfig.interface.dockPosition.top") }}</ReRadioButton>
-                     <ReRadioButton label="bottom">{{ t("themeConfig.interface.dockPosition.bottom") }}</ReRadioButton>
-                     <ReRadioButton label="left">{{ t("themeConfig.interface.dockPosition.left") }}</ReRadioButton>
-                     <ReRadioButton label="right">{{ t("themeConfig.interface.dockPosition.right") }}</ReRadioButton>
-                   </ReRadioGroup>
-                 </div>
-
-                 <!-- Dock 布局：一级磁贴激活模式（整体菜单 / 独立卡片），仅 Dock 布局下显示 -->
-                 <div v-if="layout === 'dock'" class="config-item">
-                   <div class="config-label">{{ t("themeConfig.interface.dockActiveMode.label") }}</div>
-                   <ReRadioGroup v-model="dockActiveMode" class="config-input dock-position-group">
-                     <ReRadioButton label="whole">{{ t("themeConfig.interface.dockActiveMode.whole") }}</ReRadioButton>
-                     <ReRadioButton label="independent">{{ t("themeConfig.interface.dockActiveMode.independent") }}</ReRadioButton>
-                   </ReRadioGroup>
-                 </div>
-
-                 <ReSwitch v-if="layout === 'dock'" layout="card"
-                   :title="t('themeConfig.switchBlocks.dockCollapsed.title')"
-                   :sub="t('themeConfig.switchBlocks.dockCollapsed.sub')"
-                   :tip="t('themeConfig.switchBlocks.dockCollapsed.tip')"
-                   :description="t('themeConfig.switchBlocks.dockCollapsed.description')"
-                   v-model="dockCollapsed"
                  />
 
                  <ReSwitch layout="card"
@@ -821,10 +887,16 @@ const tabsShown = computed({
   set: (v: boolean) => globalStore.setGlobalState("isTabsShown", v),
 });
 
-/** 横向布局顶栏形态：卡片（悬浮玻璃卡）/ 标准（通栏实底），仅横向布局消费 */
-const horizontalHeaderCard = computed({
-  get: () => globalStore.horizontalHeaderCard,
-  set: (v: boolean) => globalStore.setGlobalState("horizontalHeaderCard", v),
+/** 混合布局顶栏菜单形态：card=卡片（图标上/文字下，默认）/ standard=标准（图标左/文字右，同横向布局） */
+const optimumHeaderStyle = computed({
+  get: () => globalStore.optimumHeaderStyle,
+  set: (v: string) => globalStore.setGlobalState("optimumHeaderStyle", v),
+});
+
+/** Dock 布局：是否显示悬浮导航（关闭后隐藏悬浮坞及其二级弹层） */
+const dockShown = computed({
+  get: () => globalStore.dockShown,
+  set: (v: boolean) => globalStore.setGlobalState("dockShown", v),
 });
 
 /** Dock 布局：显示位置（上/下/左/右），仅 Dock 布局消费 */
@@ -839,10 +911,22 @@ const dockCollapsed = computed({
   set: (v: boolean) => globalStore.setGlobalState("dockCollapsed", v),
 });
 
-/** Dock 布局：一级磁贴激活模式（whole=整体菜单 / independent=独立卡片） */
-const dockActiveMode = computed({
-  get: () => globalStore.dockActiveMode,
-  set: (v: string) => globalStore.setGlobalState("dockActiveMode", v),
+/** Dock 布局：一级磁贴形态（aggregate=聚合胶囊条 / scatter=散开卡片） */
+const dockTileStyle = computed({
+  get: () => globalStore.dockTileStyle,
+  set: (v: string) => globalStore.setGlobalState("dockTileStyle", v),
+});
+
+/** Dock 布局：鼠标经过一级磁贴自动展开二级弹层（默认开启） */
+const dockHoverOpen = computed({
+  get: () => globalStore.dockHoverOpen,
+  set: (v: boolean) => globalStore.setGlobalState("dockHoverOpen", v),
+});
+
+/** Dock 布局：折叠悬停预览（折叠后鼠标经过把手临时显出导航，仅预览不可点击） */
+const dockHoverPeek = computed({
+  get: () => globalStore.dockHoverPeek,
+  set: (v: boolean) => globalStore.setGlobalState("dockHoverPeek", v),
 });
 
 /** 页签栏行为（app.yaml other.tabsBar 默认 + 本机用户偏好） */
@@ -1047,7 +1131,8 @@ const handleThemeConfig = () => {
 
 /** 布局切换（class 同步由 useTheme watch 自动完成，此处只改 store） */
 const setLayout = (value: string) => {
-  globalStore.setGlobalState("layout", value);
+  // 用户主动选择：置位 layoutChosen，应用入口的默认布局不再覆盖（见 monitor main.ts）
+  globalStore.chooseLayout(value);
 };
 
 // ==================== 扩展 tab ====================
@@ -1078,6 +1163,7 @@ const toolbarSwitchList = computed(() => {
   { key: "message", label: t("themeConfig.toolbar.message.label"), sub: t("themeConfig.toolbar.message.sub"), tip: t("themeConfig.toolbar.message.tip"), description: t("themeConfig.toolbar.message.description") },
   { key: "quickNote", label: t("themeConfig.toolbar.quickNote.label"), sub: t("themeConfig.toolbar.quickNote.sub"), tip: t("themeConfig.toolbar.quickNote.tip"), description: t("themeConfig.toolbar.quickNote.description") },
   { key: "quickNoteConfirm", label: t("themeConfig.toolbar.quickNoteConfirm.label"), sub: t("themeConfig.toolbar.quickNoteConfirm.sub"), tip: t("themeConfig.toolbar.quickNoteConfirm.tip"), description: t("themeConfig.toolbar.quickNoteConfirm.description") },
+  { key: "quickNoteHoverPeek", label: t("themeConfig.toolbar.quickNoteHoverPeek.label"), sub: t("themeConfig.toolbar.quickNoteHoverPeek.sub"), tip: t("themeConfig.toolbar.quickNoteHoverPeek.tip"), description: t("themeConfig.toolbar.quickNoteHoverPeek.description") },
   // 天气不放在工具栏开关里：独立的「天气配置」分区已提供开关（避免出现两个"天气"）
   { key: "typhoon", label: t("themeConfig.toolbar.typhoon.label"), sub: t("themeConfig.toolbar.typhoon.sub"), tip: t("themeConfig.toolbar.typhoon.tip"), description: t("themeConfig.toolbar.typhoon.description") },
   { key: "exchangeRate", label: t("themeConfig.toolbar.exchangeRate.label"), sub: t("themeConfig.toolbar.exchangeRate.sub"), tip: t("themeConfig.toolbar.exchangeRate.tip"), description: t("themeConfig.toolbar.exchangeRate.description") },
@@ -1281,9 +1367,13 @@ const exportUserConfig = () => {
       uniqueOpened: globalStore.uniqueOpened,
       asideInverted: globalStore.asideInverted,
       headerInverted: globalStore.headerInverted,
-      horizontalHeaderCard: globalStore.horizontalHeaderCard,
+      optimumHeaderStyle: globalStore.optimumHeaderStyle,
+      dockShown: globalStore.dockShown,
       dockPosition: globalStore.dockPosition,
       dockCollapsed: globalStore.dockCollapsed,
+      dockTileStyle: globalStore.dockTileStyle,
+      dockHoverOpen: globalStore.dockHoverOpen,
+      dockHoverPeek: globalStore.dockHoverPeek,
       isGrey: globalStore.isGrey,
       isWeak: globalStore.isWeak,
       isSkeletonCritterShown: globalStore.isSkeletonCritterShown,
@@ -1388,16 +1478,26 @@ const applyImportedConfig = (data: {
     ["uniqueOpened", g.uniqueOpened],
     ["asideInverted", g.asideInverted],
     ["headerInverted", g.headerInverted],
-    ["horizontalHeaderCard", g.horizontalHeaderCard],
+    ["optimumHeaderStyle", g.optimumHeaderStyle],
+    ["dockShown", g.dockShown],
     ["dockPosition", g.dockPosition],
     ["dockCollapsed", g.dockCollapsed],
+    ["dockTileStyle", g.dockTileStyle],
+    ["dockHoverOpen", g.dockHoverOpen],
+    ["dockHoverPeek", g.dockHoverPeek],
     ["isGrey", g.isGrey],
     ["isWeak", g.isWeak],
     ["isSkeletonCritterShown", g.isSkeletonCritterShown],
     ["skeletonCritterAnimal", g.skeletonCritterAnimal],
   ];
   setters.forEach(([key, value]) => {
-    if (value !== undefined) globalStore.setGlobalState(key, value);
+    if (value === undefined) return;
+    // 布局走 chooseLayout：导入配置同样视为用户主动选择，避免刷新后被应用默认布局覆盖
+    if (key === "layout" && typeof value === "string" && value) {
+      globalStore.chooseLayout(value);
+      return;
+    }
+    globalStore.setGlobalState(key, value);
   });
 
   // 4. 主题实时重算（useTheme 全局 watch 已联动，此处兜底）
@@ -2795,6 +2895,17 @@ html.dark .koi-layout-double.koi-layout-item {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/** Dock 专属配置分组标题（仅 Dock 布局渲染） */
+.dock-config-heading {
+  margin: 14px 0 2px;
+  padding-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
+  border-left: 3px solid var(--el-color-primary);
 }
 
 /** 高级：计时器时区列表 */

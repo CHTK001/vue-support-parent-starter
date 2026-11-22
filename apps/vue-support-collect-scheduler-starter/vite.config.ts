@@ -174,6 +174,8 @@ export default createVite({
     "@pages/collect": "pages/collect",
     "@pages/job": "pages/job",
     "@pages/datasource": "pages/datasource",
+    // 数据源运行时配置页（@pages/datasource-hub）：Calcite 联邦 / 分库分表运行期配置。
+    "@pages/datasource-hub": "pages/datasource-hub",
     "@pages/osgi": "pages/osgi",
   },
   server: {

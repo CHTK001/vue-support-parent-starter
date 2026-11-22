@@ -529,6 +529,7 @@ const LEGACY_NAME_TO_PATH: Record<string, string> = {
   SystemName: "login.title",
   SlidingBlockOpen: "login.slider",
   OpenSmsLogin: "login.smsLogin",
+  SmsSliderOpen: "login.smsSlider",
   // 水印旧名（不落在 login 子树，落在 security.watermark）
   WatermarkOpen: "security.watermark.enable",
   WatermarkText: "security.watermark.text",

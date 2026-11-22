@@ -294,11 +294,57 @@ function onDocumentMouseUp(): void {
   dialogInstance.value?.resetPosition?.();
 }
 
-/** 弹窗打开期间才监听 document 上的 mouseup（关闭即摘，避免常驻全局监听） */
+/** 元素当前是否以非零尺寸呈现（display:none / 未挂载均视为否） */
+function isShown(el: HTMLElement): boolean {
+  const rect = el.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+/**
+ * 是否存在会抢先消费 Esc 的「更上层」浮层。
+ *
+ * <p>两类：① select 下拉、日期 / 时间 / 级联面板这类挂在 body 的浮层 —— Esc 应先关它们；
+ * ② 比本弹窗更晚压上来的其它遮罩（嵌套子弹窗、MessageBox）—— Esc 属于最上层的那一个。
+ * 本弹窗自己的遮罩不算。</p>
+ */
+function hasEscConsumerAbove(): boolean {
+  const myOverlay = dialogEl()?.closest(".el-overlay");
+  const myZ = myOverlay ? Number.parseFloat(getComputedStyle(myOverlay).zIndex) || 0 : 0;
+  for (const sel of [".el-select-dropdown", ".el-picker-panel", ".el-time-panel", ".el-cascader__dropdown"]) {
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) {
+      if (isShown(el)) return true;
+    }
+  }
+  for (const el of Array.from(document.querySelectorAll<HTMLElement>(".el-overlay"))) {
+    if (el === myOverlay || !isShown(el)) continue;
+    if ((Number.parseFloat(getComputedStyle(el).zIndex) || 0) > myZ) return true;
+  }
+  return false;
+}
+
+/**
+ * Esc 关闭兜底：与 el-select 交互过后焦点停在 .el-select__input 上，此时按 Esc
+ * 会被 select 的输入框在 target 阶段消费（并阻止冒泡），ElDialog 的 focus-trap
+ * 与 document 冒泡期监听都收不到 —— 服务管理页验收实测：操作日志弹窗里点过一次
+ * 筛选下拉，Esc 就关不掉弹窗了。因此这里必须用**捕获阶段**的 document 监听，
+ * 抢在 select 消费之前决策：允许 Esc 关闭且没有更上层浮层时，直接把 localOpen
+ * 置假，走与 el-dialog v-model 相同的关闭链路（父级 v-model 同步、关闭动画与
+ * closed 事件照常）。
+ *
+ * <p>有更上层浮层（下拉 / 日期面板 / 嵌套弹窗）时让位：Esc 先关它们。</p>
+ */
+function onDocumentKeydown(e: KeyboardEvent): void {
+  if (e.key !== "Escape" || !localOpen.value || !props.closeOnPressEscape) return;
+  if (hasEscConsumerAbove()) return;
+  localOpen.value = false;
+}
+
+/** 弹窗打开期间才监听 document 上的 mouseup / keydown（关闭即摘，避免常驻全局监听） */
 watch(visible, (open) => {
   if (typeof document === "undefined") return;
   if (open) {
     document.addEventListener("mouseup", onDocumentMouseUp);
+    document.addEventListener("keydown", onDocumentKeydown, true);
     // 记忆尺寸：只有显式传 resizeStorageKey 才恢复，且按视口重新居中
     const stored = props.resizable ? readSize() : null;
     if (stored) {
@@ -310,12 +356,14 @@ watch(visible, (open) => {
     }
   } else {
     document.removeEventListener("mouseup", onDocumentMouseUp);
+    document.removeEventListener("keydown", onDocumentKeydown, true);
   }
 });
 
 onBeforeUnmount(() => {
   if (typeof document !== "undefined") {
     document.removeEventListener("mouseup", onDocumentMouseUp);
+    document.removeEventListener("keydown", onDocumentKeydown, true);
     document.removeEventListener("pointermove", onResizeMove);
     document.removeEventListener("pointerup", onResizeEnd);
     document.removeEventListener("pointercancel", onResizeEnd);

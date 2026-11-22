@@ -23,7 +23,7 @@ export default {
       otpConfirm: "确认",
       otpCancel: "取消",
       sliderTip: "向右滑动完成验证",
-      sliderTipPuzzle: "将滑块拖到对应的拼图格",
+      sliderTipPuzzle: "拖动拼图块补全图片",
       sliderSuccess: "验证通过",
       sliderRequired: "请先完成滑块验证",
       remember: "记住账号密码",
@@ -493,16 +493,24 @@ export default {
         placeholder: "请选择组件尺寸",
       },
       dockPosition: {
-        label: "Dock 位置",
+        label: "显示位置",
         top: "顶部",
         bottom: "底部",
         left: "左侧",
         right: "右侧",
       },
-      dockActiveMode: {
-        label: "Dock 激活模式",
-        whole: "整体菜单",
-        independent: "独立卡片",
+      dockTileStyle: {
+        label: "磁贴形态",
+        aggregate: "聚合",
+        scatter: "散开",
+      },
+      dockSection: "悬浮坞专属配置",
+      switchOn: "开启",
+      switchOff: "关闭",
+      optimumHeaderStyle: {
+        label: "顶栏菜单形态",
+        standard: "标准",
+        card: "卡片",
       },
       skeletonCritter: {
         label: "骨架小动物",
@@ -535,17 +543,29 @@ export default {
         tip: "控制顶部 Header 栏显示/隐藏",
         description: "隐藏后顶部导航栏将不显示",
       },
-      horizontalHeaderCard: {
-        title: "横向顶栏卡片",
-        sub: "横向布局",
-        tip: "横向布局顶栏形态：悬浮玻璃卡片 / 标准通栏",
-        description: "开启为悬浮玻璃卡片形态，关闭为标准通栏顶栏",
+      dockShown: {
+        title: "显示悬浮导航",
+        sub: "悬浮坞",
+        tip: "控制悬浮坞导航显示/隐藏",
+        description: "关闭后悬浮坞及其二级菜单弹层将不显示，页面仅保留顶栏与内容区",
       },
       dockCollapsed: {
-        title: "Dock 折叠收缩",
+        title: "折叠收缩",
         sub: "悬浮坞",
         tip: "折叠后缩为所在边缘的角落小圆钮",
-        description: "开启后 Dock 折叠为边缘角落小圆钮：鼠标经过临时展开，点击恢复常驻",
+        description: "开启后折叠为边缘角落小圆钮，鼠标经过临时展开，点击恢复常驻",
+      },
+      dockHoverOpen: {
+        title: "悬停展开",
+        sub: "悬浮坞",
+        tip: "鼠标经过一级磁贴时自动展开二级菜单",
+        description: "开启后鼠标经过一级磁贴即展开二级菜单，关闭后仅点击展开",
+      },
+      dockHoverPeek: {
+        title: "折叠悬停预览",
+        sub: "悬浮坞",
+        tip: "折叠后鼠标经过把手临时显出导航预览",
+        description: "开启后折叠状态鼠标经过把手显出导航预览（仅预览不可点击），关闭后仅点击把手恢复",
       },
       tabsShown: {
         title: "显示标签页",
@@ -740,6 +760,12 @@ export default {
         sub: "二次确认",
         tip: "关闭便条前弹出确认框",
         description: "关闭便条时二次确认，避免误删内容",
+      },
+      quickNoteHoverPeek: {
+        label: "便条悬停预览",
+        sub: "悬停展开",
+        tip: "鼠标经过收起的便条时探出窗口预览",
+        description: "关闭后鼠标经过只显示边缘条，点击边缘条还原便条",
       },
       weather: {
         label: "顶栏天气",

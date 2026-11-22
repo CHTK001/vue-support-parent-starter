@@ -666,8 +666,9 @@ export const channelApi = {
    * POST /api/channels/{channel}/chat —— 免登录对话渠道试对话（同步返回完整回答）。
    *
    * 每次调用后端新建客户端、结束即关闭，不产生凭据与会话。
+   * `token`（登录态渠道）与 `baseUrl`（仅 chat-custom 自定义网关）都只随本次请求生效。
    */
-  chat: (channel: string, body: { prompt: string; model?: string; system?: string; token?: string }) =>
+  chat: (channel: string, body: { prompt: string; model?: string; system?: string; token?: string; baseUrl?: string }) =>
     unwrapPayload<{
       ok: boolean
       channel: string

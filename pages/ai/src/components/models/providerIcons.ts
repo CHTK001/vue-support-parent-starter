@@ -41,6 +41,16 @@ export const PROVIDER_ICONS: Record<string, string> = {
   // ===== 聚合 / 路由 =====
   openrouter: 'openrouter.svg',
   duckduckgo: 'duckduckgo.svg',
+  // 渠道平台行别名：账号/能力渠道行的 provider_id / platform 是 chat-* / image-* / video-* 形态，
+  // resolveProviderBrand 的 platform 直通与 ProviderLogo 精确查表都按这些键命中；
+  // video-doubao / video-qwen 另有名称兜底（videodoubao 含 doubao），这里加键双保险。
+  'chat-duckduckgo': 'duckduckgo.svg',
+  'image-duckduckgo': 'duckduckgo.svg',
+  'chat-pollinations': 'pollinations.png',
+  'image-pollinations': 'pollinations.png',
+  'video-doubao': 'doubao.png',
+  'video-qwen': 'qwen.png',
+  web: 'web.svg',
   commandcode: 'commandcode.png',
   agnes: 'agnes.svg',
   opencode: 'opencode.svg',
@@ -308,7 +318,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
 
   // ===== 特殊别名 =====
   'openai-response': 'openai.svg',
-  huiqing: 'huqing.svg',
+  huiqing: 'huiqing.svg',
   mock: 'mock.svg',
   xqapi: 'xqapi.png',
   shusheng: 'shusheng.png',
@@ -426,6 +436,9 @@ const DOMAIN_BRANDS: Array<[string, string]> = [
   ['kilo', 'kilo'],
   ['ollama', 'ollama'],
   ['onnx', 'onnx'],
+  // ZenMux：zenmux.ai 以 "x.ai" 结尾，必须排在 x.ai 之前命中，
+  // 否则 base_url=zenmux.ai 的 ZenMux 会被误判成 xAI 品牌显示错图
+  ['zenmux', 'zenmux'],
   ['x.ai', 'xai'],
   ['mistral', 'mistral'],
   ['groq', 'groq'],

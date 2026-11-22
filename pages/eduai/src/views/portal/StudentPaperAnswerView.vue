@@ -278,8 +278,22 @@ function setAnswer(questionId: number, value: string): void {
   answers[questionId] = value;
 }
 
-/** 草稿暂存：任何作答变化立即落盘 */
+/** 草稿防抖：深 watch 每次按键都触发，大卷全量序列化 + 同步写 localStorage
+ * 在低端机上有可感知卡顿，合并到 500ms 窗口落盘一次 */
+let draftTimer = 0;
+
+/** 草稿暂存：作答变化后 500ms 落盘，连续作答只写一次 */
 function persistDraft(): void {
+  if (draftTimer) window.clearTimeout(draftTimer);
+  draftTimer = window.setTimeout(flushDraft, 500);
+}
+
+/** 立即落盘当前作答（交卷前/离开页面前调用，防丢最后 500ms 内的修改） */
+function flushDraft(): void {
+  if (draftTimer) {
+    window.clearTimeout(draftTimer);
+    draftTimer = 0;
+  }
   try {
     localStorage.setItem(
       draftKey.value,
@@ -304,6 +318,11 @@ function loadDraft(): boolean {
 }
 
 function clearDraft(): void {
+  // 先撤销待写入的防抖定时器，避免交卷成功后又把已清除的草稿写回去
+  if (draftTimer) {
+    window.clearTimeout(draftTimer);
+    draftTimer = 0;
+  }
   try {
     localStorage.removeItem(draftKey.value);
   } catch {
@@ -415,20 +434,26 @@ function stopPolling(): void {
 /** 完整详情只需拉一次（复盘用）；作答中始终用脱敏详情 */
 let fullPaperLoaded = false;
 
+/** 加载序号：并发/快速重复加载时只让最新一次生效，旧响应直接丢弃 */
+let loadSeq = 0;
+
 async function load(full = false): Promise<void> {
   if (full && fullPaperLoaded) return;
+  const seq = ++loadSeq;
   loading.value = true;
   try {
     // 已交卷的看完整详情（复盘要标准答案/解析）；作答中只给脱敏详情防抄答案
     paper.value = full
       ? await eduaiApi.myClassPaperDetail(props.paperId)
       : await eduaiApi.studentAnswerPaper(props.paperId);
+    if (seq !== loadSeq) return; // 期间又发起了更新的加载，本次结果丢弃
     if (full) fullPaperLoaded = true;
   } catch (e) {
+    if (seq !== loadSeq) return;
     message.error("试卷加载失败：" + (errText(e) || "未知错误"));
     emit("close");
   } finally {
-    loading.value = false;
+    if (seq === loadSeq) loading.value = false;
   }
 }
 
@@ -460,6 +485,8 @@ onBeforeUnmount(() => {
     window.clearInterval(tickTimer);
     tickTimer = 0;
   }
+  // 交卷流程之外离开页面（刷新/直接关闭）时，补写最后 500ms 内的作答进草稿
+  if (phase.value === "answering") flushDraft();
 });
 
 // 作答变化即时暂存（深.watch reactive 对象即可）

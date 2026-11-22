@@ -28,6 +28,11 @@
           <el-option v-for="p in usageParsers" :key="p.name" :label="parserLabel(p)" :value="p.name" />
         </el-select>
       </SettingsRow>
+      <SettingsRow label="用量解析目录"
+        description="逗号分隔的附加用户主目录（如 C:\Users\其它账号 或 /home/其它用户），用于解析其它系统账号下的本地工具用量；当前用户主目录始终参与解析，无需填写。">
+        <el-input v-model="byField('usage_parse_dirs').value" clearable
+          placeholder="留空 = 仅解析当前用户主目录" />
+      </SettingsRow>
       <div v-if="!parsersLoading && usageParsers.length === 0" class="parsers-empty">
         未读取到已注册的数据源解析器，白名单将按「全部启用」处理。
       </div>
@@ -114,6 +119,7 @@ const schema = reactive<SettingSchema[]>([
   { field: 'credit_renew_enabled', label: '余额令牌自动续期', valueType: 'BOOLEAN', type: 'switch', value: true, desc: '开启后到期前自动用无头浏览器回访上游门户静默续期令牌（仅账密登录且平台支持的供应商生效），失败推送告警' },
   { field: 'usage_report_interval', label: '定时聚合间隔', valueType: 'NUMBER', type: 'number', value: 3600 },
   { field: 'usage_sync_providers', label: 'Provider 白名单', valueType: 'STRING', type: 'text', value: '' },
+  { field: 'usage_parse_dirs', label: '用量解析目录', valueType: 'STRING', type: 'text', value: '', desc: '逗号分隔的附加用户主目录；当前用户主目录始终参与解析，无需填写' },
   {
     field: 'usage_currency', label: '货币单位', valueType: 'STRING', type: 'select', value: 'CNY',
     options: [

@@ -104,7 +104,6 @@ const bootTimer = setTimeout(() => {
 }, BOOT_TIMEOUT_MS);
 
 createContextApp({
-  routerMode: "hash",
   defaults: {
     /**
      * 调度治理出口用 job-starter 自带的 `/v2/job/**`。

@@ -34,9 +34,14 @@
         <aside class="mw-aside">
           <div class="mw-aside-head">
             <span class="mw-aside-title">{{ t('settings.models.providers') }}</span>
-            <button v-if="canWrite" class="mw-round" :title="t('settings.models.addCustom')" @click="handleCreate">
-              <el-icon :size="18"><AddOutlined /></el-icon>
-            </button>
+            <div v-if="canWrite" class="mw-aside-actions">
+              <button class="mw-round" title="从配置导入" @click="openImport">
+                <el-icon :size="18"><UploadOutlined /></el-icon>
+              </button>
+              <button class="mw-round" :title="t('settings.models.addCustom')" @click="handleCreate">
+                <el-icon :size="18"><AddOutlined /></el-icon>
+              </button>
+            </div>
           </div>
 
           <!--
@@ -216,6 +221,10 @@
                   <template #icon><AddOutlined /></template>
                   自定义添加
                 </el-button>
+                <el-button round @click="openImport">
+                  <template #icon><UploadOutlined /></template>
+                  从配置导入
+                </el-button>
               </div>
             </template>
             <template v-else>
@@ -224,12 +233,31 @@
             </template>
           </div>
         </main>
+
+        <!-- 右侧：AIHOT 精选资讯（后端 sys_ai_news 无数据时整列不渲染） -->
+        <aside v-if="aiNews.length" class="mw-news" data-testid="ai-news-panel">
+          <div class="mw-news-head">
+            <span class="mw-news-title">AI 资讯</span>
+            <span class="mw-news-src">AIHOT</span>
+          </div>
+          <ul class="mw-news-list">
+            <li v-for="item in aiNews" :key="item.link" class="mw-news-item">
+              <div class="mw-news-meta">
+                <span v-if="item.category" class="mw-news-cat">{{ item.category }}</span>
+                <span v-if="item.publishedAt" class="mw-news-date">{{ formatNewsTime(item.publishedAt) }}</span>
+              </div>
+              <a class="mw-news-link" :href="item.originUrl || item.link" target="_blank" rel="noopener" :title="item.title">{{ item.title }}</a>
+              <p v-if="item.summary" class="mw-news-summary">{{ item.summary }}</p>
+            </li>
+          </ul>
+        </aside>
       </div>
     </div>
 
     <!-- 弹窗 -->
     <ProviderFormDialog ref="formRef" @saved="handleSaved" @back="openCatalog" @goToChannelManagement="handleGoToChannelManagement" />
     <TemplateCatalogDialog ref="catalogRef" :templates="availableTemplates" @select="handleTemplateClick" />
+    <ConfigImportDialog ref="importRef" @imported="handleSaved" />
   </div>
 </template>
 
@@ -237,7 +265,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { AddOutlined, CloudOutlined, StorefrontOutlined, DeleteOutlined, SearchOutlined, ExpandMoreOutlined } from '@vicons/material'
+import { AddOutlined, CloudOutlined, StorefrontOutlined, DeleteOutlined, SearchOutlined, ExpandMoreOutlined, UploadOutlined } from '@vicons/material'
 import {
   TextT24Regular, Image24Regular, Video24Regular, Speaker224Regular,
 } from '@vicons/fluent'
@@ -247,7 +275,9 @@ import ModelsProviderDetail from './ModelsProviderDetail.vue'
 import ModelsBatchActions from './ModelsBatchActions.vue'
 import ProviderFormDialog from './ProviderFormDialog.vue'
 import TemplateCatalogDialog from './TemplateCatalogDialog.vue'
+import ConfigImportDialog from './ConfigImportDialog.vue'
 import { apiService } from '../../services/ApiService'
+import { aiNewsApi } from '../../services/javaApi'
 import { adminApi } from '@/framework/context'
 import { message, isAdmin } from '@repo/core'
 import { usePopup } from '../../composables/usePopup'
@@ -275,6 +305,7 @@ const modelPresets = ref<any[]>([])
 const currentProviderId = ref<string | null>(null)
 const formRef = ref<any>(null)
 const catalogRef = ref<any>(null)
+const importRef = ref<any>(null)
 
 /** 供应商批量删除（勾选供应商行后，页头那排批删操作自动出现） */
 const selectedProviders = ref<any[]>([])
@@ -818,6 +849,7 @@ const selectProvider = (p: any) => {
 }
 const handleCreate = () => formRef.value.openCreate()
 const openCatalog = () => catalogRef.value.open()
+const openImport = () => importRef.value.open()
 
 const handleEditProvider = (opts?: { focusSection?: 'balance' }) => {
   if (currentProvider.value) formRef.value.openEdit(currentProvider.value, opts)
@@ -838,10 +870,44 @@ const handleGoToChannelManagement = () => {
   router.push({ name: 'SystemSettings', params: { tab: 'channels' } })
 }
 
+// ==================== AIHOT 资讯面板 ====================
+// 右侧资讯列数据源：后端 sys_ai_news（AIHOT RSS 同步）；
+// 无数据时 aiNews 为空数组，整个面板 v-if 不渲染，不占布局。
+interface AiNewsItem {
+  id: number
+  title: string
+  link: string
+  originUrl?: string | null
+  summary?: string | null
+  category?: string | null
+  publishedAt?: number | null
+}
+const aiNews = ref<AiNewsItem[]>([])
+
+const loadAiNews = async () => {
+  try {
+    const res = await aiNewsApi.latest(20)
+    aiNews.value = ((res?.data as AiNewsItem[]) || []).filter((n) => n && n.link && n.title)
+  } catch (error) {
+    // 资讯是锦上添花：后端未部署/接口 404 时静默降级，不弹错、不影响主流程
+    console.error('获取 AIHOT 资讯失败:', error)
+  }
+}
+
+/** 毫秒时间戳 → YYYY-MM-DD HH:mm（资讯发布时间展示） */
+const formatNewsTime = (ms?: number | null) => {
+  if (!ms) return ''
+  const d = new Date(ms)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 onMounted(async () => {
   // 角色可能在上一次渲染后才补齐（登录流程异步写用户信息），进入页面时再确认一次权限
   canWrite.value = isAdmin()
   await reload()
+  // AIHOT 资讯：独立于供应商主流程，失败静默（面板 v-if 兜底）
+  loadAiNews()
   try {
     modelPresets.value = await apiService.getModelPresets()
   } catch (error) {
@@ -902,6 +968,12 @@ onMounted(async () => {
   transition: color 0.15s ease, background 0.15s ease;
 }
 .mw-round:hover { color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
+/* 侧栏头部按钮组：从配置导入 + 自定义添加两个圆钮并排 */
+.mw-aside-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 /* 供应商搜索：与列表左右内边距对齐，控件本身自带边框，不再加外框 */
 .mw-aside-search { padding: 0 10px 8px; }
 /* 一条模型都没有的供应商：提示独占一行（不与计数挤在一行），
@@ -1193,6 +1265,94 @@ onMounted(async () => {
   height: 100%;
   padding: 20px;
   text-align: center;
+}
+
+/* 右侧资讯列：与主卡片同款描边/圆角/底色；后端无数据时整个 aside 不渲染 */
+.mw-news {
+  width: 300px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle, var(--color-surface-border));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+  background: var(--color-surface);
+  overflow: hidden;
+}
+.mw-news-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle, var(--color-surface-border));
+}
+.mw-news-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.mw-news-src {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+}
+.mw-news-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+.mw-news-item {
+  padding: 10px 16px;
+}
+.mw-news-item + .mw-news-item {
+  border-top: 1px dashed var(--border-subtle, var(--color-surface-border));
+}
+.mw-news-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.mw-news-cat {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-text-gray) 10%, transparent);
+  color: var(--color-text-gray);
+}
+.mw-news-date {
+  font-size: 11px;
+  color: var(--color-text-gray);
+  font-variant-numeric: tabular-nums;
+}
+.mw-news-link {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--color-text);
+  text-decoration: none;
+}
+.mw-news-link:hover {
+  color: var(--color-primary);
+}
+.mw-news-summary {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-gray);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 /* 动效降级：系统开启「减少动态效果」时，左侧导航的底色、状态点/删除按钮显隐、
    供应商入口的文字与描边全部改为瞬间切换。逐个列出，不写 `*` / .mw-item * 通配，

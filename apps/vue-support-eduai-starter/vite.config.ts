@@ -109,6 +109,9 @@ export default createVite({
   // 写错时只在 dev server 暴露（模块 500、路由桶文件连带失败、页面全白屏），
   // 生产构建走包 exports 能解析，所以单跑 vue-tsc / vite build 发现不了。
   alias: {
+    // 必须指向 pages/ai/src：pages/ai 的模块会经 collect/共享层进入本应用构建图，
+    // 且其源码内部大量自引用 "@/..."（koi/contribution、framework/context 等）。
+    // eduai 自身源码不写 @/（避免误解析进 ai 包），该 alias 仅为 ai 模块服务。
     "@": "pages/ai/src",
     "@pages/collect": "pages/collect",
     // 数据源管理页（@pages/datasource）被采集/调度入口深导入：
@@ -119,7 +122,8 @@ export default createVite({
   },
     server: {
       port: 19093,
-      strictPort: false,
+      // 端口被占直接启动失败（运维口径：本项目只允许一个实例），禁止静默漂移到 19094+
+      strictPort: true,
       proxy: {
         // 后端所有接口都代理过去。
         // 不能只代理 /v2/edu + /v2/user：登录页还需要

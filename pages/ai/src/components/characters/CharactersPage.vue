@@ -19,6 +19,23 @@
         </div>
       </section>
     </div>
+
+    <!-- 使用说明：本系统 ReDialog 自编说明弹层（2026-11-21 定版，不再跳外链文档） -->
+    <ReDialog v-model="docsVisible" :title="t('characters.wb.docsTitle')" width="620px"
+      :close-on-click-modal="false" append-to-body>
+      <div class="cwb-docs">
+        <p class="cwb-docs__intro">{{ t('characters.wb.docsIntro') }}</p>
+        <div class="cwb-docs__sec">{{ t('characters.wb.docsStepsTitle') }}</div>
+        <ol class="cwb-docs__steps">
+          <li>{{ t('characters.wb.docsStep1') }}</li>
+          <li>{{ t('characters.wb.docsStep2') }}</li>
+          <li>{{ t('characters.wb.docsStep3') }}</li>
+          <li>{{ t('characters.wb.docsStep4') }}</li>
+          <li>{{ t('characters.wb.docsStep5') }}</li>
+        </ol>
+        <p class="cwb-docs__tip">{{ t('characters.wb.docsTip') }}</p>
+      </div>
+    </ReDialog>
   </div>
 </template>
 
@@ -32,11 +49,11 @@ import { InfoCircleOutlined } from '@vicons/antd'
 import PageHeader from '@/components/PageHeader.vue'
 import CharacterRoster from './CharacterRoster.vue'
 import CharacterSettingPanel from './CharacterSettingPanel.vue'
+import ReDialog from '@repo/ui/re-dialog'
 // 令牌桥：为页面宿主（名录卡片 / 空态）提供 --ax-* 变量
 import './workbench.css'
 import { apiService } from '../../services/ApiService'
 import { usePopup } from '../../composables/usePopup'
-import { openInExternalBrowser } from '@/utils/browserUtils'
 import type { CharacterGroup } from '@/types/character'
 import { useSelectedCharacter } from '@/composables/useSelectedCharacter'
 
@@ -273,8 +290,10 @@ const showCreateGroupDialog = async (): Promise<void> => {
 }
 
 // ========== 其它入口 ==========
+// 使用说明：本系统内 ReDialog 弹层展示自编说明，不再跳转外链文档
+const docsVisible = ref(false)
 const openDocs = (): void => {
-  openInExternalBrowser('https://ai.dingd.cn/docs/assistant')
+  docsVisible.value = true
 }
 
 const handleImported = async (): Promise<void> => {
@@ -350,6 +369,41 @@ onMounted(async (): Promise<void> => {
 
 .cwb-host__empty-desc {
   font-size: 12px;
+}
+
+/* 使用说明弹层（ReDialog append-to-body）：脱离 .cwb-scope 令牌域，--ax-* 失效，按兜底字面量取色 */
+.cwb-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ax-text-2, #5c6270);
+}
+
+.cwb-docs__intro {
+  margin: 0;
+}
+
+.cwb-docs__sec {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ax-text-3, #6b7280);
+}
+
+.cwb-docs__steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cwb-docs__tip {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ax-text-3, #6b7280);
 }
 
 /* 窄屏：名录退到上方横条，编辑区占满剩余高度 */

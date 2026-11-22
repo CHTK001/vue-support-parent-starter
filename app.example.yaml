@@ -168,8 +168,12 @@ loginConfig:
   captcha: false
   # 是否启用 OTP 动态口令（TOTP，6 位数字）
   otp: false
-  # 是否启用滑块验证（前端滑动校验）
-  slider: true
+  # 是否启用滑块验证（前端滑动校验）。默认关闭；开启后形态由 sliderType 决定：
+  # simple=向右拖动滑块，puzzle=图片拼图（底图缺一块，拖动拼图块补全；缺省 puzzle）
+  slider: false
+  # 短信登录「获取验证码」前是否先弹图片拼图验证（拼对才发信）。默认关闭；
+  # 后端对应 sys_setting 开关 SmsSliderOpen（登录后热重载同步）
+  smsSlider: false
   # 品牌名（登录页 / 浏览器标题）—— 各应用在 apps/{appName}/app.yaml 覆盖
   brandName: "应用"
   # 品牌 Logo（登录页左上角/品牌区）—— 各应用在 apps/{appName}/app.yaml 覆盖

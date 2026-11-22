@@ -8367,7 +8367,10 @@ onUnmounted(() => {
 .wg-composer {
   position: relative;
   flex: 0 0 auto;
-  padding: 12px 24px 20px;
+  /* 右侧避让站内消息浮球（fixed right:24px + 36px 球体）。否则发送按钮正好落在浮球
+     正下方，真实点击被浮球图标 SVG 拦截（验收实测：send-btn 点击超时，
+     elementFromPoint 命中 re-station-message-trigger 的铃铛 SVG）。 */
+  padding: 12px 76px 20px 24px;
 }
 
 /* 快捷键提示：贴在输入条右下（落在底部 padding 区），安静但找得到；不参与交互 */
@@ -8457,7 +8460,7 @@ onUnmounted(() => {
   }
 
   .wg-composer {
-    padding: 10px 14px 16px;
+    padding: 10px 76px 16px 14px;
   }
 
   .wg-grid,

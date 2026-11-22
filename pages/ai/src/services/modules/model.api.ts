@@ -131,6 +131,22 @@ export interface ModelApi {
     token_mask?: string | null;
     kind?: string | null;
   }>;
+  /** 已解包：账密登录实时模式——服务端无头浏览器画面推流给前端内嵌操作，返回 live_url 供 iframe 嵌入 */
+  startProviderCreditLiveLogin(providerId: string): Promise<{
+    ok?: boolean;
+    message?: string;
+    session_token?: string | null;
+    live_url?: string | null;
+    login_url?: string | null;
+  }>;
+  /** 已解包：轮询实时登录会话状态（pending / success / failed / unknown） */
+  providerCreditLiveLoginStatus(providerId: string, sessionToken: string): Promise<{
+    status?: 'pending' | 'success' | 'failed' | 'unknown';
+    message?: string | null;
+    token_mask?: string | null;
+  }>;
+  /** 已解包：取消实时登录会话（关闭弹层时释放服务端浏览器） */
+  cancelProviderCreditLiveLogin(providerId: string, sessionToken: string): Promise<{ ok?: boolean }>;
   deleteProvider(providerId: string): Promise<boolean>;
   /** 批量删除供应商行（级联其模型与连接，Body 为 ids 数组，整批拦截） */
   batchDeleteProviders(ids: string[]): Promise<{ success: boolean; deletedCount: number }>;
@@ -445,6 +461,50 @@ export const modelApi: ModelApi = {
       token_mask?: string | null;
       kind?: string | null;
     };
+  },
+
+  /**
+   * 供应商余额「账号密码登录」实时模式：在服务端起无头浏览器打开上游登录页，
+   * 画面经 CDP 推流给前端内嵌在弹层里直接操作（登录窗口不再弹在服务端桌面，
+   * 后端部署在远端机时也能登录）。返回 live_url 供 iframe 嵌入；随后用
+   * providerCreditLiveLoginStatus 轮询结果，截获的令牌由后端追加为余额密钥。
+   */
+  async startProviderCreditLiveLogin(this: ApiContext, providerId: string) {
+    const body: any = await rawApi.post(
+      `/api/providers/${encodeURIComponent(providerId)}/credit/login/live`,
+      {},
+      { timeout: 60000 },
+    );
+    const payload = body && typeof body === 'object' && 'data' in body ? body.data : body;
+    return (payload ?? { ok: false, message: '空响应' }) as {
+      ok?: boolean;
+      message?: string;
+      session_token?: string | null;
+      live_url?: string | null;
+      login_url?: string | null;
+    };
+  },
+
+  /** 轮询实时登录会话状态：pending（进行中）/ success / failed / unknown（会话过期） */
+  async providerCreditLiveLoginStatus(this: ApiContext, providerId: string, sessionToken: string) {
+    const body: any = await rawApi.get(
+      `/api/providers/${encodeURIComponent(providerId)}/credit/login/live/${encodeURIComponent(sessionToken)}/status`,
+    );
+    const payload = body && typeof body === 'object' && 'data' in body ? body.data : body;
+    return (payload ?? { status: 'unknown' }) as {
+      status?: 'pending' | 'success' | 'failed' | 'unknown';
+      message?: string | null;
+      token_mask?: string | null;
+    };
+  },
+
+  /** 取消实时登录会话：关闭弹层时调用，释放服务端登录浏览器 */
+  async cancelProviderCreditLiveLogin(this: ApiContext, providerId: string, sessionToken: string) {
+    const body: any = await rawApi.delete(
+      `/api/providers/${encodeURIComponent(providerId)}/credit/login/live/${encodeURIComponent(sessionToken)}`,
+    );
+    const payload = body && typeof body === 'object' && 'data' in body ? body.data : body;
+    return (payload ?? { ok: false }) as { ok?: boolean };
   },
 
   async deleteProvider(this: ApiContext, providerId: string) {

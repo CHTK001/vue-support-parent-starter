@@ -59,6 +59,9 @@
  * 引擎专属能力（element 无等价物，element 下忽略并在 dev 提示）：
  *   - virtualScroll：vxe 纵向虚拟滚动，需配合 layout-table 的 height / maxHeight
  *   - areaSelect / areaClip：vxe 单元格区域选择与复制 / 粘贴 / 剪切
+ *   - dragSelect（config.selection.dragSelect，默认开）：左键拖框复选，按住左键在
+ *     复选列内拖动即框选区间行批量勾选 / 取消（走 vxe 原生 checkbox-config.range）；
+ *     开启后自动长出 checkbox 列
  *   - paginationMode="scroll"：滚动分页（基于 vxe 内置 scroll-boundary 触底事件，
  *     触底自动追加下一批；本地数据按 pageSize 逐步放出、远程 loader 按页追加）。
  *     paginationModeSwitch 打开后工具条出现「分页 / 滚动」切换器，选择随 tableId 持久化；
@@ -1282,10 +1285,18 @@ const searchConfig = computed<ReTableSearchConfig>(() => {
   return s && typeof s === "object" ? s : {};
 });
 
-/** 是否常驻勾选列：分组 config.selection.enable 优先于旧 showSelection prop */
-const selectionEnabled = computed<boolean>(
-  () => props.config?.selection?.enable ?? (props.showSelection || props.selection === true),
-);
+/** 左键拖框复选开关（config.selection.dragSelect → vxe checkbox-config.range）：默认开启，显式传 false 关闭 */
+const dragSelectEnabled = computed<boolean>(() => props.config?.selection?.dragSelect ?? true);
+
+/**
+ * 是否常驻勾选列：分组 config.selection.enable 优先于旧 showSelection prop；
+ * 拖框复选（dragSelect）默认开启并连带长出勾选列，enable=false 时整列关闭。
+ */
+const selectionEnabled = computed<boolean>(() => {
+  const enable = props.config?.selection?.enable;
+  if (enable !== undefined) return enable;
+  return dragSelectEnabled.value || props.showSelection || props.selection === true;
+});
 /**
  * 内置搜索是否真正可用。
  *
@@ -2436,12 +2447,14 @@ const vxeRowConfig = computed(() => ({
 }));
 
 /**
- * 勾选配置：reserve 开启跨页保留勾选。
+ * 勾选配置：reserve 开启跨页保留勾选；range 开启左键拖框复选（vxe 原生能力）。
  *
  * <p>跨页勾选由组件自己的 selectedRowsMap + sessionStorage 兜底（见
- * restoreSelection），vxe 的 reserve 负责让已勾选行在翻页回来时保持勾选态。</p>
+ * restoreSelection），vxe 的 reserve 负责让已勾选行在翻页回来时保持勾选态。
+ * range=true 后按住左键在复选列内拖动即可框选区间行批量勾选 / 取消（按住
+ * Ctrl 拖动则对区间行取反），选框样式与边缘自动滚动均由 vxe 内置。</p>
  */
-const vxeCheckboxConfig = computed(() => ({ reserve: true }));
+const vxeCheckboxConfig = computed(() => ({ reserve: true, range: dragSelectEnabled.value }));
 
 /**
  * 排序配置：与 element-plus 的「点表头即排序」语义对齐。
@@ -2657,6 +2670,30 @@ function onVxeCheckboxChange(payload: { records?: Array<Record<string, unknown>>
 
 function onVxeCheckboxAll(payload: { records?: Array<Record<string, unknown>> }): void {
   onSelectionChange(payload.records ?? []);
+}
+
+/**
+ * 左键拖框复选（checkbox-config.range）结束。
+ *
+ * <p>vxe 原生拖选是程序化改勾选状态，过程中不派发 checkbox-change；这里在
+ * 拖选收尾时从实例取最终勾选记录，走与 onVxeCheckboxChange 同一条出口，
+ * 同步跨页缓存并对外派发 selection-change。</p>
+ */
+function onVxeCheckboxRangeEnd(): void {
+  // vxe 的 getCheckboxRecords() 返回的是**行数组**（table.js `return rowList`），
+  // 不是 { records } 包裹 —— 此前按 { records } 解构，`数组.records` 恒 undefined，
+  // 拖选结束统一回落成空数组：跨页缓存被清空、selection-change 对外报空、
+  // 工具栏的选中徽标与批量按钮全部消失（真实验收抓出）。这里按数组收口，
+  // 并对对象形态做防御兼容。
+  const table = vxeTableRef.value as unknown as
+    | {
+        getCheckboxRecords?:
+          | (() => Array<Record<string, unknown>>)
+          | (() => { records?: Array<Record<string, unknown>> });
+      }
+    | null;
+  const records = table?.getCheckboxRecords?.();
+  onSelectionChange(Array.isArray(records) ? records : records?.records ?? []);
 }
 
 /**
@@ -5167,6 +5204,7 @@ const hasMinHeight = computed(() => {
 
 /** 根节点 / 主体区 DOM 引用：量高度用 */
 const rootRef = ref<HTMLElement | null>(null);
+
 const mainRef = ref<HTMLElement | null>(null);
 
 /** 父容器高度是否可用于 fill（单一结论 ref，时序理由见 detectParentHeight） */
@@ -6420,12 +6458,12 @@ function onHeaderDragendCapture(): void {
   resetColumnDragoverState();
 }
 
-/** element 引擎不支持虚拟滚动 / 区域选择：开启只提示，不假装生效 */
+/** element 引擎不支持虚拟滚动 / 区域选择 / 拖框复选：开启只提示，不假装生效 */
 watch(
-  [() => props.virtualScroll, () => props.areaSelect, useVxe],
-  ([virtual, area, vxe]) => {
-    if (!vxe && (virtual || area) && import.meta.env.DEV) {
-      console.warn("[ReTable] virtualScroll / areaSelect 仅 vxe 引擎支持，当前为 element 引擎，已忽略。");
+  [() => props.virtualScroll, () => props.areaSelect, dragSelectEnabled, useVxe],
+  ([virtual, area, dragSelect, vxe]) => {
+    if (!vxe && (virtual || area || dragSelect) && import.meta.env.DEV) {
+      console.warn("[ReTable] virtualScroll / areaSelect / dragSelect(拖框复选) 仅 vxe 引擎支持，当前为 element 引擎，已忽略。");
     }
   },
   { immediate: true },
@@ -7450,6 +7488,7 @@ const iconSelect = Select;
       @header-cell-dblclick="onVxeHeaderCellDblclick"
       @checkbox-change="onVxeCheckboxChange"
       @checkbox-all="onVxeCheckboxAll"
+      @checkbox-range-end="onVxeCheckboxRangeEnd"
       @sort-change="onVxeSortChange"
       @row-dragend="onVxeRowDragEnd"
       @column-dragend="onVxeColumnDragEnd"
@@ -8021,6 +8060,7 @@ const iconSelect = Select;
   font-size: var(--rt-font);
   overflow: hidden;
 }
+
 /* ============ 吃满父容器（fill 模式，2026-09-28 起缺省开启） ============
    传了 height / maxHeight / minHeight 的页面走原路径，不进这里；显式 fill:false 可退出。
 

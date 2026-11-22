@@ -81,6 +81,13 @@
      体系里状态色是"语义"而非"某个 hue"，图表 / 状态点 / 徽标统一取这里。 */
   --status-success: #16a34a;
   --status-error: #ef4444;
+  /* 错误三件套（文字/图标底/边框）：ReErrorBar 等组件依赖。本应用不加载
+     @repo/theme 的 tokens.css（见文件头「同值收敛」注释），必须在此自给，
+     取值与 koi 全局亮色令牌一致。2026-11-21 修复：同值收敛误删后文字色
+     退化为继承色，浅底上不可读。 */
+  --status-error-text: #9b1c2e;
+  --status-error-bg: #fdecef;
+  --status-error-border: #fbc0c9;
   --status-info: #3b82f6;
   --status-online: #16a34a;
   --status-offline: #94a3b8;
@@ -177,6 +184,10 @@ html.dark {
   --brand-700: #2563eb;
 
   --status-error: #f87171;
+  /* 暗色错误三件套：与 koi 全局暗色令牌同值（深底上提亮的柔和红）。 */
+  --status-error-text: #fca5a5;
+  --status-error-bg: rgba(239, 68, 68, 0.15);
+  --status-error-border: rgba(239, 68, 68, 0.3);
   --status-info: #60a5fa;
   --status-online: #4ade80;
   --status-offline: #64748b;
