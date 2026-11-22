@@ -332,6 +332,31 @@ const chatInputButtons = computed(() => {
 })
 
 /**
+ * 判断模型是否可用于对话（与 ChatInput.isChatCapableModel 同一口径）：
+ * capabilities[].task === 'chat'；能力未声明的旧数据保守放行。
+ *
+ * <p>这里**不能**沿用旧的 `m.enabled` 过滤：部分可用渠道的模型行 enabled 为假值
+ * （实测 CHAT-DUCKDUCKGO 系），却正是模型面板里用户能选中的对话模型。本列表只用于
+ * 「用户手选的模型是否可用」判定（isModelAvailable → resolveAutoModelId），口径必须与
+ * ChatInput 的模型面板一致——否则用户刚选的模型会被误判不可用而回落兜底模型：
+ * chip 仍显示「自动」，且 sendMessage 建会话发的是兜底模型（free-channel:flux）而非
+ * 用户所选。2026-11-22 验收实测（temp/pricing-patch/diag-chip2.log）。</p>
+ */
+function isChatCapableModel(model: any): boolean {
+  const caps = model?.capabilities;
+  if (Array.isArray(caps) && caps.length > 0) {
+    return caps.some((c: any) => {
+      if (c && typeof c === 'object' && 'task' in c) {
+        return c.task === 'chat';
+      }
+      // 兼容字符串形态的能力声明
+      return c === 'chat';
+    });
+  }
+  return true;
+}
+
+/**
  * 加载模型列表（带退避重试）。
  *
  * <p>与 ChatInput.loadModels 同口径：`GET /api/providers` 瞬时故障时不能只报一次错就
@@ -343,9 +368,9 @@ const loadModels = async (): Promise<void> => {
     try {
       const response = await apiService.fetchModels();
       models.value = [];
-      // 提取所有启用的模型，并映射字段
+      // 只保留可用于会话对话的模型（与 ChatInput 的模型面板同一口径，见 isChatCapableModel），并映射字段
       (response.items || []).forEach(provider => {
-        const availableModels = provider.models?.filter((m: any) => m.enabled).map((m: any) => ({
+        const availableModels = provider.models?.filter(isChatCapableModel).map((m: any) => ({
           ...m,
           id: m.id,
           name: m.model
